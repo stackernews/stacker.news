@@ -18,7 +18,6 @@ export const ITEM_FIELDS = gql`
     id
     parentId
     createdAt
-    invoicePaidAt
     deletedAt
     title
     url
@@ -36,6 +35,11 @@ export const ITEM_FIELDS = gql`
       meSubscription
       nsfw
       replyCost
+    }
+    payIn {
+      id
+      payInState
+      payInStateChangedAt
     }
     otsHash
     position
@@ -75,11 +79,6 @@ export const ITEM_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
-    invoice {
-      id
-      actionState
-      confirmedAt
-    }
     cost
     meCommentsViewedAt
   }`
@@ -148,8 +147,6 @@ export const POLL_FIELDS = gql`
   fragment PollFields on Item {
     poll {
       meVoted
-      meInvoiceId
-      meInvoiceActionState
       count
       options {
         id

@@ -11,7 +11,7 @@ import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
-import { CREATE_COMMENT } from '@/fragments/paidAction'
+import { CREATE_COMMENT } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import { updateAncestorsCommentCount } from '@/lib/comments'
@@ -57,19 +57,22 @@ export default forwardRef(function Reply ({
 
   const onSubmit = useItemSubmit(CREATE_COMMENT, {
     extraValues: { parentId },
-    paidMutationOptions: {
-      update (cache, { data: { upsertComment: { result, invoice } } }) {
+    payInMutationOptions: {
+      update (cache, { data: { upsertComment: { result } } }) {
         if (!result) return
 
         cache.modify({
           id: `Item:${parentId}`,
           fields: {
             comments (existingComments = {}) {
+              // to insert a new comment, we need to write a fragment that matches the
+              // comments query which expects a comments field (which won't be returned on new comment creation)
               const newCommentRef = cache.writeFragment({
-                data: result,
+                data: { comments: { comments: [] }, ...result },
                 fragment: COMMENTS,
                 fragmentName: 'CommentsRecursive'
               })
+
               return {
                 cursor: existingComments.cursor,
                 comments: [newCommentRef, ...(existingComments?.comments || [])]

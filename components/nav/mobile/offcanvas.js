@@ -67,7 +67,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                   <Link href='/credits' passHref legacyBehavior>
                     <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>
                   </Link>
-                  <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
+                  <Link href='/satistics' passHref legacyBehavior>
                     <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
                   </Link>
                   <Dropdown.Divider />

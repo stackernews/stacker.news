@@ -30,6 +30,10 @@ export function protocolDisplayName ({ name, send }) {
   return protocol({ name, send })?.displayName || titleCase(name)
 }
 
+export function protocolGuideUrl ({ name, send }) {
+  return protocol({ name, send })?.guideUrl
+}
+
 export function protocolLogName ({ name, send }) {
   return protocol({ name, send })?.logName ?? protocolDisplayName({ name, send })
 }

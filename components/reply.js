@@ -30,7 +30,7 @@ export default forwardRef(function Reply ({
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
-  const { markCommentViewedAt } = useCommentsView({ item })
+  const { markCommentViewedAt } = useCommentsView()
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {

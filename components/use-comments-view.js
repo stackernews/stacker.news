@@ -5,52 +5,44 @@ import { commentsViewedAfterComment, commentsViewed, newComments } from '@/lib/n
 import { useMe } from './me'
 import { useRoot } from './root'
 
-export default function useCommentsView ({ item, updateCache = true } = {}) {
+export default function useCommentsView ({ itemId, updateCache = true } = {}) {
   const { me } = useMe()
   const root = useRoot()
-  const itemId = item?.id || root?.id
+  const id = itemId || root?.id
 
   const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
     update (cache, { data: { updateCommentsViewAt } }) {
-      if (!updateCache) return
+      if (!updateCache || !id) return
 
-      if (itemId) {
-        cache.modify({
-          id: `Item:${itemId}`,
-          fields: { meCommentsViewedAt: () => updateCommentsViewAt }
-        })
-      }
+      cache.modify({
+        id: `Item:${id}`,
+        fields: { meCommentsViewedAt: () => updateCommentsViewAt }
+      })
     }
   })
 
-  const updateViewedAt = useCallback((id, timestamp, anonFallbackFn) => {
+  const updateViewedAt = useCallback((latest, anonFallbackFn) => {
     if (me?.id) {
-      updateCommentsViewAt({ variables: { id, meCommentsViewedAt: timestamp } })
+      updateCommentsViewAt({ variables: { id, meCommentsViewedAt: latest } })
     } else {
       anonFallbackFn()
     }
-  }, [me?.id, updateCommentsViewAt])
+  }, [me?.id, id, updateCommentsViewAt])
 
   // update meCommentsViewedAt on comment injection
   const markCommentViewedAt = useCallback((latest, { ncomments } = {}) => {
-    updateViewedAt(
-      itemId,
-      latest,
-      () => commentsViewedAfterComment(itemId, latest, ncomments)
-    )
-  }, [itemId, updateViewedAt])
+    if (!latest) return
+
+    updateViewedAt(latest, () => commentsViewedAfterComment(id, latest, ncomments))
+  }, [id, updateViewedAt])
 
   // update meCommentsViewedAt on item view
-  const markItemViewed = useCallback((latest) => {
+  const markItemViewed = useCallback((item, latest) => {
     if (!item || (item?.meCommentsViewedAt && !newComments(item))) return
     const newLatest = new Date(latest || item?.lastCommentAt)
 
-    updateViewedAt(
-      itemId,
-      newLatest,
-      () => commentsViewed(item)
-    )
-  }, [item, itemId, updateViewedAt])
+    updateViewedAt(newLatest, () => commentsViewed(item))
+  }, [updateViewedAt])
 
   return { markCommentViewedAt, markItemViewed }
 }

@@ -88,7 +88,7 @@ function cacheNewComments (cache, latest, topLevelId, newComments, sort) {
 export default function useLiveComments (topLevelId, after, sort) {
   const latestKey = `liveCommentsLatest:${topLevelId}`
   const { cache } = useApolloClient()
-  const { markCommentViewedAt } = useCommentsView()
+  const { markCommentViewedAt } = useCommentsView({ itemId: topLevelId })
   const [disableLiveComments] = useLiveCommentsToggle()
   const [latest, setLatest] = useState(after)
   const [initialized, setInitialized] = useState(false)

@@ -37,7 +37,7 @@ export default [
         name: 'url',
         label: 'url',
         type: 'text',
-        validate: urlValidator('clearnet', 'tor'),
+        validate: urlValidator('clearnet'),
         required: true,
         share: true
       },

@@ -47,7 +47,7 @@ export default function useLiveComments (itemId, after) {
   const latestKey = `liveCommentsLatest:${itemId}`
   const { cache } = useApolloClient()
   const { me } = useMe()
-  const { markCommentViewedAt } = useCommentsView({ itemId })
+  const { markCommentViewedAt } = useCommentsView(itemId)
   const [disableLiveComments] = useLiveCommentsToggle()
 
   const [latest, setLatest] = useState(after)
@@ -83,7 +83,7 @@ export default function useLiveComments (itemId, after) {
     // save it to session storage, to persist between client-side navigations
     setLatest(injectedLatest)
     window.sessionStorage.setItem(latestKey, injectedLatest)
-  }, [data, cache, itemId, latest, me?.id])
+  }, [data, cache, itemId, latest, me?.id, markCommentViewedAt])
 }
 
 export function useLiveCommentsToggle () {

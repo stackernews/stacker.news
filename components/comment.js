@@ -166,11 +166,11 @@ export default function Comment ({
     const viewedAt = me?.id ? meViewedAt : router.query.commentsViewedAt
 
     const isNewComment = viewedAt && itemCreatedAt > viewedAt
-    // injected comments are new regardless of me or anon view time
+    // live comments are new regardless of me or anon view time
     const rootLast = new Date(root.lastCommentAt || root.createdAt).getTime()
-    const isNewInjectedComment = item.injected && itemCreatedAt > (meViewedAt || rootLast)
+    const isNewLiveComment = item.live && itemCreatedAt > (meViewedAt || rootLast)
 
-    if (!isNewComment && !isNewInjectedComment) return
+    if (!isNewComment && !isNewLiveComment) return
 
     if (item.live) {
       // live comments (item.live) have to use a different class to outline every new comment

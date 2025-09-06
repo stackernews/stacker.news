@@ -55,6 +55,7 @@ export const COMMENT_FIELDS = gql`
       id
       actionState
       confirmedAt
+      hmac
     }
     cost
   }
@@ -101,6 +102,7 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
       id
       actionState
       confirmedAt
+      hmac
     }
     cost
   }

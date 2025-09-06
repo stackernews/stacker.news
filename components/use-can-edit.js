@@ -12,15 +12,16 @@ export default function useCanEdit (item) {
   const noEdit = !!item.deletedAt || (Date.now() >= editThreshold) || item.bio
   const authorEdit = me && item.mine
   const [canEdit, setCanEdit] = useState(!noEdit && authorEdit)
-  const invParams = typeof window !== 'undefined' && window.localStorage.getItem(`item:${item.id}:hash:hmac`)
 
   useEffect(() => {
     // allow anon edits if they have the correct hmac for the item invoice
     // (the server will verify the hmac)
+    const invParams = window.localStorage.getItem(`item:${item.id}:hash:hmac`)
     const anonEdit = !!invParams && !me && Number(item.user.id) === USER_ID.anon
     // anonEdit should not override canEdit, but only allow edits if they aren't already allowed
     setCanEdit(canEdit => canEdit || anonEdit)
-  }, [invParams])
+    // update when the hmac gets set
+  }, [item?.invoice?.hmac])
 
   return [canEdit, setCanEdit, editThreshold]
 }

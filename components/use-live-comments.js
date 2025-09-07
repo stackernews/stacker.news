@@ -20,19 +20,19 @@ const readStoredLatest = (key, latest) => {
 // cache new comments and return the most recent timestamp between current latest and new comment
 // regardless of whether the comments were injected or not
 function cacheNewComments (cache, latest, itemId, newComments, markCommentViewedAt) {
-  let injected = false
+  let injected = 0
 
   const injectedLatest = newComments.reduce((latestTimestamp, newComment) => {
     const result = injectComment(cache, newComment, { live: true, rootId: itemId })
-    // if any comment was injected, set injected to true
-    injected = injected || result
+    // if any comment was injected, increment injected
+    injected = result ? injected + 1 : injected
     return new Date(newComment.createdAt) > new Date(latestTimestamp)
       ? newComment.createdAt
       : latestTimestamp
   }, latest)
 
-  if (injected) {
-    markCommentViewedAt(injectedLatest)
+  if (injected > 0) {
+    markCommentViewedAt(injectedLatest, { ncomments: injected })
   }
 
   return injectedLatest

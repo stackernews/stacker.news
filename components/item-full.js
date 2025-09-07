@@ -11,7 +11,6 @@ import { useMe } from './me'
 import Button from 'react-bootstrap/Button'
 import { useEffect } from 'react'
 import Poll from './poll'
-import useCommentsView from './use-comments-view'
 import Related from './related'
 import PastBounties from './past-bounties'
 import Check from '@/svgs/check-double-line.svg'
@@ -27,6 +26,7 @@ import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import { useRouter } from 'next/router'
+import useCommentsView from './use-comments-view'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()

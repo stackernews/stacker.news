@@ -4,7 +4,6 @@ import { SSR } from '../lib/constants'
 import preserveScroll from './preserve-scroll'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
 import { injectComment } from '../lib/comments'
-import { useMe } from './me'
 import useCommentsView from './use-comments-view'
 
 // live comments polling interval
@@ -44,7 +43,6 @@ function cacheNewComments (cache, latest, itemId, newComments, markCommentViewed
 export default function useLiveComments (itemId, after) {
   const latestKey = `liveCommentsLatest:${itemId}`
   const { cache } = useApolloClient()
-  const { me } = useMe()
   const { markCommentViewedAt } = useCommentsView(itemId)
   const [disableLiveComments] = useLiveCommentsToggle()
 
@@ -81,7 +79,7 @@ export default function useLiveComments (itemId, after) {
     // save it to session storage, to persist between client-side navigations
     setLatest(injectedLatest)
     window.sessionStorage.setItem(latestKey, injectedLatest)
-  }, [data, cache, itemId, latest, me?.id, markCommentViewedAt])
+  }, [data, cache, itemId, latest, markCommentViewedAt])
 }
 
 export function useLiveCommentsToggle () {

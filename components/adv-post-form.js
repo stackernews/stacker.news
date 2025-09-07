@@ -32,7 +32,7 @@ const FormStatus = {
 
 export function BoostHelp () {
   return (
-    <ol style={{ lineHeight: 1.25 }}>
+    <ol>
       <li>Boost ranks items higher based on the amount</li>
       <li>The highest boost in a territory over the last 30 days is pinned to the top of the territory</li>
       <li>The highest boost across all territories over the last 30 days is pinned to the top of the homepage</li>

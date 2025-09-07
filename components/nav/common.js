@@ -160,23 +160,20 @@ export function NavWalletSummary ({ className }) {
   )
 }
 
-export const Indicator = ({ superscript }) => {
-  if (superscript) {
-    return (
-      <span className='d-inline-block p-1'>
-        <span
-          className='position-absolute p-1 bg-secondary'
-          style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}
-        >
-          <span className='invisible'>{' '}</span>
-        </span>
-      </span>
-    )
-  }
-
+export const Indicator = ({ show, children }) => {
   return (
-    <div className='p-1 d-inline-block bg-secondary ms-1'>
-      <span className='invisible'>{' '}</span>
+    <div className='w-fit-content position-relative'>
+      {children}
+      {show && (
+        <span className='d-inline-block p-1'>
+          <span
+            className='position-absolute p-1 bg-secondary'
+            style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}
+          >
+            <span className='invisible'>{' '}</span>
+          </span>
+        </span>
+      )}
     </div>
   )
 }
@@ -194,8 +191,7 @@ export function MeDropdown ({ me, dropNavKey }) {
         <Dropdown.Toggle className='nav-link nav-item fw-normal' id='profile' variant='custom'>
           <div className='d-flex align-items-center'>
             <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
-              {`@${me.name}`}
-              {indicator && <Indicator superscript />}
+              <Indicator show={indicator}>@{me.name}</Indicator>
             </Nav.Link>
             <Badges user={me} />
           </div>
@@ -203,8 +199,7 @@ export function MeDropdown ({ me, dropNavKey }) {
         <Dropdown.Menu>
           <Link href={'/' + me.name} passHref legacyBehavior>
             <Dropdown.Item active={me.name === dropNavKey}>
-              profile
-              {profileIndicator && <Indicator />}
+              <Indicator show={profileIndicator}>profile</Indicator>
             </Dropdown.Item>
           </Link>
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
@@ -212,8 +207,7 @@ export function MeDropdown ({ me, dropNavKey }) {
           </Link>
           <Link href='/wallets' passHref legacyBehavior>
             <Dropdown.Item eventKey='wallets'>
-              wallets
-              {walletIndicator && <Indicator />}
+              <Indicator show={walletIndicator}>wallets</Indicator>
             </Dropdown.Item>
           </Link>
           <Link href='/credits' passHref legacyBehavior>

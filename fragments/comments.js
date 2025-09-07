@@ -95,6 +95,7 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     commentCredits
     mine
     otsHash
+    live @client
     imgproxyUrls
     rel
     apiKey
@@ -176,13 +177,19 @@ export const COMMENTS = gql`
     }
   }`
 
+export const HAS_COMMENTS = gql`
+  fragment HasComments on Item {
+    comments
+  }
+`
+
 export const GET_NEW_COMMENTS = gql`
-  ${COMMENT_FIELDS}
+  ${COMMENT_FIELDS_NO_CHILD_COMMENTS}
 
   query GetNewComments($itemId: ID, $after: Date) {
     newComments(itemId: $itemId, after: $after) {
       comments {
-        ...CommentFields
+        ...CommentFieldsNoChildComments
       }
     }
   }

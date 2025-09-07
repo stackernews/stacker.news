@@ -23,10 +23,8 @@ const readStoredLatest = (key, latest) => {
 function cacheNewComments (cache, latest, itemId, newComments, markCommentViewedAt) {
   let injected = false
 
-  const batchIds = new Set(newComments.map(c => c.id))
-
   const injectedLatest = newComments.reduce((latestTimestamp, newComment) => {
-    const result = injectComment(cache, itemId, newComment, { live: true, batchIds })
+    const result = injectComment(cache, itemId, newComment, { live: true })
     // if any comment was injected, set injected to true
     injected = injected || result
     return new Date(newComment.createdAt) > new Date(latestTimestamp)

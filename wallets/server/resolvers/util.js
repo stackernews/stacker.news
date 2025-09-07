@@ -16,7 +16,7 @@ export function mapWalletResolveTypes (wallet) {
       case 'LNC':
         return 'WalletSendLNC'
       case 'CLN_REST':
-        return 'WalletRecvCLNRest'
+        return send ? 'WalletSendCLNRest' : 'WalletRecvCLNRest'
       case 'LND_GRPC':
         return 'WalletRecvLNDGRPC'
       default:

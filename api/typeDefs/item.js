@@ -12,7 +12,7 @@ export default gql`
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
-    newComments(rootId: ID, after: Date): Comments!
+    newComments(topLevelId: ID, after: Date): Comments!
   }
 
   type BoostPositions {
@@ -65,6 +65,7 @@ export default gql`
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!
+    updateCommentsViewAt(id: ID!, meCommentsViewedAt: Date!): Date
   }
 
   type PollVoteResult {
@@ -173,6 +174,7 @@ export default gql`
     apiKey: Boolean
     invoice: Invoice
     cost: Int!
+    meCommentsViewedAt: Date
   }
 
   input ItemForwardInput {

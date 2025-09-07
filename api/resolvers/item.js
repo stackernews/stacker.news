@@ -180,7 +180,8 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
         to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
-        || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub
+        || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub,
+        "CommentsViewAt"."last_viewed_at" as "meCommentsViewedAt"
       FROM (
         ${query}
       ) "Item"
@@ -192,6 +193,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
       LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
       LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
+      LEFT JOIN "CommentsViewAt" ON "CommentsViewAt"."itemId" = "Item".id AND "CommentsViewAt"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId",
           sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND "InvoiceForward".id IS NOT NULL AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
@@ -741,7 +743,7 @@ export default {
         subMaxBoost: subAgg?._max.boost || 0
       }
     },
-    newComments: async (parent, { rootId, after }, { models, me }) => {
+    newComments: async (parent, { topLevelId, after }, { models, me }) => {
       const comments = await itemQueryWithMeta({
         me,
         models,
@@ -755,7 +757,7 @@ export default {
             '"Item"."created_at" > $2'
           )}
           ORDER BY "Item"."created_at" ASC`
-      }, Number(rootId), after)
+      }, Number(topLevelId), after)
 
       return { comments }
     }
@@ -1073,6 +1075,21 @@ export default {
         ])
 
       return result
+    },
+    updateCommentsViewAt: async (parent, { id, meCommentsViewedAt }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const result = await models.commentsViewAt.upsert({
+        where: {
+          userId_itemId: { userId: Number(me.id), itemId: Number(id) }
+        },
+        update: { lastViewedAt: new Date(meCommentsViewedAt) },
+        create: { userId: Number(me.id), itemId: Number(id), lastViewedAt: new Date(meCommentsViewedAt) }
+      })
+
+      return result.lastViewedAt
     }
   },
   ItemAct: {

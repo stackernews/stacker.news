@@ -96,7 +96,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 }
 
 export default function Comment ({
-  item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
+  item, children, replyOpen, includeParent, topLevel,
   rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
   navigator
 }) {
@@ -157,14 +157,20 @@ export default function Comment ({
   }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
-    if (me?.id === item.user?.id) return
+    // checking navigator because outlining should happen only on item pages
+    if (!navigator || me?.id === item.user?.id) return
 
     const itemCreatedAt = new Date(item.createdAt).getTime()
-    // it's a new comment if it was created after the last comment was viewed
-    // or, in the case of live comments, after the last comment was created
-    const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
-                        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
-    if (!isNewComment) return
+
+    const meViewedAt = new Date(root.meCommentsViewedAt).getTime()
+    const viewedAt = me?.id ? meViewedAt : router.query.commentsViewedAt
+
+    const isNewComment = viewedAt && itemCreatedAt > viewedAt
+    // injected comments are new regardless of me or anon view time
+    const rootLast = new Date(root.lastCommentAt || root.createdAt).getTime()
+    const isNewInjectedComment = item.injected && itemCreatedAt > (meViewedAt || rootLast)
+
+    if (!isNewComment && !isNewInjectedComment) return
 
     if (item.injected) {
       // newly injected comments (item.injected) have to use a different class to outline every new comment
@@ -180,8 +186,8 @@ export default function Comment ({
       ref.current.classList.add('outline-new-comment')
     }
 
-    navigator?.trackNewComment(ref, itemCreatedAt)
-  }, [item.id, rootLastCommentAt])
+    navigator.trackNewComment(ref, itemCreatedAt)
+  }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -303,7 +309,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} />
+                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>

@@ -152,6 +152,7 @@ model User {
   DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
   DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
   UserSubTrust              UserSubTrust[]
+  CommentsViewAt            CommentsViewAt[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -219,6 +220,7 @@ model Vault {
   walletSendLNCLocalKey      WalletSendLNC?      @relation("lncLocalKey")
   walletSendLNCRemoteKey     WalletSendLNC?      @relation("lncRemoteKey")
   walletSendLNCServerHost    WalletSendLNC?      @relation("lncServerHost")
+  walletSendCLNRestRune      WalletSendCLNRest?  @relation("clnRune")
 }
 
 model WalletLog {
@@ -490,6 +492,7 @@ model Item {
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
   randPollOptions      Boolean               @default(false)
+  CommentsViewAt       CommentsViewAt[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -538,6 +541,17 @@ model ItemUserAgg {
   @@index([itemId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model CommentsViewAt {
+  userId       Int
+  itemId       Int
+  lastViewedAt DateTime @default(now()) @map("last_viewed_at")
+  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemId])
+  @@index([userId])
 }
 
 // record auto social posts so we can avoid duplicates
@@ -1208,6 +1222,7 @@ enum WalletSendProtocolName {
   BLINK
   WEBLN
   LNC
+  CLN_REST
 }
 
 enum WalletRecvProtocolName {
@@ -1309,6 +1324,7 @@ model WalletProtocol {
   walletSendBlink    WalletSendBlink?
   walletSendWebLN    WalletSendWebLN?
   walletSendLNC      WalletSendLNC?
+  walletSendCLNRest  WalletSendCLNRest?
 
   walletRecvNWC              WalletRecvNWC?
   walletRecvLNbits           WalletRecvLNbits?
@@ -1388,6 +1404,17 @@ model WalletSendLNC {
   remoteKey            Vault?         @relation("lncRemoteKey", fields: [remoteKeyVaultId], references: [id])
   serverHostVaultId    Int            @unique
   serverHost           Vault?         @relation("lncServerHost", fields: [serverHostVaultId], references: [id])
+}
+
+model WalletSendCLNRest {
+  id          Int            @id @default(autoincrement())
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId  Int            @unique
+  protocol    WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  socket      String
+  runeVaultId Int            @unique
+  rune        Vault?         @relation("clnRune", fields: [runeVaultId], references: [id])
 }
 
 model WalletRecvNWC {

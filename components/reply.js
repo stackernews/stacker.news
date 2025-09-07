@@ -4,7 +4,6 @@ import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
-import { commentsViewedAfterComment } from '@/lib/new-comments'
 import { commentSchema } from '@/lib/validate'
 import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
@@ -14,6 +13,7 @@ import { CREATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import { updateAncestorsCommentCount } from '@/lib/comments'
+import useCommentsView from './use-comments-view'
 
 export default forwardRef(function Reply ({
   item,
@@ -30,6 +30,7 @@ export default forwardRef(function Reply ({
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
+  const { markCommentViewedAt } = useCommentsView(root.id)
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -87,8 +88,7 @@ export default forwardRef(function Reply ({
 
         // so that we don't see indicator for our own comments, we record this comments as the latest time
         // but we also have record num comments, in case someone else commented when we did
-        const root = ancestors[0]
-        commentsViewedAfterComment(root, result.createdAt)
+        markCommentViewedAt(result.createdAt, { ncomments: 1 })
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {

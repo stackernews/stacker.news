@@ -22,10 +22,6 @@
 form>.active {
     display: flex;
     pointer-events: auto;
-    flex-flow: row nowrap;
+    flex-flow: row;
     align-items: center;
-}
-
-form>.active :global(.input-group) {
-    flex-flow: nowrap;
 }

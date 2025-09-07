@@ -74,7 +74,7 @@ function LnAddrForm ({ onAttach }) {
   const initial = { address: '' }
 
   const onSubmit = useCallback(async ({ address }) => {
-    await upsert({ address })
+    await upsert(address)
     onAttach()
   }, [upsert, onAttach])
 
@@ -127,12 +127,12 @@ function SkipForm ({ onSkip }) {
   return (
     <Form
       initial={{ dontShowAgain: false }}
-      className='d-flex justify-content-between align-items-center mt-3'
+      className='d-flex align-items-center mt-3'
       onSubmit={onSubmit}
       schema={schema}
     >
-      <Checkbox label="don't show again" name='dontShowAgain' groupClassName='mb-0' />
       <Button type='submit' variant='secondary' size='sm'>skip</Button>
+      <Checkbox label="don't show again" name='dontShowAgain' groupClassName='mb-0 ms-3' />
     </Form>
   )
 }

@@ -52,7 +52,7 @@ export default forwardRef(function Reply ({
         if (!result) return
 
         // inject the new comment into the cache
-        const injected = injectComment(cache, root.id, result)
+        const injected = injectComment(cache, result)
         if (injected) {
           markCommentViewedAt(result.createdAt, { ncomments: 1 })
         }

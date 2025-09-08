@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { InputGroup, Nav } from 'react-bootstrap'
+import { Button, InputGroup, Nav } from 'react-bootstrap'
 import classNames from 'classnames'
 import styles from '@/styles/wallet.module.css'
 import navStyles from '@/styles/nav.module.css'
@@ -12,8 +12,8 @@ import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolGuid
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
-import Link from 'next/link'
 import InfoIcon from '@/svgs/information-fill.svg'
+import { useRouter } from 'next/router'
 
 import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
 import { Settings } from './settings'
@@ -71,6 +71,7 @@ function WalletForm () {
 function WalletProtocolSelector () {
   const protocols = useWalletProtocols()
   const [protocol, selectProtocol] = useProtocol()
+  const router = useRouter()
 
   return (
     <Nav className={classNames(navStyles.nav, 'mt-0')} activeKey={protocol?.name}>
@@ -82,11 +83,11 @@ function WalletProtocolSelector () {
               <Nav.Link eventKey={p.name} className='d-flex align-items-center'>
                 {protocolDisplayName(p)}
                 {guideUrl && (
-                  <Link href={guideUrl} className='ms-1'>
+                  <Button variant='link' className='ms-1 p-0' onClick={() => router.push(guideUrl)}>
                     <InfoIcon
                       width={18} height={18} className='fill-theme-color mx-1'
                     />
-                  </Link>
+                  </Button>
                 )}
               </Nav.Link>
             </Nav.Item>

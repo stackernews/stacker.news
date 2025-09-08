@@ -7,7 +7,8 @@ import {
   checkPendingPayInBolt11s,
   checkPendingPayOutBolt11s,
   checkPayInBolt11,
-  checkPayOutBolt11
+  checkPayOutBolt11,
+  checkPayInInvoiceCreation
 } from './payIn'
 import { repin } from './repin'
 import { trust } from './trust'
@@ -106,10 +107,6 @@ async function work () {
     await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
     // TODO: most of these need to be migrated to payIn jobs
     // including any existing jobs or recurring, scheduled jobs
-    await boss.work('checkPendingPayInBolt11s', jobWrapper(checkPendingPayInBolt11s))
-    await boss.work('checkPendingPayOutBolt11s', jobWrapper(checkPendingPayOutBolt11s))
-    await boss.work('checkPayInBolt11', jobWrapper(checkPayInBolt11))
-    await boss.work('checkPayOutBolt11', jobWrapper(checkPayOutBolt11))
     // paidAction jobs
     await boss.work('paidActionForwarding', jobWrapper(paidActionForwarding))
     await boss.work('paidActionForwarded', jobWrapper(paidActionForwarded))
@@ -124,6 +121,11 @@ async function work () {
 
     // payIn jobs
     await subscribeToBolt11s(args)
+    await boss.work('checkPendingPayInBolt11s', jobWrapper(checkPendingPayInBolt11s))
+    await boss.work('checkPendingPayOutBolt11s', jobWrapper(checkPendingPayOutBolt11s))
+    await boss.work('checkPayInBolt11', jobWrapper(checkPayInBolt11))
+    await boss.work('checkPayOutBolt11', jobWrapper(checkPayOutBolt11))
+    await boss.work('checkPayInInvoiceCreation', jobWrapper(checkPayInInvoiceCreation))
     await boss.work('payInForwarding', jobWrapper(payInForwarding))
     await boss.work('payInForwarded', jobWrapper(payInForwarded))
     await boss.work('payInFailedForward', jobWrapper(payInFailedForward))

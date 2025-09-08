@@ -230,6 +230,25 @@ export async function checkPayOutBolt11 ({ data: { hash, withdrawal, invoice }, 
   }
 }
 
+export async function checkPayInInvoiceCreation ({ data: { payInId }, models, lnd, boss }) {
+  const payIn = await models.payIn.findUnique({
+    where: { id: payInId, payInState: { in: ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'] } }
+  })
+  if (!payIn) return
+
+  await payInFailed({
+    data: {
+      payInId: payIn.id,
+      payInFailureReason: payIn.payInState === 'PENDING_INVOICE_CREATION'
+        ? 'INVOICE_CREATION_FAILED'
+        : 'INVOICE_WRAPPING_FAILED_UNKNOWN'
+    },
+    models,
+    lnd,
+    boss
+  })
+}
+
 export async function checkPendingPayInBolt11s (args) {
   const { models } = args
   const pendingPayIns = await models.payIn.findMany({

@@ -25,7 +25,6 @@ export default async function pay (payInType, payInArgs, { models, me }) {
       throw new Error('You must be logged in to perform this action')
     }
 
-    // TODO: need to double check all old usage of !me for detecting anon users
     me ??= { id: USER_ID.anon }
 
     const payIn = await payInModule.getInitial(models, payInArgs, { me })
@@ -99,9 +98,9 @@ async function begin (models, payInInitial, payInArgs, { me }) {
       }
     }
 
-    // TODO: create a job for this
+    // we want to double check that the invoice we're assuming will be created is actually created
     tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-      VALUES ('checkPayIn', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
+      VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
     return {
       payIn,
       result,

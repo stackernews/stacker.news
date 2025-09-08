@@ -744,7 +744,7 @@ export default {
         subMaxBoost: subAgg?._max.boost || 0
       }
     },
-    newComments: async (parent, { topLevelId, after }, { models, me }) => {
+    newComments: async (parent, { itemId, after }, { models, me }) => {
       const comments = await itemQueryWithMeta({
         me,
         models,
@@ -758,7 +758,7 @@ export default {
             '"Item"."created_at" > $2'
           )}
           ORDER BY "Item"."created_at" ASC`
-      }, Number(topLevelId), after)
+      }, Number(itemId), after)
 
       return { comments }
     }

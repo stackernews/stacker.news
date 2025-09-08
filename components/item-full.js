@@ -11,7 +11,6 @@ import { useMe } from './me'
 import Button from 'react-bootstrap/Button'
 import { useEffect } from 'react'
 import Poll from './poll'
-import { commentsViewed } from '@/lib/new-comments'
 import Related from './related'
 import PastBounties from './past-bounties'
 import Check from '@/svgs/check-double-line.svg'
@@ -27,6 +26,7 @@ import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import { useRouter } from 'next/router'
+import useCommentsView from './use-comments-view'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -162,9 +162,12 @@ function ItemText ({ item }) {
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
+  // no cache update here because we need to preserve the initial value
+  const { markItemViewed } = useCommentsView(item.id, { updateCache: false })
+
   useEffect(() => {
-    commentsViewed(item)
-  }, [item.lastCommentAt])
+    markItemViewed(item)
+  }, [item.id, markItemViewed])
 
   const router = useRouter()
   const carouselKey = `${item.id}-${router.query?.sort || 'default'}`

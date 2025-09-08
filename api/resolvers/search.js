@@ -2,6 +2,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { whenToFrom } from '@/lib/time'
 import { getItem, itemQueryWithMeta, SELECT } from './item'
 import { parse } from 'tldts'
+import { searchSchema, validateSchema } from '@/lib/validate'
 
 function queryParts (q) {
   const regex = /"([^"]*)"/gm
@@ -80,7 +81,7 @@ export default {
           {
             neural: {
               title_embedding: {
-                query_text: qtext,
+                query_text: qtitle,
                 model_id: process.env.OPENSEARCH_MODEL_ID,
                 k: decodedCursor.offset + LIMIT
               }
@@ -89,7 +90,7 @@ export default {
           {
             neural: {
               text_embedding: {
-                query_text: qtitle,
+                query_text: qtext.slice(0, 100),
                 model_id: process.env.OPENSEARCH_MODEL_ID,
                 k: decodedCursor.offset + LIMIT
               }
@@ -173,6 +174,7 @@ export default {
       }
     },
     search: async (parent, { q, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
+      await validateSchema(searchSchema, { q })
       const decodedCursor = decodeCursor(cursor)
       let sitems = null
 

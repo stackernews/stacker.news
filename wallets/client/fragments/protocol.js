@@ -151,6 +151,22 @@ export const UPSERT_WALLET_RECEIVE_NWC = gql`
   }
 `
 
+export const UPSERT_WALLET_SEND_CLN_REST = gql`
+  mutation upsertWalletSendCLNRest(
+    ${shared.variables},
+    $socket: String!,
+    $rune: VaultEntryInput!,
+  ) {
+    upsertWalletSendCLNRest(
+      ${shared.arguments},
+      socket: $socket,
+      rune: $rune,
+    ) {
+      id
+    }
+  }
+`
+
 export const UPSERT_WALLET_RECEIVE_CLN_REST = gql`
   mutation upsertWalletRecvCLNRest(
     ${shared.variables},

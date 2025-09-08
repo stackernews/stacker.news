@@ -8,10 +8,12 @@ import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
+import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletGuideUrl, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
+import InfoIcon from '@/svgs/information-fill.svg'
+import Link from 'next/link'
 
 import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
 import { Settings } from './settings'
@@ -37,12 +39,20 @@ export function WalletMultiStepForm ({ wallet }) {
     ].filter(Boolean),
   [support])
 
+  const guideUrl = walletGuideUrl(wallet.name)
+
   return (
     <WalletLayout>
       <div className={styles.form}>
         <WalletLayoutHeader>
           <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />
         </WalletLayoutHeader>
+        {guideUrl && (
+          <Link href={guideUrl} className='text-center text-reset fw-bold text-underline'>
+            <InfoIcon width={18} height={18} className='mx-1' />
+            guide
+          </Link>
+        )}
         <WalletMultiStepFormContextProvider wallet={wallet} initial={initial} steps={steps}>
           {steps.map(step => {
             // WalletForm is aware of the current step via hooks
@@ -203,7 +213,7 @@ function WalletProtocolFormField ({ type, ...props }) {
             <Text>{_help.text}</Text>
           </Info>
         )}
-        <small className='text-muted ms-2'>
+        <small className={classNames('text-muted', !help && 'ms-2')}>
           {upperHint
             ? <Text>{upperHint}</Text>
             : (!props.required ? 'optional' : null)}

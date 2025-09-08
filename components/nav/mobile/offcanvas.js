@@ -28,11 +28,11 @@ export default function OffCanvas ({ me, dropNavKey }) {
 
   const profileIndicator = me && !me.bioId
   const walletIndicator = useWalletIndicator()
+  const indicator = profileIndicator || walletIndicator
 
   return (
     <>
-      <MeImage onClick={handleShow} />
-
+      <Indicator show={indicator}><MeImage onClick={handleShow} /></Indicator>
       <Offcanvas className={canvasStyles.offcanvas} show={show} onHide={handleClose} placement='end'>
         <Offcanvas.Header closeButton>
           <Offcanvas.Title><NavWalletSummary /></Offcanvas.Title>
@@ -53,8 +53,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                 <>
                   <Link href={'/' + me.name} passHref legacyBehavior>
                     <Dropdown.Item active={me.name === dropNavKey}>
-                      profile
-                      {profileIndicator && <Indicator />}
+                      <Indicator show={profileIndicator}>profile</Indicator>
                     </Dropdown.Item>
                   </Link>
                   <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
@@ -62,8 +61,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                   </Link>
                   <Link href='/wallets' passHref legacyBehavior>
                     <Dropdown.Item eventKey='wallets'>
-                      wallets
-                      {walletIndicator && <Indicator />}
+                      <Indicator show={walletIndicator}>wallets</Indicator>
                     </Dropdown.Item>
                   </Link>
                   <Link href='/credits' passHref legacyBehavior>
@@ -93,7 +91,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                   <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
                     <MeImage />
                     <div className='ms-2'>
-                      @{me?.name || 'anon'}
+                      <Indicator show={indicator}>@{me?.name || 'anon'}</Indicator>
                     </div>
                   </Link>
                 </Nav>

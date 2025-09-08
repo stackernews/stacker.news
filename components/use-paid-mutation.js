@@ -207,7 +207,8 @@ export const paidActionCacheMods = {
       fields: {
         actionState: () => 'PAID',
         confirmedAt: () => new Date().toISOString(),
-        satsReceived: () => invoice.satsRequested
+        satsReceived: () => invoice.satsRequested,
+        hmac: () => invoice.hmac
       }
     })
   }

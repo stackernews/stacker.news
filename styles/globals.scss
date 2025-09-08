@@ -322,6 +322,10 @@ svg {
   padding: 0;
   background-color: transparent;
 }
+.modal-body li {
+  line-height: 1.25;
+  margin-top: 0.5rem;
+}
 .modal-close.fullscreen {
   padding: 1.25rem;
 }
@@ -899,7 +903,7 @@ div[contenteditable]:focus,
   box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
 }
 
-.outline-new-injected-comment {
+.outline-new-live-comment {
   box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
 }
 
@@ -907,7 +911,7 @@ div[contenteditable]:focus,
   box-shadow: none;
 }
 
-.outline-new-injected-comment.outline-new-comment-unset {
+.outline-new-live-comment.outline-new-comment-unset {
   box-shadow: none;
 }
 

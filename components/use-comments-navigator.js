@@ -62,10 +62,6 @@ export function useCommentsNavigator () {
       window.requestAnimationFrame(() => {
         if (!commentRef?.current || !commentRef.current.isConnected) return
 
-        // don't track this new comment if it's visible in the viewport
-        const rect = commentRef.current.getBoundingClientRect()
-        if (rect.top >= 0 && rect.bottom <= window.innerHeight) return
-
         // dedupe
         const existing = commentRefs.current.some(item => item.ref.current === commentRef.current)
         if (existing) return
@@ -113,7 +109,7 @@ export function useCommentsNavigator () {
         node.classList.remove(
           'outline-it',
           'outline-new-comment',
-          'outline-new-injected-comment'
+          'outline-new-live-comment'
         )
         node.classList.add('outline-new-comment-unset')
       }

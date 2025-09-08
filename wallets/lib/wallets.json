@@ -15,7 +15,8 @@
         "name": "LNBITS",
         "displayName": "LNbits",
         "image": "/wallets/lnbits.svg",
-        "url": "https://lnbits.com/"
+        "url": "https://lnbits.com/",
+        "guide": "/items/1212223"
     },
     {
         "name": "LND",

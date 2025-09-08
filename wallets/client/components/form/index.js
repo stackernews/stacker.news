@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { Button, InputGroup, Nav } from 'react-bootstrap'
+import { InputGroup, Nav } from 'react-bootstrap'
 import classNames from 'classnames'
 import styles from '@/styles/wallet.module.css'
 import navStyles from '@/styles/nav.module.css'
@@ -8,12 +8,12 @@ import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolGuideUrl, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
+import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletGuideUrl, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import InfoIcon from '@/svgs/information-fill.svg'
-import { useRouter } from 'next/router'
+import Link from 'next/link'
 
 import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
 import { Settings } from './settings'
@@ -39,12 +39,20 @@ export function WalletMultiStepForm ({ wallet }) {
     ].filter(Boolean),
   [support])
 
+  const guideUrl = walletGuideUrl(wallet.name)
+
   return (
     <WalletLayout>
       <div className={styles.form}>
         <WalletLayoutHeader>
           <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />
         </WalletLayoutHeader>
+        {guideUrl && (
+          <Link href={guideUrl} className='text-center text-reset fw-bold text-underline'>
+            <InfoIcon width={18} height={18} className='mx-1' />
+            guide
+          </Link>
+        )}
         <WalletMultiStepFormContextProvider wallet={wallet} initial={initial} steps={steps}>
           {steps.map(step => {
             // WalletForm is aware of the current step via hooks
@@ -71,24 +79,15 @@ function WalletForm () {
 function WalletProtocolSelector () {
   const protocols = useWalletProtocols()
   const [protocol, selectProtocol] = useProtocol()
-  const router = useRouter()
 
   return (
     <Nav className={classNames(navStyles.nav, 'mt-0')} activeKey={protocol?.name}>
       {
         protocols.map(p => {
-          const guideUrl = protocolGuideUrl(p)
           return (
             <Nav.Item key={p.id} onClick={() => selectProtocol(p)}>
-              <Nav.Link eventKey={p.name} className='d-flex align-items-center lh-1'>
+              <Nav.Link eventKey={p.name}>
                 {protocolDisplayName(p)}
-                {guideUrl && (
-                  <Button variant='link' className='ms-1 p-0' onClick={() => router.push(guideUrl)}>
-                    <InfoIcon
-                      width={18} height={18} className='fill-theme-color mx-1'
-                    />
-                  </Button>
-                )}
               </Nav.Link>
             </Nav.Item>
           )

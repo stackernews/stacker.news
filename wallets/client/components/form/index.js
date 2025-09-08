@@ -80,7 +80,7 @@ function WalletProtocolSelector () {
           const guideUrl = protocolGuideUrl(p)
           return (
             <Nav.Item key={p.id} onClick={() => selectProtocol(p)}>
-              <Nav.Link eventKey={p.name} className='d-flex align-items-center'>
+              <Nav.Link eventKey={p.name} className='d-flex align-items-center lh-1'>
                 {protocolDisplayName(p)}
                 {guideUrl && (
                   <Button variant='link' className='ms-1 p-0' onClick={() => router.push(guideUrl)}>

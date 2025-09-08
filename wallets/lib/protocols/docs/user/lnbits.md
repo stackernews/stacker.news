@@ -1,16 +1,16 @@
 ---
 title: Official LNbits Guide
-id: 459388
+id: 1212223
 sub: meta
 ---
 
 # Official LNbits Guide
 
-last updated: September 6, 2025
+last updated: September 8, 2025
 
 Requirements:
 
-- LNbits v1.0.0 or later
+- [LNbits](https://lnbits.com/) v1.0.0 or later
 - reachable from the internet via clearnet or tor (receive only)
 - HTTPS required if not accessing over tor
 

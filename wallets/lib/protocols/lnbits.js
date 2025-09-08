@@ -27,7 +27,7 @@ export default [
       }
     ],
     relationName: 'walletSendLNbits',
-    guideUrl: '/items/459388'
+    guideUrl: '/items/1212223'
   },
   {
     name: 'LNBITS',
@@ -51,6 +51,6 @@ export default [
       }
     ],
     relationName: 'walletRecvLNbits',
-    guideUrl: '/items/459388'
+    guideUrl: '/items/1212223'
   }
 ]

@@ -21,7 +21,7 @@ For **url**, enter the URL to your LNbits web interface. It must start with http
 For **admin key**, follow these steps:
 
 1. Go to your LNbits web interface
-2. Create a new wallet for Stacker News (you need to be super user for this):
+2. Create a new wallet for Stacker News:
 
 ![](https://m.stacker.news/107021)
 

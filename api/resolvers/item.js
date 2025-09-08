@@ -150,6 +150,9 @@ const orderByClause = (by, me, models, type, sub) => {
       return 'ORDER BY "Item".boost DESC'
     case 'random':
       return 'ORDER BY RANDOM()'
+    case 'custom':
+      if (type === 'bookmarks') return 'ORDER BY "Bookmark"."custom_order" ASC NULLS LAST, "Bookmark"."created_at" DESC'
+      break
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
@@ -235,7 +238,7 @@ const relationClause = (type) => {
 }
 
 const selectClause = (type) => type === 'bookmarks'
-  ? `${SELECT}, "Bookmark"."created_at" as "bookmarkCreatedAt"`
+  ? `${SELECT}, "Bookmark"."created_at" as "bookmarkCreatedAt", "Bookmark"."custom_order" as "bookmarkCustomOrder"`
   : SELECT
 
 const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'Item'
@@ -421,7 +424,9 @@ export default {
               ${orderByClause(by, me, models, type)}
               OFFSET $4
               LIMIT $5`,
-            orderBy: orderByClause(by, me, models, type)
+            orderBy: (type === 'bookmarks' && by === 'custom')
+              ? 'ORDER BY "Item"."bookmarkCustomOrder" ASC NULLS LAST, "Item"."bookmarkCreatedAt" DESC'
+              : orderByClause(by, me, models, type)
           }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
         case 'recent':
@@ -771,6 +776,30 @@ export default {
         await models.bookmark.delete({ where: { userId_itemId: data } })
       } else await models.bookmark.create({ data })
       return { id }
+    },
+    reorderBookmarks: async (parent, { itemIds }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (!itemIds || itemIds.length === 0) {
+        throw new GqlInputError('itemIds required')
+      }
+
+      for (let i = 0; i < itemIds.length; i++) {
+        const itemId = Number(itemIds[i])
+        await models.bookmark.updateMany({
+          where: {
+            userId: me.id,
+            itemId
+          },
+          data: {
+            customOrder: i + 1
+          }
+        })
+      }
+
+      return true
     },
     pinItem: async (parent, { id }, { me, models }) => {
       if (!me) {

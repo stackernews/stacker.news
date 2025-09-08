@@ -1,0 +1,32 @@
+.draggableBookmark {
+  transition: all 0.2s ease;
+  cursor: grab;
+  position: relative;
+  grid-column: 1 / span 2;
+}
+
+.draggableBookmark:active,
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.draggableBookmark.dragging {
+  opacity: 0.7;
+  transform: rotate(1deg);
+}
+
+.draggableBookmark.dragOver {
+  transform: translateY(-4px);
+}
+
+.dragHandle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0.5;
+  cursor: grab;
+}
+
+.dragHandle:hover {
+  opacity: 0.6;
+}

@@ -1045,11 +1045,13 @@ model Bookmark {
   userId    Int
   itemId    Int
   createdAt DateTime @default(now()) @map("created_at")
+  customOrder Int?   @map("custom_order")
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, itemId])
   @@index([createdAt], map: "Bookmark.created_at_index")
+  @@index([customOrder], map: "Bookmark.custom_order_index")
 }
 
 // TODO: make thread subscriptions for OP by default so they can

@@ -1,17 +1,11 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useEffect } from 'react'
+import FormikBridgePlugin from './formikbridge'
 
 // called when the editor state changes
-export function OnChangePlugin ({ onChange }) {
-  const [editor] = useLexicalComposerContext()
-
-  useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
-      onChange(editorState)
-    })
-  }, [editor, onChange])
-
-  return null
+// throw here everything that should happen when the editor state changes
+export function OnChangePlugin () {
+  return (
+    <FormikBridgePlugin /> // WIP: barebone formik bridge plugin for Lexical
+  )
 }
 
 export default OnChangePlugin

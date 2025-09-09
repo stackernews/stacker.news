@@ -1,4 +1,4 @@
-import styles from '../theme.module.css'
+import styles from '../../theme.module.css'
 import { useRef, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_EDITOR } from 'lexical'
@@ -23,7 +23,6 @@ export default function FileUploadPlugin () {
       <FileUpload
         multiple
         ref={fileInputRef}
-        className='me-1'
       >
         <AddFileIcon width={18} height={18} />
       </FileUpload>

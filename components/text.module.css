@@ -2,10 +2,10 @@
     font-size: 94%;
     font-family: inherit;
     word-break: break-word;
-    line-height: 140%;
     overflow-y: hidden;
     position: relative;
     max-height: 200vh;
+    background-color: var(--theme-body) !important;
     --grid-gap: 0.5rem;
 }
 

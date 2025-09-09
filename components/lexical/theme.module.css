@@ -34,10 +34,11 @@
     position: relative;
     tab-size: 1;
     outline: 0;
-    padding: 15px 10px;
+    padding: 10px 10px;
     border: 1px solid;
     border-bottom-left-radius: .4rem;
     border-bottom-right-radius: .4rem;
+    border-top-right-radius: .4rem;
     /* border-top: 0px; */
 }
 
@@ -64,6 +65,7 @@
     margin: 0;
     margin-bottom: 8px;
     position: relative;
+    line-height: 140%;
 }
 
 .paragraph:last-child {
@@ -177,10 +179,7 @@
 .toolbar {
     display: flex;
     align-items: center;
-    background: var(--theme-toolbar);
-    padding: 4px;
-    border-top-left-radius: .4rem;
-    border-top-right-radius: .4rem;
+    padding-bottom: 4px;
     vertical-align: middle;
     flex-wrap: wrap;
 }
@@ -240,6 +239,18 @@
     fill: var(--theme-color) !important;
 }
 
+.toolbar .toolbarFormatting svg {
+    margin-right: 6px;
+}
+
+.formattingItem {
+    cursor: pointer;
+}
+
+.formattingItem.active {
+    background-color: var(--theme-toolbarActive);
+}
+
 .linkTooltip {
     position: absolute;
     top: 0;
@@ -259,4 +270,13 @@
 .markdownSwitch {
     cursor: pointer;
     margin-right: 4px;
+}
+
+.dropdownExtraFormatting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-left: 1rem;
+    padding-right: 1.25rem;
 }

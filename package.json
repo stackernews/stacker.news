@@ -19,6 +19,7 @@
     "@auth/prisma-adapter": "^2.7.0",
     "@cashu/cashu-ts": "^2.4.1",
     "@graphql-tools/schema": "^10.0.6",
+    "@lexical/react": "^0.35.0",
     "@lightninglabs/lnc-web": "^0.3.2-alpha",
     "@noble/curves": "^1.6.0",
     "@nostr-dev-kit/ndk": "^2.12.2",
@@ -40,6 +41,7 @@
     "classnames": "^2.5.1",
     "clipboard-copy": "^4.0.1",
     "cookie": "^1.0.1",
+    "copy-webpack-plugin": "^13.0.1",
     "cross-fetch": "^4.0.0",
     "csv-parser": "^3.0.0",
     "domino": "^2.1.6",
@@ -51,6 +53,7 @@
     "graphql-tag": "^2.12.6",
     "graphql-type-json": "^0.3.2",
     "isomorphic-ws": "^5.0.0",
+    "lexical": "^0.35.0",
     "ln-service": "^57.22.0",
     "macaroon": "^3.0.4",
     "mathjs": "^13.2.0",
@@ -115,8 +118,7 @@
     "workbox-strategies": "^7.1.0",
     "workbox-webpack-plugin": "^7.1.0",
     "workbox-window": "^7.1.0",
-    "yup": "^1.4.0",
-    "copy-webpack-plugin": "^13.0.1"
+    "yup": "^1.4.0"
   },
   "engines": {
     "node": "18.20.4"

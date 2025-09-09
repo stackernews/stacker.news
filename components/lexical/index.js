@@ -9,12 +9,14 @@ import styles from './theme.module.css'
 import theme from './theme'
 import ToolbarPlugin from './plugins/toolbar'
 import OnChangePlugin from './plugins/onchange'
+import CodeShikiPlugin from './plugins/codeshiki'
+import { $getRoot } from 'lexical'
 // import { useContext } from 'react'
 // import { StorageKeyPrefixContext } from '@/components/form'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
 import { ListItemNode, ListNode } from '@lexical/list'
-import { CodeHighlightNode, CodeNode } from '@lexical/code'
+import { CodeHighlightNode, CodeNode, $createCodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
 
@@ -31,6 +33,15 @@ export function Lexical ({ name, placeholder = 'hm?' }) {
     namespace: 'snEditor',
     theme,
     onError,
+    editorState: () => {
+      const root = $getRoot()
+      if (root.getFirstChild() === null) {
+        const codeBlock = $createCodeNode()
+        codeBlock.setLanguage('markdown')
+        codeBlock.setTheme('github-dark-default')
+        root.append(codeBlock)
+      }
+    },
     nodes: [
       HeadingNode,
       ListNode,
@@ -58,6 +69,7 @@ export function Lexical ({ name, placeholder = 'hm?' }) {
         }
         ErrorBoundary={LexicalErrorBoundary}
       />
+      <CodeShikiPlugin />
       <HistoryPlugin />
       <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
       {/* triggers all the things that should happen when the editor state changes */}

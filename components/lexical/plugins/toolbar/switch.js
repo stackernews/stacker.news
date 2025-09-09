@@ -1,7 +1,7 @@
 import styles from '../../theme.module.css'
 import WYSIWYGIcon from '@/svgs/file-text-line.svg'
 import MarkdownIcon from '@/svgs/markdown-line.svg'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $isCodeNode, $createCodeNode } from '@lexical/code'
 import { TRANSFORMERS, $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
@@ -11,7 +11,23 @@ import { $createTextNode, $getRoot } from 'lexical'
 // default is markdown
 export default function SwitchPlugin () {
   const [editor] = useLexicalComposerContext()
-  const [markdownMode, setMarkdownMode] = useState(false)
+  const [markdownMode, setMarkdownMode] = useState(null)
+
+  const getState = useCallback(() => {
+    const root = $getRoot()
+    const firstChild = root.getFirstChild()
+    return $isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown'
+  }, [])
+
+  const isMarkdownMode = useCallback(() => {
+    return editor.read(() => {
+      return getState()
+    })
+  }, [editor])
+
+  useEffect(() => {
+    setMarkdownMode(isMarkdownMode())
+  }, [editor, isMarkdownMode])
 
   // add switch logic for lexical here, for now it doesn't do anything
 
@@ -19,13 +35,15 @@ export default function SwitchPlugin () {
     editor.update(() => {
       const root = $getRoot()
       const firstChild = root.getFirstChild()
-      if ($isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown') {
+      const isMarkdownMode = $isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown'
+      if (isMarkdownMode) {
         setMarkdownMode(false)
         $convertFromMarkdownString(firstChild.getTextContent(), TRANSFORMERS, undefined, true)
       } else {
         setMarkdownMode(true)
         const markdown = $convertToMarkdownString(TRANSFORMERS, undefined, true)
         const codeNode = $createCodeNode('markdown')
+        codeNode.setTheme('github-dark-default')
         codeNode.append($createTextNode(markdown))
         root.clear().append(codeNode)
         if (markdown.length === 0) codeNode.select()

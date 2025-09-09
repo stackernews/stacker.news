@@ -117,6 +117,21 @@
     position: relative;
 }
 
+.code[data-language="markdown"] {
+    background-color: var(--theme-body) !important;
+    font-family: Menlo, Consolas, Monaco, monospace;
+    display: block;
+    padding: 0 !important;
+    line-height: 1.53;
+    font-size: 13px;
+    margin: 0;
+    margin-bottom: 8px;
+    tab-size: 2;
+    /* white-space: pre; */
+    overflow-x: auto;
+    position: relative;
+}
+
 /* inline blocks */
 
 .link {
@@ -129,17 +144,15 @@
 .listOl {
     padding: 0;
     margin: 0;
-    margin-left: 16px;
 }
 
 .listUl {
     padding: 0;
     margin: 0;
-    margin-left: 16px;
 }
 
 .listItem {
-    margin: 8px 32px 8px 32px;
+    margin: 8px 16px 8px 16px;
 }
 
 .nestedListItem {
@@ -184,71 +197,48 @@
     flex-wrap: wrap;
 }
 
-.toolbar button.toolbarItem {
-    border: 0;
-    display: flex;
-    background: none;
-    border-radius: .4rem;
-    padding: 8px;
-    cursor: pointer;
-    vertical-align: middle;
-}
-
-.toolbar button.toolbarItem:disabled {
-    cursor: not-allowed;
-}
-
-.toolbar button.toolbarItem.spaced {
-    margin-right: 2px;
-}
-
-.toolbar button.toolbarItem svg {
-    background-size: contain;
-    display: inline-block;
-    height: 18px;
-    width: 18px;
-    margin-top: 2px;
-    vertical-align: -0.25em;
-    display: flex;
-    opacity: 0.6;
-}
-
-.toolbar button.toolbarItem:disabled svg {
-    opacity: 0.2;
-}
-
-.toolbar button.toolbarItem.active {
-    background-color: var(--theme-toolbarActive);
-}
-
-.toolbar button.toolbarItem.active svg {
-    opacity: 1;
-}
-
-.toolbar .toolbarItem:hover:not([disabled]) {
-    background-color: var(--theme-toolbarHover);
-}
-
 .toolbar .divider {
     width: 1px;
+    height: 18px;
     background-color: var(--theme-borderColor);
-    margin: 0 4px;
+    margin-left: 4px !important;
+    margin: 0 8px;
 }
 
-.toolbar .toolbarItem svg {
-    fill: var(--theme-color) !important;
+.toolbar .toolbarFormatting {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
 }
 
-.toolbar .toolbarFormatting svg {
-    margin-right: 6px;
-}
-
-.formattingItem {
+.toolbarItem {
+    background-size: contain;
+    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
     cursor: pointer;
+    margin-right: 4px;
 }
 
-.formattingItem.active {
+.toolbarItem.active {
     background-color: var(--theme-toolbarActive);
+}
+
+.toolbarItem svg {
+    fill: var(--bs-body-color) !important;
+    width: 24px;
+    height: 24px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.toolbarItemLink svg {
+    margin-bottom: 2px;
+    width: 20px !important;
+    height: 20px !important;
 }
 
 .linkTooltip {
@@ -273,10 +263,31 @@
 }
 
 .dropdownExtraFormatting {
+    width: 250px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding-left: 1rem;
-    padding-right: 1.25rem;
+    margin-left: 0.45rem;
+    margin-right: 0.45rem;
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+}
+
+.dropdownExtraFormatting svg {
+    width: 18px;
+    height: 18px;
+    margin-bottom: 2px;
+    margin-right: 4px;
+}
+
+.active {
+    background-color: var(--theme-toolbarActive) !important;
+    border-radius: .4rem;
+    font-weight: bold;
+}
+
+.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }

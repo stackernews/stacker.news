@@ -14,7 +14,6 @@ WORKDIR /app
 
 EXPOSE 3000
 
-# install dependencies inside the image for prod
 COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps --loglevel verbose
 

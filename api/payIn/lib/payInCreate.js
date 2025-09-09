@@ -15,6 +15,7 @@ export const PAY_IN_INCLUDE = {
 
 // TODO: before we create, validate the payIn such that
 // 1. the payIn amounts are enough to cover the payOuts
+// 2. mCostRemaining is a multiple of 1000
 // ... and other invariants are met
 export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
   const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
@@ -51,7 +52,6 @@ async function getPayInCosts (tx, payIn, { me }) {
     mP2PCost,
     mCustodialCost,
     mCustodialPaid,
-    // TODO: how to deal with < 1000msats?
     mCostRemaining: mCustodialCost - mCustodialPaid + mP2PCost,
     payInCustodialTokens
   }

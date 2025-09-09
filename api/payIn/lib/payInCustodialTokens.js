@@ -8,17 +8,55 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
     return payInCustodialTokens
   }
 
-  // we always want to return mcreditsBefore, even if we don't spend any credits
+  if (mCustodialCost % 1000n !== 0n) {
+    throw new Error('mCustodialCost must be a multiple of 1000')
+  }
+
   const mCreditPayable = isPayableWithCredits(payIn) ? mCustodialCost : 0n
-  const [{ mcreditsSpent, mcreditsAfter }] = await tx.$queryRaw`
-      UPDATE users
-      SET mcredits = CASE
-        WHEN users.mcredits >= ${mCreditPayable} THEN users.mcredits - ${mCreditPayable}
-        ELSE users.mcredits - ((users.mcredits / 1000) * 1000)
-      END
-      FROM (SELECT id, mcredits FROM users WHERE id = ${me.id} FOR UPDATE) before
-      WHERE users.id = before.id
-      RETURNING before.mcredits - users.mcredits as "mcreditsSpent", users.mcredits as "mcreditsAfter"`
+
+  const [{ mcreditsSpent, mcreditsAfter, msatsSpent, msatsAfter }] = await tx.$queryRaw`
+    -- Calculate optimal spending to maximize custodial usage, preferring to spend mcredits,
+    -- while keeping any remainder as multiple of 1000 for invoice creation
+    WITH user1 AS (
+      SELECT
+        id,
+        msats,
+        LEAST(mcredits, ${mCreditPayable}) as max_mcredits,
+        (${mCustodialCost} - LEAST(mcredits, ${mCreditPayable})) % 1000 as max_mcredits_modulo_1000
+      FROM users
+      WHERE id = ${me.id}
+      FOR UPDATE
+    ),
+    user_spending AS (
+      SELECT
+        id,
+        (CASE
+          -- Strategy 1: Can we pay everything custodially?
+          WHEN max_mcredits + msats >= ${mCustodialCost} THEN
+            ARRAY[max_mcredits, ${mCustodialCost} - max_mcredits]
+          -- Strategy 2: Can we spend all mcredits and maximize msats spending, but leaving a remainder of a multiple of 1000?
+          WHEN msats > 0 AND msats >= max_mcredits_modulo_1000 THEN
+            ARRAY[max_mcredits,
+                max_mcredits_modulo_1000 +
+                  (GREATEST(0, msats - max_mcredits_modulo_1000 - max_mcredits) / 1000 * 1000)]
+          -- Strategy 3: Spend multiples of 1000 only for both mcredits and msats
+          ELSE
+            ARRAY[(max_mcredits / 1000) * 1000, (msats / 1000) * 1000]
+        END)::BIGINT[] AS spending
+      FROM user1
+    )
+    UPDATE users
+    SET
+      mcredits = mcredits - user_spending.spending[1],
+      msats = msats - user_spending.spending[2]
+    FROM user_spending
+    WHERE users.id = user_spending.id
+    RETURNING
+      user_spending.spending[1] as "mcreditsSpent",
+      users.mcredits as "mcreditsAfter",
+      user_spending.spending[2] as "msatsSpent",
+      users.msats as "msatsAfter"`
+
   if (mcreditsSpent > 0n) {
     payInCustodialTokens.push({
       custodialTokenType: 'CREDITS',
@@ -26,17 +64,7 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
       mtokensAfter: mcreditsAfter
     })
   }
-  mCustodialCost -= mcreditsSpent
 
-  const [{ msatsSpent, msatsAfter }] = await tx.$queryRaw`
-    UPDATE users
-    SET msats = CASE
-      WHEN users.msats >= ${mCustodialCost} THEN users.msats - ${mCustodialCost}
-      ELSE users.msats - ((users.msats / 1000) * 1000)
-    END
-    FROM (SELECT id, msats FROM users WHERE id = ${me.id} FOR UPDATE) before
-    WHERE users.id = before.id
-    RETURNING before.msats - users.msats as "msatsSpent", users.msats as "msatsAfter"`
   if (msatsSpent > 0n) {
     payInCustodialTokens.push({
       custodialTokenType: 'SATS',
@@ -53,8 +81,10 @@ function getP2PCost (payIn) {
   if (isProxyPayment(payIn)) {
     return payIn.mcost
   }
+  // round this up to the nearest 1000msats
+  // we don't want anyone to pay fractional sats via invoice
   if (isP2P(payIn)) {
-    return payIn.payOutBolt11?.msats ?? 0n
+    return Math.ceil(payIn.payOutBolt11?.msats ?? 0n / 1000n) * 1000n
   }
   return 0n
 }

@@ -30,30 +30,29 @@ DECLARE
 BEGIN
     RETURN QUERY
     SELECT "userId", rank, "typeProportion", "type", "typeId"
-    FROM generate_series(min, max, ival) period(t),
-    LATERAL
-        (WITH item_proportions AS (
+    FROM generate_series(min, max, ival) period(t)
+    JOIN LATERAL (
+        WITH item_proportions AS (
             SELECT *,
                 CASE WHEN "parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type,
                 CASE WHEN "weightedVotes" > 0 THEN "weightedVotes"/(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL)) ELSE 0 END AS proportion
             FROM (
-                    SELECT *,
-                        NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS percentile,
-                        ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS rank
-                    FROM "Item"
-                    JOIN LATERAL (
-                        SELECT "PayIn".*
-                        FROM "ItemPayIn"
-                        JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-                        WHERE "ItemPayIn"."itemId" = "Item".id AND ("PayIn"."userId" = "Item"."userId" OR "PayIn"."payInState" = 'PAID')
-                        ORDER BY "PayIn"."created_at" DESC
-                        LIMIT 1
-                    ) "PayIn" ON "PayIn".id IS NOT NULL
-                    WHERE date_trunc(date_part, "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
-                    AND "weightedVotes" > 0
-                    AND "deletedAt" IS NULL
-                    AND NOT bio
-                )
+                SELECT *,
+                    NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS percentile,
+                    ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS rank
+                FROM "Item"
+                JOIN LATERAL (
+                    SELECT "PayIn".*
+                    FROM "ItemPayIn"
+                    JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
+                    WHERE "ItemPayIn"."itemId" = "Item".id AND ("PayIn"."userId" = "Item"."userId" OR "PayIn"."payInState" = 'PAID')
+                    ORDER BY "PayIn"."created_at" DESC
+                    LIMIT 1
+                ) "PayIn" ON "PayIn".id IS NOT NULL
+                WHERE date_trunc(date_part, "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
+                AND "weightedVotes" > 0
+                AND "deletedAt" IS NULL
+                AND NOT bio
             ) x
             WHERE x.percentile <= percentile_cutoff
         ),
@@ -96,7 +95,7 @@ BEGIN
             ) u
             JOIN users on "userId" = users.id
             GROUP BY "userId", "parentId" IS NULL
-        ),
+        )
         SELECT "userId", ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY item_zapper_proportion DESC) as rank,
             item_zapper_proportion/(sum(item_zapper_proportion) OVER (PARTITION BY "isPost"))/each_zap_portion as "typeProportion",
             "type", NULL as "typeId"
@@ -105,18 +104,16 @@ BEGIN
         UNION ALL
         SELECT "userId", rank, item_proportions.proportion/each_item_portion as "typeProportion",
             "type", item_proportions.id as "typeId"
-        FROM item_proportions;
+        FROM item_proportions
+    ) "ItemProportions" ON true;
 END;
 $$;
 
-CREATE TYPE "PayInTypeTotalMsats" AS (
-    "PayInType" "PayInType",
-    "totalMsats" BIGINT
-);
+DROP FUNCTION IF EXISTS rewards CASCADE;
 
 CREATE OR REPLACE FUNCTION rewards(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
 RETURNS TABLE (
-    t TIMESTAMP(3), "totalMsats" BIGINT, "payInTypes" "PayInTypeTotalMsats"[]
+    t TIMESTAMP(3), "totalMsats" BIGINT, "payInTypes" JSONB[]
 )
 LANGUAGE plpgsql
 AS $$
@@ -124,19 +121,28 @@ DECLARE
 BEGIN
     RETURN QUERY
     SELECT period.t,
-        coalesce(sum(x."totalMsats"), 0)::BIGINT as "totalMsats",
-        array_agg(row(x."PayInType", x."totalMsats")::"PayInTypeTotalMsats") as "payInTypes"
-    FROM generate_series(min, max, ival) period(t),
-    LATERAL
-    (
-        SELECT "PayInType", coalesce(sum("mtokens"), 0)::BIGINT as "totalMsats"
+        coalesce(sum("PayInTypes"."totalMsats"), 0)::BIGINT as "totalMsats",
+        array_agg(jsonb_build_object('type', "PayInTypes"."type", 'totalMsats', "PayInTypes"."totalMsats"))::jsonb[] as "payInTypes"
+    FROM generate_series(min, max, ival) period(t)
+    JOIN LATERAL (
+        SELECT "PayIn"."payInType" as "type", coalesce(sum("PayOutCustodialToken"."mtokens"), 0)::BIGINT as "totalMsats"
         FROM "PayIn"
         JOIN "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = "PayIn"."id"
         WHERE date_trunc(date_part, "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
         AND "PayIn"."payInState" = 'PAID'
         AND "PayOutCustodialToken"."payOutType" = 'REWARDS_POOL'
-        GROUP BY "PayInType"
-    ) x
+        GROUP BY "PayIn"."payInType"
+    ) "PayInTypes" ON true
     GROUP BY period.t;
 END;
 $$;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS rewards_today AS
+SELECT (rewards(min, max, '1 day'::INTERVAL, 'day')).* FROM today;
+
+DROP MATERIALIZED VIEW IF EXISTS rewards_days;
+CREATE MATERIALIZED VIEW IF NOT EXISTS rewards_days AS
+SELECT (rewards(min, max, '1 day'::INTERVAL, 'day')).* FROM all_days;
+
+CREATE UNIQUE INDEX IF NOT EXISTS rewards_today_idx ON rewards_today(t);
+CREATE UNIQUE INDEX IF NOT EXISTS rewards_days_idx ON rewards_days(t);

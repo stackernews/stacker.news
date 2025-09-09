@@ -16,4 +16,4 @@ EXPOSE 3000
 
 COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps --loglevel verbose
-CMD ["sh","-c","npm install --loglevel verbose --legacy-peer-deps && npx prisma migrate dev && npm run dev"]
+CMD ["sh","-c","npx prisma migrate dev && npm run dev"]

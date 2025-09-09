@@ -1,6 +1,5 @@
 import { Form, MarkdownInput } from '@/components/form'
 import styles from './reply.module.css'
-import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
@@ -10,9 +9,9 @@ import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { CREATE_COMMENT } from '@/fragments/paidAction'
+import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
-import { updateAncestorsCommentCount } from '@/lib/comments'
 import useCommentsView from './use-comments-view'
 
 export default forwardRef(function Reply ({
@@ -52,23 +51,11 @@ export default forwardRef(function Reply ({
       update (cache, { data: { upsertComment: { result, invoice } } }) {
         if (!result) return
 
-        cache.modify({
-          id: `Item:${parentId}`,
-          fields: {
-            comments (existingComments = {}) {
-              const newCommentRef = cache.writeFragment({
-                data: result,
-                fragment: COMMENTS,
-                fragmentName: 'CommentsRecursive'
-              })
-              return {
-                cursor: existingComments.cursor,
-                comments: [newCommentRef, ...(existingComments?.comments || [])]
-              }
-            }
-          },
-          optimistic: true
-        })
+        // inject the new comment into the cache
+        const injected = injectComment(cache, result)
+        if (injected) {
+          markCommentViewedAt(result.createdAt, { ncomments: 1 })
+        }
 
         // no lag for itemRepetition
         if (!item.mine && me) {
@@ -80,15 +67,6 @@ export default forwardRef(function Reply ({
             }
           })
         }
-
-        const ancestors = item.path.split('.')
-
-        // update all ancestors
-        updateAncestorsCommentCount(cache, ancestors, 1, parentId)
-
-        // so that we don't see indicator for our own comments, we record this comments as the latest time
-        // but we also have record num comments, in case someone else commented when we did
-        markCommentViewedAt(result.createdAt, { ncomments: 1 })
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {

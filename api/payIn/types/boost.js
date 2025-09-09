@@ -61,7 +61,6 @@ export async function onPaid (tx, payInId) {
     }
   })
 
-  // TODO: expireBoost job needs to be updated to use payIn
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('expireBoost', jsonb_build_object('id', ${payIn.itemPayIn.itemId}::INTEGER), 21, true,

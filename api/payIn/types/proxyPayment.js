@@ -41,7 +41,6 @@ export async function getInitial (models, { msats, description, descriptionHash,
   }
 }
 
-// TODO: all of this needs to be updated elsewhere
 export async function onBegin (tx, payInId, { comment, lud18Data, noteStr }) {
   const data = {
     ...(lud18Data && { lud18Data: { create: lud18Data } }),

@@ -13,16 +13,18 @@ Flavors:
 - [Desktop](#setup-alby-hub-desktop)
 - [Server](#setup-alby-hub-server)
 
+---
+
 ## Setup Alby Hub Desktop
 
-1. Download the latest Alby Hub Desktop release from Github [here](https://github.com/getAlby/hub/releases)
+1. Download the latest **Alby Hub Desktop** release from Github [here](https://github.com/getAlby/hub/releases)
 2. Run Alby Hub Desktop
 
-It is recommended to use an always-on device, as receiving payments would fail otherwise.
+It is recommended to use an **always-on device**, as receiving payments could otherwise fail.
 
 see [official documentation](https://guides.getalby.com/user-guide/alby-hub/alby-hub-flavors/desktop)
 
-Now you can attach [send](#attach-send) and/or [receive](#attach-receive)
+Now you can attach [**send**](#attach-send) and/or [**receive**](#attach-receive)
 
 ## Setup Alby Hub Server
 
@@ -64,7 +66,7 @@ WORK_DIR="dir/to/albyhub/data" LDK_GOSSIP_SOURCE="" dir/to/albyhub/bin/albyhub
 5. Now you can either [install it as a service](#install-as-a-systemd-service-optional) or run it via `./start.sh`
 6. Visit the Web UI at `ip:8080` or `ip:PORT` (if installed as a service) to continue setup
 
-Now you can attach [send](#attach-send) and/or [receive](#attach-receive)
+Now you can attach [**send**](#attach-send) and/or [**receive**](#attach-receive)
 
 #### Install as a systemd service (optional)
 
@@ -96,31 +98,32 @@ WantedBy=multi-user.target
 3. `sudo systemctl enable albyhub`
 4. `sudo systemctl start albyhub`
 
+---
 
 ## Attach send
 
-1. Navigate to the Connections tab in Alby Hub
-2. Create a Full Access connection and press Next
+1. Navigate to the **Connections** tab in Alby Hub
+2. Create a **Full Access** connection and press Next
 
 ![](https://m.stacker.news/107521)
 
-3. Copy the Nostr Wallet Connect URL via the apposited button
+3. **Copy** the Nostr Wallet Connect URL via the apposited button
 
 ![](https://m.stacker.news/107519)
 
-4. Paste the copied NWC URL in the NWC send step of the Alby Hub wallet attachment on SN
+4. **Paste** the copied NWC URL in the NWC send step of the Alby Hub wallet attachment on SN
 5. Press **next**
 
 ## Attach receive
 
-1. Navigate to the Connections tab in Alby Hub
-2. Create a Read Only connection and press Next
+1. Navigate to the **Connections** tab in Alby Hub
+2. Create a **Read Only** connection and press Next
 
 ![](https://m.stacker.news/107520)
 
-3. Copy the Nostr Wallet Connect URL via the apposited button
+3. **Copy** the Nostr Wallet Connect URL via the apposited button
 
 ![](https://m.stacker.news/107519)
 
-4. Paste the copied NWC URL in the NWC receive step of the Alby Hub wallet attachment on SN
+4. **Paste** the copied NWC URL in the NWC receive step of the Alby Hub wallet attachment on SN
 5. Press **next**

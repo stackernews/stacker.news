@@ -17,7 +17,7 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
   const [{ mcreditsSpent, mcreditsAfter, msatsSpent, msatsAfter }] = await tx.$queryRaw`
     -- Calculate optimal spending to maximize custodial usage, preferring to spend mcredits,
     -- while keeping any remainder as multiple of 1000 for invoice creation
-    WITH user AS (
+    WITH payer AS (
       SELECT
         id,
         msats,
@@ -46,7 +46,7 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
             -- [mcredits floored to a multiple of 1000, msats floored to a multiple of 1000].sum() < mCustodialCost
             ARRAY[(max_mcredits / 1000) * 1000, (msats / 1000) * 1000]
         END)::BIGINT[] AS spending
-      FROM user
+      FROM payer
     )
     UPDATE users
     SET

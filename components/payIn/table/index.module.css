@@ -7,6 +7,10 @@
   display: contents;
 }
 
+.row.skeleton > * {
+  height: 100px;
+}
+
 .row.header {
   text-transform: uppercase;
   font-weight: 600;

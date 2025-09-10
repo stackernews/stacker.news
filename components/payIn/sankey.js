@@ -34,6 +34,12 @@ export function PayInSankey ({ payIn }) {
   )
 }
 
+export function PayInSankeySkeleton () {
+  return (
+    <div style={{ width: '100%', maxWidth: '600px', height: '300px' }} className='clouds' />
+  )
+}
+
 function assetFormatted (msats, type) {
   if (type === 'CREDITS') {
     return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false })

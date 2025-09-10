@@ -44,3 +44,23 @@ function PayInRow ({ payIn }) {
     </div>
   )
 }
+
+export function PayInSkeleton ({ header }) {
+  return (
+    <div className={styles.table}>
+      {header &&
+        <div className={classNames(styles.row, styles.header, 'clouds')}>
+          <div>type</div>
+          <div>context</div>
+          <div>sats</div>
+        </div>}
+      {Array.from({ length: 21 }).map((_, index) => (
+        <div className={classNames(styles.row, styles.skeleton, 'clouds')} key={index}>
+          <div className={classNames(styles.type, 'clouds')} />
+          <div className={classNames(styles.context, 'clouds')} />
+          <div className={classNames(styles.money, 'clouds')} />
+        </div>
+      ))}
+    </div>
+  )
+}

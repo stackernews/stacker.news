@@ -6,7 +6,7 @@ sub: meta
 
 # Official Alby Hub Guide
 
-last updated: September 8, 2025
+last updated: September 10, 2025
 
 Flavors:
 
@@ -21,6 +21,8 @@ Flavors:
 It is recommended to use an always-on device, as receiving payments would fail otherwise.
 
 see [official documentation](https://guides.getalby.com/user-guide/alby-hub/alby-hub-flavors/desktop)
+
+Now you can attach [send](#attach-send) and/or [receive](#attach-receive)
 
 ## Setup Alby Hub Server
 
@@ -43,7 +45,7 @@ Choose a path:
 1. Pull the image from Docker:
 
 ```bash
-$ docker run -v .albyhub-data:/data -e WORK_DIR='/data' -p 8080:8080 ghcr.io/getalby/hub:latest`
+$ docker run -v .albyhub-data:/data -e WORK_DIR='/data' -p 8080:8080 ghcr.io/getalby/hub:latest
 ```
 
 2. Visit the Web UI at `ip:8080` to continue setup
@@ -62,12 +64,14 @@ WORK_DIR="dir/to/albyhub/data" LDK_GOSSIP_SOURCE="" dir/to/albyhub/bin/albyhub
 5. Now you can either [install it as a service](#install-as-a-systemd-service-optional) or run it via `./start.sh`
 6. Visit the Web UI at `ip:8080` or `ip:PORT` (if installed as a service) to continue setup
 
+Now you can attach [send](#attach-send) and/or [receive](#attach-receive)
+
 #### Install as a systemd service (optional)
 
 1. Open with your editor of choice `/etc/systemd/system/albyhub.service`
 2. Populate:
 
-```
+```ini
 [Unit]
 Description=Alby Hub
 After=network-online.target

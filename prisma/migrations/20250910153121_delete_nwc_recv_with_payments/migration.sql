@@ -15,3 +15,5 @@ WHERE id IN (
 -- delete wallets that now have no protocols
 DELETE FROM "Wallet"
 WHERE NOT EXISTS (SELECT 1 FROM "WalletProtocol" WHERE "walletId" = "Wallet"."id");
+
+-- badges will not be updated but that's okay, not important enough for the effort

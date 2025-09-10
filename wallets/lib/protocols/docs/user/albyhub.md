@@ -68,6 +68,10 @@ Now you can attach [send](#attach-send) and/or [receive](#attach-receive)
 
 #### Install as a systemd service (optional)
 
+This focuses on **systemd** for Linux systems.
+
+macOS uses **launchd** to handle services, you can follow [this really good guide](https://nathangrigg.com/2012/07/schedule-jobs-using-launchd/) to mirror what we're going to do here.
+
 1. Open with your editor of choice `/etc/systemd/system/albyhub.service`
 2. Populate:
 

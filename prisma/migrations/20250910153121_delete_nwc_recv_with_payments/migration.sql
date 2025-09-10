@@ -10,7 +10,7 @@ WHERE id IN (
         158,
         166
     )
-)
+);
 
 -- delete wallets that now have no protocols
 DELETE FROM "Wallet"

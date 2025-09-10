@@ -1,4 +1,4 @@
-import { assertBelowMaxPendingPayInBolt11s } from './assert'
+import { assertBelowMaxPendingPayInBolt11s, assertMcostRemaining, assertBalancedPayInAndPayOuts } from './assert'
 import { isInvoiceable, isPessimistic, isWithdrawal } from './is'
 import { getCostBreakdown, getPayInCustodialTokens } from './payInCustodialTokens'
 import { payInPrismaCreate } from './payInPrisma'
@@ -13,27 +13,22 @@ export const PAY_IN_INCLUDE = {
   beneficiaries: true
 }
 
-// TODO: before we create, validate the payIn such that
-// 1. the payIn amounts are enough to cover the payOuts
-// 2. mCostRemaining is a multiple of 1000
-// ... and other invariants are met
+// XXX consider adding more asserts
 export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
   const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
   const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost })
-  if (!isWithdrawal(payInProspect) && payInState !== 'PAID') {
-    await assertBelowMaxPendingPayInBolt11s(tx, payInProspect.userId)
-  }
-  console.log('payInProspect', payInProspect)
+
+  const fullProspect = { ...payInProspect, payInState, payInStateChangedAt: new Date(), payInCustodialTokens }
+
+  assertMcostRemaining(mCostRemaining)
+  assertBalancedPayInAndPayOuts(fullProspect)
+  await assertBelowMaxPendingPayInBolt11s(tx, fullProspect)
+
   const payIn = await tx.payIn.create({
     data: {
-      ...payInPrismaCreate({
-        ...payInProspect,
-        payInState,
-        payInStateChangedAt: new Date(),
-        payInCustodialTokens
-      }),
+      ...payInPrismaCreate(fullProspect),
       pessimisticEnv: {
-        create: isPessimistic(payInProspect, { me }) && !isWithdrawal(payInProspect) && payInState !== 'PAID' ? { args: payInArgs } : undefined
+        create: isPessimistic(fullProspect, { me }) ? { args: payInArgs } : undefined
       }
     },
     include: PAY_IN_INCLUDE

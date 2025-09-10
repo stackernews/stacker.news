@@ -11,7 +11,12 @@ export const PAY_IN_RECEIVER_FAILURE_REASONS = [
 
 export function isPessimistic (payIn, { me }) {
   const payInModule = payInTypeModules[payIn.payInType]
-  return !me || me.id === USER_ID.anon || !payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC)
+  return payIn.pessimisticEnv || (
+    (!me ||
+      me.id === USER_ID.anon ||
+      !payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC)) &&
+    !isWithdrawal(payIn) &&
+    payIn.payInState !== 'PAID')
 }
 
 export function isPayableWithCredits (payIn) {

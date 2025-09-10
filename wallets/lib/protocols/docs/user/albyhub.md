@@ -34,8 +34,8 @@ Requirements:
 
 Choose a path:
 - [Quickstart](#quickstart) (only Linux)
-- [Manual](#manual)
 - [Docker](#docker)
+- [Manual](#manual)
 
 #### Quickstart
 
@@ -103,27 +103,35 @@ WantedBy=multi-user.target
 ## Attach send
 
 1. Navigate to the **Connections** tab in Alby Hub
-2. Create a **Full Access** connection and press Next
+2. Press **Add connection**
 
-![](https://m.stacker.news/107521)
+![](https://m.stacker.news/107542)
 
-3. **Copy** the Nostr Wallet Connect URL via the apposited button
+3. Create a **Full Access** connection and press Next
 
-![](https://m.stacker.news/107519)
+![](https://m.stacker.news/107545)
 
-4. **Paste** the copied NWC URL in the NWC send step of the Alby Hub wallet attachment on SN
-5. Press **next**
+4. **Copy** the Nostr Wallet Connect URL via the apposited button
+
+![](https://m.stacker.news/107543)
+
+5. **Paste** the copied NWC URL in the NWC send step of the Alby Hub wallet attachment on SN
+6. Press **next** in **Stacker News**
 
 ## Attach receive
 
 1. Navigate to the **Connections** tab in Alby Hub
-2. Create a **Read Only** connection and press Next
+2. Press **Add connection**
 
-![](https://m.stacker.news/107520)
+![](https://m.stacker.news/107542)
 
-3. **Copy** the Nostr Wallet Connect URL via the apposited button
+3. Create a **Read Only** connection and press Next
 
-![](https://m.stacker.news/107519)
+![](https://m.stacker.news/107544)
 
-4. **Paste** the copied NWC URL in the NWC receive step of the Alby Hub wallet attachment on SN
-5. Press **next**
+4. **Copy** the Nostr Wallet Connect URL via the apposited button
+
+![](https://m.stacker.news/107543)
+
+5. **Paste** the copied NWC URL in the NWC receive step of the Alby Hub wallet attachment on SN
+6. Press **next** in **Stacker News**

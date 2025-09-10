@@ -59,31 +59,48 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
     if (index === -1) return [src, false, false]
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
   }, [src, mediaArr, index])
+  const IDLE_DELAY = 2000
+  const [navActive, setNavActive] = useState(false)
+  const idleTimerRef = useRef()
+  const getIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+    idleTimerRef.current = setTimeout(() => setNavActive(false), IDLE_DELAY)
+  }, [])
+  const bumpActivity = useCallback(() => {
+    setNavActive(true)
+    getIdleTimer()
+  }, [getIdleTimer])
 
   useEffect(() => {
     if (index === -1) return
     setOptions({
       overflow: <CarouselOverflow {...mediaArr[index][1]} />
     })
-  }, [index, mediaArr, setOptions])
+    bumpActivity()
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+    }
+  }, [index, mediaArr, setOptions, bumpActivity])
 
   const moveLeft = useCallback(() => {
     setIndex(i => Math.max(0, i - 1))
-  }, [setIndex])
+    bumpActivity()
+  }, [setIndex, bumpActivity])
 
   const moveRight = useCallback(() => {
     setIndex(i => Math.min(mediaArr.length - 1, i + 1))
-  }, [setIndex, mediaArr.length])
+    bumpActivity()
+  }, [setIndex, mediaArr.length, bumpActivity])
 
   useSwiping({ moveLeft, moveRight })
   useArrowKeys({ moveLeft, moveRight })
 
   return (
-    <div className={styles.fullScreenContainer} onClick={close}>
+    <div className={styles.fullScreenContainer} onClick={close} onMouseMove={bumpActivity} onTouchStart={bumpActivity}>
       <img className={styles.fullScreen} src={currentSrc} />
       <div className={styles.fullScreenNavContainer}>
         <div
-          className={classNames(styles.fullScreenNav, !canGoLeft && 'invisible', styles.left)}
+          className={classNames(styles.fullScreenNav, navActive ? styles.navActive : styles.navIdle, !canGoLeft && 'invisible', styles.left)}
           onClick={(e) => {
             e.stopPropagation()
             moveLeft()
@@ -92,7 +109,7 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
           <ArrowLeft width={34} height={34} />
         </div>
         <div
-          className={classNames(styles.fullScreenNav, !canGoRight && 'invisible', styles.right)}
+          className={classNames(styles.fullScreenNav, navActive ? styles.navActive : styles.navIdle, !canGoRight && 'invisible', styles.right)}
           onClick={(e) => {
             e.stopPropagation()
             moveRight()

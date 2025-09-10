@@ -4,7 +4,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import { TRANSFORMERS } from '@lexical/markdown'
+import { TRANSFORMERS, $convertFromMarkdownString } from '@lexical/markdown'
 import styles from './theme.module.css'
 import theme from './theme'
 import ToolbarPlugin from './plugins/toolbar'
@@ -74,6 +74,77 @@ export function Lexical ({ name, placeholder = 'hm?' }) {
       <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
       {/* triggers all the things that should happen when the editor state changes */}
       <OnChangePlugin />
+    </LexicalComposer>
+  )
+}
+
+// I suppose we should have a Lexical for Editing and one for Reading, with style in common
+// so we can have a consistent WYSIWYG styling
+
+export function LexicalEditor ({ nodes = [] }) {
+  const initial = {
+    namespace: 'snEditor',
+    theme,
+    editorState: () => {
+      const root = $getRoot()
+      if (root.getFirstChild() === null) {
+        const codeBlock = $createCodeNode()
+        codeBlock.setLanguage('markdown')
+        codeBlock.setTheme('github-dark-default')
+        root.append(codeBlock)
+      }
+    },
+    onError: (error) => {
+      console.error(error)
+    },
+    nodes
+  }
+
+  return (
+    <LexicalComposer initialConfig={initial}>
+      <ToolbarPlugin />
+      <RichTextPlugin
+        contentEditable={
+          <div className={styles.editor}>
+            <ContentEditable className={styles.editorInput} />
+          </div>
+        }
+        ErrorBoundary={LexicalErrorBoundary}
+      />
+      <CodeShikiPlugin />
+      <HistoryPlugin />
+      <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+      {/* triggers all the things that should happen when the editor state changes */}
+      <OnChangePlugin />
+    </LexicalComposer>
+  )
+}
+
+export function LexicalReader ({ nodes = [], className, children }) {
+  const initial = {
+    namespace: 'snEditor',
+    editable: false,
+    theme,
+    editorState: () => {
+      // TODO: correct theme for code nodes
+      return $convertFromMarkdownString(children, TRANSFORMERS)
+    },
+    onError: (error) => {
+      console.error(error)
+    },
+    nodes
+  }
+
+  return (
+    <LexicalComposer initialConfig={initial}>
+      <RichTextPlugin
+        contentEditable={
+          <div className={styles.editor}>
+            <ContentEditable className={className} />
+          </div>
+        }
+        ErrorBoundary={LexicalErrorBoundary}
+      />
     </LexicalComposer>
   )
 }

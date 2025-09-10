@@ -1,11 +1,11 @@
 import styles from './text.module.css'
 // import ReactMarkdown from 'react-markdown'
 // import gfm from 'remark-gfm'
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState } from 'react'
 // import MediaOrLink from './media-or-link'
 // import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { Button } from 'react-bootstrap'
+// import { Button } from 'react-bootstrap'
 // import Link from 'next/link'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 // import SubPopover from './sub-popover'
@@ -17,20 +17,13 @@ import classNames from 'classnames'
 // import remarkUnicode from '@/lib/remark-unicode'
 // import Embed from './embed'
 // import remarkMath from 'remark-math'
-import { LexicalComposer } from '@lexical/react/LexicalComposer'
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
-import { ContentEditable } from '@lexical/react/LexicalContentEditable'
-import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
+import { LexicalReader } from './lexical'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
-import { TRANSFORMERS, $convertFromMarkdownString } from '@lexical/markdown'
-import theme from './lexical/theme'
-import { $getRoot } from 'lexical'
-import CodeShikiPlugin from './lexical/plugins/codeshiki'
 
 /* const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -67,75 +60,37 @@ export default function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, 
   // TODO: what about MathJax?
   // TODO: handle overflowing
   // TODO: carousel
-  const containerRef = useRef(null)
-  const [show, setShow] = useState(false)
+  // const containerRef = useRef(null)
+  const [show] = useState(false)
   const [overflowing] = useState(false)
-  const showOverflow = useCallback(() => setShow(true), [setShow])
+  // const showOverflow = useCallback(() => setShow(true), [setShow])
 
-  const initial = {
-    namespace: 'snEditor',
-    editable: false,
-    theme,
-    editorState: () => { // WIP: this is a hack to set the theme for the code nodes
-      const editorState = $convertFromMarkdownString(children, TRANSFORMERS)
-
-      // Set theme for CodeNodes after conversion
-      const root = $getRoot()
-      root.getChildren().forEach(node => {
-        if (node.getType() === 'code') {
-          node.setTheme('github-dark-default')
-        }
-      })
-
-      return editorState
-    },
-    onError: (error) => {
-      console.error(error)
-    },
-    nodes: [
-      HeadingNode,
-      ListNode,
-      ListItemNode,
-      QuoteNode,
-      CodeNode,
-      CodeHighlightNode,
-      TableNode,
-      TableCellNode,
-      TableRowNode,
-      AutoLinkNode,
-      LinkNode,
-      HorizontalRuleNode
-    ]
-  }
+  const nodes = [
+    HeadingNode,
+    ListNode,
+    ListItemNode,
+    QuoteNode,
+    CodeNode,
+    CodeHighlightNode,
+    TableNode,
+    TableCellNode,
+    TableRowNode,
+    AutoLinkNode,
+    LinkNode,
+    HorizontalRuleNode
+  ]
 
   return (
-    <>
-      <LexicalComposer initialConfig={initial}>
-        <RichTextPlugin
-          contentEditable={
-            <div className={styles.editorInput} ref={containerRef}>
-              <ContentEditable className={classNames(
-                styles.text,
-                topLevel && styles.topLevel,
-                show ? styles.textUncontained : overflowing && styles.textContained)}
-              />
-            </div>
-          }
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <CodeShikiPlugin />
-      </LexicalComposer>
-      {overflowing && !show && (
-        <Button
-          size='lg'
-          variant='info'
-          className={styles.textShowFull}
-          onClick={showOverflow}
-        >
-          show full text
-        </Button>
+    <LexicalReader
+      nodes={nodes}
+      className={classNames(
+        styles.text,
+        topLevel && styles.topLevel,
+        show ? styles.textUncontained : overflowing && styles.textContained
       )}
-    </>
+    >
+      {children}
+    </LexicalReader>
   )
 
   /* const components = useMemo(() => ({

@@ -136,7 +136,6 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
       },
       data: {
         payInState,
-        payInStateChangedAt: new Date(),
         payInBolt11: {
           create: payInBolt11
         }

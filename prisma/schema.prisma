@@ -1508,7 +1508,6 @@ model WalletRecvLNDGRPC {
 }
 
 // payIn playground
-// TODO: add constraints on all sat value fields
 
 enum PayInType {
   BUY_CREDITS
@@ -1594,14 +1593,14 @@ model PayIn {
 
   payInType           PayInType
   payInState          PayInState
-  payInFailureReason  PayInFailureReason? // TODO: add check constraint
-  payInStateChangedAt DateTime? // TODO: set with a trigger?
+  payInFailureReason  PayInFailureReason?
+  payInStateChangedAt DateTime            @default(now())
   genesisId           Int? // the original payIn that was retried
   successorId         Int?                @unique // this ensures a payIn can only be retried once
   benefactorId        Int?
 
-  userId Int?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   pessimisticEnv        PessimisticEnv?
   payInCustodialTokens  PayInCustodialToken[]
@@ -1679,8 +1678,8 @@ model PayOutCustodialToken {
   updatedAt  DateTime   @default(now()) @updatedAt @map("updated_at")
   payOutType PayOutType
 
-  userId  Int?
-  user    User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   payInId Int
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
@@ -1708,8 +1707,8 @@ model PayInBolt11 {
   msatsReceived  BigInt?
   expiryHeight   Int?
   acceptHeight   Int?
-  User           User?     @relation(fields: [userId], references: [id])
-  userId         Int?
+  User           User      @relation(fields: [userId], references: [id])
+  userId         Int
   protocolId     Int?
 
   protocol  WalletProtocol?       @relation(fields: [protocolId], references: [id], onDelete: SetNull)

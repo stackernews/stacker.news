@@ -12,8 +12,7 @@ export function payInPrismaCreate (payIn) {
       }
       return {
         ...beneficiary,
-        payInState: payIn.payInState,
-        payInStateChangedAt: payIn.payInStateChangedAt
+        payInState: payIn.payInState
       }
     })
   }

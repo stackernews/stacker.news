@@ -52,12 +52,10 @@ async function transitionPayIn (jobName, data,
         },
         data: {
           payInState: toState,
-          payInStateChangedAt: new Date(),
           beneficiaries: {
             updateMany: {
               data: {
-                payInState: toState,
-                payInStateChangedAt: new Date()
+                payInState: toState
               },
               where: {
                 benefactorId: payInId

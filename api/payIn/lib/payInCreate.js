@@ -18,7 +18,7 @@ export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
   const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
   const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost })
 
-  const fullProspect = { ...payInProspect, payInState, payInStateChangedAt: new Date(), payInCustodialTokens }
+  const fullProspect = { ...payInProspect, payInState, payInCustodialTokens }
 
   assertMcostRemaining(mCostRemaining)
   assertBalancedPayInAndPayOuts(fullProspect)

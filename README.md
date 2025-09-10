@@ -552,6 +552,32 @@ We fallback to the next sender wallet if paying the wrapped invoice failed (unle
 
 On any wallet payment error (= payment did not fail because the invoice expired or was canceled), we cancel the invoice and ask the server to create a new one for us. The server is able to know if it should fallback to the next receiver wallet or not because it knows if the wrapped invoice we're retrying failed because the wrapped invoice was never paid (sender error) or if forwarding failed (receiver error).
 
+Here is the logic in pseudo-code:
+
+```python
+for paymentAttempt=0; paymentAttempt<3; paymentAttempt++
+  for rwallet in receiver wallets
+    receiver_error = false
+    for swallet in sender wallets
+      invoice = getInvoice(rwallet)
+      if invoice
+        succeeded, forward_failed = payInvoice(swallet, invoice)
+        if succeeded
+          return # done
+        else
+          cancel(invoice)
+        if forward_failed # means we need to try new receiver wallet
+          receiver_error = true
+          break
+      else
+        receiver_error = true
+        break
+    if receiver_error # try new receiver wallet
+      continue
+    if not succeeded # all sender wallets failed, so start new payment attempt
+      break
+```
+
 <br>
 
 # Need help?

@@ -118,7 +118,8 @@
         "name": "ALBY",
         "displayName": "Alby",
         "image": "/wallets/alby.svg",
-        "url": "https://getalby.com/"
+        "url": "https://getalby.com/",
+        "guide": "/items/TBD"
     },
     {
         "name": "BLIXT",

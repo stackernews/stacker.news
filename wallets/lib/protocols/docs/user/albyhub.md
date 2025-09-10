@@ -37,12 +37,12 @@ Choose a path:
 - [Manual](#manual)
 - [Docker](#docker)
 
-### Quickstart
+#### Quickstart
 
 1. Follow the Quick start script provided by Alby [here](https://github.com/getAlby/hub?tab=readme-ov-file#from-the-release)
 2. Visit the Web UI at `ip:8080` or `ip:8029` (if installed as a service) to continue setup
 
-### Docker
+#### Docker
 
 1. Pull the image from Docker:
 
@@ -52,7 +52,7 @@ $ docker run -v .albyhub-data:/data -e WORK_DIR='/data' -p 8080:8080 ghcr.io/get
 
 2. Visit the Web UI at `ip:8080` to continue setup
 
-### Manual
+#### Manual
 
 1. Download the latest Alby Hub Server release for your processor from Github [here](https://github.com/getAlby/hub/releases)
 2. Extract it to a folder of your choice, we'll go with `albyhub`, and navigate to it
@@ -68,7 +68,7 @@ WORK_DIR="dir/to/albyhub/data" LDK_GOSSIP_SOURCE="" dir/to/albyhub/bin/albyhub
 
 Now you can attach [**send**](#attach-send) and/or [**receive**](#attach-receive)
 
-#### Install as a systemd service (optional)
+###### Install as a systemd service (optional)
 
 This focuses on **systemd** for Linux systems.
 

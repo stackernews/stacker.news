@@ -390,6 +390,18 @@ ALTER TABLE "PayInBolt11NostrNote" ADD CONSTRAINT "PayInBolt11NostrNote_payInBol
 -- AddForeignKey
 ALTER TABLE "PayInBolt11Comment" ADD CONSTRAINT "PayInBolt11Comment_payInBolt11Id_fkey" FOREIGN KEY ("payInBolt11Id") REFERENCES "PayInBolt11"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+
+-- add indices associated with creating daily and hourly views
+CREATE INDEX IF NOT EXISTS "PayIn.created_at_hour_index"
+    ON "ItemAct"(date_trunc('hour', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
+CREATE INDEX IF NOT EXISTS "PayIn.created_at_day_index"
+    ON "PayIn"(date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
+CREATE INDEX IF NOT EXISTS "PayIn.payInStateChangedAt_hour_index"
+    ON "PayIn"(date_trunc('hour', "payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
+CREATE INDEX IF NOT EXISTS "PayIn.payInStateChangedAt_day_index"
+    ON "PayIn"(date_trunc('day', "payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
+
+
 CREATE OR REPLACE FUNCTION check_pending_bolt11s()
 RETURNS INTEGER
 LANGUAGE plpgsql
@@ -780,7 +792,7 @@ DROP FUNCTION IF EXISTS rewards CASCADE;
 
 CREATE OR REPLACE FUNCTION rewards(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
 RETURNS TABLE (
-    t TIMESTAMP(3), "totalMsats" BIGINT, "payInTypes" JSONB[]
+    t TIMESTAMP(3), "totalMsats" BIGINT, "sources" JSONB[]
 )
 LANGUAGE plpgsql
 AS $$
@@ -789,7 +801,7 @@ BEGIN
     RETURN QUERY
     SELECT period.t,
         coalesce(sum("PayInTypes"."totalMsats"), 0)::BIGINT as "totalMsats",
-        array_agg(jsonb_build_object('type', "PayInTypes"."type", 'totalMsats', "PayInTypes"."totalMsats"))::jsonb[] as "payInTypes"
+        array_agg(jsonb_build_object('name', "PayInTypes"."type", 'value', "PayInTypes"."totalMsats"))::jsonb[] as "sources"
     FROM generate_series(min, max, ival) period(t)
     JOIN LATERAL (
         SELECT "PayIn"."payInType" as "type", coalesce(sum("PayOutCustodialToken"."mtokens"), 0)::BIGINT as "totalMsats"
@@ -804,6 +816,7 @@ BEGIN
 END;
 $$;
 
+DROP MATERIALIZED VIEW IF EXISTS rewards_today;
 CREATE MATERIALIZED VIEW IF NOT EXISTS rewards_today AS
 SELECT (rewards(min, max, '1 day'::INTERVAL, 'day')).* FROM today;
 

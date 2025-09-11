@@ -1,4 +1,5 @@
 import { msatsToSatsDecimal, numWithUnits } from '@/lib/format'
+import { payTypeShortName } from '@/lib/pay-in'
 import { ResponsiveSankey, SankeyLabelComponent } from '@nivo/sankey'
 
 export function PayInSankey ({ payIn }) {
@@ -149,7 +150,7 @@ function getSankeyData (payIn) {
   // Create individual nodes for each payOutCustodialToken
   if (payIn.payOutCustodialTokens && payIn.payOutCustodialTokens.length > 0) {
     payIn.payOutCustodialTokens.forEach((token, index) => {
-      let id = token.payOutType.toLowerCase().replace('_', ' ')
+      let id = payTypeShortName(token.payOutType)
       if (token.payOutType === 'TERRITORY_REVENUE' && token.sub?.name) {
         id = `~${token.sub.name}`
       } else if (token.payOutType === 'ZAP' && token.sometimesPrivates?.user?.name) {

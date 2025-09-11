@@ -24,39 +24,10 @@ async function getCachedActiveRewards (staleIn, models) {
 async function getActiveRewards (models) {
   return await models.$queryRaw`
       SELECT
-        (sum(total) / 1000)::INT as total,
+        ("totalMsats" / 1000)::INT as total,
         date_trunc('day',  (now() AT TIME ZONE 'America/Chicago') + interval '1 day') AT TIME ZONE 'America/Chicago' as time,
-        json_build_array(
-          json_build_object('name', 'donations', 'value', (sum(donations) / 1000)::INT),
-          json_build_object('name', 'fees', 'value', (sum(fees) / 1000)::INT),
-          json_build_object('name', 'boost', 'value', (sum(boost) / 1000)::INT),
-          json_build_object('name', 'jobs', 'value', (sum(jobs) / 1000)::INT),
-          json_build_object('name', 'anon''s stack', 'value', (sum(anons_stack) / 1000)::INT)
-        ) AS sources
-      FROM (
-        (SELECT * FROM rewards_today)
-        UNION ALL
-        (SELECT * FROM
-          rewards(
-            date_trunc('hour', timezone('America/Chicago', now())),
-            date_trunc('hour', timezone('America/Chicago', now())), '1 hour'::INTERVAL, 'hour'))
-      ) u`
-}
-
-async function getMonthlyRewards (when, models) {
-  return await models.$queryRaw`
-      SELECT
-        (sum(total) / 1000)::INT as total,
-        date_trunc('month',  ${when?.[0]}::text::timestamp) AT TIME ZONE 'America/Chicago' as time,
-        json_build_array(
-          json_build_object('name', 'donations', 'value', (sum(donations) / 1000)::INT),
-          json_build_object('name', 'fees', 'value', (sum(fees) / 1000)::INT),
-          json_build_object('name', 'boost', 'value', (sum(boost) / 1000)::INT),
-          json_build_object('name', 'jobs', 'value', (sum(jobs) / 1000)::INT),
-          json_build_object('name', 'anon''s stack', 'value', (sum(anons_stack) / 1000)::INT)
-        ) AS sources
-      FROM rewards_days
-      WHERE date_trunc('month', rewards_days.t) = date_trunc('month', ${when?.[0]}::text::timestamp - interval '1 month')`
+        "sources" as sources
+      FROM rewards_today`
 }
 
 async function getRewards (when, models) {
@@ -72,15 +43,6 @@ async function getRewards (when, models) {
     if (new Date(when[0]) > new Date(when[when.length - 1])) {
       throw new GqlInputError('bad date range')
     }
-
-    if (new Date(when[0]).getTime() > new Date('2024-03-01').getTime() && new Date(when[0]).getTime() < new Date('2024-05-02').getTime()) {
-      // after 3/1/2024 and until 5/1/2024, we reward monthly on the 1st
-      if (new Date(when[0]).getUTCDate() !== 1) {
-        throw new GqlInputError('bad reward date')
-      }
-
-      return await getMonthlyRewards(when, models)
-    }
   }
 
   const results = await models.$queryRaw`
@@ -91,18 +53,12 @@ async function getRewards (when, models) {
         COALESCE(${when?.[when.length - 1]}::text::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
         interval '1 day') AS t
     )
-    SELECT (total / 1000)::INT as total,
+    SELECT ("totalMsats" / 1000)::INT as total,
       days_cte.day + interval '1 day' as time,
-      json_build_array(
-        json_build_object('name', 'donations', 'value', donations / 1000),
-        json_build_object('name', 'fees', 'value', fees / 1000),
-        json_build_object('name', 'boost', 'value', boost / 1000),
-        json_build_object('name', 'jobs', 'value', jobs / 1000),
-        json_build_object('name', 'anon''s stack', 'value', anons_stack / 1000)
-    ) AS sources
+      sources
     FROM days_cte
     JOIN rewards_days ON rewards_days.t = days_cte.day
-    GROUP BY days_cte.day, total, donations, fees, boost, jobs, anons_stack
+    GROUP BY days_cte.day, "totalMsats", sources
     ORDER BY days_cte.day ASC`
 
   return results.length ? results : [{ total: 0, time: '0', sources: [] }]

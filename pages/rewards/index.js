@@ -7,7 +7,7 @@ import Layout from '@/components/layout'
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { amountSchema } from '@/lib/validate'
-import { numWithUnits } from '@/lib/format'
+import { msatsToSats, numWithUnits } from '@/lib/format'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
 import dynamic from 'next/dynamic'
@@ -23,6 +23,7 @@ import { DONATE } from '@/fragments/payIn'
 import { ITEM_FULL_FIELDS } from '@/fragments/items'
 import { ListItem } from '@/components/items'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { payTypeShortName } from '@/lib/pay-in'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
@@ -40,19 +41,6 @@ ${ITEM_FULL_FIELDS}
     }
     ad {
       ...ItemFullFields
-    }
-  }
-}
-`
-
-const REWARDS = gql`
-{
-  rewards {
-    total
-    time
-    sources {
-      name
-      value
     }
   }
 }
@@ -79,21 +67,22 @@ export function RewardLine ({ total, time }) {
 
 export default function Rewards ({ ssrData }) {
   // only poll for updates to rewards
-  const { data: rewardsData } = useQuery(
-    REWARDS,
+  const { data } = useQuery(
+    REWARDS_FULL,
     SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
-  const { data } = useQuery(REWARDS_FULL)
   const dat = useData(data, ssrData)
 
-  let { rewards: [{ total, sources, time, ad }] } = useMemo(() => {
-    return dat || { rewards: [{}] }
+  const { rewards: [{ total, sources, time, ad }] } = useMemo(() => {
+    if (!dat) return { rewards: [{}] }
+    return {
+      rewards: [{
+        total: dat.rewards[0].total,
+        sources: dat.rewards[0].sources.map(source => ({ name: payTypeShortName(source.name), value: msatsToSats(source.value) })),
+        time: dat.rewards[0].time,
+        ad: dat.rewards[0].ad
+      }]
+    }
   }, [dat])
-
-  if (rewardsData?.rewards?.length > 0) {
-    total = rewardsData.rewards[0].total
-    sources = rewardsData.rewards[0].sources
-    time = rewardsData.rewards[0].time
-  }
 
   if (!dat) return <PageLoading />
 

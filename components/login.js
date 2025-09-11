@@ -75,7 +75,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error, signin))
   const router = useRouter()
 
-  multiAuth = typeof multiAuth === 'string' ? multiAuth === 'true' : false
+  multiAuth = typeof multiAuth === 'string' ? multiAuth === 'true' : !!multiAuth
 
   // signup/signin awareness cookie
   useEffect(() => {

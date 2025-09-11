@@ -143,9 +143,9 @@ export const ACT_MUTATION = gql`
 
 export const UPSERT_DISCUSSION = gql`
   ${PAID_ACTION}
-  mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String,
+  mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $lexicalState: String, $html: String,
     $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
-    upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost,
+    upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, lexicalState: $lexicalState, html: $html, boost: $boost,
       forward: $forward, ${HASH_HMAC_INPUT_2}) {
       result {
         id
@@ -244,8 +244,8 @@ export const UPSERT_BIO = gql`
 export const CREATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertComment($text: String!, $parentId: ID!) {
-    upsertComment(text: $text, parentId: $parentId) {
+  mutation upsertComment($text: String!, $lexicalState: String, $html: String, $parentId: ID!) {
+    upsertComment(text: $text, lexicalState: $lexicalState, html: $html, parentId: $parentId) {
       ...ItemPaidActionFields
       ...PaidActionFields
     }
@@ -254,8 +254,8 @@ export const CREATE_COMMENT = gql`
 export const UPDATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS_NO_CHILD_COMMENTS}
   ${PAID_ACTION}
-  mutation upsertComment($id: ID!, $text: String!, $boost: Int, ${HASH_HMAC_INPUT_1}) {
-    upsertComment(id: $id, text: $text, boost: $boost, ${HASH_HMAC_INPUT_2}) {
+  mutation upsertComment($id: ID!, $text: String!, $lexicalState: String, $html: String, $boost: Int, ${HASH_HMAC_INPUT_1}) {
+    upsertComment(id: $id, text: $text, lexicalState: $lexicalState, html: $html, boost: $boost, ${HASH_HMAC_INPUT_2}) {
       ...ItemPaidActionFieldsNoChildComments
       ...PaidActionFields
     }

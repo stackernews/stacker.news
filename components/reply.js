@@ -136,7 +136,9 @@ export default forwardRef(function Reply ({
           >
             <Form
               initial={{
-                text: ''
+                text: '',
+                lexicalState: '',
+                html: '' // explore other positions to put this
               }}
               schema={commentSchema}
               onSubmit={onSubmit}

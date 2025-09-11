@@ -4,6 +4,7 @@ import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 import { throwOnExpiredUploads } from '@/api/resolvers/upload'
+import { sanitizeHTML } from '@/lib/dompurify'
 
 export const anonable = true
 
@@ -105,6 +106,7 @@ export async function perform (args, context) {
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
     ...data,
+    html: data.html ? sanitizeHTML(data.html) : null,
     ...invoiceData,
     boost,
     threadSubscriptions: {

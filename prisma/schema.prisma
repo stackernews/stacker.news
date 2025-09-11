@@ -414,7 +414,8 @@ model Item {
   updatedAt            DateTime              @default(now()) @updatedAt @map("updated_at")
   title                String?
   text                 String?
-  editorState          Json?
+  lexicalState         Json?
+  html                 String?
   url                  String?
   userId               Int
   parentId             Int?

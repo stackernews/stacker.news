@@ -1,13 +1,17 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
-import { registerCodeHighlighting, getCodeThemeOptions } from '@lexical/code-shiki'
+import { registerCodeHighlighting, ShikiTokenizer } from '@lexical/code-shiki'
 
-export default function CodeShikiPlugin () {
+const shikiTokenizer = {
+  ...ShikiTokenizer,
+  defaultTheme: 'github-dark-default'
+}
+
+export default function CodeShikiPlugin ({ isEditable = true }) {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
-    console.log(getCodeThemeOptions())
-    return registerCodeHighlighting(editor)
+    return registerCodeHighlighting(editor, shikiTokenizer)
   }, [editor])
 
   return null

@@ -28,7 +28,7 @@
 .editorInput {
     min-height: 150px;
     resize: auto;
-    font-size: 15px;
+    font-size: 94%;
     caret-color: var(--theme-color);
     background-color: var(--theme-body);
     position: relative;
@@ -59,11 +59,21 @@
 
 .image {
     display: inline-block;
+    height: auto;
+    max-width: 100%;
+    max-height: 25vh;
+    border-radius: .4rem;
+    margin-bottom: .5rem;
+    margin-top: .5rem;
+    object-fit: contain;
+    object-position: left top;
+    cursor: zoom-in;
+    min-width: 30%;
+    aspect-ratio: var(--aspect-ratio);
 }
 
 .paragraph {
     margin: 0;
-    margin-bottom: 8px;
     position: relative;
     line-height: 140%;
 }
@@ -93,19 +103,17 @@
 
 .heading2 {
     font-size: 15px;
-    color: var(--theme-navLink);
-    font-weight: 700;
+    color: var(--theme-color);
     margin: 0;
     margin-top: 10px;
-    text-transform: uppercase;
 }
 
 
 .code {
-    background-color: rgb(240, 242, 245);
     font-family: Menlo, Consolas, Monaco, monospace;
     display: block;
-    padding: 8px 8px 8px 52px;
+    padding: 8px 8px 8px 8px;
+    padding-top: 32px;
     line-height: 1.53;
     font-size: 13px;
     margin: 0;
@@ -115,15 +123,17 @@
     /* white-space: pre; */
     overflow-x: auto;
     position: relative;
+    background: rgb(40, 44, 52) !important;
+    border-radius: 0.3rem;
 }
 
-.code[data-language="markdown"] {
+.editorInput[contenteditable="true"] .code[data-language="markdown"] {
     background-color: var(--theme-body) !important;
-    font-family: Menlo, Consolas, Monaco, monospace;
+    font-family: inherit;
+    font-size: 100% !important;
     display: block;
     padding: 0 !important;
     line-height: 1.53;
-    font-size: 13px;
     margin: 0;
     margin-bottom: 8px;
     tab-size: 2;
@@ -179,13 +189,6 @@
 
 .textUnderlineStrikethrough {
     text-decoration: underline line-through;
-}
-
-.textCode {
-    background-color: rgb(240, 242, 245);
-    padding: 1px 0.25rem;
-    font-family: Menlo, Consolas, Monaco, monospace;
-    font-size: 94%;
 }
 
 /* toolbar */

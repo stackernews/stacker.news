@@ -1,4 +1,4 @@
-import styles from '../../theme.module.css'
+import styles from '../../styles/theme.module.css'
 import { useRef } from 'react'
 import FileUploadPlugin from './fileupload'
 import SwitchPlugin from './switch'

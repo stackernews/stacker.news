@@ -13,8 +13,7 @@ import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
-import { Lexical } from './lexical'
-import Image from 'next/image'
+import { LexicalEditor } from './lexical'
 
 export default forwardRef(function Reply ({
   item,
@@ -32,7 +31,6 @@ export default forwardRef(function Reply ({
   const root = useRoot()
   const sub = item?.sub || root?.sub
   const { markCommentViewedAt } = useCommentsView(root.id)
-  const [show, setShow] = useState(false)
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -144,13 +142,7 @@ export default forwardRef(function Reply ({
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              {show
-                ? (
-                  <Lexical name='text' placeholder={placeholder} />
-                  )
-                : (
-                  <Image onClick={() => setShow(true)} src='/shaun404.png' width={475} height={250} alt='hideLexical' />
-                  )}
+              <LexicalEditor name='text' placeholder={placeholder} />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>
           </FeeButtonProvider>

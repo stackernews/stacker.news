@@ -1,4 +1,4 @@
-import styles from '../../theme.module.css'
+import styles from '../../styles/theme.module.css'
 import { useRef, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_EDITOR } from 'lexical'

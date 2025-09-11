@@ -1,10 +1,11 @@
-import styles from '../../theme.module.css'
+import styles from '../../styles/theme.module.css'
 import WYSIWYGIcon from '@/svgs/file-text-line.svg'
 import MarkdownIcon from '@/svgs/markdown-line.svg'
 import { useState, useCallback, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $isCodeNode, $createCodeNode } from '@lexical/code'
-import { TRANSFORMERS, $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
+import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
+import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
 import { $createTextNode, $getRoot } from 'lexical'
 
 // this will switch between wysiwyg and markdown mode
@@ -38,10 +39,10 @@ export default function SwitchPlugin () {
       const isMarkdownMode = $isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown'
       if (isMarkdownMode) {
         setMarkdownMode(false)
-        $convertFromMarkdownString(firstChild.getTextContent(), TRANSFORMERS, undefined, true)
+        $convertFromMarkdownString(firstChild.getTextContent(), SN_TRANSFORMERS, undefined, true)
       } else {
         setMarkdownMode(true)
-        const markdown = $convertToMarkdownString(TRANSFORMERS, undefined, true)
+        const markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
         const codeNode = $createCodeNode('markdown')
         codeNode.setTheme('github-dark-default')
         codeNode.append($createTextNode(markdown))

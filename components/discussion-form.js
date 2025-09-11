@@ -1,7 +1,7 @@
-import { Form, Input, MarkdownInput } from '@/components/form'
+import { Form, Input } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
-import Countdown from './countdown'
+// import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
 import AccordianItem from './accordian-item'
@@ -14,6 +14,7 @@ import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import { UPSERT_DISCUSSION } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
+import { LexicalEditor } from './lexical'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -70,7 +71,8 @@ export function DiscussionForm ({
         }}
         maxLength={MAX_TITLE_LENGTH}
       />
-      <MarkdownInput
+      <LexicalEditor name='text' />
+      {/* <MarkdownInput
         topLevel
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}
         name='text'
@@ -78,7 +80,7 @@ export function DiscussionForm ({
         hint={editThreshold
           ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
           : null}
-      />
+      /> */}
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} />
       {!item &&

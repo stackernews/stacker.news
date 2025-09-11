@@ -1,7 +1,7 @@
 import styles from './text.module.css'
 // import ReactMarkdown from 'react-markdown'
 // import gfm from 'remark-gfm'
-import React, { useState } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 // import MediaOrLink from './media-or-link'
 // import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
@@ -18,12 +18,8 @@ import classNames from 'classnames'
 // import Embed from './embed'
 // import remarkMath from 'remark-math'
 import { LexicalReader } from './lexical'
-import { HeadingNode, QuoteNode } from '@lexical/rich-text'
-import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
-import { ListItemNode, ListNode } from '@lexical/list'
-import { CodeHighlightNode, CodeNode } from '@lexical/code'
-import { AutoLinkNode, LinkNode } from '@lexical/link'
-import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
+import { Button } from 'react-bootstrap'
+// import { Button } from 'react-bootstrap'
 
 /* const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -61,36 +57,57 @@ export default function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, 
   // TODO: handle overflowing
   // TODO: carousel
   // const containerRef = useRef(null)
-  const [show] = useState(false)
-  const [overflowing] = useState(false)
-  // const showOverflow = useCallback(() => setShow(true), [setShow])
+  const [show, setShow] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+  const containerRef = useRef(null)
+  const showOverflow = useCallback(() => setShow(true), [setShow])
 
-  const nodes = [
-    HeadingNode,
-    ListNode,
-    ListItemNode,
-    QuoteNode,
-    CodeNode,
-    CodeHighlightNode,
-    TableNode,
-    TableCellNode,
-    TableRowNode,
-    AutoLinkNode,
-    LinkNode,
-    HorizontalRuleNode
-  ]
+  // clip item and give it a`show full text` button if we are overflowing
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || overflowing) return
+
+    function checkOverflow () {
+      setOverflowing(container.scrollHeight > window.innerHeight * 2)
+    }
+
+    let resizeObserver
+    if (!overflowing && 'ResizeObserver' in window) {
+      resizeObserver = new window.ResizeObserver(checkOverflow).observe(container)
+    }
+
+    window.addEventListener('resize', checkOverflow)
+    checkOverflow()
+
+    return () => {
+      window.removeEventListener('resize', checkOverflow)
+      resizeObserver?.disconnect()
+    }
+  }, [containerRef.current, setOverflowing])
 
   return (
-    <LexicalReader
-      nodes={nodes}
-      className={classNames(
-        styles.text,
-        topLevel && styles.topLevel,
-        show ? styles.textUncontained : overflowing && styles.textContained
-      )}
-    >
-      {children}
-    </LexicalReader>
+    <div>
+      <LexicalReader
+        className={classNames(
+          styles.text,
+          topLevel && styles.topLevel,
+          show ? styles.textUncontained : overflowing && styles.textContained
+        )}
+        ref={containerRef}
+      >
+        {children}
+        {overflowing && !show && (
+          <Button
+            size='lg'
+            variant='info'
+            className={styles.textShowFull}
+            onClick={showOverflow}
+          >
+            show full text
+          </Button>
+        )}
+      </LexicalReader>
+    </div>
   )
 
   /* const components = useMemo(() => ({

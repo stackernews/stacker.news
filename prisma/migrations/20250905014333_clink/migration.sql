@@ -9,8 +9,8 @@ ALTER TYPE "WalletSendProtocolName" ADD VALUE 'CLINK'; COMMIT;
 
 UPDATE "WalletTemplate"
 SET
-    "sendProtocols" = array_append("sendProtocols", 'CLINK'),
-    "recvProtocols" = array_append("recvProtocols", 'CLINK')
+    "sendProtocols" = array_prepend('CLINK', "sendProtocols"),
+    "recvProtocols" = array_prepend('CLINK', "recvProtocols")
 WHERE "name" = 'SHOCKWALLET';
 
 -- CreateTable

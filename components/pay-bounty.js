@@ -14,9 +14,9 @@ import { Form, SubmitButton } from './form'
 export const payBountyCacheMods = {
   update: (cache, { data }) => {
     const response = Object.values(data)[0]
-    if (!response?.result) return
+    if (!response?.payerPrivates.result) return
     console.log('payBounty: update', response)
-    const { id, path } = response.result
+    const { id, path } = response.payerPrivates.result
     const root = path.split('.')[0]
     cache.modify({
       id: `Item:${root}`,
@@ -30,9 +30,9 @@ export const payBountyCacheMods = {
   },
   onPayError: (e, cache, { data }) => {
     const response = Object.values(data)[0]
-    if (!response?.result) return
+    if (!response?.payerPrivates.result) return
     console.log('payBounty: onPayError', response)
-    const { id, path } = response.result
+    const { id, path } = response.payerPrivates.result
     const root = path.split('.')[0]
     cache.modify({
       id: `Item:${root}`,
@@ -58,7 +58,7 @@ export default function PayBounty ({ children, item }) {
   console.log('payBounty', item.path)
   const act = useAct({
     variables,
-    optimisticResponse: { payInType: 'ZAP', mcost: satsToMsats(root.bounty), result: { path: item.path, id: item.id, sats: root.bounty, act: 'TIP', __typename: 'ItemAct' } },
+    optimisticResponse: { payInType: 'ZAP', mcost: satsToMsats(root.bounty), payerPrivates: { result: { path: item.path, id: item.id, sats: root.bounty, act: 'TIP', __typename: 'ItemAct' } } },
     ...payBountyCacheMods
   })
 

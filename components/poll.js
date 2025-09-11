@@ -87,8 +87,8 @@ export function usePollVote ({ query = POLL_VOTE, itemId }) {
   const update = (cache, { data }) => {
     // the mutation name varies for optimistic retries
     const response = Object.values(data)[0]
-    if (!response?.result) return
-    const { result } = response
+    if (!response?.payerPrivates.result) return
+    const { payerPrivates: { result } } = response
     const { id } = result
     cache.modify({
       id: `Item:${itemId}`,

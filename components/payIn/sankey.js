@@ -65,8 +65,8 @@ function getSankeyData (payIn) {
   })
 
   // Create individual nodes for each payInCustodialToken
-  if (payIn.payInCustodialTokens && payIn.payInCustodialTokens.length > 0) {
-    payIn.payInCustodialTokens.forEach((token, index) => {
+  if (payIn.payerPrivates?.payInCustodialTokens && payIn.payerPrivates.payInCustodialTokens.length > 0) {
+    payIn.payerPrivates.payInCustodialTokens.forEach((token, index) => {
       const id = token.custodialTokenType === 'SATS' ? 'sats' : 'CCs'
       nodes.push({
         id,
@@ -80,40 +80,46 @@ function getSankeyData (payIn) {
         custodialTokenType: token.custodialTokenType
       })
     })
+  } else {
+    nodes.push({
+      id: 'sats',
+      mtokens: payIn.mcost,
+      custodialTokenType: 'SATS'
+    })
+    links.push({
+      source: 'sats',
+      target: '',
+      mtokens: payIn.mcost,
+      custodialTokenType: 'SATS'
+    })
   }
 
   // Create node for payInBolt11 if it exists
-  if (payIn.payInBolt11) {
+  if (payIn.payInBolt11Public) {
     nodes.push({
       id: 'lightning',
-      mtokens: payIn.payInBolt11.msatsRequested,
+      mtokens: payIn.payInBolt11Public.msats,
       custodialTokenType: 'SATS'
     })
 
-    let leftOverMsats = payIn.payInBolt11.msatsRequested
+    let leftOverMsats = payIn.payInBolt11Public.msats
 
     // this is a p2p zap or payment
-    if (payIn.payOutBolt11) {
-      leftOverMsats = payIn.payInBolt11.msatsRequested - payIn.payOutBolt11.msats
-      let id = 'lightning (out)'
-      if (payIn.payOutBolt11) {
-        if (payIn.payOutBolt11.user?.name) {
-          id = `@${payIn.payOutBolt11.user.name}`
-        }
+    if (payIn.payOutBolt11Public) {
+      leftOverMsats = payIn.payInBolt11Public.msats - payIn.payOutBolt11Public.msats
+      const id = 'lightning (out)'
+      nodes.push({
+        id,
+        mtokens: payIn.payOutBolt11Public.msats,
+        custodialTokenType: 'SATS'
+      })
 
-        nodes.push({
-          id,
-          mtokens: payIn.payOutBolt11.msats,
-          custodialTokenType: 'SATS'
-        })
-
-        links.push({
-          source: 'lightning',
-          target: id,
-          mtokens: payIn.payOutBolt11.msats,
-          custodialTokenType: 'SATS'
-        })
-      }
+      links.push({
+        source: 'lightning',
+        target: id,
+        mtokens: payIn.payOutBolt11Public.msats,
+        custodialTokenType: 'SATS'
+      })
     }
 
     if (leftOverMsats > 0) {
@@ -124,18 +130,18 @@ function getSankeyData (payIn) {
         custodialTokenType: 'SATS'
       })
     }
-  } else if (payIn.payOutBolt11) {
+  } else if (payIn.payOutBolt11Public) {
     // this is a withdrawal
     nodes.push({
       id: 'lightning (out)',
-      mtokens: payIn.payOutBolt11.msats,
+      mtokens: payIn.payOutBolt11Public.msats,
       custodialTokenType: 'SATS'
     })
 
     links.push({
       source: '',
       target: 'lightning (out)',
-      mtokens: payIn.payOutBolt11.msats,
+      mtokens: payIn.payOutBolt11Public.msats,
       custodialTokenType: 'SATS'
     })
   }
@@ -146,8 +152,8 @@ function getSankeyData (payIn) {
       let id = token.payOutType.toLowerCase().replace('_', ' ')
       if (token.payOutType === 'TERRITORY_REVENUE' && token.sub?.name) {
         id = `~${token.sub.name}`
-      } else if (token.payOutType === 'ZAP' && token.user?.name) {
-        id = `@${token.user.name}`
+      } else if (token.payOutType === 'ZAP' && token.sometimesPrivates?.user?.name) {
+        id = `@${token.sometimesPrivates.user.name}`
       } else if (token.payOutType === 'ROUTING_FEE') {
         id = 'route'
       } else if (token.payOutType === 'ROUTING_FEE_REFUND') {

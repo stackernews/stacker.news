@@ -1,5 +1,4 @@
 import styles from '../table/index.module.css'
-import { useMe } from '../../me'
 import classNames from 'classnames'
 import { PayInType } from './type'
 import { PayInContext } from '../context'
@@ -22,14 +21,12 @@ export default function PayInTable ({ payIns }) {
 }
 
 function PayInRow ({ payIn }) {
-  const { me } = useMe()
-
   return (
     <div
       className={classNames(styles.row, {
         [styles.failed]: payIn.payInState === 'FAILED',
-        [styles.spending]: Number(payIn.userId) === Number(me.id),
-        [styles.stacking]: Number(payIn.userId) !== Number(me.id)
+        [styles.spending]: !!payIn?.payerPrivates,
+        [styles.stacking]: !payIn?.payerPrivates
       })}
     >
       <LinkToContext className={styles.type} href={`/transactions/${payIn.id}`}>

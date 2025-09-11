@@ -338,7 +338,7 @@ function Invitification ({ n }) {
 }
 
 function NostrZap ({ n }) {
-  const { nostrNote } = n.payIn.payInBolt11
+  const { nostrNote } = n.payIn.payerPrivates.payInBolt11
   const { npub, content, note } = nostrZapDetails(nostrNote.note)
 
   return (
@@ -379,11 +379,11 @@ function getPayerSig (lud18Data) {
 }
 
 function PayInProxyPayment ({ n }) {
-  if (n.payIn.payInBolt11.nostrNote) {
+  if (n.payIn.payerPrivates.payInBolt11.nostrNote) {
     return <NostrZap n={n} />
   }
 
-  const payerSig = getPayerSig(n.payIn.payInBolt11.lud18Data)
+  const payerSig = getPayerSig(n.payIn.payerPrivates.payInBolt11.lud18Data)
   const sats = n.earnedSats
   const actionString = 'proxied to your attached wallet'
 
@@ -391,9 +391,9 @@ function PayInProxyPayment ({ n }) {
     <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {n.payIn.payInBolt11.comment &&
+      {n.payIn.payerPrivates.payInBolt11.comment &&
         <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
-          <Text>{n.payIn.payInBolt11.comment}</Text>
+          <Text>{n.payIn.payerPrivates.payInBolt11.comment}</Text>
           {payerSig}
         </small>}
     </div>
@@ -427,7 +427,7 @@ function PayInFailed ({ n }) {
 
   const retryPayIn = useRetryPayIn(payIn.id, { update: updatePayIn })
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
-  const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } }
+  const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
   const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
   const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
 

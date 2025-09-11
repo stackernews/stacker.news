@@ -163,78 +163,37 @@ export default {
     }
   },
   PayIn: {
-    // the payIn result is dependent on the payIn type
-    // so we need to resolve the type here
-    result: (payIn, args, { models, me }) => {
+    payerPrivates: (payIn, args, { models, me }) => {
       if (!isMine(payIn, { me })) {
         return null
       }
-      // if the payIn was paid pessimistically, the result is permanently in the pessimisticEnv
-      const result = payIn.result || payIn.pessimisticEnv?.result
-      if (result) {
-        return { ...result, __typename: payInResultType(payIn.payInType) }
-      }
-      return null
+      return payIn
     },
-    userId: (payIn, args, { me }) => {
-      if (!isMine(payIn, { me })) {
+    payInBolt11Public: (payIn, args, { models, me }) => {
+      if (!payIn.payInBolt11) {
         return null
       }
-      return payIn.userId
+      return { msats: payIn.payInBolt11?.msatsRequested }
     },
-    payInBolt11: async (payIn, args, { models, me }) => {
-      if (typeof payIn.payInBolt11 !== 'undefined') {
-        return payIn.payInBolt11
-      }
-      return await models.payInBolt11.findUnique({ where: { payInId: payIn.id } })
-    },
-    payInCustodialTokens: async (payIn, args, { models, me }) => {
-      let payInCustodialTokens = payIn.payInCustodialTokens
-      if (typeof payInCustodialTokens === 'undefined') {
-        payInCustodialTokens = await models.payInCustodialToken.findMany({ where: { payInId: payIn.id } })
-      }
-      return payInCustodialTokens.map(token => ({
-        ...token,
-        mtokensAfter: isMine(payIn, { me }) ? token.mtokensAfter : null
-      }))
-    },
-    pessimisticEnv: async (payIn, args, { models, me }) => {
-      if (!isMine(payIn, { me })) {
+    payOutBolt11Public: (payIn, args, { models, me }) => {
+      if (!payIn.payOutBolt11) {
         return null
       }
-      if (typeof payIn.pessimisticEnv !== 'undefined') {
-        return payIn.pessimisticEnv
-      }
-      return await models.pessimisticEnv.findUnique({ where: { payInId: payIn.id } })
+      return { msats: payIn.payOutBolt11?.msats, payOutType: payIn.payOutBolt11?.payOutType }
     },
-    payOutBolt11: async (payIn, args, { models, me }) => {
-      if (!me) {
+    payeePrivates: (payIn, args, { models, me }) => {
+      // if I'm logged in, and the payOutBolt11 is mine, let them see it
+      if (!me || !payIn.payOutBolt11 || Number(payIn.payOutBolt11.userId) !== Number(me.id)) {
         return null
       }
-      let payOutBolt11 = payIn.payOutBolt11
-      if (!payOutBolt11) {
-        payOutBolt11 = await models.payOutBolt11.findUnique({ where: { payInId: payIn.id } })
-        if (payOutBolt11 && Number(payOutBolt11.userId) !== Number(me.id)) {
-          // only return the amount forwarded and the type of payOut
-          return { msats: payOutBolt11.msats, payOutType: payOutBolt11.payOutType }
-        }
-      }
-      return payOutBolt11
+      return payIn
     },
     item: async (payIn, args, { models, me }) => {
-      if (!payIn.itemPayIn) {
+      // downzaps are private to the payer
+      if (!payIn.itemPayIn || (!isMine(payIn, { me }) && payIn.payInType === 'DOWN_ZAP')) {
         return null
       }
       return await getItem(payIn, { id: payIn.itemPayIn.itemId }, { models, me })
-    },
-    sub: async (payIn, args, { models, me }) => {
-      if (!payIn.subPayIn) {
-        return null
-      }
-      return await getSub(payIn, { name: payIn.subPayIn.subName }, { models, me })
-    },
-    invite: async (payIn, args, { models, me }) => {
-      return payIn.payOutCustodialTokens.find(token => token.payOutType === 'INVITE_GIFT')?.user?.invite
     },
     payOutCustodialTokens: async (payIn, args, { models, me }) => {
       if (typeof payIn.payOutCustodialTokens !== 'undefined') {
@@ -261,14 +220,72 @@ export default {
     }
   },
   PayOutCustodialToken: {
-    mtokensAfter: (payOutCustodialToken, args, { me }) => {
+    privates: (payOutCustodialToken, args, { models, me }) => {
       if (!isMine(payOutCustodialToken, { me })) {
         return null
       }
-      return payOutCustodialToken.mtokensAfter
+      return payOutCustodialToken
     },
-    sub: (payOutCustodialToken) => {
-      return payOutCustodialToken.subPayOutCustodialToken?.sub
+    sometimesPrivates: (payOutCustodialToken, args, { models, me }) => {
+      if (!isMine(payOutCustodialToken, { me }) && ['INVITE_GIFT', 'REWARD'].includes(payOutCustodialToken.payOutType)) {
+        return null
+      }
+      return payOutCustodialToken
+    },
+    sub: (payOutCustodialToken, args, { models, me }) => {
+      if (!payOutCustodialToken.subPayOutCustodialToken) {
+        return null
+      }
+      return payOutCustodialToken.subPayOutCustodialToken.sub
+    }
+  },
+  PayerPrivates: {
+    payInBolt11: async (payIn, args, { models, me }) => {
+      if (typeof payIn.payInBolt11 !== 'undefined') {
+        return payIn.payInBolt11
+      }
+      return await models.payInBolt11.findUnique({ where: { payInId: payIn.id } })
+    },
+    payInCustodialTokens: async (payIn, args, { models, me }) => {
+      let payInCustodialTokens = payIn.payInCustodialTokens
+      if (typeof payInCustodialTokens === 'undefined') {
+        payInCustodialTokens = await models.payInCustodialToken.findMany({ where: { payInId: payIn.id } })
+      }
+      return payInCustodialTokens.map(token => ({
+        ...token,
+        mtokensAfter: isMine(payIn, { me }) ? token.mtokensAfter : null
+      }))
+    },
+    pessimisticEnv: async (payIn, args, { models, me }) => {
+      if (typeof payIn.pessimisticEnv !== 'undefined') {
+        return payIn.pessimisticEnv
+      }
+      return await models.pessimisticEnv.findUnique({ where: { payInId: payIn.id } })
+    },
+    result: (payIn, args, { models, me }) => {
+      // if the payIn was paid pessimistically, the result is permanently in the pessimisticEnv
+      const result = payIn.result || payIn.pessimisticEnv?.result
+      if (result) {
+        return { ...result, __typename: payInResultType(payIn.payInType) }
+      }
+      return null
+    },
+    invite: async (payIn, args, { models, me }) => {
+      return payIn.payOutCustodialTokens.find(token => token.payOutType === 'INVITE_GIFT')?.user?.invite
+    },
+    sub: async (payIn, args, { models, me }) => {
+      if (!payIn.subPayIn) {
+        return null
+      }
+      return await getSub(payIn, { name: payIn.subPayIn.subName }, { models, me })
+    }
+  },
+  PayeePrivates: {
+    payOutBolt11: async (payIn, args, { models, me }) => {
+      if (typeof payIn.payOutBolt11 !== 'undefined') {
+        return payIn.payOutBolt11
+      }
+      return await models.payOutBolt11.findUnique({ where: { payInId: payIn.id } })
     }
   }
 }

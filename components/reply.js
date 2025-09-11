@@ -48,7 +48,7 @@ export default forwardRef(function Reply ({
   const onSubmit = useItemSubmit(CREATE_COMMENT, {
     extraValues: { parentId },
     payInMutationOptions: {
-      update (cache, { data: { upsertComment: { result } } }) {
+      update (cache, { data: { upsertComment: { payerPrivates: { result } } } }) {
         if (!result) return
 
         // inject the new comment into the cache

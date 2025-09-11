@@ -115,22 +115,29 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 function addOptimisticResponseExtras (mutation, payInOptimisticResponse, me) {
   if (!payInOptimisticResponse) return payInOptimisticResponse
   const mutationName = getOperationName(mutation)
+  const payerPrivates = payInOptimisticResponse.payerPrivates?.result
+    ? {
+        ...payInOptimisticResponse.payerPrivates,
+        result: { ...payInOptimisticResponse.payerPrivates.result, payIn: null },
+        payInBolt11: null,
+        userId: me?.id ?? USER_ID.anon,
+        payInFailureReason: null,
+        payInCustodialTokens: [],
+        pessimisticEnv: null
+      }
+    : payInOptimisticResponse.payerPrivates
   return {
     [mutationName]: {
       __typename: 'PayIn',
       id: 'temp-pay-in-id',
-      payInBolt11: null,
-      userId: me?.id ?? USER_ID.anon,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       payInState: 'PENDING',
       payInStateChangedAt: new Date().toISOString(),
       payInType: payInOptimisticResponse.payInType,
-      payInFailureReason: null,
-      payInCustodialTokens: null,
-      pessimisticEnv: null,
-      mcost: payInOptimisticResponse.mcost,
-      result: payInOptimisticResponse.result
+      payOutBolt11Public: null,
+      payerPrivates,
+      mcost: payInOptimisticResponse.mcost
     }
   }
 }

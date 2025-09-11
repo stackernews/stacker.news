@@ -1,3 +1,4 @@
+import { ceilBigInt } from '@/lib/format'
 import { isP2P, isPayableWithCredits, isProxyPayment } from './is'
 import { USER_ID } from '@/lib/constants'
 
@@ -87,7 +88,7 @@ function getP2PCost (payIn) {
   // round this up to the nearest 1000msats
   // we don't want anyone to pay fractional sats via invoice
   if (isP2P(payIn)) {
-    return Math.ceil(payIn.payOutBolt11?.msats ?? 0n / 1000n) * 1000n
+    return ceilBigInt(payIn.payOutBolt11?.msats ?? 0n, 1000n) * 1000n
   }
   return 0n
 }

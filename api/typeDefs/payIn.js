@@ -137,22 +137,41 @@ type PayIn {
   createdAt: Date!
   updatedAt: Date!
   mcost: BigInt!
-  userId: Int
+  payInBolt11Public: PayInBolt11Public
+  payOutBolt11Public: PayOutBolt11Public
   payInType: PayInType!
   payInState: PayInState!
-  payInFailureReason: PayInFailureReason
   payInStateChangedAt: Date!
   genesisId: Int
   successorId: Int
+  payerPrivates: PayerPrivates
+  payeePrivates: PayeePrivates
+  payOutCustodialTokens: [PayOutCustodialToken!]
+  item: Item
+}
+
+type PayOutBolt11Public {
+  msats: BigInt!
+  payOutType: PayOutType!
+}
+
+type PayInBolt11Public {
+  msats: BigInt!
+}
+
+type PayerPrivates {
+  userId: Int!
+  payInFailureReason: PayInFailureReason
   payInBolt11: PayInBolt11
   payInCustodialTokens: [PayInCustodialToken!]
   result: PayInResult
   pessimisticEnv: PayInPessimisticEnv
-  payOutBolt11: PayOutBolt11
-  payOutCustodialTokens: [PayOutCustodialToken!]
-  item: Item
-  sub: Sub
   invite: Invite
+  sub: Sub
+}
+
+type PayeePrivates {
+  payOutBolt11: PayOutBolt11
 }
 
 enum PayOutType {
@@ -196,13 +215,21 @@ type PayOutBolt11 {
 type PayOutCustodialToken {
   id: Int!
   payInId: Int!
-  userId: Int
   mtokens: BigInt!
-  mtokensAfter: BigInt
+  privates: PayOutCustodialTokenPrivates
+  sometimesPrivates: PayOutCustodialTokenSometimesPrivates
   custodialTokenType: CustodialTokenType!
   payOutType: PayOutType!
   payIn: PayIn!
   sub: Sub
+}
+
+type PayOutCustodialTokenPrivates {
+  mtokensAfter: BigInt
+}
+
+type PayOutCustodialTokenSometimesPrivates {
   user: User
+  userId: Int
 }
 `

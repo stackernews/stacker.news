@@ -26,78 +26,83 @@ export const PAY_IN_FIELDS = gql`
     createdAt
     updatedAt
     mcost
-    userId
     payInType
     payInState
-    payInFailureReason
     payInStateChangedAt
-    payInBolt11 {
-      id
-      payInId
-      bolt11
-      hash
-      hmac
-      msatsRequested
-      msatsReceived
-      expiresAt
-      confirmedAt
-      cancelledAt
-      createdAt
-      updatedAt
-      lud18Data {
-        id
-        name
-        identifier
-        email
-        pubkey
-      }
-      nostrNote {
-        id
-        note
-      }
-      comment {
-        id
-        comment
-      }
+    payOutBolt11Public {
+      msats
     }
-    pessimisticEnv {
-      id
-      error
-      result
-    }
-    payInCustodialTokens {
-      id
-      mtokens
-      custodialTokenType
-    }
-    result {
-      __typename
-      ... on Item {
+    payerPrivates {
+      userId
+      payInFailureReason
+      payInBolt11 {
         id
-        deleteScheduledAt
-        reminderScheduledAt
-        ...CommentFields
-        payIn {
-          ...PayInLinkFields
+        payInId
+        bolt11
+        hash
+        hmac
+        msatsRequested
+        msatsReceived
+        expiresAt
+        confirmedAt
+        cancelledAt
+        createdAt
+        updatedAt
+        lud18Data {
+          id
+          name
+          identifier
+          email
+          pubkey
+        }
+        nostrNote {
+          id
+          note
+        }
+        comment {
+          id
+          comment
         }
       }
-      ... on ItemAct {
+      pessimisticEnv {
         id
-        sats
-        path
-        act
-        payIn {
-          ...PayInLinkFields
-        }
+        error
+        result
       }
-      ... on PollVote {
+      payInCustodialTokens {
         id
-        payIn {
-          ...PayInLinkFields
-        }
+        mtokens
+        custodialTokenType
       }
-      ... on Sub {
-        ...SubFullFields
+      result {
+        __typename
+        ... on Item {
+          id
+          deleteScheduledAt
+          reminderScheduledAt
+          ...CommentFields
+          payIn {
+            ...PayInLinkFields
+          }
+        }
+        ... on ItemAct {
+          id
+          sats
+          path
+          act
+          payIn {
+            ...PayInLinkFields
+          }
+        }
+        ... on PollVote {
+          id
+          payIn {
+            ...PayInLinkFields
+          }
+        }
+        ... on Sub {
+          ...SubFullFields
+        }
       }
     }
   }
@@ -112,76 +117,95 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     createdAt
     updatedAt
     mcost
-    userId
     payInType
     payInState
-    payInFailureReason
     payInStateChangedAt
     genesisId
-    payInCustodialTokens {
-      id
-      mtokens
-      mtokensAfter
-      custodialTokenType
-    }
-    payInBolt11 {
-      id
-      bolt11
-      preimage
-      hmac
-      expiresAt
-      confirmedAt
-      cancelledAt
-      lud18Data {
-        id
-        name
-        identifier
-        email
-        pubkey
-      }
-      nostrNote {
-        id
-        note
-      }
-      comment {
-        id
-        comment
-      }
-      msatsRequested
-      msatsReceived
-    }
-    payOutBolt11 {
-      id
+    payInBolt11Public {
       msats
-      userId
-      bolt11
-      preimage
-      status
+    }
+    payOutBolt11Public {
+      msats
       payOutType
+    }
+    payerPrivates {
+      userId
+      payInFailureReason
+      payInBolt11 {
+        id
+        bolt11
+      }
+      payInCustodialTokens {
+        id
+        mtokens
+        mtokensAfter
+        custodialTokenType
+      }
+      payInBolt11 {
+        id
+        bolt11
+        preimage
+        hmac
+        expiresAt
+        confirmedAt
+        cancelledAt
+        lud18Data {
+          id
+          name
+          identifier
+          email
+          pubkey
+        }
+        nostrNote {
+          id
+          note
+        }
+        comment {
+          id
+          comment
+        }
+        msatsRequested
+        msatsReceived
+      }
+      invite {
+        ...InviteFields
+      }
+      sub {
+        ...SubFullFields
+      }
+    }
+    payeePrivates {
+      payOutBolt11 {
+        id
+        msats
+        userId
+        bolt11
+        preimage
+        status
+        payOutType
+      }
     }
     payOutCustodialTokens {
       id
-      userId
       payOutType
       mtokens
-      mtokensAfter
-      custodialTokenType
-      user {
-        id
-        name
+      privates {
+        mtokensAfter
       }
+      sometimesPrivates {
+        userId
+        user {
+          id
+          name
+        }
+      }
+      custodialTokenType
       sub {
         name
       }
     }
     item {
       ...ItemFullFields
-    }
-    sub {
-      ...SubFullFields
-    }
-    invite {
-      ...InviteFields
     }
   }
 `

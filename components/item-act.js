@@ -134,7 +134,9 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         ? {
             payInType: act === 'DONT_LIKE_THIS' ? 'DOWN_ZAP' : act === 'BOOST' ? 'BOOST' : 'ZAP',
             mcost: satsToMsats(Number(amount)),
-            result: { path: item.path, id: item.id, sats: Number(amount), act, __typename: 'ItemAct' }
+            payerPrivates: {
+              result: { path: item.path, id: item.id, sats: Number(amount), act, __typename: 'ItemAct' }
+            }
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
@@ -178,10 +180,12 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       </Form>)
 }
 
-function modifyActCache (cache, { result, payOutBolt11 }, me) {
+function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
+  const result = payerPrivates?.result
+  console.log('modifyActCache', payerPrivates, payOutBolt11Public, result)
   if (!result) return
   const { id, sats, act } = result
-  const p2p = !!payOutBolt11
+  const p2p = !!payOutBolt11Public
 
   cache.modify({
     id: `Item:${id}`,
@@ -229,10 +233,11 @@ function modifyActCache (cache, { result, payOutBolt11 }, me) {
 
 // doing this onPaid fixes issue #1695 because optimistically updating all ancestors
 // conflicts with the writeQuery on navigation from SSR
-function updateAncestors (cache, { result, payOutBolt11 }) {
+function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
+  const result = payerPrivates?.result
   if (!result) return
   const { id, sats, act, path } = result
-  const p2p = !!payOutBolt11
+  const p2p = !!payOutBolt11Public
 
   if (act === 'TIP') {
     // update all ancestors
@@ -273,6 +278,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
         : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
     ...options,
     update: (cache, { data }) => {
+      console.log('update', data)
       const response = getPayInResult(data)
       if (!response) return
       modifyActCache(cache, response, me)
@@ -280,9 +286,9 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
     },
     onPayError: (e, cache, { data }) => {
       const response = getPayInResult(data)
-      if (!response || !response.result) return
-      const { result: { sats } } = response
-      const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
+      if (!response || !response.payerPrivates.result) return
+      const { payerPrivates: { result: { sats } } } = response
+      const negate = { ...response, payerPrivates: { ...response.payerPrivates, result: { ...response.payerPrivates.result, sats: -1 * sats } } }
       modifyActCache(cache, negate, me)
       options?.onPayError?.(e, cache, { data })
     },
@@ -309,7 +315,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP', hasSendWallet }
-    const optimisticResponse = { payInType: 'ZAP', mcost: satsToMsats(sats), result: { path: item.path, ...variables, __typename: 'ItemAct' } }
+    const optimisticResponse = { payInType: 'ZAP', mcost: satsToMsats(sats), payerPrivates: { result: { path: item.path, ...variables, __typename: 'ItemAct' } } }
 
     try {
       await abortSignal.pause({ me, amount: sats })

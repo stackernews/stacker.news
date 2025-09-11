@@ -81,7 +81,7 @@ export default function useItemSubmit (mutation,
 
       // we don't know the mutation name, so we have to extract the result
       const response = Object.values(data)[0]
-      const postId = response?.result?.id
+      const postId = response?.payerPrivates.result?.id
 
       if (crosspost && postId) {
         await crossposter(postId)
@@ -106,10 +106,10 @@ function saveItemInvoiceHmac (mutationData) {
   console.log('saveItemInvoiceHmac', mutationData)
   const response = Object.values(mutationData)[0]
 
-  if (!response?.payInBolt11) return
+  if (!response?.payerPrivates?.payInBolt11) return
 
-  const id = response.result.id
-  const { hash, hmac } = response.payInBolt11
+  const id = response.payerPrivates.result.id
+  const { hash, hmac } = response.payerPrivates.payInBolt11
 
   if (id && hash && hmac) {
     window.localStorage.setItem(`item:${id}:hash:hmac`, `${hash}:${hmac}`)

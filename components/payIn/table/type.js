@@ -1,5 +1,4 @@
 import { timeSince } from '@/lib/time'
-import { useMe } from '@/components/me'
 import { describePayInType } from '@/lib/pay-in'
 import { PayInStatus } from '../status'
 
@@ -14,6 +13,5 @@ export function PayInType ({ payIn }) {
 }
 
 function PayInTypeShortDescription ({ payIn }) {
-  const { me } = useMe()
-  return <small className='text-muted'>{describePayInType(payIn, me.id)}</small>
+  return <small className='text-muted'>{describePayInType(payIn)}</small>
 }

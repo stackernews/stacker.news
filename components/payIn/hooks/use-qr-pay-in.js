@@ -23,7 +23,7 @@ export default function useQrPayIn () {
   ) => {
     // if anon user and webln is available, try to pay with webln
     if (typeof window.webln !== 'undefined' && (walletError instanceof AnonWalletError)) {
-      weblnSendPayment(payIn.payInBolt11.bolt11).catch(e => { console.error('WebLN payment failed:', e) })
+      weblnSendPayment(payIn.payerPrivates.payInBolt11.bolt11).catch(e => { console.error('WebLN payment failed:', e) })
     }
     return await new Promise((resolve, reject) => {
       console.log('waitForQrPayIn', payIn.id, walletError)
@@ -32,7 +32,7 @@ export default function useQrPayIn () {
         console.log('waitForQrPayIn: cancelAndReject', payIn.id, updatedPayIn, cancelOnClose)
         if (!updatedPayIn && cancelOnClose) {
           const updatedPayIn = await payInHelper.cancel(payIn, { userCancel: true })
-          reject(new InvoiceCanceledError(updatedPayIn?.payInBolt11))
+          reject(new InvoiceCanceledError(updatedPayIn?.payerPrivates.payInBolt11))
         }
         resolve(updatedPayIn)
       }
@@ -81,7 +81,7 @@ function QrPayIn ({
     return <QrSkeleton description />
   }
 
-  const { bolt11 } = payIn.payInBolt11
+  const { bolt11 } = payIn.payerPrivates.payInBolt11
 
   return (
     <>
@@ -89,7 +89,7 @@ function QrPayIn ({
       <Qr
         value={bolt11}
         qrTransform={value => 'lightning:' + value.toUpperCase()}
-        description={numWithUnits(msatsToSats(payIn.payInBolt11.msatsRequested), { abbreviate: false })}
+        description={numWithUnits(msatsToSats(payIn.payerPrivates.payInBolt11.msatsRequested), { abbreviate: false })}
       />
       <div className='d-flex justify-content-center'>
         <PayInStatus payIn={payIn} />

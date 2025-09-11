@@ -22,7 +22,11 @@ export default function usePayInHelper () {
       throw error
     }
 
-    const { payInBolt11, payInFailureReason, pessimisticEnv } = data.payIn
+    if (!data.payIn.payerPrivates.payInBolt11) {
+      return { payIn: data.payIn, check: that(data.payIn) }
+    }
+
+    const { payInBolt11, payInFailureReason, pessimisticEnv } = data.payIn.payerPrivates
     const { cancelledAt, expiresAt } = payInBolt11
 
     const expired = cancelledAt && new Date(expiresAt) < new Date(cancelledAt)
@@ -47,7 +51,7 @@ export default function usePayInHelper () {
   }, [check])
 
   const cancel = useCallback(async (payIn, { userCancel = false } = {}) => {
-    const { hash, hmac } = payIn.payInBolt11
+    const { hash, hmac } = payIn.payerPrivates.payInBolt11
     console.log('canceling payIn:', payIn.id, hash, hmac)
     const { data } = await cancelPayInBolt11({ variables: { hash, hmac, userCancel } })
     return data.cancelPayInBolt11
@@ -59,7 +63,7 @@ export default function usePayInHelper () {
     if (error) throw error
 
     const newPayIn = data.retryPayIn
-    console.log('new payIn:', newPayIn?.payInBolt11?.hash)
+    console.log('new payIn:', newPayIn?.payerPrivates.payInBolt11?.hash)
 
     return newPayIn
   }, [retryPayIn])

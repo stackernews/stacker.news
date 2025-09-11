@@ -5,13 +5,11 @@ import useWatchPayIn from './hooks/use-watch-pay-in'
 import { PayInStatus, PayInStatusSkeleton } from './status'
 import PayInMetadata from './metadata'
 import { describePayInType } from '@/lib/pay-in'
-import { useMe } from '../me'
 import { PayInContext } from './context'
 import { GET_PAY_IN_FULL } from '@/fragments/payIn'
 import { PayInSankey, PayInSankeySkeleton } from './sankey'
 
 export default function PayIn ({ id }) {
-  const { me } = useMe()
   const { data, error } = useWatchPayIn({ id, query: GET_PAY_IN_FULL })
 
   const payIn = data?.payIn
@@ -28,14 +26,14 @@ export default function PayIn ({ id }) {
     <div>
       <div className='d-flex justify-content-between align-items-center'>
         <div className='d-flex gap-3'>
-          <h2>{describePayInType(payIn, me.id)}</h2>
+          <h2>{describePayInType(payIn)}</h2>
           <PayInStatus payIn={payIn} />
         </div>
         <div>
           <small className='text-muted'>{new Date(payIn.createdAt).toLocaleString()}</small>
         </div>
       </div>
-      {payIn.payInBolt11 &&
+      {payIn.payerPrivates?.payInBolt11 &&
         (
           <>
             {['PENDING', 'PENDING_HELD'].includes(payIn.payInState)
@@ -43,19 +41,19 @@ export default function PayIn ({ id }) {
                 <div className='d-flex justify-content-center'>
                   <div style={{ maxWidth: '300px' }}>
                     <Qr
-                      value={payIn.payInBolt11.bolt11}
+                      value={payIn.payerPrivates.payInBolt11.bolt11}
                       qrTransform={value => 'lightning:' + value.toUpperCase()}
-                      description={numWithUnits(msatsToSats(payIn.payInBolt11.msatsRequested), { abbreviate: false })}
+                      description={numWithUnits(msatsToSats(payIn.payerPrivates.payInBolt11.msatsRequested), { abbreviate: false })}
                     />
                   </div>
                 </div>)
               : (
                 <div className='mt-5'>
                   <h5 className='mb-3'>lightning invoice</h5>
-                  <Bolt11Info bolt11={payIn.payInBolt11.bolt11} preimage={payIn.payInBolt11.preimage} />
+                  <Bolt11Info bolt11={payIn.payerPrivates.payInBolt11.bolt11} preimage={payIn.payerPrivates.payInBolt11.preimage} />
                 </div>
                 )}
-            <PayInMetadata payInBolt11={payIn.payInBolt11} />
+            <PayInMetadata payInBolt11={payIn.payerPrivates.payInBolt11} />
           </>
         )}
       <div className='mt-5'>

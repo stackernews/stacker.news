@@ -11,7 +11,7 @@ export default {
     {
       name: 'noffer',
       label: 'noffer',
-      type: 'text',
+      type: 'password',
       placeholder: 'noffer...',
       required: true,
       validate: clinkValidator('noffer')

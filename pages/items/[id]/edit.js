@@ -6,7 +6,7 @@ import { CenterLayout } from '@/components/layout'
 import JobForm from '@/components/job-form'
 import { PollForm } from '@/components/poll-form'
 import { BountyForm } from '@/components/bounty-form'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
@@ -26,6 +26,28 @@ export default function PostEdit ({ ssrData }) {
 
   const { item } = data || ssrData
   const [sub, setSub] = useState(item.subName)
+  const [baseLineItems, setBaseLineItems] = useState(item.boost
+    ? {
+        existingBoost: {
+          label: 'old boost',
+          term: `- ${item.boost}`,
+          op: '-',
+          modifier: cost => cost - item.boost
+        }
+      }
+    : {})
+
+  useEffect(() => {
+    setBaseLineItems(prev => ({
+      ...prev,
+      territory: {
+        label: 'territory',
+        term: `+ ${item.sub.baseCost}`,
+        op: '+',
+        modifier: cost => cost + item.sub.baseCost
+      }
+    }))
+  }, [sub])
 
   const [,, editThreshold] = useCanEdit(item)
 
@@ -45,20 +67,9 @@ export default function PostEdit ({ ssrData }) {
     itemType = 'BOUNTY'
   }
 
-  const existingBoostLineItem = item.boost
-    ? {
-        existingBoost: {
-          label: 'old boost',
-          term: `- ${item.boost}`,
-          op: '-',
-          modifier: cost => cost - item.boost
-        }
-      }
-    : undefined
-
   return (
     <CenterLayout sub={sub}>
-      <FeeButtonProvider baseLineItems={existingBoostLineItem}>
+      <FeeButtonProvider baseLineItems={baseLineItems}>
         <FormType item={item} editThreshold={editThreshold}>
           {!item.isJob &&
             <SubSelect

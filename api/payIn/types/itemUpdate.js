@@ -4,6 +4,7 @@ import { getItemMentions, getItemResult, getMentions, getSub, performBotBehavior
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
+import { satsToMsats } from '@/lib/format'
 export const anonable = true
 
 export const paymentMethods = [
@@ -12,7 +13,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function getCost (models, { id, boost = 0, uploadIds, bio }, { me }) {
+async function getCost (models, { id, boost = 0, uploadIds, bio, newSub }, { me }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
   const old = await models.item.findUnique({
@@ -32,10 +33,14 @@ async function getCost (models, { id, boost = 0, uploadIds, bio }, { me }) {
   })
 
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
-  const cost = BigInt(totalFeesMsats)
+  let cost = BigInt(totalFeesMsats)
+
+  if (newSub.name !== old.subName) {
+    cost += satsToMsats(newSub.baseCost)
+  }
 
   if ((cost > 0 || (boost - old.boost) > 0) && old.itemPayIns.length === 0) {
-    throw new Error('cannot update item with unpaid invoice')
+    throw new Error('cannot increase item cost with unpaid invoice')
   }
 
   return cost
@@ -43,8 +48,8 @@ async function getCost (models, { id, boost = 0, uploadIds, bio }, { me }) {
 
 export async function getInitial (models, { id, boost = 0, uploadIds, bio, subName }, { me }) {
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
-  const mcost = await getCost(models, { id, boost, uploadIds, bio }, { me })
   const sub = await getSub(models, { subName })
+  const mcost = await getCost(models, { id, boost, uploadIds, bio, newSub: sub }, { me })
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
 
   let beneficiaries

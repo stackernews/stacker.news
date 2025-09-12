@@ -40,6 +40,7 @@
     "classnames": "^2.5.1",
     "clipboard-copy": "^4.0.1",
     "cookie": "^1.0.1",
+    "copy-webpack-plugin": "^13.0.1",
     "cross-fetch": "^4.0.0",
     "csv-parser": "^3.0.0",
     "domino": "^2.1.6",
@@ -115,8 +116,7 @@
     "workbox-strategies": "^7.1.0",
     "workbox-webpack-plugin": "^7.1.0",
     "workbox-window": "^7.1.0",
-    "yup": "^1.4.0",
-    "copy-webpack-plugin": "^13.0.1"
+    "yup": "^1.4.0"
   },
   "engines": {
     "node": "18.20.4"

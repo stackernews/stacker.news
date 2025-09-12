@@ -1,3 +1,4 @@
+import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { decodeBech32, generateSecretKey, SendNofferRequest, SimplePool } from '@shocknet/clink-sdk'
 
@@ -19,7 +20,8 @@ export async function createInvoice (
 
   let response
   try {
-    response = await SendNofferRequest(pool, sk, [relay], pubkey, request)
+    const timeout = Math.floor(WALLET_CREATE_INVOICE_TIMEOUT_MS / 1000)
+    response = await SendNofferRequest(pool, sk, [relay], pubkey, request, timeout)
   } catch (e) {
     throw typeof e === 'string' ? new Error(e) : e
   }

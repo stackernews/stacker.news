@@ -21,6 +21,7 @@ export async function createInvoice (
   let response
   try {
     const timeout = Math.floor(WALLET_CREATE_INVOICE_TIMEOUT_MS / 1000)
+    // CLINK does not support a custom invoice description or expiry
     response = await SendNofferRequest(pool, sk, [relay], pubkey, request, timeout)
   } catch (e) {
     throw typeof e === 'string' ? new Error(e) : e

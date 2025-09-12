@@ -1,28 +1,27 @@
 import styles from './text.module.css'
-import ReactMarkdown from 'react-markdown'
-import gfm from 'remark-gfm'
-import dynamic from 'next/dynamic'
-import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
-import MediaOrLink from './media-or-link'
-import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
+// import ReactMarkdown from 'react-markdown'
+// import gfm from 'remark-gfm'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
+// import MediaOrLink from './media-or-link'
+// import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
-import { Button } from 'react-bootstrap'
-import { useRouter } from 'next/router'
-import Link from 'next/link'
+// import { Button } from 'react-bootstrap'
+// import Link from 'next/link'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
-import isEqual from 'lodash/isEqual'
-import SubPopover from './sub-popover'
-import UserPopover from './user-popover'
-import ItemPopover from './item-popover'
+// import SubPopover from './sub-popover'
+// import UserPopover from './user-popover'
+// import ItemPopover from './item-popover'
 import classNames from 'classnames'
-import { CarouselProvider, useCarousel } from './carousel'
-import rehypeSN from '@/lib/rehype-sn'
-import remarkUnicode from '@/lib/remark-unicode'
-import Embed from './embed'
-import remarkMath from 'remark-math'
-import remarkToc from '@/lib/remark-toc'
+// import { CarouselProvider, useCarousel } from './carousel'
+// import rehypeSN from '@/lib/rehype-sn'
+// import remarkUnicode from '@/lib/remark-unicode'
+// import Embed from './embed'
+// import remarkMath from 'remark-math'
+import { LexicalReader } from './lexical'
+import { Button } from 'react-bootstrap'
+// import { Button } from 'react-bootstrap'
 
-const rehypeSNStyled = () => rehypeSN({
+/* const rehypeSNStyled = () => rehypeSN({
   stylers: [{
     startTag: '<sup>',
     endTag: '</sup>',
@@ -32,13 +31,7 @@ const rehypeSNStyled = () => rehypeSN({
     endTag: '</sub>',
     className: styles.subscript
   }]
-})
-
-const baseRemarkPlugins = [
-  gfm,
-  remarkUnicode,
-  [remarkMath, { singleDollarTextMath: false }]
-]
+}) */
 
 export function SearchText ({ text }) {
   return (
@@ -53,44 +46,21 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
-  // include remarkToc if topLevel
-  const remarkPlugins = topLevel ? [...baseRemarkPlugins, remarkToc] : baseRemarkPlugins
+export default function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+  // TODO: there's a slight render delay on full refresh because the editor state is converted from markdown to json
+  // so probably legacy markdown content will have a slight render delay
+  // or we convert them ahead of time to json
 
-  // would the text overflow on the current screen size?
-  const [overflowing, setOverflowing] = useState(false)
-  // should we show the full text?
+  // TODO: add support for imgproxyUrls
+  // TODO: disable links if outlawed
+  // TODO: what about MathJax?
+  // TODO: handle overflowing
+  // TODO: carousel
+  // const containerRef = useRef(null)
   const [show, setShow] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
   const containerRef = useRef(null)
-
-  const router = useRouter()
-  const [mathJaxPlugin, setMathJaxPlugin] = useState(null)
-
-  // we only need mathjax if there's math content between $$ tags
-  useEffect(() => {
-    if (/\$\$(.|\n)+\$\$/g.test(children)) {
-      import('rehype-mathjax').then(mod => {
-        setMathJaxPlugin(() => mod.default)
-      }).catch(err => {
-        console.error('error loading mathjax', err)
-        setMathJaxPlugin(null)
-      })
-    }
-  }, [children])
-
-  // if we are navigating to a hash, show the full text
-  useEffect(() => {
-    setShow(router.asPath.includes('#'))
-    const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#'))
-    }
-
-    router.events.on('hashChangeStart', handleRouteChange)
-
-    return () => {
-      router.events.off('hashChangeStart', handleRouteChange)
-    }
-  }, [router.asPath, router.events])
+  const showOverflow = useCallback(() => setShow(true), [setShow])
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
@@ -115,12 +85,32 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     }
   }, [containerRef.current, setOverflowing])
 
-  const TextMediaOrLink = useCallback(props => {
-    return <MediaLink {...props} outlawed={outlawed} imgproxyUrls={imgproxyUrls} topLevel={topLevel} rel={rel} />
-  },
-  [outlawed, imgproxyUrls, topLevel, rel])
+  return (
+    <div>
+      <LexicalReader
+        className={classNames(
+          styles.text,
+          topLevel && styles.topLevel,
+          show ? styles.textUncontained : overflowing && styles.textContained
+        )}
+        ref={containerRef}
+      >
+        {children}
+        {overflowing && !show && (
+          <Button
+            size='lg'
+            variant='info'
+            className={styles.textShowFull}
+            onClick={showOverflow}
+          >
+            show full text
+          </Button>
+        )}
+      </LexicalReader>
+    </div>
+  )
 
-  const components = useMemo(() => ({
+  /* const components = useMemo(() => ({
     h1: ({ node, id, ...props }) => <h1 id={topLevel ? id : undefined} {...props} />,
     h2: ({ node, id, ...props }) => <h2 id={topLevel ? id : undefined} {...props} />,
     h3: ({ node, id, ...props }) => <h3 id={topLevel ? id : undefined} {...props} />,
@@ -162,7 +152,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     </ReactMarkdown>
   ), [components, remarkPlugins, mathJaxPlugin, children, itemId])
 
-  const showOverflow = useCallback(() => setShow(true), [setShow])
+  // const showOverflow = useCallback(() => setShow(true), [setShow])
 
   return (
     <div
@@ -189,9 +179,10 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
         </Button>
       )}
     </div>
-  )
-}, isEqual)
+  ) */
+}
 
+/*
 function Mention ({ children, node, href, name, id }) {
   return (
     <UserPopover name={name}>
@@ -265,7 +256,7 @@ function Code ({ node, inline, className, children, style, ...props }) {
   const [syntaxTheme, setSyntaxTheme] = useState(null)
   const language = className?.match(/language-(\w+)/)?.[1] || 'text'
 
-  const loadHighlighter = useCallback(() =>
+/*   const loadHighlighter = useCallback(() =>
     Promise.all([
       dynamic(() => import('react-syntax-highlighter').then(mod => mod.LightAsync), {
         ssr: false,
@@ -314,3 +305,4 @@ function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...pr
     </div>
   )
 }
+*/

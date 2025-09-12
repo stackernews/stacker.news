@@ -1,4 +1,4 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form } from '@/components/form'
 import styles from './reply.module.css'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
@@ -13,6 +13,7 @@ import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
+import { LexicalEditor } from './lexical'
 
 export default forwardRef(function Reply ({
   item,
@@ -135,21 +136,15 @@ export default forwardRef(function Reply ({
           >
             <Form
               initial={{
-                text: ''
+                text: '',
+                lexicalState: '',
+                html: '' // explore other positions to put this
               }}
               schema={commentSchema}
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <MarkdownInput
-                name='text'
-                minRows={6}
-                autoFocus={!replyOpen}
-                required
-                appendValue={quote}
-                placeholder={placeholder}
-                hint={sub?.moderated && 'this territory is moderated'}
-              />
+              <LexicalEditor name='text' placeholder={placeholder} />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>
           </FeeButtonProvider>

@@ -3,6 +3,9 @@ import { decodeBech32, generateSecretKey, SendNofferRequest, SimplePool } from '
 
 export const name = 'CLINK'
 
+// https://clinkme.dev/specs.html
+const ERR_INVALID_AMOUNT = 5
+
 export async function createInvoice (
   { msats, description, expiry },
   { noffer },
@@ -24,6 +27,12 @@ export async function createInvoice (
   if ('bolt11' in response && typeof response.bolt11 === 'string') {
     return response.bolt11
   }
+
+  if (response.code === ERR_INVALID_AMOUNT) {
+    const { min, max } = response.range
+    throw new Error(`invalid amount: amount must be between ${min} and ${max} sats`)
+  }
+
   throw new Error(response.error)
 }
 

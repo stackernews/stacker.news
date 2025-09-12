@@ -196,8 +196,9 @@ export default {
       return await getItem(payIn, { id: payIn.itemPayIn.itemId }, { models, me })
     },
     payOutCustodialTokens: async (payIn, args, { models, me }) => {
+      let payOutCustodialTokens = []
       if (typeof payIn.payOutCustodialTokens !== 'undefined') {
-        return [
+        payOutCustodialTokens = [
           ...payIn.payOutCustodialTokens,
           ...payIn.beneficiaries.reduce((acc, beneficiary) => {
             if (beneficiary.payOutCustodialTokens) {
@@ -206,8 +207,25 @@ export default {
             return acc
           }, [])
         ]
+      } else {
+        payOutCustodialTokens = await models.payOutCustodialToken.findMany({ where: { payInId: payIn.id } })
       }
-      return await models.payOutCustodialToken.findMany({ where: { payInId: payIn.id } })
+
+      if (isMine(payIn, { me })) {
+        return payOutCustodialTokens
+      }
+
+      // if it's not mine, we need to hide the routing fee
+      // by removing the routing fee and adding the amount to the rewards pool
+      const routingFee = payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+      const rewardsPool = payOutCustodialTokens.find(t => t.payOutType === 'REWARDS_POOL')
+      if (routingFee && rewardsPool) {
+        const withoutRoutingFee = payOutCustodialTokens.filter(t => t.payOutType !== 'ROUTING_FEE')
+        rewardsPool.mtokens += routingFee.mtokens
+        payOutCustodialTokens = withoutRoutingFee
+      }
+
+      return payOutCustodialTokens
     }
   },
   PayInBolt11: {

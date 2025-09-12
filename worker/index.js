@@ -3,9 +3,13 @@ import './loadenv'
 import PgBoss from 'pg-boss'
 import createPrisma from '@/lib/create-prisma'
 import {
-  checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
-  checkWithdrawal, finalizeHodlInvoice, subscribeToWallet
-} from './wallet'
+  subscribeToBolt11s,
+  checkPendingPayInBolt11s,
+  checkPendingPayOutBolt11s,
+  checkPayInBolt11,
+  checkPayOutBolt11,
+  checkPayInInvoiceCreation
+} from './payIn'
 import { repin } from './repin'
 import { trust } from './trust'
 import { earn, earnRefill } from './earn'
@@ -30,6 +34,10 @@ import {
   paidActionFailedForward, paidActionHeld, paidActionFailed,
   paidActionCanceling
 } from './paidAction'
+import {
+  payInFailedForward, payInForwarded, payInForwarding,
+  payInHeld, payInCancel, payInFailed, payInPaid, payInWithdrawalPaid, payInWithdrawalFailed
+} from '@/api/payIn/transitions'
 import { thisDay } from './thisDay'
 import { isServiceEnabled } from '@/lib/sndev'
 import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts'
@@ -40,6 +48,7 @@ import { postToSocial } from './socialPoster'
 import { untrackOldItems } from './untrackOldItems'
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
+
 if (typeof WebSocket === 'undefined') {
   global.WebSocket = ws
 }
@@ -94,14 +103,10 @@ async function work () {
   await boss.start()
 
   if (isServiceEnabled('payments')) {
-    await subscribeToWallet(args)
-    await boss.work('finalizeHodlInvoice', jobWrapper(finalizeHodlInvoice))
-    await boss.work('checkPendingDeposits', jobWrapper(checkPendingDeposits))
-    await boss.work('checkPendingWithdrawals', jobWrapper(checkPendingWithdrawals))
     await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
     await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
-    await boss.work('checkInvoice', jobWrapper(checkInvoice))
-    await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
+    // TODO: most of these need to be migrated to payIn jobs
+    // including any existing jobs or recurring, scheduled jobs
     // paidAction jobs
     await boss.work('paidActionForwarding', jobWrapper(paidActionForwarding))
     await boss.work('paidActionForwarded', jobWrapper(paidActionForwarded))
@@ -113,6 +118,24 @@ async function work () {
     // payingAction jobs
     await boss.work('payingActionFailed', jobWrapper(payingActionFailed))
     await boss.work('payingActionConfirmed', jobWrapper(payingActionConfirmed))
+
+    // payIn jobs
+    await subscribeToBolt11s(args)
+    await boss.work('checkPendingPayInBolt11s', jobWrapper(checkPendingPayInBolt11s))
+    await boss.work('checkPendingPayOutBolt11s', jobWrapper(checkPendingPayOutBolt11s))
+    await boss.work('checkPayInBolt11', jobWrapper(checkPayInBolt11))
+    await boss.work('checkPayOutBolt11', jobWrapper(checkPayOutBolt11))
+    await boss.work('checkPayInInvoiceCreation', jobWrapper(checkPayInInvoiceCreation))
+    await boss.work('payInForwarding', jobWrapper(payInForwarding))
+    await boss.work('payInForwarded', jobWrapper(payInForwarded))
+    await boss.work('payInFailedForward', jobWrapper(payInFailedForward))
+    await boss.work('payInHeld', jobWrapper(payInHeld))
+    await boss.work('payInCancel', jobWrapper(payInCancel))
+    await boss.work('payInFailed', jobWrapper(payInFailed))
+    await boss.work('payInPaid', jobWrapper(payInPaid))
+    await boss.work('payInCancel', jobWrapper(payInCancel))
+    await boss.work('payInWithdrawalPaid', jobWrapper(payInWithdrawalPaid))
+    await boss.work('payInWithdrawalFailed', jobWrapper(payInWithdrawalFailed))
   }
   if (isServiceEnabled('search')) {
     await boss.work('indexItem', jobWrapper(indexItem))

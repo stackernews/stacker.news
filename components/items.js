@@ -1,7 +1,7 @@
 import { useQuery } from '@apollo/client'
 import Item, { ItemSkeleton } from './item'
 import ItemJob from './item-job'
-import styles from './items.module.css'
+import styles from './item.module.css'
 import MoreFooter from './more-footer'
 import { Fragment, useCallback, useMemo } from 'react'
 import { CommentFlat } from './comment'

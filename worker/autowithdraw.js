@@ -1,6 +1,5 @@
-import { msatsSatsFloor, msatsToSats, satsToMsats } from '@/lib/format'
-import { createWithdrawal } from '@/api/resolvers/wallet'
-import { createUserInvoice } from '@/wallets/server'
+import { msatsSatsFloor, satsToMsats } from '@/lib/format'
+import pay from '@/api/payIn'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
@@ -32,30 +31,14 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const [pendingOrFailed] = await models.$queryRaw`
     SELECT EXISTS(
       SELECT *
-      FROM "Withdrawl"
+      FROM "PayOutBolt11"
       WHERE "userId" = ${id}
-      AND "autoWithdraw"
       AND status IS DISTINCT FROM 'CONFIRMED'
       AND now() < created_at + interval '1 hour'
-      AND "msatsFeePaying" >= ${maxFeeMsats}
+      AND "msats" >= ${msats}
     )`
 
   if (pendingOrFailed.exists) return
 
-  for await (const { invoice, protocol, logger } of createUserInvoice(id, {
-    msats,
-    description: 'SN: autowithdrawal',
-    expiry: 360
-  }, { models })) {
-    try {
-      return await createWithdrawal(null,
-        { invoice, maxFee: msatsToSats(maxFeeMsats) },
-        { me: { id }, models, lnd, protocol, logger })
-    } catch (err) {
-      console.error('failed to create autowithdrawal:', err)
-      logger?.warn('incoming payment failed: ' + err.message, { bolt11: invoice })
-    }
-  }
-
-  throw new Error('no wallet to receive available')
+  await pay('AUTO_WITHDRAWAL', { msats, maxFeeMsats }, { models, me: { id: user.id } })
 }

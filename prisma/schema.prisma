@@ -1660,6 +1660,7 @@ enum PayOutType {
   WITHDRAWAL
   SYSTEM_REVENUE
   BUY_CREDITS
+  INVOICE_OVERPAY_SPILLOVER
 }
 
 model SubPayOutCustodialToken {

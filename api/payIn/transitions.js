@@ -145,17 +145,20 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
       }
 
       // refund the routing fee
-      const { mtokens, id: routingFeeId } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
-      await tx.payOutCustodialToken.update({
-        where: { id: routingFeeId },
-        data: {
-          mtokens: toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens)
-        }
-      })
-      if (mtokens - toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens) > 0) {
+      const { mtokens: mtokensFeeEstimated, id: routingFeeId } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+      const mtokensFeeActual = toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens)
+
+      // update before calling onPaid where we update balances
+      if (mtokensFeeEstimated - mtokensFeeActual > 0) {
+        await tx.payOutCustodialToken.update({
+          where: { id: routingFeeId },
+          data: {
+            mtokens: mtokensFeeActual
+          }
+        })
         await tx.payOutCustodialToken.create({
           data: {
-            mtokens: mtokens - toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens),
+            mtokens: mtokensFeeEstimated - mtokensFeeActual,
             userId: payIn.userId,
             payOutType: 'ROUTING_FEE_REFUND',
             custodialTokenType: 'SATS',
@@ -240,6 +243,20 @@ export async function payInPaid ({ data, models, ...args }) {
         throw new Error('invoice is not confirmed')
       }
 
+      const msatsReceived = toPositiveBigInt(lndPayInBolt11.received_mtokens)
+      const msatsOverpaid = msatsReceived - payIn.payInBolt11.msatsRequested
+      if (msatsOverpaid > 0) {
+        await tx.payOutCustodialToken.create({
+          data: {
+            mtokens: msatsOverpaid,
+            userId: payIn.userId,
+            payOutType: 'INVOICE_OVERPAY_SPILLOVER',
+            custodialTokenType: 'CREDITS',
+            payInId: payIn.id
+          }
+        })
+      }
+
       await onPaid(tx, payIn.id)
 
       return {
@@ -247,7 +264,7 @@ export async function payInPaid ({ data, models, ...args }) {
           update: {
             confirmedAt: new Date(lndPayInBolt11.confirmed_at),
             confirmedIndex: lndPayInBolt11.confirmed_index,
-            msatsReceived: BigInt(lndPayInBolt11.received_mtokens)
+            msatsReceived
           }
         }
       }
@@ -364,9 +381,11 @@ export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
       // settle the invoice, allowing us to transition to PAID
       await settleHodlInvoice({ secret: payment.secret, lnd })
 
-      // adjust the routing fee and move the rest to the rewards pool
+      // adjust the routing fee and move the rest to the rewards pool and territory revenue
       const { mtokens: mtokensFeeEstimated, id: payOutRoutingFeeId } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
       const { id: payOutRewardsPoolId } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'REWARDS_POOL')
+
+      const mtokensFeeActual = toPositiveBigInt(payment.fee_mtokens)
 
       return {
         payInBolt11: {
@@ -383,11 +402,11 @@ export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
         payOutCustodialTokens: {
           update: [
             {
-              data: { mtokens: BigInt(payment.fee_mtokens) },
+              data: { mtokens: mtokensFeeActual },
               where: { id: payOutRoutingFeeId }
             },
             {
-              data: { mtokens: { increment: (mtokensFeeEstimated - BigInt(payment.fee_mtokens)) } },
+              data: { mtokens: { increment: (mtokensFeeEstimated - mtokensFeeActual) } },
               where: { id: payOutRewardsPoolId }
             }
           ]

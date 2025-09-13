@@ -20,6 +20,7 @@ export async function createInvoice (
   const body = new URLSearchParams()
   body.append('description', description)
   body.append('amountSat', msatsToSats(msats))
+  body.append('expirySeconds', Math.ceil(expiry / 1000))
 
   const hostname = url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
   const agent = getAgent({ hostname })

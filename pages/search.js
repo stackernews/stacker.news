@@ -19,13 +19,27 @@ export default function Index ({ ssrData }) {
   return (
     <SearchLayout sub={sub}>
       {variables.q
-        ? <Items
-            ssrData={ssrData}
-            query={SUB_SEARCH}
-            destructureData={data => data.search}
-            variables={variables}
-            noMoreText='NO MORE'
-          />
+        ? (
+          <>
+            <div className='text-muted small d-flex align-items-center gap-2 mb-1'>
+              <div className='d-flex align-items-center gap-1'>
+                <span style={{ display: 'inline-block', height: '12px', borderLeft: '1px solid var(--bs-secondary)' }} />
+                <span>post</span>
+              </div>
+              <div className='d-flex align-items-center gap-1'>
+                <span style={{ display: 'inline-block', height: '12px', borderLeft: '1px solid var(--bs-info)' }} />
+                <span>comment</span>
+              </div>
+            </div>
+            <Items
+              ssrData={ssrData}
+              query={SUB_SEARCH}
+              destructureData={data => data.search}
+              variables={variables}
+              noMoreText='NO MORE'
+            />
+          </>
+          )
         : (
           <div className={styles.content}>
             <div className={styles.box}>

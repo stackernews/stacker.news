@@ -96,6 +96,7 @@ export default function TerritoryForm ({ sub }) {
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
           moderated: sub?.moderated || false,
+          disableDeletion: sub?.disableDeletion || false,
           nsfw: sub?.nsfw || false
         }}
         schema={schema}
@@ -256,6 +257,24 @@ export default function TerritoryForm ({ sub }) {
                   </div>
           }
                 name='moderated'
+                groupClassName='ms-1'
+              />
+              <BootstrapForm.Label>deletion control</BootstrapForm.Label>
+              <Checkbox
+                inline
+                label={
+                  <div className='d-flex align-items-center'>disable post deletion
+                    <Info>
+                      <ol>
+                        <li>Only territory founders can delete posts and comments</li>
+                        <li>Authors cannot delete their own content</li>
+                        <li>Delete bot commands will be ignored</li>
+                        <li>Your territory will get a <Badge bg='warning'>no deletion</Badge> badge</li>
+                      </ol>
+                    </Info>
+                  </div>
+                }
+                name='disableDeletion'
                 groupClassName='ms-1'
               />
               <BootstrapForm.Label>nsfw</BootstrapForm.Label>

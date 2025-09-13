@@ -880,15 +880,37 @@ export default {
       return { id }
     },
     deleteItem: async (parent, { id }, { me, models }) => {
-      const old = await models.item.findUnique({ where: { id: Number(id) } })
-      if (Number(old.userId) !== Number(me?.id)) {
+      const old = await models.item.findUnique({
+        where: { id: Number(id) },
+        include: {
+          sub: true,
+          root: {
+            include: { sub: true }
+          }
+        }
+      })
+
+      const itemSub = old.subName ? old.sub : old.root?.sub
+      const isFounder = itemSub && Number(itemSub.userId) === Number(me?.id)
+      const deletionDisabled = itemSub && itemSub.disableDeletion
+
+      // Allow deletion if:
+      // 1. User owns the item, OR
+      // 2. User is founder and deletion is disabled (can delete any post)
+      if (Number(old.userId) !== Number(me?.id) && !(isFounder && deletionDisabled)) {
         throw new GqlInputError('item does not belong to you')
       }
+
       if (old.bio) {
         throw new GqlInputError('cannot delete bio')
       }
 
-      return await deleteItemByAuthor({ models, id, item: old })
+      if (deletionDisabled && !isFounder) {
+        throw new GqlInputError('deletion is disabled in this territory. Only the founder can delete posts.')
+      }
+
+      const founderOnly = isFounder && Number(old.userId) !== Number(me?.id)
+      return await deleteItemByAuthor({ models, id, item: old, founderOnly })
     },
     upsertLink: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(linkSchema, item, { models, me })

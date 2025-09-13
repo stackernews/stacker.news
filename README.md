@@ -45,7 +45,7 @@ You can run Stacker News on Github Codespaces
 #### Setup
 
 1. Open the repository on GitHub and click the **"Code"** button
-2. Select the Codespaces tab and create a new codespace. 
+2. Select the Codespaces tab and create a new codespace.
    - You can also configure your codespace to run select services based on  `COMPOSE_PROFILES` as well as in a different region and machine type by clicking "..." and selecting "New with options...". Check [Modifying services](#modifying-services) for more information on `COMPOSE_PROFILES`
 3. Wait for the environment to set up (this may take several minutes the first time)
 4. Once ready, you'll see a terminal with the environment initialized

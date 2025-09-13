@@ -6,27 +6,43 @@ import styles from './carousel.module.css'
 import { useShowModal } from './modal'
 import { Dropdown } from 'react-bootstrap'
 
-function useSwiping ({ moveLeft, moveRight }) {
-  const [touchStartX, setTouchStartX] = useState(null)
+function useAutoFade (initialDelay = 2000) {
+  const [isActive, setIsActive] = useState(true)
+  const timerRef = useRef()
+  const bumpActivity = useCallback(() => {
+    setIsActive(true)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setIsActive(false), initialDelay)
+  }, [initialDelay])
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+  return { isActive, bumpActivity }
+}
 
+function useSwiping ({ moveLeft, moveRight, bumpActivity }) {
+  const [touchStartX, setTouchStartX] = useState(null)
   const onTouchStart = useCallback((e) => {
     if (e.touches.length === 1) {
       setTouchStartX(e.touches[0].clientX)
     }
   }, [])
-
   const onTouchEnd = useCallback((e) => {
     if (touchStartX !== null) {
       const touchEndX = e.changedTouches[0].clientX
       const diff = touchEndX - touchStartX
       if (diff > 50) {
         moveLeft()
+        bumpActivity?.()
       } else if (diff < -50) {
         moveRight()
+        bumpActivity?.()
       }
       setTouchStartX(null)
     }
-  }, [touchStartX, moveLeft, moveRight])
+  }, [touchStartX, moveLeft, moveRight, bumpActivity])
 
   useEffect(() => {
     document.addEventListener('touchstart', onTouchStart)
@@ -38,19 +54,45 @@ function useSwiping ({ moveLeft, moveRight }) {
   }, [onTouchStart, onTouchEnd])
 }
 
-function useArrowKeys ({ moveLeft, moveRight }) {
+function useArrowKeys ({ moveLeft, moveRight, bumpActivity }) {
   const onKeyDown = useCallback((e) => {
     if (e.key === 'ArrowLeft') {
       moveLeft()
+      bumpActivity?.()
     } else if (e.key === 'ArrowRight') {
       moveRight()
+      bumpActivity?.()
     }
-  }, [moveLeft, moveRight])
+  }, [moveLeft, moveRight, bumpActivity])
 
   useEffect(() => {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onKeyDown])
+}
+function CarouselArrow ({ direction, onClick, disabled, onActivity }) {
+  const { isActive, bumpActivity } = useAutoFade(2000)
+  useEffect(() => {
+    onActivity?.(bumpActivity)
+  }, [onActivity, bumpActivity])
+  const handleClick = (e) => {
+    e.stopPropagation()
+    bumpActivity()
+    onClick?.()
+  }
+  return (
+    <div
+      className={classNames(
+        styles.fullScreenNav,
+        isActive ? styles.navActive : styles.navIdle,
+        disabled && 'invisible',
+        styles[direction]
+      )}
+      onClick={handleClick}
+    >
+      {direction === 'left' ? <ArrowLeft width={34} height={34} /> : <ArrowRight width={34} height={34} />}
+    </div>
+  )
 }
 
 function Carousel ({ close, mediaArr, src, setOptions }) {
@@ -59,64 +101,48 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
     if (index === -1) return [src, false, false]
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
   }, [src, mediaArr, index])
-  const IDLE_DELAY = 2000
-  const [navActive, setNavActive] = useState(false)
-  const idleTimerRef = useRef()
-  const getIdleTimer = useCallback(() => {
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
-    idleTimerRef.current = setTimeout(() => setNavActive(false), IDLE_DELAY)
+  const leftArrowActivityRef = useRef()
+  const rightArrowActivityRef = useRef()
+  const bumpAllArrows = useCallback(() => {
+    leftArrowActivityRef.current?.()
+    rightArrowActivityRef.current?.()
   }, [])
-  const bumpActivity = useCallback(() => {
-    setNavActive(true)
-    getIdleTimer()
-  }, [getIdleTimer])
 
   useEffect(() => {
     if (index === -1) return
     setOptions({
       overflow: <CarouselOverflow {...mediaArr[index][1]} />
     })
-    bumpActivity()
-    return () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
-    }
-  }, [index, mediaArr, setOptions, bumpActivity])
+    bumpAllArrows()
+  }, [index, mediaArr, setOptions, bumpAllArrows])
 
   const moveLeft = useCallback(() => {
     setIndex(i => Math.max(0, i - 1))
-    bumpActivity()
-  }, [setIndex, bumpActivity])
+  }, [setIndex])
 
   const moveRight = useCallback(() => {
     setIndex(i => Math.min(mediaArr.length - 1, i + 1))
-    bumpActivity()
-  }, [setIndex, mediaArr.length, bumpActivity])
+  }, [setIndex, mediaArr.length])
 
-  useSwiping({ moveLeft, moveRight })
-  useArrowKeys({ moveLeft, moveRight })
+  useSwiping({ moveLeft, moveRight, bumpActivity: bumpAllArrows })
+  useArrowKeys({ moveLeft, moveRight, bumpActivity: bumpAllArrows })
 
   return (
-    <div className={styles.fullScreenContainer} onClick={close} onMouseMove={bumpActivity} onTouchStart={bumpActivity}>
+    <div className={styles.fullScreenContainer} onClick={close} onMouseMove={bumpAllArrows} onTouchStart={bumpAllArrows}>
       <img className={styles.fullScreen} src={currentSrc} />
       <div className={styles.fullScreenNavContainer}>
-        <div
-          className={classNames(styles.fullScreenNav, navActive ? styles.navActive : styles.navIdle, !canGoLeft && 'invisible', styles.left)}
-          onClick={(e) => {
-            e.stopPropagation()
-            moveLeft()
-          }}
-        >
-          <ArrowLeft width={34} height={34} />
-        </div>
-        <div
-          className={classNames(styles.fullScreenNav, navActive ? styles.navActive : styles.navIdle, !canGoRight && 'invisible', styles.right)}
-          onClick={(e) => {
-            e.stopPropagation()
-            moveRight()
-          }}
-        >
-          <ArrowRight width={34} height={34} />
-        </div>
+        <CarouselArrow
+          direction='left'
+          onClick={moveLeft}
+          disabled={!canGoLeft}
+          onActivity={(bumpFn) => { leftArrowActivityRef.current = bumpFn }}
+        />
+        <CarouselArrow
+          direction='right'
+          onClick={moveRight}
+          disabled={!canGoRight}
+          onActivity={(bumpFn) => { rightArrowActivityRef.current = bumpFn }}
+        />
       </div>
     </div>
   )

@@ -70,6 +70,11 @@ export function parseNwcUrl (walletConnectUrl) {
   return params
 }
 
+export const clinkValidator = (type) =>
+  string()
+    .matches(new RegExp(`^${type}1`), { message: `must start with ${type}1` })
+    .matches(/^(noffer|ndebit)1[02-9ac-hj-np-z]+$/, { message: 'invalid bech32 encoding' })
+
 export const socketValidator = (msg = 'invalid socket') =>
   string()
     .test({

@@ -15,8 +15,11 @@ import { $getRoot } from 'lexical'
 // import { useContext } from 'react'
 // import { StorageKeyPrefixContext } from '@/components/form'
 import { $createCodeNode } from '@lexical/code'
-import defaultNodes from './nodes'
+import defaultNodes from '../../lib/lexical/nodes'
 import { forwardRef } from 'react'
+import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
+import MediaOrLinkPlugin, { URL_MATCHERS } from './plugins/interop/media-or-link'
+
 const onError = (error) => {
   console.error(error)
 }
@@ -24,7 +27,7 @@ const onError = (error) => {
 // I suppose we should have a Lexical for Editing and one for Reading, with style in common
 // so we can have a consistent WYSIWYG styling
 
-export function LexicalEditor ({ nodes = defaultNodes }) {
+export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
   const initial = {
     namespace: 'snEditor',
     theme,
@@ -52,11 +55,13 @@ export function LexicalEditor ({ nodes = defaultNodes }) {
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
+        <AutoLinkPlugin matchers={URL_MATCHERS} />
+        <MediaOrLinkPlugin />
         <CodeShikiPlugin />
         <HistoryPlugin />
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         {/* triggers all the things that should happen when the editor state changes */}
-        <OnChangePlugin />
+        <OnChangePlugin {...optionals} />
       </LexicalComposer>
     </div>
   )
@@ -78,17 +83,19 @@ export const LexicalReader = forwardRef(function LexicalReader ({ nodes = defaul
   }
 
   return (
-    <LexicalComposer initialConfig={initial}>
-      <RichTextPlugin
-        contentEditable={
-          <div className={styles.editor}>
-            <ContentEditable className={className} ref={ref} />
-            {overflowing}
-          </div>
-        }
-        ErrorBoundary={LexicalErrorBoundary}
-      />
-      <CodeShikiPlugin />
-    </LexicalComposer>
+    <div className={styles.editorContainer}>
+      <LexicalComposer initialConfig={initial}>
+        <RichTextPlugin
+          contentEditable={
+            <div className={styles.editor}>
+              <ContentEditable className={className} ref={ref} />
+              {overflowing}
+            </div>
+          }
+          ErrorBoundary={LexicalErrorBoundary}
+        />
+        <CodeShikiPlugin />
+      </LexicalComposer>
+    </div>
   )
 })

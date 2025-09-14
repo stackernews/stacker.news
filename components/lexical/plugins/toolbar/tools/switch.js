@@ -1,4 +1,4 @@
-import styles from '../../styles/theme.module.css'
+import styles from '@/components/lexical/styles/theme.module.css'
 import WYSIWYGIcon from '@/svgs/file-text-line.svg'
 import MarkdownIcon from '@/svgs/markdown-line.svg'
 import { useState, useCallback, useEffect } from 'react'

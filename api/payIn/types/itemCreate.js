@@ -79,7 +79,7 @@ export async function getInitial (models, args, { me }) {
 
 export async function onBegin (tx, payInId, args) {
   // don't want to double count boost ... it should be a beneficiary
-  const { invoiceId, parentId, uploadIds = [], boost: _, forwardUsers = [], options: pollOptions = [], ...data } = args
+  const { parentId, uploadIds = [], boost: _, forwardUsers = [], options: pollOptions = [], ...data } = args
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
   const mentions = await getMentions(tx, { ...args, userId: payIn.userId })

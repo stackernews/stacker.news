@@ -38,3 +38,12 @@ export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTok
 
   return payOutCustodialTokensCopy
 }
+
+export function payOutCustodialTokenFromBolt11 (payOutBolt11) {
+  return {
+    payOutType: payOutBolt11.payOutType,
+    userId: payOutBolt11.userId,
+    mtokens: payOutBolt11.mtokens,
+    custodialTokenType: 'CREDITS'
+  }
+}

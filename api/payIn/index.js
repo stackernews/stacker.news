@@ -10,6 +10,7 @@ import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
 import { NoReceiveWalletError, payOutBolt11Replacement } from './lib/payOutBolt11'
 import { payInClone } from './lib/payInPrisma'
 import { createHmac } from '../resolvers/wallet'
+import { payOutCustodialTokenFromBolt11 } from './lib/payOutCustodialTokens'
 
 export default async function pay (payInType, payInArgs, { models, me }) {
   try {
@@ -306,8 +307,6 @@ export async function retry (payInId, { models, me }) {
       throw new Error('Pessimistic payIns cannot be retried')
     }
 
-    // TODO: if we can't produce a new payOutBolt11, we need to update the payOuts to use
-    // custodial tokens instead ... or don't clone the payIn, and just start from scratch
     let payOutBolt11
     if (payInFailed.payOutBolt11) {
       try {
@@ -317,6 +316,9 @@ export async function retry (payInId, { models, me }) {
         if (!(e instanceof NoReceiveWalletError)) {
           throw e
         }
+        // if we can no longer produce a payOutBolt11, we fallback to custodial tokens
+        payInFailed.payOutBolt11 = null
+        payInFailed.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payInFailed.payOutBolt11))
       }
     }
 

@@ -60,6 +60,10 @@ async function createPayOutBolt11FromWalletProtocols (walletProtocols, bolt11Arg
 
 export async function payOutBolt11Replacement (models, genesisId, { payOutType, userId, msats }) {
   const walletProtocols = await getLeastFailedWalletProtocols(models, { genesisId, userId })
+  // if the least failed wallet has failed more than once, throw an error so we fallback to custodial tokens
+  if (walletProtocols[0]?.failedCount > 1) {
+    throw new NoReceiveWalletError('least failed wallet has failed more than twice, falling back to custodial tokens')
+  }
   return await createPayOutBolt11FromWalletProtocols(walletProtocols, { msats }, { payOutType, userId }, { models })
 }
 

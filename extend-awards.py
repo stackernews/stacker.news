@@ -2,7 +2,7 @@ import json, os, re, requests
 
 difficulties = {'good-first-issue':20000,'easy':100000,'medium':250000,'medium-hard':500000,'hard':1000000}
 priorities = {'low':0.5,'medium':1.5,'high':2,'urgent':3}
-ignored = ['huumn', 'ekzyis', 'Soxasora']
+ignored = ['']
 fn = 'awards.csv'
 
 sess = requests.Session()

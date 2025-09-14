@@ -5,6 +5,7 @@ import * as blink from './blink'
 import * as webln from './webln'
 import * as lnc from './lnc'
 import * as clnRest from './clnRest'
+import * as clink from './clink'
 
 export * from './util'
 
@@ -54,5 +55,6 @@ export default [
   blink,
   webln,
   lnc,
-  clnRest
+  clnRest,
+  clink
 ]

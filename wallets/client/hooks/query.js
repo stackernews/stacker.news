@@ -14,6 +14,7 @@ import {
   UPSERT_WALLET_SEND_PHOENIXD,
   UPSERT_WALLET_SEND_WEBLN,
   UPSERT_WALLET_SEND_CLN_REST,
+  UPSERT_WALLET_SEND_CLINK,
   WALLETS,
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
@@ -318,7 +319,7 @@ function protocolUpsertMutation (protocol) {
     case 'WEBLN':
       return protocol.send ? UPSERT_WALLET_SEND_WEBLN : NOOP_MUTATION
     case 'CLINK':
-      return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_CLINK
+      return protocol.send ? UPSERT_WALLET_SEND_CLINK : UPSERT_WALLET_RECEIVE_CLINK
     default:
       return NOOP_MUTATION
   }

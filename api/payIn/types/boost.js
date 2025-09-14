@@ -12,7 +12,7 @@ export const paymentMethods = [
 ]
 
 export async function getInitial (models, { sats, id }, { me, sub }) {
-  if (id) {
+  if (id && !sub) {
     const { subName, parentId } = await models.item.findUnique({ where: { id: parseInt(id) } })
     sub = await getSub(models, { subName, parentId })
   }

@@ -6,6 +6,7 @@ import { GqlInputError } from '@/lib/error'
 import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import * as MEDIA_UPLOAD from './mediaUpload'
+import { getBeneficiariesMcost } from '../lib/beneficiaries'
 
 export const anonable = true
 
@@ -70,7 +71,7 @@ export async function getInitial (models, args, { me }) {
   return {
     payInType: 'ITEM_CREATE',
     userId: me.id,
-    mcost,
+    mcost: mcost + getBeneficiariesMcost(beneficiaries),
     payOutCustodialTokens,
     beneficiaries
   }

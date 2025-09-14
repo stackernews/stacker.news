@@ -25,22 +25,22 @@ export function assertMcostRemaining (mcost) {
 }
 
 export function assertBalancedPayInAndPayOuts (payIn) {
+  console.log('payIn', payIn)
   // pay outs equal to mcost
   // pay ins equal to mcost if paid
   // pay ins less than mcost if not paid
   const beneficiariesMcost = payIn.beneficiaries?.reduce((acc, beneficiary) => acc + beneficiary.mcost, 0n) ?? 0n
-  const payOutsMtokens = payIn.payOutCustodialTokens?.reduce((acc, token) => acc + token.mtokens, 0n) ?? 0n + (payIn.payOutBolt11?.msats ?? 0n) +
+  const payOutsMtokens = (payIn.payOutCustodialTokens?.reduce((acc, token) => acc + token.mtokens, 0n) ?? 0n) + (payIn.payOutBolt11?.msats ?? 0n) +
     beneficiariesMcost
   const payInsMtokens = payIn.payInCustodialTokens?.reduce((acc, token) => acc + token.mtokens, 0n) ?? 0n
   if (payOutsMtokens !== payIn.mcost) {
-    throw new Error('pay outs must equal mcost')
+    throw new Error(`pay outs must equal mcost: ${payOutsMtokens} !== ${payIn.mcost}`)
   }
-  const totalMcost = payIn.mcost + beneficiariesMcost
-  if (payIn.payInState === 'PAID' && payInsMtokens !== totalMcost) {
-    throw new Error(`pay ins must equal mcost if paid: ${payInsMtokens} !== ${totalMcost}`)
+  if (payIn.payInState === 'PAID' && payInsMtokens !== payIn.mcost) {
+    throw new Error(`pay ins must equal mcost if paid: ${payInsMtokens} !== ${payIn.mcost}`)
   }
-  if (payIn.payInState !== 'PAID' && payInsMtokens >= totalMcost) {
-    throw new Error(`pay ins must be less than mcost if not paid: ${payInsMtokens} >= ${totalMcost}`)
+  if (payIn.payInState !== 'PAID' && payInsMtokens >= payIn.mcost) {
+    throw new Error(`pay ins must be less than mcost if not paid: ${payInsMtokens} >= ${payIn.mcost}`)
   }
 
   payIn.beneficiaries?.forEach(beneficiary => {

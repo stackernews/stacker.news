@@ -3,6 +3,7 @@ import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
 import { initialTrust } from '../lib/territory'
 import * as MEDIA_UPLOAD from './mediaUpload'
+import { getBeneficiariesMcost } from '../lib/beneficiaries'
 
 export const anonable = false
 
@@ -22,7 +23,7 @@ export async function getInitial (models, { billingType, uploadIds }, { me }) {
   return {
     payInType: 'TERRITORY_UNARCHIVE',
     userId: me?.id,
-    mcost,
+    mcost: mcost + getBeneficiariesMcost(beneficiaries),
     payOutCustodialTokens: [
       { payOutType: 'SYSTEM_REVENUE', userId: USER_ID.sn, mtokens: mcost, custodialTokenType: 'SATS' }
     ],

@@ -164,9 +164,6 @@ export default {
     }
   },
   PayIn: {
-    mcost: (payIn, args, { models, me }) => {
-      return payIn.mcost + (payIn.beneficiaries?.reduce((acc, beneficiary) => acc + beneficiary.mcost, 0n) ?? 0n)
-    },
     payerPrivates: (payIn, args, { models, me }) => {
       if (!isMine(payIn, { me })) {
         return null

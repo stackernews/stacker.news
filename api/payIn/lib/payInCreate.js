@@ -17,8 +17,8 @@ export const PAY_IN_INCLUDE = {
 export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
   const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
   const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost })
-
-  const fullProspect = { ...payInProspect, payInState, payInCustodialTokens }
+  const payOutCustodialTokens = payInProspect.payOutCustodialTokens.filter(t => t.mtokens > 0n)
+  const fullProspect = { ...payInProspect, payInState, payInCustodialTokens, payOutCustodialTokens }
 
   assertMcostRemaining(mCostRemaining)
   assertBalancedPayInAndPayOuts(fullProspect)

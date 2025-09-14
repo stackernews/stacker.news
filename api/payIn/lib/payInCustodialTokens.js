@@ -93,14 +93,9 @@ function getP2PCost (payIn) {
   return 0n
 }
 
-function getTotalCost (payIn) {
-  const { beneficiaries = [] } = payIn
-  return payIn.mcost + beneficiaries.reduce((acc, b) => acc + b.mcost, 0n)
-}
-
 export function getCostBreakdown (payIn) {
   const mP2PCost = getP2PCost(payIn)
-  const mCustodialCost = getTotalCost(payIn) - mP2PCost
+  const mCustodialCost = payIn.mcost - mP2PCost
 
   return {
     mP2PCost,

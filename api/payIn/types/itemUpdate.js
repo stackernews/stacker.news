@@ -6,6 +6,7 @@ import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import { satsToMsats } from '@/lib/format'
 import * as MEDIA_UPLOAD from './mediaUpload'
+import { getBeneficiariesMcost } from '../lib/beneficiaries'
 export const anonable = true
 
 export const paymentMethods = [
@@ -37,7 +38,7 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSub, parentI
 
   let cost = 0n
   if (!parentId && newSub.name !== old.subName) {
-    if (boost - old.boost > 0) {
+    if (old.boost > 0) {
       throw new Error('cannot move boosted items to a different territory')
     }
     cost += satsToMsats(newSub.baseCost)
@@ -67,7 +68,7 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNa
   return {
     payInType: 'ITEM_UPDATE',
     userId: me?.id,
-    mcost,
+    mcost: mcost + getBeneficiariesMcost(beneficiaries),
     payOutCustodialTokens,
     itemPayIn: { itemId: parseInt(id) },
     beneficiaries

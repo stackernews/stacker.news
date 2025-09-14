@@ -22,7 +22,7 @@ export default function usePayInHelper () {
       throw error
     }
 
-    if (!data.payIn.payerPrivates.payInBolt11) {
+    if (!data.payIn.payerPrivates?.payInBolt11) {
       return { payIn: data.payIn, check: that(data.payIn) }
     }
 

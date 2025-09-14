@@ -63,7 +63,7 @@ async function comments (me, models, item, sort, cursor) {
 
   const decodedCursor = decodeCursor(cursor)
   const offset = decodedCursor.offset
-  const filter = ` ("Item"."parentId" <> $1 OR "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3)) `
+  const filter = ` AND ("Item"."parentId" <> $1 OR "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3)) `
 
   // XXX what a mess
   let comments

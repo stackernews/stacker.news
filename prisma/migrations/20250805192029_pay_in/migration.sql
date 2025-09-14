@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "PayInType" AS ENUM ('BUY_CREDITS', 'ITEM_CREATE', 'ITEM_UPDATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'DONATE', 'POLL_VOTE', 'INVITE_GIFT', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE', 'PROXY_PAYMENT', 'REWARDS', 'WITHDRAWAL', 'AUTO_WITHDRAWAL');
+CREATE TYPE "PayInType" AS ENUM ('BUY_CREDITS', 'ITEM_CREATE', 'ITEM_UPDATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'DONATE', 'POLL_VOTE', 'INVITE_GIFT', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE', 'PROXY_PAYMENT', 'REWARDS', 'WITHDRAWAL', 'AUTO_WITHDRAWAL', 'MEDIA_UPLOAD');
 
 -- CreateEnum
 CREATE TYPE "PayInState" AS ENUM ('PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP', 'PENDING_WITHDRAWAL', 'PENDING', 'PENDING_HELD', 'HELD', 'PAID', 'FAILED', 'FORWARDING', 'FORWARDED', 'FAILED_FORWARD', 'CANCELLED');
@@ -826,3 +826,33 @@ SELECT (rewards(min, max, '1 day'::INTERVAL, 'day')).* FROM all_days;
 
 CREATE UNIQUE INDEX IF NOT EXISTS rewards_today_idx ON rewards_today(t);
 CREATE UNIQUE INDEX IF NOT EXISTS rewards_days_idx ON rewards_days(t);
+
+UPDATE "Upload" SET "paid" = false WHERE "paid" IS NULL;
+
+-- AlterTable
+ALTER TABLE "Upload" ALTER COLUMN "paid" SET NOT NULL,
+ALTER COLUMN "paid" SET DEFAULT false;
+
+-- CreateTable
+CREATE TABLE "UploadPayIn" (
+    "id" SERIAL NOT NULL,
+    "uploadId" INTEGER NOT NULL,
+    "payInId" INTEGER NOT NULL,
+
+    CONSTRAINT "UploadPayIn_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "UploadPayIn_uploadId_idx" ON "UploadPayIn"("uploadId");
+
+-- CreateIndex
+CREATE INDEX "UploadPayIn_payInId_idx" ON "UploadPayIn"("payInId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UploadPayIn_uploadId_payInId_key" ON "UploadPayIn"("uploadId", "payInId");
+
+-- AddForeignKey
+ALTER TABLE "UploadPayIn" ADD CONSTRAINT "UploadPayIn_uploadId_fkey" FOREIGN KEY ("uploadId") REFERENCES "Upload"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UploadPayIn" ADD CONSTRAINT "UploadPayIn_payInId_fkey" FOREIGN KEY ("payInId") REFERENCES "PayIn"("id") ON DELETE CASCADE ON UPDATE CASCADE;

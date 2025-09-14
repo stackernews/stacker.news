@@ -28,23 +28,25 @@ export function assertBalancedPayInAndPayOuts (payIn) {
   // pay outs equal to mcost
   // pay ins equal to mcost if paid
   // pay ins less than mcost if not paid
-  const payOutsMcost = payIn.payOutCustodialTokens?.reduce((acc, token) => acc + token.mtokens, 0n) ?? 0n + (payIn.payOutBolt11?.msats ?? 0n) +
-    (payIn.beneficiaries?.reduce((acc, beneficiary) => acc + beneficiary.mcost, 0n) ?? 0n)
-  const payInsMcost = payIn.payInCustodialTokens?.reduce((acc, token) => acc + token.mtokens, 0n) ?? 0n
-  if (payOutsMcost !== payIn.mcost) {
+  const beneficiariesMcost = payIn.beneficiaries?.reduce((acc, beneficiary) => acc + beneficiary.mcost, 0n) ?? 0n
+  const payOutsMtokens = payIn.payOutCustodialTokens?.reduce((acc, token) => acc + token.mtokens, 0n) ?? 0n + (payIn.payOutBolt11?.msats ?? 0n) +
+    beneficiariesMcost
+  const payInsMtokens = payIn.payInCustodialTokens?.reduce((acc, token) => acc + token.mtokens, 0n) ?? 0n
+  if (payOutsMtokens !== payIn.mcost) {
     throw new Error('pay outs must equal mcost')
   }
-  if (payIn.payInState === 'PAID' && payInsMcost !== payIn.mcost) {
-    throw new Error('pay ins must equal mcost if paid')
+  const totalMcost = payIn.mcost + beneficiariesMcost
+  if (payIn.payInState === 'PAID' && payInsMtokens !== totalMcost) {
+    throw new Error(`pay ins must equal mcost if paid: ${payInsMtokens} !== ${totalMcost}`)
   }
-  if (payIn.payInState !== 'PAID' && payInsMcost >= payIn.mcost) {
-    throw new Error('pay ins must be less than mcost if not paid')
+  if (payIn.payInState !== 'PAID' && payInsMtokens >= totalMcost) {
+    throw new Error(`pay ins must be less than mcost if not paid: ${payInsMtokens} >= ${totalMcost}`)
   }
 
   payIn.beneficiaries?.forEach(beneficiary => {
     const payOutsMcost = beneficiary.payOutCustodialTokens.reduce((acc, token) => acc + token.mtokens, 0n) + (beneficiary.payOutBolt11?.msats ?? 0n)
     if (payOutsMcost !== beneficiary.mcost) {
-      throw new Error('beneficiary pay outs must equal their mcost')
+      throw new Error(`beneficiary pay outs must equal their mcost: ${payOutsMcost} !== ${beneficiary.mcost}`)
     }
   })
 }

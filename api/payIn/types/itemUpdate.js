@@ -5,6 +5,7 @@ import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import { satsToMsats } from '@/lib/format'
+import * as MEDIA_UPLOAD from './mediaUpload'
 export const anonable = true
 
 export const paymentMethods = [
@@ -13,7 +14,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function getCost (models, { id, boost = 0, uploadIds, bio, newSub }, { me }) {
+async function getCost (models, { id, boost = 0, uploadIds, bio, newSub, parentId }, { me }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
   const old = await models.item.findUnique({
@@ -33,13 +34,16 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSub }, { me 
   })
 
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
-  let cost = BigInt(totalFeesMsats)
 
-  if (newSub.name !== old.subName) {
+  let cost = 0n
+  if (!parentId && newSub.name !== old.subName) {
+    if (boost - old.boost > 0) {
+      throw new Error('cannot move boosted items to a different territory')
+    }
     cost += satsToMsats(newSub.baseCost)
   }
 
-  if ((cost > 0 || (boost - old.boost) > 0) && old.itemPayIns.length === 0) {
+  if ((cost > 0 || totalFeesMsats > 0 || (boost - old.boost) > 0) && old.itemPayIns.length === 0) {
     throw new Error('cannot increase item cost with unpaid invoice')
   }
 
@@ -48,16 +52,18 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSub }, { me 
 
 export async function getInitial (models, { id, boost = 0, uploadIds, bio, subName }, { me }) {
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
-  const sub = await getSub(models, { subName })
-  const mcost = await getCost(models, { id, boost, uploadIds, bio, newSub: sub }, { me })
+  const sub = await getSub(models, { subName, parentId: old.parentId })
+  const mcost = await getCost(models, { id, boost, uploadIds, bio, newSub: sub, parentId: old.parentId }, { me })
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
 
-  let beneficiaries
+  const beneficiaries = []
   if (boost - old.boost > 0) {
-    beneficiaries = [
-      await BOOST.getInitial(models, { sats: boost - old.boost, id }, { me })
-    ]
+    beneficiaries.push(await BOOST.getInitial(models, { sats: boost - old.boost, id }, { me, sub }))
   }
+  if (uploadIds.length > 0) {
+    beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds }, { me, sub }))
+  }
+
   return {
     payInType: 'ITEM_UPDATE',
     userId: me?.id,

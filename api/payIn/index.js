@@ -289,7 +289,7 @@ export async function onPaidSideEffects (models, payInId) {
 
 export async function retry (payInId, { models, me }) {
   try {
-    const include = { payOutCustodialTokens: true, payOutBolt11: true }
+    const include = { payOutCustodialTokens: true, payOutBolt11: true, subPayIn: true, itemPayIn: true, uploadPayIns: true }
     const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: null }
 
     const payInFailed = await models.payIn.findFirst({
@@ -326,7 +326,7 @@ export async function retry (payInId, { models, me }) {
       const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, undefined, { me })
 
       // use an optimistic lock on successorId on the payIn
-      const rows = await tx.$queryRaw`UPDATE "PayIn" SET "successorId" = ${payIn.id} WHERE "id" = ${payInFailed.id} AND "successorId" IS NULL RETURNING *`
+      const rows = await tx.$queryRaw`UPDATE "PayIn" SET "successorId" = ${payIn.id} WHERE "id" = ${payInFailed.id} AND "successorId" IS NULL RETURNING id`
       if (rows.length === 0) {
         throw new Error('PayIn with id ' + payInFailed.id + ' is already being retried')
       }

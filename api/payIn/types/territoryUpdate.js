@@ -1,8 +1,8 @@
-import { throwOnExpiredUploads } from '@/api/resolvers/upload'
 import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST, USER_ID } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { proratedBillingCost } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
+import * as MEDIA_UPLOAD from './mediaUpload'
 
 export const anonable = false
 
@@ -12,7 +12,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getInitial (models, { oldName, billingType }, { me }) {
+export async function getInitial (models, { oldName, billingType, uploadIds }, { me }) {
   const oldSub = await models.sub.findUnique({
     where: {
       name: oldName
@@ -20,16 +20,21 @@ export async function getInitial (models, { oldName, billingType }, { me }) {
   })
 
   const mcost = satsToMsats(proratedBillingCost(oldSub, billingType) ?? 0)
+  const beneficiaries = []
+  if (uploadIds.length > 0) {
+    beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds }, { me }))
+  }
 
   return {
     payInType: 'TERRITORY_UPDATE',
     userId: me?.id,
     mcost,
-    payOutCustodialTokens: mcost > 0n ? [{ payOutType: 'SYSTEM_REVENUE', userId: USER_ID.sn, mtokens: mcost, custodialTokenType: 'SATS' }] : []
+    payOutCustodialTokens: mcost > 0n ? [{ payOutType: 'SYSTEM_REVENUE', userId: USER_ID.sn, mtokens: mcost, custodialTokenType: 'SATS' }] : [],
+    beneficiaries
   }
 }
 
-export async function onBegin (tx, payInId, { oldName, billingType, ...data }) {
+export async function onBegin (tx, payInId, { oldName, billingType, uploadIds, ...data }) {
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
   const oldSub = await tx.sub.findUnique({
     where: {
@@ -55,20 +60,6 @@ export async function onBegin (tx, payInId, { oldName, billingType, ...data }) {
   if (data.billPaidUntil === null || data.billPaidUntil >= new Date()) {
     data.status = 'ACTIVE'
   }
-
-  // TODO: this is nasty
-  await throwOnExpiredUploads(data.uploadIds, { tx })
-  if (data.uploadIds.length > 0) {
-    await tx.upload.updateMany({
-      where: {
-        id: { in: data.uploadIds }
-      },
-      data: {
-        paid: true
-      }
-    })
-  }
-  delete data.uploadIds
 
   return await tx.sub.update({
     data: {

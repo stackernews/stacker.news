@@ -2,6 +2,7 @@ import { PAID_ACTION_PAYMENT_METHODS, TERRITORY_PERIOD_COST, USER_ID } from '@/l
 import { satsToMsats } from '@/lib/format'
 import { nextBilling } from '@/lib/territory'
 import { initialTrust } from '../lib/territory'
+import * as MEDIA_UPLOAD from './mediaUpload'
 
 export const anonable = false
 
@@ -11,7 +12,12 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getInitial (models, { billingType }, { me }) {
+export async function getInitial (models, { billingType, uploadIds }, { me }) {
+  const beneficiaries = []
+  if (uploadIds.length > 0) {
+    beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds }, { me }))
+  }
+
   const mcost = satsToMsats(TERRITORY_PERIOD_COST(billingType))
   return {
     payInType: 'TERRITORY_UNARCHIVE',
@@ -19,7 +25,8 @@ export async function getInitial (models, { billingType }, { me }) {
     mcost,
     payOutCustodialTokens: [
       { payOutType: 'SYSTEM_REVENUE', userId: USER_ID.sn, mtokens: mcost, custodialTokenType: 'SATS' }
-    ]
+    ],
+    beneficiaries
   }
 }
 

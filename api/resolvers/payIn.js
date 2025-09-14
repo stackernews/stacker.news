@@ -85,9 +85,11 @@ export default {
   Query: {
     payIn: getPayIn,
     satistics: async (parent, { cursor }, { models, me }) => {
-      const userId = me?.id ?? USER_ID.anon
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      const userId = me.id
       const decodedCursor = decodeCursor(cursor)
-      console.log('satistics', decodedCursor)
       const payIns = await models.PayIn.findMany({
         where: {
           OR: [
@@ -105,7 +107,6 @@ export default {
         take: LIMIT,
         skip: decodedCursor.offset
       })
-      console.log('satistics nextCursorEncoded', decodeCursor(nextCursorEncoded(decodedCursor)))
       return {
         payIns,
         cursor: payIns.length === LIMIT ? nextCursorEncoded(decodedCursor) : null
@@ -163,6 +164,9 @@ export default {
     }
   },
   PayIn: {
+    mcost: (payIn, args, { models, me }) => {
+      return payIn.mcost + (payIn.beneficiaries?.reduce((acc, beneficiary) => acc + beneficiary.mcost, 0n) ?? 0n)
+    },
     payerPrivates: (payIn, args, { models, me }) => {
       if (!isMine(payIn, { me })) {
         return null
@@ -211,7 +215,7 @@ export default {
         payOutCustodialTokens = await models.payOutCustodialToken.findMany({ where: { payInId: payIn.id } })
       }
 
-      if (isMine(payIn, { me })) {
+      if (!payIn.payOutBolt11 || isMine(payIn.payOutBolt11, { me })) {
         return payOutCustodialTokens
       }
 

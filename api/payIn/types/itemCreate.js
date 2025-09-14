@@ -5,6 +5,7 @@ import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
+import * as MEDIA_UPLOAD from './mediaUpload'
 
 export const anonable = true
 
@@ -41,9 +42,7 @@ async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }
     SELECT ${baseCost}::INTEGER
       * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${me.id}::INTEGER,
           ${me.id !== USER_ID.anon && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
-      * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER
-      + (SELECT "nUnpaid" * "uploadFeesMsats"
-          FROM upload_fees(${me.id}::INTEGER, ${uploadIds}::INTEGER[])) as cost`
+      * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER  as cost`
 
   // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon,
   // cost must be greater than user's balance, and user has not disabled freebies
@@ -58,11 +57,14 @@ export async function getInitial (models, args, { me }) {
   const sub = await getSub(models, args)
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
 
-  let beneficiaries
+  const beneficiaries = []
   if (args.boost > 0) {
-    beneficiaries = [
+    beneficiaries.push(
       await BOOST.getInitial(models, { sats: args.boost }, { me, sub })
-    ]
+    )
+  }
+  if (args.uploadIds.length > 0) {
+    beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds: args.uploadIds }, { me, sub }))
   }
 
   return {
@@ -74,21 +76,10 @@ export async function getInitial (models, args, { me }) {
   }
 }
 
-// TODO: uploads should just have an itemId
 export async function onBegin (tx, payInId, args) {
   // don't want to double count boost ... it should be a beneficiary
   const { invoiceId, parentId, uploadIds = [], boost: _, forwardUsers = [], options: pollOptions = [], ...data } = args
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
-
-  const deletedUploads = []
-  for (const uploadId of uploadIds) {
-    if (!await tx.upload.findUnique({ where: { id: uploadId } })) {
-      deletedUploads.push(uploadId)
-    }
-  }
-  if (deletedUploads.length > 0) {
-    throw new Error(`upload(s) ${deletedUploads.join(', ')} are expired, consider reuploading.`)
-  }
 
   const mentions = await getMentions(tx, { ...args, userId: payIn.userId })
   const itemMentions = await getItemMentions(tx, { ...args, userId: payIn.userId })
@@ -172,7 +163,6 @@ export async function onBegin (tx, payInId, args) {
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
   const { itemId } = await tx.itemPayIn.findUnique({ where: { payInId: oldPayInId } })
-  await tx.itemPayIn.create({ data: { itemId, payInId: newPayInId } })
   return await getItemResult(tx, { id: itemId })
 }
 

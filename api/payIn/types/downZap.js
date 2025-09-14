@@ -32,7 +32,6 @@ export async function getInitial (models, { sats, id: itemId }, { me }) {
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
   const { itemId, payIn } = await tx.itemPayIn.findUnique({ where: { payInId: oldPayInId }, include: { payIn: true } })
-  await tx.itemPayIn.create({ data: { itemId, payInId: newPayInId } })
   const item = await getItemResult(tx, { id: itemId })
   return { id: item.id, path: item.path, sats: msatsToSats(payIn.mcost), act: 'DONT_LIKE_THIS' }
 }

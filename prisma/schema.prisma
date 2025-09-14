@@ -319,6 +319,7 @@ model Donation {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// todo: this isn't used bah
 model ItemUpload {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
@@ -342,13 +343,14 @@ model Upload {
   width              Int?
   height             Int?
   userId             Int
-  paid               Boolean?
+  paid               Boolean             @default(false)
   invoiceId          Int?
   invoiceActionState InvoiceActionState?
   invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   user               User                @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
   User               User[]
   ItemUpload         ItemUpload[]
+  uploadPayIns       UploadPayIn[]
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
@@ -1527,6 +1529,7 @@ enum PayInType {
   REWARDS
   WITHDRAWAL
   AUTO_WITHDRAWAL
+  MEDIA_UPLOAD
 }
 
 enum PayInState {
@@ -1585,6 +1588,18 @@ model SubPayIn {
   @@index([payInId])
 }
 
+model UploadPayIn {
+  id       Int    @id @default(autoincrement())
+  uploadId Int
+  upload   Upload @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  payInId  Int
+  payIn    PayIn  @relation(fields: [payInId], references: [id], onDelete: Cascade)
+
+  @@unique([uploadId, payInId])
+  @@index([uploadId])
+  @@index([payInId])
+}
+
 model PayIn {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")
@@ -1607,16 +1622,17 @@ model PayIn {
   payOutCustodialTokens PayOutCustodialToken[]
   payOutBolt11          PayOutBolt11?
 
-  genesis       PayIn?       @relation("PayInGenesis", fields: [genesisId], references: [id], onDelete: Cascade)
-  successor     PayIn?       @relation("PayInSuccessor", fields: [successorId], references: [id], onDelete: Cascade)
-  predecessor   PayIn?       @relation("PayInSuccessor")
-  benefactor    PayIn?       @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
-  beneficiaries PayIn[]      @relation("PayInBenefactor")
+  genesis       PayIn?        @relation("PayInGenesis", fields: [genesisId], references: [id], onDelete: Cascade)
+  successor     PayIn?        @relation("PayInSuccessor", fields: [successorId], references: [id], onDelete: Cascade)
+  predecessor   PayIn?        @relation("PayInSuccessor")
+  benefactor    PayIn?        @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
+  beneficiaries PayIn[]       @relation("PayInBenefactor")
   itemPayIn     ItemPayIn?
   subPayIn      SubPayIn?
-  progeny       PayIn[]      @relation("PayInGenesis")
+  progeny       PayIn[]       @relation("PayInGenesis")
   payInBolt11   PayInBolt11?
   pollVote      PollVote?
+  uploadPayIns  UploadPayIn[]
 
   @@index([userId])
   @@index([payInType])

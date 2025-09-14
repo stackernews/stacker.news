@@ -99,8 +99,8 @@ export function LogMessage ({ tag, level, message, context, ts }) {
     <>
       <div className={styles.row} onClick={handleClick} style={style}>
         <TimeSince timestamp={ts} />
-        {tag !== null && <Tag tag={tag?.toLowerCase() ?? 'system'} />}
         <Level level={level} />
+        {tag !== null && <Tag tag={tag?.toLowerCase() ?? 'system'} />}
         <Message message={message} />
         {hasContext && <Indicator show={showContext} />}
       </div>

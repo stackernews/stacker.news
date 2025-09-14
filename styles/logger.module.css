@@ -38,7 +38,7 @@
 .level {
     font-weight: bold;
     text-transform: uppercase;
-    min-width: 32px;
+    min-width: 30px;
 }
 
 .tag {

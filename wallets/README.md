@@ -68,6 +68,7 @@ That's it!
 - add enum value to `WalletRecvProtocolName` or `WalletSendProtocolName`
 - add table to store protocol config
 - run `npx prisma migrate dev --create-only`
+- **for send protocols, it is important that the names for encrypted columns end with `vaultId`**
 
 <details>
 <summary>Example</summary>

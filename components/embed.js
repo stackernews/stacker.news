@@ -195,7 +195,33 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
       </div>
     )
   }
-
+  if (provider === 'audio') {
+    return (
+      <div className={classNames(styles.audioWrapper, className)}>
+        {meta?.title && (
+          <div style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            marginBottom: '8px',
+            color: 'var(--theme-color)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+          >
+            🎵 {meta.title}
+          </div>
+        )}
+        <audio controls preload='metadata' style={{ width: '100%' }} src={src}>
+          <source src={src} type={`audio/${meta?.audioType || 'mpeg'}`} />
+          Your browser does not support the audio element.
+          <a href={src} target='_blank' rel='noreferrer'>
+            Download audio file
+          </a>
+        </audio>
+      </div>
+    )
+  }
   if (provider === 'peertube') {
     return (
       <div className={classNames(styles.videoWrapper, className)}>

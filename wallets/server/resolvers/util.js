@@ -20,7 +20,7 @@ export function mapWalletResolveTypes (wallet) {
       case 'LND_GRPC':
         return 'WalletRecvLNDGRPC'
       case 'CLINK':
-        return 'WalletRecvClink'
+        return send ? 'WalletSendClink' : 'WalletRecvClink'
       default:
         return null
     }

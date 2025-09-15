@@ -6,7 +6,6 @@ import Italic from '@/svgs/lexical/italic.svg'
 import Underline from '@/svgs/lexical/underline.svg'
 import Strikethrough from '@/svgs/lexical/strikethrough.svg'
 import Code from '@/svgs/lexical/code-view.svg'
-import Link from '@/svgs/lexical/link.svg'
 import Quote from '@/svgs/lexical/quote-text.svg'
 import More from '@/svgs/lexical/font-size.svg'
 import Undo from '@/svgs/lexical/undo.svg'
@@ -54,6 +53,7 @@ export default function FormattingPlugin () {
   const [isItalic, setIsItalic] = useState(false)
   const [isUnderline, setIsUnderline] = useState(false)
   const [isStrikethrough, setIsStrikethrough] = useState(false)
+  const [isCode, setIsCode] = useState(false)
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection()
@@ -62,6 +62,7 @@ export default function FormattingPlugin () {
       setIsItalic(selection.hasFormat('italic'))
       setIsUnderline(selection.hasFormat('underline'))
       setIsStrikethrough(selection.hasFormat('strikethrough'))
+      setIsCode(selection.hasFormat('code'))
     }
   }, [])
 
@@ -129,17 +130,10 @@ export default function FormattingPlugin () {
       </span>
 
       <span
-        className={classNames(styles.toolbarItem)}
+        className={classNames(styles.toolbarItem, isCode ? styles.active : '')}
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code')}
       >
         <Code />
-      </span>
-
-      <span
-        className={classNames(styles.toolbarItem, styles.toolbarItemLink)}
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'link')}
-      >
-        <Link />
       </span>
       <span className={styles.divider} />
       <TextOptionsDropdown editor={editor} isStrikethrough={isStrikethrough} />

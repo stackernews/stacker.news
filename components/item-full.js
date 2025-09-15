@@ -30,7 +30,7 @@ import useCommentsView from './use-comments-view'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
-  if (!item.text) {
+  if (!item.text && !item.html) {
     return null
   }
 
@@ -110,7 +110,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       {...props}
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
-        {item.text && <ItemText item={item} />}
+        {(item.text || item.html) && <ItemText item={item} />}
         {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&

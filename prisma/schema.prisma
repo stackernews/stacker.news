@@ -228,22 +228,24 @@ model Vault {
 }
 
 model WalletLog {
-  id             Int             @id @default(autoincrement())
-  createdAt      DateTime        @default(now()) @map("created_at")
-  userId         Int
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  level          LogLevel
-  message        String
-  invoiceId      Int?
-  invoice        Invoice?        @relation(fields: [invoiceId], references: [id])
-  withdrawalId   Int?
-  withdrawal     Withdrawl?      @relation(fields: [withdrawalId], references: [id])
-  context        Json?           @db.JsonB
-  PayOutBolt11   PayOutBolt11?   @relation(fields: [payOutBolt11Id], references: [id])
-  payOutBolt11Id Int?
-  protocolId     Int?
-  protocol       WalletProtocol? @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  id           Int             @id @default(autoincrement())
+  createdAt    DateTime        @default(now()) @map("created_at")
+  userId       Int
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level        LogLevel
+  message      String
+  invoiceId    Int?
+  invoice      Invoice?        @relation(fields: [invoiceId], references: [id])
+  withdrawalId Int?
+  withdrawal   Withdrawl?      @relation(fields: [withdrawalId], references: [id])
+  context      Json?           @db.JsonB
+  protocolId   Int?
+  protocol     WalletProtocol? @relation(fields: [protocolId], references: [id], onDelete: Cascade)
 
+  payInId Int?
+  payIn   PayIn? @relation(fields: [payInId], references: [id], onDelete: Cascade)
+
+  @@index([payInId])
   @@index([userId, createdAt])
 }
 
@@ -392,6 +394,8 @@ model LnWith {
   k1           String   @unique(map: "LnWith.k1_unique")
   userId       Int
   withdrawalId Int?
+  payInId      Int?
+  payIn        PayIn?   @relation(fields: [payInId], references: [id], onDelete: Cascade)
 }
 
 model Invite {
@@ -1633,6 +1637,8 @@ model PayIn {
   payInBolt11   PayInBolt11?
   pollVote      PollVote?
   uploadPayIns  UploadPayIn[]
+  walletLogs    WalletLog[]
+  lnWiths       LnWith[]
 
   @@index([userId])
   @@index([payInType])
@@ -1756,7 +1762,6 @@ model PayOutBolt11 {
   user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   protocol   WalletProtocol?  @relation(fields: [protocolId], references: [id], onDelete: SetNull)
   payIn      PayIn            @relation(fields: [payInId], references: [id])
-  WalletLog  WalletLog[]
 
   @@index([createdAt])
   @@index([userId])

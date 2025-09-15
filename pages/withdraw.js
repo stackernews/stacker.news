@@ -211,14 +211,14 @@ function LnQRWith ({ k1, encodedUrl }) {
   const query = gql`
   {
     lnWith(k1: "${k1}") {
-      withdrawalId
+      payInId
       k1
     }
   }`
   const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
 
-  if (data?.lnWith?.withdrawalId) {
-    router.push(`/withdrawals/${data.lnWith.withdrawalId}`)
+  if (data?.lnWith?.payInId) {
+    router.push(`/transactions/${data.lnWith.payInId}`)
   }
 
   return <Qr value={encodedUrl} status='waiting for you' />

@@ -5,7 +5,7 @@ import { walletLogger } from '@/wallets/server/logger'
 import payInTypeModules from './types'
 import { getPaymentFailureStatus, getPaymentOrNotSent, hodlInvoiceCltvDetails } from '../lnd'
 import { cancelHodlInvoice, parsePaymentRequest, payViaPaymentRequest, settleHodlInvoice, getInvoice } from 'ln-service'
-import { toPositiveNumber, formatSats, msatsToSats, toPositiveBigInt, formatMsats } from '@/lib/format'
+import { toPositiveNumber, formatSats, msatsToSats, toPositiveBigInt } from '@/lib/format'
 import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/server/wrap'
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 import { notifyWithdrawal } from '@/lib/webPush'
@@ -184,11 +184,9 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
     await notifyWithdrawal(transitionedPayIn)
     const { payOutBolt11 } = transitionedPayIn
     if (payOutBolt11?.protocolId) {
-      const logger = walletLogger({ protocolId: payOutBolt11.protocolId, userId: payOutBolt11.userId, models })
-      logger?.ok(
-        `↙ payment received: ${formatSats(msatsToSats(payOutBolt11.msats))}`, {
-          withdrawalId: payOutBolt11.id
-        })
+      const { protocolId, userId } = payOutBolt11
+      const logger = walletLogger({ protocolId, userId, payInId, models })
+      logger?.ok(`↙ payment received: ${formatSats(msatsToSats(payOutBolt11.msats))}`)
     }
   }
 }
@@ -220,14 +218,11 @@ export async function payInWithdrawalFailed ({ data, models, ...args }) {
   }, { models, ...args })
 
   if (transitionedPayIn) {
-    const { mtokens } = transitionedPayIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
     const { payOutBolt11 } = transitionedPayIn
     if (payOutBolt11?.protocolId) {
-      const logger = walletLogger({ protocolId: payOutBolt11.protocolId, userId: payOutBolt11.userId, models })
-      logger?.error(`incoming payment failed: ${message}`, {
-        bolt11: payOutBolt11.bolt11,
-        max_fee: formatMsats(mtokens)
-      })
+      const { protocolId, userId } = payOutBolt11
+      const logger = walletLogger({ protocolId, userId, payInId, models })
+      logger?.error(`incoming payment failed: ${message}`)
     }
   }
 }
@@ -418,11 +413,8 @@ export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
   if (transitionedPayIn) {
     const { msats, protocolId, userId } = transitionedPayIn.payOutBolt11
 
-    const logger = walletLogger({ protocolId, userId, models })
-    logger.ok(
-      `↙ payment received: ${formatSats(msatsToSats(Number(msats)))}`, {
-        payInId: transitionedPayIn.id
-      })
+    const logger = walletLogger({ protocolId, userId, payInId, models })
+    logger.ok(`↙ payment received: ${formatSats(msatsToSats(Number(msats)))}`)
   }
 
   return transitionedPayIn
@@ -463,12 +455,9 @@ export async function payInFailedForward ({ data, models, lnd, boss, ...args }) 
   }, { models, lnd, boss, ...args })
 
   if (transitionedPayIn) {
-    const fwd = transitionedPayIn.payOutBolt11
-    const logger = walletLogger({ wallet: fwd.wallet, models })
-    logger.warn(
-      `incoming payment failed: ${message}`, {
-        payInId: transitionedPayIn.id
-      })
+    const { protocolId, userId } = transitionedPayIn.payOutBolt11
+    const logger = walletLogger({ protocolId, userId, payInId, models })
+    logger.warn(`incoming payment failed: ${message}`)
   }
 
   return transitionedPayIn
@@ -550,14 +539,10 @@ export async function payInCancel ({ data, models, lnd, boss, ...args }) {
 
   if (transitionedPayIn) {
     if (transitionedPayIn.payOutBolt11) {
-      const { wallet, bolt11 } = transitionedPayIn.payOutBolt11
-      const logger = walletLogger({ wallet, models })
+      const { protocolId, userId, bolt11 } = transitionedPayIn.payOutBolt11
+      const logger = walletLogger({ protocolId, userId, payInId, models })
       const decoded = await parsePaymentRequest({ request: bolt11 })
-      logger.info(
-        `invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`, {
-          bolt11,
-          payInId: transitionedPayIn.id
-        })
+      logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`)
     }
   }
 

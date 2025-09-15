@@ -152,7 +152,7 @@ const typeDefs = gql`
     setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
 
     # logs
-    addWalletLog(protocolId: Int, level: String!, message: String!, timestamp: Date!): Boolean
+    addWalletLog(protocolId: Int, level: String!, message: String!, timestamp: Date!, payInId: Int): Boolean
     deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
   }
 
@@ -348,6 +348,7 @@ const typeDefs = gql`
     protocol: WalletProtocol
     level: String!
     message: String!
+    payIn: PayIn
     context: JSONObject
   }
 

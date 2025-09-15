@@ -66,12 +66,12 @@ async function doWithdrawal (query, res, headers) {
   }
 
   try {
-    const withdrawal = await createWithdrawal(null,
+    const payIn = await createWithdrawal(null,
       { invoice: query.pr, maxFee: me.withdrawMaxFeeDefault },
       { me, models, lnd, headers })
 
     // store withdrawal id lnWith so client can show it
-    await models.lnWith.update({ where: { k1: query.k1 }, data: { withdrawalId: Number(withdrawal.id) } })
+    await models.lnWith.update({ where: { k1: query.k1 }, data: { payInId: Number(payIn.id) } })
 
     return res.status(200).json({ status: 'OK' })
   } catch (e) {

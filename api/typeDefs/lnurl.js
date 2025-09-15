@@ -24,7 +24,7 @@ export default gql`
     createdAt: Date!
     k1: String!
     user: User!
-    withdrawalId: Int
+    payInId: Int
     encodedUrl: String!
   }
 `

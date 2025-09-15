@@ -14,7 +14,10 @@ CREATE TYPE "CustodialTokenType" AS ENUM ('CREDITS', 'SATS');
 CREATE TYPE "PayOutType" AS ENUM ('TERRITORY_REVENUE', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'PROXY_PAYMENT', 'ZAP', 'REWARD', 'INVITE_GIFT', 'WITHDRAWAL', 'SYSTEM_REVENUE', 'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER');
 
 -- AlterTable
-ALTER TABLE "WalletLog" ADD COLUMN     "payOutBolt11Id" INTEGER;
+ALTER TABLE "LnWith" ADD COLUMN     "payInId" INTEGER;
+
+-- AlterTable
+ALTER TABLE "WalletLog" ADD COLUMN     "payInId" INTEGER;
 
 -- CreateTable
 CREATE TABLE "ItemPayIn" (
@@ -318,8 +321,14 @@ CREATE UNIQUE INDEX "PayInBolt11NostrNote_payInBolt11Id_key" ON "PayInBolt11Nost
 -- CreateIndex
 CREATE UNIQUE INDEX "PayInBolt11Comment_payInBolt11Id_key" ON "PayInBolt11Comment"("payInBolt11Id");
 
+-- CreateIndex
+CREATE INDEX "WalletLog_payInId_idx" ON "WalletLog"("payInId");
+
 -- AddForeignKey
-ALTER TABLE "WalletLog" ADD CONSTRAINT "WalletLog_payOutBolt11Id_fkey" FOREIGN KEY ("payOutBolt11Id") REFERENCES "PayOutBolt11"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "WalletLog" ADD CONSTRAINT "WalletLog_payInId_fkey" FOREIGN KEY ("payInId") REFERENCES "PayIn"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "LnWith" ADD CONSTRAINT "LnWith_payInId_fkey" FOREIGN KEY ("payInId") REFERENCES "PayIn"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ItemPayIn" ADD CONSTRAINT "ItemPayIn_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;

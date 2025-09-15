@@ -6,9 +6,10 @@ const theme = {
   heading: {
     h1: styles.heading1,
     h2: styles.heading2,
-    h3: styles.heading2,
-    h4: styles.heading2,
-    h5: styles.heading2
+    h3: styles.heading3,
+    h4: styles.heading4,
+    h5: styles.heading5,
+    h6: styles.heading6
   },
   image: styles.image,
   link: styles.link,

@@ -101,7 +101,7 @@
     margin-bottom: 12px;
 }
 
-.heading2 {
+.heading2, .heading3, .heading4, .heading5, .heading6 {
     font-size: 15px;
     color: var(--theme-color);
     margin: 0;
@@ -293,4 +293,31 @@
 .disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.textBold[data-md-expose="true"]::before { content: "**"; }
+.textBold[data-md-expose="true"]::after { content: "**"; }
+.textItalic[data-md-expose="true"]::before { content: "*"; }
+.textItalic[data-md-expose="true"]::after { content: "*"; }
+.textUnderline[data-md-expose="true"]::before { content: "_"; }
+.textUnderline[data-md-expose="true"]::after { content: "_"; }
+/* line-through also covers the markdown hint; we don't want that */
+.textStrikethrough[data-md-expose="true"]::before { content: "~~"; }
+.textStrikethrough[data-md-expose="true"]::after { content: "~~"; }
+.code[data-md-expose="true"]::before { content: "`"; }
+.code[data-md-expose="true"]::after { content: "`"; }
+.link[data-md-expose="true"]::before { content: "["; }
+.link[data-md-expose="true"]::after { content: "](" attr(href) ")"; }
+.heading1[data-md-expose="true"]::before { content: "# "; }
+.heading2[data-md-expose="true"]::before { content: "## "; }
+.heading3[data-md-expose="true"]::before { content: "### "; }
+.heading4[data-md-expose="true"]::before { content: "#### "; }
+.heading5[data-md-expose="true"]::before { content: "##### "; }
+.heading6[data-md-expose="true"]::before { content: "###### "; }
+
+.textBold::before,.textBold::after,.textItalic::before,.textItalic::after,.textUnderline::before,.textUnderline::after,.textStrikethrough::before,.textStrikethrough::after,.code::before,.code::after,.link::before,.link::after,.heading1::before,.heading1::after,.heading2::before,.heading2::after,.heading3::before,.heading3::after,.heading4::before,.heading4::before,.heading5::before,.heading5::before,.heading6::before,.heading6::before {
+    user-select: none;
+    opacity: .6;
+    letter-spacing: 0;
+    white-space: pre;
 }

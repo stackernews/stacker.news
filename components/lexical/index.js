@@ -11,14 +11,11 @@ import theme from './styles/theme'
 import ToolbarPlugin from './plugins/toolbar'
 import OnChangePlugin from './plugins/onchange'
 import CodeShikiPlugin from './plugins/codeshiki'
-import { $getRoot } from 'lexical'
-// import { useContext } from 'react'
-// import { StorageKeyPrefixContext } from '@/components/form'
-import { $createCodeNode } from '@lexical/code'
 import defaultNodes from '../../lib/lexical/nodes'
 import { forwardRef } from 'react'
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
 import MediaOrLinkPlugin, { URL_MATCHERS } from './plugins/interop/media-or-link'
+import MarkdownLivePreviewPlugin from './plugins/arcane/md-live-preview'
 
 const onError = (error) => {
   console.error(error)
@@ -31,14 +28,17 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
   const initial = {
     namespace: 'snEditor',
     theme,
-    editorState: () => {
-      const root = $getRoot()
-      if (root.getFirstChild() === null) {
-        const codeBlock = $createCodeNode()
-        codeBlock.setLanguage('markdown')
-        root.append(codeBlock)
-      }
-    },
+    // TODO: re-instate this to force markdown mode at first
+    // atm disabled to test the live preview
+    //
+    // editorState: () => {
+    //   const root = $getRoot()
+    //   if (root.getFirstChild() === null) {
+    //     const codeBlock = $createCodeNode()
+    //     codeBlock.setLanguage('markdown')
+    //     root.append(codeBlock)
+    //   }
+    // },
     onError,
     nodes
   }
@@ -59,9 +59,10 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
         <MediaOrLinkPlugin />
         <CodeShikiPlugin />
         <HistoryPlugin />
-        <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         {/* triggers all the things that should happen when the editor state changes */}
         <OnChangePlugin {...optionals} />
+        <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
+        <MarkdownLivePreviewPlugin />
       </LexicalComposer>
     </div>
   )

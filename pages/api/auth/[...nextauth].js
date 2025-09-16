@@ -408,7 +408,9 @@ function generateRandomString (length = 6, charset = BECH32_CHARSET) {
   const bytes = randomBytes(length)
   let result = ''
 
-  // Map each byte to a character in the charset
+  // Even though we're creating biased numbers by mapping each byte to a bech32 character,
+  // this is still secure because it provides 30 bits of security (32^6 = 2^30)
+  // and we are limiting the number of attempts.
   for (let i = 0; i < length; i++) {
     result += charset[bytes[i] % charset.length]
   }

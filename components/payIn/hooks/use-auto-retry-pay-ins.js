@@ -5,7 +5,7 @@ import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
 import { useCallback, useEffect } from 'react'
 import { WalletConfigurationError } from '@/wallets/client/errors'
-import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
 
 export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
@@ -67,7 +67,7 @@ export function useAutoRetryPayIns () {
           console.error('retry poll failed:', err)
         }
         if (!stopped) queuePoll()
-      }, NORMAL_POLL_INTERVAL)
+      }, NORMAL_POLL_INTERVAL_MS)
     }
 
     const stopPolling = () => {

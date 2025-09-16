@@ -58,17 +58,11 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
       timeout
     }, (err, res) => {
       if (err) {
-        if (res?.failure_reason) {
-          reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
-        } else {
-          reject(err)
-        }
-        return
+        return reject(err)
       }
 
-      if (res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
-        reject(new Error('Unable to estimate route, excessive values: ' + JSON.stringify(res)))
-        return
+      if (res.failure_reason !== 'FAILURE_REASON_NONE' || res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
+        return reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
       }
 
       resolve({

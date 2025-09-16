@@ -28,7 +28,8 @@
         "name": "PHOENIXD",
         "displayName": "Phoenixd",
         "image": "/wallets/phoenixd.png",
-        "url": "https://phoenix.acinq.co/server"
+        "url": "https://phoenix.acinq.co/server",
+        "guide": "/items/1212375"
     },
     {
         "name": "ZEUS",

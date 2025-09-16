@@ -2,7 +2,7 @@ import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useMemo } from 'react'
 import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/client/errors'
 import { GET_PAY_IN_RESULT, CANCEL_PAY_IN_BOLT11, RETRY_PAY_IN } from '@/fragments/payIn'
-import { FAST_POLL_INTERVAL } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS } from '@/lib/constants'
 
 const RECEIVER_FAILURE_REASONS = [
   'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_FEE',
@@ -104,7 +104,7 @@ function waitCheckPayInController (payInId, check) {
           clearInterval(interval)
           signal.removeEventListener('abort', abort)
         }
-      }, FAST_POLL_INTERVAL)
+      }, FAST_POLL_INTERVAL_MS)
 
       const abort = () => {
         console.info(`payIn #${payInId}: stopped waiting`)

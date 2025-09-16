@@ -99,21 +99,13 @@ export default {
         ]
       }
 
-      const results = await search.search({
-        index: process.env.OPENSEARCH_INDEX,
-        size: limit,
-        from: decodedCursor.offset,
-        _source: {
-          excludes: [
-            'text',
-            'text_embedding',
-            'title_embedding'
-          ]
-        },
-        body: {
-          query: {
-            function_score: {
-              query: {
+      let queryBody
+      if (process.env.OPENSEARCH_MODEL_ID) {
+        queryBody = {
+          hybrid: {
+            pagination_depth: 50,
+            queries: [
+              {
                 bool: {
                   should,
                   filter: [
@@ -129,20 +121,107 @@ export default {
                     {
                       range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
                     }
-                  ]
+                  ],
+                  minimum_should_match: 1
                 }
               },
-              functions: [{
-                field_value_factor: {
-                  field: 'wvotes',
-                  modifier: 'none',
-                  factor: 1,
-                  missing: 0
+              {
+                function_score: {
+                  query: {
+                    bool: {
+                      should: [
+                        {
+                          more_like_this: {
+                            fields: ['title', 'text'],
+                            like,
+                            min_term_freq: 1,
+                            min_doc_freq: 1,
+                            max_doc_freq: 5,
+                            min_word_length: 2,
+                            max_query_terms: 25,
+                            minimum_should_match: minMatch || '10%',
+                            boost_terms: 100
+                          }
+                        }
+                      ],
+                      filter: [
+                        {
+                          bool: {
+                            should: [
+                              { match: { status: 'ACTIVE' } },
+                              { match: { status: 'NOSATS' } }
+                            ],
+                            must_not: mustNot
+                          }
+                        },
+                        {
+                          range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
+                        }
+                      ]
+                    }
+                  },
+                  functions: [{
+                    field_value_factor: {
+                      field: 'wvotes',
+                      modifier: 'none',
+                      factor: 1,
+                      missing: 0
+                    }
+                  }],
+                  boost_mode: 'multiply'
                 }
-              }],
-              boost_mode: 'multiply'
-            }
+              }
+            ]
           }
+        }
+      } else {
+        queryBody = {
+          function_score: {
+            query: {
+              bool: {
+                should,
+                filter: [
+                  {
+                    bool: {
+                      should: [
+                        { match: { status: 'ACTIVE' } },
+                        { match: { status: 'NOSATS' } }
+                      ],
+                      must_not: mustNot
+                    }
+                  },
+                  {
+                    range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
+                  }
+                ]
+              }
+            },
+            functions: [{
+              field_value_factor: {
+                field: 'wvotes',
+                modifier: 'none',
+                factor: 1,
+                missing: 0
+              }
+            }],
+            boost_mode: 'multiply'
+          }
+        }
+      }
+
+      const results = await search.search({
+        index: process.env.OPENSEARCH_INDEX,
+        size: limit,
+        from: decodedCursor.offset,
+        _source: {
+          excludes: [
+            'text',
+            'text_embedding',
+            'title_embedding'
+          ]
+        },
+        body: {
+          query: queryBody
         }
       })
 

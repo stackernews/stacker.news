@@ -86,10 +86,7 @@ export function CustomBookmarkList ({ ssrData, variables = {}, query }) {
   const { data, fetchMore } = useQuery(query || SUB_ITEMS, { variables })
   const dat = useData(data, ssrData)
 
-  const { items, cursor } = useMemo(() => {
-    if (!dat) return { items: [], cursor: null }
-    return dat?.items || { items: [], cursor: null }
-  }, [dat])
+  const { items, cursor } = useMemo(() => dat?.items ?? { items: [], cursor: null }, [dat])
 
   const [orderedItems, setOrderedItems] = useState(items || [])
   useEffect(() => { setOrderedItems(items || []) }, [items])

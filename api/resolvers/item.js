@@ -786,18 +786,12 @@ export default {
         throw new GqlInputError('itemIds required')
       }
 
-      for (let i = 0; i < itemIds.length; i++) {
-        const itemId = Number(itemIds[i])
-        await models.bookmark.updateMany({
-          where: {
-            userId: me.id,
-            itemId
-          },
-          data: {
-            customOrder: i + 1
-          }
-        })
-      }
+      await models.$transaction(
+        itemIds.map((id, i) => models.bookmark.update({
+          where: { userId_itemId: { userId: me.id, itemId: Number(id) } },
+          data: { customOrder: i + 1 }
+        }))
+      )
 
       return true
     },

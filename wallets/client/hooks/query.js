@@ -37,7 +37,7 @@ import {
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
-import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
 import { useTemplates, useWallets, useWalletsLoading } from '@/wallets/client/context'
@@ -50,6 +50,18 @@ export function useWalletsQuery () {
   const [error, setError] = useState(null)
 
   const { decryptWallet, ready } = useWalletDecryption()
+
+  useEffect(() => {
+    // the query might fail because of network errors like ERR_NETWORK_CHANGED
+    // but for some reason, the retry link does not retry the query so we poll instead ourselves here.
+    // https://github.com/stackernews/stacker.news/issues/2522
+    if (!wallets) {
+      query.startPolling(FAST_POLL_INTERVAL_MS)
+    } else {
+      query.stopPolling()
+    }
+    return () => query.stopPolling()
+  }, [query.startPolling, query.stopPolling, wallets])
 
   useEffect(() => {
     if (!query.data?.wallets || !ready) return

@@ -60,6 +60,7 @@ export function useWalletsQuery () {
     } else {
       query.stopPolling()
     }
+    return () => query.stopPolling()
   }, [query.startPolling, query.stopPolling, wallets])
 
   useEffect(() => {

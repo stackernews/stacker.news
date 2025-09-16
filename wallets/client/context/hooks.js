@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLazyQuery } from '@apollo/client'
 import { FAILED_INVOICES } from '@/fragments/invoice'
-import { NORMAL_POLL_INTERVAL } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
 import {
@@ -87,7 +87,7 @@ export function useAutomatedRetries () {
           console.error('retry poll failed:', err)
         }
         if (!stopped) queuePoll()
-      }, NORMAL_POLL_INTERVAL)
+      }, NORMAL_POLL_INTERVAL_MS)
     }
 
     const stopPolling = () => {

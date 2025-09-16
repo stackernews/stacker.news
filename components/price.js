@@ -4,7 +4,7 @@ import { fixedDecimal } from '@/lib/format'
 import { useMe } from './me'
 import { PRICE } from '@/fragments/price'
 import { CURRENCY_SYMBOLS } from '@/lib/currency'
-import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { useBlockHeight } from './block-height'
 import { useChainFee } from './chain-fee'
 import { CompactLongCountdown } from './countdown'
@@ -27,7 +27,7 @@ export function PriceProvider ({ price, children }) {
     ...(SSR
       ? {}
       : {
-          pollInterval: NORMAL_POLL_INTERVAL,
+          pollInterval: NORMAL_POLL_INTERVAL_MS,
           nextFetchPolicy: 'cache-and-network'
         })
   })

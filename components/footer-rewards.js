@@ -1,7 +1,7 @@
 import { gql, useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { RewardLine } from '@/pages/rewards'
-import { LONG_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { LONG_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 
 const REWARDS = gql`
 {
@@ -12,7 +12,7 @@ const REWARDS = gql`
 }`
 
 export default function Rewards () {
-  const { data } = useQuery(REWARDS, SSR ? { ssr: false } : { pollInterval: LONG_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(REWARDS, SSR ? { ssr: false } : { pollInterval: LONG_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
   const total = data?.rewards?.[0]?.total
   const time = data?.rewards?.[0]?.time
   return (

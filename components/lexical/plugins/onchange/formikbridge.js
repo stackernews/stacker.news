@@ -49,7 +49,6 @@ export default function FormikBridgePlugin () {
         setFieldValue('text', markdown)
         setFieldValue('lexicalState', JSON.stringify(editorState.toJSON()))
         setFieldValue('html', html)
-        console.log('html', html)
       })
     })
   }, [editor, setFieldValue, values])

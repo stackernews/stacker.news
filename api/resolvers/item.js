@@ -1516,10 +1516,10 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   if (old.bio) {
     // prevent editing a bio like a regular item
-    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio` }
+    item = { id: Number(item.id), text: item.text, lexicalState: item.lexicalState, html: item.html, title: `@${user.name}'s bio` }
   } else if (old.parentId) {
     // prevent editing a comment like a post
-    item = { id: Number(item.id), text: item.text, boost: item.boost }
+    item = { id: Number(item.id), text: item.text, lexicalState: item.lexicalState, html: item.html, boost: item.boost }
   } else {
     item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)

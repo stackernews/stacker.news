@@ -18,6 +18,12 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           fields: {
             text () {
               return result.text
+            },
+            lexicalState () {
+              return result.lexicalState
+            },
+            html () {
+              return result.html
             }
           },
           optimistic: true
@@ -35,7 +41,8 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
         <Form
           initial={{
             text: comment.text,
-            lexicalState: comment.lexicalState
+            lexicalState: comment.lexicalState,
+            html: comment.html
           }}
           schema={commentSchema}
           onSubmit={onSubmit}

@@ -3,7 +3,6 @@ import { throwOnExpiredUploads, uploadFees } from '@/api/resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
-import { sanitizeHTML } from '@/lib/dompurify'
 
 export const anonable = true
 
@@ -73,7 +72,6 @@ export async function perform (args, context) {
     where: { id: parseInt(id), boost: old.boost },
     data: {
       ...data,
-      html: data.html ? sanitizeHTML(data.html) : null,
       boost: {
         increment: newBoost
       },

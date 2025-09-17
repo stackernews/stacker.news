@@ -455,7 +455,7 @@ export default {
 
       const searchRequest = {
         index: process.env.OPENSEARCH_INDEX,
-        size: LIMIT,
+        size: sort === 'recent' ? 2 * LIMIT : LIMIT,
         _source: {
           excludes: [
             'text',
@@ -525,7 +525,7 @@ export default {
       })
 
       return {
-        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        cursor: items.length === LIMIT && sort !== 'recent' ? nextCursorEncoded(decodedCursor) : null,
         items
       }
     }

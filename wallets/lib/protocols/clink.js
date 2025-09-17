@@ -32,6 +32,11 @@ export default [
         placeholder: 'ndebit...',
         required: true,
         validate: clinkValidator('ndebit'),
+        encrypt: true,
+        editable: false
+      },
+      {
+        name: 'secretKey',
         encrypt: true
       }
     ],

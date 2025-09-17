@@ -113,8 +113,7 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
   const value = useMemo(() => {
     const lines = { ...baseLineItems, ...lineItems, ...remoteLineItems }
     const total = Object.values(lines).sort(sortHelper).reduce((acc, { modifier }) => modifier(acc), 0)
-    // freebies: there's only a base cost and we don't have enough sats
-    const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total && me?.privates?.credits < total && !me?.privates?.disableFreebies
+    const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total && me?.privates?.credits < total
     return {
       lines,
       merge: mergeLineItems,
@@ -123,7 +122,7 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
       setDisabled,
       free
     }
-  }, [me?.privates?.sats, me?.privates?.disableFreebies, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
+  }, [me?.privates?.sats, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
 
   return (
     <FeeButtonContext.Provider value={value}>

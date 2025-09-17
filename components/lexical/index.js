@@ -12,6 +12,7 @@ import defaultNodes from '../../lib/lexical/nodes'
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
 import MediaOrLinkPlugin, { URL_MATCHERS } from './plugins/interop/media-or-link'
 import MarkdownWysiwygPlugin from './plugins/paradigmshifts/markdown-wysiwyg'
+import { useFormikContext } from 'formik'
 
 const onError = (error) => {
   console.error(error)
@@ -21,9 +22,19 @@ const onError = (error) => {
 // so we can have a consistent WYSIWYG styling
 
 export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
+  // temporary?
+  const { values } = useFormikContext()
+
   const initial = {
     namespace: 'snEditor',
     theme,
+    editorState: (editor) => {
+      if (values.lexicalState) {
+        // stored JSON has to be parsed as EditorState
+        const state = editor.parseEditorState(values.lexicalState)
+        editor.setEditorState(state)
+      }
+    },
     // TODO: re-instate this to force markdown mode at first
     // atm disabled to test the live preview
     //

@@ -111,6 +111,7 @@ const typeDefs = gql`
     upsertWalletSendClink(
       ${shared},
       ndebit: VaultEntryInput!
+      secretKey: VaultEntryInput!
     ): WalletSendClink!
 
     upsertWalletRecvClink(
@@ -305,6 +306,7 @@ const typeDefs = gql`
   type WalletSendClink {
     id: ID!
     ndebit: VaultEntry!
+    secretKey: VaultEntry!
   }
 
   type WalletRecvNWC {

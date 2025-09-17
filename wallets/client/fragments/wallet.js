@@ -83,6 +83,9 @@ const WALLET_PROTOCOL_FIELDS = gql`
         encryptedNdebit: ndebit {
           ...VaultEntryFields
         }
+        encryptedSecretKey: secretKey {
+          ...VaultEntryFields
+        }
       }
       ... on WalletRecvNWC {
         id

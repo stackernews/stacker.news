@@ -222,6 +222,7 @@ model Vault {
   walletSendLNCServerHost    WalletSendLNC?      @relation("lncServerHost")
   walletSendCLNRestRune      WalletSendCLNRest?  @relation("clnRune")
   walletSendClink            WalletSendClink?    @relation("clinkNdebit")
+  walletSendClinkSecretKey   WalletSendClink?    @relation("clinkSecretKey")
 }
 
 model WalletLog {
@@ -1424,13 +1425,15 @@ model WalletSendCLNRest {
 }
 
 model WalletSendClink {
-  id            Int            @id @default(autoincrement())
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
-  protocolId    Int            @unique
-  protocol      WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
-  ndebitVaultId Int            @unique
-  ndebit        Vault?         @relation("clinkNdebit", fields: [ndebitVaultId], references: [id])
+  id               Int            @id @default(autoincrement())
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId       Int            @unique
+  protocol         WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  ndebitVaultId    Int            @unique
+  ndebit           Vault?         @relation("clinkNdebit", fields: [ndebitVaultId], references: [id])
+  secretKeyVaultId Int            @unique
+  secretKey        Vault?         @relation("clinkSecretKey", fields: [secretKeyVaultId], references: [id])
 }
 
 model WalletRecvNWC {

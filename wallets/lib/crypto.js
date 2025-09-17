@@ -1,5 +1,4 @@
 import bip39Words from '@/lib/bip39-words'
-import { fromHex, toHex } from '@/lib/hex'
 
 export async function deriveKey (passphrase, salt) {
   const enc = new TextEncoder()
@@ -28,7 +27,7 @@ export async function deriveKey (passphrase, salt) {
   )
 
   const rawKey = await window.crypto.subtle.exportKey('raw', key)
-  const hash = toHex(await window.crypto.subtle.digest('SHA-256', rawKey))
+  const hash = Buffer.from(await window.crypto.subtle.digest('SHA-256', rawKey)).toString('hex')
   const unextractableKey = await window.crypto.subtle.importKey(
     'raw',
     rawKey,
@@ -59,8 +58,8 @@ export async function encrypt ({ key, hash }, value) {
   )
   return {
     keyHash: hash,
-    iv: toHex(iv.buffer),
-    value: toHex(encrypted)
+    iv: Buffer.from(iv).toString('hex'),
+    value: Buffer.from(encrypted).toString('hex')
   }
 }
 
@@ -68,10 +67,10 @@ export async function decrypt (key, { iv, value }) {
   const decrypted = await window.crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
-      iv: fromHex(iv)
+      iv: Buffer.from(iv, 'hex')
     },
     key,
-    fromHex(value)
+    Buffer.from(value, 'hex')
   )
   const decoded = new TextDecoder().decode(decrypted)
   return JSON.parse(decoded)

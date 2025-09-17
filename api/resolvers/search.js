@@ -453,30 +453,36 @@ export default {
         }
       }
 
-      try {
-        sitems = await search.search({
-          index: process.env.OPENSEARCH_INDEX,
-          size: LIMIT,
-          _source: {
-            excludes: [
-              'text',
-              'text_embedding',
-              'title_embedding'
-            ]
-          },
-          from: decodedCursor.offset,
-          body: {
-            query: osQuery,
-            highlight: {
-              fields: {
-                title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
-                'title.exact': { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
-                text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
-                'text.exact': { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
-              }
+      const searchRequest = {
+        index: process.env.OPENSEARCH_INDEX,
+        size: LIMIT,
+        _source: {
+          excludes: [
+            'text',
+            'text_embedding',
+            'title_embedding'
+          ]
+        },
+        from: decodedCursor.offset,
+        body: {
+          query: osQuery,
+          highlight: {
+            fields: {
+              title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
+              'title.exact': { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
+              text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
+              'text.exact': { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
             }
           }
-        })
+        }
+      }
+
+      if (sort === 'recent') {
+        searchRequest.body.sort = [{ createdAt: { order: 'desc' } }]
+      }
+
+      try {
+        sitems = await search.search(searchRequest)
       } catch (e) {
         console.log(e)
         return {

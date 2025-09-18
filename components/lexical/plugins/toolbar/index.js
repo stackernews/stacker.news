@@ -1,6 +1,6 @@
 import styles from '@/components/lexical/styles/theme.module.css'
 import { useRef } from 'react'
-import FileUploadPlugin from './tools/fileupload'
+import FileUploadPlugin from '../interop/fileupload'
 import SwitchPlugin from './tools/switch'
 import FormattingPlugin from './formatting'
 // import ZenPlugin from '../asuka/zen'

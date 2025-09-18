@@ -145,7 +145,7 @@
     border-radius: 0.3rem;
 }
 
-.editorInput[contenteditable="true"] .code[data-language="markdown"] {
+.editorInput[contenteditable="true"] code[data-language="markdown"] {
     background-color: var(--theme-body) !important;
     font-family: inherit;
     font-size: 100% !important;
@@ -313,11 +313,7 @@
     cursor: not-allowed;
 }
 
-.md-hr {
+.mdhr {
     border-top: 1px solid var(--theme-borderColor);
     margin: 8px 0;
-}
-
-.md-ol {
-    list-style-type: decimal;
 }

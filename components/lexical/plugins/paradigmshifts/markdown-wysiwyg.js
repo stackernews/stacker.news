@@ -37,8 +37,7 @@ export default function MarkdownWysiwygPlugin ({ enabled = true }) {
           styles.listItem,
           styles.listUl,
           styles.listOl,
-          'md-ol',
-          'md-hr'
+          styles.mdhr
         ])
 
         for (const node of children) {
@@ -56,8 +55,9 @@ export default function MarkdownWysiwygPlugin ({ enabled = true }) {
           const text = node.getTextContent()
 
           // horizontal rule line
-          if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(text)) {
-            el.classList.add('md-hr')
+          const hr = text.match(/^(-{3,}|\*{3,}|_{3,})$/)
+          if (hr) {
+            el.classList.add(styles.mdhr)
             continue
           }
 
@@ -71,7 +71,8 @@ export default function MarkdownWysiwygPlugin ({ enabled = true }) {
           }
 
           // blockquote: > or nested >>>
-          const bq = text.match(/^(\s*>+)\s?/)
+          // even though lexical doesn't support nested blockquotes, we might want to support it
+          const bq = text.match(/^(\s*>+)\s+/)
           if (bq) {
             const depth = bq[1].replace(/\s/g, '').length
             el.classList.add(styles.quote)

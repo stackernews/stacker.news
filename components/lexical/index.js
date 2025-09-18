@@ -11,15 +11,13 @@ import CodeShikiPlugin from './plugins/codeshiki'
 import defaultNodes from '../../lib/lexical/nodes'
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
 import MediaOrLinkPlugin, { URL_MATCHERS } from './plugins/interop/media-or-link'
-import MarkdownWysiwygPlugin from './plugins/paradigmshifts/markdown-wysiwyg'
 import { useFormikContext } from 'formik'
+import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
+import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 
 const onError = (error) => {
   console.error(error)
 }
-
-// I suppose we should have a Lexical for Editing and one for Reading, with style in common
-// so we can have a consistent WYSIWYG styling
 
 export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
   // temporary?
@@ -62,12 +60,12 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
-        <MarkdownWysiwygPlugin />
+        <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         <AutoLinkPlugin matchers={URL_MATCHERS} />
         <MediaOrLinkPlugin />
         <CodeShikiPlugin />
         <HistoryPlugin />
-        {/* triggers all the things that should happen when the editor state changes */}
+        {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <OnChangePlugin {...optionals} />
       </LexicalComposer>
     </div>

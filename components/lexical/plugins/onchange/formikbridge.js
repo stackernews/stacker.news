@@ -8,6 +8,24 @@ import { $generateHtmlFromNodes } from '@lexical/html'
 import defaultNodes from '../../../../lib/lexical/nodes'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
 
+function parseMarkdown (editor, content) {
+  const markdown = content.getTextContent()
+  const tempEditor = createEditor({
+    nodes: defaultNodes,
+    theme: editor._config.theme
+  })
+
+  tempEditor.update(() => {
+    $convertFromMarkdownString(markdown, SN_TRANSFORMERS)
+  })
+
+  const html = tempEditor.read(() => {
+    return $generateHtmlFromNodes(tempEditor, null)
+  })
+
+  return { markdown, html }
+}
+
 // WIP: absolutely barebone formik bridge plugin for Lexical
 export default function FormikBridgePlugin () {
   const [editor] = useLexicalComposerContext()
@@ -17,33 +35,23 @@ export default function FormikBridgePlugin () {
     // probably we need to debounce this
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        // if codeblock getTextContent
         const root = $getRoot()
         const firstChild = root.getFirstChild()
         let markdown = ''
         let html = ''
+        // markdown mode (codeblock), may not see the light
         if ($isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown') {
-          markdown = firstChild.getTextContent()
-
-          console.log('nodes', editor._config)
-          console.log('onError', editor._config.onError)
-          console.log('theme', editor._config.theme)
-
-          const tempEditor = createEditor({
-            nodes: defaultNodes,
-            theme: editor._config.theme
-          })
-
-          tempEditor.update(() => {
-            $convertFromMarkdownString(markdown, SN_TRANSFORMERS)
-          })
-
-          html = tempEditor.read(() => {
-            return $generateHtmlFromNodes(tempEditor, null)
-          })
+          ({ markdown, html } = parseMarkdown(editor, firstChild))
         } else {
-          markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
-          html = $generateHtmlFromNodes(editor, null)
+          const rootElement = editor.getRootElement()
+          // live markdown mode
+          if (rootElement?.classList.contains('md-live')) {
+            ({ markdown, html } = parseMarkdown(editor, root))
+          // wysiwyg mode
+          } else {
+            markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
+            html = $generateHtmlFromNodes(editor, null)
+          }
         }
         if (values.text === markdown) return
         setFieldValue('text', markdown)

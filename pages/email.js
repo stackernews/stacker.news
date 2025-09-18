@@ -17,7 +17,13 @@ export default function Email () {
 
   useEffect(() => {
     setSignin(!!cookie.parse(document.cookie).signin)
-    setCallback(JSON.parse(window.sessionStorage.getItem('callback')))
+    setCallback(
+      JSON.parse(window.sessionStorage.getItem('callback')) ?? (
+        // allow testing during development with `sndev login test_email_login`
+        process.env.NODE_ENV === 'development'
+          ? { email: 'test_email_login@sndev.team', callbackUrl: process.env.NEXT_PUBLIC_URL }
+          : null
+      ))
   }, [])
 
   // build and push the final callback URL

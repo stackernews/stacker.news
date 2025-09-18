@@ -476,13 +476,15 @@ sndev__login() {
     sndev__help_login
     exit 1
   fi
-  # hardcode token for which is the hex digest of the sha256 of
-  # "SNDEV-TOKEN3_0W_PhDRZVanbeJsZZGIEljexkKoGbL6qGIqSwTjjI"
-  # next-auth concats the token with the secret from env and then sha256's it
-  token="d5fce54babffcb070c39f78d947761fd9ec37647fafcecb9734a3085a78e5c5e"
-  salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
-  # upsert user with nym and nym@sndev.team
+
+  nym="$1"
   email="$1@sndev.team"
+
+  # next-auth concats the token with the secret from env and then sha256's it
+  token="sndev1"
+  secret="3_0W_PhDRZVanbeJsZZGIEljexkKoGbL6qGIqSwTjjI" # NEXT_AUTH_SECRET
+  token_hash=$(echo -n "${token}${secret}" | sha256sum | cut -d' ' -f1)
+  salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
 
   # Detect Codespaces and set the correct base URL
   if [ -n "$CODESPACE_NAME" ]; then
@@ -492,18 +494,21 @@ sndev__login() {
   fi
 
   docker__exec db psql -U sn -d stackernews -q <<EOF
-    INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
-    UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
+    INSERT INTO users (name) VALUES ('$nym') ON CONFLICT DO NOTHING;
+    UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$nym';
     INSERT INTO verification_requests (identifier, token, expires)
-      VALUES ('$email', '$token', NOW() + INTERVAL '1 day')
+      VALUES ('$email', '$token_hash', NOW() + INTERVAL '1 day')
       ON CONFLICT (token) DO UPDATE
       SET identifier = '$email', expires = NOW() + INTERVAL '1 day';
 EOF
 
   echo
   echo "open url in browser"
-  echo "$BASE_URL/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
-  echo
+  echo "$BASE_URL/api/auth/callback/email?token=$token&email=${email//@/%40}"
+  if [ "$nym" == "test_email_login" ]; then
+    echo
+    echo "or go to $BASE_URL/email and enter $token as the token"
+  fi
 }
 
 sndev__help_login() {

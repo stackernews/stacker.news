@@ -327,38 +327,42 @@ export const getAuthOptions = (req, res) => ({
       return user
     },
     useVerificationToken: async ({ identifier, token }) => {
-      // we need to find the most recent verification request for this email/identifier
-      const verificationRequest = await prisma.verificationToken.findFirst({
-        where: {
-          identifier,
-          attempts: {
-            lt: 2 // count starts at 0
-          }
-        },
-        orderBy: {
-          createdAt: 'desc'
+      return await prisma.$transaction(async (tx) => {
+        const [verificationRequest] = await tx.$queryRaw`
+          UPDATE verification_requests
+          SET attempts = attempts + 1
+          FROM (
+            SELECT id FROM verification_requests
+            WHERE identifier = ${identifier}
+            -- we need to find the most recent verification request for this email/identifier
+            ORDER BY created_at DESC
+            LIMIT 1
+            FOR UPDATE
+          ) for_update
+          WHERE verification_requests.id = for_update.id
+          RETURNING *
+        `
+        if (!verificationRequest) throw new Error('No verification request found')
+
+        if (verificationRequest.token === token) {
+          // correct token was entered, delete the verification request because we no longer need it
+          await tx.verificationToken.delete({
+            where: { id: verificationRequest.id }
+          })
+          return verificationRequest
         }
+
+        if (verificationRequest.attempts >= 3) {
+          // too many attempts, delete the verification request and redirect to error page by throwing an error
+          await tx.verificationToken.delete({
+            where: { id: verificationRequest.id }
+          })
+          throw new Error('too many attempts')
+        }
+
+        // wrong code but can try again
+        return null
       })
-
-      if (!verificationRequest) throw new Error('No verification request found')
-
-      if (verificationRequest.token === token) { // if correct delete the token and continue
-        await prisma.verificationToken.delete({
-          where: { id: verificationRequest.id }
-        })
-        return verificationRequest
-      }
-
-      await prisma.verificationToken.update({
-        where: { id: verificationRequest.id },
-        data: { attempts: { increment: 1 } }
-      })
-
-      await prisma.verificationToken.deleteMany({
-        where: { id: verificationRequest.id, attempts: { gte: 2 } }
-      })
-
-      return null
     }
   },
   session: {

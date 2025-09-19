@@ -6,7 +6,7 @@ import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 
-function TweetSkeleton ({ className }) {
+const TweetSkeleton = ({ className }) => {
   return (
     <div className={classNames(styles.tweetsSkeleton, className)}>
       <div className={styles.tweetSkeleton}>
@@ -21,7 +21,86 @@ function TweetSkeleton ({ className }) {
   )
 }
 
-export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, darkMode, id }) {
+const TwitterEmbed = ({ id, className, topLevel }) => {
+  const [darkMode] = useDarkMode()
+  const [overflowing, setOverflowing] = useState(true)
+  const [show, setShow] = useState(false)
+
+  return (
+    <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
+      <TwitterTweetEmbed
+        tweetId={id}
+        options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
+        key={darkMode ? '1' : '2'}
+        placeholder={<TweetSkeleton className={className} />}
+        onLoad={() => setOverflowing(true)}
+      />
+      {overflowing && !show &&
+        <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
+          show full tweet
+        </Button>}
+    </div>
+  )
+}
+
+const WavlakeEmbed = ({ id, className }) => {
+  return (
+    <div className={classNames(styles.wavlakeWrapper, className)}>
+      <iframe
+        src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
+        allow='encrypted-media'
+        sandbox='allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-same-origin'
+      />
+    </div>
+  )
+}
+
+const YouTubeEmbed = ({ id, className, meta }) => {
+  return (
+    <div className={classNames(styles.videoWrapper, className)}>
+      <YouTube
+        videoId={id} className={styles.videoContainer} opts={{
+          playerVars: {
+            start: meta?.start || 0
+          }
+        }}
+      />
+    </div>
+  )
+}
+
+const RumbleEmbed = ({ id, className, meta }) => {
+  return (
+    <div className={classNames(styles.videoWrapper, className)}>
+      <div className={styles.videoContainer}>
+        <iframe
+          title='Rumble Video'
+          allowFullScreen
+          src={meta?.href}
+          sandbox='allow-scripts'
+        />
+      </div>
+    </div>
+  )
+}
+
+const PeerTubeEmbed = ({ id, className, meta }) => {
+  return (
+    <div className={classNames(styles.videoWrapper, className)}>
+      <div className={styles.videoContainer}>
+        <iframe
+          title='PeerTube Video'
+          allowFullScreen
+          src={meta?.href}
+          sandbox='allow-scripts'
+        />
+      </div>
+    </div>
+  )
+}
+
+const NostrEmbed = ({ src, className, topLevel, id }) => {
+  const [darkMode] = useDarkMode()
   const [show, setShow] = useState(false)
   const iframeRef = useRef(null)
 
@@ -72,7 +151,7 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
         </Button>}
     </div>
   )
-})
+}
 
 const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   const iframeRef = useRef(null)
@@ -117,101 +196,23 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   )
 }
 
-const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
-  const [darkMode] = useDarkMode()
-  const [overflowing, setOverflowing] = useState(true)
-  const [show, setShow] = useState(false)
-
-  // This Twitter embed could use similar logic to the video embeds below
-  if (provider === 'twitter') {
-    return (
-      <>
-        <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
-          <TwitterTweetEmbed
-            tweetId={id}
-            options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
-            key={darkMode ? '1' : '2'}
-            placeholder={<TweetSkeleton className={className} />}
-            onLoad={() => setOverflowing(true)}
-          />
-          {overflowing && !show &&
-            <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
-              show full tweet
-            </Button>}
-        </div>
-      </>
-    )
+export default memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
+  switch (provider) {
+    case 'twitter':
+      return <TwitterEmbed id={id} className={className} topLevel={topLevel} />
+    case 'nostr':
+      return <NostrEmbed src={src} className={className} topLevel={topLevel} id={id} />
+    case 'wavlake':
+      return <WavlakeEmbed id={id} className={className} />
+    case 'spotify':
+      return <SpotifyEmbed src={src} className={className} />
+    case 'youtube':
+      return <YouTubeEmbed id={id} className={className} meta={meta} />
+    case 'rumble':
+      return <RumbleEmbed id={id} className={className} meta={meta} />
+    case 'peertube':
+      return <PeerTubeEmbed id={id} className={className} meta={meta} />
+    default:
+      return null
   }
-
-  if (provider === 'nostr') {
-    return (
-      <NostrEmbed src={src} className={className} topLevel={topLevel} id={id} darkMode={darkMode} />
-    )
-  }
-
-  if (provider === 'wavlake') {
-    return (
-      <div className={classNames(styles.wavlakeWrapper, className)}>
-        <iframe
-          src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
-          allow='encrypted-media'
-          sandbox='allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-same-origin'
-        />
-      </div>
-    )
-  }
-
-  if (provider === 'spotify') {
-    return (
-      <SpotifyEmbed src={src} className={className} />
-    )
-  }
-
-  if (provider === 'youtube') {
-    return (
-      <div className={classNames(styles.videoWrapper, className)}>
-        <YouTube
-          videoId={id} className={styles.videoContainer} opts={{
-            playerVars: {
-              start: meta?.start || 0
-            }
-          }}
-        />
-      </div>
-    )
-  }
-
-  if (provider === 'rumble') {
-    return (
-      <div className={classNames(styles.videoWrapper, className)}>
-        <div className={styles.videoContainer}>
-          <iframe
-            title='Rumble Video'
-            allowFullScreen
-            src={meta?.href}
-            sandbox='allow-scripts'
-          />
-        </div>
-      </div>
-    )
-  }
-
-  if (provider === 'peertube') {
-    return (
-      <div className={classNames(styles.videoWrapper, className)}>
-        <div className={styles.videoContainer}>
-          <iframe
-            title='PeerTube Video'
-            allowFullScreen
-            src={meta?.href}
-            sandbox='allow-scripts'
-          />
-        </div>
-      </div>
-    )
-  }
-
-  return null
 })
-
-export default Embed

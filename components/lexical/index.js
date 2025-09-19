@@ -77,11 +77,14 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
   )
 }
 
-export const LexicalReader = forwardRef(function LexicalReader ({ nodes = defaultNodes, className, lexicalState, children }, ref) {
+export const LexicalReader = forwardRef(function LexicalReader ({ nodes = defaultNodes, className, lexicalState, children, topLevel }, ref) {
   const initial = {
     namespace: 'snEditor',
     editable: false,
-    theme,
+    theme: {
+      ...theme,
+      topLevel: topLevel || false
+    },
     editorState: (editor) => {
       const state = editor.parseEditorState(lexicalState)
       editor.setEditorState(state)

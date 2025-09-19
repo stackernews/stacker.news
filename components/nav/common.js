@@ -23,6 +23,7 @@ import { useWalletIndicator } from '@/wallets/client/hooks'
 import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+import { useApolloClient } from '@apollo/client'
 
 export function Brand ({ className }) {
   return (
@@ -285,6 +286,7 @@ function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   // const { removeLocalWallets } = useWallets()
   const router = useRouter()
+  const client = useApolloClient()
 
   return (
     <div className='d-flex m-auto flex-column w-fit-content'>
@@ -307,6 +309,8 @@ function LogoutObstacle ({ onClose }) {
               router.reload()
               return
             }
+
+            client.stop() // Stop all active queries
 
             // order is important because we need to be logged in to delete push subscription on server
             const pushSubscription = await swRegistration?.pushManager.getSubscription()

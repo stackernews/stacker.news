@@ -1,7 +1,7 @@
 import styles from '@/components/lexical/styles/theme.module.css'
 import { useRef, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { createCommand, COMMAND_PRIORITY_EDITOR, $insertNodes, $createTextNode, $getNodeByKey } from 'lexical'
+import { createCommand, COMMAND_PRIORITY_EDITOR, $insertNodes, $createTextNode, $getNodeByKey, $createParagraphNode } from 'lexical'
 import AddFileIcon from '@/svgs/file-upload-line.svg'
 import { FileUpload } from '@/components/file-upload'
 import { useFeeButton } from '@/components/fee-button'
@@ -67,14 +67,22 @@ export default function FileUploadPlugin () {
       <FileUpload
         multiple
         ref={fileInputRef}
-        onUpload={(file) => {
-          console.log('onUpload', file)
-          setSubmitDisabled?.(true)
+        onConfirm={(files) => {
+          console.log('onConfirm', files)
           editor.update(() => {
-            const node = uploadProgressNode(file, 0)
-            $insertNodes([node])
-            placeholdersRef.current.set(file, node.getKey())
+            const nodes = files.map(file => {
+              const node = uploadProgressNode(file, 0)
+              placeholdersRef.current.set(file, node.getKey())
+              return node
+            })
+            // insert each node separately with line breaks
+            // but there might be a better way to do this
+            nodes.forEach(node => {
+              $insertNodes([node])
+              $insertNodes([$createParagraphNode()])
+            })
           })
+          setSubmitDisabled?.(true)
         }}
         onProgress={({ file, loaded, total }) => {
           console.log('onProgress', file, loaded, total)
@@ -92,10 +100,9 @@ export default function FileUploadPlugin () {
           if (!key) return
           editor.update(() => {
             const node = $getNodeByKey(key)
-            node?.remove()
             placeholdersRef.current.delete(file)
             const nodes = [$createMediaOrLinkNode({ src: url, rel: 'noopener noreferrer', name })]
-            $insertNodes(nodes)
+            nodes.forEach(mediaNode => node.replace(mediaNode))
           })
 
           // updateUploadFees({ variables: { s3Keys: [Number(id)] } })

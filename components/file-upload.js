@@ -5,7 +5,7 @@ import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client'
 import piexif from 'piexifjs'
 
-export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, onProgress, multiple, avatar, allow }, ref) => {
+export const FileUpload = forwardRef(({ children, className, onSelect, onConfirm, onUpload, onSuccess, onError, onProgress, multiple, avatar, allow }, ref) => {
   const toaster = useToast()
   ref ??= useRef(null)
 
@@ -110,6 +110,7 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         accept={accept.join(', ')}
         onChange={async (e) => {
           const fileList = e.target.files
+          if (onConfirm) await onConfirm?.(Array.from(fileList))
           for (const file of Array.from(fileList)) {
             try {
               if (accept.indexOf(file.type) === -1) {

@@ -5,6 +5,7 @@ import { useMe } from './me'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
 import { useCarousel } from './carousel'
+import preserveScroll from './preserve-scroll'
 
 function LinkRaw ({ href, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -75,24 +76,29 @@ const Media = memo(function Media ({
 export default function MediaOrLink ({ linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
   const [error, setError] = useState(false)
-  const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel()
+  const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel() || {}
 
   // register placeholder immediately on mount if we have a src
   useEffect(() => {
+    if (!addMedia) return
     if (!media.bestResSrc) return
     addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
   }, [addMedia, media.bestResSrc, media.originalSrc, props.rel])
 
   // confirm media for carousel based on image detection
   useEffect(() => {
+    if (!confirmMedia) return
     if (!media.image) return
     confirmMedia(media.bestResSrc)
   }, [confirmMedia, media.image, media.bestResSrc])
 
-  const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),
-    [showCarousel, media.bestResSrc])
+  const handleClick = useCallback(() => {
+    if (!showCarousel) return
+    showCarousel({ src: media.bestResSrc })
+  }, [showCarousel, media.bestResSrc])
 
   const handleError = useCallback((err) => {
+    if (!removeMedia) return
     console.error('Error loading media', err)
     removeMedia(media.bestResSrc)
     setError(true)
@@ -102,11 +108,13 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 
   if (!error) {
     if (media.image || media.video) {
-      return (
-        <Media
-          {...media} onClick={handleClick} onError={handleError}
-        />
-      )
+      return preserveScroll(() => {
+        return (
+          <Media
+            {...media} onClick={handleClick} onError={handleError}
+          />
+        )
+      })
     }
   }
 

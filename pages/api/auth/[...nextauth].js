@@ -334,6 +334,7 @@ export const getAuthOptions = (req, res) => ({
           FROM (
             SELECT id FROM verification_requests
             WHERE identifier = ${identifier}
+            AND created_at > NOW() - INTERVAL '5 minutes'
             -- we need to find the most recent verification request for this email/identifier
             ORDER BY created_at DESC
             LIMIT 1

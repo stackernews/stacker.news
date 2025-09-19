@@ -6,6 +6,7 @@ import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { $createMediaOrLinkNode } from '@/lib/lexical/nodes/mediaorlink'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import { $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, $nodesOfType } from 'lexical'
+import { $createTweetNode } from '@/lib/lexical/nodes/embeds/tweet'
 
 export const URL_MATCHERS = [
   (text) => {
@@ -42,9 +43,18 @@ export default function MediaOrLinkPlugin () {
       const isRaw = text === url || ensureProtocol(text) === normUrl
       if (!isRaw) return
       if (selectionInsideNode(node)) return
+      console.log('onLinkTransform', node)
       const rel = node.getRel?.() || UNKNOWN_LINK_REL
-      const mediaNode = $createMediaOrLinkNode({ src: normUrl, rel, linkFallback: true })
-      node.replace(mediaNode)
+      // this has to be separated from media or link and it's just a proof of concept
+      if (normUrl.startsWith('https://x.com')) {
+        console.log('normUrl', normUrl)
+        const tweetId = normUrl.split('/').pop()
+        const tweetNode = $createTweetNode(tweetId)
+        node.replace(tweetNode)
+      } else {
+        const mediaNode = $createMediaOrLinkNode({ src: normUrl, rel, linkFallback: true })
+        node.replace(mediaNode)
+      }
     }
 
     return mergeRegister(

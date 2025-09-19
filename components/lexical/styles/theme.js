@@ -15,6 +15,8 @@ const theme = {
   link: styles.link,
   code: styles.code,
   mention: styles.mention,
+  twitter: styles.twitter,
+  twitterContainer: styles.twitterContainer,
   list: {
     nested: {
       listitem: styles.nestedListItem

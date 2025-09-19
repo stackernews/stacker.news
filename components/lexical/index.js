@@ -16,6 +16,7 @@ import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-trans
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import MentionsPlugin from './plugins/interop/mentions'
 import { forwardRef } from 'react'
+import TwitterPlugin from './plugins/embeds/twitter'
 
 const onError = (error) => {
   console.error(error)
@@ -68,6 +69,7 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
         <MediaOrLinkPlugin />
         <CodeShikiPlugin />
         <HistoryPlugin />
+        <TwitterPlugin />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <OnChangePlugin {...optionals} />
       </LexicalComposer>

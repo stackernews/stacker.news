@@ -1,4 +1,4 @@
-import { ensureProtocol, URL_REGEXP } from '@/lib/url'
+import { ensureProtocol, URL_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { mergeRegister } from '@lexical/utils'
@@ -7,6 +7,12 @@ import { $createMediaOrLinkNode } from '@/lib/lexical/nodes/mediaorlink'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import { $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, $nodesOfType } from 'lexical'
 import { $createTweetNode } from '@/lib/lexical/nodes/embeds/tweet'
+import { $createNostrNode } from '@/lib/lexical/nodes/embeds/nostr'
+import { $createWavlakeNode } from '@/lib/lexical/nodes/embeds/wavlake'
+import { $createSpotifyNode } from '@/lib/lexical/nodes/embeds/spotify'
+import { $createYouTubeNode } from '@/lib/lexical/nodes/embeds/youtube'
+import { $createRumbleNode } from '@/lib/lexical/nodes/embeds/rumble'
+import { $createPeerTubeNode } from '@/lib/lexical/nodes/embeds/peertube'
 
 export const URL_MATCHERS = [
   (text) => {
@@ -23,7 +29,7 @@ export const URL_MATCHERS = [
   }
 ]
 
-export default function MediaOrLinkPlugin () {
+export default function CustomAutoLinkPlugin () {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
@@ -45,15 +51,37 @@ export default function MediaOrLinkPlugin () {
       if (selectionInsideNode(node)) return
       console.log('onLinkTransform', node)
       const rel = node.getRel?.() || UNKNOWN_LINK_REL
-      // this has to be separated from media or link and it's just a proof of concept
-      if (normUrl.startsWith('https://x.com')) {
+      // this is a complete mess, but weirdly works lmao
+      const embed = parseEmbedUrl(normUrl)
+      if (embed) {
         console.log('normUrl', normUrl)
-        const tweetId = normUrl.split('/').pop()
-        const tweetNode = $createTweetNode(tweetId)
-        node.replace(tweetNode)
+        switch (embed.provider) {
+          case 'twitter':
+            node.replace($createTweetNode(embed.id))
+            break
+          case 'nostr':
+            node.replace($createNostrNode(embed.id))
+            break
+          case 'wavlake':
+            node.replace($createWavlakeNode(embed.id))
+            break
+          case 'spotify':
+            node.replace($createSpotifyNode(embed.id))
+            break
+          case 'youtube':
+            node.replace($createYouTubeNode(embed.id, embed.meta))
+            break
+          case 'rumble':
+            node.replace($createRumbleNode(embed.id, embed.meta))
+            break
+          case 'peertube':
+            node.replace($createPeerTubeNode(embed.id, embed.meta))
+            break
+          default:
+            node.replace($createMediaOrLinkNode({ src: normUrl, rel, linkFallback: true }))
+        }
       } else {
-        const mediaNode = $createMediaOrLinkNode({ src: normUrl, rel, linkFallback: true })
-        node.replace(mediaNode)
+        node.replace($createMediaOrLinkNode({ src: normUrl, rel, linkFallback: true }))
       }
     }
 

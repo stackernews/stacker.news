@@ -10,7 +10,7 @@ import OnChangePlugin from './plugins/onchange'
 import CodeShikiPlugin from './plugins/codeshiki'
 import defaultNodes from '../../lib/lexical/nodes'
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
-import MediaOrLinkPlugin, { URL_MATCHERS } from './plugins/interop/media-or-link'
+import CustomAutoLinkPlugin, { URL_MATCHERS } from './plugins/interop/autolink'
 import { useFormikContext } from 'formik'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
@@ -66,7 +66,7 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         <AutoLinkPlugin matchers={URL_MATCHERS} />
         <MentionsPlugin />
-        <MediaOrLinkPlugin />
+        <CustomAutoLinkPlugin />
         <CodeShikiPlugin />
         <HistoryPlugin />
         <TwitterPlugin />

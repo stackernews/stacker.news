@@ -1,7 +1,7 @@
 import * as math from 'mathjs'
 import { USER_ID } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
-import { initialTrust, GLOBAL_SEEDS } from '@/api/paidAction/lib/territory'
+import { initialTrust, GLOBAL_SEEDS } from '@/api/payIn/lib/territory'
 
 const MAX_DEPTH = 40
 const MAX_TRUST = 1

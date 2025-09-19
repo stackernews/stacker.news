@@ -22,6 +22,8 @@ export default function PayIn ({ id }) {
     return <PayInSkeleton />
   }
 
+  console.log(payIn)
+
   return (
     <div>
       <div className='d-flex justify-content-between align-items-center'>
@@ -60,12 +62,13 @@ export default function PayIn ({ id }) {
         <h5 className='mb-3'>context</h5>
         <PayInContext payIn={payIn} />
       </div>
-      <div className='mt-5 d-flex flex-column'>
-        <h5 className='mb-3'>transaction diagram</h5>
-        <div className='d-flex justify-content-center'>
-          <PayInSankey payIn={payIn} />
-        </div>
-      </div>
+      {payIn.mcost > 0 &&
+        <div className='mt-5 d-flex flex-column'>
+          <h5 className='mb-3'>transaction diagram</h5>
+          <div className='d-flex justify-content-center'>
+            <PayInSankey payIn={payIn} />
+          </div>
+        </div>}
     </div>
   )
 }

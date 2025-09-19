@@ -153,7 +153,7 @@ function getSankeyData (payIn) {
       let id = payTypeShortName(token.payOutType)
       if (token.payOutType === 'TERRITORY_REVENUE' && token.sub?.name) {
         id = `~${token.sub.name}`
-      } else if (token.payOutType === 'ZAP' && token.sometimesPrivates?.user?.name) {
+      } else if (['ZAP', 'REWARD'].includes(token.payOutType) && token.sometimesPrivates?.user?.name) {
         id = `@${token.sometimesPrivates.user.name}`
       } else if (token.payOutType === 'ROUTING_FEE') {
         id = 'route'

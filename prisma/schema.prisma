@@ -1534,6 +1534,7 @@ enum PayInType {
   WITHDRAWAL
   AUTO_WITHDRAWAL
   MEDIA_UPLOAD
+  DEFUNCT_TERRITORY_DAILY_PAYOUT
 }
 
 enum PayInState {
@@ -1683,6 +1684,7 @@ enum PayOutType {
   SYSTEM_REVENUE
   BUY_CREDITS
   INVOICE_OVERPAY_SPILLOVER
+  DEFUNCT_REFERRAL_ACT
 }
 
 model SubPayOutCustodialToken {
@@ -1701,8 +1703,8 @@ model PayOutCustodialToken {
   updatedAt  DateTime   @default(now()) @updatedAt @map("updated_at")
   payOutType PayOutType
 
-  userId  Int
-  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int? // null for routing fee
+  user    User? @relation(fields: [userId], references: [id], onDelete: Cascade)
   payInId Int
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 

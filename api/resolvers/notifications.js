@@ -286,17 +286,6 @@ export default {
         )
         queries.push(
           `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
-          'Revenue' AS type
-          FROM "SubAct"
-          WHERE "userId" = $1
-          AND type = 'REVENUE'
-          AND created_at < $2
-          GROUP BY "userId", "subName", created_at
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-        )
-        queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
           'ReferralReward' AS type
           FROM "Earn"
           WHERE "userId" = $1
@@ -486,17 +475,6 @@ export default {
   },
   SubStatus: {
     sub: async (n, args, { models, me }) => getSub(n, { name: n.id }, { models, me })
-  },
-  Revenue: {
-    subName: async (n, args, { models }) => {
-      const subAct = await models.subAct.findUnique({
-        where: {
-          id: Number(n.id)
-        }
-      })
-
-      return subAct.subName
-    }
   },
   ReferralSource: {
     __resolveType: async (n, args, { models }) => n.type

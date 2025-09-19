@@ -212,6 +212,23 @@ export default {
         payOutCustodialTokens = await models.payOutCustodialToken.findMany({ where: { payInId: payIn.id } })
       }
 
+      // obscure rewards if they are not mine
+      if (payIn.payInType === 'REWARDS') {
+        const myReward = payOutCustodialTokens.find(t => t.payOutType === 'REWARD' && t.userId === me.id)
+        const remainingOtherReward = payOutCustodialTokens.filter(t => t.payOutType === 'REWARD' && t.userId !== me.id)[0]
+        if (remainingOtherReward) {
+          const restRewards = {
+            id: remainingOtherReward.id,
+            payOutType: 'REWARD',
+            mtokens: payIn.mcost - myReward.mtokens,
+            custodialTokenType: 'SATS'
+          }
+          return [myReward, restRewards]
+        }
+        return [myReward]
+      }
+
+      // if this is a zap, we can see the routing fee and rewards pool
       if (!payIn.payOutBolt11 || isMine(payIn.payOutBolt11, { me })) {
         return payOutCustodialTokens
       }

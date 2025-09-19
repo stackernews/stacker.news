@@ -79,7 +79,12 @@ export async function getInitial (models, payInArgs, { me }) {
       }
     }
     const remainingZapMtokens = zapMtokens - payOutCustodialTokensProspects.filter(t => t.payOutType === 'ZAP').reduce((acc, t) => acc + t.mtokens, 0n)
-    payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
+    if (remainingZapMtokens > 0n) {
+      // if the user is anon, rewards, or saloon, we send the zap to the rewards pool via getRedistributedPayOutCustodialTokens
+      if (userId !== USER_ID.anon && userId !== USER_ID.rewards && userId !== USER_ID.saloon) {
+        payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
+      }
+    }
   }
 
   // what's left goes to the rewards pool

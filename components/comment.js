@@ -1,6 +1,6 @@
 import itemStyles from './item.module.css'
 import styles from './comment.module.css'
-import Text, { SearchText } from './text'
+import Text, { SearchText, LexicalText } from './text'
 import Link from 'next/link'
 import Reply from './reply'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -282,14 +282,16 @@ export default function Comment ({
               <div className={styles.text} ref={textRef}>
                 {item.searchText
                   ? <SearchText text={item.searchText} />
-                  : item.html
-                    ? <div dangerouslySetInnerHTML={{ __html: item.html }} />
-                    : (
-                      <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
-                        {item.outlawed && !me?.privates?.wildWestMode
-                          ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
-                          : truncate ? truncateString(item.text) : item.text}
-                      </Text>)}
+                  : item.lexicalState
+                    ? <LexicalText lexicalState={item.lexicalState} />
+                    : item.html
+                      ? <div dangerouslySetInnerHTML={{ __html: item.html }} />
+                      : (
+                        <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
+                          {item.outlawed && !me?.privates?.wildWestMode
+                            ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
+                            : truncate ? truncateString(item.text) : item.text}
+                        </Text>)}
               </div>
               )}
         </div>

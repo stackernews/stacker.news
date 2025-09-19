@@ -14,6 +14,7 @@ const theme = {
   image: styles.image,
   link: styles.link,
   code: styles.code,
+  mention: styles.mention,
   list: {
     nested: {
       listitem: styles.nestedListItem

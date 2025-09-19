@@ -160,6 +160,12 @@
     position: relative;
 }
 
+.mention {
+    color: var(--theme-color);
+    background-color: var(--theme-body);
+    font-weight: bold;
+}
+
 /* inline blocks */
 
 .link {

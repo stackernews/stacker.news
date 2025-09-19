@@ -14,6 +14,8 @@ import MediaOrLinkPlugin, { URL_MATCHERS } from './plugins/interop/media-or-link
 import { useFormikContext } from 'formik'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
+import MentionsPlugin from './plugins/interop/mentions'
+import { forwardRef } from 'react'
 
 const onError = (error) => {
   console.error(error)
@@ -62,6 +64,7 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
         />
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         <AutoLinkPlugin matchers={URL_MATCHERS} />
+        <MentionsPlugin />
         <MediaOrLinkPlugin />
         <CodeShikiPlugin />
         <HistoryPlugin />
@@ -71,3 +74,32 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
     </div>
   )
 }
+
+export const LexicalReader = forwardRef(function LexicalReader ({ nodes = defaultNodes, className, lexicalState, children }, ref) {
+  const initial = {
+    namespace: 'snEditor',
+    editable: false,
+    theme,
+    editorState: (editor) => {
+      const state = editor.parseEditorState(lexicalState)
+      editor.setEditorState(state)
+    },
+    onError,
+    nodes
+  }
+
+  return (
+    <LexicalComposer initialConfig={initial}>
+      <RichTextPlugin
+        contentEditable={
+          <div className={styles.editor}>
+            <ContentEditable className={className} ref={ref} />
+            {children}
+          </div>
+        }
+        ErrorBoundary={LexicalErrorBoundary}
+      />
+      <CodeShikiPlugin />
+    </LexicalComposer>
+  )
+})

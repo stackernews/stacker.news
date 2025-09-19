@@ -27,6 +27,7 @@ import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import { useRouter } from 'next/router'
 import useCommentsView from './use-comments-view'
+import LexicalRenderMan from './lexical/renderer/renderman'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -158,9 +159,11 @@ function TopLevelItem ({ item, noReply, ...props }) {
 function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : item.html
-      ? <div dangerouslySetInnerHTML={{ __html: item.html }} />
-      : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
+    : item.lexicalState
+      ? <LexicalRenderMan lexicalState={item.lexicalState} />
+      : item.html
+        ? <div dangerouslySetInnerHTML={{ __html: item.html }} />
+        : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {

@@ -19,22 +19,14 @@ export class CryptoKeyRequiredError extends Error {
   }
 }
 
-export function useLoadKey () {
-  const { get } = useIndexedDB()
-
-  return useCallback(async () => {
-    return await get('vault', 'key')
-  }, [get])
-}
-
-export function useLoadOldKey () {
+export function useDeleteOldDb () {
   const { me } = useMe()
   const oldDbName = me?.id ? `app:storage:${me?.id}:vault` : undefined
-  const { get } = useIndexedDB(oldDbName)
+  const { deleteDb } = useIndexedDB(oldDbName)
 
   return useCallback(async () => {
-    return await get('vault', 'key')
-  }, [get])
+    return await deleteDb()
+  }, [deleteDb])
 }
 
 export function useSetKey () {

@@ -48,7 +48,7 @@ export function WalletMultiStepForm ({ wallet }) {
           <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />
         </WalletLayoutHeader>
         {guideUrl && (
-          <Link href={guideUrl} className='text-center text-reset fw-bold text-underline'>
+          <Link href={guideUrl} className='text-center text-reset fw-bold text-underline' target='_blank' rel='noreferrer'>
             <InfoIcon width={18} height={18} className='mx-1' />
             guide
           </Link>

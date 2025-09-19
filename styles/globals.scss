@@ -455,9 +455,7 @@ div[contenteditable],
   border-color: var(--theme-borderColor);
 }
 
-select,
-div[contenteditable="false"],
-.form-control {
+div[contenteditable="false"] {
   background-color: var(--theme-body) !important;
   color: var(--bs-body-color) !important;
   border-color: var(--theme-borderColor) !important;

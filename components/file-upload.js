@@ -5,7 +5,7 @@ import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client'
 import piexif from 'piexifjs'
 
-export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar, allow }, ref) => {
+export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, onProgress, multiple, avatar, allow }, ref) => {
   const toaster = useToast()
   ref ??= useRef(null)
 
@@ -51,25 +51,37 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         form.append('acl', 'public-read')
         form.append('file', file)
 
-        const res = await fetch(data.getSignedPOST.url, {
-          method: 'POST',
-          body: form
-        })
+        const xhr = new window.XMLHttpRequest()
+        xhr.open('POST', data.getSignedPOST.url)
 
-        if (!res.ok) {
-          // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
-          onError?.({ ...variables, name: file.name, file })
-          reject(new Error(res.statusText))
-          return
+        xhr.upload.onprogress = (e) => {
+          if (!e.lengthComputable) return
+          onProgress?.({
+            file,
+            loaded: e.loaded,
+            total: e.total
+          })
         }
 
-        const url = `${MEDIA_URL}/${data.getSignedPOST.fields.key}`
-        // key is upload id in database
-        const id = data.getSignedPOST.fields.key
-        onSuccess?.({ ...variables, id, name: file.name, url, file })
+        xhr.onerror = () => {
+          onError?.({ ...variables, name: file.name, file })
+          reject(new Error('Upload failed'))
+        }
 
-        console.log('resolve id', id)
-        resolve(id)
+        xhr.onload = () => {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            onError?.({ ...variables, name: file.name, file })
+            reject(new Error(xhr.statusText))
+            return
+          }
+
+          const url = `${MEDIA_URL}/${data.getSignedPOST.fields.key}`
+          const id = data.getSignedPOST.fields.key
+          onSuccess?.({ ...variables, id, name: file.name, url, file })
+          resolve(id)
+        }
+
+        xhr.send(form)
       }
 
       // img fire 'load' event while videos fire 'loadeddata'

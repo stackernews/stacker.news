@@ -2,7 +2,7 @@ import Item from './item'
 import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
-import Text, { SearchText } from './text'
+import Text, { SearchText, LexicalText } from './text'
 import MediaOrLink from './media-or-link'
 import Comments from './comments'
 import styles from '@/styles/item.module.css'
@@ -27,7 +27,6 @@ import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import { useRouter } from 'next/router'
 import useCommentsView from './use-comments-view'
-import LexicalRenderMan from './lexical/renderer/renderman'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -160,7 +159,7 @@ function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
     : item.lexicalState
-      ? <LexicalRenderMan lexicalState={item.lexicalState} />
+      ? <LexicalText lexicalState={item.lexicalState} topLevel />
       : item.html
         ? <div dangerouslySetInnerHTML={{ __html: item.html }} />
         : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>

@@ -1,7 +1,7 @@
 import styles from '@/components/lexical/styles/theme.module.css'
 import { useRef, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { createCommand, COMMAND_PRIORITY_EDITOR, $insertNodes } from 'lexical'
+import { createCommand, COMMAND_PRIORITY_EDITOR, $insertNodes, $createTextNode, $getNodeByKey } from 'lexical'
 import AddFileIcon from '@/svgs/file-upload-line.svg'
 import { FileUpload } from '@/components/file-upload'
 import { useFeeButton } from '@/components/fee-button'
@@ -15,7 +15,7 @@ export default function FileUploadPlugin () {
   const fileInputRef = useRef(null)
   const [editor] = useLexicalComposerContext()
   const { /* merge, */setDisabled: setSubmitDisabled } = useFeeButton()
-
+  const placeholdersRef = useRef(new Map())
   // wip: File Upload Fees
   // const [updateUploadFees] = useLazyQuery(gql`
   //   query uploadFees($s3Keys: [Int]!) {
@@ -44,6 +44,12 @@ export default function FileUploadPlugin () {
   //   }
   // })
 
+  const uploadProgressNode = (file, percent) => {
+    // TODO: create a node for the upload progress bar with the event, then we replace it with the actual node
+    const node = $createTextNode(`Uploading ${file.name}… ${percent}%`)
+    return node
+  }
+
   // cool now we have to create logic to actually set the text in the editor, see form.js
   useEffect(() => {
     return editor.registerCommand(INSERT_FILES_COMMAND, (files) => {
@@ -64,14 +70,45 @@ export default function FileUploadPlugin () {
         onUpload={(file) => {
           console.log('onUpload', file)
           setSubmitDisabled?.(true)
-          editor.dispatchCommand(INSERT_FILES_COMMAND, [file])
+          editor.update(() => {
+            const node = uploadProgressNode(file, 0)
+            $insertNodes([node])
+            placeholdersRef.current.set(file, node.getKey())
+          })
         }}
-        onSuccess={({ url, name }) => {
-          editor.dispatchCommand(INSERT_FILES_COMMAND, [{ url, name }])
+        onProgress={({ file, loaded, total }) => {
+          console.log('onProgress', file, loaded, total)
+          const key = placeholdersRef.current.get(file)
+          if (!key) return
+          editor.update(() => {
+            const node = $getNodeByKey(key)
+            const percent = total ? Math.floor((loaded / total) * 100) : 0
+            node?.setTextContent(`Uploading ${file.name}… ${percent}%`)
+          })
+        }}
+        onSuccess={({ url, name, file }) => {
+          console.log('onSuccess', url, name, file)
+          const key = placeholdersRef.current.get(file)
+          if (!key) return
+          editor.update(() => {
+            const node = $getNodeByKey(key)
+            node?.remove()
+            placeholdersRef.current.delete(file)
+            const nodes = [$createMediaOrLinkNode({ src: url, rel: 'noopener noreferrer', name })]
+            $insertNodes(nodes)
+          })
+
           // updateUploadFees({ variables: { s3Keys: [Number(id)] } })
           setSubmitDisabled?.(false)
         }}
-        onError={() => {
+        onError={({ file }) => {
+          const key = placeholdersRef.current.get(file)
+          if (!key) return
+          editor.update(() => {
+            const node = $getNodeByKey(key)
+            node?.remove()
+            placeholdersRef.current.delete(file)
+          })
           setSubmitDisabled?.(false)
         }}
       >

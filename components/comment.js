@@ -284,14 +284,12 @@ export default function Comment ({
                   ? <SearchText text={item.searchText} />
                   : item.lexicalState
                     ? <LexicalText lexicalState={item.lexicalState} />
-                    : item.html
-                      ? <div dangerouslySetInnerHTML={{ __html: item.html }} />
-                      : (
-                        <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
-                          {item.outlawed && !me?.privates?.wildWestMode
-                            ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
-                            : truncate ? truncateString(item.text) : item.text}
-                        </Text>)}
+                    : (
+                      <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
+                        {item.outlawed && !me?.privates?.wildWestMode
+                          ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
+                          : truncate ? truncateString(item.text) : item.text}
+                      </Text>)}
               </div>
               )}
         </div>

@@ -71,7 +71,8 @@
         "name": "RIZFUL",
         "displayName": "Rizful",
         "image": "/wallets/rizful.png",
-        "url": "https://rizful.com/"
+        "url": "https://rizful.com/",
+        "guide": "https://docs.megalithic.me/using-rizful/use-stacker-news"
     },
     {
         "name": "SPEED",

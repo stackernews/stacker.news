@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from 'react'
-import { fromHex, toHex } from '@/lib/hex'
 import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
 import { useShowModal } from '@/components/modal'
@@ -307,7 +306,7 @@ export async function deriveKey (passphrase, salt) {
   )
 
   const rawKey = await window.crypto.subtle.exportKey('raw', key)
-  const hash = toHex(await window.crypto.subtle.digest('SHA-256', rawKey))
+  const hash = Buffer.from(await window.crypto.subtle.digest('SHA-256', rawKey)).toString('hex')
   const unextractableKey = await window.crypto.subtle.importKey(
     'raw',
     rawKey,
@@ -338,8 +337,8 @@ async function _encrypt ({ key, hash }, value) {
   )
   return {
     keyHash: hash,
-    iv: toHex(iv.buffer),
-    value: toHex(encrypted)
+    iv: Buffer.from(iv).toString('hex'),
+    value: Buffer.from(encrypted).toString('hex')
   }
 }
 
@@ -347,10 +346,10 @@ async function _decrypt (key, { iv, value }) {
   const decrypted = await window.crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
-      iv: fromHex(iv)
+      iv: Buffer.from(iv, 'hex')
     },
     key,
-    fromHex(value)
+    Buffer.from(value, 'hex')
   )
   const decoded = new TextDecoder().decode(decrypted)
   return JSON.parse(decoded)

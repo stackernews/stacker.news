@@ -52,8 +52,8 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
   }
 
   return (
-    <div className={styles.editorContainer}>
-      <LexicalComposer initialConfig={initial}>
+    <LexicalComposer initialConfig={initial}>
+      <div className={styles.editorContainer}>
         <ToolbarPlugin />
         <RichTextPlugin
           contentEditable={
@@ -72,8 +72,8 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
         <TwitterPlugin />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <OnChangePlugin {...optionals} />
-      </LexicalComposer>
-    </div>
+      </div>
+    </LexicalComposer>
   )
 }
 

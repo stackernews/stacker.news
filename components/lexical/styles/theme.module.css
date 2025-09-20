@@ -1,7 +1,6 @@
 /* editor */
 
 .editor {
-    height: 100%;
     position: relative;
 }
 
@@ -26,8 +25,6 @@
 }
 
 .editorInput {
-    min-height: 150px;
-    resize: auto;
     caret-color: var(--theme-color);
     background-color: var(--theme-body);
     position: relative;
@@ -39,6 +36,13 @@
     border-bottom-right-radius: .4rem;
     border-top-right-radius: .4rem;
     /* border-top: 0px; */
+}
+
+.editorInput[contenteditable="true"] {
+    min-height: 120px;
+    height: 120px;
+    resize: vertical;
+    overflow: auto;
 }
 
 .editorPlaceholder {

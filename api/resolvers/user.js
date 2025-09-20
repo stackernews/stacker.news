@@ -657,26 +657,6 @@ export default {
   },
 
   Mutation: {
-    disableFreebies: async (parent, args, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      // disable freebies if it hasn't been set yet
-      try {
-        await models.user.update({
-          where: { id: me.id, disableFreebies: null },
-          data: { disableFreebies: true }
-        })
-      } catch (err) {
-        // ignore 'record not found' errors
-        if (err.code !== 'P2025') {
-          throw err
-        }
-      }
-
-      return true
-    },
     setName: async (parent, data, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()

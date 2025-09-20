@@ -6,10 +6,10 @@ import { Passphrase } from '@/wallets/client/components'
 import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
-
 import { useDisablePassphraseExport, useWalletEncryptionUpdate, useWalletReset } from '@/wallets/client/hooks/query'
 import { useWalletLogger } from '@/wallets/client/hooks/logger'
-import { deriveKey, useGenerateRandomKey, useKeySalt, useRemoteKeyHash, useSetKey } from '@/wallets/client/hooks/crypto'
+import { useGenerateRandomKey, useKeySalt, useRemoteKeyHash, useSetKey } from '@/wallets/client/hooks/crypto'
+import { deriveKey } from '@/wallets/lib/crypto'
 
 export function useShowPassphrase () {
   const { me } = useMe()

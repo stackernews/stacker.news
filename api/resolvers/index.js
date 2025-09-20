@@ -19,7 +19,7 @@ import blockHeight from './blockHeight'
 import chainFee from './chainFee'
 import { GraphQLScalarType, Kind } from 'graphql'
 import { createIntScalar } from 'graphql-scalar'
-import paidAction from './paidAction'
+import payIn from './payIn'
 
 const date = new GraphQLScalarType({
   name: 'Date',
@@ -48,6 +48,49 @@ const date = new GraphQLScalarType({
   }
 })
 
+function isSafeInteger (val) {
+  return val <= Number.MAX_SAFE_INTEGER && val >= Number.MIN_SAFE_INTEGER
+}
+
+function serializeBigInt (value) {
+  if (isSafeInteger(value)) {
+    return Number(value)
+  }
+  return value.toString()
+}
+
+const bigint = new GraphQLScalarType({
+  name: 'BigInt',
+  description: 'BigInt custom scalar type',
+  serialize (value) {
+    if (typeof value === 'bigint') {
+      return serializeBigInt(value)
+    } else if (typeof value === 'string') {
+      const bigint = BigInt(value)
+      if (bigint.toString() === value) {
+        return serializeBigInt(bigint)
+      }
+    }
+    throw Error('GraphQL BigInt Scalar serializer expected a `bigint` object got `' + typeof value + '` ' + value)
+  },
+  parseValue (value) {
+    const bigint = BigInt(value.toString())
+    if (bigint.toString() === value.toString()) {
+      return bigint
+    }
+
+    throw new Error('GraphQL BigInt Scalar parser expected a `number` or `string` got `' + typeof value + '` ' + value)
+  },
+  parseLiteral (ast) {
+    const bigint = BigInt(ast.value)
+    if (bigint.toString() === ast.value.toString()) {
+      return bigint
+    }
+
+    throw new Error('GraphQL BigInt Scalar parser expected a `number` or `string` got `' + typeof ast.value + '` ' + ast.value)
+  }
+})
+
 const limit = createIntScalar({
   name: 'Limit',
   description: 'Limit custom scalar type',
@@ -56,4 +99,4 @@ const limit = createIntScalar({
 
 export default [user, item, message, walletV1, walletV2, lnurl, notifications, invite, sub,
   upload, search, growth, rewards, referrals, price, admin, blockHeight, chainFee,
-  { JSONObject }, { Date: date }, { Limit: limit }, paidAction]
+  { JSONObject }, { Date: date }, { Limit: limit }, { BigInt: bigint }, payIn]

@@ -55,6 +55,7 @@ export function WalletLogs ({ protocol, className, debug }) {
             level={log.level}
             message={log.message}
             context={log.context}
+            payIn={log.payIn}
             ts={log.createdAt}
           />
         ))}

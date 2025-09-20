@@ -5,8 +5,7 @@ export function walletLogger ({
   models,
   protocolId,
   userId,
-  invoiceId,
-  withdrawalId
+  payInId
 }) {
   // server implementation of wallet logger interface on client
   const log = (level) => async (message, context = {}) => {
@@ -16,7 +15,7 @@ export function walletLogger ({
     const createdAt = context?.createdAt ?? new Date()
     delete context?.createdAt
 
-    const updateStatus = protocolId && ['OK', 'ERROR', 'WARNING'].includes(level) && (invoiceId || withdrawalId || context.bolt11 || context?.updateStatus)
+    const updateStatus = protocolId && ['OK', 'ERROR', 'WARNING'].includes(level) && (payInId || context.bolt11 || context?.updateStatus)
     delete context?.updateStatus
 
     try {
@@ -37,8 +36,7 @@ export function walletLogger ({
             level,
             message,
             context,
-            invoiceId,
-            withdrawalId,
+            payInId,
             createdAt
           }
         }),

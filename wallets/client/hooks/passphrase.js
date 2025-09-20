@@ -3,7 +3,6 @@ import { useCallback, useMemo, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import { object, string } from 'yup'
 import { Passphrase } from '@/wallets/client/components'
-import bip39Words from '@/lib/bip39-words'
 import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
@@ -182,10 +181,4 @@ export function usePassphrasePrompt () {
     () => [showPassphrasePrompt, togglePassphrasePrompt, Prompt],
     [showPassphrasePrompt, togglePassphrasePrompt, Prompt]
   )
-}
-
-export function generateRandomPassphrase () {
-  const rand = new Uint32Array(12)
-  window.crypto.getRandomValues(rand)
-  return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
 }

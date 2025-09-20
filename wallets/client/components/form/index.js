@@ -230,9 +230,12 @@ function WalletProtocolFormField ({ type, ...props }) {
       onPaste = (e) => {
         e.preventDefault()
         const value = (e.clipboardData || window.clipboardData).getData('text')
-        if (value.endsWith(`@${lud16Domain}`)) {
-          formik.setFieldValue(props.name, value.slice(0, -`@${lud16Domain}`.length))
-        }
+        formik.setFieldValue(
+          props.name,
+          value.endsWith(`@${lud16Domain}`)
+            ? value.slice(0, -`@${lud16Domain}`.length)
+            : value
+        )
       }
     }
 

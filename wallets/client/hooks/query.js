@@ -31,7 +31,9 @@ import {
   DELETE_WALLET
 } from '@/wallets/client/fragments'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption, useSetKey, useWalletLoggerFactory, useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks'
+import {
+  useDecryption, useEncryption, useSetKey, useWalletLoggerFactory, useWalletsUpdatedAt, WalletStatus, useTemplates, useWallets
+} from '@/wallets/client/hooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
@@ -41,7 +43,6 @@ import { timeoutSignal } from '@/lib/time'
 import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { useTemplates, useWallets } from '@/wallets/client/context'
 import { requestPersistentStorage } from '@/components/use-indexeddb'
 
 export function useWalletsQuery () {

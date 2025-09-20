@@ -21,6 +21,7 @@ import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
 import remarkToc from '@/lib/remark-toc'
+import { LexicalReader } from './lexical'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -48,6 +49,82 @@ export function SearchText ({ text }) {
           return <mark key={`strong-${match}-${i}`}>{match}</mark>
         })}
       </p>
+    </div>
+  )
+}
+
+export function LexicalText ({ lexicalState, html, topLevel }) {
+  // TODO: there's a slight render delay on full refresh because the editor state is converted from markdown to json
+  // so probably legacy markdown content will have a slight render delay
+  // or we convert them ahead of time to json
+
+  // TODO: add support for imgproxyUrls
+  // TODO: disable links if outlawed
+  // TODO: what about MathJax?
+  // TODO: handle overflowing
+  // TODO: carousel
+  // const containerRef = useRef(null)
+  const [mounted, setMounted] = useState(false)
+  const [show, setShow] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+  const containerRef = useRef(null)
+  const showOverflow = useCallback(() => setShow(true), [setShow])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // clip item and give it a`show full text` button if we are overflowing
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || overflowing) return
+
+    function checkOverflow () {
+      setOverflowing(container.scrollHeight > window.innerHeight * 2)
+    }
+
+    let resizeObserver
+    if (!overflowing && 'ResizeObserver' in window) {
+      resizeObserver = new window.ResizeObserver(checkOverflow).observe(container)
+    }
+
+    window.addEventListener('resize', checkOverflow)
+    checkOverflow()
+
+    return () => {
+      window.removeEventListener('resize', checkOverflow)
+      resizeObserver?.disconnect()
+    }
+  }, [containerRef.current, setOverflowing])
+
+  return (
+    <div>
+      {!mounted
+        // html is a 1:1 DOMPurified copy of the lexicalState without React components
+        // its job right now is to avoid the initial render delay of the LexicalReader
+        // which is client-side only, this also ensures SEO compatibility
+        ? <div dangerouslySetInnerHTML={{ __html: html }} />
+        : (
+          <LexicalReader
+            className={classNames(
+              topLevel && styles.topLevel,
+              show ? styles.textUncontained : overflowing && styles.textContained
+            )}
+            ref={containerRef}
+            lexicalState={lexicalState}
+          >
+            {overflowing && !show && (
+              <Button
+                size='lg'
+                variant='info'
+                className={styles.textShowFull}
+                onClick={showOverflow}
+              >
+                show full text
+              </Button>
+            )}
+          </LexicalReader>
+          )}
     </div>
   )
 }

@@ -455,6 +455,12 @@ div[contenteditable],
   border-color: var(--theme-borderColor);
 }
 
+div[contenteditable="false"] {
+  background-color: var(--theme-body) !important;
+  color: var(--bs-body-color) !important;
+  border-color: var(--theme-borderColor) !important;
+}
+
 .form-group {
   margin-bottom: 1rem;
 }

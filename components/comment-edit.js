@@ -5,6 +5,7 @@ import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
 import { UPDATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
+import { LexicalEditor } from './lexical'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
@@ -17,6 +18,12 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           fields: {
             text () {
               return result.text
+            },
+            lexicalState () {
+              return result.lexicalState
+            },
+            html () {
+              return result.html
             }
           },
           optimistic: true
@@ -33,17 +40,23 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
       <FeeButtonProvider>
         <Form
           initial={{
-            text: comment.text
+            text: comment.text,
+            lexicalState: comment.lexicalState,
+            html: comment.html
           }}
           schema={commentSchema}
           onSubmit={onSubmit}
         >
-          <MarkdownInput
-            name='text'
-            minRows={6}
-            autoFocus
-            required
-          />
+          {comment.lexicalState
+            ? <LexicalEditor />
+            : (
+              <MarkdownInput
+                name='text'
+                minRows={6}
+                autoFocus
+                required
+              />
+              )}
           <ItemButtonBar itemId={comment.id} onDelete={onSuccess} hasCancel={false} />
         </Form>
       </FeeButtonProvider>

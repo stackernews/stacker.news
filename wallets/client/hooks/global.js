@@ -1,15 +1,109 @@
-import { useCallback, useEffect, useState } from 'react'
+/**
+ * This file provides:
+ *   - the global context for the wallets
+ *   - the global hooks that are always mounted like:
+ *      - fetching wallets
+ *      - checking for invoices to retry
+ *      - generating or reading the CryptoKey from IndexedDB if it exists
+ *   - hooks to access the global context
+ */
+import { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react'
 import { useLazyQuery } from '@apollo/client'
-import { FAILED_INVOICES } from '@/fragments/invoice'
+
 import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
-import {
-  useWalletsQuery, useWalletPayment, useGenerateRandomKey, useSetKey, useIsWrongKey, useWalletLogger, useDeleteOldDb
-} from '@/wallets/client/hooks'
-import { WalletConfigurationError } from '@/wallets/client/errors'
-import { SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch, WALLETS_QUERY_ERROR, KEY_STORAGE_UNAVAILABLE } from '@/wallets/client/context'
 import { useIndexedDB } from '@/components/use-indexeddb'
+import { FAILED_INVOICES } from '@/fragments/invoice'
+import { isTemplate, isWallet } from '@/wallets/lib/util'
+import { WebLnProvider } from '@/wallets/lib/protocols/webln'
+import { useWalletsQuery } from '@/wallets/client/hooks/query'
+import { useWalletPayment } from '@/wallets/client/hooks/payment'
+import { useGenerateRandomKey, useSetKey, useIsWrongKey, useDeleteOldDb } from '@/wallets/client/hooks/crypto'
+import { useWalletLogger } from '@/wallets/client/hooks/logger'
+import { WalletConfigurationError } from '@/wallets/client/errors'
+
+const WalletsContext = createContext(null)
+const WalletsDispatchContext = createContext(null)
+
+export function useWallets () {
+  const { wallets } = useContext(WalletsContext)
+  return wallets
+}
+
+export function useWalletsLoading () {
+  const { walletsLoading } = useContext(WalletsContext)
+  return walletsLoading
+}
+
+export function useTemplates () {
+  const { templates } = useContext(WalletsContext)
+  return templates
+}
+
+export function useWalletsError () {
+  const { walletsError } = useContext(WalletsContext)
+  return walletsError
+}
+
+export function useWalletsDispatch () {
+  return useContext(WalletsDispatchContext)
+}
+
+export function useKey () {
+  const { key } = useContext(WalletsContext)
+  return key
+}
+
+export function useKeyHash () {
+  const { keyHash } = useContext(WalletsContext)
+  return keyHash
+}
+
+export function useKeyUpdatedAt () {
+  const { keyUpdatedAt } = useContext(WalletsContext)
+  return keyUpdatedAt
+}
+
+export function useKeyError () {
+  const { keyError } = useContext(WalletsContext)
+  return keyError
+}
+
+export function WalletsProvider ({ children }) {
+  // https://react.dev/learn/scaling-up-with-reducer-and-context
+  const [state, dispatch] = useReducer(walletsReducer, {
+    wallets: [],
+    walletsLoading: true,
+    walletsError: null,
+    templates: [],
+    key: null,
+    keyHash: null,
+    keyUpdatedAt: null,
+    keyError: null
+  })
+
+  return (
+    <WalletsContext.Provider value={state}>
+      <WalletsDispatchContext.Provider value={dispatch}>
+        <WalletHooks>
+          <WebLnProvider>
+            {children}
+          </WebLnProvider>
+        </WalletHooks>
+      </WalletsDispatchContext.Provider>
+    </WalletsContext.Provider>
+  )
+}
+
+function WalletHooks ({ children }) {
+  useServerWallets()
+  useAutomatedRetries()
+  useKeyInit()
+  useDeleteLocalWallets()
+
+  return children
+}
 
 export function useServerWallets () {
   const dispatch = useWalletsDispatch()
@@ -211,4 +305,67 @@ export function useDeleteLocalWallets () {
       .filter((key) => key.split(':').length < 3 || key.endsWith(me.id))
       .forEach((key) => window.localStorage.removeItem(key))
   }, [me?.id])
+}
+
+export const KeyStatus = {
+  KEY_STORAGE_UNAVAILABLE: 'KEY_STORAGE_UNAVAILABLE',
+  WRONG_KEY: 'WRONG_KEY'
+}
+
+// wallet actions
+export const SET_WALLETS = 'SET_WALLETS'
+export const SET_KEY = 'SET_KEY'
+export const WRONG_KEY = 'WRONG_KEY'
+export const KEY_MATCH = 'KEY_MATCH'
+export const KEY_STORAGE_UNAVAILABLE = 'KEY_STORAGE_UNAVAILABLE'
+export const WALLETS_QUERY_ERROR = 'WALLETS_QUERY_ERROR'
+
+function walletsReducer (state, action) {
+  switch (action.type) {
+    case SET_WALLETS: {
+      const wallets = action.wallets
+        .filter(isWallet)
+        .sort((a, b) => a.priority === b.priority ? a.id - b.id : a.priority - b.priority)
+      const templates = action.wallets
+        .filter(isTemplate)
+        .sort((a, b) => a.name.localeCompare(b.name))
+      return {
+        ...state,
+        walletsLoading: false,
+        walletsError: null,
+        wallets,
+        templates
+      }
+    }
+    case WALLETS_QUERY_ERROR:
+      return {
+        ...state,
+        walletsLoading: false,
+        walletsError: action.error
+      }
+    case SET_KEY:
+      return {
+        ...state,
+        key: action.key,
+        keyHash: action.hash,
+        keyUpdatedAt: action.updatedAt
+      }
+    case WRONG_KEY:
+      return {
+        ...state,
+        keyError: KeyStatus.WRONG_KEY
+      }
+    case KEY_MATCH:
+      return {
+        ...state,
+        keyError: null
+      }
+    case KEY_STORAGE_UNAVAILABLE:
+      return {
+        ...state,
+        keyError: KeyStatus.KEY_STORAGE_UNAVAILABLE
+      }
+    default:
+      return state
+  }
 }

@@ -44,7 +44,8 @@
         "name": "COINOS",
         "displayName": "Coinos",
         "image": "/wallets/coinos.svg",
-        "url": "https://coinos.io/"
+        "url": "https://coinos.io/",
+        "guide": "/items/1230105"
     },
     {
         "name": "PRIMAL",

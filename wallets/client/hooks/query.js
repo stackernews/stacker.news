@@ -1,3 +1,9 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { timeoutSignal } from '@/lib/time'
+import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { useToast } from '@/components/toast'
+import { useMe } from '@/components/me'
+import { requestPersistentStorage } from '@/components/use-indexeddb'
 import {
   UPSERT_WALLET_RECEIVE_BLINK,
   UPSERT_WALLET_RECEIVE_CLN_REST,
@@ -31,19 +37,14 @@ import {
   DELETE_WALLET
 } from '@/wallets/client/fragments'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
-import {
-  useDecryption, useEncryption, useSetKey, useWalletLoggerFactory, useWalletsUpdatedAt, WalletStatus, useTemplates, useWallets
-} from '@/wallets/client/hooks'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTemplates, useWallets } from '@/wallets/client/hooks/global'
+import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks/crypto'
+import { useWalletLoggerFactory } from '@/wallets/client/hooks/logger'
+import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
 import {
   isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
-import { timeoutSignal } from '@/lib/time'
-import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
-import { useToast } from '@/components/toast'
-import { useMe } from '@/components/me'
-import { requestPersistentStorage } from '@/components/use-indexeddb'
 
 export function useWalletsQuery () {
   const { me } = useMe()

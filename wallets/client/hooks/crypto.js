@@ -1,7 +1,9 @@
 import { useCallback, useMemo } from 'react'
 import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
-import { SET_KEY, useKey, useKeyHash, useWalletsDispatch, useUpdateKeyHash, useWalletLogger } from '@/wallets/client/hooks'
+import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/hooks/global'
+import { useUpdateKeyHash } from '@/wallets/client/hooks/query'
+import { useWalletLogger } from '@/wallets/client/hooks/logger'
 import { generateRandomPassphrase, deriveKey, decrypt as _decrypt, encrypt as _encrypt } from '@/wallets/lib/crypto'
 
 export class CryptoKeyRequiredError extends Error {

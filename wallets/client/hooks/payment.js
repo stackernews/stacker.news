@@ -1,14 +1,15 @@
 import { useCallback } from 'react'
-import { useSendProtocols, useWalletLoggerFactory } from '@/wallets/client/hooks'
-import useInvoice from '@/components/use-invoice'
 import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
-import {
-  AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
-  WalletPaymentError, WalletError, WalletReceiverError
-} from '@/wallets/client/errors'
 import { timeoutSignal, withTimeout } from '@/lib/time'
-import { useMe } from '@/components/me'
 import { formatSats } from '@/lib/format'
+import { useMe } from '@/components/me'
+import useInvoice from '@/components/use-invoice'
+import { useWalletLoggerFactory } from '@/wallets/client/hooks/logger'
+import { useSendProtocols } from '@/wallets/client/hooks/wallet'
+import {
+  AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError,
+  WalletPaymentAggregateError, WalletPaymentError, WalletError, WalletReceiverError
+} from '@/wallets/client/errors'
 
 export function useWalletPayment () {
   const protocols = useSendProtocols()

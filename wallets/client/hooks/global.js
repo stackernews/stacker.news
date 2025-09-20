@@ -17,9 +17,10 @@ import { useIndexedDB } from '@/components/use-indexeddb'
 import { FAILED_INVOICES } from '@/fragments/invoice'
 import { isTemplate, isWallet } from '@/wallets/lib/util'
 import { WebLnProvider } from '@/wallets/lib/protocols/webln'
-import {
-  useWalletsQuery, useWalletPayment, useGenerateRandomKey, useSetKey, useIsWrongKey, useWalletLogger, useDeleteOldDb
-} from '@/wallets/client/hooks'
+import { useWalletsQuery } from '@/wallets/client/hooks/query'
+import { useWalletPayment } from '@/wallets/client/hooks/payment'
+import { useGenerateRandomKey, useSetKey, useIsWrongKey, useDeleteOldDb } from '@/wallets/client/hooks/crypto'
+import { useWalletLogger } from '@/wallets/client/hooks/logger'
 import { WalletConfigurationError } from '@/wallets/client/errors'
 
 const WalletsContext = createContext(null)

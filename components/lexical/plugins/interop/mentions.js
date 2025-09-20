@@ -5,6 +5,7 @@ import { $createMentionNode } from '@/lib/lexical/nodes/mention'
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import { useLazyQuery } from '@apollo/client'
 import { createPortal } from 'react-dom'
+import { Dropdown } from 'react-bootstrap'
 
 // This comes from Lexical Mentions Plugin, it's not going to be what we want
 // This is a placeholder to have an idea of a structure for mention nodes.
@@ -58,22 +59,6 @@ const AtSignMentionsRegexAliasRegex = new RegExp(
 
 // At most, 5 suggestions are shown in the popup.
 const SUGGESTION_LIST_LENGTH_LIMIT = 5
-
-function MentionsTypeaheadMenuItem ({ index, onClick, onMouseEnter, option }) {
-  return (
-    <li
-      key={option.name}
-      tabIndex={-1}
-      ref={option.setRefElement}
-      role='option'
-      id={'typeahead-item-' + index}
-      onMouseEnter={onMouseEnter}
-      onClick={onClick}
-    >
-      <span>{option.name}</span>
-    </li>
-  )
-}
 
 export default function MentionsPlugin () {
   const [editor] = useLexicalComposerContext()
@@ -142,25 +127,21 @@ export default function MentionsPlugin () {
       ) =>
         anchorElementRef?.current && options?.length
           ? createPortal(
-            <div className='typeahead-menu'>
-              <ul>
-                {options?.map((option, index) => (
-                  <MentionsTypeaheadMenuItem
-                    index={index}
-                    isSelected={selectedIndex === index}
-                    option={option}
+            <Dropdown show style={{ zIndex: 1000 }}>
+              <Dropdown.Menu className='typeahead-menu'>
+                {options?.map((option, index) =>
+                  <Dropdown.Item
                     key={option.name}
+                    active={selectedIndex === index}
                     onClick={() => {
                       setHighlightedIndex(index)
                       selectOptionAndCleanUp(option)
                     }}
-                    onMouseEnter={() => {
-                      setHighlightedIndex(index)
-                    }}
-                  />
-                ))}
-              </ul>
-            </div>,
+                  >
+                    {option.name}
+                  </Dropdown.Item>)}
+              </Dropdown.Menu>
+            </Dropdown>,
             anchorElementRef?.current
           )
           : null}

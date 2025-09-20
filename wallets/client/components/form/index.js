@@ -221,17 +221,18 @@ function WalletProtocolFormField ({ type, ...props }) {
       </div>
     )
 
-    return { ...props, hint: bottomHint, label, readOnly }
+    let append
+    const lud16Domain = walletLud16Domain(wallet.name)
+    if (props.name === 'address' && lud16Domain) {
+      append = <InputGroup.Text className='text-monospace'>@{lud16Domain}</InputGroup.Text>
+    }
+
+    return { ...props, hint: bottomHint, label, readOnly, append }
   }
 
   switch (type) {
     case 'text': {
-      let append
-      const lud16Domain = walletLud16Domain(wallet.name)
-      if (props.name === 'address' && lud16Domain) {
-        append = <InputGroup.Text className='text-monospace'>@{lud16Domain}</InputGroup.Text>
-      }
-      return <Input {...transform(props)} append={append} />
+      return <Input {...transform(props)} />
     }
     case 'password':
       return <PasswordInput {...transform(props)} />

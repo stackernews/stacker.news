@@ -5,6 +5,7 @@ import { isInvoicableMacaroon, isInvoiceMacaroon } from '@/lib/macaroon'
 import { NOSTR_PUBKEY_HEX } from '@/lib/nostr'
 import { TOR_REGEXP } from '@/lib/url'
 import { lightningAddressValidator } from '@/lib/validate'
+import { decodeBech32 as clinkDecodeBech32, OfferPriceType } from '@shocknet/clink-sdk'
 import { string, array } from 'yup'
 
 export const externalLightningAddressValidator = lightningAddressValidator
@@ -69,6 +70,35 @@ export function parseNwcUrl (walletConnectUrl) {
   }
   return params
 }
+
+export const clinkValidator = (type) =>
+  string()
+    .matches(new RegExp(`^${type}1`), { message: `must start with ${type}1` })
+    .matches(/^(noffer|ndebit)1[02-9ac-hj-np-z]+$/, { message: 'invalid bech32 encoding' })
+    .test({
+      name: 'decode',
+      test: (v, context) => {
+        let decoded
+        try {
+          decoded = clinkDecodeBech32(v)
+        } catch (e) {
+          return context.createError({ message: `failed to decode bech32: ${e.message}` })
+        }
+
+        if (decoded.type !== type) {
+          return context.createError({ message: `must be ${type}` })
+        }
+
+        const { data } = decoded
+        if (!data) return context.createError({ message: 'no data' })
+
+        if (type === 'noffer' && data.priceType && data.priceType !== OfferPriceType.Spontaneous) {
+          return context.createError({ message: 'offer must be for spontaneous payments' })
+        }
+
+        return true
+      }
+    })
 
 export const socketValidator = (msg = 'invalid socket') =>
   string()

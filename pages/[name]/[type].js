@@ -1,5 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import Items from '@/components/items'
+import { CustomBookmarkList } from '@/components/bookmark'
 import { useRouter } from 'next/router'
 import { USER, USER_WITH_ITEMS } from '@/fragments/users'
 import { useQuery } from '@apollo/client'
@@ -31,11 +32,20 @@ export default function UserItems ({ ssrData }) {
     <UserLayout user={user}>
       <div className='mt-2'>
         <UserItemsHeader type={variables.type} name={user.name} />
-        <Items
-          ssrData={ssrData}
-          variables={variables}
-          query={USER_WITH_ITEMS}
-        />
+        {variables.type === 'bookmarks' && variables.by === 'custom'
+          ? (
+            <CustomBookmarkList
+              ssrData={ssrData}
+              variables={variables}
+              query={USER_WITH_ITEMS}
+            />
+            )
+          : (
+            <Items
+              ssrData={ssrData}
+              variables={variables}
+              query={USER_WITH_ITEMS}
+            />)}
       </div>
     </UserLayout>
   )
@@ -110,6 +120,11 @@ function UserItemsHeader ({ type, name }) {
             when={when}
           />}
       </div>
+      {type === 'bookmarks' && by === 'custom' && (
+        <div className='text-muted small mb-2'>
+          Drag and drop bookmarks to reorder them.
+        </div>
+      )}
     </Form>
   )
 }

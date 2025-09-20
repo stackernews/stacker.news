@@ -1,16 +1,10 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { fromHex, toHex } from '@/lib/hex'
 import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
-import { useShowModal } from '@/components/modal'
-import { Button } from 'react-bootstrap'
-import { Passphrase } from '@/wallets/client/components'
-import bip39Words from '@/lib/bip39-words'
-import { Form, PasswordInput, SubmitButton } from '@/components/form'
-import { object, string } from 'yup'
 import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/context'
-import { useDisablePassphraseExport, useUpdateKeyHash, useWalletEncryptionUpdate, useWalletLogger, useWalletReset } from '@/wallets/client/hooks'
-import { useToast } from '@/components/toast'
+import { useUpdateKeyHash, useWalletLogger } from '@/wallets/client/hooks'
+import { generateRandomPassphrase } from '@/wallets/client/hooks/passphrase'
 
 export class CryptoKeyRequiredError extends Error {
   constructor () {
@@ -100,178 +94,6 @@ export function useKeySalt () {
   return `stacker${me?.id}`
 }
 
-export function useShowPassphrase () {
-  const { me } = useMe()
-  const showModal = useShowModal()
-  const generateRandomKey = useGenerateRandomKey()
-  const updateWalletEncryption = useWalletEncryptionUpdate()
-  const toaster = useToast()
-
-  const onShow = useCallback(async () => {
-    let passphrase, key, hash
-    try {
-      ({ passphrase, key, hash } = await generateRandomKey())
-      await updateWalletEncryption({ key, hash })
-    } catch (err) {
-      toaster.danger('failed to update wallet encryption: ' + err.message)
-      return
-    }
-    showModal(
-      close => <Passphrase passphrase={passphrase} />,
-      { replaceModal: true, keepOpen: true }
-    )
-  }, [showModal, generateRandomKey, updateWalletEncryption, toaster])
-
-  const cb = useCallback(() => {
-    showModal(close => (
-      <div>
-        <p className='line-height-md'>
-          The next screen will show the passphrase that was used to encrypt your wallets.
-        </p>
-        <p className='line-height-md fw-bold'>
-          You will not be able to see the passphrase again.
-        </p>
-        <p className='line-height-md'>
-          Do you want to see it now?
-        </p>
-        <div className='mt-3 d-flex justify-content-between align-items-center'>
-          <Button variant='grey-medium' onClick={close}>cancel</Button>
-          <Button variant='danger' onClick={onShow}>yes, show me</Button>
-        </div>
-      </div>
-    ))
-  }, [showModal, onShow])
-
-  if (!me || !me.privates?.showPassphrase) {
-    return null
-  }
-
-  return cb
-}
-
-export function useSavePassphrase () {
-  const setKey = useSetKey()
-  const salt = useKeySalt()
-  const disablePassphraseExport = useDisablePassphraseExport()
-  const logger = useWalletLogger()
-
-  return useCallback(async ({ passphrase }) => {
-    logger.debug('passphrase entered')
-    const { key, hash } = await deriveKey(passphrase, salt)
-    await setKey({ key, hash })
-    await disablePassphraseExport()
-  }, [setKey, disablePassphraseExport, logger])
-}
-
-export function useResetPassphrase () {
-  const showModal = useShowModal()
-  const walletReset = useWalletReset()
-  const generateRandomKey = useGenerateRandomKey()
-  const setKey = useSetKey()
-  const toaster = useToast()
-  const logger = useWalletLogger()
-
-  const resetPassphrase = useCallback((close) =>
-    async () => {
-      try {
-        logger.debug('passphrase reset')
-        const { key: randomKey, hash } = await generateRandomKey()
-        await setKey({ key: randomKey, hash })
-        await walletReset({ newKeyHash: hash })
-        close()
-      } catch (err) {
-        logger.debug('failed to reset passphrase: ' + err)
-        console.error('failed to reset passphrase:', err)
-        toaster.error('failed to reset passphrase')
-      }
-    }, [walletReset, generateRandomKey, setKey, toaster, logger])
-
-  return useCallback(async () => {
-    showModal(close => (
-      <div>
-        <h4>Reset passphrase</h4>
-        <p className='line-height-md fw-bold mt-3'>
-          This will delete all your sending credentials. Your credentials for receiving will not be affected.
-        </p>
-        <p className='line-height-md'>
-          After the reset, you will be issued a new passphrase.
-        </p>
-        <div className='mt-3 d-flex justify-content-end align-items-center'>
-          <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={close}>cancel</Button>
-          <Button variant='danger' onClick={resetPassphrase(close)}>reset</Button>
-        </div>
-      </div>
-    ))
-  }, [showModal, resetPassphrase])
-}
-
-const passphraseSchema = ({ hash, salt }) => object().shape({
-  passphrase: string().required('required')
-    .test(async (value, context) => {
-      const { hash: expectedHash } = await deriveKey(value, salt)
-      if (hash !== expectedHash) {
-        return context.createError({ message: 'wrong passphrase' })
-      }
-      return true
-    })
-})
-
-export function usePassphrasePrompt () {
-  const savePassphrase = useSavePassphrase()
-  const hash = useRemoteKeyHash()
-  const salt = useKeySalt()
-  const showPassphrase = useShowPassphrase()
-  const resetPassphrase = useResetPassphrase()
-
-  const onSubmit = useCallback(async ({ passphrase }) => {
-    await savePassphrase({ passphrase })
-  }, [savePassphrase])
-
-  const [showPassphrasePrompt, setShowPassphrasePrompt] = useState(false)
-  const togglePassphrasePrompt = useCallback(() => setShowPassphrasePrompt(v => !v), [])
-
-  const Prompt = useMemo(() => (
-    <div>
-      <h4>Wallet decryption</h4>
-      <p className='line-height-md mt-3'>
-        Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
-      </p>
-      <p className='line-height-md'>
-        {showPassphrase && 'You can find the button to reveal your passphrase above your wallets on the other device.'}
-      </p>
-      <p className='line-height-md'>
-        Press reset if you lost your passphrase.
-      </p>
-      <Form
-        schema={passphraseSchema({ hash, salt })}
-        initial={{ passphrase: '' }}
-        onSubmit={onSubmit}
-      >
-        <PasswordInput
-          label='passphrase'
-          name='passphrase'
-          placeholder=''
-          required
-          autoFocus
-          qr
-        />
-        <div className='mt-3'>
-          <div className='d-flex justify-content-between align-items-center'>
-            <Button className='me-auto' variant='danger' onClick={resetPassphrase}>reset</Button>
-            <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={togglePassphrasePrompt}>cancel</Button>
-            <SubmitButton variant='primary'>save</SubmitButton>
-          </div>
-        </div>
-      </Form>
-    </div>
-  ), [showPassphrase, resetPassphrase, togglePassphrasePrompt, onSubmit, hash, salt])
-
-  return useMemo(
-    () => [showPassphrasePrompt, togglePassphrasePrompt, Prompt],
-    [showPassphrasePrompt, togglePassphrasePrompt, Prompt]
-  )
-}
-
 export async function deriveKey (passphrase, salt) {
   const enc = new TextEncoder()
 
@@ -356,10 +178,4 @@ export function useGenerateRandomKey () {
     const { key, hash } = await deriveKey(passphrase, salt)
     return { passphrase, key, hash }
   }, [salt])
-}
-
-function generateRandomPassphrase () {
-  const rand = new Uint32Array(12)
-  window.crypto.getRandomValues(rand)
-  return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
 }

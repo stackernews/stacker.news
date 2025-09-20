@@ -15,8 +15,23 @@ const theme = {
   link: styles.link,
   code: styles.code,
   mention: styles.mention,
-  twitter: styles.twitter,
+
+  // embeds
   twitterContainer: styles.twitterContainer,
+  twitterEmbed: styles.twitter,
+  nostrContainer: styles.nostrContainer,
+  nostrEmbed: styles.nostrContainer,
+  wavlakeContainer: styles.wavlakeWrapper,
+  wavlakeEmbed: styles.wavlakeWrapper,
+  spotifyContainer: styles.spotifyWrapper,
+  spotifyEmbed: styles.spotifyWrapper,
+  youtubeContainer: styles.videoWrapper,
+  youtubeEmbed: styles.videoWrapper,
+  rumbleContainer: styles.videoWrapper,
+  rumbleEmbed: styles.videoWrapper,
+  peertubeContainer: styles.videoWrapper,
+  peertubeEmbed: styles.videoWrapper,
+
   list: {
     nested: {
       listitem: styles.nestedListItem
@@ -32,7 +47,7 @@ const theme = {
     // hashtag: 'editor-text-hashtag',
     underline: styles.textUnderline,
     strikethrough: styles.textStrikethrough,
-    underlineStrikethrough: styles.underlineStrikethrough,
+    underlineStrikethrough: styles.textUnderlineStrikethrough,
     code: styles.textCode
   }
 }

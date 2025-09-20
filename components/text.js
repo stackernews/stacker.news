@@ -53,7 +53,7 @@ export function SearchText ({ text }) {
   )
 }
 
-export function LexicalText ({ lexicalState, topLevel }) {
+export function LexicalText ({ lexicalState, html, topLevel }) {
   // TODO: there's a slight render delay on full refresh because the editor state is converted from markdown to json
   // so probably legacy markdown content will have a slight render delay
   // or we convert them ahead of time to json
@@ -64,10 +64,15 @@ export function LexicalText ({ lexicalState, topLevel }) {
   // TODO: handle overflowing
   // TODO: carousel
   // const containerRef = useRef(null)
+  const [mounted, setMounted] = useState(false)
   const [show, setShow] = useState(false)
   const [overflowing, setOverflowing] = useState(false)
   const containerRef = useRef(null)
   const showOverflow = useCallback(() => setShow(true), [setShow])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
@@ -94,26 +99,32 @@ export function LexicalText ({ lexicalState, topLevel }) {
 
   return (
     <div>
-      <LexicalReader
-        className={classNames(
-          styles.text,
-          topLevel && styles.topLevel,
-          show ? styles.textUncontained : overflowing && styles.textContained
-        )}
-        ref={containerRef}
-        lexicalState={lexicalState}
-      >
-        {overflowing && !show && (
-          <Button
-            size='lg'
-            variant='info'
-            className={styles.textShowFull}
-            onClick={showOverflow}
+      {!mounted
+        // html is a 1:1 DOMPurified copy of the lexicalState without React components
+        // its job right now is to avoid the initial render delay of the LexicalReader
+        // which is client-side only, this also ensures SEO compatibility
+        ? <div dangerouslySetInnerHTML={{ __html: html }} />
+        : (
+          <LexicalReader
+            className={classNames(
+              topLevel && styles.topLevel,
+              show ? styles.textUncontained : overflowing && styles.textContained
+            )}
+            ref={containerRef}
+            lexicalState={lexicalState}
           >
-            show full text
-          </Button>
-        )}
-      </LexicalReader>
+            {overflowing && !show && (
+              <Button
+                size='lg'
+                variant='info'
+                className={styles.textShowFull}
+                onClick={showOverflow}
+              >
+                show full text
+              </Button>
+            )}
+          </LexicalReader>
+          )}
     </div>
   )
 }

@@ -28,7 +28,6 @@
 .editorInput {
     min-height: 150px;
     resize: auto;
-    font-size: 94%;
     caret-color: var(--theme-color);
     background-color: var(--theme-body);
     position: relative;
@@ -74,6 +73,7 @@
 
 .paragraph {
     margin: 0;
+    font-size: 94%;
     position: relative;
     line-height: 140%;
 }
@@ -158,12 +158,6 @@
     /* white-space: pre; */
     overflow-x: auto;
     position: relative;
-}
-
-.mention {
-    color: var(--theme-color);
-    background-color: var(--theme-body);
-    font-weight: bold;
 }
 
 /* inline blocks */
@@ -338,4 +332,279 @@
 
 .twitter iframe {
     border-radius: 13px;
+}
+
+/* Ported from text.module.css: headings link helpers */
+.heading {
+    position: relative;
+    margin-left: -22px;
+    padding-left: 22px;
+    display: block;
+}
+.headingLink {
+    display: none;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 100%;
+    width: 44px;
+}
+.headingLink.copied {
+    display: flex;
+}
+.headingLink svg {
+    align-self: center;
+}
+.heading:hover > .headingLink {
+    display: flex;
+}
+
+/* Ported: hr style for rendered content */
+.editorInput hr {
+    border-top: 3px solid var(--theme-quoteBar);
+}
+
+/* Ported: list spacing and width */
+.listOl,
+.listUl {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 2rem;
+    max-width: calc(100% - 1rem);
+}
+.listItem {
+    margin-top: .25rem;
+}
+
+/* Ported: paragraph spacing and white-space like .text .p */
+.paragraph {
+    display: block;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 140%;
+}
+
+/* Ported: media containers (used by media/link and embeds) */
+.mediaContainer {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    overflow: hidden;
+    max-height: 25vh;
+    aspect-ratio: var(--aspect-ratio);
+    margin: 0;
+}
+.mediaContainer.hasTextSiblingsBefore {
+    margin-top: var(--grid-gap, .5rem);
+}
+.mediaContainer.hasTextSiblingsAfter {
+    margin-bottom: var(--grid-gap, .5rem);
+}
+.paragraph:has(> .mediaContainer) .mediaContainer {
+    display: flex;
+    max-width: 100%;
+}
+.paragraph:has(> .mediaContainer) .mediaContainer.loaded {
+    width: min-content;
+}
+.paragraph:has(> .mediaContainer) .mediaContainer img,
+.paragraph:has(> .mediaContainer) .mediaContainer video {
+    min-width: 30%;
+    max-width: stretch;
+}
+.paragraph:has(> .mediaContainer) .mediaContainer img {
+    block-size: revert-layer;
+}
+.mediaContainer img,
+.mediaContainer video {
+    display: block;
+    object-fit: contain;
+    width: auto;
+    max-height: inherit;
+    height: 100%;
+    max-width: 100%;
+    aspect-ratio: var(--aspect-ratio);
+}
+.mediaContainer img {
+    cursor: zoom-in;
+    min-width: 30%;
+    object-position: left top;
+}
+
+/* Keep image node consistent with text images */
+.image {
+    display: inline-block;
+    height: auto;
+    max-width: 100%;
+    max-height: 25vh;
+    border-radius: .4rem;
+    margin-bottom: .5rem;
+    margin-top: .5rem;
+    object-fit: contain;
+    object-position: left top;
+    cursor: zoom-in;
+    min-width: 30%;
+    aspect-ratio: var(--aspect-ratio);
+}
+
+/* Ported: table defaults */
+.editorInput table {
+    width: auto;
+    white-space: nowrap;
+}
+
+/* Ported: blockquote look for rendered text */
+.quote {
+    border-left: 3px solid var(--theme-quoteBar);
+    padding-left: .75rem;
+}
+
+/* Ported: heading sizes similar to .text top-level variants */
+.heading1 { font-size: 1.6rem; }
+.heading2 { font-size: 1.45rem; }
+.heading3 { font-size: 1.3rem; }
+.heading4 { font-size: 1.15rem; }
+
+/* Ported: inline code style */
+.textCode {
+    background-color: rgba(110,118,129,0.1);
+    padding: .2em .4em;
+    border-radius: 6px;
+    font-family: Menlo, Consolas, Monaco, monospace;
+    font-size: 0.95em;
+}
+
+/* Ported: embeds wrappers and helpers */
+.twitterContainer,
+.nostrContainer,
+.videoWrapper,
+.wavlakeWrapper,
+.spotifyWrapper {
+    margin-top: calc(var(--grid-gap, .5rem) * 0.5);
+    margin-bottom: calc(var(--grid-gap, .5rem) * 0.5);
+    background-color: var(--theme-bg);
+}
+
+.twitterContainer {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--theme-body) !important;
+}
+.twitter {
+    position: relative;
+    overflow: hidden;
+    background-color: transparent;
+}
+.twitter iframe {
+    border-radius: 13px;
+}
+
+/* Collapsed tweet/nostr containers */
+.twitterContained {
+    height: 150px;
+    overflow: hidden;
+}
+.twitterShowFull {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    border-radius: 0;
+    line-height: 1.2;
+    padding: .75rem 1rem;
+}
+
+/* Tweet skeletons */
+.tweetsSkeleton {
+    display: flex;
+    flex-flow: row wrap;
+    max-width: 350px;
+    width: 100%;
+    padding-right: 12px;
+}
+.tweetSkeleton {
+    width: 100%;
+    border: 0.05rem solid var(--theme-borderColor);
+    border-radius: 12px;
+    height: 150px;
+    padding: 1.5rem;
+}
+.tweetSkeleton .img {
+    height: 48px;
+    width: 48px;
+    border-radius: 50%;
+}
+.tweetSkeleton .content1,
+.tweetSkeleton .content2 {
+    height: 50%;
+    margin-top: 1rem;
+}
+.tweetSkeleton .line {
+    height: 25%;
+    margin: 0.5rem 0;
+    width: 100%;
+    border-radius: .4rem;
+}
+.tweetSkeleton .line:last-child {
+    width: 75%;
+}
+
+/* Nostr container specifics */
+.nostrContainer {
+    position: relative;
+    overflow: hidden;
+    margin-right: 15px;
+}
+.nostrContainer iframe,
+.twitterContainer iframe {
+    border-radius: 13px;
+}
+
+/* Video-like wrappers (YouTube, Rumble, PeerTube) */
+.videoWrapper {
+    max-width: 320px;
+}
+.videoContainer {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+    overflow: hidden;
+}
+.videoContainer iframe {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Wavlake and Spotify */
+.wavlakeWrapper {
+    width: 100%;
+    height: 380px;
+    max-width: 480px;
+    border-radius: 1.65rem;
+    overflow: hidden;
+}
+.spotifyWrapper {
+    width: 100%;
+    height: 152px;
+    max-width: 480px;
+    border-radius: 13px;
+    overflow: hidden;
+}
+
+.mention {
+    color: var(--theme-link);
+    font-weight: bold;
+}
+
+.mention[data-lexical-mention][data-mention-text]::before {
+    content: attr(data-mention-text);
+    pointer-events: none;
+}
+
+.mention[data-lexical-mention]:has(> span)::before {
+    content: '' !important;
 }

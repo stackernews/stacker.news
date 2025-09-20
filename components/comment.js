@@ -282,8 +282,8 @@ export default function Comment ({
               <div className={styles.text} ref={textRef}>
                 {item.searchText
                   ? <SearchText text={item.searchText} />
-                  : item.lexicalState
-                    ? <LexicalText lexicalState={item.lexicalState} />
+                  : item.lexicalState && item.html
+                    ? <LexicalText lexicalState={item.lexicalState} html={item.html} />
                     : (
                       <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
                         {item.outlawed && !me?.privates?.wildWestMode

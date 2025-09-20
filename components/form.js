@@ -39,6 +39,7 @@ import { useShowModal } from './modal'
 import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
+import { WalletPromptClosed } from '@/wallets/client/hooks'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -1087,6 +1088,7 @@ export function Form ({
         await onSubmit(values, ...args)
       }
     } catch (err) {
+      if (err instanceof WalletPromptClosed) return
       console.log(err.message, err)
       toaster.danger(err.message ?? err.toString?.())
       return

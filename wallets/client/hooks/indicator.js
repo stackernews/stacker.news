@@ -1,4 +1,4 @@
-import { useWallets, useWalletsLoading } from '@/wallets/client/context'
+import { useWallets, useWalletsLoading } from '@/wallets/client/hooks'
 
 export function useWalletIndicator () {
   const wallets = useWallets()

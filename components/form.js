@@ -1451,6 +1451,7 @@ export function MultiInput ({
   onChange, autoFocus, hideError, inputType = 'text',
   ...props
 }) {
+  const formik = useFormikContext()
   const [inputs, setInputs] = useState(new Array(length).fill(''))
   const inputRefs = useRef(new Array(length).fill(null))
   const [, meta, helpers] = useField({ name })
@@ -1549,7 +1550,7 @@ export function MultiInput ({
         ))}
       </div>
       <div>
-        {hideError && meta.touched && meta.error && ( // custom error message is showed if hideError is true
+        {hideError && formik.submitCount > 0 && meta.touched && meta.error && ( // custom error message is showed if hideError is true
           <BootstrapForm.Control.Feedback type='invalid' className='d-block'>
             {meta.error}
           </BootstrapForm.Control.Feedback>

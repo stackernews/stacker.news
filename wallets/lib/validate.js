@@ -60,7 +60,8 @@ export function parseNwcUrl (walletConnectUrl) {
   return {
     walletPubkey: url.host,
     secret: url.searchParams.get('secret'),
-    relayUrls: url.searchParams.getAll('relay')
+    relayUrls: url.searchParams.getAll('relay'),
+    lud16: url.searchParams.get('lud16')
   }
 }
 

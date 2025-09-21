@@ -90,6 +90,7 @@ export function useProtocolForm (protocol) {
     }
 
     if (protocol.name === 'LN_ADDR' && field.name === 'address' && lud16Domain && value) {
+      // remove domain part since we will append it automatically if lud16Domain is set
       value = value.split('@')[0]
     }
 

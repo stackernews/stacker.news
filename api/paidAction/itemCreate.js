@@ -4,7 +4,7 @@ import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 import { throwOnExpiredUploads } from '@/api/resolvers/upload'
-import { generateHTML } from '@/lib/lexical/utils/generateHTML'
+import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/ssrLexicalHTMLGenerator'
 
 export const anonable = true
 
@@ -65,7 +65,7 @@ export async function perform (args, context) {
   const { tx, me, cost } = context
   const boostMsats = satsToMsats(boost)
 
-  const html = generateHTML(data.lexicalState)
+  const html = ssrLexicalHTMLGenerator(data.lexicalState)
 
   await throwOnExpiredUploads(uploadIds, { tx })
 

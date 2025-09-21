@@ -27,7 +27,7 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
-import { generateHTML } from '@/lib/lexical/utils/generateHTML'
+import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/ssrLexicalHTMLGenerator'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -894,7 +894,7 @@ export default {
     upsertLink: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(linkSchema, item, { models, me })
 
-      item.html = generateHTML(item.lexicalState)
+      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -905,7 +905,7 @@ export default {
     upsertDiscussion: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(discussionSchema, item, { models, me })
 
-      item.html = generateHTML(item.lexicalState)
+      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -916,7 +916,7 @@ export default {
     upsertBounty: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(bountySchema, item, { models, me })
 
-      item.html = generateHTML(item.lexicalState)
+      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -935,7 +935,7 @@ export default {
 
       await validateSchema(pollSchema, item, { models, me, numExistingChoices })
 
-      item.html = generateHTML(item.lexicalState)
+      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -956,7 +956,7 @@ export default {
         delete item.logo
       }
 
-      item.html = generateHTML(item.lexicalState)
+      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -967,7 +967,7 @@ export default {
     upsertComment: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(commentSchema, item)
 
-      item.html = generateHTML(item.lexicalState)
+      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })

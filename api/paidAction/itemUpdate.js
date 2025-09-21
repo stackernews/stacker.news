@@ -3,7 +3,7 @@ import { throwOnExpiredUploads, uploadFees } from '@/api/resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
-import { generateHTML } from '@/lib/lexical/utils/generateHTML'
+import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/ssrLexicalHTMLGenerator'
 
 export const anonable = true
 
@@ -41,7 +41,7 @@ export async function perform (args, context) {
     }
   })
 
-  const html = generateHTML(data.lexicalState)
+  const html = ssrLexicalHTMLGenerator(data.lexicalState)
 
   const newBoost = boost - old.boost
   const itemActs = []

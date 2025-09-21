@@ -4,7 +4,7 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import MediaOrLink from '@/components/media-or-link'
 import classNames from 'classnames'
-import styles from '@/components/lexical/styles/theme.module.css'
+import styles from '@/lexical/theme/theme.module.css'
 import { useState, useCallback, useEffect, createElement, Fragment } from 'react'
 import dynamic from 'next/dynamic'
 

@@ -1,0 +1,626 @@
+/* editor */
+
+.editor {
+  position: relative;
+}
+
+.editorContainer {
+  margin: 20px auto 20px auto;
+  width: 100%;
+  color: var(--theme-color);
+  position: relative;
+  line-height: 20px;
+  font-weight: 400;
+  text-align: left;
+  border-top-left-radius: .4rem;
+  border-top-right-radius: .4rem;
+}
+
+.editorInner {
+  position: relative;
+}
+
+.editorInput>hr {
+  border-top: 1px solid var(--theme-clickToContextColor);
+}
+
+.editorInput {
+  caret-color: var(--theme-color);
+  background-color: var(--theme-body);
+  position: relative;
+  tab-size: 1;
+  outline: 0;
+  padding: 10px 10px;
+  border: 1px solid;
+  border-bottom-left-radius: .4rem;
+  border-bottom-right-radius: .4rem;
+  border-top-right-radius: .4rem;
+  /* border-top: 0px; */
+}
+
+.editorInput[contenteditable="true"] {
+  min-height: 120px;
+  height: 120px;
+  resize: vertical;
+  overflow: auto;
+}
+
+.editorInput[contenteditable="true"][style*="--placeholder"]::before {
+  content: var(--placeholder);
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: var(--theme-grey);
+}
+
+.editorInput[contenteditable="true"][style*="--placeholder"]:has(> *)::before {
+  content: none;
+}
+
+.editorPlaceholder {
+  color: var(--theme-grey);
+  overflow: hidden;
+  position: absolute;
+  text-overflow: ellipsis;
+  top: 15px;
+  left: 10px;
+  font-size: 15px;
+  user-select: none;
+  display: inline-block;
+  pointer-events: none;
+}
+
+/* blocks */
+
+.image {
+  display: inline-block;
+  height: auto;
+  max-width: 100%;
+  max-height: 25vh;
+  border-radius: .4rem;
+  margin-bottom: .5rem;
+  margin-top: .5rem;
+  object-fit: contain;
+  object-position: left top;
+  cursor: zoom-in;
+  min-width: 30%;
+  aspect-ratio: var(--aspect-ratio);
+}
+
+.paragraph {
+  margin: 0;
+  font-size: 94%;
+  position: relative;
+  line-height: 140%;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.quote {
+  margin: 0;
+  margin-left: 20px;
+  font-size: 15px;
+  color: var(--theme-quoteColor);
+  border-left-color: var(--theme-quoteBar);
+  border-left-width: 4px;
+  border-left-style: solid;
+  padding-left: 16px;
+}
+
+.heading1 {
+  font-size: 2em;
+  color: var(--theme-color);
+  font-weight: 400;
+  margin: 0;
+  margin-bottom: 12px;
+}
+
+.heading2, .heading3, .heading4, .heading5, .heading6 {
+  color: var(--theme-color);
+  margin: 0;
+  margin-top: 8px;
+}
+
+.heading2 {
+  font-size: 1.5em;
+}
+
+.heading3 {
+  font-size: 1.17em;
+}
+
+.heading4 {
+  font-size: 1em;
+}
+
+.heading5 {
+  font-size: 0.83em;
+}
+
+.heading6 {
+  font-size: 0.67em;
+}
+
+.code {
+  font-family: Menlo, Consolas, Monaco, monospace;
+  display: block;
+  padding: 8px 8px 8px 8px;
+  padding-top: 32px;
+  line-height: 1.53;
+  font-size: 13px;
+  margin: 0;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  tab-size: 2;
+  /* white-space: pre; */
+  overflow-x: auto;
+  position: relative;
+  background: rgb(40, 44, 52) !important;
+  border-radius: 0.3rem;
+}
+
+.editorInput[contenteditable="true"] code[data-language="markdown"] {
+  background-color: var(--theme-body) !important;
+  font-family: inherit;
+  font-size: 100% !important;
+  display: block;
+  padding: 0 !important;
+  line-height: 1.53;
+  margin: 0;
+  margin-bottom: 8px;
+  tab-size: 2;
+  /* white-space: pre; */
+  overflow-x: auto;
+  position: relative;
+}
+
+/* inline blocks */
+
+.link {
+  color: var(--theme-link);
+  text-decoration: none;
+}
+
+/* lists */
+
+.listOl {
+  padding: 0;
+  margin: 0;
+}
+
+.listUl {
+  padding: 0;
+  margin: 0;
+}
+
+.listItem {
+  margin: 8px 16px 8px 16px;
+}
+
+.nestedListItem {
+  list-style-type: none;
+}
+
+/* text */
+
+.textBold {
+  font-weight: bold;
+}
+
+.textItalic {
+  font-style: italic;
+}
+
+.textUnderline {
+  text-decoration: underline;
+}
+
+.textStrikethrough {
+  text-decoration: line-through;
+}
+
+.textUnderlineStrikethrough {
+  text-decoration: underline line-through;
+}
+
+/* toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding-bottom: 4px;
+  vertical-align: middle;
+  flex-wrap: wrap;
+}
+
+.toolbar .divider {
+  width: 1px;
+  height: 18px;
+  background-color: var(--theme-borderColor);
+  margin-left: 4px !important;
+  margin: 0 8px;
+}
+
+.toolbar .toolbarFormatting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+}
+
+.toolbarItem {
+  background-size: contain;
+  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.toolbarItem.active {
+  background-color: var(--theme-toolbarActive);
+}
+
+.toolbarItem svg {
+  fill: var(--bs-body-color) !important;
+  width: 24px;
+  height: 24px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.toolbarItemLink svg {
+  margin-bottom: 2px;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.linkTooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  font-size: 0.7875rem;
+  opacity: 0;
+  will-change: transform;
+}
+
+.tooltipUrl {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.markdownSwitch {
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.dropdownExtraFormatting {
+  width: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-left: 0.45rem;
+  margin-right: 0.45rem;
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
+}
+
+.dropdownExtraFormatting svg {
+  width: 18px;
+  height: 18px;
+  margin-bottom: 2px;
+  margin-right: 4px;
+}
+
+.active {
+  background-color: var(--theme-toolbarActive) !important;
+  border-radius: .4rem;
+  font-weight: bold;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mdhr {
+  border-top: 1px solid var(--theme-borderColor);
+  margin: 8px 0;
+}
+
+.twitterContainer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--theme-body) !important;
+}
+
+.twitter {
+  position: relative;
+  overflow: hidden;
+  background-color: transparent;
+}
+
+.twitter iframe {
+  border-radius: 13px;
+}
+
+/* Ported from text.module.css: headings link helpers */
+.heading {
+  position: relative;
+  margin-left: -22px;
+  padding-left: 22px;
+  display: block;
+}
+.headingLink {
+  display: none;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  height: 100%;
+  width: 44px;
+}
+.headingLink.copied {
+  display: flex;
+}
+.headingLink svg {
+  align-self: center;
+}
+.heading:hover > .headingLink {
+  display: flex;
+}
+
+/* Ported: hr style for rendered content */
+.editorInput hr {
+  border-top: 3px solid var(--theme-quoteBar);
+}
+
+/* Ported: list spacing and width */
+.listOl,
+.listUl {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-left: 2rem;
+  max-width: calc(100% - 1rem);
+}
+.listItem {
+  margin-top: .25rem;
+}
+
+/* Ported: paragraph spacing and white-space like .text .p */
+.paragraph {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 140%;
+}
+
+/* Ported: media containers (used by media/link and embeds) */
+.mediaContainer {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  overflow: hidden;
+  max-height: 25vh;
+  aspect-ratio: var(--aspect-ratio);
+  margin: 0;
+}
+.mediaContainer.hasTextSiblingsBefore {
+  margin-top: var(--grid-gap, .5rem);
+}
+.mediaContainer.hasTextSiblingsAfter {
+  margin-bottom: var(--grid-gap, .5rem);
+}
+.paragraph:has(> .mediaContainer) .mediaContainer {
+  display: flex;
+  max-width: 100%;
+}
+.paragraph:has(> .mediaContainer) .mediaContainer.loaded {
+  width: min-content;
+}
+.paragraph:has(> .mediaContainer) .mediaContainer img,
+.paragraph:has(> .mediaContainer) .mediaContainer video {
+  min-width: 30%;
+  max-width: stretch;
+}
+.paragraph:has(> .mediaContainer) .mediaContainer img {
+  block-size: revert-layer;
+}
+.mediaContainer img,
+.mediaContainer video {
+  display: block;
+  object-fit: contain;
+  width: auto;
+  max-height: inherit;
+  height: 100%;
+  max-width: 100%;
+  aspect-ratio: var(--aspect-ratio);
+}
+.mediaContainer img {
+  cursor: zoom-in;
+  min-width: 30%;
+  object-position: left top;
+}
+
+/* Keep image node consistent with text images */
+.image {
+  display: inline-block;
+  height: auto;
+  max-width: 100%;
+  max-height: 25vh;
+  border-radius: .4rem;
+  margin-bottom: .5rem;
+  margin-top: .5rem;
+  object-fit: contain;
+  object-position: left top;
+  cursor: zoom-in;
+  min-width: 30%;
+  aspect-ratio: var(--aspect-ratio);
+}
+
+/* Ported: table defaults */
+.editorInput table {
+  width: auto;
+  white-space: nowrap;
+}
+
+/* Ported: blockquote look for rendered text */
+.quote {
+  border-left: 3px solid var(--theme-quoteBar);
+  padding-left: .75rem;
+}
+
+/* Ported: heading sizes similar to .text top-level variants */
+.heading1 { font-size: 1.6rem; }
+.heading2 { font-size: 1.45rem; }
+.heading3 { font-size: 1.3rem; }
+.heading4 { font-size: 1.15rem; }
+
+/* Ported: inline code style */
+.textCode {
+  background-color: rgba(110,118,129,0.1);
+  padding: .2em .4em;
+  border-radius: 6px;
+  font-family: Menlo, Consolas, Monaco, monospace;
+  font-size: 0.95em;
+}
+
+/* Ported: embeds wrappers and helpers */
+.twitterContainer,
+.nostrContainer,
+.videoWrapper,
+.wavlakeWrapper,
+.spotifyWrapper {
+  margin-top: calc(var(--grid-gap, .5rem) * 0.5);
+  margin-bottom: calc(var(--grid-gap, .5rem) * 0.5);
+  background-color: var(--theme-bg);
+}
+
+.twitterContainer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--theme-body) !important;
+}
+.twitter {
+  position: relative;
+  overflow: hidden;
+  background-color: transparent;
+}
+.twitter iframe {
+  border-radius: 13px;
+}
+
+/* Collapsed tweet/nostr containers */
+.twitterContained {
+  height: 150px;
+  overflow: hidden;
+}
+.twitterShowFull {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  border-radius: 0;
+  line-height: 1.2;
+  padding: .75rem 1rem;
+}
+
+/* Tweet skeletons */
+.tweetsSkeleton {
+  display: flex;
+  flex-flow: row wrap;
+  max-width: 350px;
+  width: 100%;
+  padding-right: 12px;
+}
+.tweetSkeleton {
+  width: 100%;
+  border: 0.05rem solid var(--theme-borderColor);
+  border-radius: 12px;
+  height: 150px;
+  padding: 1.5rem;
+}
+.tweetSkeleton .img {
+  height: 48px;
+  width: 48px;
+  border-radius: 50%;
+}
+.tweetSkeleton .content1,
+.tweetSkeleton .content2 {
+  height: 50%;
+  margin-top: 1rem;
+}
+.tweetSkeleton .line {
+  height: 25%;
+  margin: 0.5rem 0;
+  width: 100%;
+  border-radius: .4rem;
+}
+.tweetSkeleton .line:last-child {
+  width: 75%;
+}
+
+/* Nostr container specifics */
+.nostrContainer {
+  position: relative;
+  overflow: hidden;
+  margin-right: 15px;
+}
+.nostrContainer iframe,
+.twitterContainer iframe {
+  border-radius: 13px;
+}
+
+/* Video-like wrappers (YouTube, Rumble, PeerTube) */
+.videoWrapper {
+  max-width: 320px;
+}
+.videoContainer {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  overflow: hidden;
+}
+.videoContainer iframe {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Wavlake and Spotify */
+.wavlakeWrapper {
+  width: 100%;
+  height: 380px;
+  max-width: 480px;
+  border-radius: 1.65rem;
+  overflow: hidden;
+}
+.spotifyWrapper {
+  width: 100%;
+  height: 152px;
+  max-width: 480px;
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+.mention {
+  color: var(--theme-link);
+  font-weight: bold;
+}
+
+.mention[data-lexical-mention][data-mention-text]::before {
+  content: attr(data-mention-text);
+  pointer-events: none;
+}
+
+.mention[data-lexical-mention]:has(> span)::before {
+  content: '' !important;
+}

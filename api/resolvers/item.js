@@ -894,8 +894,6 @@ export default {
     upsertLink: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(linkSchema, item, { models, me })
 
-      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
-
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
@@ -905,8 +903,6 @@ export default {
     upsertDiscussion: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(discussionSchema, item, { models, me })
 
-      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
-
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
@@ -915,8 +911,6 @@ export default {
     },
     upsertBounty: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(bountySchema, item, { models, me })
-
-      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -934,8 +928,6 @@ export default {
         : 0
 
       await validateSchema(pollSchema, item, { models, me, numExistingChoices })
-
-      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -956,8 +948,6 @@ export default {
         delete item.logo
       }
 
-      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
-
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
@@ -966,8 +956,6 @@ export default {
     },
     upsertComment: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(commentSchema, item)
-
-      item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
@@ -1542,6 +1530,9 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   // never change author of item
   item.userId = old.userId
 
+  // sanitize html
+  item.html = ssrLexicalHTMLGenerator(item.lexicalState)
+
   const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 
   resultItem.comments = []
@@ -1572,6 +1563,9 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
 
   // mark item as created with API key
   item.apiKey = me?.apiKey
+
+  // sanitize html
+  item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
   const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd })
 

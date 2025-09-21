@@ -21,7 +21,7 @@ import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
 import remarkToc from '@/lib/remark-toc'
-import { LexicalReader } from './lexical'
+import Reader from '@/lexical/reader'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -105,7 +105,7 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
         // which is client-side only, this also ensures SEO compatibility
         ? <div dangerouslySetInnerHTML={{ __html: html }} />
         : (
-          <LexicalReader
+          <Reader
             className={classNames(
               topLevel && styles.topLevel,
               show ? styles.textUncontained : overflowing && styles.textContained
@@ -123,7 +123,7 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
                 show full text
               </Button>
             )}
-          </LexicalReader>
+          </Reader>
           )}
     </div>
   )

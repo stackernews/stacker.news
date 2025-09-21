@@ -3,7 +3,6 @@ import { throwOnExpiredUploads, uploadFees } from '@/api/resolvers/upload'
 import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { satsToMsats } from '@/lib/format'
-import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/ssrLexicalHTMLGenerator'
 
 export const anonable = true
 
@@ -41,8 +40,6 @@ export async function perform (args, context) {
     }
   })
 
-  const html = ssrLexicalHTMLGenerator(data.lexicalState)
-
   const newBoost = boost - old.boost
   const itemActs = []
   if (newBoost > 0) {
@@ -74,7 +71,6 @@ export async function perform (args, context) {
   await tx.item.update({
     where: { id: parseInt(id), boost: old.boost },
     data: {
-      html,
       ...data,
       boost: {
         increment: newBoost

@@ -4,14 +4,14 @@ import { useEffect, useContext, useCallback } from 'react'
 import { $convertToMarkdownString, $convertFromMarkdownString } from '@lexical/markdown'
 import { $isCodeNode } from '@lexical/code'
 import { $getRoot, createEditor } from 'lexical'
-import defaultNodes from '../../../../lib/lexical/nodes'
+import DefaultNodes from '@/lib/lexical/nodes'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
 import { StorageKeyPrefixContext } from '@/components/form'
 
 function parseMarkdown (editor, content) {
   const markdown = content.getTextContent()
   const tempEditor = createEditor({
-    nodes: defaultNodes,
+    nodes: [...DefaultNodes],
     theme: editor._config.theme
   })
 

@@ -5,7 +5,7 @@ import { $isCodeNode } from '@lexical/code'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
 import { $getRoot, createEditor } from 'lexical'
-import defaultNodes from '../../../../lib/lexical/nodes'
+import DefaultNodes from '@/lib/lexical/nodes'
 
 // WIP: unused
 export default function PreviewPlugin ({ setPreviewHtml }) {
@@ -27,7 +27,7 @@ export default function PreviewPlugin ({ setPreviewHtml }) {
           console.log('theme', editor._config.theme)
 
           const tempEditor = createEditor({
-            nodes: defaultNodes,
+            nodes: [...DefaultNodes],
             theme: editor._config.theme
           })
 

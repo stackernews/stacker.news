@@ -13,7 +13,7 @@ import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
-import { LexicalEditor } from './lexical'
+import Editor from '@/lexical/editor'
 
 export default forwardRef(function Reply ({
   item,
@@ -143,7 +143,7 @@ export default forwardRef(function Reply ({
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <LexicalEditor name='text' placeholder={placeholder} />
+              <Editor context='text' placeholder={placeholder} />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>
           </FeeButtonProvider>

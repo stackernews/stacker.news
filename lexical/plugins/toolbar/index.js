@@ -1,4 +1,4 @@
-import styles from '@/components/lexical/styles/theme.module.css'
+import styles from '@/lexical/theme/theme.module.css'
 import { useRef } from 'react'
 import FileUploadPlugin from '../interop/fileupload'
 import SwitchPlugin from './tools/switch'

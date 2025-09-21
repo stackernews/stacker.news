@@ -14,7 +14,7 @@ import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import { UPSERT_DISCUSSION } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
-import { LexicalEditor } from './lexical'
+import Editor from '@/lexical/editor'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -72,7 +72,7 @@ export function DiscussionForm ({
         }}
         maxLength={MAX_TITLE_LENGTH}
       />
-      <LexicalEditor name='text' />
+      <Editor context='text' />
       {/* <MarkdownInput
         topLevel
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}

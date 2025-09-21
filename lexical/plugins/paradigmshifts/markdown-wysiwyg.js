@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
-import styles from '../../styles/theme.module.css'
+import styles from '@/lexical/theme/theme.module.css'
 import { $getRoot } from 'lexical'
 import { registerMarkdownShortcuts, CODE } from '@lexical/markdown'
 

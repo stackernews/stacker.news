@@ -51,14 +51,21 @@ export function useWalletProtocols () {
 export function useProtocol () {
   const { protocol, setProtocol } = useContext(WalletMultiStepFormContext)
   const protocols = useWalletProtocols()
+  const [lnAddrForm] = useProtocolForm({ name: 'LN_ADDR', send: false })
 
   useEffect(() => {
-    // when we move between send and receive, we need to make sure that we've selected a protocol
-    // that actually exists, so if the protocol is not found, we set it to the first protocol
+    // this makes sure that we've always selected a protocol (that exists) when moving between send and receive
     if (!protocol || !protocols.find(p => p.id === protocol.id)) {
-      setProtocol(protocols[0])
+      // we switch to the LN_ADDR protocol form if it exists and there's an initial value
+      // else we just select the first protocol.
+      const lnAddrProto = protocols.find(p => p.name === 'LN_ADDR')
+      if (lnAddrForm?.initial.address && lnAddrProto) {
+        setProtocol(lnAddrProto)
+      } else {
+        setProtocol(protocols[0])
+      }
     }
-  }, [protocol, protocols, setProtocol])
+  }, [protocol, protocols, setProtocol, lnAddrForm])
 
   // make sure we always have a protocol, even on first render before useEffect runs
   return useMemo(() => [protocol ?? protocols[0], setProtocol], [protocol, protocols, setProtocol])

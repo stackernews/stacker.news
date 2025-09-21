@@ -89,7 +89,7 @@ export function useProtocolForm (protocol) {
       value = complementaryFormState?.config?.[field.name]
     }
 
-    if (field.name === 'address' && lud16Domain && value) {
+    if (protocol.name === 'LN_ADDR' && field.name === 'address' && lud16Domain && value) {
       value = value.split('@')[0]
     }
 

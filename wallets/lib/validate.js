@@ -29,7 +29,7 @@ export const nwcUrlValidator = () =>
           try {
             ({ relayUrls, walletPubkey, secret } = parseNwcUrl(url))
           } catch {
-          // invalid URL error. handle as if pubkey validation failed to not confuse user.
+            // invalid URL error. handle as if pubkey validation failed to not confuse user.
             throw new Error('pubkey must be 64 hex chars')
           }
           string().required('pubkey required').trim().matches(NOSTR_PUBKEY_HEX, 'pubkey must be 64 hex chars').validateSync(walletPubkey)

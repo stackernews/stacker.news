@@ -11,6 +11,7 @@ import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } f
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 
 export const nextAccount = async () => {
+  if (typeof window !== 'undefined') window.logoutInProgress = true
   const { status } = await fetch('/api/next-account', { credentials: 'include' })
   // if status is 302, this means the server was able to switch us to the next available account
   return status === 302
@@ -69,7 +70,7 @@ const AccountListRow = ({ account, selected, ...props }) => {
   const onClick = async (e) => {
     // prevent navigation
     e.preventDefault()
-
+    if (typeof window !== 'undefined') window.logoutInProgress = true
     // update pointer cookie
     const options = cookieOptions({ httpOnly: false })
     const anon = account.id === USER_ID.anon

@@ -305,7 +305,9 @@ function LogoutObstacle ({ onClose }) {
               router.reload()
               return
             }
-
+            window.logoutInProgress = true
+            document.cookie = 'next-auth.session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+            document.cookie = 'multi_auth.user-id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
             // order is important because we need to be logged in to delete push subscription on server
             const pushSubscription = await swRegistration?.pushManager.getSubscription()
             if (pushSubscription) {

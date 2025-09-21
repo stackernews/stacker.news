@@ -2,6 +2,7 @@ import { isTemplate, isWallet, protocolClientSchema, protocolFields, protocolFor
 import { createContext, useContext, useEffect, useMemo, useCallback, useState } from 'react'
 import { useWalletProtocolUpsert } from '@/wallets/client/hooks'
 import { MultiStepForm, useFormState, useStep } from '@/components/multi-step-form'
+import { parseNwcUrl } from '@/wallets/lib/validate'
 
 export const Step = {
   SEND: 'send',
@@ -50,14 +51,21 @@ export function useWalletProtocols () {
 export function useProtocol () {
   const { protocol, setProtocol } = useContext(WalletMultiStepFormContext)
   const protocols = useWalletProtocols()
+  const [lnAddrForm] = useProtocolForm({ name: 'LN_ADDR', send: false })
 
   useEffect(() => {
-    // when we move between send and receive, we need to make sure that we've selected a protocol
-    // that actually exists, so if the protocol is not found, we set it to the first protocol
+    // this makes sure that we've always selected a protocol (that exists) when moving between send and receive
     if (!protocol || !protocols.find(p => p.id === protocol.id)) {
-      setProtocol(protocols[0])
+      // we switch to the LN_ADDR protocol form if it exists and there's an initial value
+      // else we just select the first protocol.
+      const lnAddrProto = protocols.find(p => p.name === 'LN_ADDR')
+      if (lnAddrForm?.initial.address && lnAddrProto) {
+        setProtocol(lnAddrProto)
+      } else {
+        setProtocol(protocols[0])
+      }
     }
-  }, [protocol, protocols, setProtocol])
+  }, [protocol, protocols, setProtocol, lnAddrForm])
 
   // make sure we always have a protocol, even on first render before useEffect runs
   return useMemo(() => [protocol ?? protocols[0], setProtocol], [protocol, protocols, setProtocol])
@@ -77,6 +85,7 @@ function useProtocolFormState (protocol) {
 export function useProtocolForm (protocol) {
   const [formState, setFormState] = useProtocolFormState(protocol)
   const [complementaryFormState] = useProtocolFormState({ name: protocol.name, send: !protocol.send })
+  const [nwcSendFormState] = useProtocolFormState({ name: 'NWC', send: true })
   const wallet = useWallet()
   const lud16Domain = walletLud16Domain(wallet.name)
   const fields = protocolFields(protocol)
@@ -89,8 +98,16 @@ export function useProtocolForm (protocol) {
       value = complementaryFormState?.config?.[field.name]
     }
 
-    if (field.name === 'address' && lud16Domain && value) {
-      value = value.split('@')[0]
+    if (protocol.name === 'LN_ADDR' && field.name === 'address') {
+      // automatically set lightning addresses from NWC urls if lud16 parameter is present
+      if (nwcSendFormState?.config?.url) {
+        const { lud16 } = parseNwcUrl(nwcSendFormState.config.url)
+        if (lud16?.split('@')[1] === lud16Domain) value = lud16
+      }
+      // remove domain part since we will append it automatically if lud16Domain is set
+      if (lud16Domain && value) {
+        value = value.split('@')[0]
+      }
     }
 
     return {

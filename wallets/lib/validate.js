@@ -57,17 +57,12 @@ export function parseNwcUrl (walletConnectUrl) {
   // See https://stackoverflow.com/questions/56804936/how-does-only-numbers-in-url-resolve-to-a-domain
   // However, this seems to only get triggered if a wallet pubkey only contains digits so this is pretty improbable.
   const url = new URL(walletConnectUrl)
-  const params = {}
-  params.walletPubkey = url.host
-  const secret = url.searchParams.get('secret')
-  const relayUrls = url.searchParams.getAll('relay')
-  if (secret) {
-    params.secret = secret
+  return {
+    walletPubkey: url.host,
+    secret: url.searchParams.get('secret'),
+    relayUrls: url.searchParams.getAll('relay'),
+    lud16: url.searchParams.get('lud16')
   }
-  if (relayUrls) {
-    params.relayUrls = relayUrls
-  }
-  return params
 }
 
 export const socketValidator = (msg = 'invalid socket') =>

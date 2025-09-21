@@ -7,11 +7,12 @@ import useCookie from '@/components/use-cookie'
 import Link from 'next/link'
 import AddIcon from '@/svgs/add-fill.svg'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } from '@/lib/auth'
+import { abortPendingRequests } from '@/lib/apollo'
 
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 
 export const nextAccount = async () => {
-  if (typeof window !== 'undefined') window.logoutInProgress = true
+  abortPendingRequests() // Cancel any pending requests during account switch
   const { status } = await fetch('/api/next-account', { credentials: 'include' })
   // if status is 302, this means the server was able to switch us to the next available account
   return status === 302
@@ -70,7 +71,7 @@ const AccountListRow = ({ account, selected, ...props }) => {
   const onClick = async (e) => {
     // prevent navigation
     e.preventDefault()
-    if (typeof window !== 'undefined') window.logoutInProgress = true
+    abortPendingRequests() // Cancel pending requests during account switch
     // update pointer cookie
     const options = cookieOptions({ httpOnly: false })
     const anon = account.id === USER_ID.anon

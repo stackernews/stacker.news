@@ -22,6 +22,7 @@ import { useWalletIndicator } from '@/wallets/client/hooks'
 import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+import { clearAuthCookies } from '@/lib/auth'
 
 export function Brand ({ className }) {
   return (
@@ -306,8 +307,7 @@ function LogoutObstacle ({ onClose }) {
               return
             }
             window.logoutInProgress = true
-            document.cookie = 'next-auth.session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-            document.cookie = 'multi_auth.user-id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+            clearAuthCookies()
             // order is important because we need to be logged in to delete push subscription on server
             const pushSubscription = await swRegistration?.pushManager.getSubscription()
             if (pushSubscription) {

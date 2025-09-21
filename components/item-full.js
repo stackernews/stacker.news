@@ -159,7 +159,7 @@ function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
     : item.lexicalState
-      ? <LexicalText lexicalState={item.lexicalState} topLevel />
+      ? <LexicalText lexicalState={item.lexicalState} html={item.html} topLevel />
       : item.html
         ? <div dangerouslySetInnerHTML={{ __html: item.html }} />
         : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>

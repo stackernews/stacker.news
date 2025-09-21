@@ -64,8 +64,6 @@ export async function perform (args, context) {
   const { tx, me, cost } = context
   const boostMsats = satsToMsats(boost)
 
-  if (data.html) console.error('html has been already set')
-
   await throwOnExpiredUploads(uploadIds, { tx })
 
   let invoiceData = {}

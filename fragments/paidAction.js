@@ -143,9 +143,9 @@ export const ACT_MUTATION = gql`
 
 export const UPSERT_DISCUSSION = gql`
   ${PAID_ACTION}
-  mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $lexicalState: String, $html: String,
+  mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $lexicalState: String,
     $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
-    upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, lexicalState: $lexicalState, html: $html, boost: $boost,
+    upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, lexicalState: $lexicalState, boost: $boost,
       forward: $forward, ${HASH_HMAC_INPUT_2}) {
       result {
         id
@@ -159,11 +159,11 @@ export const UPSERT_DISCUSSION = gql`
 export const UPSERT_JOB = gql`
   ${PAID_ACTION}
   mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!,
-    $location: String, $remote: Boolean, $text: String!, $url: String!, $boost: Int,
+    $location: String, $remote: Boolean, $text: String!, $lexicalState: String, $url: String!, $boost: Int,
     $status: String, $logo: Int) {
     upsertJob(sub: $sub, id: $id, title: $title, company: $company,
       location: $location, remote: $remote, text: $text,
-      url: $url, boost: $boost, status: $status, logo: $logo) {
+      lexicalState: $lexicalState, url: $url, boost: $boost, status: $status, logo: $logo) {
       result {
         id
         deleteScheduledAt
@@ -176,8 +176,8 @@ export const UPSERT_JOB = gql`
 export const UPSERT_LINK = gql`
   ${PAID_ACTION}
   mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
-    upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text,
+    $text: String, $lexicalState: String, $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
+    upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, lexicalState: $lexicalState,
       boost: $boost, forward: $forward, ${HASH_HMAC_INPUT_2}) {
       result {
         id
@@ -193,7 +193,7 @@ export const UPSERT_POLL = gql`
   mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
     $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date,
     $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}) {
-    upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
+    upsertPoll(sub: $sub, id: $id, title: $title, text: $text, lexicalState: $lexicalState,
       options: $options, boost: $boost, forward: $forward, pollExpiresAt: $pollExpiresAt,
       randPollOptions: $randPollOptions, ${HASH_HMAC_INPUT_2}) {
       result {
@@ -208,9 +208,9 @@ export const UPSERT_POLL = gql`
 export const UPSERT_BOUNTY = gql`
   ${PAID_ACTION}
   mutation upsertBounty($sub: String, $id: ID, $title: String!, $bounty: Int!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput]) {
+    $text: String, $lexicalState: String, $boost: Int, $forward: [ItemForwardInput]) {
     upsertBounty(sub: $sub, id: $id, title: $title, bounty: $bounty, text: $text,
-      boost: $boost, forward: $forward) {
+      lexicalState: $lexicalState, boost: $boost, forward: $forward) {
       result {
         id
         deleteScheduledAt
@@ -234,8 +234,8 @@ export const POLL_VOTE = gql`
 export const UPSERT_BIO = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertBio($text: String!) {
-    upsertBio(text: $text) {
+  mutation upsertBio($text: String!, $lexicalState: String) {
+    upsertBio(text: $text, lexicalState: $lexicalState) {
       ...ItemPaidActionFields
       ...PaidActionFields
     }
@@ -244,8 +244,8 @@ export const UPSERT_BIO = gql`
 export const CREATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertComment($text: String!, $lexicalState: String, $html: String, $parentId: ID!) {
-    upsertComment(text: $text, lexicalState: $lexicalState, html: $html, parentId: $parentId) {
+  mutation upsertComment($text: String!, $lexicalState: String, $parentId: ID!) {
+    upsertComment(text: $text, lexicalState: $lexicalState, parentId: $parentId) {
       ...ItemPaidActionFields
       ...PaidActionFields
     }
@@ -254,8 +254,8 @@ export const CREATE_COMMENT = gql`
 export const UPDATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS_NO_CHILD_COMMENTS}
   ${PAID_ACTION}
-  mutation upsertComment($id: ID!, $text: String!, $lexicalState: String, $html: String, $boost: Int, ${HASH_HMAC_INPUT_1}) {
-    upsertComment(id: $id, text: $text, lexicalState: $lexicalState, html: $html, boost: $boost, ${HASH_HMAC_INPUT_2}) {
+  mutation upsertComment($id: ID!, $text: String!, $lexicalState: String, $boost: Int, ${HASH_HMAC_INPUT_1}) {
+    upsertComment(id: $id, text: $text, lexicalState: $lexicalState, boost: $boost, ${HASH_HMAC_INPUT_2}) {
       ...ItemPaidActionFieldsNoChildComments
       ...PaidActionFields
     }

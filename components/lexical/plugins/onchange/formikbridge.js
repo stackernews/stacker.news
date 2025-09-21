@@ -1,12 +1,12 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useFormikContext } from 'formik'
-import { useEffect } from 'react'
+import { useEffect, useContext, useCallback } from 'react'
 import { $convertToMarkdownString, $convertFromMarkdownString } from '@lexical/markdown'
 import { $isCodeNode } from '@lexical/code'
 import { $getRoot, createEditor } from 'lexical'
-import { $generateHtmlFromNodes } from '@lexical/html'
 import defaultNodes from '../../../../lib/lexical/nodes'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
+import { StorageKeyPrefixContext } from '@/components/form'
 
 function parseMarkdown (editor, content) {
   const markdown = content.getTextContent()
@@ -19,44 +19,60 @@ function parseMarkdown (editor, content) {
     $convertFromMarkdownString(markdown, SN_TRANSFORMERS)
   })
 
-  const html = tempEditor.read(() => {
-    return $generateHtmlFromNodes(tempEditor, null)
-  })
-
-  return { markdown, html }
+  return { markdown }
 }
 
 // WIP: absolutely barebone formik bridge plugin for Lexical
-export default function FormikBridgePlugin () {
+export default function FormikBridgePlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
+  // TODO: useField to onChange
+  const storageKeyPrefix = useContext(StorageKeyPrefixContext)
+  const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + name : undefined
   const { setFieldValue, values } = useFormikContext()
+
+  const onChangeInner = useCallback((value) => {
+    if (storageKey) {
+      window.localStorage.setItem(storageKey, value)
+    }
+  }, [storageKey])
+
+  useEffect(() => {
+    if (storageKey) {
+      const value = window.localStorage.getItem(storageKey)
+      if (value) {
+        editor.update(() => {
+          editor.setEditorState(editor.parseEditorState(value))
+        })
+        setFieldValue(name, value)
+      }
+    }
+  }, [storageKey, setFieldValue, name])
 
   useEffect(() => {
     // probably we need to debounce this
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
+        const lexicalState = editorState.toJSON()
+        setFieldValue('lexicalState', JSON.stringify(lexicalState))
+        onChangeInner(JSON.stringify(lexicalState))
         const root = $getRoot()
         const firstChild = root.getFirstChild()
         let markdown = ''
-        let html = ''
         // markdown mode (codeblock), may not see the light
         if ($isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown') {
-          ({ markdown, html } = parseMarkdown(editor, firstChild))
+          ({ markdown } = parseMarkdown(editor, firstChild))
         } else {
           const rootElement = editor.getRootElement()
           // live markdown mode
           if (rootElement?.classList.contains('md-live')) {
-            ({ markdown, html } = parseMarkdown(editor, root))
+            ({ markdown } = parseMarkdown(editor, root))
           // wysiwyg mode
           } else {
             markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
-            html = $generateHtmlFromNodes(editor, null)
           }
         }
         if (values.text === markdown) return
         setFieldValue('text', markdown)
-        setFieldValue('lexicalState', JSON.stringify(editorState.toJSON()))
-        setFieldValue('html', html)
       })
     })
   }, [editor, setFieldValue, values])

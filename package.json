@@ -20,6 +20,7 @@
     "@cashu/cashu-ts": "^2.4.1",
     "@graphql-tools/schema": "^10.0.6",
     "@lexical/code-shiki": "^0.35.0",
+    "@lexical/headless": "^0.35.0",
     "@lexical/react": "^0.35.0",
     "@lightninglabs/lnc-web": "^0.3.2-alpha",
     "@noble/curves": "^1.6.0",

@@ -41,8 +41,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
         <Form
           initial={{
             text: comment.text,
-            lexicalState: comment.lexicalState,
-            html: comment.html
+            lexicalState: comment.lexicalState
           }}
           schema={commentSchema}
           onSubmit={onSubmit}

@@ -22,7 +22,7 @@ const onError = (error) => {
   console.error(error)
 }
 
-export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
+export function LexicalEditor ({ nodes = defaultNodes, name }) {
   // temporary?
   const { values } = useFormikContext()
 
@@ -71,7 +71,7 @@ export function LexicalEditor ({ nodes = defaultNodes }, optionals = {}) {
         <HistoryPlugin />
         <TwitterPlugin />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
-        <OnChangePlugin {...optionals} />
+        <OnChangePlugin name={name} />
       </div>
     </LexicalComposer>
   )

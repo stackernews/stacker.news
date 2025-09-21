@@ -46,22 +46,22 @@ export default gql`
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
     upsertLink(
-      id: ID, sub: String, title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput],
+      id: ID, sub: String, title: String!, url: String!, text: String, lexicalState: String, boost: Int, forward: [ItemForwardInput],
       hash: String, hmac: String): ItemPaidAction!
     upsertDiscussion(
-      id: ID, sub: String, title: String!, text: String, lexicalState: String, html: String, boost: Int, forward: [ItemForwardInput],
+      id: ID, sub: String, title: String!, text: String, lexicalState: String, boost: Int, forward: [ItemForwardInput],
       hash: String, hmac: String): ItemPaidAction!
     upsertBounty(
-      id: ID, sub: String, title: String!, text: String, bounty: Int, boost: Int, forward: [ItemForwardInput],
+      id: ID, sub: String, title: String!, text: String, lexicalState: String, bounty: Int, boost: Int, forward: [ItemForwardInput],
       hash: String, hmac: String): ItemPaidAction!
     upsertJob(
       id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
-      text: String!, url: String!, boost: Int, status: String, logo: Int): ItemPaidAction!
+      text: String!, lexicalState: String, url: String!, boost: Int, status: String, logo: Int): ItemPaidAction!
     upsertPoll(
-      id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
+      id: ID, sub: String, title: String!, text: String, lexicalState: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
       randPollOptions: Boolean, hash: String, hmac: String): ItemPaidAction!
     updateNoteId(id: ID!, noteId: String!): Item!
-    upsertComment(id: ID, text: String!, lexicalState: String, html: String, parentId: ID, boost: Int, hash: String, hmac: String): ItemPaidAction!
+    upsertComment(id: ID, text: String!, lexicalState: String, parentId: ID, boost: Int, hash: String, hmac: String): ItemPaidAction!
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!

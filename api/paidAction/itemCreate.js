@@ -4,6 +4,7 @@ import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 import { throwOnExpiredUploads } from '@/api/resolvers/upload'
+import { generateHTML } from '@/lib/lexical/utils/generateHTML'
 
 export const anonable = true
 
@@ -64,6 +65,8 @@ export async function perform (args, context) {
   const { tx, me, cost } = context
   const boostMsats = satsToMsats(boost)
 
+  const html = generateHTML(data.lexicalState)
+
   await throwOnExpiredUploads(uploadIds, { tx })
 
   let invoiceData = {}
@@ -104,6 +107,7 @@ export async function perform (args, context) {
 
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
+    html,
     ...data,
     ...invoiceData,
     boost,

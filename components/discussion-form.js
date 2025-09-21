@@ -48,7 +48,6 @@ export function DiscussionForm ({
         title: item?.title || shareTitle || '',
         text: item?.text || shareText || '',
         lexicalState: item?.lexicalState || '',
-        html: item?.html || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })

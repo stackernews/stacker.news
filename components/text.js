@@ -1,4 +1,5 @@
 import styles from './text.module.css'
+import lexicalStyles from '@/lexical/theme/theme.module.css'
 import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
 import dynamic from 'next/dynamic'
@@ -64,6 +65,7 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
   // TODO: handle overflowing
   // TODO: carousel
   // const containerRef = useRef(null)
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [show, setShow] = useState(false)
   const [overflowing, setOverflowing] = useState(false)
@@ -99,19 +101,21 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
 
   return (
     <div>
-      {!mounted
+      {router.query.html === 'true' || !mounted
         // html is a 1:1 DOMPurified copy of the lexicalState without React components
         // its job right now is to avoid the initial render delay of the LexicalReader
         // which is client-side only, this also ensures SEO compatibility
-        ? <div dangerouslySetInnerHTML={{ __html: html }} />
+        ? <div className={classNames(lexicalStyles.text, topLevel && lexicalStyles.topLevel)} dangerouslySetInnerHTML={{ __html: html }} />
         : (
           <Reader
             className={classNames(
-              topLevel && styles.topLevel,
-              show ? styles.textUncontained : overflowing && styles.textContained
+              lexicalStyles.text,
+              topLevel && lexicalStyles.topLevel,
+              show ? lexicalStyles.textUncontained : overflowing && lexicalStyles.textContained
             )}
             ref={containerRef}
             lexicalState={lexicalState}
+            topLevel={topLevel}
           >
             {overflowing && !show && (
               <Button

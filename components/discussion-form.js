@@ -72,7 +72,7 @@ export function DiscussionForm ({
         }}
         maxLength={MAX_TITLE_LENGTH}
       />
-      <Editor context='text' />
+      <Editor context='text' topLevel />
       {/* <MarkdownInput
         topLevel
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}

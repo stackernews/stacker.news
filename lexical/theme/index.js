@@ -1,54 +1,52 @@
-import styles from './theme.module.css'
-
 const theme = {
-  paragraph: styles.paragraph,
-  quote: styles.quote,
+  paragraph: 'sn__paragraph',
   heading: {
-    h1: styles.heading1,
-    h2: styles.heading2,
-    h3: styles.heading3,
-    h4: styles.heading4,
-    h5: styles.heading5,
-    h6: styles.heading6
+    h1: 'sn__headings',
+    h2: 'sn__headings',
+    h3: 'sn__headings',
+    h4: 'sn__headings',
+    h5: 'sn__headings',
+    h6: 'sn__headings'
   },
-  image: styles.image,
-  link: styles.link,
-  code: styles.code,
-  mention: styles.mention,
+  quote: 'sn__quote',
+  image: 'sn__image',
+  link: 'sn__link',
+  code: 'sn__code',
+  mention: 'sn__mention',
 
   // embeds
-  twitterContainer: styles.twitterContainer,
-  twitterEmbed: styles.twitter,
-  nostrContainer: styles.nostrContainer,
-  nostrEmbed: styles.nostrContainer,
-  wavlakeContainer: styles.wavlakeWrapper,
-  wavlakeEmbed: styles.wavlakeWrapper,
-  spotifyContainer: styles.spotifyWrapper,
-  spotifyEmbed: styles.spotifyWrapper,
-  youtubeContainer: styles.videoWrapper,
-  youtubeEmbed: styles.videoWrapper,
-  rumbleContainer: styles.videoWrapper,
-  rumbleEmbed: styles.videoWrapper,
-  peertubeContainer: styles.videoWrapper,
-  peertubeEmbed: styles.videoWrapper,
+  twitterContainer: 'sn__twitterContainer',
+  twitterEmbed: 'sn__twitter',
+  nostrContainer: 'sn__nostrContainer',
+  nostrEmbed: 'sn__nostrContainer',
+  wavlakeContainer: 'sn__wavlakeWrapper',
+  wavlakeEmbed: 'sn__wavlakeWrapper',
+  spotifyContainer: 'sn__spotifyWrapper',
+  spotifyEmbed: 'sn__spotifyWrapper',
+  youtubeContainer: 'sn__videoWrapper',
+  youtubeEmbed: 'sn__videoWrapper',
+  rumbleContainer: 'sn__videoWrapper',
+  rumbleEmbed: 'sn__videoWrapper',
+  peertubeContainer: 'sn__videoWrapper',
+  peertubeEmbed: 'sn__videoWrapper',
 
   list: {
     nested: {
-      listitem: styles.nestedListItem
+      listitem: 'sn__nestedListItem'
     },
-    ol: styles.listOl,
-    ul: styles.listUl,
-    listitem: styles.listItem
+    ol: 'sn__listOl',
+    ul: 'sn__listUl',
+    listitem: 'sn__listItem'
   },
   text: {
-    bold: styles.textBold,
-    italic: styles.textItalic,
-    // overflowed: 'editor-text-overflowed',
-    // hashtag: 'editor-text-hashtag',
-    underline: styles.textUnderline,
-    strikethrough: styles.textStrikethrough,
-    underlineStrikethrough: styles.textUnderlineStrikethrough,
-    code: styles.textCode
+    bold: 'sn__textBold',
+    italic: 'sn__textItalic',
+    // overflowed: 'sn__textOverflowed',
+    // hashtag: 'sn__textHashtag',
+    underline: 'sn__textUnderline',
+    strikethrough: 'sn__textStrikethrough',
+    underlineStrikethrough: 'sn__textUnderlineStrikethrough',
+    code: 'sn__code'
   }
 }
 

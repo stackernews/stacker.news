@@ -15,6 +15,7 @@ import MentionsPlugin from '../plugins/interop/mentions'
 import CustomAutoLinkPlugin, { URL_MATCHERS } from '../plugins/interop/autolink'
 import CodeShikiPlugin from '../plugins/codeshiki'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
+import classNames from 'classnames'
 
 export default function Editor ({ customNodes = [], context, placeholder, topLevel }) {
   const { values } = useFormikContext()
@@ -46,7 +47,7 @@ export default function Editor ({ customNodes = [], context, placeholder, topLev
           contentEditable={
             <div className={styles.editor}>
               <ContentEditable
-                className={styles.editorInput}
+                className={classNames(styles.editorInput, styles.text, topLevel && styles.topLevel)}
                 style={placeholder ? { '--placeholder': `"${placeholder}"` } : {}}
               />
             </div>

@@ -1,0 +1,142 @@
+.sn__paragraph {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sn__headings {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.sn__headings a {
+  text-decoration: none;
+  --bs-text-opacity: 1;
+  color: inherit !important;
+}
+
+/* blocks */
+.sn__quote {
+  border-left: 3px solid var(--theme-quoteBar);
+  padding-left: .75rem;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+}
+
+.sn__quote *:first-child {
+  padding-top: 0;
+}
+
+.sn__quote *:last-child {
+  padding-bottom: 0;
+}
+
+/* media */
+.sn__mediaContainer {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  overflow: hidden;
+  max-height: 25vh;
+  aspect-ratio: var(--aspect-ratio);
+  margin: 0;
+}
+
+.sn__mediaContainer img, .sn__mediaContainer video {
+  display: block;
+  object-fit: contain;
+  width: auto;
+  max-height: inherit;
+  height: 100%;
+  max-width: 100%;
+  aspect-ratio: var(--aspect-ratio);
+}
+
+.sn__image {
+  cursor: zoom-in;
+  min-width: 30%;
+  object-position: left top;
+}
+
+.sn__link {
+  color: var(--theme-link);
+  text-decoration: none;
+}
+
+.sn__mention {
+  color: var(--theme-link);
+  font-weight: bold;
+}
+
+.sn__mention[data-lexical-mention][data-mention-text]::before {
+  content: attr(data-mention-text);
+  pointer-events: none;
+}
+
+.sn__mention[data-lexical-mention]:has(> span)::before {
+  content: '' !important;
+}
+
+.sn__twitterContainer,
+.sn__nostrContainer,
+.sn__videoWrapper,
+.sn__wavlakeWrapper,
+.sn__spotifyWrapper {
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+  background-color: var(--theme-bg);
+}
+
+.sn__nestedListItem {
+  list-style-type: none;
+}
+
+.sn__listOl {
+  padding: 0;
+  margin: 0;
+}
+
+.sn__listUl {
+  padding: 0;
+  margin: 0;
+}
+
+.sn__listItem {
+  margin: 8px 16px 8px 16px;
+}
+
+.sn__textBold {
+  font-weight: bold;
+}
+
+.sn__textItalic {
+  font-style: italic;
+}
+
+.sn__textUnderline {
+  text-decoration: underline;
+}
+
+.sn__textStrikethrough {
+  text-decoration: line-through;
+}
+
+.sn__textUnderlineStrikethrough {
+  text-decoration: underline line-through;
+}
+
+/* inline */
+/* code TODO: get a better color scheme for light and dark mode */
+.sn__code {
+  font-family: Menlo, Consolas, Monaco, monospace;
+  margin: 0;
+  white-space: break-spaces;
+  background-color: var(--theme-commentBg) !important;
+  color: var(--theme-navLinkActive) !important;
+  border-radius: 0.3rem;
+  padding: 0.2em 0.4em;
+}

@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
 import {
-  useWalletsQuery, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey,
-  useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey,
-  useWalletLogger
+  useWalletsQuery, useGenerateRandomKey, useSetKey, useIsWrongKey, useWalletLogger, useDeleteOldDb
 } from '@/wallets/client/hooks'
 import { SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch, WALLETS_QUERY_ERROR, KEY_STORAGE_UNAVAILABLE } from '@/wallets/client/context'
 import { useIndexedDB } from '@/components/use-indexeddb'
@@ -43,8 +41,7 @@ export function useKeyInit () {
 
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
-  const loadKey = useLoadKey()
-  const loadOldKey = useLoadOldKey()
+  const deleteOldDb = useDeleteOldDb()
   const [db, setDb] = useState(null)
   const { open } = useIndexedDB()
 
@@ -73,13 +70,12 @@ export function useKeyInit () {
 
     async function keyInit () {
       try {
-        // TODO(wallet-v2): remove migration code
-        //   and delete the old IndexedDB after wallet v2 has been released for some time
+        // delete the old IndexedDB since wallet v2 has been released 2 months ago
+        await deleteOldDb()
 
-        // load old key and create random key before opening transaction in case we need them
+        // create random key before opening transaction in case we need it
         // because we can't run async code in a transaction because it will close the transaction
         // see https://javascript.info/indexeddb#transactions-autocommit
-        const oldKeyAndHash = await loadOldKey()
         const { key: randomKey, hash: randomHash } = await generateRandomKey()
 
         // run read and write in one transaction to avoid race conditions
@@ -97,12 +93,6 @@ export function useKeyInit () {
               // return key+hash found in db
               logger.debug('key init: key found in IndexedDB')
               return resolve(read.result)
-            }
-
-            if (oldKeyAndHash) {
-              // return key+hash found in old db
-              logger.debug('key init: key found in old IndexedDB')
-              return resolve(oldKeyAndHash)
             }
 
             // no key found, write and return generated random key
@@ -129,52 +119,19 @@ export function useKeyInit () {
       }
     }
     keyInit()
-  }, [me?.id, db, generateRandomKey, loadOldKey, setKey, loadKey, logger])
+  }, [me?.id, db, deleteOldDb, generateRandomKey, setKey, logger])
 }
 
-// TODO(wallet-v2): remove migration code
-// =============================================================
-// ****** Below is the migration code for WALLET v1 -> v2 ******
-//   remove when we can assume migration is complete (if ever)
-// =============================================================
-
-export function useWalletMigration () {
+export function useDeleteLocalWallets () {
   const { me } = useMe()
-  const { migrate: walletMigration, ready } = useWalletMigrationMutation()
 
   useEffect(() => {
-    if (!me?.id || !ready) return
+    if (!me?.id) return
 
-    async function migrate () {
-      const localWallets = Object.entries(window.localStorage)
-        .filter(([key]) => key.startsWith('wallet:'))
-        .filter(([key]) => key.split(':').length < 3 || key.endsWith(me.id))
-        .reduce((acc, [key, value]) => {
-          try {
-            const config = JSON.parse(value)
-            acc.push({ key, ...config })
-          } catch (err) {
-            console.error(`useLocalWallets: ${key}: invalid JSON:`, err)
-          }
-          return acc
-        }, [])
-
-      await Promise.allSettled(
-        localWallets.map(async ({ key, ...localWallet }) => {
-          const name = key.split(':')[1].toUpperCase()
-          try {
-            await walletMigration({ ...localWallet, name })
-            window.localStorage.removeItem(key)
-          } catch (err) {
-            if (err instanceof CryptoKeyRequiredError) {
-              // key not set yet, skip this wallet
-              return
-            }
-            console.error(`${name}: wallet migration failed:`, err)
-          }
-        })
-      )
-    }
-    migrate()
-  }, [ready, me?.id, walletMigration])
+    // we used to store wallets locally so this makes sure we delete them if there are any left over
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith('wallet:'))
+      .filter((key) => key.split(':').length < 3 || key.endsWith(me.id))
+      .forEach((key) => window.localStorage.removeItem(key))
+  }, [me?.id])
 }

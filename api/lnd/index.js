@@ -2,8 +2,6 @@ import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
-import { datePivot } from '@/lib/time'
-import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 
 const lnd = global.lnd || authenticatedLndGrpc({
   cert: process.env.LND_CERT,
@@ -183,8 +181,7 @@ export async function getPaymentOrNotSent ({ id, lnd, createdAt }) {
   try {
     return await getPayment({ id, lnd })
   } catch (err) {
-    if (err[1] === 'SentPaymentNotFound' &&
-      createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
+    if (err[1] === 'SentPaymentNotFound') {
       // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
       return { notSent: true, is_failed: true }
     } else {

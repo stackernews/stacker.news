@@ -52,9 +52,9 @@ export default function AccordianItem ({ header, body, className, headerColor = 
   )
 }
 
-export function AccordianCard ({ header, children, show }) {
+export function AccordianCard ({ header, children, show, className }) {
   return (
-    <Accordion defaultActiveKey={show ? '0' : undefined}>
+    <Accordion defaultActiveKey={show ? '0' : undefined} className={className}>
       <Accordion.Item eventKey='0'>
         <Accordion.Header>{header}</Accordion.Header>
         <Accordion.Body>

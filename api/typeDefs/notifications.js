@@ -55,10 +55,12 @@ export default gql`
     sortTime: Date!
   }
 
-  type Invoicification {
+  type PayInification {
     id: ID!
-    invoice: Invoice!
+    payIn: PayIn!
+    earnedSats: Int!
     sortTime: Date!
+    payInItem: Item
   }
 
   type JobChanged {
@@ -101,20 +103,6 @@ export default gql`
     earnedSats: Int!
     sortTime: Date!
     subName: String!
-  }
-
-  type InvoicePaid {
-    id: ID!
-    earnedSats: Int!
-    invoice: Invoice!
-    sortTime: Date!
-  }
-
-  type WithdrawlPaid {
-    id: ID!
-    earnedSats: Int!
-    sortTime: Date!
-    withdrawl: Withdrawl!
   }
 
   union ReferralSource = Item | Sub | User
@@ -176,9 +164,9 @@ export default gql`
   }
 
   union Notification = Reply | Votification | Mention
-    | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
+    | Invitification | Earn | JobChanged | Referral
     | FollowActivity | ForwardedVotification | Revenue | SubStatus
-    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
+    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | PayInification
     | ReferralReward | CowboyHat | NewHorse | LostHorse | NewGun | LostGun
 
   type Notifications {

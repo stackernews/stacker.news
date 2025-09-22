@@ -1,17 +1,23 @@
-export class InvoiceCanceledError extends Error {
-  constructor (invoice, actionError) {
-    super(actionError ?? `invoice canceled: ${invoice.hash}`)
-    this.name = 'InvoiceCanceledError'
+export class InvoiceError extends Error {
+  constructor (invoice, message) {
+    super(message)
+    this.name = 'InvoiceError'
     this.invoice = invoice
+  }
+}
+
+export class InvoiceCanceledError extends InvoiceError {
+  constructor (invoice, actionError) {
+    super(invoice, actionError ?? `invoice canceled: ${invoice?.hash}`)
+    this.name = 'InvoiceCanceledError'
     this.actionError = actionError
   }
 }
 
-export class InvoiceExpiredError extends Error {
+export class InvoiceExpiredError extends InvoiceError {
   constructor (invoice) {
-    super(`invoice expired: ${invoice.hash}`)
+    super(invoice, `invoice expired: ${invoice.hash}`)
     this.name = 'InvoiceExpiredError'
-    this.invoice = invoice
   }
 }
 

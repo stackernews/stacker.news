@@ -252,8 +252,8 @@ export const SET_WALLET_SETTINGS = gql`
 `
 
 export const ADD_WALLET_LOG = gql`
-  mutation AddWalletLog($protocolId: Int, $level: String!, $message: String!, $timestamp: Date!, $invoiceId: Int) {
-    addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, invoiceId: $invoiceId)
+  mutation AddWalletLog($protocolId: Int, $level: String!, $message: String!, $timestamp: Date!, $payInId: Int) {
+    addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, payInId: $payInId)
   }
 `
 

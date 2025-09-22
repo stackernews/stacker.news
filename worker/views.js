@@ -4,6 +4,7 @@ const viewPrefixes = ['reg_growth', 'spender_growth', 'item_growth', 'spending_g
   'stackers_growth', 'stacking_growth', 'user_stats', 'sub_stats']
 
 // this is intended to be run everyday after midnight CT
+// TODO: all of this needs to change for pay ins
 export async function views ({ data: { period } = { period: 'days' } }) {
   // grab a greedy connection
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
@@ -11,11 +12,9 @@ export async function views ({ data: { period } = { period: 'days' } }) {
   try {
     // these views are bespoke so we can't use the loop
     if (period === 'days') {
-      await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY user_values_days')
       await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY rewards_days')
     }
     if (period === 'hours') {
-      await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY user_values_today')
       await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY rewards_today')
     }
     for (const view of viewPrefixes) {

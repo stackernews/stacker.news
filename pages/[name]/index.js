@@ -15,7 +15,7 @@ import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { ItemButtonBar } from '@/components/post'
 import useItemSubmit from '@/components/use-item-submit'
-import { UPSERT_BIO } from '@/fragments/paidAction'
+import { UPSERT_BIO } from '@/fragments/payIn'
 
 export const getServerSideProps = getGetServerSideProps({
   query: USER_FULL,
@@ -25,7 +25,7 @@ export const getServerSideProps = getGetServerSideProps({
 export function BioForm ({ handleDone, bio, me }) {
   const onSubmit = useItemSubmit(UPSERT_BIO, {
     navigateOnSubmit: false,
-    paidMutationOptions: {
+    payInMutationOptions: {
       update (cache, { data: { upsertBio: { result, invoice } } }) {
         if (!result) return
 

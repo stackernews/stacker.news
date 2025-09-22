@@ -12,7 +12,7 @@ import { normalizeForwards } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
-import { UPSERT_DISCUSSION } from '@/fragments/paidAction'
+import { UPSERT_DISCUSSION } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 
 export function DiscussionForm ({

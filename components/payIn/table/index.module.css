@@ -1,0 +1,84 @@
+.table {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+}
+
+.row {
+  display: contents;
+}
+
+.row.skeleton > * {
+  height: 100px;
+}
+
+.row.header {
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--theme-mutedTextColor);
+  text-align: center;
+}
+
+.row.header > *:first-child {
+  text-align: left;
+}
+
+.row.header > *:last-child {
+  text-align: right;
+}
+
+.row:hover:not(.header) > * {
+  background-color: var(--theme-clickToContextColor);
+}
+
+.row > * {
+  padding: 10px 10px;
+}
+
+.row.failed > * {
+  opacity: 0.75;
+  background-color:rgba(255, 0, 0, 0.05);
+}
+
+.row.failed:hover > * {
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+.row.stacking:not(.failed) > * {
+  background-color:rgba(0, 255, 0, 0.05);
+}
+
+.row.stacking:not(.failed):hover > * {
+  background-color:rgba(0, 255, 0, 0.1);
+}
+
+.type {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0px;
+}
+
+.context {
+  display: flex;
+  align-items: center;
+}
+
+.money {
+  display: grid;
+  align-items: center;
+  text-align: right;
+  line-height: 1.1;
+}
+
+.money > * {
+  padding: .2rem 0;
+}
+
+.sats {
+  text-align: right;
+  display: grid;
+  align-items: center;
+}

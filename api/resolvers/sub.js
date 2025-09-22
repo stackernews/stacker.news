@@ -3,7 +3,7 @@ import { validateSchema, territorySchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
-import performPaidAction from '../paidAction'
+import pay from '../payIn'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
@@ -232,7 +232,7 @@ export default {
         return sub
       }
 
-      return await performPaidAction('TERRITORY_BILLING', { name }, { me, models, lnd })
+      return await pay('TERRITORY_BILLING', { name }, { me, models, lnd })
     },
     toggleMuteSub: async (parent, { name }, { me, models }) => {
       if (!me) {
@@ -323,7 +323,7 @@ export default {
         throw new GqlInputError('sub should not be archived')
       }
 
-      return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd })
+      return await pay('TERRITORY_UNARCHIVE', data, { me, models, lnd })
     }
   },
   Sub: {
@@ -363,7 +363,7 @@ export default {
 
 async function createSub (parent, data, { me, models, lnd }) {
   try {
-    return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd })
+    return await pay('TERRITORY_CREATE', data, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GqlInputError('name taken')
@@ -390,7 +390,7 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd }) {
   }
 
   try {
-    return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
+    return await pay('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GqlInputError('name taken')

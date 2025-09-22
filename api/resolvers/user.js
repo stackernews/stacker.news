@@ -4,9 +4,9 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
 import { viewGroup } from './growth'
-import { datePivot, timeUnitForRange, whenRange } from '@/lib/time'
+import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
@@ -418,45 +418,36 @@ export default {
       }
 
       if (user.noteDeposits) {
-        const invoice = await models.invoice.findFirst({
+        const proxyPayment = await models.payIn.findFirst({
           where: {
             userId: me.id,
-            confirmedAt: {
+            payInState: 'PAID',
+            payInStateChangedAt: {
               gt: lastChecked
             },
-            OR: [
-              {
-                isHeld: null,
-                actionType: null
-              },
-              {
-                actionType: 'RECEIVE',
-                actionState: 'PAID'
-              }
-            ]
+            payInType: 'PROXY_PAYMENT'
           }
         })
-        if (invoice) {
+        if (proxyPayment) {
           foundNotes()
           return true
         }
       }
 
       if (user.noteWithdrawals) {
-        const wdrwl = await models.withdrawl.findFirst({
+        const withdrawal = await models.payIn.findFirst({
           where: {
             userId: me.id,
-            status: 'CONFIRMED',
-            hash: {
-              not: null
-            },
-            updatedAt: {
+            payInState: 'PAID',
+            payInStateChangedAt: {
               gt: lastChecked
             },
-            invoiceForward: { is: null }
+            payInType: {
+              in: ['WITHDRAWAL', 'AUTO_WITHDRAWAL']
+            }
           }
         })
-        if (wdrwl) {
+        if (withdrawal) {
           foundNotes()
           return true
         }
@@ -536,55 +527,35 @@ export default {
         return true
       }
 
-      const invoiceActionFailed = await models.invoice.findFirst({
-        where: {
-          userId: me.id,
-          updatedAt: {
-            gt: lastChecked
-          },
-          actionType: {
-            in: INVOICE_ACTION_NOTIFICATION_TYPES
-          },
-          actionState: 'FAILED',
-          OR: [
-            {
-              paymentAttempt: {
-                gte: WALLET_MAX_RETRIES
-              }
-            },
-            {
-              userCancel: true
-            }
-          ]
-        }
-      })
+      const [invoiceActionFailed] = await models.$queryRaw`
+        SELECT EXISTS(
+          SELECT *
+          FROM "PayIn"
+          WHERE "PayIn"."payInState" = 'FAILED'
+          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."userId" = ${me.id}
+          AND "PayIn"."successorId" IS NULL
+          AND (
+            (
+              "PayIn"."payInFailureReason" = 'USER_CANCELLED'
+              AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp
+            )
+            OR (
+              "PayIn"."payInStateChangedAt" <= now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+              AND "PayIn"."payInStateChangedAt" + ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval > ${lastChecked}::timestamp
+            )
+            OR (
+              (
+                SELECT COUNT(*)
+                FROM "PayIn" sibling
+                WHERE "sibling"."genesisId" = "PayIn"."genesisId" OR "sibling"."id" = "PayIn"."genesisId"
+              ) >= ${WALLET_MAX_RETRIES}
+              AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp
+            )
+          )
+        )`
 
-      if (invoiceActionFailed) {
-        foundNotes()
-        return true
-      }
-
-      const invoiceActionFailed2 = await models.invoice.findFirst({
-        where: {
-          userId: me.id,
-          updatedAt: {
-            gt: datePivot(lastChecked, { milliseconds: -WALLET_RETRY_BEFORE_MS })
-          },
-          actionType: {
-            in: INVOICE_ACTION_NOTIFICATION_TYPES
-          },
-          actionState: 'FAILED',
-          paymentAttempt: {
-            lt: WALLET_MAX_RETRIES
-          },
-          userCancel: false,
-          cancelledAt: {
-            lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
-          }
-        }
-      })
-
-      if (invoiceActionFailed2) {
+      if (invoiceActionFailed.exists) {
         foundNotes()
         return true
       }
@@ -981,7 +952,14 @@ export default {
       const item = await models.item.findFirst({
         where: {
           userId: user.id,
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          itemPayIns: {
+            some: {
+              payIn: {
+                payInState: 'PAID',
+                payInType: 'ITEM_CREATE'
+              }
+            }
+          }
         },
         orderBy: {
           createdAt: 'asc'
@@ -1002,7 +980,14 @@ export default {
             gte,
             lte
           },
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          itemPayIns: {
+            some: {
+              payIn: {
+                payInState: 'PAID',
+                payInType: 'ITEM_CREATE'
+              }
+            }
+          }
         }
       })
     },
@@ -1020,7 +1005,14 @@ export default {
             gte,
             lte
           },
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          itemPayIns: {
+            some: {
+              payIn: {
+                payInState: 'PAID',
+                payInType: 'ITEM_CREATE'
+              }
+            }
+          }
         }
       })
     },
@@ -1038,7 +1030,14 @@ export default {
             gte,
             lte
           },
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          itemPayIns: {
+            some: {
+              payIn: {
+                payInState: 'PAID',
+                payInType: 'ITEM_CREATE'
+              }
+            }
+          }
         }
       })
     },

@@ -98,7 +98,7 @@ export function useProtocolForm (protocol) {
       value = complementaryFormState?.config?.[field.name]
     }
 
-    if (protocol.name === 'LN_ADDR' && field.name === 'address' && lud16Domain && value) {
+    if (protocol.name === 'LN_ADDR' && field.name === 'address' && lud16Domain) {
       // automatically set lightning addresses from NWC urls if lud16 parameter is present
       if (nwcSendFormState?.config?.url) {
         const { lud16 } = parseNwcUrl(nwcSendFormState.config.url)

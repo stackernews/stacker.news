@@ -1,5 +1,6 @@
 -- todo: we can do a better job of representing territory revenue in these migrations
 -- we're currently dumping it all into a rewards pool payoutcustodialtoken
+-- todotoo: poll vote is not finished
 
 -- there are also lots of tables and columns that could be the subject of deletion
 -- however, it's probably better to leave them in place just in case we make a mistake

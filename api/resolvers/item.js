@@ -112,7 +112,36 @@ export async function getItem (parent, { id }, { me, models }) {
         activeOrMine(me)
       )}`
   }, Number(id))
+
+  // migrate legacy content to the new lexical state in the background,
+  // the user will still see the old content via markdown until the job is done
+  if (!item.lexicalState || !item.html) {
+    await scheduleLegacyContentMigration({ itemId: Number(id), models })
+  }
+
   return item
+}
+
+async function scheduleLegacyContentMigration ({ itemId, models }) {
+  const alreadyScheduled = await models.$queryRaw`
+    SELECT 1
+    FROM pgboss.job
+    WHERE name = 'migrateLegacyContent' AND data->>'itemId' = ${itemId}::TEXT
+  `
+  if (alreadyScheduled.length > 0) return
+
+  // singleton job, so that we don't run the same job multiple times
+  // if on concurrent requests the check above fails
+  await models.$executeRaw`
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil, singletonKey)
+    VALUES ('migrateLegacyContent',
+            jsonb_build_object('itemId', ${itemId}::INTEGER),
+            21,
+            true,
+            now() + interval '15 seconds',
+            now() + interval '1 day',
+            'migrateLegacyContent:' || ${itemId}::TEXT)
+  `
 }
 
 export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { me, models }) {
@@ -1531,7 +1560,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   item.userId = old.userId
 
   // sanitize html
-  item.html = await ssrLexicalHTMLGenerator(item.lexicalState)
+  item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
   const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 
@@ -1565,7 +1594,7 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   item.apiKey = me?.apiKey
 
   // sanitize html
-  item.html = await ssrLexicalHTMLGenerator(item.lexicalState)
+  item.html = ssrLexicalHTMLGenerator(item.lexicalState)
 
   const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd })
 

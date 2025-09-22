@@ -44,7 +44,8 @@
         "name": "COINOS",
         "displayName": "Coinos",
         "image": "/wallets/coinos.svg",
-        "url": "https://coinos.io/"
+        "url": "https://coinos.io/",
+        "guide": "/items/1230105"
     },
     {
         "name": "PRIMAL",
@@ -71,7 +72,8 @@
         "name": "RIZFUL",
         "displayName": "Rizful",
         "image": "/wallets/rizful.png",
-        "url": "https://rizful.com/"
+        "url": "https://rizful.com/",
+        "guide": "https://docs.megalithic.me/using-rizful/use-stacker-news"
     },
     {
         "name": "SPEED",

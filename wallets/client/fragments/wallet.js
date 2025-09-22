@@ -113,6 +113,10 @@ const WALLET_PROTOCOL_FIELDS = gql`
         macaroon
         cert
       }
+      ... on WalletRecvClink {
+        id
+        noffer
+      }
     }
   }
 `

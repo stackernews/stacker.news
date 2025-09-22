@@ -102,6 +102,11 @@ const typeDefs = gql`
       ${shared}
     ): WalletSendWebLN!
 
+    upsertWalletRecvClink(
+      ${shared},
+      noffer: String!
+    ): WalletRecvClink!
+
     # tests
     testWalletRecvNWC(
       url: String!
@@ -136,6 +141,10 @@ const typeDefs = gql`
     testWalletRecvBlink(
       currency: String!
       apiKey: String!
+    ): Boolean!
+
+    testWalletRecvClink(
+      noffer: String!
     ): Boolean!
 
     # delete
@@ -212,6 +221,7 @@ const typeDefs = gql`
     | WalletRecvLightningAddress
     | WalletRecvCLNRest
     | WalletRecvLNDGRPC
+    | WalletRecvClink
 
   type WalletSettings {
     receiveCreditsBelowSats: Int!
@@ -312,6 +322,11 @@ const typeDefs = gql`
     socket: String!
     macaroon: String!
     cert: String
+  }
+
+  type WalletRecvClink {
+    id: ID!
+    noffer: String!
   }
 
   input AutowithdrawSettings {

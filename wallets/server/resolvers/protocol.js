@@ -9,6 +9,7 @@ import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { walletLogger } from '@/wallets/server/logger'
+import { WalletValidationError } from '@/wallets/client/errors'
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -65,6 +66,9 @@ export function testWalletProtocol (protocol) {
         WALLET_CREATE_INVOICE_TIMEOUT_MS
       )
     } catch (e) {
+      if (e instanceof WalletValidationError) {
+        throw new GqlInputError(e.message)
+      }
       throw new GqlInputError('failed to create invoice: ' + e.message)
     }
 

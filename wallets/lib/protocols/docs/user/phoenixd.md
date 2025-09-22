@@ -21,7 +21,6 @@ Requirements:
 
 see [official documentation](https://phoenix.acinq.co/server/get-started)
 
-
 By default, it binds to 127.0.0.1 on port 9740. To make it reachable from the internet, you need to pass `--http-bind.ip=0.0.0.0` or run a reverse proxy.
 
 You also need to enable Cross-Origin Resource Sharing (CORS) for sending.

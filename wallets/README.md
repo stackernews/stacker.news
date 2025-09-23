@@ -271,7 +271,7 @@ index 4f3cb9e2..c25c0fc8 100644
 <summary>Example</summary>
 
 ```diff
-commit 4fd125fcad91dc5bee31f076785c0b97337311a8
+commit 53f6de1e4380a3209bf0beba966b9592259f11de
 Author: ekzyis <ek@stacker.news>
 Date:   Tue Sep 23 07:41:47 2025 +0200
 
@@ -311,10 +311,10 @@ index 00000000..ef3209e6
 +
 +export async function testSendPayment (config, { signal }) {}
 diff --git a/wallets/lib/protocols/index.js b/wallets/lib/protocols/index.js
-index 5a944124..633659c5 100644
+index a999fb37..7812e23a 100644
 --- a/wallets/lib/protocols/index.js
 +++ b/wallets/lib/protocols/index.js
-@@ -8,6 +8,7 @@ import phoenixdSuite from './phoenixd'
+@@ -8,10 +8,11 @@ import phoenixdSuite from './phoenixd'
  import blinkSuite from './blink'
  import webln from './webln'
  import clink from './clink'
@@ -322,7 +322,12 @@ index 5a944124..633659c5 100644
 
  /**
   * Protocol names as used in the database
-@@ -47,5 +48,6 @@ export default [
+- * @typedef {'NWC'|'LNBITS'|'PHOENIXD'|'BLINK'|'WEBLN'|'LN_ADDR'|'LNC'|'CLN_REST'|'LND_GRPC'|'CLINK'} ProtocolName
++ * @typedef {'NWC'|'LNBITS'|'PHOENIXD'|'BLINK'|'WEBLN'|'LN_ADDR'|'LNC'|'CLN_REST'|'LND_GRPC'|'CLINK'|'SPARK'} ProtocolName
+  * @typedef {'text'|'password'} InputType
+  */
+
+@@ -49,5 +50,6 @@ export default [
    ...lnbitsSuite,
    ...blinkSuite,
    webln,
@@ -332,10 +337,10 @@ index 5a944124..633659c5 100644
  ]
 diff --git a/wallets/lib/protocols/spark.js b/wallets/lib/protocols/spark.js
 new file mode 100644
-index 00000000..b1b05608
+index 00000000..0c4ba2dd
 --- /dev/null
 +++ b/wallets/lib/protocols/spark.js
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,39 @@
 +import { bip39Validator, externalLightningAddressValidator } from '@/wallets/lib/validate'
 +
 +// Spark

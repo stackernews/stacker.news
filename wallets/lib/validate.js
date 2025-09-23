@@ -142,7 +142,7 @@ export const invoiceMacaroonValidator = () =>
       message: 'not an invoice macaroon or an invoicable macaroon'
     })
 
-export const bip39Validator = () =>
+export const bip39Validator = ({ min = 12, max = 24 } = {}) =>
   string()
     .test({
       name: 'bip39',
@@ -155,11 +155,11 @@ export const bip39Validator = () =>
             return context.createError({ message: `'${w}' is not a valid pairing phrase word` })
           }
         }
-        if (words.length < 2) {
-          return context.createError({ message: 'needs at least two words' })
+        if (words.length < min) {
+          return context.createError({ message: `needs at least ${min} words` })
         }
-        if (words.length > 10) {
-          return context.createError({ message: 'max 10 words' })
+        if (words.length > max) {
+          return context.createError({ message: `max ${max} words` })
         }
         return true
       }

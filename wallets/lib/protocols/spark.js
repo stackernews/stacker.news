@@ -1,8 +1,10 @@
 import { bip39Validator, externalLightningAddressValidator } from '@/wallets/lib/validate'
+import { generateRandomPassphrase } from '@/wallets/lib/crypto'
 
 // Spark
 // https://github.com/breez/spark-sdk
 // https://sdk-doc-spark.breez.technology/
+// https://breez.github.io/spark-sdk/breez_sdk_spark/
 
 export default [
   {
@@ -16,7 +18,9 @@ export default [
         type: 'password',
         required: true,
         validate: bip39Validator(),
-        encrypt: true
+        encrypt: true,
+        initial: generateRandomPassphrase,
+        disabled: true
       }
     ],
     relationName: 'walletSendSpark'

@@ -171,6 +171,9 @@
     },
     {
         "name": "SPARK",
-        "displayName": "Spark"
+        "displayName": "Spark",
+        "url": {
+            "lud16Domain": "breez.tips"
+        }
     }
 ]

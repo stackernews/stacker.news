@@ -8,7 +8,7 @@ import phoenixdSuite from './phoenixd'
 import blinkSuite from './blink'
 import webln from './webln'
 import clinkSuite from './clink'
-import sparkSuite from './spark'
+import spark from './spark'
 
 /**
  * Protocol names as used in the database
@@ -51,5 +51,5 @@ export default [
   ...blinkSuite,
   webln,
   ...clinkSuite,
-  ...sparkSuite
+  spark
 ]

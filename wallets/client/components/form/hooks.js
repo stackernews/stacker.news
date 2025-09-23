@@ -94,6 +94,10 @@ export function useProtocolForm (protocol) {
     // after init, we use formState as the source of truth everywhere
     let value = formState?.config?.[field.name] ?? protocol.config?.[field.name]
 
+    if (!value && field.initial) {
+      value = typeof field.initial === 'function' ? field.initial() : field.initial
+    }
+
     if (!value && field.share) {
       value = complementaryFormState?.config?.[field.name]
     }

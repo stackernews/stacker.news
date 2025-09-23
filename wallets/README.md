@@ -259,6 +259,7 @@ index 4f3cb9e2..c25c0fc8 100644
 
 - add file to [wallets/lib/protocols](/wallets/lib/protocols) (see [JSDoc](/wallets/lib/protocols/index.js) for details)
 - import in index.js file and add to default export
+- update JSDoc in index.js by adding the name to `ProtocolName`
 
 **2.2 Add protocol method file**
 

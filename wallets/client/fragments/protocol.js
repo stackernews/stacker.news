@@ -279,20 +279,6 @@ export const UPSERT_WALLET_SEND_SPARK = gql`
   }
 `
 
-export const UPSERT_WALLET_RECEIVE_SPARK = gql`
-  mutation upsertWalletRecvSpark(
-    ${shared.variables},
-    $address: String!
-  ) {
-    upsertWalletRecvSpark(
-      ${shared.arguments},
-      address: $address
-    ) {
-      id
-    }
-  }
-`
-
 // tests
 
 export const TEST_WALLET_RECEIVE_NWC = gql`
@@ -340,11 +326,5 @@ export const TEST_WALLET_RECEIVE_BLINK = gql`
 export const TEST_WALLET_RECEIVE_CLINK = gql`
   mutation testWalletRecvClink($noffer: String!) {
     testWalletRecvClink(noffer: $noffer)
-  }
-`
-
-export const TEST_WALLET_RECEIVE_SPARK = gql`
-  mutation testWalletRecvSpark($address: String!) {
-    testWalletRecvSpark(address: $address)
   }
 `

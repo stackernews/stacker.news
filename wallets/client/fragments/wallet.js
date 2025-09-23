@@ -132,10 +132,6 @@ const WALLET_PROTOCOL_FIELDS = gql`
         id
         noffer
       }
-      ... on WalletRecvSpark {
-        id
-        address
-      }
     }
   }
 `

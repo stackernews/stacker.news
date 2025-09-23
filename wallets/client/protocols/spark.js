@@ -1,4 +1,6 @@
 import init, { defaultConfig, connect } from '@breeztech/breez-sdk-spark'
+import { WalletValidationError } from '@/wallets/client/errors'
+import { getUsername } from '@/wallets/lib/protocols/spark'
 
 export const name = 'SPARK'
 
@@ -23,5 +25,22 @@ export async function testSendPayment ({ mnemonic }, { signal }) {
 
   await sdk.getInfo({})
 
+  const { paymentRequest: sparkAddress } = await sdk.receivePayment({
+    // this will always return the same spark address for the same seed
+    paymentMethod: { type: 'sparkAddress' }
+  })
+
+  // check and register lightning address here so we can test it in the next step
+  // https://sdk-doc-spark.breez.technology/guide/receive_lnurl_pay.html
+  const username = getUsername(sparkAddress)
+  const available = await sdk.checkLightningAddressAvailable({ username })
+  if (!available) {
+    // TODO(spark): better error message for user? but this should never happen with randomly generated mnemonics, right?
+    throw new WalletValidationError('lightning address unavailable')
+  }
+  await sdk.registerLightningAddress({ username, description: 'Running Spark SDK' })
+
   sdk.disconnect()
+
+  return { username }
 }

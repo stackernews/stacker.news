@@ -172,6 +172,7 @@
     {
         "name": "SPARK",
         "displayName": "Spark",
+        "image": "/wallets/spark.svg",
         "url": {
             "lud16Domain": "breez.tips"
         }

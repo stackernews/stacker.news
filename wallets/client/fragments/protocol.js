@@ -235,6 +235,22 @@ export const UPSERT_WALLET_SEND_WEBLN = gql`
   }
 `
 
+export const UPSERT_WALLET_SEND_CLINK = gql`
+  mutation upsertWalletSendClink(
+    ${shared.variables},
+    $ndebit: VaultEntryInput!,
+    $secretKey: VaultEntryInput!
+  ) {
+    upsertWalletSendClink(
+      ${shared.arguments},
+      ndebit: $ndebit,
+      secretKey: $secretKey
+    ) {
+      id
+    }
+  }
+`
+
 export const UPSERT_WALLET_RECEIVE_CLINK = gql`
   mutation upsertWalletRecvClink(
     ${shared.variables},

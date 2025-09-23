@@ -78,6 +78,15 @@ const WALLET_PROTOCOL_FIELDS = gql`
           ...VaultEntryFields
         }
       }
+      ... on WalletSendClink {
+        id
+        encryptedNdebit: ndebit {
+          ...VaultEntryFields
+        }
+        encryptedSecretKey: secretKey {
+          ...VaultEntryFields
+        }
+      }
       ... on WalletRecvNWC {
         id
         url

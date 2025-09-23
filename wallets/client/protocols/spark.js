@@ -23,8 +23,6 @@ export async function testSendPayment ({ mnemonic }, { signal }) {
     storageDir: 'breez-sdk-spark'
   })
 
-  await sdk.getInfo({})
-
   const { paymentRequest: sparkAddress } = await sdk.receivePayment({
     // this will always return the same spark address for the same seed
     paymentMethod: { type: 'sparkAddress' }

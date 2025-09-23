@@ -23,8 +23,6 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onConfirm
       ? new window.Image()
       : document.createElement('video')
 
-    file = await removeExifData(file)
-
     return new Promise((resolve, reject) => {
       async function onload () {
         onUpload?.(file)
@@ -110,23 +108,35 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onConfirm
         accept={accept.join(', ')}
         onChange={async (e) => {
           const fileList = e.target.files
-          if (onConfirm) await onConfirm?.(Array.from(fileList))
-          for (const file of Array.from(fileList)) {
+          // remove files that are not allowed and alert the user
+          const filteredFiles = Array.from(fileList).filter((file) => {
+            if (!accept.includes(file.type)) {
+              toaster.danger(`file must be ${accept.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
+              return false
+            }
+            if (file.type === 'video/quicktime') {
+              toaster.danger(`upload of '${file.name}' failed: codec might not be supported, check video settings`)
+              return false
+            }
+            return true
+          })
+          // remove exif data from the remaining files
+          const cleanedFiles = await Promise.all(filteredFiles.map(async (file) => {
+            return await removeExifData(file)
+          }))
+          if (onConfirm && cleanedFiles.length > 0) await onConfirm?.(cleanedFiles)
+
+          const uploadPromises = cleanedFiles.map(async (file) => {
             try {
-              if (accept.indexOf(file.type) === -1) {
-                throw new Error(`file must be ${accept.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
-              }
               if (onSelect) await onSelect?.(file, s3Upload)
               else await s3Upload(file)
             } catch (e) {
-              if (file.type === 'video/quicktime') {
-                toaster.danger(`upload of '${file.name}' failed: codec might not be supported, check video settings`)
-              } else {
-                toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
-              }
-              continue
+              toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
             }
-          }
+          })
+          // upload files concurrently
+          await Promise.allSettled(uploadPromises)
+
           // reset file input
           // see https://bobbyhadz.com/blog/react-reset-file-input#reset-a-file-input-in-react
           e.target.value = null

@@ -8,7 +8,8 @@ import { useFeeButton } from '@/components/fee-button'
 // import { useLazyQuery } from '@apollo/client'
 // import { gql } from 'graphql-tag'
 // import { numWithUnits } from '@/lib/format'
-import { $createMediaOrLinkNode } from '@/lib/lexical/nodes/mediaorlink'
+// import { $createMediaOrLinkNode } from '@/lib/lexical/nodes/mediaorlink'
+import { $createImageNode } from '@/lib/lexical/nodes/media/imagenode'
 const INSERT_FILES_COMMAND = createCommand()
 
 export default function FileUploadPlugin () {
@@ -55,7 +56,7 @@ export default function FileUploadPlugin () {
     return editor.registerCommand(INSERT_FILES_COMMAND, (files) => {
       editor.update(() => {
         // create node
-        const nodes = files.map(file => $createMediaOrLinkNode({ src: file.url, rel: 'noopener noreferrer', name: file.name }))
+        const nodes = files.map(file => $createImageNode({ src: file.url }))
         $insertNodes(nodes)
       })
       return true
@@ -85,7 +86,6 @@ export default function FileUploadPlugin () {
           setSubmitDisabled?.(true)
         }}
         onProgress={({ file, loaded, total }) => {
-          console.log('onProgress', file, loaded, total)
           const key = placeholdersRef.current.get(file)
           if (!key) return
           editor.update(() => {
@@ -101,7 +101,7 @@ export default function FileUploadPlugin () {
           editor.update(() => {
             const node = $getNodeByKey(key)
             placeholdersRef.current.delete(file)
-            const nodes = [$createMediaOrLinkNode({ src: url, rel: 'noopener noreferrer', name })]
+            const nodes = [$createImageNode({ src: url })]
             nodes.forEach(mediaNode => node.replace(mediaNode))
           })
 

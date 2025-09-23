@@ -17,8 +17,9 @@ import CodeShikiPlugin from '../plugins/codeshiki'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
 import classNames from 'classnames'
 import AutofocusPlugin from '../plugins/autofocus'
+import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/lexical/contexts/sharedhistorycontext'
 
-export default function Editor ({ customNodes = [], name, placeholder, autoFocus, maxLength, topLevel }) {
+export default function Editor ({ customNodes = [], ...props }) {
   const { values } = useFormikContext()
 
   const initialConfig = {
@@ -34,13 +35,24 @@ export default function Editor ({ customNodes = [], name, placeholder, autoFocus
       console.error(error)
     },
     theme: {
-      ...theme,
-      topLevel: topLevel || false // not the correct way to do this
+      ...theme
     }
   }
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
+      <SharedHistoryContextProvider>
+        <EditorContent {...props} />
+      </SharedHistoryContextProvider>
+    </LexicalComposer>
+  )
+}
+
+function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
+  const { historyState } = useSharedHistoryContext()
+
+  return (
+    <>
       {/* TODO: Toolbar context */}
       <div className={styles.editorContainer}>
         <ToolbarPlugin />
@@ -61,10 +73,10 @@ export default function Editor ({ customNodes = [], name, placeholder, autoFocus
         <MentionsPlugin />
         <CustomAutoLinkPlugin />
         <CodeShikiPlugin />
-        <HistoryPlugin />
+        <HistoryPlugin externalHistoryState={historyState} />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <OnChangePlugin name={name} />
       </div>
-    </LexicalComposer>
+    </>
   )
 }

@@ -3,7 +3,7 @@
   border: 0px;
   resize: none;
   cursor: text;
-  caret-color: rgb(5, 5, 5);
+  background-color: transparent !important;
   display: block;
   position: relative;
   outline: 0px;
@@ -18,15 +18,14 @@
 .imageCaptionContainer {
   display: block;
   position: absolute;
-  bottom: 4px;
+  bottom: 0;
   left: 0;
   right: 0;
   padding: 0;
   margin: 0;
-  border-top: 1px solid #fff;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(0, 0, 0, .5) !important;
   min-width: 100px;
-  color: #000;
+  color: #fff !important;
   overflow: hidden;
 }
 
@@ -53,14 +52,92 @@
 }
 
 .loadError {
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   background-color: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  color: #fff !important;
+  border-radius: .4rem;
   text-align: center;
   padding: 10px;
+}
+
+.loadErrorLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loadErrorLink:hover {
+  text-decoration: none;
+}
+
+.loadError span {
+  color: inherit !important;
+}
+
+.loadError svg {
+  fill: #fff !important;
+}
+
+.imageControlWrapperResizing {
+  touch-action: none;
+}
+
+.imageResizer {
+  display: block;
+  width: 7px;
+  height: 7px;
+  position: absolute;
+  background-color: rgb(60, 132, 244);
+  border: 1px solid #fff;
+}
+
+.imageResizer.imageResizerN {
+  top: -6px;
+  left: 48%;
+  cursor: n-resize;
+}
+
+.imageResizer.imageResizerNe {
+  top: -6px;
+  right: -6px;
+  cursor: ne-resize;
+}
+
+.imageResizer.imageResizerE {
+  bottom: 48%;
+  right: -6px;
+  cursor: e-resize;
+}
+
+.imageResizer.imageResizerSe {
+  bottom: -2px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+.imageResizer.imageResizerS {
+  bottom: -2px;
+  left: 48%;
+  cursor: s-resize;
+}
+
+.imageResizer.imageResizerSw {
+  bottom: -2px;
+  left: -6px;
+  cursor: sw-resize;
+}
+
+.imageResizer.imageResizerW {
+  bottom: 48%;
+  left: -6px;
+  cursor: w-resize;
+}
+
+.imageResizer.imageResizerNw {
+  top: -6px;
+  left: -6px;
+  cursor: nw-resize;
 }

@@ -448,17 +448,11 @@ a:hover {
 }
 
 select,
-div[contenteditable],
+div[contenteditable]:not([data-lexical-editor]),
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
   border-color: var(--theme-borderColor);
-}
-
-div[contenteditable="false"] {
-  background-color: var(--theme-body) !important;
-  color: var(--bs-body-color) !important;
-  border-color: var(--theme-borderColor) !important;
 }
 
 .form-group {
@@ -496,7 +490,7 @@ select:focus {
 }
 
 
-div[contenteditable]:focus,
+div[contenteditable]:not([data-lexical-editor]):focus,
 .form-control:focus {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -504,7 +498,7 @@ div[contenteditable]:focus,
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
-div[contenteditable]:disabled,
+div[contenteditable]:not([data-lexical-editor]):disabled,
 .form-control:disabled,
 .form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
@@ -638,8 +632,8 @@ footer {
   textarea,
   .form-control,
   .form-control:focus,
-  div[contenteditable],
-  div[contenteditable]:focus,
+  div[contenteditable]:not([data-lexical-editor]),
+  div[contenteditable]:not([data-lexical-editor]):focus,
   .input-group-text {
     font-size: 1rem !important;
   }
@@ -652,7 +646,7 @@ footer {
 }
 
 textarea.form-control,
-div[contenteditable] {
+div[contenteditable]:not([data-lexical-editor]) {
   line-height: 1rem;
 }
 

@@ -1,4 +1,5 @@
 import bip39Words from '@/lib/bip39-words'
+import * as bip39 from 'bip39'
 
 export async function deriveKey (passphrase, salt) {
   const enc = new TextEncoder()
@@ -77,7 +78,5 @@ export async function decrypt (key, { iv, value }) {
 }
 
 export function generateRandomPassphrase () {
-  const rand = new Uint32Array(12)
-  window.crypto.getRandomValues(rand)
-  return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
+  return bip39.generateMnemonic(128, null, bip39Words)
 }

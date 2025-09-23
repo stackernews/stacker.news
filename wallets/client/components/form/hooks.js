@@ -84,8 +84,11 @@ function useProtocolFormState (protocol) {
 
 export function useProtocolForm (protocol) {
   const [formState, setFormState] = useProtocolFormState(protocol)
+
   const [complementaryFormState] = useProtocolFormState({ name: protocol.name, send: !protocol.send })
   const [nwcSendFormState] = useProtocolFormState({ name: 'NWC', send: true })
+  const [sparkFormState] = useProtocolFormState({ name: 'SPARK', send: true })
+
   const wallet = useWallet()
   const lud16Domain = walletLud16Domain(wallet.name)
   const fields = protocolFields(protocol)
@@ -94,19 +97,29 @@ export function useProtocolForm (protocol) {
     // after init, we use formState as the source of truth everywhere
     let value = formState?.config?.[field.name] ?? protocol.config?.[field.name]
 
+    if (!value && field.initial) {
+      value = typeof field.initial === 'function' ? field.initial() : field.initial
+    }
+
     if (!value && field.share) {
       value = complementaryFormState?.config?.[field.name]
     }
 
     if (protocol.name === 'LN_ADDR' && field.name === 'address' && lud16Domain) {
-      // automatically set lightning addresses from NWC urls if lud16 parameter is present
       if (nwcSendFormState?.config?.url) {
+        // automatically set lightning addresses from NWC urls if lud16 parameter is present ...
         const { lud16 } = parseNwcUrl(nwcSendFormState.config.url)
         if (lud16?.split('@')[1] === lud16Domain) value = lud16
       }
       // remove domain part since we will append it automatically if lud16Domain is set
       if (lud16Domain && value) {
         value = value.split('@')[0]
+      }
+    }
+
+    if (protocol.name === 'SPARK' && field.name === 'identityPublicKey') {
+      if (sparkFormState?.config?.identityPublicKey) {
+        value = sparkFormState.config.identityPublicKey
       }
     }
 

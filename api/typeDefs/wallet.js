@@ -102,6 +102,12 @@ const typeDefs = gql`
       ${shared}
     ): WalletSendWebLN!
 
+    upsertWalletSendClink(
+      ${shared},
+      ndebit: VaultEntryInput!
+      secretKey: VaultEntryInput!
+    ): WalletSendClink!
+
     upsertWalletRecvClink(
       ${shared},
       noffer: String!
@@ -214,6 +220,7 @@ const typeDefs = gql`
     | WalletSendWebLN
     | WalletSendLNC
     | WalletSendCLNRest
+    | WalletSendClink
     | WalletRecvNWC
     | WalletRecvLNbits
     | WalletRecvPhoenixd
@@ -280,6 +287,12 @@ const typeDefs = gql`
     id: ID!
     socket: String!
     rune: VaultEntry!
+  }
+
+  type WalletSendClink {
+    id: ID!
+    ndebit: VaultEntry!
+    secretKey: VaultEntry!
   }
 
   type WalletRecvNWC {

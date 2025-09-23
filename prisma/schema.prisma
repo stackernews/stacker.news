@@ -225,6 +225,8 @@ model Vault {
   walletSendLNCRemoteKey     WalletSendLNC?      @relation("lncRemoteKey")
   walletSendLNCServerHost    WalletSendLNC?      @relation("lncServerHost")
   walletSendCLNRestRune      WalletSendCLNRest?  @relation("clnRune")
+  walletSendClink            WalletSendClink?    @relation("clinkNdebit")
+  walletSendClinkSecretKey   WalletSendClink?    @relation("clinkSecretKey")
 }
 
 model WalletLog {
@@ -1248,6 +1250,7 @@ enum WalletSendProtocolName {
   WEBLN
   LNC
   CLN_REST
+  CLINK
 }
 
 enum WalletRecvProtocolName {
@@ -1351,6 +1354,7 @@ model WalletProtocol {
   walletSendWebLN    WalletSendWebLN?
   walletSendLNC      WalletSendLNC?
   walletSendCLNRest  WalletSendCLNRest?
+  walletSendClink    WalletSendClink?
 
   walletRecvNWC              WalletRecvNWC?
   walletRecvLNbits           WalletRecvLNbits?
@@ -1444,6 +1448,18 @@ model WalletSendCLNRest {
   socket      String
   runeVaultId Int            @unique
   rune        Vault?         @relation("clnRune", fields: [runeVaultId], references: [id])
+}
+
+model WalletSendClink {
+  id               Int            @id @default(autoincrement())
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId       Int            @unique
+  protocol         WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  ndebitVaultId    Int            @unique
+  ndebit           Vault?         @relation("clinkNdebit", fields: [ndebitVaultId], references: [id])
+  secretKeyVaultId Int            @unique
+  secretKey        Vault?         @relation("clinkSecretKey", fields: [secretKeyVaultId], references: [id])
 }
 
 model WalletRecvNWC {

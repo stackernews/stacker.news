@@ -1,7 +1,7 @@
-import { Form } from '@/components/form'
+import { Form, LexicalInput } from '@/components/form'
 import styles from './reply.module.css'
 import { useMe } from './me'
-import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useMemo } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentSchema } from '@/lib/validate'
 import { ItemButtonBar } from './post'
@@ -13,7 +13,6 @@ import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
-import Editor from '@/lexical/editor'
 
 export default forwardRef(function Reply ({
   item,
@@ -26,7 +25,6 @@ export default forwardRef(function Reply ({
   const [reply, setReply] = useState(replyOpen || quote)
   const { me } = useMe()
   const parentId = item.id
-  const replyInput = useRef(null)
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
@@ -76,10 +74,6 @@ export default forwardRef(function Reply ({
     },
     navigateOnSubmit: false
   })
-
-  useEffect(() => {
-    if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
-  }, [reply])
 
   const onCancel = useCallback(() => {
     window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
@@ -143,7 +137,7 @@ export default forwardRef(function Reply ({
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <Editor context='text' placeholder={placeholder} />
+              <LexicalInput name='text' placeholder={placeholder} autoFocus={reply && !replyOpen} />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>
           </FeeButtonProvider>

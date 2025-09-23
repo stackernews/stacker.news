@@ -5,13 +5,15 @@
   font-family: inherit;
   word-break: break-word;
   overflow-y: hidden;
+  overflow-x: hidden;
   position: relative;
-  max-height: 200vh;
+  max-height: 25vh;
   background-color: var(--theme-body) !important;
   --grid-gap: 0.5rem;
 }
 
 .text.topLevel {
+  max-height: 200vh;
   --grid-gap: 0.75rem;
 }
 

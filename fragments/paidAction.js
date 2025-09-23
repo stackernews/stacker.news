@@ -234,7 +234,7 @@ export const POLL_VOTE = gql`
 export const UPSERT_BIO = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertBio($text: String!, $lexicalState: String) {
+  mutation upsertBio($text: String!, $lexicalState: String!) {
     upsertBio(text: $text, lexicalState: $lexicalState) {
       ...ItemPaidActionFields
       ...PaidActionFields
@@ -263,10 +263,10 @@ export const UPDATE_COMMENT = gql`
 
 export const UPSERT_SUB = gql`
   ${PAID_ACTION}
-  mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
+  mutation upsertSub($oldName: String, $name: String!, $desc: String, $lexicalState: String, $baseCost: Int!,
     $replyCost: Int!, $postTypes: [String!]!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
-      upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
+      upsertSub(oldName: $oldName, name: $name, desc: $desc, lexicalState: $lexicalState, baseCost: $baseCost,
         replyCost: $replyCost, postTypes: $postTypes, billingType: $billingType,
         billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       result {
@@ -278,10 +278,10 @@ export const UPSERT_SUB = gql`
 
 export const UNARCHIVE_TERRITORY = gql`
   ${PAID_ACTION}
-  mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
+  mutation unarchiveTerritory($name: String!, $desc: String, $lexicalState: String, $baseCost: Int!,
     $replyCost: Int!, $postTypes: [String!]!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
-      unarchiveTerritory(name: $name, desc: $desc, baseCost: $baseCost,
+      unarchiveTerritory(name: $name, desc: $desc, lexicalState: $lexicalState, baseCost: $baseCost,
         replyCost: $replyCost, postTypes: $postTypes, billingType: $billingType,
         billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       result {

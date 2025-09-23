@@ -5,7 +5,7 @@ import Button from 'react-bootstrap/Button'
 import styles from '@/styles/user.module.css'
 import { useState } from 'react'
 import ItemFull from '@/components/item-full'
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, LexicalInput } from '@/components/form'
 import { useMe } from '@/components/me'
 import { USER_FULL } from '@/fragments/users'
 import { getGetServerSideProps } from '@/api/ssrApollo'
@@ -33,7 +33,7 @@ export function BioForm ({ handleDone, bio, me }) {
           id: `User:${me.id}`,
           fields: {
             bio () {
-              return result.text
+              return { text: result.text, lexicalState: result.lexicalState, html: result.html }
             }
           }
         })
@@ -49,17 +49,19 @@ export function BioForm ({ handleDone, bio, me }) {
       <FeeButtonProvider>
         <Form
           initial={{
-            text: bio?.text || ''
+            text: bio?.text || '',
+            lexicalState: bio?.lexicalState || ''
           }}
           schema={bioSchema}
           onSubmit={onSubmit}
           storageKeyPrefix={`bio-${me.id}`}
         >
-          <MarkdownInput
+          <LexicalInput name='text' topLevel />
+          {/* <MarkdownInput
             topLevel
             name='text'
             minRows={6}
-          />
+          /> */}
           <ItemButtonBar createText='save' onCancel={handleDone} />
         </Form>
       </FeeButtonProvider>

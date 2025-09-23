@@ -49,7 +49,7 @@
 }
 
 .textUncontained {
-    max-height: none;
+    max-height: none !important;
 }
 
 .textContained::before {

@@ -1,4 +1,4 @@
-import { Form, Input } from '@/components/form'
+import { Form, Input, LexicalInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 // import Countdown from './countdown'
@@ -14,7 +14,6 @@ import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import { UPSERT_DISCUSSION } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
-import Editor from '@/lexical/editor'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -72,7 +71,7 @@ export function DiscussionForm ({
         }}
         maxLength={MAX_TITLE_LENGTH}
       />
-      <Editor context='text' topLevel />
+      <LexicalInput name='text' label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>} topLevel />
       {/* <MarkdownInput
         topLevel
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}

@@ -10,6 +10,7 @@ const theme = {
   },
   quote: 'sn__quote',
   image: 'sn__image',
+  mediaContainer: 'sn__mediaContainer',
   link: 'sn__link',
   code: 'sn__code',
   mention: 'sn__mention',

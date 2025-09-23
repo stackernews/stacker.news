@@ -16,8 +16,9 @@ import CustomAutoLinkPlugin, { URL_MATCHERS } from '../plugins/interop/autolink'
 import CodeShikiPlugin from '../plugins/codeshiki'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
 import classNames from 'classnames'
+import AutofocusPlugin from '../plugins/autofocus'
 
-export default function Editor ({ customNodes = [], context, placeholder, topLevel }) {
+export default function Editor ({ customNodes = [], name, placeholder, autoFocus, maxLength, topLevel }) {
   const { values } = useFormikContext()
 
   const initialConfig = {
@@ -54,6 +55,7 @@ export default function Editor ({ customNodes = [], context, placeholder, topLev
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
+        {autoFocus && <AutofocusPlugin />}
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         <AutoLinkPlugin matchers={URL_MATCHERS} />
         <MentionsPlugin />
@@ -61,7 +63,7 @@ export default function Editor ({ customNodes = [], context, placeholder, topLev
         <CodeShikiPlugin />
         <HistoryPlugin />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
-        <OnChangePlugin context={context} />
+        <OnChangePlugin name={name} />
       </div>
     </LexicalComposer>
   )

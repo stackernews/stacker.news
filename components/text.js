@@ -82,7 +82,10 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
     if (!container || overflowing) return
 
     function checkOverflow () {
-      setOverflowing(container.scrollHeight > window.innerHeight * 2)
+      // support for topLevel and non-topLevel
+      // wip and barely working and a hack
+      const height = topLevel ? window.innerHeight * 2 : window.innerHeight / 2
+      setOverflowing(container.scrollHeight > height)
     }
 
     let resizeObserver
@@ -105,7 +108,28 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
         // html is a 1:1 DOMPurified copy of the lexicalState without React components
         // its job right now is to avoid the initial render delay of the LexicalReader
         // which is client-side only, this also ensures SEO compatibility
-        ? <div className={classNames(lexicalStyles.text, topLevel && lexicalStyles.topLevel)} dangerouslySetInnerHTML={{ __html: html }} />
+        ? (
+          <div
+            className={classNames(
+              lexicalStyles.text,
+              topLevel && lexicalStyles.topLevel,
+              show ? lexicalStyles.textUncontained : overflowing && lexicalStyles.textContained
+            )}
+            ref={containerRef}
+          >
+            <div dangerouslySetInnerHTML={{ __html: html }} />
+            {overflowing && !show && (
+              <Button
+                size='lg'
+                variant='info'
+                className={styles.textShowFull}
+                onClick={showOverflow}
+              >
+                show full text
+              </Button>
+            )}
+          </div>
+          )
         : (
           <Reader
             className={classNames(

@@ -1,11 +1,10 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, LexicalInput, MarkdownInput } from '@/components/form'
 import styles from './reply.module.css'
 import { commentSchema } from '@/lib/validate'
 import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
 import { UPDATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
-import Editor from '@/lexical/editor'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
@@ -47,7 +46,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           onSubmit={onSubmit}
         >
           {comment.lexicalState
-            ? <Editor context='text' />
+            ? <LexicalInput name='text' autoFocus />
             : (
               <MarkdownInput
                 name='text'

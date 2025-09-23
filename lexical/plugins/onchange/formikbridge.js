@@ -41,7 +41,10 @@ export default function FormikBridgePlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
-          editor.setEditorState(editor.parseEditorState(value))
+          const state = editor.parseEditorState(value)
+          if (!state.isEmpty()) {
+            editor.setEditorState(state)
+          }
         })
         setFieldValue(name, value)
       }
@@ -50,11 +53,11 @@ export default function FormikBridgePlugin ({ name }) {
 
   useEffect(() => {
     // probably we need to debounce this
+    // holy shit this is a mess
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
         const lexicalState = editorState.toJSON()
         setFieldValue('lexicalState', JSON.stringify(lexicalState))
-        onChangeInner(JSON.stringify(lexicalState))
         const root = $getRoot()
         const firstChild = root.getFirstChild()
         let markdown = ''
@@ -72,6 +75,7 @@ export default function FormikBridgePlugin ({ name }) {
           }
         }
         if (values.text === markdown) return
+        onChangeInner(JSON.stringify(lexicalState))
         setFieldValue('text', markdown)
       })
     })

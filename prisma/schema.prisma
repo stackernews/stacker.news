@@ -1241,7 +1241,6 @@ enum WalletRecvProtocolName {
   CLN_REST
   LND_GRPC
   CLINK
-  SPARK
 }
 
 enum WalletProtocolStatus {
@@ -1346,7 +1345,6 @@ model WalletProtocol {
   walletRecvCLNRest          WalletRecvCLNRest?
   walletRecvLNDGRPC          WalletRecvLNDGRPC?
   walletRecvClink            WalletRecvClink?
-  walletRecvSpark            WalletRecvSpark?
 
   @@unique(name: "WalletProtocol_walletId_send_name_key", [walletId, send, name])
   @@index([walletId])
@@ -1529,13 +1527,4 @@ model WalletRecvClink {
   protocolId Int            @unique
   protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
   noffer     String
-}
-
-model WalletRecvSpark {
-  id         Int            @id @default(autoincrement())
-  createdAt  DateTime       @default(now()) @map("created_at")
-  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
-  protocolId Int            @unique
-  protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
-  address    String
 }

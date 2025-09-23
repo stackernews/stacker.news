@@ -6,7 +6,6 @@ import * as phoenixd from './phoenixd'
 import * as blink from './blink'
 import * as lndGrpc from './lndGrpc'
 import * as clink from './clink'
-import * as spark from './spark'
 
 export * from './util'
 
@@ -59,6 +58,5 @@ export default [
   phoenixd,
   blink,
   lndGrpc,
-  clink,
-  spark
+  clink
 ]

@@ -22,7 +22,7 @@ export function mapWalletResolveTypes (wallet) {
       case 'CLINK':
         return send ? 'WalletSendClink' : 'WalletRecvClink'
       case 'SPARK':
-        return send ? 'WalletSendSpark' : 'WalletRecvSpark'
+        return 'WalletSendSpark'
       default:
         return null
     }

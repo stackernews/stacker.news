@@ -124,11 +124,6 @@ const typeDefs = gql`
       mnemonic: VaultEntryInput!
     ): WalletSendSpark!
 
-    upsertWalletRecvSpark(
-      ${shared},
-      address: String!
-    ): WalletRecvSpark!
-
     # tests
     testWalletRecvNWC(
       url: String!
@@ -167,10 +162,6 @@ const typeDefs = gql`
 
     testWalletRecvClink(
       noffer: String!
-    ): Boolean!
-
-    testWalletRecvSpark(
-      address: String!
     ): Boolean!
 
     # delete
@@ -258,7 +249,6 @@ const typeDefs = gql`
     | WalletRecvCLNRest
     | WalletRecvLNDGRPC
     | WalletRecvClink
-    | WalletRecvSpark
 
   type WalletSettings {
     receiveCreditsBelowSats: Int!
@@ -375,11 +365,6 @@ const typeDefs = gql`
   type WalletRecvClink {
     id: ID!
     noffer: String!
-  }
-
-  type WalletRecvSpark {
-    id: ID!
-    address: String!
   }
 
   input AutowithdrawSettings {

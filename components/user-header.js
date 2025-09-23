@@ -21,6 +21,7 @@ import { numWithUnits } from '@/lib/format'
 import Badges from './badge'
 import SubscribeUserDropdownItem from './subscribeUser'
 import ActionDropdown from './action-dropdown'
+import Dropdown from 'react-bootstrap/Dropdown'
 import CodeIcon from '@/svgs/terminal-box-fill.svg'
 import MuteDropdownItem from './mute'
 import copy from 'clipboard-copy'
@@ -29,7 +30,8 @@ import { hexToBech32 } from '@/lib/nostr'
 import NostrIcon from '@/svgs/nostr.svg'
 import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import ShareIcon from '@/svgs/share-fill.svg'
+import { UNKNOWN_LINK_REL, SSR } from '@/lib/constants'
 import ItemPopover from './item-popover'
 
 const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
@@ -193,11 +195,28 @@ export function NymActionDropdown ({ user, className = 'ms-2' }) {
   return (
     <div className={className}>
       <ActionDropdown>
+        <ShareProfileDropdownItem user={user} />
         <SubscribeUserDropdownItem user={user} target='posts' />
         <SubscribeUserDropdownItem user={user} target='comments' />
         <MuteDropdownItem user={user} />
       </ActionDropdown>
     </div>
+  )
+}
+
+export function ShareProfileDropdownItem ({ user }) {
+  const { me } = useMe()
+  const toaster = useToast()
+
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        await shareProfile(`@${user.name}'s profile on Stacker News`, `/${user.name}`, me, toaster)
+      }}
+    >
+      <ShareIcon className='me-2' width={16} height={16} />
+      share profile
+    </Dropdown.Item>
   )
 }
 
@@ -242,6 +261,36 @@ function SocialLink ({ name, id }) {
         @{id}
       </Link>
     )
+  }
+}
+
+const referrurl = (ipath, me, isMobile = false) => {
+  const referral = me && !me.privates?.noReferralLinks && isMobile
+  const path = `${ipath}${referral ? `/r/${me.name}` : ''}`
+  if (!SSR) {
+    return `${window.location.protocol}//${window.location.host}${path}`
+  }
+  return `${process.env.NEXT_PUBLIC_URL}${path}`
+}
+
+async function shareProfile (title, ipath, me, toaster) {
+  try {
+    const isMobile = navigator?.share &&
+      (navigator?.maxTouchPoints > 0 || navigator?.msMaxTouchPoints > 0)
+    const url = referrurl(ipath, me, isMobile)
+    if (isMobile) {
+      await navigator.share({ title, text: '', url })
+      toaster.success('profile shared')
+    } else {
+      await copy(url)
+      toaster.success('profile link copied')
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      return
+    }
+
+    toaster.danger('failed to share profile')
   }
 }
 
@@ -290,6 +339,23 @@ function HeaderHeader ({ user }) {
             className='me-1'
           />{user.name}@stacker.news
         </Button>
+        <div className='d-flex align-items-center mt-2'>
+          <Button
+            variant='outline-secondary'
+            size='sm'
+            className='me-2'
+            onClick={async () => {
+              await shareProfile(`@${user.name}'s profile on Stacker News`, `/${user.name}`, me, toaster)
+            }}
+          >
+            <ShareIcon
+              width={16}
+              height={16}
+              className='me-1'
+            />
+            share profile
+          </Button>
+        </div>
         <div className='d-flex flex-column mt-1 ms-0'>
           <small className='text-muted d-flex-inline'>stacking since: {user.since
             ? (

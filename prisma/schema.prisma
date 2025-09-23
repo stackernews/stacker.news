@@ -1655,23 +1655,28 @@ model PayIn {
   payOutCustodialTokens PayOutCustodialToken[]
   payOutBolt11          PayOutBolt11?
 
-  genesis       PayIn?        @relation("PayInGenesis", fields: [genesisId], references: [id], onDelete: Cascade)
-  successor     PayIn?        @relation("PayInSuccessor", fields: [successorId], references: [id], onDelete: Cascade)
-  predecessor   PayIn?        @relation("PayInSuccessor")
-  benefactor    PayIn?        @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
-  beneficiaries PayIn[]       @relation("PayInBenefactor")
-  itemPayIn     ItemPayIn?
-  subPayIn      SubPayIn?
-  progeny       PayIn[]       @relation("PayInGenesis")
-  payInBolt11   PayInBolt11?
-  pollVote      PollVote?
-  uploadPayIns  UploadPayIn[]
-  walletLogs    WalletLog[]
-  lnWiths       LnWith[]
+  genesis               PayIn?                 @relation("PayInGenesis", fields: [genesisId], references: [id], onDelete: Cascade)
+  successor             PayIn?                 @relation("PayInSuccessor", fields: [successorId], references: [id], onDelete: Cascade)
+  predecessor           PayIn?                 @relation("PayInSuccessor")
+  benefactor            PayIn?                 @relation("PayInBenefactor", fields: [benefactorId], references: [id], onDelete: Cascade)
+  beneficiaries         PayIn[]                @relation("PayInBenefactor")
+  itemPayIn             ItemPayIn?
+  subPayIn              SubPayIn?
+  progeny               PayIn[]                @relation("PayInGenesis")
+  payInBolt11           PayInBolt11?
+  pollVote              PollVote?
+  uploadPayIns          UploadPayIn[]
+  walletLogs            WalletLog[]
+  lnWiths               LnWith[]
+  refundCustodialTokens RefundCustodialToken[]
 
   @@index([userId])
+  @@index([createdAt])
   @@index([payInType])
+  @@index([genesisId])
+  @@index([payInState])
   @@index([successorId])
+  @@index([benefactorId])
   @@index([payInStateChangedAt])
 }
 
@@ -1687,6 +1692,8 @@ model PayInCustodialToken {
   mtokens            BigInt
   mtokensAfter       BigInt?
   custodialTokenType CustodialTokenType
+
+  @@index([payInId])
 }
 
 model PessimisticEnv {
@@ -1697,6 +1704,8 @@ model PessimisticEnv {
   args   Json?   @db.JsonB
   error  String?
   result Json?   @db.JsonB
+
+  @@index([payInId])
 }
 
 enum PayOutType {
@@ -1723,6 +1732,7 @@ model SubPayOutCustodialToken {
   payOutCustodialToken   PayOutCustodialToken @relation(fields: [payOutCustodialTokenId], references: [id], onDelete: Cascade)
 
   @@index([subName])
+  @@index([payOutCustodialTokenId])
 }
 
 model PayOutCustodialToken {
@@ -1742,6 +1752,24 @@ model PayOutCustodialToken {
 
   subPayOutCustodialToken SubPayOutCustodialToken?
   earns                   Earn[]
+
+  @@index([createdAt])
+  @@index([payInId])
+  @@index([userId])
+  @@index([payOutType])
+}
+
+// for recording refunds of custodial tokens when the payIn fails
+model RefundCustodialToken {
+  id      Int   @id @default(autoincrement())
+  payInId Int
+  payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
+
+  mtokens            BigInt
+  mtokensAfter       BigInt?
+  custodialTokenType CustodialTokenType
+
+  @@index([payInId])
 }
 
 model PayInBolt11 {
@@ -1774,6 +1802,10 @@ model PayInBolt11 {
   @@index([confirmedIndex])
   @@index([confirmedAt])
   @@index([cancelledAt])
+  @@index([payInId])
+  @@index([hash])
+  @@index([userId])
+  @@index([protocolId])
 }
 
 model PayOutBolt11 {
@@ -1794,6 +1826,8 @@ model PayOutBolt11 {
   payIn      PayIn            @relation(fields: [payInId], references: [id])
 
   @@index([createdAt])
+  @@index([payInId])
+  @@index([payOutType])
   @@index([userId])
   @@index([hash])
   @@index([protocolId])
@@ -1809,6 +1843,8 @@ model PayInBolt11Lud18 {
   identifier String?
   email      String?
   pubkey     String?
+
+  @@index([payInBolt11Id])
 }
 
 model PayInBolt11NostrNote {
@@ -1816,6 +1852,8 @@ model PayInBolt11NostrNote {
   payInBolt11Id Int         @unique
   payInBolt11   PayInBolt11 @relation(fields: [payInBolt11Id], references: [id])
   note          Json
+
+  @@index([payInBolt11Id])
 }
 
 model PayInBolt11Comment {
@@ -1823,4 +1861,6 @@ model PayInBolt11Comment {
   payInBolt11Id Int         @unique
   payInBolt11   PayInBolt11 @relation(fields: [payInBolt11Id], references: [id])
   comment       String
+
+  @@index([payInBolt11Id])
 }

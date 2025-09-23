@@ -6,6 +6,7 @@ import { retry } from '../payIn'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getItem } from './item'
 import { getSub } from './sub'
+import { Prisma } from '@prisma/client'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -26,59 +27,20 @@ function payInResultType (payInType) {
   }
 }
 
-const INCLUDE_PAYOUT_CUSTODIAL_TOKENS = {
-  include: {
-    user: {
-      include: {
-        invite: true
-      }
-    },
-    subPayOutCustodialToken: {
-      include: {
-        sub: true
-      }
-    }
-  }
-}
-
-const INCLUDE = {
-  payInBolt11: {
-    include: {
-      lud18Data: true,
-      nostrNote: true,
-      comment: true
-    }
-  },
-  payOutBolt11: {
-    include: {
-      user: true
-    }
-  },
-  pessimisticEnv: true,
-  payInCustodialTokens: true,
-  payOutCustodialTokens: INCLUDE_PAYOUT_CUSTODIAL_TOKENS,
-  beneficiaries: {
-    include: {
-      payOutCustodialTokens: INCLUDE_PAYOUT_CUSTODIAL_TOKENS
-    }
-  },
-  itemPayIn: true,
-  subPayIn: true
+function isMine (payIn, { me }) {
+  return payIn.userId === USER_ID.anon || (me && Number(me.id) === Number(payIn.userId))
 }
 
 export async function getPayIn (parent, { id }, { me, models }) {
-  const payIn = await models.PayIn.findUnique({
-    where: { id },
-    include: INCLUDE
-  })
+  const payIn = (await getPayInFull({
+    models,
+    query: Prisma.sql`SELECT * FROM "PayIn" WHERE "PayIn"."id" = ${id}`
+  }))[0]
+  console.log(payIn)
   if (!payIn) {
     throw new Error('PayIn not found')
   }
   return payIn
-}
-
-function isMine (payIn, { me }) {
-  return payIn.userId === USER_ID.anon || (me && Number(me.id) === Number(payIn.userId))
 }
 
 export default {
@@ -90,23 +52,52 @@ export default {
       }
       const userId = me.id
       const decodedCursor = decodeCursor(cursor)
-      const payIns = await models.PayIn.findMany({
-        where: {
-          OR: [
-            { userId },
-            { payOutBolt11: { userId } },
-            { payOutCustodialTokens: { some: { userId } } }
-          ],
-          benefactorId: null,
-          createdAt: {
-            lte: decodedCursor.time
-          }
-        },
-        include: INCLUDE,
-        orderBy: { createdAt: 'desc' },
-        take: LIMIT,
-        skip: decodedCursor.offset
+      const offset = decodedCursor.offset
+      const limit = LIMIT
+
+      // why we need the union:
+      // if we are paying in, we want a row for that when it's created, regardless of whether it's succeeded, pending, or failed
+      //    that's because payInCustodialTokens are created when the payIn is created
+      // if we are paid out, we want a row for that too if the payIn is paid or it failed and we are refunded
+      //    that's because payOutCustodialTokens and refundCustodialTokens are created when the payIn is paid and refunded respectively
+      // this helps provide a linear timeline of custodial token changes (ie mtokensAfter changes)
+      const payIns = await getPayInFull({
+        models,
+        query: Prisma.sql`
+          (
+            SELECT "PayIn".*, created_at as "sortTime"
+            FROM "PayIn"
+            WHERE "PayIn"."userId" = ${userId}
+            AND "PayIn"."benefactorId" IS NULL
+            AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
+            GROUP BY "PayIn"."id"
+            ORDER BY "sortTime" DESC
+            LIMIT ${limit + offset}
+          )
+          UNION ALL
+          (
+            SELECT "PayIn".*, "payInStateChangedAt" as "sortTime"
+            FROM "PayIn"
+            LEFT JOIN "RefundCustodialToken" ON "RefundCustodialToken"."payInId" = "PayIn"."id"
+            LEFT JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
+            LEFT JOIN "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = "PayIn"."id"
+            WHERE (
+              ("PayIn"."userId" = ${userId} AND "RefundCustodialToken".id IS NOT NULL)
+              OR ("PayOutBolt11"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID')
+              OR ("PayOutCustodialToken"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID')
+            )
+            AND "PayIn"."benefactorId" IS NOT NULL
+            AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
+            GROUP BY "PayIn"."id"
+            ORDER BY "sortTime" DESC
+            LIMIT ${limit + offset}
+          )`,
+        orderBy: Prisma.sql`ORDER BY "sortTime" DESC`,
+        prependGroupBy: Prisma.sql`"PayIn"."sortTime", `,
+        offset,
+        limit
       })
+
       return {
         payIns,
         cursor: payIns.length === LIMIT ? nextCursorEncoded(decodedCursor) : null
@@ -220,7 +211,7 @@ export default {
           const restRewards = {
             id: remainingOtherReward.id,
             payOutType: 'REWARD',
-            mtokens: payIn.mcost - myReward.mtokens,
+            mtokens: BigInt(payIn.mcost) - BigInt(myReward.mtokens),
             custodialTokenType: 'SATS'
           }
           return [myReward, restRewards]
@@ -239,7 +230,7 @@ export default {
       const rewardsPool = payOutCustodialTokens.find(t => t.payOutType === 'REWARDS_POOL')
       if (routingFee && rewardsPool) {
         const withoutRoutingFee = payOutCustodialTokens.filter(t => t.payOutType !== 'ROUTING_FEE')
-        rewardsPool.mtokens += routingFee.mtokens
+        rewardsPool.mtokens = BigInt(routingFee.mtokens) + BigInt(rewardsPool.mtokens)
         payOutCustodialTokens = withoutRoutingFee
       }
 
@@ -324,4 +315,120 @@ export default {
       return await models.payOutBolt11.findUnique({ where: { payInId: payIn.id } })
     }
   }
+}
+
+/*
+  getPayInFull mimics a Prisma query with the same includes, but uses raw SQL
+  so we can do more complex selection of payIns
+
+  const INCLUDE_PAYOUT_CUSTODIAL_TOKENS = {
+    include: {
+      user: {
+        include: {
+          invite: true
+        }
+      },
+      subPayOutCustodialToken: {
+        include: {
+          sub: true
+        }
+      }
+    }
+  }
+
+  const INCLUDE = {
+    payInBolt11: {
+      include: {
+        lud18Data: true,
+        nostrNote: true,
+        comment: true
+      }
+    },
+    payOutBolt11: {
+      include: {
+        user: true
+      }
+    },
+    pessimisticEnv: true,
+    payInCustodialTokens: true,
+    payOutCustodialTokens: INCLUDE_PAYOUT_CUSTODIAL_TOKENS,
+    beneficiaries: {
+      include: {
+        payOutCustodialTokens: INCLUDE_PAYOUT_CUSTODIAL_TOKENS
+      }
+    },
+    itemPayIn: true,
+    subPayIn: true
+  }
+*/
+
+async function getPayInFull ({ models, query, offset = 0, limit = LIMIT, orderBy = Prisma.sql``, prependGroupBy = Prisma.sql`` }) {
+  const payOutCustodialTokens = payInIdFragment => Prisma.sql`
+    SELECT "PayOutCustodialToken".*, to_jsonb(users.*) || jsonb_build_object('invite', to_jsonb("Invite".*)) as "user", (array_agg(to_jsonb("SubPayOutCustodialToken".*)))[1] as "subPayOutCustodialToken"
+    FROM "PayOutCustodialToken"
+    JOIN "users" ON "users"."id" = "PayOutCustodialToken"."userId"
+    LEFT JOIN "Invite" ON "Invite"."id" = "users"."inviteId"
+    LEFT JOIN LATERAL (
+      SELECT "SubPayOutCustodialToken".*, to_jsonb("Sub".*) as "sub"
+      FROM "SubPayOutCustodialToken"
+      JOIN "Sub" ON "Sub"."name" = "SubPayOutCustodialToken"."subName"
+      WHERE "SubPayOutCustodialToken"."payOutCustodialTokenId" = "PayOutCustodialToken"."id"
+    ) "SubPayOutCustodialToken" ON true
+    WHERE "PayOutCustodialToken"."payInId" = ${payInIdFragment}
+    GROUP BY "PayOutCustodialToken"."id", users.id, "Invite".id
+  `
+
+  return await models.$queryRaw`
+    SELECT "PayIn".*, "PayIn"."created_at" as "createdAt", "PayIn"."updated_at" as "updatedAt",
+      (array_agg(to_jsonb("PessimisticEnv".*)))[1] as "pessimisticEnv",
+      (array_agg(to_jsonb("ItemPayIn".*)))[1] as "itemPayIn",
+      (array_agg(to_jsonb("SubPayIn".*)))[1] as "subPayIn",
+      (array_agg(to_jsonb("PayInBolt11".*)))[1] as "payInBolt11",
+      (array_agg(to_jsonb("PayOutBolt11".*)))[1] as "payOutBolt11",
+      COALESCE(array_agg(DISTINCT to_jsonb("PayInCustodialToken".*)) FILTER (WHERE "PayInCustodialToken"."id" IS NOT NULL), '{}') as "payInCustodialTokens",
+      COALESCE(array_agg(DISTINCT to_jsonb("PayOutCustodialToken".*)) FILTER (WHERE "PayOutCustodialToken"."id" IS NOT NULL), '{}') as "payOutCustodialTokens",
+      COALESCE(array_agg(DISTINCT to_jsonb("Beneficiary".*)) FILTER (WHERE "Beneficiary"."id" IS NOT NULL), '{}') as "beneficiaries",
+      COALESCE(array_agg(DISTINCT to_jsonb("RefundCustodialToken".*)) FILTER (WHERE "RefundCustodialToken"."id" IS NOT NULL), '{}') as "refundCustodialTokens"
+    FROM (
+      ${query}
+      ${orderBy}
+      OFFSET ${offset}
+      LIMIT ${limit}
+    ) "PayIn"
+    LEFT JOIN "PessimisticEnv" ON "PessimisticEnv"."payInId" = "PayIn"."id"
+    LEFT JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn"."id"
+    LEFT JOIN "SubPayIn" ON "SubPayIn"."payInId" = "PayIn"."id"
+    LEFT JOIN LATERAL (
+      SELECT "PayInBolt11".*,
+        to_jsonb("PayInBolt11Lud18".*) as "lud18Data",
+        to_jsonb("PayInBolt11NostrNote".*) as "nostrNote",
+        to_jsonb("PayInBolt11Comment".*) as "comment"
+      FROM "PayInBolt11"
+      LEFT JOIN "PayInBolt11Lud18" ON "PayInBolt11Lud18"."payInBolt11Id" = "PayInBolt11"."id"
+      LEFT JOIN "PayInBolt11NostrNote" ON "PayInBolt11NostrNote"."payInBolt11Id" = "PayInBolt11"."id"
+      LEFT JOIN "PayInBolt11Comment" ON "PayInBolt11Comment"."payInBolt11Id" = "PayInBolt11"."id"
+      WHERE "PayInBolt11"."payInId" = "PayIn"."id"
+    ) "PayInBolt11" ON "PayInBolt11"."payInId" = "PayIn"."id"
+    LEFT JOIN LATERAL (
+      SELECT "PayOutBolt11".*, to_jsonb(users.*) as "user"
+      FROM "PayOutBolt11"
+      JOIN users ON users.id = "PayOutBolt11"."userId"
+      WHERE "PayOutBolt11"."payInId" = "PayIn"."id"
+    ) "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
+    LEFT JOIN "PayInCustodialToken" ON "PayInCustodialToken"."payInId" = "PayIn"."id"
+    LEFT JOIN LATERAL (
+      ${payOutCustodialTokens(Prisma.sql`"PayIn"."id"`)}
+    ) "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = "PayIn"."id"
+    LEFT JOIN LATERAL (
+      SELECT beneficiary.*, array_agg("PayOutCustodialToken".*) as "payOutCustodialTokens"
+      FROM "PayIn" beneficiary
+      LEFT JOIN LATERAL (
+        ${payOutCustodialTokens(Prisma.sql`beneficiary."id"`)}
+      ) "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = beneficiary."id"
+      WHERE "PayIn"."id" = beneficiary."benefactorId"
+      GROUP BY beneficiary."id"
+    ) "Beneficiary" ON "Beneficiary"."benefactorId" = "PayIn"."id"
+    LEFT JOIN "RefundCustodialToken" ON "RefundCustodialToken"."payInId" = "PayIn"."id"
+    GROUP BY ${prependGroupBy} "PayIn"."id", "PayIn"."created_at", "PayIn"."updated_at", "PayIn"."mcost", "PayIn"."payInType", "PayIn"."payInState", "PayIn"."payInFailureReason", "PayIn"."payInStateChangedAt", "PayIn"."genesisId", "PayIn"."successorId", "PayIn"."benefactorId", "PayIn"."userId"
+    ${orderBy}`
 }

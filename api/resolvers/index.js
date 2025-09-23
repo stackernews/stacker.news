@@ -63,7 +63,7 @@ const bigint = new GraphQLScalarType({
   name: 'BigInt',
   description: 'BigInt custom scalar type',
   serialize (value) {
-    if (typeof value === 'bigint') {
+    if (typeof value === 'bigint' || typeof value === 'number') {
       return serializeBigInt(value)
     } else if (typeof value === 'string') {
       const bigint = BigInt(value)

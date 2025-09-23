@@ -73,7 +73,7 @@ export default function Rewards ({ ssrData }) {
   const dat = useData(data, ssrData)
 
   const { rewards: [{ total, sources, time, ad }] } = useMemo(() => {
-    if (!dat) return { rewards: [{}] }
+    if (!dat || !dat.rewards[0]) return { rewards: [{ total: 0, sources: [], time: '0', ad: null }] }
     return {
       rewards: [{
         total: dat.rewards[0].total,
@@ -108,9 +108,10 @@ export default function Rewards ({ ssrData }) {
                 <small><small><small>learn about rewards</small></small></small>
               </Link>
             </h3>
-            <div className='my-3 w-100'>
-              <GrowthPieChart data={sources} />
-            </div>
+            {sources?.length > 0 &&
+              <div className='my-3 w-100'>
+                <GrowthPieChart data={sources} />
+              </div>}
             <DonateButton />
           </div>
         </Col>

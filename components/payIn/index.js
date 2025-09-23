@@ -9,10 +9,10 @@ import { PayInContext } from './context'
 import { GET_PAY_IN_FULL } from '@/fragments/payIn'
 import { PayInSankey, PayInSankeySkeleton } from './sankey'
 
-export default function PayIn ({ id }) {
+export default function PayIn ({ id, ssrData }) {
   const { data, error } = useWatchPayIn({ id, query: GET_PAY_IN_FULL })
 
-  const payIn = data?.payIn
+  const payIn = data?.payIn || ssrData?.payIn
 
   if (error) {
     return <div>{error.message}</div>
@@ -21,8 +21,6 @@ export default function PayIn ({ id }) {
   if (!payIn) {
     return <PayInSkeleton />
   }
-
-  console.log(payIn)
 
   return (
     <div>

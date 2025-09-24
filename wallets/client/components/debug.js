@@ -1,7 +1,8 @@
 import { formatBytes } from '@/lib/format'
 import { useEffect, useState } from 'react'
-import { useKeyHash, useKeyUpdatedAt } from '@/wallets/client/context'
-import { useDiagnostics, useRemoteKeyHash, useRemoteKeyHashUpdatedAt, useWalletsUpdatedAt } from '@/wallets/client/hooks'
+import {
+  useKeyHash, useKeyUpdatedAt, useDiagnostics, useRemoteKeyHash, useRemoteKeyHashUpdatedAt, useWalletsUpdatedAt
+} from '@/wallets/client/hooks'
 import { timeSince } from '@/lib/time'
 
 export function WalletDebugSettings () {

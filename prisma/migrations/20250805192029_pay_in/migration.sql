@@ -60,13 +60,13 @@ ALTER TABLE "PayIn" ADD CONSTRAINT "mcost_positive" CHECK ("mcost" >= 0) NOT VAL
 CREATE OR REPLACE FUNCTION "PayIn_payInStateChangedAt"()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW."payInStateChangedAt" = CURRENT_TIMESTAMP;
+    NEW."payInStateChangedAt" = now();
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE TRIGGER "PayIn_payInStateChangedAt"
-AFTER UPDATE ON "PayIn"
+BEFORE UPDATE ON "PayIn"
 FOR EACH ROW
 WHEN (OLD."payInState" <> NEW."payInState")
 EXECUTE FUNCTION "PayIn_payInStateChangedAt"();

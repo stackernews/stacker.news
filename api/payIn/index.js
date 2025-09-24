@@ -204,11 +204,18 @@ export async function onFail (tx, payInId) {
 
   // refund the custodial tokens
   for (const payInCustodialToken of payIn.payInCustodialTokens) {
+    const isSats = payInCustodialToken.custodialTokenType === 'SATS'
     await tx.$executeRaw`
-      UPDATE users
-      SET msats = msats + ${payInCustodialToken.custodialTokenType === 'SATS' ? payInCustodialToken.mtokens : 0},
-        mcredits = mcredits + ${payInCustodialToken.custodialTokenType === 'CREDITS' ? payInCustodialToken.mtokens : 0}
-      WHERE id = ${payIn.userId}`
+      WITH refunduser AS (
+        UPDATE users
+        SET msats = msats + ${isSats ? payInCustodialToken.mtokens : 0},
+          mcredits = mcredits + ${!isSats ? payInCustodialToken.mtokens : 0}
+        WHERE id = ${payIn.userId}
+        RETURNING mcredits as "mcreditsAfter", msats as "msatsAfter"
+      )
+      INSERT INTO "RefundCustodialToken" ("payInId", "mtokens", "mtokensAfter", "custodialTokenType")
+      SELECT ${payIn.id}, ${payInCustodialToken.mtokens}, ${isSats ? Prisma.sql`refunduser."msatsAfter"` : Prisma.sql`refunduser."mcreditsAfter"`}, ${payInCustodialToken.custodialTokenType}::"CustodialTokenType"
+      FROM refunduser`
   }
 
   await payInTypeModules[payIn.payInType].onFail?.(tx, payInId)

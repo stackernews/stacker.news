@@ -65,7 +65,7 @@ export default {
         models,
         query: Prisma.sql`
           (
-            SELECT "PayIn".*, created_at as "sortTime"
+            SELECT "PayIn".*, created_at as "sortTime", true as "isSend"
             FROM "PayIn"
             WHERE "PayIn"."userId" = ${userId}
             AND "PayIn"."benefactorId" IS NULL
@@ -76,7 +76,7 @@ export default {
           )
           UNION ALL
           (
-            SELECT "PayIn".*, "payInStateChangedAt" as "sortTime"
+            SELECT "PayIn".*, "payInStateChangedAt" as "sortTime", false as "isSend"
             FROM "PayIn"
             LEFT JOIN "RefundCustodialToken" ON "RefundCustodialToken"."payInId" = "PayIn"."id"
             LEFT JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
@@ -86,14 +86,14 @@ export default {
               OR ("PayOutBolt11"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID')
               OR ("PayOutCustodialToken"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID')
             )
-            AND "PayIn"."benefactorId" IS NOT NULL
+            AND "PayIn"."benefactorId" IS NULL
             AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
             GROUP BY "PayIn"."id"
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
           )`,
         orderBy: Prisma.sql`ORDER BY "sortTime" DESC`,
-        prependGroupBy: Prisma.sql`"PayIn"."sortTime", `,
+        prependGroupBy: Prisma.sql`"PayIn"."sortTime", "PayIn"."isSend", `,
         offset,
         limit
       })
@@ -279,6 +279,16 @@ export default {
         payInCustodialTokens = await models.payInCustodialToken.findMany({ where: { payInId: payIn.id } })
       }
       return payInCustodialTokens.map(token => ({
+        ...token,
+        mtokensAfter: isMine(payIn, { me }) ? token.mtokensAfter : null
+      }))
+    },
+    refundCustodialTokens: async (payIn, args, { models, me }) => {
+      let refundCustodialTokens = payIn.refundCustodialTokens
+      if (typeof refundCustodialTokens === 'undefined') {
+        refundCustodialTokens = await models.refundCustodialToken.findMany({ where: { payInId: payIn.id } })
+      }
+      return refundCustodialTokens.map(token => ({
         ...token,
         mtokensAfter: isMine(payIn, { me }) ? token.mtokensAfter : null
       }))

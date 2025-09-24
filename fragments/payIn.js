@@ -46,8 +46,6 @@ export const PAY_IN_FIELDS = gql`
         expiresAt
         confirmedAt
         cancelledAt
-        createdAt
-        updatedAt
         lud18Data {
           id
           name
@@ -117,6 +115,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     createdAt
     updatedAt
     mcost
+    isSend
     payInType
     payInState
     payInStateChangedAt
@@ -136,6 +135,12 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
         bolt11
       }
       payInCustodialTokens {
+        id
+        mtokens
+        mtokensAfter
+        custodialTokenType
+      }
+      refundCustodialTokens {
         id
         mtokens
         mtokensAfter

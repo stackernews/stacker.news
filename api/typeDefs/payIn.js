@@ -108,14 +108,20 @@ type PayInBolt11 {
   cancelledAt: Date
   msatsRequested: BigInt!
   msatsReceived: BigInt
-  createdAt: Date!
-  updatedAt: Date!
   lud18Data: PayInBolt11Lud18
   nostrNote: PayInBolt11NostrNote
   comment: PayInBolt11Comment
 }
 
 type PayInCustodialToken {
+  id: Int!
+  payInId: Int!
+  mtokens: BigInt!
+  mtokensAfter: BigInt
+  custodialTokenType: CustodialTokenType!
+}
+
+type RefundCustodialToken {
   id: Int!
   payInId: Int!
   mtokens: BigInt!
@@ -138,6 +144,7 @@ type PayIn {
   createdAt: Date!
   updatedAt: Date!
   mcost: BigInt!
+  isSend: Boolean
   payInBolt11Public: PayInBolt11Public
   payOutBolt11Public: PayOutBolt11Public
   payInType: PayInType!
@@ -165,6 +172,7 @@ type PayerPrivates {
   payInFailureReason: PayInFailureReason
   payInBolt11: PayInBolt11
   payInCustodialTokens: [PayInCustodialToken!]
+  refundCustodialTokens: [RefundCustodialToken!]
   result: PayInResult
   pessimisticEnv: PayInPessimisticEnv
   invite: Invite
@@ -200,8 +208,6 @@ enum WithdrawlStatus {
 
 type PayOutBolt11 {
   id: Int!
-  createdAt: Date!
-  updatedAt: Date!
   userId: Int
   payOutType: PayOutType!
   status: WithdrawlStatus!

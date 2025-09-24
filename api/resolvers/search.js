@@ -75,6 +75,15 @@ export default {
                   more_like_this: {
                     fields: ['title', 'text'],
                     like,
+                    max_doc_freq: 10000,
+                    minimum_should_match: minMatch || '20%',
+                    boost_terms: 10
+                  }
+                },
+                {
+                  more_like_this: {
+                    fields: ['title', 'text'],
+                    like,
                     max_doc_freq: 1000,
                     minimum_should_match: minMatch || '20%',
                     boost_terms: 100

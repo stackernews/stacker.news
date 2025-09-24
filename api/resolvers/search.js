@@ -73,9 +73,10 @@ export default {
               should: [
                 {
                   more_like_this: {
-                    fields: ['title^10', 'text', 'title.exact^10', 'text.exact'],
+                    fields: ['title', 'text'],
                     like,
-                    minimum_should_match: minMatch || '10%',
+                    max_doc_freq: 1000,
+                    minimum_should_match: minMatch || '20%',
                     boost_terms: 100
                   }
                 }

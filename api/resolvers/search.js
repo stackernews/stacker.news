@@ -302,6 +302,8 @@ export default {
         })
       }
 
+      let addMembers = {}
+
       switch (sort) {
         case 'comments':
           functions.push({
@@ -320,15 +322,21 @@ export default {
           })
           break
         case 'recent':
-          functions.push({
-            gauss: {
-              createdAt: {
-                origin: 'now',
-                scale: '7d',
-                decay: 0.5
+          addMembers = {
+            min_score: 500,
+            sort: [
+              {
+                createdAt: {
+                  order: 'desc'
+                }
+              },
+              {
+                _id: {
+                  order: 'desc'
+                }
               }
-            }
-          })
+            ]
+          }
           break
         case 'zaprank':
           functions.push({
@@ -418,7 +426,7 @@ export default {
         if (process.env.OPENSEARCH_MODEL_ID) {
           osQuery = {
             hybrid: {
-              pagination_depth: 50,
+              pagination_depth: LIMIT * 2,
               queries: [
                 {
                   bool: {
@@ -467,6 +475,7 @@ export default {
           from: decodedCursor.offset,
           body: {
             query: osQuery,
+            ...addMembers,
             highlight: {
               fields: {
                 title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },

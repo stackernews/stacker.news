@@ -10,16 +10,21 @@ import { StorageKeyPrefixContext } from '@/components/form'
 
 function parseMarkdown (editor, content) {
   const markdown = content.getTextContent()
+  let lexicalState = ''
   const tempEditor = createEditor({
     nodes: [...DefaultNodes],
     theme: editor._config.theme
   })
 
   tempEditor.update(() => {
-    $convertFromMarkdownString(markdown, SN_TRANSFORMERS)
+    $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, true)
   })
 
-  return { markdown }
+  tempEditor.read(() => {
+    lexicalState = tempEditor.getEditorState().toJSON()
+  })
+
+  return { markdown, lexicalState }
 }
 
 // WIP: absolutely barebone formik bridge plugin for Lexical
@@ -56,27 +61,25 @@ export default function FormikBridgePlugin ({ name }) {
     // holy shit this is a mess
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        const lexicalState = editorState.toJSON()
-        setFieldValue('lexicalState', JSON.stringify(lexicalState))
         const root = $getRoot()
         const firstChild = root.getFirstChild()
+
+        let lexicalState = editorState.toJSON()
         let markdown = ''
-        // markdown mode (codeblock), may not see the light
-        if ($isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown') {
-          ({ markdown } = parseMarkdown(editor, firstChild))
+
+        const isMarkdownMode = $isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown'
+
+        // Markdown Mode (codeblock)
+        if (isMarkdownMode) {
+          ({ markdown, lexicalState } = parseMarkdown(editor, firstChild))
         } else {
-          const rootElement = editor.getRootElement()
-          // live markdown mode
-          if (rootElement?.classList.contains('md-live')) {
-            ({ markdown } = parseMarkdown(editor, root))
-          // wysiwyg mode
-          } else {
-            markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
-          }
+          markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
         }
+        console.log('lexicalState', lexicalState)
         if (values.text === markdown) return
         onChangeInner(JSON.stringify(lexicalState))
         setFieldValue('text', markdown)
+        setFieldValue('lexicalState', JSON.stringify(lexicalState))
       })
     })
   }, [editor, setFieldValue, values])

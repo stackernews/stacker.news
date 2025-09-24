@@ -7,9 +7,12 @@
   overflow-y: hidden;
   overflow-x: hidden;
   position: relative;
-  max-height: 25vh;
-  background-color: var(--theme-body) !important;
+  max-height: 200vh;
   --grid-gap: 0.5rem;
+}
+
+.text[contenteditable="false"] {
+  background-color: var(--theme-body) !important;
 }
 
 .text.topLevel {
@@ -17,17 +20,20 @@
   --grid-gap: 0.75rem;
 }
 
-.text>*:not(.heading) {
+.text>*:not(.heading),
+.text>.html>*:not(.heading) {
   padding-top: calc(var(--grid-gap) * 0.5);
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
-.text>*:last-child:not(.textShowFull) {
+.text>*:last-child:not(.textShowFull),
+.text>.html>*:last-child:not(.textShowFull) {
   padding-bottom: 0 !important;
   margin-bottom: 0 !important;
 }
 
-.text>*:first-child {
+.text>*:first-child,
+.text>.html>*:first-child {
   padding-top: 0 !important;
   margin-top: 0 !important;
 }
@@ -103,7 +109,6 @@
 }
 
 .editorContainer {
-  margin: 20px auto 20px auto;
   width: 100%;
   color: var(--theme-color);
   position: relative;
@@ -122,14 +127,13 @@
   border-top: 1px solid var(--theme-clickToContextColor);
 }
 
-.editorInput {
+.editorInput[contenteditable="true"] {
   caret-color: var(--theme-color);
-  background-color: var(--theme-body);
   position: relative;
   tab-size: 1;
   outline: 0;
   padding: 10px 10px;
-  border: 1px solid;
+  border: 1px solid var(--theme-borderColor);
   border-bottom-left-radius: .4rem;
   border-bottom-right-radius: .4rem;
   border-top-right-radius: .4rem;
@@ -138,7 +142,6 @@
 
 .editorInput[contenteditable="true"] {
   min-height: 120px;
-  height: 120px;
   resize: vertical;
   overflow: auto;
 }
@@ -216,6 +219,7 @@
   flex-direction: row;
   cursor: pointer;
   margin-right: 4px;
+  border-radius: 0.4rem;
 }
 
 .toolbarItem.active {

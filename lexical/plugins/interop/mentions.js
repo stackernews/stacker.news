@@ -2,60 +2,19 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { LexicalTypeaheadMenuPlugin, MenuOption } from '@lexical/react/LexicalTypeaheadMenuPlugin'
 import { useState, useCallback, useMemo } from 'react'
 import { $createMentionNode } from '@/lib/lexical/nodes/mention'
+import { $createTerritoryNode } from '@/lib/lexical/nodes/territorymention'
 import { USER_SUGGESTIONS } from '@/fragments/users'
+import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import { useLazyQuery } from '@apollo/client'
 import { createPortal } from 'react-dom'
 import { Dropdown } from 'react-bootstrap'
+import styles from '@/components/form.module.css'
 
 // This comes from Lexical Mentions Plugin, it's not going to be what we want
 // This is a placeholder to have an idea of a structure for mention nodes.
-const TRIGGERS = ['@'].join('')
-
-// Chars we expect to see in a mention (non-space, non-punctuation).
-const VALID_CHARS = '[^' + TRIGGERS + '\\s]'
-
-// Non-standard series of chars. Each series must be preceded and followed by
-// a valid char.
-const VALID_JOINS =
-  '(?:' +
-  '\\.[ |$]|' + // E.g. "r. " in "Mr. Smith"
-  ' |' + // E.g. " " in "Josh Duck"
-  '[' +
-  ']|' + // E.g. "-' in "Salier-Hellendag"
-  ')'
-
-const LENGTH_LIMIT = 75
-
-const AtSignMentionsRegex = new RegExp(
-  '(^|\\s|\\()(' +
-    '[' +
-    TRIGGERS +
-    ']' +
-    '((?:' +
-    VALID_CHARS +
-    VALID_JOINS +
-    '){0,' +
-    LENGTH_LIMIT +
-    '})' +
-    ')$'
-)
-
-// 50 is the longest alias length limit.
-const ALIAS_LENGTH_LIMIT = 50
-
-// Regex used to match alias.
-const AtSignMentionsRegexAliasRegex = new RegExp(
-  '(^|\\s|\\()(' +
-    '[' +
-    TRIGGERS +
-    ']' +
-    '((?:' +
-    VALID_CHARS +
-    '){0,' +
-    ALIAS_LENGTH_LIMIT +
-    '})' +
-    ')$'
-)
+// Support both @ for mentions and ~ for territories
+// Regex patterns for matching @ and ~ mentions
+const AtSignMentionsRegex = /(^|\s|\()([@~]\w{0,75})$/
 
 // At most, 5 suggestions are shown in the popup.
 const SUGGESTION_LIST_LENGTH_LIMIT = 5
@@ -65,7 +24,13 @@ export default function MentionsPlugin () {
   const [, setQuery] = useState(null)
   const [suggestions, setSuggestions] = useState(null)
 
-  const [getSuggestions] = useLazyQuery(USER_SUGGESTIONS, {
+  const [getSubSuggestions] = useLazyQuery(SUB_SUGGESTIONS, {
+    onCompleted: (data) => {
+      setSuggestions(data.subSuggestions)
+    }
+  })
+
+  const [getUserSuggestions] = useLazyQuery(USER_SUGGESTIONS, {
     onCompleted: (data) => {
       setSuggestions(data.userSuggestions)
     }
@@ -78,39 +43,45 @@ export default function MentionsPlugin () {
 
   const onSelectOption = useCallback((selectedOption, nodeToReplace, closeMenu) => {
     editor.update(() => {
-      const mentionNode = $createMentionNode(selectedOption.name)
       if (nodeToReplace) {
-        nodeToReplace.replace(mentionNode)
+        if (nodeToReplace.getTextContent().startsWith('@')) {
+          const mentionNode = $createMentionNode(selectedOption.name)
+          nodeToReplace.replace(mentionNode)
+        } else {
+          const territoryNode = $createTerritoryNode(selectedOption.name)
+          nodeToReplace.replace(territoryNode)
+        }
       }
       closeMenu()
     })
   }, [editor])
 
   const checkForAtMentionMatch = useCallback((text) => {
-    let match = AtSignMentionsRegex.exec(text)
-    if (!match) {
-      match = AtSignMentionsRegexAliasRegex.exec(text)
-    }
-    console.log('match', match)
+    const match = AtSignMentionsRegex.exec(text)
     if (match) {
       const leadingWhiteSpace = match[1]
-      console.log('leadingWhiteSpace', leadingWhiteSpace)
-      const matchingString = match[3]
-      console.log('matchingString', matchingString)
-      if (matchingString.length >= 1) {
-        console.log('matchingString', matchingString)
-        if (matchingString.length > 1) {
-          getSuggestions({ variables: { q: matchingString, limit: SUGGESTION_LIST_LENGTH_LIMIT } })
+      const fullMention = match[2] // this is the full string including the @ or ~
+
+      if (fullMention.length >= 2) { // it has to have at least one character after the @ or ~
+        const query = fullMention.slice(1) // remove the @ or ~
+
+        if (query.length > 0) {
+          if (fullMention.startsWith('@')) {
+            getUserSuggestions({ variables: { q: query, limit: SUGGESTION_LIST_LENGTH_LIMIT } })
+          } else {
+            getSubSuggestions({ variables: { q: query, limit: SUGGESTION_LIST_LENGTH_LIMIT } })
+          }
         }
+
         return {
           leadOffset: match.index + leadingWhiteSpace.length,
-          matchingString,
-          replaceableString: match[2]
+          matchingString: fullMention,
+          replaceableString: fullMention
         }
       }
     }
     return null
-  }, [getSuggestions])
+  }, [getUserSuggestions, getSubSuggestions])
 
   return (
     <LexicalTypeaheadMenuPlugin
@@ -128,7 +99,7 @@ export default function MentionsPlugin () {
         anchorElementRef?.current && options?.length
           ? createPortal(
             <Dropdown show style={{ zIndex: 1000 }}>
-              <Dropdown.Menu className='typeahead-menu'>
+              <Dropdown.Menu className={styles.suggestionsMenu}>
                 {options?.map((option, index) =>
                   <Dropdown.Item
                     key={option.name}

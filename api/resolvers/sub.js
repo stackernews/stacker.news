@@ -364,6 +364,8 @@ export default {
 
 async function createSub (parent, data, { me, models, lnd }) {
   try {
+    // if the html conversion fails, we'll use the lexicalState directly
+    // this might be a problem for instant content
     data.html = ssrLexicalHTMLGenerator(data.lexicalState)
     return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd })
   } catch (error) {
@@ -392,6 +394,8 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd }) {
   }
 
   try {
+    // if the html conversion fails, we'll use the lexicalState directly
+    // this might be a problem for instant content
     data.html = ssrLexicalHTMLGenerator(data.lexicalState)
     return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
   } catch (error) {

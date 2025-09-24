@@ -95,7 +95,7 @@ span.sn__mediaContainer {
 .sn__spotifyWrapper {
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
-  background-color: var(--theme-bg);
+  background-color: var(--theme-body) !important;
 }
 
 .sn__nestedListItem {

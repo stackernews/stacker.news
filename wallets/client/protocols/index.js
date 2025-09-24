@@ -6,6 +6,7 @@ import * as webln from './webln'
 import * as lnc from './lnc'
 import * as clnRest from './clnRest'
 import * as clink from './clink'
+import * as spark from './spark'
 
 export * from './util'
 
@@ -56,5 +57,6 @@ export default [
   webln,
   lnc,
   clnRest,
-  clink
+  clink,
+  spark
 ]

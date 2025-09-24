@@ -98,6 +98,12 @@ span.sn__mediaContainer {
   background-color: var(--theme-body) !important;
 }
 
+.sn__videoWrapper__explainer {
+  width: 320px;
+  height: 180px;
+  border-radius: 13px;
+}
+
 .sn__nestedListItem {
   list-style-type: none;
 }

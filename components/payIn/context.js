@@ -17,9 +17,9 @@ export function PayInContext ({ payIn }) {
     case 'POLL_VOTE':
       return (
         <>
-          {!payIn.item.title && <CommentFlat item={payIn.item} includeParent noReply truncate />}
-          {payIn.item.isJob && <ItemJob item={payIn.item} />}
-          {payIn.item.title && <Item item={payIn.item} siblingComments />}
+          {(!payIn.item.title && <CommentFlat item={payIn.item} includeParent noReply truncate />) ||
+              (payIn.item.isJob && <ItemJob item={payIn.item} />) ||
+              (payIn.item.title && <Item item={payIn.item} siblingComments />)}
         </>
       )
     case 'TERRITORY_CREATE':

@@ -85,6 +85,7 @@ export async function onBegin (tx, payInId, { oldName, billingType, uploadIds, .
 }
 
 export async function describe (models, payInId) {
-  const { sub } = await models.subPayIn.findUnique({ where: { payInId }, include: { sub: true } })
-  return `SN: update territory billing ${sub.name}`
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { subPayIn: true, pessimisticEnv: true } })
+  const subName = payIn.subPayIn?.subName || payIn.pessimisticEnv?.args?.name
+  return `SN: update territory billing ${subName}`
 }

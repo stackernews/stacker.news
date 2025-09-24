@@ -31,7 +31,7 @@ export async function getInitial (models, { billingType, uploadIds }, { me }) {
   }
 }
 
-export async function onBegin (tx, payInId, { billingType, ...data }) {
+export async function onBegin (tx, payInId, { billingType, uploadIds, ...data }) {
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
   const billingCost = TERRITORY_PERIOD_COST(billingType)
   const billedLastAt = new Date()
@@ -65,6 +65,7 @@ export async function onBegin (tx, payInId, { billingType, ...data }) {
 }
 
 export async function describe (models, payInId) {
-  const { sub } = await models.subPayIn.findUnique({ where: { payInId }, include: { sub: true } })
-  return `SN: create territory ${sub.name}`
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { subPayIn: true, pessimisticEnv: true } })
+  const subName = payIn.subPayIn?.subName || payIn.pessimisticEnv?.args?.name
+  return `SN: create territory ${subName}`
 }

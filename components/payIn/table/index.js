@@ -14,7 +14,7 @@ export default function PayInTable ({ payIns }) {
         <div>sats</div>
       </div>
       {payIns?.map(payIn => (
-        <PayInRow key={payIn.id} payIn={payIn} />
+        <PayInRow key={`${payIn.id}-${payIn.isSend}`} payIn={payIn} />
       ))}
     </div>
   )

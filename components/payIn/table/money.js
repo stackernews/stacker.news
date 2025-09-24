@@ -2,13 +2,15 @@ import { useMemo } from 'react'
 import { useMe } from '../../me'
 import { isNumber, numWithUnits, msatsToSatsDecimal } from '@/lib/format'
 import Plug from '@/svgs/plug.svg'
+import classNames from 'classnames'
+import styles from './index.module.css'
 
 export function PayInMoney ({ payIn }) {
   const { me } = useMe()
   const { SATS, CREDITS } = useMemo(() => reduceCustodialTokenCosts(payIn, me.id), [payIn, me.id])
   const bolt11Cost = useMemo(() => reduceBolt11Cost(payIn, me.id), [payIn, me.id])
 
-  if (payIn.mcost === 0 || payIn.payInState === 'FAILED' || (!payIn.payerPrivate && payIn.payInState !== 'PAID')) {
+  if (payIn.mcost === 0 || (!payIn.payerPrivates && payIn.payInState !== 'PAID')) {
     return <>N/A</>
   }
 
@@ -16,7 +18,12 @@ export function PayInMoney ({ payIn }) {
     <>
       {isNumber(SATS?.mtokens) && SATS.mtokens !== 0 && <Money mtokens={SATS.mtokens} mtokensAfter={SATS.mtokensAfter} singular='sat' plural='sats' />}
       {isNumber(CREDITS?.mtokens) && CREDITS.mtokens !== 0 && <Money mtokens={CREDITS.mtokens} mtokensAfter={CREDITS.mtokensAfter} singular='CC' plural='CCs' />}
-      {isNumber(bolt11Cost) && bolt11Cost !== 0 && <div className='d-flex align-items-center gap-1 justify-content-end'>{formatCost(bolt11Cost, 'sat', 'sats')}<Plug className='fill-muted' width={10} height={10} /></div>}
+      {isNumber(bolt11Cost) && bolt11Cost !== 0 && payIn.isSend &&
+        <div
+          className={classNames('d-flex align-items-center gap-1 justify-content-end',
+            { [styles.strikethrough]: payIn.payInState === 'FAILED' })}
+        >{formatCost(bolt11Cost, 'sat', 'sats')}<Plug className='fill-muted' width={10} height={10} />
+        </div>}
     </>
   )
 }
@@ -42,7 +49,7 @@ function formatCost (mtokens, unitSingular, unitPlural) {
 function reduceBolt11Cost (payIn, userId) {
   let cost = 0
   if (payIn.payerPrivates && payIn.payerPrivates.payInBolt11) {
-    cost -= payIn.payerPrivates.payInBolt11.msatsReceived
+    cost -= payIn.payerPrivates.payInBolt11.msatsReceived || payIn.payerPrivates.payInBolt11.msatsRequested
   }
   if (payIn.payeePrivates && payIn.payeePrivates.payOutBolt11) {
     cost += payIn.payeePrivates.payOutBolt11.msats
@@ -52,14 +59,28 @@ function reduceBolt11Cost (payIn, userId) {
 
 function reduceCustodialTokenCosts (payIn, userId) {
   // on a payin, the mtokensAfter is going to be the maximum
-  const initialCosts = { SATS: { mtokens: 0, mtokensAfter: null }, CREDITS: { mtokens: 0, mtokensAfter: null } }
-  const payInCosts = payIn.payerPrivates?.payInCustodialTokens?.reduce((acc, token) => {
-    acc[token.custodialTokenType] = {
-      mtokens: acc[token.custodialTokenType]?.mtokens - token.mtokens,
-      mtokensAfter: acc[token.custodialTokenType]?.mtokensAfter ? Math.min(acc[token.custodialTokenType].mtokensAfter, token.mtokensAfter) : token.mtokensAfter
-    }
-    return acc
-  }, initialCosts) || initialCosts
+  let costs = { SATS: { mtokens: 0, mtokensAfter: null }, CREDITS: { mtokens: 0, mtokensAfter: null } }
+  console.log('payerPrivates', payIn.payerPrivates)
+
+  if (payIn.isSend) {
+    costs = payIn.payerPrivates?.payInCustodialTokens?.reduce((acc, token) => {
+      acc[token.custodialTokenType] = {
+        mtokens: acc[token.custodialTokenType]?.mtokens - token.mtokens,
+        mtokensAfter: acc[token.custodialTokenType]?.mtokensAfter ? Math.min(acc[token.custodialTokenType].mtokensAfter, token.mtokensAfter) : token.mtokensAfter
+      }
+      return acc
+    }, costs) || costs
+
+    return costs
+  } else if (payIn.payInState === 'FAILED') {
+    return payIn.payerPrivates?.refundCustodialTokens?.reduce((acc, token) => {
+      acc[token.custodialTokenType] = {
+        mtokens: acc[token.custodialTokenType]?.mtokens + token.mtokens,
+        mtokensAfter: acc[token.custodialTokenType]?.mtokensAfter ? Math.max(acc[token.custodialTokenType].mtokensAfter, token.mtokensAfter) : token.mtokensAfter
+      }
+      return acc
+    }, costs) || costs
+  }
 
   // on a payout, the mtokensAfter is going to be the maximum
   const totalCost = payIn.payOutCustodialTokens?.reduce((acc, token) => {
@@ -72,7 +93,7 @@ function reduceCustodialTokenCosts (payIn, userId) {
     }
     console.log(token.custodialTokenType, token, acc)
     return acc
-  }, { ...payInCosts })
+  }, { ...costs })
 
   return totalCost
 }

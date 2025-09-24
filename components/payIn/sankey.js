@@ -66,8 +66,8 @@ function getSankeyData (payIn) {
   })
 
   // Create individual nodes for each payInCustodialToken
-  if (payIn.payerPrivates?.payInCustodialTokens && payIn.payerPrivates.payInCustodialTokens.length > 0) {
-    payIn.payerPrivates.payInCustodialTokens.forEach((token, index) => {
+  if (payIn.payerPrivates) {
+    payIn.payerPrivates?.payInCustodialTokens?.forEach((token, index) => {
       const id = token.custodialTokenType === 'SATS' ? 'sats' : 'CCs'
       nodes.push({
         id,

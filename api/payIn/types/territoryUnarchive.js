@@ -31,7 +31,7 @@ export async function getInitial (models, { billingType, uploadIds }, { me }) {
   }
 }
 
-export async function onBegin (tx, payInId, { name, billingType, ...data }) {
+export async function onBegin (tx, payInId, { name, billingType, uploadIds, ...data }) {
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
   const sub = await tx.sub.findUnique({
     where: {
@@ -111,6 +111,7 @@ export async function onBegin (tx, payInId, { name, billingType, ...data }) {
 }
 
 export async function describe (models, payInId) {
-  const { sub } = await models.subPayIn.findUnique({ where: { payInId }, include: { sub: true } })
-  return `SN: unarchive territory ${sub.name}`
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { subPayIn: true, pessimisticEnv: true } })
+  const subName = payIn.subPayIn?.subName || payIn.pessimisticEnv?.args?.name
+  return `SN: unarchive territory ${subName}`
 }

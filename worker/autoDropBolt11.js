@@ -11,7 +11,7 @@ export async function dropBolt11 ({ userId, hash } = {}, { models, lnd }) {
     WITH to_be_updated AS (
       SELECT id, hash, bolt11
       FROM "PayOutBolt11"
-      WHERE "userId" ${userId ? Prisma.sql`= ${userId}` : Prisma.sql`(SELECT id FROM users WHERE "autoDropBolt11s")`}
+      WHERE "userId" ${userId ? Prisma.sql`= ${userId}` : Prisma.sql`IN (SELECT id FROM users WHERE "autoDropBolt11s")`}
       AND now() > created_at + ${retention}::INTERVAL
       AND hash ${hash ? Prisma.sql`= ${hash}` : Prisma.sql`IS NOT NULL`}
       AND status IS NOT NULL

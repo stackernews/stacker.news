@@ -63,7 +63,7 @@ export function useWalletPayment () {
         try {
           // we need to poll one more time to check for failed forwards since sender wallet errors
           // can be caused by them which we want to handle as receiver errors, not sender errors.
-          await payInHelper.check(latestPayIn, waitFor)
+          await payInHelper.check(latestPayIn.id, waitFor)
         } catch (err) {
           if (err instanceof WalletError) {
             paymentError = err

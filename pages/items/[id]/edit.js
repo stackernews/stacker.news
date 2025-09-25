@@ -47,7 +47,7 @@ export default function PostEdit ({ ssrData }) {
       })
       return
     }
-    fetchSub({ variables: { sub: item.subName } }).then(res => {
+    fetchSub({ variables: { sub } }).then(res => {
       setBaseLineItems(prev => ({
         ...prev,
         territory: {

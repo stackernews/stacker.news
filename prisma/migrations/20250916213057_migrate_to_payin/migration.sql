@@ -1,6 +1,5 @@
 -- todo: we can do a better job of representing territory revenue in these migrations
 -- we're currently dumping it all into a rewards pool payoutcustodialtoken
--- todotoo: poll vote is not finished
 
 -- there are also lots of tables and columns that could be the subject of deletion
 -- however, it's probably better to leave them in place just in case we make a mistake
@@ -95,8 +94,8 @@ BEGIN
     LOOP
         INSERT INTO "PayIn" (created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
         SELECT withdrawl."created_at", withdrawl."updated_at", withdrawl."msatsPaying" + withdrawl."msatsFeePaying",
-            CASE WHEN withdrawl."autoWithdraw" THEN 'AUTO_WITHDRAWAL'::"PayInType" ELSE 'WITHDRAWAL'::"PayInType" END,
-            CASE WHEN withdrawl."status" = 'CONFIRMED' THEN 'PAID'::"PayInState" WHEN withdrawl."status" IS NULL THEN 'PENDING_WITHDRAWAL'::"PayInState" ELSE 'FAILED'::"PayInState" END,
+            CASE WHEN withdrawl."autoWithdraw" THEN 'AUTO_WITHDRAWAL' ELSE 'WITHDRAWAL' END::"PayInType",
+            CASE WHEN withdrawl."status" = 'CONFIRMED' THEN 'PAID' WHEN withdrawl."status" IS NULL THEN 'PENDING_WITHDRAWAL' ELSE 'FAILED' END::"PayInState",
             withdrawl."created_at", withdrawl."userId"
         RETURNING id INTO payin_id;
 

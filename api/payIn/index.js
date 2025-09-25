@@ -324,8 +324,8 @@ export async function retry (payInId, { models, me }) {
           throw e
         }
         // if we can no longer produce a payOutBolt11, we fallback to custodial tokens
-        payInFailed.payOutBolt11 = null
         payInFailed.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payInFailed.payOutBolt11))
+        payInFailed.payOutBolt11 = null
       }
     }
 

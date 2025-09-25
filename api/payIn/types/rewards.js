@@ -22,7 +22,7 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
     const payOutCustodialTokenEarnings = [{
       payOutType: 'REWARD',
       userId: rewardProspect.userId,
-      mtokens: rewardProspect.totalMsats,
+      mtokens: earnerEarnings,
       custodialTokenType: 'SATS',
       earns: rewardProspect.earns.map(earn => ({
         userId: rewardProspect.userId,
@@ -38,7 +38,7 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
       mtokens: foreverReferrerEarnings,
       custodialTokenType: 'SATS',
       earns: [{
-        userId: rewardProspect.userId,
+        userId: rewardProspect.foreverReferrerId,
         msats: foreverReferrerEarnings,
         type: 'FOREVER_REFERRAL'
       }]
@@ -48,7 +48,7 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
       mtokens: oneDayReferrerEarnings,
       custodialTokenType: 'SATS',
       earns: [{
-        userId: rewardProspect.userId,
+        userId: rewardProspect.oneDayReferrerId,
         msats: oneDayReferrerEarnings,
         type: 'ONE_DAY_REFERRAL'
       }]

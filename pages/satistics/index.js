@@ -234,6 +234,7 @@ export default function Satistics ({ ssrData }) {
             invoice: included('invoice'),
             withdrawal: included('withdrawal'),
             stacked: included('stacked'),
+            earn: included('earn'),
             spent: included('spent')
           }}
         >
@@ -251,7 +252,13 @@ export default function Satistics ({ ssrData }) {
             <Checkbox
               label='stacked' name='stacked' inline
               checked={included('stacked')}
+              indeterminate={!included('stacked') && included('earn')}
               handleChange={c => filterRoutePush('stacked', c)}
+            />
+            <Checkbox
+              label='earn' name='earn' inline
+              checked={included('earn')}
+              handleChange={c => filterRoutePush('earn', c)}
             />
             <Checkbox
               label='spent' name='spent' inline

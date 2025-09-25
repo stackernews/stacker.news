@@ -221,6 +221,17 @@ const resolvers = {
         )
       }
 
+      if (!include.has('stacked') && include.has('earn')) {
+        queries.push(
+          `(SELECT
+              min("Earn".id) as id, created_at as "createdAt",
+              sum(msats) as msats, 'earn' as type, NULL::JSONB AS other
+            FROM "Earn"
+            WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
+            GROUP BY "userId", created_at)`
+        )
+      }
+
       if (include.has('spent')) {
         queries.push(
           `(SELECT "Item".id, MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,

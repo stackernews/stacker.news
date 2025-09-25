@@ -69,6 +69,7 @@ export default {
             FROM "PayIn"
             WHERE "PayIn"."userId" = ${userId}
             AND "PayIn"."benefactorId" IS NULL
+            AND "PayIn"."mcost" > 0
             AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
             GROUP BY "PayIn"."id"
             ORDER BY "sortTime" DESC
@@ -87,6 +88,7 @@ export default {
               OR ("PayOutCustodialToken"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID')
             )
             AND "PayIn"."benefactorId" IS NULL
+            AND "PayIn"."mcost" > 0
             AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
             GROUP BY "PayIn"."id"
             ORDER BY "sortTime" DESC

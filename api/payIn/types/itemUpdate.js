@@ -37,7 +37,7 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSub, parentI
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
 
   let cost = 0n
-  if (!parentId && newSub.name !== old.subName) {
+  if (!parentId && newSub && newSub.name !== old.subName) {
     if (old.boost > 0) {
       throw new Error('cannot move boosted items to a different territory')
     }

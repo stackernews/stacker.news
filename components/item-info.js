@@ -22,13 +22,13 @@ import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
-import useQrPayment from './use-qr-payment'
-import { useRetryCreateItem } from './use-item-submit'
+import useQrPayIn from './payIn/hooks/use-qr-pay-in'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
+import { useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
 
 function itemTitle (item) {
   let title = ''
@@ -67,7 +67,7 @@ export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, toggleEdit, editText,
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
-  setDisableRetry, disableRetry
+  setDisableRetry, disableRetry, updatePayIn
 }) {
   const { me } = useMe()
   const router = useRouter()
@@ -138,8 +138,8 @@ export default function ItemInfo ({
             {embellishUser}
           </Link>}
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.invoicePaidAt || item.createdAt))}
+        <Link href={`/items/${item.id}`} title={item.payIn?.payInStateChangedAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+          {timeSince(new Date(item.payIn?.payInStateChangedAt || item.createdAt))}
         </Link>
         {item.prior &&
           <>
@@ -174,7 +174,7 @@ export default function ItemInfo ({
               item={item} edit={edit} canEdit={canEdit}
               setCanEdit={setCanEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
             />
-            <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
+            {item.payIn && <PayInInfo item={item} updatePayIn={updatePayIn} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />}
             <ActionDropdown>
               <CopyLinkDropdownItem item={item} />
               <InfoDropdownItem item={item} />
@@ -202,11 +202,11 @@ export default function ItemInfo ({
                   <hr className='dropdown-divider' />
                   <OutlawDropdownItem item={item} />
                 </>}
-              {item.mine && item.invoice?.id &&
+              {item.mine && item.payIn?.id &&
                 <>
                   <hr className='dropdown-divider' />
-                  <Link href={`/invoices/${item.invoice?.id}`} className='text-reset dropdown-item'>
-                    view invoice
+                  <Link href={`/transactions/${item.payIn?.id}`} className='text-reset dropdown-item'>
+                    view payment
                   </Link>
                 </>}
               {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
@@ -249,10 +249,10 @@ function InfoDropdownItem ({ item }) {
           <div>{item.id}</div>
           <div>created at</div>
           <div>{item.createdAt}</div>
-          {item.invoicePaidAt &&
+          {item.payIn?.payInState === 'PAID' &&
             <>
               <div>paid at</div>
-              <div>{item.invoicePaidAt}</div>
+              <div>{item.payIn?.payInStateChangedAt}</div>
             </>}
           <div>cost</div>
           <div>{item.cost}</div>
@@ -282,11 +282,11 @@ function InfoDropdownItem ({ item }) {
   )
 }
 
-export function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
+export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry }) {
   const { me } = useMe()
   const toaster = useToast()
-  const retryCreateItem = useRetryCreateItem({ id: item.id })
-  const waitForQrPayment = useQrPayment()
+  const retryPayIn = useRetryPayIn(item.payIn.id, { update: updatePayIn })
+  const waitForQrPayIn = useQrPayIn()
   const [disableInfoRetry, setDisableInfoRetry] = useState(disableRetry)
   if (item.deletedAt) return null
 
@@ -298,14 +298,14 @@ export function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
 
   let Component
   let onClick
-  if (me && item.invoice?.actionState && item.invoice?.actionState !== 'PAID') {
-    if (item.invoice?.actionState === 'FAILED') {
+  if (me && item.payIn?.payInState && item.payIn?.payInState !== 'PAID') {
+    if (['FAILED', 'CANCELLED'].includes(item.payIn?.payInState)) {
       Component = () => <span className={classNames('text-warning', disableDualRetry && 'pulse')}>retry payment</span>
       onClick = async () => {
         if (disableDualRetry) return
         setDisableDualRetry(true)
         try {
-          const { error } = await retryCreateItem({ variables: { invoiceId: parseInt(item.invoice?.id) } })
+          const { error } = await retryPayIn()
           if (error) throw error
         } catch (error) {
           toaster.danger(error.message)
@@ -320,7 +320,7 @@ export function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
         >pending
         </span>
       )
-      onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false }).catch(console.error)
+      onClick = () => waitForQrPayIn(item.payIn, null, { cancelOnClose: false }).catch(console.error)
     }
   } else {
     return null
@@ -351,7 +351,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
-          {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID')
+          {(!item.payIn?.payInState || item.payIn?.payInState === 'PAID')
             ? <Countdown
                 date={editThreshold}
                 onComplete={() => { setCanEdit(false) }}

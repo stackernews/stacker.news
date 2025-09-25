@@ -188,7 +188,7 @@ module.exports = withPlausibleProxy()({
     return [
       {
         source: '/statistics',
-        destination: '/satistics?inc=invoice,withdrawal',
+        destination: '/satistics',
         permanent: true
       },
       {

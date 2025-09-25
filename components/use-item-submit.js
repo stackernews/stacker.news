@@ -1,11 +1,9 @@
 import { useRouter } from 'next/router'
 import { useToast } from './toast'
-import { usePaidMutation, paidActionCacheMods } from './use-paid-mutation'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import useCrossposter from './use-crossposter'
 import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
-import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
-import gql from 'graphql-tag'
 import { USER_ID } from '@/lib/constants'
 import { useMe } from './me'
 import { useWalletRecvPrompt, WalletPromptClosed } from '@/wallets/client/hooks'
@@ -17,11 +15,11 @@ import { useWalletRecvPrompt, WalletPromptClosed } from '@/wallets/client/hooks'
 // and other side effects like crossposting and redirection
 // ... or I just spent too much time in this code and this is overcooked
 export default function useItemSubmit (mutation,
-  { item, sub, onSuccessfulSubmit, navigateOnSubmit = true, extraValues = {}, paidMutationOptions = { } } = {}) {
+  { item, sub, onSuccessfulSubmit, navigateOnSubmit = true, extraValues = {}, payInMutationOptions = { } } = {}) {
   const router = useRouter()
   const toaster = useToast()
   const crossposter = useCrossposter()
-  const [upsertItem] = usePaidMutation(mutation)
+  const [upsertItem] = usePayInMutation(mutation)
   const { me } = useMe()
   const walletPrompt = useWalletRecvPrompt()
 
@@ -64,18 +62,16 @@ export default function useItemSubmit (mutation,
         },
         // if not a comment, we want the qr to persist on navigation
         persistOnNavigate: navigateOnSubmit,
-        ...paidMutationOptions,
+        ...payInMutationOptions,
         onPayError: (e, cache, { data }) => {
-          paidActionCacheMods.onPayError(e, cache, { data })
-          paidMutationOptions?.onPayError?.(e, cache, { data })
+          payInMutationOptions?.onPayError?.(e, cache, { data })
         },
         onPaid: (cache, { data }) => {
-          paidActionCacheMods.onPaid(cache, { data })
-          paidMutationOptions?.onPaid?.(cache, { data })
+          payInMutationOptions?.onPaid?.(cache, { data })
         },
         onCompleted: (data) => {
           onSuccessfulSubmit?.(data, { resetForm })
-          paidMutationOptions?.onCompleted?.(data)
+          payInMutationOptions?.onCompleted?.(data)
           saveItemInvoiceHmac(data)
         }
       })
@@ -85,7 +81,7 @@ export default function useItemSubmit (mutation,
 
       // we don't know the mutation name, so we have to extract the result
       const response = Object.values(data)[0]
-      const postId = response?.result?.id
+      const postId = response?.payerPrivates.result?.id
 
       if (crosspost && postId) {
         await crossposter(postId)
@@ -102,49 +98,18 @@ export default function useItemSubmit (mutation,
         }
       }
     }, [me, upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
-      navigateOnSubmit, extraValues, paidMutationOptions, walletPrompt]
+      navigateOnSubmit, extraValues, payInMutationOptions, walletPrompt]
   )
-}
-
-export function useRetryCreateItem ({ id }) {
-  const [retryPaidAction] = usePaidMutation(
-    RETRY_PAID_ACTION,
-    {
-      ...paidActionCacheMods,
-      update: (cache, { data }) => {
-        const response = Object.values(data)[0]
-        if (!response?.invoice) return
-        cache.modify({
-          id: `Item:${id}`,
-          fields: {
-            // this is a bit of a hack just to update the reference to the new invoice
-            invoice: () => cache.writeFragment({
-              id: `Invoice:${response.invoice.id}`,
-              fragment: gql`
-                fragment _ on Invoice {
-                  bolt11
-                }
-              `,
-              data: { bolt11: response.invoice.bolt11 }
-            })
-          },
-          optimistic: true
-        })
-        paidActionCacheMods?.update?.(cache, { data })
-      }
-    }
-  )
-
-  return retryPaidAction
 }
 
 function saveItemInvoiceHmac (mutationData) {
+  console.log('saveItemInvoiceHmac', mutationData)
   const response = Object.values(mutationData)[0]
 
-  if (!response?.invoice) return
+  if (!response?.payerPrivates?.payInBolt11) return
 
-  const id = response.result.id
-  const { hash, hmac } = response.invoice
+  const id = response.payerPrivates.result.id
+  const { hash, hmac } = response.payerPrivates.payInBolt11
 
   if (id && hash && hmac) {
     window.localStorage.setItem(`item:${id}:hash:hmac`, `${hash}:${hmac}`)

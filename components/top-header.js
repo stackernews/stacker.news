@@ -20,7 +20,7 @@ export default function TopHeader ({ sub, cat }) {
 
     if (typeof query.by !== 'undefined') {
       if (query.by === '' ||
-          (what === 'stackers' && (query.by === 'value' || !USER_SORTS.includes(query.by))) ||
+          (what === 'stackers' && (query.by === 'stacking' || !USER_SORTS.includes(query.by))) ||
           (what === 'territories' && (query.by === 'stacking' || !SUB_SORTS.includes(query.by))) ||
           (['posts', 'comments'].includes(what) && (query.by === 'zaprank' || !ITEM_SORTS.includes(query.by)))) {
         delete query.by

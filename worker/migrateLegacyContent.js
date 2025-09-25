@@ -1,26 +1,35 @@
-// import { ssrMarkdownToLexicalConverter } from '@/lib/lexical/utils/ssrMarkdownToLexicalConverter'
-// import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/ssrLexicalHTMLGenerator'
+import { ssrMarkdownToLexicalConverter } from '@/lib/lexical/utils/ssrMarkdownToLexicalConverter'
+import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/ssrLexicalHTMLGenerator'
 
 // migrates legacy content to the new editorState Lexical format
 // also generates the HTML for the item
-export async function migrateLegacyContent ({ data: { itemId }, models }) {
+export async function migrateLegacyContent ({ data: { itemId, fullRefresh }, models }) {
+  console.log('Stacker News Lexical Migration Strategy worker started')
+  console.log('Received itemId: ', itemId)
   const item = await models.item.findUnique({
-    where: { id: itemId }
+    where: {
+      id: itemId
+    }
   })
-
   if (!item) {
     throw new Error(`couldn't find item: ${itemId}`)
   }
 
-  // convert the markdown to the new lexical state
-  // const lexicalState = ssrMarkdownToLexicalConverter(item.text)
-
-  // generate the HTML for the item, that will be used as a placeholder
-  // const html = ssrLexicalHTMLGenerator(lexicalState)
-
+  let lexicalState = item.lexicalState
+  console.log('lexicalState', lexicalState)
+  if (!lexicalState || fullRefresh) {
+    lexicalState = ssrMarkdownToLexicalConverter(item.text)
+    if (!lexicalState) {
+      throw new Error('couldn\'t convert markdown to lexical state')
+    }
+  }
+  const html = ssrLexicalHTMLGenerator(lexicalState)
+  if (html.startsWith('error')) {
+    throw new Error('couldn\'t generate html')
+  }
   await models.item.update({
-    where: { id: itemId },
-    data: { lexicalState: '', html: '' }
+    where: { id: item.id },
+    data: { lexicalState, html }
   })
 }
 

@@ -1,5 +1,4 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
-import Embed from '@/components/embed'
 import { placeholderNode } from './placeholder'
 
 function $convertRumbleElement (domNode) {
@@ -92,6 +91,7 @@ export class RumbleNode extends DecoratorBlockNode {
 
   decorate (editor, config) {
     const className = config.theme.rumbleEmbed || {}
+    const Embed = require('@/components/embed').default
     return (
       <Embed id={this.__id} provider='rumble' className={className} meta={this.__meta} />
     )

@@ -8,7 +8,6 @@ import {
   TextNode
 } from 'lexical'
 import { LinkNode } from '@lexical/link'
-import ImageComponent from './imagecomponent'
 
 function $convertImageElement (domNode) {
   const img = domNode
@@ -172,6 +171,7 @@ export class ImageNode extends DecoratorNode {
   }
 
   decorate () {
+    const ImageComponent = require('./imagecomponent').default
     return (
       <ImageComponent
         src={this.__src}

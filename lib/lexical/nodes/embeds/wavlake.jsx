@@ -1,5 +1,4 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
-import Embed from '@/components/embed'
 import { placeholderNode } from './placeholder'
 
 function $convertWavlakeElement (domNode) {
@@ -79,6 +78,7 @@ export class WavlakeNode extends DecoratorBlockNode {
 
   decorate (editor, config) {
     const className = config.theme.wavlakeEmbed || {}
+    const Embed = require('@/components/embed').default
     return (
       <Embed id={this.__id} provider='wavlake' className={className} />
     )

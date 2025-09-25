@@ -92,11 +92,10 @@ export class TerritoryNode extends DecoratorNode {
   }
 
   decorate () {
-    const SubPopover = require('@/components/sub-popover').default
-    const Link = require('next/link').default
-
     const name = this.__territory
     const href = '/~' + name
+    const SubPopover = require('@/components/sub-popover').default
+    const Link = require('next/link').default
     return (
       <SubPopover sub={name}>
         <Link href={href}>~{name}</Link>

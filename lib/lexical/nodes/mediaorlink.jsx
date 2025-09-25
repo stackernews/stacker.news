@@ -1,5 +1,4 @@
 import { DecoratorNode, $applyNodeReplacement } from 'lexical'
-import MediaOrLink from '@/components/media-or-link'
 import { IMG_URL_REGEXP, VIDEO_URL_REGEXP } from '@/lib/url'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 
@@ -121,6 +120,7 @@ export class MediaOrLinkNode extends DecoratorNode {
   }
 
   decorate () {
+    const MediaOrLink = require('@/components/media-or-link').default
     return (
       <MediaOrLink
         src={this.__src}

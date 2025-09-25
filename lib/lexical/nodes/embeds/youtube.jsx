@@ -1,5 +1,4 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
-import Embed from '@/components/embed'
 import { placeholderNode } from './placeholder'
 
 function $convertYouTubeElement (domNode) {
@@ -93,6 +92,7 @@ export class YouTubeNode extends DecoratorBlockNode {
 
   decorate (editor, config) {
     const className = config.theme.youtubeEmbed || {}
+    const Embed = require('@/components/embed').default
     return (
       <Embed id={this.__id} provider='youtube' className={className} meta={this.__meta} />
     )

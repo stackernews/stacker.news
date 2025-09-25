@@ -1,5 +1,4 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
-import Embed from '@/components/embed'
 import { placeholderNode } from './placeholder'
 
 function $convertSpotifyElement (domNode) {
@@ -81,6 +80,7 @@ export class SpotifyNode extends DecoratorBlockNode {
 
   decorate (editor, config) {
     const className = config.theme.spotifyEmbed || {}
+    const Embed = require('@/components/embed').default
     return (
       <Embed src={this.__src} provider='spotify' className={className} />
     )

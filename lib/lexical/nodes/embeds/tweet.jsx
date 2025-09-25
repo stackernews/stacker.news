@@ -1,5 +1,4 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
-import Embed from '@/components/embed'
 import { placeholderNode } from './placeholder'
 
 function $convertTweetElement (domNode) {
@@ -80,6 +79,7 @@ export class TweetNode extends DecoratorBlockNode {
   decorate (editor, config) {
     const className = config.theme.twitterEmbed || {}
     const topLevel = config.theme.topLevel || false
+    const Embed = require('@/components/embed').default
     return (
       <Embed id={this.__id} provider='twitter' className={className} topLevel={topLevel} />
     )

@@ -38,7 +38,7 @@ import { payingActionConfirmed, payingActionFailed } from './payingAction'
 import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
 import { untrackOldItems } from './untrackOldItems'
-// import { migrateLegacyContent } from './migrateLegacyContent'
+import { migrateLegacyContent } from './migrateLegacyContent'
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
 if (typeof WebSocket === 'undefined') {
@@ -123,7 +123,7 @@ async function work () {
     await boss.work('imgproxy', jobWrapper(imgproxy))
     await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   }
-  // await boss.work('migrateLegacyContent', jobWrapper(migrateLegacyContent))
+  await boss.work('migrateLegacyContent', jobWrapper(migrateLegacyContent))
   await boss.work('expireBoost', jobWrapper(expireBoost))
   await boss.work('weeklyPost-*', jobWrapper(weeklyPost))
   await boss.work('payWeeklyPostBounty', jobWrapper(payWeeklyPostBounty))

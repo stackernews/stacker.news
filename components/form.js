@@ -39,7 +39,7 @@ import { useShowModal } from './modal'
 import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
-import Editor from '@/lexical/editor'
+import Editor from '@/sn-lexical/editor'
 
 export class SessionRequiredError extends Error {
   constructor () {

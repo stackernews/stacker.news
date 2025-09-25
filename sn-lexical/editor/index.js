@@ -3,7 +3,7 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import styles from '@/lexical/theme/theme.module.css'
+import styles from '@/sn-lexical/theme/theme.module.css'
 import theme from '../theme'
 import ToolbarPlugin from '../plugins/toolbar'
 import OnChangePlugin from '../plugins/onchange'
@@ -17,7 +17,7 @@ import CodeShikiPlugin from '../plugins/codeshiki'
 import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
 import classNames from 'classnames'
 import AutofocusPlugin from '../plugins/autofocus'
-import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/lexical/contexts/sharedhistorycontext'
+import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/sn-lexical/contexts/sharedhistorycontext'
 
 export default function Editor ({ customNodes = [], ...props }) {
   const { values } = useFormikContext()

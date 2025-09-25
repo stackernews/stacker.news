@@ -160,9 +160,7 @@ function ItemText ({ item }) {
     ? <SearchText text={item.searchText} />
     : item.lexicalState
       ? <LexicalText lexicalState={item.lexicalState} html={item.html} topLevel />
-      : item.html
-        ? <div dangerouslySetInnerHTML={{ __html: item.html }} />
-        : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
+      : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {

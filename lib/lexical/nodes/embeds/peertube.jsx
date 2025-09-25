@@ -1,5 +1,4 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
-import Embed from '@/components/embed'
 import { placeholderNode } from './placeholder'
 
 function $convertPeerTubeElement (domNode) {
@@ -92,6 +91,7 @@ export class PeerTubeNode extends DecoratorBlockNode {
 
   decorate (editor, config) {
     const className = config.theme.peertubeEmbed || {}
+    const Embed = require('@/components/embed').default
     return (
       <Embed id={this.__id} provider='peertube' className={className} meta={this.__meta} />
     )

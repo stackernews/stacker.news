@@ -1092,6 +1092,33 @@ export default {
       })
 
       return result.lastViewedAt
+    },
+    executeConversion: async (parent, { itemId, fullRefresh }, { models }) => {
+      if (process.env.NODE_ENV !== 'development') {
+        throw new GqlInputError('only allowed in sndev')
+      }
+      console.log('executing conversion for itemId', itemId)
+
+      const alreadyScheduled = await models.$queryRaw`
+        SELECT 1
+        FROM pgboss.job
+        WHERE name = 'migrateLegacyContent' AND data->>'itemId' = ${itemId}::TEXT AND state <> 'completed'
+      `
+      if (alreadyScheduled.length > 0) return false
+
+      // singleton job, so that we don't run the same job multiple times
+      // if on concurrent requests the check above fails
+      await models.$executeRaw`
+        INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil, singletonKey)
+        VALUES ('migrateLegacyContent',
+                jsonb_build_object('itemId', ${itemId}::INTEGER, 'fullRefresh', ${fullRefresh}::BOOLEAN),
+                21,
+                true,
+                now() + interval '5 seconds',
+                now() + interval '15 seconds',
+                'migrateLegacyContent:' || ${itemId}::TEXT)
+      `
+      return true
     }
   },
   ItemAct: {

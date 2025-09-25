@@ -1,5 +1,4 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
-import Embed from '@/components/embed'
 import { placeholderNode } from './placeholder'
 
 function $convertNostrElement (domNode) {
@@ -80,6 +79,7 @@ export class NostrNode extends DecoratorBlockNode {
   decorate (editor, config) {
     const className = config.theme.nostrEmbed || {}
     const topLevel = config.theme.topLevel || false
+    const Embed = require('@/components/embed').default
     return (
       <Embed src={this.__src} provider='nostr' className={className} topLevel={topLevel} />
     )

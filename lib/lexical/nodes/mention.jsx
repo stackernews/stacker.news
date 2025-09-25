@@ -94,7 +94,6 @@ export class MentionNode extends DecoratorNode {
   decorate () {
     const UserPopover = require('@/components/user-popover').default
     const Link = require('next/link').default
-
     const name = this.__mention
     const href = '/' + name
     return (

@@ -45,20 +45,25 @@ span.sn__mediaContainer {
 .sn__mediaContainer video {
   max-width: 100%;
   display: block;
-  height: auto;
   cursor: default;
 }
 
-[contenteditable="true"] .sn__mediaContainer img.focused, [contenteditable="true"] .sn__mediaContainer video.focused {
+[contenteditable="false"] .sn__mediaContainer img {
+  cursor: zoom-in;
+  min-width: 30%;
+  object-position: left top;
+}
+
+[contenteditable="true"] .sn__mediaContainer .focused img, [contenteditable="true"] .sn__mediaContainer .focused video {
   outline: 2px solid rgb(60, 132, 244);
   user-select: none;
 }
 
-[contenteditable="true"] .sn__mediaContainer img.focused.draggable, [contenteditable="true"] .sn__mediaContainer video.focused.draggable {
+[contenteditable="true"] .sn__mediaContainer .focused.draggable img, [contenteditable="true"] .sn__mediaContainer .focused.draggable video {
   cursor: grab;
 }
 
-[contenteditable="true"] .sn__mediaContainer img.focused.draggable:active, [contenteditable="true"] .sn__mediaContainer video.focused.draggable:active {
+[contenteditable="true"] .sn__mediaContainer .focused.draggable:active img, [contenteditable="true"] .sn__mediaContainer .focused.draggable:active video {
   cursor: grabbing;
 }
 

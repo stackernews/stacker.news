@@ -3,7 +3,7 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import styles from '@/sn-lexical/theme/theme.module.css'
+import styles from '@/components/lexical/theme/theme.module.css'
 import theme from '../theme'
 import ToolbarPlugin from '../plugins/toolbar'
 import OnChangePlugin from '../plugins/onchange'
@@ -14,10 +14,11 @@ import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
 import MentionsPlugin from '../plugins/interop/mentions'
 import CustomAutoLinkPlugin, { URL_MATCHERS } from '../plugins/interop/autolink'
 import CodeShikiPlugin from '../plugins/codeshiki'
-import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
+import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import classNames from 'classnames'
 import AutofocusPlugin from '../plugins/autofocus'
-import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/sn-lexical/contexts/sharedhistorycontext'
+import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistorycontext'
+import ModePlugin from '../plugins/mode'
 
 export default function Editor ({ customNodes = [], ...props }) {
   const { values } = useFormikContext()
@@ -69,13 +70,13 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         />
         {autoFocus && <AutofocusPlugin />}
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
-        <AutoLinkPlugin matchers={URL_MATCHERS} />
         <MentionsPlugin />
         <CustomAutoLinkPlugin />
         <CodeShikiPlugin />
         <HistoryPlugin externalHistoryState={historyState} />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <OnChangePlugin name={name} />
+        <ModePlugin />
       </div>
     </>
   )

@@ -7,7 +7,7 @@ import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
-import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/ssrLexicalHTMLGenerator'
+import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null

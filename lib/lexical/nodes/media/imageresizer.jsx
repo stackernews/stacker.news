@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import styles from '@/sn-lexical/theme/media.module.css'
+import styles from '@/components/lexical/theme/media.module.css'
 import { calculateZoomLevel } from '@lexical/utils'
 import classNames from 'classnames'
 

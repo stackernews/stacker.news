@@ -1,11 +1,11 @@
-import styles from '@/sn-lexical/theme/theme.module.css'
+import styles from '@/components/lexical/theme/theme.module.css'
 import WYSIWYGIcon from '@/svgs/file-text-line.svg'
 import MarkdownIcon from '@/svgs/markdown-line.svg'
 import { useState, useCallback, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $isCodeNode, $createCodeNode } from '@lexical/code'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
-import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
+import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { $createTextNode, $getRoot } from 'lexical'
 
 // this will switch between wysiwyg and markdown mode
@@ -20,15 +20,13 @@ export default function SwitchPlugin () {
     return $isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown'
   }, [])
 
-  const isMarkdownMode = useCallback(() => {
-    return editor.read(() => {
-      return getState()
-    })
-  }, [editor])
-
   useEffect(() => {
-    setMarkdownMode(isMarkdownMode())
-  }, [editor, isMarkdownMode])
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        setMarkdownMode(getState())
+      })
+    })
+  }, [editor, getState])
 
   // add switch logic for lexical here, for now it doesn't do anything
 
@@ -36,8 +34,7 @@ export default function SwitchPlugin () {
     editor.update(() => {
       const root = $getRoot()
       const firstChild = root.getFirstChild()
-      const isMarkdownMode = $isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown'
-      if (isMarkdownMode) {
+      if (markdownMode) {
         setMarkdownMode(false)
         $convertFromMarkdownString(firstChild.getTextContent(), SN_TRANSFORMERS, undefined, true)
       } else {
@@ -50,7 +47,7 @@ export default function SwitchPlugin () {
         if (markdown.length === 0) codeNode.select()
       }
     })
-  }, [editor])
+  }, [editor, markdownMode])
 
   return (
     <div className={styles.markdownSwitch} onClick={handleMarkdownSwitch}>

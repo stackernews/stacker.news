@@ -171,7 +171,7 @@ export class ImageNode extends DecoratorNode {
   }
 
   decorate () {
-    const ImageComponent = require('./imagecomponent').default
+    const ImageComponent = require('./imageWithMediaHelper').default
     return (
       <ImageComponent
         src={this.__src}

@@ -239,3 +239,8 @@
   width: 20px !important;
   height: 20px !important;
 }
+
+.mode {
+  font-size: 10px;
+  color: var(--theme-grey);
+}

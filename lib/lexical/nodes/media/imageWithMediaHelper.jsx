@@ -16,110 +16,8 @@ import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhis
 import { $isImageNode } from './imagenode'
 import styles from '@/components/lexical/theme/media.module.css'
 import ImageResizer from './imageresizer'
-import FileWarningIcon from '@/svgs/file-warning-line.svg'
-import Link from 'next/link'
-
-const imageCache = new Map()
-
-function useSuspenseImage (src) {
-  let cached = imageCache.get(src)
-  if (cached && 'error' in cached && typeof cached.error === 'boolean') {
-    return cached
-  } else if (!cached) {
-    cached = new Promise((resolve) => {
-      const img = new window.Image()
-      img.src = src
-      img.onload = () => {
-        resolve({
-          error: false,
-          height: img.naturalHeight,
-          width: img.naturalWidth
-        })
-      }
-      img.onerror = (err) => {
-        console.error('Failed to load image', src, 'Error:', err)
-        console.error('Event details:', {
-          type: err.type,
-          target: err.target,
-          currentTarget: err.currentTarget,
-          message: err.message || 'Unknown error'
-        })
-        resolve({ error: true, errorDetails: err })
-      }
-    }).then((result) => {
-      imageCache.set(src, result)
-      return result
-    })
-    imageCache.set(src, cached)
-    throw cached
-  }
-  throw cached
-}
-
-function LazyImage ({ src, altText, imageRef, width, height, maxWidth, onError, className }) {
-  const isSVG = src.toLowerCase().endsWith('.svg')
-  const status = useSuspenseImage(src)
-
-  useEffect(() => {
-    if (status.error) {
-      onError()
-    }
-  }, [status.error, onError])
-
-  if (status.error) {
-    // should return a broken image svg
-    return null
-  }
-
-  const calculateDimensions = () => {
-    if (!isSVG) {
-      return {
-        height,
-        width,
-        maxWidth
-      }
-    }
-
-    const naturalHeight = status.height
-    const naturalWidth = status.width
-
-    let finalHeight = naturalHeight
-    let finalWidth = naturalWidth
-
-    if (finalWidth > maxWidth) {
-      const scale = maxWidth / finalWidth
-      finalWidth = maxWidth
-      finalHeight = Math.round(finalHeight * scale)
-    }
-
-    const maxHeight = 500
-    if (finalHeight > maxHeight) {
-      const scale = maxHeight / finalHeight
-      finalHeight = maxHeight
-      finalWidth = Math.round(finalWidth * scale)
-    }
-
-    return {
-      height: finalHeight,
-      width: finalWidth,
-      maxWidth
-    }
-  }
-
-  const imageStyle = calculateDimensions()
-
-  return (
-    <img
-      className={className || undefined}
-      src={src}
-      alt={altText}
-      ref={imageRef}
-      style={imageStyle}
-      onError={onError}
-      draggable={false}
-    />
-  )
-}
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { MediaOrLinkExperimental } from '@/components/media-or-link'
 
 export default function ImageComponent ({
   src,
@@ -293,26 +191,16 @@ export default function ImageComponent ({
     <Suspense fallback={null}>
       <>
         <div draggable={draggable}>
-          {isLoadError
-            ? (
-              <div className={styles.loadError}>
-                <Link className={styles.loadErrorLink} href={src} target='_blank' rel='noreferrer'>
-                  <FileWarningIcon width={16} height={16} />
-                  <span>Failed to load image</span>
-                </Link>
-              </div>
-              )
-            : (
-              <LazyImage
-                className={isFocused ? `focused ${$isNodeSelection(selection) ? 'draggable' : ''}` : null}
-                src={src}
-                altText={altText}
-                imageRef={imageRef}
-                width={width}
-                height={height}
-                maxWidth={maxWidth}
-                onError={() => setIsLoadError(true)}
-              />)}
+          <MediaOrLinkExperimental
+            editable={isEditable}
+            src={src}
+            rel={UNKNOWN_LINK_REL}
+            linkFallback={false}
+            preTailor={{ width, height, maxWidth }}
+            onError={() => setIsLoadError(true)}
+            className={isFocused ? `focused ${$isNodeSelection(selection) ? 'draggable' : ''}` : null}
+            imageRef={imageRef}
+          />
         </div>
 
         {showCaption && (

@@ -6,13 +6,7 @@ import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { $createMediaOrLinkNode } from '@/lib/lexical/nodes/mediaorlink'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import { $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, $nodesOfType } from 'lexical'
-import { $createTweetNode } from '@/lib/lexical/nodes/embeds/tweet'
-import { $createNostrNode } from '@/lib/lexical/nodes/embeds/nostr'
-import { $createWavlakeNode } from '@/lib/lexical/nodes/embeds/wavlake'
-import { $createSpotifyNode } from '@/lib/lexical/nodes/embeds/spotify'
-import { $createYouTubeNode } from '@/lib/lexical/nodes/embeds/youtube'
-import { $createRumbleNode } from '@/lib/lexical/nodes/embeds/rumble'
-import { $createPeerTubeNode } from '@/lib/lexical/nodes/embeds/peertube'
+import { $createEmbedNode } from '@/lib/lexical/nodes/embeds'
 
 export const URL_MATCHERS = [
   (text) => {
@@ -54,32 +48,7 @@ export default function CustomAutoLinkPlugin () {
       // this is a complete mess, but weirdly works lmao
       const embed = parseEmbedUrl(normUrl)
       if (embed) {
-        console.log('normUrl', normUrl)
-        switch (embed.provider) {
-          case 'twitter':
-            node.replace($createTweetNode(embed.id))
-            break
-          case 'nostr':
-            node.replace($createNostrNode(embed.id))
-            break
-          case 'wavlake':
-            node.replace($createWavlakeNode(embed.id))
-            break
-          case 'spotify':
-            node.replace($createSpotifyNode(embed.id))
-            break
-          case 'youtube':
-            node.replace($createYouTubeNode(embed.id, embed.meta))
-            break
-          case 'rumble':
-            node.replace($createRumbleNode(embed.id, embed.meta))
-            break
-          case 'peertube':
-            node.replace($createPeerTubeNode(embed.id, embed.meta))
-            break
-          default:
-            node.replace($createMediaOrLinkNode({ src: normUrl, rel, linkFallback: true }))
-        }
+        node.replace($createEmbedNode(embed))
       } else {
         node.replace($createMediaOrLinkNode({ src: normUrl, rel, linkFallback: true }))
       }

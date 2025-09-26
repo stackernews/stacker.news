@@ -22,10 +22,11 @@ function LinkRaw ({ href, children, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width,
-  height, onClick, onError, style, className, video
+  height, onClick, onError, style, className, video, imageRef
 }) {
   const [loaded, setLoaded] = useState(!video)
-  const ref = useRef(null)
+  const ref = imageRef || useRef(null)
+  console.log('style', style)
 
   const handleLoadedMedia = () => {
     setLoaded(true)
@@ -34,16 +35,16 @@ const Media = memo(function Media ({
   // events are not fired on elements during hydration
   // https://github.com/facebook/react/issues/15446
   useEffect(() => {
-    if (ref.current) {
+    if (ref.current && ref.current !== imageRef) {
       ref.current.src = src
     }
-  }, [ref.current, src])
+  }, [ref.current, src, imageRef])
 
   return (
     <div
       // will set min-content ONLY after the media is loaded
       // due to safari video bug
-      className={classNames(className, styles.mediaContainer, { [styles.loaded]: loaded })}
+      className={classNames(className, imageRef ? '' : styles.mediaContainer, { [styles.loaded]: loaded })}
       style={style}
     >
       {video
@@ -72,6 +73,58 @@ const Media = memo(function Media ({
     </div>
   )
 })
+
+export function MediaOrLinkExperimental ({ editable = false, linkFallback = true, onError, className, imageRef, ...props }) {
+  const media = useMediaHelper(props)
+  const [error, setError] = useState(false)
+  const { showCarousel, addMedia, confirmMedia, removeMedia } = editable ? {} : (useCarousel() || {})
+
+  // register placeholder immediately on mount if we have a src
+  useEffect(() => {
+    if (!addMedia) return
+    if (!media.bestResSrc) return
+    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
+  }, [addMedia, media.bestResSrc, media.originalSrc, props.rel])
+
+  // confirm media for carousel based on image detection
+  useEffect(() => {
+    if (!confirmMedia) return
+    if (!media.image) return
+    confirmMedia(media.bestResSrc)
+  }, [confirmMedia, media.image, media.bestResSrc])
+
+  const handleClick = useCallback(() => {
+    if (!showCarousel) return
+    showCarousel({ src: media.bestResSrc })
+  }, [showCarousel, media.bestResSrc])
+
+  const handleError = useCallback((err) => {
+    removeMedia && removeMedia(media.bestResSrc)
+    console.error('Error loading media', err)
+    onError?.()
+    setError(true)
+  }, [setError, removeMedia, media.bestResSrc, onError])
+
+  if (!media.src) return null
+
+  if (!error) {
+    if (media.image || media.video) {
+      return preserveScroll(() => {
+        return (
+          <Media
+            {...media} onClick={handleClick} onError={handleError} className={className} imageRef={imageRef}
+          />
+        )
+      })
+    }
+  }
+
+  if (linkFallback) {
+    return <LinkRaw {...props} />
+  }
+
+  return null
+}
 
 export default function MediaOrLink ({ linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
@@ -126,7 +179,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) => {
+export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab, preTailor }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
@@ -190,17 +243,23 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   }, [srcSetObj])
 
   const [style, width, height] = useMemo(() => {
-    if (dimensions) {
-      const { width, height } = dimensions
-      const style = {
-        '--height': `${height}px`,
-        '--width': `${width}px`,
-        '--aspect-ratio': `${width} / ${height}`
-      }
-      return [style, width, height]
+    const source = preTailor || dimensions
+    console.log('source', source)
+    if (!source) return []
+
+    const { width, height, maxWidth } = source
+    console.log('width', width)
+    console.log('height', height)
+    console.log('maxWidth', maxWidth)
+    const style = {
+      '--height': `${height}px`,
+      '--width': `${width}px`,
+      '--aspect-ratio': `${width} / ${height}`,
+      ...(maxWidth && { '--max-width': `${maxWidth}px` })
     }
-    return []
-  }, [dimensions?.width, dimensions?.height])
+    console.log('style', style)
+    return [style, width, height]
+  }, [dimensions?.width, dimensions?.height, preTailor])
 
   return {
     src,

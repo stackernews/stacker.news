@@ -1,5 +1,5 @@
-import { ssrMarkdownToLexicalConverter } from '@/lib/lexical/utils/ssrMarkdownToLexicalConverter'
-import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/ssrLexicalHTMLGenerator'
+import { ssrMarkdownToLexicalConverter } from '@/lib/lexical/utils/server/markdownToLexical'
+import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
 
 // migrates legacy content to the new editorState Lexical format
 // also generates the HTML for the item

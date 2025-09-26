@@ -17,6 +17,10 @@ export class MediaOrLinkNode extends DecoratorNode {
     return this.__src
   }
 
+  getTextContent () {
+    return this.__src
+  }
+
   getAltText () {
     return this.__name
   }

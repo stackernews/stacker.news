@@ -1,4 +1,4 @@
-import styles from '@/sn-lexical/theme/theme.module.css'
+import styles from '@/components/lexical/theme/theme.module.css'
 import { useRef } from 'react'
 import FileUploadPlugin from '../interop/fileupload'
 import SwitchPlugin from './tools/switch'

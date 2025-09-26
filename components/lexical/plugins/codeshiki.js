@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
 import { registerCodeHighlighting, ShikiTokenizer } from '@lexical/code-shiki'
-import styles from '@/sn-lexical/theme/theme.module.css'
+import styles from '@/components/lexical/theme/theme.module.css'
 
 // Lexical/Shiki Custom Styles Injector
 // Half done and kinda crazy, lol

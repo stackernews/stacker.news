@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { $generateHtmlFromNodes } from '@lexical/html'
 import { $isCodeNode } from '@lexical/code'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
-import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
+import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { $getRoot, createEditor } from 'lexical'
 import DefaultNodes from '@/lib/lexical/nodes'
 

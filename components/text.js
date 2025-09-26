@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import lexicalStyles from '@/sn-lexical/theme/theme.module.css'
+import lexicalStyles from '@/components/lexical/theme/theme.module.css'
 import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
 import dynamic from 'next/dynamic'
@@ -22,7 +22,7 @@ import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
 import remarkToc from '@/lib/remark-toc'
-import Reader from '@/sn-lexical/reader'
+import Reader from '@/components/lexical/reader'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{

@@ -5,7 +5,7 @@ import { $convertToMarkdownString, $convertFromMarkdownString } from '@lexical/m
 import { $isCodeNode } from '@lexical/code'
 import { $getRoot, createEditor } from 'lexical'
 import DefaultNodes from '@/lib/lexical/nodes'
-import { SN_TRANSFORMERS } from '@/lib/lexical/transformers/image-markdown-transformer'
+import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { StorageKeyPrefixContext } from '@/components/form'
 
 function parseMarkdown (editor, content) {

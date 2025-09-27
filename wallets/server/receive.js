@@ -145,8 +145,6 @@ async function _protocolCreateInvoice (protocol, {
   expiry = 360
 }, { logger, models }) {
   // check for pending withdrawals
-
-  // TODO(wallet-v2): make sure this still works as intended
   const pendingWithdrawals = await models.withdrawl.count({
     where: {
       protocolId: protocol.id,
@@ -155,7 +153,6 @@ async function _protocolCreateInvoice (protocol, {
   })
 
   // and pending forwards
-  // TODO(wallet-v2): make sure this still works as intended
   const pendingForwards = await models.invoiceForward.count({
     where: {
       protocolId: protocol.id,

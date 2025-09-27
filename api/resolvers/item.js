@@ -55,7 +55,8 @@ function commentsOrderByClause (me, models, sort) {
 async function comments (me, models, item, sort, cursor) {
   const orderBy = commentsOrderByClause(me, models, sort)
 
-  if (item.nDirectComments === 0) {
+  // if we're logged in, there might be pending comments from us we want to show but weren't counted
+  if (!me && item.nDirectComments === 0) {
     return {
       comments: [],
       cursor: null
@@ -1269,7 +1270,8 @@ export default {
         return item.comments
       }
 
-      if (item.ncomments === 0) {
+      // if we're logged in, there might be pending comments from us we want to show but weren't counted
+      if (!me && item.ncomments === 0) {
         return {
           comments: [],
           cursor: null

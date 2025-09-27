@@ -11,7 +11,7 @@ import { numWithUnits } from '@/lib/format'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
 import dynamic from 'next/dynamic'
-import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useAnimation } from '@/components/animation'
 import { Col, Row } from 'react-bootstrap'
@@ -81,7 +81,7 @@ export default function Rewards ({ ssrData }) {
   // only poll for updates to rewards
   const { data: rewardsData } = useQuery(
     REWARDS,
-    SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
+    SSR ? {} : { pollInterval: FAST_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
   const { data } = useQuery(REWARDS_FULL)
   const dat = useData(data, ssrData)
 

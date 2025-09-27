@@ -28,7 +28,8 @@
         "name": "PHOENIXD",
         "displayName": "Phoenixd",
         "image": "/wallets/phoenixd.png",
-        "url": "https://phoenix.acinq.co/server"
+        "url": "https://phoenix.acinq.co/server",
+        "guide": "/items/1212375"
     },
     {
         "name": "ZEUS",
@@ -43,7 +44,8 @@
         "name": "COINOS",
         "displayName": "Coinos",
         "image": "/wallets/coinos.svg",
-        "url": "https://coinos.io/"
+        "url": "https://coinos.io/",
+        "guide": "/items/1230105"
     },
     {
         "name": "PRIMAL",
@@ -70,7 +72,8 @@
         "name": "RIZFUL",
         "displayName": "Rizful",
         "image": "/wallets/rizful.png",
-        "url": "https://rizful.com/"
+        "url": "https://rizful.com/",
+        "guide": "https://docs.megalithic.me/using-rizful/use-stacker-news"
     },
     {
         "name": "SPEED",
@@ -118,7 +121,8 @@
         "name": "ALBY",
         "displayName": "Alby",
         "image": "/wallets/alby.svg",
-        "url": "https://getalby.com/"
+        "url": "https://getalby.com/",
+        "guide": "/items/1215565"
     },
     {
         "name": "BLIXT",

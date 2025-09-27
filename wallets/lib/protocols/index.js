@@ -7,10 +7,11 @@ import lnbitsSuite from './lnbits'
 import phoenixdSuite from './phoenixd'
 import blinkSuite from './blink'
 import webln from './webln'
+import clinkSuite from './clink'
 
 /**
  * Protocol names as used in the database
- * @typedef {'NWC'|'LNBITS'|'PHOENIXD'|'BLINK'|'WEBLN'|'LN_ADDR'|'LNC'|'CLN_REST'|'LND_GRPC'} ProtocolName
+ * @typedef {'NWC'|'LNBITS'|'PHOENIXD'|'BLINK'|'WEBLN'|'LN_ADDR'|'LNC'|'CLN_REST'|'LND_GRPC'|'CLINK'} ProtocolName
  * @typedef {'text'|'password'} InputType
  */
 
@@ -18,6 +19,7 @@ import webln from './webln'
  * @typedef {Object} Protocol
  * @property {ProtocolName} name - must match a protocol name in the database
  * @property {string} displayName - protocol name in user interface
+ * @property {string} [logName] - protocol name in logs
  * @property {boolean} send - is this protocol for sending payments?
  * @property {ProtocolField[]} fields - protocol fields for configuration
  * @property {string} relationName - name of the relation in the WalletProtocol prisma model
@@ -33,6 +35,7 @@ import webln from './webln'
  * @property {string} [placeholder] - placeholder text shown in input field
  * @property {string} [hint] - hint text shown below field
  * @property {boolean} [share] - whether field can be used to prepopulate field of complementary send/receive protocol
+ * @property {boolean} [editable] - whether the field is editable after it was saved
  */
 
 /** @type {Protocol[]} */
@@ -45,5 +48,6 @@ export default [
   ...phoenixdSuite,
   ...lnbitsSuite,
   ...blinkSuite,
-  webln
+  webln,
+  ...clinkSuite
 ]

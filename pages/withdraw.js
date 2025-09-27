@@ -17,7 +17,7 @@ import { useField } from 'formik'
 import { useToast } from '@/components/toast'
 import { decode } from 'bolt11'
 import CameraIcon from '@/svgs/camera-line.svg'
-import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import Qr, { QrSkeleton } from '@/components/qr'
 import useDebounceCallback from '@/components/use-debounce-callback'
 import { lnAddrOptions } from '@/lib/lnurl'
@@ -215,7 +215,7 @@ function LnQRWith ({ k1, encodedUrl }) {
       k1
     }
   }`
-  const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
 
   if (data?.lnWith?.withdrawalId) {
     router.push(`/withdrawals/${data.lnWith.withdrawalId}`)

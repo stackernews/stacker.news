@@ -6,6 +6,7 @@ import {
   UPSERT_WALLET_RECEIVE_LND_GRPC,
   UPSERT_WALLET_RECEIVE_NWC,
   UPSERT_WALLET_RECEIVE_PHOENIXD,
+  UPSERT_WALLET_RECEIVE_CLINK,
   UPSERT_WALLET_SEND_BLINK,
   UPSERT_WALLET_SEND_LNBITS,
   UPSERT_WALLET_SEND_LNC,
@@ -13,6 +14,7 @@ import {
   UPSERT_WALLET_SEND_PHOENIXD,
   UPSERT_WALLET_SEND_WEBLN,
   UPSERT_WALLET_SEND_CLN_REST,
+  UPSERT_WALLET_SEND_CLINK,
   WALLETS,
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
@@ -26,6 +28,7 @@ import {
   TEST_WALLET_RECEIVE_NWC,
   TEST_WALLET_RECEIVE_CLN_REST,
   TEST_WALLET_RECEIVE_LND_GRPC,
+  TEST_WALLET_RECEIVE_CLINK,
   DELETE_WALLET
 } from '@/wallets/client/fragments'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
@@ -37,7 +40,7 @@ import {
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { timeoutSignal } from '@/lib/time'
-import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
 import { useTemplates, useWallets, useWalletsLoading } from '@/wallets/client/context'
@@ -50,6 +53,18 @@ export function useWalletsQuery () {
   const [error, setError] = useState(null)
 
   const { decryptWallet, ready } = useWalletDecryption()
+
+  useEffect(() => {
+    // the query might fail because of network errors like ERR_NETWORK_CHANGED
+    // but for some reason, the retry link does not retry the query so we poll instead ourselves here.
+    // https://github.com/stackernews/stacker.news/issues/2522
+    if (!wallets) {
+      query.startPolling(FAST_POLL_INTERVAL_MS)
+    } else {
+      query.stopPolling()
+    }
+    return () => query.stopPolling()
+  }, [query.startPolling, query.stopPolling, wallets])
 
   useEffect(() => {
     if (!query.data?.wallets || !ready) return
@@ -303,6 +318,8 @@ function protocolUpsertMutation (protocol) {
       return protocol.send ? UPSERT_WALLET_SEND_LNC : NOOP_MUTATION
     case 'WEBLN':
       return protocol.send ? UPSERT_WALLET_SEND_WEBLN : NOOP_MUTATION
+    case 'CLINK':
+      return protocol.send ? UPSERT_WALLET_SEND_CLINK : UPSERT_WALLET_RECEIVE_CLINK
     default:
       return NOOP_MUTATION
   }
@@ -326,6 +343,8 @@ function protocolTestMutation (protocol) {
       return TEST_WALLET_RECEIVE_CLN_REST
     case 'LND_GRPC':
       return TEST_WALLET_RECEIVE_LND_GRPC
+    case 'CLINK':
+      return TEST_WALLET_RECEIVE_CLINK
     default:
       return NOOP_MUTATION
   }

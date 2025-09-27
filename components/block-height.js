@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
-import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
 import { datePivot } from '@/lib/time'
 
@@ -18,7 +18,7 @@ export const BlockHeightProvider = ({ blockHeight, children }) => {
     ...(SSR
       ? {}
       : {
-          pollInterval: NORMAL_POLL_INTERVAL,
+          pollInterval: NORMAL_POLL_INTERVAL_MS,
           nextFetchPolicy: 'cache-and-network'
         })
   })

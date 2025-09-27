@@ -21,3 +21,6 @@ _For example, a change is not backward compatible if you removed a GraphQL field
 
 
 **Did you introduce any new environment variables? If so, call them out explicitly here:**
+
+
+**Did you use AI for this? If so, how much did it assist you?**

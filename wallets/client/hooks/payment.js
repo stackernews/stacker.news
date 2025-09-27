@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useSendProtocols, useWalletLoggerFactory } from '@/wallets/client/hooks'
 import useInvoice from '@/components/use-invoice'
-import { FAST_POLL_INTERVAL, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
   WalletPaymentError, WalletError, WalletReceiverError
@@ -125,7 +125,7 @@ function invoiceController (inv, isInvoice) {
           clearInterval(interval)
           signal.removeEventListener('abort', abort)
         }
-      }, FAST_POLL_INTERVAL)
+      }, FAST_POLL_INTERVAL_MS)
 
       const abort = () => {
         console.info(`invoice #${inv.id}: stopped waiting`)

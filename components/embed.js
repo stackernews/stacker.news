@@ -6,6 +6,7 @@ import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import LoadErrorIcon from '@/svgs/file-warning-line.svg'
+import Link from 'next/link'
 
 const LoadingError = ({ provider, src, className }) => {
   let host = provider
@@ -19,9 +20,9 @@ const LoadingError = ({ provider, src, className }) => {
       <div className={styles.embedLoadingErrorMessage}>
         <LoadErrorIcon className='fill-grey' />
         <div>{provider} embed is not available at the moment.</div>
-        <a href={src} target='_blank' rel='noopener nofollow noreferrer'>
+        <Link href={src} target='_blank' rel='noopener nofollow noreferrer'>
           view on {host}
-        </a>
+        </Link>
       </div>
     </div>
   )
@@ -140,12 +141,23 @@ const NostrEmbed = memo(function NostrEmbed ({ className, topLevel, id, onError 
   const [darkMode] = useDarkMode()
   const [show, setShow] = useState(false)
   const iframeRef = useRef(null)
+  const darkModeRef = useRef(darkMode)
+
+  const handleDarkMode = useCallback(() => {
+    try {
+      iframeRef?.current?.contentWindow?.postMessage({ setDarkMode: darkModeRef.current }, '*')
+    } catch (e) {}
+  }, [])
+
+  // change dark mode without triggering another timeout
+  useEffect(() => {
+    darkModeRef.current = darkMode
+    if (iframeRef?.current?.contentWindow) handleDarkMode()
+  }, [darkMode, handleDarkMode])
 
   useLoadTimeout({
     iframeRef,
-    onLoad: () => {
-      iframeRef?.current?.contentWindow?.postMessage({ setDarkMode: darkMode }, '*')
-    },
+    onLoad: handleDarkMode,
     onError
   })
 
@@ -163,7 +175,7 @@ const NostrEmbed = memo(function NostrEmbed ({ className, topLevel, id, onError 
     iframeRef.current.src = `https://njump.me/${id}?embed=yes`
 
     return () => window?.removeEventListener('message', setHeightFromIframe)
-  }, [darkMode, id])
+  }, [id])
 
   return (
     <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
@@ -237,7 +249,8 @@ export default memo(function Embed ({ src, provider, id, meta, className, topLev
   const [error, setError] = useState(false)
 
   const onErr = useCallback(() => {
-    onError?.() || setError(true)
+    if (onError) onError()
+    else setError(true)
   }, [onError])
 
   if (error) return <LoadingError provider={provider} src={src} className={className} />

@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { sha256 } from '@noble/hashes/sha2.js'
 import { useSendProtocols, useWalletLoggerFactory } from '@/wallets/client/hooks'
 import useInvoice from '@/components/use-invoice'
 import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
@@ -156,7 +157,11 @@ function useSendPayment () {
 
       // some wallets like Coinos will always immediately return success without providing the preimage
       if (preimage) {
-        logger.ok(`↗ payment sent: ${formatSats(invoice.satsRequested)}`)
+        if (!verifyPreimage(invoice, preimage)) {
+          logger.warn('wallet returned success with invalid proof of payment')
+        } else {
+          logger.ok(`↗ payment sent: ${formatSats(invoice.satsRequested)}`)
+        }
       } else {
         logger.warn('wallet returned success without proof of payment')
       }
@@ -166,4 +171,9 @@ function useSendPayment () {
       throw new WalletSenderError(protocol.name, invoice, message)
     }
   }, [])
+}
+
+function verifyPreimage (invoice, preimage) {
+  const preimageHash = Buffer.from(sha256(Buffer.from(preimage, 'hex'))).toString('hex')
+  return invoice.hash === preimageHash
 }

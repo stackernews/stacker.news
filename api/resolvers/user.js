@@ -753,19 +753,19 @@ export default {
 
       return Number(photoId)
     },
-    upsertBio: async (parent, { text }, { me, models, lnd }) => {
+    upsertBio: async (parent, { text, lexicalState }, { me, models, lnd }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      await validateSchema(bioSchema, { text })
+      await validateSchema(bioSchema, { text, lexicalState })
 
       const user = await models.user.findUnique({ where: { id: me.id } })
 
       if (user.bioId) {
-        return await updateItem(parent, { id: user.bioId, bio: true, text, title: `@${user.name}'s bio` }, { me, models, lnd })
+        return await updateItem(parent, { id: user.bioId, bio: true, text, lexicalState, title: `@${user.name}'s bio` }, { me, models, lnd })
       } else {
-        return await createItem(parent, { bio: true, text, title: `@${user.name}'s bio` }, { me, models, lnd })
+        return await createItem(parent, { bio: true, text, lexicalState, title: `@${user.name}'s bio` }, { me, models, lnd })
       }
     },
     generateApiKey: async (parent, { id }, { models, me }) => {

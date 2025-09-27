@@ -39,6 +39,7 @@ import { useShowModal } from './modal'
 import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
+import Editor from '@/components/lexical/editor'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -302,6 +303,14 @@ export function DualAutocompleteWrapper ({
       </TerritorySuggest>
     )}
     </UserSuggest>
+  )
+}
+
+export function LexicalInput ({ label, topLevel, groupClassName, onChange, onKeyDown, ...props }) {
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <Editor name={props.name} topLevel={topLevel} onChange={onChange} onKeyDown={onKeyDown} {...props} />
+    </FormGroup>
   )
 }
 
@@ -1044,7 +1053,7 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
   )
 }
 
-const StorageKeyPrefixContext = createContext()
+export const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, validate, schema, onSubmit, children, initialError, validateImmediately,

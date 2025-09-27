@@ -146,14 +146,20 @@ function useSendPayment () {
   return useCallback(async (protocol, invoice, logger) => {
     try {
       logger.info(`↗ sending payment: ${formatSats(invoice.satsRequested)}`)
-      await withTimeout(
+      const preimage = await withTimeout(
         protocol.sendPayment(
           invoice.bolt11,
           protocol.config,
           { signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS) }
         ),
         WALLET_SEND_PAYMENT_TIMEOUT_MS)
-      logger.ok(`↗ payment sent: ${formatSats(invoice.satsRequested)}`)
+
+      // some wallets like Coinos will always immediately return success without providing the preimage
+      if (preimage) {
+        logger.ok(`↗ payment sent: ${formatSats(invoice.satsRequested)}`)
+      } else {
+        logger.warn('wallet returned success without proof of payment')
+      }
     } catch (err) {
       // we don't log the error here since we want to handle receiver errors separately
       const message = err.message || err.toString?.()

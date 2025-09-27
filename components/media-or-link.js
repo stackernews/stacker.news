@@ -252,8 +252,8 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab, preT
     console.log('height', height)
     console.log('maxWidth', maxWidth)
     const style = {
-      '--height': `${height}px`,
-      '--width': `${width}px`,
+      '--height': height === 'inherit' ? height : `${height}px`,
+      '--width': width === 'inherit' ? width : `${width}px`,
       '--aspect-ratio': `${width} / ${height}`,
       ...(maxWidth && { '--max-width': `${maxWidth}px` })
     }

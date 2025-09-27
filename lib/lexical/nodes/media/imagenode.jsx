@@ -67,19 +67,26 @@ export class ImageNode extends DecoratorNode {
   }
 
   exportDOM (editor) {
-    const wrapper = document.createElement('span')
+    const element = document.createElement('span')
     const theme = editor._config.theme
     const className = theme.mediaContainer
     if (className !== undefined) {
-      wrapper.className = className
+      element.className = className
     }
-    const element = document.createElement('img')
-    element.setAttribute('src', this.__src)
-    element.setAttribute('alt', this.__altText)
-    element.setAttribute('width', this.__width.toString())
-    element.setAttribute('height', this.__height.toString())
-    wrapper.appendChild(element)
-    return { element: wrapper }
+    const style = {
+      '--height': this.__height === 'inherit' ? this.__height : `${this.__height}px`,
+      '--width': this.__width === 'inherit' ? this.__width : `${this.__width}px`,
+      '--aspect-ratio': `${this.__width} / ${this.__height}`,
+      ...(this.__maxWidth && { '--max-width': `${this.__maxWidth}px` })
+    }
+    element.setAttribute('style', Object.entries(style).map(([key, value]) => `${key}: ${value}`).join('; '))
+    const img = document.createElement('img')
+    img.setAttribute('src', this.__src)
+    img.setAttribute('alt', this.__altText)
+    img.setAttribute('width', this.__width.toString())
+    img.setAttribute('height', this.__height.toString())
+    element.appendChild(img)
+    return { element }
   }
 
   static importDOM () {
@@ -170,7 +177,7 @@ export class ImageNode extends DecoratorNode {
     return this.__altText
   }
 
-  decorate () {
+  decorate (editor) {
     const ImageComponent = require('./imageWithMediaHelper').default
     return (
       <ImageComponent

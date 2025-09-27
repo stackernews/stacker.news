@@ -64,9 +64,7 @@ export class SpotifyNode extends DecoratorBlockNode {
   }
 
   getTextContent (_includeInert, _includeDirectionless) {
-    const url = new URL(this.__src)
-    url.pathname = url.pathname.replace(/\/intl-\w+\//, '/')
-    return `https://open.spotify.com/embed${url.pathname}`
+    return this.__src
   }
 
   updateDOM (prevNode, domNode) {

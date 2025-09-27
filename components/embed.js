@@ -5,6 +5,27 @@ import styles from './text.module.css'
 import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
+import LoadErrorIcon from '@/svgs/file-warning-line.svg'
+
+const LoadingError = ({ provider, src, className }) => {
+  let host = provider
+  try {
+    host = new URL(src).hostname || provider
+  } catch (e) {
+    // fallback to provider if URL parsing fails
+  }
+  return (
+    <div className={classNames(styles.embedLoadingError, className)}>
+      <div className={classNames(styles.embedLoadingErrorMessage)}>
+        <LoadErrorIcon className='fill-grey' />
+        <div>{provider} embed is not available at the moment.</div>
+        <a href={src} target='_blank' rel='noopener nofollow noreferrer'>
+          view on {host}
+        </a>
+      </div>
+    </div>
+  )
+}
 
 const TweetSkeleton = ({ className }) => {
   return (
@@ -21,10 +42,11 @@ const TweetSkeleton = ({ className }) => {
   )
 }
 
-const TwitterEmbed = ({ id, className, topLevel }) => {
+const TwitterEmbed = ({ id, className, topLevel, onError }) => {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(true)
   const [show, setShow] = useState(false)
+  const clearLoadTimeout = useLoadTimeout({ onError })
 
   return (
     <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
@@ -33,7 +55,7 @@ const TwitterEmbed = ({ id, className, topLevel }) => {
         options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
         key={darkMode ? '1' : '2'}
         placeholder={<TweetSkeleton className={className} />}
-        onLoad={() => setOverflowing(true)}
+        onLoad={() => { setOverflowing(true); clearLoadTimeout() }}
       />
       {overflowing && !show &&
         <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
@@ -43,10 +65,14 @@ const TwitterEmbed = ({ id, className, topLevel }) => {
   )
 }
 
-const WavlakeEmbed = ({ id, className }) => {
+const WavlakeEmbed = ({ id, className, onError }) => {
+  const iframeRef = useRef(null)
+  useLoadTimeout({ iframeRef, onError })
+
   return (
     <div className={classNames(styles.wavlakeWrapper, className)}>
       <iframe
+        ref={iframeRef}
         src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
         allow='encrypted-media'
         sandbox='allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-same-origin'
@@ -55,25 +81,35 @@ const WavlakeEmbed = ({ id, className }) => {
   )
 }
 
-const YouTubeEmbed = ({ id, className, meta }) => {
+const YouTubeEmbed = ({ id, className, meta, onError }) => {
+  const clearLoadTimeout = useLoadTimeout({ onError })
+
   return (
     <div className={classNames(styles.videoWrapper, className)}>
       <YouTube
-        videoId={id} className={styles.videoContainer} opts={{
+        videoId={id}
+        className={styles.videoContainer}
+        opts={{
           playerVars: {
             start: meta?.start || 0
           }
         }}
+        onReady={() => { clearLoadTimeout() }}
+        onError={() => { clearLoadTimeout(); onError?.() }}
       />
     </div>
   )
 }
 
-const RumbleEmbed = ({ id, className, meta }) => {
+const RumbleEmbed = ({ id, className, meta, onError }) => {
+  const iframeRef = useRef(null)
+  useLoadTimeout({ iframeRef, onError })
+
   return (
     <div className={classNames(styles.videoWrapper, className)}>
       <div className={styles.videoContainer}>
         <iframe
+          ref={iframeRef}
           title='Rumble Video'
           allowFullScreen
           src={meta?.href}
@@ -84,11 +120,15 @@ const RumbleEmbed = ({ id, className, meta }) => {
   )
 }
 
-const PeerTubeEmbed = ({ id, className, meta }) => {
+const PeerTubeEmbed = ({ id, className, meta, onError }) => {
+  const iframeRef = useRef(null)
+  useLoadTimeout({ iframeRef, onError })
+
   return (
     <div className={classNames(styles.videoWrapper, className)}>
       <div className={styles.videoContainer}>
         <iframe
+          ref={iframeRef}
           title='PeerTube Video'
           allowFullScreen
           src={meta?.href}
@@ -99,10 +139,18 @@ const PeerTubeEmbed = ({ id, className, meta }) => {
   )
 }
 
-const NostrEmbed = ({ src, className, topLevel, id }) => {
+const NostrEmbed = ({ src, className, topLevel, id, onError }) => {
   const [darkMode] = useDarkMode()
   const [show, setShow] = useState(false)
   const iframeRef = useRef(null)
+
+  useLoadTimeout({
+    iframeRef,
+    onLoad: () => {
+      iframeRef.current.contentWindow.postMessage({ setDarkMode: darkMode }, '*')
+    },
+    onError
+  })
 
   useEffect(() => {
     if (!iframeRef.current) return
@@ -114,24 +162,11 @@ const NostrEmbed = ({ src, className, topLevel, id }) => {
 
     window?.addEventListener('message', setHeightFromIframe)
 
-    const handleIframeLoad = () => {
-      iframeRef.current.contentWindow.postMessage({ setDarkMode: darkMode }, '*')
-    }
-
-    if (iframeRef.current.complete) {
-      handleIframeLoad()
-    } else {
-      iframeRef.current.addEventListener('load', handleIframeLoad)
-    }
-
     // https://github.com/vercel/next.js/issues/39451
     iframeRef.current.src = `https://njump.me/${id}?embed=yes`
 
-    return () => {
-      window?.removeEventListener('message', setHeightFromIframe)
-      iframeRef.current?.removeEventListener('load', handleIframeLoad)
-    }
-  }, [iframeRef.current, darkMode])
+    return () => window?.removeEventListener('message', setHeightFromIframe)
+  }, [iframeRef.current, darkMode, id])
 
   return (
     <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
@@ -153,13 +188,15 @@ const NostrEmbed = ({ src, className, topLevel, id }) => {
   )
 }
 
-const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
+const SpotifyEmbed = function SpotifyEmbed ({ src, className, onError }) {
   const iframeRef = useRef(null)
 
   // https://open.spotify.com/track/1KFxcj3MZrpBGiGA8ZWriv?si=f024c3aa52294aa1
   // Remove any additional path segments
   const url = new URL(src)
   url.pathname = url.pathname.replace(/\/intl-\w+\//, '/')
+
+  useLoadTimeout({ iframeRef, onError })
 
   useEffect(() => {
     if (!iframeRef.current) return
@@ -197,22 +234,68 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
 }
 
 export default memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
+  const [error, setError] = useState(false)
+  const onErr = () => onError?.() || setError(true)
+  if (error) return <LoadingError provider={provider} src={src} className={className} />
   switch (provider) {
     case 'twitter':
-      return <TwitterEmbed id={id} className={className} topLevel={topLevel} />
+      return <TwitterEmbed id={id} className={className} topLevel={topLevel} onError={onErr} />
     case 'nostr':
-      return <NostrEmbed src={src} className={className} topLevel={topLevel} id={id} />
+      return <NostrEmbed src={src} className={className} topLevel={topLevel} id={id} onError={onErr} />
     case 'wavlake':
-      return <WavlakeEmbed id={id} className={className} />
+      return <WavlakeEmbed id={id} className={className} onError={onErr} />
     case 'spotify':
-      return <SpotifyEmbed src={src} className={className} />
+      return <SpotifyEmbed src={src} className={className} onError={onErr} />
     case 'youtube':
-      return <YouTubeEmbed id={id} className={className} meta={meta} />
+      return <YouTubeEmbed id={id} className={className} meta={meta} onError={onErr} />
     case 'rumble':
-      return <RumbleEmbed id={id} className={className} meta={meta} />
+      return <RumbleEmbed id={id} className={className} meta={meta} onError={onErr} />
     case 'peertube':
-      return <PeerTubeEmbed id={id} className={className} meta={meta} />
+      return <PeerTubeEmbed id={id} className={className} meta={meta} onError={onErr} />
     default:
       return null
   }
 })
+
+const useLoadTimeout = ({ iframeRef, timeout = 15000, onLoad, onError }) => {
+  const timeoutRef = useRef(null)
+
+  useEffect(() => {
+    const handleLoad = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+      onLoad?.()
+    }
+
+    const handleError = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+      onError?.()
+    }
+
+    if (iframeRef?.current) {
+      iframeRef.current.addEventListener('load', handleLoad)
+      iframeRef.current.addEventListener('error', handleError)
+    }
+    timeoutRef.current = setTimeout(handleError, timeout)
+
+    return () => {
+      if (iframeRef?.current) {
+        iframeRef.current.removeEventListener('load', handleLoad)
+        iframeRef.current.removeEventListener('error', handleError)
+      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [iframeRef?.current, timeout, onLoad, onError])
+
+  const clear = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = null
+  }
+
+  return clear
+}

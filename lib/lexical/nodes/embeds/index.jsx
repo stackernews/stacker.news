@@ -9,19 +9,19 @@ import { $createPeerTubeNode, PeerTubeNode } from '@/lib/lexical/nodes/embeds/pe
 export function $createEmbedNode ({ provider, src = null, id = null, meta = null }) {
   switch (provider) {
     case 'twitter':
-      return $createTweetNode(id)
+      return $createTweetNode(id, src)
     case 'nostr':
-      return $createNostrNode(src)
+      return $createNostrNode(id, src)
     case 'wavlake':
-      return $createWavlakeNode(id)
+      return $createWavlakeNode(id, src)
     case 'spotify':
       return $createSpotifyNode(src)
     case 'youtube':
-      return $createYouTubeNode(id, meta)
+      return $createYouTubeNode(id, meta, src)
     case 'rumble':
-      return $createRumbleNode(id, meta)
+      return $createRumbleNode(id, meta, src)
     case 'peertube':
-      return $createPeerTubeNode(id, meta)
+      return $createPeerTubeNode(id, meta, src)
   }
 }
 

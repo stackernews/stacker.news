@@ -385,12 +385,29 @@
     padding: .75rem 1rem;
 }
 
-.tweetsSkeleton {
+.tweetsSkeleton, .embedLoadingError {
     display: flex;
     flex-flow: row wrap;
     max-width: 350px;
     width: 100%;
     padding-right: 12px;
+}
+
+.embedLoadingErrorMessage {
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0.4rem;
+    height: 150px;
+    padding: 1.5rem;
+    background-color: var(--theme-commentBg);
+}
+
+.embedLoadingErrorMessage svg {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 1rem;
+    margin-left: -0.15rem;
 }
 
 .topLevel .tweetsSkeleton, :global(.topLevel) .tweetsSkeleton {

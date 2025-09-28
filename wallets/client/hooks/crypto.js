@@ -260,7 +260,6 @@ export function usePassphrasePrompt () {
           placeholder=''
           required
           autoFocus
-          qr
         />
         <div className='mt-3'>
           <div className='d-flex justify-content-between align-items-center'>

@@ -141,4 +141,5 @@
   gap: 0.5rem;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   container-type: inline-size;
+  margin: 2rem 0;
 }

@@ -156,15 +156,13 @@ function useSendPayment () {
         WALLET_SEND_PAYMENT_TIMEOUT_MS)
 
       // some wallets like Coinos will always immediately return success without providing the preimage
-      if (preimage) {
-        if (!verifyPreimage(invoice, preimage)) {
-          logger.warn('wallet returned success with invalid proof of payment')
-        } else {
-          logger.ok(`↗ payment sent: ${formatSats(invoice.satsRequested)}`)
-        }
-      } else {
-        logger.warn('wallet returned success without proof of payment')
+      if (!preimage) {
+        return logger.warn('wallet returned success without proof of payment')
       }
+      if (!verifyPreimage(invoice.hash, preimage)) {
+        return logger.warn('wallet returned success with invalid proof of payment')
+      }
+      logger.ok(`↗ payment sent: ${formatSats(invoice.satsRequested)}`)
     } catch (err) {
       // we don't log the error here since we want to handle receiver errors separately
       const message = err.message || err.toString?.()
@@ -173,7 +171,7 @@ function useSendPayment () {
   }, [])
 }
 
-function verifyPreimage (invoice, preimage) {
+function verifyPreimage (hash, preimage) {
   const preimageHash = Buffer.from(sha256(Buffer.from(preimage, 'hex'))).toString('hex')
-  return invoice.hash === preimageHash
+  return hash === preimageHash
 }

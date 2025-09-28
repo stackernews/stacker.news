@@ -5,6 +5,29 @@ import styles from './text.module.css'
 import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
+import { useIsClient } from './use-client'
+import Moon from '@/svgs/moon-fill.svg'
+import Link from 'next/link'
+
+const Loading = ({ provider, src, className }) => {
+  let host = provider
+  try {
+    host = new URL(src).hostname
+  } catch (e) {
+    console.error(e)
+  }
+  return (
+    <div className={classNames(styles.embedLoading, className)}>
+      <div className={styles.embedLoadingMessage}>
+        <Moon className='spin fill-grey' />
+        <span>loading {provider}...</span>
+        <Link href={src} target='_blank' rel='noopener nofollow noreferrer'>
+          view on {host}
+        </Link>
+      </div>
+    </div>
+  )
+}
 
 const TweetSkeleton = ({ className }) => {
   return (
@@ -196,6 +219,11 @@ const RumbleEmbed = ({ className, href }) => {
 }
 
 export default memo(function Embed ({ src, provider, id, meta, className, topLevel }) {
+  const isClient = useIsClient()
+  if (!isClient) {
+    return <Loading provider={provider} src={src} className={className} />
+  }
+
   switch (provider) {
     case 'twitter':
       return <TwitterEmbed id={id} className={className} topLevel={topLevel} />

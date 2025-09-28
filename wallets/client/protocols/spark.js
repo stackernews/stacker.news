@@ -26,7 +26,21 @@ async function withSdk (mnemonic, cb) {
 }
 
 export async function sendPayment (bolt11, { mnemonic }, { signal }) {
-  // TODO(spark): implement
+  return await withSdk(
+    mnemonic,
+    async sdk => {
+      const prepareResponse = await sdk.prepareSendPayment({
+        paymentRequest: bolt11
+      })
+
+      const sendResponse = await sdk.sendPayment({
+        prepareResponse,
+        options: { type: 'bolt11Invoice', preferSpark: false }
+      })
+
+      return sendResponse.payment
+    }
+  )
 }
 
 export async function testSendPayment ({ mnemonic }, { signal }) {

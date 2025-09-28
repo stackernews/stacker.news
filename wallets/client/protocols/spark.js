@@ -3,11 +3,7 @@ import { getUsername } from '@/wallets/lib/protocols/spark'
 
 export const name = 'SPARK'
 
-export async function sendPayment (bolt11, { mnemonic }, { signal }) {
-  // TODO(spark): implement
-}
-
-export async function testSendPayment ({ mnemonic }, { signal }) {
+async function withSdk (mnemonic, cb) {
   await init()
 
   const config = defaultConfig('mainnet')
@@ -22,22 +18,34 @@ export async function testSendPayment ({ mnemonic }, { signal }) {
     storageDir: 'breez-sdk-spark'
   })
 
-  const { paymentRequest: sparkAddress } = await sdk.receivePayment({
-    // this will always return the same spark address for the same seed
-    paymentMethod: { type: 'sparkAddress' }
-  })
-
-  // check and register lightning address here
-  // if we haven't already so we can test it in the next step
-  // https://sdk-doc-spark.breez.technology/guide/receive_lnurl_pay.html
-  const username = getUsername(sparkAddress)
-
-  const available = await sdk.checkLightningAddressAvailable({ username })
-  if (available) {
-    await sdk.registerLightningAddress({ username, description: 'Running Spark SDK' })
-  }
+  const result = await cb(sdk)
 
   sdk.disconnect()
 
-  return { username }
+  return result
+}
+
+export async function sendPayment (bolt11, { mnemonic }, { signal }) {
+  // TODO(spark): implement
+}
+
+export async function testSendPayment ({ mnemonic }, { signal }) {
+  return await withSdk(
+    mnemonic,
+    async sdk => {
+      const { paymentRequest: sparkAddress } = await sdk.receivePayment({
+        // this will always return the same spark address for the same seed
+        paymentMethod: { type: 'sparkAddress' }
+      })
+
+      const username = getUsername(sparkAddress)
+
+      const available = await sdk.checkLightningAddressAvailable({ username })
+      if (available) {
+        await sdk.registerLightningAddress({ username, description: 'Running Spark SDK' })
+      }
+
+      return { username }
+    }
+  )
 }

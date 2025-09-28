@@ -241,12 +241,12 @@ export function usePassphrasePrompt () {
     <div>
       <h4>Wallet decryption</h4>
       <p className='line-height-md mt-3'>
-        Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
+        Enter your passphrase to decrypt your wallets on this device.
       </p>
       <p className='line-height-md'>
-        {showPassphrase && 'You can find the button to reveal your passphrase above your wallets on the other device.'}
+        {showPassphrase && 'The passphrase reveal button is above your wallets on the original device.'}
       </p>
-      <p className='line-height-md'>
+      <p className='line-height-md fw-bold'>
         Press reset if you lost your passphrase.
       </p>
       <Form

@@ -31,6 +31,8 @@ export async function testSendPayment ({ mnemonic }, { signal }) {
   // check and register lightning address here so we can test it in the next step
   // https://sdk-doc-spark.breez.technology/guide/receive_lnurl_pay.html
   const username = getUsername(sparkAddress)
+
+  // TODO(spark): don't check lightning address again if we already registered it
   const available = await sdk.checkLightningAddressAvailable({ username })
   if (!available) {
     // TODO(spark): better error message for user? but this should never happen with randomly generated mnemonics, right?

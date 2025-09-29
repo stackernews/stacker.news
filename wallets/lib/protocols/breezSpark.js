@@ -8,7 +8,7 @@ import { bech32m } from 'bech32'
 // https://breez.github.io/spark-sdk/breez_sdk_spark/
 
 export default {
-  name: 'SPARK',
+  name: 'BREEZ_SPARK',
   send: true,
   displayName: 'Spark',
   fields: [
@@ -26,7 +26,7 @@ export default {
       name: 'username'
     }
   ],
-  relationName: 'walletSendSpark'
+  relationName: 'walletSendBreezSpark'
 }
 
 function getIdentityPublicKey (sparkAddress) {

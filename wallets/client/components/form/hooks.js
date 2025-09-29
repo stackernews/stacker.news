@@ -87,7 +87,7 @@ export function useProtocolForm (protocol) {
 
   const [complementaryFormState] = useProtocolFormState({ name: protocol.name, send: !protocol.send })
   const [nwcSendFormState] = useProtocolFormState({ name: 'NWC', send: true })
-  const [sparkSendFormState] = useProtocolFormState({ name: 'SPARK', send: true })
+  const [breezSparkFormState] = useProtocolFormState({ name: 'BREEZ_SPARK', send: true })
 
   const wallet = useWallet()
   const lud16Domain = walletLud16Domain(wallet.name)
@@ -110,9 +110,9 @@ export function useProtocolForm (protocol) {
         // automatically set lightning addresses from NWC urls if lud16 parameter is present ...
         const { lud16 } = parseNwcUrl(nwcSendFormState.config.url)
         if (lud16?.split('@')[1] === lud16Domain) value = lud16
-      } else if (sparkSendFormState?.config?.username) {
+      } else if (breezSparkFormState?.config?.username) {
         // ... or from spark usernames
-        value = `${sparkSendFormState.config.username}@${lud16Domain}`
+        value = `${breezSparkFormState.config.username}@${lud16Domain}`
       }
       // remove domain part since we will append it automatically if lud16Domain is set
       if (lud16Domain && value) {

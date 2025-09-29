@@ -265,12 +265,12 @@ export const UPSERT_WALLET_RECEIVE_CLINK = gql`
   }
 `
 
-export const UPSERT_WALLET_SEND_SPARK = gql`
-  mutation upsertWalletSendSpark(
+export const UPSERT_WALLET_SEND_BREEZ_SPARK = gql`
+  mutation upsertWalletSendBreezSpark(
     ${shared.variables},
     $mnemonic: VaultEntryInput!
   ) {
-    upsertWalletSendSpark(
+    upsertWalletSendBreezSpark(
       ${shared.arguments},
       mnemonic: $mnemonic
     ) {

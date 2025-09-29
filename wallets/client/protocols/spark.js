@@ -13,7 +13,7 @@ async function withSdk (mnemonic, cb) {
 
   const sdk = await connect({
     config,
-    mnemonic,
+    seed: { type: 'mnemonic', mnemonic, passphrase: undefined },
     // the SDK will create a IndexedDB with this name to store data
     storageDir: 'breez-sdk-spark'
   })

@@ -170,9 +170,9 @@
         "url": "https://blitz-wallet.com/"
     },
     {
-        "name": "SPARK",
-        "displayName": "Spark",
-        "image": "/wallets/spark.svg",
+        "name": "BREEZ",
+        "displayName": "Breez",
+        "image": "/wallets/breez.svg",
         "url": {
             "lud16Domain": "breez.tips"
         }

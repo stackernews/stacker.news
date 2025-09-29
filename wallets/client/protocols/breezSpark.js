@@ -1,7 +1,7 @@
 import init, { defaultConfig, connect } from '@breeztech/breez-sdk-spark'
-import { getUsername } from '@/wallets/lib/protocols/spark'
+import { getUsername } from '@/wallets/lib/protocols/breezSpark'
 
-export const name = 'SPARK'
+export const name = 'BREEZ_SPARK'
 
 async function withSdk (mnemonic, cb) {
   await init()

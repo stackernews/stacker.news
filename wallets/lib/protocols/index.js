@@ -8,11 +8,11 @@ import phoenixdSuite from './phoenixd'
 import blinkSuite from './blink'
 import webln from './webln'
 import clinkSuite from './clink'
-import spark from './spark'
+import breezSpark from './breezSpark'
 
 /**
  * Protocol names as used in the database
- * @typedef {'NWC'|'LNBITS'|'PHOENIXD'|'BLINK'|'WEBLN'|'LN_ADDR'|'LNC'|'CLN_REST'|'LND_GRPC'|'CLINK'|'SPARK'} ProtocolName
+ * @typedef {'NWC'|'LNBITS'|'PHOENIXD'|'BLINK'|'WEBLN'|'LN_ADDR'|'LNC'|'CLN_REST'|'LND_GRPC'|'CLINK'|'BREEZ_SPARK'} ProtocolName
  * @typedef {'text'|'password'} InputType
  */
 
@@ -51,5 +51,5 @@ export default [
   ...blinkSuite,
   webln,
   ...clinkSuite,
-  spark
+  breezSpark
 ]

@@ -10,15 +10,14 @@ import OnChangePlugin from '../plugins/onchange'
 import { useFormikContext } from 'formik'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
-import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin'
 import MentionsPlugin from '../plugins/interop/mentions'
-import CustomAutoLinkPlugin, { URL_MATCHERS } from '../plugins/interop/autolink'
+// import CustomAutoLinkPlugin from '../plugins/interop/autolink'
 import CodeShikiPlugin from '../plugins/codeshiki'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import classNames from 'classnames'
 import AutofocusPlugin from '../plugins/autofocus'
-import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistorycontext'
-import ModePlugin from '../plugins/mode'
+import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
+import ModePlugins from '../plugins/mode'
 
 export default function Editor ({ customNodes = [], ...props }) {
   const { values } = useFormikContext()
@@ -50,6 +49,7 @@ export default function Editor ({ customNodes = [], ...props }) {
 }
 
 function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
+  // history can be shared between editors (e.g. this editor and the child image caption editor)
   const { historyState } = useSharedHistoryContext()
 
   return (
@@ -71,12 +71,14 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         {autoFocus && <AutofocusPlugin />}
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         <MentionsPlugin />
-        <CustomAutoLinkPlugin />
+        {/* reinstate auto link in wysiwyg, atm it's only markdown <-> wysiwyg switching
+        <CustomAutoLinkPlugin /> */}
         <CodeShikiPlugin />
         <HistoryPlugin externalHistoryState={historyState} />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <OnChangePlugin name={name} />
-        <ModePlugin />
+        {/* atm it's just the mode status plugin */}
+        <ModePlugins />
       </div>
     </>
   )

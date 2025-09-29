@@ -22,7 +22,7 @@ import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
 import remarkToc from '@/lib/remark-toc'
-import Reader from '@/components/lexical/reader'
+import SNLexical from '@/components/lexical'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -128,7 +128,8 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
           </div>
           )
         : (
-          <Reader
+          <SNLexical
+            type='reader'
             className={classNames(
               lexicalStyles.text,
               topLevel && lexicalStyles.topLevel,
@@ -148,7 +149,7 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
                 show full text
               </Button>
             )}
-          </Reader>
+          </SNLexical>
           )}
     </div>
   )

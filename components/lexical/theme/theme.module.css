@@ -240,7 +240,7 @@
   height: 20px !important;
 }
 
-.mode {
+.modeStatus {
   font-size: 10px;
   color: var(--theme-grey);
 }

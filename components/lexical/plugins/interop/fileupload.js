@@ -9,7 +9,7 @@ import { useFeeButton } from '@/components/fee-button'
 // import { gql } from 'graphql-tag'
 // import { numWithUnits } from '@/lib/format'
 // import { $createMediaOrLinkNode } from '@/lib/lexical/nodes/mediaorlink'
-import { $createImageNode } from '@/lib/lexical/nodes/media/imagenode'
+import { $createMediaNode } from '@/lib/lexical/nodes/media/media-node'
 const INSERT_FILES_COMMAND = createCommand()
 
 export default function FileUploadPlugin () {
@@ -56,7 +56,7 @@ export default function FileUploadPlugin () {
     return editor.registerCommand(INSERT_FILES_COMMAND, (files) => {
       editor.update(() => {
         // create node
-        const nodes = files.map(file => $createImageNode({ src: file.url }))
+        const nodes = files.map(file => $createMediaNode({ src: file.url }))
         $insertNodes(nodes)
       })
       return true
@@ -101,7 +101,7 @@ export default function FileUploadPlugin () {
           editor.update(() => {
             const node = $getNodeByKey(key)
             placeholdersRef.current.delete(file)
-            const nodes = [$createImageNode({ src: url })]
+            const nodes = [$createMediaNode({ src: url })]
             nodes.forEach(mediaNode => node.replace(mediaNode))
           })
 

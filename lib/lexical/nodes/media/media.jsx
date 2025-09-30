@@ -13,13 +13,13 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { $getNodeByKey, $isNodeSelection, $getSelection, $setSelection, $isRangeSelection, RIGHT_CLICK_IMAGE_COMMAND, COMMAND_PRIORITY_LOW, CLICK_COMMAND, DRAGSTART_COMMAND, KEY_ENTER_COMMAND, KEY_ESCAPE_COMMAND, SELECTION_CHANGE_COMMAND } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
-import { $isImageNode } from './imagenode'
+import { $isMediaNode } from './media-node'
 import styles from '@/components/lexical/theme/media.module.css'
-import ImageResizer from './imageresizer'
+import MediaResizer from './media-resizer'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import { MediaOrLinkExperimental } from '@/components/media-or-link'
 
-export default function ImageComponent ({
+export default function MediaComponent ({
   src,
   altText,
   nodeKey,
@@ -31,8 +31,8 @@ export default function ImageComponent ({
   caption,
   captionsEnabled
 }) {
-  console.log('ImageComponent', src, nodeKey)
-  const imageRef = useRef(null)
+  console.log('MediaComponent', src, nodeKey)
+  const mediaRef = useRef(null)
   const buttonRef = useRef(null)
   const [isSelected, setSelected, clearSelection] =
     useLexicalNodeSelection(nodeKey)
@@ -82,7 +82,7 @@ export default function ImageComponent ({
       return true
     }
     console.log('onClick', event)
-    if (event.target === imageRef.current) {
+    if (event.target === mediaRef.current) {
       if (event.shiftKey) {
         setSelected(!isSelected)
       } else {
@@ -98,7 +98,8 @@ export default function ImageComponent ({
     editor.getEditorState().read(() => {
       const latestSelection = $getSelection()
       const domElement = event.target
-      if (domElement.tagName === 'IMG' && $isRangeSelection(latestSelection) && latestSelection.getNodes().length === 1) {
+      if ((domElement.tagName === 'IMG' || domElement.tagName === 'VIDEO') &&
+          $isRangeSelection(latestSelection) && latestSelection.getNodes().length === 1) {
         editor.dispatchCommand(RIGHT_CLICK_IMAGE_COMMAND, event)
       }
     })
@@ -136,7 +137,7 @@ export default function ImageComponent ({
       editor.registerCommand(
         DRAGSTART_COMMAND,
         (event) => {
-          if (event.target === imageRef.current) {
+          if (event.target === mediaRef.current) {
             event.preventDefault()
             return true
           }
@@ -159,7 +160,7 @@ export default function ImageComponent ({
   const setShowCaption = () => {
     editor.update(() => {
       const node = $getNodeByKey(nodeKey)
-      if ($isImageNode(node)) {
+      if ($isMediaNode(node)) {
         node.setShowCaption(true)
       }
     })
@@ -172,7 +173,7 @@ export default function ImageComponent ({
 
     editor.update(() => {
       const node = $getNodeByKey(nodeKey)
-      if ($isImageNode(node)) {
+      if ($isMediaNode(node)) {
         node.setWidthAndHeight(nextWidth, nextHeight)
       }
     })
@@ -199,7 +200,7 @@ export default function ImageComponent ({
             preTailor={{ width, height, maxWidth }}
             onError={() => setIsLoadError(true)}
             className={isFocused ? `focused ${$isNodeSelection(selection) ? 'draggable' : ''}` : null}
-            imageRef={imageRef}
+            imageRef={mediaRef}
           />
         </div>
 
@@ -222,12 +223,12 @@ export default function ImageComponent ({
           </div>
         )}
         {resizable && $isNodeSelection(selection) && isFocused && (
-          <ImageResizer
+          <MediaResizer
             showCaption={showCaption}
             setShowCaption={setShowCaption}
             editor={editor}
             buttonRef={buttonRef}
-            imageRef={imageRef}
+            imageRef={mediaRef}
             maxWidth={maxWidth}
             onResizeStart={onResizeStart}
             onResizeEnd={onResizeEnd}

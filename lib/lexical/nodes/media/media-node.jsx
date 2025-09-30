@@ -8,18 +8,19 @@ import {
   TextNode
 } from 'lexical'
 import { LinkNode } from '@lexical/link'
+import { VIDEO_URL_REGEXP } from '@/lib/url'
 
-function $convertImageElement (domNode) {
-  const img = domNode
-  if (img instanceof window.HTMLImageElement) {
-    const { alt: altText, src, width, height } = img
-    const node = $createImageNode({ altText, src, width, height })
+function $convertMediaElement (domNode) {
+  const media = domNode
+  if (media instanceof window.HTMLImageElement || media instanceof window.HTMLVideoElement) {
+    const { alt: altText, src, width, height } = media
+    const node = $createMediaNode({ altText, src, width, height })
     return { node }
   }
   return null
 }
 
-export class ImageNode extends DecoratorNode {
+export class MediaNode extends DecoratorNode {
   __src
   __altText
   __width = 'inherit'
@@ -30,11 +31,19 @@ export class ImageNode extends DecoratorNode {
   __captionsEnabled
 
   static getType () {
+    return 'media'
+  }
+
+  // we need to have a real way to determine if the link is an image or a video or a link
+  getInnerType () {
+    if (VIDEO_URL_REGEXP.test(this.__src)) {
+      return 'video'
+    }
     return 'image'
   }
 
   static clone (node) {
-    return new ImageNode(
+    return new MediaNode(
       node.__src,
       node.__altText,
       node.__width,
@@ -43,13 +52,14 @@ export class ImageNode extends DecoratorNode {
       node.__showCaption,
       node.__caption,
       node.__captionsEnabled,
+      node.__innerType,
       node.__key
     )
   }
 
   static importJSON (serializedNode) {
-    const { altText, height, width, maxWidth, src, showCaption } = serializedNode
-    const node = $createImageNode({ altText, height, width, maxWidth, src, showCaption }).updateFromJSON(serializedNode)
+    const { altText, height, width, maxWidth, src, showCaption, innerType } = serializedNode
+    const node = $createMediaNode({ altText, height, width, maxWidth, src, showCaption, innerType }).updateFromJSON(serializedNode)
     return node
   }
 
@@ -80,19 +90,23 @@ export class ImageNode extends DecoratorNode {
       ...(this.__maxWidth && { '--max-width': `${this.__maxWidth}px` })
     }
     element.setAttribute('style', Object.entries(style).map(([key, value]) => `${key}: ${value}`).join('; '))
-    const img = document.createElement('img')
-    img.setAttribute('src', this.__src)
-    img.setAttribute('alt', this.__altText)
-    img.setAttribute('width', this.__width.toString())
-    img.setAttribute('height', this.__height.toString())
-    element.appendChild(img)
+    const media = document.createElement(this.getInnerType() === 'image' ? 'img' : 'video')
+    media.setAttribute('src', this.__src)
+    media.setAttribute('alt', this.__altText)
+    media.setAttribute('width', this.__width.toString())
+    media.setAttribute('height', this.__height.toString())
+    element.appendChild(media)
     return { element }
   }
 
   static importDOM () {
     return {
       img: (node) => ({
-        conversion: $convertImageElement,
+        conversion: $convertMediaElement,
+        priority: 0
+      }),
+      video: (node) => ({
+        conversion: $convertMediaElement,
         priority: 0
       })
     }
@@ -107,6 +121,7 @@ export class ImageNode extends DecoratorNode {
     showCaption,
     caption,
     captionsEnabled,
+    innerType,
     key
   ) {
     super(key)
@@ -116,6 +131,7 @@ export class ImageNode extends DecoratorNode {
     this.__width = width || 'inherit'
     this.__height = height || 'inherit'
     this.__showCaption = showCaption || false
+    this.__innerType = innerType
     this.__caption =
       caption ||
       createEditor({
@@ -140,7 +156,8 @@ export class ImageNode extends DecoratorNode {
       maxWidth: this.__maxWidth,
       showCaption: this.__showCaption,
       src: this.getSrc(),
-      width: this.__width === 'inherit' ? 0 : this.__width
+      width: this.__width === 'inherit' ? 0 : this.__width,
+      innerType: this.__innerType
     }
   }
 
@@ -178,9 +195,9 @@ export class ImageNode extends DecoratorNode {
   }
 
   decorate (editor) {
-    const ImageComponent = require('./imageWithMediaHelper').default
+    const MediaComponent = require('./media').default
     return (
-      <ImageComponent
+      <MediaComponent
         src={this.__src}
         altText={this.__altText}
         width={this.__width}
@@ -196,7 +213,7 @@ export class ImageNode extends DecoratorNode {
   }
 }
 
-export function $createImageNode ({
+export function $createMediaNode ({
   altText,
   height,
   maxWidth = 500,
@@ -208,7 +225,7 @@ export function $createImageNode ({
   key
 }) {
   return $applyNodeReplacement(
-    new ImageNode(
+    new MediaNode(
       src,
       altText,
       maxWidth,
@@ -222,6 +239,6 @@ export function $createImageNode ({
   )
 }
 
-export function $isImageNode (node) {
-  return node instanceof ImageNode
+export function $isMediaNode (node) {
+  return node instanceof MediaNode
 }

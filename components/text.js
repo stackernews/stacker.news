@@ -23,7 +23,7 @@ import Embed from './embed'
 import remarkMath from 'remark-math'
 import remarkToc from '@/lib/remark-toc'
 import SNLexical from '@/components/lexical'
-import useIsClient from '@/components/use-client'
+import { useIsClient } from '@/components/use-client'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{

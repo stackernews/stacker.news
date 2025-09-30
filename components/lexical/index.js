@@ -2,10 +2,13 @@ import { LexicalPreferencesContextProvider } from '@/components/lexical/contexts
 import Editor from '@/components/lexical/editor'
 import Reader from '@/components/lexical/reader'
 
-export default function SNLexical ({ type = 'editor', ...props }) {
+// lexical starting point, can be a reader or an editor
+export default function SNLexical ({ reader = false, ...props }) {
   return (
     <LexicalPreferencesContextProvider>
-      {type === 'editor' ? <Editor {...props} /> : <Reader {...props} />}
+      {reader
+        ? <Reader {...props} />
+        : <Editor {...props} />}
     </LexicalPreferencesContextProvider>
   )
 }

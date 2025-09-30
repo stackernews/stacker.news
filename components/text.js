@@ -23,6 +23,7 @@ import Embed from './embed'
 import remarkMath from 'remark-math'
 import remarkToc from '@/lib/remark-toc'
 import SNLexical from '@/components/lexical'
+import useIsClient from '@/components/use-client'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -54,27 +55,12 @@ export function SearchText ({ text }) {
   )
 }
 
-export function LexicalText ({ lexicalState, html, topLevel }) {
-  // TODO: there's a slight render delay on full refresh because the editor state is converted from markdown to json
-  // so probably legacy markdown content will have a slight render delay
-  // or we convert them ahead of time to json
-
-  // TODO: add support for imgproxyUrls
-  // TODO: disable links if outlawed
-  // TODO: what about MathJax?
-  // TODO: handle overflowing
-  // TODO: carousel
-  // const containerRef = useRef(null)
-  const router = useRouter()
-  const [mounted, setMounted] = useState(false)
-  const [show, setShow] = useState(false)
+function useOverflow ({ containerRef }) {
+  // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
-  const containerRef = useRef(null)
+  // should we show the full text?
+  const [show, setShow] = useState(false)
   const showOverflow = useCallback(() => setShow(true), [setShow])
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
@@ -99,56 +85,57 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
     }
   }, [containerRef.current, setOverflowing])
 
+  const Overflow = useMemo(() => {
+    if (overflowing && !show) {
+      return (
+        <Button
+          size='lg'
+          variant='info'
+          className={styles.textShowFull}
+          onClick={showOverflow}
+        >
+          show full text
+        </Button>
+      )
+    }
+    return null
+  }, [showOverflow, overflowing, show, setShow])
+
+  return { overflowing, show, setShow, Overflow }
+}
+
+export function LexicalText ({ lexicalState, html, topLevel }) {
+  // TODO: add support for imgproxyUrls
+  // TODO: disable links if outlawed
+  // TODO: what about MathNodes?
+  const router = useRouter() // debug html rendering mode
+  const isClient = useIsClient() // html is the SSR placeholder for the Lexical Reader
+  const containerRef = useRef(null)
+  const { overflowing, show, Overflow } = useOverflow({ containerRef })
+
+  const textClassNames = useMemo(() => {
+    return classNames(
+      lexicalStyles.text,
+      topLevel && lexicalStyles.topLevel,
+      show ? lexicalStyles.textUncontained : overflowing && lexicalStyles.textContained
+    )
+  }, [topLevel, show, overflowing])
+
   return (
     <div>
-      {!html.startsWith('error') && (router.query.html === 'true' || !mounted)
+      {!html.startsWith('error') && (router.query.html === 'true' || !isClient)
         // html is a 1:1 DOMPurified copy of the lexicalState without React components
         // its job right now is to avoid the initial render delay of the LexicalReader
         // which is client-side only, this also ensures SEO compatibility
         ? (
-          <div
-            className={classNames(
-              lexicalStyles.text,
-              topLevel && lexicalStyles.topLevel,
-              show ? lexicalStyles.textUncontained : overflowing && lexicalStyles.textContained
-            )}
-            ref={containerRef}
-          >
+          <div className={textClassNames} ref={containerRef}>
             <div className={lexicalStyles.html} dangerouslySetInnerHTML={{ __html: html }} />
-            {overflowing && !show && (
-              <Button
-                size='lg'
-                variant='info'
-                className={styles.textShowFull}
-                onClick={showOverflow}
-              >
-                show full text
-              </Button>
-            )}
+            {Overflow}
           </div>
           )
         : (
-          <SNLexical
-            type='reader'
-            className={classNames(
-              lexicalStyles.text,
-              topLevel && lexicalStyles.topLevel,
-              show ? lexicalStyles.textUncontained : overflowing && lexicalStyles.textContained
-            )}
-            ref={containerRef}
-            lexicalState={lexicalState}
-            topLevel={topLevel}
-          >
-            {overflowing && !show && (
-              <Button
-                size='lg'
-                variant='info'
-                className={styles.textShowFull}
-                onClick={showOverflow}
-              >
-                show full text
-              </Button>
-            )}
+          <SNLexical reader className={textClassNames} ref={containerRef} lexicalState={lexicalState} topLevel={topLevel}>
+            {Overflow}
           </SNLexical>
           )}
     </div>
@@ -159,15 +146,11 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
 export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
   // include remarkToc if topLevel
   const remarkPlugins = topLevel ? [...baseRemarkPlugins, remarkToc] : baseRemarkPlugins
-
-  // would the text overflow on the current screen size?
-  const [overflowing, setOverflowing] = useState(false)
-  // should we show the full text?
-  const [show, setShow] = useState(false)
   const containerRef = useRef(null)
 
   const router = useRouter()
   const [mathJaxPlugin, setMathJaxPlugin] = useState(null)
+  const { overflowing, show, setShow, Overflow } = useOverflow({ containerRef })
 
   // we only need mathjax if there's math content between $$ tags
   useEffect(() => {
@@ -194,29 +177,6 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
       router.events.off('hashChangeStart', handleRouteChange)
     }
   }, [router.asPath, router.events])
-
-  // clip item and give it a`show full text` button if we are overflowing
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container || overflowing) return
-
-    function checkOverflow () {
-      setOverflowing(container.scrollHeight > window.innerHeight * 2)
-    }
-
-    let resizeObserver
-    if (!overflowing && 'ResizeObserver' in window) {
-      resizeObserver = new window.ResizeObserver(checkOverflow).observe(container)
-    }
-
-    window.addEventListener('resize', checkOverflow)
-    checkOverflow()
-
-    return () => {
-      window.removeEventListener('resize', checkOverflow)
-      resizeObserver?.disconnect()
-    }
-  }, [containerRef.current, setOverflowing])
 
   const TextMediaOrLink = useCallback(props => {
     return <MediaLink {...props} outlawed={outlawed} imgproxyUrls={imgproxyUrls} topLevel={topLevel} rel={rel} />
@@ -265,8 +225,6 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     </ReactMarkdown>
   ), [components, remarkPlugins, mathJaxPlugin, children, itemId])
 
-  const showOverflow = useCallback(() => setShow(true), [setShow])
-
   return (
     <div
       className={classNames(
@@ -281,16 +239,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
           ? markdownContent
           : <CarouselProvider>{markdownContent}</CarouselProvider>
       }
-      {overflowing && !show && (
-        <Button
-          size='lg'
-          variant='info'
-          className={styles.textShowFull}
-          onClick={showOverflow}
-        >
-          show full text
-        </Button>
-      )}
+      {Overflow}
     </div>
   )
 }, isEqual)

@@ -309,7 +309,7 @@ export function DualAutocompleteWrapper ({
 export function LexicalInput ({ label, topLevel, groupClassName, onChange, onKeyDown, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
-      <SNLexical type='editor' name={props.name} topLevel={topLevel} onChange={onChange} onKeyDown={onKeyDown} {...props} />
+      <SNLexical name={props.name} topLevel={topLevel} onChange={onChange} onKeyDown={onKeyDown} {...props} />
     </FormGroup>
   )
 }

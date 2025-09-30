@@ -39,7 +39,7 @@ export class YouTubeNode extends DecoratorBlockNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-youtube-id') || !domNode.hasAttribute('data-lexical-youtube-meta') || !domNode.hasAttribute('data-lexical-youtube-src')) {
+        if (!domNode.hasAttribute('data-lexical-youtube-id')) {
           return null
         }
         return {

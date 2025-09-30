@@ -36,7 +36,7 @@ export class TweetNode extends DecoratorBlockNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-tweet-id') || !domNode.hasAttribute('data-lexical-tweet-src')) {
+        if (!domNode.hasAttribute('data-lexical-tweet-id')) {
           return null
         }
         return {

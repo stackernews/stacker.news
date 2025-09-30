@@ -5,7 +5,7 @@ function $convertRumbleElement (domNode) {
   const id = domNode.getAttribute('data-lexical-rumble-id')
   const meta = domNode.getAttribute('data-lexical-rumble-meta')
   const src = domNode.getAttribute('data-lexical-rumble-src')
-  if (!id) return null
+  if (!meta) return null
   const node = $createRumbleNode(id, meta, src)
   return { node }
 }
@@ -39,7 +39,7 @@ export class RumbleNode extends DecoratorBlockNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-rumble-id') || !domNode.hasAttribute('data-lexical-rumble-meta') || !domNode.hasAttribute('data-lexical-rumble-src')) {
+        if (!domNode.hasAttribute('data-lexical-rumble-meta')) {
           return null
         }
         return {

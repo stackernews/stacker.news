@@ -36,7 +36,7 @@ export class WavlakeNode extends DecoratorBlockNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-wavlake-id') || !domNode.hasAttribute('data-lexical-wavlake-src')) {
+        if (!domNode.hasAttribute('data-lexical-wavlake-id')) {
           return null
         }
         return {

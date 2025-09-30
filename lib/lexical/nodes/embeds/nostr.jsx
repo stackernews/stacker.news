@@ -36,7 +36,7 @@ export class NostrNode extends DecoratorBlockNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-nostr-id') || !domNode.hasAttribute('data-lexical-nostr-src')) {
+        if (!domNode.hasAttribute('data-lexical-nostr-id')) {
           return null
         }
         return {

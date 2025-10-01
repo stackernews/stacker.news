@@ -181,6 +181,13 @@ $zindex-sticky: 900;
   --theme-note-fresh: rgba(0, 124, 190, 0.75);
 }
 
+:root {
+  --navbar-height: 39px;
+  --navbar-padding-top: 0.25rem;
+  --navbar-border-width: 1px;
+  --navbar-total-height: calc(var(--navbar-height) + var(--navbar-padding-top) + var(--navbar-border-width));
+}
+
 @import '../node_modules/bootstrap/scss/bootstrap.scss';
 
 @media screen and (min-width: 899px) {

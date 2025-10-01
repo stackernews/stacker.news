@@ -21,9 +21,9 @@ function LinkRaw ({ href, children, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width,
-  height, onClick, onError, style, className, video
+  height, onClick, onError, style, className, video, audio
 }) {
-  const [loaded, setLoaded] = useState(!video)
+  const [loaded, setLoaded] = useState(!video && !audio)
   const ref = useRef(null)
 
   const handleLoadedMedia = () => {
@@ -45,29 +45,40 @@ const Media = memo(function Media ({
       className={classNames(className, styles.mediaContainer, { [styles.loaded]: loaded })}
       style={style}
     >
-      {video
-        ? <video
+      {audio
+        ? <audio
             ref={ref}
             src={src}
-            preload={bestResSrc !== src ? 'metadata' : undefined}
             controls
-            poster={bestResSrc !== src ? bestResSrc : undefined}
+            preload='metadata'
             width={width}
             height={height}
             onError={onError}
             onLoadedMetadata={handleLoadedMedia}
           />
-        : <img
-            ref={ref}
-            src={src}
-            srcSet={srcSet}
-            sizes={sizes}
-            width={width}
-            height={height}
-            onClick={onClick}
-            onError={onError}
-            onLoad={handleLoadedMedia}
-          />}
+        : video
+          ? <video
+              ref={ref}
+              src={src}
+              preload={bestResSrc !== src ? 'metadata' : undefined}
+              controls
+              poster={bestResSrc !== src ? bestResSrc : undefined}
+              width={width}
+              height={height}
+              onError={onError}
+              onLoadedMetadata={handleLoadedMedia}
+            />
+          : <img
+              ref={ref}
+              src={src}
+              srcSet={srcSet}
+              sizes={sizes}
+              width={width}
+              height={height}
+              onClick={onClick}
+              onError={onError}
+              onLoad={handleLoadedMedia}
+            />}
     </div>
   )
 })
@@ -101,7 +112,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
   if (!media.src) return null
 
   if (!error) {
-    if (media.image || media.video) {
+    if (media.image || media.video || media.audio) {
       return (
         <Media
           {...media} onClick={handleClick} onError={handleError}
@@ -124,28 +135,34 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
   const [isImage, setIsImage] = useState(video === false && trusted)
   const [isVideo, setIsVideo] = useState(video)
+  const [isAudio, setIsAudio] = useState(false)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
 
   useEffect(() => {
-    // don't load the video at all if user doesn't want these
-    if (!showMedia || isVideo || isImage) return
+    if (!showMedia || isVideo || isImage || isAudio) return
 
-    // check if it's a video by trying to load it
     const video = document.createElement('video')
     video.onloadedmetadata = () => {
       setIsVideo(true)
       setIsImage(false)
     }
     video.onerror = () => {
-      // hack
-      // if it's not a video it will throw an error, so we can assume it's an image
-      const img = new window.Image()
-      img.src = src
-      img.decode().then(() => { // decoding beforehand to prevent wrong image cropping
-        setIsImage(true)
-      }).catch((e) => {
-        console.warn('Cannot decode image:', src, e)
-      })
+      const audio = document.createElement('audio')
+      audio.onloadedmetadata = () => {
+        setIsAudio(true)
+        setIsImage(false)
+        setIsVideo(false)
+      }
+      audio.onerror = () => {
+        const img = new window.Image()
+        img.src = src
+        img.decode().then(() => {
+          setIsImage(true)
+        }).catch((e) => {
+          console.warn('Cannot decode image:', src, e)
+        })
+      }
+      audio.src = src
     }
     video.src = src
 
@@ -154,7 +171,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
       video.onerror = null
       video.src = ''
     }
-  }, [src, setIsImage, setIsVideo, showMedia, isImage])
+  }, [src, setIsImage, setIsVideo, setIsAudio, showMedia, isImage, isAudio])
 
   const srcSet = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return undefined
@@ -203,7 +220,8 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     style,
     width,
     height,
-    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo,
-    video: !me?.privates?.imgproxyOnly && showMedia && isVideo
+    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo && !isAudio,
+    video: !me?.privates?.imgproxyOnly && showMedia && isVideo,
+    audio: showMedia && isAudio
   }
 }

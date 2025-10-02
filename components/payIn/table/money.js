@@ -48,7 +48,7 @@ function formatCost (mtokens, unitSingular, unitPlural) {
 
 function reduceBolt11Cost (payIn, userId) {
   let cost = 0
-  if (payIn.payerPrivates && payIn.payerPrivates.payInBolt11) {
+  if (payIn.payerPrivates && payIn.payerPrivates.payInBolt11 && payIn.payInType !== 'PROXY_PAYMENT') {
     cost -= payIn.payerPrivates.payInBolt11.msatsReceived || payIn.payerPrivates.payInBolt11.msatsRequested
   }
   if (payIn.payeePrivates && payIn.payeePrivates.payOutBolt11) {

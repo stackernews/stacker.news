@@ -6,8 +6,8 @@ export function PayInMetadata ({ payInBolt11 }) {
   return (
     <>
       <div className='w-100'>
-        {nostrNote
-          ? <AccordianItem
+        {nostrNote &&
+          <AccordianItem
               header='Nostr Zap Request'
               body={
                 <pre>
@@ -17,24 +17,22 @@ export function PayInMetadata ({ payInBolt11 }) {
                 </pre>
             }
             />
-          : null}
+        }
       </div>
       {lud18Data &&
-        <div className='w-100'>
           <AccordianItem
             header='sender information'
             body={<PayerData data={lud18Data} className='text-muted ms-3' />}
             className='mb-3'
           />
-        </div>}
+        }
       {comment &&
-        <div className='w-100'>
           <AccordianItem
             header='sender comments'
             body={<span className='text-muted ms-3'>{comment.comment}</span>}
             className='mb-3'
           />
-        </div>}
+        }
     </>
   )
 }

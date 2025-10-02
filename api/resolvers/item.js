@@ -253,24 +253,18 @@ const relationClause = (type) => {
 
 export const payInJoinFilter = me => {
   if (me) {
-    return ` JOIN LATERAL (
-        SELECT "PayIn".*
-        FROM "ItemPayIn"
-        JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        WHERE "ItemPayIn"."itemId" = "Item".id AND ("PayIn"."userId" = ${me.id} OR "PayIn"."payInState" = 'PAID')
-        ORDER BY "PayIn"."created_at" DESC
-        LIMIT 1
-      ) "PayIn" ON "PayIn".id IS NOT NULL `
+    return `
+      JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = "Item".id
+      JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
+        AND (("PayIn"."userId" = ${me.id} AND "PayIn"."successorId" IS NULL) OR "PayIn"."payInState" = 'PAID')
+    `
   }
 
-  return ` JOIN LATERAL (
-        SELECT "PayIn".*
-        FROM "ItemPayIn"
-        JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        WHERE "ItemPayIn"."itemId" = "Item".id AND "PayIn"."payInState" = 'PAID'
-        ORDER BY "PayIn"."created_at" DESC
-        LIMIT 1
-      ) "PayIn" ON "PayIn".id IS NOT NULL `
+  return `
+      JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = "Item".id
+      JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
+        AND "PayIn"."payInState" = 'PAID'
+    `
 }
 
 const selectClause = (type) => type === 'bookmarks'
@@ -464,6 +458,22 @@ export default {
           }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
         case 'recent':
+          console.log(`
+              ${SELECT}
+              ${relationClause(type)}
+              ${payInJoinFilter(me)}
+              ${whereClause(
+                '"Item".created_at <= $1',
+                '"Item"."deletedAt" IS NULL',
+                subClause(sub, 4, subClauseTable(type), me, showNsfw),
+                activeOrMine(me),
+                await filterClause(me, models, type),
+                typeClause(type),
+                muteClause(me)
+              )}
+              ORDER BY "PayIn"."payInStateChangedAt" DESC
+              OFFSET $2
+              LIMIT $3`)
           items = await itemQueryWithMeta({
             me,
             models,
@@ -480,10 +490,10 @@ export default {
                 typeClause(type),
                 muteClause(me)
               )}
-              ORDER BY COALESCE("PayIn"."payInStateChangedAt", "Item".created_at) DESC
+              ORDER BY "PayIn"."payInStateChangedAt" DESC
               OFFSET $2
               LIMIT $3`,
-            orderBy: 'ORDER BY COALESCE("PayIn"."payInStateChangedAt", "Item".created_at) DESC'
+            orderBy: 'ORDER BY "PayIn"."payInStateChangedAt" DESC'
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':

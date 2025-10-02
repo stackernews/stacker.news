@@ -32,6 +32,9 @@ function isMine (payIn, { me }) {
 }
 
 export async function getPayIn (parent, { id }, { me, models }) {
+  if (!me) {
+    throw new GqlAuthenticationError()
+  }
   const payIn = (await getPayInFull({
     models,
     query: Prisma.sql`SELECT * FROM "PayIn" WHERE "PayIn"."id" = ${id}`
@@ -39,6 +42,11 @@ export async function getPayIn (parent, { id }, { me, models }) {
   console.log(payIn)
   if (!payIn) {
     throw new Error('PayIn not found')
+  }
+  if (Number(payIn.userId) !== Number(me.id)
+    && !payIn.payOutCustodialTokens.some(token => Number(token.userId) === Number(me.id))
+    && Number(payIn.payOutBolt11?.userId) !== Number(me.id)) {
+    throw new GqlAuthenticationError()
   }
   return payIn
 }
@@ -84,7 +92,7 @@ export default {
             LEFT JOIN "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = "PayIn"."id"
             WHERE (
               ("PayIn"."userId" = ${userId} AND "RefundCustodialToken".id IS NOT NULL)
-              OR ("PayOutBolt11"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID')
+              OR ("PayOutBolt11"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID' AND "PayIn"."payInType" <> 'PROXY_PAYMENT')
               OR ("PayOutCustodialToken"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID')
             )
             AND "PayIn"."benefactorId" IS NULL

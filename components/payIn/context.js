@@ -29,7 +29,7 @@ export function PayInContext ({ payIn }) {
       if (!payIn.payerPrivates.sub) return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
       return <TerritoryDetails sub={{ ...payIn.payerPrivates.sub, desc: truncateString(payIn.payerPrivates.sub.desc, 280) }} className='w-100' show={false} />
     case 'INVITE_GIFT':
-      if (!payIn.payerPrivates.invite) return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
+      if (!payIn.payerPrivates?.invite) return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
       return (
         <Invite
           invite={payIn.payerPrivates.invite}
@@ -37,7 +37,7 @@ export function PayInContext ({ payIn }) {
         />
       )
     case 'PROXY_PAYMENT':
-      return <PayInMetadata payInBolt11={payIn.payerPrivates.payInBolt11} />
+      return <div className='w-100'><PayInMetadata payInBolt11={payIn.payerPrivates.payInBolt11} /></div>
     case 'WITHDRAWAL':
     case 'AUTOWITHDRAWAL':
       return <Bolt11Info bolt11={payIn.payeePrivates.payOutBolt11.bolt11} preimage={payIn.payeePrivates.payOutBolt11.preimage} />

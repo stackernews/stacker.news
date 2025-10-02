@@ -8,8 +8,10 @@ import { describePayInType } from '@/lib/pay-in'
 import { PayInContext } from './context'
 import { GET_PAY_IN_FULL } from '@/fragments/payIn'
 import { PayInSankey, PayInSankeySkeleton } from './sankey'
+import { useMe } from '@/components/me'
 
 export default function PayIn ({ id, ssrData }) {
+  const { me } = useMe()
   const { data, error } = useWatchPayIn({ id, query: GET_PAY_IN_FULL })
 
   const payIn = data?.payIn || ssrData?.payIn
@@ -26,7 +28,7 @@ export default function PayIn ({ id, ssrData }) {
     <div>
       <div className='d-flex justify-content-between align-items-center'>
         <div className='d-flex gap-3'>
-          <h2>{describePayInType(payIn)}</h2>
+          <h2>{describePayInType(payIn, me)}</h2>
           <PayInStatus payIn={payIn} />
         </div>
         <div>

@@ -393,7 +393,8 @@ BEGIN
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
         SELECT "created_at", "updated_at", NULL, map_withdrawal_payin_batch.payin_id, "msatsFeePaying", 'SATS', 'ROUTING_FEE'
         FROM withdrawal_batch
-        JOIN map_withdrawal_payin_batch ON map_withdrawal_payin_batch.withdrawal_id = withdrawal_batch.id;
+        JOIN map_withdrawal_payin_batch ON map_withdrawal_payin_batch.withdrawal_id = withdrawal_batch.id
+        WHERE "msatsFeePaying" > 0;
 
         -- Insert routing fee refund PayOutCustodialToken records for this batch
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
@@ -691,16 +692,16 @@ BEGIN
 
         -- Insert routing fee PayOutCustodialToken records for this batch
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
-        SELECT "Withdrawl"."created_at", "Withdrawl"."updated_at", "Withdrawl"."userId", map_invoice_payin_batch.payin_id,
+        SELECT "Withdrawl"."created_at", "Withdrawl"."updated_at", NULL, map_invoice_payin_batch.payin_id,
             COALESCE("Withdrawl"."msatsFeePaid", "Withdrawl"."msatsFeePaying"), 'SATS', 'ROUTING_FEE'
         FROM invoice_batch
         JOIN map_invoice_payin_batch ON map_invoice_payin_batch.invoice_id = invoice_batch.id
         JOIN "Withdrawl" ON "Withdrawl"."id" = invoice_batch."withdrawalId"
-        WHERE invoice_batch."withdrawalId" IS NOT NULL;
+        WHERE invoice_batch."withdrawalId" IS NOT NULL AND COALESCE("Withdrawl"."msatsFeePaid", "Withdrawl"."msatsFeePaying") > 0;
 
         -- Insert rewards pool PayOutCustodialToken records for withdrawals
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
-        SELECT invoice_batch."created_at", invoice_batch."updated_at", "Withdrawl"."userId", map_invoice_payin_batch.payin_id,
+        SELECT invoice_batch."created_at", invoice_batch."updated_at", 9513, map_invoice_payin_batch.payin_id,
             invoice_batch."msatsRequested" - COALESCE("Withdrawl"."msatsFeePaid", "Withdrawl"."msatsFeePaying") - COALESCE("Withdrawl"."msatsPaid", "Withdrawl"."msatsPaying"),
             'SATS', 'REWARDS_POOL'
         FROM invoice_batch
@@ -1263,7 +1264,7 @@ BEGIN
                    COALESCE("confirmedAt", "invoice_updated_at", "created_at"),
                    "msats",
                    'ZAP'::"PayInType",
-                   CASE WHEN "confirmedAt" IS NOT NULL THEN 'PAID'::"PayInState" ELSE 'FAILED'::"PayInState" END,
+                   CASE WHEN "invoiceId" is NULL OR "confirmedAt" IS NOT NULL THEN 'PAID'::"PayInState" ELSE 'FAILED'::"PayInState" END,
                    COALESCE("confirmedAt", "invoice_updated_at", "created_at"),
                    "userId"
             FROM zap_payin_prospect
@@ -1305,7 +1306,7 @@ BEGIN
         INSERT INTO "PayOutBolt11" (created_at, updated_at, "payOutType", "hash", "preimage",
             "bolt11", "msats", "status", "userId", "payInId", "protocolId")
         SELECT "withdrawal_created_at", "withdrawal_updated_at", 'ZAP', "withdrawal_hash", "withdrawal_preimage",
-            "forward_bolt11", "msatsPaying", "withdrawal_status", "userId", map.payin_id, "protocolId"
+            "forward_bolt11", "msatsPaying", "withdrawal_status", "targetUserId", map.payin_id, "protocolId"
         FROM item_act_zaps_batch zaps
         JOIN map_zap_payin_batch map ON (
             map.item_id = zaps."itemId" AND
@@ -1329,7 +1330,7 @@ BEGIN
 
         -- Insert routing fee PayOutCustodialToken records for withdrawals
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
-        SELECT "withdrawal_created_at", "withdrawal_updated_at", "userId", map.payin_id,
+        SELECT "withdrawal_created_at", "withdrawal_updated_at", NULL, map.payin_id,
             COALESCE("msatsFeePaid", "msatsFeePaying"), 'SATS', 'ROUTING_FEE'
         FROM item_act_zaps_batch zaps
         JOIN map_zap_payin_batch map ON (
@@ -1338,7 +1339,7 @@ BEGIN
             map.created_at = zaps."created_at" AND
             map.invoice_id = COALESCE(zaps."invoiceId", 0)
         )
-        WHERE "withdrawal_hash" IS NOT NULL;
+        WHERE "withdrawal_hash" IS NOT NULL AND COALESCE("msatsFeePaid", "msatsFeePaying") > 0;
 
         -- Insert rewards pool PayOutCustodialToken records for withdrawals
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
@@ -1528,7 +1529,7 @@ BEGIN
         SELECT "ItemAct".id, "ItemAct"."itemId", "ItemAct"."userId", "ItemAct"."created_at", "ItemAct"."updated_at",
                "ItemAct"."msats", "ItemAct"."act", "ItemAct"."invoiceId",
                "Invoice"."hash", "Invoice"."preimage", "Invoice"."bolt11", "Invoice"."expiresAt",
-               "Invoice"."confirmedAt", "Invoice"."confirmedIndex", "Invoice"."cancelledAt",
+               COALESCE("Invoice"."confirmedAt", "Item"."created_at") AS "confirmedAt", "Invoice"."confirmedIndex", "Invoice"."cancelledAt",
                "Invoice"."msatsRequested", "Invoice"."msatsReceived", "Invoice"."actionState",
                "Invoice"."created_at" AS invoice_created_at, "Invoice"."updated_at" AS invoice_updated_at
         FROM "ItemAct"
@@ -1572,7 +1573,7 @@ BEGIN
                        WHEN "act" = 'DONT_LIKE_THIS' THEN 'DOWN_ZAP'::"PayInType"
                        WHEN "act" = 'POLL' THEN 'POLL_VOTE'::"PayInType"
                    END,
-                   CASE WHEN "confirmedAt" IS NOT NULL THEN 'PAID'::"PayInState" ELSE 'FAILED'::"PayInState" END,
+                   CASE WHEN "invoiceId" is NULL OR "confirmedAt" IS NOT NULL THEN 'PAID'::"PayInState" ELSE 'FAILED'::"PayInState" END,
                    COALESCE("confirmedAt", "invoice_updated_at", "created_at"),
                    "userId"
             FROM boost_poll_payin_prospect

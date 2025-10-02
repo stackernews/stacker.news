@@ -1,6 +1,6 @@
 .table {
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
 }
 
 .row {

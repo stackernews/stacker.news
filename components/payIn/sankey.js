@@ -81,16 +81,17 @@ function getSankeyData (payIn) {
         custodialTokenType: token.custodialTokenType
       })
     })
-  } else {
+  } else if (!payIn.payInBolt11Public?.msats || payIn.mcost - payIn.payInBolt11Public.msats > 0) {
+    const mtokens = payIn.mcost - (payIn.payInBolt11Public?.msats ?? 0)
     nodes.push({
       id: 'sats',
-      mtokens: payIn.mcost,
+      mtokens,
       custodialTokenType: 'SATS'
     })
     links.push({
       source: 'sats',
       target: '',
-      mtokens: payIn.mcost,
+      mtokens,
       custodialTokenType: 'SATS'
     })
   }

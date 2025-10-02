@@ -876,11 +876,17 @@ BEGIN
         invoice_created_at TIMESTAMP,
         invoice_updated_at TIMESTAMP,
         fee_msats BIGINT,
+        boost_msats BIGINT,
         upload_ids INTEGER[]
     );
 
     CREATE TEMP TABLE map_item_create_payin_batch (
         item_id INTEGER PRIMARY KEY,
+        payin_id INTEGER NOT NULL
+    );
+
+    CREATE TEMP TABLE boost_beneficiary_batch (
+        item_id INTEGER,
         payin_id INTEGER NOT NULL
     );
 
@@ -899,6 +905,7 @@ BEGIN
                "Invoice"."msatsRequested", "Invoice"."msatsReceived", "Invoice"."actionState",
                "Invoice"."created_at" AS invoice_created_at, "Invoice"."updated_at" AS invoice_updated_at,
                COALESCE(item_fee_acts.msats, 0) AS fee_msats,
+               COALESCE(item_boost_acts.msats, 0) AS boost_msats,
                item_uploads.upload_ids
         FROM "Item"
         LEFT JOIN "Invoice" ON "Invoice".id = "Item"."invoiceId"
@@ -910,6 +917,15 @@ BEGIN
               AND "ItemAct"."userId" = "Item"."userId"
             GROUP BY "ItemAct"."itemId"
         ) AS item_fee_acts ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT sum("msats") AS msats
+            FROM "ItemAct"
+            WHERE "ItemAct"."itemId" = "Item"."id"
+              AND "ItemAct"."act" = 'BOOST'
+              AND "ItemAct"."userId" = "Item"."userId"
+              AND "Item".created_at = "ItemAct".created_at
+            GROUP BY "ItemAct"."itemId"
+        ) AS item_boost_acts ON TRUE
         LEFT JOIN LATERAL (
             SELECT array_agg("uploadId") AS upload_ids
             FROM "ItemUpload"
@@ -987,6 +1003,21 @@ BEGIN
         FROM item_create_batch
         JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
         WHERE fee_msats > 0;
+
+        -- Insert boost beneficiary
+        WITH boost_beneficiary AS (
+            INSERT INTO "PayIn" (created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId", "benefactorId")
+            SELECT "created_at", "created_at", boost_msats, 'BOOST',
+                    CASE WHEN "actionState" IS NULL OR "actionState" = 'PAID' THEN 'PAID' ELSE 'FAILED' END::"PayInState",
+                "created_at", "userId", map_item_create_payin_batch.payin_id
+            FROM item_create_batch
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
+            WHERE boost_msats > 0
+            RETURNING "PayIn"."id" as id, "PayIn".created_at as created_at, "PayIn".mcost as boost_msats
+        )
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT boost_beneficiary.created_at, boost_beneficiary.created_at, 9513, boost_beneficiary.id, boost_beneficiary.boost_msats, 'SATS', 'REWARDS_POOL'
+        FROM boost_beneficiary;
 
         -- Update offset for next batch
         SELECT MAX(id) INTO offset_val FROM item_create_batch;
@@ -1091,10 +1122,10 @@ BEGIN
         "withdrawal_status" "WithdrawlStatus",
         "protocolId" INTEGER,
         "withdrawal_created_at" TIMESTAMP,
-        "withdrawal_updated_at" TIMESTAMP,
-        PRIMARY KEY ("itemId", "userId", "created_at", "invoiceId", "targetUserId")
+        "withdrawal_updated_at" TIMESTAMP
     );
 
+    CREATE INDEX IF NOT EXISTS "item_act_zaps_batch_item_id_idx" ON item_act_zaps_batch ("itemId", "userId", "created_at", "invoiceId");
     CREATE INDEX IF NOT EXISTS "item_act_zaps_batch_invoice_id_idx" ON item_act_zaps_batch ("invoiceId");
 
     CREATE TEMP TABLE zap_referral_acts_batch (
@@ -1164,9 +1195,6 @@ BEGIN
         GROUP BY "ItemAct"."itemId", "ItemAct"."userId", "ItemAct"."created_at", "ItemAct"."invoiceId", "Item"."userId";
 
         ANALYZE item_act_zaps_batch;
-
-        GET DIAGNOSTICS rows_processed = ROW_COUNT;
-        EXIT WHEN rows_processed = 0;
 
         -- Now join invoice data only for rows that have invoices
         UPDATE item_act_zaps_batch AS zaps
@@ -1440,9 +1468,11 @@ DECLARE
     max_id INTEGER;
 BEGIN
     -- Get max ItemAct ID for progress tracking
-    SELECT COALESCE(MAX("id"), 0) INTO max_id
+    SELECT COALESCE(MAX("ItemAct"."id"), 0) INTO max_id
     FROM "ItemAct"
-    WHERE "act" IN ('BOOST', 'DONT_LIKE_THIS', 'POLL');
+    JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+    WHERE "act" IN ('BOOST', 'DONT_LIKE_THIS', 'POLL')
+      AND "Item"."created_at" <> "ItemAct"."created_at";
 
     RAISE LOG 'Pay In Migration: Processing % total boost/poll acts in batches of %', max_id, batch_size;
 
@@ -1502,8 +1532,10 @@ BEGIN
                "Invoice"."msatsRequested", "Invoice"."msatsReceived", "Invoice"."actionState",
                "Invoice"."created_at" AS invoice_created_at, "Invoice"."updated_at" AS invoice_updated_at
         FROM "ItemAct"
+        JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
         LEFT JOIN "Invoice" ON "Invoice"."id" = "ItemAct"."invoiceId"
         WHERE "ItemAct"."act" IN ('BOOST', 'DONT_LIKE_THIS', 'POLL')
+          AND "Item"."created_at" <> "ItemAct"."created_at"
           AND "ItemAct".id > offset_val
         ORDER BY "ItemAct".id
         LIMIT batch_size;

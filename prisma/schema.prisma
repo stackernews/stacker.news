@@ -379,6 +379,7 @@ model Earn {
   @@index([createdAt], map: "Earn.created_at_index")
   @@index([createdAt, userId], map: "Earn.created_at_userId_index")
   @@index([userId], map: "Earn.userId_index")
+  @@index([payOutCustodialTokenId])
 }
 
 model LnAuth {
@@ -396,7 +397,7 @@ model LnWith {
   k1           String   @unique(map: "LnWith.k1_unique")
   userId       Int
   withdrawalId Int?
-  payInId      Int?
+  payInId      Int?     @unique
   payIn        PayIn?   @relation(fields: [payInId], references: [id], onDelete: Cascade)
 }
 
@@ -1604,9 +1605,7 @@ model ItemPayIn {
   payInId Int   @unique
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
-  @@unique([itemId, payInId])
   @@index([itemId])
-  @@index([payInId])
 }
 
 model SubPayIn {
@@ -1616,9 +1615,7 @@ model SubPayIn {
   payInId Int    @unique
   payIn   PayIn  @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
-  @@unique([subName, payInId])
   @@index([subName])
-  @@index([payInId])
 }
 
 model UploadPayIn {
@@ -1675,7 +1672,6 @@ model PayIn {
   @@index([payInType])
   @@index([genesisId])
   @@index([payInState])
-  @@index([successorId])
   @@index([benefactorId])
   @@index([payInStateChangedAt])
 }
@@ -1704,8 +1700,6 @@ model PessimisticEnv {
   args   Json?   @db.JsonB
   error  String?
   result Json?   @db.JsonB
-
-  @@index([payInId])
 }
 
 enum PayOutType {
@@ -1732,7 +1726,6 @@ model SubPayOutCustodialToken {
   payOutCustodialToken   PayOutCustodialToken @relation(fields: [payOutCustodialTokenId], references: [id], onDelete: Cascade)
 
   @@index([subName])
-  @@index([payOutCustodialTokenId])
 }
 
 model PayOutCustodialToken {
@@ -1802,8 +1795,6 @@ model PayInBolt11 {
   @@index([confirmedIndex])
   @@index([confirmedAt])
   @@index([cancelledAt])
-  @@index([payInId])
-  @@index([hash])
   @@index([userId])
   @@index([protocolId])
 }
@@ -1826,7 +1817,6 @@ model PayOutBolt11 {
   payIn      PayIn            @relation(fields: [payInId], references: [id])
 
   @@index([createdAt])
-  @@index([payInId])
   @@index([payOutType])
   @@index([userId])
   @@index([hash])
@@ -1843,8 +1833,6 @@ model PayInBolt11Lud18 {
   identifier String?
   email      String?
   pubkey     String?
-
-  @@index([payInBolt11Id])
 }
 
 model PayInBolt11NostrNote {
@@ -1852,8 +1840,6 @@ model PayInBolt11NostrNote {
   payInBolt11Id Int         @unique
   payInBolt11   PayInBolt11 @relation(fields: [payInBolt11Id], references: [id])
   note          Json
-
-  @@index([payInBolt11Id])
 }
 
 model PayInBolt11Comment {
@@ -1861,6 +1847,4 @@ model PayInBolt11Comment {
   payInBolt11Id Int         @unique
   payInBolt11   PayInBolt11 @relation(fields: [payInBolt11Id], references: [id])
   comment       String
-
-  @@index([payInBolt11Id])
 }

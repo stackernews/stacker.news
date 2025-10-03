@@ -1,7 +1,10 @@
 import init, { defaultConfig, connect } from '@breeztech/breez-sdk-spark'
+import { withTimeout } from '@/lib/time'
 import { getUsername } from '@/wallets/lib/protocols/breezSpark'
 
 export const name = 'BREEZ_SPARK'
+
+const SDK_SYNC_TIMEOUT_MS = 30_000
 
 async function withSdk (mnemonic, cb) {
   await init()
@@ -18,11 +21,38 @@ async function withSdk (mnemonic, cb) {
     storageDir: 'breez-sdk-spark'
   })
 
-  const result = await cb(sdk)
+  try {
+    await waitForSync(sdk)
+    return await cb(sdk)
+  } finally {
+    sdk.disconnect()
+  }
+}
 
-  sdk.disconnect()
+async function waitForSync (sdk) {
+  const syncPromise = new Promise(
+    resolve => sdk.addEventListener(new SyncEventListener(resolve))
+  )
+  await withTimeout(syncPromise, SDK_SYNC_TIMEOUT_MS)
+}
 
-  return result
+class SdkEventListener {
+  constructor (event, resolve) {
+    this.event = event
+    this.resolve = resolve
+  }
+
+  onEvent (event) {
+    if (event.type === this.event) {
+      this.resolve()
+    }
+  }
+}
+
+class SyncEventListener extends SdkEventListener {
+  constructor (resolve) {
+    super('synced', resolve)
+  }
 }
 
 export async function sendPayment (bolt11, { mnemonic }, { signal }) {

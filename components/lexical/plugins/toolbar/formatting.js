@@ -1,5 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, CAN_UNDO_COMMAND, CAN_REDO_COMMAND, UNDO_COMMAND, REDO_COMMAND, $getRoot, COMMAND_PRIORITY_CRITICAL } from 'lexical'
+import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, CAN_UNDO_COMMAND, CAN_REDO_COMMAND, UNDO_COMMAND, REDO_COMMAND, COMMAND_PRIORITY_CRITICAL } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import Bold from '@/svgs/lexical/bold.svg'
 import Italic from '@/svgs/lexical/italic.svg'
@@ -14,10 +14,11 @@ import styles from '@/components/lexical/theme/theme.module.css'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useEffect, useCallback } from 'react'
 import classNames from 'classnames'
-import { $isCodeNode } from '@lexical/code'
 import { useToolbarState } from '../../contexts/toolbar'
-import { TOGGLE_LINK_COMMAND, $isLinkNode } from '@lexical/link'
+import { $isLinkNode } from '@lexical/link'
+import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/commands/custom'
 import { getSelectedNode } from '@/components/lexical/utils/selection'
+import { $useMarkdownMode } from '../mode'
 
 function toggleInlineMarkdown (selection, marker) {
   if (!selection) return
@@ -109,7 +110,7 @@ function TextOptionsDropdown ({ handleFormat, toolbarState }) {
 
 export default function FormattingPlugin () {
   const [editor] = useLexicalComposerContext()
-
+  const markdownMode = $useMarkdownMode()
   const { toolbarState, updateToolbarState } = useToolbarState()
 
   const $updateToolbar = useCallback(() => {
@@ -124,7 +125,19 @@ export default function FormattingPlugin () {
       // handle links
       const node = getSelectedNode(selection)
       const parent = node.getParent()
-      const isLink = $isLinkNode(parent) || $isLinkNode(node)
+      let isLink = $isLinkNode(parent) || $isLinkNode(node)
+      // TODO: a mess, needs to be refactored
+      console.log('markdownMode', markdownMode)
+      if (markdownMode && !isLink) {
+        console.log('markdownMode', markdownMode)
+        const textContent = selection.getTextContent()
+        console.log('textContent', textContent)
+        const linkRegex = /\[([^\]]*)\]\(([^)]+)\)/g
+        if (linkRegex.test(textContent)) {
+          isLink = true
+        }
+      }
+
       updateToolbarState('isLink', isLink)
 
       // handle general formatting
@@ -141,22 +154,12 @@ export default function FormattingPlugin () {
       updateToolbarState('isUppercase', selection.hasFormat('uppercase'))
       updateToolbarState('isCapitalize', selection.hasFormat('capitalize'))
     }
-  }, [])
-
-  const inMarkdownMode = useCallback(() => {
-    console.log('inMarkdownMode')
-    return editor.read(() => {
-      const root = $getRoot()
-      const firstChild = root.getFirstChild()
-      console.log('firstChild', firstChild)
-      return $isCodeNode(firstChild) && firstChild.getLanguage() === 'markdown'
-    })
-  }, [editor])
+  }, [markdownMode])
 
   const handleFormat = useCallback((format) => {
     console.log('handleFormat', format)
-    console.log('inMarkdownMode', inMarkdownMode())
-    if (!inMarkdownMode()) {
+    console.log('inMarkdownMode', markdownMode)
+    if (!markdownMode) {
       console.log('format', format)
       editor.dispatchCommand(FORMAT_TEXT_COMMAND, format)
       return
@@ -177,16 +180,16 @@ export default function FormattingPlugin () {
         default: break
       }
     })
-  }, [editor, inMarkdownMode])
+  }, [editor, markdownMode])
 
   const handleLink = useCallback(() => {
     console.log('handleLink')
     if (!toolbarState.isLink) {
       // setIsLinkEditMode(true)
-      editor.dispatchCommand(TOGGLE_LINK_COMMAND, '')
+      editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, '')
     } else {
       // setIsLinkEditMode(false)
-      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
+      editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, null)
     }
   }, [editor, toolbarState.isLink])
 

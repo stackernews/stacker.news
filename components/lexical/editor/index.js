@@ -22,6 +22,9 @@ import { ToolbarContextProvider } from '../contexts/toolbar'
 import { useState } from 'react'
 // import LinkEditorPlugin from '../plugins/tools/linkeditor'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
+import ShortcutsPlugin from '../plugins/shortcuts'
+import { SHORTCUTS } from '../commands/keyboard-shortcuts'
+import CustomCommands from '../commands/custom'
 
 export default function Editor ({ customNodes = [], ...props }) {
   const { values } = useFormikContext()
@@ -91,6 +94,9 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         <HistoryPlugin externalHistoryState={historyState} />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <OnChangePlugin name={name} />
+        {/* shortcuts */}
+        <ShortcutsPlugin bindings={SHORTCUTS} />
+        <CustomCommands />
         {/* atm it's just the mode status plugin */}
         <ModePlugins />
         {/* {floatingAnchorElem && <LinkEditorPlugin anchorElem={floatingAnchorElem} isLinkEditMode={isLinkEditMode} setIsLinkEditMode={setIsLinkEditMode} />} */}

@@ -1,0 +1,67 @@
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import { useEffect } from 'react'
+import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_EDITOR } from 'lexical'
+
+function isMac () {
+  if (typeof navigator === 'undefined') return false
+  return /Mac|iPhone|iPod|iPad/.test(navigator.platform)
+}
+
+function normalizeCombo (combo) {
+  return combo
+    .toLowerCase()
+    .split('+')
+    .map(p => p.trim())
+    .sort()
+    .join('+')
+}
+
+function eventToCombo (e) {
+  const parts = []
+  if (e.ctrlKey) parts.push('ctrl')
+  if (e.metaKey) parts.push('meta')
+  if (e.altKey) parts.push('alt')
+  if (e.shiftKey) parts.push('shift')
+  parts.push((e.key || '').toLowerCase())
+  return parts.sort().join('+')
+}
+
+function matches (e, combo) {
+  const combos = Array.isArray(combo) ? combo : [combo]
+  const normalized = combos.map(normalizeCombo)
+  const eventCombo = eventToCombo(e)
+
+  const compat = normalized.flatMap(c => {
+    if (c.includes('mod')) {
+      const withMeta = c.replace('mod', 'meta')
+      const withCtrl = c.replace('mod', 'ctrl')
+      return isMac() ? [withMeta] : [withCtrl]
+    }
+    return [c]
+  })
+  return [...normalized, ...compat].some(c => c === eventCombo)
+}
+
+export default function ShortcutsPlugin ({ bindings = [] }) {
+  const [editor] = useLexicalComposerContext()
+
+  useEffect(() => {
+    return editor.registerCommand(
+      KEY_DOWN_COMMAND,
+      (e) => {
+        for (const { combo, handler } of bindings) {
+          if (matches(e, combo)) {
+            console.log('matches', combo)
+            e.preventDefault()
+            handler({ editor, event: e })
+            return true
+          }
+        }
+        return false
+      },
+      COMMAND_PRIORITY_EDITOR
+    )
+  }, [editor, bindings])
+
+  return null
+}

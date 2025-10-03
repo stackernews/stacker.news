@@ -1,5 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import styles from './linkeditor.module.css'
 import { setFloatingElemPositionForLinkEditor } from '@/components/lexical/utils/floating-link-editor-position'
@@ -9,11 +9,9 @@ import Check from '@/svgs/check-line.svg'
 import Pencil from '@/svgs/edit-line.svg'
 import Remove from '@/svgs/delete-bin-line.svg'
 import { $isAutoLinkNode, $createLinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
-import { createCommand, $isRangeSelection, $getSelection, $isNodeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, KEY_ESCAPE_COMMAND, COMMAND_PRIORITY_HIGH } from 'lexical'
+import { $isRangeSelection, $getSelection, $isNodeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, KEY_ESCAPE_COMMAND, COMMAND_PRIORITY_HIGH } from 'lexical'
 import { getSelectedNode } from '@/components/lexical/utils/selection'
 import { $findMatchingParent, mergeRegister } from '@lexical/utils'
-
-export const TOGGLE_LINK_EDIT_MODE_COMMAND = createCommand('TOGGLE_LINK_EDIT_MODE_COMMAND')
 
 export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
   const [isLinkEditMode, setIsLinkEditMode] = useState(false)
@@ -29,28 +27,28 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
       $linkConfirm()
     } else if (event.key === 'Escape') {
       event.preventDefault()
-      handleCancel()
+      $handleCancel()
     }
   }
 
-  const handleCancel = () => {
+  const $handleCancel = () => {
     setFloatingElemPositionForLinkEditor(null, floatingRef.current, anchorElem)
     setIsLinkEditMode(false)
     if (linkUrl === '') {
-      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
+      editor.update(() => {
+        editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
+      })
     }
   }
 
   useEffect(() => {
-    console.log('useEffect isLinkEditMode', isLinkEditMode)
     if (isLinkEditMode) {
-      console.log('useEffect focus inputRef', inputRef.current)
       inputRef.current?.focus()
       inputRef.current?.select()
     }
   }, [isLinkEditMode])
 
-  const updateLink = useCallback(() => {
+  const $updateLink = useCallback(() => {
     const selection = $getSelection()
     let newUrl = ''
 
@@ -76,22 +74,15 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
       }
     }
 
-    console.log('updateLink newUrl', newUrl)
-
     setLinkUrl(newUrl)
-    console.log('editabler isLinkEditMode', isLinkEditMode)
-    console.log('editabler newUrl', newUrl)
-    console.log('editabler isLinkEditable', isLinkEditable)
+
     if (isLinkEditMode) {
       setEditedLinkUrl(newUrl || '')
     } else if (isLinkEditable && (newUrl || '').trim() === '') {
-      console.log('updateLink setEditedLinkUrl', 'https://')
       setEditedLinkUrl('')
       setIsLinkEditMode(true)
     }
-  }, [isLinkEditMode])
 
-  const updatePosition = useCallback(() => {
     const floatingElem = floatingRef.current
     if (!floatingElem || !anchorElem) return
     editor.getEditorState().read(() => {
@@ -108,23 +99,16 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
       pos.y += 26
       setFloatingElemPositionForLinkEditor(pos, floatingElem, anchorElem, 8, 0)
     })
-  }, [isLinkEditable, nodeKey, anchorElem])
-
-  const $updateLinkEditor = () => {
-    updateLink()
-    updatePosition()
-  }
+  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl])
 
   const handleBlur = useCallback((event) => {
     const floatingElem = floatingRef.current
     if (!floatingElem || !isLinkEditable) return
-    console.log('handleBlur', event.relatedTarget)
+
     if (!event || !floatingElem.contains(event.relatedTarget)) {
-      console.log('handleBlur editedLinkUrl', editedLinkUrl)
-      // if linkurl or editedlinkurl is empty, null and remove the link
-      // if editedlinkurl is not linkurl, do nothing
-      if (editedLinkUrl === linkUrl) {
-        handleCancel()
+      // if there is no change, or the edited link url is empty, exit edit mode
+      if (editedLinkUrl === linkUrl || editedLinkUrl === '') {
+        $handleCancel()
       }
     }
   }, [editedLinkUrl, isLinkEditable, anchorElem, floatingRef, editor, linkUrl])
@@ -159,13 +143,13 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
         editorState.read(() => {
-          $updateLinkEditor()
+          $updateLink()
         })
       }),
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         () => {
-          $updateLinkEditor()
+          $updateLink()
           return true
         }, COMMAND_PRIORITY_LOW),
       editor.registerCommand(
@@ -175,7 +159,13 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
           return true
         }, COMMAND_PRIORITY_HIGH)
     )
-  }, [editor, isLinkEditable, nodeKey])
+  }, [editor, isLinkEditable, nodeKey, $updateLink])
+
+  useLayoutEffect(() => {
+    editor.getEditorState().read(() => {
+      $updateLink()
+    })
+  }, [editor, $updateLink])
 
   // update position
   useEffect(() => {
@@ -183,7 +173,7 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
 
     const update = () => {
       editor.getEditorState().read(() => {
-        $updateLinkEditor()
+        $updateLink()
       })
     }
 
@@ -197,15 +187,16 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
     }
   }, [editor, isLinkEditable, nodeKey, anchorElem])
 
-  // blur handler
+  // blur from input or anchor element
   useEffect(() => {
     const editorElem = floatingRef.current
-    console.log('useEffect blur editorElem', editorElem)
     if (!editorElem) return
 
     editorElem.addEventListener('focusout', handleBlur)
+    anchorElem.addEventListener('focusout', handleBlur)
     return () => {
       editorElem.removeEventListener('focusout', handleBlur)
+      anchorElem.removeEventListener('focusout', handleBlur)
     }
   }, [editor, isLinkEditable, nodeKey, anchorElem, handleBlur])
 
@@ -222,11 +213,11 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
                 className={styles.linkInput}
                 value={editedLinkUrl}
                 placeholder='https://'
-                onChange={(e) => { console.log('onChange', e.target.value); setEditedLinkUrl(e.target.value) }}
+                onChange={(e) => { setEditedLinkUrl(e.target.value) }}
                 onKeyDown={(e) => inputInteraction(e)}
               />
               <div className={styles.linkConfirmIcons}>
-                <span className={styles.linkCancelIcon} onMouseDown={(e) => e.preventDefault()} onClick={handleCancel}>
+                <span className={styles.linkCancelIcon} onMouseDown={(e) => e.preventDefault()} onClick={$handleCancel}>
                   X
                 </span>
                 <span className={styles.linkConfirmIcon} onMouseDown={(e) => e.preventDefault()} onClick={$linkConfirm}>

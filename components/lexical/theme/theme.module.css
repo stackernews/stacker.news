@@ -241,6 +241,18 @@
 }
 
 .modeStatus {
+  cursor: pointer;
   font-size: 10px;
   color: var(--theme-grey);
+}
+
+.modeStatus:hover {
+  color: var(--theme-brandColor);
+  filter: drop-shadow(0 0 6px var(--bs-primary));
+}
+
+.modeStatus:active {
+  color: var(--theme-brandColor);
+  opacity: 0.8;
+  filter: drop-shadow(0 0 6px var(--bs-primary));
 }

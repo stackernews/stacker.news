@@ -5,7 +5,10 @@ import {
   LineBreakNode,
   ParagraphNode,
   RootNode,
-  TextNode
+  TextNode,
+  $getRoot,
+  $createParagraphNode,
+  $createTextNode
 } from 'lexical'
 import { LinkNode } from '@lexical/link'
 import { VIDEO_URL_REGEXP } from '@/lib/url'
@@ -14,7 +17,7 @@ function $convertMediaElement (domNode) {
   const media = domNode
   if (media instanceof window.HTMLImageElement || media instanceof window.HTMLVideoElement) {
     const { alt: altText, src, width, height } = media
-    const node = $createMediaNode({ altText, src, width, height })
+    const node = $createMediaNode({ altText, src, width, height, captionText: media.getAttribute('caption') })
     return { node }
   }
   return null
@@ -51,6 +54,7 @@ export class MediaNode extends DecoratorNode {
       node.__maxWidth,
       node.__showCaption,
       node.__caption,
+      node.__captionText,
       node.__captionsEnabled,
       node.__innerType,
       node.__key
@@ -120,6 +124,7 @@ export class MediaNode extends DecoratorNode {
     height,
     showCaption,
     caption,
+    captionText,
     captionsEnabled,
     innerType,
     key
@@ -144,6 +149,17 @@ export class MediaNode extends DecoratorNode {
           LinkNode
         ]
       })
+
+    // populate caption text if captionText is provided via ![](src "caption")
+    if (captionText && !caption) {
+      this.__caption.update(() => {
+        const root = $getRoot()
+        const paragraph = $createParagraphNode()
+        paragraph.append($createTextNode(captionText))
+        root.append(paragraph)
+      })
+    }
+
     this.__captionsEnabled = captionsEnabled || captionsEnabled === undefined
   }
 
@@ -194,6 +210,32 @@ export class MediaNode extends DecoratorNode {
     return this.__altText
   }
 
+  getShowCaption () {
+    return this.__showCaption
+  }
+
+  getCaptionText () {
+    let text = ''
+    const nestedEditor = this.__caption
+    const state = nestedEditor.getEditorState()
+    state.read(() => {
+      text = $getRoot().getTextContent()
+    })
+    return text
+  }
+
+  setCaptionText (text) {
+    const writable = this.getWritable()
+    const nestedEditor = writable.__caption
+    nestedEditor.update(() => {
+      const root = $getRoot()
+      root.clear()
+      const paragraph = $createParagraphNode()
+      paragraph.append($createTextNode(text))
+      root.append(paragraph)
+    })
+  }
+
   decorate (editor) {
     const MediaComponent = require('./media').default
     return (
@@ -222,8 +264,10 @@ export function $createMediaNode ({
   width,
   showCaption,
   caption,
+  captionText,
   key
 }) {
+  console.log('createMediaNode', altText, height, maxWidth, captionsEnabled, src, width, showCaption, caption, captionText, key)
   return $applyNodeReplacement(
     new MediaNode(
       src,
@@ -233,6 +277,7 @@ export function $createMediaNode ({
       height,
       showCaption,
       caption,
+      captionText,
       captionsEnabled,
       key
     )

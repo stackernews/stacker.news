@@ -99,7 +99,7 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
       pos.y += 26
       setFloatingElemPositionForLinkEditor(pos, floatingElem, anchorElem, 8, 0)
     })
-  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl])
+  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl, isLinkEditable, nodeKey])
 
   const handleBlur = useCallback((event) => {
     const floatingElem = floatingRef.current
@@ -203,7 +203,7 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
   if (!anchorElem) return null
 
   return createPortal(
-    <div className={styles.linkEditorContainer} ref={floatingRef}>
+    <div className={styles.linkEditorContainer} ref={floatingRef} data-node-key={nodeKey}>
       <div className={styles.linkEditor}>
         {isLinkEditMode
           ? (

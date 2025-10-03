@@ -18,6 +18,10 @@ import classNames from 'classnames'
 import AutofocusPlugin from '../plugins/autofocus'
 import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
 import ModePlugins from '../plugins/mode'
+import { ToolbarContextProvider } from '../contexts/toolbar'
+import { useState } from 'react'
+// import LinkEditorPlugin from '../plugins/tools/linkeditor'
+import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 
 export default function Editor ({ customNodes = [], ...props }) {
   const { values } = useFormikContext()
@@ -42,7 +46,9 @@ export default function Editor ({ customNodes = [], ...props }) {
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <SharedHistoryContextProvider>
-        <EditorContent {...props} />
+        <ToolbarContextProvider>
+          <EditorContent {...props} />
+        </ToolbarContextProvider>
       </SharedHistoryContextProvider>
     </LexicalComposer>
   )
@@ -50,16 +56,23 @@ export default function Editor ({ customNodes = [], ...props }) {
 
 function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
   // history can be shared between editors (e.g. this editor and the child image caption editor)
+  const [floatingAnchorElem, setFloatingAnchorElem] = useState(null)
   const { historyState } = useSharedHistoryContext()
+
+  const onRef = (_floatingAnchorElem) => {
+    if (_floatingAnchorElem !== null) {
+      setFloatingAnchorElem(_floatingAnchorElem)
+    }
+  }
 
   return (
     <>
       {/* TODO: Toolbar context */}
       <div className={styles.editorContainer}>
-        <ToolbarPlugin />
+        <ToolbarPlugin anchorElem={floatingAnchorElem} />
         <RichTextPlugin
           contentEditable={
-            <div className={styles.editor}>
+            <div className={styles.editor} ref={onRef}>
               <ContentEditable
                 className={classNames(styles.editorInput, styles.text, topLevel && styles.topLevel)}
                 style={placeholder ? { '--placeholder': `"${placeholder}"` } : {}}
@@ -68,6 +81,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
+        <LinkPlugin />
         {autoFocus && <AutofocusPlugin />}
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         <MentionsPlugin />
@@ -79,6 +93,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         <OnChangePlugin name={name} />
         {/* atm it's just the mode status plugin */}
         <ModePlugins />
+        {/* {floatingAnchorElem && <LinkEditorPlugin anchorElem={floatingAnchorElem} isLinkEditMode={isLinkEditMode} setIsLinkEditMode={setIsLinkEditMode} />} */}
       </div>
     </>
   )

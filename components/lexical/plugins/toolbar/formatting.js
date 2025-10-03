@@ -1,20 +1,23 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND, CAN_UNDO_COMMAND, CAN_REDO_COMMAND, UNDO_COMMAND, REDO_COMMAND, $getRoot } from 'lexical'
+import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, CAN_UNDO_COMMAND, CAN_REDO_COMMAND, UNDO_COMMAND, REDO_COMMAND, $getRoot, COMMAND_PRIORITY_CRITICAL } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import Bold from '@/svgs/lexical/bold.svg'
 import Italic from '@/svgs/lexical/italic.svg'
 import Underline from '@/svgs/lexical/underline.svg'
 import Strikethrough from '@/svgs/lexical/strikethrough.svg'
-import Code from '@/svgs/lexical/code-view.svg'
+import Link from '@/svgs/link.svg'
 import Quote from '@/svgs/lexical/quote-text.svg'
 import More from '@/svgs/lexical/font-size.svg'
 import Undo from '@/svgs/lexical/undo.svg'
 import Redo from '@/svgs/lexical/redo.svg'
 import styles from '@/components/lexical/theme/theme.module.css'
 import Dropdown from 'react-bootstrap/Dropdown'
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useCallback } from 'react'
 import classNames from 'classnames'
 import { $isCodeNode } from '@lexical/code'
+import { useToolbarState } from '../../contexts/toolbar'
+import { TOGGLE_LINK_COMMAND, $isLinkNode } from '@lexical/link'
+import { getSelectedNode } from '@/components/lexical/utils/selection'
 
 function toggleInlineMarkdown (selection, marker) {
   if (!selection) return
@@ -61,14 +64,14 @@ function wrapWithTag (selection, tag) {
   }
 }
 
-function TextOptionsDropdown ({ handleFormat, isStrikethrough }) {
+function TextOptionsDropdown ({ handleFormat, toolbarState }) {
   return (
     <Dropdown className='pointer' as='span'>
       <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
         <More />
       </Dropdown.Toggle>
       <Dropdown.Menu>
-        <Dropdown.Item onClick={() => handleFormat('strikethrough')} className={classNames(styles.dropdownExtraFormatting, isStrikethrough ? styles.active : '')}>
+        <Dropdown.Item onClick={() => handleFormat('strikethrough')} className={classNames(styles.dropdownExtraFormatting, toolbarState.isStrikethrough ? styles.active : '')}>
           <span>
             <Strikethrough />
             Strikethrough
@@ -91,24 +94,52 @@ function TextOptionsDropdown ({ handleFormat, isStrikethrough }) {
   )
 }
 
+/* function $findTopLevelElement (node) {
+  let topLevelElement = node.getKey() === 'root'
+    ? node
+    : $findMatchingParent(node, (e) => {
+      const parent = e.getParent()
+      return parent !== null && $isRootOrShadowRoot(parent)
+    })
+  if (topLevelElement === null) {
+    topLevelElement = node.getTopLevelElementOrThrow()
+  }
+  return topLevelElement
+} */
+
 export default function FormattingPlugin () {
   const [editor] = useLexicalComposerContext()
-  const [canUndo, setCanUndo] = useState(false)
-  const [canRedo, setCanRedo] = useState(false)
-  const [isBold, setIsBold] = useState(false)
-  const [isItalic, setIsItalic] = useState(false)
-  const [isUnderline, setIsUnderline] = useState(false)
-  const [isStrikethrough, setIsStrikethrough] = useState(false)
-  const [isCode, setIsCode] = useState(false)
+
+  const { toolbarState, updateToolbarState } = useToolbarState()
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection()
     if ($isRangeSelection(selection)) {
-      setIsBold(selection.hasFormat('bold'))
-      setIsItalic(selection.hasFormat('italic'))
-      setIsUnderline(selection.hasFormat('underline'))
-      setIsStrikethrough(selection.hasFormat('strikethrough'))
-      setIsCode(selection.hasFormat('code'))
+      // get the top level element
+      // const anchorNode = selection.anchor.getNode()
+      // const element = $findTopLevelElement(anchorNode)
+      // const elementKey = element.getKey()
+      // const elementDOM = editor.getElementByKey(elementKey)
+
+      // handle links
+      const node = getSelectedNode(selection)
+      const parent = node.getParent()
+      const isLink = $isLinkNode(parent) || $isLinkNode(node)
+      updateToolbarState('isLink', isLink)
+
+      // handle general formatting
+      updateToolbarState('isBold', selection.hasFormat('bold'))
+      updateToolbarState('isItalic', selection.hasFormat('italic'))
+      updateToolbarState('isUnderline', selection.hasFormat('underline'))
+      updateToolbarState('isStrikethrough', selection.hasFormat('strikethrough'))
+      updateToolbarState('isCode', selection.hasFormat('code'))
+      updateToolbarState('isQuote', selection.hasFormat('quote'))
+      updateToolbarState('isHighlight', selection.hasFormat('highlight'))
+      updateToolbarState('isSubscript', selection.hasFormat('subscript'))
+      updateToolbarState('isSuperscript', selection.hasFormat('superscript'))
+      updateToolbarState('isLowercase', selection.hasFormat('lowercase'))
+      updateToolbarState('isUppercase', selection.hasFormat('uppercase'))
+      updateToolbarState('isCapitalize', selection.hasFormat('capitalize'))
     }
   }, [])
 
@@ -148,6 +179,17 @@ export default function FormattingPlugin () {
     })
   }, [editor, inMarkdownMode])
 
+  const handleLink = useCallback(() => {
+    console.log('handleLink')
+    if (!toolbarState.isLink) {
+      // setIsLinkEditMode(true)
+      editor.dispatchCommand(TOGGLE_LINK_COMMAND, '')
+    } else {
+      // setIsLinkEditMode(false)
+      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
+    }
+  }, [editor, toolbarState.isLink])
+
   useEffect(() => {
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
@@ -159,66 +201,65 @@ export default function FormattingPlugin () {
           $updateToolbar()
           return false
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         CAN_UNDO_COMMAND,
         (payload) => {
-          setCanUndo(payload)
+          updateToolbarState('canUndo', payload)
           return false
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         CAN_REDO_COMMAND,
         (payload) => {
-          setCanRedo(payload)
+          updateToolbarState('canRedo', payload)
           return false
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_CRITICAL
       )
     )
   }, [editor, $updateToolbar])
 
   return (
     <div className={styles.toolbarFormatting}>
-      <span className={classNames(styles.toolbarItem, !canUndo ? styles.disabled : '')} onClick={() => editor.dispatchCommand(UNDO_COMMAND)}>
+      <span className={classNames(styles.toolbarItem, !toolbarState.canUndo ? styles.disabled : '')} onClick={() => editor.dispatchCommand(UNDO_COMMAND)}>
         <Undo />
       </span>
-      <span className={classNames(styles.toolbarItem, !canRedo ? styles.disabled : '')} onClick={() => editor.dispatchCommand(REDO_COMMAND)}>
+      <span className={classNames(styles.toolbarItem, !toolbarState.canRedo ? styles.disabled : '')} onClick={() => editor.dispatchCommand(REDO_COMMAND)}>
         <Redo />
       </span>
       <span className={styles.divider} />
       <span
-        className={classNames(styles.toolbarItem, isBold ? styles.active : '')}
+        className={classNames(styles.toolbarItem, toolbarState.isBold ? styles.active : '')}
         onClick={() => handleFormat('bold')}
       >
         <Bold />
       </span>
 
       <span
-        className={classNames(styles.toolbarItem, isItalic ? styles.active : '')}
+        className={classNames(styles.toolbarItem, toolbarState.isItalic ? styles.active : '')}
         onClick={() => handleFormat('italic')}
       >
         <Italic />
       </span>
 
       <span
-        className={classNames(styles.toolbarItem, isUnderline ? styles.active : '')}
+        className={classNames(styles.toolbarItem, toolbarState.isUnderline ? styles.active : '')}
         style={{ marginTop: '1px' }}
         onClick={() => handleFormat('underline')}
       >
         <Underline />
       </span>
-
-      <span
-        className={classNames(styles.toolbarItem, isCode ? styles.active : '')}
-        onClick={() => handleFormat('code')}
-      >
-        <Code />
-      </span>
       <span className={styles.divider} />
-      <TextOptionsDropdown handleFormat={handleFormat} isStrikethrough={isStrikethrough} />
+      <span
+        className={classNames(styles.toolbarItem, toolbarState.isLink ? styles.active : '')}
+        onClick={handleLink}
+      >
+        <Link />
+      </span>
+      <TextOptionsDropdown handleFormat={handleFormat} toolbarState={toolbarState} />
     </div>
   )
 }

@@ -1,0 +1,118 @@
+.linkEditorContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 600;
+  opacity: 0.7;
+  will-change: transform;
+  background-color: var(--theme-inputBg);
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  will-change: transform;
+}
+
+.linkEditorContainer:hover {
+  opacity: 1;
+}
+
+.linkEditor {
+  background-color: var(--theme-commentBg);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.linkEditor .linkInput {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 0.2rem;
+  line-height: 0;
+  border-radius: 0.4rem 0 0 0.4rem;
+  background-color: transparent;
+  font-size: 12px !important;
+  color: var(--bs-body-color);
+  border: 0;
+  outline: 0;
+  position: relative;
+  font-family: inherit;
+}
+
+.linkEditor .linkView {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 0.2rem;
+  line-height: 0;
+  border-radius: 0.4rem 0 0 0.4rem;
+  text-decoration: underline;
+  background-color: transparent;
+  font-size: 12px;
+  border: 0;
+  outline: 0;
+  position: relative;
+  font-family: inherit;
+}
+
+.linkEditor .linkView a {
+  display: block;
+  word-break: break-word;
+}
+
+.linkEditor .linkView svg {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.linkEditor .linkInput a {
+  color: inherit;
+  text-decoration: underline;
+  white-space: nowrap;
+  overflow: hidden;
+  margin-right: 30px;
+  text-overflow: ellipsis;
+}
+
+.linkEditor .linkInput a:hover {
+  text-decoration: underline;
+}
+
+.linkEditor .linkInput a:focus {
+  outline: 0;
+}
+
+.linkEditor .linkConfirmIcons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-right: 0.3rem;
+  padding-bottom: 0.1rem;
+}
+
+.linkEditor .linkCancelIcon {
+  position: relative;
+  font-family: lightning;
+  font-size: 12px;
+  top: 3px;
+  cursor: pointer;
+}
+
+.linkEditor .linkConfirmIcon svg {
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}
+
+.linkEditor .linkEditIcon svg {
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}
+
+.linkEditor .linkRemoveIcon svg {
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}

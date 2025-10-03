@@ -29,8 +29,8 @@ function computeStyle (className) {
 
 const AwareTokenizer = {
   ...ShikiTokenizer,
-  defaultTheme: 'github-dark-default',
-  $tokenize (codeNode, language) {
+  defaultTheme: 'github-dark-default'
+  /* $tokenize (codeNode, language) {
     const nodes = ShikiTokenizer.$tokenize(codeNode, language)
 
     if ((language ?? '').toLowerCase() !== 'markdown') return nodes
@@ -81,7 +81,7 @@ const AwareTokenizer = {
     }
 
     return nodes
-  }
+  }*/
 }
 
 export default function CodeShikiPlugin ({ isEditable = true }) {

@@ -265,6 +265,20 @@ export const UPSERT_WALLET_RECEIVE_CLINK = gql`
   }
 `
 
+export const UPSERT_WALLET_SEND_BREEZ_SPARK = gql`
+  mutation upsertWalletSendBreezSpark(
+    ${shared.variables},
+    $mnemonic: VaultEntryInput!
+  ) {
+    upsertWalletSendBreezSpark(
+      ${shared.arguments},
+      mnemonic: $mnemonic
+    ) {
+      id
+    }
+  }
+`
+
 // tests
 
 export const TEST_WALLET_RECEIVE_NWC = gql`

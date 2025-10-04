@@ -1,5 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, CAN_UNDO_COMMAND, CAN_REDO_COMMAND, UNDO_COMMAND, REDO_COMMAND, COMMAND_PRIORITY_CRITICAL } from 'lexical'
+import { $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, CAN_UNDO_COMMAND, CAN_REDO_COMMAND, COMMAND_PRIORITY_CRITICAL } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import Bold from '@/svgs/lexical/bold.svg'
 import Italic from '@/svgs/lexical/italic.svg'
@@ -8,86 +8,39 @@ import Strikethrough from '@/svgs/lexical/strikethrough.svg'
 import Link from '@/svgs/link.svg'
 import Quote from '@/svgs/lexical/quote-text.svg'
 import More from '@/svgs/lexical/font-size.svg'
-import Undo from '@/svgs/lexical/undo.svg'
-import Redo from '@/svgs/lexical/redo.svg'
 import styles from '@/components/lexical/theme/theme.module.css'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useEffect, useCallback } from 'react'
 import classNames from 'classnames'
 import { useToolbarState } from '../../contexts/toolbar'
-import { $isLinkNode } from '@lexical/link'
-import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/commands/custom'
-import { getSelectedNode } from '@/components/lexical/utils/selection'
-import { $useMarkdownMode } from '../mode'
+import { getShortcutCombo } from '@/components/lexical/commands/keyboard-shortcuts'
+import { snHasFormat, snHasLink } from '@/components/lexical/universal/utils'
+import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
+import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting'
 
-function toggleInlineMarkdown (selection, marker) {
-  if (!selection) return
-  if (selection.isCollapsed()) {
-    selection.insertText(marker + marker)
-    const { anchor } = selection
-    const node = anchor.getNode()
-    const offset = anchor.offset
-    selection.setTextNodeRange(node, offset - marker.length, node, offset - marker.length)
-  } else {
-    const text = selection.getTextContent()
-    const hasWrap = text.startsWith(marker) && text.endsWith(marker)
-    const newText = hasWrap ? text.slice(marker.length, text.length - marker.length) : marker + text + marker
-    selection.insertText(newText)
-  }
-}
-
-function toggleBlockQuote (selection) {
-  if (!selection) return
-  const text = selection.getTextContent()
-  const lines = text.split('\n')
-  const allQuoted = lines.every(l => l.startsWith('> '))
-  const newLines = allQuoted
-    ? lines.map(l => l.replace(/^> /, ''))
-    : lines.map(l => (l.length ? `> ${l}` : l))
-  selection.insertText(newLines.join('\n'))
-}
-
-function wrapWithTag (selection, tag) {
-  if (!selection) return
-  const before = `<${tag}>`
-  const after = `</${tag}>`
-  if (selection.isCollapsed()) {
-    selection.insertText(before + after)
-    const { anchor } = selection
-    const node = anchor.getNode()
-    const offset = anchor.offset
-    selection.setTextNodeRange(node, offset - after.length, node, offset - after.length)
-  } else {
-    const text = selection.getTextContent()
-    const hasWrap = text.startsWith(before) && text.endsWith(after)
-    const newText = hasWrap ? text.slice(before.length, text.length - after.length) : before + text + after
-    selection.insertText(newText)
-  }
-}
-
-function TextOptionsDropdown ({ handleFormat, toolbarState }) {
+function TextOptionsDropdown ({ toolbarState, handleFormat }) {
   return (
     <Dropdown className='pointer' as='span'>
       <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
         <More />
       </Dropdown.Toggle>
-      <Dropdown.Menu>
-        <Dropdown.Item onClick={() => handleFormat('strikethrough')} className={classNames(styles.dropdownExtraFormatting, toolbarState.isStrikethrough ? styles.active : '')}>
+      <Dropdown.Menu className={styles.dropdownExtra}>
+        <Dropdown.Item title={'Strikethrough (' + getShortcutCombo('strikethrough') + ')'} onClick={() => handleFormat('strikethrough')} className={classNames(styles.dropdownExtraItem, toolbarState.isStrikethrough ? styles.active : '')}>
           <span>
             <Strikethrough />
-            Strikethrough
+            <span className={styles.dropdownExtraItemText}>Strikethrough</span>
           </span>
-          <span className='text-muted'>
-            ⌘+Shift+X
+          <span className={styles.dropdownExtraItemShortcut}>
+            {getShortcutCombo('strikethrough')}
           </span>
         </Dropdown.Item>
-        <Dropdown.Item onClick={() => handleFormat('quote')} className={styles.dropdownExtraFormatting}>
+        <Dropdown.Item title={'Quote (' + getShortcutCombo('quote') + ')'} onClick={() => handleFormat('quote')} className={styles.dropdownExtraItem}>
           <span>
             <Quote />
-            Quote
+            <span className={styles.dropdownExtraItemText}>Quote</span>
           </span>
-          <span className='text-muted'>
-            ⌘+Shift+X
+          <span className={styles.dropdownExtraItemShortcut}>
+            {getShortcutCombo('quote')}
           </span>
         </Dropdown.Item>
       </Dropdown.Menu>
@@ -95,102 +48,40 @@ function TextOptionsDropdown ({ handleFormat, toolbarState }) {
   )
 }
 
-/* function $findTopLevelElement (node) {
-  let topLevelElement = node.getKey() === 'root'
-    ? node
-    : $findMatchingParent(node, (e) => {
-      const parent = e.getParent()
-      return parent !== null && $isRootOrShadowRoot(parent)
-    })
-  if (topLevelElement === null) {
-    topLevelElement = node.getTopLevelElementOrThrow()
-  }
-  return topLevelElement
-} */
-
 export default function FormattingPlugin () {
   const [editor] = useLexicalComposerContext()
-  const markdownMode = $useMarkdownMode()
   const { toolbarState, updateToolbarState } = useToolbarState()
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection()
     if ($isRangeSelection(selection)) {
-      // get the top level element
-      // const anchorNode = selection.anchor.getNode()
-      // const element = $findTopLevelElement(anchorNode)
-      // const elementKey = element.getKey()
-      // const elementDOM = editor.getElementByKey(elementKey)
-
-      // handle links
-      const node = getSelectedNode(selection)
-      const parent = node.getParent()
-      let isLink = $isLinkNode(parent) || $isLinkNode(node)
-      // TODO: a mess, needs to be refactored
-      console.log('markdownMode', markdownMode)
-      if (markdownMode && !isLink) {
-        console.log('markdownMode', markdownMode)
-        const textContent = selection.getTextContent()
-        console.log('textContent', textContent)
-        const linkRegex = /\[([^\]]*)\]\(([^)]+)\)/g
-        if (linkRegex.test(textContent)) {
-          isLink = true
-        }
-      }
-
-      updateToolbarState('isLink', isLink)
-
-      // handle general formatting
-      updateToolbarState('isBold', selection.hasFormat('bold'))
-      updateToolbarState('isItalic', selection.hasFormat('italic'))
-      updateToolbarState('isUnderline', selection.hasFormat('underline'))
-      updateToolbarState('isStrikethrough', selection.hasFormat('strikethrough'))
-      updateToolbarState('isCode', selection.hasFormat('code'))
-      updateToolbarState('isQuote', selection.hasFormat('quote'))
-      updateToolbarState('isHighlight', selection.hasFormat('highlight'))
-      updateToolbarState('isSubscript', selection.hasFormat('subscript'))
-      updateToolbarState('isSuperscript', selection.hasFormat('superscript'))
-      updateToolbarState('isLowercase', selection.hasFormat('lowercase'))
-      updateToolbarState('isUppercase', selection.hasFormat('uppercase'))
-      updateToolbarState('isCapitalize', selection.hasFormat('capitalize'))
+      updateToolbarState('isLink', snHasLink(selection))
+      updateToolbarState('isBold', snHasFormat(selection, 'bold'))
+      updateToolbarState('isItalic', snHasFormat(selection, 'italic'))
+      updateToolbarState('isUnderline', snHasFormat(selection, 'underline'))
+      updateToolbarState('isStrikethrough', snHasFormat(selection, 'strikethrough'))
+      updateToolbarState('isCode', snHasFormat(selection, 'code'))
+      updateToolbarState('isQuote', snHasFormat(selection, 'quote'))
+      updateToolbarState('isHighlight', snHasFormat(selection, 'highlight'))
+      updateToolbarState('isSubscript', snHasFormat(selection, 'subscript'))
+      updateToolbarState('isSuperscript', snHasFormat(selection, 'superscript'))
+      updateToolbarState('isLowercase', snHasFormat(selection, 'lowercase'))
+      updateToolbarState('isUppercase', snHasFormat(selection, 'uppercase'))
+      updateToolbarState('isCapitalize', snHasFormat(selection, 'capitalize'))
     }
-  }, [markdownMode])
+  }, [])
 
   const handleFormat = useCallback((format) => {
-    console.log('handleFormat', format)
-    console.log('inMarkdownMode', markdownMode)
-    if (!markdownMode) {
-      console.log('format', format)
-      editor.dispatchCommand(FORMAT_TEXT_COMMAND, format)
-      return
-    }
-    editor.update(() => {
-      console.log('update')
-      const selection = $getSelection()
-      if (!$isRangeSelection(selection)) return
-      switch (format) {
-        case 'bold': toggleInlineMarkdown(selection, '**'); break
-        case 'italic': toggleInlineMarkdown(selection, '*'); break
-        // what about code blocks?
-        case 'code': toggleInlineMarkdown(selection, '`'); break
-        case 'strikethrough': toggleInlineMarkdown(selection, '~~'); break
-        case 'quote': toggleBlockQuote(selection); break
-        // not that Shiki actually supports this, we'll need to go custom for this
-        case 'underline': wrapWithTag(selection, 'u'); break
-        default: break
-      }
-    })
-  }, [editor, markdownMode])
+    editor.dispatchCommand(SN_FORMAT_TEXT_COMMAND, format)
+  }, [editor])
 
   const handleLink = useCallback(() => {
-    console.log('handleLink')
-    if (!toolbarState.isLink) {
-      // setIsLinkEditMode(true)
-      editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, '')
-    } else {
-      // setIsLinkEditMode(false)
-      editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, null)
-    }
+    editor.dispatchCommand(
+      SN_TOGGLE_LINK_COMMAND,
+      toolbarState.isLink
+        ? null
+        : ''
+    )
   }, [editor, toolbarState.isLink])
 
   useEffect(() => {
@@ -227,14 +118,8 @@ export default function FormattingPlugin () {
 
   return (
     <div className={styles.toolbarFormatting}>
-      <span className={classNames(styles.toolbarItem, !toolbarState.canUndo ? styles.disabled : '')} onClick={() => editor.dispatchCommand(UNDO_COMMAND)}>
-        <Undo />
-      </span>
-      <span className={classNames(styles.toolbarItem, !toolbarState.canRedo ? styles.disabled : '')} onClick={() => editor.dispatchCommand(REDO_COMMAND)}>
-        <Redo />
-      </span>
-      <span className={styles.divider} />
       <span
+        title={'Bold (' + getShortcutCombo('bold') + ')'}
         className={classNames(styles.toolbarItem, toolbarState.isBold ? styles.active : '')}
         onClick={() => handleFormat('bold')}
       >
@@ -242,6 +127,7 @@ export default function FormattingPlugin () {
       </span>
 
       <span
+        title={'Italic (' + getShortcutCombo('italic') + ')'}
         className={classNames(styles.toolbarItem, toolbarState.isItalic ? styles.active : '')}
         onClick={() => handleFormat('italic')}
       >
@@ -249,6 +135,7 @@ export default function FormattingPlugin () {
       </span>
 
       <span
+        title={'Underline (' + getShortcutCombo('underline') + ')'}
         className={classNames(styles.toolbarItem, toolbarState.isUnderline ? styles.active : '')}
         style={{ marginTop: '1px' }}
         onClick={() => handleFormat('underline')}
@@ -257,12 +144,13 @@ export default function FormattingPlugin () {
       </span>
       <span className={styles.divider} />
       <span
+        title={'Link (' + getShortcutCombo('link') + ')'}
         className={classNames(styles.toolbarItem, toolbarState.isLink ? styles.active : '')}
         onClick={handleLink}
       >
         <Link />
       </span>
-      <TextOptionsDropdown handleFormat={handleFormat} toolbarState={toolbarState} />
+      <TextOptionsDropdown toolbarState={toolbarState} handleFormat={handleFormat} />
     </div>
   )
 }

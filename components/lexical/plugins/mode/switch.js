@@ -6,7 +6,7 @@ import { $createTextNode, $getRoot, createCommand, COMMAND_PRIORITY_EDITOR } fro
 import { $createMarkdownNode } from '@/lib/lexical/nodes/markdownnode'
 import { mergeRegister } from '@lexical/utils'
 
-export const TOGGLE_MODE_COMMAND = createCommand('TOGGLE_MODE_COMMAND')
+export const SN_TOGGLE_MODE_COMMAND = createCommand('SN_TOGGLE_MODE_COMMAND')
 
 // this will switch between wysiwyg and markdown mode
 // default is markdown
@@ -33,7 +33,7 @@ export default function SwitchPlugin ({ markdownMode }) {
 
   useEffect(() => {
     const unregister = mergeRegister(
-      editor.registerCommand(TOGGLE_MODE_COMMAND, () => {
+      editor.registerCommand(SN_TOGGLE_MODE_COMMAND, () => {
         handleMarkdownSwitch()
         return true
       }, COMMAND_PRIORITY_EDITOR)

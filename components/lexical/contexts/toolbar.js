@@ -14,9 +14,7 @@ const INITIAL_STATE = {
   isUnderline: false,
   isLowercase: false,
   isUppercase: false,
-  isCapitalize: false,
-  canRedo: false,
-  canUndo: false
+  isCapitalize: false
 }
 
 const ToolbarContext = createContext()

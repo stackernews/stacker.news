@@ -23,8 +23,8 @@ import { useState } from 'react'
 // import LinkEditorPlugin from '../plugins/tools/linkeditor'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import ShortcutsPlugin from '../plugins/shortcuts'
-import { SHORTCUTS } from '../commands/keyboard-shortcuts'
-import CustomCommands from '../commands/custom'
+import { SHORTCUTS } from '@/components/lexical/commands/keyboard-shortcuts'
+import MarkdownCommandsPlugin from '../universal/commands'
 
 export default function Editor ({ customNodes = [], ...props }) {
   const { values } = useFormikContext()
@@ -95,8 +95,8 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <OnChangePlugin name={name} />
         {/* shortcuts */}
-        <ShortcutsPlugin bindings={SHORTCUTS} />
-        <CustomCommands />
+        <ShortcutsPlugin shortcuts={SHORTCUTS} />
+        <MarkdownCommandsPlugin />
         {/* atm it's just the mode status plugin */}
         <ModePlugins />
         {/* {floatingAnchorElem && <LinkEditorPlugin anchorElem={floatingAnchorElem} isLinkEditMode={isLinkEditMode} setIsLinkEditMode={setIsLinkEditMode} />} */}

@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect, useState } from 'react'
 import { $isLinkNode, $isAutoLinkNode } from '@lexical/link'
-import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/commands/custom'
+import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
 import { useToolbarState } from '@/components/lexical/contexts/toolbar'
 import { PASTE_COMMAND, COMMAND_PRIORITY_LOW, $getSelection, $isRangeSelection, $isNodeSelection } from 'lexical'
 import { getSelectedNode } from '@/components/lexical/utils/selection'
@@ -63,21 +63,22 @@ export default function LinkTransformationPlugin ({ anchorElem }) {
     return editor.registerCommand(
       PASTE_COMMAND,
       (event) => {
-        editor.getEditorState().read(() => {
+        const text = event.clipboardData?.getData('text/plain')?.trim()
+        if (!text || !URL_REGEXP.test(text)) return false
+
+        const href = ensureProtocol(removeTracking(text))
+        if (!href) return false
+
+        event.preventDefault()
+
+        editor.update(() => {
           const selection = $getSelection()
           if ($isRangeSelection(selection) && !selection.isCollapsed()) {
-            const text = event.clipboardData?.getData('text/plain')?.trim()
-            if (!text) return false
-            if (!URL_REGEXP.test(text)) return false
-
-            const href = ensureProtocol(removeTracking(text))
-            if (!href) return false
-
-            event.preventDefault()
             editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, href)
-            return true
           }
         })
+
+        return true
       }, COMMAND_PRIORITY_LOW
     )
   }, [editor, isLinkEditable, nodeKey, anchorElem])

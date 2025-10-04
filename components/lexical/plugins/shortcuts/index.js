@@ -7,31 +7,21 @@ function isMac () {
   return /Mac|iPhone|iPod|iPad/.test(navigator.platform)
 }
 
-function normalizeCombo (combo) {
-  return combo
-    .toLowerCase()
-    .split('+')
-    .map(p => p.trim())
-    .sort()
-    .join('+')
-}
-
-function eventToCombo (e) {
+function translateEventToCombo (e) {
   const parts = []
   if (e.ctrlKey) parts.push('ctrl')
   if (e.metaKey) parts.push('meta')
   if (e.altKey) parts.push('alt')
   if (e.shiftKey) parts.push('shift')
   parts.push((e.key || '').toLowerCase())
-  return parts.sort().join('+')
+  return parts.join('+')
 }
 
 function matches (e, combo) {
   const combos = Array.isArray(combo) ? combo : [combo]
-  const normalized = combos.map(normalizeCombo)
-  const eventCombo = eventToCombo(e)
+  const eventCombo = translateEventToCombo(e)
 
-  const compat = normalized.flatMap(c => {
+  const compat = combos.flatMap(c => {
     if (c.includes('mod')) {
       const withMeta = c.replace('mod', 'meta')
       const withCtrl = c.replace('mod', 'ctrl')
@@ -39,19 +29,18 @@ function matches (e, combo) {
     }
     return [c]
   })
-  return [...normalized, ...compat].some(c => c === eventCombo)
+  return [...combos, ...compat].some(c => c === eventCombo)
 }
 
-export default function ShortcutsPlugin ({ bindings = [] }) {
+export default function ShortcutsPlugin ({ shortcuts = [] }) {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
     return editor.registerCommand(
       KEY_DOWN_COMMAND,
       (e) => {
-        for (const { combo, handler } of bindings) {
+        for (const { combo, handler } of shortcuts) {
           if (matches(e, combo)) {
-            console.log('matches', combo)
             e.preventDefault()
             handler({ editor, event: e })
             return true
@@ -61,7 +50,7 @@ export default function ShortcutsPlugin ({ bindings = [] }) {
       },
       COMMAND_PRIORITY_EDITOR
     )
-  }, [editor, bindings])
+  }, [editor, shortcuts])
 
   return null
 }

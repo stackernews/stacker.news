@@ -43,7 +43,6 @@ export default function CustomAutoLinkPlugin () {
       const isRaw = text === url || ensureProtocol(text) === normUrl
       if (!isRaw) return
       if (selectionInsideNode(node)) return
-      console.log('onLinkTransform', node)
       const rel = node.getRel?.() || UNKNOWN_LINK_REL
       // this is a complete mess, but weirdly works lmao
       const embed = parseEmbedUrl(normUrl)

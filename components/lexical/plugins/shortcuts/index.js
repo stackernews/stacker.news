@@ -1,11 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
 import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_EDITOR } from 'lexical'
-
-function isMac () {
-  if (typeof navigator === 'undefined') return false
-  return /Mac|iPhone|iPod|iPad/.test(navigator.platform)
-}
+import { IS_APPLE } from '@lexical/utils'
 
 function translateEventToCombo (e) {
   const parts = []
@@ -25,7 +21,7 @@ function matches (e, combo) {
     if (c.includes('mod')) {
       const withMeta = c.replace('mod', 'meta')
       const withCtrl = c.replace('mod', 'ctrl')
-      return isMac() ? [withMeta] : [withCtrl]
+      return IS_APPLE ? [withMeta] : [withCtrl]
     }
     return [c]
   })

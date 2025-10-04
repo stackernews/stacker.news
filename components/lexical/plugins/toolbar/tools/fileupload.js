@@ -13,7 +13,6 @@ export default function FileUploadPlugin () {
   // cool now we have to create logic to actually set the text in the editor, see form.js
   useEffect(() => {
     return editor.registerCommand(INSERT_FILES_COMMAND, (files) => {
-      console.log(files)
       return true
     }, COMMAND_PRIORITY_EDITOR)
   }, [editor])

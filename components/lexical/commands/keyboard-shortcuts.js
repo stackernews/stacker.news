@@ -1,10 +1,6 @@
 import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/plugins/mode/switch'
 import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting'
-
-function isMac () {
-  if (typeof navigator === 'undefined') return false
-  return /Mac|iPhone|iPod|iPad/.test(navigator.platform)
-}
+import { IS_APPLE } from '@lexical/utils'
 
 // mod is either cmd or ctrl
 export const INLINE_FORMATTING_SHORTCUTS = [
@@ -77,5 +73,5 @@ export const SHORTCUTS = [
 export function getShortcutCombo (action) {
   const shortcut = SHORTCUTS.find(shortcut => shortcut.action === action)
   if (!shortcut) return null
-  return shortcut.combo.replace('mod', isMac() ? 'cmd' : 'ctrl').toLowerCase()
+  return shortcut.combo.replace('mod', IS_APPLE ? 'cmd' : 'ctrl').toLowerCase()
 }

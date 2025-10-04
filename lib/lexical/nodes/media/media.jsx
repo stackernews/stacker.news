@@ -31,7 +31,6 @@ export default function MediaComponent ({
   caption,
   captionsEnabled
 }) {
-  console.log('MediaComponent', src, nodeKey)
   const mediaRef = useRef(null)
   const buttonRef = useRef(null)
   const [isSelected, setSelected, clearSelection] =
@@ -81,7 +80,6 @@ export default function MediaComponent ({
     if (isResizing) {
       return true
     }
-    console.log('onClick', event)
     if (event.target === mediaRef.current) {
       if (event.shiftKey) {
         setSelected(!isSelected)

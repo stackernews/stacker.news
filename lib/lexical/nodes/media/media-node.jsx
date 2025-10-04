@@ -267,7 +267,6 @@ export function $createMediaNode ({
   captionText,
   key
 }) {
-  console.log('createMediaNode', altText, height, maxWidth, captionsEnabled, src, width, showCaption, caption, captionText, key)
   return $applyNodeReplacement(
     new MediaNode(
       src,

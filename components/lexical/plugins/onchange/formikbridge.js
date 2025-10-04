@@ -42,7 +42,6 @@ export default function FormikBridgePlugin ({ name }) {
   }, [storageKey])
 
   const lexicalFormikify = useCallback((editorState) => {
-    console.log('hyperTransform')
     editorState.read(() => {
       const root = $getRoot()
       const firstChild = root.getFirstChild()

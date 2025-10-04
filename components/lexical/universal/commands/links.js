@@ -8,7 +8,6 @@ export function snToggleLinkCommand ({ editor }) {
   return editor.registerCommand(SN_TOGGLE_LINK_COMMAND, (url) => {
     const markdownMode = getMarkdownMode(editor)
     if (!markdownMode) {
-      console.log('toggle link in wysiwyg mode', url)
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, url)
       return true
     }

@@ -18,7 +18,7 @@ export function PayInMoney ({ payIn }) {
     <>
       {isNumber(SATS?.mtokens) && SATS.mtokens !== 0 && <Money mtokens={SATS.mtokens} mtokensAfter={SATS.mtokensAfter} singular='sat' plural='sats' />}
       {isNumber(CREDITS?.mtokens) && CREDITS.mtokens !== 0 && <Money mtokens={CREDITS.mtokens} mtokensAfter={CREDITS.mtokensAfter} singular='CC' plural='CCs' />}
-      {isNumber(bolt11Cost) && bolt11Cost !== 0 && payIn.isSend &&
+      {isNumber(bolt11Cost) && (payIn.payInType === 'PROXY_PAYMENT' || (payIn.isSend && bolt11Cost < 0) || (!payIn.isSend && bolt11Cost > 0)) &&
         <div
           className={classNames('d-flex align-items-center gap-1 justify-content-end',
             { [styles.strikethrough]: payIn.payInState === 'FAILED' })}

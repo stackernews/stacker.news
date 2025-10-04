@@ -406,9 +406,11 @@ DROP MATERIALIZED VIEW IF EXISTS rewards_today;
 CREATE MATERIALIZED VIEW IF NOT EXISTS rewards_today AS
 SELECT (rewards(min, max, '1 day'::INTERVAL, 'day')).* FROM today;
 
-DROP MATERIALIZED VIEW IF EXISTS rewards_days;
-CREATE MATERIALIZED VIEW IF NOT EXISTS rewards_days AS
-SELECT (rewards(min, max, '1 day'::INTERVAL, 'day')).* FROM all_days;
-
 CREATE UNIQUE INDEX IF NOT EXISTS rewards_today_idx ON rewards_today(t);
-CREATE UNIQUE INDEX IF NOT EXISTS rewards_days_idx ON rewards_days(t);
+
+-- TODO: add this back in
+-- DROP MATERIALIZED VIEW IF EXISTS rewards_days;
+-- CREATE MATERIALIZED VIEW IF NOT EXISTS rewards_days AS
+-- SELECT (rewards(min, max, '1 day'::INTERVAL, 'day')).* FROM all_days;
+
+-- CREATE UNIQUE INDEX IF NOT EXISTS rewards_days_idx ON rewards_days(t);

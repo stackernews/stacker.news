@@ -230,7 +230,7 @@ $$ LANGUAGE plpgsql;
 -- =============================================================================
 
 CREATE TEMP TABLE invite AS
-SELECT users.id AS "invitedUserId", users.created_at AS "invitedAt", "Invite".*
+SELECT users.id AS invited_user_id, users.created_at AS "invitedAt", "Invite".*
 FROM users
 JOIN "Invite" ON "Invite"."id" = "users"."inviteId"
 WHERE users."inviteId" IS NOT NULL;
@@ -238,7 +238,7 @@ WHERE users."inviteId" IS NOT NULL;
 CREATE INDEX invite_id_idx ON invite (id);
 ANALYZE invite;
 
-CREATE TEMP TABLE map_invite_payin (invite_id TEXT, payin_id INTEGER PRIMARY KEY);
+CREATE TEMP TABLE map_invite_payin (invited_user_id INTEGER, payin_id INTEGER PRIMARY KEY);
 
 -- Generate PayIn IDs and create records
 WITH invite_with_payin_ids AS (
@@ -260,22 +260,22 @@ WITH invite_with_payin_ids AS (
     FROM invite_with_payin_ids
 )
 -- Store invite->payin mapping for later joins
-INSERT INTO map_invite_payin (invite_id, payin_id)
-SELECT id, payin_id FROM invite_with_payin_ids;
+INSERT INTO map_invite_payin (invited_user_id, payin_id)
+SELECT invited_user_id, payin_id FROM invite_with_payin_ids;
 
 -- Step 2: Record the funding source (custodial tokens)
 -- Token type depends on invite date: SATS before 2025-01-03, CREDITS after
 INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
 SELECT map_invite_payin.payin_id, gift * 1000, get_custodial_token_type("invitedAt")
 FROM invite
-JOIN map_invite_payin ON map_invite_payin.invite_id = invite.id;
+JOIN map_invite_payin ON map_invite_payin.invited_user_id = invite.invited_user_id;
 
 -- Step 3: Record the payout to invited user
 -- Creates balance: PayIn.mcost = PayInCustodialToken.mtokens = PayOutCustodialToken.mtokens
 INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
-SELECT "invitedAt", "invitedAt", "invitedUserId", map_invite_payin.payin_id, gift * 1000, get_custodial_token_type("invitedAt"), 'INVITE_GIFT'
+SELECT "invitedAt", "invitedAt", invite.invited_user_id, map_invite_payin.payin_id, gift * 1000, get_custodial_token_type("invitedAt"), 'INVITE_GIFT'
 FROM invite
-JOIN map_invite_payin ON map_invite_payin.invite_id = invite.id;
+JOIN map_invite_payin ON map_invite_payin.invited_user_id = invite.invited_user_id;
 
 -- Cleanup: Remove temporary tables to free memory
 DROP TABLE invite;
@@ -391,10 +391,10 @@ BEGIN
 
         -- Insert routing fee PayOutCustodialToken records for this batch
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
-        SELECT "created_at", "updated_at", NULL, map_withdrawal_payin_batch.payin_id, "msatsFeePaying", 'SATS', 'ROUTING_FEE'
+        SELECT "created_at", "updated_at", NULL, map_withdrawal_payin_batch.payin_id, COALESCE("msatsFeePaid", "msatsFeePaying"), 'SATS', 'ROUTING_FEE'
         FROM withdrawal_batch
         JOIN map_withdrawal_payin_batch ON map_withdrawal_payin_batch.withdrawal_id = withdrawal_batch.id
-        WHERE "msatsFeePaying" > 0;
+        WHERE COALESCE("msatsFeePaid", "msatsFeePaying") > 0;
 
         -- Insert routing fee refund PayOutCustodialToken records for this batch
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
@@ -909,7 +909,7 @@ BEGIN
                COALESCE(item_boost_acts.msats, 0) AS boost_msats,
                item_uploads.upload_ids
         FROM "Item"
-        LEFT JOIN "Invoice" ON "Invoice".id = "Item"."invoiceId"
+        LEFT JOIN "Invoice" ON "Invoice".id = "Item"."invoiceId" AND "Invoice"."actionType" = 'ITEM_CREATE'
         LEFT JOIN LATERAL (
             SELECT sum("msats") AS msats
             FROM "ItemAct"
@@ -985,11 +985,11 @@ BEGIN
         -- Insert custodial tokens for the difference between fee and invoice amount
         INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
         SELECT map_item_create_payin_batch.payin_id,
-               fee_msats - COALESCE("msatsRequested", 0),
+               fee_msats + boost_msats - COALESCE("msatsReceived", "msatsRequested", 0),
                get_custodial_token_type("created_at")
         FROM item_create_batch
         JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
-        WHERE fee_msats - COALESCE("msatsRequested", 0) > 0;
+        WHERE fee_msats + boost_msats - COALESCE("msatsReceived", "msatsRequested", 0) > 0;
 
         -- Insert upload associations
         INSERT INTO "UploadPayIn" ("payInId", "uploadId")
@@ -1344,7 +1344,7 @@ BEGIN
         -- Insert rewards pool PayOutCustodialToken records for withdrawals
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
         SELECT "invoice_created_at", "invoice_updated_at", 9513, map.payin_id,
-            "msatsRequested" - COALESCE("msatsFeePaid", "msatsFeePaying") - COALESCE("msatsPaid", "msatsPaying"), 'SATS', 'REWARDS_POOL'
+            COALESCE("msatsReceived", "msatsRequested") - COALESCE("msatsFeePaid", "msatsFeePaying") - COALESCE("msatsPaid", "msatsPaying"), 'SATS', 'REWARDS_POOL'
         FROM item_act_zaps_batch zaps
         JOIN map_zap_payin_batch map ON (
             map.item_id = zaps."itemId" AND
@@ -1417,7 +1417,7 @@ BEGIN
         -- Insert remaining fee amount to rewards pool
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
         SELECT zaps."created_at", zaps."created_at", 9513, map.payin_id,
-            zaps."feeMsats" - COALESCE(referral_total.total, 0), 'SATS', 'REWARDS_POOL'
+            zaps."feeMsats" + (COALESCE(zaps."msatsReceived", 0) - COALESCE(zaps."msatsRequested", 0)) - COALESCE(referral_total.total, 0), 'SATS', 'REWARDS_POOL'
         FROM item_act_zaps_batch zaps
         JOIN map_zap_payin_batch map ON (map.item_id, map.user_id, map.created_at, map.invoice_id) =
                                        (zaps."itemId", zaps."userId", zaps."created_at", COALESCE(zaps."invoiceId", 0))

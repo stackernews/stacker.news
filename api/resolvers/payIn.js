@@ -79,7 +79,6 @@ export default {
             AND "PayIn"."benefactorId" IS NULL
             AND "PayIn"."mcost" > 0
             AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
-            GROUP BY "PayIn"."id"
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
           )
@@ -87,18 +86,27 @@ export default {
           (
             SELECT "PayIn".*, "payInStateChangedAt" as "sortTime", false as "isSend"
             FROM "PayIn"
-            LEFT JOIN "RefundCustodialToken" ON "RefundCustodialToken"."payInId" = "PayIn"."id"
-            LEFT JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
-            LEFT JOIN "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = "PayIn"."id"
-            WHERE (
-              ("PayIn"."userId" = ${userId} AND "RefundCustodialToken".id IS NOT NULL)
-              OR ("PayOutBolt11"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID' AND "PayIn"."payInType" <> 'PROXY_PAYMENT')
-              OR ("PayOutCustodialToken"."userId" = ${userId} AND "PayIn"."payInState" = 'PAID')
-            )
+            LEFT JOIN LATERAL (
+              SELECT "RefundCustodialToken".*
+              FROM "RefundCustodialToken"
+              WHERE "RefundCustodialToken"."payInId" = "PayIn"."id" AND "PayIn"."userId" = ${userId}
+            ) "RefundCustodialToken" ON true
+            LEFT JOIN LATERAL (
+              SELECT "PayOutBolt11".*
+              FROM "PayOutBolt11"
+              WHERE "PayOutBolt11"."payInId" = "PayIn"."id" AND "PayOutBolt11"."userId" = ${userId}
+              AND "PayIn"."payInState" = 'PAID' AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL')
+            ) "PayOutBolt11" ON true
+            LEFT JOIN LATERAL (
+              SELECT "PayOutCustodialToken".*
+              FROM "PayOutCustodialToken"
+              WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id" AND "PayOutCustodialToken"."userId" = ${userId}
+              AND "PayIn"."payInState" = 'PAID'
+            ) "PayOutCustodialToken" ON true
+            WHERE ("RefundCustodialToken".id IS NOT NULL OR "PayOutBolt11".id IS NOT NULL OR "PayOutCustodialToken".id IS NOT NULL)
             AND "PayIn"."benefactorId" IS NULL
             AND "PayIn"."mcost" > 0
             AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
-            GROUP BY "PayIn"."id"
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
           )`,

@@ -16,7 +16,7 @@ export default function InsertTools () {
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra}>
         <Dropdown.Item
-          title={'Upload files (' + getShortcutCombo('upload') + ')'}
+          title={'upload files (' + getShortcutCombo('upload') + ')'}
           onClick={() => {
             editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)
           }}
@@ -24,7 +24,7 @@ export default function InsertTools () {
         >
           <div className={styles.dropdownExtraItemLabel}>
             <FileIcon />
-            <span>Upload Files</span>
+            <span>upload files</span>
           </div>
           <span className={styles.dropdownExtraItemShortcut}>
             {getShortcutCombo('upload')}

@@ -7,10 +7,10 @@
   display: block;
   position: relative;
   outline: 0px;
-  padding: 10px;
+  padding: 3px;
   user-select: text;
   font-size: 12px;
-  width: calc(100% - 20px);
+  width: 100%;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -21,12 +21,18 @@
   bottom: 0;
   left: 0;
   right: 0;
+  margin-top: 10px;
   padding: 0;
-  margin: 0;
   background-color: rgba(0, 0, 0, .5) !important;
   min-width: 100px;
   color: #fff !important;
   overflow: hidden;
+}
+
+/* if before this element there is a div with a child video */
+.imageCaptionContainer:has(> div > video) {
+  position: relative;
+  margin-top: 0;
 }
 
 .imageCaptionButton {

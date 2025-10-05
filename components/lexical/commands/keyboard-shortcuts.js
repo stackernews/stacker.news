@@ -1,6 +1,8 @@
 import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/plugins/mode/switch'
 import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting'
 import { IS_APPLE } from '@lexical/utils'
+import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
+import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
 
 // mod is either cmd or ctrl
 export const INLINE_FORMATTING_SHORTCUTS = [
@@ -48,6 +50,23 @@ export const INLINE_FORMATTING_SHORTCUTS = [
   }
 ]
 
+export const INSERT_SHORTCUTS = [
+  {
+    action: 'upload',
+    combo: 'mod+shift+u',
+    handler: ({ editor }) => {
+      editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)
+    }
+  },
+  {
+    action: 'link',
+    combo: 'mod+shift+l',
+    handler: ({ editor }) => {
+      editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, '')
+    }
+  }
+]
+
 export const EDITOR_SHORTCUTS = [
   {
     action: 'toggleMode',
@@ -67,7 +86,8 @@ export const EDITOR_SHORTCUTS = [
 
 export const SHORTCUTS = [
   ...EDITOR_SHORTCUTS,
-  ...INLINE_FORMATTING_SHORTCUTS
+  ...INLINE_FORMATTING_SHORTCUTS,
+  ...INSERT_SHORTCUTS
 ]
 
 export function getShortcutCombo (action) {

@@ -25,6 +25,7 @@ import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import ShortcutsPlugin from '../plugins/shortcuts'
 import { SHORTCUTS } from '@/components/lexical/commands/keyboard-shortcuts'
 import MarkdownCommandsPlugin from '../universal/commands'
+import FileUploadPlugin from '../plugins/interop/fileupload'
 
 export default function Editor ({ customNodes = [], ...props }) {
   const { values } = useFormikContext()
@@ -99,6 +100,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         <MarkdownCommandsPlugin />
         {/* atm it's just the mode status plugin */}
         <ModePlugins />
+        <FileUploadPlugin />
         {/* {floatingAnchorElem && <LinkEditorPlugin anchorElem={floatingAnchorElem} isLinkEditMode={isLinkEditMode} setIsLinkEditMode={setIsLinkEditMode} />} */}
       </div>
     </>

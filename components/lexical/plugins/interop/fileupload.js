@@ -1,8 +1,6 @@
-import styles from '@/components/lexical/theme/theme.module.css'
 import { useRef, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_EDITOR, $insertNodes, $createTextNode, $getNodeByKey, $createParagraphNode } from 'lexical'
-import AddFileIcon from '@/svgs/file-upload-line.svg'
 import { FileUpload } from '@/components/file-upload'
 import { useFeeButton } from '@/components/fee-button'
 // import { useLazyQuery } from '@apollo/client'
@@ -10,13 +8,15 @@ import { useFeeButton } from '@/components/fee-button'
 // import { numWithUnits } from '@/lib/format'
 // import { $createMediaOrLinkNode } from '@/lib/lexical/nodes/mediaorlink'
 import { $createMediaNode } from '@/lib/lexical/nodes/media/media-node'
+import { mergeRegister } from '@lexical/utils'
+import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
 const INSERT_FILES_COMMAND = createCommand()
 
 export default function FileUploadPlugin () {
-  const fileInputRef = useRef(null)
   const [editor] = useLexicalComposerContext()
-  const { /* merge, */setDisabled: setSubmitDisabled } = useFeeButton()
   const placeholdersRef = useRef(new Map())
+  const fileInputRef = useRef(null)
+  const { setDisabled: setSubmitDisabled } = useFeeButton()
   // wip: File Upload Fees
   // const [updateUploadFees] = useLazyQuery(gql`
   //   query uploadFees($s3Keys: [Int]!) {
@@ -53,18 +53,28 @@ export default function FileUploadPlugin () {
 
   // cool now we have to create logic to actually set the text in the editor, see form.js
   useEffect(() => {
-    return editor.registerCommand(INSERT_FILES_COMMAND, (files) => {
-      editor.update(() => {
-        // create node
-        const nodes = files.map(file => $createMediaNode({ src: file.url }))
-        $insertNodes(nodes)
-      })
-      return true
-    }, COMMAND_PRIORITY_EDITOR)
+    return mergeRegister(
+      editor.registerCommand(
+        SN_UPLOAD_FILES_COMMAND,
+        () => {
+          fileInputRef.current?.click()
+          return true
+        },
+        COMMAND_PRIORITY_EDITOR
+      ),
+      editor.registerCommand(INSERT_FILES_COMMAND, (files) => {
+        editor.update(() => {
+          // create node
+          const nodes = files.map(file => $createMediaNode({ src: file.url }))
+          $insertNodes(nodes)
+        })
+        return true
+      }, COMMAND_PRIORITY_EDITOR)
+    )
   }, [editor])
 
   return (
-    <div className={styles.fileUpload} title='upload media'>
+    <div className='d-none'>
       <FileUpload
         multiple
         ref={fileInputRef}
@@ -118,9 +128,7 @@ export default function FileUploadPlugin () {
           })
           setSubmitDisabled?.(false)
         }}
-      >
-        <AddFileIcon width={18} height={18} />
-      </FileUpload>
+      />
     </div>
   )
 }

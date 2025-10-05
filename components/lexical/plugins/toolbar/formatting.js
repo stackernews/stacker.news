@@ -26,7 +26,7 @@ function TextOptionsDropdown ({ toolbarState, handleFormat }) {
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra}>
         <Dropdown.Item title={'Strikethrough (' + getShortcutCombo('strikethrough') + ')'} onClick={() => handleFormat('strikethrough')} className={classNames(styles.dropdownExtraItem, toolbarState.isStrikethrough ? styles.active : '')}>
-          <span>
+          <span className={styles.dropdownExtraItemLabel}>
             <Strikethrough />
             <span className={styles.dropdownExtraItemText}>Strikethrough</span>
           </span>
@@ -35,7 +35,7 @@ function TextOptionsDropdown ({ toolbarState, handleFormat }) {
           </span>
         </Dropdown.Item>
         <Dropdown.Item title={'Quote (' + getShortcutCombo('quote') + ')'} onClick={() => handleFormat('quote')} className={styles.dropdownExtraItem}>
-          <span>
+          <span className={styles.dropdownExtraItemLabel}>
             <Quote />
             <span className={styles.dropdownExtraItemText}>Quote</span>
           </span>
@@ -48,7 +48,7 @@ function TextOptionsDropdown ({ toolbarState, handleFormat }) {
   )
 }
 
-export default function FormattingPlugin () {
+export default function FormattingTools () {
   const [editor] = useLexicalComposerContext()
   const { toolbarState, updateToolbarState } = useToolbarState()
 

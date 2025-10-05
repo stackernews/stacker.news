@@ -239,6 +239,32 @@
   height: 20px;
 }
 
+.toolbarInsert {
+  background-size: contain;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  border-radius: 0.4rem;
+  vertical-align: -.25em;
+  opacity: 0.6;
+}
+
+.toolbarInsert:hover {
+  background-color: var(--theme-toolbarActive);
+  opacity: 1;
+}
+
+.toolbarInsert.active {
+  background-color: var(--theme-toolbarActive);
+  opacity: 1;
+}
+
+.toolbarInsert svg {
+  fill: var(--bs-body-color) !important;
+  width: 24px;
+  height: 24px;
+}
+
 .modeStatus {
   cursor: pointer;
   font-size: 10px;
@@ -305,5 +331,18 @@
   width: 16px;
   height: 16px;
   margin-bottom: 3px;
+  margin-right: 0.25rem;
+}
+
+.dropdownExtraItemLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.dropdownExtraItemLabel svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
   margin-right: 0.25rem;
 }

@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useEffect } from 'react'
 import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_EDITOR } from 'lexical'
 import { IS_APPLE } from '@lexical/utils'
+import { SHORTCUTS } from './keyboard-shortcuts'
 
 function translateEventToCombo (e) {
   const parts = []
@@ -28,7 +29,7 @@ function matches (e, combo) {
   return [...combos, ...compat].some(c => c === eventCombo)
 }
 
-export default function ShortcutsPlugin ({ shortcuts = [] }) {
+export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {

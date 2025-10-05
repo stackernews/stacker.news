@@ -1,32 +1,22 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, CAN_UNDO_COMMAND, CAN_REDO_COMMAND, COMMAND_PRIORITY_CRITICAL, $isElementNode, FORMAT_ELEMENT_COMMAND, OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND } from 'lexical'
+import { $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $isElementNode, FORMAT_ELEMENT_COMMAND, OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
-import Bold from '@/svgs/lexical/bold.svg'
-import Italic from '@/svgs/lexical/italic.svg'
-import Underline from '@/svgs/lexical/underline.svg'
-import Strikethrough from '@/svgs/lexical/strikethrough.svg'
 import Link from '@/svgs/link.svg'
-import Quote from '@/svgs/lexical/quote-text.svg'
 import More from '@/svgs/lexical/font-size.svg'
 import styles from '@/components/lexical/theme/theme.module.css'
 import Dropdown from 'react-bootstrap/Dropdown'
-import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
-import AlignCenterIcon from '@/svgs/lexical/align/align-center.svg'
-import AlignRightIcon from '@/svgs/lexical/align/align-right.svg'
-import AlignJustifyIcon from '@/svgs/lexical/align/align-justify.svg'
-import IndentDecreaseIcon from '@/svgs/lexical/align/indent-decrease.svg'
-import IndentIncreaseIcon from '@/svgs/lexical/align/indent-increase.svg'
 import { useEffect, useCallback } from 'react'
 import classNames from 'classnames'
 import { useToolbarState } from '../../contexts/toolbar'
-import { getShortcutCombo } from '@/components/lexical/commands/keyboard-shortcuts'
+import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard-shortcuts'
 import { snHasFormat, snHasLink } from '@/components/lexical/universal/utils'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
 import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting'
 import { getSelectedNode } from '@/components/lexical/utils/selection'
+import { BLOCK_OPTIONS, FORMAT_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS } from './defs/formatting'
 import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 
-function TextOptionsDropdown ({ toolbarState, handleFormat }) {
+function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
   return (
     <Dropdown className='pointer' as='span'>
       <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
@@ -34,24 +24,75 @@ function TextOptionsDropdown ({ toolbarState, handleFormat }) {
         <ArrowDownIcon />
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra}>
-        <Dropdown.Item title={'Strikethrough (' + getShortcutCombo('strikethrough') + ')'} onClick={() => handleFormat('strikethrough')} className={classNames(styles.dropdownExtraItem, toolbarState.isStrikethrough ? styles.active : '')}>
-          <span className={styles.dropdownExtraItemLabel}>
-            <Strikethrough />
-            <span className={styles.dropdownExtraItemText}>strikethrough</span>
-          </span>
-          <span className={styles.dropdownExtraItemShortcut}>
-            {getShortcutCombo('strikethrough')}
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item title={'Quote (' + getShortcutCombo('quote') + ')'} onClick={() => handleFormat('quote')} className={styles.dropdownExtraItem}>
-          <span className={styles.dropdownExtraItemLabel}>
-            <Quote />
-            <span className={styles.dropdownExtraItemText}>quote</span>
-          </span>
-          <span className={styles.dropdownExtraItemShortcut}>
-            {getShortcutCombo('quote')}
-          </span>
-        </Dropdown.Item>
+        {BLOCK_OPTIONS.map((option) => (
+          <Dropdown.Item
+            key={option.action}
+            title={`${option.name} (${getShortcutCombo(option.action)})`}
+            onClick={() => handleBlock(option.action)}
+            className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === option.action ? styles.active : '')}
+          >
+            <span className={styles.dropdownExtraItemLabel}>
+              {option.icon}
+              <span className={styles.dropdownExtraItemText}>{option.name}</span>
+            </span>
+          </Dropdown.Item>
+        ))}
+      </Dropdown.Menu>
+    </Dropdown>
+  )
+}
+
+function getFormatToolbarState (toolbarState, format) {
+  switch (format) {
+    case 'bold':
+      return toolbarState.isBold
+    case 'italic':
+      return toolbarState.isItalic
+    case 'underline':
+      return toolbarState.isUnderline
+    case 'strikethrough':
+      return toolbarState.isStrikethrough
+    default:
+      return false
+  }
+}
+
+function InlineFormattingOptions ({ toolbarState, handleFormat }) {
+  return (
+    FORMAT_OPTIONS.map((option) => (
+      <span
+        key={option.action}
+        title={`${option.name} (${getShortcutCombo(option.action)})`}
+        className={classNames(styles.toolbarItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
+        onClick={() => handleFormat(option.action)}
+      >
+        {option.icon}
+      </span>
+    ))
+  )
+}
+
+function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
+  return (
+    <Dropdown className='pointer' as='span'>
+      <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
+        <More />
+        <ArrowDownIcon />
+      </Dropdown.Toggle>
+      <Dropdown.Menu className={styles.dropdownExtra}>
+        {ADDITIONAL_FORMAT_OPTIONS.map((option) => (
+          <Dropdown.Item
+            key={option.action}
+            title={`${option.name} (${getShortcutCombo(option.action)})`}
+            onClick={() => handleFormat(option.action)}
+            className={classNames(styles.dropdownExtraItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
+          >
+            <span className={styles.dropdownExtraItemLabel}>
+              {option.icon}
+              <span className={styles.dropdownExtraItemText}>{option.name}</span>
+            </span>
+          </Dropdown.Item>
+        ))}
       </Dropdown.Menu>
     </Dropdown>
   )
@@ -62,64 +103,23 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
     <Dropdown className='pointer' as='span'>
       <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
         {/* a mess, clean this up */}
-        {toolbarState.elementFormat === 'left' ? <AlignLeftIcon /> : toolbarState.elementFormat === 'center' ? <AlignCenterIcon /> : toolbarState.elementFormat === 'right' ? <AlignRightIcon /> : toolbarState.elementFormat === 'justify' ? <AlignJustifyIcon /> : <IndentDecreaseIcon />}
+        <More />
         <ArrowDownIcon />
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra}>
-        <Dropdown.Item onClick={() => handleAlign('left')} className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === 'left' ? styles.active : '')}>
-          <span className={styles.dropdownExtraItemLabel}>
-            <AlignLeftIcon />
-            <span className={styles.dropdownExtraItemText}>left</span>
-          </span>
-          <span className={styles.dropdownExtraItemShortcut}>
-            {getShortcutCombo('align-left')}
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item onClick={() => handleAlign('center')} className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === 'center' ? styles.active : '')}>
-          <span className={styles.dropdownExtraItemLabel}>
-            <AlignCenterIcon />
-            <span className={styles.dropdownExtraItemText}>center</span>
-          </span>
-          <span className={styles.dropdownExtraItemShortcut}>
-            {getShortcutCombo('align-center')}
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item onClick={() => handleAlign('right')} className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === 'right' ? styles.active : '')}>
-          <span className={styles.dropdownExtraItemLabel}>
-            <AlignRightIcon />
-            <span className={styles.dropdownExtraItemText}>right</span>
-          </span>
-          <span className={styles.dropdownExtraItemShortcut}>
-            {getShortcutCombo('align-right')}
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item onClick={() => handleAlign('justify')} className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === 'justify' ? styles.active : '')}>
-          <span className={styles.dropdownExtraItemLabel}>
-            <AlignJustifyIcon />
-            <span className={styles.dropdownExtraItemText}>justify</span>
-          </span>
-          <span className={styles.dropdownExtraItemShortcut}>
-            {getShortcutCombo('align-justify')}
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item onClick={() => handleIndent('indent-decrease')} className={styles.dropdownExtraItem}>
-          <span className={styles.dropdownExtraItemLabel}>
-            <IndentDecreaseIcon />
-            <span className={styles.dropdownExtraItemText}>indent decrease</span>
-          </span>
-          <span className={styles.dropdownExtraItemShortcut}>
-            {getShortcutCombo('indent-decrease')}
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item onClick={() => handleIndent('indent-increase')} className={styles.dropdownExtraItem}>
-          <span className={styles.dropdownExtraItemLabel}>
-            <IndentIncreaseIcon />
-            <span className={styles.dropdownExtraItemText}>indent increase</span>
-          </span>
-          <span className={styles.dropdownExtraItemShortcut}>
-            {getShortcutCombo('indent-increase')}
-          </span>
-        </Dropdown.Item>
+        {ALIGN_OPTIONS.map((option) => (
+          <Dropdown.Item
+            key={option.action}
+            title={`${option.name} (${getShortcutCombo(option.action)})`}
+            onClick={() => handleAlign(option.action)}
+            className={classNames(styles.dropdownExtraItem, option.action !== 'indent-decrease' && option.action !== 'indent-increase' && toolbarState.elementFormat === option.action ? styles.active : '')}
+          >
+            <span className={styles.dropdownExtraItemLabel}>
+              {option.icon}
+              <span className={styles.dropdownExtraItemText}>{option.name}</span>
+            </span>
+          </Dropdown.Item>
+        ))}
       </Dropdown.Menu>
     </Dropdown>
   )
@@ -151,6 +151,10 @@ export default function FormattingTools () {
       updateToolbarState('isCapitalize', snHasFormat(selection, 'capitalize'))
     }
   }, [])
+
+  const handleBlock = useCallback((block) => {
+    editor.dispatchCommand(SN_FORMAT_TEXT_COMMAND, block)
+  }, [editor])
 
   const handleFormat = useCallback((format) => {
     editor.dispatchCommand(SN_FORMAT_TEXT_COMMAND, format)
@@ -189,52 +193,15 @@ export default function FormattingTools () {
           return false
         },
         COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        CAN_UNDO_COMMAND,
-        (payload) => {
-          updateToolbarState('canUndo', payload)
-          return false
-        },
-        COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        CAN_REDO_COMMAND,
-        (payload) => {
-          updateToolbarState('canRedo', payload)
-          return false
-        },
-        COMMAND_PRIORITY_CRITICAL
       )
     )
   }, [editor, $updateToolbar])
 
   return (
     <div className={styles.toolbarFormatting}>
-      <span
-        title={'bold (' + getShortcutCombo('bold') + ')'}
-        className={classNames(styles.toolbarItem, toolbarState.isBold ? styles.active : '')}
-        onClick={() => handleFormat('bold')}
-      >
-        <Bold />
-      </span>
-
-      <span
-        title={'italic (' + getShortcutCombo('italic') + ')'}
-        className={classNames(styles.toolbarItem, toolbarState.isItalic ? styles.active : '')}
-        onClick={() => handleFormat('italic')}
-      >
-        <Italic />
-      </span>
-
-      <span
-        title={'underline (' + getShortcutCombo('underline') + ')'}
-        className={classNames(styles.toolbarItem, toolbarState.isUnderline ? styles.active : '')}
-        style={{ marginTop: '1px' }}
-        onClick={() => handleFormat('underline')}
-      >
-        <Underline />
-      </span>
+      <BlockOptionsDropdown toolbarState={toolbarState} handleBlock={handleBlock} />
+      <span className={styles.divider} />
+      <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} />
       <span className={styles.divider} />
       <span
         title={'link (' + getShortcutCombo('link') + ')'}
@@ -243,7 +210,9 @@ export default function FormattingTools () {
       >
         <Link />
       </span>
-      <TextOptionsDropdown toolbarState={toolbarState} handleFormat={handleFormat} />
+      <span className={styles.divider} />
+      <AdditionalFormattingOptionsDropdown toolbarState={toolbarState} handleFormat={handleFormat} />
+      <span className={styles.divider} />
       <AlignOptionsDropdown toolbarState={toolbarState} handleAlign={handleAlign} handleIndent={handleIndent} />
     </div>
   )

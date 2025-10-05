@@ -10,22 +10,22 @@ import OnChangePlugin from '../plugins/onchange'
 import { useFormikContext } from 'formik'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
-import MentionsPlugin from '../plugins/interop/mentions'
+import MentionsPlugin from '../plugins/misc/mentions'
 // import CustomAutoLinkPlugin from '../plugins/interop/autolink'
-import CodeShikiPlugin from '../plugins/codeshiki'
+import CodeShikiPlugin from '../plugins/code/codeshiki'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import classNames from 'classnames'
-import AutofocusPlugin from '../plugins/autofocus'
+import AutofocusPlugin from '../plugins/misc/autofocus'
 import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
-import ModePlugins from '../plugins/mode'
+import ModeStatusPlugin from '../plugins/mode/status'
+import ModeSwitchPlugin from '../plugins/mode/switch'
 import { ToolbarContextProvider } from '../contexts/toolbar'
 import { useState } from 'react'
 // import LinkEditorPlugin from '../plugins/tools/linkeditor'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import ShortcutsPlugin from '../plugins/shortcuts'
-import { SHORTCUTS } from '@/components/lexical/commands/keyboard-shortcuts'
-import MarkdownCommandsPlugin from '../universal/commands'
-import FileUploadPlugin from '../plugins/interop/fileupload'
+import UniversalCommandsPlugin from '../universal/commands'
+import FileUploadPlugin from '../plugins/tools/upload'
 
 export default function Editor ({ customNodes = [], ...props }) {
   const { values } = useFormikContext()
@@ -85,23 +85,28 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
-        <LinkPlugin />
-        {autoFocus && <AutofocusPlugin />}
-        <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
-        <MentionsPlugin />
-        {/* reinstate auto link in wysiwyg, atm it's only markdown <-> wysiwyg switching
-        <CustomAutoLinkPlugin /> */}
-        <CodeShikiPlugin />
+        {/* shared history across editor and nested editors */}
         <HistoryPlugin externalHistoryState={historyState} />
+        {/* link */}
+        <LinkPlugin />
+        {/* misc plugins */}
+        <AutofocusPlugin autoFocus={autoFocus} />
+        <MentionsPlugin />
+        {/* code */}
+        <CodeShikiPlugin />
+        {/* markdown */}
+        <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
+        {/* markdown <-> wysiwyg commands */}
+        <UniversalCommandsPlugin />
+        {/* markdown mode status and switch */}
+        <ModeStatusPlugin />
+        <ModeSwitchPlugin />
+        {/* keyboard shortcuts */}
+        <ShortcutsPlugin />
+        {/* tools */}
+        <FileUploadPlugin />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <OnChangePlugin name={name} />
-        {/* shortcuts */}
-        <ShortcutsPlugin shortcuts={SHORTCUTS} />
-        <MarkdownCommandsPlugin />
-        {/* atm it's just the mode status plugin */}
-        <ModePlugins />
-        <FileUploadPlugin />
-        {/* {floatingAnchorElem && <LinkEditorPlugin anchorElem={floatingAnchorElem} isLinkEditMode={isLinkEditMode} setIsLinkEditMode={setIsLinkEditMode} />} */}
       </div>
     </>
   )

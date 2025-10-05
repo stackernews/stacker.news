@@ -202,6 +202,10 @@
   margin: 0 4px;
 }
 
+:global(.dropdown) + .divider {
+  margin-left: 0 !important;
+}
+
 .toolbar .toolbarFormatting {
   display: flex;
   align-items: center;

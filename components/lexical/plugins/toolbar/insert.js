@@ -4,7 +4,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import styles from '@/components/lexical/theme/theme.module.css'
 import AddIcon from '@/svgs/add-fill.svg'
 import FileIcon from '@/svgs/file-upload-line.svg'
-import { getShortcutCombo } from '@/components/lexical/commands/keyboard-shortcuts'
+import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard-shortcuts'
 import classNames from 'classnames'
 
 export default function InsertTools () {

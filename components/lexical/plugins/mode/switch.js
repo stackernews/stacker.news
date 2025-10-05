@@ -11,7 +11,7 @@ export const SN_TOGGLE_MODE_COMMAND = createCommand('SN_TOGGLE_MODE_COMMAND')
 
 // this will switch between wysiwyg and markdown mode
 // default is markdown
-export default function SwitchPlugin () {
+export default function ModeSwitchPlugin () {
   const [editor] = useLexicalComposerContext()
 
   const handleMarkdownSwitch = useCallback(() => {

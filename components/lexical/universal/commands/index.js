@@ -4,7 +4,7 @@ import { mergeRegister } from '@lexical/utils'
 import { snFormatTextCommand } from './formatting'
 import { snToggleLinkCommand } from './links'
 
-export default function MarkdownCommandsPlugin () {
+export default function UniversalCommandsPlugin () {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {

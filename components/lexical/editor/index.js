@@ -1,4 +1,4 @@
-import { LexicalComposer } from '@lexical/react/LexicalComposer'
+import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
@@ -20,41 +20,42 @@ import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/compone
 import ModeStatusPlugin from '../plugins/mode/status'
 import ModeSwitchPlugin from '../plugins/mode/switch'
 import { ToolbarContextProvider } from '../contexts/toolbar'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 // import LinkEditorPlugin from '../plugins/tools/linkeditor'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import ShortcutsPlugin from '../plugins/shortcuts'
 import UniversalCommandsPlugin from '../universal/commands'
 import FileUploadPlugin from '../plugins/tools/upload'
+import { defineExtension } from 'lexical'
 
-export default function Editor ({ customNodes = [], ...props }) {
+export default function Editor ({ ...props }) {
   const { values } = useFormikContext()
 
-  const initialConfig = {
-    editorState: (editor) => {
-      if (values.lexicalState) {
-        const state = editor.parseEditorState(values.lexicalState)
-        editor.setEditorState(state)
-      }
-    },
-    namespace: 'SNEditor',
-    nodes: [...DefaultNodes, ...customNodes],
-    onError: (error) => {
-      console.error(error)
-    },
-    theme: {
-      ...theme
-    }
-  }
+  const editorExtension = useMemo(() =>
+    defineExtension({
+      name: '[root]',
+      namespace: 'SNEditor',
+      $initialEditorState: (editor) => {
+        if (values.lexicalState) {
+          const state = editor.parseEditorState(values.lexicalState)
+          editor.setEditorState(state)
+        }
+      },
+      nodes: DefaultNodes,
+      onError: (error) => {
+        console.error(error)
+      },
+      theme
+    }), [])
 
   return (
-    <LexicalComposer initialConfig={initialConfig}>
+    <LexicalExtensionComposer extension={editorExtension} contentEditable={null}>
       <SharedHistoryContextProvider>
         <ToolbarContextProvider>
           <EditorContent {...props} />
         </ToolbarContextProvider>
       </SharedHistoryContextProvider>
-    </LexicalComposer>
+    </LexicalExtensionComposer>
   )
 }
 

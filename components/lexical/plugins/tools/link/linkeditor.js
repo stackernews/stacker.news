@@ -13,7 +13,7 @@ import { $isRangeSelection, $getSelection, $isNodeSelection, SELECTION_CHANGE_CO
 import { getSelectedNode } from '@/components/lexical/utils/selection'
 import { $findMatchingParent, mergeRegister } from '@lexical/utils'
 
-export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
+export default function LinkEditor ({ nodeKey, anchorElem }) {
   const [isLinkEditMode, setIsLinkEditMode] = useState(false)
   const [editor] = useLexicalComposerContext()
   const floatingRef = useRef(null)
@@ -51,6 +51,7 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
   const $updateLink = useCallback(() => {
     const selection = $getSelection()
     let newUrl = ''
+    let linkNodeKey = null
 
     if ($isRangeSelection(selection)) {
       const node = getSelectedNode(selection)
@@ -58,8 +59,10 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
 
       if (linkParent) {
         newUrl = linkParent.getURL()
+        linkNodeKey = linkParent.getKey()
       } else if ($isLinkNode(node)) {
         newUrl = node.getURL()
+        linkNodeKey = node.getKey()
       }
     } else if ($isNodeSelection(selection)) {
       const nodes = selection.getNodes()
@@ -68,17 +71,32 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
         const parent = node.getParent()
         if ($isLinkNode(parent)) {
           newUrl = parent.getURL()
+          linkNodeKey = parent.getKey()
         } else if ($isLinkNode(node)) {
           newUrl = node.getURL()
+          linkNodeKey = node.getKey()
         }
       }
+    }
+
+    // bail if the passed nodeKey is not the same as the link node key anymore
+    if (!linkNodeKey || linkNodeKey !== nodeKey) {
+      setLinkUrl('')
+      setEditedLinkUrl('')
+      if (isLinkEditMode) setIsLinkEditMode(false)
+
+      const floatingElem = floatingRef.current
+      if (floatingElem && anchorElem) {
+        setFloatingElemPositionForLinkEditor(null, floatingElem, anchorElem)
+      }
+      return
     }
 
     setLinkUrl(newUrl)
 
     if (isLinkEditMode) {
       setEditedLinkUrl(newUrl || '')
-    } else if (isLinkEditable && (newUrl || '').trim() === '') {
+    } else if ((newUrl || '').trim() === '') {
       setEditedLinkUrl('')
       setIsLinkEditMode(true)
     }
@@ -86,7 +104,7 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
     const floatingElem = floatingRef.current
     if (!floatingElem || !anchorElem) return
     editor.getEditorState().read(() => {
-      if (!isLinkEditable || !nodeKey) {
+      if (!nodeKey) {
         setFloatingElemPositionForLinkEditor(null, floatingElem, anchorElem)
         return
       }
@@ -99,11 +117,11 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
       pos.y += 26
       setFloatingElemPositionForLinkEditor(pos, floatingElem, anchorElem, 8, 0)
     })
-  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl, isLinkEditable, nodeKey])
+  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl, nodeKey])
 
   const handleBlur = useCallback((event) => {
     const floatingElem = floatingRef.current
-    if (!floatingElem || !isLinkEditable) return
+    if (!floatingElem) return
 
     if (!event || !floatingElem.contains(event.relatedTarget)) {
       // if there is no change, or the edited link url is empty, exit edit mode
@@ -111,7 +129,7 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
         $handleCancel()
       }
     }
-  }, [editedLinkUrl, isLinkEditable, anchorElem, floatingRef, editor, linkUrl])
+  }, [editedLinkUrl, anchorElem, floatingRef, editor, linkUrl])
 
   const $linkConfirm = () => {
     const value = editedLinkUrl.trim()
@@ -159,7 +177,7 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
           return true
         }, COMMAND_PRIORITY_HIGH)
     )
-  }, [editor, isLinkEditable, nodeKey, $updateLink])
+  }, [editor, nodeKey, $updateLink])
 
   useLayoutEffect(() => {
     editor.getEditorState().read(() => {
@@ -185,7 +203,7 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
       window.removeEventListener('resize', update)
       scrollerElem?.removeEventListener('scroll', update)
     }
-  }, [editor, isLinkEditable, nodeKey, anchorElem])
+  }, [editor, nodeKey, anchorElem])
 
   // blur from input or anchor element
   useEffect(() => {
@@ -198,7 +216,7 @@ export default function LinkEditor ({ isLinkEditable, nodeKey, anchorElem }) {
       editorElem.removeEventListener('focusout', handleBlur)
       anchorElem.removeEventListener('focusout', handleBlur)
     }
-  }, [editor, isLinkEditable, nodeKey, anchorElem, handleBlur])
+  }, [editor, nodeKey, anchorElem, handleBlur])
 
   if (!anchorElem) return null
 

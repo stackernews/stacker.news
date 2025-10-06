@@ -12,7 +12,7 @@ const EditorSkeleton = () => {
           <span className={`${styles.otherItem} clouds`} />
         </div>
       </div>
-      <div className={styles.editorInput} contentEditable='true'>
+      <div className={styles.editorInput}>
         <div className={classNames(styles.skeleton, styles.otherItem)} style={{ height: '10px', width: '140px', marginTop: '5px' }}>
           <span className={`${styles.otherItem} clouds`} />
         </div>

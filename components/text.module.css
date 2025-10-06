@@ -385,7 +385,7 @@
     padding: .75rem 1rem;
 }
 
-.tweetsSkeleton, .embedLoadingError {
+.tweetsSkeleton, .embedLoading {
     display: flex;
     flex-flow: row wrap;
     max-width: 350px;
@@ -393,17 +393,18 @@
     padding-right: 12px;
 }
 
-.embedLoadingErrorMessage {
+.embedLoadingMessage {
     justify-content: center;
     display: flex;
     flex-direction: column;
     border-radius: 0.4rem;
     height: 150px;
+    width: 100%;
     padding: 1.5rem;
     background-color: var(--theme-commentBg);
 }
 
-.embedLoadingErrorMessage svg {
+.embedLoadingMessage svg {
     width: 24px;
     height: 24px;
     margin-bottom: 1rem;

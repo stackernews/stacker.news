@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from 'react'
-import { fromHex, toHex } from '@/lib/hex'
 import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
 import { useShowModal } from '@/components/modal'
@@ -242,12 +241,12 @@ export function usePassphrasePrompt () {
     <div>
       <h4>Wallet decryption</h4>
       <p className='line-height-md mt-3'>
-        Your wallets have been encrypted on another device. Enter your passphrase to use your wallets on this device.
+        Enter your passphrase to decrypt your wallets on this device.
       </p>
       <p className='line-height-md'>
-        {showPassphrase && 'You can find the button to reveal your passphrase above your wallets on the other device.'}
+        {showPassphrase && 'The passphrase reveal button is above your wallets on the original device.'}
       </p>
-      <p className='line-height-md'>
+      <p className='line-height-md fw-bold'>
         Press reset if you lost your passphrase.
       </p>
       <Form
@@ -261,7 +260,6 @@ export function usePassphrasePrompt () {
           placeholder=''
           required
           autoFocus
-          qr
         />
         <div className='mt-3'>
           <div className='d-flex justify-content-between align-items-center'>
@@ -307,7 +305,7 @@ export async function deriveKey (passphrase, salt) {
   )
 
   const rawKey = await window.crypto.subtle.exportKey('raw', key)
-  const hash = toHex(await window.crypto.subtle.digest('SHA-256', rawKey))
+  const hash = Buffer.from(await window.crypto.subtle.digest('SHA-256', rawKey)).toString('hex')
   const unextractableKey = await window.crypto.subtle.importKey(
     'raw',
     rawKey,
@@ -338,8 +336,8 @@ async function _encrypt ({ key, hash }, value) {
   )
   return {
     keyHash: hash,
-    iv: toHex(iv.buffer),
-    value: toHex(encrypted)
+    iv: Buffer.from(iv).toString('hex'),
+    value: Buffer.from(encrypted).toString('hex')
   }
 }
 
@@ -347,10 +345,10 @@ async function _decrypt (key, { iv, value }) {
   const decrypted = await window.crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
-      iv: fromHex(iv)
+      iv: Buffer.from(iv, 'hex')
     },
     key,
-    fromHex(value)
+    Buffer.from(value, 'hex')
   )
   const decoded = new TextDecoder().decode(decrypted)
   return JSON.parse(decoded)

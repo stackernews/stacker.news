@@ -4,7 +4,7 @@ import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/m
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { $createTextNode, $getRoot, createCommand, COMMAND_PRIORITY_EDITOR } from 'lexical'
 import { $createMarkdownNode } from '@/lib/lexical/nodes/markdownnode'
-import { $isMarkdownMode } from '@/components/lexical/universal/utils/mode'
+import { $isMarkdownMode } from '@/components/lexical/universal/utils'
 
 export const SN_TOGGLE_MODE_COMMAND = createCommand('SN_TOGGLE_MODE_COMMAND')
 

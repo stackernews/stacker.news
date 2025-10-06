@@ -1,5 +1,5 @@
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR, createCommand, FORMAT_TEXT_COMMAND } from 'lexical'
-import { $isMarkdownMode } from '../utils/mode'
+import { $isMarkdownMode } from '../utils'
 
 export const SN_FORMAT_TEXT_COMMAND = createCommand('SN_FORMAT_TEXT_COMMAND')
 

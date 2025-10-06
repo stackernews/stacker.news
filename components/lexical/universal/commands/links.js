@@ -1,6 +1,6 @@
 import { createCommand, $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR } from 'lexical'
 import { TOGGLE_LINK_COMMAND } from '@lexical/link'
-import { $isMarkdownMode } from '../utils/mode'
+import { $isMarkdownMode } from '../utils'
 
 export const SN_TOGGLE_LINK_COMMAND = createCommand('SN_TOGGLE_LINK_COMMAND')
 

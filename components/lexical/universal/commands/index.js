@@ -8,13 +8,10 @@ export default function UniversalCommandsPlugin () {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
-    const unregister = mergeRegister(
+    return mergeRegister(
       snFormatTextCommand({ editor }),
       snToggleLinkCommand({ editor })
     )
-    return () => {
-      unregister()
-    }
   }, [editor])
 
   return null

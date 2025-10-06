@@ -3,6 +3,7 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
+import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
 import styles from '@/components/lexical/theme/theme.module.css'
 import theme from '../theme'
 import ToolbarPlugin from '../plugins/toolbar'
@@ -15,7 +16,6 @@ import MentionsPlugin from '../plugins/misc/mentions'
 import CodeShikiPlugin from '../plugins/code/codeshiki'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import classNames from 'classnames'
-import AutofocusPlugin from '../plugins/misc/autofocus'
 import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
 import ModeStatusPlugin from '../plugins/mode/status'
 import ModeSwitchPlugin from '../plugins/mode/switch'
@@ -88,10 +88,10 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         />
         {/* shared history across editor and nested editors */}
         <HistoryPlugin externalHistoryState={historyState} />
+        {autoFocus && <AutoFocusPlugin />}
         {/* link */}
         <LinkPlugin />
         {/* misc plugins */}
-        <AutofocusPlugin autoFocus={autoFocus} />
         <MentionsPlugin />
         {/* code */}
         <CodeShikiPlugin />

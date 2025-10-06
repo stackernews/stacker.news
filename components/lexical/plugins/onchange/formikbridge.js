@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useFormikContext } from 'formik'
-import { useEffect, useContext, useCallback } from 'react'
+import { useEffect, useContext, useCallback, useRef } from 'react'
 import { $convertToMarkdownString, $convertFromMarkdownString } from '@lexical/markdown'
 import { $getRoot, createEditor } from 'lexical'
 import DefaultNodes from '@/lib/lexical/nodes'
@@ -34,13 +34,16 @@ export default function FormikBridgePlugin ({ name }) {
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + name : undefined
   const { setFieldValue, values } = useFormikContext()
+  const hadContent = useRef(false)
 
+  // update the storage from the editor state
   const onChangeInner = useCallback((value) => {
     if (storageKey) {
       window.localStorage.setItem(storageKey, value)
     }
   }, [storageKey])
 
+  // update the formik state from the editor state
   const lexicalFormikify = useCallback((editorState) => {
     editorState.read(() => {
       const root = $getRoot()
@@ -63,6 +66,7 @@ export default function FormikBridgePlugin ({ name }) {
     })
   }, [editor, setFieldValue, values, onChangeInner])
 
+  // set the editor state from storage
   useEffect(() => {
     if (storageKey) {
       const value = window.localStorage.getItem(storageKey)
@@ -78,11 +82,27 @@ export default function FormikBridgePlugin ({ name }) {
     }
   }, [storageKey, setFieldValue, name])
 
+  // update the formik state from the editor state
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
       lexicalFormikify(editorState)
     })
   }, [editor, lexicalFormikify])
+
+  // if the form is reset, clear the editor
+  useEffect(() => {
+    if (values.lexicalState && values.lexicalState !== '') {
+      hadContent.current = true
+    }
+
+    if (hadContent.current && values.lexicalState === '') {
+      // This is a reset, not initial empty state
+      editor.update(() => {
+        const root = $getRoot()
+        root.clear()
+      })
+    }
+  }, [editor, values.lexicalState])
 
   return null
 }

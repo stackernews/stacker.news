@@ -1,5 +1,6 @@
 import { hasMarkdownFormat } from '../commands/formatting'
-import { $isMarkdownMode } from './mode'
+import { $getRoot } from 'lexical'
+import { $isMarkdownNode } from '@/lib/lexical/nodes/markdownnode'
 import { $isLinkNode } from '@lexical/link'
 import { hasMarkdownLink } from '../commands/links'
 import { getSelectedNode } from '../../utils/selection'
@@ -26,4 +27,11 @@ export function snHasLink (selection) {
     return true
   }
   return false
+}
+
+// only in editor reads and updates or commands
+export function $isMarkdownMode () {
+  const root = $getRoot()
+  const firstChild = root.getFirstChild()
+  return $isMarkdownNode(firstChild)
 }

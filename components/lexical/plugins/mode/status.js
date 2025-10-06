@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import styles from '@/components/lexical/theme/theme.module.css'
 import { SN_TOGGLE_MODE_COMMAND } from './switch'
-import { $isMarkdownMode } from '@/components/lexical/universal/utils/mode'
+import { $isMarkdownMode } from '@/components/lexical/universal/utils'
 import { useState, useEffect } from 'react'
 
 export default function ModeStatusPlugin () {
@@ -21,7 +21,7 @@ export default function ModeStatusPlugin () {
       onClick={() => editor.dispatchCommand(SN_TOGGLE_MODE_COMMAND)}
       className={styles.modeStatus}
     >
-      {isMarkdownMode ? 'markdown mode' : 'hybrid mode'}
+      {isMarkdownMode ? 'markdown mode' : 'rich mode'}
     </span>
   )
 }

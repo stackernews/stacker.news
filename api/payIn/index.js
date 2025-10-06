@@ -80,6 +80,10 @@ async function begin (models, payInInitial, payInArgs, { me }) {
 
     // if it's pessimistic, we don't perform the action until the invoice is held
     if (payIn.pessimisticEnv) {
+      // we want to double check that the invoice we're assuming will be created is actually created
+      tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+        VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
+
       return {
         payIn,
         mCostRemaining

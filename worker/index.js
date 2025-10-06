@@ -96,6 +96,18 @@ async function work () {
 
   await boss.start()
 
+  await boss.work('checkPayInInvoiceCreation', jobWrapper(checkPayInInvoiceCreation))
+  await boss.work('payInForwarding', jobWrapper(payInForwarding))
+  await boss.work('payInForwarded', jobWrapper(payInForwarded))
+  await boss.work('payInFailedForward', jobWrapper(payInFailedForward))
+  await boss.work('payInHeld', jobWrapper(payInHeld))
+  await boss.work('payInCancel', jobWrapper(payInCancel))
+  await boss.work('payInFailed', jobWrapper(payInFailed))
+  await boss.work('payInPaid', jobWrapper(payInPaid))
+  await boss.work('payInCancel', jobWrapper(payInCancel))
+  await boss.work('payInWithdrawalPaid', jobWrapper(payInWithdrawalPaid))
+  await boss.work('payInWithdrawalFailed', jobWrapper(payInWithdrawalFailed))
+
   if (isServiceEnabled('payments')) {
     await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
     await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
@@ -119,17 +131,6 @@ async function work () {
     await boss.work('checkPendingPayOutBolt11s', jobWrapper(checkPendingPayOutBolt11s))
     await boss.work('checkPayInBolt11', jobWrapper(checkPayInBolt11))
     await boss.work('checkPayOutBolt11', jobWrapper(checkPayOutBolt11))
-    await boss.work('checkPayInInvoiceCreation', jobWrapper(checkPayInInvoiceCreation))
-    await boss.work('payInForwarding', jobWrapper(payInForwarding))
-    await boss.work('payInForwarded', jobWrapper(payInForwarded))
-    await boss.work('payInFailedForward', jobWrapper(payInFailedForward))
-    await boss.work('payInHeld', jobWrapper(payInHeld))
-    await boss.work('payInCancel', jobWrapper(payInCancel))
-    await boss.work('payInFailed', jobWrapper(payInFailed))
-    await boss.work('payInPaid', jobWrapper(payInPaid))
-    await boss.work('payInCancel', jobWrapper(payInCancel))
-    await boss.work('payInWithdrawalPaid', jobWrapper(payInWithdrawalPaid))
-    await boss.work('payInWithdrawalFailed', jobWrapper(payInWithdrawalFailed))
   }
   if (isServiceEnabled('search')) {
     await boss.work('indexItem', jobWrapper(indexItem))

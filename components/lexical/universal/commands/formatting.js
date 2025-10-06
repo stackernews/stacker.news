@@ -1,5 +1,5 @@
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR, createCommand, FORMAT_TEXT_COMMAND } from 'lexical'
-import { getMarkdownMode } from '../utils/mode'
+import { $isMarkdownMode } from '../utils/mode'
 
 export const SN_FORMAT_TEXT_COMMAND = createCommand('SN_FORMAT_TEXT_COMMAND')
 
@@ -77,21 +77,19 @@ function wrapWithTag (selection, tag) {
 
 export function snFormatTextCommand ({ editor }) {
   return editor.registerCommand(SN_FORMAT_TEXT_COMMAND, (type) => {
-    const markdownMode = getMarkdownMode(editor)
+    const markdownMode = $isMarkdownMode()
     if (!markdownMode) {
       editor.dispatchCommand(FORMAT_TEXT_COMMAND, type)
       return true
     }
 
-    editor.update(() => {
-      const selection = $getSelection()
-      if (!$isRangeSelection(selection)) return
-      const handler = MARKDOWN_TYPES[type]?.handler
-      if (handler) {
-        return handler(selection, MARKDOWN_TYPES[type]?.marker)
-      }
-      return false
-    })
+    const selection = $getSelection()
+    if (!$isRangeSelection(selection)) return
+    const handler = MARKDOWN_TYPES[type]?.handler
+    if (handler) {
+      return handler(selection, MARKDOWN_TYPES[type]?.marker)
+    }
+    return false
   }, COMMAND_PRIORITY_EDITOR)
 }
 

@@ -62,12 +62,11 @@ export default function FileUploadPlugin () {
         },
         COMMAND_PRIORITY_EDITOR
       ),
+      // TODO: inline this doesn't work, replace error
       editor.registerCommand(INSERT_FILES_COMMAND, (files) => {
-        editor.update(() => {
-          // create node
-          const nodes = files.map(file => $createMediaNode({ src: file.url }))
-          $insertNodes(nodes)
-        })
+        // create node
+        const nodes = files.map(file => $createMediaNode({ src: file.url }))
+        $insertNodes(nodes)
         return true
       }, COMMAND_PRIORITY_EDITOR)
     )

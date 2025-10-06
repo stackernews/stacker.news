@@ -64,7 +64,7 @@ export default function LinkTransformationPlugin ({ anchorElem }) {
       editor.registerCommand(
         PASTE_COMMAND,
         (event) => {
-          const selection = editor.getEditorState().read($getSelection)
+          const selection = $getSelection()
           if (!$isRangeSelection(selection) || selection.isCollapsed()) return false
 
           const text = event.clipboardData?.getData('text/plain')?.trim()

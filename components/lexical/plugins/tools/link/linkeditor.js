@@ -103,20 +103,18 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
 
     const floatingElem = floatingRef.current
     if (!floatingElem || !anchorElem) return
-    editor.getEditorState().read(() => {
-      if (!nodeKey) {
-        setFloatingElemPositionForLinkEditor(null, floatingElem, anchorElem)
-        return
-      }
-      const el = editor.getElementByKey(nodeKey)
-      if (!el) {
-        setFloatingElemPositionForLinkEditor(null, floatingElem, anchorElem)
-        return
-      }
-      const pos = el.getBoundingClientRect()
-      pos.y += 26
-      setFloatingElemPositionForLinkEditor(pos, floatingElem, anchorElem, 8, 0)
-    })
+    if (!nodeKey) {
+      setFloatingElemPositionForLinkEditor(null, floatingElem, anchorElem)
+      return
+    }
+    const el = editor.getElementByKey(nodeKey)
+    if (!el) {
+      setFloatingElemPositionForLinkEditor(null, floatingElem, anchorElem)
+      return
+    }
+    const pos = el.getBoundingClientRect()
+    pos.y += 26
+    setFloatingElemPositionForLinkEditor(pos, floatingElem, anchorElem, 8, 0)
   }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl, nodeKey])
 
   const handleBlur = useCallback((event) => {

@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState, useCallback } from 'react
 
 const INITIAL_STATE = {
   isBold: false,
+  elementFormat: 'left',
   isCode: false,
   isHighlight: false,
   isImageCaption: false,
@@ -14,7 +15,9 @@ const INITIAL_STATE = {
   isUnderline: false,
   isLowercase: false,
   isUppercase: false,
-  isCapitalize: false
+  isCapitalize: false,
+  blockType: 'normal',
+  codeLanguage: ''
 }
 
 const ToolbarContext = createContext()

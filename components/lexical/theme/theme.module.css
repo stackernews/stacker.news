@@ -199,6 +199,8 @@
   width: 1px;
   height: 18px;
   background-color: var(--theme-borderColor);
+  opacity: 0.5;
+  border-radius: .4rem;
   margin: 0 4px;
 }
 

@@ -37,7 +37,9 @@ const theme = {
     },
     ol: 'sn__listOl',
     ul: 'sn__listUl',
-    listitem: 'sn__listItem'
+    listitem: 'sn__listItem',
+    listitemChecked: 'sn__listItemChecked',
+    listitemUnchecked: 'sn__listItemUnchecked'
   },
   text: {
     bold: 'sn__textBold',

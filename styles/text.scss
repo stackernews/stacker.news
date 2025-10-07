@@ -10,12 +10,6 @@
   font-size: 1rem;
 }
 
-.sn__headings a {
-  text-decoration: none;
-  --bs-text-opacity: 1;
-  color: inherit !important;
-}
-
 /* blocks */
 .sn__quote {
   border-left: 3px solid var(--theme-quoteBar);
@@ -126,6 +120,95 @@ span.sn__mediaContainer {
 
 .sn__listItem {
   margin: 8px 16px 8px 16px;
+}
+
+.sn__listItemChecked, .sn__listItemUnchecked {
+  position: relative;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  padding-left: 1.5em;
+  padding-right: 1.5em;
+  list-style-type: none;
+  outline: none;
+  display: block;
+  min-height: 1.5em;
+}
+
+.sn__listItemChecked > *, .sn__listItemUnchecked > * {
+  margin-left: 0.01em;
+}
+
+.sn__listItemChecked:before, .sn__listItemUnchecked:before {
+  content: '\200B';
+  width: 0.9em;
+  height: 0.9em;
+  top: 50%;
+  left: 0;
+  cursor: pointer;
+  display: block;
+  background-size: cover;
+  position: absolute;
+  transform: translateY(-50%);
+}
+
+.sn__listItemChecked {
+  text-decoration: line-through;
+}
+
+.sn__listItemChecked:focus:before, .sn__listItemUnchecked:focus:before {
+  box-shadow: 0 0 0 2px #a6cdfe;
+  border-radius: 2px;
+}
+
+.sn__listItemUnchecked:before {
+  border: 1px solid #999;
+  border-radius: 2px;
+}
+
+.sn__listItemChecked:before {
+  border: 1px solid var(--bs-primary);
+  border-radius: 2px;
+  background-color: var(--bs-primary);
+  background-repeat: no-repeat;
+}
+
+.sn__listItemChecked:after {
+  content: '';
+  cursor: pointer;
+  border-color: #000;
+  border-style: solid;
+  position: absolute;
+  display: block;
+  top: 49%;
+  width: 0.2em;
+  left: 0.35em;
+  height: 0.4em;
+  transform: translateY(-50%) rotate(45deg);
+  border-width: 0 0.1em 0.1em 0;
+}
+
+[contenteditable="false"] .sn__listItemChecked:before,
+[contenteditable="false"] .sn__listItemUnchecked:before {
+  cursor: default;
+  pointer-events: none;
+}
+
+[contenteditable="false"] .sn__listItemChecked:before,
+[contenteditable="false"] .sn__listItemUnchecked:before {
+  opacity: 0.5;
+  filter: grayscale(0.3);
+}
+
+[contenteditable="false"] .sn__listItemChecked:after {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+[contenteditable="false"] .sn__listItemChecked:focus:before,
+[contenteditable="false"] .sn__listItemUnchecked:focus:before {
+  box-shadow: 0 0 0 0;
+  border-radius: 2px;
 }
 
 .sn__textBold {

@@ -27,6 +27,8 @@ import ShortcutsPlugin from '../plugins/shortcuts'
 import UniversalCommandsPlugin from '../universal/commands'
 import FileUploadPlugin from '../plugins/tools/upload'
 import { defineExtension } from 'lexical'
+import { ListPlugin } from '@lexical/react/LexicalListPlugin'
+import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
 
 export default function Editor ({ ...props }) {
   const { values } = useFormikContext()
@@ -89,6 +91,8 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         {/* shared history across editor and nested editors */}
         <HistoryPlugin externalHistoryState={historyState} />
         {autoFocus && <AutoFocusPlugin />}
+        <ListPlugin />
+        <CheckListPlugin />
         {/* link */}
         <LinkPlugin />
         {/* misc plugins */}

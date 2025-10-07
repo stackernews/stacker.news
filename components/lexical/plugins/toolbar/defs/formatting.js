@@ -24,32 +24,32 @@ export const BLOCK_OPTIONS = [
     icon: null
   },
   {
-    action: 'heading-1',
+    action: 'h1',
     name: 'heading 1',
     icon: <Heading1 />
   },
   {
-    action: 'heading-2',
+    action: 'h2',
     name: 'heading 2',
     icon: <Heading2 />
   },
   {
-    action: 'heading-3',
+    action: 'h3',
     name: 'heading 3',
     icon: <Heading3 />
   },
   {
-    action: 'number-list',
+    action: 'number',
     name: 'number list',
     icon: <NumberList />
   },
   {
-    action: 'bullet-list',
+    action: 'bullet',
     name: 'bullet list',
     icon: <BulletList />
   },
   {
-    action: 'check-list',
+    action: 'check',
     name: 'check list',
     icon: <CheckList />
   },
@@ -59,7 +59,7 @@ export const BLOCK_OPTIONS = [
     icon: <Quote />
   },
   {
-    action: 'code-block',
+    action: 'code',
     name: 'code block',
     icon: <CodeBlock />
   }
@@ -79,7 +79,8 @@ export const FORMAT_OPTIONS = [
   {
     action: 'underline',
     name: 'underline',
-    icon: <Underline />
+    icon: <Underline />,
+    style: { marginTop: '2px' }
   }
 ]
 
@@ -111,7 +112,10 @@ export const ALIGN_OPTIONS = [
     action: 'justify',
     name: 'justify',
     icon: <AlignJustifyIcon />
-  },
+  }
+]
+
+export const INDENT_OPTIONS = [
   {
     action: 'indent-decrease',
     name: 'indent decrease',

@@ -1,26 +1,32 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $isElementNode, FORMAT_ELEMENT_COMMAND, OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND } from 'lexical'
-import { mergeRegister } from '@lexical/utils'
+import { $getSelection, $isRangeSelection, $isRootOrShadowRoot, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $isElementNode, FORMAT_ELEMENT_COMMAND, OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND, $isNodeSelection } from 'lexical'
+import { $getNearestNodeOfType, mergeRegister, $findMatchingParent } from '@lexical/utils'
+import { $isHeadingNode } from '@lexical/rich-text'
+import { $isCodeNode } from '@lexical/code'
+import { normalizeCodeLanguage } from '@lexical/code-shiki'
+import { $isListNode, ListNode } from '@lexical/list'
+import { $isLinkNode } from '@lexical/link'
 import Link from '@/svgs/link.svg'
 import More from '@/svgs/lexical/font-size.svg'
 import styles from '@/components/lexical/theme/theme.module.css'
 import Dropdown from 'react-bootstrap/Dropdown'
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import classNames from 'classnames'
 import { useToolbarState } from '../../contexts/toolbar'
 import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard-shortcuts'
 import { snHasFormat, snHasLink } from '@/components/lexical/universal/utils'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
-import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting'
+import { SN_FORMAT_TEXT_COMMAND, SN_FORMAT_BLOCK_COMMAND } from '@/components/lexical/universal/commands/formatting'
 import { getSelectedNode } from '@/components/lexical/utils/selection'
-import { BLOCK_OPTIONS, FORMAT_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS } from './defs/formatting'
+import { BLOCK_OPTIONS, FORMAT_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS, INDENT_OPTIONS } from './defs/formatting'
 import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
+import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
 
 function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
   return (
     <Dropdown className='pointer' as='span'>
       <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
-        <More />
+        {BLOCK_OPTIONS.find(option => option.action === toolbarState.blockType)?.icon || <More />}
         <ArrowDownIcon />
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra}>
@@ -64,6 +70,7 @@ function InlineFormattingOptions ({ toolbarState, handleFormat }) {
         key={option.action}
         title={`${option.name} (${getShortcutCombo(option.action)})`}
         className={classNames(styles.toolbarItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
+        style={option.style}
         onClick={() => handleFormat(option.action)}
       >
         {option.icon}
@@ -103,7 +110,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
     <Dropdown className='pointer' as='span'>
       <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
         {/* a mess, clean this up */}
-        <More />
+        {ALIGN_OPTIONS.find(option => option.action === toolbarState.elementFormat)?.icon || <AlignLeftIcon />}
         <ArrowDownIcon />
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra}>
@@ -112,7 +119,20 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
             key={option.action}
             title={`${option.name} (${getShortcutCombo(option.action)})`}
             onClick={() => handleAlign(option.action)}
-            className={classNames(styles.dropdownExtraItem, option.action !== 'indent-decrease' && option.action !== 'indent-increase' && toolbarState.elementFormat === option.action ? styles.active : '')}
+            className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === option.action ? styles.active : '')}
+          >
+            <span className={styles.dropdownExtraItemLabel}>
+              {option.icon}
+              <span className={styles.dropdownExtraItemText}>{option.name}</span>
+            </span>
+          </Dropdown.Item>
+        ))}
+        {INDENT_OPTIONS.map((option) => (
+          <Dropdown.Item
+            key={option.action}
+            title={`${option.name} (${getShortcutCombo(option.action)})`}
+            onClick={() => handleIndent(option.action)}
+            className={styles.dropdownExtraItem}
           >
             <span className={styles.dropdownExtraItemLabel}>
               {option.icon}
@@ -125,9 +145,41 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
   )
 }
 
+function $findTopLevelElement (node) {
+  let topLevelElement = node.getKey() === 'root'
+    ? node
+    : $findMatchingParent(node, (e) => {
+      const parent = e.getParent()
+      return parent !== null && $isRootOrShadowRoot(parent)
+    })
+
+  if (topLevelElement === null) {
+    topLevelElement = node.getTopLevelElementOrThrow()
+  }
+
+  return topLevelElement
+}
+
 export default function FormattingTools () {
   const [editor] = useLexicalComposerContext()
+  const [, setSelectedElementKey] = useState(null)
   const { toolbarState, updateToolbarState } = useToolbarState()
+
+  const $handleHeadingNode = useCallback((selectedElement) => {
+    const type = $isHeadingNode(selectedElement) ? selectedElement.getTag() : selectedElement.getType()
+    if (type) {
+      console.log('type', type)
+      updateToolbarState('blockType', type)
+    }
+  }, [updateToolbarState])
+
+  // TODO: support user setting to disable code highlighting? if we ever want to introduce that.
+  const $handleCodeNode = useCallback((element) => {
+    if ($isCodeNode(element)) {
+      const language = element.getLanguage()
+      updateToolbarState('codeLanguage', language ? normalizeCodeLanguage(language) || language : '')
+    }
+  }, [updateToolbarState])
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection()
@@ -135,8 +187,21 @@ export default function FormattingTools () {
       const node = getSelectedNode(selection)
       const parent = node.getParent()
 
+      let matchingParent
+      if ($isLinkNode(parent)) {
+        matchingParent = $findMatchingParent(node, (parentNode) => $isElementNode(parentNode) && !parentNode.isInline())
+      }
+
+      updateToolbarState(
+        'elementFormat',
+        $isElementNode(matchingParent)
+          ? matchingParent.getFormatType()
+          : $isElementNode(node)
+            ? node.getFormatType()
+            : parent?.getFormatType() || 'left'
+      )
+
       updateToolbarState('isLink', snHasLink(selection))
-      updateToolbarState('elementFormat', $isElementNode(node) ? node.getFormatType() : parent?.getFormatType() || 'left')
       updateToolbarState('isBold', snHasFormat(selection, 'bold'))
       updateToolbarState('isItalic', snHasFormat(selection, 'italic'))
       updateToolbarState('isUnderline', snHasFormat(selection, 'underline'))
@@ -149,12 +214,51 @@ export default function FormattingTools () {
       updateToolbarState('isLowercase', snHasFormat(selection, 'lowercase'))
       updateToolbarState('isUppercase', snHasFormat(selection, 'uppercase'))
       updateToolbarState('isCapitalize', snHasFormat(selection, 'capitalize'))
+
+      const anchorNode = selection.anchor.getNode()
+      const element = $findTopLevelElement(anchorNode)
+      const elementKey = element.getKey()
+      const elementDOM = editor.getElementByKey(elementKey)
+
+      if (elementDOM !== null) {
+        setSelectedElementKey(elementKey)
+        if ($isListNode(element)) {
+          const parentList = $getNearestNodeOfType(anchorNode, ListNode)
+          const type = parentList ? parentList.getListType() : element.getListType()
+          console.log('type', type)
+          updateToolbarState('blockType', type)
+        } else {
+          $handleHeadingNode(element)
+          $handleCodeNode(element)
+        }
+      }
+    }
+
+    if ($isNodeSelection(selection)) {
+      const nodes = selection.getNodes()
+      for (const selectedNode of nodes) {
+        const parentList = $getNearestNodeOfType(selectedNode, ListNode)
+        if (parentList) {
+          const type = parentList.getListType()
+          console.log('type', type)
+          updateToolbarState('blockType', type)
+        } else {
+          const selectedElement = $findTopLevelElement(selectedNode)
+          $handleHeadingNode(selectedElement)
+          $handleCodeNode(selectedElement)
+          if ($isElementNode(selectedElement)) {
+            updateToolbarState('elementFormat', selectedElement.getFormatType())
+          }
+        }
+      }
     }
   }, [])
 
   const handleBlock = useCallback((block) => {
-    editor.dispatchCommand(SN_FORMAT_TEXT_COMMAND, block)
-  }, [editor])
+    console.log('handleBlock', block)
+    console.log('toolbarState.blockType', toolbarState.blockType)
+    editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, { activeBlock: toolbarState.blockType, block })
+  }, [editor, toolbarState.blockType])
 
   const handleFormat = useCallback((format) => {
     editor.dispatchCommand(SN_FORMAT_TEXT_COMMAND, format)

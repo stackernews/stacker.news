@@ -25,7 +25,6 @@ export function assertMcostRemaining (mcost) {
 }
 
 export function assertBalancedPayInAndPayOuts (payIn) {
-  console.log('payIn', payIn)
   // pay outs equal to mcost
   // pay ins equal to mcost if paid
   // pay ins less than mcost if not paid

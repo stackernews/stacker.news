@@ -105,7 +105,7 @@ async function transitionPayIn (jobName, data,
 
     console.error('unexpected error', error)
     if (cancelOnError) {
-      models.pessimisticEnv.updateMany({
+      models.pessimisticEnv.update({
         where: { payInId },
         data: {
           error: error.message

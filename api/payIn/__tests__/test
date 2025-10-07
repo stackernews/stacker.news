@@ -1,0 +1,53 @@
+#!/usr/bin/env node
+
+/**
+ * PayIn Test Runner
+ *
+ * This script loads environment variables from .env.development before running tests
+ * Assumes docker-compose is running with database on localhost:5431
+ */
+
+const { loadEnvConfig } = require('@next/env')
+const { execSync } = require('child_process')
+const path = require('path')
+
+// Change to project root
+process.chdir(path.resolve(__dirname, '../../..'))
+
+// Load .env.development and .env.local
+console.log('Loading environment configuration...')
+const { combinedEnv } = loadEnvConfig('./', true)
+
+// Override DATABASE_URL for host machine (docker-compose exposes on 5431)
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('@db:5432')) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL.replace('@db:5432', '@localhost:5431')
+}
+
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL not set!')
+  console.error('   Make sure .env.development exists and docker-compose is running')
+  process.exit(1)
+}
+
+console.log('✓ Environment loaded')
+console.log(`  Database: ${process.env.DATABASE_URL.split('@')[1]?.split('?')[0]}`)
+console.log('')
+
+// Build jest command with all arguments passed through
+const jestArgs = process.argv.slice(2)
+const jestCmd = [
+  'npm test --',
+  '--config api/payIn/__tests__/jest.config.js',
+  ...jestArgs
+].join(' ')
+
+console.log(`Running: ${jestCmd}\n`)
+
+try {
+  execSync(jestCmd, {
+    stdio: 'inherit',
+    env: process.env
+  })
+} catch (error) {
+  process.exit(error.status || 1)
+}

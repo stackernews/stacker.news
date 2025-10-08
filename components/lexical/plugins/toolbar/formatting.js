@@ -1,23 +1,21 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getSelection, $isRangeSelection, $isRootOrShadowRoot, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $isElementNode, FORMAT_ELEMENT_COMMAND, OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND, $isNodeSelection } from 'lexical'
+import { $getSelection, $isRangeSelection, $isRootOrShadowRoot, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $isElementNode, OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND, $isNodeSelection } from 'lexical'
 import { $getNearestNodeOfType, mergeRegister, $findMatchingParent } from '@lexical/utils'
 import { $isHeadingNode } from '@lexical/rich-text'
 import { $isCodeNode } from '@lexical/code'
 import { normalizeCodeLanguage } from '@lexical/code-shiki'
-import { $isListNode, ListNode } from '@lexical/list'
-import { $isLinkNode } from '@lexical/link'
+import { ListNode } from '@lexical/list'
 import Link from '@/svgs/link.svg'
 import More from '@/svgs/lexical/font-size.svg'
 import styles from '@/components/lexical/theme/theme.module.css'
 import Dropdown from 'react-bootstrap/Dropdown'
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import classNames from 'classnames'
 import { useToolbarState } from '../../contexts/toolbar'
 import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard-shortcuts'
-import { snHasFormat, snHasLink } from '@/components/lexical/universal/utils'
+import { snHasFormat, snHasLink, snGetElementFormat, snGetBlockType, snGetCodeLanguage } from '@/components/lexical/universal/utils'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
-import { SN_FORMAT_TEXT_COMMAND, SN_FORMAT_BLOCK_COMMAND } from '@/components/lexical/universal/commands/formatting'
-import { getSelectedNode } from '@/components/lexical/utils/selection'
+import { SN_FORMAT_TEXT_COMMAND, SN_FORMAT_BLOCK_COMMAND, SN_FORMAT_ELEMENT_COMMAND } from '@/components/lexical/universal/commands/formatting'
 import { BLOCK_OPTIONS, FORMAT_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS, INDENT_OPTIONS } from './defs/formatting'
 import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
@@ -162,7 +160,6 @@ function $findTopLevelElement (node) {
 
 export default function FormattingTools () {
   const [editor] = useLexicalComposerContext()
-  const [, setSelectedElementKey] = useState(null)
   const { toolbarState, batchUpdateToolbarState } = useToolbarState()
 
   const $handleHeadingNode = useCallback((selectedElement) => {
@@ -185,22 +182,8 @@ export default function FormattingTools () {
     const updates = {}
     const selection = $getSelection()
     if ($isRangeSelection(selection)) {
-      const node = getSelectedNode(selection)
-      const parent = node.getParent()
-
-      let matchingParent
-      if ($isLinkNode(parent)) {
-        matchingParent = $findMatchingParent(node, (parentNode) => $isElementNode(parentNode) && !parentNode.isInline())
-      }
-
-      updates.elementFormat = $isElementNode(matchingParent)
-        ? matchingParent.getFormatType()
-        : $isElementNode(node)
-          ? node.getFormatType()
-          : parent?.getFormatType() || 'left'
-
+      updates.elementFormat = snGetElementFormat(selection)
       updates.isLink = snHasLink(selection)
-
       updates.isBold = snHasFormat(selection, 'bold')
       updates.isItalic = snHasFormat(selection, 'italic')
       updates.isUnderline = snHasFormat(selection, 'underline')
@@ -214,23 +197,9 @@ export default function FormattingTools () {
       updates.isUppercase = snHasFormat(selection, 'uppercase')
       updates.isCapitalize = snHasFormat(selection, 'capitalize')
 
-      const anchorNode = selection.anchor.getNode()
-      const element = $findTopLevelElement(anchorNode)
-      const elementKey = element.getKey()
-      const elementDOM = editor.getElementByKey(elementKey)
+      updates.blockType = snGetBlockType({ selection, editor })
 
-      if (elementDOM !== null) {
-        setSelectedElementKey(elementKey)
-        if ($isListNode(element)) {
-          const parentList = $getNearestNodeOfType(anchorNode, ListNode)
-          const type = parentList ? parentList.getListType() : element.getListType()
-          console.log('type', type)
-          updates.blockType = type
-        } else {
-          updates.blockType = $handleHeadingNode(element)
-          updates.codeLanguage = $handleCodeNode(element)
-        }
-      }
+      updates.codeLanguage = snGetCodeLanguage({ selection, editor })
     }
 
     if ($isNodeSelection(selection)) {
@@ -275,7 +244,7 @@ export default function FormattingTools () {
   }, [editor, toolbarState.isLink])
 
   const handleAlign = useCallback((align) => {
-    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, align)
+    editor.dispatchCommand(SN_FORMAT_ELEMENT_COMMAND, align)
   }, [editor])
 
   const handleIndent = useCallback((indent) => {

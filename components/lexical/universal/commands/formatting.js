@@ -1,4 +1,4 @@
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR, createCommand, FORMAT_TEXT_COMMAND, $createParagraphNode } from 'lexical'
+import { $getSelection, $isRangeSelection, FORMAT_ELEMENT_COMMAND, COMMAND_PRIORITY_EDITOR, createCommand, FORMAT_TEXT_COMMAND, $createParagraphNode } from 'lexical'
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
 import { $setBlocksType } from '@lexical/selection'
 import { $isMarkdownMode } from '../utils'
@@ -11,6 +11,7 @@ import {
 
 export const SN_FORMAT_TEXT_COMMAND = createCommand('SN_FORMAT_TEXT_COMMAND')
 export const SN_FORMAT_BLOCK_COMMAND = createCommand('SN_FORMAT_BLOCK_COMMAND')
+export const SN_FORMAT_ELEMENT_COMMAND = createCommand('SN_FORMAT_ELEMENT_COMMAND')
 
 export const START_END_MARKDOWN_FORMATS = {
   bold: '**',
@@ -105,10 +106,10 @@ function toggleBlockQuote (selection) {
   selection.insertText(newLines.join('\n'))
 }
 
-function wrapWithTag (selection, tag) {
+function wrapWithTag (selection, beforeTag, afterTag) {
   if (!selection) return
-  const before = `<${tag}>`
-  const after = `</${tag}>`
+  const before = `<${beforeTag}>`
+  const after = `</${afterTag || beforeTag}>`
   if (selection.isCollapsed()) {
     selection.insertText(before + after)
     const { anchor } = selection
@@ -241,5 +242,22 @@ export function registerSNFormatBlockCommand ({ editor }) {
         formatCodeBlock(editor, activeBlock, block)
         break
     }
+  }, COMMAND_PRIORITY_EDITOR)
+}
+
+// mhh.... I think we need to have some functions like
+
+// something to toggle aligns
+// function toggleAlignMarkdown
+
+// something to toggle lists
+// function toggleListMarkdown
+
+// something to toggle code blocks
+// function toggleFencedCodeMarkdown
+
+export const registerSNFormatElementCommand = (editor) => {
+  return editor.registerCommand(SN_FORMAT_ELEMENT_COMMAND, (align) => {
+    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, align)
   }, COMMAND_PRIORITY_EDITOR)
 }

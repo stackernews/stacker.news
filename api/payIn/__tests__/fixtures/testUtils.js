@@ -35,6 +35,7 @@ export async function createTestUser (models, {
   msats = 0n,
   mcredits = 0n,
   trust = 0,
+  withLNbitsWallet = false,
   ...otherFields
 } = {}) {
   // Ensure msats and mcredits are BigInts
@@ -45,7 +46,7 @@ export async function createTestUser (models, {
     mcredits = BigInt(mcredits)
   }
 
-  return await models.user.create({
+  const user = await models.user.create({
     data: {
       name,
       msats,
@@ -56,6 +57,38 @@ export async function createTestUser (models, {
       ...otherFields
     }
   })
+
+  // Add lnbits wallet if requested
+  if (withLNbitsWallet) {
+    // Create wallet with LNBITS template
+    const wallet = await models.wallet.create({
+      data: {
+        userId: user.id,
+        templateName: 'LNBITS',
+        priority: 0
+      }
+    })
+
+    // Create LNBITS protocol for receiving
+    const protocol = await models.walletProtocol.create({
+      data: {
+        walletId: wallet.id,
+        name: 'LNBITS',
+        send: false,
+        enabled: true,
+        walletRecvLNbits: {
+          create: {
+            // Use a URL that won't trigger docker hostname conversion
+            // lnbits.js only converts URLs starting with "localhost:"
+            url: 'http://127.0.0.1:5001', // Use 127.0.0.1 instead of localhost to avoid conversion
+            apiKey: '5deed7cd634e4306bb5e696f4a03cdac' // invoice key from lnbits dev docs
+          }
+        }
+      }
+    })
+  }
+
+  return user
 }
 
 /**
@@ -113,7 +146,9 @@ export async function createTestTerritory (models, {
   baseCost = 10,
   replyCost = 1,
   billingCost = 100000,
-  billedLastAt = new Date()
+  billedLastAt = new Date(),
+  billingType = 'MONTHLY',
+  status = 'ACTIVE'
 } = {}) {
   return await models.sub.create({
     data: {
@@ -124,7 +159,8 @@ export async function createTestTerritory (models, {
       billingCost,
       billedLastAt,
       desc: 'Test territory',
-      billingType: 'RENT',
+      billingType,
+      status,
       billingAutoRenew: false,
       rankingType: 'WOT',
       postTypes: ['LINK', 'DISCUSSION', 'POLL', 'JOB', 'BOUNTY']
@@ -434,8 +470,31 @@ export async function cleanupTestData (models, testUsers = []) {
   // Delete in reverse order of dependencies to respect foreign keys
   const userIds = testUsers.map(u => u.id)
 
+  // Always clean up anonymous user's pending invoices (USER_ID.anon = 27)
+  // to prevent hitting MAX_PENDING_PAY_IN_BOLT_11_PER_USER limit
+  try {
+    await models.payInBolt11.deleteMany({
+      where: {
+        payIn: { userId: 27 }, // USER_ID.anon
+        confirmedAt: null,
+        cancelledAt: null
+      }
+    })
+  } catch (e) {
+    // Ignore cleanup errors for anon user
+  }
+
   if (userIds.length > 0) {
     try {
+      // Clean up pending invoices for test users
+      await models.payInBolt11.deleteMany({
+        where: {
+          payIn: { userId: { in: userIds } },
+          confirmedAt: null,
+          cancelledAt: null
+        }
+      })
+
       // Delete payIn-related child records first
       await models.payInBolt11.deleteMany({
         where: { payIn: { userId: { in: userIds } } }
@@ -469,12 +528,19 @@ export async function cleanupTestData (models, testUsers = []) {
         where: { userId: { in: userIds } }
       })
 
+      // Delete wallet-related records
+      await models.walletProtocol.deleteMany({
+        where: { wallet: { userId: { in: userIds } } }
+      })
+      await models.wallet.deleteMany({
+        where: { userId: { in: userIds } }
+      })
+
       // Delete users
       await models.user.deleteMany({
         where: { id: { in: userIds } }
       })
     } catch (error) {
-      console.error('Cleanup error:', error.message)
       // Don't throw - best effort cleanup
     }
   }

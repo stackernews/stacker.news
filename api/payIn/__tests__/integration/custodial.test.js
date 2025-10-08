@@ -264,7 +264,7 @@ describe('PayIn Custodial Flows', () => {
   })
 
   describe('Error cases', () => {
-    it('should fail when user has insufficient funds and no wallet', async () => {
+    it('should create invoice when user has insufficient funds', async () => {
       const poorUser = await createTestUser(models, {
         mcredits: 0n,
         msats: 0n
@@ -279,16 +279,19 @@ describe('PayIn Custodial Flows', () => {
         title: 'Test Post'
       })
 
-      // Should fail because user has no funds and no wallet to create invoice
-      await expect(
-        pay('ZAP', {
-          id: item.id,
-          sats: 10
-        }, {
-          models,
-          me: poorUser
-        })
-      ).rejects.toThrow()
+      // Should create an invoice since user has no funds
+      const result = await pay('ZAP', {
+        id: item.id,
+        sats: 10
+      }, {
+        models,
+        me: poorUser
+      })
+
+      // Should be in PENDING state with invoice
+      expect(result.payInState).toBe('PENDING')
+      expect(result.payInBolt11).toBeTruthy()
+      expect(result.payInBolt11.bolt11).toBeTruthy()
     })
 
     it('should fail when paying to invalid item', async () => {

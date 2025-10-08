@@ -16,7 +16,7 @@ process.chdir(path.resolve(__dirname, '../../..'))
 
 // Load .env.development and .env.local
 console.log('Loading environment configuration...')
-const { combinedEnv } = loadEnvConfig('./', true)
+loadEnvConfig('./', true)
 
 // Override DATABASE_URL for host machine (docker-compose exposes on 5431)
 if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('@db:5432')) {
@@ -38,6 +38,7 @@ const jestArgs = process.argv.slice(2)
 const jestCmd = [
   'npm test --',
   '--config api/payIn/__tests__/jest.config.js',
+  '--detectOpenHandles',
   ...jestArgs
 ].join(' ')
 

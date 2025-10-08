@@ -28,11 +28,15 @@ jest.mock('@shocknet/clink-sdk', () => ({
   default: jest.fn()
 }))
 
+// Counter for guaranteed unique invoice hashes
+let invoiceCounter = 0
+let hodlCounter = 0
+
 // Mock LND functions to return valid test data
+// Even with LND in docker-compose, mocking is cleaner for tests
 jest.mock('ln-service', () => ({
   __esModule: true,
   getWalletInfo: jest.fn((params, callback) => {
-    // Call callback with mock wallet info
     if (callback) {
       callback(null, {
         public_key: 'mock_pubkey',
@@ -44,15 +48,74 @@ jest.mock('ln-service', () => ({
       alias: 'test_node'
     })
   }),
-  parsePaymentRequest: jest.fn((params) => ({
-    id: params.request?.split('lnbc')[1]?.slice(0, 10) || 'mock_id',
-    tokens: 1000,
-    mtokens: '1000000',
-    destination: 'mock_destination',
-    description: 'mock_description',
-    expires_at: new Date(Date.now() + 3600000).toISOString(),
-    cltv_delta: 40
-  })),
+  // Mock createInvoice to return valid invoice for optimistic flow
+  createInvoice: jest.fn((params) => {
+    /* eslint-disable camelcase */
+    const { mtokens, description, expires_at } = params
+    // Use counter + timestamp + random for guaranteed uniqueness
+    invoiceCounter++
+    const hash = `invoice_${invoiceCounter}_${Date.now()}_${Math.random()}_${process.hrtime.bigint()}`
+    const secret = `secret_${invoiceCounter}_${Date.now()}_${Math.random()}`
+    return Promise.resolve({
+      id: hash,
+      request: `lnbc${mtokens}test${hash}`,
+      secret,
+      mtokens: String(mtokens), // Ensure it's a string
+      description,
+      expires_at
+    })
+    /* eslint-enable camelcase */
+  }),
+  // Mock createHodlInvoice for pessimistic flow
+  createHodlInvoice: jest.fn((params) => {
+    /* eslint-disable camelcase */
+    const { mtokens, description, expires_at } = params
+    // Use counter + timestamp + random for guaranteed uniqueness
+    hodlCounter++
+    const hash = `hodl_${hodlCounter}_${Date.now()}_${Math.random()}_${process.hrtime.bigint()}`
+    const secret = `secret_${hodlCounter}_${Date.now()}_${Math.random()}`
+    return Promise.resolve({
+      id: hash,
+      request: `lnbc${mtokens}hodl${hash}`,
+      secret,
+      mtokens: String(mtokens), // Ensure it's a string
+      description,
+      expires_at
+    })
+    /* eslint-enable camelcase */
+  }),
+  parsePaymentRequest: jest.fn((params) => {
+    const request = params.request || ''
+
+    // Try real parser first (for actual bolt11s from lnbits)
+    if (request.startsWith('lnbcrt') || request.startsWith('lnbc1')) {
+      try {
+        const actualParse = jest.requireActual('ln-service').parsePaymentRequest
+        return actualParse(params)
+      } catch (e) {
+        // If real parser fails, fall through to mock
+      }
+    }
+
+    // Handle our mocked test invoices
+    // Extract mtokens from our test format: lnbc{mtokens}test{hash}
+    const mtokensMatch = request.match(/lnbc(\d+)/)
+    const mtokens = mtokensMatch ? mtokensMatch[1] : '1000000'
+
+    // Extract the unique hash we generated (everything after 'test' or 'hodl' or 'lnbits')
+    const hashMatch = request.match(/(?:test|hodl|lnbits)(.+)$/)
+    const uniqueHash = hashMatch ? hashMatch[1] : `fallback_${Date.now()}_${Math.random()}`
+
+    return {
+      id: uniqueHash,
+      tokens: Number(BigInt(mtokens) / 1000n),
+      mtokens,
+      destination: 'mock_destination',
+      description: 'mock_description',
+      expires_at: new Date(Date.now() + 3600000).toISOString(),
+      cltv_delta: 40
+    }
+  }),
   payViaPaymentRequest: jest.fn().mockResolvedValue({
     id: 'mock_payment_id',
     is_confirmed: true
@@ -62,6 +125,19 @@ jest.mock('ln-service', () => ({
     is_held: false,
     is_canceled: false,
     received_mtokens: '0'
+  }),
+  getIdentity: jest.fn().mockResolvedValue({
+    public_key: '02a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+    alias: 'test_node'
+  }),
+  getBlockHeight: jest.fn().mockResolvedValue({
+    current_block_height: 800000
+  }),
+  subscribeToInvoice: jest.fn().mockReturnValue({
+    [Symbol.asyncIterator]: async function * () {
+      // Mock subscription - just yield confirmed
+      yield { is_confirmed: true }
+    }
   }),
   cancelHodlInvoice: jest.fn().mockResolvedValue({}),
   settleHodlInvoice: jest.fn().mockResolvedValue({}),
@@ -80,6 +156,47 @@ jest.mock('pg-boss', () => {
   }))
 })
 
+// Note: Can't easily mock api/lnd without breaking other imports
+// Invoice wrapping requires actual LND connection which we don't have from host machine
+
+// Mock cross-fetch but allow real lnbits calls
+jest.mock('cross-fetch', () => {
+  const actualFetch = jest.requireActual('cross-fetch')
+  return jest.fn((url, options) => {
+    // Allow real lnbits API calls (127.0.0.1:5001)
+    if (url && url.includes('127.0.0.1:5001') && url.includes('/api/v1/payments')) {
+      return actualFetch(url, options)
+    }
+
+    // Mock other lnbits API calls (for invoice creation without wallet)
+    if (url && url.includes('lnbits') && url.includes('/api/v1/payments')) {
+      // Parse request body to get amount
+      let msats = '1000000'
+      if (options && options.body) {
+        try {
+          const body = JSON.parse(options.body)
+          msats = String(BigInt(body.amount || 1000) * 1000n)
+        } catch (e) {}
+      }
+
+      const hash = `lnbits_${Date.now()}_${Math.random()}_${process.hrtime.bigint()}`
+      return Promise.resolve({
+        ok: true,
+        headers: {
+          get: (name) => name.toLowerCase() === 'content-type' ? 'application/json' : null
+        },
+        json: () => Promise.resolve({
+          payment_hash: hash,
+          payment_request: `lnbc${msats}lnbits${hash}`
+        })
+      })
+    }
+
+    // For all other URLs, use actual fetch
+    return actualFetch(url, options)
+  })
+})
+
 // Suppress noisy console output during tests
 global.console = {
   ...console,
@@ -94,14 +211,6 @@ global.console = {
 // Environment check
 beforeAll(() => {
   if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL not set!')
-    console.error('   Make sure docker-compose is running and .env.development is loaded.')
-    console.error('   Next.js should automatically load .env.development')
     throw new Error('DATABASE_URL required for tests')
   }
-
-  // Log test environment
-  console.error('✓ Test environment configured')
-  console.error(`  Node: ${process.version}`)
-  console.error(`  Database: ${process.env.DATABASE_URL.split('@')[1]?.split('?')[0] || 'configured'}`)
 })

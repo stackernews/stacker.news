@@ -399,7 +399,7 @@ describe('Specific PayIn Types', () => {
         name: territoryName,
         desc: 'Test territory description',
         baseCost: 10,
-        billingType: 'RENT', // TERRITORY_CREATE expects billingType
+        billingType: 'MONTHLY', // TERRITORY_CREATE expects billingType
         uploadIds: [] // TERRITORY_CREATE expects uploadIds array
       }, {
         models,

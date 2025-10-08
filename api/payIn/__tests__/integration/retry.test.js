@@ -35,7 +35,7 @@ describe('PayIn Retry Functionality', () => {
       const recipient = await createTestUser(models)
       testUsers.push(recipient)
 
-      const item = await createTestItem(models, {
+      await createTestItem(models, {
         userId: recipient.id,
         title: 'Test Post for Retry'
       })
@@ -156,7 +156,7 @@ describe('PayIn Retry Functionality', () => {
       const recipient = await createTestUser(models)
       testUsers.push(recipient)
 
-      const item = await createTestItem(models, {
+      await createTestItem(models, {
         userId: recipient.id,
         title: 'Test Post for Clone'
       })
@@ -217,7 +217,7 @@ describe('PayIn Retry Functionality', () => {
       const recipient = await createTestUser(models)
       testUsers.push(recipient)
 
-      const item = await createTestItem(models, {
+      await createTestItem(models, {
         userId: recipient.id,
         title: 'Test Post for Genesis'
       })

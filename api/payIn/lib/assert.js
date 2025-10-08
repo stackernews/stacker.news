@@ -38,7 +38,8 @@ export function assertBalancedPayInAndPayOuts (payIn) {
   if (payIn.payInState === 'PAID' && payInsMtokens !== payIn.mcost) {
     throw new Error(`pay ins must equal mcost if paid: ${payInsMtokens} !== ${payIn.mcost}`)
   }
-  if (payIn.payInState !== 'PAID' && payInsMtokens >= payIn.mcost) {
+  // PENDING_WITHDRAWAL is an exception - custodial tokens are debited immediately for withdrawals
+  if (payIn.payInState !== 'PAID' && payIn.payInState !== 'PENDING_WITHDRAWAL' && payInsMtokens >= payIn.mcost) {
     throw new Error(`pay ins must be less than mcost if not paid: ${payInsMtokens} >= ${payIn.mcost}`)
   }
 

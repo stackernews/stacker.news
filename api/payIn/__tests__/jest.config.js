@@ -10,6 +10,13 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('@db:5432')) {
   console.log('📝 Adjusted DATABASE_URL for host machine:', process.env.DATABASE_URL.split('@')[1])
 }
 
+// Override LND_SOCKET for tests running on host machine
+// docker-compose exposes sn_lnd on port 10009, but internally it's sn_lnd:10009
+if (process.env.LND_SOCKET && process.env.LND_SOCKET === 'sn_lnd:10009') {
+  process.env.LND_SOCKET = 'localhost:10009'
+  console.log('📝 Adjusted LND_SOCKET for host machine:', process.env.LND_SOCKET)
+}
+
 const nextJest = require('next/jest')
 const createJestConfig = nextJest({ dir: './' })
 
@@ -34,7 +41,13 @@ const customJestConfig = {
   ],
 
   // Use node environment (not jsdom)
-  testEnvironment: 'node'
+  testEnvironment: 'node',
+
+  // Set NODE_ENV to production to skip docker hostname conversion in lnbits.js
+  // This allows tests to connect to localhost:5001 directly
+  testEnvironmentOptions: {
+    NODE_ENV: 'production'
+  }
 }
 
 // createJestConfig is exported in this way to ensure that next/jest can load the Next.js configuration

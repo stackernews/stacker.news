@@ -35,7 +35,7 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
             key={option.action}
             title={`${option.name} (${getShortcutCombo(option.action)})`}
             onClick={() => handleBlock(option.action)}
-            className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === option.action ? styles.active : '')}
+            className={classNames(styles.dropdownExtraItem, toolbarState.blockType === option.action ? styles.active : '')}
           >
             <span className={styles.dropdownExtraItemLabel}>
               {option.icon}
@@ -163,25 +163,26 @@ function $findTopLevelElement (node) {
 export default function FormattingTools () {
   const [editor] = useLexicalComposerContext()
   const [, setSelectedElementKey] = useState(null)
-  const { toolbarState, updateToolbarState } = useToolbarState()
+  const { toolbarState, batchUpdateToolbarState } = useToolbarState()
 
   const $handleHeadingNode = useCallback((selectedElement) => {
     const type = $isHeadingNode(selectedElement) ? selectedElement.getTag() : selectedElement.getType()
     if (type) {
       console.log('type', type)
-      updateToolbarState('blockType', type)
+      return type
     }
-  }, [updateToolbarState])
+  }, [])
 
   // TODO: support user setting to disable code highlighting? if we ever want to introduce that.
   const $handleCodeNode = useCallback((element) => {
     if ($isCodeNode(element)) {
       const language = element.getLanguage()
-      updateToolbarState('codeLanguage', language ? normalizeCodeLanguage(language) || language : '')
+      return language ? normalizeCodeLanguage(language) || language : ''
     }
-  }, [updateToolbarState])
+  }, [])
 
   const $updateToolbar = useCallback(() => {
+    const updates = {}
     const selection = $getSelection()
     if ($isRangeSelection(selection)) {
       const node = getSelectedNode(selection)
@@ -192,28 +193,26 @@ export default function FormattingTools () {
         matchingParent = $findMatchingParent(node, (parentNode) => $isElementNode(parentNode) && !parentNode.isInline())
       }
 
-      updateToolbarState(
-        'elementFormat',
-        $isElementNode(matchingParent)
-          ? matchingParent.getFormatType()
-          : $isElementNode(node)
-            ? node.getFormatType()
-            : parent?.getFormatType() || 'left'
-      )
+      updates.elementFormat = $isElementNode(matchingParent)
+        ? matchingParent.getFormatType()
+        : $isElementNode(node)
+          ? node.getFormatType()
+          : parent?.getFormatType() || 'left'
 
-      updateToolbarState('isLink', snHasLink(selection))
-      updateToolbarState('isBold', snHasFormat(selection, 'bold'))
-      updateToolbarState('isItalic', snHasFormat(selection, 'italic'))
-      updateToolbarState('isUnderline', snHasFormat(selection, 'underline'))
-      updateToolbarState('isStrikethrough', snHasFormat(selection, 'strikethrough'))
-      updateToolbarState('isCode', snHasFormat(selection, 'code'))
-      updateToolbarState('isQuote', snHasFormat(selection, 'quote'))
-      updateToolbarState('isHighlight', snHasFormat(selection, 'highlight'))
-      updateToolbarState('isSubscript', snHasFormat(selection, 'subscript'))
-      updateToolbarState('isSuperscript', snHasFormat(selection, 'superscript'))
-      updateToolbarState('isLowercase', snHasFormat(selection, 'lowercase'))
-      updateToolbarState('isUppercase', snHasFormat(selection, 'uppercase'))
-      updateToolbarState('isCapitalize', snHasFormat(selection, 'capitalize'))
+      updates.isLink = snHasLink(selection)
+
+      updates.isBold = snHasFormat(selection, 'bold')
+      updates.isItalic = snHasFormat(selection, 'italic')
+      updates.isUnderline = snHasFormat(selection, 'underline')
+      updates.isStrikethrough = snHasFormat(selection, 'strikethrough')
+      updates.isCode = snHasFormat(selection, 'code')
+      updates.isQuote = snHasFormat(selection, 'quote')
+      updates.isHighlight = snHasFormat(selection, 'highlight')
+      updates.isSubscript = snHasFormat(selection, 'subscript')
+      updates.isSuperscript = snHasFormat(selection, 'superscript')
+      updates.isLowercase = snHasFormat(selection, 'lowercase')
+      updates.isUppercase = snHasFormat(selection, 'uppercase')
+      updates.isCapitalize = snHasFormat(selection, 'capitalize')
 
       const anchorNode = selection.anchor.getNode()
       const element = $findTopLevelElement(anchorNode)
@@ -226,10 +225,10 @@ export default function FormattingTools () {
           const parentList = $getNearestNodeOfType(anchorNode, ListNode)
           const type = parentList ? parentList.getListType() : element.getListType()
           console.log('type', type)
-          updateToolbarState('blockType', type)
+          updates.blockType = type
         } else {
-          $handleHeadingNode(element)
-          $handleCodeNode(element)
+          updates.blockType = $handleHeadingNode(element)
+          updates.codeLanguage = $handleCodeNode(element)
         }
       }
     }
@@ -241,17 +240,19 @@ export default function FormattingTools () {
         if (parentList) {
           const type = parentList.getListType()
           console.log('type', type)
-          updateToolbarState('blockType', type)
+          updates.blockType = type
         } else {
           const selectedElement = $findTopLevelElement(selectedNode)
-          $handleHeadingNode(selectedElement)
-          $handleCodeNode(selectedElement)
+          updates.blockType = $handleHeadingNode(selectedElement)
+          updates.codeLanguage = $handleCodeNode(selectedElement)
           if ($isElementNode(selectedElement)) {
-            updateToolbarState('elementFormat', selectedElement.getFormatType())
+            updates.elementFormat = selectedElement.getFormatType()
           }
         }
       }
     }
+
+    batchUpdateToolbarState(updates)
   }, [])
 
   const handleBlock = useCallback((block) => {

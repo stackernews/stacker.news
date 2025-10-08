@@ -45,6 +45,7 @@ export default function Editor ({ ...props }) {
       },
       nodes: DefaultNodes,
       onError: (error) => {
+        // TODO: good error handling
         console.error(error)
       },
       theme

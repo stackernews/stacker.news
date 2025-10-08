@@ -25,6 +25,10 @@ const ToolbarContext = createContext()
 export const ToolbarContextProvider = ({ children }) => {
   const [toolbarState, setToolbarState] = useState(INITIAL_STATE)
 
+  const batchUpdateToolbarState = useCallback((updates) => {
+    setToolbarState((prev) => ({ ...prev, ...updates }))
+  }, [])
+
   const updateToolbarState = useCallback((key, value) => {
     setToolbarState((prev) => ({
       ...prev,
@@ -33,7 +37,7 @@ export const ToolbarContextProvider = ({ children }) => {
   }, [])
 
   const contextValue = useMemo(() => {
-    return { toolbarState, updateToolbarState }
+    return { toolbarState, updateToolbarState, batchUpdateToolbarState }
   }, [toolbarState, updateToolbarState])
 
   return (

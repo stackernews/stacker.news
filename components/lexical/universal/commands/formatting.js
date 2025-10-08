@@ -12,31 +12,70 @@ import {
 export const SN_FORMAT_TEXT_COMMAND = createCommand('SN_FORMAT_TEXT_COMMAND')
 export const SN_FORMAT_BLOCK_COMMAND = createCommand('SN_FORMAT_BLOCK_COMMAND')
 
-export const MARKDOWN_TYPES = {
-  bold: {
-    marker: '**',
-    handler: toggleInlineMarkdown
-  },
-  italic: {
-    marker: '*',
-    handler: toggleInlineMarkdown
-  },
-  code: {
-    marker: '`',
-    handler: toggleInlineMarkdown
-  },
-  strikethrough: {
-    marker: '~~',
-    handler: toggleInlineMarkdown
-  },
-  quote: {
-    marker: '>',
-    handler: toggleBlockQuote
-  },
-  underline: {
-    marker: '++',
-    handler: wrapWithTag
+export const START_END_MARKDOWN_FORMATS = {
+  bold: '**',
+  italic: ['*', '_'],
+  code: '`',
+  strikethrough: ['~~', '~'],
+  underline: ['++', '__'],
+  highlight: ['=='],
+  codeblock: '```'
+}
+
+export const START_MARKDOWN_FORMATS = {
+  heading1: '#',
+  heading2: '##',
+  heading3: '###',
+  bullet: '*',
+  check: '- [ ]'
+}
+
+function isCase (text, type) {
+  return type === 'lowercase' ? text.toLowerCase() === text : text.toUpperCase() === text
+}
+
+function isCapitalize (text) {
+  return text.charAt(0).toUpperCase() === text.charAt(0) && text.slice(1).toLowerCase() === text.slice(1)
+}
+
+function toggleCase (selection, type) {
+  const text = selection.getTextContent()
+  const newText = type === 'lowercase' ? text.toLowerCase() : text.toUpperCase()
+  selection.insertText(newText)
+}
+
+function toggleCapitalize (selection) {
+  const text = selection.getTextContent()
+  const newText = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
+  selection.insertText(newText)
+}
+
+export function hasMarkdownFormat (selection, type) {
+  if (!selection) return
+  const text = selection.getTextContent()
+  if (!text) return false
+  switch (type) {
+    case 'lowercase':
+      return isCase(text, type)
+    case 'uppercase':
+      return isCase(text, type)
+    case 'capitalize':
+      return isCapitalize(text)
+    case 'quote':
+      return text.startsWith('>')
+    case 'subscript':
+      return text.startsWith('<sub>') && text.endsWith('</sub>')
+    case 'superscript':
+      return text.startsWith('<sup>') && text.endsWith('</sup>')
+    default:
+      break
   }
+  const match = START_END_MARKDOWN_FORMATS[type]
+  if (!match) return false
+  if (Array.isArray(match)) {
+    return match.some(marker => text.startsWith(marker) && text.endsWith(marker) && text.length >= marker.length * 2)
+  }
+  return text.startsWith(match) && text.endsWith(match) && text.length >= match.length * 2
 }
 
 function toggleInlineMarkdown (selection, marker) {
@@ -84,30 +123,7 @@ function wrapWithTag (selection, tag) {
   }
 }
 
-export function hasMarkdownFormat (selection, type) {
-  if (!selection) return
-  const text = selection.getTextContent()
-  if (!text) return false
-  const marker = MARKDOWN_TYPES[type]?.marker
-  if (!marker) return false
-  return text.startsWith(marker) && text.endsWith(marker) && text.length >= marker.length * 2
-}
-
-// find format from selection
-export function findMarkdownFormat (selection) {
-  if (!selection) return
-  const text = selection.getTextContent()
-  if (!text) return null
-  for (const type in MARKDOWN_TYPES) {
-    const marker = MARKDOWN_TYPES[type]?.marker
-    if (text.startsWith(marker) && text.endsWith(marker) && text.length >= marker.length * 2) {
-      return type
-    }
-  }
-  return null
-}
-
-export function snFormatTextCommand ({ editor }) {
+export function registerSNFormatTextCommand ({ editor }) {
   return editor.registerCommand(SN_FORMAT_TEXT_COMMAND, (type) => {
     const markdownMode = $isMarkdownMode()
     if (!markdownMode) {
@@ -117,9 +133,30 @@ export function snFormatTextCommand ({ editor }) {
 
     const selection = $getSelection()
     if (!$isRangeSelection(selection)) return
-    const handler = MARKDOWN_TYPES[type]?.handler
-    if (handler) {
-      return handler(selection, MARKDOWN_TYPES[type]?.marker)
+    // handle special cases
+    switch (type) {
+      case 'lowercase':
+      case 'uppercase':
+        return toggleCase(selection, type)
+      case 'capitalize':
+        return toggleCapitalize(selection)
+      case 'quote':
+        return toggleBlockQuote(selection)
+      case 'subscript':
+        return wrapWithTag(selection, 'sub')
+      case 'superscript':
+        return wrapWithTag(selection, 'sup')
+      default:
+        break
+    }
+    // handle inline markdown
+    if (START_END_MARKDOWN_FORMATS[type]) {
+      return toggleInlineMarkdown(
+        selection,
+        Array.isArray(START_END_MARKDOWN_FORMATS[type])
+          ? START_END_MARKDOWN_FORMATS[type][0]
+          : START_END_MARKDOWN_FORMATS[type]
+      )
     }
     return false
   }, COMMAND_PRIORITY_EDITOR)
@@ -141,17 +178,17 @@ const formatHeading = (activeBlock, block) => {
 const formatBulletList = (editor, activeBlock, block) => {
   console.log('formatBulletList', activeBlock, block)
   if (activeBlock === block) return formatParagraph()
-  editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, 'undefined')
+  editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)
 }
 
 const formatNumberList = (editor, activeBlock, block) => {
   if (activeBlock === block) return formatParagraph()
-  editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, 'undefined')
+  editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)
 }
 
 const formatCheckList = (editor, activeBlock, block) => {
   if (activeBlock === block) return formatParagraph()
-  editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, 'undefined')
+  editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined)
 }
 
 const formatQuote = (editor, activeBlock, block) => {
@@ -177,9 +214,8 @@ const formatCodeBlock = (activeBlock, block) => {
   }
 }
 
-export function snFormatBlockCommand ({ editor }) {
+export function registerSNFormatBlockCommand ({ editor }) {
   return editor.registerCommand(SN_FORMAT_BLOCK_COMMAND, ({ activeBlock, block }) => {
-    console.log('snFormatBlockCommand', activeBlock, 'prova', block)
     switch (block) {
       case 'normal':
         formatParagraph()

@@ -4,7 +4,7 @@ import { $isMarkdownMode } from '../utils'
 
 export const SN_TOGGLE_LINK_COMMAND = createCommand('SN_TOGGLE_LINK_COMMAND')
 
-export function snToggleLinkCommand ({ editor }) {
+export function registerSNToggleLinkCommand ({ editor }) {
   return editor.registerCommand(SN_TOGGLE_LINK_COMMAND, (url) => {
     const markdownMode = $isMarkdownMode()
     if (!markdownMode) {

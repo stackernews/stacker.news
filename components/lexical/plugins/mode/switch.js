@@ -13,7 +13,7 @@ export const SN_TOGGLE_MODE_COMMAND = createCommand('SN_TOGGLE_MODE_COMMAND')
 export default function ModeSwitchPlugin () {
   const [editor] = useLexicalComposerContext()
 
-  const handleMarkdownSwitch = useCallback(() => {
+  const $handleMarkdownSwitch = useCallback(() => {
     const root = $getRoot()
     const markdownMode = $isMarkdownMode()
     if (markdownMode) {
@@ -32,10 +32,10 @@ export default function ModeSwitchPlugin () {
 
   useEffect(() => {
     return editor.registerCommand(SN_TOGGLE_MODE_COMMAND, () => {
-      handleMarkdownSwitch()
+      $handleMarkdownSwitch()
       return true
     }, COMMAND_PRIORITY_EDITOR)
-  }, [editor, handleMarkdownSwitch])
+  }, [editor, $handleMarkdownSwitch])
 
   return null
 }

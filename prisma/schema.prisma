@@ -726,6 +726,7 @@ model Sub {
   UserSubTrust            UserSubTrust[]
   subPayIn                SubPayIn[]
   SubPayOutCustodialToken SubPayOutCustodialToken[]
+  AggPayIn                AggPayIn[]
 
   @@index([parentName])
   @@index([createdAt])
@@ -1847,4 +1848,47 @@ model PayInBolt11Comment {
   payInBolt11Id Int         @unique
   payInBolt11   PayInBolt11 @relation(fields: [payInBolt11Id], references: [id])
   comment       String
+}
+
+// for aggregating payins
+
+enum AggGranularity {
+  HOUR
+  DAY
+  MONTH
+}
+
+enum AggSlice {
+  GLOBAL
+  GLOBAL_BY_TYPE
+  SUB_TOTAL
+  SUB_BY_TYPE
+  USER_TOTAL
+  USER_BY_TYPE
+  SUB_BY_USER
+  USER_SUB_BY_TYPE
+}
+
+model AggPayIn {
+  id          Int            @id @default(autoincrement())
+  timeBucket  DateTime
+  granularity AggGranularity
+  payInType   PayInType?
+  subName     String?        @db.Citext
+  userId      Int?
+
+  // Minimal measures
+  sumMcost   BigInt
+  countUsers BigInt
+
+  slice AggSlice
+
+  sub Sub? @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([granularity, timeBucket, payInType, subName, userId, slice], map: "AggPayIn_unique_key")
+  @@index([granularity, slice, timeBucket])
+  @@index([granularity, timeBucket])
+  @@index([granularity, payInType])
+  @@index([granularity, subName])
+  @@index([granularity, userId])
 }

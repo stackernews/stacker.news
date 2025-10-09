@@ -1,4 +1,4 @@
-import { hasMarkdownFormat } from '../commands/formatting'
+import { hasMarkdownFormat } from '@/components/lexical/universal/commands/formatting'
 import { $getRoot, $isElementNode } from 'lexical'
 import { $isMarkdownNode } from '@/lib/lexical/nodes/markdownnode'
 import { $isLinkNode } from '@lexical/link'

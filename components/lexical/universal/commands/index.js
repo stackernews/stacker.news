@@ -1,7 +1,9 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
 import { mergeRegister } from '@lexical/utils'
-import { registerSNFormatTextCommand, registerSNFormatBlockCommand } from './formatting'
+import { registerSNFormatTextCommand } from './formatting/inline'
+import { registerSNFormatElementCommand } from './formatting/elements'
+import { registerSNFormatBlockCommand } from './formatting/blocks'
 import { registerSNToggleLinkCommand } from './links'
 
 export default function UniversalCommandsPlugin () {
@@ -11,6 +13,7 @@ export default function UniversalCommandsPlugin () {
     return mergeRegister(
       registerSNFormatTextCommand({ editor }),
       registerSNFormatBlockCommand({ editor }),
+      registerSNFormatElementCommand({ editor }),
       registerSNToggleLinkCommand({ editor })
     )
   }, [editor])

@@ -24,15 +24,18 @@ async function getCachedActiveRewards (staleIn, models) {
 async function getActiveRewards (models) {
   return await models.$queryRaw`
       SELECT
-        ("totalMsats" / 1000)::INT as total,
+        (sum("msats") / 1000)::INT as total,
         date_trunc('day',  (now() AT TIME ZONE 'America/Chicago') + interval '1 day') AT TIME ZONE 'America/Chicago' as time,
-        "sources" as sources
-      FROM rewards_today`
+        array_agg(json_build_object('name', "payInType", 'value', "msats")) as sources
+      FROM "AggRewards"
+      WHERE "timeBucket" >= date_trunc('day', now() AT TIME ZONE 'America/Chicago')
+      AND "payInType" IS NOT NULL
+      AND "granularity" = 'DAY'`
 }
 
 async function getRewards (when, models) {
   if (when) {
-    if (when.length > 1) {
+    if (when.length > 2) {
       throw new GqlInputError('too many dates')
     }
     when.forEach(w => {
@@ -53,12 +56,13 @@ async function getRewards (when, models) {
         COALESCE(${when?.[when.length - 1]}::text::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
         interval '1 day') AS t
     )
-    SELECT ("totalMsats" / 1000)::INT as total,
+    SELECT (sum("msats") / 1000)::INT as total,
       days_cte.day + interval '1 day' as time,
-      sources
+      array_agg(json_build_object('name', "payInType", 'value', "msats")) as sources
     FROM days_cte
-    JOIN rewards_days ON rewards_days.t = days_cte.day
-    GROUP BY days_cte.day, "totalMsats", sources
+    JOIN "AggRewards" ON "AggRewards"."timeBucket" = days_cte.day
+    WHERE "AggRewards"."granularity" = 'DAY'
+    GROUP BY days_cte.day
     ORDER BY days_cte.day ASC`
 
   return results.length ? results : [{ total: 0, time: '0', sources: [] }]

@@ -727,6 +727,7 @@ model Sub {
   subPayIn                SubPayIn[]
   SubPayOutCustodialToken SubPayOutCustodialToken[]
   AggPayIn                AggPayIn[]
+  AggPayOut               AggPayOut[]
 
   @@index([parentName])
   @@index([createdAt])
@@ -1891,4 +1892,51 @@ model AggPayIn {
   @@index([granularity, payInType])
   @@index([granularity, subName])
   @@index([granularity, userId])
+}
+
+model AggPayOut {
+  id          Int            @id @default(autoincrement())
+  timeBucket  DateTime
+  granularity AggGranularity
+  payOutType  PayOutType?
+  payInType   PayInType?
+  subName     String?        @db.Citext
+  userId      Int?
+
+  // Minimal measures
+  sumMtokens BigInt
+  countUsers BigInt
+
+  slice AggSlice
+
+  sub Sub? @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([granularity, timeBucket, payOutType, payInType, subName, userId, slice], map: "AggPayOut_unique_key")
+  @@index([granularity, slice, timeBucket])
+  @@index([granularity, timeBucket])
+  @@index([granularity, payInType])
+  @@index([granularity, payOutType])
+  @@index([granularity, subName])
+  @@index([granularity, userId])
+}
+
+model AggRegistrations {
+  id            Int            @id @default(autoincrement())
+  timeBucket    DateTime
+  granularity   AggGranularity
+  count         BigInt
+  invitedCount  BigInt
+  referredCount BigInt
+
+  @@unique([granularity, timeBucket], map: "AggRegistrations_unique_key")
+}
+
+model AggRewards {
+  id          Int            @id @default(autoincrement())
+  timeBucket  DateTime       @db.Timestamptz(3)
+  granularity AggGranularity
+  payInType   PayInType?
+  msats       BigInt
+
+  @@unique([granularity, timeBucket, payInType], map: "AggRewards_unique_key")
 }

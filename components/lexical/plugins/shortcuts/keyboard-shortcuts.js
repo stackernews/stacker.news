@@ -1,5 +1,7 @@
 import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/plugins/mode/switch'
-import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting'
+import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting/inline'
+// import { SN_FORMAT_BLOCK_COMMAND } from '@/components/lexical/universal/commands/formatting/blocks'
+// import { SN_FORMAT_ELEMENT_COMMAND } from '@/components/lexical/universal/commands/formatting/elements'
 import { IS_APPLE } from '@lexical/utils'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'

@@ -23,10 +23,11 @@ import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
 
 function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
+  const blockOption = BLOCK_OPTIONS.find(option => option.action === toolbarState.blockType)
   return (
     <Dropdown className='pointer' as='span'>
       <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
-        {BLOCK_OPTIONS.find(option => option.action === toolbarState.blockType)?.icon || <More />}
+        {blockOption?.icon || <More />}
         <ArrowDownIcon />
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra}>

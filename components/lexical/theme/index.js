@@ -41,6 +41,25 @@ const theme = {
     listitemChecked: 'sn__listItemChecked',
     listitemUnchecked: 'sn__listItemUnchecked'
   },
+  table: 'sn__table',
+  tableAddColumns: 'sn__tableAddColumns',
+  tableAddRows: 'sn__tableAddRows',
+  tableAlignment: {
+    center: 'sn__tableAlignmentCenter',
+    right: 'sn__tableAlignmentRight'
+  },
+  tableCell: 'sn__tableCell',
+  tableCellActionButton: 'sn__tableCellActionButton',
+  tableCellActionButtonContainer: 'sn__tableCellActionButtonContainer',
+  tableCellHeader: 'sn__tableCellHeader',
+  tableCellResizer: 'sn__tableCellResizer',
+  tableCellSelected: 'sn__tableCellSelected',
+  tableFrozenColumn: 'sn__tableFrozenColumn',
+  tableFrozenRow: 'sn__tableFrozenRow',
+  tableRowStriping: 'sn__tableRowStriping',
+  tableScrollableWrapper: 'sn__tableScrollableWrapper',
+  tableSelected: 'sn__tableSelected',
+  tableSelection: 'sn__tableSelection',
   text: {
     bold: 'sn__textBold',
     italic: 'sn__textItalic',

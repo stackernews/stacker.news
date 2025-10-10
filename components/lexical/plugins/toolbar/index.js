@@ -3,6 +3,7 @@ import { useRef } from 'react'
 import InsertTools from './insert'
 import FormattingTools from './formatting'
 import LinkTransformationPlugin from '../tools/link'
+import SnIcon from '@/svgs/sn.svg'
 // import ZenPlugin from '../asuka/zen'
 
 export default function ToolbarPlugin ({ anchorElem }) {
@@ -13,6 +14,8 @@ export default function ToolbarPlugin ({ anchorElem }) {
       <div className={styles.toolbar} ref={toolbarRef}>
         <FormattingTools />
         <div className='ms-auto d-flex align-items-center'>
+          <span className={styles.snPreview}><SnIcon className={styles.snPreviewIcon} /> PREVIEW</span>
+          <span className={styles.divider} />
           <InsertTools />
         </div>
       </div>

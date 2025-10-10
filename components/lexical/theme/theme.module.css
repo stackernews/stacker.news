@@ -146,27 +146,16 @@
   overflow: auto;
 }
 
-.editorInput[style*="--placeholder"]::before {
-  content: var(--placeholder);
-  position: absolute;
+.editorPlaceholder {
   top: 10px;
   left: 10px;
-  color: var(--theme-grey);
-}
-
-.editorInput[style*="--placeholder"]:has(> *)::before {
-  content: none;
-}
-
-.editorPlaceholder {
-  color: var(--theme-grey);
-  overflow: hidden;
+  font-size: 94%;
+  opacity: 0.5;
   position: absolute;
+  overflow: hidden;
   text-overflow: ellipsis;
-  top: 15px;
-  left: 10px;
-  font-size: 15px;
   user-select: none;
+  white-space: nowrap;
   display: inline-block;
   pointer-events: none;
 }
@@ -243,6 +232,13 @@
   fill: var(--bs-body-color) !important;
   width: 20px;
   height: 20px;
+}
+
+.toolbarItemText {
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 0.25rem;
+  color: var(--bs-body-color) !important;
 }
 
 .toolbarInsert {
@@ -372,3 +368,24 @@
   }
 }
 
+.snPreview {
+  font-size: 16px;
+  font-family: 'lightning';
+  font-weight: 500;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  filter: drop-shadow(0 0 6px var(--bs-primary));
+}
+
+.snPreviewIcon {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+}
+
+.snPreview svg {
+  fill: var(--theme-brandColor);
+  filter: drop-shadow(0 0 6px var(--bs-primary));
+}

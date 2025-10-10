@@ -29,6 +29,7 @@ import FileUploadPlugin from '../plugins/tools/upload'
 import { defineExtension } from 'lexical'
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
+import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
 
 export default function Editor ({ ...props }) {
   const { values } = useFormikContext()
@@ -83,7 +84,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
             <div className={styles.editor} ref={onRef}>
               <ContentEditable
                 className={classNames(styles.editorInput, styles.text, topLevel && styles.topLevel)}
-                style={placeholder ? { '--placeholder': `"${placeholder}"` } : {}}
+                placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
               />
             </div>
           }
@@ -94,6 +95,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         {autoFocus && <AutoFocusPlugin />}
         <ListPlugin />
         <CheckListPlugin />
+        <TablePlugin />
         {/* link */}
         <LinkPlugin />
         {/* misc plugins */}

@@ -142,7 +142,7 @@ span.sn__mediaContainer {
   content: '\200B';
   width: 0.9em;
   height: 0.9em;
-  top: 50%;
+  top: 45%;
   left: 0;
   cursor: pointer;
   display: block;
@@ -179,7 +179,7 @@ span.sn__mediaContainer {
   border-style: solid;
   position: absolute;
   display: block;
-  top: 49%;
+  top: 45%;
   width: 0.2em;
   left: 0.35em;
   height: 0.4em;
@@ -241,4 +241,109 @@ span.sn__mediaContainer {
   color: var(--theme-navLinkActive) !important;
   border-radius: 0.3rem;
   padding: 0.2em 0.4em;
+}
+
+/* table */
+.sn__table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  overflow-y: scroll;
+  overflow-x: scroll;
+  table-layout: fixed;
+  width: fit-content;
+  margin-top: 25px;
+  margin-bottom: 30px;
+}
+
+.sn__tableAddColumns {
+  position: absolute;
+  background-color: #eee;
+  height: 100%;
+  animation: table-controls 0.2s ease;
+  border: 0;
+  cursor: pointer;
+}
+
+.sn__tableAddColumns:after, .sn__tableAddRows:after {
+  background-image: url(../svgs/add-fill.svg);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: block;
+  content: ' ';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.4;
+}
+
+.sn__tableAddColumns:hover, .sn__tableAddRows:hover {
+  background-color: #ddd;
+}
+
+.sn__tableAddRows {
+  position: absolute;
+  width: calc(100% - 25px);
+  background-color: #eee;
+  animation: table-controls 0.2s ease;
+  border: 0;
+  cursor: pointer;
+}
+
+@keyframes table-controls {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.sn__tableCell {
+  border: 1px solid #bbb;
+  width: 75px;
+  vertical-align: top;
+  text-align: start;
+  padding: 6px 8px;
+  position: relative;
+  outline: none;
+  overflow: auto;
+}
+
+/*
+  A firefox workaround to allow scrolling of overflowing table cell
+  ref: https://bugzilla.mozilla.org/show_bug.cgi?id=1904159
+*/
+.sn__tableCell > * {
+  overflow: inherit;
+}
+
+.sn__tableCellHeader {
+  background-color: #000000;
+  text-align: start;
+}
+
+.sn__tableCellSelected {
+  caret-color: transparent;
+}
+
+.sn__tableSelection *::selection {
+  background-color: transparent;
+}
+.sn__tableSelected {
+  outline: 2px solid rgb(60, 132, 244);
+}
+
+.sn__tableFrozenColumn {
+  position: sticky;
+  left: 0;
+  background-color: #f0f0f0;
+}
+
+.sn__tableFrozenRow {
+  position: sticky;
+  top: 0;
+  background-color: #f0f0f0;
 }

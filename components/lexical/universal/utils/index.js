@@ -1,5 +1,5 @@
 import { hasMarkdownFormat } from '@/components/lexical/universal/commands/formatting'
-import { $getRoot, $isElementNode } from 'lexical'
+import { $getRoot, $isElementNode, $isRootOrShadowRoot } from 'lexical'
 import { $isMarkdownNode } from '@/lib/lexical/nodes/markdownnode'
 import { $isLinkNode } from '@lexical/link'
 import { hasMarkdownLink } from '../commands/links'
@@ -11,7 +11,18 @@ import { normalizeCodeLanguage } from '@lexical/code-shiki'
 import { $isListNode, ListNode } from '@lexical/list'
 
 export function $findTopLevelElement (node) {
-  return $findMatchingParent(node, (parentNode) => $isElementNode(parentNode) && !parentNode.isInline())
+  let topLevelElement = node.getKey() === 'root'
+    ? node
+    : $findMatchingParent(node, (e) => {
+      const parent = e.getParent()
+      return parent !== null && $isRootOrShadowRoot(parent)
+    })
+
+  if (topLevelElement === null) {
+    topLevelElement = node.getTopLevelElementOrThrow()
+  }
+
+  return topLevelElement
 }
 
 export function snHasFormat (selection, type) {

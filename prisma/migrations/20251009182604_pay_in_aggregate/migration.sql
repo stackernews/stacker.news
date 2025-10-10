@@ -86,17 +86,17 @@ BEGIN
         "timeBucket", "payInType", "subName", "userId",
         SUM(mcost)                            AS "sumMcost",
         COUNT(DISTINCT "userId")              AS "countUsers",
-        /* bit mask: payInType=1, subName=2, userId=4 (1 = grand-totalled) */
+        /* bit mask: payInType=4, subName=2, userId=1 (1 = grand-totalled) */
         GROUPING("payInType","subName","userId") AS "groupingId"
         FROM facts
         GROUP BY GROUPING SETS (
             ("timeBucket"),                                -- 7  GLOBAL
-            ("timeBucket", "payInType"),                   -- 6  GLOBAL_BY_TYPE
+            ("timeBucket", "payInType"),                   -- 3  GLOBAL_BY_TYPE
             ("timeBucket", "subName"),                     -- 5  SUB_TOTAL
-            ("timeBucket", "subName","payInType"),         -- 4  SUB_BY_TYPE
-            ("timeBucket", "userId"),                      -- 3  USER_TOTAL
+            ("timeBucket", "subName","payInType"),         -- 1  SUB_BY_TYPE
+            ("timeBucket", "userId"),                      -- 6  USER_TOTAL
             ("timeBucket", "userId","payInType"),          -- 2  USER_BY_TYPE
-            ("timeBucket", "subName","userId"),            -- 1  SUB_BY_USER
+            ("timeBucket", "subName","userId"),            -- 4  SUB_BY_USER
             ("timeBucket", "userId","subName","payInType") -- 0  USER_SUB_BY_TYPE
         )
     )
@@ -107,12 +107,12 @@ BEGIN
         "sumMcost","countUsers",
         CASE "groupingId"
             WHEN 7 THEN 'GLOBAL'::"AggSlice"
-            WHEN 6 THEN 'GLOBAL_BY_TYPE'::"AggSlice"
+            WHEN 3 THEN 'GLOBAL_BY_TYPE'::"AggSlice"
             WHEN 5 THEN 'SUB_TOTAL'::"AggSlice"
-            WHEN 4 THEN 'SUB_BY_TYPE'::"AggSlice"
-            WHEN 3 THEN 'USER_TOTAL'::"AggSlice"
+            WHEN 1 THEN 'SUB_BY_TYPE'::"AggSlice"
+            WHEN 6 THEN 'USER_TOTAL'::"AggSlice"
             WHEN 2 THEN 'USER_BY_TYPE'::"AggSlice"
-            WHEN 1 THEN 'SUB_BY_USER'::"AggSlice"
+            WHEN 4 THEN 'SUB_BY_USER'::"AggSlice"
             WHEN 0 THEN 'USER_SUB_BY_TYPE'::"AggSlice"
         END AS slice
     FROM rolled;

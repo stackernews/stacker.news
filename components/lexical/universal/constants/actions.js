@@ -23,7 +23,10 @@ export const Actions = {
   'indent-increase': 'indent-increase',
   // editor
   toggleMode: 'toggleMode',
-  upload: 'upload'
+  upload: 'upload',
+  table: 'table',
+  math: 'math',
+  'math-inline': 'math-inline'
 }
 
 export const DefaultShortcuts = {
@@ -48,5 +51,8 @@ export const DefaultShortcuts = {
   'indent-decrease': 'mod+shift+[',
   'indent-increase': 'mod+shift+]',
   toggleMode: 'mod+shift+m',
-  upload: 'mod+shift+u'
+  upload: 'mod+shift+u',
+  math: 'ctrl+alt+l',
+  'math-inline': 'ctrl+l',
+  table: 'ctrl+alt+t'
 }

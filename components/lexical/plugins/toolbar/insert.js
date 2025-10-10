@@ -20,7 +20,7 @@ export default function InsertTools () {
         editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)
         break
       case 'table':
-        showModal(InsertTableDialog)
+        showModal(onClose => <InsertTableDialog editor={editor} onClose={onClose} />)
         break
       case 'math':
         editor.dispatchCommand(SN_INSERT_MATH_COMMAND)

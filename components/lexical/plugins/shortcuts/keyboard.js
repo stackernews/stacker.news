@@ -8,6 +8,7 @@ import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/
 import { OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND } from 'lexical'
 import { Actions, DefaultShortcuts } from '@/components/lexical/universal/constants/actions'
 import { SN_INSERT_MATH_COMMAND } from '@/components/lexical/universal/commands/math'
+import { SN_TABLE_DIALOG_COMMAND } from '@/components/lexical/universal/commands/table'
 
 // shortcut configurations
 const SHORTCUT_CONFIGS = {
@@ -47,10 +48,11 @@ const SHORTCUT_CONFIGS = {
     }
   },
   insert: {
-    actions: ['upload', 'link', 'math', 'math-inline'],
+    actions: ['upload', 'link', 'table', 'math', 'math-inline'],
     commandMap: {
       upload: SN_UPLOAD_FILES_COMMAND,
       link: SN_TOGGLE_LINK_COMMAND,
+      table: SN_TABLE_DIALOG_COMMAND,
       math: SN_INSERT_MATH_COMMAND,
       'math-inline': SN_INSERT_MATH_COMMAND
     }

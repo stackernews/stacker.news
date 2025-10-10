@@ -1,10 +1,10 @@
-import { INSERT_TABLE_COMMAND } from '@lexical/table'
+import { SN_INSERT_TABLE_COMMAND } from '@/components/lexical/universal/commands/table'
 import { Form, Input, SubmitButton } from '@/components/form'
 import { tableSchema } from '@/lib/validate'
 
 export function InsertTableDialog ({ editor, onClose }) {
   const onSubmit = (values) => {
-    editor.dispatchCommand(INSERT_TABLE_COMMAND, { rows: values.rows, columns: values.columns })
+    editor.dispatchCommand(SN_INSERT_TABLE_COMMAND, { rows: values.rows, columns: values.columns })
     onClose?.()
   }
 

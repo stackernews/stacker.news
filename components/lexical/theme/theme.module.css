@@ -373,19 +373,8 @@
   font-family: 'lightning';
   font-weight: 500;
   margin-right: 8px;
-  display: flex;
-  align-items: center;
+  margin-top: 4px;
   gap: 4px;
-  filter: drop-shadow(0 0 6px var(--bs-primary));
-}
-
-.snPreviewIcon {
-  width: 20px;
-  height: 20px;
-  margin-bottom: 2px;
-}
-
-.snPreview svg {
-  fill: var(--theme-brandColor);
+  color: var(--theme-brandColor);
   filter: drop-shadow(0 0 6px var(--bs-primary));
 }

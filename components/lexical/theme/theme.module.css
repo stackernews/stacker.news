@@ -75,7 +75,7 @@
   .text {
       line-height: 130% !important;
   }
-  .text img {
+  .text img:not(:global(.sn__math) *) {
       min-width: 30% !important;
   }
 }

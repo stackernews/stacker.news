@@ -69,7 +69,8 @@ const theme = {
     strikethrough: 'sn__textStrikethrough',
     underlineStrikethrough: 'sn__textUnderlineStrikethrough',
     code: 'sn__code'
-  }
+  },
+  math: 'sn__math'
 }
 
 export default theme

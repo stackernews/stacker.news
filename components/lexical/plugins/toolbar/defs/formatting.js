@@ -16,6 +16,9 @@ import AlignRightIcon from '@/svgs/lexical/align/align-right.svg'
 import AlignJustifyIcon from '@/svgs/lexical/align/align-justify.svg'
 import IndentDecreaseIcon from '@/svgs/lexical/align/indent-decrease.svg'
 import IndentIncreaseIcon from '@/svgs/lexical/align/indent-increase.svg'
+import UploadIcon from '@/svgs/file-upload-line.svg'
+import MathIcon from '@/svgs/lexical/inserts/formula.svg'
+import TableIcon from '@/svgs/lexical/inserts/table-3.svg'
 import { Actions } from '@/components/lexical/universal/constants/actions'
 
 export const BLOCK_OPTIONS = [
@@ -126,5 +129,28 @@ export const INDENT_OPTIONS = [
     action: Actions['indent-increase'],
     name: 'indent increase',
     icon: <IndentIncreaseIcon />
+  }
+]
+
+export const INSERT_OPTIONS = [
+  {
+    action: Actions.upload,
+    name: 'upload files',
+    icon: <UploadIcon />
+  },
+  {
+    action: Actions.table,
+    name: 'table',
+    icon: <TableIcon />
+  },
+  {
+    action: Actions.math,
+    name: 'math',
+    icon: <MathIcon />
+  },
+  {
+    action: Actions['math-inline'],
+    name: 'math inline',
+    icon: <MathIcon />
   }
 ]

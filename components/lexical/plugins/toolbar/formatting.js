@@ -236,8 +236,6 @@ export default function FormattingTools () {
   }, [])
 
   const handleBlock = useCallback((block) => {
-    console.log('handleBlock', block)
-    console.log('toolbarState.blockType', toolbarState.blockType)
     editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, block)
   }, [editor, toolbarState.blockType])
 

@@ -6,6 +6,7 @@ import { registerSNFormatElementCommand } from './formatting/elements'
 import { registerSNFormatBlockCommand } from './formatting/blocks'
 import { registerSNToggleLinkCommand } from './links'
 import { registerSNToggleModeCommand } from './mode'
+import { registerSNInsertMathCommand } from './math'
 
 export default function UniversalCommandsPlugin () {
   const [editor] = useLexicalComposerContext()
@@ -16,7 +17,8 @@ export default function UniversalCommandsPlugin () {
       registerSNFormatBlockCommand({ editor }),
       registerSNFormatElementCommand({ editor }),
       registerSNToggleLinkCommand({ editor }),
-      registerSNToggleModeCommand({ editor })
+      registerSNToggleModeCommand({ editor }),
+      registerSNInsertMathCommand({ editor })
     )
   }, [editor])
 

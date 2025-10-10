@@ -7,6 +7,7 @@ import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
 import { OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND } from 'lexical'
 import { Actions, DefaultShortcuts } from '@/components/lexical/universal/constants/actions'
+import { SN_INSERT_MATH_COMMAND } from '@/components/lexical/universal/commands/math'
 
 // shortcut configurations
 const SHORTCUT_CONFIGS = {
@@ -46,10 +47,12 @@ const SHORTCUT_CONFIGS = {
     }
   },
   insert: {
-    actions: ['upload', 'link'],
+    actions: ['upload', 'link', 'math', 'math-inline'],
     commandMap: {
       upload: SN_UPLOAD_FILES_COMMAND,
-      link: SN_TOGGLE_LINK_COMMAND
+      link: SN_TOGGLE_LINK_COMMAND,
+      math: SN_INSERT_MATH_COMMAND,
+      'math-inline': SN_INSERT_MATH_COMMAND
     }
   },
   editor: {
@@ -65,8 +68,13 @@ const createShortcuts = (config) => {
     combo: DefaultShortcuts[action],
     handler: ({ editor }) => {
       if (config.commandMap && config.commandMap[action]) {
-        // special command handling
-        editor.dispatchCommand(config.commandMap[action], action === 'link' ? '' : undefined)
+        // extra special command handling
+        editor.dispatchCommand(config.commandMap[action],
+          action === 'link'
+            ? ''
+            : action === 'math-inline'
+              ? { inline: true }
+              : undefined)
       } else if (config.command) {
         // standard command with action parameter
         const commandParam = config.commandMap?.[action] || Actions[action]

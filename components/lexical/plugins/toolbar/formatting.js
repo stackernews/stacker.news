@@ -12,7 +12,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import { useEffect, useCallback } from 'react'
 import classNames from 'classnames'
 import { useToolbarState } from '../../contexts/toolbar'
-import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard-shortcuts'
+import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard'
 import { snHasFormat, snHasLink, snGetElementFormat, snGetBlockType, snGetCodeLanguage } from '@/components/lexical/universal/utils'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
 import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting/inline'
@@ -41,6 +41,9 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
             <span className={styles.dropdownExtraItemLabel}>
               {option.icon}
               <span className={styles.dropdownExtraItemText}>{option.name}</span>
+            </span>
+            <span className={styles.dropdownExtraItemShortcut}>
+              {getShortcutCombo(option.action)}
             </span>
           </Dropdown.Item>
         ))}
@@ -99,6 +102,9 @@ function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
               {option.icon}
               <span className={styles.dropdownExtraItemText}>{option.name}</span>
             </span>
+            <span className={styles.dropdownExtraItemShortcut}>
+              {getShortcutCombo(option.action)}
+            </span>
           </Dropdown.Item>
         ))}
       </Dropdown.Menu>
@@ -126,6 +132,9 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
               {option.icon}
               <span className={styles.dropdownExtraItemText}>{option.name}</span>
             </span>
+            <span className={styles.dropdownExtraItemShortcut}>
+              {getShortcutCombo(option.action)}
+            </span>
           </Dropdown.Item>
         ))}
         {INDENT_OPTIONS.map((option) => (
@@ -138,6 +147,9 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
             <span className={styles.dropdownExtraItemLabel}>
               {option.icon}
               <span className={styles.dropdownExtraItemText}>{option.name}</span>
+            </span>
+            <span className={styles.dropdownExtraItemShortcut}>
+              {getShortcutCombo(option.action)}
             </span>
           </Dropdown.Item>
         ))}
@@ -168,7 +180,6 @@ export default function FormattingTools () {
   const $handleHeadingNode = useCallback((selectedElement) => {
     const type = $isHeadingNode(selectedElement) ? selectedElement.getTag() : selectedElement.getType()
     if (type) {
-      console.log('type', type)
       return type
     }
   }, [])
@@ -211,7 +222,6 @@ export default function FormattingTools () {
         const parentList = $getNearestNodeOfType(selectedNode, ListNode)
         if (parentList) {
           const type = parentList.getListType()
-          console.log('type', type)
           updates.blockType = type
         } else {
           const selectedElement = $findTopLevelElement(selectedNode)
@@ -230,7 +240,7 @@ export default function FormattingTools () {
   const handleBlock = useCallback((block) => {
     console.log('handleBlock', block)
     console.log('toolbarState.blockType', toolbarState.blockType)
-    editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, { activeBlock: toolbarState.blockType, block })
+    editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, block)
   }, [editor, toolbarState.blockType])
 
   const handleFormat = useCallback((format) => {

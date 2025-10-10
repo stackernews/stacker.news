@@ -7,29 +7,26 @@ import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
 import styles from '@/components/lexical/theme/theme.module.css'
 import theme from '../theme'
 import ToolbarPlugin from '../plugins/toolbar'
-import OnChangePlugin from '../plugins/onchange'
+import FormikBridgePlugin from '../plugins/formik'
 import { useFormikContext } from 'formik'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import MentionsPlugin from '../plugins/misc/mentions'
-// import CustomAutoLinkPlugin from '../plugins/interop/autolink'
-import CodeShikiPlugin from '../plugins/code/codeshiki'
+import CodeShikiPlugin from '../plugins/code'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import classNames from 'classnames'
-import { SharedHistoryContextProvider, useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
-import ModeStatusPlugin from '../plugins/mode/status'
+import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
 import ModeSwitchPlugin from '../plugins/mode/switch'
-import { ToolbarContextProvider } from '../contexts/toolbar'
 import { useState, useMemo } from 'react'
-// import LinkEditorPlugin from '../plugins/tools/linkeditor'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import ShortcutsPlugin from '../plugins/shortcuts'
 import UniversalCommandsPlugin from '../universal/commands'
-import FileUploadPlugin from '../plugins/tools/upload'
+import FileUploadPlugin from '../plugins/misc/upload'
 import { defineExtension } from 'lexical'
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
+import { LexicalEditorProviders } from '@/components/lexical/providers'
 
 export default function Editor ({ ...props }) {
   const { values } = useFormikContext()
@@ -54,11 +51,9 @@ export default function Editor ({ ...props }) {
 
   return (
     <LexicalExtensionComposer extension={editorExtension} contentEditable={null}>
-      <SharedHistoryContextProvider>
-        <ToolbarContextProvider>
-          <EditorContent {...props} />
-        </ToolbarContextProvider>
-      </SharedHistoryContextProvider>
+      <LexicalEditorProviders>
+        <EditorContent {...props} />
+      </LexicalEditorProviders>
     </LexicalExtensionComposer>
   )
 }
@@ -107,14 +102,13 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         {/* markdown <-> wysiwyg commands */}
         <UniversalCommandsPlugin />
         {/* markdown mode status and switch */}
-        <ModeStatusPlugin />
         <ModeSwitchPlugin />
         {/* keyboard shortcuts */}
         <ShortcutsPlugin />
         {/* tools */}
         <FileUploadPlugin />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
-        <OnChangePlugin name={name} />
+        <FormikBridgePlugin name={name} />
       </div>
     </>
   )

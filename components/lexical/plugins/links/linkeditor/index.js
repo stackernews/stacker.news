@@ -2,7 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import styles from './linkeditor.module.css'
-import { setFloatingElemPositionForLinkEditor } from '@/components/lexical/plugins/tools/link/floating-link-editor-position'
+import { setFloatingElemPositionForLinkEditor } from '@/components/lexical/plugins/links/linkeditor/position'
 import Link from 'next/link'
 import { ensureProtocol } from '@/lib/url'
 import Check from '@/svgs/check-line.svg'

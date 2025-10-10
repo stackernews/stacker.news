@@ -4,10 +4,10 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import styles from '@/components/lexical/theme/theme.module.css'
 import AddIcon from '@/svgs/add-fill.svg'
 import FileIcon from '@/svgs/file-upload-line.svg'
-import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard-shortcuts'
+import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard'
 import classNames from 'classnames'
 import { useShowModal } from '@/components/modal'
-import { InsertTableDialog } from '@/components/lexical/plugins/table/dialog'
+import { InsertTableDialog } from '@/components/lexical/plugins/tables/dialog'
 import TableIcon from '@/svgs/lexical/inserts/table-3.svg'
 
 export default function InsertTools () {

@@ -16,50 +16,51 @@ import AlignRightIcon from '@/svgs/lexical/align/align-right.svg'
 import AlignJustifyIcon from '@/svgs/lexical/align/align-justify.svg'
 import IndentDecreaseIcon from '@/svgs/lexical/align/indent-decrease.svg'
 import IndentIncreaseIcon from '@/svgs/lexical/align/indent-increase.svg'
+import { Actions } from '@/components/lexical/universal/constants/actions'
 
 export const BLOCK_OPTIONS = [
   {
-    action: 'normal',
+    action: Actions.normal,
     name: 'normal',
     icon: null
   },
   {
-    action: 'h1',
+    action: Actions['heading-1'],
     name: 'heading 1',
     icon: <Heading1 />
   },
   {
-    action: 'h2',
+    action: Actions['heading-2'],
     name: 'heading 2',
     icon: <Heading2 />
   },
   {
-    action: 'h3',
+    action: Actions['heading-3'],
     name: 'heading 3',
     icon: <Heading3 />
   },
   {
-    action: 'number',
+    action: Actions['numbered-list'],
     name: 'number list',
     icon: <NumberList />
   },
   {
-    action: 'bullet',
+    action: Actions['bullet-list'],
     name: 'bullet list',
     icon: <BulletList />
   },
   {
-    action: 'check',
+    action: Actions['check-list'],
     name: 'check list',
     icon: <CheckList />
   },
   {
-    action: 'quote',
+    action: Actions.quote,
     name: 'quote',
     icon: <Quote />
   },
   {
-    action: 'code',
+    action: Actions.code,
     name: 'code block',
     icon: <CodeBlock />
   }
@@ -67,17 +68,17 @@ export const BLOCK_OPTIONS = [
 
 export const FORMAT_OPTIONS = [
   {
-    action: 'bold',
+    action: Actions.bold,
     name: 'bold',
     icon: <Bold />
   },
   {
-    action: 'italic',
+    action: Actions.italic,
     name: 'italic',
     icon: <Italic />
   },
   {
-    action: 'underline',
+    action: Actions.underline,
     name: 'underline',
     icon: <Underline />,
     style: { marginTop: '2px' }
@@ -86,7 +87,7 @@ export const FORMAT_OPTIONS = [
 
 export const ADDITIONAL_FORMAT_OPTIONS = [
   {
-    action: 'strikethrough',
+    action: Actions.strikethrough,
     name: 'strikethrough',
     icon: <Strikethrough />
   }
@@ -94,22 +95,22 @@ export const ADDITIONAL_FORMAT_OPTIONS = [
 
 export const ALIGN_OPTIONS = [
   {
-    action: 'left',
+    action: Actions.left,
     name: 'left',
     icon: <AlignLeftIcon />
   },
   {
-    action: 'center',
+    action: Actions.center,
     name: 'center',
     icon: <AlignCenterIcon />
   },
   {
-    action: 'right',
+    action: Actions.right,
     name: 'right',
     icon: <AlignRightIcon />
   },
   {
-    action: 'justify',
+    action: Actions.justify,
     name: 'justify',
     icon: <AlignJustifyIcon />
   }
@@ -117,12 +118,12 @@ export const ALIGN_OPTIONS = [
 
 export const INDENT_OPTIONS = [
   {
-    action: 'indent-decrease',
+    action: Actions['indent-decrease'],
     name: 'indent decrease',
     icon: <IndentDecreaseIcon />
   },
   {
-    action: 'indent-increase',
+    action: Actions['indent-increase'],
     name: 'indent increase',
     icon: <IndentIncreaseIcon />
   }

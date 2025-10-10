@@ -1,0 +1,52 @@
+export const Actions = {
+  bold: 'bold',
+  italic: 'italic',
+  underline: 'underline',
+  strikethrough: 'strikethrough',
+  link: 'link',
+  // blocks
+  normal: 'normal',
+  'heading-1': 'h1',
+  'heading-2': 'h2',
+  'heading-3': 'h3',
+  quote: 'quote',
+  'numbered-list': 'numbered',
+  'bullet-list': 'bullet',
+  'check-list': 'check',
+  code: 'code',
+  // align
+  left: 'left',
+  center: 'center',
+  right: 'right',
+  justify: 'justify',
+  'indent-decrease': 'indent-decrease',
+  'indent-increase': 'indent-increase',
+  // editor
+  toggleMode: 'toggleMode',
+  upload: 'upload'
+}
+
+export const DefaultShortcuts = {
+  bold: 'mod+b',
+  italic: 'mod+i',
+  underline: 'mod+u',
+  strikethrough: 'mod+shift+x',
+  link: 'mod+k',
+  normal: 'mod+alt+0',
+  'heading-1': 'mod+alt+1',
+  'heading-2': 'mod+alt+2',
+  'heading-3': 'mod+alt+3',
+  quote: 'mod+alt+q',
+  'numbered-list': 'mod+shift+7',
+  'bullet-list': 'mod+shift+8',
+  'check-list': 'mod+shift+9',
+  code: 'mod+shift+c',
+  left: 'mod+shift+l',
+  center: 'mod+shift+e',
+  right: 'mod+shift+r',
+  justify: 'mod+shift+j',
+  'indent-decrease': 'mod+shift+[',
+  'indent-increase': 'mod+shift+]',
+  toggleMode: 'mod+shift+m',
+  upload: 'mod+shift+u'
+}

@@ -2,7 +2,7 @@ import styles from '@/components/lexical/theme/theme.module.css'
 import { useRef } from 'react'
 import InsertTools from './insert'
 import FormattingTools from './formatting'
-import LinkTransformationPlugin from '../tools/link'
+import LinkTransformationPlugin from '../links/transformator'
 import SnIcon from '@/svgs/sn.svg'
 // import ZenPlugin from '../asuka/zen'
 

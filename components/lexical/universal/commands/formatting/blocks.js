@@ -1,4 +1,4 @@
-import { $isMarkdownMode } from '@/components/lexical/universal/utils'
+import { $isMarkdownMode, snGetBlockType } from '@/components/lexical/universal/utils'
 import { $createCodeNode } from '@lexical/code'
 import {
   INSERT_CHECK_LIST_COMMAND,
@@ -12,9 +12,9 @@ import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
 export const SN_FORMAT_BLOCK_COMMAND = createCommand('SN_FORMAT_BLOCK_COMMAND')
 
 export const START_MARKDOWN_FORMATS = {
-  heading1: '#',
-  heading2: '##',
-  heading3: '###',
+  h1: '#',
+  h2: '##',
+  h3: '###',
   bullet: '*',
   check: '- [ ]'
 }
@@ -25,11 +25,22 @@ const formatParagraph = () => {
   $setBlocksType(selection, () => $createParagraphNode())
 }
 
-const formatHeading = (activeBlock, block) => {
+const formatHeading = (activeBlock, block, isMarkdownMode) => {
   console.log('formatHeading', activeBlock, block)
-  if (activeBlock === block) return
   const selection = $getSelection()
-  $setBlocksType(selection, () => $createHeadingNode(block))
+  if (!isMarkdownMode) {
+    if (activeBlock === block) return
+    $setBlocksType(selection, () => $createHeadingNode(block))
+  } else {
+    const text = selection.getTextContent()
+    const lines = text.split('\n')
+    const allHeadings = lines.every(l => l.startsWith(START_MARKDOWN_FORMATS[block]))
+    console.log('allHeadings', allHeadings)
+    const newLines = allHeadings
+      ? lines.map(l => l.replace(`${START_MARKDOWN_FORMATS[block]} `, ''))
+      : lines.map(l => (l.length ? `${START_MARKDOWN_FORMATS[block]} ${l}` : l))
+    selection.insertText(newLines.join('\n'))
+  }
 }
 
 const formatBulletList = (editor, activeBlock, block) => {
@@ -97,8 +108,10 @@ const formatCodeBlock = (activeBlock, block, isMarkdownMode) => {
 }
 
 export function registerSNFormatBlockCommand ({ editor }) {
-  return editor.registerCommand(SN_FORMAT_BLOCK_COMMAND, ({ activeBlock, block }) => {
+  return editor.registerCommand(SN_FORMAT_BLOCK_COMMAND, (block) => {
+    console.log('registerSNFormatBlockCommand', block)
     const isMarkdownMode = $isMarkdownMode()
+    const activeBlock = snGetBlockType({ selection: $getSelection(), editor })
     switch (block) {
       case 'normal':
         formatParagraph()

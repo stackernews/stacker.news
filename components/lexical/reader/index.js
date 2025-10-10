@@ -4,7 +4,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import styles from '@/components/lexical/theme/theme.module.css'
 import theme from '../theme'
-import CodeShikiPlugin from '../plugins/code/codeshiki'
+import CodeShikiPlugin from '../plugins/code'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { forwardRef } from 'react'
 

@@ -136,9 +136,9 @@ export function snGetBlockType ({ selection, editor }) {
   if (/^>\s?/.test(first)) return 'quote'
 
   // lists
-  if (/^[-*]\s+/.test(first)) return 'bullet'
-  if (/^- \[\s\]\s+/.test(first)) return 'check'
   if (/^\d+\.\s+/.test(first)) return 'number'
+  if (/^- \[\s\]\s+/.test(first)) return 'check'
+  if (/^[-*]\s+/.test(first)) return 'bullet'
 
   return 'normal'
 }

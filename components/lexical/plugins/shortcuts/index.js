@@ -81,9 +81,9 @@ export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
       KEY_DOWN_COMMAND,
       (e) => {
         if (!editor.isEditable()) return false
-        e.preventDefault()
         for (const { combo, handler } of shortcuts) {
           if (matches(e, combo)) {
+            e.preventDefault()
             handler({ editor, event: e })
             return true
           }

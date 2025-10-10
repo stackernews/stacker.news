@@ -210,9 +210,7 @@ export default function FormattingTools () {
       updates.isLowercase = snHasFormat(selection, 'lowercase')
       updates.isUppercase = snHasFormat(selection, 'uppercase')
       updates.isCapitalize = snHasFormat(selection, 'capitalize')
-
       updates.blockType = snGetBlockType({ selection, editor })
-
       updates.codeLanguage = snGetCodeLanguage({ selection, editor })
     }
 

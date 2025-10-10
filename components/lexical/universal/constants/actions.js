@@ -10,7 +10,7 @@ export const Actions = {
   'heading-2': 'h2',
   'heading-3': 'h3',
   quote: 'quote',
-  'numbered-list': 'numbered',
+  'numbered-list': 'number',
   'bullet-list': 'bullet',
   'check-list': 'check',
   code: 'code',

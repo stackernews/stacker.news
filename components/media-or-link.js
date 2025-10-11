@@ -130,29 +130,36 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     // don't load the video at all if user doesn't want these
     if (!showMedia || isVideo || isImage) return
 
-    // check if it's a video by trying to load it
-    const video = document.createElement('video')
-    video.onloadedmetadata = () => {
-      setIsVideo(true)
-      setIsImage(false)
+    let aborted = false
+    const controller = new AbortController()
+
+    const checkMedia = async () => {
+      try {
+        const params = new URLSearchParams({ url: src, withDimensions: 'true' })
+        const res = await fetch(`/api/media-check?${params}`, { signal: controller.signal })
+        if (!res.ok) return
+
+        const data = await res.json()
+        // bail if the fetch was aborted
+        if (aborted) return
+
+        if (data.isVideo) {
+          setIsVideo(true)
+          setIsImage(false)
+        } else if (data.isImage) {
+          setIsImage(true)
+        }
+      } catch (error) {
+        if (aborted) return
+        console.error('cannot check media type', error)
+      }
     }
-    video.onerror = () => {
-      // hack
-      // if it's not a video it will throw an error, so we can assume it's an image
-      const img = new window.Image()
-      img.src = src
-      img.decode().then(() => { // decoding beforehand to prevent wrong image cropping
-        setIsImage(true)
-      }).catch((e) => {
-        console.warn('Cannot decode image:', src, e)
-      })
-    }
-    video.src = src
+    checkMedia()
 
     return () => {
-      video.onloadedmetadata = null
-      video.onerror = null
-      video.src = ''
+      // abort the fetch
+      aborted = true
+      try { controller.abort() } catch {}
     }
   }, [src, setIsImage, setIsVideo, showMedia, isImage])
 

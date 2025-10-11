@@ -7,7 +7,7 @@ import { useShowModal } from '@/components/modal'
 import { INSERT_OPTIONS } from './defs/formatting'
 import { useCallback } from 'react'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
-import { InsertTableDialog } from '@/components/lexical/plugins/tables/dialog'
+import { SN_TABLE_DIALOG_COMMAND } from '@/components/lexical/universal/commands/table'
 import { SN_INSERT_MATH_COMMAND } from '@/components/lexical/universal/commands/math'
 
 export default function InsertTools () {
@@ -20,7 +20,7 @@ export default function InsertTools () {
         editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)
         break
       case 'table':
-        showModal(onClose => <InsertTableDialog editor={editor} onClose={onClose} />)
+        editor.dispatchCommand(SN_TABLE_DIALOG_COMMAND)
         break
       case 'math':
         editor.dispatchCommand(SN_INSERT_MATH_COMMAND)

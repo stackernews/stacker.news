@@ -6,11 +6,11 @@ export default async function handler (req, res) {
     return
   }
 
-  // the request has to come from ourselves only
+  // the request has to come only from us
   const referer = req.headers.referer
   const host = req.headers.host
-  const fromOurselves = referer && new URL(referer).host === host
-  if (!fromOurselves) {
+  const fromUs = referer && new URL(referer).host === host
+  if (!fromUs) {
     res.status(403).json({ error: 'Forbidden' })
     return
   }

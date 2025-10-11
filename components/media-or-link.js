@@ -135,8 +135,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
 
     const checkMedia = async () => {
       try {
-        const params = new URLSearchParams({ url: src, withDimensions: 'true' })
-        const res = await fetch(`/api/media-check?${params}`, { signal: controller.signal })
+        const res = await fetch(`/api/media-check?${src}`, { signal: controller.signal })
         if (!res.ok) return
 
         const data = await res.json()

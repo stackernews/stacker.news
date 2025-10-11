@@ -1,8 +1,6 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client'
 import { SchemaLink } from '@apollo/client/link/schema'
-import { makeExecutableSchema } from '@graphql-tools/schema'
-import resolvers from './resolvers'
-import typeDefs from './typeDefs'
+import { schema } from '@/pages/api/graphql'
 import models from './models'
 import { print } from 'graphql'
 import lnd from './lnd'
@@ -22,10 +20,7 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
   const client = new ApolloClient({
     ssrMode: true,
     link: new SchemaLink({
-      schema: makeExecutableSchema({
-        typeDefs,
-        resolvers
-      }),
+      schema,
       context: {
         models,
         me: session

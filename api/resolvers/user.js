@@ -936,10 +936,6 @@ export default {
 
   User: {
     privates: async (user, args, { me, models }) => {
-      if (!me || me.id !== user.id) {
-        return null
-      }
-
       return user
     },
     optional: user => user,

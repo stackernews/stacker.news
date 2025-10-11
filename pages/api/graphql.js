@@ -1,18 +1,20 @@
 import { ApolloServer } from '@apollo/server'
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
 import { startServerAndCreateNextHandler } from '@as-integrations/next'
-import resolvers from '@/api/resolvers'
 import models from '@/api/models'
 import lnd from '@/api/lnd'
 import typeDefs from '@/api/typeDefs'
+import { makeExecutableSchemaWithDirectives } from '@/api/directives'
+import resolvers from '@/api/resolvers'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
 import search from '@/api/search'
 import { multiAuthMiddleware } from '@/lib/auth'
 
+export const schema = makeExecutableSchemaWithDirectives(typeDefs, resolvers)
+
 const apolloServer = new ApolloServer({
-  typeDefs,
-  resolvers,
+  schema,
   introspection: true,
   allowBatchedHttpRequests: true,
   plugins: [{

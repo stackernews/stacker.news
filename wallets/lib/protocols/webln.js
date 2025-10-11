@@ -12,7 +12,10 @@ export default {
   isAvailable: () => window?.weblnEnabled
 }
 
-export function WebLnProvider ({ children }) {
+// this hook is used to check if the lightning browser extension is still enabled
+// in which case we will also not attempt to use WebLN
+// for payments using the `isAvailable` function above
+export function useWeblnEvents () {
   useEffect(() => {
     const onEnable = () => {
       window.weblnEnabled = true
@@ -33,6 +36,4 @@ export function WebLnProvider ({ children }) {
       window.removeEventListener('webln:disabled', onDisable)
     }
   }, [])
-
-  return children
 }

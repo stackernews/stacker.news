@@ -127,7 +127,7 @@ const getMetadata = async (url) => {
   return { dimensions: { width, height }, format, video: !!videoStreams?.length }
 }
 
-export const createImgproxyPath = ({ url, pathname = '/', options }) => {
+const createImgproxyPath = ({ url, pathname = '/', options }) => {
   const b64Url = Buffer.from(url, 'utf-8').toString('base64url')
   const target = path.join(options, b64Url)
   const signature = sign(target)

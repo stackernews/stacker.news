@@ -5,6 +5,7 @@ import * as blink from './blink'
 import * as webln from './webln'
 import * as lnc from './lnc'
 import * as clnRest from './clnRest'
+import * as clink from './clink'
 
 export * from './util'
 
@@ -15,8 +16,8 @@ export * from './util'
 /**
  * @typedef {Object} ClientWalletProtocol
  * @property {ProtocolName} name - must match a protocol name in the database
- * @property {ProtocolCreateInvoice} createInvoice - create a new invoice
- * @property {ProtocolTestCreateInvoice} testCreateInvoice - create a test invoice
+ * @property {ProtocolSendPayment} sendPayment - pays a bolt11 invoice
+ * @property {ProtocolTestSendPayment} testSendPayment - test if configuration can pay
  */
 
 /**
@@ -54,5 +55,6 @@ export default [
   blink,
   webln,
   lnc,
-  clnRest
+  clnRest,
+  clink
 ]

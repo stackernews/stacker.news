@@ -2,7 +2,7 @@ import { useQuery } from '@apollo/client'
 import { CenterLayout } from '@/components/layout'
 import { useRouter } from 'next/router'
 import { DIRECT } from '@/fragments/invoice'
-import { SSR, FAST_POLL_INTERVAL } from '@/lib/constants'
+import { SSR, FAST_POLL_INTERVAL_MS } from '@/lib/constants'
 import Bolt11Info from '@/components/bolt11-info'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { PrivacyOption } from '../withdrawals/[id]'
@@ -39,7 +39,7 @@ function LoadDirect () {
     ? {}
     : {
         variables: { id: router.query.id },
-        pollInterval: FAST_POLL_INTERVAL,
+        pollInterval: FAST_POLL_INTERVAL_MS,
         nextFetchPolicy: 'cache-and-network'
       })
   if (error) return <div>error</div>

@@ -6,7 +6,7 @@ import InvoiceStatus from '@/components/invoice-status'
 import { useRouter } from 'next/router'
 import { WITHDRAWL } from '@/fragments/invoice'
 import Link from 'next/link'
-import { SSR, INVOICE_RETENTION_DAYS, FAST_POLL_INTERVAL } from '@/lib/constants'
+import { SSR, INVOICE_RETENTION_DAYS, FAST_POLL_INTERVAL_MS } from '@/lib/constants'
 import { numWithUnits } from '@/lib/format'
 import Bolt11Info from '@/components/bolt11-info'
 import { datePivot, timeLeft } from '@/lib/time'
@@ -52,7 +52,7 @@ function LoadWithdrawl () {
     ? {}
     : {
         variables: { id: router.query.id },
-        pollInterval: FAST_POLL_INTERVAL,
+        pollInterval: FAST_POLL_INTERVAL_MS,
         nextFetchPolicy: 'cache-and-network'
       })
   if (error) return <div>error</div>

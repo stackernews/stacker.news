@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useState, useEffect } 
 import { Button } from 'react-bootstrap'
 import { ModalClosedError, useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
-import { FAST_POLL_INTERVAL } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS } from '@/lib/constants'
 import { isTemplate } from '@/wallets/lib/util'
 import { useDiagnostics } from '@/wallets/client/hooks/diagnostics'
 
@@ -115,7 +115,7 @@ export function useWalletLogs (protocol, debug) {
       if (!called) {
         setCursor(cursor)
       }
-    }, FAST_POLL_INTERVAL)
+    }, FAST_POLL_INTERVAL_MS)
 
     return () => clearInterval(interval)
   }, [fetchLogs, protocolId, called, noFetch, debug])

@@ -41,9 +41,7 @@ export default {
           _index: process.env.OPENSEARCH_INDEX,
           _id: id
         })
-      }
-
-      if (title) {
+      } else if (title) {
         like.push(title)
       }
 
@@ -52,22 +50,64 @@ export default {
         mustNot.push({ term: { id } })
       }
 
-      let should = [
+      const filters = [
         {
-          more_like_this: {
-            fields: ['title', 'text'],
-            like,
-            min_term_freq: 1,
-            min_doc_freq: 1,
-            max_doc_freq: 5,
-            min_word_length: 2,
-            max_query_terms: 25,
-            minimum_should_match: minMatch || '10%',
-            boost_terms: 100
+          bool: {
+            should: [
+              { match: { status: 'ACTIVE' } },
+              { match: { status: 'NOSATS' } }
+            ],
+            must_not: mustNot
           }
+        },
+        {
+          range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
         }
       ]
 
+      // Build the more_like_this query for traditional similarity search
+      const moreLikeThisQuery = {
+        function_score: {
+          query: {
+            bool: {
+              should: [
+                {
+                  more_like_this: {
+                    fields: ['title', 'text'],
+                    like,
+                    max_doc_freq: 10000,
+                    minimum_should_match: minMatch || '20%',
+                    boost_terms: 10
+                  }
+                },
+                {
+                  more_like_this: {
+                    fields: ['title', 'text'],
+                    like,
+                    max_doc_freq: 1000,
+                    minimum_should_match: minMatch || '20%',
+                    boost_terms: 100
+                  }
+                }
+              ],
+              filter: filters
+            }
+          },
+          functions: [{
+            field_value_factor: {
+              field: 'wvotes',
+              modifier: 'log1p',
+              factor: 0.1,
+              missing: 0
+            }
+          }],
+          boost_mode: 'multiply'
+        }
+      }
+
+      let osQuery = moreLikeThisQuery
+
+      // Use hybrid query combining neural and more_like_this if model is available
       if (process.env.OPENSEARCH_MODEL_ID) {
         let qtitle = title
         let qtext = title
@@ -77,26 +117,40 @@ export default {
           qtext = item.text || item.title
         }
 
-        should = [
-          {
-            neural: {
-              title_embedding: {
-                query_text: qtitle,
-                model_id: process.env.OPENSEARCH_MODEL_ID,
-                k: decodedCursor.offset + LIMIT
-              }
-            }
-          },
-          {
-            neural: {
-              text_embedding: {
-                query_text: qtext.slice(0, 100),
-                model_id: process.env.OPENSEARCH_MODEL_ID,
-                k: decodedCursor.offset + LIMIT
-              }
-            }
+        osQuery = {
+          hybrid: {
+            pagination_depth: LIMIT * 2,
+            queries: [
+              {
+                bool: {
+                  should: [
+                    {
+                      neural: {
+                        title_embedding: {
+                          query_text: qtitle,
+                          model_id: process.env.OPENSEARCH_MODEL_ID,
+                          k: decodedCursor.offset + LIMIT
+                        }
+                      }
+                    },
+                    {
+                      neural: {
+                        text_embedding: {
+                          query_text: qtext.slice(0, 100),
+                          model_id: process.env.OPENSEARCH_MODEL_ID,
+                          k: decodedCursor.offset + LIMIT
+                        }
+                      }
+                    }
+                  ],
+                  filter: filters,
+                  minimum_should_match: 1
+                }
+              },
+              moreLikeThisQuery
+            ]
           }
-        ]
+        }
       }
 
       const results = await search.search({
@@ -111,38 +165,7 @@ export default {
           ]
         },
         body: {
-          query: {
-            function_score: {
-              query: {
-                bool: {
-                  should,
-                  filter: [
-                    {
-                      bool: {
-                        should: [
-                          { match: { status: 'ACTIVE' } },
-                          { match: { status: 'NOSATS' } }
-                        ],
-                        must_not: mustNot
-                      }
-                    },
-                    {
-                      range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
-                    }
-                  ]
-                }
-              },
-              functions: [{
-                field_value_factor: {
-                  field: 'wvotes',
-                  modifier: 'none',
-                  factor: 1,
-                  missing: 0
-                }
-              }],
-              boost_mode: 'multiply'
-            }
-          }
+          query: osQuery
         }
       })
 
@@ -302,6 +325,8 @@ export default {
         })
       }
 
+      let addMembers = {}
+
       switch (sort) {
         case 'comments':
           functions.push({
@@ -320,15 +345,21 @@ export default {
           })
           break
         case 'recent':
-          functions.push({
-            gauss: {
-              createdAt: {
-                origin: 'now',
-                scale: '7d',
-                decay: 0.5
+          addMembers = {
+            min_score: 500,
+            sort: [
+              {
+                createdAt: {
+                  order: 'desc'
+                }
+              },
+              {
+                _id: {
+                  order: 'desc'
+                }
               }
-            }
-          })
+            ]
+          }
           break
         case 'zaprank':
           functions.push({
@@ -418,7 +449,7 @@ export default {
         if (process.env.OPENSEARCH_MODEL_ID) {
           osQuery = {
             hybrid: {
-              pagination_depth: 50,
+              pagination_depth: LIMIT * 2,
               queries: [
                 {
                   bool: {
@@ -467,6 +498,7 @@ export default {
           from: decodedCursor.offset,
           body: {
             query: osQuery,
+            ...addMembers,
             highlight: {
               fields: {
                 title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },

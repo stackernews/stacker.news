@@ -18,6 +18,7 @@ export class InvoiceExpiredError extends Error {
 export class WalletError extends Error {}
 export class WalletPaymentError extends WalletError {}
 export class WalletConfigurationError extends WalletError {}
+export class WalletValidationError extends WalletError {}
 
 export class WalletNotEnabledError extends WalletConfigurationError {
   constructor (name) {
@@ -98,5 +99,12 @@ export class WalletPaymentAggregateError extends WalletPaymentError {
       return acc
     }, []).filter(e => e instanceof WalletPaymentError)
     this.invoice = invoice
+  }
+}
+
+export class WalletPermissionsError extends WalletValidationError {
+  constructor (message) {
+    super('wrong permissions: ' + message)
+    this.name = 'WalletPermissionsError'
   }
 }

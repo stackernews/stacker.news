@@ -19,7 +19,7 @@ import 'nprogress/nprogress.css'
 import { ChainFeeProvider } from '@/components/chain-fee.js'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
-import WalletsProvider from '@/wallets/client/context'
+import { WalletsProvider } from '@/wallets/client/hooks'
 import FaviconProvider from '@/components/favicon'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
@@ -60,14 +60,6 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     router.events.on('routeChangeComplete', nprogressDone)
     router.events.on('routeChangeError', nprogressDone)
 
-    const handleServiceWorkerMessage = (event) => {
-      if (event.data?.type === 'navigate') {
-        router.push(event.data.url)
-      }
-    }
-
-    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage)
-
     if (!props?.apollo) return
     // HACK: 'cause there's no way to tell Next to skip SSR
     // So every page load, we modify the route in browser history
@@ -90,7 +82,6 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       router.events.off('routeChangeStart', nprogressStart)
       router.events.off('routeChangeComplete', nprogressDone)
       router.events.off('routeChangeError', nprogressDone)
-      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage)
     }
   }, [router.asPath, props?.apollo, shouldShowProgressBar])
 

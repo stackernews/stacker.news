@@ -1,6 +1,6 @@
 import express from 'express'
 import puppeteer from 'puppeteer'
-import mediaCheck from './media-check'
+import mediaCheck from './media-check.js'
 
 const captureUrl = process.env.CAPTURE_URL || 'http://host.docker.internal:3000/'
 const mediaCheckRoute = process.env.MEDIA_CHECK_ROUTE || 'media'

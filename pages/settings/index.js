@@ -492,7 +492,7 @@ export default function Settings ({ ssrData }) {
               <div className='d-flex align-items-center'>show images, video, and 3rd party embeds
                 <Info>
                   <ul>
-                    <li>if checked and a link is an image, video or can be embedded in another way, we will do it</li>
+                    <li>if checked and a link is an image, video, audio or can be embedded in another way, we will do it</li>
                     <li>we support embeds from following sites:</li>
                     <ul>
                       <li>njump.me</li>
@@ -503,6 +503,7 @@ export default function Settings ({ ssrData }) {
                       <li>wavlake.com</li>
                       <li>bitcointv.com</li>
                       <li>peertube.tv</li>
+                      <li>direct audio files (.mp3, .wav, .ogg, .flac, .aac, .m4a, .opus)</li>
                     </ul>
                   </ul>
                 </Info>

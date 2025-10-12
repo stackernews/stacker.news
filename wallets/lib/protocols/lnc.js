@@ -19,7 +19,7 @@ export default {
         '```litcli sessions add --type custom --label <your label> --account_id <account_id> --uri /lnrpc.Lightning/SendPaymentSync```',
         'Grab the `pairing_secret_mnemonic` from the output and paste it here.'
       ],
-      validate: bip39Validator(),
+      validate: bip39Validator({ min: 2, max: 10 }),
       required: true,
       encrypt: true,
       editable: false

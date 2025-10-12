@@ -3,6 +3,7 @@ import { extractUrls } from '@/lib/md'
 import { isJob } from '@/lib/item'
 import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
+import { fetchWithTimeout } from '@/lib/fetch'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
@@ -145,12 +146,42 @@ const isMediaURL = async (url, { forceFetch }) => {
   }
 
   let isMedia = false
+
+  // primary: media check service
   try {
     const res = await fetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
-    if (!res.ok) return false
+    if (res.ok) {
+      const data = await res.json()
+      isMedia = data.isImage || data.isVideo
+      cache.set(url, isMedia)
+      return isMedia
+    }
+  } catch (err) {
+    console.log('[imgproxy] media check service failed, falling back to direct fetch:', url, err)
+  }
 
-    const data = await res.json()
-    isMedia = data.isImage || data.isVideo
+  // fallback: first run HEAD with small timeout
+  try {
+    // https://stackoverflow.com/a/68118683
+    const res = await fetchWithTimeout(url, { timeout: 1000, method: 'HEAD' })
+    const buf = await res.blob()
+    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
+  } catch (err) {
+    console.log(url, err)
+  }
+
+  // For HEAD requests, positives are most likely true positives.
+  // However, negatives may be false negatives
+  if (isMedia) {
+    cache.set(url, true)
+    return true
+  }
+
+  // if not known yet, run GET request with longer timeout
+  try {
+    const res = await fetchWithTimeout(url, { timeout: 10000 })
+    const buf = await res.blob()
+    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
   } catch (err) {
     console.log(url, err)
   }

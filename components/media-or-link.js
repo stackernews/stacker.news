@@ -130,7 +130,6 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     // don't load the video at all if user doesn't want these
     if (!showMedia || isVideo || isImage) return
 
-    let aborted = false
     const controller = new AbortController()
 
     const checkMedia = async () => {
@@ -139,8 +138,6 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
         if (!res.ok) return
 
         const data = await res.json()
-        // bail if the fetch was aborted
-        if (aborted) return
 
         if (data.isVideo) {
           setIsVideo(true)
@@ -149,7 +146,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
           setIsImage(true)
         }
       } catch (error) {
-        if (aborted) return
+        if (error.name === 'AbortError') return
         console.error('cannot check media type', error)
       }
     }
@@ -157,7 +154,6 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
 
     return () => {
       // abort the fetch
-      aborted = true
       try { controller.abort() } catch {}
     }
   }, [src, setIsImage, setIsVideo, showMedia, isImage])

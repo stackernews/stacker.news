@@ -1,6 +1,7 @@
 import { filetypemime } from 'magic-bytes.js'
 
-const TIMEOUT = 2000
+const TIMEOUT_HEAD = 2000
+const TIMEOUT_GET = 10000
 const BYTE_LIMIT = 8192
 
 export function isImageMime (mime) { return typeof mime === 'string' && mime.startsWith('image/') }
@@ -20,28 +21,25 @@ function timeoutSignal (timeout) {
   return controller.signal
 }
 
-function hasBasicAuth (res) {
-  const wwwAuth = res.headers.get('www-authenticate') || ''
-  if (res.status === 401 && /basic/i.test(wwwAuth)) return true
-}
+const requiresAuth = (res) => res.status === 401 || res.status === 403
 
-async function headMime (url, timeout = TIMEOUT) {
+async function headMime (url, timeout = TIMEOUT_HEAD) {
   const res = await fetch(url, { method: 'HEAD', signal: timeoutSignal(timeout) })
-  // bail on basic authentication requirement
-  if (hasBasicAuth(res)) return null
+  // bail on auth or forbidden
+  if (requiresAuth(res)) return null
 
   return res.headers.get('content-type')
 }
 
-async function readMagicBytes (url, { timeout = TIMEOUT, byteLimit = BYTE_LIMIT } = {}) {
+async function readMagicBytes (url, { timeout = TIMEOUT_GET, byteLimit = BYTE_LIMIT } = {}) {
   const res = await fetch(url, {
     method: 'GET',
     // accept image and video, but not other types
     headers: { Range: `bytes=0-${byteLimit - 1}`, Accept: 'image/*,video/*;q=0.9,*/*;q=0.8' },
     signal: timeoutSignal(timeout)
   })
-  // bail on basic authentication requirement
-  if (hasBasicAuth(res)) return { bytes: null, headers: res.headers }
+  // bail on auth or forbidden
+  if (requiresAuth(res)) return { bytes: null, headers: res.headers }
 
   // stream a small chunk if possible, otherwise read buffer
   if (res.body?.getReader) {
@@ -81,7 +79,6 @@ export default async function mediaCheck (req, res) {
 
   try {
     // trying with HEAD first, as it's the cheapest option
-    // TODO: should we trust it?
     try {
       const ct = await headMime(url)
       if (isImageMime(ct) || isVideoMime(ct)) {
@@ -90,7 +87,7 @@ export default async function mediaCheck (req, res) {
     } catch {}
 
     // otherwise, read the first bytes
-    const { bytes, headers } = await readMagicBytes(url, { timeout: TIMEOUT, byteLimit: BYTE_LIMIT })
+    const { bytes, headers } = await readMagicBytes(url)
     const mimes = bytes ? filetypemime(bytes) : null
     const mime = mimes?.[0] ?? headers.get('content-type') ?? null
     return res.status(200).json({ mime, isImage: isImageMime(mime), isVideo: isVideoMime(mime) })

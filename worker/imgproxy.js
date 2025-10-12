@@ -145,25 +145,14 @@ const isMediaURL = async (url, { forceFetch }) => {
   }
 
   let isMedia = false
-
-  let aborted = false
-  const controller = new AbortController()
-
   try {
-    const res = await fetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`, { signal: controller.signal })
+    const res = await fetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
     if (!res.ok) return false
 
     const data = await res.json()
-
-    if (aborted) return false
-
     isMedia = data.isImage || data.isVideo
   } catch (err) {
-    if (aborted) return false
     console.log(url, err)
-  } finally {
-    aborted = true
-    try { controller.abort() } catch {}
   }
 
   cache.set(url, isMedia)

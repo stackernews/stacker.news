@@ -31,6 +31,7 @@ import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import ItemPopover from './item-popover'
+import { ShareProfileDropdownItem } from './share'
 
 const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
 
@@ -193,6 +194,7 @@ export function NymActionDropdown ({ user, className = 'ms-2' }) {
   return (
     <div className={className}>
       <ActionDropdown>
+        <ShareProfileDropdownItem user={user} />
         <SubscribeUserDropdownItem user={user} target='posts' />
         <SubscribeUserDropdownItem user={user} target='comments' />
         <MuteDropdownItem user={user} />

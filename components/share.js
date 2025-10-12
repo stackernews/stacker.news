@@ -98,3 +98,20 @@ export function CrosspostDropdownItem ({ item }) {
     </Dropdown.Item>
   )
 }
+
+export function ShareProfileDropdownItem ({ user }) {
+  const { me } = useMe()
+  const toaster = useToast()
+  const url = referrurl(`/${user.name}`, me)
+
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        await share(`@${user.name}'s profile on Stacker News`, url, toaster)
+      }}
+    >
+      <ShareIcon className='me-2' width={16} height={16} />
+      share profile
+    </Dropdown.Item>
+  )
+}

@@ -124,6 +124,7 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
         name
         userId
         moderated
+        disableDeletion
         meMuteSub
       }
       user {

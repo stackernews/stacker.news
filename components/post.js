@@ -111,7 +111,10 @@ export function PostForm ({ type, sub, children }) {
           size='medium'
           sub={sub?.name}
           info={sub && <TerritoryInfo sub={sub} includeLink />}
-          hint={sub?.moderated && 'this territory is moderated'}
+          hint={[
+            sub?.moderated && 'this territory is moderated',
+            sub?.disableDeletion && 'this territory has deletion disabled'
+          ].filter(Boolean).join(' and ')}
         />
         <div>
           {postButtons}
@@ -177,7 +180,10 @@ export default function Post ({ sub }) {
             size='medium'
             label='territory'
             info={sub && <TerritoryInfo sub={sub} includeLink />}
-            hint={sub?.moderated && 'this territory is moderated'}
+            hint={[
+              sub?.moderated && 'this territory is moderated',
+              sub?.disableDeletion && 'this territory has deletion disabled'
+            ].filter(Boolean).join(' and ')}
           />}
       </PostForm>
     </>

@@ -3,7 +3,6 @@ import { extractUrls } from '@/lib/md'
 import { isJob } from '@/lib/item'
 import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
-import { fetchWithTimeout } from '@/lib/fetch'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
@@ -15,6 +14,7 @@ if (!imgProxyEnabled) {
 const IMGPROXY_URL = process.env.IMGPROXY_URL_DOCKER || process.env.NEXT_PUBLIC_IMGPROXY_URL
 const IMGPROXY_SALT = process.env.IMGPROXY_SALT
 const IMGPROXY_KEY = process.env.IMGPROXY_KEY
+const MEDIA_CHECK_URL = process.env.MEDIA_CHECK_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_CHECK_URL
 
 const cache = new Map()
 
@@ -144,30 +144,13 @@ const isMediaURL = async (url, { forceFetch }) => {
     return false
   }
 
-  let isMedia
-
-  // first run HEAD with small timeout
+  let isMedia = false
   try {
-    // https://stackoverflow.com/a/68118683
-    const res = await fetchWithTimeout(url, { timeout: 1000, method: 'HEAD' })
-    const buf = await res.blob()
-    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
-  } catch (err) {
-    console.log(url, err)
-  }
+    const res = await fetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
+    if (!res.ok) return false
 
-  // For HEAD requests, positives are most likely true positives.
-  // However, negatives may be false negatives
-  if (isMedia) {
-    cache.set(url, true)
-    return true
-  }
-
-  // if not known yet, run GET request with longer timeout
-  try {
-    const res = await fetchWithTimeout(url, { timeout: 10000 })
-    const buf = await res.blob()
-    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
+    const data = await res.json()
+    isMedia = data.isImage || data.isVideo
   } catch (err) {
     console.log(url, err)
   }

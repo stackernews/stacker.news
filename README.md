@@ -144,7 +144,7 @@ COMPOSE_PROFILES=minimal
 To run with images and payments services:
 
 ```.env
-COMPOSE_PROFILES=images,payments
+COMPOSE_PROFILES=images,capture,payments
 ```
 
 #### Merging compose files

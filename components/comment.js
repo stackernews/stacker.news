@@ -28,6 +28,8 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import { useShowModal } from './modal'
+import { CancelWorkConfirm } from './confirm-modal'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -100,6 +102,7 @@ export default function Comment ({
   rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
   navigator
 }) {
+  const showModal = useShowModal()
   const [edit, setEdit] = useState()
   const { me } = useMe()
   const isHiddenFreebie = me?.privates?.satsFilter !== 0 && !item.mine && item.freebie && !item.freedFreebie
@@ -246,7 +249,26 @@ export default function Comment ({
                     </>
                   }
                   edit={edit}
-                  toggleEdit={e => { setEdit(!edit) }}
+                  toggleEdit={e => {
+                    if (edit) {
+                      const editText = window.localStorage.getItem(`comment-edit-${item.id}-text`)
+                      if (editText?.trim() && editText.trim() !== item.text.trim()) {
+                        showModal(onClose => (
+                          <CancelWorkConfirm
+                            onConfirm={() => {
+                              window.localStorage.removeItem(`comment-edit-${item.id}-text`)
+                              setEdit(false)
+                            }}
+                            onClose={onClose}
+                          />
+                        ))
+                      } else {
+                        setEdit(false)
+                      }
+                    } else {
+                      setEdit(true)
+                    }
+                  }}
                   editText={edit ? 'cancel' : 'edit'}
                 />}
 

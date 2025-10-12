@@ -2,7 +2,7 @@ import styles from './text.module.css'
 import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useMe } from './me'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
 import classNames from 'classnames'
 import { useCarousel } from './carousel'
 
@@ -135,7 +135,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
 
     const checkMedia = async () => {
       try {
-        const res = await fetch(`/api/media/${encodeURIComponent(src)}`, { signal: controller.signal })
+        const res = await fetch(`${PUBLIC_MEDIA_CHECK_URL}/${encodeURIComponent(src)}`, { signal: controller.signal })
         if (!res.ok) return
 
         const data = await res.json()

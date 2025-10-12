@@ -3,7 +3,6 @@ import { extractUrls } from '@/lib/md'
 import { isJob } from '@/lib/item'
 import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
-import { tasteMediaUrl } from '@/lib/media'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
@@ -15,6 +14,7 @@ if (!imgProxyEnabled) {
 const IMGPROXY_URL = process.env.IMGPROXY_URL_DOCKER || process.env.NEXT_PUBLIC_IMGPROXY_URL
 const IMGPROXY_SALT = process.env.IMGPROXY_SALT
 const IMGPROXY_KEY = process.env.IMGPROXY_KEY
+const MEDIA_CHECK_URL = process.env.MEDIA_CHECK_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_CHECK_URL
 
 const cache = new Map()
 
@@ -146,11 +146,24 @@ const isMediaURL = async (url, { forceFetch }) => {
 
   let isMedia = false
 
+  let aborted = false
+  const controller = new AbortController()
+
   try {
-    const { isImage, isVideo } = await tasteMediaUrl(url)
-    isMedia = isImage || isVideo
+    const res = await fetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`, { signal: controller.signal })
+    if (!res.ok) return false
+
+    const data = await res.json()
+
+    if (aborted) return false
+
+    isMedia = data.isImage || data.isVideo
   } catch (err) {
+    if (aborted) return false
     console.log(url, err)
+  } finally {
+    aborted = true
+    try { controller.abort() } catch {}
   }
 
   cache.set(url, isMedia)

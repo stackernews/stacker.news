@@ -56,7 +56,6 @@
     "isomorphic-ws": "^5.0.0",
     "ln-service": "^57.22.0",
     "macaroon": "^3.0.4",
-    "magic-bytes.js": "^1.12.1",
     "mathjs": "^13.2.0",
     "mdast-util-find-and-replace": "^3.0.1",
     "mdast-util-from-markdown": "^2.0.1",

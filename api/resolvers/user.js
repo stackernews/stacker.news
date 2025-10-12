@@ -136,6 +136,28 @@ export default {
       if (id) id = Number(id)
       return await models.user.findUnique({ where: { id, name } })
     },
+    userByMention: async (parent, { name, itemId }, { models }) => {
+      let user = null
+      if (itemId) {
+        const mentions = await models.mention.findMany({
+          where: {
+            itemId: Number(itemId)
+          },
+          include: {
+            user: true,
+            item: true
+          }
+        })
+        const matchingMention = mentions.find(mention => mention.user?.name === name)
+        if (matchingMention) {
+          user = matchingMention.user
+        }
+      }
+      if (!user) {
+        user = await models.user.findUnique({ where: { name } })
+      }
+      return user
+    },
     users: async (parent, args, { models }) =>
       await models.user.findMany(),
     nameAvailable: async (parent, { name }, { models, me }) => {

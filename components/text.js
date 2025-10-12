@@ -130,7 +130,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     table: Table,
     p: P,
     code: Code,
-    mention: Mention,
+    mention: (props) => <Mention {...props} itemId={itemId} />,
     sub: Sub,
     item: Item,
     footnote: Footnote,
@@ -147,7 +147,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     },
     img: TextMediaOrLink,
     embed: (props) => <Embed {...props} topLevel={topLevel} />
-  }), [outlawed, rel, TextMediaOrLink, topLevel])
+  }), [outlawed, rel, TextMediaOrLink, topLevel, itemId])
 
   const carousel = useCarousel()
 
@@ -192,15 +192,17 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
   )
 }, isEqual)
 
-function Mention ({ children, node, href, name, id }) {
+function Mention ({ children, node, href, name, id, itemId }) {
   return (
-    <UserPopover name={name}>
-      <Link
-        id={id}
-        href={href}
-      >
-        {children}
-      </Link>
+    <UserPopover name={name} itemId={itemId}>
+      {({ user }) => (
+        <Link
+          id={id}
+          href={user ? `/${user.name}` : href}
+        >
+          {children}
+        </Link>
+      )}
     </UserPopover>
   )
 }

@@ -140,6 +140,11 @@
   /* border-top: 0px; */
 }
 
+.editorInput:focus-within {
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
+}
+
 .editorInput {
   min-height: 120px;
   resize: vertical;
@@ -179,9 +184,11 @@
 .toolbar {
   display: flex;
   align-items: center;
-  padding-bottom: 4px;
   vertical-align: middle;
   flex-wrap: wrap;
+  padding-bottom: 4px;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 .toolbar .divider {
@@ -216,6 +223,8 @@
   border-radius: 0.4rem;
   vertical-align: -.25em;
   opacity: 0.6;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 .toolbarItem:hover {
@@ -249,6 +258,7 @@
   border-radius: 0.4rem;
   vertical-align: -.25em;
   opacity: 0.6;
+  padding: 0.25rem;
 }
 
 .toolbarInsert:hover {
@@ -263,8 +273,8 @@
 
 .toolbarInsert svg {
   fill: var(--bs-body-color) !important;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 
 .modeStatus {
@@ -377,4 +387,21 @@
   gap: 4px;
   color: var(--theme-brandColor);
   filter: drop-shadow(0 0 6px var(--bs-primary));
+}
+
+.floatingToolbarContainer {
+  position: absolute;
+  background-color: var(--theme-inputBg);
+  border-radius: 0.4rem;
+  z-index: 1000;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.8);
+  transition: opacity 0.2s ease-in-out;
+}
+
+.floatingToolbar {
+  border-radius: 0.4rem;
+  background-color: var(--theme-commentBg);
+  padding-top: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
 }

@@ -490,7 +490,7 @@ select:focus {
 }
 
 
-div[contenteditable]:focus,
+div[contenteditable]:not([data-lexical-editor]):focus,
 .form-control:focus {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -980,6 +980,21 @@ div[contenteditable]:focus,
   .tooltip {
     visibility: hidden;
     pointer-events: none;
+  }
+}
+
+.fade.tooltip {
+  opacity: 1;
+  visibility: visible;
+  animation: fadeIn 0.15s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

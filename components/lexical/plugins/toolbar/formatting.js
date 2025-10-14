@@ -5,11 +5,12 @@ import { $isHeadingNode } from '@lexical/rich-text'
 import { $isCodeNode } from '@lexical/code'
 import { normalizeCodeLanguage } from '@lexical/code-shiki'
 import { ListNode } from '@lexical/list'
-import Link from '@/svgs/link.svg'
+import Link from '@/svgs/lexical/link.svg'
+import LinkUnlink from '@/svgs/lexical/link-unlink.svg'
 import More from '@/svgs/lexical/font-size.svg'
 import styles from '@/components/lexical/theme/theme.module.css'
 import Dropdown from 'react-bootstrap/Dropdown'
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import classNames from 'classnames'
 import { useToolbarState } from '../../contexts/toolbar'
 import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard'
@@ -21,34 +22,38 @@ import { SN_FORMAT_ELEMENT_COMMAND } from '@/components/lexical/universal/comman
 import { BLOCK_OPTIONS, FORMAT_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS, INDENT_OPTIONS } from './defs/formatting'
 import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
+import ActionTooltip from '@/components/action-tooltip'
 
 function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const blockOption = BLOCK_OPTIONS.find(option => option.action === toolbarState.blockType)
   return (
-    <Dropdown className='pointer' as='span'>
-      <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
-        {blockOption?.icon || <More />}
-        <ArrowDownIcon />
-      </Dropdown.Toggle>
-      <Dropdown.Menu className={styles.dropdownExtra}>
-        {BLOCK_OPTIONS.map((option) => (
-          <Dropdown.Item
-            key={option.action}
-            title={`${option.name} (${getShortcutCombo(option.action)})`}
-            onClick={() => handleBlock(option.action)}
-            className={classNames(styles.dropdownExtraItem, toolbarState.blockType === option.action ? styles.active : '')}
-          >
-            <span className={styles.dropdownExtraItemLabel}>
-              {option.icon}
-              <span className={styles.dropdownExtraItemText}>{option.name}</span>
-            </span>
-            <span className={styles.dropdownExtraItemShortcut}>
-              {getShortcutCombo(option.action)}
-            </span>
-          </Dropdown.Item>
-        ))}
-      </Dropdown.Menu>
-    </Dropdown>
+    <ActionTooltip notForm overlayText={<>block options <strong>{toolbarState.blockType}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
+      <Dropdown className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
+        <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem)}>
+          {blockOption?.icon || <More />}
+          <ArrowDownIcon />
+        </Dropdown.Toggle>
+        <Dropdown.Menu className={styles.dropdownExtra}>
+          {BLOCK_OPTIONS.map((option) => (
+            <Dropdown.Item
+              key={option.action}
+              title={`${option.name} (${getShortcutCombo(option.action)})`}
+              onClick={() => handleBlock(option.action)}
+              className={classNames(styles.dropdownExtraItem, toolbarState.blockType === option.action ? styles.active : '')}
+            >
+              <span className={styles.dropdownExtraItemLabel}>
+                {option.icon}
+                <span className={styles.dropdownExtraItemText}>{option.name}</span>
+              </span>
+              <span className={styles.dropdownExtraItemShortcut}>
+                {getShortcutCombo(option.action)}
+              </span>
+            </Dropdown.Item>
+          ))}
+        </Dropdown.Menu>
+      </Dropdown>
+    </ActionTooltip>
   )
 }
 
@@ -70,91 +75,100 @@ function getFormatToolbarState (toolbarState, format) {
 function InlineFormattingOptions ({ toolbarState, handleFormat }) {
   return (
     FORMAT_OPTIONS.map((option) => (
-      <span
-        key={option.action}
-        title={`${option.name} (${getShortcutCombo(option.action)})`}
-        className={classNames(styles.toolbarItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
-        style={option.style}
-        onClick={() => handleFormat(option.action)}
-      >
-        {option.icon}
-      </span>
+      <ActionTooltip notForm overlayText={`${option.name} (${getShortcutCombo(option.action)})`} placement='top' noWrapper key={option.action} showDelay={500} transition>
+        <span
+          title={`${option.name} (${getShortcutCombo(option.action)})`}
+          className={classNames(styles.toolbarItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
+          style={option.style}
+          onClick={() => handleFormat(option.action)}
+        >
+          {option.icon}
+        </span>
+      </ActionTooltip>
     ))
   )
 }
 
 function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+
   return (
-    <Dropdown className='pointer' as='span'>
-      <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
-        <More />
-        <ArrowDownIcon />
-      </Dropdown.Toggle>
-      <Dropdown.Menu className={styles.dropdownExtra}>
-        {ADDITIONAL_FORMAT_OPTIONS.map((option) => (
-          <Dropdown.Item
-            key={option.action}
-            title={`${option.name} (${getShortcutCombo(option.action)})`}
-            onClick={() => handleFormat(option.action)}
-            className={classNames(styles.dropdownExtraItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
-          >
-            <span className={styles.dropdownExtraItemLabel}>
-              {option.icon}
-              <span className={styles.dropdownExtraItemText}>{option.name}</span>
-            </span>
-            <span className={styles.dropdownExtraItemShortcut}>
-              {getShortcutCombo(option.action)}
-            </span>
-          </Dropdown.Item>
-        ))}
-      </Dropdown.Menu>
-    </Dropdown>
+    <ActionTooltip notForm overlayText={<>additional formatting options</>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
+      <Dropdown className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
+        <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem)}>
+          <More />
+          <ArrowDownIcon />
+        </Dropdown.Toggle>
+        <Dropdown.Menu className={styles.dropdownExtra}>
+          {ADDITIONAL_FORMAT_OPTIONS.map((option) => (
+            <Dropdown.Item
+              key={option.action}
+              title={`${option.name} (${getShortcutCombo(option.action)})`}
+              onClick={() => handleFormat(option.action)}
+              className={classNames(styles.dropdownExtraItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
+            >
+              <span className={styles.dropdownExtraItemLabel}>
+                {option.icon}
+                <span className={styles.dropdownExtraItemText}>{option.name}</span>
+              </span>
+              <span className={styles.dropdownExtraItemShortcut}>
+                {getShortcutCombo(option.action)}
+              </span>
+            </Dropdown.Item>
+          ))}
+        </Dropdown.Menu>
+      </Dropdown>
+    </ActionTooltip>
   )
 }
 
 function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+
   return (
-    <Dropdown className='pointer' as='span'>
-      <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarItem}>
-        {/* a mess, clean this up */}
-        {ALIGN_OPTIONS.find(option => option.action === toolbarState.elementFormat)?.icon || <AlignLeftIcon />}
-        <ArrowDownIcon />
-      </Dropdown.Toggle>
-      <Dropdown.Menu className={styles.dropdownExtra}>
-        {ALIGN_OPTIONS.map((option) => (
-          <Dropdown.Item
-            key={option.action}
-            title={`${option.name} (${getShortcutCombo(option.action)})`}
-            onClick={() => handleAlign(option.action)}
-            className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === option.action ? styles.active : '')}
-          >
-            <span className={styles.dropdownExtraItemLabel}>
-              {option.icon}
-              <span className={styles.dropdownExtraItemText}>{option.name}</span>
-            </span>
-            <span className={styles.dropdownExtraItemShortcut}>
-              {getShortcutCombo(option.action)}
-            </span>
-          </Dropdown.Item>
-        ))}
-        {INDENT_OPTIONS.map((option) => (
-          <Dropdown.Item
-            key={option.action}
-            title={`${option.name} (${getShortcutCombo(option.action)})`}
-            onClick={() => handleIndent(option.action)}
-            className={styles.dropdownExtraItem}
-          >
-            <span className={styles.dropdownExtraItemLabel}>
-              {option.icon}
-              <span className={styles.dropdownExtraItemText}>{option.name}</span>
-            </span>
-            <span className={styles.dropdownExtraItemShortcut}>
-              {getShortcutCombo(option.action)}
-            </span>
-          </Dropdown.Item>
-        ))}
-      </Dropdown.Menu>
-    </Dropdown>
+    <ActionTooltip notForm overlayText={<>align options <strong>{toolbarState.elementFormat || 'left'}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
+      <Dropdown className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
+        <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem)}>
+          {/* a mess, clean this up */}
+          {ALIGN_OPTIONS.find(option => option.action === toolbarState.elementFormat)?.icon || <AlignLeftIcon />}
+          <ArrowDownIcon />
+        </Dropdown.Toggle>
+        <Dropdown.Menu className={styles.dropdownExtra}>
+          {ALIGN_OPTIONS.map((option) => (
+            <Dropdown.Item
+              key={option.action}
+              title={`${option.name} (${getShortcutCombo(option.action)})`}
+              onClick={() => handleAlign(option.action)}
+              className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === option.action ? styles.active : '')}
+            >
+              <span className={styles.dropdownExtraItemLabel}>
+                {option.icon}
+                <span className={styles.dropdownExtraItemText}>{option.name}</span>
+              </span>
+              <span className={styles.dropdownExtraItemShortcut}>
+                {getShortcutCombo(option.action)}
+              </span>
+            </Dropdown.Item>
+          ))}
+          {INDENT_OPTIONS.map((option) => (
+            <Dropdown.Item
+              key={option.action}
+              title={`${option.name} (${getShortcutCombo(option.action)})`}
+              onClick={() => handleIndent(option.action)}
+              className={styles.dropdownExtraItem}
+            >
+              <span className={styles.dropdownExtraItemLabel}>
+                {option.icon}
+                <span className={styles.dropdownExtraItemText}>{option.name}</span>
+              </span>
+              <span className={styles.dropdownExtraItemShortcut}>
+                {getShortcutCombo(option.action)}
+              </span>
+            </Dropdown.Item>
+          ))}
+        </Dropdown.Menu>
+      </Dropdown>
+    </ActionTooltip>
   )
 }
 
@@ -173,7 +187,7 @@ function $findTopLevelElement (node) {
   return topLevelElement
 }
 
-export default function FormattingTools () {
+export default function FormattingTools ({ isFloating }) {
   const [editor] = useLexicalComposerContext()
   const { toolbarState, batchUpdateToolbarState } = useToolbarState()
 
@@ -280,23 +294,42 @@ export default function FormattingTools () {
     )
   }, [editor, $updateToolbar])
 
-  return (
-    <div className={styles.toolbarFormatting}>
-      <BlockOptionsDropdown toolbarState={toolbarState} handleBlock={handleBlock} />
-      <span className={styles.divider} />
-      <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} />
-      <span className={styles.divider} />
-      <span
-        title={'link (' + getShortcutCombo('link') + ')'}
-        className={classNames(styles.toolbarItem, toolbarState.isLink ? styles.active : '')}
-        onClick={handleLink}
-      >
-        <Link />
-      </span>
-      <span className={styles.divider} />
-      <AdditionalFormattingOptionsDropdown toolbarState={toolbarState} handleFormat={handleFormat} />
-      <span className={styles.divider} />
-      <AlignOptionsDropdown toolbarState={toolbarState} handleAlign={handleAlign} handleIndent={handleIndent} />
-    </div>
-  )
+  return isFloating
+    ? (
+      <div className={styles.toolbarFormatting}>
+        <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} />
+        <span className={classNames(styles.divider)} />
+        <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition>
+          <span
+            title={'link (' + getShortcutCombo('link') + ')'}
+            className={classNames(styles.toolbarItem, toolbarState.isLink ? styles.active : '')}
+            onClick={handleLink}
+          >
+            {toolbarState.isLink ? <LinkUnlink /> : <Link />}
+          </span>
+        </ActionTooltip>
+      </div>
+      )
+    : (
+      <div className={styles.toolbarFormatting}>
+        <BlockOptionsDropdown toolbarState={toolbarState} handleBlock={handleBlock} />
+        <span className={classNames(styles.divider)} />
+        <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} />
+        <span className={classNames(styles.divider)} />
+        <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition>
+          <span
+            title={'link (' + getShortcutCombo('link') + ')'}
+            className={classNames(styles.toolbarItem, toolbarState.isLink ? styles.active : '')}
+            onClick={handleLink}
+          >
+            {toolbarState.isLink ? <LinkUnlink /> : <Link />}
+          </span>
+        </ActionTooltip>
+
+        <span className={classNames(styles.divider)} />
+        <AdditionalFormattingOptionsDropdown toolbarState={toolbarState} handleFormat={handleFormat} />
+        <span className={classNames(styles.divider)} />
+        <AlignOptionsDropdown toolbarState={toolbarState} handleAlign={handleAlign} handleIndent={handleIndent} />
+      </div>
+      )
 }

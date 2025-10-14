@@ -27,6 +27,7 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
 import { LexicalEditorProviders } from '@/components/lexical/providers'
+import FloatingToolbarPlugin from '../plugins/toolbar/floating/floatingtoolbar'
 
 export default function Editor ({ ...props }) {
   const { values } = useFormikContext()
@@ -74,17 +75,19 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
       {/* TODO: Toolbar context */}
       <div className={styles.editorContainer}>
         <ToolbarPlugin anchorElem={floatingAnchorElem} />
-        <RichTextPlugin
-          contentEditable={
-            <div className={styles.editor} ref={onRef}>
-              <ContentEditable
-                className={classNames(styles.editorInput, styles.text, topLevel && styles.topLevel)}
-                placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
-              />
-            </div>
-          }
-          ErrorBoundary={LexicalErrorBoundary}
-        />
+        <div className={styles.editorInnerContainer}>
+          <RichTextPlugin
+            contentEditable={
+              <div className={styles.editor} ref={onRef}>
+                <ContentEditable
+                  className={classNames(styles.editorInput, styles.text, topLevel && styles.topLevel)}
+                  placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
+                />
+              </div>
+            }
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+        </div>
         {/* shared history across editor and nested editors */}
         <HistoryPlugin externalHistoryState={historyState} />
         {autoFocus && <AutoFocusPlugin />}
@@ -107,6 +110,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         <ShortcutsPlugin />
         {/* tools */}
         <FileUploadPlugin />
+        <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
         <FormikBridgePlugin name={name} />
       </div>

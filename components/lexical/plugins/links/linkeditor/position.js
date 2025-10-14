@@ -1,8 +1,9 @@
-export function setFloatingElemPositionForLinkEditor (targetRect, floatingElem, anchorElem, verticalGap = 10, horizontalOffset = 5) {
+export function setFloatingElemPosition ({ targetRect, floatingElem, anchorElem, verticalGap = 10, horizontalOffset = 5, fade = true }) {
   const scrollerElem = anchorElem.parentElement
 
   if (targetRect === null || !scrollerElem) {
-    floatingElem.style.display = 'none'
+    floatingElem.style.opacity = '0'
+    floatingElem.style.visibility = 'hidden'
     return
   }
 
@@ -24,6 +25,14 @@ export function setFloatingElemPositionForLinkEditor (targetRect, floatingElem, 
   top -= anchorElemRect.top
   left -= anchorElemRect.left
 
-  floatingElem.style.display = 'block'
-  floatingElem.style.transform = `translate(${left}px, ${top}px)`
+  // fade out before repositioning
+  if (fade) {
+    floatingElem.style.opacity = '0'
+  }
+
+  setTimeout(() => {
+    floatingElem.style.visibility = 'visible'
+    floatingElem.style.transform = `translate(${left}px, ${top}px)`
+    floatingElem.style.opacity = '1'
+  }, fade ? 200 : 0)
 }

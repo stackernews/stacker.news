@@ -2,7 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import styles from './linkeditor.module.css'
-import { setFloatingElemPositionForLinkEditor } from '@/components/lexical/plugins/links/linkeditor/position'
+import { setFloatingElemPosition } from '@/components/lexical/plugins/links/linkeditor/position'
 import Link from 'next/link'
 import { ensureProtocol } from '@/lib/url'
 import Check from '@/svgs/check-line.svg'
@@ -32,7 +32,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
   }
 
   const $handleCancel = () => {
-    setFloatingElemPositionForLinkEditor(null, floatingRef.current, anchorElem)
+    setFloatingElemPosition({ targetRect: null, floatingElem: floatingRef.current, anchorElem, fade: false })
     setIsLinkEditMode(false)
     if (linkUrl === '') {
       editor.update(() => {
@@ -87,7 +87,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
 
       const floatingElem = floatingRef.current
       if (floatingElem && anchorElem) {
-        setFloatingElemPositionForLinkEditor(null, floatingElem, anchorElem)
+        setFloatingElemPosition({ targetRect: null, floatingElem, anchorElem, fade: false })
       }
       return
     }
@@ -104,17 +104,17 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     const floatingElem = floatingRef.current
     if (!floatingElem || !anchorElem) return
     if (!nodeKey) {
-      setFloatingElemPositionForLinkEditor(null, floatingElem, anchorElem)
+      setFloatingElemPosition({ targetRect: null, floatingElem, anchorElem, fade: false })
       return
     }
     const el = editor.getElementByKey(nodeKey)
     if (!el) {
-      setFloatingElemPositionForLinkEditor(null, floatingElem, anchorElem)
+      setFloatingElemPosition({ targetRect: null, floatingElem, anchorElem, fade: false })
       return
     }
     const pos = el.getBoundingClientRect()
     pos.y += 26
-    setFloatingElemPositionForLinkEditor(pos, floatingElem, anchorElem, 8, 0)
+    setFloatingElemPosition({ targetRect: pos, floatingElem, anchorElem, verticalGap: 8, horizontalOffset: 0, fade: false })
   }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl, nodeKey])
 
   const handleBlur = useCallback((event) => {

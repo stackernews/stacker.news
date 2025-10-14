@@ -276,7 +276,8 @@ function Code ({ node, inline, className, children, style, ...props }) {
         loading: () => <CodeSkeleton className={className} {...props}>{children}</CodeSkeleton>
       }),
       import('react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark').then(mod => mod.default)
-    ]), [className, props, children]
+    // className is necessary to re-compute language
+    ]), [className]
   )
 
   useEffect(() => {

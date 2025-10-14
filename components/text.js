@@ -263,7 +263,12 @@ function CodeSkeleton ({ className, children, ...props }) {
 function Code ({ node, inline, className, children, style, ...props }) {
   const [ReactSyntaxHighlighter, setReactSyntaxHighlighter] = useState(null)
   const [syntaxTheme, setSyntaxTheme] = useState(null)
-  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
+  // avoid re-computing language when className doesn't change
+  const language = useMemo(
+    () => className?.match(/language-(\w+)/)?.[1] || 'text',
+    [className]
+  )
+  const loadHighlighterRef = useRef(null)
 
   const loadHighlighter = useCallback(() =>
     Promise.all([
@@ -276,14 +281,15 @@ function Code ({ node, inline, className, children, style, ...props }) {
   )
 
   useEffect(() => {
-    if (!inline && language !== 'math') { // MathJax should handle math
-      // loading the syntax highlighter and theme only when needed
-      loadHighlighter().then(([highlighter, theme]) => {
-        setReactSyntaxHighlighter(() => highlighter)
-        setSyntaxTheme(() => theme)
-      })
-    }
-  }, [inline])
+    if (inline || language === 'math') return // MathJax should handle math
+    // persist highlighter loading promise across renders
+    if (!loadHighlighterRef.current) loadHighlighterRef.current = loadHighlighter()
+    // load the syntax highlighter and theme only when needed
+    loadHighlighterRef.current.then(([Highlighter, theme]) => {
+      setReactSyntaxHighlighter(() => Highlighter)
+      setSyntaxTheme(() => theme)
+    })
+  }, [inline, language, loadHighlighter])
 
   if (inline || !ReactSyntaxHighlighter) { // inline code doesn't have a border radius
     return (

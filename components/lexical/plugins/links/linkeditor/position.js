@@ -10,7 +10,6 @@ function applyFloatingElementPosition ({ floatingElem, anchorElem, top, left, fa
   }
 
   setTimeout(() => {
-    floatingElem.style.visibility = 'visible'
     floatingElem.style.transform = `translate(${left}px, ${top}px)`
     floatingElem.style.opacity = '1'
   }, fade ? 200 : 0)
@@ -18,7 +17,7 @@ function applyFloatingElementPosition ({ floatingElem, anchorElem, top, left, fa
 
 function hideFloatingElement (floatingElem) {
   floatingElem.style.opacity = '0'
-  floatingElem.style.visibility = 'hidden'
+  floatingElem.style.transform = 'translate(-10000px, -10000px)'
 }
 
 function getPositioningRects ({ floatingElem, anchorElem, targetRect }) {
@@ -97,7 +96,7 @@ export function setFloatingToolbarPosition ({ targetRect, floatingElem, anchorEl
     top +=
       floatingElemRect.height +
       targetRect.height +
-      verticalGap * (isLink ? 3 : 2)
+      verticalGap * (isLink ? 4 : 2)
   }
 
   if (left + floatingElemRect.width > editorScrollerRect.right) {

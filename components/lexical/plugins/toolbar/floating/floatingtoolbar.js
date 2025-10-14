@@ -83,7 +83,8 @@ export function FloatingToolbar ({ editor, anchorElem }) {
         targetRect: rangeRect,
         floatingElem: toolbarElem,
         anchorElem,
-        isLink: toolbarState.isLink
+        isLink: toolbarState.isLink,
+        fade: false
       })
     }
   }, [editor, anchorElem, toolbarState.isLink])

@@ -39,7 +39,7 @@ import { useShowModal } from './modal'
 import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
-import SNLexical from '@/components/lexical'
+import { LexicalEditor } from '@/components/lexical'
 import { WalletPromptClosed } from '@/wallets/client/hooks'
 
 export class SessionRequiredError extends Error {
@@ -307,10 +307,11 @@ export function DualAutocompleteWrapper ({
   )
 }
 
-export function LexicalInput ({ label, topLevel, groupClassName, onChange, onKeyDown, ...props }) {
+export function LexicalInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
+  innerRef = innerRef || useRef(null)
   return (
     <FormGroup label={label} className={groupClassName}>
-      <SNLexical name={props.name} topLevel={topLevel} onChange={onChange} onKeyDown={onKeyDown} {...props} />
+      <LexicalEditor name={props.name} topLevel={topLevel} onChange={onChange} onKeyDown={onKeyDown} ref={innerRef} {...props} />
     </FormGroup>
   )
 }

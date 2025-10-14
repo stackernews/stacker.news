@@ -7,12 +7,20 @@ import theme from '../theme'
 import CodeShikiPlugin from '../plugins/code'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { forwardRef } from 'react'
+import classNames from 'classnames'
 
-export default forwardRef(function Reader ({ lexicalState, customNodes = [], topLevel, className, children }, ref) {
+export default forwardRef(function Reader ({ lexicalState, customNodes = [], topLevel, className, children, contentRef }, ref) {
   const initial = {
     editorState: (editor) => {
-      const state = editor.parseEditorState(lexicalState)
-      editor.setEditorState(state)
+      if (!lexicalState) return
+      try {
+        const state = editor.parseEditorState(lexicalState)
+        if (!state.isEmpty()) {
+          editor.setEditorState(state)
+        }
+      } catch (error) {
+        console.error('cant load initial state:', error)
+      }
     },
     namespace: 'SNReader',
     editable: false,
@@ -30,8 +38,8 @@ export default forwardRef(function Reader ({ lexicalState, customNodes = [], top
     <LexicalComposer initialConfig={initial}>
       <RichTextPlugin
         contentEditable={
-          <div className={styles.editor}>
-            <ContentEditable className={className} ref={ref} />
+          <div className={classNames(styles.editor, className)} ref={contentRef}>
+            <ContentEditable />
             {children}
           </div>
         }

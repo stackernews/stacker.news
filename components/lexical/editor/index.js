@@ -37,9 +37,14 @@ export default function Editor ({ ...props }) {
       name: '[root]',
       namespace: 'SNEditor',
       $initialEditorState: (editor) => {
-        if (values.lexicalState) {
+        if (!values.lexicalState) return
+        try {
           const state = editor.parseEditorState(values.lexicalState)
-          editor.setEditorState(state)
+          if (!state.isEmpty()) {
+            editor.setEditorState(state)
+          }
+        } catch (error) {
+          console.error('cant load initial state:', error)
         }
       },
       nodes: DefaultNodes,

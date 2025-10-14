@@ -22,8 +22,7 @@ import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
 import remarkToc from '@/lib/remark-toc'
-import SNLexical from '@/components/lexical'
-import { useIsClient } from '@/components/use-client'
+import { LexicalReader } from '@/components/lexical'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -55,7 +54,7 @@ export function SearchText ({ text }) {
   )
 }
 
-function useOverflow ({ containerRef }) {
+function useOverflow ({ element }) {
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?
@@ -64,26 +63,28 @@ function useOverflow ({ containerRef }) {
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
-    const container = containerRef.current
-    if (!container || overflowing) return
+    if (!element) return
+
+    const node = 'current' in element ? element.current : element
+    if (!node || !(node instanceof window.Element)) return
 
     function checkOverflow () {
-      setOverflowing(container.scrollHeight > window.innerHeight * 2)
+      setOverflowing(node.scrollHeight > window.innerHeight * 2)
     }
 
     let resizeObserver
-    if (!overflowing && 'ResizeObserver' in window) {
-      resizeObserver = new window.ResizeObserver(checkOverflow).observe(container)
+    if ('ResizeObserver' in window) {
+      resizeObserver = new window.ResizeObserver(checkOverflow)
+      resizeObserver.observe(node)
     }
 
     window.addEventListener('resize', checkOverflow)
     checkOverflow()
-
     return () => {
       window.removeEventListener('resize', checkOverflow)
       resizeObserver?.disconnect()
     }
-  }, [containerRef.current, setOverflowing])
+  }, [element, setOverflowing])
 
   const Overflow = useMemo(() => {
     if (overflowing && !show) {
@@ -108,10 +109,8 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
   // TODO: add support for imgproxyUrls
   // TODO: disable links if outlawed
   // TODO: what about MathNodes?
-  const router = useRouter() // debug html rendering mode
-  const isClient = useIsClient() // html is the SSR placeholder for the Lexical Reader
-  const containerRef = useRef(null)
-  const { overflowing, show, Overflow } = useOverflow({ containerRef })
+  const [element, setElement] = useState(null)
+  const { overflowing, show, Overflow } = useOverflow({ element })
 
   const textClassNames = useMemo(() => {
     return classNames(
@@ -123,21 +122,9 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
 
   return (
     <div>
-      {!html.startsWith('error') && (router.query.html === 'true' || !isClient)
-        // html is a 1:1 DOMPurified copy of the lexicalState without React components
-        // its job right now is to avoid the initial render delay of the LexicalReader
-        // which is client-side only, this also ensures SEO compatibility
-        ? (
-          <div className={textClassNames} ref={containerRef}>
-            <div className={lexicalStyles.html} dangerouslySetInnerHTML={{ __html: html }} />
-            {Overflow}
-          </div>
-          )
-        : (
-          <SNLexical reader className={textClassNames} ref={containerRef} lexicalState={lexicalState} topLevel={topLevel}>
-            {Overflow}
-          </SNLexical>
-          )}
+      <LexicalReader className={textClassNames} ref={setElement} lexicalState={lexicalState} topLevel={topLevel} html={html}>
+        {Overflow}
+      </LexicalReader>
     </div>
   )
 }
@@ -150,7 +137,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
 
   const router = useRouter()
   const [mathJaxPlugin, setMathJaxPlugin] = useState(null)
-  const { overflowing, show, setShow, Overflow } = useOverflow({ containerRef })
+  const { overflowing, show, setShow, Overflow } = useOverflow({ element: containerRef })
 
   // we only need mathjax if there's math content between $$ tags
   useEffect(() => {

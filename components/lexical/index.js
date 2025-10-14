@@ -1,7 +1,7 @@
-import { LexicalPreferencesContextProvider } from '@/components/lexical/contexts/preferences'
 import dynamic from 'next/dynamic'
 import styles from './theme/theme.module.css'
 import classNames from 'classnames'
+import { forwardRef, useMemo } from 'react'
 
 // messy way to show a skeleton while the editor is loading
 const EditorSkeleton = () => {
@@ -26,17 +26,32 @@ const EditorSkeleton = () => {
   )
 }
 
-const Editor = dynamic(() => import('@/components/lexical/editor'), { ssr: false, loading: EditorSkeleton })
-// maybe the reader can use the HTML as a skeleton, instead of relying on useEffect
-const Reader = dynamic(() => import('@/components/lexical/reader'), { ssr: false })
-
 // lexical starting point, can be a reader or an editor
-export default function SNLexical ({ reader = false, ...props }) {
+export const LexicalEditor = forwardRef(function LexicalEditor ({ ...props }, ref) {
+  const Editor = dynamic(() => import('@/components/lexical/editor'), { ssr: false, loading: EditorSkeleton })
   return (
-    <LexicalPreferencesContextProvider>
-      {reader
-        ? <Reader {...props} />
-        : <Editor {...props} />}
-    </LexicalPreferencesContextProvider>
+    <Editor {...props} ref={ref} />
   )
-}
+})
+
+export const LexicalReader = forwardRef(function LexicalReader ({ html, children, ...props }, ref) {
+  const Reader = useMemo(() => dynamic(() => import('@/components/lexical/reader'), {
+    ssr: false,
+    loading: () => {
+      if (html) {
+        return (
+          <div className={props.className} ref={ref}>
+            <div className={styles.html} dangerouslySetInnerHTML={{ __html: html }} />
+            {children}
+          </div>
+        )
+      }
+      return null
+    }
+  }), [])
+  return (
+    <Reader {...props} contentRef={ref}>
+      {children}
+    </Reader>
+  )
+})

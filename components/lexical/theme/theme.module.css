@@ -396,6 +396,8 @@
   top: 0;
   left: 0;
   z-index: 1000;
+  opacity: 0;
+  transform: translate(-10000px, -10000px);
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.8);
   transition: opacity 0.2s ease-in-out;
   will-change: transform;

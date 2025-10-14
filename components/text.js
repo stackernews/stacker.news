@@ -268,7 +268,6 @@ function Code ({ node, inline, className, children, style, ...props }) {
     () => className?.match(/language-(\w+)/)?.[1] || 'text',
     [className]
   )
-  const loadHighlighterRef = useRef(null)
 
   const loadHighlighter = useCallback(() =>
     Promise.all([
@@ -277,18 +276,23 @@ function Code ({ node, inline, className, children, style, ...props }) {
         loading: () => <CodeSkeleton className={className} {...props}>{children}</CodeSkeleton>
       }),
       import('react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark').then(mod => mod.default)
-    ]), []
+    ]), [className, props, children]
   )
 
   useEffect(() => {
     if (inline || language === 'math') return // MathJax should handle math
-    // persist highlighter loading promise across renders
-    if (!loadHighlighterRef.current) loadHighlighterRef.current = loadHighlighter()
-    // load the syntax highlighter and theme only when needed
-    loadHighlighterRef.current.then(([Highlighter, theme]) => {
-      setReactSyntaxHighlighter(() => Highlighter)
-      setSyntaxTheme(() => theme)
+
+    let aborted = false
+    loadHighlighter().then(([Highlighter, theme]) => {
+      if (!aborted) {
+        setReactSyntaxHighlighter(() => Highlighter)
+        setSyntaxTheme(() => theme)
+      }
     })
+
+    return () => {
+      aborted = true
+    }
   }, [inline, language, loadHighlighter])
 
   if (inline || !ReactSyntaxHighlighter) { // inline code doesn't have a border radius

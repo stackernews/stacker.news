@@ -1,11 +1,12 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import ToolbarPlugin from '../index'
 import styles from '@/components/lexical/theme/theme.module.css'
-import { $getSelection, getDOMSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, KEY_ESCAPE_COMMAND, COMMAND_PRIORITY_HIGH, $isRangeSelection } from 'lexical'
-import { setFloatingElemPosition } from '@/components/lexical/plugins/links/linkeditor/position'
+import { $getSelection, getDOMSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, $isRangeSelection } from 'lexical'
+import { setFloatingToolbarPosition } from '@/components/lexical/plugins/links/linkeditor/position'
 import { mergeRegister } from '@lexical/utils'
+import { useToolbarState } from '@/components/lexical/contexts/toolbar'
 
 function getDOMRangeRect (nativeSelection, rootElement) {
   const domRange = nativeSelection.getRangeAt(0)
@@ -25,136 +26,75 @@ function getDOMRangeRect (nativeSelection, rootElement) {
   return rect
 }
 
-export default function FloatingToolbarPlugin ({ anchorElem }) {
-  const [editor] = useLexicalComposerContext()
+export function FloatingToolbar ({ editor, anchorElem }) {
   const floatingToolbarRef = useRef(null)
-  const updateTimeoutRef = useRef(null)
-  const previousRangeRectRef = useRef(null)
+  const { toolbarState } = useToolbarState()
 
   function mouseMoveListener (e) {
-    if (
-      floatingToolbarRef?.current &&
-      (e.buttons === 1 || e.buttons === 3)
-    ) {
-      if (floatingToolbarRef.current.style.pointerEvents !== 'none') {
+    const toolbarElem = floatingToolbarRef.current
+    if (!toolbarElem) return
+
+    if (e.buttons === 1 || e.buttons === 3) {
+      if (toolbarElem.style.pointerEvents !== 'none') {
         const x = e.clientX
         const y = e.clientY
         const elementUnderMouse = document.elementFromPoint(x, y)
 
-        if (!floatingToolbarRef.current.contains(elementUnderMouse)) {
-          // mouse is not over the target element => not a normal click, but probably a drag
-          floatingToolbarRef.current.style.pointerEvents = 'none'
+        if (!toolbarElem.contains(elementUnderMouse)) {
+          toolbarElem.style.pointerEvents = 'none'
         }
       }
     }
   }
+
   function mouseUpListener (e) {
-    if (floatingToolbarRef?.current) {
-      if (floatingToolbarRef.current.style.pointerEvents !== 'auto') {
-        floatingToolbarRef.current.style.pointerEvents = 'auto'
-      }
+    const toolbarElem = floatingToolbarRef.current
+    if (!toolbarElem) return
+
+    if (toolbarElem.style.pointerEvents !== 'auto') {
+      toolbarElem.style.pointerEvents = 'auto'
     }
   }
 
-  const handleBlur = useCallback((event) => {
-    const floatingElem = floatingToolbarRef.current
-    console.log('floatingElem', floatingElem)
-    if (!floatingElem || !anchorElem) return
-
-    console.log('handleBlur', event)
-    console.log('anchorElem', anchorElem)
-
-    previousRangeRectRef.current = null
-    setFloatingElemPosition({ targetRect: null, floatingElem, anchorElem })
-  }, [floatingToolbarRef, anchorElem])
-
   useEffect(() => {
-    if (floatingToolbarRef?.current) {
-      document.addEventListener('mousemove', mouseMoveListener)
-      document.addEventListener('mouseup', mouseUpListener)
+    if (!floatingToolbarRef?.current) return
 
-      return () => {
-        document.removeEventListener('mousemove', mouseMoveListener)
-        document.removeEventListener('mouseup', mouseUpListener)
-      }
+    document.addEventListener('mousemove', mouseMoveListener)
+    document.addEventListener('mouseup', mouseUpListener)
+    return () => {
+      document.removeEventListener('mousemove', mouseMoveListener)
+      document.removeEventListener('mouseup', mouseUpListener)
     }
   }, [floatingToolbarRef])
 
-  const $updateTextFormatFloatingToolbar = useCallback(() => {
-    const selection = $getSelection()
-    if (!selection) return
-    const rawTextContent = selection.getTextContent().replace(/\n/g, '')
-    if (!$isRangeSelection(selection) || rawTextContent === '') {
-      if (!floatingToolbarRef.current || !anchorElem) return
-      console.log('updateTextFormatFloatingToolbar', floatingToolbarRef.current, anchorElem)
-      previousRangeRectRef.current = null
-      setFloatingElemPosition({ targetRect: null, floatingElem: floatingToolbarRef.current, anchorElem })
-      return
-    }
+  const $updateFloatingToolbar = useCallback(() => {
+    const toolbarElem = floatingToolbarRef.current
+    if (!toolbarElem) return
 
-    const floatingToolbarRefElem = floatingToolbarRef.current
-    const nativeSelection = getDOMSelection(editor._window)
+    const sel = $getSelection()
+    const nativeSel = getDOMSelection(editor._window)
+    const rootEl = editor.getRootElement()
 
-    if (floatingToolbarRefElem === null) {
-      return
-    }
+    if (!sel || !nativeSel || !rootEl) return
 
-    const rootElement = editor.getRootElement()
-    if (
-      selection !== null &&
-      nativeSelection !== null &&
-      !nativeSelection.isCollapsed &&
-      rootElement !== null &&
-      rootElement.contains(nativeSelection.anchorNode)
-    ) {
-      const rangeRect = getDOMRangeRect(nativeSelection, rootElement)
-      rangeRect.y -= 640
-
-      // with tolerance
-      const previousRect = previousRangeRectRef.current
-      const POSITION_TOLERANCE = 0.1 // pixels
-
-      if (
-        !previousRect ||
-        Math.abs(previousRect.x - rangeRect.x) > POSITION_TOLERANCE ||
-        Math.abs(previousRect.y - rangeRect.y) > POSITION_TOLERANCE ||
-        Math.abs(previousRect.width - rangeRect.width) > 6 ||
-        Math.abs(previousRect.height - rangeRect.height) > 6
-      ) {
-        // remember the new position
-        previousRangeRectRef.current = {
-          x: rangeRect.x,
-          y: rangeRect.y,
-          width: rangeRect.width,
-          height: rangeRect.height
-        }
-
-        setFloatingElemPosition(
-          { targetRect: rangeRect, floatingElem: floatingToolbarRefElem, anchorElem }
-        )
-      }
-    }
-  }, [editor, anchorElem])
-
-  const debouncedUpdateTextFormatFloatingToolbar = useCallback(() => {
-    // Clear any existing timeout
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current)
-    }
-
-    // Set a new timeout
-    updateTimeoutRef.current = setTimeout(() => {
-      editor.getEditorState().read(() => {
-        $updateTextFormatFloatingToolbar()
+    if (!nativeSel.isCollapsed && rootEl.contains(nativeSel.anchorNode)) {
+      const rangeRect = getDOMRangeRect(nativeSel, rootEl)
+      setFloatingToolbarPosition({
+        targetRect: rangeRect,
+        floatingElem: toolbarElem,
+        anchorElem,
+        isLink: toolbarState.isLink
       })
-    }, 16)
-  }, [editor, $updateTextFormatFloatingToolbar])
+    }
+  }, [editor, anchorElem, toolbarState.isLink])
 
   useEffect(() => {
-    const scrollerElem = anchorElem?.parentElement
+    const scrollerElem = anchorElem.parentElement
 
     const update = () => {
-      debouncedUpdateTextFormatFloatingToolbar()
+      editor.getEditorState().read(() => {
+        $updateFloatingToolbar()
+      })
     }
 
     window.addEventListener('resize', update)
@@ -167,48 +107,111 @@ export default function FloatingToolbarPlugin ({ anchorElem }) {
       if (scrollerElem) {
         scrollerElem.removeEventListener('scroll', update)
       }
-      // clear timeout
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current)
-      }
     }
-  }, [debouncedUpdateTextFormatFloatingToolbar, anchorElem])
+  }, [editor, $updateFloatingToolbar, anchorElem])
 
   useEffect(() => {
-    debouncedUpdateTextFormatFloatingToolbar()
+    editor.getEditorState().read(() => {
+      $updateFloatingToolbar()
+    })
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
-        console.log('updating position because of editor state change')
-        debouncedUpdateTextFormatFloatingToolbar()
+        editorState.read(() => {
+          $updateFloatingToolbar()
+        })
       }),
-
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         () => {
-          console.log('updating position because of selection change')
-          debouncedUpdateTextFormatFloatingToolbar()
+          $updateFloatingToolbar()
           return false
         },
         COMMAND_PRIORITY_LOW
-      ),
-      editor.registerCommand(
-        KEY_ESCAPE_COMMAND,
-        () => {
-          console.log('updating position because of escape key')
-          handleBlur()
-          return true
-        }, COMMAND_PRIORITY_HIGH)
+      )
     )
-  }, [editor, debouncedUpdateTextFormatFloatingToolbar, handleBlur])
+  }, [editor, $updateFloatingToolbar])
 
-  if (!anchorElem) return null
-
-  return createPortal(
+  return (
     <div className={styles.floatingToolbarContainer} ref={floatingToolbarRef}>
-      <div className={styles.floatingToolbar}>
+      <div
+        className={styles.floatingToolbar}
+        onMouseDown={e => e.preventDefault()}
+      >
         <ToolbarPlugin anchorElem={anchorElem} isFloating />
       </div>
-    </div>,
+    </div>
+  )
+}
+
+export function useFloatingToolbar ({ editor, anchorElem }) {
+  const [show, setShow] = useState(false)
+
+  const updatePopup = useCallback(() => {
+    editor.getEditorState().read(() => {
+      if (editor.isComposing()) return
+      console.log('updatePopup')
+
+      const sel = $getSelection()
+      const nativeSel = getDOMSelection(editor._window)
+      const rootEl = editor.getRootElement()
+
+      // if there is no selection,
+      // or the selection is not in the root element, hide the popup
+      if (nativeSel !== null && (!$isRangeSelection(sel) || rootEl === null || !rootEl.contains(nativeSel.anchorNode))) {
+        setShow(false)
+        return
+      }
+
+      // if the selection is not a range selection, hide the popup
+      if (!$isRangeSelection(sel)) return
+
+      // is there any text selected?
+      if (sel.getTextContent() === '') {
+        setShow(false)
+        return
+      }
+
+      // if so, is it empty?
+      const rawTextContent = sel.getTextContent().replace(/\n/g, '')
+      if (!sel.isCollapsed() && rawTextContent === '') {
+        setShow(false)
+      } else {
+        setShow(true)
+      }
+    })
+  }, [editor])
+
+  useEffect(() => {
+    document.addEventListener('selectionchange', updatePopup)
+    return () => {
+      document.removeEventListener('selectionchange', updatePopup)
+    }
+  }, [updatePopup])
+
+  useEffect(() => {
+    return mergeRegister(
+      editor.registerUpdateListener(() => {
+        updatePopup()
+      }),
+      editor.registerRootListener(() => {
+        if (editor.getRootElement() === null) {
+          setShow(false)
+        }
+      })
+    )
+  }, [editor, updatePopup])
+
+  if (!show) return null
+  console.log('show', show)
+
+  return createPortal(
+    <FloatingToolbar editor={editor} anchorElem={anchorElem} />,
     anchorElem
   )
+}
+
+export default function FloatingToolbarPlugin ({ anchorElem }) {
+  const [editor] = useLexicalComposerContext()
+
+  return useFloatingToolbar({ editor, anchorElem })
 }

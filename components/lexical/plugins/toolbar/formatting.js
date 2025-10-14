@@ -41,6 +41,7 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
               title={`${option.name} (${getShortcutCombo(option.action)})`}
               onClick={() => handleBlock(option.action)}
               className={classNames(styles.dropdownExtraItem, toolbarState.blockType === option.action ? styles.active : '')}
+              onPointerDown={e => e.preventDefault()}
             >
               <span className={styles.dropdownExtraItemLabel}>
                 {option.icon}
@@ -72,15 +73,16 @@ function getFormatToolbarState (toolbarState, format) {
   }
 }
 
-function InlineFormattingOptions ({ toolbarState, handleFormat }) {
+function InlineFormattingOptions ({ toolbarState, handleFormat, isFloating }) {
   return (
     FORMAT_OPTIONS.map((option) => (
-      <ActionTooltip notForm overlayText={`${option.name} (${getShortcutCombo(option.action)})`} placement='top' noWrapper key={option.action} showDelay={500} transition>
+      <ActionTooltip notForm overlayText={`${option.name} (${getShortcutCombo(option.action)})`} placement='top' noWrapper key={option.action} showDelay={500} transition disable={isFloating}>
         <span
           title={`${option.name} (${getShortcutCombo(option.action)})`}
           className={classNames(styles.toolbarItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
           style={option.style}
           onClick={() => handleFormat(option.action)}
+          onPointerDown={e => e.preventDefault()}
         >
           {option.icon}
         </span>
@@ -106,6 +108,7 @@ function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
               title={`${option.name} (${getShortcutCombo(option.action)})`}
               onClick={() => handleFormat(option.action)}
               className={classNames(styles.dropdownExtraItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
+              onPointerDown={e => e.preventDefault()}
             >
               <span className={styles.dropdownExtraItemLabel}>
                 {option.icon}
@@ -140,6 +143,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
               title={`${option.name} (${getShortcutCombo(option.action)})`}
               onClick={() => handleAlign(option.action)}
               className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === option.action ? styles.active : '')}
+              onPointerDown={e => e.preventDefault()}
             >
               <span className={styles.dropdownExtraItemLabel}>
                 {option.icon}
@@ -156,6 +160,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
               title={`${option.name} (${getShortcutCombo(option.action)})`}
               onClick={() => handleIndent(option.action)}
               className={styles.dropdownExtraItem}
+              onPointerDown={e => e.preventDefault()}
             >
               <span className={styles.dropdownExtraItemLabel}>
                 {option.icon}
@@ -297,12 +302,13 @@ export default function FormattingTools ({ isFloating }) {
   return isFloating
     ? (
       <div className={styles.toolbarFormatting}>
-        <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} />
+        <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} isFloating />
         <span className={classNames(styles.divider)} />
-        <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition>
+        <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition disable={isFloating}>
           <span
             title={'link (' + getShortcutCombo('link') + ')'}
             className={classNames(styles.toolbarItem, toolbarState.isLink ? styles.active : '')}
+            onPointerDown={e => e.preventDefault()}
             onClick={handleLink}
           >
             {toolbarState.isLink ? <LinkUnlink /> : <Link />}
@@ -320,6 +326,7 @@ export default function FormattingTools ({ isFloating }) {
           <span
             title={'link (' + getShortcutCombo('link') + ')'}
             className={classNames(styles.toolbarItem, toolbarState.isLink ? styles.active : '')}
+            onPointerDown={e => e.preventDefault()}
             onClick={handleLink}
           >
             {toolbarState.isLink ? <LinkUnlink /> : <Link />}

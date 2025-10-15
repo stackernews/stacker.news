@@ -134,9 +134,7 @@
   outline: 0;
   padding: 10px 10px;
   border: 1px solid var(--theme-borderColor);
-  border-bottom-left-radius: .4rem;
-  border-bottom-right-radius: .4rem;
-  border-top-right-radius: .4rem;
+  border-radius: 0.4rem;
   /* border-top: 0px; */
 }
 
@@ -149,6 +147,11 @@
   min-height: 120px;
   resize: vertical;
   overflow: auto;
+}
+
+:global([class*="reply"]) .editorInput {
+  border-color: transparent !important;
+  background-color: var(--theme-commentBg) !important;
 }
 
 .editorPlaceholder {
@@ -385,8 +388,8 @@
   margin-right: 8px;
   margin-top: 4px;
   gap: 4px;
-  color: var(--theme-brandColor);
-  filter: drop-shadow(0 0 6px var(--bs-primary));
+  color: var(--bs-danger);
+  filter: drop-shadow(0 0 6px var(--bs-danger));
 }
 
 .floatingToolbarContainer {
@@ -398,7 +401,7 @@
   z-index: 1000;
   opacity: 0;
   transform: translate(-10000px, -10000px);
-  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--theme-floating-toolbar-shadow-opacity));
   transition: opacity 0.2s ease-in-out;
   will-change: transform;
 }

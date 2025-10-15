@@ -4,7 +4,7 @@ import { $getRoot } from 'lexical'
 // MarkdownNode is a special CodeNode that allows markdown mode with removal protection
 export class MarkdownNode extends CodeNode {
   static getType () {
-    return 'sn-markdown'
+    return 'code'
   }
 
   static clone (node) {

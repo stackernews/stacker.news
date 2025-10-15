@@ -85,7 +85,6 @@ function renderMan (nodes, keyPrefix = '') {
       }
 
       case 'code': {
-        console.log('node', node)
         return <Code key={key} inline={node.inline} className={node.className} style={node.style} language={node.language} {...node.props}>{node.children.map(child => child.text).join('\n')}</Code>
       }
 
@@ -184,7 +183,6 @@ function Code ({ node, inline, className, children, style, language, ...props })
   const [ReactSyntaxHighlighter, setReactSyntaxHighlighter] = useState(null)
   const [syntaxTheme, setSyntaxTheme] = useState(null)
   const lang = language || className?.match(/language-(\w+)/)?.[1] || 'text'
-  console.log('lang', lang)
 
   const loadHighlighter = useCallback(() =>
     Promise.all([

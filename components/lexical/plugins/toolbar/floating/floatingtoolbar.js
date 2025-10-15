@@ -150,7 +150,6 @@ export function useFloatingToolbar ({ editor, anchorElem }) {
   const updatePopup = useCallback(() => {
     editor.getEditorState().read(() => {
       if (editor.isComposing()) return
-      console.log('updatePopup')
 
       const sel = $getSelection()
       const nativeSel = getDOMSelection(editor._window)
@@ -203,7 +202,6 @@ export function useFloatingToolbar ({ editor, anchorElem }) {
   }, [editor, updatePopup])
 
   if (!show) return null
-  console.log('show', show)
 
   return createPortal(
     <FloatingToolbar editor={editor} anchorElem={anchorElem} />,

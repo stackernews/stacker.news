@@ -20,13 +20,11 @@ export const START_MARKDOWN_FORMATS = {
 }
 
 const formatParagraph = () => {
-  console.log('formatParagraph')
   const selection = $getSelection()
   $setBlocksType(selection, () => $createParagraphNode())
 }
 
 const formatHeading = (activeBlock, block, isMarkdownMode) => {
-  console.log('formatHeading', activeBlock, block)
   const selection = $getSelection()
   if (!isMarkdownMode) {
     if (activeBlock === block) return
@@ -35,7 +33,6 @@ const formatHeading = (activeBlock, block, isMarkdownMode) => {
     const text = selection.getTextContent()
     const lines = text.split('\n')
     const allHeadings = lines.every(l => l.startsWith(START_MARKDOWN_FORMATS[block]))
-    console.log('allHeadings', allHeadings)
     const newLines = allHeadings
       ? lines.map(l => l.replace(`${START_MARKDOWN_FORMATS[block]} `, ''))
       : lines.map(l => (l.length ? `${START_MARKDOWN_FORMATS[block]} ${l}` : l))
@@ -44,7 +41,6 @@ const formatHeading = (activeBlock, block, isMarkdownMode) => {
 }
 
 const formatBulletList = (editor, activeBlock, block) => {
-  console.log('formatBulletList', activeBlock, block)
   if (activeBlock === block) return formatParagraph()
   editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)
 }
@@ -109,7 +105,6 @@ const formatCodeBlock = (activeBlock, block, isMarkdownMode) => {
 
 export function registerSNFormatBlockCommand ({ editor }) {
   return editor.registerCommand(SN_FORMAT_BLOCK_COMMAND, (block) => {
-    console.log('registerSNFormatBlockCommand', block)
     const isMarkdownMode = $isMarkdownMode()
     const activeBlock = snGetBlockType({ selection: $getSelection(), editor })
     switch (block) {

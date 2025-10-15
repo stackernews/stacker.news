@@ -105,5 +105,9 @@ export const SHORTCUTS = [
 export function getShortcutCombo (action) {
   const shortcut = SHORTCUTS.find(shortcut => shortcut.action === action)
   if (!shortcut) return null
-  return shortcut.combo.replace('mod', IS_APPLE ? 'cmd' : 'ctrl').replace('alt', IS_APPLE ? 'opt' : 'alt').toLowerCase()
+  return shortcut.combo
+    .replace('mod', IS_APPLE ? '⌘' : 'ctrl')
+    .replace('alt', IS_APPLE ? '⌥' : 'alt')
+    .replace('ctrl', IS_APPLE ? 'control' : 'ctrl')
+    .toLowerCase()
 }

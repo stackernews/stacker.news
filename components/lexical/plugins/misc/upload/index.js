@@ -78,7 +78,6 @@ export default function FileUploadPlugin () {
         multiple
         ref={fileInputRef}
         onConfirm={(files) => {
-          console.log('onConfirm', files)
           editor.update(() => {
             const nodes = files.map(file => {
               const node = uploadProgressNode(file, 0)
@@ -104,7 +103,6 @@ export default function FileUploadPlugin () {
           })
         }}
         onSuccess={({ url, name, file }) => {
-          console.log('onSuccess', url, name, file)
           const key = placeholdersRef.current.get(file)
           if (!key) return
           editor.update(() => {

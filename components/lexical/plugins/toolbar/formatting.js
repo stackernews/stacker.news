@@ -38,7 +38,7 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
           {BLOCK_OPTIONS.map((option) => (
             <Dropdown.Item
               key={option.action}
-              title={`${option.name} (${getShortcutCombo(option.action)})`}
+              title={`${option.name} ${getShortcutCombo(option.action)}`}
               onClick={() => handleBlock(option.action)}
               className={classNames(styles.dropdownExtraItem, toolbarState.blockType === option.action ? styles.active : '')}
               onPointerDown={e => e.preventDefault()}
@@ -76,7 +76,7 @@ function getFormatToolbarState (toolbarState, format) {
 function InlineFormattingOptions ({ toolbarState, handleFormat, isFloating }) {
   return (
     FORMAT_OPTIONS.map((option) => (
-      <ActionTooltip notForm overlayText={`${option.name} (${getShortcutCombo(option.action)})`} placement='top' noWrapper key={option.action} showDelay={500} transition disable={isFloating}>
+      <ActionTooltip notForm overlayText={`${option.name} ${getShortcutCombo(option.action)}`} placement='top' noWrapper key={option.action} showDelay={500} transition disable={isFloating}>
         <span
           title={`${option.name} (${getShortcutCombo(option.action)})`}
           className={classNames(styles.toolbarItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
@@ -105,7 +105,7 @@ function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
           {ADDITIONAL_FORMAT_OPTIONS.map((option) => (
             <Dropdown.Item
               key={option.action}
-              title={`${option.name} (${getShortcutCombo(option.action)})`}
+              title={`${option.name} ${getShortcutCombo(option.action)}`}
               onClick={() => handleFormat(option.action)}
               className={classNames(styles.dropdownExtraItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
               onPointerDown={e => e.preventDefault()}
@@ -140,7 +140,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
           {ALIGN_OPTIONS.map((option) => (
             <Dropdown.Item
               key={option.action}
-              title={`${option.name} (${getShortcutCombo(option.action)})`}
+              title={`${option.name} ${getShortcutCombo(option.action)}`}
               onClick={() => handleAlign(option.action)}
               className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === option.action ? styles.active : '')}
               onPointerDown={e => e.preventDefault()}
@@ -157,7 +157,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
           {INDENT_OPTIONS.map((option) => (
             <Dropdown.Item
               key={option.action}
-              title={`${option.name} (${getShortcutCombo(option.action)})`}
+              title={`${option.name} ${getShortcutCombo(option.action)}`}
               onClick={() => handleIndent(option.action)}
               className={styles.dropdownExtraItem}
               onPointerDown={e => e.preventDefault()}
@@ -306,7 +306,7 @@ export default function FormattingTools ({ isFloating }) {
         <span className={classNames(styles.divider)} />
         <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition disable={isFloating}>
           <span
-            title={'link (' + getShortcutCombo('link') + ')'}
+            title={'link ' + getShortcutCombo('link')}
             className={classNames(styles.toolbarItem, toolbarState.isLink ? styles.active : '')}
             onPointerDown={e => e.preventDefault()}
             onClick={handleLink}
@@ -324,7 +324,7 @@ export default function FormattingTools ({ isFloating }) {
         <span className={classNames(styles.divider)} />
         <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition>
           <span
-            title={'link (' + getShortcutCombo('link') + ')'}
+            title={'link ' + getShortcutCombo('link')}
             className={classNames(styles.toolbarItem, toolbarState.isLink ? styles.active : '')}
             onPointerDown={e => e.preventDefault()}
             onClick={handleLink}

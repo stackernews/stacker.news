@@ -23,7 +23,7 @@ export default function ToolbarPlugin ({ anchorElem, isFloating }) {
           <div className='ms-auto d-flex align-items-center'>
             {!isFloating && (
               <>
-                <span className={styles.snPreview}>PREVIEW</span>
+                <span className={styles.snPreview}>INFERIOR</span>
                 <span className={styles.divider} />
               </>
             )}

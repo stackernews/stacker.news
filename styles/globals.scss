@@ -153,6 +153,7 @@ $zindex-sticky: 900;
   --theme-linkVisited: #53758;
   --theme-note-reply: rgba(0, 0, 0, 0.04);
   --theme-note-fresh: rgba(0, 124, 190, 0.5);
+  --theme-floating-toolbar-shadow-opacity: 0.2;
 }
 
 [data-bs-theme=dark] {
@@ -179,6 +180,7 @@ $zindex-sticky: 900;
   --theme-linkVisited: #56798E;
   --theme-note-reply: rgba(255, 255, 255, 0.05);
   --theme-note-fresh: rgba(0, 124, 190, 0.75);
+  --theme-floating-toolbar-shadow-opacity: 0.8;
 }
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';
@@ -448,7 +450,7 @@ a:hover {
 }
 
 select,
-div[contenteditable],
+div[contenteditable=true],
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);

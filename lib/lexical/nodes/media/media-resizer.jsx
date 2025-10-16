@@ -31,8 +31,8 @@ export default function MediaResizer ({
     value: 'default'
   })
   const positioningRef = useRef({
-    currentHeight: 0,
-    currentWidth: 0,
+    currentHeight: 'inherit',
+    currentWidth: 'inherit',
     direction: 0,
     isResizing: false,
     ratio: 0,
@@ -134,8 +134,8 @@ export default function MediaResizer ({
     image.style.height = `${height}px`
     image.style.width = `${width}px`
 
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
+    document.addEventListener('pointermove', handlePointerMove)
+    document.addEventListener('pointerup', handlePointerUp)
   }
 
   const handlePointerMove = (event) => {

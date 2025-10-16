@@ -193,9 +193,7 @@
   display: flex;
   align-items: center;
   vertical-align: middle;
-  flex-wrap: wrap;
   padding-bottom: 4px;
-  height: 35px;
   -webkit-touch-callout: none;
   touch-action: manipulation;
 }
@@ -216,8 +214,11 @@
 .toolbar .toolbarFormatting {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex-direction: row;
+  overflow: auto;
+  scrollbar-width: none;
+  mask: linear-gradient(to right, black 0%, black calc(100% - 0.2rem), transparent 100%);
   opacity: 1;
   transition: opacity 0.1s ease-in-out, visibility 0.1s ease-in-out;
 }
@@ -229,7 +230,6 @@
 
 .toolbarItem {
   background-size: contain;
-  display: inline-block;
   display: flex;
   align-items: center;
   justify-content: center;

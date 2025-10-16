@@ -26,9 +26,10 @@ const EditorSkeleton = () => {
   )
 }
 
+const Editor = dynamic(() => import('@/components/lexical/editor'), { ssr: false, loading: EditorSkeleton })
+
 // lexical starting point, can be a reader or an editor
 export const LexicalEditor = forwardRef(function LexicalEditor ({ ...props }, ref) {
-  const Editor = dynamic(() => import('@/components/lexical/editor'), { ssr: false, loading: EditorSkeleton })
   return (
     <Editor {...props} ref={ref} />
   )

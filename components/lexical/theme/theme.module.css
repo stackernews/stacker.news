@@ -140,6 +140,7 @@
 
 .editorInput:focus-within {
   outline: 0;
+  border: 1px solid var(--bs-primary) !important;
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
@@ -150,8 +151,12 @@
 }
 
 :global([class*="reply"]) .editorInput {
-  border-color: transparent !important;
+  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 50%, transparent) !important;
   background-color: var(--theme-commentBg) !important;
+}
+
+:global([class*="reply"]) .editorInput:focus-within {
+  border: 1px solid var(--bs-primary) !important;
 }
 
 .editorPlaceholder {
@@ -190,21 +195,22 @@
   vertical-align: middle;
   flex-wrap: wrap;
   padding-bottom: 4px;
+  height: 35px;
   -webkit-touch-callout: none;
   touch-action: manipulation;
 }
 
 .toolbar .divider {
   width: 1px;
-  height: 18px;
+  height: 20px;
   background-color: var(--theme-borderColor);
-  opacity: 0.5;
+  opacity: 0.3;
   border-radius: .4rem;
   margin: 0 4px;
 }
 
 :global(.dropdown) + .divider {
-  margin-left: 0 !important;
+  margin-left: 1.25 !important;
 }
 
 .toolbar .toolbarFormatting {
@@ -212,6 +218,13 @@
   align-items: center;
   justify-content: center;
   flex-direction: row;
+  opacity: 1;
+  transition: opacity 0.1s ease-in-out, visibility 0.1s ease-in-out;
+}
+
+.toolbarFormatting.hidden {
+  visibility: hidden;
+  opacity: 0;
 }
 
 .toolbarItem {
@@ -222,7 +235,7 @@
   justify-content: center;
   flex-direction: row;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.2rem;
   border-radius: 0.4rem;
   vertical-align: -.25em;
   opacity: 0.6;
@@ -230,14 +243,30 @@
   touch-action: manipulation;
 }
 
+.toolbarItem + .toolbarItem {
+  margin-left: 0.25rem !important;
+}
+
+:global(.dropdown):has(.toolbarItem) + :global(.dropdown):has(.toolbarItem) {
+  margin-left: 0.25rem !important;
+}
+
 .toolbarItem:hover {
   background-color: var(--theme-toolbarActive);
   opacity: 1;
 }
 
+.toolbarItem:active {
+  opacity: 0.8;
+}
+
 .toolbarItem.active {
   background-color: var(--theme-toolbarActive);
   opacity: 1;
+}
+
+.toolbarItem.active:active {
+  opacity: 0.8;
 }
 
 .toolbarItem svg {
@@ -301,6 +330,7 @@
   padding: 0.45rem 0.35rem 0.45rem 0.35rem;
   width: 240px;
   border-radius: 0.4rem;
+  z-index: 2000;
 }
 
 .dropdownExtraItem {

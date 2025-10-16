@@ -30,7 +30,7 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
   return (
     <ActionTooltip notForm overlayText={<>block options <strong>{toolbarState.blockType}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
       <Dropdown className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
-        <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem)}>
+        <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, dropdownOpen ? styles.active : '')}>
           {blockOption?.icon || <More />}
           <ArrowDownIcon />
         </Dropdown.Toggle>
@@ -97,7 +97,7 @@ function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
   return (
     <ActionTooltip notForm overlayText={<>additional formatting options</>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
       <Dropdown className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
-        <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem)}>
+        <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, dropdownOpen ? styles.active : '')}>
           <More />
           <ArrowDownIcon />
         </Dropdown.Toggle>
@@ -131,7 +131,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
   return (
     <ActionTooltip notForm overlayText={<>align options <strong>{toolbarState.elementFormat || 'left'}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
       <Dropdown className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
-        <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem)}>
+        <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, dropdownOpen ? styles.active : '')}>
           {/* a mess, clean this up */}
           {ALIGN_OPTIONS.find(option => option.action === toolbarState.elementFormat)?.icon || <AlignLeftIcon />}
           <ArrowDownIcon />
@@ -192,7 +192,7 @@ function $findTopLevelElement (node) {
   return topLevelElement
 }
 
-export default function FormattingTools ({ isFloating }) {
+export default function FormattingTools ({ isFloating, className }) {
   const [editor] = useLexicalComposerContext()
   const { toolbarState, batchUpdateToolbarState } = useToolbarState()
 
@@ -317,11 +317,10 @@ export default function FormattingTools ({ isFloating }) {
       </div>
       )
     : (
-      <div className={styles.toolbarFormatting}>
+      <div className={classNames(styles.toolbarFormatting, className)}>
         <BlockOptionsDropdown toolbarState={toolbarState} handleBlock={handleBlock} />
         <span className={classNames(styles.divider)} />
         <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} />
-        <span className={classNames(styles.divider)} />
         <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition>
           <span
             title={'link ' + getShortcutCombo('link')}
@@ -332,10 +331,8 @@ export default function FormattingTools ({ isFloating }) {
             {toolbarState.isLink ? <LinkUnlink /> : <Link />}
           </span>
         </ActionTooltip>
-
         <span className={classNames(styles.divider)} />
         <AdditionalFormattingOptionsDropdown toolbarState={toolbarState} handleFormat={handleFormat} />
-        <span className={classNames(styles.divider)} />
         <AlignOptionsDropdown toolbarState={toolbarState} handleAlign={handleAlign} handleIndent={handleIndent} />
       </div>
       )

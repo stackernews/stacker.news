@@ -1,12 +1,13 @@
 import { useRef, useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import ToolbarPlugin from '../index'
+import FormattingTools from '../formatting'
 import styles from '@/components/lexical/theme/theme.module.css'
 import { $getSelection, getDOMSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, $isRangeSelection } from 'lexical'
 import { setFloatingToolbarPosition } from '@/components/lexical/plugins/links/linkeditor/position'
 import { mergeRegister } from '@lexical/utils'
 import { useToolbarState } from '@/components/lexical/contexts/toolbar'
+import classNames from 'classnames'
 
 function getDOMRangeRect (nativeSelection, rootElement) {
   const domRange = nativeSelection.getRangeAt(0)
@@ -138,7 +139,9 @@ export function FloatingToolbar ({ editor, anchorElem }) {
         className={styles.floatingToolbar}
         onMouseDown={e => e.preventDefault()}
       >
-        <ToolbarPlugin anchorElem={anchorElem} isFloating />
+        <div className={classNames(styles.toolbar, styles.floating)}>
+          <FormattingTools isFloating />
+        </div>
       </div>
     </div>
   )

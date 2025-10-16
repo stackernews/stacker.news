@@ -1,4 +1,5 @@
-import { $isMarkdownMode, snGetBlockType } from '@/components/lexical/universal/utils'
+import { $isMarkdownMode } from '@/components/lexical/universal/utils'
+import { snGetBlockType } from '@/components/lexical/universal/utils/formatting'
 import { $createCodeNode } from '@lexical/code'
 import {
   INSERT_CHECK_LIST_COMMAND,

@@ -50,6 +50,8 @@ export default function FormikBridgePlugin ({ name }) {
       const firstChild = root.getFirstChild()
 
       let lexicalState = editorState.toJSON()
+      // update the storage from the editor state
+      onChangeInner(JSON.stringify(lexicalState))
       let markdown = ''
 
       if ($isMarkdownNode(firstChild)) {
@@ -60,7 +62,6 @@ export default function FormikBridgePlugin ({ name }) {
 
       // useless to update storage if the values are the same
       if (values.text === markdown && values.lexicalState === JSON.stringify(lexicalState)) return
-      onChangeInner(JSON.stringify(lexicalState))
       setFieldValue('text', markdown)
       setFieldValue('lexicalState', JSON.stringify(lexicalState))
     })

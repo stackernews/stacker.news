@@ -8,6 +8,7 @@ import { setFloatingToolbarPosition } from '@/components/lexical/plugins/links/l
 import { mergeRegister } from '@lexical/utils'
 import { useToolbarState } from '@/components/lexical/contexts/toolbar'
 import classNames from 'classnames'
+import { useLexicalPreferences } from '@/components/lexical/contexts/preferences'
 
 function getDOMRangeRect (nativeSelection, rootElement) {
   const domRange = nativeSelection.getRangeAt(0)
@@ -214,6 +215,9 @@ export function useFloatingToolbar ({ editor, anchorElem }) {
 
 export default function FloatingToolbarPlugin ({ anchorElem }) {
   const [editor] = useLexicalComposerContext()
+  const { prefs } = useLexicalPreferences()
+
+  if (!prefs.showFloatingToolbar) return null
 
   return useFloatingToolbar({ editor, anchorElem })
 }

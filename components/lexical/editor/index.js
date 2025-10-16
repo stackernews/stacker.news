@@ -28,8 +28,12 @@ import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
 import { LexicalEditorProviders } from '@/components/lexical/providers'
 import FloatingToolbarPlugin from '../plugins/toolbar/floating/floatingtoolbar'
+import LinkTransformationPlugin from '../plugins/links/transformator'
+import { useLexicalPreferences } from '../contexts/preferences'
+import { $initializeMarkdown } from '../universal/utils'
 
 export default function Editor ({ ...props }) {
+  const { prefs } = useLexicalPreferences()
   const { values } = useFormikContext()
 
   const editorExtension = useMemo(() =>
@@ -37,14 +41,22 @@ export default function Editor ({ ...props }) {
       name: '[root]',
       namespace: 'SNEditor',
       $initialEditorState: (editor) => {
-        if (!values.lexicalState) return
-        try {
-          const state = editor.parseEditorState(values.lexicalState)
-          if (!state.isEmpty()) {
-            editor.setEditorState(state)
+        // if initial state, parse it
+        if (values.lexicalState) {
+          try {
+            const state = editor.parseEditorState(values.lexicalState)
+            if (!state.isEmpty()) {
+              editor.setEditorState(state)
+            // if the parsed state is empty and start in markdown, initialize markdown
+            } else if (prefs.startInMarkdown) {
+              return editor.update(() => $initializeMarkdown())
+            }
+          } catch (error) {
+            console.error('cannot load initial state:', error)
           }
-        } catch (error) {
-          console.error('cant load initial state:', error)
+        // if no initial state and start in markdown, initialize markdown
+        } else if (prefs.startInMarkdown) {
+          return editor.update(() => $initializeMarkdown())
         }
       },
       nodes: DefaultNodes,
@@ -79,7 +91,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
     <>
       {/* TODO: Toolbar context */}
       <div className={styles.editorContainer}>
-        <ToolbarPlugin anchorElem={floatingAnchorElem} />
+        <ToolbarPlugin anchorElem={floatingAnchorElem} topLevel={topLevel} />
         <div className={styles.editorInnerContainer}>
           <RichTextPlugin
             contentEditable={
@@ -101,6 +113,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         <TablePlugin />
         {/* link */}
         <LinkPlugin />
+        <LinkTransformationPlugin anchorElem={floatingAnchorElem} />
         {/* misc plugins */}
         <MentionsPlugin />
         {/* code */}

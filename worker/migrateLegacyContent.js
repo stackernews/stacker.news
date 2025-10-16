@@ -1,5 +1,5 @@
-import { ssrMarkdownToLexicalConverter } from '@/lib/lexical/utils/server/markdownToLexical'
-import { ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
+import { $ssrMarkdownToLexicalConverter } from '@/lib/lexical/utils/server/markdownToLexical'
+import { $ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
 
 // migrates legacy content to the new editorState Lexical format
 // also generates the HTML for the item
@@ -18,12 +18,12 @@ export async function migrateLegacyContent ({ data: { itemId, fullRefresh }, mod
   let lexicalState = item.lexicalState
   console.log('lexicalState', lexicalState)
   if (!lexicalState || fullRefresh) {
-    lexicalState = ssrMarkdownToLexicalConverter(item.text)
+    lexicalState = $ssrMarkdownToLexicalConverter(item.text)
     if (!lexicalState) {
       throw new Error('couldn\'t convert markdown to lexical state')
     }
   }
-  const html = ssrLexicalHTMLGenerator(lexicalState)
+  const html = $ssrLexicalHTMLGenerator(lexicalState)
   if (html.startsWith('error')) {
     throw new Error('couldn\'t generate html')
   }

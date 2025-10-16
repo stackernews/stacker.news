@@ -1,17 +1,21 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import styles from './linkeditor.module.css'
-import { setFloatingElemPosition } from '@/components/lexical/plugins/links/linkeditor/position'
 import Link from 'next/link'
-import { ensureProtocol } from '@/lib/url'
+import { $findMatchingParent, mergeRegister } from '@lexical/utils'
+import { $createLinkNode, $isAutoLinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import {
+  COMMAND_PRIORITY_HIGH, COMMAND_PRIORITY_LOW,
+  KEY_ESCAPE_COMMAND, SELECTION_CHANGE_COMMAND,
+  $getSelection, $isNodeSelection, $isRangeSelection
+} from 'lexical'
 import Check from '@/svgs/check-line.svg'
 import Pencil from '@/svgs/edit-line.svg'
 import Remove from '@/svgs/delete-bin-line.svg'
-import { $isAutoLinkNode, $createLinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
-import { $isRangeSelection, $getSelection, $isNodeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, KEY_ESCAPE_COMMAND, COMMAND_PRIORITY_HIGH } from 'lexical'
+import { setFloatingElemPosition } from '@/components/lexical/plugins/links/linkeditor/position'
 import { getSelectedNode } from '@/components/lexical/utils/selection'
-import { $findMatchingParent, mergeRegister } from '@lexical/utils'
+import { ensureProtocol } from '@/lib/url'
+import styles from './linkeditor.module.css'
 
 export default function LinkEditor ({ nodeKey, anchorElem }) {
   const [isLinkEditMode, setIsLinkEditMode] = useState(false)

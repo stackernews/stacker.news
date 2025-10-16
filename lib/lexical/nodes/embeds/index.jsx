@@ -1,10 +1,10 @@
-import { $createTweetNode, TweetNode } from '@/lib/lexical/nodes/embeds/tweet'
 import { $createNostrNode, NostrNode } from '@/lib/lexical/nodes/embeds/nostr'
-import { $createWavlakeNode, WavlakeNode } from '@/lib/lexical/nodes/embeds/wavlake'
-import { $createSpotifyNode, SpotifyNode } from '@/lib/lexical/nodes/embeds/spotify'
-import { $createYouTubeNode, YouTubeNode } from '@/lib/lexical/nodes/embeds/youtube'
-import { $createRumbleNode, RumbleNode } from '@/lib/lexical/nodes/embeds/rumble'
 import { $createPeerTubeNode, PeerTubeNode } from '@/lib/lexical/nodes/embeds/peertube'
+import { $createRumbleNode, RumbleNode } from '@/lib/lexical/nodes/embeds/rumble'
+import { $createSpotifyNode, SpotifyNode } from '@/lib/lexical/nodes/embeds/spotify'
+import { $createTweetNode, TweetNode } from '@/lib/lexical/nodes/embeds/tweet'
+import { $createWavlakeNode, WavlakeNode } from '@/lib/lexical/nodes/embeds/wavlake'
+import { $createYouTubeNode, YouTubeNode } from '@/lib/lexical/nodes/embeds/youtube'
 
 export function $createEmbedNode ({ provider, src = null, id = null, meta = null }) {
   switch (provider) {

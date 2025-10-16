@@ -1,15 +1,15 @@
-import { useRef, useEffect } from 'react'
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { createCommand, COMMAND_PRIORITY_EDITOR, $insertNodes, $createTextNode, $getNodeByKey, $createParagraphNode } from 'lexical'
-import { FileUpload } from '@/components/file-upload'
-import { useFeeButton } from '@/components/fee-button'
-// import { useLazyQuery } from '@apollo/client'
-// import { gql } from 'graphql-tag'
-// import { numWithUnits } from '@/lib/format'
-// import { $createMediaOrLinkNode } from '@/lib/lexical/nodes/mediaorlink'
-import { $createMediaNode } from '@/lib/lexical/nodes/media/media-node'
+import { useEffect, useRef } from 'react'
+import {
+  createCommand, COMMAND_PRIORITY_EDITOR,
+  $createParagraphNode, $createTextNode, $getNodeByKey, $insertNodes
+} from 'lexical'
 import { mergeRegister } from '@lexical/utils'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import { useFeeButton } from '@/components/fee-button'
+import { FileUpload } from '@/components/file-upload'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
+import { $createMediaNode } from '@/lib/lexical/nodes/media/media-node'
+
 const INSERT_FILES_COMMAND = createCommand()
 
 export default function FileUploadPlugin () {

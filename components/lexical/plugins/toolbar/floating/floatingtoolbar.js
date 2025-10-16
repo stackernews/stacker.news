@@ -1,14 +1,17 @@
-import { useRef, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import classNames from 'classnames'
+import { mergeRegister } from '@lexical/utils'
+import {
+  COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND,
+  $getSelection, $isRangeSelection, getDOMSelection
+} from 'lexical'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import FormattingTools from '../formatting'
-import styles from '@/components/lexical/theme/theme.module.css'
-import { $getSelection, getDOMSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_LOW, $isRangeSelection } from 'lexical'
-import { setFloatingToolbarPosition } from '@/components/lexical/plugins/links/linkeditor/position'
-import { mergeRegister } from '@lexical/utils'
-import { useToolbarState } from '@/components/lexical/contexts/toolbar'
-import classNames from 'classnames'
 import { useLexicalPreferences } from '@/components/lexical/contexts/preferences'
+import { useToolbarState } from '@/components/lexical/contexts/toolbar'
+import { setFloatingToolbarPosition } from '@/components/lexical/plugins/links/linkeditor/position'
+import styles from '@/components/lexical/theme/theme.module.css'
 
 function getDOMRangeRect (nativeSelection, rootElement) {
   const domRange = nativeSelection.getRangeAt(0)

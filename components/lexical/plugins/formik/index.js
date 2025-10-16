@@ -8,7 +8,7 @@ import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { StorageKeyPrefixContext } from '@/components/form'
 import { $isMarkdownNode } from '@/lib/lexical/nodes/markdownnode'
 
-function parseMarkdown (editor, content) {
+function $parseMarkdown (editor, content) {
   const markdown = content.getTextContent()
   let lexicalState = ''
   const tempEditor = createEditor({
@@ -55,7 +55,7 @@ export default function FormikBridgePlugin ({ name }) {
       let markdown = ''
 
       if ($isMarkdownNode(firstChild)) {
-        ({ markdown, lexicalState } = parseMarkdown(editor, firstChild))
+        ({ markdown, lexicalState } = $parseMarkdown(editor, firstChild))
       } else {
         markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
       }

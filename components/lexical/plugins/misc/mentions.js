@@ -1,14 +1,14 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { LexicalTypeaheadMenuPlugin, MenuOption } from '@lexical/react/LexicalTypeaheadMenuPlugin'
-import { useState, useCallback, useMemo } from 'react'
-import { $createMentionNode } from '@/lib/lexical/nodes/mention'
-import { $createTerritoryNode } from '@/lib/lexical/nodes/territorymention'
-import { USER_SUGGESTIONS } from '@/fragments/users'
-import { SUB_SUGGESTIONS } from '@/fragments/subs'
-import { useLazyQuery } from '@apollo/client'
+import { useCallback, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Dropdown } from 'react-bootstrap'
+import { useLazyQuery } from '@apollo/client'
+import { LexicalTypeaheadMenuPlugin, MenuOption } from '@lexical/react/LexicalTypeaheadMenuPlugin'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import styles from '@/components/form.module.css'
+import { SUB_SUGGESTIONS } from '@/fragments/subs'
+import { USER_SUGGESTIONS } from '@/fragments/users'
+import { $createMentionNode } from '@/lib/lexical/nodes/mention'
+import { $createTerritoryNode } from '@/lib/lexical/nodes/territorymention'
 
 // This comes from Lexical Mentions Plugin, it's not going to be what we want
 // This is a placeholder to have an idea of a structure for mention nodes.

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import katex from 'katex'
 
 export default function KatexRenderer ({ equation, inline, onDoubleClick }) {

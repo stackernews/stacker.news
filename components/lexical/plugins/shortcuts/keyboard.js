@@ -1,14 +1,14 @@
-import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/universal/commands/mode'
-import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting/inline'
+import { IS_APPLE } from '@lexical/utils'
+import { INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical'
+import { Actions, DefaultShortcuts } from '@/components/lexical/universal/constants/actions'
 import { SN_FORMAT_BLOCK_COMMAND } from '@/components/lexical/universal/commands/formatting/blocks'
 import { SN_FORMAT_ELEMENT_COMMAND } from '@/components/lexical/universal/commands/formatting/elements'
-import { IS_APPLE } from '@lexical/utils'
-import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
-import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
-import { OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND } from 'lexical'
-import { Actions, DefaultShortcuts } from '@/components/lexical/universal/constants/actions'
+import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting/inline'
 import { SN_INSERT_MATH_COMMAND } from '@/components/lexical/universal/commands/math'
+import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/universal/commands/mode'
 import { SN_TABLE_DIALOG_COMMAND } from '@/components/lexical/universal/commands/table'
+import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
+import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
 
 // shortcut configurations
 const SHORTCUT_CONFIGS = {

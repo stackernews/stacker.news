@@ -1,37 +1,38 @@
-import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
+import { useFormikContext } from 'formik'
+import { defineExtension } from 'lexical'
+import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
+import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
-import styles from '@/components/lexical/theme/theme.module.css'
-import theme from '../theme'
-import ToolbarPlugin from '../plugins/toolbar'
-import FormikBridgePlugin from '../plugins/formik'
-import { useFormikContext } from 'formik'
-import DefaultNodes from '@/lib/lexical/nodes'
+import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
+import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
+import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
-import MentionsPlugin from '../plugins/misc/mentions'
-import CodeShikiPlugin from '../plugins/code'
-import SN_TRANSFORMERS from '@/lib/lexical/transformers'
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
+import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
+import { useMemo, useState } from 'react'
 import classNames from 'classnames'
-import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
+import CodeShikiPlugin from '../plugins/code'
+import FileUploadPlugin from '../plugins/misc/upload'
+import FloatingToolbarPlugin from '../plugins/toolbar/floating/floatingtoolbar'
+import FormikBridgePlugin from '../plugins/formik'
+import LinkTransformationPlugin from '../plugins/links/transformator'
+import MentionsPlugin from '../plugins/misc/mentions'
 import ModeSwitchPlugin from '../plugins/mode/switch'
 import PreferencesPlugin from '../plugins/preferences'
-import { useState, useMemo } from 'react'
-import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import ShortcutsPlugin from '../plugins/shortcuts'
+import ToolbarPlugin from '../plugins/toolbar'
 import UniversalCommandsPlugin from '../universal/commands'
-import FileUploadPlugin from '../plugins/misc/upload'
-import { defineExtension } from 'lexical'
-import { ListPlugin } from '@lexical/react/LexicalListPlugin'
-import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
-import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
-import { LexicalEditorProviders } from '@/components/lexical/providers'
-import FloatingToolbarPlugin from '../plugins/toolbar/floating/floatingtoolbar'
-import LinkTransformationPlugin from '../plugins/links/transformator'
-import { useLexicalPreferences } from '../contexts/preferences'
 import { $initializeMarkdown } from '../universal/utils'
+import { useLexicalPreferences, LexicalPreferencesContextProvider } from '../contexts/preferences'
+import DefaultNodes from '@/lib/lexical/nodes'
+import SN_TRANSFORMERS from '@/lib/lexical/transformers'
+import { useSharedHistoryContext, SharedHistoryContextProvider } from '@/components/lexical/contexts/sharedhistory'
+import { TableContextProvider } from '@/components/lexical/contexts/table'
+import { ToolbarContextProvider } from '@/components/lexical/contexts/toolbar'
+import styles from '@/components/lexical/theme/theme.module.css'
+import theme from '../theme'
 
 export default function Editor ({ ...props }) {
   const { prefs } = useLexicalPreferences()
@@ -69,11 +70,17 @@ export default function Editor ({ ...props }) {
     }), [])
 
   return (
-    <LexicalExtensionComposer extension={editorExtension} contentEditable={null}>
-      <LexicalEditorProviders>
-        <EditorContent {...props} />
-      </LexicalEditorProviders>
-    </LexicalExtensionComposer>
+    <LexicalPreferencesContextProvider>
+      <LexicalExtensionComposer extension={editorExtension} contentEditable={null}>
+        <SharedHistoryContextProvider>
+          <ToolbarContextProvider>
+            <TableContextProvider>
+              <EditorContent {...props} />
+            </TableContextProvider>
+          </ToolbarContextProvider>
+        </SharedHistoryContextProvider>
+      </LexicalExtensionComposer>
+    </LexicalPreferencesContextProvider>
   )
 }
 

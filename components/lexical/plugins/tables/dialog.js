@@ -1,5 +1,5 @@
-import { SN_INSERT_TABLE_COMMAND } from '@/components/lexical/universal/commands/table'
 import { Form, Input, SubmitButton } from '@/components/form'
+import { SN_INSERT_TABLE_COMMAND } from '@/components/lexical/universal/commands/table'
 import { tableSchema } from '@/lib/validate'
 
 export function InsertTableDialog ({ editor, onClose }) {

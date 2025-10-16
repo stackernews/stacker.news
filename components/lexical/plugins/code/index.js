@@ -1,8 +1,8 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
+import { $getRoot } from 'lexical'
 import { registerCodeHighlighting, ShikiTokenizer } from '@lexical/code-shiki'
 import useDarkMode from '@/components/dark-mode'
-import { $getRoot } from 'lexical'
 import { $isMarkdownNode } from '@/lib/lexical/nodes/markdownnode'
 
 export default function CodeShikiPlugin () {

@@ -1,9 +1,9 @@
+import { useEffect, useState } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import styles from '@/components/lexical/theme/theme.module.css'
+import { getShortcutCombo } from '../shortcuts/keyboard'
 import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/universal/commands/mode'
 import { $isMarkdownMode } from '@/components/lexical/universal/utils'
-import { useState, useEffect } from 'react'
-import { getShortcutCombo } from '../shortcuts/keyboard'
+import styles from '@/components/lexical/theme/theme.module.css'
 
 export default function ModeSwitchPlugin () {
   const [editor] = useLexicalComposerContext()

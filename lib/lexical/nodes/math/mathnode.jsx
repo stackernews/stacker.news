@@ -1,6 +1,4 @@
 import { $applyNodeReplacement, DecoratorNode } from 'lexical'
-// remember to use these only when required
-// as in SSR we use ssrLexicalHTMLGenerator
 import katex from 'katex'
 
 function $convertMathElement (domNode) {

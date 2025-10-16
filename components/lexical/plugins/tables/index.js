@@ -1,8 +1,9 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
+import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useTableContext } from '@/components/lexical/contexts/table'
-import { TableNode, TableCellNode, TableRowNode } from '@lexical/table'
 
+// TODO: unused
 export function TablePlugin ({ cellConfig, children }) {
   const [editor] = useLexicalComposerContext()
   const tableContext = useTableContext()

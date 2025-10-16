@@ -1,8 +1,8 @@
-import dynamic from 'next/dynamic'
-import styles from './theme/theme.module.css'
-import classNames from 'classnames'
 import { forwardRef, useMemo } from 'react'
+import classNames from 'classnames'
+import dynamic from 'next/dynamic'
 import { LexicalPreferencesContextProvider } from './contexts/preferences'
+import styles from './theme/theme.module.css'
 
 // messy way to show a skeleton while the editor is loading
 const EditorSkeleton = () => {
@@ -32,9 +32,7 @@ const Editor = dynamic(() => import('@/components/lexical/editor'), { ssr: false
 // lexical starting point, can be a reader or an editor
 export const LexicalEditor = forwardRef(function LexicalEditor ({ ...props }, ref) {
   return (
-    <LexicalPreferencesContextProvider>
-      <Editor {...props} ref={ref} />
-    </LexicalPreferencesContextProvider>
+    <Editor {...props} ref={ref} />
   )
 })
 

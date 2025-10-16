@@ -1,13 +1,16 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useEffect, useState, useCallback } from 'react'
-import { $isLinkNode, $isAutoLinkNode } from '@lexical/link'
-import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
-import { useToolbarState } from '@/components/lexical/contexts/toolbar'
-import { PASTE_COMMAND, COMMAND_PRIORITY_LOW, $getSelection, $isRangeSelection, $isNodeSelection } from 'lexical'
-import { getSelectedNode } from '@/components/lexical/utils/selection'
+import { useCallback, useEffect, useState } from 'react'
 import { $findMatchingParent, mergeRegister } from '@lexical/utils'
+import { $isAutoLinkNode, $isLinkNode } from '@lexical/link'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import {
+  COMMAND_PRIORITY_LOW, PASTE_COMMAND,
+  $getSelection, $isNodeSelection, $isRangeSelection
+} from 'lexical'
 import LinkEditor from './linkeditor'
-import { URL_REGEXP, ensureProtocol, removeTracking } from '@/lib/url'
+import { useToolbarState } from '@/components/lexical/contexts/toolbar'
+import { getSelectedNode } from '@/components/lexical/utils/selection'
+import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
+import { ensureProtocol, removeTracking, URL_REGEXP } from '@/lib/url'
 
 export default function LinkTransformationPlugin ({ anchorElem }) {
   const [isLinkEditable, setIsLinkEditable] = useState(false)

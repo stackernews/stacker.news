@@ -1,23 +1,29 @@
-import { useRef, useState, useCallback, useEffect, Suspense } from 'react'
-import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection'
+// Third-party imports (alphabetically)
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { mergeRegister } from '@lexical/utils'
+import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
+import { ContentEditable } from '@lexical/react/LexicalContentEditable'
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
+import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
+import { LexicalNestedComposer } from '@lexical/react/LexicalNestedComposer'
+import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useLexicalEditable } from '@lexical/react/useLexicalEditable'
-import { LexicalNestedComposer } from '@lexical/react/LexicalNestedComposer'
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
-import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
+import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection'
+import {
+  $getNodeByKey, $isNodeSelection,
+  $getSelection, $isRangeSelection, $setSelection,
+  CLICK_COMMAND, COMMAND_PRIORITY_LOW, DRAGSTART_COMMAND, KEY_ENTER_COMMAND,
+  KEY_ESCAPE_COMMAND, RIGHT_CLICK_IMAGE_COMMAND, SELECTION_CHANGE_COMMAND
+} from 'lexical'
 import MentionsPlugin from '@/components/lexical/plugins/misc/mentions'
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
-import { ContentEditable } from '@lexical/react/LexicalContentEditable'
-import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import { $getNodeByKey, $isNodeSelection, $getSelection, $setSelection, $isRangeSelection, RIGHT_CLICK_IMAGE_COMMAND, COMMAND_PRIORITY_LOW, CLICK_COMMAND, DRAGSTART_COMMAND, KEY_ENTER_COMMAND, KEY_ESCAPE_COMMAND, SELECTION_CHANGE_COMMAND } from 'lexical'
-import { mergeRegister } from '@lexical/utils'
-import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
-import { $isMediaNode } from './media-node'
-import styles from '@/components/lexical/theme/media.module.css'
-import MediaResizer from './media-resizer'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import { MediaOrLinkExperimental } from '@/components/media-or-link'
+import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { $isMediaNode } from './media-node'
+import MediaResizer from './media-resizer'
+import styles from '@/components/lexical/theme/media.module.css'
 
 export default function MediaComponent ({
   src,

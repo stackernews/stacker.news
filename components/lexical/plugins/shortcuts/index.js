@@ -1,7 +1,7 @@
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
-import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_HIGH, isModifierMatch } from 'lexical'
 import { IS_APPLE } from '@lexical/utils'
+import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_HIGH, isModifierMatch } from 'lexical'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { SHORTCUTS } from './keyboard'
 
 // experimental

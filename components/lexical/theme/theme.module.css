@@ -309,18 +309,24 @@
   height: 20px;
 }
 
-.modeStatus {
+.bottomBar {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+}
+
+.bottomBarItem {
   cursor: pointer;
   font-size: 10px;
   color: var(--theme-grey);
 }
 
-.modeStatus:hover {
+.bottomBarItem:hover {
   color: var(--theme-brandColor);
   filter: drop-shadow(0 0 6px var(--bs-primary));
 }
 
-.modeStatus:active {
+.bottomBarItem:active {
   color: var(--theme-brandColor);
   opacity: 0.8;
   filter: drop-shadow(0 0 6px var(--bs-primary));

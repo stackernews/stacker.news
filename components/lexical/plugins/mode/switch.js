@@ -3,6 +3,7 @@ import styles from '@/components/lexical/theme/theme.module.css'
 import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/universal/commands/mode'
 import { $isMarkdownMode } from '@/components/lexical/universal/utils'
 import { useState, useEffect } from 'react'
+import { getShortcutCombo } from '../shortcuts/keyboard'
 
 export default function ModeSwitchPlugin () {
   const [editor] = useLexicalComposerContext()
@@ -19,7 +20,8 @@ export default function ModeSwitchPlugin () {
   return (
     <span
       onClick={() => editor.dispatchCommand(SN_TOGGLE_MODE_COMMAND)}
-      className={styles.modeStatus}
+      className={styles.bottomBarItem}
+      title={`${isMarkdownMode ? 'markdown mode' : 'rich mode'} (${getShortcutCombo('toggleMode')})`}
     >
       {isMarkdownMode ? 'markdown mode' : 'rich mode'}
     </span>

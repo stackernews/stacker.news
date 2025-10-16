@@ -1,4 +1,4 @@
-import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/plugins/mode/switch'
+import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/universal/commands/mode'
 import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting/inline'
 import { SN_FORMAT_BLOCK_COMMAND } from '@/components/lexical/universal/commands/formatting/blocks'
 import { SN_FORMAT_ELEMENT_COMMAND } from '@/components/lexical/universal/commands/formatting/elements'

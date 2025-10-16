@@ -17,6 +17,7 @@ import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import classNames from 'classnames'
 import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
 import ModeSwitchPlugin from '../plugins/mode/switch'
+import PreferencesPlugin from '../plugins/preferences'
 import { useState, useMemo } from 'react'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import ShortcutsPlugin from '../plugins/shortcuts'
@@ -123,7 +124,10 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         {/* markdown <-> wysiwyg commands */}
         <UniversalCommandsPlugin />
         {/* markdown mode status and switch */}
-        <ModeSwitchPlugin />
+        <div className={styles.bottomBar}>
+          <ModeSwitchPlugin />
+          <PreferencesPlugin />
+        </div>
         {/* keyboard shortcuts */}
         <ShortcutsPlugin />
         {/* tools */}

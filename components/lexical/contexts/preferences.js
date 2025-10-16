@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react'
+import { createContext, useContext, useMemo, useState, useCallback } from 'react'
 
 export const DEFAULT_PREFERENCES = {
   startInMarkdown: true,
@@ -13,22 +13,16 @@ const LexicalPreferencesContext = createContext({
   prefs: DEFAULT_PREFERENCES
 })
 
-// TODO: preferences are local, but there's no way to set them.
 export const LexicalPreferencesContextProvider = ({ children }) => {
-  const [prefs, setPrefs] = useState(DEFAULT_PREFERENCES)
-
-  // load preferences from local on mount
-  useEffect(() => {
+  const [prefs, setPrefs] = useState(() => {
     try {
       const stored = window.localStorage.getItem(PREFERENCES_STORAGE_KEY)
-      if (stored) {
-        const parsedPrefs = JSON.parse(stored)
-        setPrefs(prev => ({ ...prev, ...parsedPrefs }))
-      }
+      return stored ? { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) } : DEFAULT_PREFERENCES
     } catch (error) {
       console.warn('failed to load preferences from local:', error)
+      return DEFAULT_PREFERENCES
     }
-  }, [])
+  })
 
   const setOption = useCallback((name, value) => {
     setPrefs((prev) => {

@@ -18,7 +18,7 @@ const EditorSkeleton = () => {
           <span className={`${styles.otherItem} clouds`} />
         </div>
       </div>
-      <div className={styles.modeStatus} style={{ height: '10px', width: '70px', marginTop: '5px' }}>
+      <div className={styles.bottomBarItem} style={{ height: '10px', width: '70px', marginTop: '5px' }}>
         <span className={classNames(styles.skeleton, styles.otherItem)}>
           <span className={`${styles.otherItem} clouds`} />
         </span>

@@ -10,7 +10,8 @@ import LinkUnlink from '@/svgs/lexical/link-unlink.svg'
 import More from '@/svgs/lexical/font-size.svg'
 import styles from '@/components/lexical/theme/theme.module.css'
 import Dropdown from 'react-bootstrap/Dropdown'
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState, forwardRef } from 'react'
+import { createPortal } from 'react-dom'
 import classNames from 'classnames'
 import { useToolbarState } from '../../contexts/toolbar'
 import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard'
@@ -24,6 +25,16 @@ import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
 import ActionTooltip from '@/components/action-tooltip'
 
+// escapes the overflow rules of the FormattingTools component
+const MenuAlternateDimension = forwardRef(({ children, style, className, ...props }, ref) => {
+  return createPortal(
+    <div ref={ref} style={style} className={className} {...props}>
+      {children}
+    </div>,
+    document.body
+  )
+})
+
 function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const blockOption = BLOCK_OPTIONS.find(option => option.action === toolbarState.blockType)
@@ -34,7 +45,7 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
           {blockOption?.icon || <More />}
           <ArrowDownIcon />
         </Dropdown.Toggle>
-        <Dropdown.Menu className={styles.dropdownExtra}>
+        <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
           {BLOCK_OPTIONS.map((option) => (
             <Dropdown.Item
               key={option.action}
@@ -101,7 +112,7 @@ function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
           <More />
           <ArrowDownIcon />
         </Dropdown.Toggle>
-        <Dropdown.Menu className={styles.dropdownExtra}>
+        <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
           {ADDITIONAL_FORMAT_OPTIONS.map((option) => (
             <Dropdown.Item
               key={option.action}
@@ -136,7 +147,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
           {ALIGN_OPTIONS.find(option => option.action === toolbarState.elementFormat)?.icon || <AlignLeftIcon />}
           <ArrowDownIcon />
         </Dropdown.Toggle>
-        <Dropdown.Menu className={styles.dropdownExtra}>
+        <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
           {ALIGN_OPTIONS.map((option) => (
             <Dropdown.Item
               key={option.action}
@@ -336,4 +347,26 @@ export default function FormattingTools ({ isFloating, className }) {
         <AlignOptionsDropdown toolbarState={toolbarState} handleAlign={handleAlign} handleIndent={handleIndent} />
       </div>
       )
+}
+
+export function useMediaQuery (query) {
+  const [matches, setMatches] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const mediaQuery = window.matchMedia(query)
+    setMatches(mediaQuery.matches)
+
+    const handler = (e) => setMatches(e.matches)
+    mediaQuery.addEventListener('change', handler)
+
+    return () => mediaQuery.removeEventListener('change', handler)
+  }, [query])
+
+  return matches
+}
+
+export function useIsMobile () {
+  return useMediaQuery('(max-width: 768px)')
 }

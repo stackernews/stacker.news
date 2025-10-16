@@ -216,10 +216,10 @@
   align-items: center;
   justify-content: flex-start;
   flex-direction: row;
+  opacity: 1;
   overflow: auto;
   scrollbar-width: none;
   mask: linear-gradient(to right, black 0%, black calc(100% - 0.2rem), transparent 100%);
-  opacity: 1;
   transition: opacity 0.1s ease-in-out, visibility 0.1s ease-in-out;
 }
 

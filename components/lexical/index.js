@@ -1,7 +1,6 @@
 import { forwardRef, useMemo } from 'react'
 import classNames from 'classnames'
 import dynamic from 'next/dynamic'
-import { LexicalPreferencesContextProvider } from './contexts/preferences'
 import styles from './theme/theme.module.css'
 
 // messy way to show a skeleton while the editor is loading

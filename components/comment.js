@@ -28,6 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import { getParsedHTML } from '@/lib/dompurify'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -60,6 +61,29 @@ const truncateString = (string = '', maxLength = 140) =>
   string.length > maxLength
     ? `${string.substring(0, maxLength)} […]`
     : string
+
+// sanitizes HTML via getParsedHTML
+// truncates the resulting HTML and returns it
+const truncateHTML = (html = '', text = '', maxLines = 3) => {
+  try {
+    const doc = getParsedHTML(html)
+    const body = doc.body
+
+    // take the first maxLines child nodes
+    const nodes = Array.from(body.children).slice(0, maxLines)
+
+    // create a new container with the first maxLines child nodes
+    const container = doc.createElement('div')
+    nodes.forEach(node => {
+      container.appendChild(node.cloneNode(true))
+    })
+
+    return container.innerHTML
+  } catch (error) {
+    console.error('error truncating HTML: ', error)
+    return text ? truncateString(text) : ''
+  }
+}
 
 export function CommentFlat ({ item, rank, siblingComments, ...props }) {
   const router = useRouter()
@@ -282,8 +306,14 @@ export default function Comment ({
               <div className={styles.text} ref={textRef}>
                 {item.searchText
                   ? <SearchText text={item.searchText} />
-                  : item.lexicalState && item.html
-                    ? <LexicalText lexicalState={item.lexicalState} html={item.html} />
+                  : item.lexicalState
+                    ? (
+                      <LexicalText lexicalState={item.lexicalState} html={item.html} imgproxyUrls={item.imgproxyUrls} outlawed={item.outlawed} rel={item.rel ?? UNKNOWN_LINK_REL}>
+                        {item.outlawed && !me?.privates?.wildWestMode
+                          ? <i className='text-muted'>stackers have outlawed this. turn on wild west mode in your <Link href='/settings'>settings</Link> to see outlawed content.</i>
+                          : truncate ? <div dangerouslySetInnerHTML={{ __html: truncateHTML(item.html) }} /> : undefined}
+                      </LexicalText>
+                      )
                     : (
                       <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
                         {item.outlawed && !me?.privates?.wildWestMode

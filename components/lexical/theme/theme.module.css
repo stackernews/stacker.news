@@ -11,6 +11,10 @@
   --grid-gap: 0.5rem;
 }
 
+.textTruncated {
+  max-height: 50vh;
+}
+
 .text[contenteditable="false"] {
   background-color: var(--theme-body) !important;
 }

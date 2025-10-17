@@ -54,7 +54,7 @@ export function SearchText ({ text }) {
   )
 }
 
-function useOverflow ({ element }) {
+function useOverflow ({ element, truncated = false }) {
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?
@@ -69,7 +69,11 @@ function useOverflow ({ element }) {
     if (!node || !(node instanceof window.Element)) return
 
     function checkOverflow () {
-      setOverflowing(node.scrollHeight > window.innerHeight * 2)
+      setOverflowing(
+        truncated
+          ? node.scrollHeight > window.innerHeight * 0.5
+          : node.scrollHeight > window.innerHeight * 2
+      )
     }
 
     let resizeObserver
@@ -105,12 +109,11 @@ function useOverflow ({ element }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-export function LexicalText ({ lexicalState, html, topLevel }) {
+export function LexicalText ({ lexicalState, html, topLevel, imgproxyUrls, rel = UNKNOWN_LINK_REL, outlawed, children }) {
   // TODO: add support for imgproxyUrls
   // TODO: disable links if outlawed
-  // TODO: what about MathNodes?
   const [element, setElement] = useState(null)
-  const { overflowing, show, Overflow } = useOverflow({ element })
+  const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
 
   const textClassNames = useMemo(() => {
     return classNames(
@@ -120,9 +123,25 @@ export function LexicalText ({ lexicalState, html, topLevel }) {
     )
   }, [topLevel, show, overflowing])
 
+  if (children) {
+    return (
+      <div ref={setElement} className={classNames(textClassNames, lexicalStyles.textTruncated)}>
+        {children}
+        {Overflow}
+      </div>
+    )
+  }
+
   return (
     <div>
-      <LexicalReader className={textClassNames} ref={setElement} lexicalState={lexicalState} topLevel={topLevel} html={html}>
+      <LexicalReader
+        className={textClassNames}
+        ref={setElement}
+        lexicalState={lexicalState}
+        topLevel={topLevel}
+        html={html}
+        imgproxyUrls={imgproxyUrls}
+      >
         {Overflow}
       </LexicalReader>
     </div>

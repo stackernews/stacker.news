@@ -26,9 +26,9 @@ const EditorSkeleton = () => {
   )
 }
 
+// Editor is dynamically imported outside of the component to avoid parents causing re-renders
 const Editor = dynamic(() => import('@/components/lexical/editor'), { ssr: false, loading: EditorSkeleton })
 
-// lexical starting point, can be a reader or an editor
 export const LexicalEditor = forwardRef(function LexicalEditor ({ ...props }, ref) {
   return (
     <Editor {...props} ref={ref} />
@@ -50,6 +50,7 @@ export const LexicalReader = forwardRef(function LexicalReader ({ html, children
       return null
     }
   }), [])
+
   return (
     <Reader {...props} contentRef={ref}>
       {children}

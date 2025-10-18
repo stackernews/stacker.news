@@ -1,6 +1,7 @@
 import { $getRoot, $isRootOrShadowRoot } from 'lexical'
 import { $isMarkdownNode, $createMarkdownNode } from '@/lib/lexical/nodes/markdownnode'
 import { $findMatchingParent } from '@lexical/utils'
+import { $isRootTextContentEmpty } from '@lexical/text'
 
 export function $findTopLevelElement (node) {
   let topLevelElement = node.getKey() === 'root'
@@ -22,6 +23,13 @@ export function $isMarkdownMode () {
   const root = $getRoot()
   const firstChild = root.getFirstChild()
   return $isMarkdownNode(firstChild)
+}
+
+export function $isRootEmpty () {
+  if (!$isMarkdownMode()) return $isRootTextContentEmpty()
+  const root = $getRoot()
+  const firstChild = root.getFirstChild()
+  return $isMarkdownNode(firstChild) && firstChild.getTextContent().trim() === ''
 }
 
 export function $initializeMarkdown () {

@@ -16,7 +16,7 @@ import classNames from 'classnames'
 import CodeShikiPlugin from '../plugins/code'
 import FileUploadPlugin from '../plugins/misc/upload'
 import FloatingToolbarPlugin from '../plugins/toolbar/floating/floatingtoolbar'
-import FormikBridgePlugin from '../plugins/formik'
+import FormikPlugin from '../plugins/formik'
 import LinkTransformationPlugin from '../plugins/links/transformator'
 import MentionsPlugin from '../plugins/misc/mentions'
 import ModeSwitchPlugin from '../plugins/mode/switch'
@@ -141,7 +141,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         <FileUploadPlugin />
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
         {/* triggers all the things that should happen when the editor state changes (writing, selecting, etc.) */}
-        <FormikBridgePlugin name={name} />
+        <FormikPlugin name={name} />
       </div>
     </>
   )

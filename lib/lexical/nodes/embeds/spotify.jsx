@@ -2,7 +2,7 @@ import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { placeholderNode } from './placeholder'
 
 function $convertSpotifyElement (domNode) {
-  const src = domNode.getAttribute('data-lexical-spotify-src')
+  const src = domNode.getAttribute('data-lexical-embed-src')
   if (!src) return null
   const node = $createSpotifyNode(src)
   return { node }
@@ -33,7 +33,7 @@ export class SpotifyNode extends DecoratorBlockNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-spotify-src')) {
+        if (!domNode.hasAttribute('data-lexical-embed-src')) {
           return null
         }
         return {
@@ -71,7 +71,7 @@ export class SpotifyNode extends DecoratorBlockNode {
     const prevSrc = prevNode.getSrc()
     const src = this.getSrc()
     if (prevSrc !== src) {
-      domNode.setAttribute('data-lexical-spotify-src', src)
+      domNode.setAttribute('data-lexical-embed-src', src)
     }
     return true
   }

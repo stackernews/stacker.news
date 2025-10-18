@@ -3,7 +3,7 @@ import { placeholderNode } from './placeholder'
 
 function $convertTweetElement (domNode) {
   const id = domNode.getAttribute('data-lexical-tweet-id')
-  const src = domNode.getAttribute('data-lexical-tweet-src')
+  const src = domNode.getAttribute('data-lexical-embed-src')
   if (!id) return null
   const node = $createTweetNode(id, src)
   return { node }
@@ -84,7 +84,7 @@ export class TweetNode extends DecoratorBlockNode {
     const prevSrc = prevNode.getSrc()
     const src = this.getSrc()
     if (prevSrc !== src) {
-      domNode.setAttribute('data-lexical-tweet-src', src)
+      domNode.setAttribute('data-lexical-embed-src', src)
     }
     return true
   }

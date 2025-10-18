@@ -4,7 +4,7 @@ import { placeholderNode } from './placeholder'
 function $convertYouTubeElement (domNode) {
   const id = domNode.getAttribute('data-lexical-youtube-id')
   const meta = domNode.getAttribute('data-lexical-youtube-meta')
-  const src = domNode.getAttribute('data-lexical-youtube-src')
+  const src = domNode.getAttribute('data-lexical-embed-src')
   if (!id) return null
   const node = $createYouTubeNode(id, meta, src)
   return { node }
@@ -93,7 +93,7 @@ export class YouTubeNode extends DecoratorBlockNode {
     const prevSrc = prevNode.getSrc()
     const src = this.getSrc()
     if (prevSrc !== src) {
-      domNode.setAttribute('data-lexical-youtube-src', src)
+      domNode.setAttribute('data-lexical-embed-src', src)
     }
     const prevMeta = prevNode.getMeta()
     const meta = this.getMeta()

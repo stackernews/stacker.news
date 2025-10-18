@@ -2,6 +2,7 @@ import { forwardRef, useMemo } from 'react'
 import classNames from 'classnames'
 import dynamic from 'next/dynamic'
 import styles from './theme/theme.module.css'
+import { applySNCustomizations } from '@/lib/lexical/sn/customs'
 
 // messy way to show a skeleton while the editor is loading
 const EditorSkeleton = () => {
@@ -35,14 +36,15 @@ export const LexicalEditor = forwardRef(function LexicalEditor ({ ...props }, re
   )
 })
 
-export const LexicalReader = forwardRef(function LexicalReader ({ html, children, ...props }, ref) {
+export const LexicalReader = forwardRef(function LexicalReader ({ html, children, outlawed, ...props }, ref) {
+  const snCustomizedHTML = useMemo(() => applySNCustomizations(html, { outlawed }), [html, outlawed])
   const Reader = useMemo(() => dynamic(() => import('@/components/lexical/reader'), {
     ssr: false,
     loading: () => {
-      if (html) {
+      if (snCustomizedHTML) {
         return (
           <div className={props.className} ref={ref}>
-            <div className={styles.html} dangerouslySetInnerHTML={{ __html: html }} />
+            <div className={styles.html} dangerouslySetInnerHTML={{ __html: snCustomizedHTML }} />
             {children}
           </div>
         )
@@ -52,7 +54,7 @@ export const LexicalReader = forwardRef(function LexicalReader ({ html, children
   }), [])
 
   return (
-    <Reader {...props} contentRef={ref}>
+    <Reader outlawed={outlawed} {...props} contentRef={ref}>
       {children}
     </Reader>
   )

@@ -4,7 +4,7 @@ import { placeholderNode } from './placeholder'
 function $convertRumbleElement (domNode) {
   const id = domNode.getAttribute('data-lexical-rumble-id')
   const meta = domNode.getAttribute('data-lexical-rumble-meta')
-  const src = domNode.getAttribute('data-lexical-rumble-src')
+  const src = domNode.getAttribute('data-lexical-embed-src')
   if (!meta) return null
   const node = $createRumbleNode(id, meta, src)
   return { node }
@@ -39,7 +39,7 @@ export class RumbleNode extends DecoratorBlockNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-rumble-meta')) {
+        if (!domNode.hasAttribute('data-lexical-embed-src')) {
           return null
         }
         return {
@@ -92,7 +92,7 @@ export class RumbleNode extends DecoratorBlockNode {
     const prevSrc = prevNode.getSrc()
     const src = this.getSrc()
     if (prevSrc !== src) {
-      domNode.setAttribute('data-lexical-rumble-src', src)
+      domNode.setAttribute('data-lexical-embed-src', src)
     }
     const prevMeta = prevNode.getMeta()
     const meta = this.getMeta()

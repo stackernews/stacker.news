@@ -3,7 +3,7 @@ import { placeholderNode } from './placeholder'
 
 function $convertWavlakeElement (domNode) {
   const id = domNode.getAttribute('data-lexical-wavlake-id')
-  const src = domNode.getAttribute('data-lexical-wavlake-src')
+  const src = domNode.getAttribute('data-lexical-embed-src')
   if (!id) return null
   const node = $createWavlakeNode(id, src)
   return { node }
@@ -84,7 +84,7 @@ export class WavlakeNode extends DecoratorBlockNode {
     const prevSrc = prevNode.getSrc()
     const src = this.getSrc()
     if (prevSrc !== src) {
-      domNode.setAttribute('data-lexical-wavlake-src', src)
+      domNode.setAttribute('data-lexical-embed-src', src)
     }
     return true
   }

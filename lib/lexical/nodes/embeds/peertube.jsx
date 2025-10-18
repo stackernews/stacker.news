@@ -4,8 +4,9 @@ import { placeholderNode } from './placeholder'
 function $convertPeerTubeElement (domNode) {
   const id = domNode.getAttribute('data-lexical-peertube-id')
   const meta = domNode.getAttribute('data-lexical-peertube-meta')
+  const src = domNode.getAttribute('data-lexical-embed-src')
   if (!meta) return null
-  const node = $createPeerTubeNode(id, meta)
+  const node = $createPeerTubeNode(id, meta, src)
   return { node }
 }
 
@@ -38,7 +39,7 @@ export class PeerTubeNode extends DecoratorBlockNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-peertube-meta')) {
+        if (!domNode.hasAttribute('data-lexical-embed-src')) {
           return null
         }
         return {
@@ -91,7 +92,7 @@ export class PeerTubeNode extends DecoratorBlockNode {
     const prevSrc = prevNode.getSrc()
     const src = this.getSrc()
     if (prevSrc !== src) {
-      domNode.setAttribute('data-lexical-peertube-src', src)
+      domNode.setAttribute('data-lexical-embed-src', src)
     }
     const prevMeta = prevNode.getMeta()
     const meta = this.getMeta()

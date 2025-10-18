@@ -8,8 +8,9 @@ import CodeShikiPlugin from '../plugins/code'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { forwardRef } from 'react'
 import classNames from 'classnames'
+import { LexicalItemContextProvider } from '../contexts/item'
 
-export default forwardRef(function Reader ({ lexicalState, customNodes = [], topLevel, className, children, contentRef }, ref) {
+export default forwardRef(function Reader ({ lexicalState, customNodes = [], topLevel, className, children, contentRef, imgproxyUrls, outlawed, rel }, ref) {
   const initial = {
     editorState: (editor) => {
       if (!lexicalState) return
@@ -36,16 +37,18 @@ export default forwardRef(function Reader ({ lexicalState, customNodes = [], top
 
   return (
     <LexicalComposer initialConfig={initial}>
-      <RichTextPlugin
-        contentEditable={
-          <div className={classNames(styles.editor, className)} ref={contentRef}>
-            <ContentEditable />
-            {children}
-          </div>
-        }
-        ErrorBoundary={LexicalErrorBoundary}
-      />
-      <CodeShikiPlugin />
+      <LexicalItemContextProvider imgproxyUrls={imgproxyUrls} topLevel={topLevel} outlawed={outlawed} rel={rel}>
+        <RichTextPlugin
+          contentEditable={
+            <div className={classNames(styles.editor, className)} ref={contentRef}>
+              <ContentEditable />
+              {children}
+            </div>
+          }
+          ErrorBoundary={LexicalErrorBoundary}
+        />
+        <CodeShikiPlugin />
+      </LexicalItemContextProvider>
     </LexicalComposer>
   )
 })

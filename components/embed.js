@@ -246,7 +246,7 @@ const RumbleEmbed = ({ className, href, ...props }) => {
 export default memo(function Embed ({ src, provider, id, meta, className, topLevel }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const onLoad = useCallback(() => setLoading(false), [])
+  const onLoad = useCallback(() => setTimeout(() => setLoading(false), 1000), [setLoading])
   const onError = useCallback(() => setError(true), [])
   const props = { onLoad, onError }
   const isClient = useIsClient()

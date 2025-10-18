@@ -141,6 +141,8 @@ export function LexicalText ({ lexicalState, html, topLevel, imgproxyUrls, rel =
         topLevel={topLevel}
         html={html}
         imgproxyUrls={imgproxyUrls}
+        outlawed={outlawed}
+        rel={rel}
       >
         {Overflow}
       </LexicalReader>

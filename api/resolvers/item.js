@@ -1115,7 +1115,7 @@ export default {
                 jsonb_build_object('itemId', ${itemId}::INTEGER, 'fullRefresh', ${fullRefresh}::BOOLEAN),
                 21,
                 true,
-                now() + interval '5 seconds',
+                now(),
                 now() + interval '15 seconds',
                 'migrateLegacyContent:' || ${itemId}::TEXT)
       `

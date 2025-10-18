@@ -37,6 +37,11 @@ span.sn__mediaContainer {
   user-select: none;
 }
 
+span.sn__mediaContainer .outlawed {
+  user-select: text;
+  cursor: text;
+}
+
 .sn__mediaContainer img,
 .sn__mediaContainer video {
   max-width: var(--max-width);
@@ -100,10 +105,30 @@ span.sn__mediaContainer {
   background-color: var(--theme-body) !important;
 }
 
-.sn__videoWrapper__explainer {
-  width: 320px;
-  height: 180px;
-  border-radius: 13px;
+.sn__embedWrapper__loading {
+  display: flex;
+  flex-flow: row wrap;
+  max-width: 350px;
+  width: 100%;
+  padding-right: 12px;
+}
+
+.sn__embedWrapper__loading__message {
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.4rem;
+  height: 150px;
+  width: 100%;
+  padding: 1.5rem;
+  background-color: var(--theme-commentBg);
+}
+
+.sn__embedWrapper__loading__message__icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 1rem;
+  margin-left: -0.15rem;
 }
 
 .sn__nestedListItem {

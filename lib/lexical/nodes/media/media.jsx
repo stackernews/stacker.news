@@ -1,4 +1,3 @@
-// Third-party imports (alphabetically)
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { mergeRegister } from '@lexical/utils'
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
@@ -20,13 +19,16 @@ import {
 import MentionsPlugin from '@/components/lexical/plugins/misc/mentions'
 import { MediaOrLinkExperimental } from '@/components/media-or-link'
 import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import { $isMediaNode } from './media-node'
 import MediaResizer from './media-resizer'
 import styles from '@/components/lexical/theme/media.module.css'
+import { useLexicalItemContext } from '@/components/lexical/contexts/item'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 
-export default function MediaComponent ({
+export function MediaOrLink ({
   src,
+  srcSet,
+  rel,
   altText,
   nodeKey,
   width,
@@ -199,7 +201,8 @@ export default function MediaComponent ({
           <MediaOrLinkExperimental
             editable={isEditable}
             src={src}
-            rel={UNKNOWN_LINK_REL}
+            srcSet={srcSet}
+            rel={rel}
             linkFallback={false}
             preTailor={{ width, height, maxWidth }}
             onError={() => setIsLoadError(true)}
@@ -242,4 +245,18 @@ export default function MediaComponent ({
       </>
     </Suspense>
   )
+}
+
+export default function MediaComponent ({ src, ...props }) {
+  const { imgproxyUrls, rel, outlawed } = useLexicalItemContext()
+  const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
+  const srcSet = imgproxyUrls?.[url]
+
+  console.log('outlawed', outlawed)
+
+  if (outlawed) {
+    return <p className='outlawed'>{url}</p>
+  }
+
+  return <MediaOrLink srcSet={srcSet} src={src} rel={rel} {...props} />
 }

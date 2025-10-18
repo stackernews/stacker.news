@@ -3,7 +3,7 @@ import { placeholderNode } from './placeholder'
 
 function $convertNostrElement (domNode) {
   const id = domNode.getAttribute('data-lexical-nostr-id')
-  const src = domNode.getAttribute('data-lexical-nostr-src')
+  const src = domNode.getAttribute('data-lexical-embed-src')
   if (!id) return null
   const node = $createNostrNode(id, src)
   return { node }
@@ -84,7 +84,7 @@ export class NostrNode extends DecoratorBlockNode {
     const prevSrc = prevNode.getSrc()
     const src = this.getSrc()
     if (prevSrc !== src) {
-      domNode.setAttribute('data-lexical-nostr-src', src)
+      domNode.setAttribute('data-lexical-embed-src', src)
     }
     return true
   }

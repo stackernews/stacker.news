@@ -30,3 +30,8 @@
 .content form {
     width: 100%;
 }
+
+/* special case for post creation, 1:1 width editor-resulting post */
+.content:has(form [contenteditable="true"]) {
+    max-width: 850px !important;
+}

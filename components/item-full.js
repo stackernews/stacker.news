@@ -2,7 +2,7 @@ import Item from './item'
 import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
-import Text, { SearchText } from './text'
+import Text, { SearchText, LexicalText } from './text'
 import MediaOrLink from './media-or-link'
 import Comments from './comments'
 import styles from '@/styles/item.module.css'
@@ -29,7 +29,7 @@ import useCommentsView from './use-comments-view'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
-  if (!item.text) {
+  if (!item.text && !item.html) {
     return null
   }
 
@@ -109,7 +109,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       {...props}
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
-        {item.text && <ItemText item={item} />}
+        {(item.text || item.html) && <ItemText item={item} />}
         {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
@@ -157,7 +157,9 @@ function TopLevelItem ({ item, noReply, ...props }) {
 function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
+    : item.lexicalState
+      ? <LexicalText lexicalState={item.lexicalState} html={item.html} topLevel imgproxyUrls={item.imgproxyUrls} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} />
+      : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {

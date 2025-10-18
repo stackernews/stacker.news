@@ -27,6 +27,7 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
+import { $ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -112,6 +113,7 @@ export async function getItem (parent, { id }, { me, models }) {
         activeOrMine(me)
       )}`
   }, Number(id))
+
   return item
 }
 
@@ -1091,6 +1093,33 @@ export default {
       })
 
       return result.lastViewedAt
+    },
+    executeConversion: async (parent, { itemId, fullRefresh }, { models }) => {
+      if (process.env.NODE_ENV !== 'development') {
+        throw new GqlInputError('only allowed in sndev')
+      }
+      console.log('executing conversion for itemId', itemId)
+
+      const alreadyScheduled = await models.$queryRaw`
+        SELECT 1
+        FROM pgboss.job
+        WHERE name = 'migrateLegacyContent' AND data->>'itemId' = ${itemId}::TEXT AND state <> 'completed'
+      `
+      if (alreadyScheduled.length > 0) return false
+
+      // singleton job, so that we don't run the same job multiple times
+      // if on concurrent requests the check above fails
+      await models.$executeRaw`
+        INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil, singletonKey)
+        VALUES ('migrateLegacyContent',
+                jsonb_build_object('itemId', ${itemId}::INTEGER, 'fullRefresh', ${fullRefresh}::BOOLEAN),
+                21,
+                true,
+                now(),
+                now() + interval '15 seconds',
+                'migrateLegacyContent:' || ${itemId}::TEXT)
+      `
+      return true
     }
   },
   ItemAct: {
@@ -1518,10 +1547,10 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   if (old.bio) {
     // prevent editing a bio like a regular item
-    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio` }
+    item = { id: Number(item.id), text: item.text, lexicalState: item.lexicalState, title: `@${user.name}'s bio` }
   } else if (old.parentId) {
     // prevent editing a comment like a post
-    item = { id: Number(item.id), text: item.text, boost: item.boost }
+    item = { id: Number(item.id), text: item.text, lexicalState: item.lexicalState, boost: item.boost }
   } else {
     item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
@@ -1530,6 +1559,11 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   // never change author of item
   item.userId = old.userId
+
+  // sanitize html
+  // if the html conversion fails, we'll use the lexicalState directly
+  // this might be a problem for instant content
+  item.html = $ssrLexicalHTMLGenerator(item.lexicalState)
 
   const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 
@@ -1561,6 +1595,11 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
 
   // mark item as created with API key
   item.apiKey = me?.apiKey
+
+  // sanitize html
+  // if the html conversion fails, we'll use the lexicalState directly
+  // this might be a problem for instant content
+  item.html = $ssrLexicalHTMLGenerator(item.lexicalState)
 
   const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd })
 

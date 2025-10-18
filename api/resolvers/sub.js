@@ -7,6 +7,7 @@ import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
+import { $ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -363,6 +364,9 @@ export default {
 
 async function createSub (parent, data, { me, models, lnd }) {
   try {
+    // if the html conversion fails, we'll use the lexicalState directly
+    // this might be a problem for instant content
+    data.html = $ssrLexicalHTMLGenerator(data.lexicalState)
     return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
@@ -390,6 +394,9 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd }) {
   }
 
   try {
+    // if the html conversion fails, we'll use the lexicalState directly
+    // this might be a problem for instant content
+    data.html = $ssrLexicalHTMLGenerator(data.lexicalState)
     return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {

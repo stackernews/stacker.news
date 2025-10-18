@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
+import { Checkbox, Form, Input, SubmitButton, LexicalInput } from './form'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Image from 'react-bootstrap/Image'
@@ -50,6 +50,7 @@ export default function JobForm ({ item, sub }) {
           remote: item?.remote || false,
           boost: item?.boost || '',
           text: item?.text || '',
+          lexicalState: item?.lexicalState || '',
           url: item?.url || '',
           stop: false,
           start: false
@@ -97,13 +98,14 @@ export default function JobForm ({ item, sub }) {
             />
           </Col>
         </Row>
-        <MarkdownInput
+        <LexicalInput label='description' name='text' topLevel />
+        {/* <MarkdownInput
           topLevel
           label='description'
           name='text'
           minRows={6}
           required
-        />
+        /> */}
         <Input
           label={<>how to apply <small className='text-muted ms-2'>url or email address</small></>}
           name='url'

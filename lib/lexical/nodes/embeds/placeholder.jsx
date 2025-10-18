@@ -23,7 +23,7 @@ export function placeholderNode ({ provider, id, src, meta = {} }) {
   messageContainer.append(icon)
 
   const message = document.createElement('div')
-  message.textContent = `loading ${provider}...`
+  message.textContent = `preparing ${provider}...`
   messageContainer.append(message)
 
   if (src) {

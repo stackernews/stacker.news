@@ -36,8 +36,8 @@ export const LexicalEditor = forwardRef(function LexicalEditor ({ ...props }, re
   )
 })
 
-export const LexicalReader = forwardRef(function LexicalReader ({ html, children, outlawed, ...props }, ref) {
-  const snCustomizedHTML = useMemo(() => applySNCustomizations(html, { outlawed }), [html, outlawed])
+export const LexicalReader = forwardRef(function LexicalReader ({ html, children, outlawed, imgproxyUrls, topLevel, ...props }, ref) {
+  const snCustomizedHTML = useMemo(() => applySNCustomizations(html, { outlawed, imgproxyUrls, topLevel }), [html, outlawed, imgproxyUrls, topLevel])
   const Reader = useMemo(() => dynamic(() => import('@/components/lexical/reader'), {
     ssr: false,
     loading: () => {
@@ -54,7 +54,7 @@ export const LexicalReader = forwardRef(function LexicalReader ({ html, children
   }), [])
 
   return (
-    <Reader outlawed={outlawed} {...props} contentRef={ref}>
+    <Reader outlawed={outlawed} imgproxyUrls={imgproxyUrls} topLevel={topLevel} {...props} contentRef={ref}>
       {children}
     </Reader>
   )

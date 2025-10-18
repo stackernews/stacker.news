@@ -41,7 +41,7 @@ export function snGetElementFormat (selection) {
       : $isElementNode(node)
         ? node.getFormatType()
         : parent?.getFormatType() || 'left'
-    return current
+    return current || 'left'
   }
   const text = selection.getTextContent().trim()
   if (text.startsWith('<div align="center">') && text.endsWith('</div>')) return 'center'
@@ -66,7 +66,7 @@ export function snGetCodeLanguage ({ selection, editor }) {
     }
   }
   const raw = selection.getTextContent()
-  if (!raw) return 'normal'
+  if (!raw) return 'paragraph'
   const text = raw.trim()
   if (text.startsWith('```') && text.endsWith('```') && text.length >= 6) {
     // extract language from the opening fence if present
@@ -79,7 +79,7 @@ export function snGetCodeLanguage ({ selection, editor }) {
 }
 
 export function snGetBlockType ({ selection, editor }) {
-  if (!selection) return 'normal'
+  if (!selection) return 'paragraph'
   const markdownMode = $isMarkdownMode()
   if (!markdownMode) {
     const anchorNode = selection.anchor.getNode()
@@ -93,16 +93,16 @@ export function snGetBlockType ({ selection, editor }) {
         return blockType
       } else {
         const blockType = $isHeadingNode(element) ? element.getTag() : element.getType()
-        return blockType
+        return blockType || 'paragraph'
       }
     }
   }
   const raw = selection.getTextContent()
-  if (!raw) return 'normal'
+  if (!raw) return 'paragraph'
 
   const text = raw
   const lines = text.split('\n').filter(l => l.length > 0)
-  if (lines.length === 0) return 'normal'
+  if (lines.length === 0) return 'paragraph'
 
   const first = lines[0].trim()
 
@@ -125,7 +125,7 @@ export function snGetBlockType ({ selection, editor }) {
   if (/^- \[\s\]\s+/.test(first)) return 'check'
   if (/^[-*]\s+/.test(first)) return 'bullet'
 
-  return 'normal'
+  return 'paragraph'
 }
 
 export function snHasLink (selection) {

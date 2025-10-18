@@ -2,7 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import Dropdown from 'react-bootstrap/Dropdown'
 import styles from '@/components/lexical/theme/theme.module.css'
 import AddIcon from '@/svgs/add-fill.svg'
-import { getShortcutCombo } from '@/components/lexical/plugins/shortcuts/keyboard'
+import { getShortcutCombo } from '@/components/lexical/plugins/core/shortcuts/keyboard'
 import { useShowModal } from '@/components/modal'
 import { INSERT_OPTIONS } from './defs/formatting'
 import { useCallback, useState } from 'react'

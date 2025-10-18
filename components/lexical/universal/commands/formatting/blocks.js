@@ -109,7 +109,7 @@ export function registerSNFormatBlockCommand ({ editor }) {
     const isMarkdownMode = $isMarkdownMode()
     const activeBlock = snGetBlockType({ selection: $getSelection(), editor })
     switch (block) {
-      case 'normal':
+      case 'paragraph':
         formatParagraph()
         break
       case 'h1':

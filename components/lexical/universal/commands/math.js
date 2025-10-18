@@ -1,6 +1,6 @@
 import { createCommand, COMMAND_PRIORITY_EDITOR, $insertNodes, $isRootOrShadowRoot, $createParagraphNode, $getSelection, $isRangeSelection } from 'lexical'
 import { $wrapNodeInElement } from '@lexical/utils'
-import { MathNode, $createMathNode } from '@/lib/lexical/nodes/math/mathnode'
+import { MathNode, $createMathNode } from '@/lib/lexical/nodes/formatting/math/mathnode'
 
 export const SN_INSERT_MATH_COMMAND = createCommand('SN_INSERT_MATH_COMMAND')
 
@@ -16,7 +16,7 @@ export function registerSNInsertMathCommand ({ editor }) {
       mathValue = selection.getTextContent()
     }
     if (!mathValue) {
-      mathValue = 'double\\hspace{1mm}click\\hspace{1mm}to\\hspace{1mm}edit'
+      mathValue = '2+2=5'
     }
 
     // ok now add the markdown equivalent, don't forget about this.

@@ -1,5 +1,5 @@
 import { $getRoot, $isRootOrShadowRoot } from 'lexical'
-import { $isMarkdownNode, $createMarkdownNode } from '@/lib/lexical/nodes/markdownnode'
+import { $isMarkdownNode, $createMarkdownNode } from '@/lib/lexical/nodes/core/markdown'
 import { $findMatchingParent } from '@lexical/utils'
 import { $isRootTextContentEmpty } from '@lexical/text'
 

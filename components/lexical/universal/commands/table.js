@@ -1,9 +1,9 @@
 import { createCommand, COMMAND_PRIORITY_EDITOR, $getSelection } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
-import { InsertTableDialog } from '@/components/lexical/plugins/tables/dialog'
-import { useShowModal } from '@/components/modal'
 import { INSERT_TABLE_COMMAND } from '@lexical/table'
-import { $isMarkdownMode } from '@/components/lexical/universal/utils'
+import { InsertTableDialog } from '../../plugins/inserts/tables/dialog'
+import { useShowModal } from '@/components/modal'
+import { $isMarkdownMode } from '../utils'
 
 export const SN_TABLE_DIALOG_COMMAND = createCommand('SN_TABLE_DIALOG_COMMAND')
 export const SN_INSERT_TABLE_COMMAND = createCommand('SN_INSERT_TABLE_COMMAND')

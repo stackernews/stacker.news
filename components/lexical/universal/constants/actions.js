@@ -5,7 +5,7 @@ export const Actions = {
   strikethrough: 'strikethrough',
   link: 'link',
   // blocks
-  normal: 'normal',
+  paragraph: 'paragraph',
   'heading-1': 'h1',
   'heading-2': 'h2',
   'heading-3': 'h3',
@@ -35,7 +35,7 @@ export const DefaultShortcuts = {
   underline: 'mod+u',
   strikethrough: 'mod+shift+x',
   link: 'mod+k',
-  normal: 'mod+alt+0',
+  paragraph: 'mod+alt+0',
   'heading-1': 'mod+alt+1',
   'heading-2': 'mod+alt+2',
   'heading-3': 'mod+alt+3',

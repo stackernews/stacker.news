@@ -23,8 +23,8 @@ import UploadIcon from '@/svgs/file-upload-line.svg'
 
 export const BLOCK_OPTIONS = [
   {
-    action: Actions.normal,
-    name: 'normal',
+    action: Actions.paragraph,
+    name: 'paragraph',
     icon: null
   },
   {

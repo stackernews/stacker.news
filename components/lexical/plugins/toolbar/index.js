@@ -7,7 +7,7 @@ import MoreIcon from '@/svgs/more-fill.svg'
 import ActionTooltip from '@/components/action-tooltip'
 import { useLexicalPreferences } from '@/components/lexical/contexts/preferences'
 
-export const ToolbarContent = ({ topLevel }) => {
+export default function ToolbarPlugin ({ topLevel }) {
   const { prefs } = useLexicalPreferences()
   const [showToolbar, setShowToolbar] = useState(prefs.showToolbar || topLevel)
 
@@ -24,13 +24,5 @@ export const ToolbarContent = ({ topLevel }) => {
         <InsertTools />
       </div>
     </div>
-  )
-}
-
-export default function ToolbarPlugin ({ topLevel }) {
-  return (
-    <>
-      <ToolbarContent topLevel={topLevel} />
-    </>
   )
 }

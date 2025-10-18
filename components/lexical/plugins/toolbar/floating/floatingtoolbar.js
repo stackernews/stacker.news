@@ -10,7 +10,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import FormattingTools from '../formatting'
 import { useLexicalPreferences } from '@/components/lexical/contexts/preferences'
 import { useToolbarState } from '@/components/lexical/contexts/toolbar'
-import { setFloatingToolbarPosition } from '@/components/lexical/plugins/links/linkeditor/position'
+import { setFloatingToolbarPosition } from '@/components/lexical/plugins/inserts/links/linkeditor/position'
 import styles from '@/components/lexical/theme/theme.module.css'
 
 function getDOMRangeRect (nativeSelection, rootElement) {

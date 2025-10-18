@@ -1,8 +1,8 @@
 import { forwardRef, useMemo } from 'react'
 import classNames from 'classnames'
 import dynamic from 'next/dynamic'
+import { applySNCustomizations } from '@/lib/lexical/html/customs'
 import styles from './theme/theme.module.css'
-import { applySNCustomizations } from '@/lib/lexical/sn/customs'
 
 // messy way to show a skeleton while the editor is loading
 const EditorSkeleton = () => {
@@ -27,18 +27,18 @@ const EditorSkeleton = () => {
   )
 }
 
-// Editor is dynamically imported outside of the component to avoid parents causing re-renders
-const Editor = dynamic(() => import('@/components/lexical/editor'), { ssr: false, loading: EditorSkeleton })
+export const LexicalEditor = ({ ...props }) => {
+  const Editor = useMemo(() => dynamic(() => import('./editor'), {
+    ssr: false,
+    loading: EditorSkeleton
+  }), [])
 
-export const LexicalEditor = forwardRef(function LexicalEditor ({ ...props }, ref) {
-  return (
-    <Editor {...props} ref={ref} />
-  )
-})
+  return <Editor {...props} />
+}
 
 export const LexicalReader = forwardRef(function LexicalReader ({ html, children, outlawed, imgproxyUrls, topLevel, ...props }, ref) {
   const snCustomizedHTML = useMemo(() => applySNCustomizations(html, { outlawed, imgproxyUrls, topLevel }), [html, outlawed, imgproxyUrls, topLevel])
-  const Reader = useMemo(() => dynamic(() => import('@/components/lexical/reader'), {
+  const Reader = useMemo(() => dynamic(() => import('./reader'), {
     ssr: false,
     loading: () => {
       if (snCustomizedHTML) {

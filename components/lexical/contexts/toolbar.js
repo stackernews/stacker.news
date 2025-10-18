@@ -16,7 +16,7 @@ const INITIAL_STATE = {
   isLowercase: false,
   isUppercase: false,
   isCapitalize: false,
-  blockType: 'normal',
+  blockType: 'paragraph',
   codeLanguage: ''
 }
 

@@ -148,9 +148,36 @@ export function usePassphrasePrompt () {
       <p className='line-height-md mt-3'>
         Enter your passphrase to decrypt your wallets on this device.
       </p>
-      <p className='line-height-md'>
-        {showPassphrase && 'The passphrase reveal button is above your wallets on the original device.'}
-      </p>
+      <AccordianItem
+        className='line-height-md text-white my-3'
+        header='Where can I find my passphrase?'
+        body={
+          showPassphrase
+            ? (
+              <>
+                <p>
+                  Your passphrase was generated on the device where you first created your wallets. To find it:
+                </p>
+                <ol>
+                  <li>Go to your wallets on that original device</li>
+                  <li>Look above your list of wallets</li>
+                  <li>Click the 'passphrase' button to reveal it</li>
+                </ol>
+                <p>
+                  Make sure to store your passphrase somewhere safe — you'll need to enter it on any device you want to access your wallets like this one.
+                </p>
+              </>
+              )
+            : (
+              <>
+                <p>
+                  We have already shown you your passphrase so we cannot show it to you again, sorry.
+                  Please check your password manager or other locations where you may have stored your passphrase.
+                </p>
+              </>
+              )
+        }
+      />
       <AccordianItem
         className='line-height-md text-white my-3'
         header='I lost my passphrase. What should I do?'

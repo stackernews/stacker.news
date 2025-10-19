@@ -56,19 +56,19 @@ export function useCommentsNavigator () {
   }, [])
 
   // track a new comment
-  const trackNewComment = useCallback((commentRef, createdAt) => {
+  const trackNewComment = useCallback((commentRef, id, createdAt) => {
     setHasNewComments(true)
     try {
       window.requestAnimationFrame(() => {
         if (!commentRef?.current || !commentRef.current.isConnected) return
 
-        // dedupe
-        const existing = commentRefs.current.some(item => item.ref.current === commentRef.current)
+        // dedupe by item id
+        const existing = commentRefs.current.some(item => item.id === id)
         if (existing) return
 
         // find the correct insertion position to maintain sort order
         const insertIndex = commentRefs.current.findIndex(item => item.createdAt > createdAt)
-        const newItem = { ref: commentRef, createdAt }
+        const newItem = { ref: commentRef, id, createdAt }
 
         if (insertIndex === -1) {
           // append if no newer comments found

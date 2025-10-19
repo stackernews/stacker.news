@@ -186,7 +186,11 @@ export default function Comment ({
       ref.current.classList.add('outline-new-comment')
     }
 
-    navigator.trackNewComment(ref, item.id, itemCreatedAt)
+    navigator.trackNewComment(ref, itemCreatedAt)
+
+    return () => {
+      navigator.untrackNewComment(ref, { includeDescendants: true })
+    }
   }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)

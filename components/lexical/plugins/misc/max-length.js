@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getSelection, $isRangeSelection, RootNode } from 'lexical'
 import { $trimTextContentFromAnchor } from '@lexical/selection'
@@ -10,7 +10,7 @@ export function MaxLengthPlugin ({ maxLength }) {
   useEffect(() => {
     // prevent infinite restoration loops by tracking the last restored editor state
     let lastRestoredEditorState = null
-    
+
     // run whenever the RootNode (editor content) changes
     return editor.registerNodeTransform(RootNode, (node) => {
       // get the current selection
@@ -23,10 +23,10 @@ export function MaxLengthPlugin ({ maxLength }) {
       const prevTextContentSize = prevEditorState.read(() => {
         node.getTextContentSize()
       })
-      
+
       // get the current text content size
       const textContentSize = node.getTextContentSize()
-      
+
       // only act if the text content size has changed
       if (prevTextContentSize !== textContentSize) {
         // calculate how many characters need to be deleted if over the limit

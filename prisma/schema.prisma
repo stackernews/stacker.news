@@ -1872,7 +1872,7 @@ enum AggSlice {
 
 model AggPayIn {
   id          Int            @id @default(autoincrement())
-  timeBucket  DateTime
+  timeBucket  DateTime       @db.Timestamptz(3)
   granularity AggGranularity
   payInType   PayInType?
   subName     String?        @db.Citext
@@ -1881,6 +1881,7 @@ model AggPayIn {
   // Minimal measures
   sumMcost   BigInt
   countUsers BigInt
+  countGroup BigInt
 
   slice AggSlice
 
@@ -1896,7 +1897,7 @@ model AggPayIn {
 
 model AggPayOut {
   id          Int            @id @default(autoincrement())
-  timeBucket  DateTime
+  timeBucket  DateTime       @db.Timestamptz(3)
   granularity AggGranularity
   payOutType  PayOutType?
   payInType   PayInType?
@@ -1906,6 +1907,7 @@ model AggPayOut {
   // Minimal measures
   sumMtokens BigInt
   countUsers BigInt
+  countGroup BigInt
 
   slice AggSlice
 
@@ -1922,7 +1924,7 @@ model AggPayOut {
 
 model AggRegistrations {
   id            Int            @id @default(autoincrement())
-  timeBucket    DateTime
+  timeBucket    DateTime       @db.Timestamptz(3)
   granularity   AggGranularity
   count         BigInt
   invitedCount  BigInt
@@ -1937,6 +1939,7 @@ model AggRewards {
   granularity AggGranularity
   payInType   PayInType?
   msats       BigInt
+  countGroup  BigInt
 
   @@unique([granularity, timeBucket, payInType], map: "AggRewards_unique_key")
 }

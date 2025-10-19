@@ -17,13 +17,9 @@ import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
 const Spent = ({ user }) => (user.optional.spent !== null && <span>{abbrNum(user.optional.spent)} spent</span>)
-const Posts = ({ user }) => (
-  <Link href={`/${user.name}/posts`} className='text-reset'>
-    {numWithUnits(user.nposts, { unitSingular: 'post', unitPlural: 'posts' })}
-  </Link>)
-const Comments = ({ user }) => (
-  <Link href={`/${user.name}/comments`} className='text-reset'>
-    {numWithUnits(user.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })}
+const Items = ({ user }) => (
+  <Link href={`/${user.name}/all`} className='text-reset'>
+    {numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}
   </Link>)
 const Referrals = ({ user }) => (user.optional.referrals !== null && <span>{numWithUnits(user.optional.referrals, { unitSingular: 'referral', unitPlural: 'referrals' })}</span>)
 const Seperator = () => (<span> \ </span>)
@@ -31,11 +27,10 @@ const Seperator = () => (<span> \ </span>)
 const STAT_POS = {
   stacked: 0,
   spent: 1,
-  posts: 2,
-  comments: 3,
+  items: 2,
   referrals: 4
 }
-const STAT_COMPONENTS = [Stacked, Spent, Posts, Comments, Referrals]
+const STAT_COMPONENTS = [Stacked, Spent, Items, Referrals]
 
 function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])

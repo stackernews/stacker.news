@@ -7,13 +7,14 @@ CREATE TYPE "AggGranularity" AS ENUM ('HOUR', 'DAY', 'MONTH');
 -- CreateTable
 CREATE UNLOGGED TABLE "AggPayIn" (
     "id" SERIAL NOT NULL,
-    "timeBucket" TIMESTAMP(3) NOT NULL,
+    "timeBucket" TIMESTAMPTZ(3) NOT NULL,
     "granularity" "AggGranularity" NOT NULL,
     "payInType" "PayInType",
     "subName" CITEXT,
     "userId" INTEGER,
     "sumMcost" BIGINT NOT NULL,
     "countUsers" BIGINT NOT NULL,
+    "countGroup" BIGINT NOT NULL,
     "slice" "AggSlice" NOT NULL,
 
     CONSTRAINT "AggPayIn_pkey" PRIMARY KEY ("id")
@@ -21,11 +22,11 @@ CREATE UNLOGGED TABLE "AggPayIn" (
 
 CREATE OR REPLACE VIEW payins_paid_fact AS
 SELECT
-    p.id                                      AS payin_id,
-    p."payInStateChangedAt"                   AS changed_at,
-    p."payInType"                             AS payin_type,
-    pc."subName"                              AS sub_name,
-    p."userId"                                AS user_id,
+    p.id                                       AS payin_id,
+    p."payInStateChangedAt"                    AS changed_at,
+    p."payInType"                              AS payin_type,
+    pc."subName"                               AS sub_name,
+    p."userId"                                 AS user_id,
     -- this is to make sure that the mcost is split proportionally to the territory mtokens
     -- for when we have multiple territories for the same payin
     (p."mcost" * COALESCE(pc."mtokens_proportion", 1))::bigint AS mcost
@@ -48,8 +49,8 @@ CREATE OR REPLACE FUNCTION refresh_agg_payin(
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_from timestamp;
-    v_to   timestamp;
+    v_from timestamptz;
+    v_to   timestamptz;
     v_step interval;
     v_gran "AggGranularity";
 BEGIN
@@ -59,8 +60,8 @@ BEGIN
 
     v_step := CASE bucket_part WHEN 'hour' THEN interval '1 hour' WHEN 'day' THEN interval '1 day' WHEN 'month' THEN interval '1 month' END;
     v_gran := CASE bucket_part WHEN 'hour' THEN 'HOUR' WHEN 'day' THEN 'DAY' WHEN 'month' THEN 'MONTH' END;
-    v_from := date_trunc(bucket_part, p_from);
-    v_to   := date_trunc(bucket_part, p_to) + v_step;
+    v_from := date_trunc(bucket_part, p_from, 'America/Chicago');
+    v_to   := date_trunc(bucket_part, p_to, 'America/Chicago') + v_step;
 
     -- idempotent: clear current window for this granularity
     DELETE FROM "AggPayIn"
@@ -70,22 +71,23 @@ BEGIN
 
     INSERT INTO "AggPayIn"
         (granularity,"timeBucket","payInType","subName","userId",
-        "sumMcost","countUsers","slice")
+        "sumMcost","countUsers","countGroup","slice")
     WITH facts AS (
         SELECT
-        date_trunc(bucket_part, changed_at) AS "timeBucket",
+        date_trunc(bucket_part, changed_at, 'America/Chicago') AS "timeBucket",
         payin_type                  AS "payInType",
         sub_name                    AS "subName",   -- may be NULL; kept
         user_id                     AS "userId",
         mcost
         FROM payins_paid_fact
-        WHERE changed_at >= v_from AND changed_at < v_to
+        WHERE changed_at >= (v_from AT TIME ZONE 'UTC') AND changed_at < (v_to AT TIME ZONE 'UTC')
     ),
     rolled AS (
         SELECT
         "timeBucket", "payInType", "subName", "userId",
         SUM(mcost)                            AS "sumMcost",
         COUNT(DISTINCT "userId")              AS "countUsers",
+        COUNT(*)                              AS "countGroup",
         /* bit mask: payInType=4, subName=2, userId=1 (1 = grand-totalled) */
         GROUPING("payInType","subName","userId") AS "groupingId"
         FROM facts
@@ -104,7 +106,7 @@ BEGIN
         v_gran AS granularity,
         "timeBucket",
         "payInType","subName","userId",
-        "sumMcost","countUsers",
+        "sumMcost","countUsers","countGroup",
         CASE "groupingId"
             WHEN 7 THEN 'GLOBAL'::"AggSlice"
             WHEN 3 THEN 'GLOBAL_BY_TYPE'::"AggSlice"
@@ -135,7 +137,7 @@ CREATE OR REPLACE FUNCTION refresh_agg_payin_day(
 $$;
 
 CREATE OR REPLACE FUNCTION refresh_agg_payin_month(
-    p_from timestamptz DEFAULT date_trunc('month', now()) - interval '24 months',
+    p_from timestamptz DEFAULT now() - interval '24 months',
     p_to   timestamptz DEFAULT now()
 ) RETURNS void LANGUAGE sql AS $$
     SELECT refresh_agg_payin('month', p_from, p_to);
@@ -146,8 +148,8 @@ DO $$
 DECLARE cur timestamptz := now() - interval '5 years';
 BEGIN
   WHILE cur < now() LOOP
-    PERFORM refresh_agg_payin_hour(cur, cur + interval '1 day');
-    cur := cur + interval '1 day';
+    PERFORM refresh_agg_payin_hour(cur, cur + interval '30 days');
+    cur := cur + interval '30 days';
   END LOOP;
 END$$;
 

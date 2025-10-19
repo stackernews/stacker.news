@@ -9,7 +9,7 @@ export async function views ({ data: { period } = { period: 'days' } }) {
 
   try {
     for (const view of viewPrefixes) {
-      await models.$executeRawUnsafe(`PERFORM refresh_${view}_${period.slice(0, -1)}()`)
+      await models.$executeRawUnsafe(`SELECT refresh_${view}_${period.slice(0, -1)}()`)
     }
   } finally {
     await models.$disconnect()

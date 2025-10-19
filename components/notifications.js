@@ -161,8 +161,6 @@ const defaultOnClick = n => {
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'PayInification') return { href: `/transactions/${n.payIn.id}` }
-  if (type === 'Referral') return { href: '/referrals/month' }
-  if (type === 'ReferralReward') return { href: '/referrals/month' }
   if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun'].includes(type)) return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 

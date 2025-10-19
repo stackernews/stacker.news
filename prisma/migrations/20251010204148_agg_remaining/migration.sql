@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE UNLOGGED TABLE "AggRegistrations" (
     "id" SERIAL NOT NULL,
-    "timeBucket" TIMESTAMP(3) NOT NULL,
+    "timeBucket" TIMESTAMPTZ(3) NOT NULL,
     "granularity" "AggGranularity" NOT NULL,
     "count" BIGINT NOT NULL,
     "invitedCount" BIGINT NOT NULL,
@@ -17,6 +17,7 @@ CREATE UNLOGGED TABLE "AggRewards" (
     "granularity" "AggGranularity" NOT NULL,
     "payInType" "PayInType",
     "msats" BIGINT NOT NULL,
+    "countGroup" BIGINT NOT NULL,
 
     CONSTRAINT "AggRewards_pkey" PRIMARY KEY ("id")
 );
@@ -29,8 +30,8 @@ CREATE OR REPLACE FUNCTION refresh_agg_registrations(
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  v_from  timestamp;         -- AggRegistrations.timeBucket is TIMESTAMP (naive)
-  v_to    timestamp;
+  v_from  timestamptz;
+  v_to    timestamptz;
   v_step  interval;
   v_gran  "AggGranularity";
 BEGIN
@@ -51,8 +52,8 @@ BEGIN
             END;
 
   -- Align to clean bucket edges (naive timestamps here)
-  v_from := date_trunc(bucket_part, p_from);
-  v_to   := date_trunc(bucket_part, p_to) + v_step;
+  v_from := date_trunc(bucket_part, p_from, 'America/Chicago');
+  v_to   := date_trunc(bucket_part, p_to, 'America/Chicago') + v_step;
 
   -- Idempotent: clear the window for this granularity
   DELETE FROM "AggRegistrations"
@@ -63,14 +64,14 @@ BEGIN
   -- Rebuild window
   INSERT INTO "AggRegistrations" ("timeBucket","granularity","count","invitedCount","referredCount")
   SELECT
-    date_trunc(bucket_part, u."created_at")                       AS "timeBucket",
-    v_gran                                                        AS granularity,
-    COUNT(*)::bigint                                              AS "count",
-    COUNT(*) FILTER (WHERE u."inviteId"   IS NOT NULL)::bigint    AS "invitedCount",
-    COUNT(*) FILTER (WHERE u."referrerId" IS NOT NULL)::bigint    AS "referredCount"
+    date_trunc(bucket_part, u."created_at" AT TIME ZONE 'UTC', 'America/Chicago')   AS "timeBucket",
+    v_gran                                                                   AS granularity,
+    COUNT(*)::bigint                                                         AS "count",
+    COUNT(*) FILTER (WHERE u."inviteId"   IS NOT NULL)::bigint               AS "invitedCount",
+    COUNT(*) FILTER (WHERE u."referrerId" IS NOT NULL)::bigint               AS "referredCount"
   FROM "users" u
-  WHERE u."created_at" >= v_from
-    AND u."created_at" <  v_to
+  WHERE u."created_at" >= (v_from AT TIME ZONE 'UTC')
+    AND u."created_at" < (v_to AT TIME ZONE 'UTC')
   GROUP BY "timeBucket";
 
 END;
@@ -84,8 +85,8 @@ CREATE OR REPLACE FUNCTION refresh_agg_rewards(
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  v_from_local  timestamp;          -- local wall-clock bucket start/end
-  v_to_local    timestamp;
+  v_from_local  timestamptz;          -- local wall-clock bucket start/end
+  v_to_local    timestamptz;
   v_step        interval;
   v_gran        "AggGranularity";
 BEGIN
@@ -106,20 +107,20 @@ BEGIN
             END;
 
   -- Align the window in *display* TZ (so buckets match your UI labels)
-  v_from_local := date_trunc(bucket_part, (p_from AT TIME ZONE 'America/Chicago'));
-  v_to_local   := date_trunc(bucket_part, (p_to   AT TIME ZONE 'America/Chicago')) + v_step;
+  v_from_local := date_trunc(bucket_part, p_from, 'America/Chicago');
+  v_to_local   := date_trunc(bucket_part, p_to, 'America/Chicago') + v_step;
 
   -- Idempotent: clear this granularity’s window
   DELETE FROM "AggRewards"
   WHERE granularity = v_gran
-    AND "timeBucket" >= (v_from_local AT TIME ZONE 'America/Chicago')  -- convert local bucket start to timestamptz
-    AND "timeBucket" <  (v_to_local   AT TIME ZONE 'America/Chicago');
+    AND "timeBucket" >= v_from_local  -- convert local bucket start to timestamptz
+    AND "timeBucket" <  v_to_local;
 
   -- Rebuild window: compute local bucket, then store its *instant* as timestamptz
   WITH facts AS (
     SELECT
       -- bucket in local time
-      date_trunc(bucket_part, ("PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')) AS bucket_local,
+      date_trunc(bucket_part, "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC', 'America/Chicago') AS bucket_local,
       "PayIn"."payInType" AS "payInType",
       "PayOutCustodialToken"."mtokens"::bigint AS msats
     FROM "PayIn"
@@ -127,29 +128,30 @@ BEGIN
       ON "PayOutCustodialToken"."payInId" = "PayIn"."id"
     WHERE "PayIn"."payInState" = 'PAID'
       AND "PayOutCustodialToken"."payOutType" = 'REWARDS_POOL'
-      AND ( "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago' ) >= v_from_local
-      AND ( "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago' ) <  v_to_local
+      AND "PayIn"."payInStateChangedAt" >= (v_from_local AT TIME ZONE 'UTC')
+      AND "PayIn"."payInStateChangedAt" < (v_to_local AT TIME ZONE 'UTC')
   ),
   by_type AS (
     SELECT
-      -- store the bucket instant as timestamptz corresponding to local wall-clock start
-      (bucket_local AT TIME ZONE 'America/Chicago')::timestamptz AS "timeBucket",
+      bucket_local AS "timeBucket",
       v_gran AS granularity,
       "payInType",
-      SUM(msats)::bigint AS msats
+      SUM(msats)::bigint AS msats,
+      COUNT(*)::bigint AS "countGroup"
     FROM facts
     GROUP BY bucket_local,"payInType"
   ),
   totals AS (
     SELECT
-      (bucket_local AT TIME ZONE 'America/Chicago')::timestamptz AS "timeBucket",
+      bucket_local AS "timeBucket",
       v_gran AS granularity,
       NULL::"PayInType" AS "payInType",
-      SUM(msats)::bigint AS msats
+      SUM(msats)::bigint AS msats,
+      COUNT(*)::bigint AS "countGroup"
     FROM facts
     GROUP BY bucket_local
   )
-  INSERT INTO "AggRewards" ("timeBucket","granularity","payInType","msats")
+  INSERT INTO "AggRewards" ("timeBucket","granularity","payInType","msats","countGroup")
   SELECT * FROM totals
   UNION ALL
   SELECT * FROM by_type;
@@ -173,7 +175,7 @@ CREATE OR REPLACE FUNCTION refresh_agg_registrations_day(
 $$;
 
 CREATE OR REPLACE FUNCTION refresh_agg_registrations_month(
-  p_from timestamptz DEFAULT date_trunc('month', now()) - interval '24 months',
+  p_from timestamptz DEFAULT now() - interval '24 months',
   p_to   timestamptz DEFAULT now()
 ) RETURNS void LANGUAGE sql AS $$
   SELECT refresh_agg_registrations('month', p_from, p_to);
@@ -195,7 +197,7 @@ CREATE OR REPLACE FUNCTION refresh_agg_rewards_day(
 $$;
 
 CREATE OR REPLACE FUNCTION refresh_agg_rewards_month(
-  p_from timestamptz DEFAULT date_trunc('month', now()) - interval '24 months',
+  p_from timestamptz DEFAULT now() - interval '24 months',
   p_to   timestamptz DEFAULT now()
 ) RETURNS void LANGUAGE sql AS $$
   SELECT refresh_agg_rewards('month', p_from, p_to);
@@ -206,9 +208,9 @@ DO $$
 DECLARE cur timestamptz := now() - interval '5 years';
 BEGIN
   WHILE cur < now() LOOP
-    PERFORM refresh_agg_rewards_hour(cur, cur + interval '1 day');
-    PERFORM refresh_agg_registrations_hour(cur, cur + interval '1 day');
-    cur := cur + interval '1 day';
+    PERFORM refresh_agg_rewards_hour(cur, cur + interval '30 days');
+    PERFORM refresh_agg_registrations_hour(cur, cur + interval '30 days');
+    cur := cur + interval '30 days';
   END LOOP;
 END$$;
 

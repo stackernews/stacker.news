@@ -8,13 +8,11 @@ export default gql`
 
   extend type Query {
     registrationGrowth(when: String, from: String, to: String): [TimeData!]!
-    itemGrowth(when: String, from: String, to: String): [TimeData!]!
-    spendingGrowth(when: String, from: String, to: String): [TimeData!]!
-    spenderGrowth(when: String, from: String, to: String): [TimeData!]!
-    stackingGrowth(when: String, from: String, to: String): [TimeData!]!
-    stackerGrowth(when: String, from: String, to: String): [TimeData!]!
-    itemGrowthSubs(when: String, from: String, to: String, sub: String): [TimeData!]!
-    revenueGrowthSubs(when: String, from: String, to: String, sub: String): [TimeData!]!
+    itemGrowth(when: String, from: String, to: String, sub: String, mine: Boolean): [TimeData!]!
+    spendingGrowth(when: String, from: String, to: String, sub: String, mine: Boolean): [TimeData!]!
+    spenderGrowth(when: String, from: String, to: String, sub: String, mine: Boolean): [TimeData!]!
+    stackingGrowth(when: String, from: String, to: String, sub: String, mine: Boolean): [TimeData!]!
+    stackerGrowth(when: String, from: String, to: String, sub: String, mine: Boolean): [TimeData!]!
   }
 
   type TimeData {

@@ -55,8 +55,7 @@ export default gql`
     moderatedCount: Int!
     meMuteSub: Boolean!
     nsfw: Boolean!
-    nposts(when: String, from: String, to: String): Int!
-    ncomments(when: String, from: String, to: String): Int!
+    nitems(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
 
     optional: SubOptional!

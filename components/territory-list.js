@@ -14,13 +14,9 @@ import { TerritoryInfo, ToggleSubSubscriptionDropdownItem, MuteSubDropdownItem }
 const Revenue = ({ sub }) => (sub.optional.revenue !== null && <span>{abbrNum(sub.optional.revenue)} revenue</span>)
 const Stacked = ({ sub }) => (sub.optional.stacked !== null && <span>{abbrNum(sub.optional.stacked)} stacked</span>)
 const Spent = ({ sub }) => (sub.optional.spent !== null && <span>{abbrNum(sub.optional.spent)} spent</span>)
-const Posts = ({ sub }) => (
+const Items = ({ sub }) => (
   <span>
-    {numWithUnits(sub.nposts, { unitSingular: 'post', unitPlural: 'posts' })}
-  </span>)
-const Comments = ({ sub }) => (
-  <span>
-    {numWithUnits(sub.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })}
+    {numWithUnits(sub.nitems, { unitSingular: 'item', unitPlural: 'items' })}
   </span>)
 const Separator = () => (<span> \ </span>)
 
@@ -28,10 +24,9 @@ const STAT_POS = {
   stacked: 0,
   revenue: 1,
   spent: 2,
-  posts: 3,
-  comments: 4
+  items: 3
 }
-const STAT_COMPONENTS = [Stacked, Revenue, Spent, Posts, Comments]
+const STAT_COMPONENTS = [Stacked, Revenue, Spent, Items]
 
 function separate (arr, separator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, separator] : [x])
@@ -57,6 +52,8 @@ export default function TerritoryList ({ ssrData, query, variables, destructureD
       return dat
     }
   }, [dat])
+
+  console.log(subs)
 
   if (!dat) {
     return <SubsSkeleton />

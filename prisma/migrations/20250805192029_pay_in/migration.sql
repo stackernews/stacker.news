@@ -322,7 +322,7 @@ DECLARE
 BEGIN
     -- Get max withdrawal ID for progress tracking
     SELECT COALESCE(MAX("id"), 0) INTO max_id FROM "Withdrawl";
-    RAISE LOG 'Pay In Migration: Processing % total withdrawals in batches of %', max_id, batch_size;
+    RAISE NOTICE 'Pay In Migration: Processing % total withdrawals in batches of %', max_id, batch_size;
 
     -- Create persistent temp tables for the entire withdrawal migration
     DROP TABLE IF EXISTS withdrawal_batch;
@@ -337,7 +337,7 @@ BEGIN
     );
 
     LOOP
-        RAISE LOG 'Pay In Migration: Processing withdrawal batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+        RAISE NOTICE 'Pay In Migration: Processing withdrawal batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
 
         -- Clear batch table
         TRUNCATE withdrawal_batch;
@@ -412,7 +412,7 @@ BEGIN
     DROP TABLE IF EXISTS withdrawal_batch;
     DROP TABLE IF EXISTS map_withdrawal_payin_batch;
 
-    RAISE LOG 'Pay In Migration: Completed withdrawal migration in % batches', batch_num - 1;
+    RAISE NOTICE 'Pay In Migration: Completed withdrawal migration in % batches', batch_num - 1;
 END $$;
 
 --------------------
@@ -584,7 +584,7 @@ BEGIN
     JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice"."id"
     WHERE "Invoice"."actionType" = 'RECEIVE' AND "Invoice"."actionState" IN ('PAID', 'FAILED', 'RETRYING');
 
-    RAISE LOG 'Pay In Migration: Processing % total receive invoices in batches of %', max_id, batch_size;
+    RAISE NOTICE 'Pay In Migration: Processing % total receive invoices in batches of %', max_id, batch_size;
 
     -- Create persistent temp tables for the entire invoice migration
     DROP TABLE IF EXISTS invoice_batch;
@@ -603,7 +603,7 @@ BEGIN
     );
 
     LOOP
-        RAISE LOG 'Pay In Migration: Processing invoice batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+        RAISE NOTICE 'Pay In Migration: Processing invoice batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
 
         -- Clear batch tables
         TRUNCATE invoice_batch;
@@ -725,7 +725,7 @@ BEGIN
     DROP TABLE IF EXISTS invoice_batch;
     DROP TABLE IF EXISTS map_invoice_payin_batch;
 
-    RAISE LOG 'Pay In Migration: Completed invoice migration in % batches', batch_num - 1;
+    RAISE NOTICE 'Pay In Migration: Completed invoice migration in % batches', batch_num - 1;
 END $$;
 
 --------------------------
@@ -750,7 +750,7 @@ BEGIN
         "Invoice"."actionType" IN ('BUY_CREDITS', 'DONATE', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE')
     );
 
-    RAISE LOG 'Pay In Migration: Processing % total pessimistic invoices in batches of %', max_id, batch_size;
+    RAISE NOTICE 'Pay In Migration: Processing % total pessimistic invoices in batches of %', max_id, batch_size;
 
     -- Create persistent temp tables for the entire invoice migration
     DROP TABLE IF EXISTS invoice_pessimistic_batch;
@@ -767,7 +767,7 @@ BEGIN
     );
 
     LOOP
-        RAISE LOG 'Pay In Migration: Processing pessimistic invoice batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+        RAISE NOTICE 'Pay In Migration: Processing pessimistic invoice batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
 
         -- Clear batch tables
         TRUNCATE invoice_pessimistic_batch;
@@ -835,7 +835,7 @@ BEGIN
     DROP TABLE IF EXISTS invoice_pessimistic_batch;
     DROP TABLE IF EXISTS map_invoice_pessimistic_payin_batch;
 
-    RAISE LOG 'Pay In Migration: Completed pessimistic invoice migration in % batches', batch_num - 1;
+    RAISE NOTICE 'Pay In Migration: Completed pessimistic invoice migration in % batches', batch_num - 1;
 END $$;
 
 --------------------------
@@ -853,7 +853,7 @@ DECLARE
 BEGIN
     -- Get max item ID for progress tracking
     SELECT COALESCE(MAX("id"), 0) INTO max_id FROM "Item";
-    RAISE LOG 'Pay In Migration: Processing % total items in batches of %', max_id, batch_size;
+    RAISE NOTICE 'Pay In Migration: Processing % total items in batches of %', max_id, batch_size;
 
     -- Create persistent temp tables for the entire item create migration
     DROP TABLE IF EXISTS item_create_batch;
@@ -892,7 +892,7 @@ BEGIN
     );
 
     LOOP
-        RAISE LOG 'Pay In Migration: Processing item create batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+        RAISE NOTICE 'Pay In Migration: Processing item create batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
 
         -- Clear batch tables
         TRUNCATE item_create_batch;
@@ -1029,7 +1029,7 @@ BEGIN
     DROP TABLE IF EXISTS item_create_batch;
     DROP TABLE IF EXISTS map_item_create_payin_batch;
 
-    RAISE LOG 'Pay In Migration: Completed item create migration in % batches', batch_num - 1;
+    RAISE NOTICE 'Pay In Migration: Completed item create migration in % batches', batch_num - 1;
 END $$;
 
 --------------------------
@@ -1081,7 +1081,7 @@ BEGIN
         WHERE "ItemAct"."itemId" = "Item"."id"
           AND "ItemAct"."act" IN ('TIP', 'FEE')
     );
-    RAISE LOG 'Pay In Migration: Processing Items up to ID % in batches of %', max_id, batch_size;
+    RAISE NOTICE 'Pay In Migration: Processing Items up to ID % in batches of %', max_id, batch_size;
 
     -- Create persistent temp tables for batch processing
     DROP TABLE IF EXISTS item_act_zaps_batch;
@@ -1165,7 +1165,7 @@ BEGIN
     LOOP
         EXIT WHEN min_id > max_id;
 
-        RAISE LOG 'Pay In Migration: Processing zap batch % (Item IDs % to %)', batch_num, min_id, min_id + batch_size;
+        RAISE NOTICE 'Pay In Migration: Processing zap batch % (Item IDs % to %)', batch_num, min_id, min_id + batch_size;
 
         -- Clear batch tables
         TRUNCATE item_act_zaps_batch;
@@ -1443,7 +1443,7 @@ BEGIN
     DROP TABLE IF EXISTS zap_forwards_batch;
     DROP TABLE IF EXISTS map_zap_payin_batch;
 
-    RAISE LOG 'Pay In Migration: Completed zap migration in % batches', batch_num - 1;
+    RAISE NOTICE 'Pay In Migration: Completed zap migration in % batches', batch_num - 1;
 END $$;
 
 -- Drop temporary covering indexes after zap migration
@@ -1475,7 +1475,7 @@ BEGIN
     WHERE "act" IN ('BOOST', 'DONT_LIKE_THIS', 'POLL')
       AND "Item"."created_at" <> "ItemAct"."created_at";
 
-    RAISE LOG 'Pay In Migration: Processing % total boost/poll acts in batches of %', max_id, batch_size;
+    RAISE NOTICE 'Pay In Migration: Processing % total boost/poll acts in batches of %', max_id, batch_size;
 
     -- Create persistent temp tables
     DROP TABLE IF EXISTS item_act_boost_poll_batch;
@@ -1517,7 +1517,7 @@ BEGIN
     );
 
     LOOP
-        RAISE LOG 'Pay In Migration: Processing boost/poll batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+        RAISE NOTICE 'Pay In Migration: Processing boost/poll batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
 
         -- Clear batch tables
         TRUNCATE item_act_boost_poll_batch;
@@ -1529,7 +1529,7 @@ BEGIN
         SELECT "ItemAct".id, "ItemAct"."itemId", "ItemAct"."userId", "ItemAct"."created_at", "ItemAct"."updated_at",
                "ItemAct"."msats", "ItemAct"."act", "ItemAct"."invoiceId",
                "Invoice"."hash", "Invoice"."preimage", "Invoice"."bolt11", "Invoice"."expiresAt",
-               COALESCE("Invoice"."confirmedAt", "Item"."created_at") AS "confirmedAt", "Invoice"."confirmedIndex", "Invoice"."cancelledAt",
+               "Invoice"."confirmedAt", "Invoice"."confirmedIndex", "Invoice"."cancelledAt",
                "Invoice"."msatsRequested", "Invoice"."msatsReceived", "Invoice"."actionState",
                "Invoice"."created_at" AS invoice_created_at, "Invoice"."updated_at" AS invoice_updated_at
         FROM "ItemAct"
@@ -1635,7 +1635,7 @@ BEGIN
     DROP TABLE IF EXISTS boost_poll_referral_acts_batch;
     DROP TABLE IF EXISTS map_boost_poll_payin_batch;
 
-    RAISE LOG 'Pay In Migration: Completed boost/poll migration in % batches', batch_num - 1;
+    RAISE NOTICE 'Pay In Migration: Completed boost/poll migration in % batches', batch_num - 1;
 END $$;
 
 

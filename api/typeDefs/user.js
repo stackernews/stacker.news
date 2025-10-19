@@ -15,9 +15,6 @@ export default gql`
     hasNewNotes: Boolean!
     mySubscribedUsers(cursor: String): Users!
     myMutedUsers(cursor: String): Users!
-    userStatsActions(when: String, from: String, to: String): [TimeData!]!
-    userStatsIncomingSats(when: String, from: String, to: String): [TimeData!]!
-    userStatsOutgoingSats(when: String, from: String, to: String): [TimeData!]!
   }
 
   type UsersNullable {
@@ -65,9 +62,7 @@ export default gql`
     createdAt: Date!
     name: String!
     nitems(when: String, from: String, to: String): Int!
-    nposts(when: String, from: String, to: String): Int!
     nterritories(when: String, from: String, to: String): Int!
-    ncomments(when: String, from: String, to: String): Int!
     bio: Item
     bioId: Int
     photoId: Int

@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE UNLOGGED TABLE "AggPayOut" (
     "id" SERIAL NOT NULL,
-    "timeBucket" TIMESTAMP(3) NOT NULL,
+    "timeBucket" TIMESTAMPTZ(3) NOT NULL,
     "granularity" "AggGranularity" NOT NULL,
     "payOutType" "PayOutType",
     "payInType" "PayInType",
@@ -9,6 +9,7 @@ CREATE UNLOGGED TABLE "AggPayOut" (
     "userId" INTEGER,
     "sumMtokens" BIGINT NOT NULL,
     "countUsers" BIGINT NOT NULL,
+    "countGroup" BIGINT NOT NULL,
     "slice" "AggSlice" NOT NULL,
 
     CONSTRAINT "AggPayOut_pkey" PRIMARY KEY ("id")
@@ -16,13 +17,13 @@ CREATE UNLOGGED TABLE "AggPayOut" (
 
 CREATE OR REPLACE VIEW payouts_paid_fact AS
 SELECT
-    p.id                                      AS payin_id,
-    p."payInStateChangedAt"                   AS changed_at,
-    pt."payOutType"                           AS payout_type,
-    p."payInType"                             AS payin_type,
-    pc."subName"                              AS sub_name,
-    pt."userId"                               AS user_id,
-    COALESCE(pt."mtokens", 0)                 AS mtokens
+    p.id                                       AS payin_id,
+    p."payInStateChangedAt"                    AS changed_at,
+    pt."payOutType"                            AS payout_type,
+    p."payInType"                              AS payin_type,
+    pc."subName"                               AS sub_name,
+    pt."userId"                                AS user_id,
+    COALESCE(pt."mtokens", 0)                  AS mtokens
 FROM "PayIn" p
 LEFT JOIN LATERAL (
     SELECT spc."subName", "PayOutCustodialToken"."mtokens" AS mtokens, "PayOutCustodialToken"."mtokens" / sum("PayOutCustodialToken"."mtokens") OVER () AS mtokens_proportion
@@ -78,8 +79,8 @@ BEGIN
               ELSE              'MONTH'::"AggGranularity"
             END;
 
-  v_from := date_trunc(bucket_part, p_from);
-  v_to   := date_trunc(bucket_part, p_to) + v_step;
+  v_from := date_trunc(bucket_part, p_from, 'America/Chicago');
+  v_to   := date_trunc(bucket_part, p_to, 'America/Chicago') + v_step;
 
   -- Idempotent: clear the window for this granularity
   DELETE FROM "AggPayOut"
@@ -90,23 +91,24 @@ BEGIN
   -- One pass: all 8 slices
     INSERT INTO "AggPayOut"
     (granularity,"timeBucket","payOutType","payInType","subName","userId",
-     "sumMtokens","countUsers","slice")
+     "sumMtokens","countUsers","countGroup","slice")
     WITH facts AS (
         SELECT
-        date_trunc(bucket_part, changed_at) AS bucket,
+        date_trunc(bucket_part, changed_at, 'America/Chicago') AS bucket,
         payout_type                  AS "payOutType",
         payin_type                    AS "payInType",
         sub_name                      AS "subName",  -- may be NULL; kept
         user_id                       AS "userId",   -- may be NULL; kept
         mtokens
         FROM payouts_paid_fact
-        WHERE changed_at >= v_from AND changed_at < v_to
+        WHERE changed_at >= (v_from AT TIME ZONE 'UTC') AND changed_at < (v_to AT TIME ZONE 'UTC')
     ),
     rolled AS (
         SELECT
         bucket, "payOutType", "payInType", "subName", "userId",
         SUM(mtokens)                              AS "sumMtokens",
         COUNT(DISTINCT "userId")                  AS "countUsers",
+        COUNT(*)                                  AS "countGroup",
         /* bit mask: payOutType=8, payInType=4, subName=2, userId=1 (1 = grand-totalled) */
         GROUPING("payOutType","payInType","subName","userId") AS gmask
         FROM facts
@@ -136,7 +138,7 @@ BEGIN
     v_gran                                   AS granularity,
     bucket                                   AS "timeBucket",
     "payOutType","payInType","subName","userId",
-    "sumMtokens","countUsers",
+    "sumMtokens","countUsers","countGroup",
     CASE gmask
         WHEN 15 THEN 'GLOBAL'::"AggSlice"
         WHEN  7 THEN 'GLOBAL_BY_TYPE'::"AggSlice"      -- (bucket, payOutType)
@@ -171,7 +173,7 @@ CREATE OR REPLACE FUNCTION refresh_agg_payout_day(
 $$;
 
 CREATE OR REPLACE FUNCTION refresh_agg_payout_month(
-  p_from timestamptz DEFAULT date_trunc('month', now()) - interval '24 months',
+  p_from timestamptz DEFAULT now() - interval '24 months',
   p_to   timestamptz DEFAULT now()
 ) RETURNS void LANGUAGE sql AS $$
   SELECT refresh_agg_payout('month', p_from, p_to);
@@ -182,8 +184,8 @@ DO $$
 DECLARE cur timestamptz := now() - interval '5 years';
 BEGIN
   WHILE cur < now() LOOP
-    PERFORM refresh_agg_payout_hour(cur, cur + interval '1 day');
-    cur := cur + interval '1 day';
+    PERFORM refresh_agg_payout_hour(cur, cur + interval '30 days');
+    cur := cur + interval '30 days';
   END LOOP;
 END$$;
 

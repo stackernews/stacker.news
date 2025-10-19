@@ -84,19 +84,7 @@ Stacker News is non-custodial. To send and receive sats, you need to attach a wa
 
 Click [here](/wallets) or click on your name and select 'wallets'. You should then see this:
 
-![](https://m.stacker.news/100486)
-
-We currently support the following wallets:
-
-- [WebLN](https://www.webln.guide/ressources/webln-providers)
-- [Blink](https://www.blink.sv/) | [guide](https://stacker.news/items/705629/r/supratic)
-- [Core Lightning](https://docs.corelightning.org/) via [CLNRest](https://docs.corelightning.org/docs/rest) | [guide](https://stacker.news/items/545926/r/supratic)
-- [Lightning Node Connect](https://docs.lightning.engineering/lightning-network-tools/lightning-terminal/lightning-node-connect) (LNC)
-- [Lightning Network Daemon](https://github.com/lightningnetwork/lnd) (LND) via [gRPC](https://lightning.engineering/api-docs/api/lnd/) | [guide](https://stacker.news/items/704693/r/supratic)
-- [LNbits](https://lnbits.com/) | [guide](https://stacker.news/items/697132/r/supratic)
-- [Nostr Wallet Connect](https://nwc.dev/) (NWC) | [guide](https://stacker.news/items/698497/r/supratic)
-- [lightning address](https://strike.me/learn/what-is-a-lightning-address/) | [guide](https://stacker.news/items/694593/r/supratic)
-- [phoenixd](https://phoenix.acinq.co/server) | [guide](https://stacker.news/items/695912/r/supratic)
+![](https://m.stacker.news/112907)
 
 ### I can't find my wallet. Can I not attach one?
 

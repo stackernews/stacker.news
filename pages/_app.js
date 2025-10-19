@@ -20,7 +20,7 @@ import 'nprogress/nprogress.css'
 import { ChainFeeProvider } from '@/components/chain-fee.js'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
-import WalletsProvider from '@/wallets/client/context'
+import { WalletsProvider } from '@/wallets/client/hooks'
 import FaviconProvider from '@/components/favicon'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })

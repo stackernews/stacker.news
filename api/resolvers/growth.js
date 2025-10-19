@@ -89,7 +89,7 @@ export default {
         LEFT JOIN "AggPayIn" ON "AggPayIn"."timeBucket" = grid."timeBucket" AND "AggPayIn"."payInType" = grid."payInType"
         AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
         AND ${sliceClause(sub, mine ? me : null)}
-        WHERE grid."payInType" NOT IN ('DEFUNCT_TERRITORY_DAILY_PAYOUT')
+        WHERE grid."payInType" NOT IN ('DEFUNCT_TERRITORY_DAILY_PAYOUT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT', 'REWARDS', 'BUY_CREDITS')
         GROUP BY grid."timeBucket"
         ORDER BY grid."timeBucket" ASC`
 

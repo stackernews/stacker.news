@@ -878,6 +878,8 @@ BEGIN
         invoice_updated_at TIMESTAMP,
         fee_msats BIGINT,
         boost_msats BIGINT,
+        boost_referrer_id INTEGER,
+        boost_referral_msats BIGINT,
         upload_ids INTEGER[]
     );
 
@@ -907,6 +909,8 @@ BEGIN
                "Invoice"."created_at" AS invoice_created_at, "Invoice"."updated_at" AS invoice_updated_at,
                COALESCE(item_fee_acts.msats, 0) AS fee_msats,
                COALESCE(item_boost_acts.msats, 0) AS boost_msats,
+               item_boost_acts.referrer_id AS boost_referrer_id,
+               COALESCE(item_boost_acts.referral_msats, 0) AS boost_referral_msats,
                item_uploads.upload_ids
         FROM "Item"
         LEFT JOIN "Invoice" ON "Invoice".id = "Item"."invoiceId" AND "Invoice"."actionType" = 'ITEM_CREATE'
@@ -919,8 +923,9 @@ BEGIN
             GROUP BY "ItemAct"."itemId"
         ) AS item_fee_acts ON TRUE
         LEFT JOIN LATERAL (
-            SELECT sum("msats") AS msats
+            SELECT sum("ItemAct"."msats") AS msats, sum("ReferralAct"."msats") AS referral_msats, MAX("ReferralAct"."referrerId") AS referrer_id
             FROM "ItemAct"
+            LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct"."id"
             WHERE "ItemAct"."itemId" = "Item"."id"
               AND "ItemAct"."act" = 'BOOST'
               AND "ItemAct"."userId" = "Item"."userId"
@@ -1014,11 +1019,27 @@ BEGIN
             FROM item_create_batch
             JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
             WHERE boost_msats > 0
-            RETURNING "PayIn"."id" as id, "PayIn".created_at as created_at, "PayIn".mcost as boost_msats
+            RETURNING "PayIn"."id" as id, "PayIn".created_at as created_at, "PayIn".mcost as boost_msats, "PayIn"."benefactorId" as benefactor_id
+        ),
+        boost_item_payin AS (
+            INSERT INTO "ItemPayIn" ("payInId", "itemId")
+            SELECT boost_beneficiary.id, map_item_create_payin_batch.item_id
+            FROM boost_beneficiary
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.payin_id = boost_beneficiary.benefactor_id
+        ),
+        boost_referral AS (
+            INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+            SELECT boost_beneficiary.created_at, boost_beneficiary.created_at, boost_referrer_id, boost_beneficiary.id, boost_referral_msats, 'SATS', 'DEFUNCT_REFERRAL_ACT'
+            FROM boost_beneficiary
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.payin_id = boost_beneficiary.benefactor_id
+            JOIN item_create_batch ON item_create_batch.id = map_item_create_payin_batch.item_id
+            WHERE boost_referral_msats > 0
+            RETURNING "payInId" as id, mtokens as boost_referral_msats
         )
         INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
-        SELECT boost_beneficiary.created_at, boost_beneficiary.created_at, 9513, boost_beneficiary.id, boost_beneficiary.boost_msats, 'SATS', 'REWARDS_POOL'
-        FROM boost_beneficiary;
+        SELECT boost_beneficiary.created_at, boost_beneficiary.created_at, 9513, boost_beneficiary.id, boost_beneficiary.boost_msats - COALESCE(boost_referral.boost_referral_msats, 0), 'SATS', 'REWARDS_POOL'
+        FROM boost_beneficiary
+        LEFT JOIN boost_referral ON boost_referral.id = boost_beneficiary.id;
 
         -- Update offset for next batch
         SELECT MAX(id) INTO offset_val FROM item_create_batch;
@@ -1233,7 +1254,7 @@ BEGIN
 
         -- Load referral acts for this batch
         INSERT INTO zap_referral_acts_batch
-        SELECT zaps."itemId", zaps."userId", zaps."created_at", zaps."invoiceId",
+        SELECT zaps."itemId", zaps."userId", zaps."created_at", COALESCE(zaps."invoiceId", 0),
                "ReferralAct"."referrerId", "ReferralAct"."msats"
         FROM item_act_zaps_batch zaps
         JOIN "ReferralAct" ON "ReferralAct"."itemActId" = zaps."feeId"
@@ -1243,7 +1264,7 @@ BEGIN
 
         -- Load forwards for this batch
         INSERT INTO zap_forwards_batch
-        SELECT zaps."itemId", zaps."userId", zaps."created_at", zaps."invoiceId",
+        SELECT zaps."itemId", zaps."userId", zaps."created_at", COALESCE(zaps."invoiceId", 0),
                "ItemForward"."userId" AS forward_user_id, "ItemForward"."pct"
         FROM item_act_zaps_batch zaps
         JOIN "ItemForward" ON "ItemForward"."itemId" = zaps."itemId"

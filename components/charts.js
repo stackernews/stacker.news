@@ -15,6 +15,7 @@ import { Pie } from 'recharts/lib/polar/Pie'
 import { abbrNum } from '@/lib/format'
 import { useRouter } from 'next/router'
 import { timeUnitForRange } from '@/lib/time'
+import { payTypeShortName } from '@/lib/pay-in'
 
 const dateFormatter = (when, from, to) => {
   const unit = xAxisName(when, from, to)
@@ -58,7 +59,7 @@ const transformData = data => {
   return data.map(entry => {
     const obj = { time: entry.time }
     entry.data.forEach(entry1 => {
-      obj[entry1.name] = entry1.value
+      obj[payTypeShortName(entry1.name)] = entry1.value
     })
     return obj
   })
@@ -91,7 +92,7 @@ export function WhenAreaChart ({ data }) {
   const to = router.query.to
 
   return (
-    <ResponsiveContainer width='100%' height={300} minWidth={300}>
+    <ResponsiveContainer width='100%' height={400} minWidth={300}>
       <AreaChart
         data={data}
         margin={{
@@ -106,7 +107,7 @@ export function WhenAreaChart ({ data }) {
           tick={{ fill: 'var(--theme-grey)' }}
         />
         <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
+        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)', opacity: 1, zIndex: -1 }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Area key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={getColor(i)} fill={getColor(i)} />)}
@@ -128,7 +129,7 @@ export function WhenLineChart ({ data }) {
   const to = router.query.to
 
   return (
-    <ResponsiveContainer width='100%' height={300} minWidth={300}>
+    <ResponsiveContainer width='100%' height={400} minWidth={300}>
       <LineChart
         data={data}
         margin={{
@@ -170,7 +171,7 @@ export function WhenComposedChart ({
   const to = router.query.to
 
   return (
-    <ResponsiveContainer width='100%' height={300} minWidth={300}>
+    <ResponsiveContainer width='100%' height={400} minWidth={300}>
       <ComposedChart
         data={data}
         margin={{

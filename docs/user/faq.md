@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: August 13, 2025
+last updated: October 20, 2025
 
 ---
 
@@ -229,7 +229,7 @@ Upload fees are applied when you submit your post or comment.
 
 ### Are media uploads stored forever?
 
-Yes, if it was used in a post or comment. **Uploads that haven't been used within 24 hours in a post or comment are deleted.**
+Yes, if it was used in a post or comment. **Uploads that haven't been used within 7 days in a post or comment are deleted.**
 
 ### I no longer want to pay for my territory. What should I do?
 

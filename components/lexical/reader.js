@@ -12,7 +12,7 @@ import styles from './theme/theme.module.css'
 import theme from './theme'
 
 export default forwardRef(function Reader ({ lexicalState, topLevel, className, children, contentRef, imgproxyUrls, outlawed, rel }, ref) {
-  const reader = useMemo(() => {
+  const reader = useMemo(() =>
     defineExtension({
       $initialEditorState: (editor) => {
         if (!lexicalState) return
@@ -30,8 +30,7 @@ export default forwardRef(function Reader ({ lexicalState, topLevel, className, 
       editable: false,
       nodes: DefaultNodes,
       theme
-    })
-  }, [])
+    }), [])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>

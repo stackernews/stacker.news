@@ -24,20 +24,17 @@
   --grid-gap: 0.75rem;
 }
 
-.text>*:not(.heading),
-.text>.html>*:not(.heading) {
+.text>*:not(.heading) {
   padding-top: calc(var(--grid-gap) * 0.5);
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
-.text>*:last-child:not(.textShowFull),
-.text>.html>*:last-child:not(.textShowFull) {
+.text>*:last-child:not(.textShowFull) {
   padding-bottom: 0 !important;
   margin-bottom: 0 !important;
 }
 
-.text>*:first-child,
-.text>.html>*:first-child {
+.text>*:first-child {
   padding-top: 0 !important;
   margin-top: 0 !important;
 }

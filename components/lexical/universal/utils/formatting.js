@@ -66,7 +66,7 @@ export function snGetCodeLanguage ({ selection, editor }) {
     }
   }
   const raw = selection.getTextContent()
-  if (!raw) return 'paragraph'
+  if (!raw) return ''
   const text = raw.trim()
   if (text.startsWith('```') && text.endsWith('```') && text.length >= 6) {
     // extract language from the opening fence if present
@@ -101,16 +101,15 @@ export function snGetBlockType ({ selection, editor }) {
   if (!raw) return 'paragraph'
 
   const text = raw
+
+  // fenced code block
+  const fenced = text.trim()
+  if (fenced.startsWith('```') && fenced.endsWith('```') && fenced.length >= 6) return 'code'
+
   const lines = text.split('\n').filter(l => l.length > 0)
   if (lines.length === 0) return 'paragraph'
 
   const first = lines[0].trim()
-
-  // TODO for sox
-  // I think we should review these and go with a simpler route.
-  // fenced code block
-  const fenced = text.trim()
-  if (fenced.startsWith('```') && fenced.endsWith('```') && fenced.length >= 6) return 'code'
 
   // headings
   if (/^#\s/.test(first)) return 'h1'

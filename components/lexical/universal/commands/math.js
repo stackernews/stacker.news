@@ -1,6 +1,7 @@
 import { createCommand, COMMAND_PRIORITY_EDITOR, $insertNodes, $isRootOrShadowRoot, $createParagraphNode, $getSelection, $isRangeSelection } from 'lexical'
 import { $wrapNodeInElement } from '@lexical/utils'
 import { MathNode, $createMathNode } from '@/lib/lexical/nodes/formatting/math/mathnode'
+import { $isMarkdownMode } from '@/components/lexical/universal/utils'
 
 export const SN_INSERT_MATH_COMMAND = createCommand('SN_INSERT_MATH_COMMAND')
 
@@ -20,6 +21,9 @@ export function registerSNInsertMathCommand ({ editor }) {
     }
 
     // ok now add the markdown equivalent, don't forget about this.
+    if ($isMarkdownMode()) {
+      mathValue = inline ? '$' + mathValue + '$' : '$$\n' + mathValue + '\n$$'
+    }
     const mathNode = $createMathNode(mathValue, inline)
 
     $insertNodes([mathNode])

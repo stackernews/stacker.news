@@ -93,6 +93,10 @@ export class MathNode extends DecoratorNode {
     return this.__math
   }
 
+  getInline () {
+    return this.__inline
+  }
+
   setMath (math) {
     const writable = this.getWritable()
     writable.__math = math

@@ -3,11 +3,12 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'
-import { SubAnalyticsHeader } from '@/components/sub-analytics-header'
+import { SatisticsHeader } from '@/pages/satistics'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import PageLoading from '@/components/page-loading'
 import { WhenAreaChartSkeleton, WhenLineChartSkeleton } from '@/components/charts-skeletons'
+import { UserAnalyticsHeader } from '@/components/user-analytics-header'
 
 const WhenAreaChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenAreaChart), {
   loading: () => <WhenAreaChartSkeleton />
@@ -20,44 +21,23 @@ const WhenLineChart = dynamic(() => import('@/components/charts').then(mod => mo
 // })
 
 const GROWTH_QUERY = gql`
-  query Growth($when: String!, $from: String, $to: String, $sub: String, $subSelect: Boolean = false)
+  query Growth($when: String!, $from: String, $to: String)
   {
-    registrationGrowth(when: $when, from: $from, to: $to) @skip(if: $subSelect) {
+    itemGrowth(when: $when, from: $from, to: $to, mine: true) {
       time
       data {
         name
         value
       }
     }
-    itemGrowth(when: $when, from: $from, to: $to, sub: $sub) {
+    spendingGrowth(when: $when, from: $from, to: $to, mine: true) {
       time
       data {
         name
         value
       }
     }
-    spendingGrowth(when: $when, from: $from, to: $to, sub: $sub) {
-      time
-      data {
-        name
-        value
-      }
-    }
-    spenderGrowth(when: $when, from: $from, to: $to, sub: $sub) {
-      time
-      data {
-        name
-        value
-      }
-    }
-    stackingGrowth(when: $when, from: $from, to: $to, sub: $sub) {
-      time
-      data {
-        name
-        value
-      }
-    }
-    stackerGrowth(when: $when, from: $from, to: $to, sub: $sub) {
+    stackingGrowth(when: $when, from: $from, to: $to, mine: true) {
       time
       data {
         name
@@ -66,43 +46,29 @@ const GROWTH_QUERY = gql`
     }
   }`
 
-const variablesFunc = vars => ({ ...vars, subSelect: vars.sub !== 'all' })
-export const getServerSideProps = getGetServerSideProps({ query: GROWTH_QUERY, variables: variablesFunc })
+export const getServerSideProps = getGetServerSideProps({ query: GROWTH_QUERY })
 
 export default function Growth ({ ssrData }) {
   const router = useRouter()
-  const { when, from, to, sub } = router.query
-  console.log(sub)
+  const { when, from, to } = router.query
 
-  const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to, sub, subSelect: sub !== 'all' } })
+  const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to, mine: true } })
   if (!data && !ssrData) return <PageLoading />
 
   const {
-    registrationGrowth,
     itemGrowth,
     spendingGrowth,
-    spenderGrowth,
-    stackingGrowth,
-    stackerGrowth
+    stackingGrowth
   } = data || ssrData
 
   return (
     <Layout>
-      <SubAnalyticsHeader />
+      <SatisticsHeader />
+      <UserAnalyticsHeader pathname='satistics/graphs' />
       <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>unique stackers</div>
-          <WhenLineChart data={stackerGrowth} />
-        </Col>
         <Col className='mt-3'>
           <div className='text-center text-muted fw-bold'>sats stacked</div>
           <WhenAreaChart data={stackingGrowth} />
-        </Col>
-      </Row>
-      <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>unique spenders</div>
-          <WhenLineChart data={spenderGrowth} />
         </Col>
         <Col className='mt-3'>
           <div className='text-center text-muted fw-bold'>sats spent</div>
@@ -114,10 +80,7 @@ export default function Growth ({ ssrData }) {
           <div className='text-center text-muted fw-bold'>spend counts</div>
           <WhenLineChart data={itemGrowth} />
         </Col>
-        <Col className='mt-3'>
-          {sub === 'all' && <div className='text-center text-muted fw-bold'>registrations</div>}
-          <WhenAreaChart data={registrationGrowth} />
-        </Col>
+        <Col className='mt-3' />
       </Row>
     </Layout>
   )

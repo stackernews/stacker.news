@@ -1,4 +1,5 @@
 -- CreateTable
+DO $$ BEGIN RAISE NOTICE 'Creating AggPayOut table...'; END $$;
 CREATE UNLOGGED TABLE "AggPayOut" (
     "id" SERIAL NOT NULL,
     "timeBucket" TIMESTAMPTZ(3) NOT NULL,
@@ -14,42 +15,112 @@ CREATE UNLOGGED TABLE "AggPayOut" (
 
     CONSTRAINT "AggPayOut_pkey" PRIMARY KEY ("id")
 );
+DO $$ BEGIN RAISE NOTICE 'AggPayOut table created'; END $$;
 
+DO $$ BEGIN RAISE NOTICE 'Creating payouts_paid_fact view...'; END $$;
 CREATE OR REPLACE VIEW payouts_paid_fact AS
+WITH paid AS (
+  SELECT id,
+         "payInStateChangedAt" AS changed_at,
+         "payInType"           AS payin_type
+  FROM "PayIn"
+  WHERE "payInState" = 'PAID'
+),
+-- Aggregate territory mtokens per (payin, sub)
+territory_mtokens AS (
+  SELECT
+    pot."payInId"          AS payin_id,
+    spc."subName"          AS sub_name,
+    SUM(pot."mtokens")     AS mtokens_sub
+  FROM "PayOutCustodialToken" pot
+  JOIN "SubPayOutCustodialToken" spc
+    ON spc."payOutCustodialTokenId" = pot."id"
+  JOIN paid p
+    ON p.id = pot."payInId"
+  GROUP BY pot."payInId", spc."subName"
+),
+-- Total mtokens per payin for proportion denominator
+territory_totals AS (
+  SELECT payin_id, SUM(mtokens_sub) AS mtokens_total
+  FROM territory_mtokens
+  GROUP BY payin_id
+),
+-- Proportion per (payin, sub): preserve your special-case (mtokens_sub=0 -> 1)
+territory_prop AS (
+  SELECT
+    tm.payin_id,
+    tm.sub_name,
+    CASE
+      WHEN tm.mtokens_sub = 0 THEN 1.0
+      ELSE tm.mtokens_sub::numeric / NULLIF(tt.mtokens_total, 0)
+    END AS mtokens_proportion
+  FROM territory_mtokens tm
+  JOIN territory_totals tt USING (payin_id)
+),
+-- Non-territory payouts (both sources), to be split across subs via the proportion
+non_territory AS (
+  SELECT pot."payInId" AS payin_id,
+         pot."payOutType" AS payout_type,
+         pot."userId" AS user_id,
+         pot."mtokens"::numeric AS amount
+  FROM "PayOutCustodialToken" pot
+  JOIN paid p ON p.id = pot."payInId"
+  WHERE pot."payOutType" <> 'TERRITORY_REVENUE'
+  UNION ALL
+  SELECT pob."payInId" AS payin_id,
+         pob."payOutType" AS payout_type,
+         pob."userId" AS user_id,
+         pob."msats"::numeric AS amount
+  FROM "PayOutBolt11" pob
+  JOIN paid p ON p.id = pob."payInId"
+  WHERE pob."payOutType" <> 'TERRITORY_REVENUE'
+),
+-- Apply proportions to non-territory payouts (one row per sub)
+split_non_territory AS (
+  SELECT
+    nt.payin_id,
+    tp.sub_name,
+    nt.payout_type,
+    nt.user_id,
+    (nt.amount * COALESCE(tp.mtokens_proportion, 1.0))::bigint AS mtokens
+  FROM non_territory nt
+  LEFT JOIN territory_prop tp
+    ON tp.payin_id = nt.payin_id
+),
+-- Territory revenue: attributed directly to the specific sub
+direct_territory AS (
+  SELECT
+    pot."payInId" AS payin_id,
+    spc."subName" AS sub_name,
+    pot."payOutType" AS payout_type,
+    pot."userId" AS user_id,
+    pot."mtokens"::bigint AS mtokens
+  FROM "PayOutCustodialToken" pot
+  JOIN "SubPayOutCustodialToken" spc
+    ON spc."payOutCustodialTokenId" = pot."id"
+  JOIN paid p ON p.id = pot."payInId"
+  WHERE pot."payOutType" = 'TERRITORY_REVENUE'
+)
 SELECT
-    p.id                                       AS payin_id,
-    p."payInStateChangedAt"                    AS changed_at,
-    pt."payOutType"                            AS payout_type,
-    p."payInType"                              AS payin_type,
-    pc."subName"                               AS sub_name,
-    pt."userId"                                AS user_id,
-    COALESCE(pt."mtokens", 0)                  AS mtokens
-FROM "PayIn" p
-LEFT JOIN LATERAL (
-    SELECT spc."subName", "PayOutCustodialToken"."mtokens" AS mtokens, "PayOutCustodialToken"."mtokens" / sum("PayOutCustodialToken"."mtokens") OVER () AS mtokens_proportion
-    FROM "PayOutCustodialToken"
-    JOIN "SubPayOutCustodialToken" spc ON spc."payOutCustodialTokenId" = "PayOutCustodialToken"."id"
-    WHERE "PayOutCustodialToken"."payInId" = p.id
-    GROUP BY spc."subName", "PayOutCustodialToken"."mtokens"
-) pc ON true
-LEFT JOIN LATERAL (
-    -- each non-territory revenue is fractionally attributed to the territory
-    (SELECT "PayOutCustodialToken"."payOutType", "PayOutCustodialToken"."userId", "PayOutCustodialToken"."mtokens" * COALESCE(pc."mtokens_proportion", 1) AS mtokens
-    FROM "PayOutCustodialToken"
-    WHERE "PayOutCustodialToken"."payInId" = p.id AND "PayOutCustodialToken"."payOutType" <> 'TERRITORY_REVENUE')
-    UNION ALL
-    (SELECT "PayOutBolt11"."payOutType", "PayOutBolt11"."userId", "PayOutBolt11"."msats" * COALESCE(pc."mtokens_proportion", 1) AS mtokens
-    FROM "PayOutBolt11"
-    WHERE "PayOutBolt11"."payInId" = p.id AND "PayOutBolt11"."payOutType" <> 'TERRITORY_REVENUE')
-    UNION ALL
-    (SELECT "PayOutCustodialToken"."payOutType", "PayOutCustodialToken"."userId", "PayOutCustodialToken"."mtokens" AS mtokens
-    FROM "PayOutCustodialToken"
-    JOIN "SubPayOutCustodialToken" spc ON spc."payOutCustodialTokenId" = "PayOutCustodialToken"."id"
-    WHERE "PayOutCustodialToken"."payInId" = p.id AND "PayOutCustodialToken"."payOutType" = 'TERRITORY_REVENUE' AND spc."subName" = pc."subName")
-) pt ON true
-WHERE p."payInState" = 'PAID' AND pt."payOutType" IS NOT NULL AND p."payInType" IS NOT NULL;
+  p.id             AS payin_id,
+  p.changed_at,
+  x.payout_type,
+  p.payin_type,
+  x.sub_name,
+  x.user_id,
+  x.mtokens
+FROM paid p
+JOIN (
+  SELECT * FROM split_non_territory
+  UNION ALL
+  SELECT * FROM direct_territory
+) x ON x.payin_id = p.id
+WHERE x.payout_type IS NOT NULL
+  AND p.payin_type IS NOT NULL;
+DO $$ BEGIN RAISE NOTICE 'payouts_paid_fact view created'; END $$;
 
 
+DO $$ BEGIN RAISE NOTICE 'Creating refresh_agg_payout function...'; END $$;
 CREATE OR REPLACE FUNCTION refresh_agg_payout(
     bucket_part  text,        -- 'hour' | 'day' | 'month'
     p_from       timestamptz DEFAULT now() - interval '2 hours',
@@ -62,6 +133,8 @@ DECLARE
     v_to    timestamp;
     v_step  interval;
     v_gran  "AggGranularity";
+    v_deleted_count int;
+    v_inserted_count int;
 BEGIN
   IF bucket_part NOT IN ('hour','day','month') THEN
     RAISE EXCEPTION 'bucket_part must be hour|day|month';
@@ -82,11 +155,16 @@ BEGIN
   v_from := date_trunc(bucket_part, p_from, 'America/Chicago');
   v_to   := date_trunc(bucket_part, p_to, 'America/Chicago') + v_step;
 
+  RAISE NOTICE '  refresh_agg_payout(%): Processing % to %', bucket_part, v_from, v_to;
+
   -- Idempotent: clear the window for this granularity
   DELETE FROM "AggPayOut"
   WHERE granularity = v_gran
     AND "timeBucket" >= v_from
     AND "timeBucket" <  v_to;
+
+  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
+  RAISE NOTICE '    Deleted % existing rows', v_deleted_count;
 
   -- One pass: all 8 slices
     INSERT INTO "AggPayOut"
@@ -154,6 +232,9 @@ BEGIN
         WHEN  0 THEN 'USER_SUB_BY_TYPE'::"AggSlice"    -- (bucket, userId, subName, payOutType, payInType)
     END AS slice
     FROM rolled;
+
+  GET DIAGNOSTICS v_inserted_count = ROW_COUNT;
+  RAISE NOTICE '    Inserted % aggregate rows', v_inserted_count;
 END;
 $$;
 
@@ -178,27 +259,55 @@ CREATE OR REPLACE FUNCTION refresh_agg_payout_month(
 ) RETURNS void LANGUAGE sql AS $$
   SELECT refresh_agg_payout('month', p_from, p_to);
 $$;
+DO $$ BEGIN RAISE NOTICE 'All refresh functions created'; END $$;
 
 -- hourly ranges in chunks
 DO $$
-DECLARE cur timestamptz := now() - interval '5 years';
+DECLARE
+    cur timestamptz := now() - interval '5 years';
+    chunk_count int := 0;
+    total_chunks int;
 BEGIN
+  RAISE NOTICE 'Starting hourly aggregation (this may take several minutes)...';
+
+  -- Calculate total chunks for progress tracking
+  total_chunks := CEIL(EXTRACT(epoch FROM (now() - (now() - interval '5 years'))) / EXTRACT(epoch FROM interval '30 days'));
+  RAISE NOTICE 'Processing % chunks of 30 days each for hourly aggregation', total_chunks;
+
   WHILE cur < now() LOOP
+    chunk_count := chunk_count + 1;
+    RAISE NOTICE 'Processing hourly chunk %/% (from % to %)',
+      chunk_count, total_chunks, cur, cur + interval '30 days';
     PERFORM refresh_agg_payout_hour(cur, cur + interval '30 days');
     cur := cur + interval '30 days';
   END LOOP;
+
+  RAISE NOTICE 'Hourly aggregation complete: % chunks processed', chunk_count;
 END$$;
 
 -- daily long range
-SELECT refresh_agg_payout_day(now() - interval '5 years', now());
+DO $$
+BEGIN
+  RAISE NOTICE 'Starting daily aggregation (5 years)...';
+  PERFORM refresh_agg_payout_day(now() - interval '5 years', now());
+  RAISE NOTICE 'Daily aggregation complete';
+END$$;
 
 -- monthly long range
-SELECT refresh_agg_payout_month(now() - interval '5 years', now());
+DO $$
+BEGIN
+  RAISE NOTICE 'Starting monthly aggregation (5 years)...';
+  PERFORM refresh_agg_payout_month(now() - interval '5 years', now());
+  RAISE NOTICE 'Monthly aggregation complete';
+END$$;
 
 
+DO $$ BEGIN RAISE NOTICE 'Converting AggPayOut table to LOGGED...'; END $$;
 ALTER TABLE "AggPayOut" SET LOGGED;
+DO $$ BEGIN RAISE NOTICE 'AggPayOut table converted to LOGGED'; END $$;
 
 -- CreateIndex
+DO $$ BEGIN RAISE NOTICE 'Creating AggPayOut indexes...'; END $$;
 CREATE INDEX "AggPayOut_granularity_slice_timeBucket_idx" ON "AggPayOut"("granularity", "slice", "timeBucket");
 
 -- CreateIndex
@@ -218,6 +327,11 @@ CREATE INDEX "AggPayOut_granularity_userId_idx" ON "AggPayOut"("granularity", "u
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AggPayOut_unique_key" ON "AggPayOut"("granularity", "timeBucket", "payOutType", "payInType", "subName", "userId", "slice") NULLS NOT DISTINCT;
+DO $$ BEGIN RAISE NOTICE 'All indexes created'; END $$;
 
 -- AddForeignKey
+DO $$ BEGIN RAISE NOTICE 'Adding foreign key constraint...'; END $$;
 ALTER TABLE "AggPayOut" ADD CONSTRAINT "AggPayOut_subName_fkey" FOREIGN KEY ("subName") REFERENCES "Sub"("name") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN RAISE NOTICE 'Foreign key constraint added'; END $$;
+
+DO $$ BEGIN RAISE NOTICE 'Migration complete!'; END $$;

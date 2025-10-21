@@ -41,6 +41,12 @@ services:
     labels:
       CONNECT: "localhost:5431"
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
+    command:
+      - postgres
+      - -c
+      - log_min_messages=notice
+      - -c
+      - log_error_verbosity=terse
   tor:
     build:
       context: ./docker/tor

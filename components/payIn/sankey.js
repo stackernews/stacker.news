@@ -152,7 +152,7 @@ function getSankeyData (payIn) {
   if (payIn.payOutCustodialTokens && payIn.payOutCustodialTokens.length > 0) {
     payIn.payOutCustodialTokens.forEach((token, index) => {
       let id = payTypeShortName(token.payOutType)
-      if (token.payOutType === 'TERRITORY_REVENUE' && token.sub?.name) {
+      if (['TERRITORY_REVENUE', 'DEFUNCT_DELAYED_TERRITORY_REVENUE'].includes(token.payOutType) && token.sub?.name) {
         id = `~${token.sub.name}`
       } else if (['ZAP', 'REWARD'].includes(token.payOutType) && token.sometimesPrivates?.user?.name) {
         id = `@${token.sometimesPrivates.user.name}`

@@ -8,10 +8,6 @@ export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTok
     throw new Error('remaining mtokens is less than 0')
   }
 
-  if (remainingMtokens === 0n) {
-    return [...payOutCustodialTokens]
-  }
-
   const payOutCustodialTokensCopy = [...payOutCustodialTokens]
   let revenueMtokens = 0n
   if (sub) {
@@ -25,6 +21,10 @@ export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTok
         subName: sub.name
       }
     })
+  }
+
+  if (remainingMtokens === 0n) {
+    return payOutCustodialTokensCopy
   }
 
   const routingFeeMtokens = payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')?.mtokens ?? 0n

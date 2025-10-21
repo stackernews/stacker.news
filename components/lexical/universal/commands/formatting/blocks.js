@@ -9,6 +9,7 @@ import {
 import { createCommand, $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR, $createParagraphNode } from 'lexical'
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
+import { USE_TRANSFORMER_BRIDGE } from '@/components/lexical/plugins/core/transformerbridge'
 
 export const SN_FORMAT_BLOCK_COMMAND = createCommand('SN_FORMAT_BLOCK_COMMAND')
 
@@ -107,6 +108,8 @@ const formatCodeBlock = (activeBlock, block, isMarkdownMode) => {
 export function registerSNFormatBlockCommand ({ editor }) {
   return editor.registerCommand(SN_FORMAT_BLOCK_COMMAND, (block) => {
     const isMarkdownMode = $isMarkdownMode()
+    console.log('isMarkdownMode', isMarkdownMode)
+    if (isMarkdownMode) return editor.dispatchCommand(USE_TRANSFORMER_BRIDGE, { selection: $getSelection(), formatType: 'block', transformation: block })
     const activeBlock = snGetBlockType({ selection: $getSelection(), editor })
     switch (block) {
       case 'paragraph':

@@ -34,6 +34,7 @@ import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import styles from './theme/theme.module.css'
 import theme from './theme'
 import { MaxLengthPlugin } from './plugins/misc/max-length'
+import TransformerBridgePlugin from './plugins/core/transformerbridge'
 
 export default function Editor ({ ...props }) {
   const { prefs } = useLexicalPreferences()
@@ -95,6 +96,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
   return (
     <>
       <div className={styles.editorContainer}>
+        <TransformerBridgePlugin nodes={DefaultNodes} />
         <ToolbarPlugin topLevel={topLevel} />
         <div className={styles.editorInnerContainer}>
           <RichTextPlugin

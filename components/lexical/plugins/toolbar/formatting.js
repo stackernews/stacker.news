@@ -26,9 +26,9 @@ import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
 import ActionTooltip from '@/components/action-tooltip'
 
 // escapes the overflow rules of the FormattingTools component
-const MenuAlternateDimension = forwardRef(({ children, style, className, ...props }, ref) => {
+const MenuAlternateDimension = forwardRef(({ children, style, className }, ref) => {
   return createPortal(
-    <div ref={ref} style={style} className={className} {...props}>
+    <div ref={ref} style={style} className={className}>
       {children}
     </div>,
     document.body

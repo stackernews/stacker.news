@@ -1,5 +1,4 @@
-import { START_END_MARKDOWN_FORMATS } from './inline'
-import { mdGetTypes } from '@/lib/md'
+import { mdHas } from '@/lib/md'
 
 function isCase (text, type) {
   return type === 'lowercase' ? text.toLowerCase() === text : text.toUpperCase() === text
@@ -7,6 +6,28 @@ function isCase (text, type) {
 
 function isCapitalize (text) {
   return text.charAt(0).toUpperCase() === text.charAt(0) && text.slice(1).toLowerCase() === text.slice(1)
+}
+
+// wip micromark map
+const LEXICAL_TO_MICROMARK_TYPE_MAP = {
+  bold: 'strong',
+  italic: 'emphasis',
+  strikethrough: 'gfmStrikethrough',
+  code: 'codeText',
+  link: 'link',
+  image: 'image',
+  quote: 'blockQuote',
+  subscript: 'htmlText',
+  superscript: 'htmlText'
+}
+
+export function lexicalToMicromarkType (lexicalType) {
+  return LEXICAL_TO_MICROMARK_TYPE_MAP[lexicalType] || lexicalType
+}
+
+export function micromarkToLexicalType (micromarkType) {
+  const entry = Object.entries(LEXICAL_TO_MICROMARK_TYPE_MAP).find(([, value]) => value === micromarkType)
+  return entry ? entry[0] : micromarkType
 }
 
 export function hasMarkdownFormat (selection, type) {
@@ -28,12 +49,5 @@ export function hasMarkdownFormat (selection, type) {
     default:
       break
   }
-  const match = START_END_MARKDOWN_FORMATS[type]
-  const hasMd = mdGetTypes(text)
-  console.log('intercepted markdown:', hasMd)
-  if (!match) return false
-  if (Array.isArray(match)) {
-    return match.some(marker => text.startsWith(marker) && text.endsWith(marker) && text.length >= marker.length * 2)
-  }
-  return text.startsWith(match) && text.endsWith(match) && text.length >= match.length * 2
+  return mdHas(text, lexicalToMicromarkType(type))
 }

@@ -1,5 +1,6 @@
 import { createCommand, COMMAND_PRIORITY_EDITOR, FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection } from 'lexical'
 import { $isMarkdownMode } from '@/components/lexical/universal/utils'
+import { USE_TRANSFORMER_BRIDGE } from '@/components/lexical/plugins/core/transformerbridge'
 
 export const SN_FORMAT_TEXT_COMMAND = createCommand('SN_FORMAT_TEXT_COMMAND')
 
@@ -25,7 +26,7 @@ function toggleCapitalize (selection) {
   selection.insertText(newText)
 }
 
-function toggleInlineMarkdown (selection, marker) {
+/* function toggleInlineMarkdown (selection, marker) {
   if (!selection) return
   if (selection.isCollapsed()) {
     selection.insertText(marker + marker)
@@ -39,7 +40,7 @@ function toggleInlineMarkdown (selection, marker) {
     const newText = hasWrap ? text.slice(marker.length, text.length - marker.length) : marker + text + marker
     selection.insertText(newText)
   }
-}
+} */
 
 function wrapWithTag (selection, beforeTag, afterTag) {
   if (!selection) return
@@ -84,14 +85,6 @@ export function registerSNFormatTextCommand ({ editor }) {
         break
     }
     // handle inline markdown
-    if (START_END_MARKDOWN_FORMATS[type]) {
-      return toggleInlineMarkdown(
-        selection,
-        Array.isArray(START_END_MARKDOWN_FORMATS[type])
-          ? START_END_MARKDOWN_FORMATS[type][0]
-          : START_END_MARKDOWN_FORMATS[type]
-      )
-    }
-    return false
+    return editor.dispatchCommand(USE_TRANSFORMER_BRIDGE, { selection, formatType: 'format', transformation: type })
   }, COMMAND_PRIORITY_EDITOR)
 }

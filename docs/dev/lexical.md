@@ -96,7 +96,7 @@ Creates a placeholder node for each file, replaces it with the actual node when 
 WIP: Updates the upload fees via mutation
 
 <details>
-<summary>Nodes</summary>
+<summary><b>Nodes</b></summary>
 
 ## **Core**
 
@@ -144,7 +144,7 @@ Could be merged into a single node but they're separated for DX reasons.
 </details>
 
 <details>
-<summary>Transformers</summary>
+<summary><b>Transformers</b></summary>
 Transformers are used to convert between Lexical nodes and Markdown.
 
 ## Content

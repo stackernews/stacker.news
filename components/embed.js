@@ -31,7 +31,6 @@ const Loading = ({ provider, src, className, error }) => {
 }
 
 const LoaderWrapper = ({ loading, provider, src, children }) => {
-  console.log('loading', loading)
   return (
     <>
       {loading && <Loading provider={provider} src={src} />}

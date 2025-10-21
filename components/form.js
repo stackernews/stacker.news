@@ -307,11 +307,10 @@ export function DualAutocompleteWrapper ({
   )
 }
 
-export function LexicalInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
-  innerRef = innerRef || useRef(null)
+export function LexicalInput ({ label, topLevel, groupClassName, onChange, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
-      <LexicalEditor name={props.name} topLevel={topLevel} onChange={onChange} onKeyDown={onKeyDown} ref={innerRef} {...props} />
+      <LexicalEditor name={props.name} topLevel={topLevel} onChange={onChange} {...props} />
     </FormGroup>
   )
 }

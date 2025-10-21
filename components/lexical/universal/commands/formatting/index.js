@@ -1,4 +1,5 @@
 import { START_END_MARKDOWN_FORMATS } from './inline'
+import { mdGetTypes } from '@/lib/md'
 
 function isCase (text, type) {
   return type === 'lowercase' ? text.toLowerCase() === text : text.toUpperCase() === text
@@ -28,6 +29,8 @@ export function hasMarkdownFormat (selection, type) {
       break
   }
   const match = START_END_MARKDOWN_FORMATS[type]
+  const hasMd = mdGetTypes(text)
+  console.log('intercepted markdown:', hasMd)
   if (!match) return false
   if (Array.isArray(match)) {
     return match.some(marker => text.startsWith(marker) && text.endsWith(marker) && text.length >= marker.length * 2)

@@ -1,4 +1,4 @@
-import { USER_ID, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { payInCancel } from '../payIn/transitions'
@@ -28,7 +28,7 @@ function payInResultType (payInType) {
 }
 
 function isMine (payIn, { me }) {
-  return payIn.userId === USER_ID.anon || (me && Number(me.id) === Number(payIn.userId))
+  return me && Number(me.id) === Number(payIn.userId)
 }
 
 export async function getPayIn (parent, { id }, { me, models }) {
@@ -39,13 +39,13 @@ export async function getPayIn (parent, { id }, { me, models }) {
     models,
     query: Prisma.sql`SELECT * FROM "PayIn" WHERE "PayIn"."id" = ${id}`
   }))[0]
-  console.log(payIn)
+
   if (!payIn) {
     throw new Error('PayIn not found')
   }
-  if (Number(payIn.userId) !== Number(me.id)
-    && !payIn.payOutCustodialTokens.some(token => Number(token.userId) === Number(me.id))
-    && Number(payIn.payOutBolt11?.userId) !== Number(me.id)) {
+  if (Number(payIn.userId) !== Number(me.id) &&
+    !payIn.payOutCustodialTokens.some(token => Number(token.userId) === Number(me.id)) &&
+    Number(payIn.payOutBolt11?.userId) !== Number(me.id)) {
     throw new GqlAuthenticationError()
   }
   return payIn
@@ -78,7 +78,7 @@ export default {
             WHERE "PayIn"."userId" = ${userId}
             AND "PayIn"."benefactorId" IS NULL
             AND "PayIn"."mcost" > 0
-            AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
+            AND "PayIn"."created_at" <= ${decodedCursor.time}
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
           )
@@ -86,34 +86,35 @@ export default {
           (
             SELECT "PayIn".*, "payInStateChangedAt" as "sortTime", false as "isSend"
             FROM "PayIn"
-            LEFT JOIN LATERAL (
-              SELECT "RefundCustodialToken".*
-              FROM "RefundCustodialToken"
-              WHERE "RefundCustodialToken"."payInId" = "PayIn"."id" AND "PayIn"."userId" = ${userId}
-            ) "RefundCustodialToken" ON true
-            LEFT JOIN LATERAL (
-              SELECT "PayOutBolt11".*
-              FROM "PayOutBolt11"
-              WHERE "PayOutBolt11"."payInId" = "PayIn"."id" AND "PayOutBolt11"."userId" = ${userId}
-              AND "PayIn"."payInState" = 'PAID' AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL')
-            ) "PayOutBolt11" ON true
-            LEFT JOIN LATERAL (
-              SELECT "PayOutCustodialToken".*
-              FROM "PayOutCustodialToken"
-              WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id" AND "PayOutCustodialToken"."userId" = ${userId}
-              AND "PayIn"."payInState" = 'PAID'
-            ) "PayOutCustodialToken" ON true
-            WHERE ("RefundCustodialToken".id IS NOT NULL OR "PayOutBolt11".id IS NOT NULL OR "PayOutCustodialToken".id IS NOT NULL)
-            AND "PayIn"."benefactorId" IS NULL
+            WHERE "PayIn"."benefactorId" IS NULL
             AND "PayIn"."mcost" > 0
             AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
+            AND (
+              EXISTS (
+                SELECT 1
+                FROM "RefundCustodialToken"
+                WHERE "RefundCustodialToken"."payInId" = "PayIn"."id" AND "PayIn"."userId" = ${userId}
+              ) OR
+              EXISTS (
+                SELECT 1
+                FROM "PayOutBolt11"
+                WHERE "PayOutBolt11"."payInId" = "PayIn"."id" AND "PayOutBolt11"."userId" = ${userId}
+                AND "PayIn"."payInState" = 'PAID' AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL')
+              ) OR
+              EXISTS (
+                SELECT 1
+                FROM "PayOutCustodialToken"
+                WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id" AND "PayOutCustodialToken"."userId" = ${userId}
+                AND "PayIn"."payInState" = 'PAID'
+              )
+            )
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
-          )`,
-        orderBy: Prisma.sql`ORDER BY "sortTime" DESC`,
-        prependGroupBy: Prisma.sql`"PayIn"."sortTime", "PayIn"."isSend", `,
-        offset,
-        limit
+          )
+          ORDER BY "sortTime" DESC
+          OFFSET ${offset}
+          LIMIT ${limit}`,
+        orderBy: Prisma.sql`ORDER BY "sortTime" DESC`
       })
 
       return {
@@ -239,6 +240,8 @@ export default {
 
       // if this is a zap, we can see the routing fee and rewards pool
       if (!payIn.payOutBolt11 || isMine(payIn.payOutBolt11, { me })) {
+        console.log('here')
+        console.log(payOutCustodialTokens)
         return payOutCustodialTokens
       }
 
@@ -390,73 +393,124 @@ export default {
   }
 */
 
-async function getPayInFull ({ models, query, offset = 0, limit = LIMIT, orderBy = Prisma.sql``, prependGroupBy = Prisma.sql`` }) {
-  const payOutCustodialTokens = payInIdFragment => Prisma.sql`
-    SELECT "PayOutCustodialToken".*, to_jsonb(users.*) || jsonb_build_object('invite', to_jsonb("Invite".*)) as "user", (array_agg(to_jsonb("SubPayOutCustodialToken".*)))[1] as "subPayOutCustodialToken"
-    FROM "PayOutCustodialToken"
-    JOIN "users" ON "users"."id" = "PayOutCustodialToken"."userId"
-    LEFT JOIN "Invite" ON "Invite"."id" = "users"."inviteId"
-    LEFT JOIN LATERAL (
-      SELECT "SubPayOutCustodialToken".*, to_jsonb("Sub".*) as "sub"
-      FROM "SubPayOutCustodialToken"
-      JOIN "Sub" ON "Sub"."name" = "SubPayOutCustodialToken"."subName"
-      WHERE "SubPayOutCustodialToken"."payOutCustodialTokenId" = "PayOutCustodialToken"."id"
-    ) "SubPayOutCustodialToken" ON true
-    WHERE "PayOutCustodialToken"."payInId" = ${payInIdFragment}
-    GROUP BY "PayOutCustodialToken"."id", users.id, "Invite".id
-  `
-
+async function getPayInFull ({ models, query, orderBy = Prisma.empty }) {
   return await models.$queryRaw`
-    SELECT "PayIn".*, "PayIn"."created_at" as "createdAt", "PayIn"."updated_at" as "updatedAt",
-      (array_agg(to_jsonb("PessimisticEnv".*)))[1] as "pessimisticEnv",
-      (array_agg(to_jsonb("ItemPayIn".*)))[1] as "itemPayIn",
-      (array_agg(to_jsonb("SubPayIn".*)))[1] as "subPayIn",
-      (array_agg(to_jsonb("PayInBolt11".*)))[1] as "payInBolt11",
-      (array_agg(to_jsonb("PayOutBolt11".*)))[1] as "payOutBolt11",
-      COALESCE(array_agg(DISTINCT to_jsonb("PayInCustodialToken".*)) FILTER (WHERE "PayInCustodialToken"."id" IS NOT NULL), '{}') as "payInCustodialTokens",
-      COALESCE(array_agg(DISTINCT to_jsonb("PayOutCustodialToken".*)) FILTER (WHERE "PayOutCustodialToken"."id" IS NOT NULL), '{}') as "payOutCustodialTokens",
-      COALESCE(array_agg(DISTINCT to_jsonb("Beneficiary".*)) FILTER (WHERE "Beneficiary"."id" IS NOT NULL), '{}') as "beneficiaries",
-      COALESCE(array_agg(DISTINCT to_jsonb("RefundCustodialToken".*)) FILTER (WHERE "RefundCustodialToken"."id" IS NOT NULL), '{}') as "refundCustodialTokens"
-    FROM (
+    WITH payins AS (
       ${query}
-      ${orderBy}
-      OFFSET ${offset}
-      LIMIT ${limit}
-    ) "PayIn"
-    LEFT JOIN "PessimisticEnv" ON "PessimisticEnv"."payInId" = "PayIn"."id"
-    LEFT JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn"."id"
-    LEFT JOIN "SubPayIn" ON "SubPayIn"."payInId" = "PayIn"."id"
+    )
+    SELECT
+      p.*,
+      p.created_at AS "createdAt",
+      p.updated_at AS "updatedAt",
+      pe."pessimisticEnv",
+      ip."itemPayIn",
+      sp."subPayIn",
+      pib."payInBolt11",
+      pob."payOutBolt11",
+      pic."payInCustodialTokens",
+      poct."payOutCustodialTokens",
+      b."beneficiaries",
+      rct."refundCustodialTokens"
+    FROM payins p
     LEFT JOIN LATERAL (
-      SELECT "PayInBolt11".*,
-        to_jsonb("PayInBolt11Lud18".*) as "lud18Data",
-        to_jsonb("PayInBolt11NostrNote".*) as "nostrNote",
-        to_jsonb("PayInBolt11Comment".*) as "comment"
-      FROM "PayInBolt11"
-      LEFT JOIN "PayInBolt11Lud18" ON "PayInBolt11Lud18"."payInBolt11Id" = "PayInBolt11"."id"
-      LEFT JOIN "PayInBolt11NostrNote" ON "PayInBolt11NostrNote"."payInBolt11Id" = "PayInBolt11"."id"
-      LEFT JOIN "PayInBolt11Comment" ON "PayInBolt11Comment"."payInBolt11Id" = "PayInBolt11"."id"
-      WHERE "PayInBolt11"."payInId" = "PayIn"."id"
-    ) "PayInBolt11" ON "PayInBolt11"."payInId" = "PayIn"."id"
+      SELECT to_jsonb(x.*) AS "pessimisticEnv"
+      FROM "PessimisticEnv" x
+      WHERE x."payInId" = p.id
+      ORDER BY x.id
+      LIMIT 1
+    ) pe ON true
     LEFT JOIN LATERAL (
-      SELECT "PayOutBolt11".*, to_jsonb(users.*) as "user"
-      FROM "PayOutBolt11"
-      JOIN users ON users.id = "PayOutBolt11"."userId"
-      WHERE "PayOutBolt11"."payInId" = "PayIn"."id"
-    ) "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
-    LEFT JOIN "PayInCustodialToken" ON "PayInCustodialToken"."payInId" = "PayIn"."id"
+      SELECT to_jsonb(x.*) AS "itemPayIn"
+      FROM "ItemPayIn" x
+      WHERE x."payInId" = p.id
+      ORDER BY x.id
+      LIMIT 1
+    ) ip ON true
     LEFT JOIN LATERAL (
-      ${payOutCustodialTokens(Prisma.sql`"PayIn"."id"`)}
-    ) "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = "PayIn"."id"
+      SELECT to_jsonb(x.*) AS "subPayIn"
+      FROM "SubPayIn" x
+      WHERE x."payInId" = p.id
+      ORDER BY x.id
+      LIMIT 1
+    ) sp ON true
     LEFT JOIN LATERAL (
-      SELECT beneficiary.*, array_agg("PayOutCustodialToken".*) as "payOutCustodialTokens"
-      FROM "PayIn" beneficiary
-      LEFT JOIN LATERAL (
-        ${payOutCustodialTokens(Prisma.sql`beneficiary."id"`)}
-      ) "PayOutCustodialToken" ON "PayOutCustodialToken"."payInId" = beneficiary."id"
-      WHERE "PayIn"."id" = beneficiary."benefactorId"
-      GROUP BY beneficiary."id"
-    ) "Beneficiary" ON "Beneficiary"."benefactorId" = "PayIn"."id"
-    LEFT JOIN "RefundCustodialToken" ON "RefundCustodialToken"."payInId" = "PayIn"."id"
-    GROUP BY ${prependGroupBy} "PayIn"."id", "PayIn"."created_at", "PayIn"."updated_at", "PayIn"."mcost", "PayIn"."payInType", "PayIn"."payInState", "PayIn"."payInFailureReason", "PayIn"."payInStateChangedAt", "PayIn"."genesisId", "PayIn"."successorId", "PayIn"."benefactorId", "PayIn"."userId"
+      SELECT
+        to_jsonb(pib.*)
+        || jsonb_build_object(
+            'lud18Data',  to_jsonb(pibl.*),
+            'nostrNote',  to_jsonb(pin.*),
+            'comment',    to_jsonb(picm.*)
+          ) AS "payInBolt11"
+      FROM "PayInBolt11" pib
+      LEFT JOIN "PayInBolt11Lud18"     pibl ON pibl."payInBolt11Id" = pib.id
+      LEFT JOIN "PayInBolt11NostrNote" pin  ON pin."payInBolt11Id"  = pib.id
+      LEFT JOIN "PayInBolt11Comment"   picm ON picm."payInBolt11Id" = pib.id
+      WHERE pib."payInId" = p.id
+      ORDER BY pib.id
+      LIMIT 1
+    ) pib ON true
+    LEFT JOIN LATERAL (
+      SELECT
+        to_jsonb(ob.*) || jsonb_build_object('user', to_jsonb(u.*)) AS "payOutBolt11"
+      FROM "PayOutBolt11" ob
+      JOIN users u ON u.id = ob."userId"
+      WHERE ob."payInId" = p.id
+      ORDER BY ob.id
+      LIMIT 1
+    ) pob ON true
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(jsonb_agg(to_jsonb(x.*) ORDER BY x.id), '[]'::jsonb) AS "payInCustodialTokens"
+      FROM "PayInCustodialToken" x
+      WHERE x."payInId" = p.id
+    ) pic ON true
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(
+              jsonb_agg(
+                to_jsonb(o.*)
+                || jsonb_build_object(
+                      'user',
+                        to_jsonb(u.*) || jsonb_build_object('invite', to_jsonb(inv.*)),
+                      'subPayOutCustodialToken',
+                        (
+                          SELECT to_jsonb(spo.*) || jsonb_build_object('sub', to_jsonb(s.*))
+                          FROM "SubPayOutCustodialToken" spo
+                          JOIN "Sub" s ON s."name" = spo."subName"
+                          WHERE spo."payOutCustodialTokenId" = o.id
+                          LIMIT 1
+                        )
+                    )
+                ORDER BY o.id
+              ),
+              '[]'::jsonb
+            ) AS "payOutCustodialTokens"
+      FROM "PayOutCustodialToken" o
+      LEFT JOIN users u      ON u.id = o."userId"
+      LEFT JOIN "Invite" inv ON inv.id = u."inviteId"
+      WHERE o."payInId" = p.id
+    ) poct ON true
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(
+              jsonb_agg(
+                to_jsonb(benef.*)
+                || jsonb_build_object(
+                      'payOutCustodialTokens',
+                        (
+                          SELECT COALESCE(jsonb_agg(to_jsonb(po.*) ORDER BY po.id), '[]'::jsonb)
+                          FROM "PayOutCustodialToken" po
+                          WHERE po."payInId" = benef.id
+                        )
+                    )
+                ORDER BY benef.id
+              ),
+              '[]'::jsonb
+            ) AS "beneficiaries"
+      FROM "PayIn" benef
+      WHERE benef."benefactorId" = p.id
+    ) b ON true
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(jsonb_agg(to_jsonb(x.*) ORDER BY x.id), '[]'::jsonb) AS "refundCustodialTokens"
+      FROM "RefundCustodialToken" x
+      WHERE x."payInId" = p.id
+    ) rct ON true
     ${orderBy}`
 }

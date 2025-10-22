@@ -32,7 +32,7 @@ export default function PayIn ({ id, ssrData }) {
           <PayInStatus payIn={payIn} />
         </div>
         <div>
-          <small className='text-muted'>{new Date(payIn.createdAt).toLocaleString()}</small>
+          <small className='text-muted' suppressHydrationWarning>{new Date(payIn.createdAt).toLocaleString()}</small>
         </div>
       </div>
       {payIn.payerPrivates?.payInBolt11 &&

@@ -42,6 +42,7 @@ export default gql`
 
   extend type Mutation {
     bookmarkItem(id: ID): Item
+    reorderBookmarks(itemIds: [ID!]!): Boolean
     pinItem(id: ID): Item
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item

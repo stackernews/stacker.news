@@ -6,7 +6,7 @@ import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { USER_ID } from '@/lib/constants'
 import { useMe } from './me'
-import { useWalletRecvPrompt, WalletPromptClosed } from '@/wallets/client/hooks'
+import { useWalletRecvPrompt } from '@/wallets/client/hooks'
 
 // this is intented to be compatible with upsert item mutations
 // so that it can be reused for all post types and comments and we don't have
@@ -25,12 +25,7 @@ export default function useItemSubmit (mutation,
 
   return useCallback(
     async ({ boost, crosspost, title, options, bounty, status, ...values }, { resetForm }) => {
-      try {
-        await walletPrompt()
-      } catch (err) {
-        if (err instanceof WalletPromptClosed) return
-        throw err
-      }
+      await walletPrompt()
 
       if (options) {
         // remove existing poll options since else they will be appended as duplicates

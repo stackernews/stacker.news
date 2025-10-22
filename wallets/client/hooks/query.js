@@ -1,3 +1,9 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { timeoutSignal } from '@/lib/time'
+import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { useToast } from '@/components/toast'
+import { useMe } from '@/components/me'
+import { requestPersistentStorage } from '@/components/use-indexeddb'
 import {
   UPSERT_WALLET_RECEIVE_BLINK,
   UPSERT_WALLET_RECEIVE_CLN_REST,
@@ -32,19 +38,14 @@ import {
   DELETE_WALLET
 } from '@/wallets/client/fragments'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption, useSetKey, useWalletLoggerFactory, useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTemplates, useWallets } from '@/wallets/client/hooks/global'
+import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks/crypto'
+import { useWalletLoggerFactory } from '@/wallets/client/hooks/logger'
+import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
 import {
-  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, protocolLogName, reverseProtocolRelationName,
-  walletLud16Domain
+  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
-import { timeoutSignal } from '@/lib/time'
-import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
-import { useToast } from '@/components/toast'
-import { useMe } from '@/components/me'
-import { useTemplates, useWallets, useWalletsLoading } from '@/wallets/client/context'
-import { requestPersistentStorage } from '@/components/use-indexeddb'
 
 export function useWalletsQuery () {
   const { me } = useMe()
@@ -453,127 +454,10 @@ function useEncryptConfig (defaultProtocol, options = {}) {
   return useMemo(() => ({ encryptConfig, ready }), [encryptConfig, ready])
 }
 
-// TODO(wallet-v2): remove migration code
-// =============================================================
-// ****** Below is the migration code for WALLET v1 -> v2 ******
-//   remove when we can assume migration is complete (if ever)
-// =============================================================
-
-export function useWalletMigrationMutation () {
-  const wallets = useWallets()
-  const loading = useWalletsLoading()
-  const client = useApolloClient()
-  const { encryptConfig, ready } = useEncryptConfig()
-
-  // XXX We use a ref for the wallets to avoid duplicate wallets
-  //   Without a ref, the migrate callback would depend on the wallets and thus update every time the migration creates a wallet.
-  //   This update would then cause the useEffect in wallets/client/context/hooks that triggers the migration to run again before the first migration is complete.
-  const walletsRef = useRef(wallets)
-  useEffect(() => {
-    if (!loading) walletsRef.current = wallets
-  }, [loading])
-
-  const migrate = useCallback(async ({ name, enabled, ...configV1 }) => {
-    const protocol = { name, send: true }
-
-    const configV2 = migrateConfig(protocol, configV1)
-
-    const isSameProtocol = (p) => {
-      const sameName = p.name === protocol.name
-      const sameSend = p.send === protocol.send
-      const sameConfig = Object.keys(p.config)
-        .filter(k => !['__typename', 'id'].includes(k))
-        .every(k => p.config[k] === configV2[k])
-      return sameName && sameSend && sameConfig
-    }
-
-    const exists = walletsRef.current.some(w => w.name === name && w.protocols.some(isSameProtocol))
-    if (exists) return
-
-    const schema = protocolClientSchema(protocol)
-    await schema.validate(configV2)
-
-    const encrypted = await encryptConfig(configV2, { protocol })
-
-    // decide if we create a new wallet (templateName) or use an existing one (walletId)
-    const templateName = getWalletTemplateName(protocol)
-    let walletId
-    const wallet = walletsRef.current.find(w =>
-      w.name === name && !w.protocols.some(p => p.name === protocol.name && p.send)
-    )
-    if (wallet) {
-      walletId = Number(wallet.id)
-    }
-
-    await client.mutate({
-      mutation: protocolUpsertMutation(protocol),
-      variables: {
-        ...(walletId ? { walletId } : { templateName }),
-        enabled,
-        ...encrypted
-      }
-    })
-  }, [client, encryptConfig])
-
-  return useMemo(() => ({ migrate, ready: ready && !loading }), [migrate, ready, loading])
-}
-
 export function useUpdateKeyHash () {
   const [mutate] = useMutation(UPDATE_KEY_HASH)
 
   return useCallback(async (keyHash) => {
     await mutate({ variables: { keyHash } })
   }, [mutate])
-}
-
-function migrateConfig (protocol, config) {
-  switch (protocol.name) {
-    case 'LNBITS':
-      return {
-        url: config.url,
-        apiKey: config.adminKey
-      }
-    case 'PHOENIXD':
-      return {
-        url: config.url,
-        apiKey: config.primaryPassword
-      }
-    case 'BLINK':
-      return {
-        url: config.url,
-        apiKey: config.apiKey,
-        currency: config.currency
-      }
-    case 'LNC':
-      return {
-        pairingPhrase: config.pairingPhrase,
-        localKey: config.localKey,
-        remoteKey: config.remoteKey,
-        serverHost: config.serverHost
-      }
-    case 'WEBLN':
-      return {}
-    case 'NWC':
-      return {
-        url: config.nwcUrl
-      }
-    default:
-      return config
-  }
-}
-
-function getWalletTemplateName (protocol) {
-  switch (protocol.name) {
-    case 'LNBITS':
-    case 'PHOENIXD':
-    case 'BLINK':
-    case 'NWC':
-      return protocol.name
-    case 'LNC':
-      return 'LND'
-    case 'WEBLN':
-      return 'ALBY'
-    default:
-      return null
-  }
 }

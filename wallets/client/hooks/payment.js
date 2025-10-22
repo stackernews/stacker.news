@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { sha256 } from '@noble/hashes/sha2.js'
 import { useSendProtocols, useWalletLoggerFactory } from '@/wallets/client/hooks'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
@@ -108,13 +109,21 @@ function useSendPayment () {
   return useCallback(async (protocol, payInBolt11, logger) => {
     try {
       logger.info(`↗ sending payment: ${formatSats(msatsToSats(payInBolt11.msatsRequested))}`)
-      await withTimeout(
+      const preimage = await withTimeout(
         protocol.sendPayment(
           payInBolt11.bolt11,
           protocol.config,
           { signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS) }
         ),
         WALLET_SEND_PAYMENT_TIMEOUT_MS)
+
+      // some wallets like Coinos will always immediately return success without providing the preimage
+      if (!preimage) {
+        return logger.warn('wallet returned success without proof of payment')
+      }
+      if (!verifyPreimage(payInBolt11.hash, preimage)) {
+        return logger.warn('wallet returned success with invalid proof of payment')
+      }
       logger.ok(`↗ payment sent: ${formatSats(msatsToSats(payInBolt11.msatsRequested))}`)
     } catch (err) {
       // we don't log the error here since we want to handle receiver errors separately
@@ -122,4 +131,9 @@ function useSendPayment () {
       throw new WalletSenderError(protocol.name, payInBolt11, message)
     }
   }, [])
+}
+
+function verifyPreimage (hash, preimage) {
+  const preimageHash = Buffer.from(sha256(Buffer.from(preimage, 'hex'))).toString('hex')
+  return hash === preimageHash
 }

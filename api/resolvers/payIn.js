@@ -240,8 +240,6 @@ export default {
 
       // if this is a zap, we can see the routing fee and rewards pool
       if (!payIn.payOutBolt11 || isMine(payIn.payOutBolt11, { me })) {
-        console.log('here')
-        console.log(payOutCustodialTokens)
         return payOutCustodialTokens
       }
 

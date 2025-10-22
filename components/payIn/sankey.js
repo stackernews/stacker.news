@@ -8,7 +8,7 @@ export function PayInSankey ({ payIn }) {
     <div className='position-relative' style={{ width: '100%', maxWidth: '600px', height: '300px' }}>
       <ResponsiveSankey
         data={data}
-        margin={{ top: 30, right: 30, bottom: 30, left: 30 }}
+        margin={{ top: 30, right: 60, bottom: 30, left: 60 }}
         align='justify'
         labelPosition='outside'
         labelTextColor={{ from: 'color', modifiers: [['brighter', 0.8]] }}

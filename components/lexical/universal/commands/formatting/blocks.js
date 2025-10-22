@@ -13,33 +13,15 @@ import { USE_TRANSFORMER_BRIDGE } from '@/components/lexical/plugins/core/transf
 
 export const SN_FORMAT_BLOCK_COMMAND = createCommand('SN_FORMAT_BLOCK_COMMAND')
 
-export const START_MARKDOWN_FORMATS = {
-  h1: '#',
-  h2: '##',
-  h3: '###',
-  bullet: '*',
-  check: '- [ ]'
-}
-
 const formatParagraph = () => {
   const selection = $getSelection()
   $setBlocksType(selection, () => $createParagraphNode())
 }
 
-const formatHeading = (activeBlock, block, isMarkdownMode) => {
+const formatHeading = (activeBlock, block) => {
   const selection = $getSelection()
-  if (!isMarkdownMode) {
-    if (activeBlock === block) return
-    $setBlocksType(selection, () => $createHeadingNode(block))
-  } else {
-    const text = selection.getTextContent()
-    const lines = text.split('\n')
-    const allHeadings = lines.every(l => l.startsWith(START_MARKDOWN_FORMATS[block]))
-    const newLines = allHeadings
-      ? lines.map(l => l.replace(`${START_MARKDOWN_FORMATS[block]} `, ''))
-      : lines.map(l => (l.length ? `${START_MARKDOWN_FORMATS[block]} ${l}` : l))
-    selection.insertText(newLines.join('\n'))
-  }
+  if (activeBlock === block) return
+  $setBlocksType(selection, () => $createHeadingNode(block))
 }
 
 const formatBulletList = (editor, activeBlock, block) => {
@@ -57,25 +39,11 @@ const formatCheckList = (editor, activeBlock, block) => {
   editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined)
 }
 
-/* function toggleBlockQuote (selection) {
-
-} */
-
-const formatBlockQuote = (activeBlock, block, isMarkdownMode) => {
+const formatBlockQuote = (activeBlock, block) => {
   if (activeBlock === block) return
   const selection = $getSelection()
   if (!selection) return
-  if (!isMarkdownMode) {
-    $setBlocksType(selection, () => $createQuoteNode())
-  } else if ($isRangeSelection(selection)) {
-    const text = selection.getTextContent()
-    const lines = text.split('\n')
-    const allQuoted = lines.every(l => l.startsWith('> '))
-    const newLines = allQuoted
-      ? lines.map(l => l.replace(/^> /, ''))
-      : lines.map(l => (l.length ? `> ${l}` : l))
-    selection.insertText(newLines.join('\n'))
-  }
+  $setBlocksType(selection, () => $createQuoteNode())
 }
 
 const formatCodeBlock = (activeBlock, block) => {

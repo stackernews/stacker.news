@@ -51,6 +51,7 @@ export default function TransformerBridgePlugin ({ nodes }) {
       if (!selection) selection = $getSelection()
       // get the markdown from the selection
       const markdown = selection.getTextContent()
+      console.log('markdown', markdown)
 
       // new markdown to be inserted in the original editor
       let newMarkdown = ''
@@ -70,15 +71,7 @@ export default function TransformerBridgePlugin ({ nodes }) {
           nodes.forEach(node => {
             const element = $findTopLevelElement(node)
             if (element && element.setFormat) {
-              const formatMap = {
-                left: 1,
-                center: 2,
-                right: 3,
-                justify: 4,
-                start: 5,
-                end: 6
-              }
-              element.setFormat(formatMap[transformation] || 0)
+              element.setFormat(transformation || 'left')
             }
           })
         }

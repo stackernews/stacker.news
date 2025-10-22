@@ -17,7 +17,7 @@ import { useLexicalPreferences, LexicalPreferencesContextProvider } from './cont
 import { useSharedHistoryContext, SharedHistoryContextProvider } from './contexts/sharedhistory'
 import { TableContextProvider } from './contexts/table'
 import { ToolbarContextProvider } from './contexts/toolbar'
-import CodeShikiPlugin from './plugins/core/code'
+import { CodeShikiSNExtension, CodeThemePlugin } from './plugins/core/code'
 import FileUploadPlugin from './plugins/inserts/upload'
 import FloatingToolbarPlugin from './plugins/toolbar/floating/floatingtoolbar'
 import FormikPlugin from './plugins/core/formik'
@@ -64,6 +64,7 @@ export default function Editor ({ ...props }) {
       name: 'editor',
       namespace: 'SN',
       nodes: DefaultNodes,
+      dependencies: [CodeShikiSNExtension],
       theme
     }), [])
 
@@ -125,7 +126,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         {/* decorative plugins */}
         <MentionsPlugin />
         {/* code */}
-        <CodeShikiPlugin />
+        <CodeThemePlugin />
         {/* markdown */}
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         {/* markdown <-> wysiwyg commands */}

@@ -1,7 +1,6 @@
 import { hasMarkdownFormat } from '@/components/lexical/universal/commands/formatting'
 import { $isElementNode } from 'lexical'
 import { $isLinkNode } from '@lexical/link'
-import { hasMarkdownLink } from '../commands/links'
 import { getSelectedNode } from '../../utils/selection'
 import { $findMatchingParent, $getNearestNodeOfType } from '@lexical/utils'
 import { $isHeadingNode } from '@lexical/rich-text'
@@ -9,7 +8,7 @@ import { $isCodeNode } from '@lexical/code'
 import { normalizeCodeLanguage } from '@lexical/code-shiki'
 import { $isListNode, ListNode } from '@lexical/list'
 import { $findTopLevelElement, $isMarkdownMode } from '@/components/lexical/universal/utils'
-import { mdGetTypes } from '@/lib/md'
+import { mdGetTypes, mdHas } from '@/lib/md'
 
 export function snHasFormat (selection, type) {
   if (!selection) return false
@@ -66,14 +65,13 @@ export function snGetCodeLanguage ({ selection, editor }) {
       }
     }
   }
-  const raw = selection.getTextContent()
-  if (!raw) return ''
-  const text = raw.trim()
-  if (text.startsWith('```') && text.endsWith('```') && text.length >= 6) {
-    // extract language from the opening fence if present
-    const lines = text.split('\n')
-    const firstLine = lines[0]
-    const language = firstLine.slice(3).trim()
+  // a bit dumb, works only if a whole code block is selected
+  // using micromark here would yield the same result
+  // we could probably scan backwards to find the language on any given selection inside a code block
+  const text = selection.getTextContent()
+  const codeBlocks = text.split('```')
+  if (codeBlocks.length > 1) {
+    const language = codeBlocks[1].split('\n')[0]
     return language ? normalizeCodeLanguage(language) || language : ''
   }
   return ''
@@ -120,7 +118,7 @@ export function snHasLink (selection) {
   if (!selection) return false
   const markdownMode = $isMarkdownMode()
   if (markdownMode) {
-    return hasMarkdownLink(selection)
+    return mdHas(selection.getTextContent(), 'link')
   }
 
   const node = getSelectedNode(selection)

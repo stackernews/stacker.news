@@ -7,7 +7,7 @@ import { forwardRef, useMemo } from 'react'
 import classNames from 'classnames'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { LexicalItemContextProvider } from './contexts/item'
-import CodeShikiPlugin from './plugins/core/code'
+import { CodeShikiSNExtension, CodeThemePlugin } from './plugins/core/code'
 import styles from './theme/theme.module.css'
 import theme from './theme'
 
@@ -29,6 +29,7 @@ export default forwardRef(function Reader ({ lexicalState, topLevel, className, 
       namespace: 'SN',
       editable: false,
       nodes: DefaultNodes,
+      dependencies: [CodeShikiSNExtension],
       theme
     }), [])
 
@@ -44,7 +45,7 @@ export default forwardRef(function Reader ({ lexicalState, topLevel, className, 
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
-        <CodeShikiPlugin />
+        <CodeThemePlugin />
       </LexicalItemContextProvider>
     </LexicalExtensionComposer>
   )

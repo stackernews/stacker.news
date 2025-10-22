@@ -9,6 +9,7 @@ import { $isCodeNode } from '@lexical/code'
 import { normalizeCodeLanguage } from '@lexical/code-shiki'
 import { $isListNode, ListNode } from '@lexical/list'
 import { $findTopLevelElement, $isMarkdownMode } from '@/components/lexical/universal/utils'
+import { mdGetTypes } from '@/lib/md'
 
 export function snHasFormat (selection, type) {
   if (!selection) return false
@@ -97,33 +98,21 @@ export function snGetBlockType ({ selection, editor }) {
       }
     }
   }
-  const raw = selection.getTextContent()
-  if (!raw) return 'paragraph'
-
-  const text = raw
-
-  // fenced code block
-  const fenced = text.trim()
-  if (fenced.startsWith('```') && fenced.endsWith('```') && fenced.length >= 6) return 'code'
-
-  const lines = text.split('\n').filter(l => l.length > 0)
-  if (lines.length === 0) return 'paragraph'
-
-  const first = lines[0].trim()
-
-  // headings
-  if (/^#\s/.test(first)) return 'h1'
-  if (/^##\s/.test(first)) return 'h2'
-  if (/^###\s/.test(first)) return 'h3'
-
-  // quote
-  if (/^>\s?/.test(first)) return 'quote'
-
-  // lists
-  if (/^\d+\.\s+/.test(first)) return 'number'
-  if (/^- \[\s\]\s+/.test(first)) return 'check'
-  if (/^[-*]\s+/.test(first)) return 'bullet'
-
+  const text = selection.getTextContent()
+  if (!text) return 'paragraph'
+  const micromark = mdGetTypes(text)
+  if (micromark.length > 0) {
+    if (micromark.includes('h1') || micromark.includes('h2') || micromark.includes('h3')) {
+      return micromark.find(type => type === 'h1' || type === 'h2' || type === 'h3') || 'paragraph'
+    } else if (micromark.includes('number') || micromark.includes('bullet') || micromark.includes('check')) {
+      return micromark.find(type => type === 'number' || type === 'bullet' || type === 'check') || 'paragraph'
+    } else if (micromark.includes('quote')) {
+      return 'quote'
+    } else if (micromark.includes('code')) {
+      console.log('code', micromark)
+      return 'code'
+    }
+  }
   return 'paragraph'
 }
 

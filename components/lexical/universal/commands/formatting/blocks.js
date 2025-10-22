@@ -78,63 +78,62 @@ const formatBlockQuote = (activeBlock, block, isMarkdownMode) => {
   }
 }
 
-const formatCodeBlock = (activeBlock, block, isMarkdownMode) => {
+const formatCodeBlock = (activeBlock, block) => {
   if (activeBlock === block) return
   let selection = $getSelection()
   if (!selection) return
-  if (!isMarkdownMode) {
-    if (!$isRangeSelection(selection) || selection.isCollapsed()) {
-      $setBlocksType(selection, () => $createCodeNode())
-    } else {
-      const textContent = selection.getTextContent()
-      const codeNode = $createCodeNode()
-      selection.insertNodes([codeNode])
-      selection = $getSelection()
-      if ($isRangeSelection(selection)) {
-        selection.insertRawText(textContent)
-      }
+  if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+    $setBlocksType(selection, () => $createCodeNode())
+  } else {
+    const textContent = selection.getTextContent()
+    const codeNode = $createCodeNode()
+    selection.insertNodes([codeNode])
+    selection = $getSelection()
+    if ($isRangeSelection(selection)) {
+      selection.insertRawText(textContent)
     }
-  } else if ($isRangeSelection(selection)) {
-    const text = selection.getTextContent()
-    const lines = text.split('\n')
-    const allCode = lines.every(l => l.startsWith('```') && l.endsWith('```'))
-    const newLines = allCode
-      ? lines.map(l => l.replace(/^```/, '').replace(/^```$/, ''))
-      : lines.map(l => (l.length ? `\`\`\`${l}\`\`\`` : l))
-    selection.insertText(newLines.join('\n'))
+  }
+}
+
+export function $formatBlock (editor, block) {
+  const activeBlock = snGetBlockType({ selection: $getSelection(), editor })
+  switch (block) {
+    case 'paragraph':
+      formatParagraph()
+      break
+    case 'h1':
+    case 'h2':
+    case 'h3':
+      formatHeading(activeBlock, block)
+      break
+    case 'bullet':
+      formatBulletList(editor, activeBlock, block)
+      break
+    case 'number':
+      formatNumberList(editor, activeBlock, block)
+      break
+    case 'check':
+      formatCheckList(editor, activeBlock, block)
+      break
+    case 'quote':
+      formatBlockQuote(activeBlock, block)
+      break
+    case 'code':
+      formatCodeBlock(activeBlock, block)
+      break
   }
 }
 
 export function registerSNFormatBlockCommand ({ editor }) {
   return editor.registerCommand(SN_FORMAT_BLOCK_COMMAND, (block) => {
-    const isMarkdownMode = $isMarkdownMode()
-    console.log('isMarkdownMode', isMarkdownMode)
-    if (isMarkdownMode) return editor.dispatchCommand(USE_TRANSFORMER_BRIDGE, { selection: $getSelection(), formatType: 'block', transformation: block })
-    const activeBlock = snGetBlockType({ selection: $getSelection(), editor })
-    switch (block) {
-      case 'paragraph':
-        formatParagraph()
-        break
-      case 'h1':
-      case 'h2':
-      case 'h3':
-        formatHeading(activeBlock, block, isMarkdownMode)
-        break
-      case 'bullet':
-        formatBulletList(editor, activeBlock, block)
-        break
-      case 'number':
-        formatNumberList(editor, activeBlock, block)
-        break
-      case 'check':
-        formatCheckList(editor, activeBlock, block)
-        break
-      case 'quote':
-        formatBlockQuote(activeBlock, block, isMarkdownMode)
-        break
-      case 'code':
-        formatCodeBlock(activeBlock, block, isMarkdownMode)
-        break
+    // markdown mode formatting
+    if ($isMarkdownMode()) {
+      // use the transformer bridge to format the block
+      return editor.dispatchCommand(USE_TRANSFORMER_BRIDGE, { formatType: 'block', transformation: block })
     }
+
+    // lexical rich mode formatting
+    $formatBlock(editor, block)
+    return true
   }, COMMAND_PRIORITY_EDITOR)
 }

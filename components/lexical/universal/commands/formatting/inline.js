@@ -85,6 +85,6 @@ export function registerSNFormatTextCommand ({ editor }) {
         break
     }
     // handle inline markdown
-    return editor.dispatchCommand(USE_TRANSFORMER_BRIDGE, { selection, formatType: 'format', transformation: type })
+    return editor.dispatchCommand(USE_TRANSFORMER_BRIDGE, { formatType: 'format', transformation: type })
   }, COMMAND_PRIORITY_EDITOR)
 }

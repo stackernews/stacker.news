@@ -1,12 +1,14 @@
 import { useRef, useCallback, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { createEditor, createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $createParagraphNode } from 'lexical'
-import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
-import { $createCodeNode } from '@lexical/code'
+import { createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $getRoot } from 'lexical'
+import { RichTextExtension } from '@lexical/rich-text'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
 import { $findTopLevelElement } from '@/components/lexical/universal/utils'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
-import { $setBlocksType } from '@lexical/selection'
+import { ListExtension, CheckListExtension } from '@lexical/list'
+import { buildEditorFromExtensions, defineExtension } from '@lexical/extension'
+import { $formatBlock } from '@/components/lexical/universal/commands/formatting/blocks'
+import { CodeHighlighterShikiExtension } from '@lexical/code-shiki'
 
 export const USE_TRANSFORMER_BRIDGE = createCommand('USE_TRANSFORMER_BRIDGE')
 
@@ -16,45 +18,53 @@ export default function TransformerBridgePlugin ({ nodes }) {
   // headless editor used as bridge between micromark and lexical
   const bridge = useRef(null)
   // create the bridge if it doesn't exist and return it
-  const createBridge = useCallback(() => bridge.current || (bridge.current = createEditor({ nodes })), [])
+  const createBridge = useCallback(() => {
+    if (bridge.current) return bridge.current
+    bridge.current = buildEditorFromExtensions(
+      defineExtension({
+        name: 'transformerBridge',
+        dependencies: [RichTextExtension, ListExtension, CheckListExtension, CodeHighlighterShikiExtension],
+        nodes
+      })
+    )
+    return bridge.current
+  }, [nodes])
 
+  // create the bridge if it doesn't exist and dispose of it when we're done
   useEffect(() => {
     createBridge()
     return () => {
-      bridge.current = null
+      if (bridge.current) {
+        bridge.current.dispose()
+        bridge.current = null
+      }
     }
   }, [editor, createBridge])
 
-  // WIP
+  // Markdown Transformer Bridge
+  // uses markdown transformers to apply transformations to a markdown selection
   useEffect(() => {
     return editor.registerCommand(USE_TRANSFORMER_BRIDGE, ({ selection, formatType, transformation }) => {
       const transformerBridge = createBridge()
-      if (!transformerBridge) return
-      let newMarkdown = ''
+      if (!transformerBridge) return false
+
+      if (!selection) selection = $getSelection()
+      // get the markdown from the selection
       const markdown = selection.getTextContent()
+
+      // new markdown to be inserted in the original editor
+      let newMarkdown = ''
+      transformerBridge.update(() => $getRoot().clear())
+      // update the bridge editor
       transformerBridge.update(() => {
-        $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, true)
+        console.log('formatType', formatType)
+        $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, transformation !== 'code')
         $selectAll()
         const innerSelection = $getSelection()
         if (formatType === 'format') {
           innerSelection.formatText(transformation)
         } else if (formatType === 'block') {
-          switch (transformation) {
-            case 'paragraph':
-              $setBlocksType(innerSelection, () => $createParagraphNode())
-              break
-            case 'h1':
-            case 'h2':
-            case 'h3':
-              $setBlocksType(innerSelection, () => $createHeadingNode(transformation))
-              break
-            case 'quote':
-              $setBlocksType(innerSelection, () => $createQuoteNode())
-              break
-            case 'code':
-              $setBlocksType(innerSelection, () => $createCodeNode())
-              break
-          }
+          $formatBlock(transformerBridge, transformation)
         } else if (formatType === 'elementFormat') {
           const nodes = innerSelection.getNodes()
           nodes.forEach(node => {
@@ -72,14 +82,11 @@ export default function TransformerBridgePlugin ({ nodes }) {
             }
           })
         }
-        console.log('selection', innerSelection.getTextContent())
-        console.log('transformation', transformation)
-        console.log('formatType', formatType)
-        console.log('markdown', markdown)
+        newMarkdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, transformation !== 'code')
       })
-      transformerBridge.read(() => {
-        newMarkdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
-      })
+      // clear the bridge editor
+      transformerBridge.update(() => $getRoot().clear())
+      // insert the new markdown in the original editor
       selection.insertText(newMarkdown)
       return true
     }, COMMAND_PRIORITY_EDITOR)

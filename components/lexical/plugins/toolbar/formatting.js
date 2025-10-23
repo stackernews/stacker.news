@@ -345,7 +345,6 @@ export default function FormattingTools ({ isFloating, className }) {
         <span className={classNames(styles.divider)} />
         <AdditionalFormattingOptionsDropdown toolbarState={toolbarState} handleFormat={handleFormat} />
         <AlignOptionsDropdown toolbarState={toolbarState} handleAlign={handleAlign} handleIndent={handleIndent} />
-        <span>DEBUG language: {toolbarState.codeLanguage}</span>
       </div>
       )
 }

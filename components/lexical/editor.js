@@ -35,6 +35,7 @@ import styles from './theme/theme.module.css'
 import theme from './theme'
 import { MaxLengthPlugin } from './plugins/misc/max-length'
 import TransformerBridgePlugin from './plugins/core/transformerbridge'
+import CodeActionsPlugin from './plugins/decorative/codeactions'
 
 export default function Editor ({ ...props }) {
   const { prefs } = useLexicalPreferences()
@@ -127,6 +128,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         <MentionsPlugin />
         {/* code */}
         <CodeThemePlugin />
+        <CodeActionsPlugin anchorElem={floatingAnchorElem} />
         {/* markdown */}
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         {/* markdown <-> wysiwyg commands */}

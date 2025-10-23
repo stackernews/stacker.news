@@ -31,7 +31,7 @@ import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import ItemPopover from './item-popover'
-import { ShareProfileDropdownItem } from './share'
+import Share, { ShareProfileDropdownItem } from './share'
 
 const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
 
@@ -183,8 +183,12 @@ function NymView ({ user, isMe, setEditting }) {
   return (
     <div className='d-flex align-items-center mb-2'>
       <div className={styles.username}>@{user.name}<Badges className='ms-2' user={user} badgeClassName='fill-grey' /></div>
-      {isMe &&
-        <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
+      {isMe && (
+        <>
+          <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>
+          <Share path={`/${user.name}`} title={`@${user.name}'s profile on Stacker News`} />
+        </>
+      )}
       {!isMe && me && <NymActionDropdown user={user} />}
     </div>
   )

@@ -1,4 +1,5 @@
 import { ApolloServer } from '@apollo/server'
+import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
 import { startServerAndCreateNextHandler } from '@as-integrations/next'
 import resolvers from '@/api/resolvers'
 import models from '@/api/models'
@@ -8,7 +9,6 @@ import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
 import search from '@/api/search'
 import { multiAuthMiddleware } from '@/lib/auth'
-import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -42,7 +42,10 @@ const apolloServer = new ApolloServer({
         }
       }
     }
-  }, ApolloServerPluginLandingPageDisabled()]
+  },
+  process.env.NODE_ENV === 'development' && ApolloServerPluginLandingPageLocalDefault(
+    { embed: { endpointIsEditable: false, persistExplorerState: true, displayOptions: { theme: 'dark' } }, footer: false })
+  ].filter(Boolean)
 })
 
 export default startServerAndCreateNextHandler(apolloServer, {

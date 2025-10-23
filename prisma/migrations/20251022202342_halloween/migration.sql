@@ -12,7 +12,7 @@ CREATE TABLE "Infection" (
     CONSTRAINT "Infection_pkey" PRIMARY KEY ("id"),
     CONSTRAINT "Infection_patient_zero_check" CHECK (
         CASE
-            WHEN id <= 4 THEN true
+            WHEN id = 1 THEN true
             ELSE "infectorId" IS NOT NULL
         END
     )
@@ -35,3 +35,7 @@ ALTER TABLE "Infection" ADD CONSTRAINT "Infection_infectorId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "Infection" ADD CONSTRAINT "Infection_itemActId_fkey" FOREIGN KEY ("itemActId") REFERENCES "ItemAct"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- anon is patient zero
+INSERT INTO "Infection" ("infecteeId") VALUES (27);
+UPDATE users SET infected = true WHERE id = 27;

@@ -305,7 +305,9 @@ export function useZap () {
   const infectOnPaid = useCallback((cache, { data }) => {
     const { act: { result } } = data
 
-    if (!me?.optional?.infected || result.immune) return
+    // anon is patient zero and therefore always infected
+    const infected = !me || me.optional.infected
+    if (!infected || result.immune) return
 
     const itemId = Number(result.path.split('.').pop())
     const item = cache.readFragment({

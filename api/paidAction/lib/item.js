@@ -45,7 +45,7 @@ export const getItemMentions = async ({ text }, { me, tx }) => {
   return []
 }
 
-export async function performBotBehavior ({ text, id }, { me, tx }) {
+export async function performBotBehavior ({ text, id }, { me, tx, lnd }) {
   // delete any existing deleteItem or reminder jobs for this item
   const userId = me?.id || USER_ID.anon
   id = Number(id)
@@ -57,7 +57,15 @@ export async function performBotBehavior ({ text, id }, { me, tx }) {
   await deleteReminders({ id, userId, models: tx })
 
   if (text) {
-    const deleteAt = getDeleteAt(text)
+    // compute deleteAt with block-awareness
+    let deleteAt
+    try {
+      const { getHeight } = await import('ln-service')
+      const height = lnd ? (await getHeight({ lnd }))?.current_block_height : undefined
+      deleteAt = getDeleteAt(text, { currentBlockHeight: height })
+    } catch (e) {
+      deleteAt = getDeleteAt(text)
+    }
     if (deleteAt) {
       await tx.$queryRaw`
         INSERT INTO pgboss.job (name, data, startafter, keepuntil)
@@ -68,7 +76,18 @@ export async function performBotBehavior ({ text, id }, { me, tx }) {
           ${deleteAt}::TIMESTAMP WITH TIME ZONE + interval '1 minute')`
     }
 
-    const remindAt = getRemindAt(text)
+    // compute remindAt with block-awareness. If absolute block height was specified,
+    // we need the current chain height. We try to read it via lnd if available.
+    let remindAt
+    try {
+      // lazy import to avoid bundling lnd client on client side
+      const { getHeight } = await import('ln-service')
+      const height = lnd ? (await getHeight({ lnd }))?.current_block_height : undefined
+      remindAt = getRemindAt(text, { currentBlockHeight: height })
+    } catch (e) {
+      // fallback to time-based parse only
+      remindAt = getRemindAt(text)
+    }
     if (remindAt) {
       await tx.$queryRaw`
         INSERT INTO pgboss.job (name, data, startafter, keepuntil)

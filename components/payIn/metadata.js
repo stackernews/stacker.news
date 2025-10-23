@@ -8,31 +8,28 @@ export function PayInMetadata ({ payInBolt11 }) {
       <div className='w-100'>
         {nostrNote &&
           <AccordianItem
-              header='Nostr Zap Request'
-              body={
-                <pre>
-                  <code>
-                    {JSON.stringify(nostrNote.note, null, 2)}
-                  </code>
-                </pre>
+            header='Nostr Zap Request'
+            body={
+              <pre>
+                <code>
+                  {JSON.stringify(nostrNote.note, null, 2)}
+                </code>
+              </pre>
             }
-            />
-        }
+          />}
       </div>
       {lud18Data &&
-          <AccordianItem
-            header='sender information'
-            body={<PayerData data={lud18Data} className='text-muted ms-3' />}
-            className='mb-3'
-          />
-        }
+        <AccordianItem
+          header='sender information'
+          body={<PayerData data={lud18Data} className='text-muted ms-3' />}
+          className='mb-3'
+        />}
       {comment &&
-          <AccordianItem
-            header='sender comments'
-            body={<span className='text-muted ms-3'>{comment.comment}</span>}
-            className='mb-3'
-          />
-        }
+        <AccordianItem
+          header='sender comments'
+          body={<span className='text-muted ms-3'>{comment.comment}</span>}
+          className='mb-3'
+        />}
     </>
   )
 }

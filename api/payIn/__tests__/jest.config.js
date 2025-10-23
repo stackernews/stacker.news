@@ -1,5 +1,6 @@
 // Load environment variables FIRST before anything else
 const { loadEnvConfig } = require('@next/env')
+const path = require('path')
 loadEnvConfig('./', true) // Load .env.development and .env.local
 
 // Override DATABASE_URL for tests running on host machine
@@ -22,9 +23,8 @@ const createJestConfig = nextJest({ dir: './' })
 
 // Custom config for payIn tests
 const customJestConfig = {
-  displayName: 'payIn',
   testMatch: ['**/api/payIn/__tests__/**/*.test.js'],
-  setupFilesAfterEnv: [__dirname + '/jest.setup.js'],
+  setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.js')],
   testTimeout: 30000, // 30 seconds for database operations
 
   // Run tests serially to avoid database conflicts

@@ -1,7 +1,6 @@
 /* eslint-env jest */
 
 import {
-  payInPaid,
   payInFailed,
   payInCancel
 } from '../../transitions.js'

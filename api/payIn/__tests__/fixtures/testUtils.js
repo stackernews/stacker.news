@@ -70,7 +70,7 @@ export async function createTestUser (models, {
     })
 
     // Create LNBITS protocol for receiving
-    const protocol = await models.walletProtocol.create({
+    await models.walletProtocol.create({
       data: {
         walletId: wallet.id,
         name: 'LNBITS',

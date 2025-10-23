@@ -5,6 +5,70 @@ import styles from './text.module.css'
 import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
+import FileMusicLine from '@/svgs/file-music-line.svg'
+
+function AudioEmbed ({ src, meta, className }) {
+  const [error, setError] = useState(false)
+  const audioRef = useRef(null)
+
+  const handleError = (e) => {
+    console.warn('Audio loading error:', e)
+    setError(true)
+  }
+
+  if (error) {
+    return (
+      <div className={classNames(styles.audioWrapper, className)}>
+        <div style={{ padding: '1rem', textAlign: 'center' }}>
+          <p style={{ marginBottom: '0.5rem', color: 'var(--theme-color)' }}>
+            Unable to play this audio file.
+          </p>
+          <a
+            href={src}
+            target='_blank'
+            rel='noreferrer noopener'
+            style={{ color: 'var(--bs-primary)' }}
+          >
+            Download or open in new tab
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={classNames(styles.audioWrapper, className)}>
+      {meta?.title && (
+        <div style={{
+          fontSize: '14px',
+          fontWeight: '500',
+          marginBottom: '8px',
+          color: 'var(--theme-color)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}
+        >
+          <FileMusicLine width={16} height={16} style={{ flexShrink: 0 }} />
+          {meta.title}
+        </div>
+      )}
+      <audio
+        ref={audioRef}
+        controls
+        preload='none'
+        style={{ width: '100%' }}
+        onError={handleError}
+      >
+        <source src={src} type={`audio/${meta?.audioType || 'mpeg'}`} />
+        Your browser does not support the audio element.
+      </audio>
+    </div>
+  )
+}
 
 function TweetSkeleton ({ className }) {
   return (
@@ -196,31 +260,7 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
     )
   }
   if (provider === 'audio') {
-    return (
-      <div className={classNames(styles.audioWrapper, className)}>
-        {meta?.title && (
-          <div style={{
-            fontSize: '14px',
-            fontWeight: '500',
-            marginBottom: '8px',
-            color: 'var(--theme-color)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}
-          >
-            🎵 {meta.title}
-          </div>
-        )}
-        <audio controls preload='metadata' style={{ width: '100%' }} src={src}>
-          <source src={src} type={`audio/${meta?.audioType || 'mpeg'}`} />
-          Your browser does not support the audio element.
-          <a href={src} target='_blank' rel='noreferrer'>
-            Download audio file
-          </a>
-        </audio>
-      </div>
-    )
+    return <AudioEmbed src={src} meta={meta} className={className} />
   }
   if (provider === 'peertube') {
     return (

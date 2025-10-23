@@ -21,9 +21,9 @@ function LinkRaw ({ href, children, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width,
-  height, onClick, onError, style, className, video, audio
+  height, onClick, onError, style, className, video
 }) {
-  const [loaded, setLoaded] = useState(!video && !audio)
+  const [loaded, setLoaded] = useState(!video)
   const ref = useRef(null)
 
   const handleLoadedMedia = () => {
@@ -45,40 +45,29 @@ const Media = memo(function Media ({
       className={classNames(className, styles.mediaContainer, { [styles.loaded]: loaded })}
       style={style}
     >
-      {audio
-        ? <audio
+      {video
+        ? <video
             ref={ref}
             src={src}
+            preload={bestResSrc !== src ? 'metadata' : undefined}
             controls
-            preload='metadata'
+            poster={bestResSrc !== src ? bestResSrc : undefined}
             width={width}
             height={height}
             onError={onError}
             onLoadedMetadata={handleLoadedMedia}
           />
-        : video
-          ? <video
-              ref={ref}
-              src={src}
-              preload={bestResSrc !== src ? 'metadata' : undefined}
-              controls
-              poster={bestResSrc !== src ? bestResSrc : undefined}
-              width={width}
-              height={height}
-              onError={onError}
-              onLoadedMetadata={handleLoadedMedia}
-            />
-          : <img
-              ref={ref}
-              src={src}
-              srcSet={srcSet}
-              sizes={sizes}
-              width={width}
-              height={height}
-              onClick={onClick}
-              onError={onError}
-              onLoad={handleLoadedMedia}
-            />}
+        : <img
+            ref={ref}
+            src={src}
+            srcSet={srcSet}
+            sizes={sizes}
+            width={width}
+            height={height}
+            onClick={onClick}
+            onError={onError}
+            onLoad={handleLoadedMedia}
+          />}
     </div>
   )
 })
@@ -112,7 +101,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
   if (!media.src) return null
 
   if (!error) {
-    if (media.image || media.video || media.audio) {
+    if (media.image || media.video) {
       return (
         <Media
           {...media} onClick={handleClick} onError={handleError}
@@ -135,11 +124,10 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
   const [isImage, setIsImage] = useState(video === false && trusted)
   const [isVideo, setIsVideo] = useState(video)
-  const [isAudio, setIsAudio] = useState(false)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
 
   useEffect(() => {
-    if (!showMedia || isVideo || isImage || isAudio) return
+    if (!showMedia || isVideo || isImage) return
 
     const video = document.createElement('video')
     video.onloadedmetadata = () => {
@@ -147,22 +135,13 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
       setIsImage(false)
     }
     video.onerror = () => {
-      const audio = document.createElement('audio')
-      audio.onloadedmetadata = () => {
-        setIsAudio(true)
-        setIsImage(false)
-        setIsVideo(false)
-      }
-      audio.onerror = () => {
-        const img = new window.Image()
-        img.src = src
-        img.decode().then(() => {
-          setIsImage(true)
-        }).catch((e) => {
-          console.warn('Cannot decode image:', src, e)
-        })
-      }
-      audio.src = src
+      const img = new window.Image()
+      img.src = src
+      img.decode().then(() => {
+        setIsImage(true)
+      }).catch((e) => {
+        console.warn('Cannot decode image:', src, e)
+      })
     }
     video.src = src
 
@@ -171,7 +150,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
       video.onerror = null
       video.src = ''
     }
-  }, [src, setIsImage, setIsVideo, setIsAudio, showMedia, isImage, isAudio])
+  }, [src, setIsImage, setIsVideo, showMedia, isImage])
 
   const srcSet = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return undefined
@@ -220,8 +199,7 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     style,
     width,
     height,
-    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo && !isAudio,
-    video: !me?.privates?.imgproxyOnly && showMedia && isVideo,
-    audio: showMedia && isAudio
+    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo,
+    video: !me?.privates?.imgproxyOnly && showMedia && isVideo
   }
 }

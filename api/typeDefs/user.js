@@ -79,7 +79,7 @@ export default gql`
     proportion: Float
 
     optional: UserOptional!
-    privates: UserPrivates
+    privates: UserPrivates @auth(allow: [OWNER])
 
     meMute: Boolean!
     meSubscriptionPosts: Boolean!

@@ -216,6 +216,28 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
     SET "bountyPaidTo" = array_remove(array_append(array_remove("bountyPaidTo", bounty.target), bounty.target), NULL)
     FROM bounty
     WHERE "Item".id = bounty.id AND bounty.paid`
+
+  await maybeInfectUser(itemAct, { tx })
+}
+
+async function maybeInfectUser (itemAct, { tx }) {
+  // We added the 'infected' column to the users table so the query for users can continue
+  // to only fetch columns from the users table. We only use it for display purposes.
+  // The infection table is used to check if a user is infected and store additional information
+  // (who infected who when why).
+
+  const { id, userId: fromId, item: { userId: toId } } = itemAct
+  const infection = await tx.infection.findFirst({ where: { infecteeId: fromId } })
+  if (!infection) {
+    // zapper not infected, so can't infect other user
+    return
+  }
+
+  await tx.$queryRaw`
+    INSERT INTO "Infection" ("itemActId", "infecteeId", "infectorId")
+    VALUES (${id}::INTEGER, ${toId}::INTEGER, ${fromId}::INTEGER)
+    ON CONFLICT ("infecteeId") DO NOTHING`
+  await tx.user.update({ where: { id: toId }, data: { infected: true } })
 }
 
 export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {

@@ -1,6 +1,7 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import gql from 'graphql-tag'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
@@ -298,8 +299,37 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 }
 
 export function useZap () {
+  const { me } = useMe()
   const hasSendWallet = useHasSendWallet()
-  const act = useAct()
+
+  const infectOnPaid = useCallback((cache, { data }) => {
+    if (!me?.optional?.infected) return
+
+    const { act: { result } } = data
+    const itemId = Number(result.path.split('.').pop())
+    const item = cache.readFragment({
+      id: `Item:${itemId}`,
+      fragment: gql`
+        fragment InfectOnPaidItemFields on Item {
+          user {
+            id
+          }
+        }`
+    })
+    cache.writeFragment({
+      id: `User:${item.user.id}`,
+      fragment: gql`
+        fragment InfectOnPaidUserFields on User {
+          optional {
+            infected
+          }
+        }`,
+      data: { optional: { infected: true } }
+    })
+  }, [me?.optional?.infected])
+
+  const actOptions = useMemo(() => ({ onPaid: infectOnPaid }), [infectOnPaid])
+  const act = useAct(actOptions)
   const animate = useAnimation()
   const toaster = useToast()
 

@@ -87,6 +87,12 @@ const WALLET_PROTOCOL_FIELDS = gql`
           ...VaultEntryFields
         }
       }
+      ... on WalletSendBreezSpark {
+        id
+        encryptedMnemonic: mnemonic {
+          ...VaultEntryFields
+        }
+      }
       ... on WalletRecvNWC {
         id
         url

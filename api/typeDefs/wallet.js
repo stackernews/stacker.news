@@ -119,6 +119,11 @@ const typeDefs = gql`
       noffer: String!
     ): WalletRecvClink!
 
+    upsertWalletSendBreezSpark(
+      ${shared},
+      mnemonic: VaultEntryInput!
+    ): WalletSendBreezSpark!
+
     # tests
     testWalletRecvNWC(
       url: String!
@@ -235,6 +240,7 @@ const typeDefs = gql`
     | WalletSendLNC
     | WalletSendCLNRest
     | WalletSendClink
+    | WalletSendBreezSpark
     | WalletRecvNWC
     | WalletRecvLNbits
     | WalletRecvPhoenixd
@@ -307,6 +313,11 @@ const typeDefs = gql`
     id: ID!
     ndebit: VaultEntry!
     secretKey: VaultEntry!
+  }
+
+  type WalletSendBreezSpark {
+    id: ID!
+    mnemonic: VaultEntry!
   }
 
   type WalletRecvNWC {

@@ -21,6 +21,8 @@ export function mapWalletResolveTypes (wallet) {
         return 'WalletRecvLNDGRPC'
       case 'CLINK':
         return send ? 'WalletSendClink' : 'WalletRecvClink'
+      case 'BREEZ_SPARK':
+        return 'WalletSendBreezSpark'
       default:
         return null
     }

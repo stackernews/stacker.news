@@ -21,6 +21,7 @@ import {
   UPSERT_WALLET_SEND_WEBLN,
   UPSERT_WALLET_SEND_CLN_REST,
   UPSERT_WALLET_SEND_CLINK,
+  UPSERT_WALLET_SEND_BREEZ_SPARK,
   WALLETS,
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
@@ -321,6 +322,8 @@ function protocolUpsertMutation (protocol) {
       return protocol.send ? UPSERT_WALLET_SEND_WEBLN : NOOP_MUTATION
     case 'CLINK':
       return protocol.send ? UPSERT_WALLET_SEND_CLINK : UPSERT_WALLET_RECEIVE_CLINK
+    case 'BREEZ_SPARK':
+      return protocol.send ? UPSERT_WALLET_SEND_BREEZ_SPARK : NOOP_MUTATION
     default:
       return NOOP_MUTATION
   }

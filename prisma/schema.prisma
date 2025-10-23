@@ -211,18 +211,19 @@ model Vault {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
-  walletSendNWC              WalletSendNWC?
-  walletSendLNbits           WalletSendLNbits?
-  walletSendPhoenixd         WalletSendPhoenixd?
-  walletSendBlinkApiKey      WalletSendBlink?    @relation("blinkApiKeySend")
-  walletSendBlinkCurrency    WalletSendBlink?    @relation("blinkCurrencySend")
-  walletSendLNCPairingPhrase WalletSendLNC?      @relation("lncPairingPhrase")
-  walletSendLNCLocalKey      WalletSendLNC?      @relation("lncLocalKey")
-  walletSendLNCRemoteKey     WalletSendLNC?      @relation("lncRemoteKey")
-  walletSendLNCServerHost    WalletSendLNC?      @relation("lncServerHost")
-  walletSendCLNRestRune      WalletSendCLNRest?  @relation("clnRune")
-  walletSendClink            WalletSendClink?    @relation("clinkNdebit")
-  walletSendClinkSecretKey   WalletSendClink?    @relation("clinkSecretKey")
+  walletSendNWC                WalletSendNWC?
+  walletSendLNbits             WalletSendLNbits?
+  walletSendPhoenixd           WalletSendPhoenixd?
+  walletSendBlinkApiKey        WalletSendBlink?      @relation("blinkApiKeySend")
+  walletSendBlinkCurrency      WalletSendBlink?      @relation("blinkCurrencySend")
+  walletSendLNCPairingPhrase   WalletSendLNC?        @relation("lncPairingPhrase")
+  walletSendLNCLocalKey        WalletSendLNC?        @relation("lncLocalKey")
+  walletSendLNCRemoteKey       WalletSendLNC?        @relation("lncRemoteKey")
+  walletSendLNCServerHost      WalletSendLNC?        @relation("lncServerHost")
+  walletSendCLNRestRune        WalletSendCLNRest?    @relation("clnRune")
+  walletSendClink              WalletSendClink?      @relation("clinkNdebit")
+  walletSendClinkSecretKey     WalletSendClink?      @relation("clinkSecretKey")
+  WalletSendBreezSparkMnemonic WalletSendBreezSpark? @relation("breezSparkMnemonic")
 }
 
 model WalletLog {
@@ -1216,6 +1217,7 @@ enum WalletProtocolName {
   CLN_REST
   LND_GRPC
   CLINK
+  BREEZ_SPARK
 }
 
 enum WalletSendProtocolName {
@@ -1227,6 +1229,7 @@ enum WalletSendProtocolName {
   LNC
   CLN_REST
   CLINK
+  BREEZ_SPARK
 }
 
 enum WalletRecvProtocolName {
@@ -1273,6 +1276,7 @@ enum WalletName {
   LN_ADDR
   CASH_APP
   BLITZ
+  BREEZ
 }
 
 model WalletTemplate {
@@ -1323,14 +1327,15 @@ model WalletProtocol {
   invoiceForward InvoiceForward[]
   logs           WalletLog[]
 
-  walletSendNWC      WalletSendNWC?
-  walletSendLNbits   WalletSendLNbits?
-  walletSendPhoenixd WalletSendPhoenixd?
-  walletSendBlink    WalletSendBlink?
-  walletSendWebLN    WalletSendWebLN?
-  walletSendLNC      WalletSendLNC?
-  walletSendCLNRest  WalletSendCLNRest?
-  walletSendClink    WalletSendClink?
+  walletSendNWC        WalletSendNWC?
+  walletSendLNbits     WalletSendLNbits?
+  walletSendPhoenixd   WalletSendPhoenixd?
+  walletSendBlink      WalletSendBlink?
+  walletSendWebLN      WalletSendWebLN?
+  walletSendLNC        WalletSendLNC?
+  walletSendCLNRest    WalletSendCLNRest?
+  walletSendClink      WalletSendClink?
+  walletSendBreezSpark WalletSendBreezSpark?
 
   walletRecvNWC              WalletRecvNWC?
   walletRecvLNbits           WalletRecvLNbits?
@@ -1434,6 +1439,16 @@ model WalletSendClink {
   ndebit           Vault?         @relation("clinkNdebit", fields: [ndebitVaultId], references: [id])
   secretKeyVaultId Int            @unique
   secretKey        Vault?         @relation("clinkSecretKey", fields: [secretKeyVaultId], references: [id])
+}
+
+model WalletSendBreezSpark {
+  id              Int            @id @default(autoincrement())
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId      Int            @unique
+  protocol        WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  mnemonicVaultId Int            @unique
+  mnemonic        Vault?         @relation("breezSparkMnemonic", fields: [mnemonicVaultId], references: [id])
 }
 
 model WalletRecvNWC {

@@ -12,7 +12,7 @@ const theme = {
   image: 'sn__image',
   mediaContainer: 'sn__mediaContainer',
   link: 'sn__link',
-  code: 'sn__code',
+  code: 'sn__codeBlock',
   mention: 'sn__mention',
 
   // embeds

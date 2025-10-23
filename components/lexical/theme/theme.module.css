@@ -450,3 +450,33 @@
   padding-left: 4px;
   padding-right: 4px;
 }
+
+.codeActionMenuContainer {
+  height: 36px;
+  font-size: 10px;
+  color: var(--theme-navLink);
+  position: absolute;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  user-select: none;
+}
+
+.codeActionMenuContainer svg {
+  fill: var(--theme-navLink);
+  width: 16px;
+  height: 16px;
+}
+
+.codeActionMenuContainer:hover svg {
+  fill: var(--theme-navLinkFocus);
+}
+
+.codeActionMenuContainer:active svg {
+  fill: var(--theme-navLinkActive);
+}
+
+.codeActionMenuContainer .codeActionLanguage {
+  margin-right: 0.25rem;
+  padding-top: 2px;
+}

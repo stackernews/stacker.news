@@ -10,6 +10,7 @@ import { LexicalItemContextProvider } from './contexts/item'
 import { CodeShikiSNExtension, CodeThemePlugin } from './plugins/core/code'
 import styles from './theme/theme.module.css'
 import theme from './theme'
+import CodeActionsPlugin from './plugins/decorative/codeactions'
 
 export default forwardRef(function Reader ({ lexicalState, topLevel, className, children, contentRef, imgproxyUrls, outlawed, rel }, ref) {
   const reader = useMemo(() =>
@@ -46,6 +47,7 @@ export default forwardRef(function Reader ({ lexicalState, topLevel, className, 
           ErrorBoundary={LexicalErrorBoundary}
         />
         <CodeThemePlugin />
+        {contentRef && <CodeActionsPlugin anchorElem={contentRef.current} />}
       </LexicalItemContextProvider>
     </LexicalExtensionComposer>
   )

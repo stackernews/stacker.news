@@ -39,6 +39,12 @@ export class MarkdownNode extends CodeNode {
     super.replace(replaceWith, includeChildren)
     return this
   }
+
+  createDOM (config) {
+    const element = super.createDOM(config)
+    element.className = config.theme.markdown
+    return element
+  }
 }
 
 export function $isMarkdownNode (node) {

@@ -77,13 +77,13 @@ export function SubmitButton ({
   )
 }
 
-export function CopyButton ({ value, icon, ...props }) {
+export function CopyButton ({ value, icon, bareIcon, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
   const handleClick = useCallback(async () => {
     try {
-      await copy(value)
+      await copy(typeof value === 'function' ? value() : value)
       toaster.success('copied')
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
@@ -97,6 +97,12 @@ export function CopyButton ({ value, icon, ...props }) {
       <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
         <Clipboard height={20} width={20} />
       </InputGroup.Text>
+    )
+  } else if (bareIcon) {
+    return (
+      <span style={{ cursor: 'pointer' }} onClick={handleClick}>
+        {copied ? <Thumb width={20} height={20} /> : <Clipboard height={20} width={20} />}
+      </span>
     )
   }
 

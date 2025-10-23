@@ -4,15 +4,34 @@ import { $getRoot } from 'lexical'
 import { defineExtension } from '@lexical/extension'
 import { registerCodeHighlighting, ShikiTokenizer } from '@lexical/code-shiki'
 import useDarkMode from '@/components/dark-mode'
-import { CodeExtension, $isCodeNode } from '@lexical/code'
-import { $isMarkdownNode } from '@/lib/lexical/nodes/core/markdown'
+import { CodeExtension, $isCodeNode, CodeNode } from '@lexical/code'
+import { $isMarkdownNode, MarkdownNode } from '@/lib/lexical/nodes/core/markdown'
 
 export const CodeShikiSNExtension = defineExtension({
   name: 'CodeShikiSNExtension',
-  config: { tokenizer: { ...ShikiTokenizer, defaultTheme: 'github-dark-default' } },
+  config: { tokenizer: { ...ShikiTokenizer, defaultLanguage: 'text', defaultTheme: 'github-dark-default' } },
   dependencies: [CodeExtension],
   register: (editor, { tokenizer }) => {
+    let shikiCodeNodeTransform = null
+    const originalRegister = editor.registerNodeTransform
+
+    // klass is lexical's node class
+    editor.registerNodeTransform = function (klass, transform) {
+      if (klass === CodeNode) {
+        shikiCodeNodeTransform = transform
+      }
+      // call the original register function
+      return originalRegister.call(this, klass, transform)
+    }
+
     const cleanup = registerCodeHighlighting(editor, tokenizer)
+
+    // restore original node transform register
+    editor.registerNodeTransform = originalRegister
+
+    // register also for MarkdownNode
+    const markdownCleanup = editor.registerNodeTransform(MarkdownNode, shikiCodeNodeTransform)
+
     editor._updateCodeTheme = (newTheme) => {
       // remove previous registration
       cleanup()
@@ -21,7 +40,11 @@ export const CodeShikiSNExtension = defineExtension({
         const root = $getRoot()
 
         root.getChildren().forEach(child => {
-          if ($isCodeNode(child) || $isMarkdownNode(child)) {
+          if ($isMarkdownNode(child)) {
+            child.setLanguage('markdown')
+            child.setTheme(newTheme)
+          }
+          if ($isCodeNode(child)) {
             child.setTheme(newTheme)
           }
         })
@@ -32,6 +55,7 @@ export const CodeShikiSNExtension = defineExtension({
 
     return () => {
       cleanup()
+      markdownCleanup()
       editor._updateCodeTheme = null
     }
   }

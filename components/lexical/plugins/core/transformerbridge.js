@@ -12,12 +12,11 @@ import { CodeHighlighterShikiExtension } from '@lexical/code-shiki'
 
 export const USE_TRANSFORMER_BRIDGE = createCommand('USE_TRANSFORMER_BRIDGE')
 
-// will be used by the toolbar to toggle markers for markdown
 export default function TransformerBridgePlugin ({ nodes }) {
   const [editor] = useLexicalComposerContext()
-  // headless editor used as bridge between micromark and lexical
   const bridge = useRef(null)
-  // create the bridge if it doesn't exist and return it
+
+  // headless editor used as bridge between markdown and lexical
   const createBridge = useCallback(() => {
     if (bridge.current) return bridge.current
     bridge.current = buildEditorFromExtensions(
@@ -55,30 +54,38 @@ export default function TransformerBridgePlugin ({ nodes }) {
 
       // new markdown to be inserted in the original editor
       let newMarkdown = ''
-      transformerBridge.update(() => $getRoot().clear())
-      // update the bridge editor
+
+      // update the bridge editor with single update cycle
       transformerBridge.update(() => {
-        console.log('formatType', formatType)
+        // make sure we're working with a clean bridge
+        $getRoot().clear()
+
         $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, transformation !== 'code')
         $selectAll()
         const innerSelection = $getSelection()
-        if (formatType === 'format') {
-          innerSelection.formatText(transformation)
-        } else if (formatType === 'block') {
-          $formatBlock(transformerBridge, transformation)
-        } else if (formatType === 'elementFormat') {
-          const nodes = innerSelection.getNodes()
-          nodes.forEach(node => {
-            const element = $findTopLevelElement(node)
-            if (element && element.setFormat) {
-              element.setFormat(transformation || 'left')
-            }
-          })
+
+        switch (formatType) {
+          case 'format':
+            innerSelection.formatText(transformation)
+            break
+          case 'block':
+            $formatBlock(transformerBridge, transformation)
+            break
+          case 'elementFormat':
+            innerSelection.getNodes()?.forEach(node => {
+              const element = $findTopLevelElement(node)
+              if (element && element.setFormat) {
+                element.setFormat(transformation || 'left')
+              }
+            })
+            break
         }
+
         newMarkdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, transformation !== 'code')
+        // we're done, clear the bridge
+        $getRoot().clear()
       })
-      // clear the bridge editor
-      transformerBridge.update(() => $getRoot().clear())
+
       // insert the new markdown in the original editor
       selection.insertText(newMarkdown)
       return true

@@ -270,6 +270,26 @@ span.sn__mediaContainer .outlawed {
   padding: 0.2em 0.4em;
 }
 
+.sn__codeBlock {
+  position: relative;
+  background-color: var(--theme-commentBg) !important;
+  font-family: Menlo, Consolas, Monaco, monospace;
+  display: block;
+  line-height: 1.53;
+  font-size: 13px;
+  margin: 0;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  overflow-y: hidden;
+  overflow-x: auto;
+  position: relative;
+  tab-size: 2;
+  white-space: pre;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
+}
+
 /* table */
 .sn__table {
   border-collapse: collapse;

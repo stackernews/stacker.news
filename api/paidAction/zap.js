@@ -1,5 +1,6 @@
-import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { HALLOWEEN_IMMUNITY_HOURS, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
+import { datePivot } from '@/lib/time'
 import { notifyZapped } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
 import { Prisma } from '@prisma/client'
@@ -78,9 +79,12 @@ export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, c
     ]
   })
 
-  const [{ path }] = await tx.$queryRaw`
-    SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
-  return { id: itemId, sats, act: 'TIP', path, actIds: acts.map(act => act.id) }
+  const [{ userId, path }] = await tx.$queryRaw`
+    SELECT "userId", ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
+
+  const immune = await isImmune(userId, { tx })
+
+  return { id: itemId, sats, act: 'TIP', path, immune, actIds: acts.map(act => act.id) }
 }
 
 export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
@@ -220,6 +224,16 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
   await maybeInfectUser(itemAct, { tx })
 }
 
+async function isImmune (userId, { tx }) {
+  const item = await tx.item.findFirst({
+    where: {
+      userId,
+      createdAt: { gt: datePivot(new Date(), { hours: -HALLOWEEN_IMMUNITY_HOURS }) }
+    }
+  })
+  return !!item
+}
+
 async function maybeInfectUser (itemAct, { tx }) {
   // We added the 'infected' column to the users table so the query for users can continue
   // to only fetch columns from the users table. We only use it for display purposes.
@@ -230,6 +244,11 @@ async function maybeInfectUser (itemAct, { tx }) {
   const infection = await tx.infection.findFirst({ where: { infecteeId: fromId } })
   if (!infection) {
     // zapper not infected, so can't infect other user
+    return
+  }
+
+  if (await isImmune(toId, { tx })) {
+    // user is immune because they created an item not too long ago
     return
   }
 

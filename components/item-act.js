@@ -303,9 +303,10 @@ export function useZap () {
   const hasSendWallet = useHasSendWallet()
 
   const infectOnPaid = useCallback((cache, { data }) => {
-    if (!me?.optional?.infected) return
-
     const { act: { result } } = data
+
+    if (!me?.optional?.infected || result.immune) return
+
     const itemId = Number(result.path.split('.').pop())
     const item = cache.readFragment({
       id: `Item:${itemId}`,
@@ -340,7 +341,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP', hasSendWallet }
-    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
+    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, immune: true, ...variables } } }
 
     try {
       await abortSignal.pause({ me, amount: sats })

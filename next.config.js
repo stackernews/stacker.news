@@ -239,6 +239,7 @@ module.exports = withPlausibleProxy()({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.MEDIA_URL_DOCKER': JSON.stringify(process.env.MEDIA_URL_DOCKER),
             'process.env.NEXT_PUBLIC_MEDIA_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_URL),
+            'process.env.NEXT_PUBLIC_MEDIA_CHECK_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_CHECK_URL),
             'process.env.NEXT_PUBLIC_MEDIA_DOMAIN': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_DOMAIN),
             'process.env.NEXT_PUBLIC_URL': JSON.stringify(process.env.NEXT_PUBLIC_URL),
             'process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL_MS),
@@ -293,6 +294,11 @@ module.exports = withPlausibleProxy()({
         ]
       }
     )
+    // linkedom references canvas but we're not using it
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      canvas: false
+    }
 
     return config
   }

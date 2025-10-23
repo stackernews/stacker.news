@@ -1,4 +1,4 @@
-import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { USER_ID, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { payInCancel } from '../payIn/transitions'
@@ -28,13 +28,11 @@ function payInResultType (payInType) {
 }
 
 function isMine (payIn, { me }) {
-  return me && Number(me.id) === Number(payIn.userId)
+  const meId = me?.id ?? USER_ID.anon
+  return Number(meId) === Number(payIn.userId)
 }
 
 export async function getPayIn (parent, { id }, { me, models }) {
-  if (!me) {
-    throw new GqlAuthenticationError()
-  }
   const payIn = (await getPayInFull({
     models,
     query: Prisma.sql`SELECT * FROM "PayIn" WHERE "PayIn"."id" = ${id}`
@@ -43,9 +41,11 @@ export async function getPayIn (parent, { id }, { me, models }) {
   if (!payIn) {
     throw new Error('PayIn not found')
   }
-  if (Number(payIn.userId) !== Number(me.id) &&
-    !payIn.payOutCustodialTokens.some(token => Number(token.userId) === Number(me.id)) &&
-    Number(payIn.payOutBolt11?.userId) !== Number(me.id)) {
+
+  const meId = me?.id ?? USER_ID.anon
+  if (Number(payIn.userId) !== Number(meId) &&
+    !payIn.payOutCustodialTokens.some(token => Number(token.userId) === Number(meId)) &&
+    Number(payIn.payOutBolt11?.userId) !== Number(meId)) {
     throw new GqlAuthenticationError()
   }
   return payIn
@@ -78,6 +78,7 @@ export default {
             WHERE "PayIn"."userId" = ${userId}
             AND "PayIn"."benefactorId" IS NULL
             AND "PayIn"."mcost" > 0
+            AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT')
             AND "PayIn"."created_at" <= ${decodedCursor.time}
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
@@ -99,7 +100,7 @@ export default {
                 SELECT 1
                 FROM "PayOutBolt11"
                 WHERE "PayOutBolt11"."payInId" = "PayIn"."id" AND "PayOutBolt11"."userId" = ${userId}
-                AND "PayIn"."payInState" = 'PAID' AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL')
+                AND "PayIn"."payInState" = 'PAID'
               ) OR
               EXISTS (
                 SELECT 1

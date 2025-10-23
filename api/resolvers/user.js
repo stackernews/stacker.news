@@ -67,7 +67,7 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
     case 'spent':
       column = Prisma.sql`spent`; break
     case 'items':
-      column = Prisma.sql`items`; break
+      column = Prisma.sql`nitems`; break
     default:
       throw new GqlInputError('invalid sort')
   }
@@ -75,12 +75,12 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
   const users = (await models.$queryRaw`
     WITH user_outgoing AS (
       SELECT "AggPayIn"."userId", floor(sum("AggPayIn"."sumMcost") / 1000) as spent,
-        sum("AggPayIn"."countGroup") as nitems
+        sum("AggPayIn"."countGroup") FILTER (WHERE "AggPayIn"."payInType" = 'ITEM_CREATE') as nitems
       FROM "AggPayIn"
       WHERE "AggPayIn"."timeBucket" >= ${fromDate}
       AND "AggPayIn"."timeBucket" <= ${toDate}
       AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
-      AND "AggPayIn"."slice" = 'USER_TOTAL'
+      AND "AggPayIn"."slice" = 'USER_BY_TYPE'
       GROUP BY "AggPayIn"."userId"
     ),
     user_stats AS (

@@ -88,7 +88,7 @@ export default {
 
       return latest?.createdAt
     },
-    topSubs: async (parent, { cursor, when, by = 'revenue', from, to, limit }, { models, me }) => {
+    topSubs: async (parent, { cursor, when, by = 'stacked', from, to, limit }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       const [fromDate, toDate] = whenRange(when, from, to || decodeCursor.time)
       const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
@@ -98,13 +98,13 @@ export default {
         case 'revenue': column = Prisma.sql`revenue`; break
         case 'spent': column = Prisma.sql`spent`; break
         case 'stacked': column = Prisma.sql`stacked`; break
-        case 'items': column = Prisma.sql`items`; break
+        case 'items': column = Prisma.sql`nitems`; break
         default: throw new GqlInputError('invalid sort')
       }
 
       const subs = await models.$queryRaw`
         WITH sub_outgoing AS (
-          SELECT "AggPayIn"."subName", floor(sum("AggPayIn"."sumMcost") FILTER (WHERE "AggPayIn"."payInType" = 'ITEM_CREATE') / 1000)  as spent,
+          SELECT "AggPayIn"."subName", floor(coalesce(sum("AggPayIn"."sumMcost"), 0) / 1000)  as spent,
             sum("AggPayIn"."countGroup") FILTER (WHERE "AggPayIn"."payInType" = 'ITEM_CREATE') as nitems
           FROM "AggPayIn"
           WHERE "AggPayIn"."timeBucket" >= ${fromDate}
@@ -117,8 +117,8 @@ export default {
         sub_stats AS (
           SELECT "AggPayOut"."subName", COALESCE(sub_outgoing."spent", 0) as spent,
             COALESCE(sub_outgoing."nitems", 0) as nitems,
-            floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'ZAP') / 1000) as stacked,
-            floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'TERRITORY_REVENUE') / 1000) as revenue
+            floor(coalesce(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'ZAP'), 0) / 1000) as stacked,
+            floor(coalesce(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'TERRITORY_REVENUE'), 0) / 1000) as revenue
           FROM "AggPayOut"
           LEFT JOIN sub_outgoing ON "AggPayOut"."subName" = sub_outgoing."subName"
           WHERE "AggPayOut"."timeBucket" >= ${fromDate}

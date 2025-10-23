@@ -68,7 +68,6 @@ export async function paySystemOnly (payInType, payInArgs, { models, me }) {
 // 1. do NOT lock all users, but use NOWAIT on users locks so that we can catch AND retry transactions that fail with a deadlock error
 // 2. issue onPaid in a separate transaction, so that payInCustodialTokens and payOutCustodialTokens cannot be interleaved
 async function obtainRowLevelLocks (tx, payInInitial) {
-  console.log('obtainRowLevelLocks', payInInitial)
   const payOutUserIds = [...new Set(payInInitial.payOutCustodialTokens.map(t => t.userId)).add(payInInitial.userId)]
   await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR UPDATE`
 }

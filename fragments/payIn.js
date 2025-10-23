@@ -17,10 +17,41 @@ export const PAY_IN_LINK_FIELDS = gql`
   }
 `
 
+export const PAY_IN_BOLT11_FIELDS = gql`
+  fragment PayInBolt11Fields on PayInBolt11 {
+    id
+    payInId
+    bolt11
+    hash
+    hmac
+    msatsRequested
+    msatsReceived
+    expiresAt
+    confirmedAt
+    cancelledAt
+    lud18Data {
+      id
+      name
+      identifier
+      email
+      pubkey
+    }
+    nostrNote {
+      id
+      note
+    }
+    comment {
+      id
+      comment
+    }
+  }
+`
+
 export const PAY_IN_FIELDS = gql`
   ${SUB_FULL_FIELDS}
   ${COMMENTS}
   ${PAY_IN_LINK_FIELDS}
+  ${PAY_IN_BOLT11_FIELDS}
   fragment PayInFields on PayIn {
     id
     createdAt
@@ -36,31 +67,7 @@ export const PAY_IN_FIELDS = gql`
       userId
       payInFailureReason
       payInBolt11 {
-        id
-        payInId
-        bolt11
-        hash
-        hmac
-        msatsRequested
-        msatsReceived
-        expiresAt
-        confirmedAt
-        cancelledAt
-        lud18Data {
-          id
-          name
-          identifier
-          email
-          pubkey
-        }
-        nostrNote {
-          id
-          note
-        }
-        comment {
-          id
-          comment
-        }
+        ...PayInBolt11Fields
       }
       pessimisticEnv {
         id
@@ -110,6 +117,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
   ${ITEM_FULL_FIELDS}
   ${SUB_FULL_FIELDS}
   ${INVITE_FIELDS}
+  ${PAY_IN_BOLT11_FIELDS}
   fragment PayInStatisticsFields on PayIn {
     id
     createdAt
@@ -130,10 +138,6 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     payerPrivates {
       userId
       payInFailureReason
-      payInBolt11 {
-        id
-        bolt11
-      }
       payInCustodialTokens {
         id
         mtokens
@@ -147,30 +151,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
         custodialTokenType
       }
       payInBolt11 {
-        id
-        bolt11
-        preimage
-        hmac
-        expiresAt
-        confirmedAt
-        cancelledAt
-        lud18Data {
-          id
-          name
-          identifier
-          email
-          pubkey
-        }
-        nostrNote {
-          id
-          note
-        }
-        comment {
-          id
-          comment
-        }
-        msatsRequested
-        msatsReceived
+        ...PayInBolt11Fields
       }
       invite {
         ...InviteFields

@@ -34,10 +34,11 @@ export function useWalletPayment () {
 
     for (let i = 0; i < protocols.length; i++) {
       const protocol = protocols[i]
-      const controller = payInHelper.waitCheckController(latestPayIn)
+      const controller = payInHelper.waitCheckController(latestPayIn.id)
 
       const logger = loggerFactory(protocol, latestPayIn)
-      const paymentPromise = sendPayment(protocol, latestPayIn.payInBolt11, logger)
+      console.log('useWalletPayment: protocol', protocol.name, latestPayIn)
+      const paymentPromise = sendPayment(protocol, latestPayIn.payerPrivates.payInBolt11, logger)
       const pollPromise = controller.wait(waitFor)
 
       try {
@@ -107,6 +108,7 @@ export function useWalletPayment () {
 
 function useSendPayment () {
   return useCallback(async (protocol, payInBolt11, logger) => {
+    console.log('useSendPayment: protocol', protocol.name, payInBolt11)
     try {
       logger.info(`↗ sending payment: ${formatSats(msatsToSats(payInBolt11.msatsRequested))}`)
       const preimage = await withTimeout(

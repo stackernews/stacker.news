@@ -16,7 +16,7 @@ import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
 import { FAILED_INVOICES } from '@/fragments/invoice'
 import { isTemplate, isWallet } from '@/wallets/lib/util'
-import { WebLnProvider } from '@/wallets/lib/protocols/webln'
+import { useWeblnEvents } from '@/wallets/lib/protocols/webln'
 import { useWalletsQuery } from '@/wallets/client/hooks/query'
 import { useWalletPayment } from '@/wallets/client/hooks/payment'
 import { useGenerateRandomKey, useSetKey, useIsWrongKey, useDeleteOldDb } from '@/wallets/client/hooks/crypto'
@@ -87,9 +87,7 @@ export function WalletsProvider ({ children }) {
     <WalletsContext.Provider value={state}>
       <WalletsDispatchContext.Provider value={dispatch}>
         <WalletHooks>
-          <WebLnProvider>
-            {children}
-          </WebLnProvider>
+          {children}
         </WalletHooks>
       </WalletsDispatchContext.Provider>
     </WalletsContext.Provider>
@@ -101,6 +99,7 @@ function WalletHooks ({ children }) {
   useAutomatedRetries()
   useKeyInit()
   useDeleteLocalWallets()
+  useWeblnEvents()
 
   return children
 }

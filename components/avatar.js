@@ -7,6 +7,7 @@ import Moon from '@/svgs/moon-fill.svg'
 import { useShowModal } from './modal'
 import { FileUpload } from './file-upload'
 import { gql, useMutation } from '@apollo/client'
+import { useToast } from './toast'
 
 export default function Avatar ({ onSuccess }) {
   const [cropPhoto] = useMutation(gql`
@@ -16,6 +17,7 @@ export default function Avatar ({ onSuccess }) {
   `)
   const [uploading, setUploading] = useState()
   const showModal = useShowModal()
+  const toaster = useToast()
 
   const Body = ({ onClose, file, onSave }) => {
     const [scale, setScale] = useState(1)
@@ -91,6 +93,7 @@ export default function Avatar ({ onSuccess }) {
               onSuccess?.(croppedPhotoId)
               setUploading(false)
             } catch (e) {
+              toaster.danger(e.message)
               console.error(e)
               setUploading(false)
               reject(e)

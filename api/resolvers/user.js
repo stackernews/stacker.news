@@ -134,6 +134,9 @@ export default {
     },
     user: async (parent, { id, name }, { models }) => {
       if (id) id = Number(id)
+      if (!id && !name) {
+        throw new GqlInputError('id or name is required')
+      }
       return await models.user.findUnique({ where: { id, name } })
     },
     users: async (parent, args, { models }) =>

@@ -36,15 +36,3 @@ export function CancelWorkConfirm ({ onConfirm, onClose }) {
     />
   )
 }
-
-export function DeleteConfirm ({ onConfirm, onClose, type = 'item' }) {
-  return (
-    <ConfirmModal
-      message='Are you sure? This is a gone forever kind of delete.'
-      confirmText='delete'
-      confirmVariant='danger'
-      onConfirm={onConfirm}
-      onClose={onClose}
-    />
-  )
-}

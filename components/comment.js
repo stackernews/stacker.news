@@ -252,7 +252,7 @@ export default function Comment ({
                   toggleEdit={e => {
                     if (edit) {
                       const editText = window.localStorage.getItem(`comment-edit-${item.id}-text`)
-                      if (editText?.trim() && editText.trim() !== item.text.trim()) {
+                      if (editText && editText.trim() !== item.text.trim()) {
                         showModal(onClose => (
                           <CancelWorkConfirm
                             onConfirm={() => {

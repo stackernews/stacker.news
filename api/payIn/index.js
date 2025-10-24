@@ -203,9 +203,9 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
   return { ...payIn, result: result ? { ...result, payIn } : undefined }
 }
 
-// TODO: it might be worth optimizing this by using Promise.all to avoid round trips to the database
-// https://www.prisma.io/docs/orm/prisma-client/queries/transactions#using-transaction-within-promiseall
-// ... although it's unclear if prisma is that smart
+// NOTE: I considered using Promise.all within these onFail and onPaid txs to avoid round trips to the database, but
+// prisma does not support pipelining this way (or any other way afaict), but a lot of the
+// deadlock and timeout risks of these interactive txs would be helped by such a thing
 export async function onFail (tx, payInId) {
   const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { payInCustodialTokens: true, beneficiaries: true } })
   if (!payIn) {
@@ -234,16 +234,10 @@ export async function onFail (tx, payInId) {
   }
 }
 
-// TODO: it might be worth optimizing this by using Promise.all to avoid round trips to the database
-// https://www.prisma.io/docs/orm/prisma-client/queries/transactions#using-transaction-within-promiseall
-// ... although it's unclear if prisma is that smart
 export async function onPaid (tx, payInId) {
   const payIn = await tx.payIn.findUnique({
     where: { id: payInId },
     include: {
-      // payOutCustodialTokens are ordered by userId, so that we can lock all users FOR UPDATE in order
-      // https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE
-      payOutCustodialTokens: true,
       payOutBolt11: true,
       beneficiaries: true
     }
@@ -256,6 +250,7 @@ export async function onPaid (tx, payInId) {
 
   // Batch all payOut updates into a single query
   // Each payOut gets sequential mtokensAfter using running totals
+  // payouts may be very numerous, e.g. rewards, so we only want one roundtrip to the database
   await tx.$executeRaw`
     WITH payouts_with_running_totals AS (
       SELECT

@@ -15,9 +15,9 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
 
   const mCreditPayable = isPayableWithCredits(payIn) ? mCustodialCost : 0n
 
+  // Calculate optimal spending to maximize custodial usage, preferring to spend mcredits,
+  // while keeping any remainder as multiple of 1000 for invoice creation
   const [{ mcreditsSpent, mcreditsAfter, msatsSpent, msatsAfter }] = await tx.$queryRaw`
-    -- Calculate optimal spending to maximize custodial usage, preferring to spend mcredits,
-    -- while keeping any remainder as multiple of 1000 for invoice creation
     WITH payer AS (
       SELECT
         id,

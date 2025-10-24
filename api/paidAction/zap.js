@@ -1,7 +1,7 @@
 import { HALLOWEEN_IMMUNITY_HOURS, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
-import { notifyZapped } from '@/lib/webPush'
+import { notifyZapped, notifyInfected } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
 import { Prisma } from '@prisma/client'
 
@@ -252,11 +252,15 @@ async function maybeInfectUser (itemAct, { tx }) {
     return
   }
 
-  await tx.$queryRaw`
+  const count = await tx.$executeRaw`
     INSERT INTO "Infection" ("itemActId", "infecteeId", "infectorId")
     VALUES (${id}::INTEGER, ${toId}::INTEGER, ${fromId}::INTEGER)
     ON CONFLICT ("infecteeId") DO NOTHING`
   await tx.user.update({ where: { id: toId }, data: { infected: true } })
+
+  if (count > 0) {
+    notifyInfected(toId).catch(console.error)
+  }
 }
 
 export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {

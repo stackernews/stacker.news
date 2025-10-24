@@ -9,13 +9,7 @@ CREATE TABLE "Infection" (
     "infecteeId" INTEGER NOT NULL,
     "infectorId" INTEGER,
 
-    CONSTRAINT "Infection_pkey" PRIMARY KEY ("id"),
-    CONSTRAINT "Infection_patient_zero_check" CHECK (
-        CASE
-            WHEN id = 1 THEN true
-            ELSE "infectorId" IS NOT NULL
-        END
-    )
+    CONSTRAINT "Infection_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -39,3 +33,21 @@ ALTER TABLE "Infection" ADD CONSTRAINT "Infection_itemActId_fkey" FOREIGN KEY ("
 -- anon is patient zero
 INSERT INTO "Infection" ("infecteeId") VALUES (27);
 UPDATE users SET infected = true WHERE id = 27;
+
+CREATE OR REPLACE FUNCTION schedule_halloween()
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+BEGIN
+    -- every hour
+    INSERT INTO pgboss.schedule (name, cron, timezone)
+    VALUES ('halloween', '0 * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
+    return 0;
+EXCEPTION WHEN OTHERS THEN
+    return 0;
+END;
+$$;
+
+SELECT schedule_halloween();
+DROP FUNCTION IF EXISTS schedule_halloween;

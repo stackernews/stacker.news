@@ -51,6 +51,7 @@ const ITEM_ACT_PAID_ACTION_FIELDS = gql`
       sats
       path
       act
+      immune
     }
   }`
 

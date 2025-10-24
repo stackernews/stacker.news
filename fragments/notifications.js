@@ -103,6 +103,10 @@ export const NOTIFICATIONS = gql`
           id
           sortTime
         }
+        ... on Infection {
+          id
+          sortTime
+        }
         ... on Earn {
           id
           sortTime

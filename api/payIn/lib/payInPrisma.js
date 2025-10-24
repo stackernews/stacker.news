@@ -1,5 +1,4 @@
 export function payInPrismaCreate (payIn) {
-  console.log('payInPrismaCreate', payIn)
   const result = {}
 
   if (Array.isArray(payIn.beneficiaries)) {
@@ -21,7 +20,6 @@ export function payInPrismaCreate (payIn) {
   // if the value is an array, recursively call payInPrismaCreate on each element of the array
   // if the value is not an object or array, add the key and value to the result
   for (const key in payIn) {
-    console.log('key', key, typeof payIn[key])
     if (Array.isArray(payIn[key])) {
       result[key] = { create: payIn[key].map(item => payInPrismaCreate(item)) }
     } else if (isPlainObject(payIn[key])) {
@@ -46,7 +44,6 @@ export function payInClone (payIn) {
     genesisId: payIn.genesisId ?? payIn.id
   }
   for (const key in payIn) {
-    console.log('payInClone', key, typeof payIn[key], payIn[key])
     if (Array.isArray(payIn[key])) {
       if (key === 'beneficiaries') {
         result[key] = payIn[key].map(beneficiary => payInClone(beneficiary))

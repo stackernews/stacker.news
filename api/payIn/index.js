@@ -12,7 +12,12 @@ import { payInClone } from './lib/payInPrisma'
 import { createHmac } from '../resolvers/wallet'
 import { payOutCustodialTokenFromBolt11 } from './lib/payOutCustodialTokens'
 
-export default async function pay (payInType, payInArgs, { models, me }) {
+// grab a greedy connection for the payIn system on any server
+// if we have lock contention of payIns, we don't want to block other queries
+import createPrisma from '@/lib/create-prisma'
+const models = createPrisma({ connectionParams: { connection_limit: 1 } })
+
+export default async function pay (payInType, payInArgs, { me }) {
   try {
     const payInModule = payInTypeModules[payInType]
 
@@ -67,8 +72,11 @@ export async function paySystemOnly (payInType, payInArgs, { models, me }) {
 // alternative approaches:
 // 1. do NOT lock all users, but use NOWAIT on users locks so that we can catch AND retry transactions that fail with a deadlock error
 // 2. issue onPaid in a separate transaction, so that payInCustodialTokens and payOutCustodialTokens cannot be interleaved
-async function obtainRowLevelLocks (tx, payInInitial) {
-  const payOutUserIds = [...new Set(payInInitial.payOutCustodialTokens.map(t => t.userId)).add(payInInitial.userId)]
+async function obtainRowLevelLocks (tx, payIn) {
+  const payOutUserIds = [...new Set(payIn.payOutCustodialTokens.map(t => t.userId)).add(payIn.userId)]
+  if (payIn.payOutBolt11) {
+    payOutUserIds.push(payIn.payOutBolt11.userId)
+  }
   await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR UPDATE`
 }
 
@@ -80,7 +88,7 @@ async function begin (models, payInInitial, payInArgs, { me }) {
     // if it's pessimistic, we don't perform the action until the invoice is held
     if (payIn.pessimisticEnv) {
       // we want to double check that the invoice we're assuming will be created is actually created
-      tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+      await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
         VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
 
       return {
@@ -103,7 +111,7 @@ async function begin (models, payInInitial, payInArgs, { me }) {
     }
 
     // we want to double check that the invoice we're assuming will be created is actually created
-    tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+    await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
       VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
     return {
       payIn,
@@ -131,7 +139,6 @@ export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
 }
 
 async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
-  console.log('afterBegin', result, mCostRemaining)
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
     const updatedPayIn = await models.payIn.update({
       where: {
@@ -236,34 +243,64 @@ export async function onPaid (tx, payInId) {
     include: {
       // payOutCustodialTokens are ordered by userId, so that we can lock all users FOR UPDATE in order
       // https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE
-      payOutCustodialTokens: {
-        orderBy: { userId: 'asc' }
-      },
+      payOutCustodialTokens: true,
       payOutBolt11: true,
-      beneficiaries: true,
-      pessimisticEnv: true
+      beneficiaries: true
     }
   })
   if (!payIn) {
     throw new Error('PayIn not found')
   }
 
-  for (const payOut of payIn.payOutCustodialTokens) {
-    await tx.$executeRaw`
-      WITH outuser AS (
-        UPDATE users
-        SET msats = users.msats + ${payOut.custodialTokenType === 'SATS' ? payOut.mtokens : 0},
-          "stackedMsats" = users."stackedMsats" + ${!isWithdrawal(payIn) ? payOut.mtokens : 0},
-          mcredits = users.mcredits + ${payOut.custodialTokenType === 'CREDITS' ? payOut.mtokens : 0},
-          "stackedMcredits" = users."stackedMcredits" + ${!isWithdrawal(payIn) && payOut.custodialTokenType === 'CREDITS' ? payOut.mtokens : 0}
-        WHERE users.id = ${payOut.userId}
-        RETURNING mcredits as "mcreditsAfter", msats as "msatsAfter"
-      )
-      UPDATE "PayOutCustodialToken"
-      SET "mtokensAfter" = CASE WHEN "custodialTokenType" = 'SATS' THEN outuser."msatsAfter" ELSE outuser."mcreditsAfter" END
-      FROM outuser
-      WHERE "id" = ${payOut.id}`
-  }
+  await obtainRowLevelLocks(tx, payIn)
+
+  // Batch all payOut updates into a single query
+  // Each payOut gets sequential mtokensAfter using running totals
+  await tx.$executeRaw`
+    WITH payouts_with_running_totals AS (
+      SELECT
+        id,
+        "userId",
+        "custodialTokenType",
+        mtokens,
+        SUM(CASE WHEN "custodialTokenType" = 'SATS' THEN mtokens ELSE 0 END)
+          OVER (PARTITION BY "userId" ORDER BY id) as running_sats,
+        SUM(CASE WHEN "custodialTokenType" = 'CREDITS' THEN mtokens ELSE 0 END)
+          OVER (PARTITION BY "userId" ORDER BY id) as running_credits
+      FROM "PayOutCustodialToken"
+      WHERE "payInId" = ${payIn.id}
+    ),
+    user_totals AS (
+      SELECT
+        "userId",
+        SUM(CASE WHEN "custodialTokenType" = 'SATS' THEN mtokens ELSE 0 END) as final_sats,
+        SUM(CASE WHEN "custodialTokenType" = 'CREDITS' THEN mtokens ELSE 0 END) as final_credits,
+        SUM(mtokens) as final_total
+      FROM "PayOutCustodialToken"
+      WHERE "payInId" = ${payIn.id}
+      GROUP BY "userId"
+    ),
+    outuser AS (
+      UPDATE users
+      SET
+        msats = users.msats + ut.final_sats,
+        "stackedMsats" = users."stackedMsats" + ${isWithdrawal(payIn) ? 0 : Prisma.sql`ut.final_sats`},
+        mcredits = users.mcredits + ut.final_credits,
+        "stackedMcredits" = users."stackedMcredits" + ${isWithdrawal(payIn) ? 0 : Prisma.sql`ut.final_credits`}
+      FROM user_totals ut
+      WHERE users.id = ut."userId"
+      RETURNING users.id, users.mcredits, users.msats
+    )
+    UPDATE "PayOutCustodialToken" pct
+    SET "mtokensAfter" = CASE
+      WHEN pct."custodialTokenType" = 'SATS'
+        THEN outuser.msats - ut.final_sats + p.running_sats
+      ELSE outuser.mcredits - ut.final_credits + p.running_credits
+    END
+    FROM payouts_with_running_totals p
+    JOIN user_totals ut ON ut."userId" = p."userId"
+    JOIN outuser ON outuser.id = p."userId"
+    WHERE pct.id = p.id`
 
   if (!isWithdrawal(payIn)) {
     if (payIn.payOutBolt11) {
@@ -358,6 +395,9 @@ export async function retry (payInId, { models, me }) {
           mCostRemaining: 0n
         }
       }
+
+      await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+        VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
 
       return {
         payIn,

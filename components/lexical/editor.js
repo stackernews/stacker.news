@@ -35,8 +35,8 @@ import styles from './theme/theme.module.css'
 import theme from './theme'
 import { MaxLengthPlugin } from './plugins/misc/max-length'
 import TransformerBridgePlugin from './plugins/core/transformerbridge'
-import CodeActionsPlugin from './plugins/decorative/codeactions'
 import { MarkdownModeExtension } from './extensions/markdownmode'
+import { MediaCheckExtension } from './plugins/misc/media-check'
 
 export default function Editor ({ ...props }) {
   const { prefs } = useLexicalPreferences()
@@ -66,22 +66,20 @@ export default function Editor ({ ...props }) {
       name: 'editor',
       namespace: 'SN',
       nodes: DefaultNodes,
-      dependencies: [CodeShikiSNExtension, MarkdownModeExtension],
+      dependencies: [CodeShikiSNExtension, MarkdownModeExtension, MediaCheckExtension],
       theme
     }), [])
 
   return (
-    <LexicalPreferencesContextProvider>
-      <LexicalExtensionComposer extension={editor} contentEditable={null}>
-        <SharedHistoryContextProvider>
-          <ToolbarContextProvider>
-            <TableContextProvider>
-              <EditorContent {...props} />
-            </TableContextProvider>
-          </ToolbarContextProvider>
-        </SharedHistoryContextProvider>
-      </LexicalExtensionComposer>
-    </LexicalPreferencesContextProvider>
+    <LexicalExtensionComposer extension={editor} contentEditable={null}>
+      <SharedHistoryContextProvider>
+        <ToolbarContextProvider>
+          <TableContextProvider>
+            <EditorContent {...props} />
+          </TableContextProvider>
+        </ToolbarContextProvider>
+      </SharedHistoryContextProvider>
+    </LexicalExtensionComposer>
   )
 }
 
@@ -129,7 +127,6 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         <MentionsPlugin />
         {/* code */}
         <CodeThemePlugin />
-        <CodeActionsPlugin anchorElem={floatingAnchorElem} />
         {/* markdown */}
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         {/* markdown <-> wysiwyg commands */}

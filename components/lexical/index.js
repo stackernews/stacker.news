@@ -4,6 +4,8 @@ import dynamic from 'next/dynamic'
 import { applySNCustomizations } from '@/lib/lexical/html/customs'
 import styles from './theme/theme.module.css'
 import { useRouter } from 'next/router'
+import { LexicalPreferencesContextProvider } from './contexts/preferences'
+import { LexicalItemContextProvider } from './contexts/item'
 
 // messy way to show a skeleton while the editor is loading
 const EditorSkeleton = () => {
@@ -34,10 +36,14 @@ export const LexicalEditor = ({ ...props }) => {
     loading: EditorSkeleton
   }), [])
 
-  return <Editor {...props} />
+  return (
+    <LexicalPreferencesContextProvider>
+      <Editor {...props} />
+    </LexicalPreferencesContextProvider>
+  )
 }
 
-export const LexicalReader = forwardRef(function LexicalReader ({ html, children, outlawed, imgproxyUrls, topLevel, ...props }, ref) {
+export const LexicalReader = forwardRef(function LexicalReader ({ html, children, outlawed, imgproxyUrls, topLevel, rel, ...props }, ref) {
   const router = useRouter()
   const snCustomizedHTML = useMemo(() => applySNCustomizations(html, { outlawed, imgproxyUrls, topLevel }), [html, outlawed, imgproxyUrls, topLevel])
   // debug html with ?html
@@ -59,8 +65,11 @@ export const LexicalReader = forwardRef(function LexicalReader ({ html, children
   }), [])
 
   return (
-    <Reader outlawed={outlawed} imgproxyUrls={imgproxyUrls} topLevel={topLevel} {...props} contentRef={ref}>
-      {children}
-    </Reader>
+
+    <LexicalItemContextProvider imgproxyUrls={imgproxyUrls} topLevel={topLevel} outlawed={outlawed} rel={rel}>
+      <Reader {...props} contentRef={ref}>
+        {children}
+      </Reader>
+    </LexicalItemContextProvider>
   )
 })

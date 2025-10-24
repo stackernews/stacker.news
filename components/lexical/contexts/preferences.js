@@ -16,11 +16,12 @@ const LexicalPreferencesContext = createContext({
 export const LexicalPreferencesContextProvider = ({ children }) => {
   const [prefs, setPrefs] = useState(() => {
     try {
+      if (typeof window === 'undefined') return DEFAULT_PREFERENCES // SSR
       const stored = window.localStorage.getItem(PREFERENCES_STORAGE_KEY)
       return stored ? { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) } : DEFAULT_PREFERENCES
     } catch (error) {
       console.warn('failed to load preferences from local:', error)
-      return DEFAULT_PREFERENCES
+      return DEFAULT_PREFERENCES // fallback
     }
   })
 

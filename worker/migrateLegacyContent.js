@@ -18,11 +18,13 @@ export async function migrateLegacyContent ({ data: { itemId, fullRefresh }, mod
   let lexicalState = item.lexicalState
   console.log('lexicalState', lexicalState)
   if (!lexicalState || fullRefresh) {
-    lexicalState = $ssrMarkdownToLexicalConverter(item.text)
+    console.log('converting markdown to lexical state')
+    lexicalState = await $ssrMarkdownToLexicalConverter(item.text)
     if (!lexicalState) {
       throw new Error('couldn\'t convert markdown to lexical state')
     }
   }
+  console.log('lexicalState generated:', lexicalState)
   const html = $ssrLexicalHTMLGenerator(lexicalState)
   if (html.startsWith('error')) {
     throw new Error('couldn\'t generate html')

@@ -1,4 +1,4 @@
-import { useField } from 'formik'
+import { useFormikContext, useField } from 'formik'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useContext, useCallback, useEffect, useRef } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
@@ -6,17 +6,26 @@ import { $isMarkdownMode, $isRootEmpty, $initializeMarkdown } from '@/components
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import DefaultNodes from '@/lib/lexical/nodes'
-import { $getRoot, createEditor } from 'lexical'
+import { $getRoot } from 'lexical'
+import { RichTextExtension } from '@lexical/rich-text'
+import { ListExtension, CheckListExtension } from '@lexical/list'
+import { MediaCheckExtension } from '@/components/lexical/plugins/misc/media-check'
+import { buildEditorFromExtensions, defineExtension } from '@lexical/extension'
 
 function $parseMarkdown (editor) {
   const root = $getRoot()
   const firstChild = root.getFirstChild()
-  const markdown = firstChild.getTextContent()
+  const markdown = firstChild?.getTextContent() || ''
   let lexicalState = ''
-  const tempEditor = createEditor({
-    nodes: [...DefaultNodes],
-    theme: editor._config.theme
-  })
+  const tempEditor = buildEditorFromExtensions(
+    defineExtension({
+      name: 'formikBridge',
+      dependencies: [RichTextExtension, ListExtension, CheckListExtension, MediaCheckExtension],
+      nodes: DefaultNodes,
+      theme: editor._config.theme
+    }))
+
+  console.log('tempEditor', tempEditor)
 
   tempEditor.update(() => {
     $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, true)
@@ -31,10 +40,12 @@ function $parseMarkdown (editor) {
 
 export default function FormikPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
+  const formik = useFormikContext()
   // text and lexicalState fields
   const [textField,, textHelpers] = useField({ name: 'text' })
   const [lexicalField,, lexicalHelpers] = useField({ name: 'lexicalState' })
   const hadContent = useRef(false)
+  const lastSubmitCount = useRef(0)
 
   // local storage keys
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
@@ -55,21 +66,39 @@ export default function FormikPlugin ({ name }) {
       const isMarkdownMode = $isMarkdownMode()
 
       let markdown = ''
-      let lexicalState = editorState.toJSON()
+      const lexicalState = editorState.toJSON()
 
       // update the storage from the editor state
       onChangeInner(lexicalState)
       if (isMarkdownMode) {
-        ({ markdown, lexicalState } = $parseMarkdown(editor))
+        const root = $getRoot()
+        const firstChild = root.getFirstChild()
+        markdown = firstChild?.getTextContent() || ''
       } else {
         markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
+        lexicalHelpers.setValue(JSON.stringify(editorState.toJSON()))
       }
 
-      if (textField.value === markdown && lexicalField.value === JSON.stringify(lexicalState)) return
-      textHelpers.setValue(markdown)
-      lexicalHelpers.setValue(JSON.stringify(lexicalState))
+      if (textField.value !== markdown) {
+        textHelpers.setValue(markdown)
+      }
     })
-  }, [lexicalHelpers])
+  }, [textField.value, onChangeInner, textHelpers, lexicalHelpers])
+
+  useEffect(() => {
+    if (formik.submitCount > lastSubmitCount.current) {
+      lastSubmitCount.current = formik.submitCount
+      editor.getEditorState().read(() => {
+        const isMarkdownMode = $isMarkdownMode()
+
+        if (isMarkdownMode) {
+          const { markdown, lexicalState } = $parseMarkdown(editor)
+          textHelpers.setValue(markdown)
+          lexicalHelpers.setValue(JSON.stringify(lexicalState))
+        }
+      })
+    }
+  }, [formik.submitCount, editor, textHelpers, lexicalHelpers])
 
   useEffect(() => {
     if (storageKey) {

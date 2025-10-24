@@ -6,13 +6,11 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { forwardRef, useMemo } from 'react'
 import classNames from 'classnames'
 import DefaultNodes from '@/lib/lexical/nodes'
-import { LexicalItemContextProvider } from './contexts/item'
 import { CodeShikiSNExtension, CodeThemePlugin } from './plugins/core/code'
 import styles from './theme/theme.module.css'
 import theme from './theme'
-import CodeActionsPlugin from './plugins/decorative/codeactions'
 
-export default forwardRef(function Reader ({ lexicalState, topLevel, className, children, contentRef, imgproxyUrls, outlawed, rel }, ref) {
+export default forwardRef(function Reader ({ lexicalState, className, children, contentRef }, ref) {
   const reader = useMemo(() =>
     defineExtension({
       $initialEditorState: (editor) => {
@@ -36,19 +34,16 @@ export default forwardRef(function Reader ({ lexicalState, topLevel, className, 
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>
-      <LexicalItemContextProvider imgproxyUrls={imgproxyUrls} topLevel={topLevel} outlawed={outlawed} rel={rel}>
-        <RichTextPlugin
-          contentEditable={
-            <div className={classNames(styles.editor, className)} ref={contentRef}>
-              <ContentEditable />
-              {children}
-            </div>
-          }
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <CodeThemePlugin />
-        {contentRef && <CodeActionsPlugin anchorElem={contentRef.current} />}
-      </LexicalItemContextProvider>
+      <RichTextPlugin
+        contentEditable={
+          <div className={classNames(styles.editor, className)} ref={contentRef}>
+            <ContentEditable />
+            {children}
+          </div>
+        }
+        ErrorBoundary={LexicalErrorBoundary}
+      />
+      <CodeThemePlugin />
     </LexicalExtensionComposer>
   )
 })

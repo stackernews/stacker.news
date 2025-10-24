@@ -26,7 +26,6 @@ const Media = memo(function Media ({
 }) {
   const [loaded, setLoaded] = useState(!video)
   const ref = imageRef || useRef(null)
-  console.log('style', style)
 
   const handleLoadedMedia = () => {
     setLoaded(true)
@@ -75,7 +74,7 @@ const Media = memo(function Media ({
 })
 
 export function MediaOrLinkExperimental ({ editable = false, linkFallback = true, onError, className, imageRef, ...props }) {
-  const media = useMediaHelper(props)
+  const media = useMediaHelper({ ...props })
   const [error, setError] = useState(false)
   const { showCarousel, addMedia, confirmMedia, removeMedia } = editable ? {} : (useCarousel() || {})
 
@@ -179,12 +178,13 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab, preTailor }) => {
+export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab, preTailor, kind }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
-  const [isImage, setIsImage] = useState(video === false && trusted)
-  const [isVideo, setIsVideo] = useState(video)
+  // we might already know the media type from the kind prop
+  const [isImage, setIsImage] = useState(kind === 'image' || (video === false && trusted))
+  const [isVideo, setIsVideo] = useState(kind === 'video' || video)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
 
   useEffect(() => {
@@ -246,20 +246,15 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab, preT
 
   const [style, width, height] = useMemo(() => {
     const source = preTailor || dimensions
-    console.log('source', source)
     if (!source) return []
 
     const { width, height, maxWidth } = source
-    console.log('width', width)
-    console.log('height', height)
-    console.log('maxWidth', maxWidth)
     const style = {
       '--height': height === 'inherit' ? height : `${height}px`,
       '--width': width === 'inherit' ? width : `${width}px`,
       '--aspect-ratio': `${width} / ${height}`,
       ...(maxWidth && { '--max-width': `${maxWidth}px` })
     }
-    console.log('style', style)
     return [style, width, height]
   }, [dimensions?.width, dimensions?.height, preTailor])
 

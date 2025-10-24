@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { getShortcutCombo } from '../shortcuts/keyboard'
-import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/universal/commands/mode'
+import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/extensions/markdownmode'
 import styles from '@/components/lexical/theme/theme.module.css'
 import { $isMarkdownMode } from '@/components/lexical/universal/utils'
 import classNames from 'classnames'

@@ -30,6 +30,7 @@ export function MediaOrLink ({
   srcSet,
   rel,
   altText,
+  kind,
   nodeKey,
   width,
   height,
@@ -203,6 +204,7 @@ export function MediaOrLink ({
             src={src}
             srcSet={srcSet}
             rel={rel}
+            kind={kind}
             linkFallback={false}
             preTailor={{ width, height, maxWidth }}
             onError={() => setIsLoadError(true)}

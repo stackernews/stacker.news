@@ -11,13 +11,15 @@ import {
   $createTextNode
 } from 'lexical'
 import { LinkNode } from '@lexical/link'
-import { VIDEO_URL_REGEXP } from '@/lib/url'
 
 function $convertMediaElement (domNode) {
   const media = domNode
   if (media instanceof window.HTMLImageElement || media instanceof window.HTMLVideoElement) {
     const { alt: altText, src, width, height } = media
+    const kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
     const node = $createMediaNode({ altText, src, width, height, captionText: media.getAttribute('caption') })
+    node.setKind(kind)
+    node.setStatus('done')
     return { node }
   }
   return null
@@ -32,21 +34,19 @@ export class MediaNode extends DecoratorNode {
   __showCaption
   __caption
   __captionsEnabled
+  __kind = 'unknown' // 'unknown', 'image', 'video'
+  __status = 'idle' // 'idle', 'pending', 'done', 'error'
 
   static getType () {
     return 'media'
   }
 
-  // we need to have a real way to determine if the link is an image or a video or a link
-  getInnerType () {
-    if (VIDEO_URL_REGEXP.test(this.__src)) {
-      return 'video'
-    }
-    return 'image'
+  getKind () {
+    return this.__kind
   }
 
   static clone (node) {
-    return new MediaNode(
+    const clone = new MediaNode(
       node.__src,
       node.__altText,
       node.__width,
@@ -54,16 +54,21 @@ export class MediaNode extends DecoratorNode {
       node.__maxWidth,
       node.__showCaption,
       node.__caption,
-      node.__captionText,
+      node.getCaptionText?.(),
       node.__captionsEnabled,
       node.__innerType,
       node.__key
     )
+    clone.__kind = node.__kind
+    clone.__status = node.__status
+    return clone
   }
 
   static importJSON (serializedNode) {
-    const { altText, height, width, maxWidth, src, showCaption, innerType } = serializedNode
+    const { altText, height, width, maxWidth, src, showCaption, innerType, kind = 'unknown', status = 'idle' } = serializedNode
     const node = $createMediaNode({ altText, height, width, maxWidth, src, showCaption, innerType }).updateFromJSON(serializedNode)
+    node.__kind = kind
+    node.__status = status
     return node
   }
 
@@ -94,11 +99,15 @@ export class MediaNode extends DecoratorNode {
       ...(this.__maxWidth && { '--max-width': `${this.__maxWidth}px` })
     }
     element.setAttribute('style', Object.entries(style).map(([key, value]) => `${key}: ${value}`).join('; '))
-    const media = document.createElement(this.getInnerType() === 'image' ? 'img' : 'video')
+    const k = this.getKind()
+    const media = document.createElement(k === 'image' ? 'img' : 'video')
     media.setAttribute('src', this.__src)
     media.setAttribute('alt', this.__altText)
     media.setAttribute('width', this.__width.toString())
     media.setAttribute('height', this.__height.toString())
+    if (k === 'video') {
+      media.setAttribute('controls', 'true')
+    }
     element.appendChild(media)
     return { element }
   }
@@ -173,7 +182,9 @@ export class MediaNode extends DecoratorNode {
       showCaption: this.__showCaption,
       src: this.getSrc(),
       width: this.__width === 'inherit' ? 0 : this.__width,
-      innerType: this.__innerType
+      innerType: this.__innerType,
+      kind: this.__kind,
+      status: this.__status
     }
   }
 
@@ -206,6 +217,13 @@ export class MediaNode extends DecoratorNode {
     return this.__src
   }
 
+  setSrc (src) {
+    const writable = this.getWritable()
+    writable.__src = src
+    writable.__kind = 'unknown'
+    writable.__status = 'idle'
+  }
+
   getAltText () {
     return this.__altText
   }
@@ -236,12 +254,32 @@ export class MediaNode extends DecoratorNode {
     })
   }
 
+  getStatus () {
+    return this.__status
+  }
+
+  setStatus (status) {
+    this.getWritable().__status = status
+  }
+
+  setKind (kind) {
+    this.getWritable().__kind = kind
+  }
+
+  // this is how we apply the result of the media check to the node
+  applyCheckResult (kind) {
+    const writable = this.getWritable()
+    writable.__kind = kind
+    writable.__status = kind === 'unknown' ? 'error' : 'done'
+  }
+
   decorate (editor) {
     const MediaComponent = require('./media-component').default
     return (
       <MediaComponent
         src={this.__src}
         altText={this.__altText}
+        kind={this.__kind}
         width={this.__width}
         height={this.__height}
         maxWidth={this.__maxWidth}
@@ -267,20 +305,21 @@ export function $createMediaNode ({
   captionText,
   key
 }) {
-  return $applyNodeReplacement(
-    new MediaNode(
-      src,
-      altText,
-      maxWidth,
-      width,
-      height,
-      showCaption,
-      caption,
-      captionText,
-      captionsEnabled,
-      key
-    )
+  const node = new MediaNode(
+    src,
+    altText,
+    maxWidth,
+    width,
+    height,
+    showCaption,
+    caption,
+    captionText,
+    captionsEnabled,
+    key
   )
+  node.__kind = 'unknown'
+  node.__status = 'idle'
+  return $applyNodeReplacement(node)
 }
 
 export function $isMediaNode (node) {

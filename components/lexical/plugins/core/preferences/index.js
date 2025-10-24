@@ -8,8 +8,8 @@ export default function PreferencesPlugin () {
   const { prefs, setOption } = useLexicalPreferences()
 
   return (
-    <Dropdown className='pointer ms-auto' as='span'>
-      <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.bottomBarItem}>
+    <Dropdown className={styles.bottomBarItem} as='span'>
+      <Dropdown.Toggle id='dropdown-basic' as='span' onPointerDown={e => e.preventDefault()}>
         debug preferences
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra}>

@@ -1,4 +1,4 @@
-import { $getRoot, $isRootOrShadowRoot, createEditor, $selectAll, $getSelection } from 'lexical'
+import { $getRoot, $isRootOrShadowRoot, createEditor, $selectAll, $getSelection, $createTextNode } from 'lexical'
 import { $isMarkdownNode, $createMarkdownNode } from '@/lib/lexical/nodes/core/markdown'
 import { $findMatchingParent } from '@lexical/utils'
 import { $isRootTextContentEmpty } from '@lexical/text'
@@ -19,6 +19,23 @@ export function $findTopLevelElement (node) {
   }
 
   return topLevelElement
+}
+
+export function $toggleMarkdownMode () {
+  const root = $getRoot()
+  const markdownMode = $isMarkdownMode()
+  if (markdownMode) {
+    const firstChild = root.getFirstChild()
+    // bypass markdown node removal protection
+    if (typeof firstChild.bypassProtection === 'function') firstChild.bypassProtection()
+    $convertFromMarkdownString(firstChild.getTextContent(), SN_TRANSFORMERS, undefined, true)
+  } else {
+    const markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
+    const codeNode = $createMarkdownNode()
+    codeNode.append($createTextNode(markdown))
+    root.clear().append(codeNode)
+    if (markdown.length === 0) codeNode.select()
+  }
 }
 
 // only in editor reads and updates or commands

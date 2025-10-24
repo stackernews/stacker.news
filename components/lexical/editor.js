@@ -23,7 +23,7 @@ import FloatingToolbarPlugin from './plugins/toolbar/floating/floatingtoolbar'
 import FormikPlugin from './plugins/core/formik'
 import LinkTransformationPlugin from './plugins/inserts/links/transformator'
 import MentionsPlugin from './plugins/decorative/mentions'
-import ModeSwitchPlugin from './plugins/core/mode/switch'
+import ModeSwitcher from './plugins/core/mode/switch'
 import PreferencesPlugin from './plugins/core/preferences'
 import ShortcutsPlugin from './plugins/core/shortcuts'
 import ToolbarPlugin from './plugins/toolbar'
@@ -36,6 +36,7 @@ import theme from './theme'
 import { MaxLengthPlugin } from './plugins/misc/max-length'
 import TransformerBridgePlugin from './plugins/core/transformerbridge'
 import CodeActionsPlugin from './plugins/decorative/codeactions'
+import { MarkdownModeExtension } from './extensions/markdownmode'
 
 export default function Editor ({ ...props }) {
   const { prefs } = useLexicalPreferences()
@@ -65,7 +66,7 @@ export default function Editor ({ ...props }) {
       name: 'editor',
       namespace: 'SN',
       nodes: DefaultNodes,
-      dependencies: [CodeShikiSNExtension],
+      dependencies: [CodeShikiSNExtension, MarkdownModeExtension],
       theme
     }), [])
 
@@ -135,7 +136,7 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         <UniversalCommandsPlugin />
         {/* markdown mode status and switch */}
         <div className={styles.bottomBar}>
-          <ModeSwitchPlugin />
+          <ModeSwitcher />
           <PreferencesPlugin />
         </div>
         {maxLength && <MaxLengthPlugin maxLength={maxLength} />}

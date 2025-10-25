@@ -14,7 +14,7 @@ export function useAutoRetryPayIns () {
   const { me } = useMe()
 
   const retry = useCallback(async (payIn) => {
-    const newPayIn = await payInHelper.retry({ payIn })
+    const newPayIn = await payInHelper.retry(payIn)
 
     try {
       await waitForWalletPayment(newPayIn)

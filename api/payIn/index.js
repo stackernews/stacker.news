@@ -157,6 +157,8 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
     // this makes sure that only the person who created this invoice
     // has access to the HMAC
     updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
+    // NOTE: this circular reference is intentional, as it allows us to modify the payIn from the result
+    // (e.g. item) in the clientside cache
     return { ...updatedPayIn, result: result ? { ...result, payIn: updatedPayIn } : undefined }
   }
 
@@ -250,7 +252,7 @@ export async function onPaid (tx, payInId) {
 
   // Batch all payOut updates into a single query
   // Each payOut gets sequential mtokensAfter using running totals
-  // payouts may be very numerous, e.g. rewards, so we only want one roundtrip to the database
+  // payouts are unbounded,may be very numerous, e.g. rewards, so we only want one roundtrip to the database
   await tx.$executeRaw`
     WITH payouts_with_running_totals AS (
       SELECT
@@ -330,7 +332,7 @@ export async function onPaidSideEffects (models, payInId) {
   }
 }
 
-export async function retry (payInId, { models, me }) {
+export async function retry (payInId, { me }) {
   try {
     const include = { payOutCustodialTokens: true, payOutBolt11: true, subPayIn: true, itemPayIn: true, uploadPayIns: true }
     const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: null }

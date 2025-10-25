@@ -1,7 +1,7 @@
 import { USER_ID, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
-import { payInCancel } from '../payIn/transitions'
+import { payInCancel, payInFailed } from '../payIn/transitions'
 import { retry } from '../payIn'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getItem } from './item'
@@ -159,10 +159,19 @@ export default {
       } else {
         verifyHmac(hash, hmac)
       }
-      return await payInCancel({
+      await payInCancel({
         data: {
           payInId: payInBolt11.payInId,
           payInFailureReason: userCancel ? 'USER_CANCELLED' : 'SYSTEM_CANCELLED'
+        },
+        models,
+        me,
+        boss,
+        lnd
+      })
+      return await payInFailed({
+        data: {
+          payInId: payInBolt11.payInId
         },
         models,
         me,

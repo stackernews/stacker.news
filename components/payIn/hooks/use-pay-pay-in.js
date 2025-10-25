@@ -30,9 +30,10 @@ export default function usePayPayIn () {
 
       // bail if the payment took too long to prevent showing a QR code on an unrelated page
       // (if alwaysShowQROnFailure is not set) or user canceled the invoice or it expired
-      const tooSlow = Date.now() - start > 1000
+      const tooSlow = Date.now() - start > 3000
       const skipQr = (tooSlow && !alwaysShowQROnFailure) || invoiceError
       if (skipQr) {
+        console.log('usePayPayIn: skipping QR, err', err, tooSlow, alwaysShowQROnFailure, invoiceError)
         throw err
       }
     }
@@ -41,7 +42,6 @@ export default function usePayPayIn () {
     if (paymentAttempted) {
       payIn = await payInHelper.retry(payIn, { update: updateOnFallback })
     }
-    console.log('usePayPayIn: qrPayIn', payIn.id, walletError)
     return await qrPayIn(payIn, walletError, { persistOnNavigate, waitFor })
   }, [payInHelper, qrPayIn, walletPayment])
 }

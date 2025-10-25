@@ -223,7 +223,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         SELECT "PayIn".*
         FROM "ItemPayIn"
         JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        WHERE "ItemPayIn"."itemId" = "Item".id AND (("PayIn"."userId" = ${me.id} AND "PayIn"."successorId" IS NULL) OR "PayIn"."payInState" = 'PAID')
+        WHERE "ItemPayIn"."itemId" = "Item".id AND ("PayIn"."userId" = ${me.id} OR "PayIn"."payInState" = 'PAID')
         ORDER BY "PayIn"."created_at" DESC
         LIMIT 1
       ) "PayIn" ON "PayIn".id IS NOT NULL

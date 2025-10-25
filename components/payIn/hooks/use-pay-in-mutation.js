@@ -53,11 +53,11 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 
     const updateForRetry = (error) => {
       return function (cache, { data }) {
-        onPayError?.(error, client.cache, { data })
+        const retryData = {
+          [mutationName]: data[getOperationName(RETRY_PAY_IN)]
+        }
+        onPayError?.(error, client.cache, { data: retryData })
         if (update) {
-          const retryData = {
-            [mutationName]: data[getOperationName(RETRY_PAY_IN)]
-          }
           update(cache, { data: retryData })
         }
       }

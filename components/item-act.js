@@ -278,7 +278,6 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
         : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
     ...options,
     update: (cache, { data }) => {
-      console.log('update', data)
       const response = getPayInResult(data)
       if (!response) return
       modifyActCache(cache, response, me)

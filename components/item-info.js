@@ -29,6 +29,8 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
+import { useMutation } from '@apollo/client'
+import gql from 'graphql-tag'
 
 function itemTitle (item) {
   let title = ''
@@ -229,6 +231,13 @@ export default function ItemInfo ({
                   <hr className='dropdown-divider' />
                   <MuteDropdownItem user={item.user} />
                 </>}
+              {/* TODO: remove this once we're done debugging */}
+              {/* this is a debug tool for lexical state migration */}
+              {process.env.NODE_ENV === 'development' &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <DevLexicalConversionDropdownItem item={item} />
+                </>}
             </ActionDropdown>
           </>
       }
@@ -379,4 +388,67 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
   }
 
   return null
+}
+
+// TODO: remove this once we're done debugging
+// temporary debugging tool for lexical state migration
+function DevLexicalConversionDropdownItem ({ item }) {
+  const toaster = useToast()
+  const router = useRouter()
+  const isPost = !item.parentId
+  const [shiftHeld, setShiftHeld] = useState(false)
+
+  const [executeConversion] = useMutation(gql`
+    mutation executeConversion($itemId: ID!, $fullRefresh: Boolean!) {
+      executeConversion(itemId: $itemId, fullRefresh: $fullRefresh)
+    }
+  `, {
+    onCompleted: (data) => {
+      if (data.executeConversion) {
+        toaster.success('conversion scheduled, refreshing in 15 seconds...')
+        setTimeout(() => {
+          isPost ? router.push(`/items/${item.id}`) : router.push(`/items/${item.parentId}?commentId=${item.id}`)
+          toaster.success('refreshing now...')
+        }, 15000)
+      } else {
+        toaster.danger('conversion already scheduled')
+      }
+    }
+  })
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.shiftKey) {
+        setShiftHeld(true)
+      }
+    }
+
+    const handleKeyUp = (e) => {
+      if (!e.shiftKey) {
+        setShiftHeld(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
+
+  // press shift to force a full refresh
+  const getDropdownText = () => {
+    if (shiftHeld) {
+      return 'FULL REFRESH!'
+    }
+    return !item.lexicalState ? 'convert to lexical' : 'refresh html'
+  }
+
+  return (
+    <Dropdown.Item onClick={() => { executeConversion({ variables: { itemId: item.id, fullRefresh: shiftHeld } }) }}>
+      {getDropdownText()}
+    </Dropdown.Item>
+  )
 }

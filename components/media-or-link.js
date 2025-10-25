@@ -2,9 +2,10 @@ import styles from './text.module.css'
 import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useMe } from './me'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
 import classNames from 'classnames'
 import { useCarousel } from './carousel'
+import preserveScroll from './preserve-scroll'
 
 function LinkRaw ({ href, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -21,10 +22,10 @@ function LinkRaw ({ href, children, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width,
-  height, onClick, onError, style, className, video
+  height, onClick, onError, style, className, video, imageRef
 }) {
   const [loaded, setLoaded] = useState(!video)
-  const ref = useRef(null)
+  const ref = imageRef || useRef(null)
 
   const handleLoadedMedia = () => {
     setLoaded(true)
@@ -33,16 +34,16 @@ const Media = memo(function Media ({
   // events are not fired on elements during hydration
   // https://github.com/facebook/react/issues/15446
   useEffect(() => {
-    if (ref.current) {
+    if (ref.current && ref.current !== imageRef) {
       ref.current.src = src
     }
-  }, [ref.current, src])
+  }, [ref.current, src, imageRef])
 
   return (
     <div
       // will set min-content ONLY after the media is loaded
       // due to safari video bug
-      className={classNames(className, styles.mediaContainer, { [styles.loaded]: loaded })}
+      className={classNames(className, imageRef ? '' : styles.mediaContainer, { [styles.loaded]: loaded })}
       style={style}
     >
       {video
@@ -72,27 +73,84 @@ const Media = memo(function Media ({
   )
 })
 
-export default function MediaOrLink ({ linkFallback = true, ...props }) {
-  const media = useMediaHelper(props)
+export function MediaOrLinkExperimental ({ editable = false, linkFallback = true, onError, className, imageRef, ...props }) {
+  const media = useMediaHelper({ ...props })
   const [error, setError] = useState(false)
-  const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel()
+  const { showCarousel, addMedia, confirmMedia, removeMedia } = editable ? {} : (useCarousel() || {})
 
   // register placeholder immediately on mount if we have a src
   useEffect(() => {
+    if (!addMedia) return
     if (!media.bestResSrc) return
     addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
   }, [addMedia, media.bestResSrc, media.originalSrc, props.rel])
 
   // confirm media for carousel based on image detection
   useEffect(() => {
+    if (!confirmMedia) return
     if (!media.image) return
     confirmMedia(media.bestResSrc)
   }, [confirmMedia, media.image, media.bestResSrc])
 
-  const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),
-    [showCarousel, media.bestResSrc])
+  const handleClick = useCallback(() => {
+    if (!showCarousel) return
+    showCarousel({ src: media.bestResSrc })
+  }, [showCarousel, media.bestResSrc])
 
   const handleError = useCallback((err) => {
+    removeMedia && removeMedia(media.bestResSrc)
+    console.error('Error loading media', err)
+    onError?.()
+    setError(true)
+  }, [setError, removeMedia, media.bestResSrc, onError])
+
+  if (!media.src) return null
+
+  if (!error) {
+    if (media.image || media.video) {
+      return preserveScroll(() => {
+        return (
+          <Media
+            {...media} onClick={handleClick} onError={handleError} className={className} imageRef={imageRef}
+          />
+        )
+      })
+    }
+  }
+
+  if (linkFallback) {
+    return <LinkRaw {...props} />
+  }
+
+  return null
+}
+
+export default function MediaOrLink ({ linkFallback = true, ...props }) {
+  const media = useMediaHelper(props)
+  const [error, setError] = useState(false)
+  const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel() || {}
+
+  // register placeholder immediately on mount if we have a src
+  useEffect(() => {
+    if (!addMedia) return
+    if (!media.bestResSrc) return
+    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
+  }, [addMedia, media.bestResSrc, media.originalSrc, props.rel])
+
+  // confirm media for carousel based on image detection
+  useEffect(() => {
+    if (!confirmMedia) return
+    if (!media.image) return
+    confirmMedia(media.bestResSrc)
+  }, [confirmMedia, media.image, media.bestResSrc])
+
+  const handleClick = useCallback(() => {
+    if (!showCarousel) return
+    showCarousel({ src: media.bestResSrc })
+  }, [showCarousel, media.bestResSrc])
+
+  const handleError = useCallback((err) => {
+    if (!removeMedia) return
     console.error('Error loading media', err)
     removeMedia(media.bestResSrc)
     setError(true)
@@ -102,11 +160,13 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 
   if (!error) {
     if (media.image || media.video) {
-      return (
-        <Media
-          {...media} onClick={handleClick} onError={handleError}
-        />
-      )
+      return preserveScroll(() => {
+        return (
+          <Media
+            {...media} onClick={handleClick} onError={handleError}
+          />
+        )
+      })
     }
   }
 
@@ -118,41 +178,44 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) => {
+export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab, preTailor, kind }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
-  const [isImage, setIsImage] = useState(video === false && trusted)
-  const [isVideo, setIsVideo] = useState(video)
+  // we might already know the media type from the kind prop
+  const [isImage, setIsImage] = useState(kind === 'image' || (video === false && trusted))
+  const [isVideo, setIsVideo] = useState(kind === 'video' || video)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
 
   useEffect(() => {
     // don't load the video at all if user doesn't want these
     if (!showMedia || isVideo || isImage) return
 
-    // check if it's a video by trying to load it
-    const video = document.createElement('video')
-    video.onloadedmetadata = () => {
-      setIsVideo(true)
-      setIsImage(false)
+    const controller = new AbortController()
+
+    const checkMedia = async () => {
+      try {
+        const res = await fetch(`${PUBLIC_MEDIA_CHECK_URL}/${encodeURIComponent(src)}`, { signal: controller.signal })
+        if (!res.ok) return
+
+        const data = await res.json()
+
+        if (data.isVideo) {
+          setIsVideo(true)
+          setIsImage(false)
+        } else if (data.isImage) {
+          setIsImage(true)
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') return
+        console.error('cannot check media type', error)
+      }
     }
-    video.onerror = () => {
-      // hack
-      // if it's not a video it will throw an error, so we can assume it's an image
-      const img = new window.Image()
-      img.src = src
-      img.decode().then(() => { // decoding beforehand to prevent wrong image cropping
-        setIsImage(true)
-      }).catch((e) => {
-        console.warn('Cannot decode image:', src, e)
-      })
-    }
-    video.src = src
+    checkMedia()
 
     return () => {
-      video.onloadedmetadata = null
-      video.onerror = null
-      video.src = ''
+      // abort the fetch
+      try { controller.abort() } catch {}
     }
   }, [src, setIsImage, setIsVideo, showMedia, isImage])
 
@@ -182,17 +245,18 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   }, [srcSetObj])
 
   const [style, width, height] = useMemo(() => {
-    if (dimensions) {
-      const { width, height } = dimensions
-      const style = {
-        '--height': `${height}px`,
-        '--width': `${width}px`,
-        '--aspect-ratio': `${width} / ${height}`
-      }
-      return [style, width, height]
+    const source = preTailor || dimensions
+    if (!source) return []
+
+    const { width, height, maxWidth } = source
+    const style = {
+      '--height': height === 'inherit' ? height : `${height}px`,
+      '--width': width === 'inherit' ? width : `${width}px`,
+      '--aspect-ratio': `${width} / ${height}`,
+      ...(maxWidth && { '--max-width': `${maxWidth}px` })
     }
-    return []
-  }, [dimensions?.width, dimensions?.height])
+    return [style, width, height]
+  }, [dimensions?.width, dimensions?.height, preTailor])
 
   return {
     src,

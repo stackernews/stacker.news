@@ -39,6 +39,7 @@ import { useShowModal } from './modal'
 import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
+import { LexicalEditor } from '@/components/lexical'
 import { WalletPromptClosed } from '@/wallets/client/hooks'
 
 export class SessionRequiredError extends Error {
@@ -76,13 +77,13 @@ export function SubmitButton ({
   )
 }
 
-export function CopyButton ({ value, icon, ...props }) {
+export function CopyButton ({ value, icon, bareIcon, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
   const handleClick = useCallback(async () => {
     try {
-      await copy(value)
+      await copy(typeof value === 'function' ? value() : value)
       toaster.success('copied')
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
@@ -96,6 +97,12 @@ export function CopyButton ({ value, icon, ...props }) {
       <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
         <Clipboard height={20} width={20} />
       </InputGroup.Text>
+    )
+  } else if (bareIcon) {
+    return (
+      <span style={{ cursor: 'pointer' }} onClick={handleClick}>
+        {copied ? <Thumb width={20} height={20} /> : <Clipboard height={20} width={20} />}
+      </span>
     )
   }
 
@@ -303,6 +310,14 @@ export function DualAutocompleteWrapper ({
       </TerritorySuggest>
     )}
     </UserSuggest>
+  )
+}
+
+export function LexicalInput ({ label, topLevel, groupClassName, onChange, bridgeRef, ...props }) {
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <LexicalEditor name={props.name} topLevel={topLevel} onChange={onChange} bridgeRef={bridgeRef} {...props} />
+    </FormGroup>
   )
 }
 
@@ -1045,7 +1060,7 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
   )
 }
 
-const StorageKeyPrefixContext = createContext()
+export const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, validate, schema, onSubmit, children, initialError, validateImmediately,

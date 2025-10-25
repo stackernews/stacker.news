@@ -1,7 +1,7 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, LexicalInput } from '@/components/form'
 import styles from './reply.module.css'
 import { useMe } from './me'
-import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentSchema } from '@/lib/validate'
 import { ItemButtonBar } from './post'
@@ -25,11 +25,11 @@ export default forwardRef(function Reply ({
   const [reply, setReply] = useState(replyOpen || quote)
   const { me } = useMe()
   const parentId = item.id
-  const replyInput = useRef(null)
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
   const { markCommentViewedAt } = useCommentsView(root.id)
+  const bridgeRef = useRef()
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -70,15 +70,23 @@ export default forwardRef(function Reply ({
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {
-      resetForm({ values: { text: '' } })
+      resetForm({ values: { text: '', lexicalState: '' } })
       setReply(replyOpen || false)
     },
-    navigateOnSubmit: false
+    navigateOnSubmit: false,
+    onBeforeSubmit: async () => {
+      console.log('onBeforeSubmit')
+      if (bridgeRef.current) {
+        const result = await bridgeRef.current.prepare()
+        console.log('result:', result)
+        if (!result.valid) {
+          throw new Error(result.message)
+        }
+        return result
+      }
+      return { valid: true }
+    }
   })
-
-  useEffect(() => {
-    if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
-  }, [reply])
 
   const onCancel = useCallback(() => {
     window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
@@ -135,21 +143,14 @@ export default forwardRef(function Reply ({
           >
             <Form
               initial={{
-                text: ''
+                text: '',
+                lexicalState: ''
               }}
               schema={commentSchema}
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <MarkdownInput
-                name='text'
-                minRows={6}
-                autoFocus={!replyOpen}
-                required
-                appendValue={quote}
-                placeholder={placeholder}
-                hint={sub?.moderated && 'this territory is moderated'}
-              />
+              <LexicalInput name='text' placeholder={placeholder} autoFocus={reply && !replyOpen} bridgeRef={bridgeRef} />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>
           </FeeButtonProvider>

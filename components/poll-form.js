@@ -1,4 +1,4 @@
-import { Checkbox, DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
+import { Checkbox, DateTimeInput, Form, Input, VariableInput, LexicalInput } from '@/components/form'
 import { useApolloClient } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
@@ -28,6 +28,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       initial={{
         title: item?.title || '',
         text: item?.text || '',
+        lexicalState: item?.lexicalState || '',
         options: initialOptions || ['', ''],
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         randPollOptions: item?.poll?.randPollOptions || false,
@@ -46,12 +47,13 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         required
         maxLength={MAX_TITLE_LENGTH}
       />
-      <MarkdownInput
+      <LexicalInput name='text' label={<>text <small className='text-muted ms-2'>optional</small></>} topLevel />
+      {/* <MarkdownInput
         topLevel
         label={<>text <small className='text-muted ms-2'>optional</small></>}
         name='text'
         minRows={2}
-      />
+      /> */}
       <VariableInput
         label='choices'
         name='options'

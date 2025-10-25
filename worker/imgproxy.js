@@ -15,6 +15,7 @@ if (!imgProxyEnabled) {
 const IMGPROXY_URL = process.env.IMGPROXY_URL_DOCKER || process.env.NEXT_PUBLIC_IMGPROXY_URL
 const IMGPROXY_SALT = process.env.IMGPROXY_SALT
 const IMGPROXY_KEY = process.env.IMGPROXY_KEY
+const MEDIA_CHECK_URL = process.env.MEDIA_CHECK_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_CHECK_URL
 
 const cache = new Map()
 
@@ -144,9 +145,22 @@ const isMediaURL = async (url, { forceFetch }) => {
     return false
   }
 
-  let isMedia
+  let isMedia = false
 
-  // first run HEAD with small timeout
+  // primary: media check service
+  try {
+    const res = await fetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
+    if (res.ok) {
+      const data = await res.json()
+      isMedia = data.isImage || data.isVideo
+      cache.set(url, isMedia)
+      return isMedia
+    }
+  } catch (err) {
+    console.log('[imgproxy] media check service failed, falling back to direct fetch:', url, err)
+  }
+
+  // fallback: first run HEAD with small timeout
   try {
     // https://stackoverflow.com/a/68118683
     const res = await fetchWithTimeout(url, { timeout: 1000, method: 'HEAD' })

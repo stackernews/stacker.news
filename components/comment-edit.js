@@ -1,4 +1,4 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, LexicalInput, MarkdownInput } from '@/components/form'
 import styles from './reply.module.css'
 import { commentSchema } from '@/lib/validate'
 import { FeeButtonProvider } from './fee-button'
@@ -17,6 +17,12 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           fields: {
             text () {
               return result.text
+            },
+            lexicalState () {
+              return result.lexicalState
+            },
+            html () {
+              return result.html
             }
           },
           optimistic: true
@@ -33,17 +39,22 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
       <FeeButtonProvider>
         <Form
           initial={{
-            text: comment.text
+            text: comment.text,
+            lexicalState: comment.lexicalState
           }}
           schema={commentSchema}
           onSubmit={onSubmit}
         >
-          <MarkdownInput
-            name='text'
-            minRows={6}
-            autoFocus
-            required
-          />
+          {comment.lexicalState
+            ? <LexicalInput name='text' autoFocus />
+            : (
+              <MarkdownInput
+                name='text'
+                minRows={6}
+                autoFocus
+                required
+              />
+              )}
           <ItemButtonBar itemId={comment.id} onDelete={onSuccess} hasCancel={false} />
         </Form>
       </FeeButtonProvider>

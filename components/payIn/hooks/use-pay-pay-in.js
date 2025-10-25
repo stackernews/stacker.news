@@ -8,12 +8,12 @@ export default function usePayPayIn () {
   const walletPayment = useWalletPayment()
   const payInHelper = usePayInHelper()
   const qrPayIn = useQrPayIn()
-  return useCallback(async (payIn, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, updateOnFallback }) => {
+  return useCallback(async (payIn, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, updateForRetry }) => {
     let walletError
     const start = Date.now()
 
     try {
-      return await walletPayment(payIn, { waitFor, updateOnFallback })
+      return await walletPayment(payIn, { waitFor, updateForRetry })
     } catch (err) {
       walletError = null
       if (err instanceof WalletError) {
@@ -40,7 +40,7 @@ export default function usePayPayIn () {
 
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
-      payIn = await payInHelper.retry(payIn, { update: updateOnFallback })
+      payIn = await payInHelper.retry(payIn, { update: updateForRetry })
     }
     return await qrPayIn(payIn, walletError, { persistOnNavigate, waitFor })
   }, [payInHelper, qrPayIn, walletPayment])

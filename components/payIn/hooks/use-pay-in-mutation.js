@@ -8,6 +8,7 @@ import usePayPayIn from '@/components/payIn/hooks/use-pay-pay-in'
 import { getOperationName } from '@apollo/client/utilities'
 import { useMe } from '@/components/me'
 import { USER_ID } from '@/lib/constants'
+import { RETRY_PAY_IN } from '@/fragments/payIn'
 
 /*
 this is just like useMutation with a few changes:
@@ -50,7 +51,14 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 
     const payIn = data[mutationName]
 
-    console.log('payInMutation', payIn)
+    const updateForRetry = update
+      ? (cache, { data }) => {
+          const retryData = {
+            [mutationName]: data[getOperationName(RETRY_PAY_IN)]
+          }
+          update(cache, { data: retryData })
+        }
+      : undefined
 
     // if the mutation returns in a pending state, it has an invoice we need to pay
     let payError
@@ -61,7 +69,7 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
         // the action is pessimistic
         try {
           // wait for the invoice to be paid
-          const paidPayIn = await payPayIn(payIn, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, updateOnFallback: update })
+          const paidPayIn = await payPayIn(payIn, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, updateForRetry })
           console.log('payInMutation: paidPayIn', paidPayIn)
           // we need to run update functions on mutations now that we have the data
           const data = { [mutationName]: paidPayIn }
@@ -78,7 +86,7 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
         // onCompleted is called before the invoice is paid for optimistic updates
         ourOnCompleted?.(data)
         // don't wait to pay the invoice
-        payPayIn(payIn, { persistOnNavigate, waitFor, updateOnFallback: update }).then((paidPayIn) => {
+        payPayIn(payIn, { persistOnNavigate, waitFor, updateForRetry }).then((paidPayIn) => {
           // invoice might have been retried during payment
           onPaid?.(client.cache, { data: { [mutationName]: paidPayIn } })
         }).catch(e => {

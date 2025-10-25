@@ -313,10 +313,10 @@ export function DualAutocompleteWrapper ({
   )
 }
 
-export function LexicalInput ({ label, topLevel, groupClassName, onChange, ...props }) {
+export function LexicalInput ({ label, topLevel, groupClassName, onChange, bridgeRef, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
-      <LexicalEditor name={props.name} topLevel={topLevel} onChange={onChange} {...props} />
+      <LexicalEditor name={props.name} topLevel={topLevel} onChange={onChange} bridgeRef={bridgeRef} {...props} />
     </FormGroup>
   )
 }

@@ -13,14 +13,13 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
 import { useMemo, useState } from 'react'
 import classNames from 'classnames'
-import { useLexicalPreferences, LexicalPreferencesContextProvider } from './contexts/preferences'
+import { useLexicalPreferences } from './contexts/preferences'
 import { useSharedHistoryContext, SharedHistoryContextProvider } from './contexts/sharedhistory'
 import { TableContextProvider } from './contexts/table'
 import { ToolbarContextProvider } from './contexts/toolbar'
 import { CodeShikiSNExtension, CodeThemePlugin } from './plugins/core/code'
 import FileUploadPlugin from './plugins/inserts/upload'
 import FloatingToolbarPlugin from './plugins/toolbar/floating/floatingtoolbar'
-import FormikPlugin from './plugins/core/formik'
 import LinkTransformationPlugin from './plugins/inserts/links/transformator'
 import MentionsPlugin from './plugins/decorative/mentions'
 import ModeSwitcher from './plugins/core/mode/switch'
@@ -37,8 +36,10 @@ import { MaxLengthPlugin } from './plugins/misc/max-length'
 import TransformerBridgePlugin from './plugins/core/transformerbridge'
 import { MarkdownModeExtension } from './extensions/markdownmode'
 import { MediaCheckExtension } from './plugins/misc/media-check'
+import LocalDraftPlugin from './plugins/core/localdraft'
+import FormikBridgePlugin from './plugins/core/formik'
 
-export default function Editor ({ ...props }) {
+export default function Editor ({ name, ...props }) {
   const { prefs } = useLexicalPreferences()
   const { values } = useFormikContext()
 
@@ -83,7 +84,7 @@ export default function Editor ({ ...props }) {
   )
 }
 
-function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
+function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel, bridgeRef }) {
   const [floatingAnchorElem, setFloatingAnchorElem] = useState(null)
   // history can be shared between editors (e.g. this editor and the child image caption editor)
   const { historyState } = useSharedHistoryContext()
@@ -142,7 +143,8 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel }) {
         {/* floating toolbar */}
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
         {/* formik */}
-        <FormikPlugin name={name} />
+        <LocalDraftPlugin name={name} />
+        <FormikBridgePlugin bridgeRef={bridgeRef} />
       </div>
     </>
   )

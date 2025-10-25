@@ -22,7 +22,12 @@ export default function TransformerBridgePlugin ({ nodes }) {
     bridge.current = buildEditorFromExtensions(
       defineExtension({
         name: 'transformerBridge',
-        dependencies: [RichTextExtension, ListExtension, CheckListExtension, CodeHighlighterShikiExtension],
+        dependencies: [
+          RichTextExtension,
+          ListExtension,
+          CheckListExtension,
+          CodeHighlighterShikiExtension
+        ],
         nodes
       })
     )

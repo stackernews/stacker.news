@@ -1,7 +1,7 @@
 import { Form, LexicalInput } from '@/components/form'
 import styles from './reply.module.css'
 import { useMe } from './me'
-import { forwardRef, useCallback, useEffect, useState, useMemo } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentSchema } from '@/lib/validate'
 import { ItemButtonBar } from './post'
@@ -29,6 +29,7 @@ export default forwardRef(function Reply ({
   const root = useRoot()
   const sub = item?.sub || root?.sub
   const { markCommentViewedAt } = useCommentsView(root.id)
+  const bridgeRef = useRef()
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -72,7 +73,19 @@ export default forwardRef(function Reply ({
       resetForm({ values: { text: '', lexicalState: '' } })
       setReply(replyOpen || false)
     },
-    navigateOnSubmit: false
+    navigateOnSubmit: false,
+    onBeforeSubmit: async () => {
+      console.log('onBeforeSubmit')
+      if (bridgeRef.current) {
+        const result = await bridgeRef.current.prepare()
+        console.log('result:', result)
+        if (!result.valid) {
+          throw new Error(result.message)
+        }
+        return result
+      }
+      return { valid: true }
+    }
   })
 
   const onCancel = useCallback(() => {
@@ -137,7 +150,7 @@ export default forwardRef(function Reply ({
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <LexicalInput name='text' placeholder={placeholder} autoFocus={reply && !replyOpen} />
+              <LexicalInput name='text' placeholder={placeholder} autoFocus={reply && !replyOpen} bridgeRef={bridgeRef} />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>
           </FeeButtonProvider>

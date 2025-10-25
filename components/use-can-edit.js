@@ -4,7 +4,7 @@ import { useMe } from '@/components/me'
 import { ITEM_EDIT_SECONDS, USER_ID } from '@/lib/constants'
 
 export default function useCanEdit (item) {
-  const editThreshold = datePivot(new Date(item.invoice?.confirmedAt ?? item.createdAt), { seconds: ITEM_EDIT_SECONDS })
+  const editThreshold = datePivot(new Date(item.payIn?.payInStateChangedAt ?? item.createdAt), { seconds: ITEM_EDIT_SECONDS })
   const { me } = useMe()
 
   // deleted items can never be edited and every item has a 10 minute edit window

@@ -1,11 +1,11 @@
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
-import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
-import { getInvoice, getWithdrawl } from './wallet'
+import { getItem, filterClause, whereClause, muteClause, activeOrMine, payInJoinFilter } from './item'
 import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { getPayIn } from './payIn'
+import { WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
 
 export default {
   Query: {
@@ -165,6 +165,7 @@ export default {
           FROM (
             ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
           ) as "Item"
+          ${payInJoinFilter(me)}
           ${whereClause(
             '"Item".created_at < $2',
             '"Item"."deletedAt" IS NULL',
@@ -219,20 +220,14 @@ export default {
 
       if (meFull.noteDeposits) {
         queries.push(
-          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime",
-              FLOOR("Invoice"."msatsReceived" / 1000) as "earnedSats",
-            'InvoicePaid' AS type
-            FROM "Invoice"
-            WHERE "Invoice"."userId" = $1
-            AND "Invoice"."confirmedAt" IS NOT NULL
-            AND "Invoice"."created_at" < $2
-            AND (
-              ("Invoice"."isHeld" IS NULL AND "Invoice"."actionType" IS NULL)
-              OR (
-                "Invoice"."actionType" = 'RECEIVE'
-                AND "Invoice"."actionState" = 'PAID'
-              )
-            )
+          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+              FLOOR("PayIn"."mcost" / 1000) as "earnedSats",
+            'PayInification' AS type
+            FROM "PayIn"
+            WHERE "PayIn"."userId" = $1
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayIn"."payInType" = 'PROXY_PAYMENT'
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -240,17 +235,15 @@ export default {
 
       if (meFull.noteWithdrawals) {
         queries.push(
-          `(SELECT "Withdrawl".id::text, MAX(COALESCE("Invoice"."confirmedAt", "Withdrawl".created_at)) AS "sortTime",
-            FLOOR(MAX("Withdrawl"."msatsPaid" / 1000)) as "earnedSats",
-            'WithdrawlPaid' AS type
-            FROM "Withdrawl"
-            LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
-            LEFT JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
-            WHERE "Withdrawl"."userId" = $1
-            AND "Withdrawl".status = 'CONFIRMED'
-            AND "Withdrawl".created_at < $2
-            AND "InvoiceForward"."id" IS NULL
-            GROUP BY "Withdrawl".id
+          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+            FLOOR("PayOutBolt11"."msats" / 1000) as "earnedSats",
+            'PayInification' AS type
+            FROM "PayIn"
+            LEFT JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
+            WHERE "PayIn"."userId" = $1
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayIn"."payInType" IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL')
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -288,17 +281,6 @@ export default {
           AND created_at < $2
           AND (type IS NULL OR type NOT IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL'))
           GROUP BY "userId", created_at
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-        )
-        queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
-          'Revenue' AS type
-          FROM "SubAct"
-          WHERE "userId" = $1
-          AND type = 'REVENUE'
-          AND created_at < $2
-          GROUP BY "userId", "subName", created_at
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
         )
@@ -369,33 +351,27 @@ export default {
         LIMIT ${LIMIT})`
       )
 
+      // payIns whose most recent attempt failed, are retried enough times,
+      // are too old, or were manually cancelled
       queries.push(
-        `(SELECT "Invoice".id::text,
-          CASE
-            WHEN
-              "Invoice"."paymentAttempt" < ${WALLET_MAX_RETRIES}
-              AND "Invoice"."userCancel" = false
-              AND "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-            THEN "Invoice"."cancelledAt" + interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-            ELSE "Invoice"."updated_at"
-          END AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
-        FROM "Invoice"
-        WHERE "Invoice"."userId" = $1
-        AND "Invoice"."updated_at" < $2
-        AND "Invoice"."actionState" = 'FAILED'
-        AND (
-          -- this is the inverse of the filter for automated retries
-          "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
-          OR "Invoice"."userCancel" = true
-          OR "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-        )
-        AND (
-          "Invoice"."actionType" = 'ITEM_CREATE' OR
-          "Invoice"."actionType" = 'ZAP' OR
-          "Invoice"."actionType" = 'DOWN_ZAP' OR
-          "Invoice"."actionType" = 'POLL_VOTE' OR
-          "Invoice"."actionType" = 'BOOST'
-        )
+        `(SELECT "PayIn".id::text,
+          "PayIn"."payInStateChangedAt" AS "sortTime", 0 as "earnedSats", 'PayInification' AS type
+          FROM "PayIn"
+          WHERE "PayIn"."payInState" = 'FAILED'
+          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."userId" = $1
+          AND "PayIn"."successorId" IS NULL
+          AND "PayIn"."payInStateChangedAt" < $2
+          AND (
+            "PayIn"."payInFailureReason" = 'USER_CANCELLED'
+            OR "PayIn"."payInStateChangedAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+            OR (
+              SELECT COUNT(*)
+              FROM "PayIn" sibling
+              WHERE "sibling"."genesisId" = "PayIn"."genesisId"
+              OR "sibling"."id" = "PayIn"."genesisId"
+            ) >= ${WALLET_MAX_RETRIES}::integer
+          )
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`
       )
@@ -500,17 +476,6 @@ export default {
   SubStatus: {
     sub: async (n, args, { models, me }) => getSub(n, { name: n.id }, { models, me })
   },
-  Revenue: {
-    subName: async (n, args, { models }) => {
-      const subAct = await models.subAct.findUnique({
-        where: {
-          id: Number(n.id)
-        }
-      })
-
-      return subAct.subName
-    }
-  },
   ReferralSource: {
     __resolveType: async (n, args, { models }) => n.type
   },
@@ -584,14 +549,15 @@ export default {
   ItemMention: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
-  InvoicePaid: {
-    invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
-  },
-  Invoicification: {
-    invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
-  },
-  WithdrawlPaid: {
-    withdrawl: async (n, args, { me, models }) => getWithdrawl(n, { id: n.id }, { me, models })
+  PayInification: {
+    payIn: async (n, args, { me, models }) => getPayIn(n, { id: Number(n.id) }, { me, models }),
+    payInItem: async (n, args, { models, me }) => {
+      const itemPayIn = await models.itemPayIn.findUnique({ where: { payInId: Number(n.id) } })
+      if (!itemPayIn) {
+        return null
+      }
+      return await getItem(n, { id: itemPayIn.itemId }, { models, me })
+    }
   },
   Invitification: {
     invite: async (n, args, { models }) => {

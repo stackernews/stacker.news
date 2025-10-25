@@ -8,12 +8,14 @@ import { amountSchema, boostSchema } from '@/lib/validate'
 import { useToast } from './toast'
 import { nextTip, defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
-import { usePaidMutation } from './use-paid-mutation'
-import { ACT_MUTATION } from '@/fragments/paidAction'
+import { ACT_MUTATION } from '@/fragments/payIn'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { useAnimation } from '@/components/animation'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { getOperationName } from '@apollo/client/utilities'
+import { satsToMsats } from '@/lib/format'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -130,11 +132,10 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       },
       optimisticResponse: me
         ? {
-            act: {
-              __typename: 'ItemActPaidAction',
-              result: {
-                id: item.id, sats: Number(amount), act, path: item.path
-              }
+            payInType: act === 'DONT_LIKE_THIS' ? 'DOWN_ZAP' : act === 'BOOST' ? 'BOOST' : 'ZAP',
+            mcost: satsToMsats(Number(amount)),
+            payerPrivates: {
+              result: { path: item.path, id: item.id, sats: Number(amount), act, __typename: 'ItemAct' }
             }
           }
         : undefined,
@@ -179,10 +180,12 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       </Form>)
 }
 
-function modifyActCache (cache, { result, invoice }, me) {
+function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
+  const result = payerPrivates?.result
+  console.log('modifyActCache', payerPrivates, payOutBolt11Public, result)
   if (!result) return
   const { id, sats, act } = result
-  const p2p = invoice?.invoiceForward
+  const p2p = !!payOutBolt11Public
 
   cache.modify({
     id: `Item:${id}`,
@@ -230,10 +233,11 @@ function modifyActCache (cache, { result, invoice }, me) {
 
 // doing this onPaid fixes issue #1695 because optimistically updating all ancestors
 // conflicts with the writeQuery on navigation from SSR
-function updateAncestors (cache, { result, invoice }) {
+function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
+  const result = payerPrivates?.result
   if (!result) return
   const { id, sats, act, path } = result
-  const p2p = invoice?.invoiceForward
+  const p2p = !!payOutBolt11Public
 
   if (act === 'TIP') {
     // update all ancestors
@@ -262,33 +266,34 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const { me } = useMe()
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
-  const getPaidActionResult = data => Object.values(data)[0]
+  const getPayInResult = data => data[getOperationName(query)]
   const hasSendWallet = useHasSendWallet()
 
-  const [act] = usePaidMutation(query, {
-    waitFor: inv =>
+  const [act] = usePayInMutation(query, {
+    waitFor: payIn =>
       // if we have attached wallets, we might be paying a wrapped invoice in which case we need to make sure
       // we don't prematurely consider the payment as successful (important for receiver fallbacks)
       hasSendWallet
-        ? inv?.actionState === 'PAID'
-        : inv?.satsReceived > 0,
+        ? payIn?.payInState === 'PAID'
+        : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
     ...options,
     update: (cache, { data }) => {
-      const response = getPaidActionResult(data)
+      console.log('update', data)
+      const response = getPayInResult(data)
       if (!response) return
       modifyActCache(cache, response, me)
       options?.update?.(cache, { data })
     },
     onPayError: (e, cache, { data }) => {
-      const response = getPaidActionResult(data)
-      if (!response || !response.result) return
-      const { result: { sats } } = response
-      const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
+      const response = getPayInResult(data)
+      if (!response || !response.payerPrivates.result) return
+      const { payerPrivates: { result: { sats } } } = response
+      const negate = { ...response, payerPrivates: { ...response.payerPrivates, result: { ...response.payerPrivates.result, sats: -1 * sats } } }
       modifyActCache(cache, negate, me)
       options?.onPayError?.(e, cache, { data })
     },
     onPaid: (cache, { data }) => {
-      const response = getPaidActionResult(data)
+      const response = getPayInResult(data)
       if (!response) return
       updateAncestors(cache, response)
       options?.onPaid?.(cache, { data })
@@ -310,7 +315,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP', hasSendWallet }
-    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
+    const optimisticResponse = { payInType: 'ZAP', mcost: satsToMsats(sats), payerPrivates: { result: { path: item.path, ...variables, __typename: 'ItemAct' } } }
 
     try {
       await abortSignal.pause({ me, amount: sats })

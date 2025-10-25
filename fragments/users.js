@@ -229,8 +229,7 @@ export const TOP_USERS = gql`
         id
         name
         photoId
-        ncomments(when: $when, from: $from, to: $to)
-        nposts(when: $when, from: $from, to: $to)
+        nitems(when: $when, from: $from, to: $to)
         proportion
         optional {
           stacked(when: $when, from: $from, to: $to)
@@ -252,8 +251,7 @@ export const TOP_COWBOYS = gql`
         id
         name
         photoId
-        ncomments(when: "forever")
-        nposts(when: "forever")
+        nitems(when: "forever")
 
         optional {
           stacked(when: "forever")
@@ -322,39 +320,13 @@ export const USER_WITH_SUBS = gql`
         cursor
         subs {
           ...SubFullFields
-          ncomments(when: "forever")
-          nposts(when: "forever")
+          nitems(when: "forever")
 
           optional {
             stacked(when: "forever")
             spent(when: "forever")
             revenue(when: "forever")
           }
-        }
-      }
-    }`
-
-export const USER_STATS = gql`
-    query UserStats($when: String, $from: String, $to: String) {
-      userStatsActions(when: $when, from: $from, to: $to) {
-        time
-        data {
-          name
-          value
-        }
-      }
-      userStatsIncomingSats(when: $when, from: $from, to: $to) {
-        time
-        data {
-          name
-          value
-        }
-      }
-      userStatsOutgoingSats(when: $when, from: $from, to: $to) {
-        time
-        data {
-          name
-          value
         }
       }
     }`

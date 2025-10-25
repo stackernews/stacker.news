@@ -1,16 +1,14 @@
-import performPaidAction from '@/api/paidAction'
-import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import pay from '@/api/payIn'
+import { USER_ID } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import gql from 'graphql-tag'
 
 export async function autoPost ({ data: item, models, apollo, lnd, boss }) {
-  return await performPaidAction('ITEM_CREATE',
+  return await pay('ITEM_CREATE',
     { subName: 'meta', ...item, userId: USER_ID.sn, apiKey: true },
     {
       models,
-      me: { id: USER_ID.sn },
-      lnd,
-      forcePaymentMethod: PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT
+      me: { id: USER_ID.sn }
     })
 }
 
@@ -52,12 +50,10 @@ export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }
     throw new Error('No winner')
   }
 
-  await performPaidAction('ZAP',
+  await pay('ZAP',
     { id: winner.id, sats: item.bounty },
     {
       models,
-      me: { id: USER_ID.sn },
-      lnd,
-      forcePaymentMethod: PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT
+      me: { id: USER_ID.sn }
     })
 }

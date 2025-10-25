@@ -13,9 +13,9 @@ import { MEDIA_URL } from '@/lib/constants'
 import { abbrNum } from '@/lib/format'
 import { Badge } from 'react-bootstrap'
 import SubPopover from './sub-popover'
-import { PaymentInfo } from './item-info'
+import { PayInInfo } from './item-info'
 
-export default function ItemJob ({ item, toc, rank, children, disableRetry, setDisableRetry }) {
+export default function ItemJob ({ item, toc, rank, children, ...props }) {
   const isEmail = string().email().isValidSync(item.url)
 
   return (
@@ -79,7 +79,7 @@ export default function ItemJob ({ item, toc, rank, children, disableRetry, setD
                   <Link href={`/items/${item.id}/edit`} className='text-reset fw-bold'>
                     edit
                   </Link>
-                  <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
+                  <PayInInfo item={item} {...props} />
                 </>)}
           </div>
         </div>

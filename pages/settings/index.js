@@ -281,7 +281,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='I get a daily airdrop'
+            label='I get daily rewards'
             name='noteEarning'
             groupClassName='mb-0'
           />
@@ -296,7 +296,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='sats are deposited in my account'
+            label='sats are proxied to my attached wallet'
             name='noteDeposits'
             groupClassName='mb-0'
           />

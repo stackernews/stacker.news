@@ -12,6 +12,9 @@
 
 .linkBoxParent {
     position: relative;
+}
+
+.linkBoxParent.pad {
     margin-left: -0.5rem;
     padding-left: 0.5rem;
     margin-right: -0.5rem;
@@ -32,7 +35,8 @@
 .linkBoxParent iframe,
 .linkBoxParent video,
 .linkBoxParent pre,
-.linkBoxParent img {
+.linkBoxParent img,
+.linkBoxParent .accordion {
     pointer-events: auto !important;
 }
 

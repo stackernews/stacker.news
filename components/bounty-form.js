@@ -10,7 +10,7 @@ import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import useItemSubmit from './use-item-submit'
-import { UPSERT_BOUNTY } from '@/fragments/paidAction'
+import { UPSERT_BOUNTY } from '@/fragments/payIn'
 
 export function BountyForm ({
   item,

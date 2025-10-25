@@ -14,7 +14,7 @@ import { SubSelectInitial } from './sub-select'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
-import { UPSERT_LINK } from '@/fragments/paidAction'
+import { UPSERT_LINK } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 import useDebounceCallback from './use-debounce-callback'
 

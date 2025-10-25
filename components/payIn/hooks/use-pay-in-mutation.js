@@ -51,14 +51,17 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 
     const payIn = data[mutationName]
 
-    const updateForRetry = update
-      ? (cache, { data }) => {
+    const updateForRetry = (error) => {
+      return function (cache, { data }) {
+        onPayError?.(error, client.cache, { data })
+        if (update) {
           const retryData = {
             [mutationName]: data[getOperationName(RETRY_PAY_IN)]
           }
           update(cache, { data: retryData })
         }
-      : undefined
+      }
+    }
 
     // if the mutation returns in a pending state, it has an invoice we need to pay
     let payError

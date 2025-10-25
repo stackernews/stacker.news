@@ -90,7 +90,7 @@ export function useWalletPayment () {
         // only create a new invoice if we will try to pay with a protocol again
         const retry = paymentError instanceof WalletReceiverError || i < protocols.length - 1
         if (retry) {
-          latestPayIn = await payInHelper.retry(latestPayIn, { update: updateForRetry })
+          latestPayIn = await payInHelper.retry(latestPayIn, { update: updateForRetry?.(paymentError) })
         }
 
         aggregateError = new WalletAggregateError([aggregateError, paymentError], latestPayIn)

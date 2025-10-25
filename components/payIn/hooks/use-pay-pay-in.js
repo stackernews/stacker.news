@@ -40,7 +40,7 @@ export default function usePayPayIn () {
 
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
-      payIn = await payInHelper.retry(payIn, { update: updateForRetry })
+      payIn = await payInHelper.retry(payIn, { update: updateForRetry?.(walletError) })
     }
     return await qrPayIn(payIn, walletError, { persistOnNavigate, waitFor })
   }, [payInHelper, qrPayIn, walletPayment])

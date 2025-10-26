@@ -65,6 +65,7 @@ CREATE UNLOGGED TABLE "PayIn" (
     "payInStateChangedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "genesisId" INTEGER,
     "successorId" INTEGER,
+    "retryCount" INTEGER NOT NULL DEFAULT 0,
     "benefactorId" INTEGER,
     "userId" INTEGER NOT NULL,
 

@@ -29,6 +29,7 @@ import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
 import { useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
+import { shouldAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 
 function itemTitle (item) {
   let title = ''
@@ -298,9 +299,12 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
 
   let Component
   let onClick
-  if (me && item.payIn?.payInState && item.payIn?.payInState !== 'PAID') {
-    if (['FAILED', 'CANCELLED'].includes(item.payIn?.payInState)) {
-      Component = () => <span className={classNames('text-warning', disableDualRetry && 'pulse')}>retry payment</span>
+  if (me && item.payIn?.payInState !== 'PAID' && item.payIn?.payerPrivates) {
+    // are we automatically retrying?
+    if (shouldAutoRetryPayIn(item.payIn)) {
+      Component = () => <span className={classNames('text-info')}>pending</span>
+    } else if (item.payIn.payInState === 'FAILED') {
+      Component = () => <span className={classNames('text-warning', disableDualRetry ? 'pulse' : 'pointer')}>retry payment</span>
       onClick = async () => {
         if (disableDualRetry) return
         setDisableDualRetry(true)
@@ -316,7 +320,7 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
     } else {
       Component = () => (
         <span
-          className='text-info'
+          className='text-info pointer'
         >pending
         </span>
       )
@@ -330,7 +334,7 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
     <>
       <span> \ </span>
       <span
-        className='text-reset pointer fw-bold'
+        className='text-reset fw-bold'
         onClick={onClick}
       >
         <Component />

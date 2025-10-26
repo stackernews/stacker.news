@@ -14,6 +14,10 @@ export const PAY_IN_LINK_FIELDS = gql`
     payInType
     payInState
     payInStateChangedAt
+    payerPrivates {
+      payInFailureReason
+      retryCount
+    }
   }
 `
 
@@ -66,6 +70,7 @@ export const PAY_IN_FIELDS = gql`
     payerPrivates {
       userId
       payInFailureReason
+      retryCount
       payInBolt11 {
         ...PayInBolt11Fields
       }
@@ -138,6 +143,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     payerPrivates {
       userId
       payInFailureReason
+      retryCount
       payInCustodialTokens {
         id
         mtokens

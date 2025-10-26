@@ -30,6 +30,10 @@ export const COMMENT_FIELDS = gql`
       id
       payInState
       payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
     }
     sats
     credits

@@ -138,15 +138,7 @@ export default {
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
           AND "PayIn"."payInStateChangedAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
-          AND (
-            "PayIn"."genesisId" IS NULL
-            OR (
-                SELECT COUNT(*)
-                FROM "PayIn" sibling
-                WHERE "sibling"."genesisId" = "PayIn"."genesisId"
-                OR "sibling"."id" = "PayIn"."genesisId"
-              ) < ${WALLET_MAX_RETRIES}
-            )
+          AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}
           ORDER BY "PayIn"."payInStateChangedAt" ASC`
     }
   },

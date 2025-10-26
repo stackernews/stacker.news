@@ -5,7 +5,12 @@ import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
 import { useCallback, useEffect } from 'react'
 import { WalletConfigurationError } from '@/wallets/client/errors'
-import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL_MS, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+
+export function shouldAutoRetryPayIn (payIn) {
+  const { payInState, payInStateChangedAt, payerPrivates: { payInFailureReason, retryCount } } = payIn
+  return payInState !== 'PAID' && retryCount < WALLET_MAX_RETRIES && new Date(payInStateChangedAt) > new Date(Date.now() - WALLET_RETRY_BEFORE_MS) && payInFailureReason !== 'USER_CANCELLED'
+}
 
 export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()

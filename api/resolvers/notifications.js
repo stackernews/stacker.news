@@ -365,12 +365,7 @@ export default {
           AND (
             "PayIn"."payInFailureReason" = 'USER_CANCELLED'
             OR "PayIn"."payInStateChangedAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-            OR (
-              SELECT COUNT(*)
-              FROM "PayIn" sibling
-              WHERE "sibling"."genesisId" = "PayIn"."genesisId"
-              OR "sibling"."id" = "PayIn"."genesisId"
-            ) >= ${WALLET_MAX_RETRIES}::integer
+            OR "PayIn"."retryCount" >= ${WALLET_MAX_RETRIES}::integer
           )
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`

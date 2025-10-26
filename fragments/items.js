@@ -40,6 +40,10 @@ export const ITEM_FIELDS = gql`
       id
       payInState
       payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
     }
     otsHash
     position

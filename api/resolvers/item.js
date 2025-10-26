@@ -12,7 +12,9 @@ import {
   ITEM_EDIT_SECONDS,
   COMMENTS_LIMIT,
   COMMENTS_OF_COMMENT_LIMIT,
-  FULL_COMMENTS_THRESHOLD
+  FULL_COMMENTS_THRESHOLD,
+  WALLET_RETRY_BEFORE_MS,
+  WALLET_MAX_RETRIES
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
@@ -187,10 +189,10 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("MeItemPayIn"."meMsats", 0) as "meMsats", COALESCE("MeItemPayIn"."mePendingMsats", 0) as "mePendingMsats",
         COALESCE("MeItemPayIn"."meMcredits", 0) as "meMcredits", COALESCE("MeItemPayIn"."mePendingMcredits", 0) as "mePendingMcredits",
-        COALESCE("MeItemPayIn"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
-        "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
-        to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
-        || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub,
+        COALESCE("MeItemPayIn"."meDontLikeMsats", 0) as "meDontLikeMsats", COALESCE("MeItemPayIn"."mePendingBoostMsats", 0) as "mePendingBoostMsats",
+        b."itemId" IS NOT NULL AS "meBookmark", "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription",
+        "ItemForward"."itemId" IS NOT NULL AS "meForward", to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
+          || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub,
         to_jsonb("PayIn".*) || jsonb_build_object('payInStateChangedAt', "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC') as "payIn",
         "CommentsViewAt"."last_viewed_at" as "meCommentsViewedAt"
       FROM (
@@ -207,16 +209,30 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "CommentsViewAt" ON "CommentsViewAt"."itemId" = "Item".id AND "CommentsViewAt"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId",
-          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'FAILED' AND "PayOutBolt11".id IS NOT NULL AND "PayIn"."payInType" = 'ZAP') AS "meMsats",
-          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'FAILED' AND "PayOutBolt11".id IS NULL AND "PayIn"."payInType" = 'ZAP') AS "meMcredits",
-          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" = 'PENDING' AND "PayOutBolt11".id IS NOT NULL AND "PayIn"."payInType" = 'ZAP') AS "mePendingMsats",
-          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" = 'PENDING' AND "PayOutBolt11".id IS NULL AND "PayIn"."payInType" = 'ZAP') AS "mePendingMcredits",
-          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'FAILED' AND "PayIn"."payInType" = 'DOWN_ZAP') AS "meDontLikeMsats"
+          sum("PayIn".mcost) FILTER (WHERE "PayOutBolt11".id IS NOT NULL AND "PayIn"."payInType" = 'ZAP') AS "meMsats",
+          sum("PayIn".mcost) FILTER (WHERE "PayOutBolt11".id IS NULL AND "PayIn"."payInType" = 'ZAP') AS "meMcredits",
+          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayOutBolt11".id IS NOT NULL AND "PayIn"."payInType" = 'ZAP') AS "mePendingMsats",
+          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayOutBolt11".id IS NULL AND "PayIn"."payInType" = 'ZAP') AS "mePendingMcredits",
+          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInType" = 'DOWN_ZAP') AS "meDontLikeMsats",
+          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayIn"."payInType" = 'BOOST') AS "mePendingBoostMsats"
         FROM "ItemPayIn"
         JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId"
         LEFT JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
         WHERE "PayIn"."userId" = ${me.id}
         AND "ItemPayIn"."itemId" = "Item".id
+        AND (
+          "PayIn"."payInState" = 'PAID'
+          -- some kind of pending state
+          OR "PayIn"."payInState" <> 'FAILED'
+          OR (
+            -- going to be retrying
+            "PayIn"."payInState" = 'FAILED'
+            AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
+            AND "PayIn"."payInStateChangedAt" > now() - '${WALLET_RETRY_BEFORE_MS} milliseconds'::interval
+            AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}::integer
+            AND "PayIn"."successorId" IS NULL
+          )
+        )
         GROUP BY "ItemPayIn"."itemId"
       ) "MeItemPayIn" ON true
       LEFT JOIN LATERAL (
@@ -1177,6 +1193,12 @@ export default {
         return msatsToSats(BigInt(item.msats))
       }
       return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0) + BigInt(item.mePendingMcredits || 0))
+    },
+    boost: async (item, args, { models, me }) => {
+      if (me?.id !== item.userId) {
+        return msatsToSats(BigInt(item.boost))
+      }
+      return item.boost + msatsToSats(BigInt(item.mePendingBoostMsats || 0))
     },
     credits: async (item, args, { models, me }) => {
       if (me?.id === item.userId) {

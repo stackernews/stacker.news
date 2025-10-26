@@ -171,6 +171,7 @@ type PayInBolt11Public {
 type PayerPrivates {
   userId: Int!
   payInFailureReason: PayInFailureReason
+  retryCount: Int
   payInBolt11: PayInBolt11
   payInCustodialTokens: [PayInCustodialToken!]
   refundCustodialTokens: [RefundCustodialToken!]

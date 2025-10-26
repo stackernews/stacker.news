@@ -531,6 +531,8 @@ export default {
           AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
           AND "PayIn"."userId" = ${me.id}
           AND "PayIn"."successorId" IS NULL
+          -- help the query planner by narrowing the range of the timestamp
+          AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
           AND (
             (
               "PayIn"."payInFailureReason" = 'USER_CANCELLED'
@@ -538,14 +540,10 @@ export default {
             )
             OR (
               "PayIn"."payInStateChangedAt" <= now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
-              AND "PayIn"."payInStateChangedAt" + ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval > ${lastChecked}::timestamp
+              AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
             )
             OR (
-              (
-                SELECT COUNT(*)
-                FROM "PayIn" sibling
-                WHERE "sibling"."genesisId" = "PayIn"."genesisId" OR "sibling"."id" = "PayIn"."genesisId"
-              ) >= ${WALLET_MAX_RETRIES}
+              "PayIn"."retryCount" >= ${WALLET_MAX_RETRIES}
               AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp
             )
           )

@@ -367,7 +367,7 @@ export async function retry (payInId, { me }) {
     }
 
     const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
-      const payInInitial = payInClone({ ...payInFailed, payOutBolt11 })
+      const payInInitial = { ...payInClone({ ...payInFailed, payOutBolt11 }), retryCount: payInFailed.retryCount + 1 }
       await obtainRowLevelLocks(tx, payInInitial)
       const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, undefined, { me })
 

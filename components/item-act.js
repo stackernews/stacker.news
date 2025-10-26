@@ -16,6 +16,7 @@ import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { getOperationName } from '@apollo/client/utilities'
 import { satsToMsats } from '@/lib/format'
+import { shouldAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -285,7 +286,8 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
     },
     onPayError: (e, cache, { data }) => {
       const response = getPayInResult(data)
-      if (!response || !response.payerPrivates.result) return
+      // if we're automatically retrying, don't negate the sats
+      if (!response || !response.payerPrivates.result || (me && shouldAutoRetryPayIn(response))) return
       const { payerPrivates: { result: { sats } } } = response
       const negate = { ...response, payerPrivates: { ...response.payerPrivates, result: { ...response.payerPrivates.result, sats: -1 * sats } } }
       modifyActCache(cache, negate, me)

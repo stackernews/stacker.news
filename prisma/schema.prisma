@@ -1644,6 +1644,7 @@ model PayIn {
   payInStateChangedAt DateTime            @default(now())
   genesisId           Int? // the original payIn that was retried
   successorId         Int?                @unique // this ensures a payIn can only be retried once
+  retryCount          Int                 @default(0)
   benefactorId        Int?
 
   userId Int

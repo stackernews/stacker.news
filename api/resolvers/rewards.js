@@ -23,14 +23,21 @@ async function getCachedActiveRewards (staleIn, models) {
 
 async function getActiveRewards (models) {
   return await models.$queryRaw`
+    WITH source_totals AS (
       SELECT
-        (sum("msats") / 1000)::INT as total,
-        date_trunc('day',  (now() AT TIME ZONE 'America/Chicago') + interval '1 day') AT TIME ZONE 'America/Chicago' as time,
-        array_agg(json_build_object('name', "payInType", 'value', "msats")) as sources
+        "payInType",
+        sum("msats") as "msats"
       FROM "AggRewards"
       WHERE "timeBucket" >= date_trunc('day', now() AT TIME ZONE 'America/Chicago')
       AND "payInType" IS NOT NULL
-      AND "granularity" = 'DAY'`
+      AND "granularity" = 'HOUR'
+      GROUP BY "payInType"
+    )
+    SELECT
+      (sum("msats") / 1000)::INT as total,
+      date_trunc('day', (now() AT TIME ZONE 'America/Chicago') + interval '1 day') AT TIME ZONE 'America/Chicago' as time,
+      array_agg(json_build_object('name', "payInType", 'value', "msats")) as sources
+    FROM source_totals`
 }
 
 async function getRewards (when, models) {
@@ -71,7 +78,7 @@ async function getRewards (when, models) {
 export default {
   Query: {
     rewards: async (parent, { when }, { models }) =>
-      when ? await getRewards(when, models) : await getCachedActiveRewards(5000, models),
+      when ? await getRewards(when, models) : await getCachedActiveRewards(10000, models),
     meRewards: async (parent, { when }, { me, models }) => {
       if (!me) {
         return null

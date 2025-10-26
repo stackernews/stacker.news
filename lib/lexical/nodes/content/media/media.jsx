@@ -11,6 +11,7 @@ import {
   $createTextNode
 } from 'lexical'
 import { LinkNode } from '@lexical/link'
+import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 
 function $convertMediaElement (domNode) {
   const media = domNode
@@ -34,6 +35,7 @@ export class MediaNode extends DecoratorNode {
   __showCaption
   __caption
   __captionsEnabled
+  __uploaded
   __kind = 'unknown' // 'unknown', 'image', 'video'
   __status = 'idle' // 'idle', 'pending', 'done', 'error'
 
@@ -43,6 +45,14 @@ export class MediaNode extends DecoratorNode {
 
   getKind () {
     return this.__kind
+  }
+
+  getUploaded () {
+    return this.__uploaded
+  }
+
+  setUploaded (uploaded) {
+    this.getWritable().__uploaded = uploaded
   }
 
   static clone (node) {
@@ -56,7 +66,7 @@ export class MediaNode extends DecoratorNode {
       node.__caption,
       node.getCaptionText?.(),
       node.__captionsEnabled,
-      node.__innerType,
+      node.__uploaded,
       node.__key
     )
     clone.__kind = node.__kind
@@ -65,8 +75,8 @@ export class MediaNode extends DecoratorNode {
   }
 
   static importJSON (serializedNode) {
-    const { altText, height, width, maxWidth, src, showCaption, innerType, kind = 'unknown', status = 'idle' } = serializedNode
-    const node = $createMediaNode({ altText, height, width, maxWidth, src, showCaption, innerType }).updateFromJSON(serializedNode)
+    const { altText, height, width, maxWidth, src, showCaption, uploaded, kind = 'unknown', status = 'idle' } = serializedNode
+    const node = $createMediaNode({ altText, height, width, maxWidth, src, showCaption, uploaded }).updateFromJSON(serializedNode)
     node.__kind = kind
     node.__status = status
     return node
@@ -135,7 +145,7 @@ export class MediaNode extends DecoratorNode {
     caption,
     captionText,
     captionsEnabled,
-    innerType,
+    uploaded,
     key
   ) {
     super(key)
@@ -145,7 +155,7 @@ export class MediaNode extends DecoratorNode {
     this.__width = width || 'inherit'
     this.__height = height || 'inherit'
     this.__showCaption = showCaption || false
-    this.__innerType = innerType
+    this.__uploaded = uploaded ?? AWS_S3_URL_REGEXP.test(src)
     this.__caption =
       caption ||
       createEditor({
@@ -182,7 +192,7 @@ export class MediaNode extends DecoratorNode {
       showCaption: this.__showCaption,
       src: this.getSrc(),
       width: this.__width === 'inherit' ? 0 : this.__width,
-      innerType: this.__innerType,
+      uploaded: this.__uploaded,
       kind: this.__kind,
       status: this.__status
     }

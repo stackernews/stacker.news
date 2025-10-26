@@ -35,6 +35,7 @@ span.sn__mediaContainer {
   display: inline-block;
   position: relative;
   user-select: none;
+  --max-width: 500px;
 }
 
 span.sn__mediaContainer .outlawed {

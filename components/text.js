@@ -110,8 +110,6 @@ function useOverflow ({ element, truncated = false }) {
 }
 
 export function LexicalText ({ lexicalState, html, topLevel, imgproxyUrls, rel = UNKNOWN_LINK_REL, outlawed, children }) {
-  // TODO: add support for imgproxyUrls
-  // TODO: disable links if outlawed
   const [element, setElement] = useState(null)
   const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
 

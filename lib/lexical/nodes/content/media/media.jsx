@@ -206,6 +206,9 @@ export class MediaNode extends DecoratorNode {
     if (className !== undefined) {
       span.className = className
     }
+    // new media shall enforce a max width in-editor
+    const max = this.__maxWidth ?? 500
+    span.style.setProperty('--max-width', `${max}px`)
     return span
   }
 

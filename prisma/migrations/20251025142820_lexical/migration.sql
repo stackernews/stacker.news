@@ -12,6 +12,8 @@ ALTER TABLE "Item" ADD CONSTRAINT "Item_unique_time_constraint"
     md5(COALESCE("title", '')) WITH =,
     md5(COALESCE("subName", '')) WITH =,
     md5(COALESCE("text", '')) WITH =,
+    -- well okay, what if lexicalState is so slightly different?
+    -- we should do more checks
     md5(COALESCE("lexicalState"::text, '')) WITH =,
     tsrange(created_at, created_at + INTERVAL '10 minutes') WITH &&
   )

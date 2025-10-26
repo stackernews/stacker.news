@@ -19,7 +19,6 @@ export default function MediaResizer ({
   onResizeEnd,
   buttonRef,
   imageRef,
-  maxWidth,
   editor,
   showCaption,
   setShowCaption,
@@ -43,9 +42,12 @@ export default function MediaResizer ({
   })
 
   const editorRootElement = editor.getRootElement()
-  const maxWidthContainer = maxWidth || (editorRootElement !== null
+  const maxWidthContainer = (editorRootElement !== null
     ? editorRootElement.getBoundingClientRect().width - 20
     : 100)
+
+  const MAX_MEDIA_WIDTH = 500
+  const maxWidthDragLimit = Math.min(maxWidthContainer, MAX_MEDIA_WIDTH)
 
   const maxHeightContainer = editorRootElement !== null
     ? editorRootElement.getBoundingClientRect().height - 20
@@ -133,6 +135,7 @@ export default function MediaResizer ({
     controlWrapper.classList.add(styles.imageControlWrapperResizing)
     image.style.height = `${height}px`
     image.style.width = `${width}px`
+    image.style.maxWidth = `${maxWidthDragLimit}px`
 
     document.addEventListener('pointermove', handlePointerMove)
     document.addEventListener('pointerup', handlePointerUp)
@@ -157,7 +160,7 @@ export default function MediaResizer ({
         const width = clamp(
           positioning.startWidth + diff,
           minWidth,
-          maxWidthContainer
+          maxWidthDragLimit
         )
 
         const height = width / positioning.ratio
@@ -184,7 +187,7 @@ export default function MediaResizer ({
         const width = clamp(
           positioning.startWidth + diff,
           minWidth,
-          maxWidthContainer
+          maxWidthDragLimit
         )
 
         image.style.width = `${width}px`

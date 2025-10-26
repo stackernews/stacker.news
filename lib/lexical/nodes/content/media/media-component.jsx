@@ -34,7 +34,6 @@ export function MediaOrLink ({
   nodeKey,
   width,
   height,
-  maxWidth,
   resizable,
   showCaption,
   caption,
@@ -206,7 +205,7 @@ export function MediaOrLink ({
             rel={rel}
             kind={kind}
             linkFallback={false}
-            preTailor={{ width, height, maxWidth }}
+            preTailor={{ width, height }}
             onError={() => setIsLoadError(true)}
             className={isFocused ? `focused ${$isNodeSelection(selection) ? 'draggable' : ''}` : null}
             imageRef={mediaRef}
@@ -238,7 +237,6 @@ export function MediaOrLink ({
             editor={editor}
             buttonRef={buttonRef}
             imageRef={mediaRef}
-            maxWidth={maxWidth}
             onResizeStart={onResizeStart}
             onResizeEnd={onResizeEnd}
             captionsEnabled={!isLoadError && captionsEnabled}

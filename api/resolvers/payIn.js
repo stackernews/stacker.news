@@ -496,8 +496,19 @@ async function getPayInFull ({ models, query, orderBy = Prisma.empty }) {
                 || jsonb_build_object(
                       'payOutCustodialTokens',
                         (
-                          SELECT COALESCE(jsonb_agg(to_jsonb(po.*) ORDER BY po.id), '[]'::jsonb)
+                          SELECT COALESCE(jsonb_agg(to_jsonb(po.*)
+                            || jsonb_build_object('user', to_jsonb(u.*),
+                            'subPayOutCustodialToken',
+                              (SELECT to_jsonb(spo.*) || jsonb_build_object('sub', to_jsonb(s.*))
+                                FROM "SubPayOutCustodialToken" spo
+                                JOIN "Sub" s ON s."name" = spo."subName"
+                                WHERE spo."payOutCustodialTokenId" = po.id
+                                LIMIT 1
+                              )
+                            )
+                          ORDER BY po.id), '[]'::jsonb)
                           FROM "PayOutCustodialToken" po
+                          LEFT JOIN users u ON u.id = po."userId"
                           WHERE po."payInId" = benef.id
                         )
                     )

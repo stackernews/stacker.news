@@ -150,7 +150,14 @@ export default forwardRef(function Reply ({
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <LexicalInput name='text' placeholder={placeholder} autoFocus={reply && !replyOpen} bridgeRef={bridgeRef} />
+              <LexicalInput
+                name='text'
+                placeholder={placeholder}
+                autoFocus={reply && !replyOpen}
+                bridgeRef={bridgeRef}
+                appendValue={quote}
+                topLevel
+              />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>
           </FeeButtonProvider>

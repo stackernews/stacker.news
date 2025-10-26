@@ -115,6 +115,8 @@ export default function FileUploadPlugin () {
       const nodes = [$createMediaNode({ src: url })]
       nodes.forEach(mediaNode => node.replace(mediaNode))
     })
+    // refresh upload fees after the update is complete
+    editor.read(() => $refreshUploadFees())
     setSubmitDisabled?.(false)
   }, [editor, setSubmitDisabled])
 
@@ -144,9 +146,9 @@ export default function FileUploadPlugin () {
 
   // update upload fees when the editor state changes in any way, debounced
   useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
+    return editor.registerUpdateListener(() =>
       $refreshUploadFeesDebounced()
-    })
+    )
   }, [editor, $refreshUploadFeesDebounced])
 
   // updates upload fees the moment media nodes are created or destroyed

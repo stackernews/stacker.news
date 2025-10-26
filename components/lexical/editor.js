@@ -39,13 +39,16 @@ import { MediaCheckExtension } from './plugins/misc/media-check'
 import LocalDraftPlugin from './plugins/core/localdraft'
 import FormikBridgePlugin from './plugins/core/formik'
 
-export default function Editor ({ name, ...props }) {
+export default function Editor ({ name, appendValue, ...props }) {
   const { prefs } = useLexicalPreferences()
   const { values } = useFormikContext()
 
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: (editor) => {
+        if (appendValue) {
+          return editor.update(() => $initializeMarkdown(appendValue))
+        }
         // if initial state, parse it
         if (values.lexicalState) {
           try {

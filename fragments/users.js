@@ -234,7 +234,6 @@ export const TOP_USERS = gql`
         optional {
           stacked(when: $when, from: $from, to: $to)
           spent(when: $when, from: $from, to: $to)
-          referrals(when: $when, from: $from, to: $to)
         }
         ...StreakFields
       }
@@ -256,7 +255,6 @@ export const TOP_COWBOYS = gql`
         optional {
           stacked(when: "forever")
           spent(when: "forever")
-          referrals(when: "forever")
         }
         ...StreakFields
       }

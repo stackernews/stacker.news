@@ -21,16 +21,14 @@ const Items = ({ user }) => (
   <Link href={`/${user.name}/all`} className='text-reset'>
     {numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}
   </Link>)
-const Referrals = ({ user }) => (user.optional.referrals !== null && <span>{numWithUnits(user.optional.referrals, { unitSingular: 'referral', unitPlural: 'referrals' })}</span>)
 const Seperator = () => (<span> \ </span>)
 
 const STAT_POS = {
   stacked: 0,
   spent: 1,
-  items: 2,
-  referrals: 4
+  items: 2
 }
-const STAT_COMPONENTS = [Stacked, Spent, Items, Referrals]
+const STAT_COMPONENTS = [Stacked, Spent, Items]
 
 function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])

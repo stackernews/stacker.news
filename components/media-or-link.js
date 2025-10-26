@@ -7,7 +7,7 @@ import classNames from 'classnames'
 import { useCarousel } from './carousel'
 import preserveScroll from './preserve-scroll'
 
-function LinkRaw ({ href, children, src, rel }) {
+export function LinkRaw ({ href, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
   return (
     // eslint-disable-next-line

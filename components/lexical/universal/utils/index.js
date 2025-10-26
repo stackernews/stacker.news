@@ -46,7 +46,11 @@ export function $isMarkdownMode () {
 }
 
 export function $isRootEmpty () {
-  if (!$isMarkdownMode()) return $isRootTextContentEmpty()
+  if (!$isMarkdownMode()) {
+    const root = $getRoot()
+    const children = root.getChildren()
+    return children.length === 0 || (children.length === 1 && $isRootTextContentEmpty())
+  }
   const root = $getRoot()
   const firstChild = root.getFirstChild()
   return $isMarkdownNode(firstChild) && firstChild.getTextContent().trim() === ''

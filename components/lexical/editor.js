@@ -68,7 +68,8 @@ export default function Editor ({ name, ...props }) {
       namespace: 'SN',
       nodes: DefaultNodes,
       dependencies: [CodeShikiSNExtension, MarkdownModeExtension, MediaCheckExtension],
-      theme
+      theme,
+      onError: (error) => console.error('error loading editor:', error.message)
     }), [])
 
   return (

@@ -17,7 +17,7 @@ import {
   KEY_ESCAPE_COMMAND, RIGHT_CLICK_IMAGE_COMMAND, SELECTION_CHANGE_COMMAND
 } from 'lexical'
 import MentionsPlugin from '@/components/lexical/plugins/decorative/mentions'
-import { MediaOrLinkExperimental } from '@/components/media-or-link'
+import { MediaOrLinkExperimental, LinkRaw } from '@/components/media-or-link'
 import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
 import { $isMediaNode } from './media'
 import MediaResizer from './media-resizer'
@@ -194,6 +194,10 @@ export function MediaOrLink ({
   const draggable = isSelected && $isNodeSelection(selection) && !isResizing
   const isFocused = (isSelected || isResizing) && isEditable
 
+  if (isLoadError) {
+    return <LinkRaw src={src} rel={rel}>{src}</LinkRaw>
+  }
+
   return (
     <Suspense fallback={null}>
       <>
@@ -247,7 +251,7 @@ export function MediaOrLink ({
   )
 }
 
-export default function MediaComponent ({ src, ...props }) {
+export default function MediaComponent ({ src, status, ...props }) {
   const { imgproxyUrls, rel, outlawed } = useLexicalItemContext()
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
   const srcSet = imgproxyUrls?.[url]
@@ -256,6 +260,10 @@ export default function MediaComponent ({ src, ...props }) {
 
   if (outlawed) {
     return <p className='outlawed'>{url}</p>
+  }
+
+  if (status === 'error') {
+    return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
   }
 
   return <MediaOrLink srcSet={srcSet} src={src} rel={rel} {...props} />

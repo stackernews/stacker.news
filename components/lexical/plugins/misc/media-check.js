@@ -71,7 +71,6 @@ export const MediaCheckExtension = defineExtension({
             const node = $getNodeByKey(nodeKey)
             if (node instanceof MediaNode) node.setStatus('error')
           })
-          throw error
         })
         .finally(() => {
           // clean up abort controller if it's still the current one

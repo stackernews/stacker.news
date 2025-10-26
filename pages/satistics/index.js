@@ -24,7 +24,7 @@ export function SatisticsHeader () {
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
+          <Link href='/satistics' passHref legacyBehavior>
             <Nav.Link eventKey='history'>history</Nav.Link>
           </Link>
         </Nav.Item>

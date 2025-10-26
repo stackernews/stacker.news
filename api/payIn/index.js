@@ -241,7 +241,9 @@ export async function onPaid (tx, payInId) {
     where: { id: payInId },
     include: {
       payOutBolt11: true,
-      beneficiaries: true
+      beneficiaries: true,
+      // need this for obtaining row level locks on the payOutCustodialTokens
+      payOutCustodialTokens: true
     }
   })
   if (!payIn) {

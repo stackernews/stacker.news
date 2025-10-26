@@ -25,7 +25,7 @@ function timeHelper (when, from, to) {
   const step = Prisma.sql`${`1 ${granularity}`}::interval`
   const clamp = granularity === 'HOUR' ? Prisma.empty : Prisma.sql`- ${step}`
   const series = Prisma.sql`
-    SELECT generate_series(date_trunc(${granularity}, ${fromDate}::timestamptz), date_trunc(${granularity}, ${toDate}::timestamptz ${clamp}), ${step})::timestamp at time zone 'America/Chicago' as "timeBucket"
+    SELECT generate_series(date_trunc(${granularity}, ${fromDate}::timestamptz at time zone 'America/Chicago'), date_trunc(${granularity}, ${toDate}::timestamptz at time zone 'America/Chicago' ${clamp}), ${step})::timestamp at time zone 'America/Chicago' as "timeBucket"
   `
   return { fromDate, toDate, granularity, step, series }
 }

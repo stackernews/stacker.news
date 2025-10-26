@@ -17,7 +17,7 @@ import { payOutCustodialTokenFromBolt11 } from './lib/payOutCustodialTokens'
 import createPrisma from '@/lib/create-prisma'
 const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
-export default async function pay (payInType, payInArgs, { me }) {
+export default async function pay (payInType, payInArgs, { me, custodialOnly }) {
   try {
     const payInModule = payInTypeModules[payInType]
 
@@ -34,7 +34,7 @@ export default async function pay (payInType, payInArgs, { me }) {
     me ??= { id: USER_ID.anon }
 
     const payIn = await payInModule.getInitial(models, payInArgs, { me })
-    return await begin(models, payIn, payInArgs, { me })
+    return await begin(models, payIn, payInArgs, { me, custodialOnly })
   } catch (e) {
     console.error('payIn failed', e)
     throw e
@@ -57,7 +57,7 @@ export async function paySystemOnly (payInType, payInArgs, { models, me }) {
     }
 
     const payIn = await payInModule.getInitial(models, payInArgs, { me })
-    return await begin(models, payIn, payInArgs, { me })
+    return await begin(models, payIn, payInArgs, { me, custodialOnly: true })
   } catch (e) {
     console.error('paySystemOnly failed', e)
     throw e
@@ -80,10 +80,14 @@ async function obtainRowLevelLocks (tx, payIn) {
   await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR UPDATE`
 }
 
-async function begin (models, payInInitial, payInArgs, { me }) {
+async function begin (models, payInInitial, payInArgs, { me, custodialOnly }) {
   const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
     await obtainRowLevelLocks(tx, payInInitial)
     const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, payInArgs, { me })
+
+    if (mCostRemaining > 0n && custodialOnly) {
+      throw new Error('Insufficient funds')
+    }
 
     // if it's pessimistic, we don't perform the action until the invoice is held
     if (payIn.pessimisticEnv) {

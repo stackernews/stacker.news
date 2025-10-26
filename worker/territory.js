@@ -6,6 +6,9 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
   const sub = await models.sub.findUnique({
     where: {
       name: subName
+    },
+    include: {
+      user: true
     }
   })
 
@@ -36,7 +39,8 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
     const { result } = await pay('TERRITORY_BILLING',
       { name: subName }, {
         models,
-        me: sub.user
+        me: sub.user,
+        custodialOnly: true
       })
     if (!result) {
       throw new Error('not enough fee credits to auto-renew territory')

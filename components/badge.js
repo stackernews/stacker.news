@@ -51,7 +51,6 @@ export default function Badges ({ user, badge, bot, className = 'ms-1', badgeCla
   if (user.optional.infected) {
     badges.push({
       icon: BioHazardIcon,
-      sizeDelta: 2,
       overlayText: 'infected'
     })
   }

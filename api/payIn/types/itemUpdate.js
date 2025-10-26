@@ -1,12 +1,13 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { uploadFees } from '../../resolvers/upload'
-import { getItemMentions, getItemResult, getMentions, getSub, performBotBehavior } from '../lib/item'
+import { getItemMentions, getMentions, getSub, performBotBehavior } from '../lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import { satsToMsats } from '@/lib/format'
 import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
+import { getItem } from '@/api/resolvers/item'
 export const anonable = true
 
 export const paymentMethods = [
@@ -171,7 +172,7 @@ export async function onBegin (tx, payInId, args) {
 
   await performBotBehavior(tx, args)
 
-  return getItemResult(tx, { id })
+  return await getItem(null, { id }, { models: tx, me: { id: old.userId } })
 }
 
 export async function onPaidSideEffects (models, payInId) {

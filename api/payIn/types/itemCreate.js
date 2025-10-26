@@ -1,12 +1,13 @@
 import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
-import { getItemMentions, getMentions, performBotBehavior, getSub, getItemResult } from '../lib/item'
+import { getItemMentions, getMentions, performBotBehavior, getSub } from '../lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
+import { getItem } from '@/api/resolvers/item'
 
 export const anonable = true
 
@@ -159,12 +160,12 @@ export async function onBegin (tx, payInId, args) {
 
   await performBotBehavior(tx, { ...item, userId: payIn.userId })
 
-  return await getItemResult(tx, { id: item.id })
+  return await getItem(null, { id: item.id }, { models: tx, me: { id: payIn.userId } })
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  const { itemId } = await tx.itemPayIn.findUnique({ where: { payInId: oldPayInId } })
-  return await getItemResult(tx, { id: itemId })
+  const itemPayIn = await tx.itemPayIn.findUnique({ where: { payInId: oldPayInId }, include: { payIn: true } })
+  return await getItem(null, { id: itemPayIn.itemId }, { models: tx, me: { id: itemPayIn.payIn.userId } })
 }
 
 export async function onPaid (tx, payInId) {

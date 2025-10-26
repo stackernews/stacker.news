@@ -225,13 +225,21 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
 }
 
 async function isImmune (userId, { tx }) {
+  // immunity lasts one hour less every day until a minimum of 1 hour is reached
+  const difficulty = Math.max(1, HALLOWEEN_IMMUNITY_HOURS - daysSinceHalloween())
   const item = await tx.item.findFirst({
     where: {
       userId,
-      createdAt: { gt: datePivot(new Date(), { hours: -HALLOWEEN_IMMUNITY_HOURS }) }
+      createdAt: { gt: datePivot(new Date(), { hours: -difficulty }) }
     }
   })
   return !!item
+}
+
+function daysSinceHalloween () {
+  // return 0 if Halloween has not happened yet else return the days since Halloween
+  const diffTime = new Date().getTime() - new Date('2025-10-31').getTime()
+  return Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)))
 }
 
 async function maybeInfectUser (itemAct, { tx }) {

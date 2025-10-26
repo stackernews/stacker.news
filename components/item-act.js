@@ -111,11 +111,11 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       }
     }
 
-    const onPaid = (cache, { data }) => {
+    const onPaid = (cache, { data } = {}) => {
       animate()
       onClose?.()
       if (!me) setItemMeAnonSats({ id: item.id, amount })
-      infectOnPaid(cache, { me, data })
+      if (cache && data) infectOnPaid(cache, { me, data })
     }
 
     const closeImmediately = hasSendWallet || me?.privates?.sats > Number(amount)
@@ -135,13 +135,16 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
             act: {
               __typename: 'ItemActPaidAction',
               result: {
-                id: item.id, sats: Number(amount), act, path: item.path
+                id: item.id, sats: Number(amount), immune: true, act, path: item.path
               }
             }
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
-      onPaid: closeImmediately ? undefined : onPaid
+      // but still trigger halloween infection
+      onPaid: closeImmediately
+        ? (cache, { data }) => infectOnPaid(cache, { me, data })
+        : onPaid
     })
     if (error) throw error
     addCustomTip(Number(amount))

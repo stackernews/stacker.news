@@ -136,6 +136,7 @@ export default {
           AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
           AND "PayIn"."userId" = ${me.id}
           AND "PayIn"."successorId" IS NULL
+          AND "PayIn"."benefactorId" IS NULL
           AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
           AND "PayIn"."payInStateChangedAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
           AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}

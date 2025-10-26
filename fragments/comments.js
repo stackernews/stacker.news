@@ -29,6 +29,7 @@ export const COMMENT_FIELDS = gql`
     payIn {
       id
       payInState
+      payInType
       payInStateChangedAt
       payerPrivates {
         payInFailureReason

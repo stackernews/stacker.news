@@ -361,6 +361,7 @@ export default {
           AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
           AND "PayIn"."userId" = $1
           AND "PayIn"."successorId" IS NULL
+          AND "PayIn"."benefactorId" IS NULL
           AND "PayIn"."payInStateChangedAt" < $2
           AND (
             "PayIn"."payInFailureReason" = 'USER_CANCELLED'

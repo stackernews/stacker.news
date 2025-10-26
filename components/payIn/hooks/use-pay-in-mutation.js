@@ -8,12 +8,12 @@ import usePayPayIn from '@/components/payIn/hooks/use-pay-pay-in'
 import { getOperationName } from '@apollo/client/utilities'
 import { useMe } from '@/components/me'
 import { USER_ID } from '@/lib/constants'
-import { RETRY_PAY_IN } from '@/fragments/payIn'
+import { willAutoRetryPayIn } from './use-auto-retry-pay-ins'
 
 /*
 this is just like useMutation with a few changes:
 1. pays an invoice returned by the mutation
-2. takes an onPaid and onPayError callback, and additional options for payment behavior
+2. takes an onPaid, onRetry, and onPayError callback, and additional options for payment behavior
   - namely forceWaitForPayment which will always wait for the invoice to be paid
   - and persistOnNavigate which will keep the invoice in the cache after navigation
 3. onCompleted behaves a little differently, but analogously to useMutation, ie clientside side effects
@@ -43,25 +43,13 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 
     // use the most inner callbacks/options if they exist
     const {
-      onPaid, onPayError, forceWaitForPayment, persistOnNavigate,
+      onPaid, onRetry, onPayError, forceWaitForPayment, persistOnNavigate,
       update, waitFor = payIn => payIn?.payInState === 'PAID'
     } = { ...options, ...innerOptions }
     // onCompleted needs to run after the payIn is paid for pessimistic updates, so we give it special treatment
     const ourOnCompleted = innerOnCompleted || onCompleted
 
     const payIn = data[mutationName]
-
-    const updateForRetry = (error) => {
-      return function (cache, { data }) {
-        const retryData = {
-          [mutationName]: data[getOperationName(RETRY_PAY_IN)]
-        }
-        onPayError?.(error, client.cache, { data: retryData })
-        if (update) {
-          update(cache, { data: retryData })
-        }
-      }
-    }
 
     // if the mutation returns in a pending state, it has an invoice we need to pay
     let payError
@@ -72,7 +60,7 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
         // the action is pessimistic
         try {
           // wait for the invoice to be paid
-          const paidPayIn = await payPayIn(payIn, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, updateForRetry })
+          const paidPayIn = await payPayIn(payIn, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, onRetry })
           console.log('payInMutation: paidPayIn', paidPayIn)
           // we need to run update functions on mutations now that we have the data
           const data = { [mutationName]: paidPayIn }
@@ -89,13 +77,16 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
         // onCompleted is called before the invoice is paid for optimistic updates
         ourOnCompleted?.(data)
         // don't wait to pay the invoice
-        payPayIn(payIn, { persistOnNavigate, waitFor, updateForRetry }).then((paidPayIn) => {
+        payPayIn(payIn, { persistOnNavigate, waitFor, onRetry }).then((paidPayIn) => {
           // invoice might have been retried during payment
           onPaid?.(client.cache, { data: { [mutationName]: paidPayIn } })
         }).catch(e => {
           console.error('usePayInMutation: failed to pay for optimistic mutation', mutationName, e)
-          // onPayError is called after the invoice fails to pay
-          onPayError?.(e, client.cache, { data })
+          // onPayError is called after the invoice fails to pay, but only if we're not automatically retrying
+          // because if we're automatically retrying, we want the optimistic cache to persist
+          if (e instanceof InvoiceCanceledError || !willAutoRetryPayIn(payIn)) {
+            onPayError?.(e, client.cache, { data })
+          }
           payError = e
         })
       }
@@ -134,7 +125,8 @@ function addOptimisticResponseExtras (mutation, payInOptimisticResponse, me) {
         userId: me?.id ?? USER_ID.anon,
         payInFailureReason: null,
         payInCustodialTokens: [],
-        pessimisticEnv: null
+        pessimisticEnv: null,
+        retryCount: 0
       }
     : payInOptimisticResponse.payerPrivates
   return {

@@ -39,6 +39,7 @@ export const ITEM_FIELDS = gql`
     payIn {
       id
       payInState
+      payInType
       payInStateChangedAt
       payerPrivates {
         payInFailureReason

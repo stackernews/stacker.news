@@ -40,6 +40,7 @@ import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
 import { useRetryPayIn, useRetryBountyPayIn, useRetryItemActPayIn } from './payIn/hooks/use-retry-pay-in'
+import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -414,6 +415,10 @@ function PayInFailed ({ n }) {
             payInType
             payInState
             payInStateChangedAt
+            payerPrivates {
+              retryCount
+              payInFailureReason
+            }
           }
         }
       `,
@@ -423,11 +428,12 @@ function PayInFailed ({ n }) {
     })
   }, [n.id])
 
-  const retryPayIn = useRetryPayIn(payIn.id, { update: updatePayIn })
+  const mutationOptions = { update: updatePayIn, onRetry: updatePayIn }
+  const retryPayIn = useRetryPayIn(payIn.id, mutationOptions)
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
   const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
-  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
-  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { update: updatePayIn, optimisticResponse })
+  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
+  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
 
   const [actionString, colorClass, retry] = useMemo(() => {
     let retry
@@ -457,17 +463,17 @@ function PayInFailed ({ n }) {
     }
     let colorClass = 'info'
     switch (payIn.payInState) {
-      case 'FAILED':
-      case 'CANCELLED':
-        actionString += 'failed'
-        colorClass = 'warning'
-        break
       case 'PAID':
         actionString += 'paid'
         colorClass = 'success'
         break
       default:
-        actionString += 'pending'
+        if (willAutoRetryPayIn(payIn) || payIn.payInState !== 'FAILED') {
+          actionString += 'pending'
+        } else {
+          actionString += 'failed'
+          colorClass = 'warning'
+        }
     }
     return [actionString, colorClass, retry]
   }, [payIn, item, retryPayIn, retryBountyPayIn, retryItemActPayIn])
@@ -477,7 +483,7 @@ function PayInFailed ({ n }) {
       <NoteHeader color={colorClass}>
         {actionString}
         <span className='ms-1 text-muted fw-light'> {numWithUnits(msatsToSats(payIn.mcost))}</span>
-        <span className={['FAILED', 'CANCELLED'].includes(payIn.payInState) ? 'visible' : 'invisible'}>
+        <span className={['FAILED'].includes(payIn.payInState) && !willAutoRetryPayIn(payIn) ? 'visible' : 'invisible'}>
           <Button
             size='sm' variant={classNames('outline-warning ms-2 border-1 rounded py-0', disableRetry && 'pulse')}
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}

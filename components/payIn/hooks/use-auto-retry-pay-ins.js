@@ -7,9 +7,14 @@ import { useCallback, useEffect } from 'react'
 import { WalletConfigurationError } from '@/wallets/client/errors'
 import { NORMAL_POLL_INTERVAL_MS, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 
-export function shouldAutoRetryPayIn (payIn) {
-  const { payInState, payInStateChangedAt, payerPrivates: { payInFailureReason, retryCount } } = payIn
-  return payInState !== 'PAID' && retryCount < WALLET_MAX_RETRIES && new Date(payInStateChangedAt) > new Date(Date.now() - WALLET_RETRY_BEFORE_MS) && payInFailureReason !== 'USER_CANCELLED'
+export function willAutoRetryPayIn (payIn) {
+  if (!payIn || !payIn.payerPrivates) return false
+  const { payInState, payInType, payInStateChangedAt, payerPrivates: { payInFailureReason, retryCount } } = payIn
+  return payInState !== 'PAID' &&
+    ['ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST'].includes(payInType) &&
+    retryCount < WALLET_MAX_RETRIES &&
+    new Date(payInStateChangedAt) > new Date(Date.now() - WALLET_RETRY_BEFORE_MS) &&
+    payInFailureReason !== 'USER_CANCELLED'
 }
 
 export function useAutoRetryPayIns () {

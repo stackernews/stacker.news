@@ -335,7 +335,7 @@ export async function onPaidSideEffects (models, payInId) {
 export async function retry (payInId, { me }) {
   try {
     const include = { payOutCustodialTokens: true, payOutBolt11: true, subPayIn: true, itemPayIn: true, uploadPayIns: true }
-    const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: null }
+    const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: null, benefactorId: null }
 
     const payInFailed = await models.payIn.findFirst({
       where,

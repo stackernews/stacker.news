@@ -51,7 +51,7 @@ export default {
         WITH series AS (
           ${series}
         )
-        SELECT series."timeBucket" AT TIME ZONE 'America/Chicago' AT TIME ZONE 'UTC' as time, json_build_array(
+        SELECT series."timeBucket" as time, json_build_array(
           json_build_object('name', 'invited', 'value', COALESCE(sum("invitedCount"), 0)),
           json_build_object('name', 'referrals', 'value', COALESCE(sum("referredCount"), 0) - COALESCE(sum("invitedCount"), 0)),
           json_build_object('name', 'organic', 'value', COALESCE(sum("count"), 0) - COALESCE(sum("referredCount"), 0))
@@ -72,7 +72,7 @@ export default {
           SELECT "timeBucket", "payInType"
           FROM series, unnest(enum_range(NULL::"PayInType")) domain("payInType")
         )
-        SELECT grid."timeBucket" AT TIME ZONE 'America/Chicago' AT TIME ZONE 'UTC' as time, json_agg(
+        SELECT grid."timeBucket" as time, json_agg(
           json_build_object('name', grid."payInType", 'value', ${countClause(sub, mine ? me : null)})
         ) AS data
         FROM grid
@@ -95,7 +95,7 @@ export default {
           SELECT "timeBucket", "payInType"
           FROM series, unnest(enum_range(NULL::"PayInType")) domain("payInType")
         )
-        SELECT grid."timeBucket" AT TIME ZONE 'America/Chicago' AT TIME ZONE 'UTC' as time, json_agg(
+        SELECT grid."timeBucket" as time, json_agg(
           json_build_object('name', grid."payInType", 'value', COALESCE("sumMcost", 0) / 1000)
         ) AS data
         FROM grid
@@ -116,7 +116,7 @@ export default {
           SELECT "timeBucket", "payInType"
           FROM series, unnest(enum_range(NULL::"PayInType")) domain("payInType")
         )
-        SELECT grid."timeBucket" AT TIME ZONE 'America/Chicago' AT TIME ZONE 'UTC' as time, json_agg(
+        SELECT grid."timeBucket" as time, json_agg(
           json_build_object('name', grid."payInType", 'value', COALESCE("countGroup", 0))
         ) AS data
         FROM grid
@@ -139,7 +139,7 @@ export default {
           SELECT "timeBucket", "payOutType"
           FROM series, unnest(enum_range(NULL::"PayOutType")) domain("payOutType")
         )
-        SELECT grid."timeBucket" AT TIME ZONE 'America/Chicago' AT TIME ZONE 'UTC' as time, json_agg(
+        SELECT grid."timeBucket" as time, json_agg(
           json_build_object('name', grid."payOutType", 'value', ${countClause(sub, mine ? me : null)})
         ) AS data
         FROM grid
@@ -161,7 +161,7 @@ export default {
           SELECT "timeBucket", "payOutType"
           FROM series, unnest(enum_range(NULL::"PayOutType")) domain("payOutType")
         )
-        SELECT grid."timeBucket" AT TIME ZONE 'America/Chicago' AT TIME ZONE 'UTC' as time, json_agg(
+        SELECT grid."timeBucket" as time, json_agg(
           json_build_object('name', grid."payOutType", 'value', COALESCE("sumMtokens", 0) / 1000)
         ) AS data
         FROM grid

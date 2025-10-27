@@ -21,7 +21,7 @@ import ModeSwitcher from './plugins/core/mode/switch'
 import { ShortcutsExtension } from './extensions/core/shortcuts'
 import ToolbarPlugin from './plugins/toolbar'
 import { UniversalCommandsExtension } from './universal/commands'
-import { $initializeMarkdown } from './universal/utils'
+import { $initializeEditorState } from './universal/utils'
 import DefaultNodes from '@/lib/lexical/nodes'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import styles from './theme/theme.module.css'
@@ -45,7 +45,7 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
     defineExtension({
       $initialEditorState: (editor) => {
         if (appendValue) {
-          return editor.update(() => $initializeMarkdown(appendValue))
+          return $initializeEditorState(prefs.startInMarkdown, editor, appendValue)
         }
         // if initial state, parse it
         if (values.lexicalState) {
@@ -55,14 +55,16 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
               editor.setEditorState(state)
             // if the parsed state is empty and start in markdown, initialize markdown
             } else if (prefs.startInMarkdown) {
-              return editor.update(() => $initializeMarkdown())
+              return $initializeEditorState(true)
             }
           } catch (error) {
             console.error('cannot load initial state:', error)
           }
         // if no initial state and start in markdown, initialize markdown
         } else if (prefs.startInMarkdown) {
-          return editor.update(() => $initializeMarkdown())
+          return $initializeEditorState(true)
+        } else {
+          return $initializeEditorState(false)
         }
       },
       name: 'editor',

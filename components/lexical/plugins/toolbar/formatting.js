@@ -24,6 +24,7 @@ import { BLOCK_OPTIONS, FORMAT_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS
 import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
 import ActionTooltip from '@/components/action-tooltip'
+import BlocksIcon from '@/svgs/lexical/block/blocks.svg'
 
 // escapes the overflow rules of the FormattingTools component
 export const MenuAlternateDimension = forwardRef(({ children, style, className }, ref) => {
@@ -42,7 +43,7 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
     <ActionTooltip notForm overlayText={<>block options <strong>{toolbarState.blockType}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
       <Dropdown drop='up' className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
         <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, dropdownOpen ? styles.active : '')}>
-          {blockOption?.icon || <More />}
+          {blockOption?.icon || <BlocksIcon />}
           <ArrowDownIcon />
         </Dropdown.Toggle>
         <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>

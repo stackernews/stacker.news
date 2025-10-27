@@ -1,4 +1,4 @@
-import { $getRoot, $isRootOrShadowRoot, $createTextNode } from 'lexical'
+import { $getRoot, $isRootOrShadowRoot, $createTextNode, $createParagraphNode } from 'lexical'
 import { $isMarkdownNode, $createMarkdownNode } from '@/lib/lexical/nodes/core/markdown'
 import { $findMatchingParent } from '@lexical/utils'
 import { $isRootTextContentEmpty } from '@lexical/text'
@@ -55,11 +55,17 @@ export function $isRootEmpty () {
   return $isMarkdownNode(firstChild) && firstChild.getTextContent().trim() === ''
 }
 
-export function $initializeMarkdown (initialValue = '') {
-  const codeNode = $createMarkdownNode()
+export function $initializeEditorState (markdown, editor, initialValue = '') {
+  const node = markdown ? $createMarkdownNode() : $createParagraphNode()
   if (initialValue) {
-    codeNode.append($createTextNode(initialValue))
+    if (!markdown) {
+      editor.update(() => {
+        $convertFromMarkdownString(initialValue, SN_TRANSFORMERS)
+      })
+    } else {
+      node.append($createTextNode(initialValue))
+    }
   }
   const root = $getRoot()
-  root.clear().append(codeNode)
+  root.clear().append(node)
 }

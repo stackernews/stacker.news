@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: August 13, 2025
+last updated: October 20, 2025
 
 ---
 
@@ -84,19 +84,7 @@ Stacker News is non-custodial. To send and receive sats, you need to attach a wa
 
 Click [here](/wallets) or click on your name and select 'wallets'. You should then see this:
 
-![](https://m.stacker.news/100486)
-
-We currently support the following wallets:
-
-- [WebLN](https://www.webln.guide/ressources/webln-providers)
-- [Blink](https://www.blink.sv/) | [guide](https://stacker.news/items/705629/r/supratic)
-- [Core Lightning](https://docs.corelightning.org/) via [CLNRest](https://docs.corelightning.org/docs/rest) | [guide](https://stacker.news/items/545926/r/supratic)
-- [Lightning Node Connect](https://docs.lightning.engineering/lightning-network-tools/lightning-terminal/lightning-node-connect) (LNC)
-- [Lightning Network Daemon](https://github.com/lightningnetwork/lnd) (LND) via [gRPC](https://lightning.engineering/api-docs/api/lnd/) | [guide](https://stacker.news/items/704693/r/supratic)
-- [LNbits](https://lnbits.com/) | [guide](https://stacker.news/items/697132/r/supratic)
-- [Nostr Wallet Connect](https://nwc.dev/) (NWC) | [guide](https://stacker.news/items/698497/r/supratic)
-- [lightning address](https://strike.me/learn/what-is-a-lightning-address/) | [guide](https://stacker.news/items/694593/r/supratic)
-- [phoenixd](https://phoenix.acinq.co/server) | [guide](https://stacker.news/items/695912/r/supratic)
+![](https://m.stacker.news/112907)
 
 ### I can't find my wallet. Can I not attach one?
 
@@ -241,7 +229,7 @@ Upload fees are applied when you submit your post or comment.
 
 ### Are media uploads stored forever?
 
-Yes, if it was used in a post or comment. **Uploads that haven't been used within 24 hours in a post or comment are deleted.**
+Yes, if it was used in a post or comment. **Uploads that haven't been used within 7 days in a post or comment are deleted.**
 
 ### I no longer want to pay for my territory. What should I do?
 

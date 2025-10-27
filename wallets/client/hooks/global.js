@@ -1,17 +1,108 @@
-import { useCallback, useEffect, useState } from 'react'
+/**
+ * This file provides:
+ *   - the global context for the wallets
+ *   - the global hooks that are always mounted like:
+ *      - fetching wallets
+ *      - checking for invoices to retry
+ *      - generating or reading the CryptoKey from IndexedDB if it exists
+ *   - hooks to access the global context
+ */
+import { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react'
 import { useLazyQuery } from '@apollo/client'
-import { FAILED_INVOICES } from '@/fragments/invoice'
+
 import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
 import useInvoice from '@/components/use-invoice'
 import { useMe } from '@/components/me'
-import {
-  useWalletsQuery, useWalletPayment, useGenerateRandomKey, useSetKey, useLoadKey, useLoadOldKey,
-  useWalletMigrationMutation, CryptoKeyRequiredError, useIsWrongKey,
-  useWalletLogger
-} from '@/wallets/client/hooks'
-import { WalletConfigurationError } from '@/wallets/client/errors'
-import { SET_WALLETS, WRONG_KEY, KEY_MATCH, useWalletsDispatch, WALLETS_QUERY_ERROR, KEY_STORAGE_UNAVAILABLE } from '@/wallets/client/context'
 import { useIndexedDB } from '@/components/use-indexeddb'
+import { FAILED_INVOICES } from '@/fragments/invoice'
+import { isTemplate, isWallet } from '@/wallets/lib/util'
+import { useWeblnEvents } from '@/wallets/lib/protocols/webln'
+import { useWalletsQuery } from '@/wallets/client/hooks/query'
+import { useWalletPayment } from '@/wallets/client/hooks/payment'
+import { useGenerateRandomKey, useSetKey, useIsWrongKey, useDeleteOldDb } from '@/wallets/client/hooks/crypto'
+import { useWalletLogger } from '@/wallets/client/hooks/logger'
+import { WalletConfigurationError } from '@/wallets/client/errors'
+
+const WalletsContext = createContext(null)
+const WalletsDispatchContext = createContext(null)
+
+export function useWallets () {
+  const { wallets } = useContext(WalletsContext)
+  return wallets
+}
+
+export function useWalletsLoading () {
+  const { walletsLoading } = useContext(WalletsContext)
+  return walletsLoading
+}
+
+export function useTemplates () {
+  const { templates } = useContext(WalletsContext)
+  return templates
+}
+
+export function useWalletsError () {
+  const { walletsError } = useContext(WalletsContext)
+  return walletsError
+}
+
+export function useWalletsDispatch () {
+  return useContext(WalletsDispatchContext)
+}
+
+export function useKey () {
+  const { key } = useContext(WalletsContext)
+  return key
+}
+
+export function useKeyHash () {
+  const { keyHash } = useContext(WalletsContext)
+  return keyHash
+}
+
+export function useKeyUpdatedAt () {
+  const { keyUpdatedAt } = useContext(WalletsContext)
+  return keyUpdatedAt
+}
+
+export function useKeyError () {
+  const { keyError } = useContext(WalletsContext)
+  return keyError
+}
+
+export function WalletsProvider ({ children }) {
+  // https://react.dev/learn/scaling-up-with-reducer-and-context
+  const [state, dispatch] = useReducer(walletsReducer, {
+    wallets: [],
+    walletsLoading: true,
+    walletsError: null,
+    templates: [],
+    key: null,
+    keyHash: null,
+    keyUpdatedAt: null,
+    keyError: null
+  })
+
+  return (
+    <WalletsContext.Provider value={state}>
+      <WalletsDispatchContext.Provider value={dispatch}>
+        <WalletHooks>
+          {children}
+        </WalletHooks>
+      </WalletsDispatchContext.Provider>
+    </WalletsContext.Provider>
+  )
+}
+
+function WalletHooks ({ children }) {
+  useServerWallets()
+  useAutomatedRetries()
+  useKeyInit()
+  useDeleteLocalWallets()
+  useWeblnEvents()
+
+  return children
+}
 
 export function useServerWallets () {
   const dispatch = useWalletsDispatch()
@@ -120,8 +211,7 @@ export function useKeyInit () {
 
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
-  const loadKey = useLoadKey()
-  const loadOldKey = useLoadOldKey()
+  const deleteOldDb = useDeleteOldDb()
   const [db, setDb] = useState(null)
   const { open } = useIndexedDB()
 
@@ -150,13 +240,12 @@ export function useKeyInit () {
 
     async function keyInit () {
       try {
-        // TODO(wallet-v2): remove migration code
-        //   and delete the old IndexedDB after wallet v2 has been released for some time
+        // delete the old IndexedDB since wallet v2 has been released 2 months ago
+        await deleteOldDb()
 
-        // load old key and create random key before opening transaction in case we need them
+        // create random key before opening transaction in case we need it
         // because we can't run async code in a transaction because it will close the transaction
         // see https://javascript.info/indexeddb#transactions-autocommit
-        const oldKeyAndHash = await loadOldKey()
         const { key: randomKey, hash: randomHash } = await generateRandomKey()
 
         // run read and write in one transaction to avoid race conditions
@@ -174,12 +263,6 @@ export function useKeyInit () {
               // return key+hash found in db
               logger.debug('key init: key found in IndexedDB')
               return resolve(read.result)
-            }
-
-            if (oldKeyAndHash) {
-              // return key+hash found in old db
-              logger.debug('key init: key found in old IndexedDB')
-              return resolve(oldKeyAndHash)
             }
 
             // no key found, write and return generated random key
@@ -206,52 +289,82 @@ export function useKeyInit () {
       }
     }
     keyInit()
-  }, [me?.id, db, generateRandomKey, loadOldKey, setKey, loadKey, logger])
+  }, [me?.id, db, deleteOldDb, generateRandomKey, setKey, logger])
 }
 
-// TODO(wallet-v2): remove migration code
-// =============================================================
-// ****** Below is the migration code for WALLET v1 -> v2 ******
-//   remove when we can assume migration is complete (if ever)
-// =============================================================
-
-export function useWalletMigration () {
+export function useDeleteLocalWallets () {
   const { me } = useMe()
-  const { migrate: walletMigration, ready } = useWalletMigrationMutation()
 
   useEffect(() => {
-    if (!me?.id || !ready) return
+    if (!me?.id) return
 
-    async function migrate () {
-      const localWallets = Object.entries(window.localStorage)
-        .filter(([key]) => key.startsWith('wallet:'))
-        .filter(([key]) => key.split(':').length < 3 || key.endsWith(me.id))
-        .reduce((acc, [key, value]) => {
-          try {
-            const config = JSON.parse(value)
-            acc.push({ key, ...config })
-          } catch (err) {
-            console.error(`useLocalWallets: ${key}: invalid JSON:`, err)
-          }
-          return acc
-        }, [])
+    // we used to store wallets locally so this makes sure we delete them if there are any left over
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith('wallet:'))
+      .filter((key) => key.split(':').length < 3 || key.endsWith(me.id))
+      .forEach((key) => window.localStorage.removeItem(key))
+  }, [me?.id])
+}
 
-      await Promise.allSettled(
-        localWallets.map(async ({ key, ...localWallet }) => {
-          const name = key.split(':')[1].toUpperCase()
-          try {
-            await walletMigration({ ...localWallet, name })
-            window.localStorage.removeItem(key)
-          } catch (err) {
-            if (err instanceof CryptoKeyRequiredError) {
-              // key not set yet, skip this wallet
-              return
-            }
-            console.error(`${name}: wallet migration failed:`, err)
-          }
-        })
-      )
+export const KeyStatus = {
+  KEY_STORAGE_UNAVAILABLE: 'KEY_STORAGE_UNAVAILABLE',
+  WRONG_KEY: 'WRONG_KEY'
+}
+
+// wallet actions
+export const SET_WALLETS = 'SET_WALLETS'
+export const SET_KEY = 'SET_KEY'
+export const WRONG_KEY = 'WRONG_KEY'
+export const KEY_MATCH = 'KEY_MATCH'
+export const KEY_STORAGE_UNAVAILABLE = 'KEY_STORAGE_UNAVAILABLE'
+export const WALLETS_QUERY_ERROR = 'WALLETS_QUERY_ERROR'
+
+function walletsReducer (state, action) {
+  switch (action.type) {
+    case SET_WALLETS: {
+      const wallets = action.wallets
+        .filter(isWallet)
+        .sort((a, b) => a.priority === b.priority ? a.id - b.id : a.priority - b.priority)
+      const templates = action.wallets
+        .filter(isTemplate)
+        .sort((a, b) => a.name.localeCompare(b.name))
+      return {
+        ...state,
+        walletsLoading: false,
+        walletsError: null,
+        wallets,
+        templates
+      }
     }
-    migrate()
-  }, [ready, me?.id, walletMigration])
+    case WALLETS_QUERY_ERROR:
+      return {
+        ...state,
+        walletsLoading: false,
+        walletsError: action.error
+      }
+    case SET_KEY:
+      return {
+        ...state,
+        key: action.key,
+        keyHash: action.hash,
+        keyUpdatedAt: action.updatedAt
+      }
+    case WRONG_KEY:
+      return {
+        ...state,
+        keyError: KeyStatus.WRONG_KEY
+      }
+    case KEY_MATCH:
+      return {
+        ...state,
+        keyError: null
+      }
+    case KEY_STORAGE_UNAVAILABLE:
+      return {
+        ...state,
+        keyError: KeyStatus.KEY_STORAGE_UNAVAILABLE
+      }
+    default:
+      return state
+  }
 }

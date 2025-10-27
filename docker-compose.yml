@@ -35,8 +35,9 @@ services:
       - "5431:5432"
     env_file: *env_file
     volumes:
-      - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
-      - ./docker/db/wallet-seed.sql:/docker-entrypoint-initdb.d/wallet-seed.sql
+      # the prefix makes sure the seeds are executed in the correct order instead of alphabetical by default
+      - ./docker/db/000_seed.sql:/docker-entrypoint-initdb.d/000_seed.sql
+      - ./docker/db/001_wallet-seed.sql:/docker-entrypoint-initdb.d/001_wallet-seed.sql
       - db:/var/lib/postgresql/data
     labels:
       CONNECT: "localhost:5431"

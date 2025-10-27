@@ -1,7 +1,6 @@
-import { useEffect } from 'react'
 import { IS_APPLE } from '@lexical/utils'
 import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_HIGH, isModifierMatch } from 'lexical'
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import { defineExtension } from '@lexical/extension'
 import { SHORTCUTS } from './keyboard'
 
 // experimental
@@ -73,10 +72,10 @@ function matches (e, combo) {
   return false
 }
 
-export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
-  const [editor] = useLexicalComposerContext()
-
-  useEffect(() => {
+export const ShortcutsExtension = defineExtension({
+  name: 'ShortcutsExtension',
+  config: { shortcuts: SHORTCUTS },
+  register: (editor, { shortcuts }) => {
     return editor.registerCommand(
       KEY_DOWN_COMMAND,
       (e) => {
@@ -92,7 +91,5 @@ export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
       },
       COMMAND_PRIORITY_HIGH
     )
-  }, [editor, shortcuts])
-
-  return null
-}
+  }
+})

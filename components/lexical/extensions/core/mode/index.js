@@ -1,4 +1,4 @@
-import { CodeShikiSNExtension } from '@/components/lexical/plugins/core/code'
+import { CodeShikiSNExtension } from '@/components/lexical/extensions/core/code'
 import { defineExtension } from '@lexical/extension'
 import { createCommand, COMMAND_PRIORITY_EDITOR } from 'lexical'
 import { $toggleMarkdownMode } from '@/components/lexical/universal/utils'

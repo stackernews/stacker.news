@@ -1,32 +1,26 @@
 import { useFormikContext } from 'formik'
-import { defineExtension } from 'lexical'
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
-import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
+import { configExtension, defineExtension } from 'lexical'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
-import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
-import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
-import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
 import { useMemo, useState } from 'react'
 import classNames from 'classnames'
 import { useLexicalPreferences } from './contexts/preferences'
 import { useSharedHistoryContext, SharedHistoryContextProvider } from './contexts/sharedhistory'
 import { TableContextProvider } from './contexts/table'
 import { ToolbarContextProvider } from './contexts/toolbar'
-import { CodeShikiSNExtension, CodeThemePlugin } from './plugins/core/code'
+import { CodeShikiSNExtension, CodeThemePlugin } from './extensions/core/code'
 import FileUploadPlugin from './plugins/inserts/upload'
 import FloatingToolbarPlugin from './plugins/toolbar/floating/floatingtoolbar'
 import LinkTransformationPlugin from './plugins/inserts/links/transformator'
 import MentionsPlugin from './plugins/decorative/mentions'
 import ModeSwitcher from './plugins/core/mode/switch'
-import PreferencesPlugin from './plugins/core/preferences'
-import ShortcutsPlugin from './plugins/core/shortcuts'
+import { ShortcutsExtension } from './extensions/core/shortcuts'
 import ToolbarPlugin from './plugins/toolbar'
-import UniversalCommandsPlugin from './universal/commands'
+import { UniversalCommandsExtension } from './universal/commands'
 import { $initializeMarkdown } from './universal/utils'
 import DefaultNodes from '@/lib/lexical/nodes'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
@@ -34,12 +28,16 @@ import styles from './theme/theme.module.css'
 import theme from './theme'
 import { MaxLengthPlugin } from './plugins/misc/max-length'
 import TransformerBridgePlugin from './plugins/core/transformerbridge'
-import { MarkdownModeExtension } from './extensions/markdownmode'
+import { MarkdownModeExtension } from './extensions/core/mode'
 import { MediaCheckExtension } from './plugins/misc/media-check'
 import LocalDraftPlugin from './plugins/core/localdraft'
 import FormikBridgePlugin from './plugins/core/formik'
+import { CheckListExtension, ListExtension } from '@lexical/list'
+import { LinkExtension } from '@lexical/link'
+import { TableExtension } from '@lexical/table'
+import { AutoFocusExtension } from '@lexical/extension'
 
-export default function Editor ({ name, appendValue, ...props }) {
+export default function Editor ({ name, appendValue, autoFocus, ...props }) {
   const { prefs } = useLexicalPreferences()
   const { values } = useFormikContext()
 
@@ -70,10 +68,21 @@ export default function Editor ({ name, appendValue, ...props }) {
       name: 'editor',
       namespace: 'SN',
       nodes: DefaultNodes,
-      dependencies: [CodeShikiSNExtension, MarkdownModeExtension, MediaCheckExtension],
+      dependencies: [
+        CodeShikiSNExtension,
+        MarkdownModeExtension,
+        MediaCheckExtension,
+        ShortcutsExtension,
+        ListExtension,
+        CheckListExtension,
+        LinkExtension,
+        TableExtension,
+        UniversalCommandsExtension,
+        configExtension(AutoFocusExtension, { disabled: !autoFocus })
+      ],
       theme,
-      onError: (error) => console.error('error loading editor:', error.message)
-    }), [])
+      onError: (error) => console.error('stacker news editor has encountered an error:', error)
+    }), [autoFocus])
 
   return (
     <LexicalExtensionComposer extension={editor} contentEditable={null}>
@@ -119,14 +128,9 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel, bri
         </div>
         {/* shared history across editor and nested editors */}
         <HistoryPlugin externalHistoryState={historyState} />
-        {autoFocus && <AutoFocusPlugin />}
         {/* inserts */}
-        <ListPlugin />
-        <CheckListPlugin />
-        <TablePlugin />
         <FileUploadPlugin />
         {/* inserts: links */}
-        <LinkPlugin />
         <LinkTransformationPlugin anchorElem={floatingAnchorElem} />
         {/* decorative plugins */}
         <MentionsPlugin />
@@ -134,16 +138,11 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel, bri
         <CodeThemePlugin />
         {/* markdown */}
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
-        {/* markdown <-> wysiwyg commands */}
-        <UniversalCommandsPlugin />
         {/* markdown mode status and switch */}
         <div className={styles.bottomBar}>
           <ModeSwitcher />
-          <PreferencesPlugin />
         </div>
         {maxLength && <MaxLengthPlugin maxLength={maxLength} />}
-        {/* keyboard shortcuts */}
-        <ShortcutsPlugin />
         {/* floating toolbar */}
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
         {/* formik */}

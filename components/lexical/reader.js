@@ -6,7 +6,7 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { forwardRef, useMemo } from 'react'
 import classNames from 'classnames'
 import DefaultNodes from '@/lib/lexical/nodes'
-import { CodeShikiSNExtension, CodeThemePlugin } from './plugins/core/code'
+import { CodeShikiSNExtension, CodeThemePlugin } from './extensions/core/code'
 import styles from './theme/theme.module.css'
 import theme from './theme'
 
@@ -29,7 +29,8 @@ export default forwardRef(function Reader ({ lexicalState, className, children, 
       editable: false,
       nodes: DefaultNodes,
       dependencies: [CodeShikiSNExtension],
-      theme
+      theme,
+      onError: (error) => console.error('stacker news reader has encountered an error:', error)
     }), [])
 
   return (

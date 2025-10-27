@@ -17,6 +17,7 @@ async function $prepareMarkdown (editor, markdown) {
 
   const tempEditor = buildEditorFromExtensions(
     defineExtension({
+      onError: (error) => console.error('stacker news form bridge has encountered an error:', error),
       name: 'formikBridge',
       dependencies: [RichTextExtension, ListExtension, CheckListExtension, MediaCheckExtension],
       nodes: DefaultNodes,
@@ -55,8 +56,8 @@ async function $prepareMarkdown (editor, markdown) {
 
 export default function FormikBridgePlugin ({ bridgeRef }) {
   const [editor] = useLexicalComposerContext()
-  const [, , textHelpers] = useField({ name: 'text' })
-  const [, , lexicalHelpers] = useField({ name: 'lexicalState' })
+  const [,, textHelpers] = useField({ name: 'text' })
+  const [,, lexicalHelpers] = useField({ name: 'lexicalState' })
 
   // keep formik in sync, so it doesn't yell at us
   useEffect(() => {
@@ -80,10 +81,8 @@ export default function FormikBridgePlugin ({ bridgeRef }) {
   // prepares the lexical state for submission
   useImperativeHandle(bridgeRef, () => ({
     prepare: async () => {
-      console.log('prepare')
       try {
         return await editor.getEditorState().read(async () => {
-          console.log('prepare')
           const isMarkdownMode = $isMarkdownMode()
 
           let markdown = ''
@@ -109,7 +108,7 @@ export default function FormikBridgePlugin ({ bridgeRef }) {
           }
         })
       } catch (error) {
-        console.error('Validation failed:', error)
+        console.error('stacker news form bridge has encountered an error:', error)
         return {
           valid: false,
           message: error.message || 'Failed to validate content'

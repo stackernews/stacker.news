@@ -10,8 +10,7 @@ import { USER_SUGGESTIONS } from '@/fragments/users'
 import { $createMentionNode } from '@/lib/lexical/nodes/decorative/mentions/user-mention'
 import { $createTerritoryNode } from '@/lib/lexical/nodes/decorative/mentions/territory-mention'
 
-// This comes from Lexical Mentions Plugin, it's not going to be what we want
-// This is a placeholder to have an idea of a structure for mention nodes.
+// This comes from Lexical Mentions Plugin
 // Support both @ for mentions and ~ for territories
 // Regex patterns for matching @ and ~ mentions
 const AtSignMentionsRegex = /(^|\s|\()([@~]\w{0,75})$/

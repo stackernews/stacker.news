@@ -14,7 +14,7 @@ import { useEffect, useCallback, useState, forwardRef } from 'react'
 import { createPortal } from 'react-dom'
 import classNames from 'classnames'
 import { useToolbarState } from '../../contexts/toolbar'
-import { getShortcutCombo } from '@/components/lexical/plugins/core/shortcuts/keyboard'
+import { getShortcutCombo } from '@/components/lexical/extensions/core/shortcuts/keyboard'
 import { snHasFormat, snHasLink, snGetElementFormat, snGetBlockType, snGetCodeLanguage } from '@/components/lexical/universal/utils/formatting'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
 import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting/inline'
@@ -26,7 +26,7 @@ import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
 import ActionTooltip from '@/components/action-tooltip'
 
 // escapes the overflow rules of the FormattingTools component
-const MenuAlternateDimension = forwardRef(({ children, style, className }, ref) => {
+export const MenuAlternateDimension = forwardRef(({ children, style, className }, ref) => {
   return createPortal(
     <div ref={ref} style={style} className={className}>
       {children}
@@ -40,7 +40,7 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
   const blockOption = BLOCK_OPTIONS.find(option => option.action === toolbarState.blockType)
   return (
     <ActionTooltip notForm overlayText={<>block options <strong>{toolbarState.blockType}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
-      <Dropdown className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
+      <Dropdown drop='up' className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
         <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, dropdownOpen ? styles.active : '')}>
           {blockOption?.icon || <More />}
           <ArrowDownIcon />

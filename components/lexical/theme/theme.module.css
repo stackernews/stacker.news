@@ -199,6 +199,10 @@
   touch-action: manipulation;
 }
 
+.toolbar :global(.dropdown-toggle::after) {
+  display: none;
+}
+
 .toolbar .divider {
   width: 1px;
   height: 20px;

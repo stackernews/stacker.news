@@ -139,6 +139,8 @@ export default function MediaResizer ({
 
     document.addEventListener('pointermove', handlePointerMove)
     document.addEventListener('pointerup', handlePointerUp)
+    // BUG this didn't actually work, and sometimes the pointer can get stuck on resizing without ever exiting.
+    document.addEventListener('pointercancel', handlePointerUp)
   }
 
   const handlePointerMove = (event) => {
@@ -195,7 +197,9 @@ export default function MediaResizer ({
       }
     }
   }
+
   const handlePointerUp = () => {
+    console.log('handlePointerUp')
     const image = imageRef.current
     const positioning = positioningRef.current
     const controlWrapper = controlWrapperRef.current
@@ -218,6 +222,7 @@ export default function MediaResizer ({
 
       document.removeEventListener('pointermove', handlePointerMove)
       document.removeEventListener('pointerup', handlePointerUp)
+      document.removeEventListener('pointercancel', handlePointerUp)
     }
   }
 

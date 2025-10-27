@@ -34,6 +34,7 @@ export function MediaOrLink ({
   nodeKey,
   width,
   height,
+  maxWidth,
   resizable,
   showCaption,
   caption,
@@ -209,7 +210,7 @@ export function MediaOrLink ({
             rel={rel}
             kind={kind}
             linkFallback={false}
-            preTailor={{ width, height }}
+            preTailor={{ width, height, maxWidth: maxWidth ?? 500 }}
             onError={() => setIsLoadError(true)}
             className={isFocused ? `focused ${$isNodeSelection(selection) ? 'draggable' : ''}` : null}
             imageRef={mediaRef}
@@ -256,13 +257,11 @@ export default function MediaComponent ({ src, status, ...props }) {
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
   const srcSet = imgproxyUrls?.[url]
 
-  console.log('outlawed', outlawed)
-
   if (outlawed) {
     return <p className='outlawed'>{url}</p>
   }
 
-  if (status === 'error') {
+  if (status === 'error' || status === 'idle') {
     return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
   }
 

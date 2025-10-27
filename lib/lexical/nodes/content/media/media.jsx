@@ -49,9 +49,9 @@ export class MediaNode extends DecoratorNode {
     const clone = new MediaNode(
       node.__src,
       node.__altText,
+      node.__maxWidth,
       node.__width,
       node.__height,
-      node.__maxWidth,
       node.__showCaption,
       node.__caption,
       node.getCaptionText?.(),

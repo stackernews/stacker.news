@@ -87,6 +87,13 @@ const SocialsPopover = (
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
+          href='https://SWAG.btc.pub/SN' className='nav-link p-0 d-inline-flex'
+          target='_blank' rel='noreferrer'
+        >
+          swag
+        </a>       
+        <span className='mx-2 text-muted'> \ </span>
+        <a
           href='https://www.plebpoet.com/zines.html' className='nav-link p-0 d-inline-flex'
           target='_blank' rel='noreferrer'
         >

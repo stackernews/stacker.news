@@ -72,6 +72,7 @@ async function readMagicBytes (url, { timeout = TIMEOUT_GET, byteLimit = BYTE_LI
 }
 
 export default async function mediaCheck (req, res) {
+  // express automatically decodes the values in req.params (using decodeURIComponent)
   let url = req.params.url
   if (typeof url !== 'string' || !/^(https?:\/\/)/.test(url)) {
     return res.status(400).json({ error: 'Invalid URL' })

@@ -81,7 +81,7 @@ export default async function mediaCheck (req, res) {
   try {
     // in development, the capture container can't reach the public media url,
     // so we need to replace it with its docker equivalent, e.g. http://s3:4566/uploads
-    if (url.includes(process.env.NEXT_PUBLIC_MEDIA_URL) && process.env.NODE_ENV === 'development') {
+    if (url.startsWith(process.env.NEXT_PUBLIC_MEDIA_URL) && process.env.NODE_ENV === 'development') {
       url = url.replace(process.env.NEXT_PUBLIC_MEDIA_URL, process.env.MEDIA_URL_DOCKER)
     }
 

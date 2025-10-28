@@ -45,7 +45,6 @@ export function DiscussionForm ({
     <Form
       initial={{
         title: item?.title || shareTitle || '',
-        text: item?.text || shareText || '',
         lexicalState: item?.lexicalState || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
@@ -71,7 +70,7 @@ export function DiscussionForm ({
         }}
         maxLength={MAX_TITLE_LENGTH}
       />
-      <LexicalInput name='text' label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>} topLevel />
+      <LexicalInput appendValue={shareText} name='text' label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>} topLevel />
       {/* <MarkdownInput
         topLevel
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}

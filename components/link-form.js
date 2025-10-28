@@ -102,7 +102,6 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       initial={{
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
-        text: item?.text || '',
         lexicalState: item?.lexicalState || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),

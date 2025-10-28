@@ -3,9 +3,14 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $getSelection, $isRangeSelection, RootNode } from 'lexical'
 import { $trimTextContentFromAnchor } from '@lexical/selection'
 import { $restoreEditorState } from '@lexical/utils'
+import { MAX_POST_TEXT_LENGTH } from '@/lib/constants'
 
-export function MaxLengthPlugin ({ maxLength }) {
+export function MaxLengthPlugin ({ lengthOptions }) {
   const [editor] = useLexicalComposerContext()
+
+  // if no limit is set, MAX_POST_TEXT_LENGTH is used
+  // rendering is disabled if not requested
+  const { maxLength = MAX_POST_TEXT_LENGTH, show = false } = lengthOptions
 
   useEffect(() => {
     // prevent infinite restoration loops by tracking the last restored editor state
@@ -56,7 +61,11 @@ export function MaxLengthPlugin ({ maxLength }) {
     return Math.max(0, maxLength - textContentSize)
   })
 
-  return (
-    <div className='text-muted form-text'>{remaining} characters remaining</div>
-  )
+  if (show || remaining < 10) {
+    return (
+      <div className='text-muted form-text'>{remaining} characters remaining</div>
+    )
+  }
+
+  return null
 }

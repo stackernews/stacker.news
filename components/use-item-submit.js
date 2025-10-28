@@ -17,7 +17,7 @@ import { useWalletRecvPrompt } from '@/wallets/client/hooks'
 // and other side effects like crossposting and redirection
 // ... or I just spent too much time in this code and this is overcooked
 export default function useItemSubmit (mutation,
-  { item, sub, onSuccessfulSubmit, onBeforeSubmit, navigateOnSubmit = true, extraValues = {}, paidMutationOptions = { } } = {}) {
+  { item, sub, onSuccessfulSubmit, navigateOnSubmit = true, extraValues = {}, paidMutationOptions = { } } = {}) {
   const router = useRouter()
   const toaster = useToast()
   const crossposter = useCrossposter()
@@ -27,19 +27,6 @@ export default function useItemSubmit (mutation,
 
   return useCallback(
     async ({ boost, crosspost, title, options, bounty, status, ...values }, { resetForm }) => {
-      if (onBeforeSubmit) {
-        console.log('onBeforeSubmit')
-        try {
-          const result = await onBeforeSubmit()
-          if (result?.values) {
-            Object.assign(values, result.values)
-          }
-        } catch (error) {
-          toaster.danger('failed to validate content: ' + error.message)
-          return
-        }
-      }
-
       await walletPrompt()
 
       if (options) {
@@ -110,7 +97,7 @@ export default function useItemSubmit (mutation,
         }
       }
     }, [me, upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
-      navigateOnSubmit, extraValues, paidMutationOptions, walletPrompt, onBeforeSubmit]
+      navigateOnSubmit, extraValues, paidMutationOptions, walletPrompt]
   )
 }
 

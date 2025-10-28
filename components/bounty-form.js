@@ -34,6 +34,7 @@ export function BountyForm ({
       initial={{
         title: item?.title || '',
         text: item?.text || '',
+        lexicalState: item?.lexicalState || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         bounty: item?.bounty || 1000,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),

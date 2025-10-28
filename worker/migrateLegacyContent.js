@@ -1,4 +1,4 @@
-import { $ssrMarkdownToLexicalConverter } from '@/lib/lexical/utils/server/markdownToLexical'
+import { prepareLexicalState } from '@/lib/lexical/utils/server/interpolator'
 import { $ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
 import { Prisma } from '@prisma/client'
 
@@ -20,7 +20,8 @@ export async function migrateLegacyContent ({ data: { itemId, fullRefresh, check
   console.log('lexicalState', lexicalState)
   if (!lexicalState || fullRefresh) {
     console.log('converting markdown to lexical state')
-    lexicalState = await $ssrMarkdownToLexicalConverter(item.text, checkMedia)
+    const result = await prepareLexicalState({ text: item.text }, { checkMedia })
+    lexicalState = result.lexicalState
     if (!lexicalState) {
       throw new Error('couldn\'t convert markdown to lexical state')
     }

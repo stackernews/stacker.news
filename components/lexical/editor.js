@@ -99,7 +99,7 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
   )
 }
 
-function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel, bridgeRef }) {
+function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
   const [floatingAnchorElem, setFloatingAnchorElem] = useState(null)
   // history can be shared between editors (e.g. this editor and the child image caption editor)
   const { historyState } = useSharedHistoryContext()
@@ -144,12 +144,12 @@ function EditorContent ({ name, placeholder, autoFocus, maxLength, topLevel, bri
         <div className={styles.bottomBar}>
           <ModeSwitcher />
         </div>
-        {maxLength && <MaxLengthPlugin maxLength={maxLength} />}
+        <MaxLengthPlugin lengthOptions={lengthOptions} />
         {/* floating toolbar */}
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
         {/* formik */}
         <LocalDraftPlugin name={name} />
-        <FormikBridgePlugin bridgeRef={bridgeRef} />
+        <FormikBridgePlugin />
       </div>
     </>
   )

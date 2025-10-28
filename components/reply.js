@@ -1,7 +1,7 @@
 import { Form, LexicalInput } from '@/components/form'
 import styles from './reply.module.css'
 import { useMe } from './me'
-import { forwardRef, useCallback, useEffect, useState, useMemo, useRef } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useMemo } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentSchema } from '@/lib/validate'
 import { ItemButtonBar } from './post'
@@ -13,6 +13,7 @@ import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
+import { MAX_COMMENT_TEXT_LENGTH } from '@/lib/constants'
 
 export default forwardRef(function Reply ({
   item,
@@ -29,7 +30,6 @@ export default forwardRef(function Reply ({
   const root = useRoot()
   const sub = item?.sub || root?.sub
   const { markCommentViewedAt } = useCommentsView(root.id)
-  const bridgeRef = useRef()
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -73,19 +73,7 @@ export default forwardRef(function Reply ({
       resetForm({ values: { text: '', lexicalState: '' } })
       setReply(replyOpen || false)
     },
-    navigateOnSubmit: false,
-    onBeforeSubmit: async () => {
-      console.log('onBeforeSubmit')
-      if (bridgeRef.current) {
-        const result = await bridgeRef.current.prepare()
-        console.log('result:', result)
-        if (!result.valid) {
-          throw new Error(result.message)
-        }
-        return result
-      }
-      return { valid: true }
-    }
+    navigateOnSubmit: false
   })
 
   const onCancel = useCallback(() => {
@@ -143,7 +131,6 @@ export default forwardRef(function Reply ({
           >
             <Form
               initial={{
-                text: '',
                 lexicalState: ''
               }}
               schema={commentSchema}
@@ -154,9 +141,9 @@ export default forwardRef(function Reply ({
                 name='text'
                 placeholder={placeholder}
                 autoFocus={reply && !replyOpen}
-                bridgeRef={bridgeRef}
                 appendValue={quote}
                 topLevel
+                lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>

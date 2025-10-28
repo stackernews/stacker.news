@@ -159,7 +159,7 @@ export const UPSERT_DISCUSSION = gql`
 export const UPSERT_JOB = gql`
   ${PAID_ACTION}
   mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!,
-    $location: String, $remote: Boolean, $text: String!, $lexicalState: String, $url: String!, $boost: Int,
+    $location: String, $remote: Boolean, $text: String, $lexicalState: String, $url: String!, $boost: Int,
     $status: String, $logo: Int) {
     upsertJob(sub: $sub, id: $id, title: $title, company: $company,
       location: $location, remote: $remote, text: $text,
@@ -234,7 +234,7 @@ export const POLL_VOTE = gql`
 export const UPSERT_BIO = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertBio($text: String!, $lexicalState: String!) {
+  mutation upsertBio($text: String, $lexicalState: String) {
     upsertBio(text: $text, lexicalState: $lexicalState) {
       ...ItemPaidActionFields
       ...PaidActionFields
@@ -244,7 +244,7 @@ export const UPSERT_BIO = gql`
 export const CREATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
-  mutation upsertComment($text: String!, $lexicalState: String, $parentId: ID!) {
+  mutation upsertComment($text: String, $lexicalState: String, $parentId: ID!) {
     upsertComment(text: $text, lexicalState: $lexicalState, parentId: $parentId) {
       ...ItemPaidActionFields
       ...PaidActionFields
@@ -254,7 +254,7 @@ export const CREATE_COMMENT = gql`
 export const UPDATE_COMMENT = gql`
   ${ITEM_PAID_ACTION_FIELDS_NO_CHILD_COMMENTS}
   ${PAID_ACTION}
-  mutation upsertComment($id: ID!, $text: String!, $lexicalState: String, $boost: Int, ${HASH_HMAC_INPUT_1}) {
+  mutation upsertComment($id: ID!, $text: String, $lexicalState: String, $boost: Int, ${HASH_HMAC_INPUT_1}) {
     upsertComment(id: $id, text: $text, lexicalState: $lexicalState, boost: $boost, ${HASH_HMAC_INPUT_2}) {
       ...ItemPaidActionFieldsNoChildComments
       ...PaidActionFields

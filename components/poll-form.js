@@ -27,7 +27,6 @@ export function PollForm ({ item, sub, editThreshold, children }) {
     <Form
       initial={{
         title: item?.title || '',
-        text: item?.text || '',
         lexicalState: item?.lexicalState || '',
         options: initialOptions || ['', ''],
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,

@@ -124,7 +124,14 @@ export default function TerritoryForm ({ sub }) {
             </div>
           )}
         />
-        <LexicalInput name='desc' label='description' maxLength={MAX_TERRITORY_DESC_LENGTH} />
+        <LexicalInput
+          name='desc'
+          label='description'
+          lengthOptions={{
+            maxLength: MAX_TERRITORY_DESC_LENGTH,
+            show: true
+          }}
+        />
         {/* <MarkdownInput
           label='description'
           name='desc'

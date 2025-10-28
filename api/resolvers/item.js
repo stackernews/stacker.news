@@ -28,7 +28,7 @@ import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 import { $ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
-import { $ssrMarkdownToLexicalConverter } from '@/lib/lexical/utils/server/markdownToLexical'
+import { prepareLexicalState } from '@/lib/lexical/utils/server/interpolator'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -1546,6 +1546,11 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     item.url = removeTracking(item.url)
   }
 
+  // create markdown from a lexical state
+  const { text, lexicalState } = await prepareLexicalState({ text: item.text, lexicalState: item.lexicalState })
+  item.text = text
+  item.lexicalState = lexicalState
+
   if (old.bio) {
     // prevent editing a bio like a regular item
     item = { id: Number(item.id), text: item.text, lexicalState: item.lexicalState, title: `@${user.name}'s bio` }
@@ -1560,11 +1565,6 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   // never change author of item
   item.userId = old.userId
-
-  // if only markdown is provided, create its equivalent lexical state
-  if (item.text && !item.lexicalState) {
-    item.lexicalState = await $ssrMarkdownToLexicalConverter(item.text)
-  }
 
   // sanitize html
   // if the html conversion fails, we'll use the lexicalState directly
@@ -1585,6 +1585,13 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   item.userId = me ? Number(me.id) : USER_ID.anon
 
   item.forwardUsers = await getForwardUsers(models, forward)
+
+  // create markdown from a lexical state
+  const { text, lexicalState } = await prepareLexicalState({ text: item.text, lexicalState: item.lexicalState })
+  item.text = text
+  item.lexicalState = lexicalState
+
+  // TODO: we could probably gather them from the lexical state
   item.uploadIds = uploadIdsFromText(item.text)
 
   if (item.url && !isJob(item)) {
@@ -1601,11 +1608,6 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
 
   // mark item as created with API key
   item.apiKey = me?.apiKey
-
-  // if only markdown is provided, create its equivalent lexical state
-  if (item.text && !item.lexicalState) {
-    item.lexicalState = await $ssrMarkdownToLexicalConverter(item.text)
-  }
 
   // sanitize html
   // if the html conversion fails, we'll use the lexicalState directly

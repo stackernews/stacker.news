@@ -5,6 +5,7 @@ import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
 import { UPDATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
+import { MAX_COMMENT_TEXT_LENGTH } from '@/lib/constants'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
@@ -46,7 +47,11 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           onSubmit={onSubmit}
         >
           {comment.lexicalState
-            ? <LexicalInput name='text' autoFocus />
+            ? <LexicalInput
+                name='text'
+                autoFocus
+                lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
+              />
             : (
               <MarkdownInput
                 name='text'

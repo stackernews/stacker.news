@@ -127,21 +127,17 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
 
   useEffect(() => {
-    // don't load the video at all if user doesn't want these
     if (!showMedia || isVideo || isImage) return
 
-    // check if it's a video by trying to load it
     const video = document.createElement('video')
     video.onloadedmetadata = () => {
       setIsVideo(true)
       setIsImage(false)
     }
     video.onerror = () => {
-      // hack
-      // if it's not a video it will throw an error, so we can assume it's an image
       const img = new window.Image()
       img.src = src
-      img.decode().then(() => { // decoding beforehand to prevent wrong image cropping
+      img.decode().then(() => {
         setIsImage(true)
       }).catch((e) => {
         console.warn('Cannot decode image:', src, e)

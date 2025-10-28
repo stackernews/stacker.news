@@ -14,7 +14,8 @@ const theme = {
   link: 'sn__link',
   code: 'sn__codeBlock',
   mention: 'sn__mention',
-
+  itemMention: 'sn__mention',
+  territory: 'sn__mention',
   // embeds
   twitterContainer: 'sn__twitterContainer',
   twitterEmbed: 'sn__twitter',

@@ -83,6 +83,10 @@ span.sn__mediaContainer .outlawed {
   text-decoration: none;
 }
 
+span + .sn__link {
+  margin-left: 0px;
+}
+
 .sn__mention {
   color: var(--theme-link);
   font-weight: bold;

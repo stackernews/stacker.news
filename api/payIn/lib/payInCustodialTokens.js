@@ -1,5 +1,5 @@
 import { ceilBigInt } from '@/lib/format'
-import { isP2P, isPayableWithCredits, isProxyPayment, isWithdrawal } from './is'
+import { isP2P, isPayableWithCredits, isProxyPayment, isSystemOnly, isWithdrawal } from './is'
 import { USER_ID } from '@/lib/constants'
 
 export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }) {
@@ -9,7 +9,7 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
     return payInCustodialTokens
   }
 
-  if (mCustodialCost % 1000n !== 0n && !isWithdrawal(payIn)) {
+  if (mCustodialCost % 1000n !== 0n && !isWithdrawal(payIn) && !isSystemOnly(payIn)) {
     throw new Error('mCustodialCost must be a multiple of 1000 and is: ' + mCustodialCost)
   }
 

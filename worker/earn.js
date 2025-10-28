@@ -1,6 +1,6 @@
 import createPrisma from '@/lib/create-prisma'
 import { USER_ID } from '@/lib/constants'
-import pay, { paySystemOnly } from '@/api/payIn'
+import pay from '@/api/payIn'
 
 const TOTAL_UPPER_BOUND_MSATS = 1_000_000_000
 const PERCENTILE_CUTOFF = 50
@@ -22,7 +22,7 @@ export async function earn ({ name }) {
     // https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#raw-query-type-mapping
     // so check it before coercing to Number
     const [{ msats: totalMsatsDecimal }] = await models.$queryRaw`
-      SELECT "msats"
+      SELECT sum("msats") as "msats"
       FROM "AggRewards"
       WHERE date_trunc('day', "timeBucket") = date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day')
       AND "payInType" IS NULL`
@@ -53,14 +53,14 @@ export async function earn ({ name }) {
                     ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS rank
                 FROM "Item"
                 JOIN LATERAL (
-                    SELECT "PayIn".*
+                    SELECT "PayIn".id as "payInId", "PayIn"."payInStateChangedAt" as "payInStateChangedAt"
                     FROM "ItemPayIn"
                     JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
                     WHERE "ItemPayIn"."itemId" = "Item".id AND ("PayIn"."userId" = "Item"."userId" OR "PayIn"."payInState" = 'PAID')
                     ORDER BY "PayIn"."created_at" DESC
                     LIMIT 1
-                ) "PayIn" ON "PayIn".id IS NOT NULL
-                WHERE date_trunc('day', "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'),
+                ) "PayIn" ON "PayIn"."payInId" IS NOT NULL
+                WHERE date_trunc('day', "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day')
                 AND "weightedVotes" > 0
                 AND "deletedAt" IS NULL
                 AND NOT bio
@@ -76,7 +76,7 @@ export async function earn ({ name }) {
             FROM item_proportions
             JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = item_proportions.id
             JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ZAP' AND "PayIn"."payInState" = 'PAID'
-            WHERE date_trunc('day', "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'),
+            WHERE date_trunc('day', "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day')
         ),
         -- isolate contiguous upzaps from the same user on the same item so that when we take the log
         -- of the upzaps it accounts for successive zaps and does not disproportionately reward them
@@ -94,7 +94,7 @@ export async function earn ({ name }) {
         -- multiplied by the relative rank of the item to the total items
         -- multiplied by the trust of the user
         item_zapper_ratios AS (
-            SELECT "userId", sum((2*early_multiplier+1)*tipped_ratio*ratio*handicap_mult) as item_zapper_proportion,
+            SELECT "userId", sum((2*early_multiplier+1)*zapped_msats_proportion*proportion*handicap_mult) as item_zapper_proportion,
                 "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
             FROM (
                 SELECT *,
@@ -118,25 +118,28 @@ export async function earn ({ name }) {
         FROM item_proportions
     ),
     reward_prospects AS (
-      SELECT "users"."id" AS "userId",
-        array_agg(json_build_object('typeProportion', "typeProportion", 'type', type, 'typeId', typeId, 'rank', rank)) as earns,
+      SELECT "userId",
+        json_agg(json_build_object('typeProportion', "typeProportion", 'type', "type", 'typeId', "typeId", 'rank', rank)) as earns,
         sum("typeProportion") as total_proportion, "users"."referrerId" AS "foreverReferrerId"
       FROM reward_proportions
       JOIN "users" ON "users"."id" = reward_proportions."userId"
       GROUP BY "userId", "users"."referrerId"
     )
-    SELECT reward_prospects.*, COALESCE(
-      mode() WITHIN GROUP (ORDER BY "OneDayReferral"."referrerId"),
-        reward_prospects."foreverReferrerId") AS "oneDayReferrerId"
+    SELECT reward_prospects.*, "OneDayReferral"."oneDayReferrerId"
     FROM reward_prospects
-    LEFT JOIN "OneDayReferral" ON "OneDayReferral"."refereeId" = reward_prospects."userId"
-    WHERE "OneDayReferral".created_at >= date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day')
-    AND "OneDayReferral".landing IS NOT TRUE
-    GROUP BY reward_prospects."userId", reward_prospects."foreverReferrerId", reward_prospects.reward_prospects, reward_prospects.total_proportion`
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(
+        mode() WITHIN GROUP (ORDER BY "OneDayReferral"."referrerId"),
+          reward_prospects."foreverReferrerId") AS "oneDayReferrerId"
+      FROM "OneDayReferral"
+      WHERE "OneDayReferral"."refereeId" = reward_prospects."userId"
+        AND "OneDayReferral".created_at >= date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day')
+        AND "OneDayReferral".landing IS NOT TRUE
+    ) "OneDayReferral" ON TRUE`
 
     console.log('reward prospects #', rewardProspects.length)
 
-    return await paySystemOnly('REWARDS', { totalMsats, rewardProspects }, { models, me: { id: USER_ID.rewards } })
+    return await pay('REWARDS', { totalMsats, rewardProspects }, { me: { id: USER_ID.rewards }, custodialOnly: true })
   } finally {
     models.$disconnect().catch(console.error)
   }
@@ -148,6 +151,7 @@ export async function earnRefill ({ models, lnd }) {
     { sats: DAILY_STIMULUS_SATS },
     {
       models,
-      me: { id: USER_ID.sn }
+      me: { id: USER_ID.sn },
+      custodialOnly: true
     })
 }

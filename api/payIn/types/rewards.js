@@ -1,4 +1,12 @@
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { notifyEarner } from '@/lib/webPush'
+
+export const paymentMethods = [
+  PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT,
+  PAID_ACTION_PAYMENT_METHODS.REWARD_SATS
+]
+
+export const systemOnly = true
 
 export async function getInitial (models, { totalMsats, rewardProspects }) {
   const payOutCustodialTokens = []
@@ -6,6 +14,8 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
   // add in referral earnings
   // compute the payOutCustodialTokens with their Earn row relations
   let totalRewardedMsats = 0
+  console.log('rewardProspects', rewardProspects.reduce((acc, prospect) => acc + prospect.total_proportion, 0),
+    rewardProspects.reduce((acc, prospect) => acc + prospect.total_proportion * totalMsats, 0))
   for (const rewardProspect of rewardProspects) {
     const prospectMsats = rewardProspect.total_proportion * totalMsats
 
@@ -19,10 +29,16 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
       throw new Error('total rewarded msats exceeds total msats')
     }
 
+    console.log('earnerEarnings', earnerEarnings)
+    console.log('foreverReferrerEarnings', foreverReferrerEarnings)
+    console.log('oneDayReferrerEarnings', oneDayReferrerEarnings)
+    console.log('totalRewardedMsats', totalRewardedMsats)
+    console.log('totalMsats', totalMsats)
+
     const payOutCustodialTokenEarnings = [{
       payOutType: 'REWARD',
       userId: rewardProspect.userId,
-      mtokens: earnerEarnings,
+      mtokens: BigInt(earnerEarnings),
       custodialTokenType: 'SATS',
       earns: rewardProspect.earns.map(earn => ({
         userId: rewardProspect.userId,
@@ -35,7 +51,7 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
     }, {
       payOutType: 'REWARD',
       userId: rewardProspect.foreverReferrerId,
-      mtokens: foreverReferrerEarnings,
+      mtokens: BigInt(foreverReferrerEarnings),
       custodialTokenType: 'SATS',
       earns: [{
         userId: rewardProspect.foreverReferrerId,
@@ -45,7 +61,7 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
     }, {
       payOutType: 'REWARD',
       userId: rewardProspect.oneDayReferrerId,
-      mtokens: oneDayReferrerEarnings,
+      mtokens: BigInt(oneDayReferrerEarnings),
       custodialTokenType: 'SATS',
       earns: [{
         userId: rewardProspect.oneDayReferrerId,
@@ -59,7 +75,7 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
 
   return {
     payInType: 'REWARDS',
-    mcost: totalMsats,
+    mcost: BigInt(totalMsats),
     payOutCustodialTokens
   }
 }

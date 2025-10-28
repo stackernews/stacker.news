@@ -34,9 +34,6 @@ export default {
   PROXY_PAYMENT,
   WITHDRAWAL,
   AUTO_WITHDRAWAL,
-  MEDIA_UPLOAD
-}
-
-export const systemOnlyPayIns = {
+  MEDIA_UPLOAD,
   REWARDS
 }

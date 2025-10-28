@@ -2,7 +2,7 @@ import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, USER_ID } fr
 import { Prisma } from '@prisma/client'
 import { payViaPaymentRequest } from 'ln-service'
 import lnd from '../lnd'
-import payInTypeModules, { systemOnlyPayIns } from './types'
+import payInTypeModules from './types'
 import { msatsToSats } from '@/lib/format'
 import { payInBolt11Prospect, payInBolt11WrapProspect } from './lib/payInBolt11'
 import { isPessimistic, isWithdrawal } from './lib/is'
@@ -33,33 +33,19 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly }) 
 
     me ??= { id: USER_ID.anon }
 
+    if (payInModule.systemOnly) {
+      if (!custodialOnly) {
+        throw new Error('System payIns must be performed with custodialOnly set to true')
+      }
+      if (![USER_ID.rewards, USER_ID.sn].includes(me.id)) {
+        throw new Error('You must be the rewards or sn user to perform this system-only action: ' + me.id)
+      }
+    }
+
     const payIn = await payInModule.getInitial(models, payInArgs, { me })
     return await begin(models, payIn, payInArgs, { me, custodialOnly })
   } catch (e) {
     console.error('payIn failed', e)
-    throw e
-  } finally {
-    console.groupEnd()
-  }
-}
-
-export async function paySystemOnly (payInType, payInArgs, { models, me }) {
-  try {
-    const payInModule = systemOnlyPayIns[payInType]
-    console.group('paySystemOnly', payInType, payInArgs)
-
-    if (!payInModule) {
-      throw new Error(`Invalid systempayIn type ${payInType}`)
-    }
-
-    if (!me) {
-      throw new Error('You must specify system payer to perform this action')
-    }
-
-    const payIn = await payInModule.getInitial(models, payInArgs, { me })
-    return await begin(models, payIn, payInArgs, { me, custodialOnly: true })
-  } catch (e) {
-    console.error('paySystemOnly failed', e)
     throw e
   } finally {
     console.groupEnd()

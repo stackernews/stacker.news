@@ -25,21 +25,30 @@ function timeHelper (when, from, to) {
   const step = Prisma.sql`${`1 ${granularity}`}::interval`
   const clamp = granularity === 'HOUR' ? Prisma.empty : Prisma.sql`- ${step}`
   const series = Prisma.sql`
-    SELECT generate_series(date_trunc(${granularity}, ${fromDate}::timestamptz at time zone 'America/Chicago'), date_trunc(${granularity}, ${toDate}::timestamptz at time zone 'America/Chicago' ${clamp}), ${step})::timestamp at time zone 'America/Chicago' as "timeBucket"
-  `
+    SELECT generate_series(date_trunc(${granularity}, ${fromDate}::timestamptz at time zone 'America/Chicago'),
+      date_trunc(${granularity},
+        ${toDate}::timestamptz at time zone 'America/Chicago' ${clamp}),
+        ${step})::timestamp at time zone 'America/Chicago' as "timeBucket"`
   return { fromDate, toDate, granularity, step, series }
 }
 
 function spenderPayInsExcluded (sub, me) {
   return (sub === 'all' || me)
-    ? Prisma.sql`grid."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT', 'DEFUNCT_TERRITORY_DAILY_PAYOUT', 'REWARDS', 'BUY_CREDITS')`
-    : Prisma.sql`grid."payInType" NOT IN ('DONATE', 'INVITE_GIFT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT', 'DEFUNCT_TERRITORY_DAILY_PAYOUT', 'REWARDS', 'BUY_CREDITS', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE')`
+    ? Prisma.sql`grid."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT',
+      'DEFUNCT_TERRITORY_DAILY_PAYOUT', 'REWARDS', 'BUY_CREDITS')`
+    : Prisma.sql`grid."payInType" NOT IN ('DONATE', 'INVITE_GIFT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL',
+      'PROXY_PAYMENT', 'DEFUNCT_TERRITORY_DAILY_PAYOUT', 'REWARDS', 'BUY_CREDITS', 'TERRITORY_CREATE',
+      'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE')`
 }
 
 function stackerPayOutsExcluded (sub, me) {
   return (sub === 'all' || me)
-    ? Prisma.sql`grid."payOutType" NOT IN ('PROXY_PAYMENT', 'DEFUNCT_DELAYED_TERRITORY_REVENUE', 'DEFUNCT_REFERRAL_ACT', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'WITHDRAWAL', 'SYSTEM_REVENUE', 'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER')`
-    : Prisma.sql`grid."payOutType" NOT IN ('INVITE_GIFT', 'PROXY_PAYMENT', 'DEFUNCT_DELAYED_TERRITORY_REVENUE', 'DEFUNCT_REFERRAL_ACT', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'WITHDRAWAL', 'SYSTEM_REVENUE', 'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER')`
+    ? Prisma.sql`grid."payOutType" NOT IN ('PROXY_PAYMENT', 'DEFUNCT_DELAYED_TERRITORY_REVENUE',
+      'DEFUNCT_REFERRAL_ACT', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'WITHDRAWAL',
+      'SYSTEM_REVENUE', 'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER')`
+    : Prisma.sql`grid."payOutType" NOT IN ('INVITE_GIFT', 'PROXY_PAYMENT', 'DEFUNCT_DELAYED_TERRITORY_REVENUE',
+      'DEFUNCT_REFERRAL_ACT', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'WITHDRAWAL', 'SYSTEM_REVENUE',
+        'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER')`
 }
 
 export default {

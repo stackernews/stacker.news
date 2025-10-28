@@ -28,6 +28,7 @@ import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 import { $ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
+import { $ssrMarkdownToLexicalConverter } from '@/lib/lexical/utils/server/markdownToLexical'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -1560,6 +1561,11 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   // never change author of item
   item.userId = old.userId
 
+  // if only markdown is provided, create its equivalent lexical state
+  if (item.text && !item.lexicalState) {
+    item.lexicalState = await $ssrMarkdownToLexicalConverter(item.text)
+  }
+
   // sanitize html
   // if the html conversion fails, we'll use the lexicalState directly
   // this might be a problem for instant content
@@ -1595,6 +1601,11 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
 
   // mark item as created with API key
   item.apiKey = me?.apiKey
+
+  // if only markdown is provided, create its equivalent lexical state
+  if (item.text && !item.lexicalState) {
+    item.lexicalState = await $ssrMarkdownToLexicalConverter(item.text)
+  }
 
   // sanitize html
   // if the html conversion fails, we'll use the lexicalState directly

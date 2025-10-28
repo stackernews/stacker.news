@@ -53,17 +53,15 @@ const args = [
 let browser
 const app = express()
 
-app.use(cors({
-  origin: process.env.NEXT_PUBLIC_URL,
-  methods: ['GET', 'OPTIONS'],
-  credentials: false
-}))
-
 app.get('/health', (req, res) => {
   res.status(200).end()
 })
 
-app.get('/media/:url', mediaCheck)
+app.get('/media/:url', cors({
+  origin: process.env.NEXT_PUBLIC_URL,
+  methods: ['GET', 'OPTIONS'],
+  credentials: false
+}), mediaCheck)
 
 app.get('/*', async (req, res) => {
   const url = new URL(req.originalUrl, captureUrl)

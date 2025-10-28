@@ -59,7 +59,7 @@ sndev__dmenu_profile() {
   # dmenu allows to select multiple profiles with CTRL+Enter in which case it will
   # immediately write the selected profile to stdout even if it was already selected
   # so we use sort+uniq to remove duplicates
-  profiles="minimal payments wallets email search images capture"
+  profiles="minimal payments wallets email search images"
   echo "$profiles" | tr ' ' '\n' | dmenu | sort | uniq | tr '\n' ',' | sed 's/,$//'
 }
 

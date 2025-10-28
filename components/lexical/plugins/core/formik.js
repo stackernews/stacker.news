@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useField } from 'formik'
-import { $isMarkdownMode } from '@/components/lexical/universal/utils'
+import { $initializeEditorState, $isMarkdownMode } from '@/components/lexical/universal/utils'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { buildEditorFromExtensions, defineExtension } from '@lexical/extension'
@@ -37,7 +37,8 @@ function $prepareMarkdown (editor, markdown) {
 
 export default function FormikBridgePlugin () {
   const [editor] = useLexicalComposerContext()
-  const [,, lexicalHelpers] = useField({ name: 'lexicalState' })
+  const [lexicalField,, lexicalHelpers] = useField({ name: 'lexicalState' })
+  const hadContent = useRef(false)
 
   // keep formik in sync, so it doesn't yell at us
   useEffect(() => {
@@ -59,6 +60,18 @@ export default function FormikBridgePlugin () {
       })
     })
   }, [editor, lexicalHelpers])
+
+  // reset the editor state if the field is/goes empty
+  useEffect(() => {
+    if (lexicalField.value !== '') {
+      hadContent.current = true
+    }
+
+    if (lexicalField.value === '' && hadContent.current) {
+      hadContent.current = false
+      editor.update(() => $initializeEditorState($isMarkdownMode()))
+    }
+  }, [editor, lexicalField.value])
 
   return null
 }

@@ -67,5 +67,10 @@ export function $initializeEditorState (markdown, editor, initialValue = '') {
     }
   }
   const root = $getRoot()
+  const firstChild = root.getFirstChild()
+  // bypass markdown node removal protection, if any
+  if (firstChild && typeof firstChild.bypassProtection === 'function') {
+    firstChild.bypassProtection()
+  }
   root.clear().append(node)
 }

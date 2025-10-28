@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getSelection, $isRangeSelection, RootNode } from 'lexical'
+import { $getSelection, $isRangeSelection, RootNode, $getRoot } from 'lexical'
 import { $trimTextContentFromAnchor } from '@lexical/selection'
 import { $restoreEditorState } from '@lexical/utils'
 import { MAX_POST_TEXT_LENGTH } from '@/lib/constants'
 
-export function MaxLengthPlugin ({ lengthOptions }) {
+export function MaxLengthPlugin ({ lengthOptions = {} }) {
   const [editor] = useLexicalComposerContext()
 
   // if no limit is set, MAX_POST_TEXT_LENGTH is used
@@ -56,7 +56,7 @@ export function MaxLengthPlugin ({ lengthOptions }) {
 
   // calculate remaining characters directly from current editor state
   const remaining = editor.getEditorState().read(() => {
-    const root = editor.getEditorState()._nodeMap.get('root')
+    const root = $getRoot()
     const textContentSize = root ? root.getTextContentSize() : 0
     return Math.max(0, maxLength - textContentSize)
   })

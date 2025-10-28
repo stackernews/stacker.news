@@ -56,18 +56,11 @@ sndev__start() {
 }
 
 sndev__dmenu_profile() {
-  # dmenu allows to select multiple profiles with CTRL+Enter
-  # in which case it will immediately write the selected profile to stdout
-  # so we loop over each line of the output and add each profile to an array
-  # to make sure we don't add duplicates
+  # dmenu allows to select multiple profiles with CTRL+Enter in which case it will
+  # immediately write the selected profile to stdout even if it was already selected
+  # so we use sort+uniq to remove duplicates
   profiles="minimal payments wallets email search images capture"
-  selected=()
-  while read -r sel; do
-    if [[ ! " ${selected[*]} " =~ " ${sel} " ]]; then
-      selected+=("$sel")
-    fi
-  done < <(echo "$profiles" | tr ' ' '\n' | dmenu)
-  printf '%s,' "${selected[@]}" | sed 's/,$//'
+  echo "$profiles" | tr ' ' '\n' | dmenu | sort | uniq | tr '\n' ',' | sed 's/,$//'
 }
 
 sndev__help_start() {

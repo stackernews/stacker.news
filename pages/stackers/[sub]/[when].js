@@ -204,7 +204,7 @@ export default function Growth ({ ssrData }) {
         <Row>
           <Col><SubAnalyticsHeader /></Col>
           <Col>
-            <DropdownButton id="dropdown-item-button" title="Download JSON Data">
+            <DropdownButton id="dropdown-item-button" title="Download JSON Data" style={{ float: "right" }}>
               <Dropdown.ItemText>
                 <Button variant="outlined">
                   <a download="item_growth_subs.txt" target="_blank" rel="noreferrer"

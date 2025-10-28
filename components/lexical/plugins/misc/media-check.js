@@ -51,6 +51,8 @@ export const MediaCheckExtension = defineExtension({
           editor.update(() => {
             const node = $getNodeByKey(nodeKey)
             if (!(node instanceof MediaNode)) return
+            console.log('result', result)
+            // if the media is unknown, at this point replace it with a link
             if (result.type === 'unknown') {
               const url = node.getSrc()
               const link = $createLinkNode(url)
@@ -69,7 +71,13 @@ export const MediaCheckExtension = defineExtension({
           // set node status to error on failure
           editor.update(() => {
             const node = $getNodeByKey(nodeKey)
-            if (node instanceof MediaNode) node.setStatus('error')
+            if (node instanceof MediaNode) {
+              node.setStatus('error')
+              const url = node.getSrc()
+              const link = $createLinkNode(url)
+              link.append($createTextNode(url))
+              node.replace(link)
+            }
           })
         })
         .finally(() => {

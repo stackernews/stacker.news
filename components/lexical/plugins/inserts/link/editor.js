@@ -12,8 +12,8 @@ import {
 import Check from '@/svgs/check-line.svg'
 import Pencil from '@/svgs/edit-line.svg'
 import Remove from '@/svgs/delete-bin-line.svg'
-import { setFloatingElemPosition } from './position'
-import { getSelectedNode } from '@/components/lexical/utils/selection'
+import { setFloatingElemPosition } from '../../../universal/utils/position'
+import { getSelectedNode } from '@/components/lexical/universal/utils'
 import { ensureProtocol } from '@/lib/url'
 import styles from './linkeditor.module.css'
 

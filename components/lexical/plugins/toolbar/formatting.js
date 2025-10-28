@@ -108,7 +108,7 @@ function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
 
   return (
     <ActionTooltip notForm overlayText={<>additional formatting options</>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
-      <Dropdown className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
+      <Dropdown drop='up' className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
         <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, dropdownOpen ? styles.active : '')}>
           <More />
           <ArrowDownIcon />
@@ -142,7 +142,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
 
   return (
     <ActionTooltip notForm overlayText={<>align options <strong>{toolbarState.elementFormat || 'left'}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
-      <Dropdown className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
+      <Dropdown drop='up' className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
         <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, dropdownOpen ? styles.active : '')}>
           {/* a mess, clean this up */}
           {ALIGN_OPTIONS.find(option => option.action === toolbarState.elementFormat)?.icon || <AlignLeftIcon />}

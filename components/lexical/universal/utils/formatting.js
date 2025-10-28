@@ -1,13 +1,12 @@
 import { hasMarkdownFormat } from '@/components/lexical/universal/commands/formatting'
 import { $isElementNode } from 'lexical'
 import { $isLinkNode } from '@lexical/link'
-import { getSelectedNode } from '../../utils/selection'
 import { $findMatchingParent, $getNearestNodeOfType } from '@lexical/utils'
 import { $isHeadingNode } from '@lexical/rich-text'
 import { $isCodeNode } from '@lexical/code'
 import { normalizeCodeLanguage } from '@lexical/code-shiki'
 import { $isListNode, ListNode } from '@lexical/list'
-import { $findTopLevelElement, $isMarkdownMode } from '@/components/lexical/universal/utils'
+import { $findTopLevelElement, $isMarkdownMode, getSelectedNode } from './index'
 import { mdGetTypes, mdHas } from '@/lib/md'
 
 export function snHasFormat (selection, type) {

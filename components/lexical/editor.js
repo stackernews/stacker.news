@@ -15,8 +15,8 @@ import { ToolbarContextProvider } from './contexts/toolbar'
 import { CodeShikiSNExtension, CodeThemePlugin } from './extensions/core/code'
 import FileUploadPlugin from './plugins/inserts/upload'
 import FloatingToolbarPlugin from './plugins/toolbar/floating/floatingtoolbar'
-import LinkTransformationPlugin from './plugins/inserts/links/transformator'
-import MentionsPlugin from './plugins/decorative/mentions'
+import LinkEditorPlugin from './plugins/inserts/link'
+import MentionsPlugin from './plugins/decorative/mention'
 import ModeSwitcher from './plugins/core/mode/switch'
 import { ShortcutsExtension } from './extensions/core/shortcuts'
 import ToolbarPlugin from './plugins/toolbar'
@@ -27,15 +27,17 @@ import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import styles from './theme/theme.module.css'
 import theme from './theme'
 import { MaxLengthPlugin } from './plugins/misc/max-length'
-import TransformerBridgePlugin from './plugins/core/transformerbridge'
+import TransformerBridgePlugin from './plugins/core/transformer-bridge'
 import { MarkdownModeExtension } from './extensions/core/mode'
 import { MediaCheckExtension } from './plugins/misc/media-check'
-import LocalDraftPlugin from './plugins/core/localdraft'
+import LocalDraftPlugin from './plugins/core/local-draft'
 import FormikBridgePlugin from './plugins/core/formik'
 import { CheckListExtension, ListExtension } from '@lexical/list'
-import { LinkExtension } from '@lexical/link'
+import { AutoLinkExtension, createLinkMatcherWithRegExp, LinkExtension } from '@lexical/link'
 import { TableExtension } from '@lexical/table'
 import { AutoFocusExtension } from '@lexical/extension'
+import { URL_REGEXP } from '@/lib/url'
+import { SNAutoLinkExtension } from './extensions/decorative/autolink'
 
 export default function Editor ({ name, appendValue, autoFocus, ...props }) {
   const { prefs } = useLexicalPreferences()
@@ -71,6 +73,8 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
       namespace: 'SN',
       nodes: DefaultNodes,
       dependencies: [
+        configExtension(AutoLinkExtension, { matchers: [createLinkMatcherWithRegExp(URL_REGEXP)] }),
+        SNAutoLinkExtension,
         CodeShikiSNExtension,
         MarkdownModeExtension,
         MediaCheckExtension,
@@ -133,7 +137,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         {/* inserts */}
         <FileUploadPlugin />
         {/* inserts: links */}
-        <LinkTransformationPlugin anchorElem={floatingAnchorElem} />
+        <LinkEditorPlugin anchorElem={floatingAnchorElem} />
         {/* decorative plugins */}
         <MentionsPlugin />
         {/* code */}

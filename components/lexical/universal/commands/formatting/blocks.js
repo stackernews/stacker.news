@@ -9,7 +9,7 @@ import {
 import { createCommand, $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR, $createParagraphNode } from 'lexical'
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
-import { USE_TRANSFORMER_BRIDGE } from '@/components/lexical/plugins/core/transformerbridge'
+import { USE_TRANSFORMER_BRIDGE } from '@/components/lexical/plugins/core/transformer-bridge'
 
 export const SN_FORMAT_BLOCK_COMMAND = createCommand('SN_FORMAT_BLOCK_COMMAND')
 

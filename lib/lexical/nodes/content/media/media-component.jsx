@@ -16,7 +16,7 @@ import {
   CLICK_COMMAND, COMMAND_PRIORITY_LOW, DRAGSTART_COMMAND, KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND, RIGHT_CLICK_IMAGE_COMMAND, SELECTION_CHANGE_COMMAND
 } from 'lexical'
-import MentionsPlugin from '@/components/lexical/plugins/decorative/mentions'
+import MentionsPlugin from '@/components/lexical/plugins/decorative/mention'
 import { MediaOrLinkExperimental, LinkRaw } from '@/components/media-or-link'
 import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
 import { $isMediaNode } from './media'
@@ -261,7 +261,7 @@ export default function MediaComponent ({ src, status, ...props }) {
     return <p className='outlawed'>{url}</p>
   }
 
-  if (status === 'error' || status === 'idle') {
+  if (status !== 'done') {
     return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
   }
 

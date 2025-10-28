@@ -4,7 +4,6 @@ import { registerSNFormatElementCommand } from './formatting/elements'
 import { registerSNFormatBlockCommand } from './formatting/blocks'
 import { registerSNToggleLinkCommand } from './links'
 import { registerSNInsertMathCommand } from './math'
-import { registerSNTableCommands } from './table'
 import { defineExtension } from '@lexical/extension'
 
 export const UniversalCommandsExtension = defineExtension({
@@ -15,8 +14,7 @@ export const UniversalCommandsExtension = defineExtension({
       registerSNFormatBlockCommand({ editor }),
       registerSNFormatElementCommand({ editor }),
       registerSNToggleLinkCommand({ editor }),
-      registerSNInsertMathCommand({ editor }),
-      registerSNTableCommands({ editor })
+      registerSNInsertMathCommand({ editor })
     )
   }
 })

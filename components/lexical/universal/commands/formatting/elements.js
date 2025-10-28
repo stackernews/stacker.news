@@ -1,6 +1,6 @@
 import { createCommand, COMMAND_PRIORITY_EDITOR, FORMAT_ELEMENT_COMMAND, $getSelection, $isRangeSelection } from 'lexical'
 import { $isMarkdownMode } from '@/components/lexical/universal/utils'
-import { USE_TRANSFORMER_BRIDGE } from '@/components/lexical/plugins/core/transformerbridge'
+import { USE_TRANSFORMER_BRIDGE } from '@/components/lexical/plugins/core/transformer-bridge'
 export const SN_FORMAT_ELEMENT_COMMAND = createCommand('SN_FORMAT_ELEMENT_COMMAND')
 
 export const registerSNFormatElementCommand = ({ editor }) => {

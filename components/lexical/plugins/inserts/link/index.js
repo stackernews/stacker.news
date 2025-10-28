@@ -6,13 +6,13 @@ import {
   COMMAND_PRIORITY_LOW, PASTE_COMMAND,
   $getSelection, $isNodeSelection, $isRangeSelection
 } from 'lexical'
-import LinkEditor from './linkeditor'
+import LinkEditor from './editor'
 import { useToolbarState } from '@/components/lexical/contexts/toolbar'
-import { getSelectedNode } from '@/components/lexical/utils/selection'
+import { getSelectedNode } from '@/components/lexical/universal/utils'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
 import { ensureProtocol, removeTracking, URL_REGEXP } from '@/lib/url'
 
-export default function LinkTransformationPlugin ({ anchorElem }) {
+export default function LinkEditorPlugin ({ anchorElem }) {
   const [isLinkEditable, setIsLinkEditable] = useState(false)
   const [nodeKey, setNodeKey] = useState(null)
   const [editor] = useLexicalComposerContext()

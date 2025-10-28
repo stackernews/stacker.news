@@ -46,6 +46,7 @@ span.sn__mediaContainer .outlawed {
 .sn__mediaContainer img,
 .sn__mediaContainer video {
   max-width: var(--max-width);
+  max-height: var(--max-width);
   display: block;
   cursor: default;
   aspect-ratio: var(--aspect-ratio);

@@ -6,7 +6,6 @@ import { SN_FORMAT_ELEMENT_COMMAND } from '@/components/lexical/universal/comman
 import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting/inline'
 import { SN_INSERT_MATH_COMMAND } from '@/components/lexical/universal/commands/math'
 import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/extensions/core/mode'
-import { SN_TABLE_DIALOG_COMMAND } from '@/components/lexical/universal/commands/table'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
 
@@ -52,7 +51,6 @@ const SHORTCUT_CONFIGS = {
     commandMap: {
       upload: SN_UPLOAD_FILES_COMMAND,
       link: SN_TOGGLE_LINK_COMMAND,
-      table: SN_TABLE_DIALOG_COMMAND,
       math: SN_INSERT_MATH_COMMAND,
       'math-inline': SN_INSERT_MATH_COMMAND
     }

@@ -7,7 +7,6 @@ import { useShowModal } from '@/components/modal'
 import { INSERT_OPTIONS } from './defs/formatting'
 import { useCallback, useState } from 'react'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
-import { SN_TABLE_DIALOG_COMMAND } from '@/components/lexical/universal/commands/table'
 import { SN_INSERT_MATH_COMMAND } from '@/components/lexical/universal/commands/math'
 import ActionTooltip from '@/components/action-tooltip'
 
@@ -19,9 +18,6 @@ export default function InsertTools () {
     switch (insert) {
       case 'upload':
         editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)
-        break
-      case 'table':
-        editor.dispatchCommand(SN_TABLE_DIALOG_COMMAND)
         break
       case 'math':
         editor.dispatchCommand(SN_INSERT_MATH_COMMAND)

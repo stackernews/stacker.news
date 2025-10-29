@@ -36,7 +36,7 @@ import { CheckListExtension, ListExtension } from '@lexical/list'
 import { AutoLinkExtension, createLinkMatcherWithRegExp, LinkExtension } from '@lexical/link'
 import { TableExtension } from '@lexical/table'
 import { AutoFocusExtension } from '@lexical/extension'
-import { URL_REGEXP } from '@/lib/url'
+import { AUTOLINK_URL_REGEXP, EMAIL_REGEXP, ensureProtocol } from '@/lib/url'
 import { SNAutoLinkExtension } from './extensions/decorative/autolink'
 
 export default function Editor ({ name, appendValue, autoFocus, ...props }) {
@@ -73,7 +73,18 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
       namespace: 'SN',
       nodes: DefaultNodes,
       dependencies: [
-        configExtension(AutoLinkExtension, { matchers: [createLinkMatcherWithRegExp(URL_REGEXP)] }),
+        // BUG
+        // remember that this re-creates a link node when the user deletes it
+        configExtension(AutoLinkExtension, {
+          matchers: [
+            createLinkMatcherWithRegExp(AUTOLINK_URL_REGEXP, (text) => {
+              return ensureProtocol(text)
+            }),
+            createLinkMatcherWithRegExp(EMAIL_REGEXP, (text) => {
+              return `mailto:${text}`
+            })
+          ]
+        }),
         SNAutoLinkExtension,
         CodeShikiSNExtension,
         MarkdownModeExtension,

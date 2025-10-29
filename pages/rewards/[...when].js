@@ -5,11 +5,13 @@ import { CenterLayout } from '@/components/layout'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { fixedDecimal } from '@/lib/format'
+import { fixedDecimal, msatsToSats } from '@/lib/format'
 import Trophy from '@/svgs/trophy-fill.svg'
 import { ListItem } from '@/components/items'
 import { dayMonthYear } from '@/lib/time'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
+import { useMemo } from 'react'
+import { payTypeShortName } from '@/lib/pay-in'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
@@ -31,34 +33,43 @@ export default function Rewards ({ ssrData }) {
     <CenterLayout footerLinks>
       <div className='mw-100'>
         {rewards.map(({ total, sources, time }, i) => (
-          <div className='py-3 w-100 d-grid' key={time} style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
-            <h4 className='fw-bold text-muted ps-0'>
-              {time && <div className='text-muted fst-italic fs-6 fw-normal pb-1'>On {dayMonthYear(time)} at 12a CT</div>}
-              {total} sats were rewarded
-            </h4>
-            <div className='my-3 w-100 justify-self-center'>
-              <GrowthPieChart data={sources} />
-            </div>
-            {meRewards[i] &&
-              <div className='justify-self-center mw-100'>
-                <h4 className='fw-bold text-muted'>
-                  you earned {meRewards[i].total} sats ({fixedDecimal(meRewards[i].total * 100 / total, 2)}%)
-                </h4>
-                <div>
-                  {meRewards[i].rewards?.map((r, i) => <Reward key={[r.rank, r.type].join('-')} {...r} />)}
-                </div>
-              </div>}
-          </div>
+          <RewardDay key={time} total={total} sources={sources} time={time} meRewards={meRewards?.[i]} />
         ))}
       </div>
     </CenterLayout>
   )
 }
 
+function RewardDay ({ total, sources, time, meRewards }) {
+  const sourcesData = useMemo(() => {
+    return sources.map(({ name, value }) => ({ name: payTypeShortName(name), value: msatsToSats(value) }))
+  }, [sources])
+  return (
+    <div className='py-3 w-100 d-grid' key={time} style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
+      <h4 className='fw-bold text-muted ps-0'>
+        {time && <div className='text-muted fst-italic fs-6 fw-normal pb-1'>On {dayMonthYear(time)} at 12a CT</div>}
+        {total} sats were rewarded
+      </h4>
+      <div className='my-3 w-100 justify-self-center'>
+        <GrowthPieChart data={sourcesData} />
+      </div>
+      {meRewards &&
+        <div className='justify-self-center mw-100'>
+          <h4 className='fw-bold text-muted'>
+            you earned {meRewards.total} sats ({fixedDecimal(meRewards.total * 100 / total, 2)}%)
+          </h4>
+          <div>
+            {meRewards.rewards?.map((r, i) => <Reward key={[r.rank, r.type].join('-')} {...r} />)}
+          </div>
+        </div>}
+    </div>
+  )
+}
+
 function Reward ({ rank, type, sats, item }) {
   if (!rank) return null
 
-  const color = rank <= 3 ? 'text-primary' : 'text-muted'
+  const color = rank <= 10 ? 'text-primary' : 'text-muted'
 
   let category = type
   switch (type) {

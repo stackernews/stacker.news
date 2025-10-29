@@ -204,8 +204,8 @@ export function GrowthPieChart ({ data }) {
   const nonZeroData = data.filter(d => d.value > 0)
 
   return (
-    <ResponsiveContainer width='100%' height={250} minWidth={200}>
-      <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+    <ResponsiveContainer width='100%' height={250} minWidth={250}>
+      <PieChart margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
         <Pie
           dataKey='value'
           isAnimationActive={false}

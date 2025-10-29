@@ -42,7 +42,7 @@ async function getActiveRewards (models) {
 
 async function getRewards (when, models) {
   if (when) {
-    if (when.length > 2) {
+    if (when.length > 1) {
       throw new GqlInputError('too many dates')
     }
     when.forEach(w => {
@@ -56,21 +56,14 @@ async function getRewards (when, models) {
   }
 
   const results = await models.$queryRaw`
-    WITH days_cte (day) AS (
-      SELECT date_trunc('day', t)
-      FROM generate_series(
-        COALESCE(${when?.[0]}::text::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
-        COALESCE(${when?.[when.length - 1]}::text::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
-        interval '1 day') AS t
-    )
     SELECT (sum("msats") / 1000)::INT as total,
-      days_cte.day + interval '1 day' as time,
+      "AggRewards"."timeBucket" + interval '1 day' as time,
       array_agg(json_build_object('name', "payInType", 'value', "msats")) as sources
-    FROM days_cte
-    JOIN "AggRewards" ON "AggRewards"."timeBucket" = days_cte.day
-    WHERE "AggRewards"."granularity" = 'DAY'
-    GROUP BY days_cte.day
-    ORDER BY days_cte.day ASC`
+    FROM "AggRewards"
+    WHERE "AggRewards"."timeBucket" = date_trunc('day', ${when?.[0]}::text::timestamp - interval '1 day') AT TIME ZONE 'America/Chicago'
+    AND "AggRewards"."granularity" = 'DAY'
+    AND "AggRewards"."payInType" IS NOT NULL
+    GROUP BY "AggRewards"."timeBucket"`
 
   return results.length ? results : [{ total: 0, time: '0', sources: [] }]
 }
@@ -84,8 +77,8 @@ export default {
         return null
       }
 
-      if (!when || when.length > 2) {
-        throw new GqlInputError('bad date range')
+      if (!when || when.length > 1) {
+        throw new GqlInputError('too many dates')
       }
       for (const w of when) {
         if (isNaN(new Date(w))) {

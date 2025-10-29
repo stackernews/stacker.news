@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyEarner } from '@/lib/webPush'
 
 export const paymentMethods = [
@@ -8,67 +8,83 @@ export const paymentMethods = [
 
 export const systemOnly = true
 
+// this makes the proportions add up to 1 and then apportions the total mtokens to the prospects
+// it then rounds down to the nearest integer and adds any remaining mtokens to the prospect with the highest proportion
+// adding a field to the prospect called apportionedMtokens
+function apportionment (prospects, totalMtokens, proportionFieldName) {
+  const totalProportion = prospects.reduce((acc, prospect) => acc + prospect[proportionFieldName], 0)
+  const normalizedProspects = prospects.map(prospect => {
+    return {
+      ...prospect,
+      normalizedProportion: prospect[proportionFieldName] / totalProportion
+    }
+  })
+  const apportionedProspects = normalizedProspects.map(prospect => {
+    return {
+      ...prospect,
+      apportionedMtokens: Math.floor(prospect.normalizedProportion * totalMtokens)
+    }
+  })
+  const remainingMtokens = totalMtokens - apportionedProspects.reduce((acc, prospect) => acc + prospect.apportionedMtokens, 0)
+  if (remainingMtokens > 0) {
+    const maxProportion = Math.max(...apportionedProspects.map(prospect => prospect.normalizedProportion))
+    const maxProportionIndex = apportionedProspects.findIndex(prospect => prospect.normalizedProportion === maxProportion)
+    apportionedProspects[maxProportionIndex].apportionedMtokens += remainingMtokens
+  }
+  return apportionedProspects
+}
+
 export async function getInitial (models, { totalMsats, rewardProspects }) {
   const payOutCustodialTokens = []
 
-  // add in referral earnings
-  // compute the payOutCustodialTokens with their Earn row relations
   let totalRewardedMsats = 0
-  console.log('rewardProspects', rewardProspects.reduce((acc, prospect) => acc + prospect.total_proportion, 0),
-    rewardProspects.reduce((acc, prospect) => acc + prospect.total_proportion * totalMsats, 0))
-  for (const rewardProspect of rewardProspects) {
-    const prospectMsats = rewardProspect.total_proportion * totalMsats
-
-    const foreverReferrerEarnings = Math.floor(parseFloat(prospectMsats * 0.1)) // 10% of earnings
-    const oneDayReferrerEarnings = Math.floor(parseFloat(prospectMsats * 0.1)) // 10% of earnings
-    const earnerEarnings = Math.floor(parseFloat(prospectMsats)) - foreverReferrerEarnings - oneDayReferrerEarnings
+  const apportionedProspects = apportionment(rewardProspects, totalMsats, 'total_proportion')
+  for (const prospect of apportionedProspects) {
+    // referrer, if it exists, gets 10% of the earner's mtokens
+    const referrerId = prospect.foreverReferrerId ?? prospect.oneDayReferrerId
+    let referrerMtokens = 0
+    if (referrerId) {
+      referrerMtokens = Math.floor(parseFloat(prospect.apportionedMtokens * 0.1)) // 10% of earnings
+    }
+    const earnerMtokens = prospect.apportionedMtokens - referrerMtokens
 
     // sanity check
-    totalRewardedMsats += earnerEarnings + foreverReferrerEarnings + oneDayReferrerEarnings
+    totalRewardedMsats += earnerMtokens + referrerMtokens
     if (totalRewardedMsats > totalMsats) {
       throw new Error('total rewarded msats exceeds total msats')
     }
 
-    console.log('earnerEarnings', earnerEarnings)
-    console.log('foreverReferrerEarnings', foreverReferrerEarnings)
-    console.log('oneDayReferrerEarnings', oneDayReferrerEarnings)
-    console.log('totalRewardedMsats', totalRewardedMsats)
-    console.log('totalMsats', totalMsats)
+    // apportion the earner's mtokens to the earns
+    const apportionedEarns = apportionment(prospect.earns, earnerMtokens, 'typeProportion')
 
     const payOutCustodialTokenEarnings = [{
       payOutType: 'REWARD',
-      userId: rewardProspect.userId,
-      mtokens: BigInt(earnerEarnings),
+      userId: prospect.userId,
+      mtokens: BigInt(earnerMtokens),
       custodialTokenType: 'SATS',
-      earns: rewardProspect.earns.map(earn => ({
-        userId: rewardProspect.userId,
-        msats: Math.floor(totalMsats * earn.typeProportion * 0.8),
-        typeProportion: earn.typeProportion,
+      earns: apportionedEarns.map(earn => ({
+        userId: prospect.userId,
+        msats: BigInt(earn.apportionedMtokens),
         type: earn.type,
         typeId: earn.typeId,
+        typeProportion: earn.typeProportion,
         rank: earn.rank
       }))
-    }, {
-      payOutType: 'REWARD',
-      userId: rewardProspect.foreverReferrerId,
-      mtokens: BigInt(foreverReferrerEarnings),
-      custodialTokenType: 'SATS',
-      earns: [{
-        userId: rewardProspect.foreverReferrerId,
-        msats: foreverReferrerEarnings,
-        type: 'FOREVER_REFERRAL'
-      }]
-    }, {
-      payOutType: 'REWARD',
-      userId: rewardProspect.oneDayReferrerId,
-      mtokens: BigInt(oneDayReferrerEarnings),
-      custodialTokenType: 'SATS',
-      earns: [{
-        userId: rewardProspect.oneDayReferrerId,
-        msats: oneDayReferrerEarnings,
-        type: 'ONE_DAY_REFERRAL'
-      }]
     }]
+
+    if (referrerId) {
+      payOutCustodialTokenEarnings.push({
+        payOutType: 'REWARD',
+        userId: referrerId,
+        mtokens: BigInt(referrerMtokens),
+        custodialTokenType: 'SATS',
+        earns: [{
+          userId: referrerId,
+          msats: BigInt(referrerMtokens),
+          type: 'FOREVER_REFERRAL'
+        }]
+      })
+    }
 
     payOutCustodialTokens.push(...payOutCustodialTokenEarnings)
   }
@@ -76,6 +92,7 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
   return {
     payInType: 'REWARDS',
     mcost: BigInt(totalMsats),
+    userId: USER_ID.rewards,
     payOutCustodialTokens
   }
 }
@@ -86,9 +103,9 @@ export async function onPaidSideEffects (models, payInId) {
   const notifications = {}
   for (const payOutCustodialToken of payIn.payOutCustodialTokens) {
     const userN = notifications[payOutCustodialToken.userId] || {}
-    const msats = payOutCustodialToken.mtokens + (userN.msats || 0)
+    const msats = payOutCustodialToken.mtokens + (userN.msats || 0n)
     for (const earn of payOutCustodialToken.earns) {
-      const earnTypeMsats = earn.msats + (userN[earn.type]?.msats || 0)
+      const earnTypeMsats = earn.msats + (userN[earn.type]?.msats || 0n)
       const prevEarnTypeBestRank = userN[earn.type]?.bestRank
       const earnTypeBestRank = prevEarnTypeBestRank
         ? Math.min(prevEarnTypeBestRank, Number(earn.rank))

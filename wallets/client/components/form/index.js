@@ -9,7 +9,7 @@ import Text from '@/components/text'
 import Info from '@/components/info'
 import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/multi-step-form'
 import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
-import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
+import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLayoutWarning, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import { useFormikContext } from 'formik'
@@ -45,6 +45,7 @@ export function WalletMultiStepForm ({ wallet }) {
           <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />
         </WalletLayoutHeader>
         <WalletGuide name={wallet.name} />
+        <WalletLayoutWarning name={wallet.name} />
         <WalletMultiStepFormContextProvider wallet={wallet} initial={initial} steps={steps}>
           {steps.map(step => {
             // WalletForm is aware of the current step via hooks

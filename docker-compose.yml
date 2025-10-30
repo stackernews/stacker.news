@@ -87,6 +87,7 @@ services:
     restart: unless-stopped
     depends_on: *depends_on_app
     profiles:
+      - images
       - capture
     healthcheck:
       <<: *healthcheck

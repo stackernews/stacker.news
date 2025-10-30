@@ -1254,7 +1254,6 @@ enum WalletName {
   CLN
   COINOS
   FOUNTAIN
-  LIFPAY
   LNBITS
   LND
   MINIBITS

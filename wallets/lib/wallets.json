@@ -106,12 +106,6 @@
         "url": "https://fountain.fm/"
     },
     {
-        "name": "LIFPAY",
-        "displayName": "Lifpay",
-        "image": "/wallets/lifpay.png",
-        "url": "https://lifpay.me/"
-    },
-    {
         "name": "SHOCKWALLET",
         "displayName": "Shockwallet",
         "image": "/wallets/shockwallet.png",

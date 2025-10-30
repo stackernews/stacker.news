@@ -88,7 +88,7 @@ export function InvWithdrawal () {
   const router = useRouter()
   const { me } = useMe()
 
-  const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
+  const [createWithdrawl] = useMutation(CREATE_WITHDRAWL)
 
   const maxFeeDefault = me?.privates?.withdrawMaxFeeDefault
 

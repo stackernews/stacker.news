@@ -6,6 +6,7 @@ DECLARE
 BEGIN
     UPDATE pgboss.schedule SET name = 'checkPendingPayInBolt11s', cron = '*/5 * * * *' WHERE name = 'checkPendingDeposits';
     UPDATE pgboss.schedule SET name = 'checkPendingPayOutBolt11s', cron = '*/5 * * * *' WHERE name = 'checkPendingWithdrawals';
+    INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('checkPendingPayInInvoiceCreations', '*/5 * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
     return 0;
 EXCEPTION WHEN OTHERS THEN
     return 0;

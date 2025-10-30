@@ -67,6 +67,9 @@ CREATE INDEX "PayOutBolt11_userId_idx" ON "PayOutBolt11"("userId");
 -- CreateIndex
 CREATE INDEX "PayOutBolt11_hash_idx" ON "PayOutBolt11"("hash");
 
+-- only allow one payOutBolt11 with the same hash to have no status (pending)
+CREATE UNIQUE INDEX "PayOutBolt11_hash_key" ON "PayOutBolt11"("hash") WHERE "status" IS NULL;
+
 -- CreateIndex
 CREATE INDEX "PayOutBolt11_protocolId_idx" ON "PayOutBolt11"("protocolId");
 

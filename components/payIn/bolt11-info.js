@@ -8,7 +8,7 @@ export default ({ bolt11, preimage, children }) => {
   }
 
   return (
-    <div className='d-grid align-items-center' style={{ gridTemplateColumns: 'auto 1fr', gap: '0.5rem' }}>
+    <div className='d-grid align-items-center w-100' style={{ gridTemplateColumns: 'auto 1fr', gap: '0.5rem' }}>
       {bolt11 &&
         <>
           <div>bolt11</div>

@@ -1820,6 +1820,8 @@ model PayOutBolt11 {
   protocol   WalletProtocol?  @relation(fields: [protocolId], references: [id], onDelete: SetNull)
   payIn      PayIn            @relation(fields: [payInId], references: [id])
 
+  // NOTE: we create a partial unique index on hash to ensure only one payOutBolt11 with the same hash can have no status
+  // but prisma doesn't support partial indexes, yet it will ignore them, so we don't mention it in the model
   @@index([createdAt])
   @@index([payOutType])
   @@index([userId])

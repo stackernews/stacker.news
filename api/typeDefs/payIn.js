@@ -215,7 +215,7 @@ type PayOutBolt11 {
   id: Int!
   userId: Int
   payOutType: PayOutType!
-  status: WithdrawlStatus!
+  status: WithdrawlStatus
   msats: BigInt!
   payInId: Int!
   hash: String!

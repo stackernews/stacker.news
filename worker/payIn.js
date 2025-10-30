@@ -3,13 +3,14 @@ import {
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { getPaymentOrNotSent } from '@/api/lnd'
-import { sleep } from '@/lib/time'
+import { datePivot, sleep } from '@/lib/time'
 import retry from 'async-retry'
 import {
   payInWithdrawalPaid, payInWithdrawalFailed, payInPaid, payInForwarding, payInForwarded, payInFailedForward, payInHeld, payInFailed,
   PAY_IN_TERMINAL_STATES
 } from '@/api/payIn/transitions'
 import { isWithdrawal } from '@/api/payIn/lib/is'
+import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 
 export async function subscribeToBolt11s (args) {
   await subscribeToPayInBolt11s(args)
@@ -191,7 +192,6 @@ async function subscribeToPayOutBolt11s (args) {
 // if we already have the payment from a subscription event or previous call,
 // we can skip a getPayment call
 export async function checkPayOutBolt11 ({ data: { hash, withdrawal, invoice }, boss, models, lnd }) {
-  // get the withdrawl if pending or it's an invoiceForward
   const payIn = await models.payIn.findFirst({
     where: {
       payOutBolt11: { hash },
@@ -205,34 +205,44 @@ export async function checkPayOutBolt11 ({ data: { hash, withdrawal, invoice }, 
   // nothing to do if the withdrawl is already recorded and it isn't an invoiceForward
   if (!payIn) return
 
-  // TODO: I'm not sure notSent is accurate given that payOutBolt11 is created when the payIn is created
-  const wdrwl = withdrawal ?? await getPaymentOrNotSent({ id: hash, lnd, createdAt: payIn.payOutBolt11.createdAt })
+  const wdrwl = withdrawal ?? await getPaymentOrNotSent({ id: hash, lnd })
 
   console.log('wdrwl', hash, 'is_confirmed', wdrwl?.is_confirmed, 'is_failed', wdrwl?.is_failed, 'notSent', wdrwl?.notSent)
 
   if (wdrwl?.is_confirmed) {
-    if (payIn.payInState === 'FORWARDING') {
-      return await payInForwarded({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
+    if (isWithdrawal(payIn)) {
+      return await payInWithdrawalPaid({ data: { payInId: payIn.id, withdrawal: wdrwl }, models, lnd, boss })
     }
 
-    return await payInWithdrawalPaid({ data: { payInId: payIn.id, withdrawal: wdrwl }, models, lnd, boss })
-  } else if (wdrwl?.is_failed || wdrwl?.notSent) {
+    return await payInForwarded({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
+  }
+
+  if (wdrwl?.notSent) {
+    // if the payIn is in state PENDING_WITHDRAWAL or FORWARDING and it's been less than LND_PATHFINDING_TIMEOUT_MS
+    // since it transitioned to that state, we should do nothing because an outgoing payment may still be in progress
+    if (['PENDING_WITHDRAWAL', 'FORWARDING'].includes(payIn.payInState)) {
+      if (new Date(payIn.payInStateChangedAt) > datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS })) {
+        return // do nothing
+      }
+    }
+  }
+
+  if (wdrwl?.is_failed) {
     if (isWithdrawal(payIn)) {
       return await payInWithdrawalFailed({ data: { payInId: payIn.id, withdrawal: wdrwl }, models, lnd, boss })
     }
-
-    // TODO: if can properly handle afterBegin failures, this can be removed
-    if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
-      return await payInFailed({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
-    }
-
     return await payInFailedForward({ data: { payInId: payIn.id, withdrawal: wdrwl, invoice }, models, lnd, boss })
   }
 }
 
+// if we haven't created or wrapped the invoice 30s later, we transition to failed
 export async function checkPayInInvoiceCreation ({ data: { payInId }, models, lnd, boss }) {
   const payIn = await models.payIn.findUnique({
-    where: { id: payInId, payInState: { in: ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'] } }
+    where: {
+      id: payInId,
+      payInState: { in: ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'] },
+      createdAt: { lt: datePivot(new Date(), { seconds: -30 }) }
+    }
   })
   if (!payIn) return
 
@@ -247,6 +257,24 @@ export async function checkPayInInvoiceCreation ({ data: { payInId }, models, ln
     lnd,
     boss
   })
+}
+
+export async function checkPendingPayInInvoiceCreations ({ models, ...args }) {
+  const pendingPayIns = await models.payIn.findMany({
+    where: {
+      payInState: { in: ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'] },
+      createdAt: { lt: datePivot(new Date(), { seconds: -30 }) }
+    }
+  })
+
+  for (const payIn of pendingPayIns) {
+    try {
+      await checkPayInInvoiceCreation({ models, ...args, data: { payInId: payIn.id } })
+      await sleep(10)
+    } catch (err) {
+      console.error('error checking invoice creation', payIn.id, err)
+    }
+  }
 }
 
 export async function checkPendingPayInBolt11s (args) {

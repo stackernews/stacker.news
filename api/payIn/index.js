@@ -57,13 +57,27 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly }) 
 // https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE
 // alternative approaches:
 // 1. do NOT lock all users, but use NOWAIT on users locks so that we can catch AND retry transactions that fail with a deadlock error
-// 2. issue onPaid in a separate transaction, so that payInCustodialTokens and payOutCustodialTokens cannot be interleaved
+// anything we can do to minimize the time spent in these interactive txs would also help
 async function obtainRowLevelLocks (tx, payIn) {
   const payOutUserIds = [...new Set(payIn.payOutCustodialTokens.map(t => t.userId)).add(payIn.userId)]
   if (payIn.payOutBolt11) {
     payOutUserIds.push(payIn.payOutBolt11.userId)
   }
   await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR UPDATE`
+}
+
+// after begin and retry, we want to double check that the invoice we're assuming will be created is actually created
+// so this is inserted atomically with the payIn creation
+async function queueCheckPayInInvoiceCreation (tx, payInId) {
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+    VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payInId}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
+}
+
+// if there's a terminal failure after begin or retry, we want the payIn to get marked as failed as fast as possible
+async function queuePayInFailed (tx, payInId, payInFailureReason) {
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+    VALUES ('payInFailed', jsonb_build_object('payInId', ${payInId}::INTEGER, 'payInFailureReason', ${payInFailureReason ?? 'EXECUTION_FAILED'}),
+      now(), 1000)`
 }
 
 async function begin (models, payInInitial, payInArgs, { me, custodialOnly }) {
@@ -77,9 +91,7 @@ async function begin (models, payInInitial, payInArgs, { me, custodialOnly }) {
 
     // if it's pessimistic, we don't perform the action until the invoice is held
     if (payIn.pessimisticEnv) {
-      // we want to double check that the invoice we're assuming will be created is actually created
-      await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-        VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
+      await queueCheckPayInInvoiceCreation(tx, payIn.id)
 
       return {
         payIn,
@@ -100,15 +112,13 @@ async function begin (models, payInInitial, payInArgs, { me, custodialOnly }) {
       }
     }
 
-    // we want to double check that the invoice we're assuming will be created is actually created
-    await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-      VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
+    await queueCheckPayInInvoiceCreation(tx, payIn.id)
     return {
       payIn,
       result,
       mCostRemaining
     }
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10000 })
 
   return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
 }
@@ -177,18 +187,12 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
         max_fee: msatsToSats(mtokens),
         pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
         confidence: LND_PATHFINDING_TIME_PREF_PPM
-      }).catch(console.error)
+      }).catch(e => queuePayInFailed(models, payIn.id, e.payInFailureReason ?? 'WITHDRAWAL_FAILED').catch(console.error))
     } else {
       throw new Error('Invalid payIn begin state')
     }
   } catch (e) {
-    models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-        VALUES (
-          'payInFailed',
-          jsonb_build_object(
-            'payInId', ${payIn.id}::INTEGER,
-            'payInFailureReason', ${e.payInFailureReason ?? 'EXECUTION_FAILED'}),
-          now(), 1000)`.catch(console.error)
+    queuePayInFailed(models, payIn.id, e.payInFailureReason).catch(console.error)
     throw e
   }
 
@@ -385,15 +389,14 @@ export async function retry (payInId, { me }) {
         }
       }
 
-      await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-        VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payIn.id}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
+      await queueCheckPayInInvoiceCreation(tx, payIn.id)
 
       return {
         payIn,
         result,
         mCostRemaining
       }
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10000 })
 
     return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
   } catch (e) {

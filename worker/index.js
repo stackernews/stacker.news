@@ -8,7 +8,8 @@ import {
   checkPendingPayOutBolt11s,
   checkPayInBolt11,
   checkPayOutBolt11,
-  checkPayInInvoiceCreation
+  checkPayInInvoiceCreation,
+  checkPendingPayInInvoiceCreations
 } from './payIn'
 import { repin } from './repin'
 import { trust } from './trust'
@@ -101,7 +102,6 @@ async function work () {
   await boss.work('payInForwarded', jobWrapper(payInForwarded))
   await boss.work('payInFailedForward', jobWrapper(payInFailedForward))
   await boss.work('payInHeld', jobWrapper(payInHeld))
-  await boss.work('payInCancel', jobWrapper(payInCancel))
   await boss.work('payInFailed', jobWrapper(payInFailed))
   await boss.work('payInPaid', jobWrapper(payInPaid))
   await boss.work('payInCancel', jobWrapper(payInCancel))
@@ -127,6 +127,7 @@ async function work () {
 
     // payIn jobs
     await subscribeToBolt11s(args)
+    await boss.work('checkPendingPayInInvoiceCreations', jobWrapper(checkPendingPayInInvoiceCreations))
     await boss.work('checkPendingPayInBolt11s', jobWrapper(checkPendingPayInBolt11s))
     await boss.work('checkPendingPayOutBolt11s', jobWrapper(checkPendingPayOutBolt11s))
     await boss.work('checkPayInBolt11', jobWrapper(checkPayInBolt11))

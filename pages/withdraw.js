@@ -9,7 +9,6 @@ import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/withdrawal'
 import { requestProvider } from 'webln'
 import { useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
-import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { Checkbox, Form, Input, InputUserSuggest, SubmitButton } from '@/components/form'
 import { lnAddrSchema, withdrawlSchema } from '@/lib/validate'
 import { useShowModal } from '@/components/modal'
@@ -102,17 +101,13 @@ export function InvWithdrawal () {
           maximumAmount: Math.max(me.privates?.sats - maxFeeDefault, 0)
         })
         const { data } = await createWithdrawl({ variables: { invoice, maxFee: maxFeeDefault } })
-        router.push(`/withdrawals/${data.createWithdrawl.id}`)
+        router.push(`/transactions/${data.createWithdrawl.id}`)
       } catch (e) {
         console.log(e.message)
       }
     }
     effect()
   }, [])
-
-  if (called && !error) {
-    return <WithdrawlSkeleton status='sending' />
-  }
 
   return (
     <>
@@ -280,7 +275,6 @@ export function LnAddrWithdrawal () {
 
   return (
     <>
-      {called && !error && <WithdrawlSkeleton status='sending' />}
       <Form
         // hide/show instead of add/remove from react tree to avoid re-initializing the form state on error
         style={{ display: !(called && !error) ? 'block' : 'none' }}

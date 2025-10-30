@@ -177,12 +177,11 @@ export const getNodeSockets = cachedFetcher(async function fetchNodeSockets ({ l
   }
 })
 
-export async function getPaymentOrNotSent ({ id, lnd, createdAt }) {
+export async function getPaymentOrNotSent ({ id, lnd }) {
   try {
     return await getPayment({ id, lnd })
   } catch (err) {
     if (err[1] === 'SentPaymentNotFound') {
-      // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
       return { notSent: true, is_failed: true }
     } else {
       throw err

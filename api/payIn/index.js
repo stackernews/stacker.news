@@ -164,7 +164,7 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
 
   try {
     if (payIn.payInState === 'PAID') {
-      payInTypeModules[payIn.payInType].onPaidSideEffects?.(models, payIn.id).catch(console.error)
+      onPaidSideEffects(models, payIn.id).catch(console.error)
     } else if (payIn.payInState === 'PENDING_INVOICE_CREATION') {
       const payInBolt11 = await payInBolt11Prospect(models, payIn,
         { msats: mCostRemaining, description: await payInTypeModules[payIn.payInType].describe(models, payIn.id) })

@@ -1,8 +1,10 @@
+import { Alert } from 'react-bootstrap'
+import Link from 'next/link'
 import Layout from '@/components/layout'
 import { useWalletImage } from '@/wallets/client/hooks'
-import { walletDisplayName, walletGuideUrl } from '@/wallets/lib/util'
-import Link from 'next/link'
+import { walletDisplayName, walletGuideUrl, walletWarning } from '@/wallets/lib/util'
 import InfoIcon from '@/svgs/information-fill.svg'
+import Text from '@/components/text'
 
 export function WalletLayout ({ children }) {
   // TODO(wallet-v2): py-5 doesn't work, I think it gets overriden by the layout class
@@ -68,4 +70,17 @@ export function WalletGuide ({ name }) {
       guide
     </Link>
   )
+}
+
+export function WalletLayoutWarning ({ name }) {
+  const warning = walletWarning(name)
+  if (!warning) return null
+
+  if (warning) {
+    return (
+      <Alert variant='warning' className='mx-auto my-3'>
+        <Text>{warning}</Text>
+      </Alert>
+    )
+  }
 }

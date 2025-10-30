@@ -1,7 +1,8 @@
 import Layout from '@/components/layout'
 import { useWalletImage } from '@/wallets/client/hooks'
-import { walletDisplayName } from '@/wallets/lib/util'
+import { walletDisplayName, walletGuideUrl } from '@/wallets/lib/util'
 import Link from 'next/link'
+import InfoIcon from '@/svgs/information-fill.svg'
 
 export function WalletLayout ({ children }) {
   // TODO(wallet-v2): py-5 doesn't work, I think it gets overriden by the layout class
@@ -54,5 +55,17 @@ export function WalletLayoutImageOrName ({ name, maxHeight = '50px' }) {
           )
         : walletDisplayName(name)}
     </div>
+  )
+}
+
+export function WalletGuide ({ name }) {
+  const guideUrl = walletGuideUrl(name)
+  if (!guideUrl) return null
+
+  return (
+    <Link href={guideUrl} className='text-center text-reset fw-bold text-underline' target='_blank' rel='noreferrer'>
+      <InfoIcon width={18} height={18} className='mx-1' />
+      guide
+    </Link>
   )
 }

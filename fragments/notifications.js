@@ -2,36 +2,34 @@ import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
 import { SUB_FIELDS } from './subs'
-import { INVOICE_FIELDS } from './invoice'
-
+import { PAY_IN_LINK_FIELDS, PAY_IN_BOLT11_FIELDS } from './payIn'
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
-export const INVOICIFICATION = gql`
+export const PAY_INIFICATION = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
-  ${INVOICE_FIELDS}
-  fragment InvoicificationFields on Invoicification {
+  ${PAY_IN_LINK_FIELDS}
+  ${PAY_IN_BOLT11_FIELDS}
+  fragment PayInificationFields on PayInification {
     id
     sortTime
-    invoice {
-      ...InvoiceFields
-      item {
-        ...ItemFullFields
-        ...PollFields
-      }
-      itemAct {
-        id
-        act
-        invoice {
-          id
-          actionState
+    earnedSats
+    payInItem {
+      ...ItemFullFields
+      ...PollFields
+    }
+    payIn {
+      ...PayInLinkFields
+      payerPrivates {
+        payInBolt11 {
+          ...PayInBolt11Fields
         }
       }
     }
   }`
 
 export const NOTIFICATIONS = gql`
-  ${INVOICIFICATION}
+  ${PAY_INIFICATION}
   ${INVITE_FIELDS}
   ${SUB_FIELDS}
 
@@ -100,10 +98,6 @@ export const NOTIFICATIONS = gql`
           sortTime
         }
         ... on LostGun {
-          id
-          sortTime
-        }
-        ... on Infection {
           id
           sortTime
         }
@@ -196,31 +190,8 @@ export const NOTIFICATIONS = gql`
             ...SubFields
           }
         }
-        ... on InvoicePaid {
-          id
-          sortTime
-          earnedSats
-          invoice {
-            id
-            nostr
-            comment
-            lud18Data
-            actionType
-            forwardedSats
-          }
-        }
-        ... on Invoicification {
-          ...InvoicificationFields
-        }
-        ... on WithdrawlPaid {
-          id
-          sortTime
-          earnedSats
-          withdrawl {
-            autoWithdraw
-            satsFeePaid
-            forwardedActionType
-          }
+        ... on PayInification {
+          ...PayInificationFields
         }
         ... on Reminder {
           id

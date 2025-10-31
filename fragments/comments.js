@@ -7,7 +7,6 @@ const STREAK_FIELDS = gql`
       streak
       hasSendWallet
       hasRecvWallet
-      infected
     }
   }
 `
@@ -19,7 +18,6 @@ export const COMMENT_FIELDS = gql`
     position
     parentId
     createdAt
-    invoicePaidAt
     deletedAt
     text
     user {
@@ -27,6 +25,16 @@ export const COMMENT_FIELDS = gql`
       name
       meMute
       ...StreakFields
+    }
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
     }
     sats
     credits
@@ -52,12 +60,6 @@ export const COMMENT_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
-    invoice {
-      id
-      actionState
-      confirmedAt
-      hmac
-    }
     cost
   }
 `
@@ -69,7 +71,6 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     position
     parentId
     createdAt
-    invoicePaidAt
     deletedAt
     text
     user {
@@ -100,12 +101,6 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     imgproxyUrls
     rel
     apiKey
-    invoice {
-      id
-      actionState
-      confirmedAt
-      hmac
-    }
     cost
   }
 `

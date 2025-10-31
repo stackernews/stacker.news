@@ -1,6 +1,6 @@
 import { createHodlInvoice, parsePaymentRequest } from 'ln-service'
-import { estimateRouteFee, getBlockHeight } from '@/api/lnd'
-import { toBigInt, toPositiveBigInt, toPositiveNumber } from '@/lib/format'
+import lnd, { estimateRouteFee, getBlockHeight } from '@/api/lnd'
+import { toPositiveBigInt, toPositiveNumber } from '@/lib/format'
 
 const MIN_OUTGOING_MSATS = BigInt(700) // the minimum msats we'll allow for the outgoing invoice
 const MAX_OUTGOING_MSATS = BigInt(700_000_000) // the maximum msats we'll allow for the outgoing invoice
@@ -9,28 +9,23 @@ const INCOMING_EXPIRATION_BUFFER_MSECS = 120_000 // the buffer enforce for the i
 const MAX_OUTGOING_CLTV_DELTA = 1000 // the maximum cltv delta we'll allow for the outgoing invoice
 export const MIN_SETTLEMENT_CLTV_DELTA = 80 // the minimum blocks we'll leave for settling the incoming invoice
 const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
-const MAX_FEE_ESTIMATE_PERCENT = 3n // the maximum fee relative to outgoing we'll allow for the fee estimate
 
 /*
   The wrapInvoice function is used to wrap an outgoing invoice with the necessary parameters for an incoming hold invoice.
 
   @param args {object} {
-    bolt11: {string} the bolt11 invoice to wrap
-    feePercent: {bigint} the fee percent to use for the incoming invoice
-  }
-  @param options {object} {
     msats: {bigint} the amount in msats to use for the incoming invoice
+    bolt11: {string} the bolt11 invoice to wrap
+    maxRoutingFeeMsats: {bigint} the maximum routing fee in msats to use for the incoming invoice,
+    hideInvoiceDesc: {boolean} whether to hide the invoice description
     description: {string} the description to use for the incoming invoice
     descriptionHash: {string} the description hash to use for the incoming invoice
   }
-  @returns {
-    invoice: the wrapped incoming invoice,
-    maxFee: number
-  }
+  @returns bolt11 {string} the wrapped incoming invoice
 */
-export async function wrapInvoice ({ bolt11, feePercent }, { msats, description, descriptionHash }, { me, lnd }) {
+export async function wrapBolt11 ({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description }) {
   try {
-    console.group('wrapInvoice', description)
+    console.group('wrapInvoice', description, 'msats', msats, 'maxRoutingFeeMsats', maxRoutingFeeMsats)
 
     // create a new object to hold the wrapped invoice values
     const wrapped = {}
@@ -44,10 +39,9 @@ export async function wrapInvoice ({ bolt11, feePercent }, { msats, description,
 
     console.log('invoice', inv.id, inv.mtokens, inv.expires_at, inv.cltv_delta, inv.destination)
 
-    // validate fee percent
-    if (feePercent) {
-      // assert the fee percent is in the range 0-100
-      feePercent = toBigInt(feePercent, 0n, 100n)
+    // validate fee
+    if (maxRoutingFeeMsats) {
+      maxRoutingFeeMsats = toPositiveBigInt(maxRoutingFeeMsats)
     } else {
       throw new Error('Fee percent is missing')
     }
@@ -68,10 +62,8 @@ export async function wrapInvoice ({ bolt11, feePercent }, { msats, description,
     // validate incoming amount
     if (msats) {
       msats = toPositiveBigInt(msats)
-      // outgoing amount should be smaller than the incoming amount
-      // by a factor of exactly 100n / (100n - feePercent)
-      const incomingMsats = outgoingMsat * 100n / (100n - feePercent)
-      if (incomingMsats > msats) {
+      // outgoing amount + routing fee should be smaller than the incoming amount
+      if (outgoingMsat + maxRoutingFeeMsats > msats) {
         throw new Error('Sybil fee is too low')
       }
     } else {
@@ -113,25 +105,15 @@ export async function wrapInvoice ({ bolt11, feePercent }, { msats, description,
     }
 
     // validate the description
-    if (description && descriptionHash) {
-      throw new Error('Only one of description or descriptionHash is allowed')
-    } else if (description) {
+    if (inv.description_hash) {
+      // use the invoice description hash in case this is an lnurlp invoice
+      wrapped.description_hash = inv.description_hash
+    } else if (description && !hideInvoiceDesc) {
       // use our wrapped description
       wrapped.description = description
-    } else if (descriptionHash) {
-      // use our wrapped description hash
-      wrapped.description_hash = descriptionHash
-    } else if (inv.description_hash) {
-      // use the invoice description hash
-      wrapped.description_hash = inv.description_hash
-    } else {
+    } else if (!hideInvoiceDesc) {
       // use the invoice description
       wrapped.description = inv.description
-    }
-
-    if (me?.hideInvoiceDesc) {
-      wrapped.description = undefined
-      wrapped.description_hash = undefined
     }
 
     // validate the expiration
@@ -179,19 +161,14 @@ export async function wrapInvoice ({ bolt11, feePercent }, { msats, description,
 
     // validate the fee budget
     const minEstFees = toPositiveNumber(routingFeeMsat)
-    const outgoingMaxFeeMsat = Math.ceil(toPositiveNumber(msats * MAX_FEE_ESTIMATE_PERCENT) / 100)
-    if (minEstFees > outgoingMaxFeeMsat) {
-      throw new Error('Estimated fees are too high (' + minEstFees + ' > ' + outgoingMaxFeeMsat + ')')
+    if (minEstFees > maxRoutingFeeMsats) {
+      throw new Error('Estimated fees are too high (' + minEstFees + ' > ' + maxRoutingFeeMsats + ')')
     }
 
     // calculate the incoming invoice amount, without fees
     wrapped.mtokens = String(msats)
-    console.log('outgoingMaxFeeMsat', outgoingMaxFeeMsat, 'wrapped', wrapped)
 
-    return {
-      invoice: await createHodlInvoice({ lnd, ...wrapped }),
-      maxFee: outgoingMaxFeeMsat
-    }
+    return (await createHodlInvoice({ lnd, ...wrapped })).request
   } finally {
     console.groupEnd()
   }

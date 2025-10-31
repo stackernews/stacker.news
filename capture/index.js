@@ -66,6 +66,9 @@ app.get('/media/:url', cors({
 app.get('/*', async (req, res) => {
   const url = new URL(req.originalUrl, captureUrl)
   const timeLabel = `${Date.now()}-${url.href}`
+  if (!url.href.startsWith(captureUrl)) {
+    return res.status(400).end()
+  }
 
   const urlParams = new URLSearchParams(url.search)
   const commentId = urlParams.get('commentId')

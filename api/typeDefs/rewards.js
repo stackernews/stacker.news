@@ -7,7 +7,7 @@ export default gql`
   }
 
   extend type Mutation {
-    donateToRewards(sats: Int!): DonatePaidAction!
+    donateToRewards(sats: Int!): PayIn!
   }
 
   type DonateResult {

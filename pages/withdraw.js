@@ -5,11 +5,10 @@ import { useRouter } from 'next/router'
 import { InputGroup, Nav } from 'react-bootstrap'
 import styles from '@/styles/nav.module.css'
 import { gql, useMutation, useQuery } from '@apollo/client'
-import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/invoice'
+import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/withdrawal'
 import { requestProvider } from 'webln'
 import { useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
-import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { Checkbox, Form, Input, InputUserSuggest, SubmitButton } from '@/components/form'
 import { lnAddrSchema, withdrawlSchema } from '@/lib/validate'
 import { useShowModal } from '@/components/modal'
@@ -89,7 +88,7 @@ export function InvWithdrawal () {
   const router = useRouter()
   const { me } = useMe()
 
-  const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
+  const [createWithdrawl] = useMutation(CREATE_WITHDRAWL)
 
   const maxFeeDefault = me?.privates?.withdrawMaxFeeDefault
 
@@ -102,17 +101,13 @@ export function InvWithdrawal () {
           maximumAmount: Math.max(me.privates?.sats - maxFeeDefault, 0)
         })
         const { data } = await createWithdrawl({ variables: { invoice, maxFee: maxFeeDefault } })
-        router.push(`/withdrawals/${data.createWithdrawl.id}`)
+        router.push(`/transactions/${data.createWithdrawl.id}`)
       } catch (e) {
         console.log(e.message)
       }
     }
     effect()
   }, [])
-
-  if (called && !error) {
-    return <WithdrawlSkeleton status='sending' />
-  }
 
   return (
     <>
@@ -125,7 +120,7 @@ export function InvWithdrawal () {
         schema={withdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
           const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
-          router.push(`/withdrawals/${data.createWithdrawl.id}`)
+          router.push(`/transactions/${data.createWithdrawl.id}`)
         }}
       >
         <Input
@@ -211,14 +206,14 @@ function LnQRWith ({ k1, encodedUrl }) {
   const query = gql`
   {
     lnWith(k1: "${k1}") {
-      withdrawalId
+      payInId
       k1
     }
   }`
   const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
 
-  if (data?.lnWith?.withdrawalId) {
-    router.push(`/withdrawals/${data.lnWith.withdrawalId}`)
+  if (data?.lnWith?.payInId) {
+    router.push(`/transactions/${data.lnWith.payInId}`)
   }
 
   return <Qr value={encodedUrl} status='waiting for you' />
@@ -280,7 +275,6 @@ export function LnAddrWithdrawal () {
 
   return (
     <>
-      {called && !error && <WithdrawlSkeleton status='sending' />}
       <Form
         // hide/show instead of add/remove from react tree to avoid re-initializing the form state on error
         style={{ display: !(called && !error) ? 'block' : 'none' }}

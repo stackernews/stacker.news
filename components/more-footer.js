@@ -2,6 +2,26 @@ import Button from 'react-bootstrap/Button'
 import { useState } from 'react'
 import Link from 'next/link'
 
+const FooterFetchMore = ({ cursor, fetchMore, setLoading }) => {
+  return (
+    <Button
+      variant='primary'
+      size='md'
+      onClick={async () => {
+        setLoading(true)
+        console.log('fetchMore', cursor)
+        await fetchMore({
+          variables: {
+            cursor
+          }
+        })
+        setTimeout(() => setLoading(false), 100)
+      }}
+    >more
+    </Button>
+  )
+}
+
 export default function MoreFooter ({ cursor, count, fetchMore, Skeleton, invisible, noMoreText = 'GENESIS' }) {
   const [loading, setLoading] = useState(false)
 
@@ -9,31 +29,14 @@ export default function MoreFooter ({ cursor, count, fetchMore, Skeleton, invisi
     return <div><Skeleton /></div>
   }
 
-  let Footer
-  if (cursor) {
-    Footer = () => (
-      <Button
-        variant='primary'
-        size='md'
-        onClick={async () => {
-          setLoading(true)
-          await fetchMore({
-            variables: {
-              cursor
-            }
-          })
-          setTimeout(() => setLoading(false), 100)
-        }}
-      >more
-      </Button>
-    )
-  } else {
+  let Footer = FooterFetchMore
+  if (!cursor) {
     Footer = () => (
       <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.75' }}>{count === 0 ? 'EMPTY' : noMoreText}</div>
     )
   }
 
-  return <div className={`d-flex justify-content-center mt-4 mb-1 ${invisible ? 'invisible' : ''}`}><Footer /></div>
+  return <div className={`d-flex justify-content-center mt-4 mb-1 ${invisible ? 'invisible' : ''}`}><Footer cursor={cursor} fetchMore={fetchMore} setLoading={setLoading} /></div>
 }
 
 export function NavigateFooter ({ cursor, count, fetchMore, href, text, invisible, noMoreText = 'NO MORE' }) {

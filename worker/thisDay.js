@@ -158,12 +158,10 @@ const THIS_DAY = gql`
     users: topUsers(when: "custom", from: $from, to: $to, limit: 1) {
       users {
         name
-        nposts(when: "custom", from: $from, to: $to)
-        ncomments(when: "custom", from: $from, to: $to)
+        nitems(when: "custom", from: $from, to: $to)
         optional {
           stacked(when: "custom", from: $from, to: $to)
           spent(when: "custom", from: $from, to: $to)
-          referrals(when: "custom", from: $from, to: $to)
         }
       }
     }
@@ -181,8 +179,7 @@ const THIS_DAY = gql`
             hasRecvWallet
           }
         }
-        ncomments(when: "custom", from: $from, to: $to)
-        nposts(when: "custom", from: $from, to: $to)
+        nitems(when: "custom", from: $from, to: $to)
 
         optional {
           stacked(when: "custom", from: $from, to: $to)

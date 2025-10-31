@@ -239,6 +239,7 @@ model Vault {
   walletSendCLNRestRune      WalletSendCLNRest?  @relation("clnRune")
   walletSendClink            WalletSendClink?    @relation("clinkNdebit")
   walletSendClinkSecretKey   WalletSendClink?    @relation("clinkSecretKey")
+  walletSendSparkMnemonic    WalletSendSpark?    @relation("sparkMnemonic")
 }
 
 model WalletLog {
@@ -1233,6 +1234,7 @@ enum WalletProtocolName {
   CLN_REST
   LND_GRPC
   CLINK
+  SPARK
 }
 
 enum WalletSendProtocolName {
@@ -1244,6 +1246,7 @@ enum WalletSendProtocolName {
   LNC
   CLN_REST
   CLINK
+  SPARK
 }
 
 enum WalletRecvProtocolName {
@@ -1255,6 +1258,7 @@ enum WalletRecvProtocolName {
   CLN_REST
   LND_GRPC
   CLINK
+  SPARK
 }
 
 enum WalletProtocolStatus {
@@ -1290,6 +1294,7 @@ enum WalletName {
   LN_ADDR
   CASH_APP
   BLITZ
+  SPARK
 }
 
 model WalletTemplate {
@@ -1348,6 +1353,7 @@ model WalletProtocol {
   walletSendLNC      WalletSendLNC?
   walletSendCLNRest  WalletSendCLNRest?
   walletSendClink    WalletSendClink?
+  walletSendSpark    WalletSendSpark?
 
   walletRecvNWC              WalletRecvNWC?
   walletRecvLNbits           WalletRecvLNbits?
@@ -1357,6 +1363,7 @@ model WalletProtocol {
   walletRecvCLNRest          WalletRecvCLNRest?
   walletRecvLNDGRPC          WalletRecvLNDGRPC?
   walletRecvClink            WalletRecvClink?
+  walletRecvSpark            WalletRecvSpark?
 
   @@unique(name: "WalletProtocol_walletId_send_name_key", [walletId, send, name])
   @@index([walletId])
@@ -1453,6 +1460,16 @@ model WalletSendClink {
   secretKey        Vault?         @relation("clinkSecretKey", fields: [secretKeyVaultId], references: [id])
 }
 
+model WalletSendSpark {
+  id              Int            @id @default(autoincrement())
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId      Int            @unique
+  protocol        WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  mnemonicVaultId Int            @unique
+  mnemonic        Vault?         @relation("sparkMnemonic", fields: [mnemonicVaultId], references: [id])
+}
+
 model WalletRecvNWC {
   id         Int            @id @default(autoincrement())
   createdAt  DateTime       @default(now()) @map("created_at")
@@ -1530,4 +1547,13 @@ model WalletRecvClink {
   protocolId Int            @unique
   protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
   noffer     String
+}
+
+model WalletRecvSpark {
+  id                Int            @id @default(autoincrement())
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId        Int            @unique
+  protocol          WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  identityPublicKey String
 }

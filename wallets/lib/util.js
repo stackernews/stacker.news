@@ -11,6 +11,14 @@ export function walletDisplayName (name) {
   return walletJson(name)?.displayName || titleCase(name)
 }
 
+export function walletWarning (name) {
+  let { warning } = walletJson(name)
+  if (Array.isArray(warning)) {
+    warning = warning.join('\n')
+  }
+  return warning
+}
+
 export function walletImage (name) {
   return walletJson(name)?.image
 }

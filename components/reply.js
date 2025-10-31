@@ -6,7 +6,7 @@ import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineIt
 import { commentSchema } from '@/lib/validate'
 import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
-import { Button } from 'react-bootstrap'
+import { CancelWorkConfirm } from './confirm-modal'
 import { useRoot } from './root'
 import { CREATE_COMMENT } from '@/fragments/paidAction'
 import { injectComment } from '@/lib/comments'
@@ -99,18 +99,10 @@ export default forwardRef(function Reply ({
                   const text = window.localStorage.getItem('reply-' + parentId + '-' + 'text')
                   if (text?.trim()) {
                     showModal(onClose => (
-                      <>
-                        <p className='fw-bolder'>Are you sure? You will lose your work</p>
-                        <div className='d-flex justify-content-end'>
-                          <Button
-                            variant='info' onClick={() => {
-                              onCancel()
-                              onClose()
-                            }}
-                          >yep
-                          </Button>
-                        </div>
-                      </>
+                      <CancelWorkConfirm
+                        onConfirm={onCancel}
+                        onClose={onClose}
+                      />
                     ))
                   } else {
                     onCancel()

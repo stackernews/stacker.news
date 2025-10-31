@@ -76,6 +76,7 @@ model User {
   noteCowboyHat             Boolean                @default(true)
   streak                    Int?
   gunStreak                 Int?
+  infected                  Boolean              @default(false)
   horseStreak               Int?
   hasSendWallet             Boolean                @default(false)
   hasRecvWallet             Boolean                @default(false)
@@ -157,6 +158,8 @@ model User {
   PayOutBolt11              PayOutBolt11[]
   PayOutCustodialToken      PayOutCustodialToken[]
   CommentsViewAt            CommentsViewAt[]
+  infectedBy                Infection?           @relation("Infection_infectee")
+  infectedByMe              Infection[]          @relation("Infection_infector")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -165,6 +168,19 @@ model User {
   @@index([gunStreak])
   @@index([horseStreak])
   @@map("users")
+}
+
+model Infection {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now()) @map("created_at")
+  itemActId  Int?     @unique(map: "Infection_itemActId_unique")
+  itemAct    ItemAct? @relation(fields: [itemActId], references: [id], onDelete: Cascade)
+  infecteeId Int      @unique(map: "Infection_infecteeId_unique")
+  infectorId Int?
+  infectee   User     @relation("Infection_infectee", fields: [infecteeId], references: [id], onDelete: Cascade)
+  infector   User?    @relation("Infection_infector", fields: [infectorId], references: [id], onDelete: Cascade)
+
+  @@index([infectorId])
 }
 
 enum OneDayReferralType {
@@ -803,6 +819,7 @@ model ItemAct {
   userId             Int
   invoiceId          Int?
   invoiceActionState InvoiceActionState?
+  Infection          Infection[]
 
   invoice     Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   item        Item          @relation(fields: [itemId], references: [id], onDelete: Cascade)

@@ -112,7 +112,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       }
     }
 
-    const onPaid = () => {
+    const onPaid = (cache, { data } = {}) => {
       animate()
       onClose?.()
       if (!me) setItemMeAnonSats({ id: item.id, amount })
@@ -140,7 +140,9 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
-      onPaid: closeImmediately ? undefined : onPaid
+      onPaid: closeImmediately
+        ? undefined
+        : onPaid
     })
     if (error) throw error
     addCustomTip(Number(amount))

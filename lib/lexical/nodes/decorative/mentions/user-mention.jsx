@@ -2,10 +2,11 @@ import { DecoratorNode, $applyNodeReplacement } from 'lexical'
 
 function $convertMentionElement (domNode) {
   const textContent = domNode.textContent
+  const mentionId = domNode.getAttribute('data-lexical-mention-id')
   const mentionName = domNode.getAttribute('data-lexical-mention-name')
 
   if (textContent !== null) {
-    const node = $createMentionNode(mentionName || textContent, textContent)
+    const node = $createMentionNode(mentionId, mentionName || textContent)
     return { node }
   }
 
@@ -13,34 +14,41 @@ function $convertMentionElement (domNode) {
 }
 
 export class MentionNode extends DecoratorNode {
-  __mention
+  __mentionId
+  __mentionName
 
   static getType () {
     return 'mention'
   }
 
+  getMentionId () {
+    return this.__mentionId
+  }
+
   getMentionName () {
-    return this.__mention
+    return this.__mentionName
   }
 
   static clone (node) {
-    return new MentionNode(node.__mention, node.__key)
+    return new MentionNode(node.__mentionId, node.__mentionName, node.__key)
   }
 
   static importJSON (serializedNode) {
-    return $createMentionNode(serializedNode.mentionName)
+    return $createMentionNode(serializedNode.mentionId, serializedNode.mentionName)
   }
 
-  constructor (mentionName, key) {
+  constructor (mentionId, mentionName, key) {
     super(key)
-    this.__mention = mentionName
+    this.__mentionId = mentionId
+    this.__mentionName = mentionName
   }
 
   exportJSON () {
     return {
       type: 'mention',
       version: 1,
-      mentionName: this.__mention
+      mentionId: this.__mentionId,
+      mentionName: this.__mentionName
     }
   }
 
@@ -52,8 +60,9 @@ export class MentionNode extends DecoratorNode {
       domNode.className = className
     }
     domNode.setAttribute('data-lexical-mention', true)
-    domNode.setAttribute('data-lexical-mention-name', this.__mention)
-    domNode.setAttribute('data-mention-text', '@' + this.__mention)
+    domNode.setAttribute('data-lexical-mention-id', this.__mentionId)
+    domNode.setAttribute('data-lexical-mention-name', this.__mentionName)
+    domNode.setAttribute('data-mention-text', '@' + this.__mentionName)
     return domNode
   }
 
@@ -66,10 +75,11 @@ export class MentionNode extends DecoratorNode {
     if (className !== undefined) {
       wrapper.className = className
     }
-    wrapper.setAttribute('data-lexical-mention-name', this.__mention)
+    wrapper.setAttribute('data-lexical-mention-id', this.__mentionId)
+    wrapper.setAttribute('data-lexical-mention-name', this.__mentionName)
     const a = document.createElement('a')
-    a.setAttribute('href', '/' + this.__mention)
-    a.textContent = '@' + this.__mention
+    a.setAttribute('href', '/' + this.__mentionId)
+    a.textContent = '@' + this.__mentionName
     wrapper.appendChild(a)
     return { element: wrapper }
   }
@@ -94,18 +104,19 @@ export class MentionNode extends DecoratorNode {
   decorate () {
     const UserPopover = require('@/components/user-popover').default
     const Link = require('next/link').default
-    const name = this.__mention
-    const href = '/' + name
+    const id = this.__mentionId
+    const name = this.__mentionName
+    const href = '/api/u/' + id
     return (
-      <UserPopover name={name}>
+      <UserPopover id={id} name={name}>
         <Link href={href}>@{name}</Link>
       </UserPopover>
     )
   }
 }
 
-export function $createMentionNode (mentionName) {
-  return $applyNodeReplacement(new MentionNode(mentionName))
+export function $createMentionNode (mentionId, mentionName) {
+  return $applyNodeReplacement(new MentionNode(mentionId, mentionName))
 }
 
 export function $isMentionNode (node) {

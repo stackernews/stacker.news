@@ -1,4 +1,4 @@
-import { CodeNode, $createCodeHighlightNode } from '@lexical/code'
+import { CodeNode } from '@lexical/code'
 import { $getRoot, $createLineBreakNode } from 'lexical'
 
 // MarkdownNode is a special CodeNode that allows markdown mode with removal protection
@@ -47,31 +47,13 @@ export class MarkdownNode extends CodeNode {
     return element
   }
 
-  // BUG this is fragile, and needs to be addressed before review.
+  // prevent exiting markdown mode by overriding insertNewAfter
+  // just create a new line break node (like shift+enter)
   insertNewAfter (selection, restoreSelection = true) {
-    const children = this.getChildren()
-    const len = children.length
-
-    // usually if we are at the end of a block with two trailing newlines, lexical exits the node.
-    // instead, we keep the caret inside by inserting another line break.
-    if (
-      len >= 2 &&
-      children[len - 1].getTextContent() === '\n' &&
-      children[len - 2].getTextContent() === '\n' &&
-      selection.isCollapsed() &&
-      selection.anchor.key === this.__key &&
-      selection.anchor.offset === len
-    ) {
-      const br = $createLineBreakNode()
-      const caret = $createCodeHighlightNode('')
-      this.append(br)
-      this.append(caret)
-      caret.selectEnd()
-      return this
-    }
-
-    // having done that, we can fall back to standard CodeNode behavior (handles indentation etc.)
-    return super.insertNewAfter(selection, restoreSelection)
+    const { offset } = selection.anchor
+    this.splice(offset, 0, [$createLineBreakNode()])
+    this.select(offset + 1, offset + 1)
+    return null
   }
 }
 

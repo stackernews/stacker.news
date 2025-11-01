@@ -25,6 +25,7 @@ import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
 import ActionTooltip from '@/components/action-tooltip'
 import BlocksIcon from '@/svgs/lexical/block/blocks.svg'
+import { $isMarkdownMode } from '@/components/lexical/universal/utils'
 
 // escapes the overflow rules of the FormattingTools component
 export const MenuAlternateDimension = forwardRef(({ children, style, className }, ref) => {
@@ -40,7 +41,15 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const blockOption = BLOCK_OPTIONS.find(option => option.action === toolbarState.blockType)
   return (
-    <ActionTooltip notForm overlayText={<>block options <strong>{toolbarState.blockType}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
+    <ActionTooltip
+      notForm
+      overlayText={<>block options{!toolbarState.markdownMode && <><strong> {toolbarState.blockType}</strong></>}</>}
+      placement='top'
+      noWrapper
+      showDelay={500}
+      transition
+      disable={dropdownOpen}
+    >
       <Dropdown drop='up' className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
         <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, dropdownOpen ? styles.active : '')}>
           {blockOption?.icon || <BlocksIcon />}
@@ -141,7 +150,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
-    <ActionTooltip notForm overlayText={<>align options <strong>{toolbarState.elementFormat || 'left'}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
+    <ActionTooltip notForm overlayText={<>align options{!toolbarState.markdownMode && <><strong> {toolbarState.elementFormat || 'left'}</strong></>}</>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
       <Dropdown drop='up' className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
         <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, dropdownOpen ? styles.active : '')}>
           {/* a mess, clean this up */}
@@ -224,6 +233,9 @@ export default function FormattingTools ({ isFloating, className }) {
   }, [])
 
   const $updateToolbar = useCallback(() => {
+    // markdown parsing is expensive, why do it for some toolbar updates?
+    if ($isMarkdownMode()) return batchUpdateToolbarState({ markdownMode: true })
+
     const updates = {}
     const selection = $getSelection()
     if ($isRangeSelection(selection)) {
@@ -242,6 +254,7 @@ export default function FormattingTools ({ isFloating, className }) {
       updates.isUppercase = snHasFormat(selection, 'uppercase')
       updates.isCapitalize = snHasFormat(selection, 'capitalize')
       updates.blockType = snGetBlockType({ selection, editor })
+      // useful?
       updates.codeLanguage = snGetCodeLanguage({ selection, editor })
     }
 
@@ -330,8 +343,6 @@ export default function FormattingTools ({ isFloating, className }) {
       )
     : (
       <div className={classNames(styles.toolbarFormatting, className)}>
-        <BlockOptionsDropdown toolbarState={toolbarState} handleBlock={handleBlock} />
-        <span className={classNames(styles.divider)} />
         <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} />
         <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition>
           <span
@@ -344,6 +355,7 @@ export default function FormattingTools ({ isFloating, className }) {
           </span>
         </ActionTooltip>
         <span className={classNames(styles.divider)} />
+        <BlockOptionsDropdown toolbarState={toolbarState} handleBlock={handleBlock} />
         <AdditionalFormattingOptionsDropdown toolbarState={toolbarState} handleFormat={handleFormat} />
         <AlignOptionsDropdown toolbarState={toolbarState} handleAlign={handleAlign} handleIndent={handleIndent} />
       </div>

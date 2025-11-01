@@ -37,14 +37,14 @@ export default function MentionsPlugin () {
 
   const options = useMemo(() => {
     if (!suggestions?.length) return []
-    return suggestions.map(s => Object.assign(new MenuOption(s.name), { name: s.name }))
+    return suggestions.map(s => Object.assign(new MenuOption(s.name), { id: s.id, name: s.name }))
   }, [suggestions])
 
   const onSelectOption = useCallback((selectedOption, nodeToReplace, closeMenu) => {
     editor.update(() => {
       if (nodeToReplace) {
         if (nodeToReplace.getTextContent().startsWith('@')) {
-          const mentionNode = $createMentionNode(selectedOption.name)
+          const mentionNode = $createMentionNode(selectedOption.id, selectedOption.name)
           nodeToReplace.replace(mentionNode)
         } else {
           const territoryNode = $createTerritoryNode(selectedOption.name)

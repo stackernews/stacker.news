@@ -220,7 +220,7 @@ export default {
       let users = []
       if (q) {
         users = await models.$queryRaw`
-          SELECT name
+          SELECT id, name
           FROM users
           WHERE (
             id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete})
@@ -230,7 +230,7 @@ export default {
           LIMIT ${limit}`
       } else {
         users = await models.$queryRaw`
-          SELECT name
+          SELECT id, name
           FROM user_stats_days
           JOIN users on users.id = user_stats_days.id
           WHERE NOT users."hideFromTopUsers"

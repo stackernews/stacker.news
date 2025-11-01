@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getSelection, $isRangeSelection, RootNode, $getRoot } from 'lexical'
 import { $trimTextContentFromAnchor } from '@lexical/selection'
@@ -55,11 +55,11 @@ export function MaxLengthPlugin ({ lengthOptions = {} }) {
   }, [editor, maxLength])
 
   // calculate remaining characters directly from current editor state
-  const remaining = editor.getEditorState().read(() => {
+  const remaining = useMemo(() => editor.getEditorState().read(() => {
     const root = $getRoot()
     const textContentSize = root ? root.getTextContentSize() : 0
     return Math.max(0, maxLength - textContentSize)
-  })
+  }), [editor, maxLength])
 
   if (show || remaining < 10) {
     return (

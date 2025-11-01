@@ -1,6 +1,6 @@
-import { USER } from '@/fragments/users'
+import { USER, USER_BY_MENTION } from '@/fragments/users'
 import errorStyles from '@/styles/error.module.css'
-import { useLazyQuery } from '@apollo/client'
+import { useLazyQuery, useQuery } from '@apollo/client'
 import classNames from 'classnames'
 import Link from 'next/link'
 import HoverablePopover from './hoverable-popover'
@@ -22,7 +22,16 @@ function StackingSince ({ since }) {
   )
 }
 
-export default function UserPopover ({ name, children }) {
+export default function UserPopover ({ name, itemId, children }) {
+  const { data: mentionData, loading: mentionLoading } = useQuery(
+    USER_BY_MENTION,
+    {
+      variables: { name, itemId },
+      skip: !itemId,
+      fetchPolicy: 'cache-first'
+    }
+  )
+
   const [getUser, { loading, data }] = useLazyQuery(
     USER,
     {
@@ -31,17 +40,25 @@ export default function UserPopover ({ name, children }) {
     }
   )
 
+  const resolvedUser = mentionData?.userByMention
+  const popoverUser = resolvedUser || data?.user
+  const isLoading = loading || (itemId && mentionLoading && !resolvedUser)
+  const trigger =
+    typeof children === 'function'
+      ? children({ user: popoverUser })
+      : children
+
   return (
     <HoverablePopover
       onShow={getUser}
-      trigger={children}
-      body={!data || loading
+      trigger={trigger}
+      body={isLoading
         ? <UserSkeleton />
-        : !data.user
+        : !popoverUser
             ? <h1 className={classNames(errorStyles.status, errorStyles.describe)}>USER NOT FOUND</h1>
             : (
-              <UserBase user={data.user} className='mb-0 pb-0'>
-                <StackingSince since={data.user.since} />
+              <UserBase user={popoverUser} className='mb-0 pb-0'>
+                <StackingSince since={popoverUser.since} />
               </UserBase>
               )}
     />

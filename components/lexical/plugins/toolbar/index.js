@@ -7,7 +7,7 @@ import ArrowDownIcon from '@/svgs/lexical/toolbar/arrow-down-s-line.svg'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { getShortcutCombo } from '@/components/lexical/extensions/core/shortcuts/keyboard'
-import UploadIcon from '@/svgs/file-upload-line.svg'
+import UploadIcon from '@/svgs/lexical/inserts/paperclip.svg'
 
 export default function ToolbarPlugin ({ topLevel }) {
   const { prefs } = useLexicalPreferences()

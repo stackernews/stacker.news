@@ -78,7 +78,8 @@ export class MentionNode extends DecoratorNode {
     wrapper.setAttribute('data-lexical-mention-id', this.__mentionId)
     wrapper.setAttribute('data-lexical-mention-name', this.__mentionName)
     const a = document.createElement('a')
-    a.setAttribute('href', '/' + this.__mentionId)
+    const href = this.__mentionId ? '/api/u/' + this.__mentionId : '/' + this.__mentionName
+    a.setAttribute('href', href)
     a.textContent = '@' + this.__mentionName
     wrapper.appendChild(a)
     return { element: wrapper }
@@ -106,7 +107,7 @@ export class MentionNode extends DecoratorNode {
     const Link = require('next/link').default
     const id = this.__mentionId
     const name = this.__mentionName
-    const href = '/api/u/' + id
+    const href = id ? '/api/u/' + id : '/' + name
     return (
       <UserPopover id={id} name={name}>
         <Link href={href}>@{name}</Link>

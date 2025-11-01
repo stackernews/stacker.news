@@ -3,31 +3,14 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import styles from '@/components/lexical/theme/theme.module.css'
 import AddIcon from '@/svgs/add-fill.svg'
 import { getShortcutCombo } from '@/components/lexical/extensions/core/shortcuts/keyboard'
-import { useShowModal } from '@/components/modal'
 import { INSERT_OPTIONS } from './defs/formatting'
-import { useCallback, useState } from 'react'
-import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
-import { SN_INSERT_MATH_COMMAND } from '@/components/lexical/universal/commands/math'
+import { useState } from 'react'
 import ActionTooltip from '@/components/action-tooltip'
 import { MenuAlternateDimension } from './formatting'
 
 export default function InsertTools () {
   const [editor] = useLexicalComposerContext()
-  const showModal = useShowModal()
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const handleInsert = useCallback((insert) => {
-    switch (insert) {
-      case 'upload':
-        editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)
-        break
-      case 'math':
-        editor.dispatchCommand(SN_INSERT_MATH_COMMAND)
-        break
-      case 'math-inline':
-        editor.dispatchCommand(SN_INSERT_MATH_COMMAND, { inline: true })
-        break
-    }
-  }, [editor, showModal])
 
   return (
     <ActionTooltip notForm overlayText={<>insert options</>} placement='top' noWrapper showDelay={1000} transition disable={dropdownOpen}>
@@ -36,11 +19,11 @@ export default function InsertTools () {
           <AddIcon />
         </Dropdown.Toggle>
         <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
-          {INSERT_OPTIONS.map((option) => (
+          {INSERT_OPTIONS.filter(option => option.id !== 'upload' && option.id !== 'link').map((option) => (
             <Dropdown.Item
-              key={option.action}
-              title={`${option.name} (${getShortcutCombo(option.action)})`}
-              onClick={() => { handleInsert(option.action) }}
+              key={option.id}
+              title={`${option.name} (${getShortcutCombo(option.id)})`}
+              onClick={() => option.handler({ editor })}
               className={styles.dropdownExtraItem}
             >
               <span className={styles.dropdownExtraItemLabel}>
@@ -48,7 +31,7 @@ export default function InsertTools () {
                 <span className={styles.dropdownExtraItemText}>{option.name}</span>
               </span>
               <span className={styles.dropdownExtraItemShortcut}>
-                {getShortcutCombo(option.action)}
+                {getShortcutCombo(option.id)}
               </span>
             </Dropdown.Item>
           ))}

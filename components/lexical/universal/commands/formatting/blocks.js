@@ -47,7 +47,7 @@ const formatBlockQuote = (activeBlock, block) => {
 }
 
 const formatCodeBlock = (activeBlock, block) => {
-  if (activeBlock === block) return
+  if (activeBlock === block) return formatParagraph()
   let selection = $getSelection()
   if (!selection) return
   if (!$isRangeSelection(selection) || selection.isCollapsed()) {

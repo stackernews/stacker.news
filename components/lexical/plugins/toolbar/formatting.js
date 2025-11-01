@@ -1,5 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getSelection, $isRangeSelection, $isRootOrShadowRoot, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $isElementNode, OUTDENT_CONTENT_COMMAND, INDENT_CONTENT_COMMAND, $isNodeSelection } from 'lexical'
+import { $getSelection, $isRangeSelection, $isRootOrShadowRoot, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $isElementNode, $isNodeSelection } from 'lexical'
 import { $getNearestNodeOfType, mergeRegister, $findMatchingParent } from '@lexical/utils'
 import { $isHeadingNode } from '@lexical/rich-text'
 import { $isCodeNode } from '@lexical/code'
@@ -17,10 +17,7 @@ import { useToolbarState } from '../../contexts/toolbar'
 import { getShortcutCombo } from '@/components/lexical/extensions/core/shortcuts/keyboard'
 import { snHasFormat, snHasLink, snGetElementFormat, snGetBlockType, snGetCodeLanguage } from '@/components/lexical/universal/utils/formatting'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
-import { SN_FORMAT_TEXT_COMMAND } from '@/components/lexical/universal/commands/formatting/inline'
-import { SN_FORMAT_BLOCK_COMMAND } from '@/components/lexical/universal/commands/formatting/blocks'
-import { SN_FORMAT_ELEMENT_COMMAND } from '@/components/lexical/universal/commands/formatting/elements'
-import { BLOCK_OPTIONS, FORMAT_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS, INDENT_OPTIONS } from './defs/formatting'
+import { BLOCK_OPTIONS, INLINE_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS, INDENT_OPTIONS } from './defs/formatting'
 import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 import AlignLeftIcon from '@/svgs/lexical/align/align-left.svg'
 import ActionTooltip from '@/components/action-tooltip'
@@ -38,9 +35,9 @@ export const MenuAlternateDimension = forwardRef(({ children, style, className }
   )
 })
 
-function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
+function BlockOptionsDropdown ({ editor, toolbarState }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const blockOption = !toolbarState.markdownMode ? BLOCK_OPTIONS.find(option => option.action === toolbarState.blockType) : null
+  const blockOption = !toolbarState.markdownMode ? BLOCK_OPTIONS.find(option => option.id === toolbarState.blockType) : null
   return (
     <ActionTooltip
       notForm
@@ -59,10 +56,10 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
         <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
           {BLOCK_OPTIONS.map((option) => (
             <Dropdown.Item
-              key={option.action}
-              title={`${option.name} ${getShortcutCombo(option.action)}`}
-              onClick={() => handleBlock(option.action)}
-              className={classNames(styles.dropdownExtraItem, toolbarState.blockType === option.action ? styles.active : '')}
+              key={option.id}
+              title={`${option.name} ${getShortcutCombo(option.id)}`}
+              onClick={() => option.handler({ editor })}
+              className={classNames(styles.dropdownExtraItem, toolbarState.blockType === option.id ? styles.active : '')}
               onPointerDown={e => e.preventDefault()}
             >
               <span className={styles.dropdownExtraItemLabel}>
@@ -70,7 +67,7 @@ function BlockOptionsDropdown ({ toolbarState, handleBlock }) {
                 <span className={styles.dropdownExtraItemText}>{option.name}</span>
               </span>
               <span className={styles.dropdownExtraItemShortcut}>
-                {getShortcutCombo(option.action)}
+                {getShortcutCombo(option.id)}
               </span>
             </Dropdown.Item>
           ))}
@@ -95,15 +92,15 @@ function getFormatToolbarState (toolbarState, format) {
   }
 }
 
-function InlineFormattingOptions ({ toolbarState, handleFormat, isFloating }) {
+function InlineFormattingOptions ({ editor, toolbarState, isFloating }) {
   return (
-    FORMAT_OPTIONS.map((option) => (
-      <ActionTooltip notForm overlayText={`${option.name} ${getShortcutCombo(option.action)}`} placement='top' noWrapper key={option.action} showDelay={500} transition disable={isFloating}>
+    INLINE_OPTIONS.map((option) => (
+      <ActionTooltip notForm overlayText={`${option.name} ${getShortcutCombo(option.id)}`} placement='top' noWrapper key={option.id} showDelay={500} transition disable={isFloating}>
         <span
-          title={`${option.name} (${getShortcutCombo(option.action)})`}
-          className={classNames(styles.toolbarItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
+          title={`${option.name} (${getShortcutCombo(option.id)})`}
+          className={classNames(styles.toolbarItem, getFormatToolbarState(toolbarState, option.id) ? styles.active : '')}
           style={option.style}
-          onClick={() => handleFormat(option.action)}
+          onClick={() => option.handler({ editor })}
           onPointerDown={e => e.preventDefault()}
         >
           {option.icon}
@@ -113,7 +110,7 @@ function InlineFormattingOptions ({ toolbarState, handleFormat, isFloating }) {
   )
 }
 
-function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
+function AdditionalFormattingOptionsDropdown ({ editor, toolbarState }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
@@ -126,10 +123,10 @@ function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
         <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
           {ADDITIONAL_FORMAT_OPTIONS.map((option) => (
             <Dropdown.Item
-              key={option.action}
-              title={`${option.name} ${getShortcutCombo(option.action)}`}
-              onClick={() => handleFormat(option.action)}
-              className={classNames(styles.dropdownExtraItem, getFormatToolbarState(toolbarState, option.action) ? styles.active : '')}
+              key={option.id}
+              title={`${option.name} ${getShortcutCombo(option.id)}`}
+              onClick={() => option.handler({ editor })}
+              className={classNames(styles.dropdownExtraItem, getFormatToolbarState(toolbarState, option.id) ? styles.active : '')}
               onPointerDown={e => e.preventDefault()}
             >
               <span className={styles.dropdownExtraItemLabel}>
@@ -137,7 +134,7 @@ function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
                 <span className={styles.dropdownExtraItemText}>{option.name}</span>
               </span>
               <span className={styles.dropdownExtraItemShortcut}>
-                {getShortcutCombo(option.action)}
+                {getShortcutCombo(option.id)}
               </span>
             </Dropdown.Item>
           ))}
@@ -147,9 +144,9 @@ function AdditionalFormattingOptionsDropdown ({ toolbarState, handleFormat }) {
   )
 }
 
-function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
+function AlignOptionsDropdown ({ editor, toolbarState }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const alignOption = !toolbarState.markdownMode ? ALIGN_OPTIONS.find(option => option.action === toolbarState.elementFormat) : null
+  const alignOption = !toolbarState.markdownMode ? ALIGN_OPTIONS.find(option => option.id === toolbarState.elementFormat) : null
   return (
     <ActionTooltip notForm overlayText={<>align options{!toolbarState.markdownMode && <><strong> {toolbarState.elementFormat || 'left'}</strong></>}</>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
       <Dropdown drop='up' className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
@@ -161,10 +158,10 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
         <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
           {ALIGN_OPTIONS.map((option) => (
             <Dropdown.Item
-              key={option.action}
-              title={`${option.name} ${getShortcutCombo(option.action)}`}
-              onClick={() => handleAlign(option.action)}
-              className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === option.action ? styles.active : '')}
+              key={option.id}
+              title={`${option.name} ${getShortcutCombo(option.id)}`}
+              onClick={() => option.handler({ editor })}
+              className={classNames(styles.dropdownExtraItem, toolbarState.elementFormat === option.id ? styles.active : '')}
               onPointerDown={e => e.preventDefault()}
             >
               <span className={styles.dropdownExtraItemLabel}>
@@ -172,15 +169,15 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
                 <span className={styles.dropdownExtraItemText}>{option.name}</span>
               </span>
               <span className={styles.dropdownExtraItemShortcut}>
-                {getShortcutCombo(option.action)}
+                {getShortcutCombo(option.id)}
               </span>
             </Dropdown.Item>
           ))}
           {INDENT_OPTIONS.map((option) => (
             <Dropdown.Item
-              key={option.action}
-              title={`${option.name} ${getShortcutCombo(option.action)}`}
-              onClick={() => handleIndent(option.action)}
+              key={option.id}
+              title={`${option.name} ${getShortcutCombo(option.id)}`}
+              onClick={() => option.handler({ editor })}
               className={styles.dropdownExtraItem}
               onPointerDown={e => e.preventDefault()}
             >
@@ -189,7 +186,7 @@ function AlignOptionsDropdown ({ toolbarState, handleAlign, handleIndent }) {
                 <span className={styles.dropdownExtraItemText}>{option.name}</span>
               </span>
               <span className={styles.dropdownExtraItemShortcut}>
-                {getShortcutCombo(option.action)}
+                {getShortcutCombo(option.id)}
               </span>
             </Dropdown.Item>
           ))}
@@ -284,14 +281,6 @@ export default function FormattingTools ({ isFloating, className }) {
     batchUpdateToolbarState(updates)
   }, [])
 
-  const handleBlock = useCallback((block) => {
-    editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, block)
-  }, [editor, toolbarState.blockType])
-
-  const handleFormat = useCallback((format) => {
-    editor.dispatchCommand(SN_FORMAT_TEXT_COMMAND, format)
-  }, [editor])
-
   const handleLink = useCallback(() => {
     editor.dispatchCommand(
       SN_TOGGLE_LINK_COMMAND,
@@ -300,18 +289,6 @@ export default function FormattingTools ({ isFloating, className }) {
         : ''
     )
   }, [editor, toolbarState.isLink])
-
-  const handleAlign = useCallback((align) => {
-    editor.dispatchCommand(SN_FORMAT_ELEMENT_COMMAND, align)
-  }, [editor])
-
-  const handleIndent = useCallback((indent) => {
-    if (indent === 'indent-decrease') {
-      editor.dispatchCommand(OUTDENT_CONTENT_COMMAND)
-    } else {
-      editor.dispatchCommand(INDENT_CONTENT_COMMAND)
-    }
-  }, [editor])
 
   useEffect(() => {
     return mergeRegister(
@@ -332,8 +309,7 @@ export default function FormattingTools ({ isFloating, className }) {
   return isFloating
     ? (
       <div className={styles.toolbarFormatting}>
-        <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} isFloating />
-        <span className={classNames(styles.divider)} />
+        <InlineFormattingOptions editor={editor} toolbarState={toolbarState} isFloating />
         <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition disable={isFloating}>
           <span
             title={'link ' + getShortcutCombo('link')}
@@ -348,9 +324,9 @@ export default function FormattingTools ({ isFloating, className }) {
       )
     : (
       <div className={classNames(styles.toolbarFormatting, className)}>
-        <BlockOptionsDropdown toolbarState={toolbarState} handleBlock={handleBlock} />
+        <BlockOptionsDropdown editor={editor} toolbarState={toolbarState} />
         <span className={classNames(styles.divider)} />
-        <InlineFormattingOptions toolbarState={toolbarState} handleFormat={handleFormat} />
+        <InlineFormattingOptions editor={editor} toolbarState={toolbarState} />
         <ActionTooltip notForm overlayText={<>link {getShortcutCombo('link')}</>} placement='top' noWrapper showDelay={500} transition>
           <span
             title={'link ' + getShortcutCombo('link')}
@@ -362,8 +338,8 @@ export default function FormattingTools ({ isFloating, className }) {
           </span>
         </ActionTooltip>
         <span className={classNames(styles.divider)} />
-        <AlignOptionsDropdown toolbarState={toolbarState} handleAlign={handleAlign} handleIndent={handleIndent} />
-        <AdditionalFormattingOptionsDropdown toolbarState={toolbarState} handleFormat={handleFormat} />
+        <AlignOptionsDropdown editor={editor} toolbarState={toolbarState} />
+        <AdditionalFormattingOptionsDropdown editor={editor} toolbarState={toolbarState} />
         <span className={classNames(styles.divider)} />
         <InsertTools />
       </div>

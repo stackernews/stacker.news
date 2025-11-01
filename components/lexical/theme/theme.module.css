@@ -199,7 +199,8 @@
   touch-action: manipulation;
 }
 
-.toolbar :global(.dropdown-toggle::after) {
+.toolbar :global(.dropdown-toggle::after),
+.bottomBar :global(.dropdown-toggle::after) {
   display: none;
 }
 
@@ -275,6 +276,7 @@
 }
 
 .toolbarItem svg {
+  color: var(--bs-body-color) !important;
   fill: var(--bs-body-color) !important;
   width: 20px;
   height: 20px;
@@ -325,6 +327,7 @@
   cursor: pointer;
   font-size: 10px;
   color: var(--theme-grey);
+  margin-top: 2px;
 }
 
 .bottomBarItem:hover {

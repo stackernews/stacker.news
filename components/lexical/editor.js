@@ -38,6 +38,7 @@ import { TableExtension } from '@lexical/table'
 import { AutoFocusExtension } from '@lexical/extension'
 import { AUTOLINK_URL_REGEXP, EMAIL_REGEXP, ensureProtocol } from '@/lib/url'
 import { SNAutoLinkExtension } from './extensions/decorative/autolink'
+import PreferencesPlugin from './plugins/core/preferences'
 
 export default function Editor ({ name, appendValue, autoFocus, ...props }) {
   const { prefs } = useLexicalPreferences()
@@ -158,6 +159,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         {/* markdown mode status and switch */}
         <div className={styles.bottomBar}>
           <ModeSwitcher />
+          <PreferencesPlugin />
         </div>
         <MaxLengthPlugin lengthOptions={lengthOptions} />
         {/* floating toolbar */}

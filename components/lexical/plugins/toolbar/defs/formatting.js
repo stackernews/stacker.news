@@ -19,7 +19,6 @@ import IndentIncreaseIcon from '@/svgs/lexical/align/indent-increase.svg'
 import MathIcon from '@/svgs/lexical/inserts/formula.svg'
 import Quote from '@/svgs/lexical/quote-text.svg'
 import TableIcon from '@/svgs/lexical/inserts/table-3.svg'
-import UploadIcon from '@/svgs/file-upload-line.svg'
 
 export const BLOCK_OPTIONS = [
   {
@@ -133,11 +132,6 @@ export const INDENT_OPTIONS = [
 ]
 
 export const INSERT_OPTIONS = [
-  {
-    action: Actions.upload,
-    name: 'upload files',
-    icon: <UploadIcon />
-  },
   {
     action: Actions.table,
     name: 'table',

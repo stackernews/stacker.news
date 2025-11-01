@@ -9,6 +9,7 @@ import { useCallback, useState } from 'react'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
 import { SN_INSERT_MATH_COMMAND } from '@/components/lexical/universal/commands/math'
 import ActionTooltip from '@/components/action-tooltip'
+import { MenuAlternateDimension } from './formatting'
 
 export default function InsertTools () {
   const [editor] = useLexicalComposerContext()
@@ -34,7 +35,7 @@ export default function InsertTools () {
         <Dropdown.Toggle id='dropdown-basic' as='a' onPointerDown={e => e.preventDefault()} className={styles.toolbarInsert}>
           <AddIcon />
         </Dropdown.Toggle>
-        <Dropdown.Menu className={styles.dropdownExtra}>
+        <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
           {INSERT_OPTIONS.map((option) => (
             <Dropdown.Item
               key={option.action}

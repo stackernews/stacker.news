@@ -211,6 +211,10 @@ export default function Comment ({
     }
 
     navigator.trackNewComment(ref, itemCreatedAt)
+
+    return () => {
+      navigator.untrackNewComment(ref, { includeDescendants: true })
+    }
   }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)

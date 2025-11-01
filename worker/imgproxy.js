@@ -32,7 +32,7 @@ const imageUrlMatchers = [
   u => u.host === 'i.imgur.com'
 ]
 const exclude = [
-  u => u.protocol !== 'https:',
+  u => process.env.NODE_ENV === 'production' && u.protocol !== 'https:',
   u => u.host.endsWith('.onion') || u.host.endsWith('.b32.ip') || u.host.endsWith('.loki'),
   u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at', 'xcancel.com'].some(h => h === u.host),
   u => u.host === 'stacker.news',
@@ -149,11 +149,13 @@ const isMediaURL = async (url, { forceFetch }) => {
 
   // primary: media check service
   try {
+    console.log('[imgproxy] media check service url:', `${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
     const res = await fetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
     if (res.ok) {
       const data = await res.json()
       isMedia = data.isImage || data.isVideo
       cache.set(url, isMedia)
+      console.log('[imgproxy] media check service response:', data)
       return isMedia
     }
   } catch (err) {

@@ -39,6 +39,8 @@ import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
 import { untrackOldItems } from './untrackOldItems'
 import { migrateLegacyContent, migrateEverythingLegacy } from './migrateLegacyContent'
+import { halloween } from './halloween'
+
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
 if (typeof WebSocket === 'undefined') {
@@ -147,6 +149,7 @@ async function work () {
   await boss.work('thisDay', jobWrapper(thisDay))
   await boss.work('socialPoster', jobWrapper(postToSocial))
   await boss.work('untrackOldItems', jobWrapper(untrackOldItems))
+  await boss.work('halloween', jobWrapper(halloween))
 
   console.log('working jobs')
 }

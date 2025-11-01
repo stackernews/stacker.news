@@ -32,6 +32,7 @@ export default gql`
     sats: Int!
     path: String
     act: String!
+    immune: Boolean
   }
 
   type ItemAct {

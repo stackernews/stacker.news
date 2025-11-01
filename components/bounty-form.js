@@ -1,6 +1,5 @@
-import { Form, Input, MarkdownInput } from '@/components/form'
+import { Form, Input, LexicalInput } from '@/components/form'
 import { useApolloClient } from '@apollo/client'
-import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '@/lib/validate'
@@ -35,6 +34,7 @@ export function BountyForm ({
       initial={{
         title: item?.title || '',
         text: item?.text || '',
+        lexicalState: item?.lexicalState || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         bounty: item?.bounty || 1000,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
@@ -61,7 +61,8 @@ export function BountyForm ({
         label={bountyLabel} name='bounty' required
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
       />
-      <MarkdownInput
+      <LexicalInput name='text' label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>} topLevel />
+      {/* <MarkdownInput
         topLevel
         label={
           <>
@@ -79,7 +80,7 @@ export function BountyForm ({
               )
             : null
         }
-      />
+      /> */}
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>

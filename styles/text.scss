@@ -1,0 +1,411 @@
+@import 'katex/dist/katex.min.css';
+
+.sn__paragraph {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sn__headings {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+/* blocks */
+.sn__quote {
+  border-left: 3px solid var(--theme-quoteBar);
+  padding-left: .75rem;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+}
+
+.sn__quote *:first-child {
+  padding-top: 0;
+}
+
+.sn__quote *:last-child {
+  padding-bottom: 0;
+}
+
+span.sn__mediaContainer {
+  cursor: default;
+  display: inline-block;
+  position: relative;
+  user-select: none;
+  --max-width: 500px;
+}
+
+span.sn__mediaContainer .outlawed {
+  user-select: text;
+  cursor: text;
+}
+
+.sn__mediaContainer img,
+.sn__mediaContainer video {
+  max-width: var(--max-width);
+  max-height: var(--max-width);
+  display: block;
+  cursor: default;
+  aspect-ratio: var(--aspect-ratio);
+}
+
+[contenteditable="false"] .sn__mediaContainer img {
+  cursor: zoom-in;
+  min-width: 30%;
+  object-position: left top;
+}
+
+[contenteditable="true"] .sn__mediaContainer .focused img, [contenteditable="true"] .sn__mediaContainer .focused video {
+  outline: 2px solid rgb(60, 132, 244);
+  user-select: none;
+}
+
+[contenteditable="true"] .sn__mediaContainer .focused.draggable img, [contenteditable="true"] .sn__mediaContainer .focused.draggable video {
+  cursor: grab;
+}
+
+[contenteditable="true"] .sn__mediaContainer .focused.draggable:active img, [contenteditable="true"] .sn__mediaContainer .focused.draggable:active video {
+  cursor: grabbing;
+}
+
+.sn__image {
+  cursor: zoom-in;
+  min-width: 30%;
+  max-width: 100%;
+  object-position: left top;
+}
+
+.sn__link {
+  color: var(--theme-link);
+  text-decoration: none;
+}
+
+span + .sn__link {
+  margin-left: 0px;
+}
+
+.sn__mention {
+  color: var(--theme-link);
+  font-weight: bold;
+}
+
+.sn__mention[data-lexical-mention][data-mention-text]::before {
+  content: attr(data-mention-text);
+  pointer-events: none;
+}
+
+.sn__mention[data-lexical-mention]:has(> span)::before {
+  content: '' !important;
+}
+
+.sn__twitterContainer,
+.sn__nostrContainer,
+.sn__videoWrapper,
+.sn__wavlakeWrapper,
+.sn__spotifyWrapper {
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+  background-color: var(--theme-body) !important;
+}
+
+.sn__embedWrapper__loading {
+  display: flex;
+  flex-flow: row wrap;
+  max-width: 350px;
+  width: 100%;
+  padding-right: 12px;
+}
+
+.sn__embedWrapper__loading__message {
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.4rem;
+  height: 150px;
+  width: 100%;
+  padding: 1.5rem;
+  background-color: var(--theme-commentBg);
+}
+
+.sn__embedWrapper__loading__message svg {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 1rem;
+  margin-left: -0.15rem;
+}
+
+.sn__nestedListItem {
+  list-style-type: none;
+}
+
+.sn__listOl {
+  padding: 0;
+  margin: 0;
+}
+
+.sn__listUl {
+  padding: 0;
+  margin: 0;
+}
+
+.sn__listItem {
+  margin: 8px 16px 8px 16px;
+}
+
+.sn__listItemChecked, .sn__listItemUnchecked {
+  position: relative;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  padding-left: 1.5em;
+  padding-right: 1.5em;
+  list-style-type: none;
+  outline: none;
+  display: block;
+  min-height: 1.5em;
+}
+
+.sn__listItemChecked > *, .sn__listItemUnchecked > * {
+  margin-left: 0.01em;
+}
+
+.sn__listItemChecked:before, .sn__listItemUnchecked:before {
+  content: '\200B';
+  width: 0.9em;
+  height: 0.9em;
+  top: 45%;
+  left: 0;
+  cursor: pointer;
+  display: block;
+  background-size: cover;
+  position: absolute;
+  transform: translateY(-50%);
+}
+
+.sn__listItemChecked {
+  text-decoration: line-through;
+}
+
+.sn__listItemChecked:focus:before, .sn__listItemUnchecked:focus:before {
+  box-shadow: 0 0 0 2px #a6cdfe;
+  border-radius: 2px;
+}
+
+.sn__listItemUnchecked:before {
+  border: 1px solid #999;
+  border-radius: 2px;
+}
+
+.sn__listItemChecked:before {
+  border: 1px solid var(--bs-primary);
+  border-radius: 2px;
+  background-color: var(--bs-primary);
+  background-repeat: no-repeat;
+}
+
+.sn__listItemChecked:after {
+  content: '';
+  cursor: pointer;
+  border-color: #000;
+  border-style: solid;
+  position: absolute;
+  display: block;
+  top: 45%;
+  width: 0.2em;
+  left: 0.35em;
+  height: 0.4em;
+  transform: translateY(-50%) rotate(45deg);
+  border-width: 0 0.1em 0.1em 0;
+}
+
+[contenteditable="false"] .sn__listItemChecked:before,
+[contenteditable="false"] .sn__listItemUnchecked:before {
+  cursor: default;
+  pointer-events: none;
+}
+
+[contenteditable="false"] .sn__listItemChecked:before,
+[contenteditable="false"] .sn__listItemUnchecked:before {
+  opacity: 0.5;
+  filter: grayscale(0.3);
+}
+
+[contenteditable="false"] .sn__listItemChecked:after {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+[contenteditable="false"] .sn__listItemChecked:focus:before,
+[contenteditable="false"] .sn__listItemUnchecked:focus:before {
+  box-shadow: 0 0 0 0;
+  border-radius: 2px;
+}
+
+.sn__textBold {
+  font-weight: bold;
+}
+
+.sn__textItalic {
+  font-style: italic;
+}
+
+.sn__textUnderline {
+  text-decoration: underline;
+}
+
+.sn__textStrikethrough {
+  text-decoration: line-through;
+}
+
+.sn__textUnderlineStrikethrough {
+  text-decoration: underline line-through;
+}
+
+/* inline */
+/* code TODO: get a better color scheme for light and dark mode */
+.sn__code {
+  font-family: Menlo, Consolas, Monaco, monospace;
+  margin: 0;
+  white-space: break-spaces;
+  background-color: var(--theme-commentBg) !important;
+  color: var(--theme-navLinkActive) !important;
+  border-radius: 0.3rem;
+  padding: 0.2em 0.4em;
+}
+
+.sn__codeBlock {
+  position: relative;
+  background-color: var(--theme-commentBg) !important;
+  font-family: Menlo, Consolas, Monaco, monospace;
+  display: block;
+  line-height: 1.53;
+  font-size: 13px;
+  margin: 0;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  overflow-y: hidden;
+  overflow-x: auto;
+  position: relative;
+  tab-size: 2;
+  white-space: pre;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
+}
+
+/* table */
+.sn__table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  overflow-y: scroll;
+  overflow-x: scroll;
+  table-layout: fixed;
+  width: fit-content;
+  margin-top: 25px;
+  margin-bottom: 30px;
+}
+
+.sn__tableAddColumns {
+  position: absolute;
+  background-color: #eee;
+  height: 100%;
+  animation: table-controls 0.2s ease;
+  border: 0;
+  cursor: pointer;
+}
+
+.sn__tableAddColumns:after, .sn__tableAddRows:after {
+  background-image: url(../svgs/add-fill.svg);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: block;
+  content: ' ';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.4;
+}
+
+.sn__tableAddColumns:hover, .sn__tableAddRows:hover {
+  background-color: #ddd;
+}
+
+.sn__tableAddRows {
+  position: absolute;
+  width: calc(100% - 25px);
+  background-color: #eee;
+  animation: table-controls 0.2s ease;
+  border: 0;
+  cursor: pointer;
+}
+
+@keyframes table-controls {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.sn__tableCell {
+  border: 1px solid #bbb;
+  width: 75px;
+  vertical-align: top;
+  text-align: start;
+  padding: 6px 8px;
+  position: relative;
+  outline: none;
+  overflow: auto;
+}
+
+/*
+  A firefox workaround to allow scrolling of overflowing table cell
+  ref: https://bugzilla.mozilla.org/show_bug.cgi?id=1904159
+*/
+.sn__tableCell > * {
+  overflow: inherit;
+}
+
+.sn__tableCellHeader {
+  background-color: #000000;
+  text-align: start;
+}
+
+.sn__tableCellSelected {
+  caret-color: transparent;
+}
+
+.sn__tableSelection *::selection {
+  background-color: transparent;
+}
+.sn__tableSelected {
+  outline: 2px solid rgb(60, 132, 244);
+}
+
+.sn__tableFrozenColumn {
+  position: sticky;
+  left: 0;
+  background-color: #f0f0f0;
+}
+
+.sn__tableFrozenRow {
+  position: sticky;
+  top: 0;
+  background-color: #f0f0f0;
+}
+
+.sn__math {
+  cursor: default;
+  user-select: none;
+}
+
+.sn__math.focused {
+  outline: 2px solid rgb(60, 132, 244);
+}

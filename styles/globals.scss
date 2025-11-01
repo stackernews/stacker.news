@@ -153,6 +153,7 @@ $zindex-sticky: 900;
   --theme-linkVisited: #53758;
   --theme-note-reply: rgba(0, 0, 0, 0.04);
   --theme-note-fresh: rgba(0, 124, 190, 0.5);
+  --theme-floating-toolbar-shadow-opacity: 0.2;
 }
 
 [data-bs-theme=dark] {
@@ -179,6 +180,7 @@ $zindex-sticky: 900;
   --theme-linkVisited: #56798E;
   --theme-note-reply: rgba(255, 255, 255, 0.05);
   --theme-note-fresh: rgba(0, 124, 190, 0.75);
+  --theme-floating-toolbar-shadow-opacity: 0.8;
 }
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';
@@ -448,7 +450,7 @@ a:hover {
 }
 
 select,
-div[contenteditable],
+div[contenteditable=true],
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -490,7 +492,7 @@ select:focus {
 }
 
 
-div[contenteditable]:focus,
+div[contenteditable]:not([data-lexical-editor]):focus,
 .form-control:focus {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -498,7 +500,7 @@ div[contenteditable]:focus,
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
-div[contenteditable]:disabled,
+div[contenteditable]:not([data-lexical-editor]):disabled,
 .form-control:disabled,
 .form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
@@ -632,8 +634,8 @@ footer {
   textarea,
   .form-control,
   .form-control:focus,
-  div[contenteditable],
-  div[contenteditable]:focus,
+  div[contenteditable]:not([data-lexical-editor]),
+  div[contenteditable]:not([data-lexical-editor]):focus,
   .input-group-text {
     font-size: 1rem !important;
   }
@@ -646,7 +648,7 @@ footer {
 }
 
 textarea.form-control,
-div[contenteditable] {
+div[contenteditable]:not([data-lexical-editor]) {
   line-height: 1rem;
 }
 
@@ -980,6 +982,21 @@ div[contenteditable]:focus,
   .tooltip {
     visibility: hidden;
     pointer-events: none;
+  }
+}
+
+.fade.tooltip {
+  opacity: 1;
+  visibility: visible;
+  animation: fadeIn 0.15s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

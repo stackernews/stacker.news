@@ -1,10 +1,11 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, LexicalInput, MarkdownInput } from '@/components/form'
 import styles from './reply.module.css'
 import { commentSchema } from '@/lib/validate'
 import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
 import { UPDATE_COMMENT } from '@/fragments/paidAction'
 import useItemSubmit from './use-item-submit'
+import { MAX_COMMENT_TEXT_LENGTH } from '@/lib/constants'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
@@ -17,6 +18,12 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           fields: {
             text () {
               return result.text
+            },
+            lexicalState () {
+              return result.lexicalState
+            },
+            html () {
+              return result.html
             }
           },
           optimistic: true
@@ -33,17 +40,26 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
       <FeeButtonProvider>
         <Form
           initial={{
-            text: comment.text
+            text: comment.text,
+            lexicalState: comment.lexicalState
           }}
           schema={commentSchema}
           onSubmit={onSubmit}
         >
-          <MarkdownInput
-            name='text'
-            minRows={6}
-            autoFocus
-            required
-          />
+          {comment.lexicalState
+            ? <LexicalInput
+                name='text'
+                autoFocus
+                lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
+              />
+            : (
+              <MarkdownInput
+                name='text'
+                minRows={6}
+                autoFocus
+                required
+              />
+              )}
           <ItemButtonBar itemId={comment.id} onDelete={onSuccess} hasCancel={false} />
         </Form>
       </FeeButtonProvider>

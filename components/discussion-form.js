@@ -1,7 +1,7 @@
-import { Form, Input, MarkdownInput } from '@/components/form'
+import { Form, Input, LexicalInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
-import Countdown from './countdown'
+// import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
 import AccordianItem from './accordian-item'
@@ -45,7 +45,7 @@ export function DiscussionForm ({
     <Form
       initial={{
         title: item?.title || shareTitle || '',
-        text: item?.text || shareText || '',
+        lexicalState: item?.lexicalState || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
@@ -70,7 +70,8 @@ export function DiscussionForm ({
         }}
         maxLength={MAX_TITLE_LENGTH}
       />
-      <MarkdownInput
+      <LexicalInput appendValue={shareText} name='text' label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>} topLevel />
+      {/* <MarkdownInput
         topLevel
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}
         name='text'
@@ -78,7 +79,7 @@ export function DiscussionForm ({
         hint={editThreshold
           ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
           : null}
-      />
+      /> */}
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} />
       {!item &&

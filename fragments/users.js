@@ -152,6 +152,7 @@ export const WELCOME_BANNER_MUTATION = gql`
 export const USER_SUGGESTIONS = gql`
   query userSuggestions($q: String!, $limit: Limit) {
     userSuggestions(q: $q, limit: $limit) {
+      id
       name
     }
   }`

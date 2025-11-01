@@ -7,6 +7,7 @@ import performPaidAction from '../paidAction'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
+import { prepareLexicalState } from '@/lib/lexical/utils/server/interpolator'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -363,6 +364,12 @@ export default {
 
 async function createSub (parent, data, { me, models, lnd }) {
   try {
+    // QUIRK
+    // if we have a lexicalState, we'll convert it to markdown to fit the schema
+    if (data.lexicalState) {
+      const { text } = prepareLexicalState({ lexicalState: data.lexicalState })
+      data.desc = text
+    }
     return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
@@ -390,6 +397,12 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd }) {
   }
 
   try {
+    // QUIRK
+    // if we have a lexicalState, we'll convert it to markdown to fit the schema
+    if (data.lexicalState) {
+      const { text } = prepareLexicalState({ lexicalState: data.lexicalState })
+      data.desc = text
+    }
     return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {

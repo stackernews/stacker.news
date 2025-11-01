@@ -13,6 +13,7 @@ const STREAK_FIELDS = gql`
   }
 `
 
+// TODO DEBUG: remove lexicalState
 export const ITEM_FIELDS = gql`
   ${STREAK_FIELDS}
   fragment ItemFields on Item {
@@ -22,6 +23,7 @@ export const ITEM_FIELDS = gql`
     invoicePaidAt
     deletedAt
     title
+    lexicalState
     url
     user {
       id
@@ -91,6 +93,8 @@ export const ITEM_FULL_FIELDS = gql`
   fragment ItemFullFields on Item {
     ...ItemFields
     text
+    lexicalState
+    html
     root {
       id
       createdAt

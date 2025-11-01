@@ -89,6 +89,7 @@ services:
     profiles:
       - images
       - capture
+      - images
     healthcheck:
       <<: *healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:5678/health"]

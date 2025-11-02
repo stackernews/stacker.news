@@ -26,6 +26,7 @@ import { SN_INSERT_MATH_COMMAND } from '@/components/lexical/universal/commands/
 import { SN_TOGGLE_MODE_COMMAND } from '@/components/lexical/extensions/core/mode'
 import { SN_TOGGLE_LINK_COMMAND } from '@/components/lexical/universal/commands/links'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/lexical/universal/commands/upload'
+import { SN_INSERT_TABLE_COMMAND } from '@/components/lexical/universal/commands/table'
 
 export const ACTIONS = [
   // inline text formatting
@@ -225,7 +226,7 @@ export const ACTIONS = [
     id: 'table',
     name: 'table',
     shortcut: 'ctrl+alt+t',
-    command: null, // handle separately
+    command: SN_INSERT_TABLE_COMMAND,
     category: 'insert',
     toolbarSection: 'insert-dropdown'
   },

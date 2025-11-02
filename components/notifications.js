@@ -243,7 +243,6 @@ function Gun ({ n }) {
 }
 
 function Infection ({ n }) {
-  // TODO: use random blurbs?
   return (
     <div className='d-flex'>
       <div style={{ fontSize: '2rem', alignSelf: 'center' }}><BioHazardIcon className='fill-grey mx-1' width={40} height={40} /></div>

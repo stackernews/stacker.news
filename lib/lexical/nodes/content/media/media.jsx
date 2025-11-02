@@ -190,6 +190,13 @@ export class MediaNode extends DecoratorNode {
     writable.__height = height
   }
 
+  getWidthAndHeight () {
+    return {
+      width: this.__width,
+      height: this.__height
+    }
+  }
+
   setShowCaption (showCaption) {
     const writable = this.getWritable()
     writable.__showCaption = showCaption

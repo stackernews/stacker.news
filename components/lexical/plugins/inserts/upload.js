@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import {
   COMMAND_PRIORITY_EDITOR,
   $createParagraphNode, $createTextNode, $getNodeByKey, $insertNodes, $getRoot, $nodesOfType,
-  $getSelection, $isRangeSelection
+  $getSelection, $isRangeSelection, $selectAll
 } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -84,6 +84,15 @@ export default function FileUploadPlugin () {
     editor.update(() => {
       const selection = $getSelection()
 
+      if ($isMarkdownMode()) {
+        files.forEach(file => {
+          const identifier = Math.random().toString(36).substring(2, 8)
+          selection.insertText(`\n\n![Uploading ${file.name}… 0%](${identifier})`)
+          placeholdersRef.current.set(file, identifier)
+        })
+        return
+      }
+
       if ($isRangeSelection(selection)) {
         // move selection to end of current paragraph
         const anchorNode = selection.anchor.getNode()
@@ -114,6 +123,24 @@ export default function FileUploadPlugin () {
     const key = placeholdersRef.current.get(file)
     if (!key) return
     editor.update(() => {
+      if ($isMarkdownMode()) {
+        const markdownNode = $getRoot().getFirstChild()
+        const text = markdownNode?.getTextContent() || ''
+        console.log('text', text)
+        const percent = total ? Math.floor((loaded / total) * 100) : 0
+        const regex = new RegExp(`!\\[Uploading ${file.name}… \\d+%\\]\\(${key}\\)`)
+        const newText = text.replace(regex, `![Uploading ${file.name}… ${percent}%](${key})`)
+
+        // wip: this basically blocks editor updates, seems to be the only reliable way to replace text in markdown
+        $selectAll()
+        editor.update(() => {
+          const selection = $getSelection()
+          if ($isRangeSelection(selection)) {
+            selection.insertText(newText)
+          }
+        })
+        return
+      }
       const node = $getNodeByKey(key)
       const percent = total ? Math.floor((loaded / total) * 100) : 0
       node?.setTextContent(`Uploading ${file.name}… ${percent}%`)
@@ -126,8 +153,23 @@ export default function FileUploadPlugin () {
     editor.update(() => {
       const node = $getNodeByKey(key)
       placeholdersRef.current.delete(file)
-      const nodes = [$createMediaNode({ src: url })]
-      nodes.forEach(mediaNode => node.replace(mediaNode))
+      console.log('isMarkdownMode', $isMarkdownMode())
+      if ($isMarkdownMode()) {
+        const markdownNode = $getRoot().getFirstChild()
+        const text = markdownNode?.getTextContent() || ''
+        console.log('text', text)
+        const regex = new RegExp(`!\\[Uploading ${file.name}… \\d+%\\]\\(${key}\\)`)
+        const newText = text.replace(regex, `![](${url})`)
+        $selectAll()
+        editor.update(() => {
+          const selection = $getSelection()
+          if ($isRangeSelection(selection)) {
+            selection.insertText(newText)
+          }
+        })
+      } else {
+        node.replace($createMediaNode({ src: url }))
+      }
     })
     // refresh upload fees after the update is complete
     editor.read(() => $refreshUploadFees())

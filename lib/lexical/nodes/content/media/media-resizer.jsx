@@ -236,7 +236,7 @@ export default function MediaResizer ({
             setShowCaption(!showCaption)
           }}
         >
-          Add Caption
+          add caption
         </button>
       )}
       <div

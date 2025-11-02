@@ -48,6 +48,15 @@
   z-index: 2;
 }
 
+.text p {
+  margin-bottom: 0 !important;
+}
+
+.text .p {
+  padding-top: calc(var(--grid-gap) * 0.5);
+  padding-bottom: calc(var(--grid-gap) * 0.5);
+}
+
 @media screen and (min-width: 767px) {
   .text {
     line-height: 130% !important;

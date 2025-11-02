@@ -1,7 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react'
 import {
   COMMAND_PRIORITY_EDITOR,
-  $createParagraphNode, $createTextNode, $getNodeByKey, $insertNodes, $getRoot, $nodesOfType
+  $createParagraphNode, $createTextNode, $getNodeByKey, $insertNodes, $getRoot, $nodesOfType,
+  $getSelection, $isRangeSelection
 } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -81,13 +82,26 @@ export default function FileUploadPlugin () {
 
   const onConfirm = useCallback((files) => {
     editor.update(() => {
+      const selection = $getSelection()
+
+      if ($isRangeSelection(selection)) {
+        // move selection to end of current paragraph
+        const anchorNode = selection.anchor.getNode()
+        const topLevelElement = anchorNode.getTopLevelElementOrThrow()
+
+        // insert a new paragraph
+        const newParagraph = $createParagraphNode()
+        topLevelElement.insertAfter(newParagraph)
+        newParagraph.select()
+      }
+
       const nodes = files.map(file => {
         const node = uploadProgressNode(file, 0)
         placeholdersRef.current.set(file, node.getKey())
         return node
       })
+
       // insert each node separately with line breaks
-      // but there might be a better way to do this
       nodes.forEach(node => {
         $insertNodes([node])
         $insertNodes([$createParagraphNode()])

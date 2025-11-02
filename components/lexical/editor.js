@@ -39,6 +39,7 @@ import { AutoFocusExtension } from '@lexical/extension'
 import { AUTOLINK_URL_REGEXP, EMAIL_REGEXP, ensureProtocol } from '@/lib/url'
 import { SNAutoLinkExtension } from './extensions/decorative/autolink'
 import PreferencesPlugin from './plugins/core/preferences'
+import MediaPlugin from './plugins/content/media'
 // import DraggableBlockPlugin from './plugins/core/draggable-block'
 
 export default function Editor ({ name, appendValue, autoFocus, ...props }) {
@@ -165,6 +166,8 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         <MaxLengthPlugin lengthOptions={lengthOptions} />
         {/* floating toolbar */}
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
+        {/* media insert & DnD */}
+        <MediaPlugin />
         {/* draggable block */}
         {/* <DraggableBlockPlugin anchorElem={floatingAnchorElem} /> */}
         {/* formik */}

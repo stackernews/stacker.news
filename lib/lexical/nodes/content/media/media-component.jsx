@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { mergeRegister } from '@lexical/utils'
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -46,10 +46,15 @@ export function MediaOrLink ({
     useLexicalNodeSelection(nodeKey)
   const [isResizing, setIsResizing] = useState(false)
   const [editor] = useLexicalComposerContext()
-  const [selection, setSelection] = useState(null)
   const activeEditorRef = useRef(null)
   const [isLoadError, setIsLoadError] = useState(false)
   const isEditable = useLexicalEditable()
+  const isInNodeSelection = useMemo(() => {
+    return isSelected && editor.getEditorState().read(() => {
+      const sel = $getSelection()
+      return $isNodeSelection(sel) && sel.has(nodeKey)
+    })
+  }, [isSelected, editor, nodeKey])
 
   const $onEnter = useCallback((event) => {
     const latestSelection = $getSelection()
@@ -113,32 +118,13 @@ export function MediaOrLink ({
   }, [editor])
 
   useEffect(() => {
-    const rootEl = editor.getRootElement()
-    const unregister = mergeRegister(
-      editor.registerUpdateListener(({ editorState }) => {
-        const updatedSelection = editorState.read(() => $getSelection())
-        if ($isNodeSelection(updatedSelection)) {
-          setSelection(updatedSelection)
-        } else {
-          setSelection(null)
-        }
-      }),
+    return mergeRegister(
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         (_, activeEditor) => {
           activeEditorRef.current = activeEditor
           return false
         },
-        COMMAND_PRIORITY_LOW
-      ),
-      editor.registerCommand(
-        CLICK_COMMAND,
-        onClick,
-        COMMAND_PRIORITY_LOW
-      ),
-      editor.registerCommand(
-        RIGHT_CLICK_IMAGE_COMMAND,
-        onClick,
         COMMAND_PRIORITY_LOW
       ),
       editor.registerCommand(
@@ -151,18 +137,35 @@ export function MediaOrLink ({
           return false
         },
         COMMAND_PRIORITY_LOW
+      )
+    )
+  }, [editor])
+
+  useEffect(() => {
+    let rootCleanup = () => {}
+    return mergeRegister(
+      editor.registerCommand(
+        CLICK_COMMAND,
+        onClick,
+        COMMAND_PRIORITY_LOW
+      ),
+      editor.registerCommand(
+        RIGHT_CLICK_IMAGE_COMMAND,
+        onClick,
+        COMMAND_PRIORITY_LOW
       ),
       editor.registerCommand(KEY_ENTER_COMMAND, $onEnter, COMMAND_PRIORITY_LOW),
-      editor.registerCommand(KEY_ESCAPE_COMMAND, $onEscape, COMMAND_PRIORITY_LOW)
+      editor.registerCommand(KEY_ESCAPE_COMMAND, $onEscape, COMMAND_PRIORITY_LOW),
+      editor.registerRootListener((rootElement) => {
+        if (rootElement) {
+          rootElement.addEventListener('contextmenu', onRightClick)
+          rootCleanup = () =>
+            rootElement.removeEventListener('contextmenu', onRightClick)
+        }
+      }),
+      () => rootCleanup()
     )
-
-    rootEl?.addEventListener('contextmenu', onRightClick)
-
-    return () => {
-      unregister()
-      rootEl?.removeEventListener('contextmenu', onRightClick)
-    }
-  }, [clearSelection, editor, isResizing, isSelected, onClick, nodeKey, onRightClick, $onEnter, $onEscape, setSelected])
+  }, [editor, $onEnter, $onEscape, onClick, onRightClick])
 
   const setShowCaption = () => {
     editor.update(() => {
@@ -192,7 +195,7 @@ export function MediaOrLink ({
 
   const { historyState } = useSharedHistoryContext()
 
-  const draggable = isSelected && $isNodeSelection(selection) && !isResizing
+  const draggable = isInNodeSelection && !isResizing
   const isFocused = (isSelected || isResizing) && isEditable
 
   if (isLoadError) {
@@ -212,7 +215,7 @@ export function MediaOrLink ({
             linkFallback={false}
             preTailor={{ width, height, maxWidth: maxWidth ?? 500 }}
             onError={() => setIsLoadError(true)}
-            className={isFocused ? `focused ${$isNodeSelection(selection) ? 'draggable' : ''}` : null}
+            className={isFocused ? `focused ${isInNodeSelection ? 'draggable' : ''}` : null}
             imageRef={mediaRef}
           />
         </div>
@@ -235,7 +238,7 @@ export function MediaOrLink ({
             </LexicalNestedComposer>
           </div>
         )}
-        {resizable && $isNodeSelection(selection) && isFocused && (
+        {resizable && isInNodeSelection && isFocused && (
           <MediaResizer
             showCaption={showCaption}
             setShowCaption={setShowCaption}

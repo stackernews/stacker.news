@@ -1,5 +1,6 @@
 import { isTemplate, isWallet, protocolClientSchema, protocolFields, protocolFormId, walletLud16Domain } from '@/wallets/lib/util'
 import { createContext, useContext, useEffect, useMemo, useCallback, useState } from 'react'
+import { useRouter } from 'next/router'
 import { useWalletProtocolUpsert } from '@/wallets/client/hooks'
 import { MultiStepForm, useFormState, useStep } from '@/components/multi-step-form'
 import { parseNwcUrl } from '@/wallets/lib/validate'
@@ -133,6 +134,7 @@ export function useSaveWallet () {
   const wallet = useWallet()
   const [formState] = useFormState()
   const upsert = useWalletProtocolUpsert()
+  const router = useRouter()
 
   const save = useCallback(async () => {
     let walletId = isWallet(wallet) ? wallet.id : undefined
@@ -147,7 +149,8 @@ export function useSaveWallet () {
       )
       walletId ??= id
     }
-  }, [wallet, formState, upsert])
+    router.push('/wallets')
+  }, [wallet, formState, upsert, router])
 
   return save
 }

@@ -41,12 +41,13 @@ function DropdownMenuItem ({ option, isActive, onClick }) {
       onClick={onClick}
       className={classNames(styles.dropdownExtraItem, isActive ? styles.active : '')}
       onPointerDown={e => e.preventDefault()}
+      suppressHydrationWarning
     >
       <span className={styles.dropdownExtraItemLabel}>
         <ToolbarIcon id={option.id} />
         <span className={styles.dropdownExtraItemText}>{option.name}</span>
       </span>
-      <span className={styles.dropdownExtraItemShortcut}>
+      <span className={styles.dropdownExtraItemShortcut} suppressHydrationWarning>
         {shortcut}
       </span>
     </Dropdown.Item>
@@ -232,12 +233,13 @@ export function ToolbarPlugin ({ topLevel }) {
             <ArrowDownIcon style={{ transform: showToolbar ? 'rotate(90deg)' : '' }} />
           </span>
         </ActionTooltip>
-        <ActionTooltip notForm overlayText={`upload files ${getShortcutCombo('upload')}`} placement='top' noWrapper showDelay={500} transition>
+        <ActionTooltip notForm overlayText={`upload files ${getShortcutCombo('upload')}`} placement='top' noWrapper showDelay={500} transition suppressHydrationWarning>
           <span
             title={`upload files ${getShortcutCombo('upload')}`}
             className={styles.toolbarItem}
             onClick={() => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)}
             onPointerDown={e => e.preventDefault()}
+            suppressHydrationWarning
           >
             <UploadIcon />
           </span>

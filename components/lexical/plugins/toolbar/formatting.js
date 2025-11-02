@@ -47,6 +47,7 @@ function MainToolbarOptions ({ editor, toolbarState, isFloating }) {
           showDelay={500}
           transition
           disable={isFloating}
+          suppressHydrationWarning
         >
           <span
             title={`${option.name} (${shortcut})`}
@@ -54,6 +55,7 @@ function MainToolbarOptions ({ editor, toolbarState, isFloating }) {
             style={option.style}
             onClick={() => option.handler({ editor })}
             onPointerDown={e => e.preventDefault()}
+            suppressHydrationWarning
           >
             <ToolbarIcon id={option.id} state={isActive && 'active'} />
           </span>

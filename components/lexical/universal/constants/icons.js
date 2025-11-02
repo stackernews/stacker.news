@@ -3,6 +3,7 @@ import ItalicIcon from '@/svgs/lexical/italic.svg'
 import UnderlineIcon from '@/svgs/lexical/underline.svg'
 import StrikethroughIcon from '@/svgs/lexical/strikethrough.svg'
 import LinkIcon from '@/svgs/lexical/link.svg'
+import LinkUnlinkIcon from '@/svgs/lexical/link-unlink.svg'
 import Heading1Icon from '@/svgs/lexical/block/h-1.svg'
 import Heading2Icon from '@/svgs/lexical/block/h-2.svg'
 import Heading3Icon from '@/svgs/lexical/block/h-3.svg'
@@ -21,33 +22,40 @@ import IndentIncreaseIcon from '@/svgs/lexical/align/indent-increase.svg'
 import UploadIcon from '@/svgs/lexical/inserts/paperclip.svg'
 import TableIcon from '@/svgs/lexical/inserts/table-3.svg'
 import MathIcon from '@/svgs/lexical/inserts/formula.svg'
+import ParagraphIcon from '@/svgs/lexical/block/blocks.svg'
 
-export const ICON_REGISTRY = {
-  bold: <BoldIcon />,
-  italic: <ItalicIcon />,
-  underline: <UnderlineIcon />,
-  strikethrough: <StrikethroughIcon />,
-  link: <LinkIcon />,
-  paragraph: null,
-  h1: <Heading1Icon />,
-  h2: <Heading2Icon />,
-  h3: <Heading3Icon />,
-  quote: <QuoteIcon />,
-  number: <NumberedListIcon />,
-  bullet: <BulletListIcon />,
-  check: <CheckListIcon />,
-  'code-block': <CodeBlockIcon />,
-  code: <CodeIcon />,
-  left: <LeftIcon />,
-  center: <CenterIcon />,
-  right: <RightIcon />,
-  justify: <JustifyIcon />,
-  'indent-decrease': <IndentDecreaseIcon />,
-  'indent-increase': <IndentIncreaseIcon />,
-  upload: <UploadIcon />,
-  table: <TableIcon />,
-  math: <MathIcon />,
-  'math-inline': <MathIcon />
+export const ICONS = {
+  bold: { default: BoldIcon },
+  italic: { default: ItalicIcon },
+  underline: { default: UnderlineIcon },
+  strikethrough: { default: StrikethroughIcon },
+  link: { default: LinkIcon, active: LinkUnlinkIcon },
+  paragraph: { default: ParagraphIcon },
+  h1: { default: Heading1Icon },
+  h2: { default: Heading2Icon },
+  h3: { default: Heading3Icon },
+  quote: { default: QuoteIcon },
+  number: { default: NumberedListIcon },
+  bullet: { default: BulletListIcon },
+  check: { default: CheckListIcon },
+  'code-block': { default: CodeBlockIcon },
+  code: { default: CodeIcon },
+  left: { default: LeftIcon },
+  center: { default: CenterIcon },
+  right: { default: RightIcon },
+  justify: { default: JustifyIcon },
+  'indent-decrease': { default: IndentDecreaseIcon },
+  'indent-increase': { default: IndentIncreaseIcon },
+  upload: { default: UploadIcon },
+  table: { default: TableIcon },
+  math: { default: MathIcon },
+  'math-inline': { default: MathIcon }
 }
 
-export const getIcon = (id) => ICON_REGISTRY[id] || null
+export const getIcon = (id, state = 'default') => {
+  const icon = ICONS[id]
+  if (!icon) return null
+
+  // fallback to default if the requested state is not defined
+  return icon[state] || icon.default
+}

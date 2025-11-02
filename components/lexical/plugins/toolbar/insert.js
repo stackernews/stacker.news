@@ -3,7 +3,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import styles from '@/components/lexical/theme/theme.module.css'
 import AddIcon from '@/svgs/add-fill.svg'
 import { getShortcutCombo } from '@/components/lexical/extensions/core/shortcuts/keyboard'
-import { INSERT_OPTIONS } from './defs/formatting'
+import { ToolbarIcon, INSERT_OPTIONS } from './defs/formatting'
 import { useState } from 'react'
 import ActionTooltip from '@/components/action-tooltip'
 import { MenuAlternateDimension } from './formatting'
@@ -27,7 +27,7 @@ export default function InsertTools () {
               className={styles.dropdownExtraItem}
             >
               <span className={styles.dropdownExtraItemLabel}>
-                {option.icon}
+                <ToolbarIcon id={option.id} />
                 <span className={styles.dropdownExtraItemText}>{option.name}</span>
               </span>
               <span className={styles.dropdownExtraItemShortcut}>

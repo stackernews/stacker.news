@@ -12,6 +12,11 @@ const toolbarOptions = (category) =>
     }
   }))
 
+export function ToolbarIcon ({ id, state = 'default', ...props }) {
+  const IconComponent = getIcon(id, state)
+  return IconComponent ? <IconComponent {...props} /> : null
+}
+
 export const BLOCK_OPTIONS = toolbarOptions('block')
 export const INLINE_OPTIONS = toolbarOptions('inline')
 export const ADDITIONAL_FORMAT_OPTIONS = toolbarOptions('additional')

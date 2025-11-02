@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect, useRef } from 'react'
 import { useField } from 'formik'
-import { $initializeEditorState, $isMarkdownMode } from '@/components/lexical/universal/utils'
+import { $initializeEditorState, $isMarkdownMode, $isRootEmpty } from '@/components/lexical/universal/utils'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { buildEditorFromExtensions, defineExtension } from '@lexical/extension'
@@ -45,6 +45,12 @@ export default function FormikBridgePlugin () {
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
         const isMarkdownMode = $isMarkdownMode()
+
+        // if editor is empty, set empty string for formik validation
+        if ($isRootEmpty()) {
+          lexicalHelpers.setValue('')
+          return
+        }
 
         let markdown = ''
         let lexicalState = editorState.toJSON()

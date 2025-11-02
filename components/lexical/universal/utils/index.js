@@ -1,7 +1,6 @@
 import { $getRoot, $isRootOrShadowRoot, $createTextNode, $createParagraphNode } from 'lexical'
 import { $isMarkdownNode, $createMarkdownNode } from '@/lib/lexical/nodes/core/markdown'
 import { $findMatchingParent } from '@lexical/utils'
-import { $isRootTextContentEmpty } from '@lexical/text'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
 import { $isAtNodeEnd } from '@lexical/selection'
@@ -64,12 +63,13 @@ export function $isMarkdownMode () {
 }
 
 export function $isRootEmpty () {
-  if (!$isMarkdownMode()) {
-    const root = $getRoot()
-    const children = root.getChildren()
-    return children.length === 0 || (children.length === 1 && $isRootTextContentEmpty())
-  }
   const root = $getRoot()
+  if (!$isMarkdownMode()) {
+    const children = root.getChildren()
+    if (children.length === 0) return true
+    // check if all children are empty
+    return children.every(child => child.isEmpty())
+  }
   const firstChild = root.getFirstChild()
   return $isMarkdownNode(firstChild) && firstChild.getTextContent().trim() === ''
 }
@@ -92,4 +92,33 @@ export function $initializeEditorState (markdown, editor, initialValue = '') {
     firstChild.bypassProtection()
   }
   root.clear().append(node)
+}
+
+export function $trimEmptyNodes () {
+  const root = $getRoot()
+  const children = root.getChildren()
+
+  if (children.length === 0) return
+
+  // first non-empty index
+  let startIdx = 0
+  while (startIdx < children.length && children[startIdx].isEmpty()) {
+    startIdx++
+  }
+
+  // last non-empty index
+  let endIdx = children.length - 1
+  while (endIdx >= startIdx && children[endIdx].isEmpty()) {
+    endIdx--
+  }
+
+  // remove empty nodes at start
+  for (let i = 0; i < startIdx; i++) {
+    children[i].remove()
+  }
+
+  // remove empty nodes at end
+  for (let i = children.length - 1; i > endIdx; i--) {
+    children[i].remove()
+  }
 }

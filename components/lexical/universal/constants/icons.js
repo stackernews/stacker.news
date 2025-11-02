@@ -11,6 +11,7 @@ import NumberedListIcon from '@/svgs/lexical/block/number-list.svg'
 import BulletListIcon from '@/svgs/lexical/block/bullet-list.svg'
 import CheckListIcon from '@/svgs/lexical/block/check-list.svg'
 import CodeIcon from '@/svgs/lexical/code-view.svg'
+import CodeBlockIcon from '@/svgs/lexical/code-block.svg'
 import LeftIcon from '@/svgs/lexical/align/align-left.svg'
 import CenterIcon from '@/svgs/lexical/align/align-center.svg'
 import RightIcon from '@/svgs/lexical/align/align-right.svg'
@@ -35,7 +36,7 @@ export const ICON_REGISTRY = {
   number: <NumberedListIcon />,
   bullet: <BulletListIcon />,
   check: <CheckListIcon />,
-  'code-block': <CodeIcon />,
+  'code-block': <CodeBlockIcon />,
   code: <CodeIcon />,
   left: <LeftIcon />,
   center: <CenterIcon />,

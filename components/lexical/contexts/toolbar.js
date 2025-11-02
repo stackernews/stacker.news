@@ -17,7 +17,8 @@ const INITIAL_STATE = {
   isUppercase: false,
   isCapitalize: false,
   blockType: 'paragraph',
-  codeLanguage: ''
+  codeLanguage: '',
+  markdownMode: false
 }
 
 const ToolbarContext = createContext()

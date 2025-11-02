@@ -40,7 +40,7 @@ export const ACTIONS = [
     name: 'underline',
     shortcut: 'mod+u',
     command: SN_FORMAT_TEXT_COMMAND,
-    category: 'inline'
+    category: 'additional'
   },
   {
     id: 'strikethrough',
@@ -48,6 +48,13 @@ export const ACTIONS = [
     shortcut: 'mod+shift+x',
     command: SN_FORMAT_TEXT_COMMAND,
     category: 'additional'
+  },
+  {
+    id: 'quote',
+    name: 'quote',
+    shortcut: 'mod+alt+q',
+    command: SN_FORMAT_BLOCK_COMMAND,
+    category: 'inline'
   },
   {
     id: 'code',
@@ -87,13 +94,6 @@ export const ACTIONS = [
     category: 'block'
   },
   {
-    id: 'quote',
-    name: 'quote',
-    shortcut: 'mod+alt+q',
-    command: SN_FORMAT_BLOCK_COMMAND,
-    category: 'block'
-  },
-  {
     id: 'number',
     name: 'numbered list',
     shortcut: 'mod+shift+7',
@@ -127,7 +127,7 @@ export const ACTIONS = [
   {
     id: 'left',
     name: 'align left',
-    shortcut: 'mod+shift+l',
+    shortcut: 'mod+shift+s',
     command: SN_FORMAT_ELEMENT_COMMAND,
     category: 'align'
   },
@@ -195,14 +195,14 @@ export const ACTIONS = [
   {
     id: 'math',
     name: 'math',
-    shortcut: 'ctrl+alt+l',
+    shortcut: 'ctrl+alt+s',
     command: SN_INSERT_MATH_COMMAND,
     category: 'insert'
   },
   {
     id: 'math-inline',
     name: 'inline math',
-    shortcut: 'ctrl+l',
+    shortcut: 'ctrl+s',
     command: SN_INSERT_MATH_COMMAND,
     commandValue: { inline: true },
     category: 'insert'

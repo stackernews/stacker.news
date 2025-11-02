@@ -276,8 +276,7 @@
 }
 
 .toolbarItem svg {
-  color: var(--bs-body-color) !important;
-  fill: var(--bs-body-color) !important;
+  color: var(--bs-body-color);
   width: 20px;
   height: 20px;
 }

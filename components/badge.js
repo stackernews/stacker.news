@@ -7,6 +7,7 @@ import GunIcon from '@/svgs/revolver.svg'
 import HorseIcon from '@/svgs/horse.svg'
 import BotIcon from '@/svgs/robot-2-fill.svg'
 import BioHazardIcon from '@/svgs/biohazard.svg'
+import SyringeIcon from '@/svgs/syringe.svg'
 import { numWithUnits } from '@/lib/format'
 import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
@@ -52,6 +53,13 @@ export default function Badges ({ user, badge, bot, className = 'ms-1', badgeCla
     badges.push({
       icon: BioHazardIcon,
       overlayText: 'infected'
+    })
+  }
+
+  if (user.optional.cured) {
+    badges.push({
+      icon: SyringeIcon,
+      overlayText: 'cured'
     })
   }
 

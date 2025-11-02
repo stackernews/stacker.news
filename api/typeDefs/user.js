@@ -218,6 +218,7 @@ export default gql`
     gunStreak: Int
     horseStreak: Int
     infected: Boolean
+    cured: Boolean
     hasSendWallet: Boolean
     hasRecvWallet: Boolean
     hideWalletRecvPrompt: Boolean

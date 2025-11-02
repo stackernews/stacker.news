@@ -333,6 +333,14 @@ export default {
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
         )
+        queries.push(
+          `(SELECT id::text, created_at AS "sortTime", 0 as "earnedSats", 'Cure' AS type
+          FROM "Cure"
+          WHERE "cureeId" = $1
+          AND created_at < $2
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT})`
+        )
         for (const type of ['HORSE', 'GUN']) {
           const gqlType = type.charAt(0) + type.slice(1).toLowerCase()
           queries.push(

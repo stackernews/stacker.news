@@ -1,8 +1,9 @@
 import { HALLOWEEN_IMMUNITY_HOURS, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
-import { notifyZapped, notifyInfected } from '@/lib/webPush'
+import { notifyZapped, notifyInfected, notifyCured } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
+import { maybe } from '@apollo/client/utilities'
 import { Prisma } from '@prisma/client'
 
 export const anonable = true
@@ -222,6 +223,7 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
     WHERE "Item".id = bounty.id AND bounty.paid`
 
   await maybeInfectUser(itemAct, { tx })
+  await maybeCureUser(itemAct, { tx })
 }
 
 async function isImmune (userId, { tx }) {
@@ -268,6 +270,32 @@ async function maybeInfectUser (itemAct, { tx }) {
 
   if (count > 0) {
     notifyInfected(toId).catch(console.error)
+  }
+}
+
+async function maybeCureUser (itemAct, { tx }) {
+  const { id, userId: fromId, item: { userId: toId } } = itemAct
+
+  const zapperInfection = await tx.infection.findFirst({ where: { infecteeId: fromId } })
+  if (zapperInfection) {
+    // zapper is infected, so can't cure other user
+    return
+  }
+
+  const zappedInfection = await tx.infection.findFirst({ where: { infecteeId: toId } })
+  if (!zappedInfection) {
+    // zappee not infected, so can't be cured
+    return
+  }
+
+  const count = await tx.$executeRaw`
+    INSERT INTO "Cure" ("itemActId", "cureeId", "curerId")
+    VALUES (${id}::INTEGER, ${toId}::INTEGER, ${fromId}::INTEGER)
+    ON CONFLICT ("cureeId") DO NOTHING`
+  await tx.user.update({ where: { id: toId }, data: { infected: false, cured: true } })
+
+  if (count > 0) {
+    notifyCured(toId).catch(console.error)
   }
 }
 

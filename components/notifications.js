@@ -46,6 +46,7 @@ import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
 import BioHazardIcon from '@/svgs/biohazard.svg'
+import SyringeIcon from '@/svgs/syringe.svg'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -63,6 +64,7 @@ function Notification ({ n, fresh }) {
         (['NewHorse', 'LostHorse'].includes(type) && <Horse n={n} />) ||
         (['NewGun', 'LostGun'].includes(type) && <Gun n={n} />) ||
         (type === 'Infection' && <Infection n={n} />) ||
+        (type === 'Cured' && <Cured n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
@@ -169,7 +171,7 @@ const defaultOnClick = n => {
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
-  if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun', 'Infection'].includes(type)) return {}
+  if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun', 'Infection', 'Cured'].includes(type)) return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
   if (!n.item) return {}
@@ -253,6 +255,22 @@ function Infection ({ n }) {
           <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
         </NoteHeader>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>You're feeling cold and clammy and you have a sudden desire to zap everyone ...</small></div>
+      </div>
+    </div>
+  )
+}
+
+function Cured ({ n }) {
+  // TODO: use random blurbs?
+  return (
+    <div className='d-flex'>
+      <SyringeIcon className='fill-grey mx-1' width={40} height={40} />
+      <div className='ms-2'>
+        <NoteHeader big>
+          you have been cured by a kind stranger
+          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+        </NoteHeader>
+        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>You feel better, but the desire to zap has not gone away ...</small></div>
       </div>
     </div>
   )

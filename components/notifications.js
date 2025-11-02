@@ -218,7 +218,7 @@ function Horse ({ n }) {
 
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem' }}><Icon className='align-self-center fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {found ? 'found a' : 'lost your'} horse</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
@@ -233,7 +233,7 @@ function Gun ({ n }) {
 
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem' }}><Icon className='align-self-center fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {found ? 'found a' : 'lost your'} gun</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
@@ -246,7 +246,7 @@ function Infection ({ n }) {
   // TODO: use random blurbs?
   return (
     <div className='d-flex'>
-      <BioHazardIcon className='fill-grey mx-1' width={40} height={40} />
+      <BioHazardIcon className='align-self-center fill-grey mx-1' width={40} height={40} />
       <div className='ms-2'>
         <NoteHeader big>
           you have been bitten by a zombie

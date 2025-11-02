@@ -10,6 +10,7 @@ import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { logContextFromBolt11, walletLogger } from '@/wallets/server/logger'
 import { formatMsats } from '@/lib/format'
+import { WalletValidationError } from '@/wallets/client/errors'
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -62,12 +63,11 @@ export const resolvers = {
       }, [])
     ),
     addWalletLog,
-    removeWalletProtocol,
     deleteWalletLogs
   }
 }
 
-function testWalletProtocol (protocol) {
+export function testWalletProtocol (protocol) {
   return async (parent, args, { me, models, tx }) => {
     if (!me) {
       throw new GqlAuthenticationError()
@@ -88,6 +88,9 @@ function testWalletProtocol (protocol) {
         WALLET_CREATE_INVOICE_TIMEOUT_MS
       )
     } catch (e) {
+      if (e instanceof WalletValidationError) {
+        throw new GqlInputError(e.message)
+      }
       throw new GqlInputError('failed to create invoice: ' + e.message)
     }
 
@@ -223,6 +226,7 @@ export function upsertWalletProtocol (protocol) {
   }
 }
 
+// not exposed to the client via GraphQL API, but used when resetting wallets
 export async function removeWalletProtocol (parent, { id }, { me, models, tx }) {
   if (!me) {
     throw new GqlAuthenticationError()
@@ -336,7 +340,7 @@ async function deleteWalletLogs (parent, { protocolId, debug }, { me, models }) 
   return true
 }
 
-async function updateWalletBadges ({ userId, tx }) {
+export async function updateWalletBadges ({ userId, tx }) {
   const pushNotifications = []
 
   const wallets = await tx.wallet.findMany({

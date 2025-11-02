@@ -4,7 +4,7 @@ import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
-import { ANON_FEE_MULTIPLIER, FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { ANON_FEE_MULTIPLIER, FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { numWithUnits } from '@/lib/format'
 import { useMe } from './me'
 import AnonIcon from '@/svgs/spy-fill.svg'
@@ -14,7 +14,7 @@ import { SubmitButton } from './form'
 
 const FeeButtonContext = createContext()
 
-export function postCommentBaseLineItems ({ baseCost = 1, comment = false, me }) {
+export function postCommentBaseLineItems ({ baseCost = 1, comment = false, bio = false, me }) {
   const anonCharge = me
     ? {}
     : {
@@ -28,10 +28,10 @@ export function postCommentBaseLineItems ({ baseCost = 1, comment = false, me })
   return {
     baseCost: {
       term: baseCost,
-      label: `${comment ? 'comment' : 'post'} cost`,
+      label: `${bio ? 'bio' : (comment ? 'comment' : 'post')} cost`,
       op: '_',
       modifier: (cost) => cost + baseCost,
-      allowFreebies: comment
+      allowFreebies: bio
     },
     ...anonCharge
   }
@@ -45,7 +45,7 @@ export function postCommentUseRemoteLineItems ({ parentId } = {}) {
   return function useRemoteLineItems () {
     const [line, setLine] = useState({})
 
-    const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
+    const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
 
     useEffect(() => {
       const repetition = data?.itemRepetition

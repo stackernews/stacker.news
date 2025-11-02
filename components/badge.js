@@ -5,11 +5,13 @@ import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import GunIcon from '@/svgs/revolver.svg'
 import HorseIcon from '@/svgs/horse.svg'
+import BotIcon from '@/svgs/robot-2-fill.svg'
+import BioHazardIcon from '@/svgs/biohazard.svg'
 import { numWithUnits } from '@/lib/format'
 import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
 
-export default function Badges ({ user, badge, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
+export default function Badges ({ user, badge, bot, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
   if (!user || Number(user.id) === USER_ID.ad) return null
   if (Number(user.id) === USER_ID.anon) {
     return (
@@ -19,7 +21,7 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
     )
   }
 
-  const badges = []
+  let badges = []
 
   const streak = user.optional.streak
   if (streak !== null) {
@@ -44,6 +46,20 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
       sizeDelta: 2,
       overlayText: 'can send sats'
     })
+  }
+
+  if (user.optional.infected) {
+    badges.push({
+      icon: BioHazardIcon,
+      overlayText: 'infected'
+    })
+  }
+
+  if (bot) {
+    badges = [{
+      icon: BotIcon,
+      overlayText: 'posted as bot'
+    }]
   }
 
   if (badges.length === 0) return null

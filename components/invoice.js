@@ -7,7 +7,7 @@ import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
 import { useQuery } from '@apollo/client'
 import { INVOICE } from '@/fragments/invoice'
-import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { WalletConfigurationError, WalletPaymentAggregateError } from '@/wallets/client/errors'
 import ItemJob from './item-job'
 import Item from './item'
@@ -24,7 +24,7 @@ export default function Invoice ({
   const { data, error } = useQuery(query, SSR
     ? {}
     : {
-        pollInterval: FAST_POLL_INTERVAL,
+        pollInterval: FAST_POLL_INTERVAL_MS,
         variables: { id },
         nextFetchPolicy: 'cache-and-network',
         skip: !poll

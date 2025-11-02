@@ -1,9 +1,11 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Button } from 'react-bootstrap'
-import { useWallets, useTemplates, DndProvider, KeyStatus, useWalletsLoading, useKeyError, useWalletsError } from '@/wallets/client/context'
+import {
+  DndProvider, KeyStatus, useWallets, useTemplates, useWalletsLoading, useKeyError, useWalletsError,
+  usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities
+} from '@/wallets/client/hooks'
 import { WalletCard, WalletLayout, WalletLayoutHeader, WalletLayoutLink, WalletLayoutSubHeader } from '@/wallets/client/components'
 import styles from '@/styles/wallet.module.css'
-import { usePassphrasePrompt, useShowPassphrase, useSetWalletPriorities } from '@/wallets/client/hooks'
 import { WalletSearch } from '@/wallets/client/components/search'
 import { useMemo, useState } from 'react'
 import { walletDisplayName } from '@/wallets/lib/util'
@@ -113,8 +115,6 @@ export default function Wallet () {
         <WalletLayoutSubHeader>use real bitcoin</WalletLayoutSubHeader>
         <div className='text-center'>
           <WalletLayoutLink href='/wallets/logs'>wallet logs</WalletLayoutLink>
-          <span className='mx-2'>•</span>
-          <WalletLayoutLink href='/wallets/settings'>settings</WalletLayoutLink>
           {showPassphrase && (
             <>
               <span className='mx-2'>•</span>

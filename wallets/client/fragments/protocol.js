@@ -151,6 +151,22 @@ export const UPSERT_WALLET_RECEIVE_NWC = gql`
   }
 `
 
+export const UPSERT_WALLET_SEND_CLN_REST = gql`
+  mutation upsertWalletSendCLNRest(
+    ${shared.variables},
+    $socket: String!,
+    $rune: VaultEntryInput!,
+  ) {
+    upsertWalletSendCLNRest(
+      ${shared.arguments},
+      socket: $socket,
+      rune: $rune,
+    ) {
+      id
+    }
+  }
+`
+
 export const UPSERT_WALLET_RECEIVE_CLN_REST = gql`
   mutation upsertWalletRecvCLNRest(
     ${shared.variables},
@@ -219,6 +235,36 @@ export const UPSERT_WALLET_SEND_WEBLN = gql`
   }
 `
 
+export const UPSERT_WALLET_SEND_CLINK = gql`
+  mutation upsertWalletSendClink(
+    ${shared.variables},
+    $ndebit: VaultEntryInput!,
+    $secretKey: VaultEntryInput!
+  ) {
+    upsertWalletSendClink(
+      ${shared.arguments},
+      ndebit: $ndebit,
+      secretKey: $secretKey
+    ) {
+      id
+    }
+  }
+`
+
+export const UPSERT_WALLET_RECEIVE_CLINK = gql`
+  mutation upsertWalletRecvClink(
+    ${shared.variables},
+    $noffer: String!
+  ) {
+    upsertWalletRecvClink(
+      ${shared.arguments},
+      noffer: $noffer
+    ) {
+      id
+    }
+  }
+`
+
 // tests
 
 export const TEST_WALLET_RECEIVE_NWC = gql`
@@ -260,5 +306,11 @@ export const TEST_WALLET_RECEIVE_LNBITS = gql`
 export const TEST_WALLET_RECEIVE_BLINK = gql`
   mutation testWalletRecvBlink($currency: String!, $apiKey: String!) {
     testWalletRecvBlink(currency: $currency, apiKey: $apiKey)
+  }
+`
+
+export const TEST_WALLET_RECEIVE_CLINK = gql`
+  mutation testWalletRecvClink($noffer: String!) {
+    testWalletRecvClink(noffer: $noffer)
   }
 `

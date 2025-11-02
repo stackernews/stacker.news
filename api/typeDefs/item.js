@@ -1,17 +1,18 @@
 import { gql } from 'graphql-tag'
+import { LIMIT } from '@/lib/cursor'
 
 export default gql`
   extend type Query {
-    items(sub: String, sort: String, type: String, cursor: String, name: String, when: String, from: String, to: String, by: String, limit: Limit): Items
+    items(sub: String, sort: String, type: String, cursor: String, name: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Items
     item(id: ID!): Item
     pageTitleAndUnshorted(url: String!): TitleUnshorted
     dupes(url: String!): [Item!]
-    related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit): Items
+    related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit! = ${LIMIT}): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
     auctionPosition(sub: String, id: ID, boost: Int): Int!
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
-    newComments(rootId: ID, after: Date): Comments!
+    newComments(itemId: ID, after: Date): Comments!
   }
 
   type BoostPositions {
@@ -31,6 +32,7 @@ export default gql`
     sats: Int!
     path: String
     act: String!
+    immune: Boolean
   }
 
   type ItemAct {
@@ -64,6 +66,7 @@ export default gql`
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
     pollVote(id: ID!): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!
+    updateCommentsViewAt(id: ID!, meCommentsViewedAt: Date!): Date
   }
 
   type PollVoteResult {
@@ -149,7 +152,6 @@ export default gql`
     ncomments: Int!
     nDirectComments: Int!
     comments(sort: String, cursor: String): Comments!
-    injected: Boolean!
     path: String
     position: Int
     prior: Int
@@ -172,6 +174,7 @@ export default gql`
     apiKey: Boolean
     invoice: Invoice
     cost: Int!
+    meCommentsViewedAt: Date
   }
 
   input ItemForwardInput {

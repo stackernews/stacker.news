@@ -9,6 +9,7 @@ export const STREAK_FIELDS = gql`
       streak
       hasSendWallet
       hasRecvWallet
+      infected
     }
   }
 `
@@ -129,11 +130,6 @@ export const SET_SETTINGS = gql`
     setSettings(settings: $settings) {
       ...SettingsFields
     }
-  }`
-
-export const DELETE_WALLET = gql`
-  mutation removeWallet {
-    removeWallet
   }`
 
 export const NAME_QUERY = gql`

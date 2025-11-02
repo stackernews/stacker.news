@@ -5,6 +5,7 @@ import { isInvoicableMacaroon, isInvoiceMacaroon } from '@/lib/macaroon'
 import { NOSTR_PUBKEY_HEX } from '@/lib/nostr'
 import { TOR_REGEXP } from '@/lib/url'
 import { lightningAddressValidator } from '@/lib/validate'
+import { decodeBech32 as clinkDecodeBech32, OfferPriceType } from '@shocknet/clink-sdk'
 import { string, array } from 'yup'
 
 export const externalLightningAddressValidator = lightningAddressValidator
@@ -29,7 +30,7 @@ export const nwcUrlValidator = () =>
           try {
             ({ relayUrls, walletPubkey, secret } = parseNwcUrl(url))
           } catch {
-          // invalid URL error. handle as if pubkey validation failed to not confuse user.
+            // invalid URL error. handle as if pubkey validation failed to not confuse user.
             throw new Error('pubkey must be 64 hex chars')
           }
           string().required('pubkey required').trim().matches(NOSTR_PUBKEY_HEX, 'pubkey must be 64 hex chars').validateSync(walletPubkey)
@@ -57,18 +58,42 @@ export function parseNwcUrl (walletConnectUrl) {
   // See https://stackoverflow.com/questions/56804936/how-does-only-numbers-in-url-resolve-to-a-domain
   // However, this seems to only get triggered if a wallet pubkey only contains digits so this is pretty improbable.
   const url = new URL(walletConnectUrl)
-  const params = {}
-  params.walletPubkey = url.host
-  const secret = url.searchParams.get('secret')
-  const relayUrls = url.searchParams.getAll('relay')
-  if (secret) {
-    params.secret = secret
+  return {
+    walletPubkey: url.host,
+    secret: url.searchParams.get('secret'),
+    relayUrls: url.searchParams.getAll('relay'),
+    lud16: url.searchParams.get('lud16')
   }
-  if (relayUrls) {
-    params.relayUrls = relayUrls
-  }
-  return params
 }
+
+export const clinkValidator = (type) =>
+  string()
+    .matches(new RegExp(`^${type}1`), { message: `must start with ${type}1` })
+    .matches(/^(noffer|ndebit)1[02-9ac-hj-np-z]+$/, { message: 'invalid bech32 encoding' })
+    .test({
+      name: 'decode',
+      test: (v, context) => {
+        let decoded
+        try {
+          decoded = clinkDecodeBech32(v)
+        } catch (e) {
+          return context.createError({ message: `failed to decode bech32: ${e.message}` })
+        }
+
+        if (decoded.type !== type) {
+          return context.createError({ message: `must be ${type}` })
+        }
+
+        const { data } = decoded
+        if (!data) return context.createError({ message: 'no data' })
+
+        if (type === 'noffer' && data.priceType && data.priceType !== OfferPriceType.Spontaneous) {
+          return context.createError({ message: 'offer must be for spontaneous payments' })
+        }
+
+        return true
+      }
+    })
 
 export const socketValidator = (msg = 'invalid socket') =>
   string()
@@ -117,7 +142,7 @@ export const invoiceMacaroonValidator = () =>
       message: 'not an invoice macaroon or an invoicable macaroon'
     })
 
-export const bip39Validator = () =>
+export const bip39Validator = ({ min = 12, max = 24 } = {}) =>
   string()
     .test({
       name: 'bip39',
@@ -130,11 +155,11 @@ export const bip39Validator = () =>
             return context.createError({ message: `'${w}' is not a valid pairing phrase word` })
           }
         }
-        if (words.length < 2) {
-          return context.createError({ message: 'needs at least two words' })
+        if (words.length < min) {
+          return context.createError({ message: `needs at least ${min} words` })
         }
-        if (words.length > 10) {
-          return context.createError({ message: 'max 10 words' })
+        if (words.length > max) {
+          return context.createError({ message: `max ${max} words` })
         }
         return true
       }

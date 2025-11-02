@@ -1,6 +1,7 @@
-import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { HALLOWEEN_IMMUNITY_HOURS, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { msatsToSats, satsToMsats } from '@/lib/format'
-import { notifyZapped } from '@/lib/webPush'
+import { datePivot } from '@/lib/time'
+import { notifyZapped, notifyInfected } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
 import { Prisma } from '@prisma/client'
 
@@ -78,9 +79,12 @@ export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, c
     ]
   })
 
-  const [{ path }] = await tx.$queryRaw`
-    SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
-  return { id: itemId, sats, act: 'TIP', path, actIds: acts.map(act => act.id) }
+  const [{ userId, path }] = await tx.$queryRaw`
+    SELECT "userId", ltree2text(path) as path FROM "Item" WHERE id = ${itemId}::INTEGER`
+
+  const immune = await isImmune(userId, { tx })
+
+  return { id: itemId, sats, act: 'TIP', path, immune, actIds: acts.map(act => act.id) }
 }
 
 export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
@@ -216,6 +220,55 @@ export async function onPaid ({ invoice, actIds }, { tx }) {
     SET "bountyPaidTo" = array_remove(array_append(array_remove("bountyPaidTo", bounty.target), bounty.target), NULL)
     FROM bounty
     WHERE "Item".id = bounty.id AND bounty.paid`
+
+  await maybeInfectUser(itemAct, { tx })
+}
+
+async function isImmune (userId, { tx }) {
+  // immunity lasts one hour less every day until a minimum of 1 hour is reached
+  const difficulty = Math.max(1, HALLOWEEN_IMMUNITY_HOURS - daysSinceHalloween())
+  const item = await tx.item.findFirst({
+    where: {
+      userId,
+      createdAt: { gt: datePivot(new Date(), { hours: -difficulty }) }
+    }
+  })
+  return !!item
+}
+
+function daysSinceHalloween () {
+  // return 0 if Halloween has not happened yet else return the days since Halloween
+  const diffTime = new Date().getTime() - new Date('2025-10-31').getTime()
+  return Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)))
+}
+
+async function maybeInfectUser (itemAct, { tx }) {
+  // We added the 'infected' column to the users table so the query for users can continue
+  // to only fetch columns from the users table. We only use it for display purposes.
+  // The infection table is used to check if a user is infected and store additional information
+  // (who infected who when why).
+
+  const { id, userId: fromId, item: { userId: toId } } = itemAct
+  const infection = await tx.infection.findFirst({ where: { infecteeId: fromId } })
+  if (!infection) {
+    // zapper not infected, so can't infect other user
+    return
+  }
+
+  if (await isImmune(toId, { tx })) {
+    // user is immune because they created an item not too long ago
+    return
+  }
+
+  const count = await tx.$executeRaw`
+    INSERT INTO "Infection" ("itemActId", "infecteeId", "infectorId")
+    VALUES (${id}::INTEGER, ${toId}::INTEGER, ${fromId}::INTEGER)
+    ON CONFLICT ("infecteeId") DO NOTHING`
+  await tx.user.update({ where: { id: toId }, data: { infected: true } })
+
+  if (count > 0) {
+    notifyInfected(toId).catch(console.error)
+  }
 }
 
 export async function nonCriticalSideEffects ({ invoice, actIds }, { models }) {

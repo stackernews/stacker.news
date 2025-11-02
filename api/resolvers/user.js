@@ -55,7 +55,7 @@ async function authMethods (user, args, { models, me }) {
   }
 }
 
-export async function topUsers (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) {
+export async function topUsers (parent, { cursor, when, by, from, to, limit }, { models, me }) {
   const decodedCursor = decodeCursor(cursor)
   const range = whenRange(when, from, to || decodeCursor.time)
 
@@ -134,6 +134,9 @@ export default {
     },
     user: async (parent, { id, name }, { models }) => {
       if (id) id = Number(id)
+      if (!id && !name) {
+        throw new GqlInputError('id or name is required')
+      }
       return await models.user.findUnique({ where: { id, name } })
     },
     users: async (parent, args, { models }) =>
@@ -213,7 +216,7 @@ export default {
         users
       }
     },
-    userSuggestions: async (parent, { q, limit = 5 }, { models }) => {
+    userSuggestions: async (parent, { q, limit }, { models }) => {
       let users = []
       if (q) {
         users = await models.$queryRaw`
@@ -287,6 +290,7 @@ export default {
             'r.created_at > $2',
             'r.created_at >= "ThreadSubscription".created_at',
             'r."userId" <> $1',
+            '"Item"."deletedAt" IS NULL',
             activeOrMine(me),
             await filterClause(me, models),
             muteClause(me),
@@ -502,6 +506,19 @@ export default {
           foundNotes()
           return true
         }
+
+        const infection = await models.infection.findFirst({
+          where: {
+            infecteeId: me.id,
+            createdAt: {
+              gt: lastChecked
+            }
+          }
+        })
+        if (infection) {
+          foundNotes()
+          return true
+        }
       }
 
       const subStatus = await models.sub.findFirst({
@@ -604,7 +621,7 @@ export default {
         SELECT *
         FROM users
         WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete}))
-        AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
+        AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit)}`
     },
     userStatsActions: async (parent, { when, from, to }, { me, models }) => {
       const range = whenRange(when, from, to)

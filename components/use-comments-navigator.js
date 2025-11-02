@@ -41,6 +41,10 @@ export function useCommentsNavigator () {
     // prevent multiple updates in the same frame
     frameRef.current = true
     window.requestAnimationFrame(() => {
+      // filter out disconnected refs before counting
+      commentRefs.current = commentRefs.current.filter(item =>
+        item.ref?.current?.isConnected
+      )
       const next = commentRefs.current.length
       // transition to the new comment count
       startTransition?.(() => setCommentCount(next))
@@ -61,10 +65,6 @@ export function useCommentsNavigator () {
     try {
       window.requestAnimationFrame(() => {
         if (!commentRef?.current || !commentRef.current.isConnected) return
-
-        // don't track this new comment if it's visible in the viewport
-        const rect = commentRef.current.getBoundingClientRect()
-        if (rect.top >= 0 && rect.bottom <= window.innerHeight) return
 
         // dedupe
         const existing = commentRefs.current.some(item => item.ref.current === commentRef.current)
@@ -97,7 +97,11 @@ export function useCommentsNavigator () {
     const { includeDescendants = false, clearOutline = false } = options
 
     const refNode = commentRef.current
-    if (!refNode) return
+    if (!refNode) {
+      // update the comment count, the ref may be disconnected
+      throttleCountUpdate()
+      return
+    }
 
     const toRemove = commentRefs.current.filter(item => {
       const node = item?.ref?.current
@@ -113,7 +117,7 @@ export function useCommentsNavigator () {
         node.classList.remove(
           'outline-it',
           'outline-new-comment',
-          'outline-new-injected-comment'
+          'outline-new-live-comment'
         )
         node.classList.add('outline-new-comment-unset')
       }
@@ -121,8 +125,8 @@ export function useCommentsNavigator () {
 
     if (toRemove.length) {
       commentRefs.current = commentRefs.current.filter(item => !toRemove.includes(item))
-      throttleCountUpdate()
     }
+    throttleCountUpdate()
   }, [throttleCountUpdate])
 
   // scroll to the next new comment
@@ -132,7 +136,11 @@ export function useCommentsNavigator () {
 
     const ref = list[0]?.ref
     const node = ref?.current
-    if (!node) return
+    if (!node) {
+      // update the comment count, the ref may be disconnected
+      throttleCountUpdate()
+      return
+    }
 
     // smoothly scroll to the start of the comment
     node.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -152,7 +160,7 @@ export function useCommentsNavigator () {
 
     // if we reached the end, reset the navigator
     if (list.length === 1) clearCommentRefs()
-  }, [clearCommentRefs, untrackNewComment])
+  }, [clearCommentRefs, untrackNewComment, throttleCountUpdate])
 
   // create the navigator object once
   if (!navigatorRef.current) {

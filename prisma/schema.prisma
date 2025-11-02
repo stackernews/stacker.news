@@ -76,6 +76,7 @@ model User {
   noteCowboyHat             Boolean              @default(true)
   streak                    Int?
   gunStreak                 Int?
+  infected                  Boolean              @default(false)
   horseStreak               Int?
   hasSendWallet             Boolean              @default(false)
   hasRecvWallet             Boolean              @default(false)
@@ -152,6 +153,9 @@ model User {
   DirectPaymentReceived     DirectPayment[]      @relation("DirectPaymentReceived")
   DirectPaymentSent         DirectPayment[]      @relation("DirectPaymentSent")
   UserSubTrust              UserSubTrust[]
+  CommentsViewAt            CommentsViewAt[]
+  infectedBy                Infection?           @relation("Infection_infectee")
+  infectedByMe              Infection[]          @relation("Infection_infector")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -160,6 +164,19 @@ model User {
   @@index([gunStreak])
   @@index([horseStreak])
   @@map("users")
+}
+
+model Infection {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now()) @map("created_at")
+  itemActId  Int?     @unique(map: "Infection_itemActId_unique")
+  itemAct    ItemAct? @relation(fields: [itemActId], references: [id], onDelete: Cascade)
+  infecteeId Int      @unique(map: "Infection_infecteeId_unique")
+  infectorId Int?
+  infectee   User     @relation("Infection_infectee", fields: [infecteeId], references: [id], onDelete: Cascade)
+  infector   User?    @relation("Infection_infector", fields: [infectorId], references: [id], onDelete: Cascade)
+
+  @@index([infectorId])
 }
 
 enum OneDayReferralType {
@@ -219,6 +236,9 @@ model Vault {
   walletSendLNCLocalKey      WalletSendLNC?      @relation("lncLocalKey")
   walletSendLNCRemoteKey     WalletSendLNC?      @relation("lncRemoteKey")
   walletSendLNCServerHost    WalletSendLNC?      @relation("lncServerHost")
+  walletSendCLNRestRune      WalletSendCLNRest?  @relation("clnRune")
+  walletSendClink            WalletSendClink?    @relation("clinkNdebit")
+  walletSendClinkSecretKey   WalletSendClink?    @relation("clinkSecretKey")
 }
 
 model WalletLog {
@@ -490,6 +510,7 @@ model Item {
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
   randPollOptions      Boolean               @default(false)
+  CommentsViewAt       CommentsViewAt[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -538,6 +559,17 @@ model ItemUserAgg {
   @@index([itemId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model CommentsViewAt {
+  userId       Int
+  itemId       Int
+  lastViewedAt DateTime @default(now()) @map("last_viewed_at")
+  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemId])
+  @@index([userId])
 }
 
 // record auto social posts so we can avoid duplicates
@@ -760,6 +792,7 @@ model ItemAct {
   userId             Int
   invoiceId          Int?
   invoiceActionState InvoiceActionState?
+  Infection          Infection[]
 
   invoice     Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   item        Item          @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -1199,6 +1232,7 @@ enum WalletProtocolName {
   LNC
   CLN_REST
   LND_GRPC
+  CLINK
 }
 
 enum WalletSendProtocolName {
@@ -1208,6 +1242,8 @@ enum WalletSendProtocolName {
   BLINK
   WEBLN
   LNC
+  CLN_REST
+  CLINK
 }
 
 enum WalletRecvProtocolName {
@@ -1218,6 +1254,7 @@ enum WalletRecvProtocolName {
   LN_ADDR
   CLN_REST
   LND_GRPC
+  CLINK
 }
 
 enum WalletProtocolStatus {
@@ -1309,6 +1346,8 @@ model WalletProtocol {
   walletSendBlink    WalletSendBlink?
   walletSendWebLN    WalletSendWebLN?
   walletSendLNC      WalletSendLNC?
+  walletSendCLNRest  WalletSendCLNRest?
+  walletSendClink    WalletSendClink?
 
   walletRecvNWC              WalletRecvNWC?
   walletRecvLNbits           WalletRecvLNbits?
@@ -1317,9 +1356,10 @@ model WalletProtocol {
   walletRecvLightningAddress WalletRecvLightningAddress?
   walletRecvCLNRest          WalletRecvCLNRest?
   walletRecvLNDGRPC          WalletRecvLNDGRPC?
+  walletRecvClink            WalletRecvClink?
 
-  @@index([walletId])
   @@unique(name: "WalletProtocol_walletId_send_name_key", [walletId, send, name])
+  @@index([walletId])
 }
 
 model WalletSendNWC {
@@ -1390,6 +1430,29 @@ model WalletSendLNC {
   serverHost           Vault?         @relation("lncServerHost", fields: [serverHostVaultId], references: [id])
 }
 
+model WalletSendCLNRest {
+  id          Int            @id @default(autoincrement())
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId  Int            @unique
+  protocol    WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  socket      String
+  runeVaultId Int            @unique
+  rune        Vault?         @relation("clnRune", fields: [runeVaultId], references: [id])
+}
+
+model WalletSendClink {
+  id               Int            @id @default(autoincrement())
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId       Int            @unique
+  protocol         WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  ndebitVaultId    Int            @unique
+  ndebit           Vault?         @relation("clinkNdebit", fields: [ndebitVaultId], references: [id])
+  secretKeyVaultId Int            @unique
+  secretKey        Vault?         @relation("clinkSecretKey", fields: [secretKeyVaultId], references: [id])
+}
+
 model WalletRecvNWC {
   id         Int            @id @default(autoincrement())
   createdAt  DateTime       @default(now()) @map("created_at")
@@ -1458,4 +1521,13 @@ model WalletRecvLNDGRPC {
   socket     String
   macaroon   String
   cert       String?
+}
+
+model WalletRecvClink {
+  id         Int            @id @default(autoincrement())
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
+  protocolId Int            @unique
+  protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  noffer     String
 }

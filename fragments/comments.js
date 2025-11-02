@@ -7,6 +7,7 @@ const STREAK_FIELDS = gql`
       streak
       hasSendWallet
       hasRecvWallet
+      infected
     }
   }
 `
@@ -47,7 +48,7 @@ export const COMMENT_FIELDS = gql`
     otsHash
     ncomments
     nDirectComments
-    injected @client
+    live @client
     imgproxyUrls
     rel
     apiKey
@@ -55,6 +56,7 @@ export const COMMENT_FIELDS = gql`
       id
       actionState
       confirmedAt
+      hmac
     }
     cost
   }
@@ -94,6 +96,7 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     commentCredits
     mine
     otsHash
+    live @client
     imgproxyUrls
     rel
     apiKey
@@ -101,6 +104,7 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
       id
       actionState
       confirmedAt
+      hmac
     }
     cost
   }
@@ -174,48 +178,19 @@ export const COMMENTS = gql`
     }
   }`
 
-export const COMMENT_WITH_NEW_RECURSIVE = gql`
-  ${COMMENT_FIELDS}
-  ${COMMENTS}
-
-  fragment CommentWithNewRecursive on Item {
-    ...CommentFields
-    comments {
-      comments {
-        ...CommentsRecursive
-      }
-    }
-  }
-`
-
-export const COMMENT_WITH_NEW_LIMITED = gql`
-  ${COMMENT_FIELDS}
-
-  fragment CommentWithNewLimited on Item {
-    ...CommentFields
-    comments {
-      comments {
-        ...CommentFields
-      }
-    }
-  }
-`
-
-export const COMMENT_WITH_NEW_MINIMAL = gql`
-  ${COMMENT_FIELDS}
-
-  fragment CommentWithNewMinimal on Item {
-    ...CommentFields
+export const HAS_COMMENTS = gql`
+  fragment HasComments on Item {
+    comments
   }
 `
 
 export const GET_NEW_COMMENTS = gql`
-  ${COMMENTS}
+  ${COMMENT_FIELDS_NO_CHILD_COMMENTS}
 
-  query GetNewComments($rootId: ID, $after: Date) {
-    newComments(rootId: $rootId, after: $after) {
+  query GetNewComments($itemId: ID, $after: Date) {
+    newComments(itemId: $itemId, after: $after) {
       comments {
-        ...CommentsRecursive
+        ...CommentFieldsNoChildComments
       }
     }
   }

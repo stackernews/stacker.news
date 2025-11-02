@@ -10,8 +10,7 @@ import { useWalletPayment } from '@/wallets/client/hooks'
 this is just like useMutation with a few changes:
 1. pays an invoice returned by the mutation
 2. takes an onPaid and onPayError callback, and additional options for payment behavior
-  - namely forceWaitForPayment which will always wait for the invoice to be paid
-  - and persistOnNavigate which will keep the invoice in the cache after navigation
+  - persistOnNavigate which will keep the invoice in the cache after navigation
 3. onCompleted behaves a little differently, but analogously to useMutation, ie clientside side effects
   of completion can still rely on it
   a. it's called before the invoice is paid for optimistic updates
@@ -77,7 +76,7 @@ export function usePaidMutation (mutation,
 
     // use the most inner callbacks/options if they exist
     const {
-      onPaid, onPayError, forceWaitForPayment, persistOnNavigate,
+      onPaid, onPayError, persistOnNavigate,
       update, waitFor = inv => inv?.actionState === 'PAID', updateOnFallback
     } = { ...options, ...innerOptions }
     const ourOnCompleted = innerOnCompleted || onCompleted
@@ -107,7 +106,7 @@ export function usePaidMutation (mutation,
       })
 
       // should we wait for the invoice to be paid?
-      if (response?.paymentMethod === 'OPTIMISTIC' && !forceWaitForPayment) {
+      if (response?.paymentMethod === 'OPTIMISTIC') {
         // onCompleted is called before the invoice is paid for optimistic updates
         ourOnCompleted?.(data)
         // don't wait to pay the invoice
@@ -207,7 +206,8 @@ export const paidActionCacheMods = {
       fields: {
         actionState: () => 'PAID',
         confirmedAt: () => new Date().toISOString(),
-        satsReceived: () => invoice.satsRequested
+        satsReceived: () => invoice.satsRequested,
+        hmac: () => invoice.hmac
       }
     })
   }

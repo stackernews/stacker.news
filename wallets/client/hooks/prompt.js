@@ -1,13 +1,13 @@
 import { useCallback } from 'react'
 import { boolean, object } from 'yup'
 import { Button } from 'react-bootstrap'
+import Link from 'next/link'
+import { useMutation } from '@apollo/client'
+import styles from '@/styles/wallet.module.css'
+import { HIDE_WALLET_RECV_PROMPT_MUTATION } from '@/fragments/users'
 import { Form, ClientInput, SubmitButton, Checkbox } from '@/components/form'
 import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
-import Link from 'next/link'
-import styles from '@/styles/wallet.module.css'
-import { useMutation } from '@apollo/client'
-import { HIDE_WALLET_RECV_PROMPT_MUTATION } from '@/fragments/users'
 import { useToast } from '@/components/toast'
 import { useLightningAddressUpsert } from '@/wallets/client/hooks/query'
 import { protocolClientSchema } from '@/wallets/lib/util'
@@ -74,7 +74,7 @@ function LnAddrForm ({ onAttach }) {
   const initial = { address: '' }
 
   const onSubmit = useCallback(async ({ address }) => {
-    await upsert({ address })
+    await upsert(address)
     onAttach()
   }, [upsert, onAttach])
 
@@ -127,12 +127,12 @@ function SkipForm ({ onSkip }) {
   return (
     <Form
       initial={{ dontShowAgain: false }}
-      className='d-flex justify-content-between align-items-center mt-3'
+      className='d-flex align-items-center mt-3'
       onSubmit={onSubmit}
       schema={schema}
     >
-      <Checkbox label="don't show again" name='dontShowAgain' groupClassName='mb-0' />
       <Button type='submit' variant='secondary' size='sm'>skip</Button>
+      <Checkbox label="don't show again" name='dontShowAgain' groupClassName='mb-0 ms-3' />
     </Form>
   )
 }

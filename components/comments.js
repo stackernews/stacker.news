@@ -71,7 +71,7 @@ export default function Comments ({
   const router = useRouter()
 
   // fetch new comments that arrived after the lastCommentAt, and update the item.comments field in cache
-  useLiveComments(parentId, lastCommentAt || parentCreatedAt, router.query.sort)
+  useLiveComments(parentId, lastCommentAt || parentCreatedAt)
 
   // new comments navigator, tracks new comments and provides navigation controls
   const { navigator } = useCommentsNavigatorContext()
@@ -98,11 +98,11 @@ export default function Comments ({
         : null}
       {pins.map(item => (
         <Fragment key={item.id}>
-          <Comment depth={1} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} pin />
+          <Comment depth={1} item={item} navigator={navigator} {...props} pin />
         </Fragment>
       ))}
       {comments.filter(({ position }) => !position).map(item => (
-        <Comment depth={1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={lastCommentAt || parentCreatedAt} {...props} />
+        <Comment depth={1} key={item.id} item={item} navigator={navigator} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&
         <MoreFooter

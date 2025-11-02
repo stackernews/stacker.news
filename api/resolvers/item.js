@@ -1,5 +1,5 @@
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
-import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
+import { decodeCursor, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
@@ -54,7 +54,8 @@ function commentsOrderByClause (me, models, sort) {
 async function comments (me, models, item, sort, cursor) {
   const orderBy = commentsOrderByClause(me, models, sort)
 
-  if (item.nDirectComments === 0) {
+  // if we're logged in, there might be pending comments from us we want to show but weren't counted
+  if (!me && item.nDirectComments === 0) {
     return {
       comments: [],
       cursor: null
@@ -67,7 +68,7 @@ async function comments (me, models, item, sort, cursor) {
   // XXX what a mess
   let comments
   if (me) {
-    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) AND "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3) `
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) AND ("Item"."parentId" <> $1 OR "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3)) `
     if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
       const [{ item_comments_zaprank_with_me_limited: limitedComments }] = await models.$queryRawUnsafe(
         'SELECT item_comments_zaprank_with_me_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8, $9)',
@@ -80,7 +81,7 @@ async function comments (me, models, item, sort, cursor) {
       comments = fullComments
     }
   } else {
-    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID') AND "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3) `
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID') AND ("Item"."parentId" <> $1 OR "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3)) `
     if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
       const [{ item_comments_limited: limitedComments }] = await models.$queryRawUnsafe(
         'SELECT item_comments_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',
@@ -180,7 +181,8 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
         to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
-        || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub
+        || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub,
+        "CommentsViewAt"."last_viewed_at" as "meCommentsViewedAt"
       FROM (
         ${query}
       ) "Item"
@@ -192,6 +194,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
       LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
       LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
+      LEFT JOIN "CommentsViewAt" ON "CommentsViewAt"."itemId" = "Item".id AND "CommentsViewAt"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId",
           sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND "InvoiceForward".id IS NOT NULL AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
@@ -362,7 +365,7 @@ export default {
 
       return count
     },
-    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
+    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items, user, pins, subFull, table, ad
 
@@ -583,7 +586,7 @@ export default {
           break
       }
       return {
-        cursor: items.length === limit ? nextCursorEncoded(decodedCursor) : null,
+        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items,
         pins,
         ad
@@ -741,7 +744,7 @@ export default {
         subMaxBoost: subAgg?._max.boost || 0
       }
     },
-    newComments: async (parent, { rootId, after }, { models, me }) => {
+    newComments: async (parent, { itemId, after }, { models, me }) => {
       const comments = await itemQueryWithMeta({
         me,
         models,
@@ -755,7 +758,7 @@ export default {
             '"Item"."created_at" > $2'
           )}
           ORDER BY "Item"."created_at" ASC`
-      }, Number(rootId), after)
+      }, Number(itemId), after)
 
       return { comments }
     }
@@ -1073,6 +1076,21 @@ export default {
         ])
 
       return result
+    },
+    updateCommentsViewAt: async (parent, { id, meCommentsViewedAt }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const result = await models.commentsViewAt.upsert({
+        where: {
+          userId_itemId: { userId: Number(me.id), itemId: Number(id) }
+        },
+        update: { lastViewedAt: new Date(meCommentsViewedAt) },
+        create: { userId: Number(me.id), itemId: Number(id), lastViewedAt: new Date(meCommentsViewedAt) }
+      })
+
+      return result.lastViewedAt
     }
   },
   ItemAct: {
@@ -1223,7 +1241,8 @@ export default {
         return item.comments
       }
 
-      if (item.ncomments === 0) {
+      // if we're logged in, there might be pending comments from us we want to show but weren't counted
+      if (!me && item.ncomments === 0) {
         return {
           comments: [],
           cursor: null

@@ -35,8 +35,9 @@ services:
       - "5431:5432"
     env_file: *env_file
     volumes:
-      - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
-      - ./docker/db/wallet-seed.sql:/docker-entrypoint-initdb.d/wallet-seed.sql
+      # the prefix makes sure the seeds are executed in the correct order instead of alphabetical by default
+      - ./docker/db/000_seed.sql:/docker-entrypoint-initdb.d/000_seed.sql
+      - ./docker/db/001_wallet-seed.sql:/docker-entrypoint-initdb.d/001_wallet-seed.sql
       - db:/var/lib/postgresql/data
     labels:
       CONNECT: "localhost:5431"
@@ -86,6 +87,7 @@ services:
     restart: unless-stopped
     depends_on: *depends_on_app
     profiles:
+      - images
       - capture
     healthcheck:
       <<: *healthcheck
@@ -530,8 +532,9 @@ services:
       - '--bitcoin-rpcuser=${RPC_USER}'
       - '--bitcoin-rpcpassword=${RPC_PASS}'
       - '--large-channels'
-      - '--rest-port=3010'
-      - '--rest-host=0.0.0.0'
+      - '--clnrest-port=3010'
+      - '--clnrest-host=0.0.0.0'
+      - '--clnrest-protocol=http'
     expose:
       - "9735"
     ports:
@@ -842,6 +845,27 @@ services:
       CONNECT: "localhost:${LNBITS_WEB_PORT_V1}"
       TORDIR: "/app/.tor"
     cpu_shares: "${CPU_SHARES_LOW}"
+  lnpub:
+    image: ghcr.io/shocknet/lightning-pub@sha256:cd7bb9298d09a2cdaf1b6456ef6154e3ba24f7b902ad29cda2c08c2a4fa2af6e
+    container_name: lnpub
+    profiles:
+      - wallets
+    restart: unless-stopped
+    volumes:
+      - lnpub:/app/data
+      - lnd:/app/.lnd
+    environment:
+      - LND_ADDRESS=lnd:10009
+      - LND_CERT_PATH=/app/.lnd/tls.cert
+      - LND_MACAROON_PATH=/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon
+    ports:
+      - ${LNPUB_PORT_1776:-1776}:1776
+      - ${LNPUB_PORT_1777:-1777}:1777
+    depends_on:
+      lnd:
+        condition: service_healthy
+        restart: true
+    cpu_shares: "${CPU_SHARES_LOW}"
   dnsmasq:
     image: 4km3/dnsmasq:2.90-r3
     profiles:
@@ -878,6 +902,7 @@ volumes:
   tordata:
   eclair:
   dnsmasq:
+  lnpub:
 
 networks:
   default: {}

@@ -45,6 +45,7 @@ import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
+import BioHazardIcon from '@/svgs/biohazard.svg'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -61,6 +62,7 @@ function Notification ({ n, fresh }) {
         (type === 'CowboyHat' && <CowboyHat n={n} />) ||
         (['NewHorse', 'LostHorse'].includes(type) && <Horse n={n} />) ||
         (['NewGun', 'LostGun'].includes(type) && <Gun n={n} />) ||
+        (type === 'Infection' && <Infection n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
@@ -167,7 +169,7 @@ const defaultOnClick = n => {
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'ReferralReward') return { href: '/referrals/month' }
-  if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun'].includes(type)) return {}
+  if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun', 'Infection'].includes(type)) return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
   if (!n.item) return {}
@@ -216,7 +218,7 @@ function Horse ({ n }) {
 
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem' }}><Icon className='align-self-center fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {found ? 'found a' : 'lost your'} horse</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
@@ -231,10 +233,26 @@ function Gun ({ n }) {
 
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem' }}><Icon className='align-self-center fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {found ? 'found a' : 'lost your'} gun</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+      </div>
+    </div>
+  )
+}
+
+function Infection ({ n }) {
+  // TODO: use random blurbs?
+  return (
+    <div className='d-flex'>
+      <BioHazardIcon className='align-self-center fill-grey mx-1' width={40} height={40} />
+      <div className='ms-2'>
+        <NoteHeader big>
+          you have been bitten by a zombie
+          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+        </NoteHeader>
+        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>You're feeling cold and clammy and you have a sudden desire to zap everyone ...</small></div>
       </div>
     </div>
   )

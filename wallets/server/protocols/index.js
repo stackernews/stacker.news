@@ -5,6 +5,7 @@ import * as clnRest from './clnRest'
 import * as phoenixd from './phoenixd'
 import * as blink from './blink'
 import * as lndGrpc from './lndGrpc'
+import * as clink from './clink'
 
 export * from './util'
 
@@ -56,5 +57,6 @@ export default [
   clnRest,
   phoenixd,
   blink,
-  lndGrpc
+  lndGrpc,
+  clink
 ]

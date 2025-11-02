@@ -20,6 +20,7 @@ import rehypeSN from '@/lib/rehype-sn'
 import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
+import remarkToc from '@/lib/remark-toc'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -33,7 +34,11 @@ const rehypeSNStyled = () => rehypeSN({
   }]
 })
 
-const remarkPlugins = [gfm, remarkUnicode, [remarkMath, { singleDollarTextMath: false }]]
+const baseRemarkPlugins = [
+  gfm,
+  remarkUnicode,
+  [remarkMath, { singleDollarTextMath: false }]
+]
 
 export function SearchText ({ text }) {
   return (
@@ -49,6 +54,9 @@ export function SearchText ({ text }) {
 
 // this is one of the slowest components to render
 export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+  // include remarkToc if topLevel
+  const remarkPlugins = topLevel ? [...baseRemarkPlugins, remarkToc] : baseRemarkPlugins
+
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?
@@ -235,9 +243,9 @@ function MediaLink ({
 
 function Table ({ node, ...props }) {
   return (
-    <span className='table-responsive'>
+    <div className='table-responsive'>
       <table className='table table-bordered table-sm' {...props} />
-    </span>
+    </div>
   )
 }
 
@@ -255,7 +263,11 @@ function CodeSkeleton ({ className, children, ...props }) {
 function Code ({ node, inline, className, children, style, ...props }) {
   const [ReactSyntaxHighlighter, setReactSyntaxHighlighter] = useState(null)
   const [syntaxTheme, setSyntaxTheme] = useState(null)
-  const language = className?.match(/language-(\w+)/)?.[1] || 'text'
+  // avoid re-computing language when className doesn't change
+  const language = useMemo(
+    () => className?.match(/language-(\w+)/)?.[1] || 'text',
+    [className]
+  )
 
   const loadHighlighter = useCallback(() =>
     Promise.all([
@@ -264,18 +276,25 @@ function Code ({ node, inline, className, children, style, ...props }) {
         loading: () => <CodeSkeleton className={className} {...props}>{children}</CodeSkeleton>
       }),
       import('react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark').then(mod => mod.default)
-    ]), []
+    // className is necessary to re-compute language
+    ]), [className]
   )
 
   useEffect(() => {
-    if (!inline && language !== 'math') { // MathJax should handle math
-      // loading the syntax highlighter and theme only when needed
-      loadHighlighter().then(([highlighter, theme]) => {
-        setReactSyntaxHighlighter(() => highlighter)
+    if (inline || language === 'math') return // MathJax should handle math
+
+    let aborted = false
+    loadHighlighter().then(([Highlighter, theme]) => {
+      if (!aborted) {
+        setReactSyntaxHighlighter(() => Highlighter)
         setSyntaxTheme(() => theme)
-      })
+      }
+    })
+
+    return () => {
+      aborted = true
     }
-  }, [inline])
+  }, [inline, language, loadHighlighter])
 
   if (inline || !ReactSyntaxHighlighter) { // inline code doesn't have a border radius
     return (

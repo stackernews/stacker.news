@@ -1,6 +1,7 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import gql from 'graphql-tag'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
@@ -110,10 +111,11 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       }
     }
 
-    const onPaid = () => {
+    const onPaid = (cache, { data } = {}) => {
       animate()
       onClose?.()
       if (!me) setItemMeAnonSats({ id: item.id, amount })
+      if (cache && data) infectOnPaid(cache, { me, data })
     }
 
     const closeImmediately = hasSendWallet || me?.privates?.sats > Number(amount)
@@ -133,13 +135,16 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
             act: {
               __typename: 'ItemActPaidAction',
               result: {
-                id: item.id, sats: Number(amount), act, path: item.path
+                id: item.id, sats: Number(amount), immune: true, act, path: item.path
               }
             }
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
-      onPaid: closeImmediately ? undefined : onPaid
+      // but still trigger halloween infection
+      onPaid: closeImmediately
+        ? (cache, { data }) => infectOnPaid(cache, { me, data })
+        : onPaid
     })
     if (error) throw error
     addCustomTip(Number(amount))
@@ -292,6 +297,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       if (!response) return
       updateAncestors(cache, response)
       options?.onPaid?.(cache, { data })
+      infectOnPaid(cache, { data, me })
     }
   })
   return act
@@ -310,7 +316,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP', hasSendWallet }
-    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
+    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, immune: true, ...variables } } }
 
     try {
       await abortSignal.pause({ me, amount: sats })
@@ -370,5 +376,36 @@ const zapUndo = async (signal, amount) => {
       signal.done()
       signal.removeEventListener('abort', abortHandler)
     }, ZAP_UNDO_DELAY_MS)
+  })
+}
+
+const infectOnPaid = (cache, { data, me }) => {
+  const { act: { result } } = data
+
+  // anon is patient zero and therefore always infected
+  const infected = !me || me.optional.infected
+  if (!infected || result.immune) {
+    return
+  }
+
+  const itemId = Number(result.path.split('.').pop())
+  const item = cache.readFragment({
+    id: `Item:${itemId}`,
+    fragment: gql`
+      fragment InfectOnPaidItemFields on Item {
+        user {
+          id
+        }
+      }`
+  })
+  cache.writeFragment({
+    id: `User:${item.user.id}`,
+    fragment: gql`
+      fragment InfectOnPaidUserFields on User {
+        optional {
+          infected
+        }
+      }`,
+    data: { optional: { infected: true } }
   })
 }

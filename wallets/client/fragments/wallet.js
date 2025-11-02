@@ -71,6 +71,22 @@ const WALLET_PROTOCOL_FIELDS = gql`
           ...VaultEntryFields
         }
       }
+      ... on WalletSendCLNRest {
+        id
+        socket
+        encryptedRune: rune {
+          ...VaultEntryFields
+        }
+      }
+      ... on WalletSendClink {
+        id
+        encryptedNdebit: ndebit {
+          ...VaultEntryFields
+        }
+        encryptedSecretKey: secretKey {
+          ...VaultEntryFields
+        }
+      }
       ... on WalletRecvNWC {
         id
         url
@@ -105,6 +121,10 @@ const WALLET_PROTOCOL_FIELDS = gql`
         socket
         macaroon
         cert
+      }
+      ... on WalletRecvClink {
+        id
+        noffer
       }
     }
   }
@@ -203,6 +223,11 @@ export const RESET_WALLETS = gql`
   }
 `
 
+export const DELETE_WALLET = gql`
+  mutation deleteWallet($id: ID!) {
+    deleteWallet(id: $id)
+  }`
+
 export const DISABLE_PASSPHRASE_EXPORT = gql`
   mutation DisablePassphraseExport {
     disablePassphraseExport
@@ -224,7 +249,14 @@ export const WALLET_SETTINGS = gql`
 
 export const SET_WALLET_SETTINGS = gql`
   mutation SetWalletSettings($settings: WalletSettingsInput!) {
-    setWalletSettings(settings: $settings)
+    setWalletSettings(settings: $settings) {
+      receiveCreditsBelowSats
+      sendCreditsBelowSats
+      proxyReceive
+      autoWithdrawMaxFeePercent
+      autoWithdrawMaxFeeTotal
+      autoWithdrawThreshold
+    }
   }
 `
 

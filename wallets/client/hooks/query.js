@@ -1,3 +1,9 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { timeoutSignal } from '@/lib/time'
+import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { useToast } from '@/components/toast'
+import { useMe } from '@/components/me'
+import { requestPersistentStorage } from '@/components/use-indexeddb'
 import {
   UPSERT_WALLET_RECEIVE_BLINK,
   UPSERT_WALLET_RECEIVE_CLN_REST,
@@ -6,14 +12,16 @@ import {
   UPSERT_WALLET_RECEIVE_LND_GRPC,
   UPSERT_WALLET_RECEIVE_NWC,
   UPSERT_WALLET_RECEIVE_PHOENIXD,
+  UPSERT_WALLET_RECEIVE_CLINK,
   UPSERT_WALLET_SEND_BLINK,
   UPSERT_WALLET_SEND_LNBITS,
   UPSERT_WALLET_SEND_LNC,
   UPSERT_WALLET_SEND_NWC,
   UPSERT_WALLET_SEND_PHOENIXD,
   UPSERT_WALLET_SEND_WEBLN,
+  UPSERT_WALLET_SEND_CLN_REST,
+  UPSERT_WALLET_SEND_CLINK,
   WALLETS,
-  REMOVE_WALLET_PROTOCOL,
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
   DISABLE_PASSPHRASE_EXPORT,
@@ -25,21 +33,19 @@ import {
   TEST_WALLET_RECEIVE_LIGHTNING_ADDRESS,
   TEST_WALLET_RECEIVE_NWC,
   TEST_WALLET_RECEIVE_CLN_REST,
-  TEST_WALLET_RECEIVE_LND_GRPC
+  TEST_WALLET_RECEIVE_LND_GRPC,
+  TEST_WALLET_RECEIVE_CLINK,
+  DELETE_WALLET
 } from '@/wallets/client/fragments'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { useDecryption, useEncryption, useSetKey, useWalletLogger, useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTemplates, useWallets } from '@/wallets/client/hooks/global'
+import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks/crypto'
+import { useWalletLoggerFactory } from '@/wallets/client/hooks/logger'
+import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
 import {
-  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolClientSchema, reverseProtocolRelationName
+  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
-import { timeoutSignal } from '@/lib/time'
-import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
-import { useToast } from '@/components/toast'
-import { useMe } from '@/components/me'
-import { useWallets, useWalletsLoading } from '@/wallets/client/context'
-import { requestPersistentStorage } from '@/components/use-indexeddb'
 
 export function useWalletsQuery () {
   const { me } = useMe()
@@ -48,6 +54,18 @@ export function useWalletsQuery () {
   const [error, setError] = useState(null)
 
   const { decryptWallet, ready } = useWalletDecryption()
+
+  useEffect(() => {
+    // the query might fail because of network errors like ERR_NETWORK_CHANGED
+    // but for some reason, the retry link does not retry the query so we poll instead ourselves here.
+    // https://github.com/stackernews/stacker.news/issues/2522
+    if (!wallets) {
+      query.startPolling(FAST_POLL_INTERVAL_MS)
+    } else {
+      query.stopPolling()
+    }
+    return () => query.stopPolling()
+  }, [query.startPolling, query.stopPolling, wallets])
 
   useEffect(() => {
     if (!query.data?.wallets || !ready) return
@@ -146,37 +164,19 @@ function server2Client (wallet) {
   return wallet ? undoFieldAlias(checkProtocolAvailability(wallet)) : wallet
 }
 
-export function useWalletProtocolUpsert (wallet, protocol) {
-  const mutation = getWalletProtocolUpsertMutation(protocol)
-  const [mutate] = useMutation(mutation)
-  const { encryptConfig } = useEncryptConfig(protocol)
-  const testSendPayment = useTestSendPayment(protocol)
-  const testCreateInvoice = useTestCreateInvoice(protocol)
-  const logger = useWalletLogger(protocol)
+export function useWalletProtocolUpsert () {
+  const client = useApolloClient()
+  const loggerFactory = useWalletLoggerFactory()
+  const { encryptConfig } = useEncryptConfig()
 
-  return useCallback(async (values) => {
-    logger.info('saving wallet ...')
+  return useCallback(async (wallet, protocol, values) => {
+    const logger = loggerFactory(protocol)
+    const mutation = protocolUpsertMutation(protocol)
+    const name = `${protocolLogName(protocol)} ${protocol.send ? 'send' : 'receive'}`
 
-    if (isTemplate(protocol)) {
-      values.enabled = true
-    }
+    logger.info(`saving ${name} ...`)
 
-    // skip network tests if we're disabling the wallet
-    if (values.enabled) {
-      try {
-        if (protocol.send) {
-          const additionalValues = await testSendPayment(values)
-          values = { ...values, ...additionalValues }
-        } else {
-          await testCreateInvoice(values)
-        }
-      } catch (err) {
-        logger.error(err.message)
-        throw err
-      }
-    }
-
-    const encrypted = await encryptConfig(values)
+    const encrypted = await encryptConfig(values, { protocol })
 
     const variables = encrypted
     if (isWallet(wallet)) {
@@ -187,8 +187,8 @@ export function useWalletProtocolUpsert (wallet, protocol) {
 
     let updatedWallet
     try {
-      const { data } = await mutate({ variables })
-      logger.ok('wallet saved')
+      const { data } = await client.mutate({ mutation, variables })
+      logger.ok(`${name} saved`)
       updatedWallet = Object.values(data)[0]
     } catch (err) {
       logger.error(err.message)
@@ -198,29 +198,33 @@ export function useWalletProtocolUpsert (wallet, protocol) {
     requestPersistentStorage()
 
     return updatedWallet
-  }, [wallet, protocol, logger, testSendPayment, testCreateInvoice, encryptConfig, mutate])
+  }, [client, loggerFactory, encryptConfig])
 }
 
 export function useLightningAddressUpsert () {
-  // TODO(wallet-v2): parse domain from address input to use correct wallet template
-  // useWalletProtocolUpsert needs to support passing in the wallet in the callback for that
-  const wallet = { name: 'LN_ADDR', __typename: 'WalletTemplate' }
-  const protocol = { name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }
-  return useWalletProtocolUpsert(wallet, protocol)
+  const protocol = useMemo(() => ({ name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }), [])
+  const upsert = useWalletProtocolUpsert()
+  const testCreateInvoice = useTestCreateInvoice(protocol)
+  const mapper = useLightningAddressToWalletMapper()
+
+  return useCallback(async (address) => {
+    await testCreateInvoice({ address })
+    const wallet = mapper(address)
+    return await upsert(wallet, protocol, { address, enabled: true })
+  }, [testCreateInvoice, mapper, upsert, protocol])
 }
 
-export function useWalletProtocolRemove (protocol) {
-  const [mutate] = useMutation(REMOVE_WALLET_PROTOCOL)
-  const toaster = useToast()
-
-  return useCallback(async () => {
-    try {
-      await mutate({ variables: { id: protocol.id } })
-      toaster.success('protocol detached')
-    } catch (err) {
-      toaster.danger('failed to detach protocol: ' + err.message)
-    }
-  }, [protocol?.id, mutate, toaster])
+function useLightningAddressToWalletMapper () {
+  const templates = useTemplates()
+  return useCallback((address) => {
+    return templates
+      .filter(t => t.protocols.some(p => p.name === 'LN_ADDR'))
+      .find(t => {
+        const domain = walletLud16Domain(t.name)
+        // the LN_ADDR wallet supports lightning addresses but does not have a domain because it's a generic wallet for any LN address
+        return domain && address.endsWith(domain)
+      }) ?? { name: 'LN_ADDR', __typename: 'WalletTemplate' }
+  }, [templates])
 }
 
 export function useWalletEncryptionUpdate () {
@@ -295,7 +299,7 @@ export function useSetWalletPriorities () {
 // (the mutation would throw if called but we make sure to never call it.)
 const NOOP_MUTATION = gql`mutation noop { noop }`
 
-function getWalletProtocolUpsertMutation (protocol) {
+function protocolUpsertMutation (protocol) {
   switch (protocol.name) {
     case 'LNBITS':
       return protocol.send ? UPSERT_WALLET_SEND_LNBITS : UPSERT_WALLET_RECEIVE_LNBITS
@@ -308,19 +312,21 @@ function getWalletProtocolUpsertMutation (protocol) {
     case 'NWC':
       return protocol.send ? UPSERT_WALLET_SEND_NWC : UPSERT_WALLET_RECEIVE_NWC
     case 'CLN_REST':
-      return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_CLN_REST
+      return protocol.send ? UPSERT_WALLET_SEND_CLN_REST : UPSERT_WALLET_RECEIVE_CLN_REST
     case 'LND_GRPC':
       return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_LND_GRPC
     case 'LNC':
       return protocol.send ? UPSERT_WALLET_SEND_LNC : NOOP_MUTATION
     case 'WEBLN':
       return protocol.send ? UPSERT_WALLET_SEND_WEBLN : NOOP_MUTATION
+    case 'CLINK':
+      return protocol.send ? UPSERT_WALLET_SEND_CLINK : UPSERT_WALLET_RECEIVE_CLINK
     default:
       return NOOP_MUTATION
   }
 }
 
-function getWalletProtocolTestMutation (protocol) {
+function protocolTestMutation (protocol) {
   if (protocol.send) return NOOP_MUTATION
 
   switch (protocol.name) {
@@ -338,12 +344,14 @@ function getWalletProtocolTestMutation (protocol) {
       return TEST_WALLET_RECEIVE_CLN_REST
     case 'LND_GRPC':
       return TEST_WALLET_RECEIVE_LND_GRPC
+    case 'CLINK':
+      return TEST_WALLET_RECEIVE_CLINK
     default:
       return NOOP_MUTATION
   }
 }
 
-function useTestSendPayment (protocol) {
+export function useTestSendPayment (protocol) {
   return useCallback(async (values) => {
     return await protocolTestSendPayment(
       protocol,
@@ -353,13 +361,21 @@ function useTestSendPayment (protocol) {
   }, [protocol])
 }
 
-function useTestCreateInvoice (protocol) {
-  const mutation = getWalletProtocolTestMutation(protocol)
+export function useTestCreateInvoice (protocol) {
+  const mutation = protocolTestMutation(protocol)
   const [testCreateInvoice] = useMutation(mutation)
 
   return useCallback(async (values) => {
     return await testCreateInvoice({ variables: values })
   }, [testCreateInvoice])
+}
+
+export function useWalletDelete (wallet) {
+  const [mutate] = useMutation(DELETE_WALLET)
+
+  return useCallback(async () => {
+    await mutate({ variables: { id: wallet.id } })
+  }, [mutate, wallet.id])
 }
 
 function useWalletDecryption () {
@@ -438,127 +454,10 @@ function useEncryptConfig (defaultProtocol, options = {}) {
   return useMemo(() => ({ encryptConfig, ready }), [encryptConfig, ready])
 }
 
-// TODO(wallet-v2): remove migration code
-// =============================================================
-// ****** Below is the migration code for WALLET v1 -> v2 ******
-//   remove when we can assume migration is complete (if ever)
-// =============================================================
-
-export function useWalletMigrationMutation () {
-  const wallets = useWallets()
-  const loading = useWalletsLoading()
-  const client = useApolloClient()
-  const { encryptConfig, ready } = useEncryptConfig()
-
-  // XXX We use a ref for the wallets to avoid duplicate wallets
-  //   Without a ref, the migrate callback would depend on the wallets and thus update every time the migration creates a wallet.
-  //   This update would then cause the useEffect in wallets/client/context/hooks that triggers the migration to run again before the first migration is complete.
-  const walletsRef = useRef(wallets)
-  useEffect(() => {
-    if (!loading) walletsRef.current = wallets
-  }, [loading])
-
-  const migrate = useCallback(async ({ name, enabled, ...configV1 }) => {
-    const protocol = { name, send: true }
-
-    const configV2 = migrateConfig(protocol, configV1)
-
-    const isSameProtocol = (p) => {
-      const sameName = p.name === protocol.name
-      const sameSend = p.send === protocol.send
-      const sameConfig = Object.keys(p.config)
-        .filter(k => !['__typename', 'id'].includes(k))
-        .every(k => p.config[k] === configV2[k])
-      return sameName && sameSend && sameConfig
-    }
-
-    const exists = walletsRef.current.some(w => w.name === name && w.protocols.some(isSameProtocol))
-    if (exists) return
-
-    const schema = protocolClientSchema(protocol)
-    await schema.validate(configV2)
-
-    const encrypted = await encryptConfig(configV2, { protocol })
-
-    // decide if we create a new wallet (templateName) or use an existing one (walletId)
-    const templateName = getWalletTemplateName(protocol)
-    let walletId
-    const wallet = walletsRef.current.find(w =>
-      w.name === name && !w.protocols.some(p => p.name === protocol.name && p.send)
-    )
-    if (wallet) {
-      walletId = Number(wallet.id)
-    }
-
-    await client.mutate({
-      mutation: getWalletProtocolUpsertMutation(protocol),
-      variables: {
-        ...(walletId ? { walletId } : { templateName }),
-        enabled,
-        ...encrypted
-      }
-    })
-  }, [client, encryptConfig])
-
-  return useMemo(() => ({ migrate, ready: ready && !loading }), [migrate, ready, loading])
-}
-
 export function useUpdateKeyHash () {
   const [mutate] = useMutation(UPDATE_KEY_HASH)
 
   return useCallback(async (keyHash) => {
     await mutate({ variables: { keyHash } })
   }, [mutate])
-}
-
-function migrateConfig (protocol, config) {
-  switch (protocol.name) {
-    case 'LNBITS':
-      return {
-        url: config.url,
-        apiKey: config.adminKey
-      }
-    case 'PHOENIXD':
-      return {
-        url: config.url,
-        apiKey: config.primaryPassword
-      }
-    case 'BLINK':
-      return {
-        url: config.url,
-        apiKey: config.apiKey,
-        currency: config.currency
-      }
-    case 'LNC':
-      return {
-        pairingPhrase: config.pairingPhrase,
-        localKey: config.localKey,
-        remoteKey: config.remoteKey,
-        serverHost: config.serverHost
-      }
-    case 'WEBLN':
-      return {}
-    case 'NWC':
-      return {
-        url: config.nwcUrl
-      }
-    default:
-      return config
-  }
-}
-
-function getWalletTemplateName (protocol) {
-  switch (protocol.name) {
-    case 'LNBITS':
-    case 'PHOENIXD':
-    case 'BLINK':
-    case 'NWC':
-      return protocol.name
-    case 'LNC':
-      return 'LND'
-    case 'WEBLN':
-      return 'ALBY'
-    default:
-      return null
-  }
 }

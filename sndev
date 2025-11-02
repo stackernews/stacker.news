@@ -40,11 +40,27 @@ sndev__start() {
   shift
 
   if [ $# -eq 0 ]; then
-    docker__compose up --build
-    exit 0
+    if command -v dmenu > /dev/null 2>&1;  then
+      # use dmenu if installed to select a profile
+      profiles=$(sndev__dmenu_profile)
+      if [ -z "$profiles" ]; then
+        exit 1
+      fi
+      COMPOSE_PROFILES="$profiles" docker__compose up --build
+    else
+      docker__compose up --build
+    fi
+  else
+    docker__compose up "$@"
   fi
+}
 
-  docker__compose up "$@"
+sndev__dmenu_profile() {
+  # dmenu allows to select multiple profiles with CTRL+Enter in which case it will
+  # immediately write the selected profile to stdout even if it was already selected
+  # so we use sort+uniq to remove duplicates
+  profiles="minimal payments wallets email search images capture"
+  echo "$profiles" | tr ' ' '\n' | dmenu | sort | uniq | tr '\n' ',' | sed 's/,$//'
 }
 
 sndev__help_start() {
@@ -178,7 +194,7 @@ sndev__delete() {
   printf "this deletes containers, volumes, and orphans - are you sure? [y/N] "
   read -r answer
   if [ "$answer" = "y" ]; then
-    docker__compose down --volumes --remove-orphans
+    COMPOSE_PROFILES="*" docker__compose down --volumes --remove-orphans
   else
     echo "delete cancelled"
   fi
@@ -481,6 +497,14 @@ sndev__login() {
   salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
   # upsert user with nym and nym@sndev.team
   email="$1@sndev.team"
+
+  # Detect Codespaces and set the correct base URL
+  if [ -n "$CODESPACE_NAME" ]; then
+    BASE_URL="https://${CODESPACE_NAME}-3000.app.github.dev"
+  else
+    BASE_URL="http://localhost:3000"
+  fi
+
   docker__exec db psql -U sn -d stackernews -q <<EOF
     INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
     UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
@@ -492,7 +516,7 @@ EOF
 
   echo
   echo "open url in browser"
-  echo "http://localhost:3000/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
+  echo "$BASE_URL/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
   echo
 }
 
@@ -502,6 +526,29 @@ login as a nym
 
 USAGE
   $ sndev login NYM
+"
+
+  echo "$help"
+}
+
+sndev__setup_codespaces() {
+  shift
+  ./scripts/setup-codespaces.sh
+}
+
+sndev__help_setup_codespaces() {
+  help="
+setup Codespaces environment variables
+
+USAGE
+  $ sndev setup_codespaces
+
+DESCRIPTION
+  Creates or updates .env.local with the correct URLs for GitHub Codespaces.
+  This is automatically run when the Codespace is created.
+
+REQUIREMENTS
+  - Set forwarded ports to 'Public' in the Ports tab for external access
 "
 
   echo "$help"
@@ -635,6 +682,9 @@ COMMANDS
   sn:
     login                 login as a nym
     set_balance           set the balance of a nym
+
+  codespaces:
+    setup_codespaces      setup environment for GitHub Codespaces
 
   lightning:
     fund                   pay a bolt11 for funding

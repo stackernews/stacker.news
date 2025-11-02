@@ -167,6 +167,7 @@ export default {
           ) as "Item"
           ${whereClause(
             '"Item".created_at < $2',
+            '"Item"."deletedAt" IS NULL',
             await filterClause(me, models),
             muteClause(me),
             activeOrMine(me))}
@@ -321,6 +322,14 @@ export default {
           WHERE "userId" = $1
           AND updated_at < $2
           AND type = 'COWBOY_HAT'
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT})`
+        )
+        queries.push(
+          `(SELECT id::text, created_at AS "sortTime", 0 as "earnedSats", 'Infection' AS type
+          FROM "Infection"
+          WHERE "infecteeId" = $1
+          AND created_at < $2
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT})`
         )

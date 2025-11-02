@@ -1,6 +1,6 @@
 const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
-const { generatePrecacheManifest } = require('./sw/build.js')
+const CopyPlugin = require('copy-webpack-plugin')
 const webpack = require('webpack')
 
 let isProd = process.env.NODE_ENV === 'production'
@@ -215,27 +215,37 @@ module.exports = withPlausibleProxy()({
   },
   webpack: (config, { isServer, dev, defaultLoaders }) => {
     if (isServer) {
-      generatePrecacheManifest()
       const workboxPlugin = new InjectManifest({
-        // ignore the precached manifest which includes the webpack assets
-        // since they are not useful to us
-        exclude: [/.*/],
-        // by default, webpack saves service worker at .next/server/
+        include: [/\/(icons|maskable|splash)\//, /\.(webp|ttf|woff|woff2)$/],
         swDest: '../../public/sw.js',
         swSrc: './sw/index.js',
         webpackCompilationPlugins: [
+          // we want to precache these static assets so we copy them to include them in the webpack pipeline
+          // so InjectManifest can inject them into the service worker manifest
+          new CopyPlugin({
+            patterns: [
+              { from: 'public/icons', to: '../icons' },
+              { from: 'public/maskable', to: '../maskable' },
+              { from: 'public/splash', to: '../splash' },
+              { from: 'public/waiting.webp', to: '../waiting.webp' },
+              { from: 'public/Lightningvolt-xoqm.ttf', to: '../Lightningvolt-xoqm.ttf' },
+              { from: 'public/Lightningvolt-xoqm.woff', to: '../Lightningvolt-xoqm.woff' },
+              { from: 'public/Lightningvolt-xoqm.woff2', to: '../Lightningvolt-xoqm.woff2' }
+            ]
+          }),
           // this is need to allow the service worker to access these environment variables
           // from lib/constants.js
           new webpack.DefinePlugin({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.MEDIA_URL_DOCKER': JSON.stringify(process.env.MEDIA_URL_DOCKER),
             'process.env.NEXT_PUBLIC_MEDIA_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_URL),
+            'process.env.NEXT_PUBLIC_MEDIA_CHECK_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_CHECK_URL),
             'process.env.NEXT_PUBLIC_MEDIA_DOMAIN': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_DOMAIN),
             'process.env.NEXT_PUBLIC_URL': JSON.stringify(process.env.NEXT_PUBLIC_URL),
-            'process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL),
-            'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL),
-            'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL),
-            'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL),
+            'process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL_MS),
             'process.env.SANCTIONED_COUNTRY_CODES': JSON.stringify(process.env.SANCTIONED_COUNTRY_CODES),
             'process.env.NEXT_IS_EXPORT_WORKER': 'true'
           })

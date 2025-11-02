@@ -12,10 +12,13 @@ import No from '@/svgs/no.svg'
 import Bolt from '@/svgs/bolt.svg'
 import Amboss from '@/svgs/amboss.svg'
 import Mempool from '@/svgs/bimi.svg'
+import Live from '@/svgs/chat-unread-fill.svg'
+import NoLive from '@/svgs/chat-off-fill.svg'
 import Rewards from './footer-rewards'
 import useDarkMode from './dark-mode'
 import ActionTooltip from './action-tooltip'
 import { useAnimationEnabled } from '@/components/animation'
+import { useLiveCommentsToggle } from './use-live-comments'
 
 const RssPopover = (
   <Popover>
@@ -97,13 +100,6 @@ const SocialsPopover = (
 const ChatPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      {/* <a
-        href='https://tribes.sphinx.chat/t/stackerzchat' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        sphinx
-      </a>
-      <span className='mx-2 text-muted'> \ </span> */}
       <a
         href='https://t.me/k00bideh' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
@@ -112,10 +108,10 @@ const ChatPopover = (
       </a>
       <span className='mx-2 text-muted'> \ </span>
       <a
-        href='https://simplex.chat/contact#/?v=1-2&smp=smp%3A%2F%2F6iIcWT_dF2zN_w5xzZEY7HI2Prbh3ldP07YTyDexPjE%3D%40smp10.simplex.im%2FebLYaEFGjsD3uK4fpE326c5QI1RZSxau%23%2F%3Fv%3D1-2%26dh%3DMCowBQYDK2VuAyEAV086Oj5yCsavWzIbRMCVuF6jq793Tt__rWvCec__viI%253D%26srv%3Drb2pbttocvnbrngnwziclp2f4ckjq65kebafws6g4hy22cdaiv5dwjqd.onion&data=%7B%22type%22%3A%22group%22%2C%22groupLinkId%22%3A%22cZwSGoQhyOUulzp7rwCdWQ%3D%3D%22%7D' className='nav-link p-0 d-inline-flex'
+        href='https://signal.group/#CjQKIEt57YiluJoTW3lZqaqAq6echCekEYFfg7eIua2X91nLEhA__6ALI9pkaY_McQqX0jm1' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
-        simplex
+        signal
       </a>
     </Popover.Body>
   </Popover>
@@ -147,8 +143,11 @@ export default function Footer ({ links = true }) {
 
   const [animationEnabled, toggleAnimation] = useAnimationEnabled()
 
+  const [disableLiveComments, toggleLiveComments] = useLiveCommentsToggle()
+
   const DarkModeIcon = darkMode ? Sun : Moon
   const LnIcon = animationEnabled ? No : Bolt
+  const LiveIcon = disableLiveComments ? Live : NoLive
 
   const version = process.env.NEXT_PUBLIC_COMMIT_HASH
 
@@ -163,6 +162,9 @@ export default function Footer ({ links = true }) {
               </ActionTooltip>
               <ActionTooltip notForm overlayText={`${animationEnabled ? 'disable' : 'enable'} lightning animations`}>
                 <LnIcon onClick={toggleAnimation} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              </ActionTooltip>
+              <ActionTooltip notForm overlayText={`${disableLiveComments ? 'enable' : 'disable'} live comments`}>
+                <LiveIcon onClick={toggleLiveComments} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
               </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
@@ -248,6 +250,9 @@ export default function Footer ({ links = true }) {
             </Link>
             <Link href='/ek' className='ms-1'>
               @ek
+            </Link>
+            <Link href='/sox' className='ms-1'>
+              @sox
             </Link>
             <span className='ms-1'>&</span>
             <Link href='https://github.com/stackernews/stacker.news/graphs/contributors' className='ms-1' target='_blank' rel='noreferrer'>

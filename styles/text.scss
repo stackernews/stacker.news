@@ -296,7 +296,15 @@ span + .sn__link {
   scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
 }
 
-/* table */
+.sn__math {
+  cursor: default;
+  user-select: none;
+}
+
+.sn__math.focused {
+  outline: 2px solid rgb(60, 132, 244);
+}
+
 .sn__table {
   border-collapse: collapse;
   border-spacing: 0;
@@ -307,7 +315,59 @@ span + .sn__link {
   margin-top: 25px;
   margin-bottom: 30px;
 }
-
+.sn__tableSelection *::selection {
+  background-color: transparent;
+}
+.sn__tableSelected {
+  outline: 2px solid rgb(60, 132, 244);
+}
+.sn__tableCell {
+  border: 1px solid #bbb;
+  width: 75px;
+  min-width: 75px;
+  vertical-align: top;
+  text-align: start;
+  padding: 6px 8px;
+  position: relative;
+  outline: none;
+  overflow: auto;
+}
+/*
+  lexical dev notes:
+  A firefox workaround to allow scrolling of overflowing table cell
+  ref: https://bugzilla.mozilla.org/show_bug.cgi?id=1904159
+*/
+.sn__tableCell > * {
+  overflow: inherit;
+}
+.sn__tableCellResizer {
+  position: absolute;
+  right: -4px;
+  height: 100%;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 10;
+  top: 0;
+}
+.sn__tableCellHeader {
+  background-color: var(--theme-commentBg);
+  text-align: start;
+}
+.sn__tableCellSelected {
+  caret-color: transparent;
+}
+.sn__tableCellSelected::after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  background-color: highlight;
+  mix-blend-mode: multiply;
+  content: '';
+  pointer-events: none;
+}
+/* to be implemented */
 .sn__tableAddColumns {
   position: absolute;
   background-color: #eee;
@@ -316,8 +376,7 @@ span + .sn__link {
   border: 0;
   cursor: pointer;
 }
-
-.sn__tableAddColumns:after, .sn__tableAddRows:after {
+.sn__tableAddColumns:after {
   background-image: url(../svgs/add-fill.svg);
   background-size: contain;
   background-position: center;
@@ -331,11 +390,10 @@ span + .sn__link {
   height: 100%;
   opacity: 0.4;
 }
-
-.sn__tableAddColumns:hover, .sn__tableAddRows:hover {
-  background-color: #ddd;
+.sn__tableAddColumns:hover,
+.sn__tableAddRows:hover {
+  background-color: #c9dbf0;
 }
-
 .sn__tableAddRows {
   position: absolute;
   width: calc(100% - 25px);
@@ -344,7 +402,20 @@ span + .sn__link {
   border: 0;
   cursor: pointer;
 }
-
+.sn__tableAddRows:after {
+  background-image: url(../svgs/add-fill.svg);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: block;
+  content: ' ';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.4;
+}
 @keyframes table-controls {
   0% {
     opacity: 0;
@@ -353,59 +424,42 @@ span + .sn__link {
     opacity: 1;
   }
 }
-
-.sn__tableCell {
-  border: 1px solid #bbb;
-  width: 75px;
-  vertical-align: top;
-  text-align: start;
-  padding: 6px 8px;
-  position: relative;
-  outline: none;
-  overflow: auto;
-}
-
-/*
-  A firefox workaround to allow scrolling of overflowing table cell
-  ref: https://bugzilla.mozilla.org/show_bug.cgi?id=1904159
-*/
-.sn__tableCell > * {
-  overflow: inherit;
-}
-
-.sn__tableCellHeader {
-  background-color: #000000;
-  text-align: start;
-}
-
-.sn__tableCellSelected {
-  caret-color: transparent;
-}
-
-.sn__tableSelection *::selection {
-  background-color: transparent;
-}
-.sn__tableSelected {
-  outline: 2px solid rgb(60, 132, 244);
-}
-
-.sn__tableFrozenColumn {
-  position: sticky;
-  left: 0;
-  background-color: #f0f0f0;
-}
-
-.sn__tableFrozenRow {
-  position: sticky;
+.sn__tableCellResizeRuler {
+  display: block;
+  position: absolute;
+  width: 1px;
+  background-color: rgb(60, 132, 244);
+  height: 100%;
   top: 0;
-  background-color: #f0f0f0;
 }
-
-.sn__math {
-  cursor: default;
-  user-select: none;
+.sn__tableCellActionButtonContainer {
+  display: block;
+  right: 5px;
+  top: 6px;
+  position: absolute;
+  z-index: 4;
+  width: 20px;
+  height: 20px;
 }
-
-.sn__math.focused {
-  outline: 2px solid rgb(60, 132, 244);
+.sn__tableCellActionButton {
+  background-color: #eee;
+  display: block;
+  border: 0;
+  border-radius: 20px;
+  width: 20px;
+  height: 20px;
+  color: #222;
+  cursor: pointer;
+}
+.sn__tableCellActionButton:hover {
+  background-color: #ddd;
+}
+.sn__tableScrollableWrapper {
+  overflow-x: auto;
+  margin: 0px 25px 30px 0px;
+}
+.sn__tableScrollableWrapper > .sn__table {
+  /* to be implemented */
+  margin-top: 0;
+  margin-bottom: 0;
 }

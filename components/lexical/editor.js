@@ -39,6 +39,7 @@ import { AutoFocusExtension } from '@lexical/extension'
 import { AUTOLINK_URL_REGEXP, EMAIL_REGEXP, ensureProtocol } from '@/lib/url'
 import { SNAutoLinkExtension } from './extensions/decorative/autolink'
 import PreferencesPlugin from './plugins/core/preferences'
+// import DraggableBlockPlugin from './plugins/core/draggable-block'
 
 export default function Editor ({ name, appendValue, autoFocus, ...props }) {
   const { prefs } = useLexicalPreferences()
@@ -164,6 +165,8 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         <MaxLengthPlugin lengthOptions={lengthOptions} />
         {/* floating toolbar */}
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
+        {/* draggable block */}
+        {/* <DraggableBlockPlugin anchorElem={floatingAnchorElem} /> */}
         {/* formik */}
         <LocalDraftPlugin name={name} />
         <FormikBridgePlugin />

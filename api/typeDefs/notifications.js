@@ -180,7 +180,7 @@ export default gql`
     sortTime: Date!
   }
 
-  type Cure {
+  type Cured {
     id: ID!
     sortTime: Date!
   }
@@ -190,7 +190,7 @@ export default gql`
     | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
     | ReferralReward | CowboyHat | NewHorse | LostHorse | NewGun | LostGun
-    | Infection | Cure
+    | Infection | Cured
 
   type Notifications {
     lastChecked: Date

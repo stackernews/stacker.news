@@ -260,13 +260,12 @@ function Infection ({ n }) {
 }
 
 function Cured ({ n }) {
-  // TODO: use random blurbs?
   return (
     <div className='d-flex'>
-      <SyringeIcon className='fill-grey mx-1' width={40} height={40} />
+      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><SyringeIcon className='fill-grey mx-1' width={40} height={40} /></div>
       <div className='ms-2'>
         <NoteHeader big>
-          you have been cured by a kind stranger
+          your infection was cured by a mysterious stranger
           <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
         </NoteHeader>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>You feel better, but the desire to zap has not gone away ...</small></div>

@@ -334,7 +334,7 @@ export default {
           LIMIT ${LIMIT})`
         )
         queries.push(
-          `(SELECT id::text, created_at AS "sortTime", 0 as "earnedSats", 'Cure' AS type
+          `(SELECT id::text, created_at AS "sortTime", 0 as "earnedSats", 'Cured' AS type
           FROM "Cure"
           WHERE "cureeId" = $1
           AND created_at < $2

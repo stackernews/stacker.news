@@ -3,7 +3,6 @@ import { msatsToSats, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { notifyZapped, notifyInfected, notifyCured } from '@/lib/webPush'
 import { getInvoiceableWallets } from '@/wallets/server'
-import { maybe } from '@apollo/client/utilities'
 import { Prisma } from '@prisma/client'
 
 export const anonable = true

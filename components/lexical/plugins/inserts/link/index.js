@@ -23,7 +23,7 @@ export default function LinkEditorPlugin ({ anchorElem }) {
     let linkNodeKey = null
 
     // handle selection change
-    if ($isRangeSelection(selection)) {
+    if ($isRangeSelection(selection) && selection.isCollapsed()) {
       const focusNode = getSelectedNode(selection)
       const focusLinkNode = $findMatchingParent(focusNode, $isLinkNode)
       const focusAutoLinkNode = $findMatchingParent(focusNode, $isAutoLinkNode)

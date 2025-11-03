@@ -25,18 +25,12 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
   const [linkUrl, setLinkUrl] = useState('')
   const [editedLinkUrl, setEditedLinkUrl] = useState('')
 
-  const inputInteraction = (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      $linkConfirm()
-    } else if (event.key === 'Escape') {
-      event.preventDefault()
-      $handleCancel()
-    }
-  }
+  const hideFloatingElem = useCallback(() => {
+    setFloatingElemPosition({ targetRect: null, floatingElem: floatingRef.current, anchorElem, fade: false })
+  }, [anchorElem])
 
   const $handleCancel = () => {
-    setFloatingElemPosition({ targetRect: null, floatingElem: floatingRef.current, anchorElem, fade: false })
+    hideFloatingElem()
     setIsLinkEditMode(false)
     if (linkUrl === '') {
       editor.update(() => {
@@ -88,11 +82,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
       setLinkUrl('')
       setEditedLinkUrl('')
       if (isLinkEditMode) setIsLinkEditMode(false)
-
-      const floatingElem = floatingRef.current
-      if (floatingElem && anchorElem) {
-        setFloatingElemPosition({ targetRect: null, floatingElem, anchorElem, fade: false })
-      }
+      hideFloatingElem()
       return
     }
 
@@ -108,18 +98,18 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     const floatingElem = floatingRef.current
     if (!floatingElem || !anchorElem) return
     if (!nodeKey) {
-      setFloatingElemPosition({ targetRect: null, floatingElem, anchorElem, fade: false })
+      hideFloatingElem()
       return
     }
     const el = editor.getElementByKey(nodeKey)
     if (!el) {
-      setFloatingElemPosition({ targetRect: null, floatingElem, anchorElem, fade: false })
+      hideFloatingElem()
       return
     }
     const pos = el.getBoundingClientRect()
     pos.y += 26
     setFloatingElemPosition({ targetRect: pos, floatingElem, anchorElem, verticalGap: 8, horizontalOffset: 0, fade: false })
-  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl, nodeKey])
+  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl, nodeKey, hideFloatingElem])
 
   const handleBlur = useCallback((event) => {
     const floatingElem = floatingRef.current
@@ -234,7 +224,15 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
                 value={editedLinkUrl}
                 placeholder='https://'
                 onChange={(e) => { setEditedLinkUrl(e.target.value) }}
-                onKeyDown={(e) => inputInteraction(e)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    $linkConfirm()
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault()
+                    $handleCancel()
+                  }
+                }}
               />
               <div className={styles.linkConfirmIcons}>
                 <span className={styles.linkCancelIcon} onMouseDown={(e) => e.preventDefault()} onClick={$handleCancel}>

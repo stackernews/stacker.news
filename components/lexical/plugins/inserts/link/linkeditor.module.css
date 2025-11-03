@@ -6,8 +6,7 @@
   opacity: 0;
   will-change: transform;
   background-color: var(--theme-inputBg);
-  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
-  will-change: transform;
+  box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--theme-floating-toolbar-shadow-opacity));
 }
 
 .linkEditorContainer:hover {
@@ -19,67 +18,44 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  border-radius: 0.4rem;
+  max-width: 400px;
 }
 
-.linkEditor .linkInput {
+.linkEditor .linkInput,
+.linkEditor .linkView {
   display: block;
-  width: 100%;
+  max-width: 300px;
   box-sizing: border-box;
-  padding: 0 0.2rem;
-  line-height: 0;
-  border-radius: 0.4rem 0 0 0.4rem;
+  padding: 0.5rem;
+  line-height: 1.2;
+  border-radius: 1.4rem 0 0 0.4rem;
   background-color: transparent;
-  font-size: 12px !important;
+  font-size: 12px;
   color: var(--bs-body-color);
   border: 0;
   outline: 0;
   position: relative;
   font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.linkInput {
+  min-width: 300px;
 }
 
 .linkEditor .linkView {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0 0.2rem;
-  line-height: 0;
-  border-radius: 0.4rem 0 0 0.4rem;
+  color: var(--theme-link);
   text-decoration: underline;
-  background-color: transparent;
-  font-size: 12px;
-  border: 0;
-  outline: 0;
-  position: relative;
-  font-family: inherit;
 }
 
 .linkEditor .linkView a {
   display: block;
-  word-break: break-word;
-}
-
-.linkEditor .linkView svg {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  vertical-align: middle;
-}
-
-.linkEditor .linkInput a {
-  color: inherit;
-  text-decoration: underline;
   white-space: nowrap;
   overflow: hidden;
-  margin-right: 30px;
   text-overflow: ellipsis;
-}
-
-.linkEditor .linkInput a:hover {
-  text-decoration: underline;
-}
-
-.linkEditor .linkInput a:focus {
-  outline: 0;
 }
 
 .linkEditor .linkConfirmIcons {
@@ -87,7 +63,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding-right: 0.3rem;
+  padding-right: 0.5rem;
   padding-bottom: 0.1rem;
 }
 
@@ -99,18 +75,8 @@
   cursor: pointer;
 }
 
-.linkEditor .linkConfirmIcon svg {
-  width: 12px;
-  height: 12px;
-  cursor: pointer;
-}
-
-.linkEditor .linkEditIcon svg {
-  width: 12px;
-  height: 12px;
-  cursor: pointer;
-}
-
+.linkEditor .linkConfirmIcon svg,
+.linkEditor .linkEditIcon svg,
 .linkEditor .linkRemoveIcon svg {
   width: 12px;
   height: 12px;

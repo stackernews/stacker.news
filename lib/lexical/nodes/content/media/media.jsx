@@ -186,14 +186,14 @@ export class MediaNode extends DecoratorNode {
 
   setWidthAndHeight (width = 'inherit', height = 'inherit') {
     const writable = this.getWritable()
-    writable.__width = width
-    writable.__height = height
+    writable.__width = width === 'inherit' ? width : Math.round(width)
+    writable.__height = height === 'inherit' ? height : Math.round(height)
   }
 
   getWidthAndHeight () {
     return {
-      width: this.__width,
-      height: this.__height
+      width: this.__width === 'inherit' ? 0 : Math.round(this.__width),
+      height: this.__height === 'inherit' ? 0 : Math.round(this.__height)
     }
   }
 

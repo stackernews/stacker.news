@@ -367,63 +367,7 @@ span + .sn__link {
   content: '';
   pointer-events: none;
 }
-/* to be implemented */
-.sn__tableAddColumns {
-  position: absolute;
-  background-color: #eee;
-  height: 100%;
-  animation: table-controls 0.2s ease;
-  border: 0;
-  cursor: pointer;
-}
-.sn__tableAddColumns:after {
-  background-image: url(../svgs/add-fill.svg);
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: block;
-  content: ' ';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.4;
-}
-.sn__tableAddColumns:hover,
-.sn__tableAddRows:hover {
-  background-color: #c9dbf0;
-}
-.sn__tableAddRows {
-  position: absolute;
-  width: calc(100% - 25px);
-  background-color: #eee;
-  animation: table-controls 0.2s ease;
-  border: 0;
-  cursor: pointer;
-}
-.sn__tableAddRows:after {
-  background-image: url(../svgs/add-fill.svg);
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: block;
-  content: ' ';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.4;
-}
-@keyframes table-controls {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
+
 .sn__tableCellResizeRuler {
   display: block;
   position: absolute;

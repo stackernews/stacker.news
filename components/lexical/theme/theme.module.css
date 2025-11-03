@@ -158,7 +158,8 @@
 }
 
 .toolbar :global(.dropdown-toggle::after),
-.bottomBar :global(.dropdown-toggle::after) {
+.bottomBar :global(.dropdown-toggle::after),
+.tableCellActionButtonContainer :global(.dropdown-toggle::after) {
   display: none;
 }
 
@@ -485,4 +486,153 @@
   top: 0;
   opacity: 0;
   will-change: transform;
+}
+
+/* to be implemented */
+.tableAddColumns {
+  position: absolute;
+  background-color: var(--theme-toolbarActive);
+  height: 100%;
+  animation: table-controls 0.2s ease;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tableAddColumns svg, .tableAddRows svg {
+  fill: var(--bs-body-color);
+  width: 12px;
+  height: 12px;
+}
+
+.tableAddColumns:hover,
+.tableAddRows:hover {
+  background-color: var(--theme-toolbarActive);
+  opacity: 0.8;
+}
+.tableAddRows {
+  position: absolute;
+  width: calc(100% - 25px);
+  background-color: var(--theme-toolbarActive);
+  animation: table-controls 0.2s ease;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes table-controls {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* table action menu */
+.tableCellActionButtonContainer {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.tableCellActionButtonContainerActive {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.tableCellActionButtonContainerInactive {
+  pointer-events: none;
+  opacity: 0;
+}
+.tableCellActionButton {
+  background-color: var(--theme-commentBg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 4px;
+  position: absolute;
+  top: 17px;
+  right: 2px;
+  color: var(--theme-color);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.tableCellActionButton:hover {
+  background-color: var(--theme-toolbarActive);
+}
+
+.tableCellActionButton svg {
+  fill: var(--bs-body-color);
+  width: 12px;
+  height: 12px;
+}
+
+.tableActionMenuWrapper {
+  position: fixed;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tableActionMenuDropdown {
+  background-color: var(--theme-inputBg);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 0.4rem;
+  box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.1);
+  padding: 0.35rem;
+  min-width: 200px;
+}
+
+.tableActionMenuItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-radius: 0.3rem;
+  color: var(--theme-color);
+  font-size: 14px;
+}
+
+.tableActionMenuItem:hover {
+  background-color: var(--theme-toolbarActive);
+}
+
+.tableActionMenuItem .text {
+  display: inline;
+}
+
+.tableActionMenuGroup {
+  padding: 0.25rem 0;
+}
+
+.tableActionMenuLabel {
+  padding: 0.5rem 0.75rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--theme-grey);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tableActionMenuDivider {
+  border: none;
+  border-top: 1px solid var(--theme-borderColor);
+  margin: 0.35rem 0;
+  opacity: 0.5;
 }

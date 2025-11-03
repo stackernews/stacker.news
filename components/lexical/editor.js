@@ -40,6 +40,8 @@ import { AUTOLINK_URL_REGEXP, EMAIL_REGEXP, ensureProtocol } from '@/lib/url'
 import { SNAutoLinkExtension } from './extensions/decorative/autolink'
 import PreferencesPlugin from './plugins/core/preferences'
 import MediaPlugin from './plugins/content/media'
+// import TableHoverPlugin from './plugins/inserts/table/hover'
+import TableActionMenuPlugin from './plugins/inserts/table/action'
 // import DraggableBlockPlugin from './plugins/core/draggable-block'
 
 export default function Editor ({ name, appendValue, autoFocus, ...props }) {
@@ -152,6 +154,10 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         <FileUploadPlugin />
         {/* inserts: links */}
         <LinkEditorPlugin anchorElem={floatingAnchorElem} />
+        {/* inserts: table hover */}
+        {/* <TableHoverPlugin anchorElem={floatingAnchorElem} /> */}
+        {/* inserts: table action menu */}
+        <TableActionMenuPlugin anchorElem={floatingAnchorElem} cellMerge />
         {/* decorative plugins */}
         <MentionsPlugin />
         {/* code */}

@@ -281,15 +281,16 @@ async function maybeInfectUser (itemAct, { tx }) {
 async function maybeCureUser (itemAct, { tx }) {
   const { id, userId: fromId, item: { userId: toId } } = itemAct
 
-  const zapperInfection = await tx.infection.findFirst({ where: { infecteeId: fromId } })
-  if (zapperInfection) {
-    // zapper is infected, so can't cure other user
-    return
-  }
-
   const zappedInfection = await tx.infection.findFirst({ where: { infecteeId: toId } })
   if (!zappedInfection) {
     // zappee not infected, so can't be cured
+    return
+  }
+
+  const zapperInfection = await tx.infection.findFirst({ where: { infecteeId: fromId } })
+  const zapperCured = await tx.cure.findFirst({ where: { cureeId: fromId } })
+  if (zapperInfection && !zapperCured) {
+    // zapper is infected, so can't cure other user
     return
   }
 

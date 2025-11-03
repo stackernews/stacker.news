@@ -395,8 +395,8 @@ const infectOnPaid = (cache, { data, me }) => {
     return
   }
 
-  const cured = me.optional.cured
-  if (cured) {
+  const meCured = me.optional.cured
+  if (meCured) {
     return
   }
 
@@ -407,9 +407,19 @@ const infectOnPaid = (cache, { data, me }) => {
       fragment InfectOnPaidItemFields on Item {
         user {
           id
+          optional {
+            cured
+          }
         }
       }`
   })
+
+  const targetCured = item.user.optional.cured
+  if (targetCured) {
+    // cured user can no longer be infected
+    return
+  }
+
   cache.writeFragment({
     id: `User:${item.user.id}`,
     fragment: gql`

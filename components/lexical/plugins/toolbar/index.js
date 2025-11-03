@@ -41,13 +41,12 @@ function DropdownMenuItem ({ option, isActive, onClick }) {
       onClick={onClick}
       className={classNames(styles.dropdownExtraItem, isActive ? styles.active : '')}
       onPointerDown={e => e.preventDefault()}
-      suppressHydrationWarning
     >
       <span className={styles.dropdownExtraItemLabel}>
         <ToolbarIcon id={option.id} />
         <span className={styles.dropdownExtraItemText}>{option.name}</span>
       </span>
-      <span className={styles.dropdownExtraItemShortcut} suppressHydrationWarning>
+      <span className={styles.dropdownExtraItemShortcut}>
         {shortcut}
       </span>
     </Dropdown.Item>

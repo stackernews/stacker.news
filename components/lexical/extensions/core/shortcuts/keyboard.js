@@ -5,7 +5,7 @@ export const SHORTCUTS = getAllShortcuts()
 
 export function getShortcutCombo (id) {
   const shortcut = SHORTCUTS.find(shortcut => shortcut.id === id)
-  if (!shortcut) return null
+  if (!shortcut?.combo) return ''
   return shortcut.combo
     .replace('mod', IS_APPLE ? '⌘' : 'ctrl')
     .replace('alt', IS_APPLE ? '⌥' : 'alt')

@@ -83,6 +83,22 @@ export const ACTIONS = [
     category: 'inline',
     toolbarSection: 'additional'
   },
+  {
+    id: 'superscript',
+    name: 'superscript',
+    shortcut: undefined, // wip
+    command: SN_FORMAT_TEXT_COMMAND,
+    category: 'inline',
+    toolbarSection: 'additional'
+  },
+  {
+    id: 'subscript',
+    name: 'subscript',
+    shortcut: undefined, // wip
+    command: SN_FORMAT_TEXT_COMMAND,
+    category: 'inline',
+    toolbarSection: 'additional'
+  },
 
   // block formatting
   {

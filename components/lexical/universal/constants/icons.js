@@ -1,7 +1,7 @@
-import BoldIcon from '@/svgs/lexical/bold.svg'
-import ItalicIcon from '@/svgs/lexical/italic.svg'
-import UnderlineIcon from '@/svgs/lexical/underline.svg'
-import StrikethroughIcon from '@/svgs/lexical/strikethrough.svg'
+import BoldIcon from '@/svgs/lexical/inline/bold.svg'
+import ItalicIcon from '@/svgs/lexical/inline/italic.svg'
+import UnderlineIcon from '@/svgs/lexical/inline/underline.svg'
+import StrikethroughIcon from '@/svgs/lexical/inline/strikethrough.svg'
 import LinkIcon from '@/svgs/lexical/link.svg'
 import LinkUnlinkIcon from '@/svgs/lexical/link-unlink.svg'
 import Heading1Icon from '@/svgs/lexical/block/h-1.svg'
@@ -11,7 +11,7 @@ import QuoteIcon from '@/svgs/lexical/quote-text.svg'
 import NumberedListIcon from '@/svgs/lexical/block/number-list.svg'
 import BulletListIcon from '@/svgs/lexical/block/bullet-list.svg'
 import CheckListIcon from '@/svgs/lexical/block/check-list.svg'
-import CodeIcon from '@/svgs/lexical/code-view.svg'
+import CodeIcon from '@/svgs/lexical/inline/code.svg'
 import CodeBlockIcon from '@/svgs/lexical/code-block.svg'
 import LeftIcon from '@/svgs/lexical/align/align-left.svg'
 import CenterIcon from '@/svgs/lexical/align/align-center.svg'
@@ -23,12 +23,16 @@ import UploadIcon from '@/svgs/lexical/inserts/paperclip.svg'
 import TableIcon from '@/svgs/lexical/inserts/table-3.svg'
 import MathIcon from '@/svgs/lexical/inserts/formula.svg'
 import ParagraphIcon from '@/svgs/lexical/block/blocks.svg'
+import SuperscriptIcon from '@/svgs/lexical/inline/superscript.svg'
+import SubscriptIcon from '@/svgs/lexical/inline/subscript.svg'
 
 export const ICONS = {
   bold: { default: BoldIcon },
   italic: { default: ItalicIcon },
   underline: { default: UnderlineIcon },
   strikethrough: { default: StrikethroughIcon },
+  superscript: { default: SuperscriptIcon },
+  subscript: { default: SubscriptIcon },
   link: { default: LinkIcon, active: LinkUnlinkIcon },
   paragraph: { default: ParagraphIcon },
   h1: { default: Heading1Icon },

@@ -50,7 +50,7 @@ function MainToolbarOptions ({ editor, toolbarState, isFloating }) {
           suppressHydrationWarning
         >
           <span
-            title={`${option.name} (${shortcut})`}
+            title={`${option.name} ${shortcut}`}
             className={classNames(styles.toolbarItem, isActive ? styles.active : '')}
             style={option.style}
             onClick={() => option.handler({ editor })}

@@ -18,14 +18,16 @@ export default function ModeSwitcher ({ className }) {
     })
   }, [editor])
 
+  const modeText = isMD ? 'markdown mode' : 'rich mode'
+  const title = `${modeText} ${getShortcutCombo('toggleMode')}`
+
   return (
     <span
       onClick={() => editor.dispatchCommand(SN_TOGGLE_MODE_COMMAND)}
       className={classNames(styles.bottomBarItem, className)}
-      title={`${isMD ? 'markdown mode' : 'rich mode'} (${getShortcutCombo('toggleMode')})`}
-      suppressHydrationWarning
+      title={title}
     >
-      {isMD ? 'markdown mode' : 'rich mode'}
+      {modeText}
     </span>
   )
 }

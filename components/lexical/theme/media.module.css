@@ -13,6 +13,7 @@
   width: 100%;
   white-space: pre-wrap;
   word-break: break-word;
+  color: #fff !important;
 }
 
 .imageCaptionContainer {

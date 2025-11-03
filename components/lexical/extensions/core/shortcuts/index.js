@@ -81,6 +81,7 @@ export const ShortcutsExtension = defineExtension({
       (e) => {
         if (!editor.isEditable()) return false
         for (const { combo, handler } of shortcuts) {
+          if (!combo) continue
           if (matches(e, combo)) {
             e.preventDefault()
             handler({ editor, event: e })

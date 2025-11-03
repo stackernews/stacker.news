@@ -1,5 +1,5 @@
-import { CodeNode } from '@lexical/code'
-import { $getRoot, $createLineBreakNode } from 'lexical'
+import { CodeNode, $isCodeNode } from '@lexical/code'
+import { $getRoot, $createLineBreakNode, $isTextNode, $isLineBreakNode } from 'lexical'
 
 // MarkdownNode is a special CodeNode that allows markdown mode with removal protection
 // overrides CodeNode special cases, such as exiting the node after 2 line breaks
@@ -49,10 +49,37 @@ export class MarkdownNode extends CodeNode {
 
   // prevent exiting markdown mode by overriding insertNewAfter
   // just create a new line break node (like shift+enter)
-  insertNewAfter (selection, restoreSelection = true) {
-    const { offset } = selection.anchor
-    this.splice(offset, 0, [$createLineBreakNode()])
-    this.select(offset + 1, offset + 1)
+  insertNewAfter (selection, _restoreSelection = true) {
+    const { anchor } = selection
+    const anchorNode = anchor.getNode()
+
+    // case 1: caret is inside text inside this code block
+    if ($isTextNode(anchorNode) || $isLineBreakNode(anchorNode)) {
+      console.log('inserting line break in text node', anchorNode)
+      const splitLeft = anchorNode.splitText(anchor.offset)[0]
+      const insertIndex =
+        splitLeft.getIndexWithinParent() + (anchor.offset === 0 ? 0 : 1)
+
+      const parent = splitLeft.getParentOrThrow()
+      parent.splice(insertIndex, 0, [$createLineBreakNode()])
+
+      // move caret to after the break
+      const after = splitLeft.getNextSibling()
+      if (after != null) {
+        after.selectNext(0, 0)
+      }
+      return null
+    }
+
+    // case 2: caret is directly in the CodeNode/MarkdownNode (rare)
+    if ($isCodeNode(anchorNode) || $isMarkdownNode(anchorNode)) {
+      console.log('inserting line break in code node', anchorNode)
+      const { offset } = selection.anchor
+      anchorNode.splice(offset, 0, [$createLineBreakNode()])
+      anchorNode.select(offset + 1, offset + 1)
+      return null
+    }
+
     return null
   }
 }

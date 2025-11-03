@@ -1,5 +1,5 @@
 import { prepareLexicalState } from '@/lib/lexical/utils/server/interpolator'
-import { $ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
+import { lexicalHTMLGenerator } from '@/lib/lexical/utils/server/html'
 import { Prisma } from '@prisma/client'
 
 // migrates legacy content to the new editorState Lexical format
@@ -27,7 +27,7 @@ export async function migrateLegacyContent ({ data: { itemId, fullRefresh, check
     }
   }
   console.log('lexicalState generated:', lexicalState)
-  const html = $ssrLexicalHTMLGenerator(lexicalState)
+  const html = lexicalHTMLGenerator(lexicalState)
   if (html.startsWith('error')) {
     throw new Error('couldn\'t generate html')
   }

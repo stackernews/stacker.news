@@ -403,13 +403,13 @@ function DevLexicalConversionDropdownItem ({ item }) {
   const isPost = !item.parentId
   const [shiftHeld, setShiftHeld] = useState(false)
 
-  const [executeConversion] = useMutation(gql`
-    mutation executeConversion($itemId: ID!, $fullRefresh: Boolean!) {
-      executeConversion(itemId: $itemId, fullRefresh: $fullRefresh)
+  const [debugLexicalConversion] = useMutation(gql`
+    mutation debugLexicalConversion($itemId: ID!, $fullRefresh: Boolean!) {
+      debugLexicalConversion(itemId: $itemId, fullRefresh: $fullRefresh)
     }
   `, {
     onCompleted: (data) => {
-      if (data.executeConversion) {
+      if (data.debugLexicalConversion) {
         toaster.success('conversion scheduled, refreshing in 15 seconds...')
         setTimeout(() => {
           isPost ? router.push(`/items/${item.id}`) : router.push(`/items/${item.parentId}?commentId=${item.id}`)
@@ -452,7 +452,7 @@ function DevLexicalConversionDropdownItem ({ item }) {
   }
 
   return (
-    <Dropdown.Item onClick={() => { executeConversion({ variables: { itemId: item.id, fullRefresh: shiftHeld } }) }}>
+    <Dropdown.Item onClick={() => { debugLexicalConversion({ variables: { itemId: item.id, fullRefresh: shiftHeld } }) }}>
       {getDropdownText()}
     </Dropdown.Item>
   )

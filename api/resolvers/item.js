@@ -27,7 +27,7 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
-import { $ssrLexicalHTMLGenerator } from '@/lib/lexical/utils/server/lexicalToHTML'
+import { lexicalHTMLGenerator } from '@/lib/lexical/utils/server/html'
 import { prepareLexicalState } from '@/lib/lexical/utils/server/interpolator'
 
 function commentsOrderByClause (me, models, sort) {
@@ -114,7 +114,6 @@ export async function getItem (parent, { id }, { me, models }) {
         activeOrMine(me)
       )}`
   }, Number(id))
-
   return item
 }
 
@@ -1095,7 +1094,7 @@ export default {
 
       return result.lastViewedAt
     },
-    executeConversion: async (parent, { itemId, fullRefresh }, { models }) => {
+    debugLexicalConversion: async (parent, { itemId, fullRefresh }, { models }) => {
       if (process.env.NODE_ENV !== 'development') {
         throw new GqlInputError('only allowed in sndev')
       }
@@ -1566,10 +1565,8 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   // never change author of item
   item.userId = old.userId
 
-  // sanitize html
-  // if the html conversion fails, we'll use the lexicalState directly
-  // this might be a problem for instant content
-  item.html = $ssrLexicalHTMLGenerator(item.lexicalState)
+  // generate sanitized html from lexical state
+  item.html = lexicalHTMLGenerator(item.lexicalState)
 
   const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd })
 
@@ -1609,10 +1606,8 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   // mark item as created with API key
   item.apiKey = me?.apiKey
 
-  // sanitize html
-  // if the html conversion fails, we'll use the lexicalState directly
-  // this might be a problem for instant content
-  item.html = $ssrLexicalHTMLGenerator(item.lexicalState)
+  // generate sanitized html from lexical state
+  item.html = lexicalHTMLGenerator(item.lexicalState)
 
   const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd })
 

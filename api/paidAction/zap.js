@@ -257,6 +257,12 @@ async function maybeInfectUser (itemAct, { tx }) {
     return
   }
 
+  const cured = await tx.cure.findFirst({ where: { cureeId: toId } })
+  if (cured) {
+    // zappee has been cured, so can't be infected again
+    return
+  }
+
   if (await isImmune(toId, { tx })) {
     // user is immune because they created an item not too long ago
     return

@@ -395,6 +395,11 @@ const infectOnPaid = (cache, { data, me }) => {
     return
   }
 
+  const cured = me.optional.cured
+  if (cured) {
+    return
+  }
+
   const itemId = Number(result.path.split('.').pop())
   const item = cache.readFragment({
     id: `Item:${itemId}`,

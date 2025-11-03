@@ -1,7 +1,7 @@
 import { getPublicKey } from 'nostr'
 import models from '@/api/models'
 import { lnurlPayMetadataString } from '@/lib/lnurl'
-import { LNURLP_COMMENT_MAX_LENGTH, PROXY_RECEIVE_FEE_PERCENT } from '@/lib/constants'
+import { LNURLP_COMMENT_MAX_LENGTH, PROXY_RECEIVE_FEE_PERCENT, __DEV__ } from '@/lib/constants'
 
 export default async ({ query: { username } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -14,7 +14,7 @@ export default async ({ query: { username } }, res) => {
     minSendable += minSendable * PROXY_RECEIVE_FEE_PERCENT / 100n
   }
 
-  const url = process.env.NODE_ENV === 'development' ? process.env.SELF_URL : process.env.NEXT_PUBLIC_URL
+  const url = __DEV__ ? process.env.SELF_URL : process.env.NEXT_PUBLIC_URL
   return res.status(200).json({
     callback: `${url}/api/lnurlp/${username}/pay`, // The URL from LN SERVICE which will accept the pay request parameters
     minSendable: Number(minSendable), // Min amount LN SERVICE is willing to receive, can not be less than 1 or more than `maxSendable`

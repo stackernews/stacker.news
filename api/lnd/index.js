@@ -3,7 +3,7 @@ import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
 import { datePivot } from '@/lib/time'
-import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
+import { LND_PATHFINDING_TIMEOUT_MS, __DEV__ } from '@/lib/constants'
 
 const lnd = global.lnd || authenticatedLndGrpc({
   cert: process.env.LND_CERT,
@@ -11,7 +11,7 @@ const lnd = global.lnd || authenticatedLndGrpc({
   socket: process.env.LND_SOCKET
 }).lnd
 
-if (process.env.NODE_ENV === 'development') global.lnd = lnd
+if (__DEV__) global.lnd = lnd
 
 // Check LND GRPC connection
 getWalletInfo({ lnd }, (err, result) => {

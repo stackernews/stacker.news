@@ -1,12 +1,12 @@
 import Nostr, { getNostrProfile } from '@/lib/nostr'
 import { TwitterApi } from 'twitter-api-v2'
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import { __PROD__ } from '@/lib/constants'
 
-const isProd = process.env.NODE_ENV === 'production'
 const WEIGHTED_VOTE_THRESHOLD = 3
 
 async function postToTwitter ({ message }) {
-  if (!isProd ||
+  if (!__PROD__ ||
     !process.env.TWITTER_POSTER_API_KEY ||
     !process.env.TWITTER_POSTER_API_KEY_SECRET ||
     !process.env.TWITTER_POSTER_ACCESS_TOKEN ||
@@ -42,7 +42,7 @@ const RELAYS = [
 ]
 
 async function postToNostr ({ message }) {
-  if (!isProd || !process.env.NOSTR_PRIVATE_KEY) {
+  if (!__PROD__ || !process.env.NOSTR_PRIVATE_KEY) {
     console.log('Nostr poster not configured')
     return
   }

@@ -1,4 +1,5 @@
 import createPrisma from '@/lib/create-prisma'
+import { __DEV__ } from '@/lib/constants'
 
 const prisma = global.prisma || (() => {
   console.log('initing prisma')
@@ -9,6 +10,6 @@ const prisma = global.prisma || (() => {
   })
 })()
 
-if (process.env.NODE_ENV === 'development') global.prisma = prisma
+if (__DEV__) global.prisma = prisma
 
 export default prisma

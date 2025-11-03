@@ -7,6 +7,7 @@ import { TOR_REGEXP } from '@/lib/url'
 import { lightningAddressValidator } from '@/lib/validate'
 import { decodeBech32 as clinkDecodeBech32, OfferPriceType } from '@shocknet/clink-sdk'
 import { string, array } from 'yup'
+import { __DEV__ } from '@/lib/constants'
 
 export const externalLightningAddressValidator = lightningAddressValidator
   .test({
@@ -168,7 +169,7 @@ export const bip39Validator = ({ min = 12, max = 24 } = {}) =>
 export const certValidator = () => string().hexOrBase64()
 
 export const urlValidator = (...args) =>
-  process.env.NODE_ENV === 'development'
+  __DEV__
     ? string()
       .or([
         string().matches(/^(http:\/\/)?localhost:\d+$/),

@@ -1,4 +1,4 @@
-import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { __DEV__, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { FetchTimeoutError } from '@/lib/fetch'
 import { msatsToSats } from '@/lib/format'
 import { getAgent } from '@/lib/proxy'
@@ -32,7 +32,7 @@ export async function createInvoice (
   let hostname = url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
   const agent = getAgent({ hostname })
 
-  if (process.env.NODE_ENV !== 'production' && hostname.startsWith('localhost:')) {
+  if (__DEV__ && hostname.startsWith('localhost:')) {
     // to make it possible to attach LNbits for receives during local dev
     hostname = hostname === `localhost:${process.env.LNBITS_WEB_PORT}` ? 'lnbits:5000' : 'lnbits-v1:5000'
   }

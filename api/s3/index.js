@@ -1,5 +1,5 @@
 import AWS from 'aws-sdk'
-import { MEDIA_URL } from '@/lib/constants'
+import { __DEV__, MEDIA_URL } from '@/lib/constants'
 
 const bucketRegion = 'us-east-1'
 const Bucket = process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET
@@ -10,13 +10,13 @@ AWS.config.update({
 
 const config = {
   apiVersion: '2006-03-01',
-  s3ForcePathStyle: process.env.NODE_ENV === 'development'
+  s3ForcePathStyle: __DEV__
 }
 
 export function createPresignedPost ({ key, type, size }) {
   // for local development, we use the NEXT_PUBLIC_MEDIA_URL which
   // is reachable from the host machine
-  if (process.env.NODE_ENV === 'development') {
+  if (__DEV__) {
     config.endpoint = process.env.NEXT_PUBLIC_MEDIA_URL
   }
 
@@ -39,7 +39,7 @@ export function createPresignedPost ({ key, type, size }) {
 export async function deleteObjects (keys) {
   // for local development, we use the MEDIA_URL which
   // is reachable from the container network
-  if (process.env.NODE_ENV === 'development') {
+  if (__DEV__) {
     config.endpoint = MEDIA_URL
   }
 

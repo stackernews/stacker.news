@@ -37,10 +37,8 @@ export default function FileUploadPlugin () {
       console.error(err)
     },
     onCompleted: ({ uploadFees }) => {
-      console.log('uploadFees', uploadFees)
       const { uploadFees: feePerUpload, nUnpaid } = uploadFees
       const totalFees = feePerUpload * nUnpaid
-      console.log('totalFees', totalFees)
       merge({
         uploadFees: {
           term: `+ ${numWithUnits(feePerUpload, { abbreviate: false })} x ${nUnpaid}`,
@@ -74,7 +72,7 @@ export default function FileUploadPlugin () {
   }, [updateUploadFees])
 
   // debounced version for update listener
-  const $refreshUploadFeesDebounced = useDebounceCallback(() => {
+  const refreshUploadFeesDebounced = useDebounceCallback(() => {
     editor.getEditorState().read(() => {
       $refreshUploadFees()
     })
@@ -126,7 +124,6 @@ export default function FileUploadPlugin () {
       if ($isMarkdownMode()) {
         const markdownNode = $getRoot().getFirstChild()
         const text = markdownNode?.getTextContent() || ''
-        console.log('text', text)
         const percent = total ? Math.floor((loaded / total) * 100) : 0
         const regex = new RegExp(`!\\[Uploading ${file.name}… \\d+%\\]\\(${key}\\)`)
         const newText = text.replace(regex, `![Uploading ${file.name}… ${percent}%](${key})`)
@@ -153,11 +150,9 @@ export default function FileUploadPlugin () {
     editor.update(() => {
       const node = $getNodeByKey(key)
       placeholdersRef.current.delete(file)
-      console.log('isMarkdownMode', $isMarkdownMode())
       if ($isMarkdownMode()) {
         const markdownNode = $getRoot().getFirstChild()
         const text = markdownNode?.getTextContent() || ''
-        console.log('text', text)
         const regex = new RegExp(`!\\[Uploading ${file.name}… \\d+%\\]\\(${key}\\)`)
         const newText = text.replace(regex, `![](${url})`)
         $selectAll()
@@ -203,9 +198,9 @@ export default function FileUploadPlugin () {
   // update upload fees when the editor state changes in any way, debounced
   useEffect(() => {
     return editor.registerUpdateListener(() =>
-      $refreshUploadFeesDebounced()
+      refreshUploadFeesDebounced()
     )
-  }, [editor, $refreshUploadFeesDebounced])
+  }, [editor, refreshUploadFeesDebounced])
 
   // updates upload fees the moment media nodes are created or destroyed
   useEffect(() => {

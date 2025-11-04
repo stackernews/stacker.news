@@ -13,12 +13,20 @@ export const PAY_IN_INCLUDE = {
   beneficiaries: true
 }
 
-// XXX consider adding more asserts
 export async function payInCreate (tx, payInProspect, payInArgs, { me }) {
   const { mCostRemaining, mP2PCost, payInCustodialTokens } = await getPayInCosts(tx, payInProspect, { me })
   const payInState = await getPayInState(payInProspect, { mCostRemaining, mP2PCost })
   const payOutCustodialTokens = payInProspect.payOutCustodialTokens
-  const fullProspect = { ...payInProspect, payInState, payInCustodialTokens, payOutCustodialTokens }
+  const fullProspect = {
+    ...payInProspect,
+    payInState,
+    payInCustodialTokens,
+    payOutCustodialTokens,
+    beneficiaries: payInProspect.beneficiaries?.map(beneficiary => ({
+      ...beneficiary,
+      payInState
+    }))
+  }
 
   assertMcostRemaining(mCostRemaining)
   assertBalancedPayInAndPayOuts(fullProspect)

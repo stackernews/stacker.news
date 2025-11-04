@@ -140,15 +140,26 @@ export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
 
 async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
+    const inStates = ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP']
     const updatedPayIn = await models.payIn.update({
       where: {
         id: payIn.id,
-        payInState: { in: ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'] }
+        payInState: { in: inStates }
       },
       data: {
         payInState,
         payInBolt11: {
           create: payInBolt11
+        },
+        beneficiaries: {
+          updateMany: {
+            data: {
+              payInState
+            },
+            where: {
+              benefactorId: payIn.id
+            }
+          }
         }
       },
       include: PAY_IN_INCLUDE

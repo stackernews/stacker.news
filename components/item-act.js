@@ -387,16 +387,16 @@ const zapUndo = async (signal, amount) => {
 }
 
 const infectOnPaid = (cache, { data, me }) => {
-  const { act: { result } } = data
+  const getPaidActionResult = data => Object.values(data)[0]
+  const response = getPaidActionResult(data)
+  if (!response || response.result.act !== 'TIP') {
+    return
+  }
+  const { result } = response
 
   // anon is patient zero and therefore always infected
   const infected = !me || me.optional.infected
   if (!infected || result.immune) {
-    return
-  }
-
-  const meCured = me.optional.cured
-  if (meCured) {
     return
   }
 
@@ -433,9 +433,14 @@ const infectOnPaid = (cache, { data, me }) => {
 }
 
 const cureOnPaid = (cache, { data, me }) => {
-  const { act: { result } } = data
+  const getPaidActionResult = data => Object.values(data)[0]
+  const response = getPaidActionResult(data)
+  if (!response || response.result.act !== 'TIP') {
+    return
+  }
+  const { result } = response
 
-  const infected = me?.optional.infected
+  const infected = !me || me?.optional.infected
   if (infected) {
     return
   }
@@ -455,6 +460,7 @@ const cureOnPaid = (cache, { data, me }) => {
     fragment: gql`
       fragment CureOnPaidUserFields on User {
         optional {
+          infected
           cured
         }
       }`,

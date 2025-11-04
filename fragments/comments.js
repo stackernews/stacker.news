@@ -8,6 +8,7 @@ const STREAK_FIELDS = gql`
       hasSendWallet
       hasRecvWallet
       infected
+      cured
     }
   }
 `

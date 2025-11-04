@@ -234,7 +234,16 @@ async function isImmune (userId, { tx }) {
       createdAt: { gt: datePivot(new Date(), { hours: -difficulty }) }
     }
   })
-  return !!item
+  if (item) {
+    return true
+  }
+
+  const cure = await tx.cure.findFirst({ where: { cureeId: userId } })
+  if (cure) {
+    return true
+  }
+
+  return false
 }
 
 function daysSinceHalloween () {
@@ -253,12 +262,6 @@ async function maybeInfectUser (itemAct, { tx }) {
   const infection = await tx.infection.findFirst({ where: { infecteeId: fromId } })
   if (!infection) {
     // zapper not infected, so can't infect other user
-    return
-  }
-
-  const cured = await tx.cure.findFirst({ where: { cureeId: toId } })
-  if (cured) {
-    // zappee has been cured, so can't be infected again
     return
   }
 
@@ -288,10 +291,12 @@ async function maybeCureUser (itemAct, { tx }) {
   }
 
   const zapperInfection = await tx.infection.findFirst({ where: { infecteeId: fromId } })
-  const zapperCured = await tx.cure.findFirst({ where: { cureeId: fromId } })
-  if (zapperInfection && !zapperCured) {
+  if (zapperInfection) {
+    const zapperCured = await tx.cure.findFirst({ where: { cureeId: fromId } })
+    if (!zapperCured) {
     // zapper is infected, so can't cure other user
-    return
+      return
+    }
   }
 
   const count = await tx.$executeRaw`

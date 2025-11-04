@@ -1,5 +1,5 @@
-import { getActionsByToolbarSection } from '@/components/lexical/universal/constants/actions'
-import { getIcon } from '@/components/lexical/universal/constants/icons'
+import { getActionsByToolbarSection } from '@/lib/lexical/universal/constants/actions'
+import { getIcon } from '@/lib/lexical/universal/constants/icons'
 
 const toolbarSectionOptions = (section) =>
   getActionsByToolbarSection(section).map(action => ({

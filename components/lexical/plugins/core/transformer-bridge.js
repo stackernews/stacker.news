@@ -3,11 +3,11 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $getRoot } from 'lexical'
 import { RichTextExtension } from '@lexical/rich-text'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
-import { $findTopLevelElement } from '@/components/lexical/universal/utils'
+import { $findTopLevelElement } from '@/lib/lexical/universal/utils'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { ListExtension, CheckListExtension } from '@lexical/list'
 import { buildEditorFromExtensions, defineExtension } from '@lexical/extension'
-import { $formatBlock } from '@/components/lexical/universal/commands/formatting/blocks'
+import { $formatBlock } from '@/lib/lexical/universal/commands/formatting/blocks'
 import { CodeHighlighterShikiExtension } from '@lexical/code-shiki'
 
 export const USE_TRANSFORMER_BRIDGE = createCommand('USE_TRANSFORMER_BRIDGE')

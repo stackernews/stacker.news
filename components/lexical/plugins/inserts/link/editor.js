@@ -12,10 +12,11 @@ import {
 import Check from '@/svgs/check-line.svg'
 import Pencil from '@/svgs/edit-line.svg'
 import Remove from '@/svgs/delete-bin-line.svg'
-import { setFloatingElemPosition } from '../../../universal/utils/position'
-import { getSelectedNode } from '@/components/lexical/universal/utils'
+import { setFloatingElemPosition } from '@/lib/lexical/universal/utils/position'
+import { getSelectedNode } from '@/lib/lexical/universal/utils'
 import { ensureProtocol } from '@/lib/url'
 import styles from './linkeditor.module.css'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
 
 export default function LinkEditor ({ nodeKey, anchorElem }) {
   const [isLinkEditMode, setIsLinkEditMode] = useState(false)
@@ -131,12 +132,9 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
         const selection = $getSelection()
         if ($isRangeSelection(selection)) {
           const parent = getSelectedNode(selection).getParent()
+          // replace auto link node with link node
           if ($isAutoLinkNode(parent)) {
-            const linkNode = $createLinkNode(parent.getURL(), {
-              rel: parent.__rel,
-              target: parent.__target,
-              title: parent.__title
-            })
+            const linkNode = $createLinkNode(parent.getURL(), { target: '_blank', rel: UNKNOWN_LINK_REL })
             parent.replace(linkNode, true)
           }
         }

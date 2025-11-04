@@ -3,7 +3,7 @@ import { $createLinkNode } from '@lexical/link'
 import { checkMedia } from '@/lib/media/check'
 import { mergeRegister } from '@lexical/utils'
 import { MediaNode } from '@/lib/lexical/nodes/content/media/media'
-import { PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
+import { PUBLIC_MEDIA_CHECK_URL, UNKNOWN_LINK_REL } from '@/lib/constants'
 
 export const MEDIA_CHECK_COMMAND = createCommand('MEDIA_CHECK_COMMAND')
 
@@ -55,7 +55,7 @@ export const MediaCheckExtension = defineExtension({
             // if the media is unknown, at this point replace it with a link
             if (result.type === 'unknown') {
               const url = node.getSrc()
-              const link = $createLinkNode(url)
+              const link = $createLinkNode(url, { target: '_blank', rel: UNKNOWN_LINK_REL })
               link.append($createTextNode(url))
               node.replace(link)
             } else {
@@ -74,7 +74,7 @@ export const MediaCheckExtension = defineExtension({
             if (node instanceof MediaNode) {
               node.setStatus('error')
               const url = node.getSrc()
-              const link = $createLinkNode(url)
+              const link = $createLinkNode(url, { target: '_blank', rel: UNKNOWN_LINK_REL })
               link.append($createTextNode(url))
               node.replace(link)
             }

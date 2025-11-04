@@ -12,23 +12,24 @@ import { useLexicalPreferences } from './contexts/preferences'
 import { useSharedHistoryContext, SharedHistoryContextProvider } from './contexts/sharedhistory'
 import { TableContextProvider } from './contexts/table'
 import { ToolbarContextProvider } from './contexts/toolbar'
-import { CodeShikiSNExtension, CodeThemePlugin } from './extensions/core/code'
+import { CodeShikiSNExtension } from '../../lib/lexical/extensions/core/code'
+import { CodeThemePlugin } from './plugins/core/code-theme'
 import FileUploadPlugin from './plugins/inserts/upload'
 import FloatingToolbarPlugin from './plugins/toolbar/floating/floatingtoolbar'
 import LinkEditorPlugin from './plugins/inserts/link'
 import MentionsPlugin from './plugins/decorative/mention'
 import ModeSwitcher from './plugins/core/mode/switch'
-import { ShortcutsExtension } from './extensions/core/shortcuts'
+import { ShortcutsExtension } from '../../lib/lexical/extensions/core/shortcuts'
 import { ToolbarPlugin } from './plugins/toolbar'
-import { UniversalCommandsExtension } from './universal/commands'
-import { $initializeEditorState } from './universal/utils'
+import { SNCommandsExtension } from '../../lib/lexical/extensions/core/commands'
+import { $initializeEditorState } from '../../lib/lexical/universal/utils'
 import DefaultNodes from '@/lib/lexical/nodes'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import styles from './theme/theme.module.css'
 import theme from './theme'
 import { MaxLengthPlugin } from './plugins/misc/max-length'
 import TransformerBridgePlugin from './plugins/core/transformer-bridge'
-import { MarkdownModeExtension } from './extensions/core/mode'
+import { MarkdownModeExtension } from '../../lib/lexical/extensions/core/mode'
 import { MediaCheckExtension } from './plugins/misc/media-check'
 import LocalDraftPlugin from './plugins/core/local-draft'
 import FormikBridgePlugin from './plugins/core/formik'
@@ -37,9 +38,9 @@ import { AutoLinkExtension, createLinkMatcherWithRegExp, LinkExtension } from '@
 import { TableExtension } from '@lexical/table'
 import { AutoFocusExtension } from '@lexical/extension'
 import { AUTOLINK_URL_REGEXP, EMAIL_REGEXP, ensureProtocol } from '@/lib/url'
-import { SNAutoLinkExtension } from './extensions/decorative/autolink'
+import { SNAutoLinkExtension } from '../../lib/lexical/extensions/decorative/autolink'
 import PreferencesPlugin from './plugins/core/preferences'
-import MediaPlugin from './plugins/content/media'
+import MediaDragDropPlugin from './plugins/content/media/dnd'
 // import TableHoverPlugin from './plugins/inserts/table/hover'
 import TableActionMenuPlugin from './plugins/inserts/table/action'
 // import DraggableBlockPlugin from './plugins/core/draggable-block'
@@ -99,7 +100,7 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
         CheckListExtension,
         LinkExtension,
         TableExtension,
-        UniversalCommandsExtension,
+        SNCommandsExtension,
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
       theme,
@@ -173,7 +174,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         {/* floating toolbar */}
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
         {/* media insert & DnD */}
-        <MediaPlugin />
+        <MediaDragDropPlugin />
         {/* draggable block */}
         {/* <DraggableBlockPlugin anchorElem={floatingAnchorElem} /> */}
         {/* formik */}

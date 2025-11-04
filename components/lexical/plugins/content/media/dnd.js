@@ -13,12 +13,12 @@ export const SN_INSERT_MEDIA_COMMAND = createCommand('SN_INSERT_MEDIA_COMMAND')
 
 // governs the insertion of media nodes
 // drag and drop works by re-inserting the media node at a new location
-export default function MediaPlugin () {
+export default function MediaDragDropPlugin () {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
     if (!editor.hasNodes([MediaNode])) {
-      throw new Error('MediaPlugin requires MediaNode to be registered')
+      throw new Error('MediaDragDropPlugin requires MediaNode to be registered')
     }
 
     return mergeRegister(

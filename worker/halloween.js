@@ -11,7 +11,7 @@ export async function halloween ({ models }) {
                 SELECT "userId" FROM "Item"
                 WHERE created_at > ${datePivot(new Date(), { hours: -HALLOWEEN_INACTIVITY_TIMEOUT_HOURS })}
                 AND ("invoiceActionState" IS NULL OR "invoiceActionState" = 'PAID')
-            )
+            ) AND NOT "cured"
         ),
         new_infections AS (
             INSERT INTO "Infection" ("infecteeId")

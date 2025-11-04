@@ -53,6 +53,10 @@ const theme = {
   tableScrollableWrapper: 'sn__tableScrollableWrapper',
   tableSelected: 'sn__tableSelected',
   tableSelection: 'sn__tableSelection',
+  tableAlignment: {
+    center: 'sn__tableAlignmentCenter',
+    right: 'sn__tableAlignmentRight'
+  },
   text: {
     bold: 'sn__textBold',
     italic: 'sn__textItalic',

@@ -69,7 +69,7 @@ export function TerritoryInfo ({ sub, includeLink }) {
             @{sub.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
           </Link>
           <span> on </span>
-          <span className='fw-bold'>{new Date(sub.createdAt).toDateString()}</span>
+          <span className='fw-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
         </div>
         <div className='d-flex'>
           <div className='text-muted'>

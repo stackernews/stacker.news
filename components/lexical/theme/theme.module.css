@@ -164,12 +164,12 @@
 }
 
 .divider {
-  width: 1px;
+  min-width: 1px;
   height: 20px;
   background-color: var(--theme-borderColor);
-  opacity: 0.3;
   border-radius: 0.4rem;
   margin: 0 4px;
+  opacity: 0.3;
 }
 
 :global(.dropdown) + .divider {

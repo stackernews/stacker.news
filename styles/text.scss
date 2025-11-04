@@ -306,7 +306,7 @@ span + .sn__link {
 }
 
 .sn__table {
-  border-collapse: collapse;
+  border-collapse: separate;
   border-spacing: 0;
   overflow-y: scroll;
   overflow-x: scroll;
@@ -315,6 +315,7 @@ span + .sn__link {
   margin-top: 25px;
   margin-bottom: 30px;
 }
+
 .sn__tableSelection *::selection {
   background-color: transparent;
 }
@@ -322,7 +323,7 @@ span + .sn__link {
   outline: 2px solid rgb(60, 132, 244);
 }
 .sn__tableCell {
-  border: 1px solid #bbb;
+  border: 0.5px solid var(--theme-borderColor);
   width: 75px;
   min-width: 75px;
   vertical-align: top;
@@ -332,6 +333,7 @@ span + .sn__link {
   outline: none;
   overflow: auto;
 }
+
 /*
   lexical dev notes:
   A firefox workaround to allow scrolling of overflowing table cell

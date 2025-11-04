@@ -37,11 +37,11 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
             -- [min(the mcredits we have, the mcost that can be paid with credits), what's left to pay with msats].sum() = mCustodialCost
             ARRAY[max_mcredits, ${mCustodialCost} - max_mcredits]
           -- Strategy 2: Can we spend all mcredits and maximize msats spending, but leaving a remainder of a multiple of 1000?
-          WHEN msats > 0 AND msats >= max_mcredits_modulo_1000 THEN
+          WHEN msats >= max_mcredits_modulo_1000 THEN
             -- [min(the mcredits we have, the mcost that can be paid with credits), the max msats we can spend that bring the remainder to a multiple of 1000].sum() < mCustodialCost
             ARRAY[max_mcredits,
                 max_mcredits_modulo_1000 +
-                  (GREATEST(0, msats - max_mcredits_modulo_1000 - max_mcredits) / 1000 * 1000)]
+                  ((GREATEST(0, msats - max_mcredits_modulo_1000) / 1000) * 1000)]
           -- Strategy 3: Spend multiples of 1000 only for both mcredits and msats
           ELSE
             -- [mcredits floored to a multiple of 1000, msats floored to a multiple of 1000].sum() < mCustodialCost

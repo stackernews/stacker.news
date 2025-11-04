@@ -187,7 +187,7 @@ export default {
       if (!payIn.payInBolt11) {
         return null
       }
-      return { msats: payIn.payInBolt11?.msatsRequested }
+      return { msats: payIn.payInBolt11?.msatsReceived ?? payIn.payInBolt11?.msatsRequested }
     },
     payOutBolt11Public: (payIn, args, { models, me }) => {
       if (!payIn.payOutBolt11) {

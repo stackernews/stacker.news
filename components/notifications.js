@@ -211,7 +211,7 @@ function Horse ({ n }) {
 
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {found ? 'found a' : 'lost your'} horse</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
@@ -226,7 +226,7 @@ function Gun ({ n }) {
 
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {found ? 'found a' : 'lost your'} gun</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>

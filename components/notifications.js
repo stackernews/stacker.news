@@ -67,9 +67,9 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === 'Reminder' && <Reminder n={n} />) ||
         (type === 'PayInification' && (
-          (n.payIn.payInState !== 'PAID' && <PayInFailed n={n} />) ||
           (n.payIn.payInType === 'PROXY_PAYMENT' && <PayInProxyPayment n={n} />) ||
-          ((n.payIn.payInType === 'WITHDRAWAL' || n.payIn.payInType === 'AUTO_WITHDRAWAL') && <PayInWithdrawal n={n} />)
+          ((n.payIn.payInType === 'WITHDRAWAL' || n.payIn.payInType === 'AUTO_WITHDRAWAL') && <PayInWithdrawal n={n} />) ||
+            <PayInFailed n={n} />
         )) ||
         (type === 'ReferralReward' && <ReferralReward n={n} />)
       }

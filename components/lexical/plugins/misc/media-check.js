@@ -91,11 +91,10 @@ export const MediaCheckExtension = defineExtension({
       return promise
     }
 
-    // expose awaitable API on editor
     editor.checkMediaNode = checkMediaNode
 
     const unregister = mergeRegister(
-      // register command to check media type for a given node (fire-and-forget)
+      // register command to check media type for a given node
       editor.registerCommand(MEDIA_CHECK_COMMAND, ({ nodeKey, url }) => {
         checkMediaNode(nodeKey, url)
         return true

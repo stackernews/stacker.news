@@ -134,10 +134,6 @@
   overflow: auto;
 }
 
-.editorInput > hr {
-  border-top: 1px solid var(--theme-clickToContextColor);
-}
-
 .editorInput:focus-within {
   outline: 0;
   border: 1px solid var(--bs-primary) !important;

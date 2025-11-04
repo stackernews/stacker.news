@@ -6,6 +6,16 @@
   word-break: break-word;
 }
 
+.sn__hr {
+  border-top: 3px solid var(--theme-quoteBar);
+  padding: 0 !important;
+  caret-color: transparent;
+}
+
+[contenteditable="true"] .sn__hr.selected {
+  opacity: 1 !important;
+}
+
 .sn__headings {
   margin-top: 0.75rem;
   margin-bottom: 0.5rem;
@@ -162,6 +172,17 @@ span + .sn__link {
   margin-bottom: 0rem;
   padding-left: 2rem;
   max-width: calc(100% - 1rem);
+}
+
+/* list item padding, lookbehind for nested list items */
+.sn__listItem:has(> span) {
+  padding-top: calc(var(--grid-gap) * 0.5);
+  padding-bottom: calc(var(--grid-gap) * 0.5);
+  
+  .sn__nestedListItem & {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
 }
 
 .sn__listItem {

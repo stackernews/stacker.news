@@ -36,7 +36,7 @@ import FormikBridgePlugin from './plugins/core/formik'
 import { CheckListExtension, ListExtension } from '@lexical/list'
 import { AutoLinkExtension, createLinkMatcherWithRegExp, LinkExtension } from '@lexical/link'
 import { TableExtension } from '@lexical/table'
-import { AutoFocusExtension } from '@lexical/extension'
+import { AutoFocusExtension, HorizontalRuleExtension } from '@lexical/extension'
 import { AUTOLINK_URL_REGEXP, EMAIL_REGEXP, ensureProtocol } from '@/lib/url'
 import { SNAutoLinkExtension } from '../../lib/lexical/extensions/decorative/autolink'
 import PreferencesPlugin from './plugins/core/preferences'
@@ -101,6 +101,7 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
         LinkExtension,
         TableExtension,
         SNCommandsExtension,
+        HorizontalRuleExtension,
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
       theme,

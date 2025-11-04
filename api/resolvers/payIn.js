@@ -112,10 +112,10 @@ export default {
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
           )
-          ORDER BY "sortTime" DESC
+          ORDER BY "sortTime" DESC, "isSend" ASC
           OFFSET ${offset}
           LIMIT ${limit}`,
-        orderBy: Prisma.sql`ORDER BY "sortTime" DESC`
+        orderBy: Prisma.sql`ORDER BY "sortTime" DESC, "isSend" ASC`
       })
 
       return {

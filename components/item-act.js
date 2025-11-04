@@ -115,7 +115,10 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       animate()
       onClose?.()
       if (!me) setItemMeAnonSats({ id: item.id, amount })
-      if (cache && data) infectOnPaid(cache, { me, data })
+      if (cache && data) {
+        infectOnPaid(cache, { me, data })
+        cureOnPaid(cache, { me, data })
+      }
     }
 
     const closeImmediately = hasSendWallet || me?.privates?.sats > Number(amount)
@@ -143,7 +146,10 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       // don't close modal immediately because we want the QR modal to stack
       // but still trigger halloween infection
       onPaid: closeImmediately
-        ? (cache, { data }) => infectOnPaid(cache, { me, data })
+        ? (cache, { data }) => {
+            infectOnPaid(cache, { me, data })
+            cureOnPaid(cache, { me, data })
+          }
         : onPaid
     })
     if (error) throw error
@@ -298,6 +304,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       updateAncestors(cache, response)
       options?.onPaid?.(cache, { data })
       infectOnPaid(cache, { data, me })
+      cureOnPaid(cache, { data, me })
     }
   })
   return act
@@ -380,7 +387,12 @@ const zapUndo = async (signal, amount) => {
 }
 
 const infectOnPaid = (cache, { data, me }) => {
-  const { act: { result } } = data
+  const getPaidActionResult = data => Object.values(data)[0]
+  const response = getPaidActionResult(data)
+  if (!response || response.result.act !== 'TIP') {
+    return
+  }
+  const { result } = response
 
   // anon is patient zero and therefore always infected
   const infected = !me || me.optional.infected
@@ -395,9 +407,19 @@ const infectOnPaid = (cache, { data, me }) => {
       fragment InfectOnPaidItemFields on Item {
         user {
           id
+          optional {
+            cured
+          }
         }
       }`
   })
+
+  const targetCured = item.user.optional.cured
+  if (targetCured) {
+    // cured user can no longer be infected
+    return
+  }
+
   cache.writeFragment({
     id: `User:${item.user.id}`,
     fragment: gql`
@@ -407,5 +429,41 @@ const infectOnPaid = (cache, { data, me }) => {
         }
       }`,
     data: { optional: { infected: true } }
+  })
+}
+
+const cureOnPaid = (cache, { data, me }) => {
+  const getPaidActionResult = data => Object.values(data)[0]
+  const response = getPaidActionResult(data)
+  if (!response || response.result.act !== 'TIP') {
+    return
+  }
+  const { result } = response
+
+  const infected = !me || me?.optional.infected
+  if (infected) {
+    return
+  }
+
+  const itemId = Number(result.path.split('.').pop())
+  const item = cache.readFragment({
+    id: `Item:${itemId}`,
+    fragment: gql`
+      fragment CureOnPaidItemFields on Item {
+        user {
+          id
+        }
+      }`
+  })
+  cache.writeFragment({
+    id: `User:${item.user.id}`,
+    fragment: gql`
+      fragment CureOnPaidUserFields on User {
+        optional {
+          infected
+          cured
+        }
+      }`,
+    data: { optional: { infected: false, cured: true } }
   })
 }

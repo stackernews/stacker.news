@@ -180,12 +180,17 @@ export default gql`
     sortTime: Date!
   }
 
+  type Cured {
+    id: ID!
+    sortTime: Date!
+  }
+
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
     | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
     | ReferralReward | CowboyHat | NewHorse | LostHorse | NewGun | LostGun
-    | Infection
+    | Infection | Cured
 
   type Notifications {
     lastChecked: Date

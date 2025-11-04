@@ -65,7 +65,7 @@ export default function TransformerBridgePlugin ({ nodes }) {
         // make sure we're working with a clean bridge
         $getRoot().clear()
 
-        $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, transformation !== 'code')
+        $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, false)
         $selectAll()
         const innerSelection = $getSelection()
 
@@ -86,7 +86,7 @@ export default function TransformerBridgePlugin ({ nodes }) {
             break
         }
 
-        newMarkdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, transformation !== 'code')
+        newMarkdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, false)
         // we're done, clear the bridge
         $getRoot().clear()
       })

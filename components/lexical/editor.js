@@ -136,7 +136,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
       <div className={styles.editorContainer}>
         <TransformerBridgePlugin nodes={DefaultNodes} />
         <ToolbarPlugin topLevel={topLevel} />
-        <div className={styles.editorInnerContainer}>
+        <div style={{ position: 'relative' }}>
           <RichTextPlugin
             contentEditable={
               <div className={styles.editor} ref={onRef}>

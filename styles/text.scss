@@ -12,6 +12,22 @@
   font-size: 1rem;
 }
 
+.topLevel h1.sn__headings {
+  font-size: 1.6rem;
+}
+
+.topLevel h2.sn__headings {
+  font-size: 1.45rem;
+}
+
+.topLevel h3.sn__headings {
+  font-size: 1.3rem;
+}
+
+.topLevel h4.sn__headings {
+  font-size: 1.15rem;
+}
+
 /* blocks */
 .sn__quote {
   border-left: 3px solid var(--theme-quoteBar);
@@ -141,18 +157,15 @@ span + .sn__link {
   list-style-type: none;
 }
 
-.sn__listOl {
-  padding: 0;
-  margin: 0;
-}
-
-.sn__listUl {
-  padding: 0;
-  margin: 0;
+.sn__listOl, .sn__listUl {
+  margin-top: 0;
+  margin-bottom: 0rem;
+  padding-left: 2rem;
+  max-width: calc(100% - 1rem);
 }
 
 .sn__listItem {
-  margin: 8px 16px 8px 16px;
+  margin-top: .25rem;
 }
 
 .sn__listItemChecked, .sn__listItemUnchecked {

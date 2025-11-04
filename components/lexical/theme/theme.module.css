@@ -11,6 +11,10 @@
   --grid-gap: 0.5rem;
 }
 
+.text p {
+  margin-bottom: 0 !important;
+}
+
 .textTruncated {
   max-height: 50vh;
 }
@@ -43,18 +47,49 @@
 .textShowFull {
   position: absolute;
   bottom: 0;
-  left: 0;
-  border-radius: 0;
   z-index: 2;
+  border-radius: 0;
 }
 
-.text p {
+.text :global(.sn__paragraph) {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding-top: calc(var(--grid-gap) * 0.5);
+  padding-bottom: calc(var(--grid-gap) * 0.5);
+}
+
+.text>*:not(:global(.sn__heading)) {
+  padding-top: calc(var(--grid-gap) * 0.5);
+  padding-bottom: calc(var(--grid-gap) * 0.5);
+}
+
+.text pre, .text blockquote {
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+}
+
+.text>*:last-child:not(.textShowFull) {
+  padding-bottom: 0 !important;
   margin-bottom: 0 !important;
 }
 
-.text .p {
-  padding-top: calc(var(--grid-gap) * 0.5);
-  padding-bottom: calc(var(--grid-gap) * 0.5);
+.text>*:first-child {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.text blockquote, .text.topLevel blockquote  {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.text blockquote *:first-child, .text.topLevel blockquote *:first-child {
+  padding-top: 0;
+}
+
+.text blockquote *:last-child, .text.topLevel blockquote *:last-child {
+  padding-bottom: 0;
 }
 
 @media screen and (min-width: 767px) {

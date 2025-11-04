@@ -4,11 +4,9 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { forwardRef, useMemo } from 'react'
-import classNames from 'classnames'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { CodeShikiSNExtension } from '../../lib/lexical/extensions/core/code'
 import { CodeThemePlugin } from './plugins/core/code-theme'
-import styles from './theme/theme.module.css'
 import theme from './theme'
 import { TableExtension } from '@lexical/table'
 
@@ -37,15 +35,15 @@ export default forwardRef(function Reader ({ lexicalState, className, children, 
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>
-      <RichTextPlugin
-        contentEditable={
-          <div className={classNames(styles.editor, className)} ref={contentRef}>
-            <ContentEditable />
-            {children}
-          </div>
-        }
-        ErrorBoundary={LexicalErrorBoundary}
-      />
+      <div style={{ position: 'relative' }}>
+        <RichTextPlugin
+          contentEditable={
+            <ContentEditable className={className} ref={contentRef} />
+          }
+          ErrorBoundary={LexicalErrorBoundary}
+        />
+        {children}
+      </div>
       <CodeThemePlugin />
     </LexicalExtensionComposer>
   )

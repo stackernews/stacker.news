@@ -96,7 +96,7 @@ function useOverflow ({ element, truncated = false }) {
         <Button
           size='lg'
           variant='info'
-          className={styles.textShowFull}
+          className={lexicalStyles.textShowFull}
           onClick={showOverflow}
         >
           show full text

@@ -25,7 +25,7 @@ function $prepareMarkdown (editor, markdown) {
 
   // convert the markdown to a lexical state
   tempEditor.update(() => {
-    $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, true)
+    $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, false)
   })
 
   tempEditor.read(() => {
@@ -59,7 +59,7 @@ export default function FormikBridgePlugin () {
           markdown = $getRoot().getFirstChild()?.getTextContent() || ''
           lexicalState = $prepareMarkdown(editor, markdown)
         } else {
-          markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, true)
+          markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, false)
         }
 
         lexicalHelpers.setValue(JSON.stringify(lexicalState))

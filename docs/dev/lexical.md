@@ -40,7 +40,7 @@ Shortcuts are categorized in
 - inserts
 - editor
 
-The `DefaultShortcuts` list can be found at `@components/lexical/universal/constants/actions`
+The `DefaultShortcuts` list can be found at `@lib/lexical/universal/constants/actions`
 
 ### **`FormikPlugin`**
 

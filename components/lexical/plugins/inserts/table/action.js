@@ -203,35 +203,6 @@ function TableActionMenu ({
     onClose()
   }, [editor, tableCellNode, clearTableSelection, onClose])
 
-  let mergeCellButton = null
-  if (cellMerge) {
-    if (canMergeCells) {
-      mergeCellButton = (
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
-          onClick={() => {
-            editor.dispatchCommand(SN_TABLE_MERGE_TOGGLE_COMMAND, selectionCounts)
-            onClose()
-          }}
-        >
-          <span className={styles.text}>Merge cells</span>
-        </Dropdown.Item>
-      )
-    } else if (canUnmergeCell) {
-      mergeCellButton = (
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
-          onClick={() => {
-            editor.dispatchCommand(SN_TABLE_MERGE_TOGGLE_COMMAND, selectionCounts)
-            onClose()
-          }}
-        >
-          <span className={styles.text}>Unmerge cells</span>
-        </Dropdown.Item>
-      )
-    }
-  }
-
   return createPortal(
     <div ref={dropDownRef} className={styles.tableActionMenuWrapper}>
       <Dropdown.Menu
@@ -240,7 +211,22 @@ function TableActionMenu ({
           e.stopPropagation()
         }}
       >
-        {mergeCellButton}
+        {cellMerge && (canMergeCells || canUnmergeCell) && (
+          <Dropdown.Item
+            className={styles.tableActionMenuItem}
+            onClick={() => {
+              editor.dispatchCommand(SN_TABLE_MERGE_TOGGLE_COMMAND, selectionCounts)
+              onClose()
+            }}
+          >
+            <span className={styles.tableActionMenuLabel}>
+              {canMergeCells ? 'merge cells' : canUnmergeCell ? 'unmerge cells' : ''}
+              <span className={styles.tableActionMenuItemShortcut}>
+                {getShortcutCombo('table-merge')}
+              </span>
+            </span>
+          </Dropdown.Item>
+        )}
         <Dropdown.Item
           className={styles.tableActionMenuItem}
           onClick={() => insertTableRowAtSelection(false)}

@@ -3,7 +3,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { getShortcutCombo } from '../../../../../lib/lexical/extensions/core/shortcuts/keyboard'
 import { SN_TOGGLE_MODE_COMMAND } from '@/lib/lexical/extensions/core/mode'
 import styles from '@/components/lexical/theme/theme.module.css'
-import { $isMarkdownMode } from '@/components/lexical/universal/utils'
+import { $isMarkdownMode } from '@/lib/lexical/universal/utils'
 import classNames from 'classnames'
 
 export default function ModeSwitcher ({ className }) {

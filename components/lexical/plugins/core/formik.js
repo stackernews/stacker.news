@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect, useRef } from 'react'
 import { useField } from 'formik'
-import { $initializeEditorState, $isMarkdownMode, $isRootEmpty } from '@/components/lexical/universal/utils'
+import { $initializeEditorState, $isMarkdownMode, $isRootEmpty } from '@/lib/lexical/universal/utils'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { buildEditorFromExtensions, defineExtension } from '@lexical/extension'

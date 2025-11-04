@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useContext, useCallback, useEffect } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
-import { $isRootEmpty } from '@/components/lexical/universal/utils'
+import { $isRootEmpty } from '@/lib/lexical/universal/utils'
 
 // loads and saves a draft of the editor state to local storage
 export default function LocalDraftPlugin ({ name }) {

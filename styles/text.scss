@@ -312,8 +312,8 @@ span + .sn__link {
   overflow-x: scroll;
   table-layout: fixed;
   width: fit-content;
-  margin-top: 25px;
-  margin-bottom: 30px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .sn__tableSelection *::selection {
@@ -323,7 +323,7 @@ span + .sn__link {
   outline: 2px solid rgb(60, 132, 244);
 }
 .sn__tableCell {
-  border: 0.5px solid var(--theme-borderColor);
+  border: 1px solid var(--theme-borderColor);
   width: 75px;
   min-width: 75px;
   vertical-align: top;
@@ -402,10 +402,30 @@ span + .sn__link {
 }
 .sn__tableScrollableWrapper {
   overflow-x: auto;
-  margin: 0px 25px 30px 0px;
+  overflow-y: hidden;
+  margin: 10px 0 10px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-borderColor) transparent;
 }
+
+.sn__tableScrollableWrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.sn__tableScrollableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sn__tableScrollableWrapper::-webkit-scrollbar-thumb {
+  background-color: var(--theme-borderColor);
+  border-radius: 4px;
+}
+
+.sn__tableScrollableWrapper::-webkit-scrollbar-thumb:hover {
+  background-color: var(--theme-navLink);
+}
+
 .sn__tableScrollableWrapper > .sn__table {
-  /* to be implemented */
   margin-top: 0;
   margin-bottom: 0;
 }

@@ -10,6 +10,7 @@ import { CodeShikiSNExtension } from '../../lib/lexical/extensions/core/code'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import styles from './theme/theme.module.css'
 import theme from './theme'
+import { TableExtension } from '@lexical/table'
 
 export default forwardRef(function Reader ({ lexicalState, className, children, contentRef }, ref) {
   const reader = useMemo(() =>
@@ -29,7 +30,7 @@ export default forwardRef(function Reader ({ lexicalState, className, children, 
       namespace: 'SN',
       editable: false,
       nodes: DefaultNodes,
-      dependencies: [CodeShikiSNExtension],
+      dependencies: [CodeShikiSNExtension, TableExtension],
       theme,
       onError: (error) => console.error('stacker news reader has encountered an error:', error)
     }), [])

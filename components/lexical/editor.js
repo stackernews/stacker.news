@@ -44,6 +44,7 @@ import MediaDragDropPlugin from './plugins/content/media/dnd'
 // import TableHoverPlugin from './plugins/inserts/table/hover'
 import TableActionMenuPlugin from './plugins/inserts/table/action'
 // import DraggableBlockPlugin from './plugins/core/draggable-block'
+import { TableOfContentsExtension } from '@/lib/lexical/extension/toc'
 
 export default function Editor ({ name, appendValue, autoFocus, ...props }) {
   const { prefs } = useLexicalPreferences()
@@ -102,6 +103,7 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
         TableExtension,
         SNCommandsExtension,
         HorizontalRuleExtension,
+        TableOfContentsExtension,
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
       theme,

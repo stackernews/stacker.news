@@ -59,7 +59,7 @@
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
-.text>*:not(:global(.sn__heading)) {
+.text>*:not(:global(.sn__heading), :global(.table-of-contents)) {
   padding-top: calc(var(--grid-gap) * 0.5);
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }

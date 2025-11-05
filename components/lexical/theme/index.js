@@ -68,7 +68,8 @@ const theme = {
     code: 'sn__code'
   },
   math: 'sn__math',
-  hr: 'sn__hr'
+  hr: 'sn__hr',
+  toc: 'sn__toc'
 }
 
 export default theme

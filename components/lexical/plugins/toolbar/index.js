@@ -14,7 +14,7 @@ import { $getSelection, $isRangeSelection, $isNodeSelection, $isElementNode, $is
 import { snHasFormat, snHasLink, snGetElementFormat, snGetBlockType, snGetCodeLanguage } from '@/lib/lexical/universal/utils/formatting'
 import { $getNearestNodeOfType, $findMatchingParent, mergeRegister } from '@lexical/utils'
 import { ListNode } from '@lexical/list'
-import { $isHeadingNode } from '@lexical/rich-text'
+import { $isSNHeadingNode } from '@/lib/lexical/nodes/misc/heading'
 import { $isCodeNode } from '@lexical/code'
 import { normalizeCodeLanguage } from '@lexical/code-shiki'
 import classNames from 'classnames'
@@ -173,7 +173,7 @@ export function ToolbarPlugin ({ topLevel }) {
   }, [])
 
   const $handleHeadingNode = useCallback((selectedElement) => {
-    const type = $isHeadingNode(selectedElement) ? selectedElement.getTag() : selectedElement.getType()
+    const type = $isSNHeadingNode(selectedElement) ? selectedElement.getTag() : selectedElement.getType()
     if (type) {
       return type
     }

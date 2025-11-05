@@ -63,7 +63,7 @@ async function obtainRowLevelLocks (tx, payIn) {
   if (payIn.payOutBolt11) {
     payOutUserIds.push(payIn.payOutBolt11.userId)
   }
-  await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR UPDATE`
+  await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR NO KEY UPDATE`
 }
 
 // after begin and retry, we want to double check that the invoice we're assuming will be created is actually created

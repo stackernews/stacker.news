@@ -248,14 +248,17 @@ export default {
         return true
       }
 
-      const foundNotes = () =>
-        models.user.update({
-          where: { id: me.id },
-          data: {
-            foundNotesAt: new Date(),
-            lastSeenAt: new Date()
-          }
-        }).catch(console.error)
+      // this is a performance optimization, so we don't want to block the connection
+      // by trying to update the user if the user is locked
+      const foundNotes = () => {
+        models.$queryRaw`
+          UPDATE "User"
+          SET "foundNotesAt" = now(), "lastSeenAt" = now()
+          WHERE "id" = (
+            SELECT "id" FROM "User" WHERE "id" = ${me.id}
+            FOR UPDATE SKIP LOCKED
+          )`.catch(console.error)
+      }
 
       // check if any votes have been cast for them since checkedNotesAt
       if (user.noteItemSats) {
@@ -555,13 +558,13 @@ export default {
       }
 
       // update checkedNotesAt to prevent rechecking same time period
-      models.user.update({
-        where: { id: me.id },
-        data: {
-          checkedNotesAt: new Date(),
-          lastSeenAt: new Date()
-        }
-      }).catch(console.error)
+      models.$queryRaw`
+        UPDATE "User"
+        SET "checkedNotesAt" = now(), "lastSeenAt" = now()
+        WHERE "id" = (
+          SELECT "id" FROM "User" WHERE "id" = ${me.id}
+          FOR UPDATE SKIP LOCKED
+        )`.catch(console.error)
 
       return false
     },

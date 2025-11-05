@@ -381,7 +381,7 @@ export default {
         LIMIT ${LIMIT}`, me.id, decodedCursor.time)
 
       if (decodedCursor.offset === 0) {
-        await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
+        models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } }).catch(console.error)
       }
 
       return {

@@ -270,7 +270,7 @@ export async function payInPaid ({ data, models, ...args }) {
     // run non critical side effects in the background
     // after the transaction has been committed
     payInTypeModules[transitionedPayIn.payInType]
-      .nonCriticalSideEffects?.(payInId, { models })
+      .onPaidSideEffects?.(models, payInId)
       .catch(console.error)
   }
 }

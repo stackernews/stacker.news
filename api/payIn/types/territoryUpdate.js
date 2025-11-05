@@ -67,6 +67,7 @@ export async function onBegin (tx, payInId, { oldName, billingType, uploadIds, .
   return await tx.sub.update({
     data: {
       ...data,
+      billingType,
       subPayIn: {
         create: [{ payInId }]
       }

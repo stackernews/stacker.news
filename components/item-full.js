@@ -26,6 +26,7 @@ import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import useCommentsView from './use-comments-view'
+import { useRouter } from 'next/router'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -155,9 +156,12 @@ function TopLevelItem ({ item, noReply, ...props }) {
 }
 
 function ItemText ({ item }) {
+  // TODO: debug, to be removed
+  const router = useRouter()
+
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : item.lexicalState
+    : item.lexicalState && router.query.md !== 'true'
       ? <LexicalText lexicalState={item.lexicalState} html={item.html} topLevel imgproxyUrls={item.imgproxyUrls} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} />
       : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }

@@ -18,7 +18,8 @@ export const LexicalReader = forwardRef(function LexicalReader ({ html, children
   const router = useRouter()
   const snCustomizedHTML = useMemo(() => applySNCustomizations(html, { outlawed, imgproxyUrls, topLevel }), [html, outlawed, imgproxyUrls, topLevel])
   // debug html with ?html
-  if (router.query.html) return <div className={props.className} dangerouslySetInnerHTML={{ __html: snCustomizedHTML }} />
+  // supressHydrationWarning is used as a band-aid but it's clear that applySNCustomizations is not the proper solution.
+  if (router.query.html) return <div className={props.className} dangerouslySetInnerHTML={{ __html: snCustomizedHTML }} suppressHydrationWarning />
 
   const Reader = useMemo(() => dynamic(() => import('./reader'), {
     ssr: false,
@@ -26,7 +27,7 @@ export const LexicalReader = forwardRef(function LexicalReader ({ html, children
       if (snCustomizedHTML) {
         return (
           <div className={props.className} ref={ref}>
-            <div dangerouslySetInnerHTML={{ __html: snCustomizedHTML }} />
+            <div dangerouslySetInnerHTML={{ __html: snCustomizedHTML }} suppressHydrationWarning />
             {children}
           </div>
         )

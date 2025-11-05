@@ -1,6 +1,5 @@
 import { prepareLexicalState } from '@/lib/lexical/utils/server/interpolator'
 import { lexicalHTMLGenerator } from '@/lib/lexical/utils/server/html'
-import { Prisma } from '@prisma/client'
 
 // migrates legacy content to the new editorState Lexical format
 // also generates the HTML for the item
@@ -37,40 +36,41 @@ export async function migrateLegacyContent ({ data: { itemId, fullRefresh, check
   })
 }
 
+export async function migrateItemLegacy ({ itemId, text, models }) {
+  const result = await prepareLexicalState({ text }, { checkMedia: false })
+  const lexicalState = result.lexicalState
+  if (!lexicalState) {
+    throw new Error('couldn\'t convert markdown to lexical state')
+  }
+  const html = lexicalHTMLGenerator(lexicalState, itemId)
+  if (html.startsWith('error')) {
+    throw new Error('couldn\'t generate html')
+  }
+  await models.item.update({
+    where: { id: itemId },
+    data: { lexicalState, html }
+  })
+}
+
 // EXPERIMENTAL: batch migration of everything
 export async function migrateEverythingLegacy ({ models }) {
-  const BATCH_SIZE = 100
+  const BATCH_SIZE = 5000
   let processedCount = 0
   let hasMore = true
   const failedItems = []
 
   while (hasMore) {
-    const items = await models.item.findMany({
-      where: {
-        lexicalState: { equals: Prisma.DbNull },
-        text: { not: null }
-      },
-      take: BATCH_SIZE,
-      orderBy: {
-        id: 'asc'
-      }
-    })
-
-    if (items.length === 0) {
-      hasMore = false
-      break
-    }
+    const items = await models.$queryRaw`
+      SELECT id, text
+      FROM "Item"
+      WHERE "lexicalState" IS NULL AND "text" IS NOT NULL AND TRIM("text") != '' ORDER BY id ASC LIMIT ${BATCH_SIZE}
+    `
 
     for (const item of items) {
       try {
-        await migrateLegacyContent({ data: { itemId: item.id, fullRefresh: true, checkMedia: false }, models })
+        await migrateItemLegacy({ itemId: item.id, text: item.text, models })
         processedCount++
-        if (processedCount % 100 === 0) {
-          console.log(`Migrated ${processedCount} items so far...`)
-        }
       } catch (error) {
-        console.error(`Failed to migrate item ${item.id}:`, error)
-
         failedItems.push({ id: item.id, error: error.message })
       }
     }
@@ -81,7 +81,7 @@ export async function migrateEverythingLegacy ({ models }) {
   }
 
   console.log(`Migration complete. Total items migrated: ${processedCount}`)
-  console.log(`Failed items: ${failedItems.length}`)
+  console.log(`Failed items: ${JSON.stringify(failedItems)}`)
 }
 
 /*

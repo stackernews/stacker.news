@@ -242,6 +242,8 @@ export default function ItemInfo ({
                 <>
                   <hr className='dropdown-divider' />
                   <DevLexicalConversionDropdownItem item={item} />
+                  <hr className='dropdown-divider' />
+                  <DevCopyMarkdownDropdownItem item={item} />
                 </>}
             </ActionDropdown>
           </>
@@ -393,6 +395,23 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
   }
 
   return null
+}
+
+function DevCopyMarkdownDropdownItem ({ item }) {
+  const toaster = useToast()
+  return (
+    <Dropdown.Item onClick={() => {
+      try {
+        toaster.success('markdown copied to clipboard')
+        navigator.clipboard.writeText(item.text)
+      } catch (error) {
+        toaster.danger('failed to copy markdown to clipboard')
+      }
+    }}
+    >
+      copy markdown
+    </Dropdown.Item>
+  )
 }
 
 // TODO: remove this once we're done debugging

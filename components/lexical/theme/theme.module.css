@@ -59,7 +59,7 @@
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
-.text>*:not(:global(.sn__heading), :global(.table-of-contents)) {
+.text>*:not(:global(.sn__heading), :global(.sn__toc)) {
   padding-top: calc(var(--grid-gap) * 0.5);
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
@@ -634,4 +634,10 @@
 
 .tableActionMenuGroup {
   padding: 0.25rem 0;
+}
+
+.text hr {
+  border-top: 3px solid var(--theme-quoteBar);
+  padding: 0 !important;
+  caret-color: transparent;
 }

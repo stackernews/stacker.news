@@ -110,12 +110,12 @@ export class TableOfContentsNode extends DecoratorNode {
 
   exportDOM (editor) {
     return editor.getEditorState().read(() => {
+      const div = document.createElement('div')
+      div.setAttribute('data-lexical-toc', 'true')
       const details = document.createElement('details')
-      details.setAttribute('data-lexical-toc', 'true')
       details.setAttribute('class', 'sn__toc')
 
       const summary = document.createElement('summary')
-      summary.setAttribute('class', 'toc-toggle')
       summary.textContent = 'table of contents'
       details.appendChild(summary)
 
@@ -132,7 +132,8 @@ export class TableOfContentsNode extends DecoratorNode {
 
       const tocList = buildHtmlFromStructure(structure)
       details.appendChild(tocList)
-      return { element: details }
+      div.appendChild(details)
+      return { element: div }
     })
   }
 

@@ -91,22 +91,22 @@ export default function Growth ({ ssrData }) {
       <SubAnalyticsHeader />
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>unique stackers</div>
-          <WhenLineChart data={stackerGrowth} />
-        </Col>
-        <Col className='mt-3'>
           <div className='text-center text-muted fw-bold'>sats stacked</div>
           <WhenAreaChart data={stackingGrowth} />
-        </Col>
-      </Row>
-      <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>unique spenders</div>
-          <WhenLineChart data={spenderGrowth} />
         </Col>
         <Col className='mt-3'>
           <div className='text-center text-muted fw-bold'>sats spent</div>
           <WhenAreaChart data={spendingGrowth} />
+        </Col>
+      </Row>
+      <Row>
+        <Col className='mt-3'>
+          <div className='text-center text-muted fw-bold'>unique stackers</div>
+          <WhenLineChart data={stackerGrowth} />
+        </Col>
+        <Col className='mt-3'>
+          <div className='text-center text-muted fw-bold'>unique spenders</div>
+          <WhenLineChart data={spenderGrowth} />
         </Col>
       </Row>
       <Row>

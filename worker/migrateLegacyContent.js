@@ -54,7 +54,7 @@ export async function migrateItemLegacy ({ itemId, text, models }) {
 
 // EXPERIMENTAL: batch migration of everything
 export async function migrateEverythingLegacy ({ models }) {
-  const BATCH_SIZE = 5000
+  const BATCH_SIZE = 2000
   let processedCount = 0
   let hasMore = true
   const failedItems = []

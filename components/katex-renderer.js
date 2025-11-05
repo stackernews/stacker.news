@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import katex from 'katex'
 
-export default function KatexRenderer ({ equation, inline, onDoubleClick }) {
+export default function KatexRenderer ({ equation, inline, onClick, onDoubleClick }) {
   const katexElementRef = useRef(null)
 
   useEffect(() => {
@@ -29,6 +29,7 @@ export default function KatexRenderer ({ equation, inline, onDoubleClick }) {
       <span
         role='button'
         tabIndex={-1}
+        onClick={onClick}
         onDoubleClick={onDoubleClick}
         ref={katexElementRef}
       />

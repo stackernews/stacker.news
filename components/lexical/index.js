@@ -39,7 +39,7 @@ export const LexicalReader = forwardRef(function LexicalReader ({ html, children
   return (
 
     <LexicalItemContextProvider imgproxyUrls={imgproxyUrls} topLevel={topLevel} outlawed={outlawed} rel={rel}>
-      <Reader {...props} contentRef={ref}>
+      <Reader {...props} topLevel={topLevel} contentRef={ref}>
         {children}
       </Reader>
     </LexicalItemContextProvider>

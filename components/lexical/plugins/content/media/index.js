@@ -212,7 +212,7 @@ export function MediaOrLink ({
             srcSet={srcSet}
             rel={rel}
             kind={kind}
-            linkFallback={false}
+            linkFallback
             preTailor={{ width, height, maxWidth: maxWidth ?? 500 }}
             onError={() => setIsLoadError(true)}
             className={isFocused ? `focused ${isInNodeSelection ? 'draggable' : ''}` : null}
@@ -264,7 +264,7 @@ export default function MediaComponent ({ src, status, ...props }) {
     return <p className='outlawed'>{url}</p>
   }
 
-  if (status !== 'done') {
+  if (status === 'error') {
     return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
   }
 

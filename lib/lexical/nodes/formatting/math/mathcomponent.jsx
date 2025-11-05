@@ -7,10 +7,12 @@ import { SELECTION_CHANGE_COMMAND, KEY_ESCAPE_COMMAND, COMMAND_PRIORITY_HIGH, $g
 import ErrorBoundary from '@/components/error-boundary'
 import MathEditor from './matheditor'
 import KatexRenderer from '@/components/katex-renderer'
+import { useToast } from '@/components/toast'
 
 export default function MathComponent ({ math, inline, nodeKey }) {
   const [editor] = useLexicalComposerContext()
   const isEditable = useLexicalEditable()
+  const toaster = useToast()
   const [mathValue, setMathValue] = useState(math)
   const [showMathEditor, setShowMathEditor] = useState(false)
   const inputRef = useRef(null)
@@ -100,6 +102,17 @@ export default function MathComponent ({ math, inline, nodeKey }) {
               onDoubleClick={() => {
                 if (isEditable) {
                   setShowMathEditor(true)
+                }
+              }}
+              onClick={() => {
+                if (!isEditable) {
+                  try {
+                    navigator.clipboard.writeText(mathValue)
+                    toaster.success('math copied to clipboard')
+                  } catch (err) {
+                    toaster.danger('failed to copy math to clipboard')
+                    console.error(err)
+                  }
                 }
               }}
             />

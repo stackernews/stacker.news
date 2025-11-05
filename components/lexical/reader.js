@@ -9,8 +9,9 @@ import { CodeShikiSNExtension } from '../../lib/lexical/extensions/core/code'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import theme from './theme'
 import { TableExtension } from '@lexical/table'
+import classNames from 'classnames'
 
-export default forwardRef(function Reader ({ lexicalState, className, children, contentRef }, ref) {
+export default forwardRef(function Reader ({ lexicalState, className, children, contentRef, topLevel }, ref) {
   const reader = useMemo(() =>
     defineExtension({
       $initialEditorState: (editor) => {
@@ -38,7 +39,7 @@ export default forwardRef(function Reader ({ lexicalState, className, children, 
       <div style={{ position: 'relative' }}>
         <RichTextPlugin
           contentEditable={
-            <ContentEditable className={className} ref={contentRef} />
+            <ContentEditable className={classNames(className, topLevel && 'topLevel')} ref={contentRef} />
           }
           ErrorBoundary={LexicalErrorBoundary}
         />

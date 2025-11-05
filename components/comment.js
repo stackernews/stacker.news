@@ -310,7 +310,7 @@ export default function Comment ({
               <div className={styles.text} ref={textRef}>
                 {item.searchText
                   ? <SearchText text={item.searchText} />
-                  : item.lexicalState
+                  : item.lexicalState && router.query.md !== 'true'
                     ? (
                       <LexicalText lexicalState={item.lexicalState} topLevel={topLevel} html={item.html} imgproxyUrls={item.imgproxyUrls} outlawed={item.outlawed} rel={item.rel ?? UNKNOWN_LINK_REL}>
                         {item.outlawed && !me?.privates?.wildWestMode

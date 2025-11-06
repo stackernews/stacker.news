@@ -576,15 +576,15 @@ export default {
                   ${SELECT},
                     (boost IS NOT NULL AND boost > 0)::INT AS group_rank,
                     CASE WHEN boost IS NOT NULL AND boost > 0
-                         THEN rank() OVER (ORDER BY boost DESC, created_at ASC)
-                         ELSE rank() OVER (ORDER BY created_at DESC) END AS rank
+                         THEN rank() OVER (ORDER BY boost DESC, "Item".created_at ASC)
+                         ELSE rank() OVER (ORDER BY "Item".created_at DESC) END AS rank
                     FROM "Item"
                     ${payInJoinFilter(me)}
                     ${whereClause(
                       '"parentId" IS NULL',
                       '"Item"."deletedAt" IS NULL',
                       activeOrMine(me),
-                      'created_at <= $1',
+                      '"Item".created_at <= $1',
                       '"pinId" IS NULL',
                       subClause(sub, 4)
                     )}

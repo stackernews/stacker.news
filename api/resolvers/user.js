@@ -252,10 +252,10 @@ export default {
       // by trying to update the user if the user is locked
       const foundNotes = () => {
         models.$queryRaw`
-          UPDATE "User"
+          UPDATE users
           SET "foundNotesAt" = now(), "lastSeenAt" = now()
           WHERE "id" = (
-            SELECT "id" FROM "User" WHERE "id" = ${me.id}
+            SELECT "id" FROM users WHERE "id" = ${me.id}
             FOR UPDATE SKIP LOCKED
           )`.catch(console.error)
       }
@@ -559,10 +559,10 @@ export default {
 
       // update checkedNotesAt to prevent rechecking same time period
       models.$queryRaw`
-        UPDATE "User"
+        UPDATE users
         SET "checkedNotesAt" = now(), "lastSeenAt" = now()
         WHERE "id" = (
-          SELECT "id" FROM "User" WHERE "id" = ${me.id}
+          SELECT "id" FROM users WHERE "id" = ${me.id}
           FOR UPDATE SKIP LOCKED
         )`.catch(console.error)
 

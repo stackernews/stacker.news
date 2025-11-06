@@ -392,7 +392,7 @@ function PayInProxyPayment ({ n }) {
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {n.payIn.payerPrivates.payInBolt11.comment &&
         <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
-          <Text>{n.payIn.payerPrivates.payInBolt11.comment}</Text>
+          <Text>{n.payIn.payerPrivates.payInBolt11.comment.comment}</Text>
           {payerSig}
         </small>}
     </div>

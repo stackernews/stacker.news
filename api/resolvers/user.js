@@ -506,6 +506,32 @@ export default {
           foundNotes()
           return true
         }
+
+        const infection = await models.infection.findFirst({
+          where: {
+            infecteeId: me.id,
+            createdAt: {
+              gt: lastChecked
+            }
+          }
+        })
+        if (infection) {
+          foundNotes()
+          return true
+        }
+
+        const cure = await models.cure.findFirst({
+          where: {
+            cureeId: me.id,
+            createdAt: {
+              gt: lastChecked
+            }
+          }
+        })
+        if (cure) {
+          foundNotes()
+          return true
+        }
       }
 
       const subStatus = await models.sub.findFirst({

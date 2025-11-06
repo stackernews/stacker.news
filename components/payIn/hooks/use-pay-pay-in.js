@@ -8,12 +8,12 @@ export default function usePayPayIn () {
   const walletPayment = useWalletPayment()
   const payInHelper = usePayInHelper()
   const qrPayIn = useQrPayIn()
-  return useCallback(async (payIn, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, onRetry }) => {
+  return useCallback(async (payIn, { alwaysShowQROnFailure = false, persistOnNavigate = false, waitFor, onRetry, protocolLimit }) => {
     let walletError
     const start = Date.now()
 
     try {
-      return await walletPayment(payIn, { waitFor })
+      return await walletPayment(payIn, { waitFor, protocolLimit })
     } catch (err) {
       walletError = null
       if (err instanceof WalletError) {

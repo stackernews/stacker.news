@@ -18,7 +18,7 @@ export function useWalletPayment () {
   const { me } = useMe()
   const loggerFactory = useWalletLoggerFactory()
 
-  return useCallback(async (payIn, { waitFor } = {}) => {
+  return useCallback(async (payIn, { waitFor, protocolLimit = protocols.length } = {}) => {
     let aggregateError = new WalletAggregateError([])
     let latestPayIn = payIn
 
@@ -32,7 +32,7 @@ export function useWalletPayment () {
       throw new WalletsNotAvailableError()
     }
 
-    for (let i = 0; i < protocols.length; i++) {
+    for (let i = 0; i < protocolLimit; i++) {
       const protocol = protocols[i]
       const controller = payInHelper.waitCheckController(latestPayIn.id)
 
@@ -88,7 +88,7 @@ export function useWalletPayment () {
         }
 
         // only create a new invoice if we will try to pay with a protocol again
-        const retry = paymentError instanceof WalletReceiverError || i < protocols.length - 1
+        const retry = paymentError instanceof WalletReceiverError || i < protocolLimit - 1
         if (retry) {
           latestPayIn = await payInHelper.retry(latestPayIn)
         }

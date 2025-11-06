@@ -428,7 +428,8 @@ function PayInFailed ({ n }) {
     })
   }, [n.id])
 
-  const mutationOptions = { update: updatePayIn, onRetry: updatePayIn }
+  // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
+  const mutationOptions = { update: updatePayIn, onRetry: updatePayIn, protocolLimit: 1 }
   const retryPayIn = useRetryPayIn(payIn.id, mutationOptions)
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
   const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
@@ -441,9 +442,6 @@ function PayInFailed ({ n }) {
     const itemType = item.title ? 'post' : 'comment'
     if (payIn.payInType === 'ITEM_CREATE') {
       actionString = `${itemType} create `
-      retry = retryPayIn
-    } else if (payIn.payInType === 'POLL_VOTE') {
-      actionString = 'poll vote '
       retry = retryPayIn
     } else {
       if (payIn.payInType === 'ZAP' && item.root?.bounty === msatsToSats(payIn.mcost) && item.root?.mine) {

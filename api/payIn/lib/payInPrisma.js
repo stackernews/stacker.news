@@ -57,6 +57,8 @@ export function payInClone (payIn) {
   return result
 }
 
+const IGNORE_KEYS = ['payInId', 'id', 'payOutCustodialTokenId', 'createdAt', 'updatedAt']
+
 // this assumes that any other nested object only has a payInId or id that should be ignored
 function payInCloneNested (payInNested) {
   const result = {}
@@ -65,7 +67,7 @@ function payInCloneNested (payInNested) {
       result[key] = payInNested[key].map(item => payInCloneNested(item))
     } else if (isPlainObject(payInNested[key])) {
       result[key] = payInCloneNested(payInNested[key])
-    } else if (key !== 'payInId' && key !== 'id') {
+    } else if (!IGNORE_KEYS.includes(key) && payInNested[key] !== null) {
       result[key] = payInNested[key]
     }
   }

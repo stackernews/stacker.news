@@ -1,6 +1,7 @@
 import { createHodlInvoice, parsePaymentRequest } from 'ln-service'
 import lnd, { estimateRouteFee, getBlockHeight } from '@/api/lnd'
 import { toPositiveBigInt, toPositiveNumber } from '@/lib/format'
+import { PayInFailureReasonError } from '@/api/payIn/errors'
 
 const MIN_OUTGOING_MSATS = BigInt(700) // the minimum msats we'll allow for the outgoing invoice
 const MAX_OUTGOING_MSATS = BigInt(700_000_000) // the maximum msats we'll allow for the outgoing invoice
@@ -62,9 +63,9 @@ export async function wrapBolt11 ({ msats, bolt11, maxRoutingFeeMsats, hideInvoi
     // validate incoming amount
     if (msats) {
       msats = toPositiveBigInt(msats)
-      // outgoing amount + routing fee should be smaller than the incoming amount
-      if (outgoingMsat + maxRoutingFeeMsats > msats) {
-        throw new Error('Sybil fee is too low')
+      // outgoing amount should be smaller or equal to the incoming amount
+      if (outgoingMsat > msats) {
+        throw new Error(`Outgoing amount is too high: ${outgoingMsat} > ${msats}`)
       }
     } else {
       throw new Error('Incoming invoice amount is missing')
@@ -154,15 +155,15 @@ export async function wrapBolt11 ({ msats, bolt11, maxRoutingFeeMsats, hideInvoi
 
     // validate the cltv delta
     if (wrapped.cltv_delta > MAX_OUTGOING_CLTV_DELTA) {
-      throw new Error('Estimated outgoing cltv delta is too high: ' + wrapped.cltv_delta)
+      throw new PayInFailureReasonError(`Estimated outgoing cltv delta is too high: ${wrapped.cltv_delta}`, 'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_EXPIRY')
     } else if (wrapped.cltv_delta < MIN_SETTLEMENT_CLTV_DELTA + toPositiveNumber(inv.cltv_delta)) {
-      throw new Error('Estimated outgoing cltv delta is too low: ' + wrapped.cltv_delta)
+      throw new PayInFailureReasonError(`Estimated outgoing cltv delta is too low: ${wrapped.cltv_delta}`, 'INVOICE_FORWARDING_CLTV_DELTA_TOO_LOW')
     }
 
     // validate the fee budget
     const minEstFees = toPositiveNumber(routingFeeMsat)
     if (minEstFees > maxRoutingFeeMsats) {
-      throw new Error('Estimated fees are too high (' + minEstFees + ' > ' + maxRoutingFeeMsats + ')')
+      throw new PayInFailureReasonError(`Estimated fees are too high (${minEstFees} > ${maxRoutingFeeMsats})`, 'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_FEE')
     }
 
     // calculate the incoming invoice amount, without fees

@@ -16,8 +16,8 @@ export default function usePayInHelper () {
   const [retryPayIn] = useMutation(RETRY_PAY_IN)
   const [cancelPayInBolt11] = useMutation(CANCEL_PAY_IN_BOLT11)
 
-  const check = useCallback(async (id, that, { query = GET_PAY_IN_RESULT, fetchPolicy = 'network-only' } = {}) => {
-    const { data, error } = await client.query({ query, fetchPolicy, variables: { id } })
+  const check = useCallback(async (id, that, { query = GET_PAY_IN_RESULT } = {}) => {
+    const { data, error } = await client.query({ query, fetchPolicy: 'network-only', variables: { id } })
     if (error) {
       throw error
     }

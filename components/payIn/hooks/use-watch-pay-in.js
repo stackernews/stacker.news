@@ -9,13 +9,13 @@ export default function useWatchPayIn ({ id, query = GET_PAY_IN_RESULT, onPaymen
   // we use the controller in a useEffect like this so we can reuse the same logic
   // ... this controller is used in loops elsewhere where hooks are not allowed
   useEffect(() => {
-    const controller = payInHelper.waitCheckController(id, waitFor, { query, fetchPolicy: 'cache-and-network' })
+    const controller = payInHelper.waitCheckController(id)
 
     console.log('useWatchPayIn: useEffect', id)
     const check = async () => {
       console.log('useWatchPayIn: check', id)
       try {
-        const payIn = await controller.wait()
+        const payIn = await controller.wait(waitFor, { query })
         console.log('useWatchPayIn: check: success', payIn)
         onPaymentSuccess?.(payIn)
       } catch (error) {

@@ -1,4 +1,5 @@
 import bip39Words from '@/lib/bip39-words'
+import * as bip39 from 'bip39'
 import { decodeRune } from '@/lib/cln'
 import { B64_URL_REGEX } from '@/lib/format'
 import { isInvoicableMacaroon, isInvoiceMacaroon } from '@/lib/macaroon'
@@ -147,6 +148,12 @@ export const bip39Validator = ({ min = 12, max = 24 } = {}) =>
     .test({
       name: 'bip39',
       test: async (value, context) => {
+        // legacy mnemonics don't include a checksum so if validation with the
+        // bip39 library fails we assume it's an old mnemonic and use legacy validation
+        if (bip39.validateMnemonic(value, bip39Words)) {
+          return true
+        }
+
         const words = value ? value.trim().split(/[\s]+/) : []
         for (const w of words) {
           try {
@@ -198,3 +205,19 @@ export const urlValidator = (...args) =>
       })
 
 export const hexValidator = (length) => string().hex().length(length, `must be exactly ${length} hex chars`)
+
+export const identityPublicKeyValidator = () => string()
+  .test({
+    name: 'identityPublicKey',
+    test: (identityPublicKey, context) => {
+      try {
+        if (!identityPublicKey.startsWith('02') && !identityPublicKey.startsWith('03')) {
+          throw new Error('must start with 02 or 03')
+        }
+        hexValidator(64).validateSync(identityPublicKey.slice(2))
+      } catch (err) {
+        return context.createError({ message: err.message })
+      }
+      return true
+    }
+  })

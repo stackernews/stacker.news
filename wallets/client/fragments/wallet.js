@@ -87,6 +87,12 @@ const WALLET_PROTOCOL_FIELDS = gql`
           ...VaultEntryFields
         }
       }
+      ... on WalletSendSpark {
+        id
+        encryptedMnemonic: mnemonic {
+          ...VaultEntryFields
+        }
+      }
       ... on WalletRecvNWC {
         id
         url
@@ -125,6 +131,10 @@ const WALLET_PROTOCOL_FIELDS = gql`
       ... on WalletRecvClink {
         id
         noffer
+      }
+      ... on WalletRecvSpark {
+        id
+        identityPublicKey
       }
     }
   }

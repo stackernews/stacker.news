@@ -33,8 +33,9 @@ function addressPopulate (wallet, formState) {
     return null
   }
 
+  const lud16Domain = walletLud16Domain(wallet.name)
   const nwcLud16Domain = nwcLud16.split('@')[1]
-  if (nwcLud16Domain !== walletLud16Domain(wallet.name)) {
+  if (lud16Domain && nwcLud16Domain !== lud16Domain) {
     return null
   }
 

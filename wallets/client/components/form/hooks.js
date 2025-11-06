@@ -2,7 +2,6 @@ import { isTemplate, isWallet, protocolClientSchema, protocolFields, protocolFor
 import { createContext, useContext, useEffect, useMemo, useCallback, useState } from 'react'
 import { useWalletProtocolUpsert } from '@/wallets/client/hooks'
 import { MultiStepForm, useFormState, useStep } from '@/components/multi-step-form'
-import { parseNwcUrl } from '@/wallets/lib/validate'
 
 export const Step = {
   SEND: 'send',
@@ -83,9 +82,9 @@ function useProtocolFormState (protocol) {
 }
 
 export function useProtocolForm (protocol) {
+  const [globalFormState] = useFormState()
   const [formState, setFormState] = useProtocolFormState(protocol)
   const [complementaryFormState] = useProtocolFormState({ name: protocol.name, send: !protocol.send })
-  const [nwcSendFormState] = useProtocolFormState({ name: 'NWC', send: true })
   const wallet = useWallet()
   const lud16Domain = walletLud16Domain(wallet.name)
   const fields = protocolFields(protocol)
@@ -98,16 +97,13 @@ export function useProtocolForm (protocol) {
       value = complementaryFormState?.config?.[field.name]
     }
 
-    if (protocol.name === 'LN_ADDR' && field.name === 'address' && lud16Domain) {
-      // automatically set lightning addresses from NWC urls if lud16 parameter is present
-      if (nwcSendFormState?.config?.url) {
-        const { lud16 } = parseNwcUrl(nwcSendFormState.config.url)
-        if (lud16?.split('@')[1] === lud16Domain) value = lud16
-      }
+    if (!value && field.populate && globalFormState) {
+      value = field.populate(wallet, globalFormState)
+    }
+
+    if (lud16Domain && value) {
       // remove domain part since we will append it automatically on submit if lud16Domain is set
-      if (lud16Domain && value) {
-        value = value.split('@')[0]
-      }
+      value = value.split('@')[0]
     }
 
     return {

@@ -182,7 +182,7 @@ function WalletProtocolFormField ({ type, ...props }) {
   const [protocol] = useProtocol()
   const formik = useFormikContext()
 
-  function transform ({ validate, encrypt, editable, help, share, ...props }) {
+  function transform ({ validate, encrypt, editable, help, share, populate, ...props }) {
     const [upperHint, bottomHint] = Array.isArray(props.hint) ? props.hint : [null, props.hint]
 
     const parseHelpText = text => Array.isArray(text) ? text.join('\n\n') : text

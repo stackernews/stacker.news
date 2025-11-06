@@ -11,7 +11,7 @@ export default function useCanEdit (item) {
   // except bios, they can always be edited but they should never show the countdown
   const noEdit = !!item.deletedAt || (Date.now() >= editThreshold) || item.bio
   const authorEdit = me && item.mine
-  const [canEdit, setCanEdit] = useState(!noEdit && authorEdit)
+  const [canEdit, setCanEdit] = useState(item.payIn?.payInState !== 'PAID' || (!noEdit && authorEdit))
 
   useEffect(() => {
     // allow anon edits if they have the correct hmac for the item invoice

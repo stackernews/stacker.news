@@ -14,6 +14,7 @@ import { FeeButtonProvider } from '@/components/fee-button'
 import SubSelect from '@/components/sub-select'
 import useCanEdit from '@/components/use-can-edit'
 import { SUB } from '@/fragments/subs'
+import Countdown from '@/components/countdown'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
@@ -61,6 +62,9 @@ export default function PostEdit ({ ssrData }) {
   }, [sub])
 
   const [,, editThreshold] = useCanEdit(item)
+  const EditInfo = editThreshold && item.payIn?.payInState === 'PAID'
+    ? <div className='text-muted fw-bold font-monospace mt-1'><Countdown date={editThreshold} /></div>
+    : null
 
   let FormType = DiscussionForm
   let itemType = 'DISCUSSION'
@@ -81,7 +85,7 @@ export default function PostEdit ({ ssrData }) {
   return (
     <CenterLayout sub={sub}>
       <FeeButtonProvider baseLineItems={baseLineItems}>
-        <FormType item={item} editThreshold={editThreshold}>
+        <FormType item={item} EditInfo={EditInfo}>
           {!item.isJob &&
             <SubSelect
               className='d-flex'

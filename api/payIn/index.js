@@ -207,7 +207,17 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
     throw e
   }
 
-  return { ...payIn, result: result ? { ...result, payIn } : undefined }
+  return {
+    ...payIn,
+    result: result
+      ? {
+          ...result,
+          // XXX this weirdness is for ITEM_UPDATE payIns, which we want to return
+          // the ITEM_CREATE payIn which can be unpaid while the (free) ITEM_UPDATE payIn is paid
+          payIn: payIn.payInType === 'ITEM_UPDATE' ? result.payIn : payIn
+        }
+      : undefined
+  }
 }
 
 // NOTE: I considered using Promise.all within these onFail and onPaid txs to avoid round trips to the database, but

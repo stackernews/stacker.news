@@ -1,6 +1,5 @@
 import { Checkbox, DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
 import { useApolloClient } from '@apollo/client'
-import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
@@ -12,7 +11,7 @@ import { ItemButtonBar } from './post'
 import { UPSERT_POLL } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 
-export function PollForm ({ item, sub, editThreshold, children }) {
+export function PollForm ({ item, sub, EditInfo, children }) {
   const client = useApolloClient()
   const { me } = useMe()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
@@ -58,9 +57,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         readOnlyLen={initialOptions?.length}
         max={MAX_POLL_NUM_CHOICES}
         min={2}
-        hint={editThreshold
-          ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
-          : null}
+        hint={EditInfo}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>

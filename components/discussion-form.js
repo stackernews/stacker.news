@@ -1,7 +1,6 @@
 import { Form, Input, MarkdownInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
-import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
 import AccordianItem from './accordian-item'
@@ -16,7 +15,7 @@ import { UPSERT_DISCUSSION } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 
 export function DiscussionForm ({
-  item, sub, editThreshold, titleLabel = 'title',
+  item, sub, EditInfo, titleLabel = 'title',
   textLabel = 'text',
   handleSubmit, children
 }) {
@@ -75,9 +74,7 @@ export function DiscussionForm ({
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}
         name='text'
         minRows={6}
-        hint={editThreshold
-          ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
-          : null}
+        hint={EditInfo}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} />

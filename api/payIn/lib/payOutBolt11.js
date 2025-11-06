@@ -14,12 +14,13 @@ async function getLeastFailedWalletProtocols (models, { genesisId, userId }) {
       AND "PayIn"."payInFailureReason" IN (${Prisma.join(PAY_IN_RECEIVER_FAILURE_REASONS.map(r => Prisma.sql`${r}::"PayInFailureReason"`))})
       GROUP BY "PayOutBolt11"."protocolId"
     )
-    SELECT "WalletProtocol".*, "Wallet"."userId" as "userId"
+    SELECT "WalletProtocol".*, "Wallet"."userId" as "userId",
+      COALESCE("failedWallets"."failedCount", 0) as "failedCount"
     FROM "WalletProtocol"
     JOIN "Wallet" ON "Wallet"."id" = "WalletProtocol"."walletId"
     LEFT JOIN "failedWallets" ON "failedWallets"."protocolId" = "WalletProtocol"."id"
     WHERE "Wallet"."userId" = ${userId} AND "WalletProtocol"."enabled" = true AND "WalletProtocol"."send" = false
-    ORDER BY "failedWallets"."failedCount" ASC, "Wallet"."priority" ASC`
+    ORDER BY "failedWallets"."failedCount" ASC NULLS FIRST, "Wallet"."priority" ASC`
 }
 
 async function getWalletProtocols (models, { userId }) {
@@ -60,11 +61,11 @@ async function createPayOutBolt11FromWalletProtocols (walletProtocols, bolt11Arg
 
 export async function payOutBolt11Replacement (models, genesisId, { payOutType, userId, msats }) {
   const walletProtocols = await getLeastFailedWalletProtocols(models, { genesisId, userId })
-  // if the least failed wallet has failed more than once, throw an error so we fallback to custodial tokens
-  if (walletProtocols[0]?.failedCount > 1) {
-    throw new NoReceiveWalletError('least failed wallet has failed more than twice, falling back to custodial tokens')
+  const leastFailedWalletProtocols = walletProtocols.filter(wp => wp.failedCount < 2)
+  if (leastFailedWalletProtocols.length === 0) {
+    throw new NoReceiveWalletError('least failed wallet has failed at least twice, falling back to custodial tokens')
   }
-  return await createPayOutBolt11FromWalletProtocols(walletProtocols, { msats }, { payOutType, userId }, { models })
+  return await createPayOutBolt11FromWalletProtocols(leastFailedWalletProtocols, { msats }, { payOutType, userId }, { models })
 }
 
 export async function payOutBolt11Prospect (models, bolt11Args, { payOutType, userId }) {

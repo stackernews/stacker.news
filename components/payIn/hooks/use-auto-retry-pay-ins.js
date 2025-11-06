@@ -25,7 +25,10 @@ export function useAutoRetryPayIns () {
 
   const retry = useCallback(async (payIn) => {
     const newPayIn = await payInHelper.retry(payIn)
-
+    // if the payIn has no bolt11, there's nothing to retry
+    if (!newPayIn.payerPrivates.payInBolt11) {
+      return
+    }
     try {
       await waitForWalletPayment(newPayIn)
     } catch (err) {

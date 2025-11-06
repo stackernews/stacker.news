@@ -15,6 +15,7 @@ import { payOutCustodialTokenFromBolt11 } from './lib/payOutCustodialTokens'
 // grab a greedy connection for the payIn system on any server
 // if we have lock contention of payIns, we don't want to block other queries
 import createPrisma from '@/lib/create-prisma'
+import { PayInFailureReasonError } from './errors'
 const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
 export default async function pay (payInType, payInArgs, { me, custodialOnly }) {
@@ -204,7 +205,12 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
     }
   } catch (e) {
     queuePayInFailed(models, payIn.id, e.payInFailureReason).catch(console.error)
-    throw e
+    // if invoice creation or wrapping failed, we want to return the payIn to the client
+    // so that their view is optimistic while we retry
+    // unless it's a payIn that was retried, or it's a pessimistic payIn
+    if (!(e instanceof PayInFailureReasonError) || payIn.pessimisticEnv || payIn.genesisId) {
+      throw e
+    }
   }
 
   return {

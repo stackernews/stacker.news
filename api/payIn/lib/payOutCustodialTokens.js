@@ -43,7 +43,7 @@ export function payOutCustodialTokenFromBolt11 (payOutBolt11) {
   return {
     payOutType: payOutBolt11.payOutType,
     userId: payOutBolt11.userId,
-    mtokens: payOutBolt11.mtokens,
+    mtokens: payOutBolt11.msats,
     custodialTokenType: 'CREDITS'
   }
 }

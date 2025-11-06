@@ -4,8 +4,9 @@ import { isJob } from '@/lib/item'
 import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
 import { fetchWithTimeout } from '@/lib/fetch'
+import { __PROD__ } from '@/lib/constants'
 
-const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
+const imgProxyEnabled = __PROD__ ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
 
 if (!imgProxyEnabled) {
@@ -32,7 +33,7 @@ const imageUrlMatchers = [
   u => u.host === 'i.imgur.com'
 ]
 const exclude = [
-  u => process.env.NODE_ENV === 'production' && u.protocol !== 'https:',
+  u => __PROD__ && u.protocol !== 'https:',
   u => u.host.endsWith('.onion') || u.host.endsWith('.b32.ip') || u.host.endsWith('.loki'),
   u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at', 'xcancel.com'].some(h => h === u.host),
   u => u.host === 'stacker.news',

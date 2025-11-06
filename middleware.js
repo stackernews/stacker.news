@@ -1,4 +1,5 @@
 import { NextResponse, URLPattern } from 'next/server'
+import { __DEV__ } from '@/lib/constants'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -87,14 +88,12 @@ function referrerMiddleware (request) {
 export function middleware (request) {
   const resp = referrerMiddleware(request)
 
-  const isDev = process.env.NODE_ENV === 'development'
-
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   // we want to load media from other localhost ports during development
-  const devSrc = isDev ? ' localhost:* http: ws:' : ''
+  const devSrc = __DEV__ ? ' localhost:* http: ws:' : ''
   // unsafe-eval is required during development due to react-refresh.js
   // see https://github.com/vercel/next.js/issues/14221
-  const devScriptSrc = isDev ? " 'unsafe-eval'" : ''
+  const devScriptSrc = __DEV__ ? " 'unsafe-eval'" : ''
 
   const cspHeader = [
     // if something is not explicitly allowed, we don't allow it.
@@ -117,7 +116,7 @@ export function middleware (request) {
     // blocks injection of <base> tags
     "base-uri 'none'",
     // tell user agents to replace HTTP with HTTPS
-    isDev ? '' : 'upgrade-insecure-requests',
+    __DEV__ ? '' : 'upgrade-insecure-requests',
     // prevents any domain from framing the content (defense against clickjacking attacks)
     "frame-ancestors 'none'"
   ].join('; ')

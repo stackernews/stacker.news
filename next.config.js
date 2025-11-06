@@ -3,7 +3,7 @@ const { InjectManifest } = require('workbox-webpack-plugin')
 const CopyPlugin = require('copy-webpack-plugin')
 const webpack = require('webpack')
 
-let isProd = process.env.NODE_ENV === 'production'
+let __PROD__ = process.env.NODE_ENV === 'production'
 const corsHeaders = [
   {
     key: 'Access-Control-Allow-Origin',
@@ -29,14 +29,14 @@ const getGitCommit = (env) => {
 
 let commitHash
 try {
-  if (isProd) {
+  if (__PROD__) {
     try {
       commitHash = getGitCommit('aws')
     } catch (e) {
       // maybe we're running prod build locally
       commitHash = getGitCommit()
       // if above line worked, we're running locally and should not use prod config which configurates CDN
-      isProd = false
+      __PROD__ = false
     }
   } else {
     commitHash = getGitCommit()
@@ -50,7 +50,7 @@ module.exports = withPlausibleProxy()({
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
-    NEXT_PUBLIC_ASSET_PREFIX: isProd ? 'https://a.stacker.news' : '',
+    NEXT_PUBLIC_ASSET_PREFIX: __PROD__ ? 'https://a.stacker.news' : '',
     // in prod, we build in /var/app/staging and then cp and deploy in /var/app/current
     // so we need to resolve the relative path to the lightning module
     LIGHTNING_MODULE_PATH: require('path').relative(process.cwd(), require.resolve('lightning'))
@@ -64,8 +64,8 @@ module.exports = withPlausibleProxy()({
   productionBrowserSourceMaps: true,
   generateBuildId: commitHash ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
-  assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
-  crossOrigin: isProd ? 'anonymous' : undefined,
+  assetPrefix: __PROD__ ? 'https://a.stacker.news' : undefined,
+  crossOrigin: __PROD__ ? 'anonymous' : undefined,
   async headers () {
     return [
       {

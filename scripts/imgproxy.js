@@ -1,8 +1,9 @@
+const { __PROD__ } = require('@/lib/constants')
 const { PrismaClient, Prisma } = require('@prisma/client')
 
 const prisma = new PrismaClient()
 
-const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
+const imgProxyEnabled = __PROD__ ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
 
 if (!imgProxyEnabled) {

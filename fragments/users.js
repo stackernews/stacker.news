@@ -48,7 +48,6 @@ ${STREAK_FIELDS}
       zapUndos
       upvotePopover
       wildWestMode
-      disableFreebies
       vaultKeyHash
       vaultKeyHashUpdatedAt
       walletsUpdatedAt
@@ -103,7 +102,6 @@ export const SETTINGS_FIELDS = gql`
       nostrRelays
       wildWestMode
       satsFilter
-      disableFreebies
       nsfwMode
       authMethods {
         lightning

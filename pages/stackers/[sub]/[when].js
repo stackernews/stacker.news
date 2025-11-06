@@ -93,15 +93,39 @@ export default function Growth ({ ssrData }) {
   const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to, sub, subSelect: sub !== 'all' } })
   if (!data && !ssrData) return <PageLoading />
 
-  const genHrefDownloadBlob = (data) => {
+  const downloadLinkStyle = { textDecoration: "inherit", color: "inherit" };
+
+  const genHrefDownloadBlobJSON = (data) => {
     const blob = new Blob([
       JSON.stringify(data, null, 2),
     ], {
-      type: 'text/plain'
+      type: 'text/plain;charset=utf-8;'
     });
     return URL.createObjectURL(blob);
   };
-  const downloadLinkStyle = { textDecoration: "inherit", color: "inherit" };
+
+  const genHrefDownloadBlobCSV = (data) => {
+    if (data.length > 0) {
+      data = flattenTimeDataForCsv(data);
+      const headers = Object.keys(data[0]);
+      const rows = data.map((item) => headers.map((header) => item[header]));
+      const csvStr = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+      const blob = new Blob([csvStr,], {type: 'text/csv;charset=utf-8;'});
+      return URL.createObjectURL(blob);
+    }
+    return ""
+  };
+
+  const flattenTimeDataForCsv = (timeData) => {
+    let rows = [];
+    for (const timeI in timeData) {
+      let flattened = {};
+      flattened.time = timeData[timeI].time;
+      timeData[timeI].data.forEach(kv => {flattened[kv.name] = kv.value;});
+      rows.push(flattened);
+    }
+    return rows;
+  };
 
   const {
     registrationGrowth,
@@ -120,46 +144,92 @@ export default function Growth ({ ssrData }) {
         <Row>
           <Col><SubAnalyticsHeader /></Col>
           <Col>
+            <DropdownButton id="dropdown-item-button" title="Download CSV Data" style={{ float: "right" }}>            
+              <Dropdown.Item as="button">
+                <Button variant="outlined">
+                  <a download="stacker_growth.csv" target="_blank" rel="noreferrer"
+                    href={ genHrefDownloadBlobCSV(stackerGrowth) }
+                    style={ downloadLinkStyle }>stacker</a>
+                </Button>
+              </Dropdown.Item>
+              <Dropdown.Item as="button">
+                <Button variant="outlined">
+                  <a download="stacking_growth.csv" target="_blank" rel="noreferrer"
+                    href={ genHrefDownloadBlobCSV(stackingGrowth) }
+                    style={ downloadLinkStyle }>stacking</a>
+                </Button>
+              </Dropdown.Item>
+              <Dropdown.Item as="button">
+                <Button variant="outlined">
+                  <a download="spender_growth.csv" target="_blank" rel="noreferrer"
+                    href={ genHrefDownloadBlobCSV(spenderGrowth) }
+                    style={ downloadLinkStyle }>spenders</a>
+                </Button>
+              </Dropdown.Item>
+              <Dropdown.Item as="button">
+                <Button variant="outlined">
+                  <a download="spending_growth.csv" target="_blank" rel="noreferrer"
+                    href={ genHrefDownloadBlobCSV(spendingGrowth) }
+                    style={ downloadLinkStyle }>spending</a>
+                </Button>
+              </Dropdown.Item>
+              <Dropdown.Item as="button">
+                <Button variant="outlined">
+                  <a download="registration_growth.csv" target="_blank" rel="noreferrer"
+                    href={ genHrefDownloadBlobCSV(registrationGrowth) }
+                    style={ downloadLinkStyle }>registration</a>
+                </Button>
+              </Dropdown.Item>
+              <Dropdown.Item as="button">
+                <Button variant="outlined">
+                  <a download="item_growth.csv" target="_blank" rel="noreferrer"
+                    href={ genHrefDownloadBlobCSV(itemGrowth) }
+                    style={ downloadLinkStyle }>items</a>
+                </Button>
+              </Dropdown.Item>
+            </DropdownButton>
+          </Col>
+          <Col>
             <DropdownButton id="dropdown-item-button" title="Download JSON Data" style={{ float: "right" }}>            
               <Dropdown.Item as="button">
                 <Button variant="outlined">
                   <a download="stacker_growth.txt" target="_blank" rel="noreferrer"
-                    href={ genHrefDownloadBlob(stackerGrowth) }
+                    href={ genHrefDownloadBlobJSON(stackerGrowth) }
                     style={ downloadLinkStyle }>stacker</a>
                 </Button>
               </Dropdown.Item>
               <Dropdown.Item as="button">
                 <Button variant="outlined">
                   <a download="stacking_growth.txt" target="_blank" rel="noreferrer"
-                    href={ genHrefDownloadBlob(stackingGrowth) }
+                    href={ genHrefDownloadBlobJSON(stackingGrowth) }
                     style={ downloadLinkStyle }>stacking</a>
                 </Button>
               </Dropdown.Item>
               <Dropdown.Item as="button">
                 <Button variant="outlined">
                   <a download="spender_growth.txt" target="_blank" rel="noreferrer"
-                    href={ genHrefDownloadBlob(spenderGrowth) }
+                    href={ genHrefDownloadBlobJSON(spenderGrowth) }
                     style={ downloadLinkStyle }>spenders</a>
                 </Button>
               </Dropdown.Item>
               <Dropdown.Item as="button">
                 <Button variant="outlined">
                   <a download="spending_growth.txt" target="_blank" rel="noreferrer"
-                    href={ genHrefDownloadBlob(spendingGrowth) }
+                    href={ genHrefDownloadBlobJSON(spendingGrowth) }
                     style={ downloadLinkStyle }>spending</a>
                 </Button>
               </Dropdown.Item>
               <Dropdown.Item as="button">
                 <Button variant="outlined">
                   <a download="registration_growth.txt" target="_blank" rel="noreferrer"
-                    href={ genHrefDownloadBlob(registrationGrowth) }
+                    href={ genHrefDownloadBlobJSON(registrationGrowth) }
                     style={ downloadLinkStyle }>registration</a>
                 </Button>
               </Dropdown.Item>
               <Dropdown.Item as="button">
                 <Button variant="outlined">
                   <a download="item_growth.txt" target="_blank" rel="noreferrer"
-                    href={ genHrefDownloadBlob(itemGrowth) }
+                    href={ genHrefDownloadBlobJSON(itemGrowth) }
                     style={ downloadLinkStyle }>items</a>
                 </Button>
               </Dropdown.Item>
@@ -204,18 +274,36 @@ export default function Growth ({ ssrData }) {
         <Row>
           <Col><SubAnalyticsHeader /></Col>
           <Col>
+            <DropdownButton id="dropdown-item-button" title="Download CSV Data" style={{ float: "right" }}>
+              <Dropdown.ItemText>
+                <Button variant="outlined">
+                  <a download="item_growth_subs.csv" target="_blank" rel="noreferrer"
+                    href={ genHrefDownloadBlobCSV(itemGrowthSubs) }
+                    style={ downloadLinkStyle }>item</a>
+                </Button>
+              </Dropdown.ItemText>
+              <Dropdown.Item as="button">
+                <Button variant="outlined">
+                  <a download="revenue_growth_subs.csv" target="_blank" rel="noreferrer"
+                    href={ genHrefDownloadBlobCSV(revenueGrowthSubs) }
+                    style={ downloadLinkStyle }>sats</a>
+                </Button>
+              </Dropdown.Item>
+            </DropdownButton>
+          </Col>
+          <Col>
             <DropdownButton id="dropdown-item-button" title="Download JSON Data" style={{ float: "right" }}>
               <Dropdown.ItemText>
                 <Button variant="outlined">
                   <a download="item_growth_subs.txt" target="_blank" rel="noreferrer"
-                    href={ genHrefDownloadBlob(itemGrowthSubs) }
+                    href={ genHrefDownloadBlobJSON(itemGrowthSubs) }
                     style={ downloadLinkStyle }>item</a>
                 </Button>
               </Dropdown.ItemText>
               <Dropdown.Item as="button">
                 <Button variant="outlined">
                   <a download="revenue_growth_subs.txt" target="_blank" rel="noreferrer"
-                    href={ genHrefDownloadBlob(revenueGrowthSubs) }
+                    href={ genHrefDownloadBlobJSON(revenueGrowthSubs) }
                     style={ downloadLinkStyle }>sats</a>
                 </Button>
               </Dropdown.Item>

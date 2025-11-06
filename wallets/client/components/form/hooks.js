@@ -104,7 +104,7 @@ export function useProtocolForm (protocol) {
         const { lud16 } = parseNwcUrl(nwcSendFormState.config.url)
         if (lud16?.split('@')[1] === lud16Domain) value = lud16
       }
-      // remove domain part since we will append it automatically if lud16Domain is set
+      // remove domain part since we will append it automatically on submit if lud16Domain is set
       if (lud16Domain && value) {
         value = value.split('@')[0]
       }
@@ -120,6 +120,7 @@ export function useProtocolForm (protocol) {
   if (lud16Domain) {
     schema = schema.transform(({ address, ...rest }) => {
       return {
+        // append domain part to pass validation on submit
         address: address ? `${address}@${lud16Domain}` : '',
         ...rest
       }

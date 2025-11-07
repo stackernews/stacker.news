@@ -9,10 +9,10 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { getShortcutCombo } from '@/lib/lexical/extensions/core/shortcuts/keyboard'
 import UploadIcon from '@/svgs/lexical/inserts/paperclip.svg'
 import { useToolbarState } from '@/components/lexical/contexts/toolbar'
-import { $isMarkdownMode } from '@/lib/lexical/universal/utils'
-import { $getSelection, $isRangeSelection, $isNodeSelection, $isElementNode, $isRootOrShadowRoot, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL } from 'lexical'
+import { $isMarkdownMode, $findTopLevelElement } from '@/lib/lexical/universal/utils'
+import { $getSelection, $isRangeSelection, $isNodeSelection, $isElementNode, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL } from 'lexical'
 import { snHasFormat, snHasLink, snGetElementFormat, snGetBlockType, snGetCodeLanguage } from '@/lib/lexical/universal/utils/formatting'
-import { $getNearestNodeOfType, $findMatchingParent, mergeRegister } from '@lexical/utils'
+import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils'
 import { ListNode } from '@lexical/list'
 import { $isSNHeadingNode } from '@/lib/lexical/nodes/misc/heading'
 import { $isCodeNode } from '@lexical/code'
@@ -22,7 +22,15 @@ import { ToolbarIcon } from './defs/formatting'
 import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 import Dropdown from 'react-bootstrap/Dropdown'
 
-// escapes the overflow rules of the FormattingTools component
+/**
+ * portal component that renders dropdown menus outside the toolbar to escape overflow rules
+
+ * @param {React.ReactNode} props.children - menu content to render
+ * @param {Object} props.style - inline styles
+ * @param {string} props.className - css classes
+ * @param {React.Ref} ref - forwarded ref
+ * @returns {React.ReactPortal} portal to document body
+ */
 export const MenuAlternateDimension = forwardRef(({ children, style, className }, ref) => {
   return createPortal(
     <div ref={ref} style={style} className={className}>
@@ -32,6 +40,14 @@ export const MenuAlternateDimension = forwardRef(({ children, style, className }
   )
 })
 
+/**
+ * single menu item within a toolbar dropdown
+
+ * @param {Object} props.option - menu option configuration
+ * @param {boolean} props.isActive - whether option is currently active
+ * @param {Function} props.onClick - click handler
+ * @returns {JSX.Element} dropdown menu item
+ */
 function DropdownMenuItem ({ option, isActive, onClick }) {
   const shortcut = getShortcutCombo(option.id)
   return (
@@ -53,6 +69,20 @@ function DropdownMenuItem ({ option, isActive, onClick }) {
   )
 }
 
+/**
+ * dropdown button for toolbar with tooltip and menu options
+
+ * @param {Object} props.editor - lexical editor instance
+ * @param {React.ReactNode} props.icon - icon to display in button
+ * @param {string} props.tooltip - tooltip text
+ * @param {Array} props.options - menu options to display
+ * @param {string} props.activeOptionId - currently active option id
+ * @param {Function} props.getIsActive - function to determine if option is active
+ * @param {number} props.showDelay - tooltip show delay in ms
+ * @param {boolean} props.arrow - whether to show dropdown arrow
+ * @param {string} props.className - additional css classes
+ * @returns {JSX.Element} toolbar dropdown component
+ */
 export function ToolbarDropdown ({ editor, icon, tooltip, options, activeOptionId, getIsActive, showDelay = 500, arrow = true, className }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
@@ -83,6 +113,17 @@ export function ToolbarDropdown ({ editor, icon, tooltip, options, activeOptionI
   )
 }
 
+/**
+ * single button for toolbar with tooltip and active state
+
+ * @param {string} props.id - button identifier
+ * @param {boolean} props.isActive - whether button is in active state
+ * @param {Function} props.onClick - click handler
+ * @param {string} props.tooltip - tooltip text
+ * @param {boolean} props.disabled - whether button is disabled
+ * @param {number} props.showDelay - tooltip show delay in ms (default 500ms)
+ * @returns {JSX.Element} toolbar button component
+ */
 export function ToolbarButton ({ id, isActive, onClick, tooltip, disabled = false, showDelay = 500 }) {
   return (
     <ActionTooltip notForm overlayText={tooltip} placement='top' noWrapper showDelay={showDelay} transition disable={disabled}>
@@ -98,21 +139,12 @@ export function ToolbarButton ({ id, isActive, onClick, tooltip, disabled = fals
   )
 }
 
-function $findTopLevelElement (node) {
-  let topLevelElement = node.getKey() === 'root'
-    ? node
-    : $findMatchingParent(node, (e) => {
-      const parent = e.getParent()
-      return parent !== null && $isRootOrShadowRoot(parent)
-    })
+/**
+ * main toolbar plugin that displays formatting controls and tracks editor state
 
-  if (topLevelElement === null) {
-    topLevelElement = node.getTopLevelElementOrThrow()
-  }
-
-  return topLevelElement
-}
-
+ * @param {boolean} props.topLevel - whether this is a top-level editor toolbar
+ * @returns {JSX.Element} toolbar component
+ */
 export function ToolbarPlugin ({ topLevel }) {
   const [editor] = useLexicalComposerContext()
   const { prefs } = useLexicalPreferences()

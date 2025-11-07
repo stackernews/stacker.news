@@ -16,6 +16,10 @@ import { MediaNode, $createMediaNode } from '@/lib/lexical/nodes/content/media/m
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import useDebounceCallback from '@/components/use-debounce-callback'
 
+/**
+ * plugin that handles file uploads with progress tracking and fee calcs
+ * @returns {JSX.Element} hidden file upload input component
+ */
 export default function FileUploadPlugin () {
   const [editor] = useLexicalComposerContext()
   const placeholdersRef = useRef(new Map())

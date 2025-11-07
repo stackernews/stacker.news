@@ -8,7 +8,7 @@ import { useState } from 'react'
 import classNames from 'classnames'
 import { MenuAlternateDimension } from '@/components/lexical/plugins/toolbar/formatting'
 
-// TODO: this could follow the same structure as shortcuts and toolbar item
+/** DEV: dropdown menu for toggling editor preferences and debug options */
 export default function PreferencesPlugin ({ className }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const toaster = useToast()

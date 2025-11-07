@@ -5,6 +5,14 @@ import { $trimTextContentFromAnchor } from '@lexical/selection'
 import { $restoreEditorState } from '@lexical/utils'
 import { MAX_POST_TEXT_LENGTH } from '@/lib/constants'
 
+/**
+ * plugin that enforces maximum text length and displays character count
+
+ * @param {Object} props.lengthOptions - configuration for length limits
+ * @param {number} props.lengthOptions.maxLength - maximum character limit
+ * @param {boolean} props.lengthOptions.show - whether to always show character count
+ * @returns {JSX.Element|null} character count display or null
+ */
 export function MaxLengthPlugin ({ lengthOptions = {} }) {
   const [editor] = useLexicalComposerContext()
 

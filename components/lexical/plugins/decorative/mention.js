@@ -18,6 +18,7 @@ const AtSignMentionsRegex = /(^|\s|\()([@~]\w{0,75})$/
 // At most, 5 suggestions are shown in the popup.
 const SUGGESTION_LIST_LENGTH_LIMIT = 5
 
+/** plugin that provides typeahead suggestions for user (@) and territory (~) mentions */
 export default function MentionsPlugin () {
   const [editor] = useLexicalComposerContext()
   const [, setQuery] = useState(null)

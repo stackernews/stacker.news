@@ -6,7 +6,8 @@ import styles from '@/components/lexical/theme/theme.module.css'
 import { $isMarkdownMode } from '@/lib/lexical/universal/utils'
 import classNames from 'classnames'
 
-export default function ModeSwitcher ({ className }) {
+/** displays and toggles between markdown and rich text modes */
+export default function ModeSwitcherPlugin ({ className }) {
   const [editor] = useLexicalComposerContext()
   const [isMD, setIsMD] = useState(false)
 

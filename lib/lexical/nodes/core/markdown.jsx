@@ -55,7 +55,6 @@ export class MarkdownNode extends CodeNode {
 
     // case 1: caret is inside text inside this code block
     if ($isTextNode(anchorNode) || $isLineBreakNode(anchorNode)) {
-      console.log('inserting line break in text node', anchorNode)
       const splitLeft = anchorNode.splitText(anchor.offset)[0]
       const insertIndex =
         splitLeft.getIndexWithinParent() + (anchor.offset === 0 ? 0 : 1)
@@ -73,7 +72,6 @@ export class MarkdownNode extends CodeNode {
 
     // case 2: caret is directly in the CodeNode/MarkdownNode (rare)
     if ($isCodeNode(anchorNode) || $isMarkdownNode(anchorNode)) {
-      console.log('inserting line break in code node', anchorNode)
       const { offset } = selection.anchor
       anchorNode.splice(offset, 0, [$createLineBreakNode()])
       anchorNode.select(offset + 1, offset + 1)

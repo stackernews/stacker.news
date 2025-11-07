@@ -10,13 +10,22 @@ import { buildEditorFromExtensions, defineExtension } from '@lexical/extension'
 import { $formatBlock } from '@/lib/lexical/universal/commands/formatting/blocks'
 import { CodeHighlighterShikiExtension } from '@lexical/code-shiki'
 
+/** command to transform markdown selections using a headless lexical editor
+ * @param {Object} params.selection - selection to transform
+ * @param {string} params.formatType - format type to transform
+ * @param {string} params.transformation - transformation to apply
+ * @returns {boolean} true if transformation was applied
+ */
 export const USE_TRANSFORMER_BRIDGE = createCommand('USE_TRANSFORMER_BRIDGE')
 
+/** bridge plugin that transforms markdown selections using a headless lexical editor
+ *  registers USE_TRANSFORMER_BRIDGE command to transform markdown selections
+ */
 export default function TransformerBridgePlugin ({ nodes }) {
   const [editor] = useLexicalComposerContext()
   const bridge = useRef(null)
 
-  // headless editor used as bridge between markdown and lexical
+  // creates or returns existing headless bridge editor for markdown transformations
   const createBridge = useCallback(() => {
     if (bridge.current) return bridge.current
     bridge.current = buildEditorFromExtensions(

@@ -1,4 +1,11 @@
-// TODO: this is not ideal and a mess to read
+/**
+ * creates a loading placeholder DOM node for embeds
+ * @param {string} params.provider - embed provider name
+ * @param {string} [params.id] - provider-specific content ID
+ * @param {string} [params.src] - source URL
+ * @param {Object} [params.meta] - additional metadata, e.g. youtube start time
+ * @returns {HTMLElement} placeholder container element
+ */
 export function placeholderNode ({ provider, id, src, meta = {} }) {
   const container = document.createElement('span')
   container.className = 'sn__videoWrapper'

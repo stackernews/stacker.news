@@ -11,6 +11,16 @@ import theme from './theme'
 import { TableExtension } from '@lexical/table'
 import classNames from 'classnames'
 
+/**
+ * Lexical Renderer: renders lexical state as read-only content
+ * @param {string} props.lexicalState - serialized lexical editor state to display
+ * @param {string} [props.className] - additional CSS class names
+ * @param {React.ReactNode} [props.children] - child components
+ * @param {React.Ref} [props.contentRef] - ref for content editable element
+ * @param {boolean} [props.topLevel] - whether this is top-level content
+ * @param {React.Ref} ref - forwarded ref
+ * @returns {JSX.Element} lexical renderer
+ */
 export default forwardRef(function Reader ({ lexicalState, className, children, contentRef, topLevel }, ref) {
   const reader = useMemo(() =>
     defineExtension({

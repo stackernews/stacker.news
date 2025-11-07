@@ -1,7 +1,13 @@
 import Link from 'next/link'
 import { buildNestedTocStructure } from '@/lib/lexical/nodes/misc/toc'
 
-// recursively renders TOC items with nested structure
+/**
+ * recursively renders table of contents items with nested structure
+
+ * @param {Object} props.item - toc item with text, slug, and optional children
+ * @param {number} props.index - item index for key generation
+ * @returns {JSX.Element} list item with nested children
+ */
 function TocItem ({ item, index }) {
   const hasChildren = item.children && item.children.length > 0
   return (
@@ -20,27 +26,27 @@ function TocItem ({ item, index }) {
   )
 }
 
-// receives {text, depth, slug} array from lexical
+/**
+ * displays a collapsible table of contents from heading data
+
+ * @param {Array} props.headings - array of heading objects with text, depth, and slug
+ * @returns {JSX.Element} collapsible details element with toc list
+ */
 export function TableOfContents ({ headings }) {
   const tocItems = buildNestedTocStructure(headings)
-
-  if (!tocItems || tocItems.length === 0) {
-    return (
-      <details className='sn__toc'>
-        <summary>table of contents</summary>
-        <div className='text-muted fst-italic'>no headings</div>
-      </details>
-    )
-  }
 
   return (
     <details className='sn__toc'>
       <summary>table of contents</summary>
-      <ul>
-        {tocItems.map((item, index) => (
-          <TocItem key={`${item.slug}-${index}`} item={item} index={index} />
-        ))}
-      </ul>
+      {tocItems.length > 0
+        ? (
+          <ul>
+            {tocItems.map((item, index) => (
+              <TocItem key={`${item.slug}-${index}`} item={item} index={index} />
+            ))}
+          </ul>
+          )
+        : <div className='text-muted fst-italic'>no headings</div>}
     </details>
   )
 }

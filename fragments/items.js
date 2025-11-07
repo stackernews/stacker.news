@@ -23,7 +23,6 @@ export const ITEM_FIELDS = gql`
     invoicePaidAt
     deletedAt
     title
-    lexicalState
     url
     user {
       id

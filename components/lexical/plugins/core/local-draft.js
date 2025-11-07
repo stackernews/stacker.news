@@ -3,7 +3,11 @@ import { useContext, useCallback, useEffect } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
 import { $isRootEmpty } from '@/lib/lexical/universal/utils'
 
-// loads and saves a draft of the editor state to local storage
+/**
+ * plugin that auto-saves and restores editor drafts to/from local storage
+
+ * @param {string} props.name - storage key suffix for the draft
+ */
 export default function LocalDraftPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
 
@@ -11,6 +15,10 @@ export default function LocalDraftPlugin ({ name }) {
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + name : undefined
 
+  /**
+   * saves or removes draft from local storage based on editor emptiness
+   * @param {Object} lexicalState - serialized lexical editor state
+   */
   const upsertDraft = useCallback((lexicalState) => {
     if (!storageKey) return
 

@@ -6,6 +6,14 @@ import { $createTweetNode, TweetNode } from '@/lib/lexical/nodes/content/embeds/
 import { $createWavlakeNode, WavlakeNode } from '@/lib/lexical/nodes/content/embeds/wavlake'
 import { $createYouTubeNode, YouTubeNode } from '@/lib/lexical/nodes/content/embeds/youtube'
 
+/**
+ * creates the appropriate embed node by provider name
+ * @param {string} params.provider - embed provider ('twitter', 'youtube', 'nostr', etc.)
+ * @param {string} [params.src] - source URL
+ * @param {string} [params.id] - provider-specific content ID
+ * @param {Object} [params.meta] - additional metadata, e.g. youtube start time
+ * @returns {Object} lexical embed node
+ */
 export function $createEmbedNode ({ provider, src = null, id = null, meta = null }) {
   switch (provider) {
     case 'twitter':
@@ -25,6 +33,11 @@ export function $createEmbedNode ({ provider, src = null, id = null, meta = null
   }
 }
 
+/**
+ * universal embed node check
+ * @param {Object} node - lexical node to check
+ * @returns {boolean} true if node is an embed node
+ */
 export function $isEmbedNode (node) {
   return node instanceof TweetNode ||
          node instanceof NostrNode ||

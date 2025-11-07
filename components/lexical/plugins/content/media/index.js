@@ -25,6 +25,24 @@ import styles from '@/components/lexical/theme/media.module.css'
 import { useLexicalItemContext } from '@/components/lexical/contexts/item'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 
+/**
+ * selectable, captionable and resizable media component
+ * TODO: refactor MediaOrLink legacy component
+ *
+ * @param {string} props.src - media source url
+ * @param {string} props.srcSet - responsive image source set
+ * @param {string} props.rel - link relationship attribute
+ * @param {string} props.altText - alternative text for media
+ * @param {string} props.kind - media type (image, video, etc.)
+ * @param {string} props.nodeKey - lexical node key
+ * @param {number} props.width - media width
+ * @param {number} props.height - media height
+ * @param {number} props.maxWidth - maximum media width
+ * @param {boolean} props.resizable - whether media is resizable
+ * @param {boolean} props.showCaption - whether to show caption editor
+ * @param {Object} props.caption - lexical editor instance for caption
+ * @param {boolean} props.captionsEnabled - whether captions are enabled
+ */
 export function MediaOrLink ({
   src,
   srcSet,
@@ -255,6 +273,14 @@ export function MediaOrLink ({
   )
 }
 
+/**
+ * wrapper component that handles media rendering with item-specific logic
+ * like imgproxy, outlawed and rel (link) user settings
+
+ * @param {string} props.src - media source url
+ * @param {string} props.status - media status (error, pending, etc.)
+ * @returns {JSX.Element} media component or fallback
+ */
 export default function MediaComponent ({ src, status, ...props }) {
   const { imgproxyUrls, rel, outlawed } = useLexicalItemContext()
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src

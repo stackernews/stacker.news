@@ -18,7 +18,7 @@ import FileUploadPlugin from './plugins/inserts/upload'
 import FloatingToolbarPlugin from './plugins/toolbar/floating/floatingtoolbar'
 import LinkEditorPlugin from './plugins/inserts/link'
 import MentionsPlugin from './plugins/decorative/mention'
-import ModeSwitcher from './plugins/core/mode/switch'
+import ModeSwitcherPlugin from './plugins/core/mode/switch'
 import { ShortcutsExtension } from '../../lib/lexical/extensions/core/shortcuts'
 import { ToolbarPlugin } from './plugins/toolbar'
 import { SNCommandsExtension } from '../../lib/lexical/extensions/core/commands'
@@ -44,6 +44,13 @@ import TableActionMenuPlugin from './plugins/inserts/table/action'
 // import DraggableBlockPlugin from './plugins/core/draggable-block'
 import { TableOfContentsExtension } from '@/lib/lexical/extensions/toc'
 
+/**
+ * main Lexical editor component with formik integration
+ * @param {string} props.name - form field name
+ * @param {string} [props.appendValue] - value to append to initial content
+ * @param {boolean} [props.autoFocus] - whether to auto-focus the editor
+ * @returns {JSX.Element} lexical editor component
+ */
 export default function Editor ({ name, appendValue, autoFocus, ...props }) {
   const { prefs } = useLexicalPreferences()
   const { values } = useFormikContext()
@@ -130,7 +137,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
             contentEditable={
               <div className={styles.editor} ref={onRef}>
                 <ContentEditable
-                  className={classNames(styles.editorInput, styles.text, topLevel && styles.topLevel)}
+                  className={classNames(styles.editorInput, styles.text, topLevel && (styles.topLevel, 'topLevel'))}
                   placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
                 />
               </div>
@@ -154,7 +161,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         {/* markdown mode status and switch */}
         <div className={styles.bottomBar}>
-          <ModeSwitcher />
+          <ModeSwitcherPlugin />
           <PreferencesPlugin />
         </div>
         <MaxLengthPlugin lengthOptions={lengthOptions} />

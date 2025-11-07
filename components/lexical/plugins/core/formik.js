@@ -11,6 +11,12 @@ import { MediaCheckExtension } from '@/components/lexical/plugins/misc/media-che
 import DefaultNodes from '@/lib/lexical/nodes'
 import { $getRoot } from 'lexical'
 
+/**
+ * converts markdown to lexical state using a temporary bridge editor
+ * @param {Object} editor - lexical editor instance
+ * @param {string} markdown - markdown string to convert
+ * @returns {string} serialized lexical state as JSON
+ */
 function $prepareMarkdown (editor, markdown) {
   let lexicalState = ''
 
@@ -35,6 +41,7 @@ function $prepareMarkdown (editor, markdown) {
   return lexicalState
 }
 
+/** syncs lexical editor state with formik form field values */
 export default function FormikBridgePlugin () {
   const [editor] = useLexicalComposerContext()
   const [lexicalField,, lexicalHelpers] = useField({ name: 'lexicalState' })

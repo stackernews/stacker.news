@@ -153,7 +153,7 @@ export default {
         case 'revenue': column = Prisma.sql`revenue`; break
         case 'spent': column = Prisma.sql`spent`; break
         case 'stacked': column = Prisma.sql`stacked`; break
-        case 'items': column = Prisma.sql`items`; break
+        case 'items': column = Prisma.sql`nitems`; break
         default: throw new GqlInputError('invalid sort')
       }
 

@@ -1,5 +1,6 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { placeholderNode } from './placeholder'
+import { $applyNodeReplacement } from 'lexical'
 
 function $convertSpotifyElement (domNode) {
   const src = domNode.getAttribute('data-lexical-embed-src')
@@ -86,7 +87,7 @@ export class SpotifyNode extends DecoratorBlockNode {
 }
 
 export function $createSpotifyNode (src) {
-  return new SpotifyNode(src)
+  return $applyNodeReplacement(new SpotifyNode(src))
 }
 
 export function $isSpotifyNode (node) {

@@ -40,7 +40,6 @@ import { AutoFocusExtension, HorizontalRuleExtension } from '@lexical/extension'
 import { SNAutoLinkExtension } from '../../lib/lexical/extensions/decorative/autolink'
 import PreferencesPlugin from './plugins/core/preferences'
 import MediaDragDropPlugin from './plugins/content/media/dnd'
-// import TableHoverPlugin from './plugins/inserts/table/hover'
 import TableActionMenuPlugin from './plugins/inserts/table/action'
 // import DraggableBlockPlugin from './plugins/core/draggable-block'
 import { TableOfContentsExtension } from '@/lib/lexical/extensions/toc'
@@ -145,8 +144,6 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         <FileUploadPlugin />
         {/* inserts: links */}
         <LinkEditorPlugin anchorElem={floatingAnchorElem} />
-        {/* inserts: table hover */}
-        {/* <TableHoverPlugin anchorElem={floatingAnchorElem} /> */}
         {/* inserts: table action menu */}
         <TableActionMenuPlugin anchorElem={floatingAnchorElem} cellMerge />
         {/* decorative plugins */}

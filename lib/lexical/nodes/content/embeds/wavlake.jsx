@@ -1,5 +1,6 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { placeholderNode } from './placeholder'
+import { $applyNodeReplacement } from 'lexical'
 
 function $convertWavlakeElement (domNode) {
   const id = domNode.getAttribute('data-lexical-wavlake-id')
@@ -99,7 +100,7 @@ export class WavlakeNode extends DecoratorBlockNode {
 }
 
 export function $createWavlakeNode (id, src) {
-  return new WavlakeNode(id, src)
+  return $applyNodeReplacement(new WavlakeNode(id, src))
 }
 
 export function $isWavlakeNode (node) {

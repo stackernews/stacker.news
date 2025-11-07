@@ -1,5 +1,6 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { placeholderNode } from './placeholder'
+import { $applyNodeReplacement } from 'lexical'
 
 function $convertTweetElement (domNode) {
   const id = domNode.getAttribute('data-lexical-tweet-id')
@@ -100,7 +101,7 @@ export class TweetNode extends DecoratorBlockNode {
 }
 
 export function $createTweetNode (id, src) {
-  return new TweetNode(id, src)
+  return $applyNodeReplacement(new TweetNode(id, src))
 }
 
 export function $isTweetNode (node) {

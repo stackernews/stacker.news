@@ -1,5 +1,6 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { placeholderNode } from './placeholder'
+import { $applyNodeReplacement } from 'lexical'
 
 function $convertYouTubeElement (domNode) {
   const id = domNode.getAttribute('data-lexical-youtube-id')
@@ -113,7 +114,7 @@ export class YouTubeNode extends DecoratorBlockNode {
 }
 
 export function $createYouTubeNode (id, meta, src) {
-  return new YouTubeNode(id, meta, src)
+  return $applyNodeReplacement(new YouTubeNode(id, meta, src))
 }
 
 export function $isYouTubeNode (node) {

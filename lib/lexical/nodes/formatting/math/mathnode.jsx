@@ -3,11 +3,14 @@ import katex from 'katex'
 
 function $convertMathElement (domNode) {
   let math = domNode.getAttribute('data-lexical-math')
-  const inline = domNode.getAttribute('data-lexical-inline') === 'true'
-
-  math = atob(math || '')
+  if (!math || math.length > 10000) return null // prevent massive memory usage
+  try {
+    math = atob(math)
+  } catch (err) {
+    return null
+  }
   if (!math) return null
-
+  const inline = domNode.getAttribute('data-lexical-inline') === 'true'
   const node = $createMathNode(math, inline)
   return { node }
 }

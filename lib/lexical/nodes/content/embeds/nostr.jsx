@@ -1,5 +1,6 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { placeholderNode } from './placeholder'
+import { $applyNodeReplacement } from 'lexical'
 
 function $convertNostrElement (domNode) {
   const id = domNode.getAttribute('data-lexical-nostr-id')
@@ -100,7 +101,7 @@ export class NostrNode extends DecoratorBlockNode {
 }
 
 export function $createNostrNode (id, src) {
-  return new NostrNode(id, src)
+  return $applyNodeReplacement(new NostrNode(id, src))
 }
 
 export function $isNostrNode (node) {

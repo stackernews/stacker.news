@@ -1,5 +1,6 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { placeholderNode } from './placeholder'
+import { $applyNodeReplacement } from 'lexical'
 
 function $convertRumbleElement (domNode) {
   const id = domNode.getAttribute('data-lexical-rumble-id')
@@ -112,7 +113,7 @@ export class RumbleNode extends DecoratorBlockNode {
 }
 
 export function $createRumbleNode (id, meta, src) {
-  return new RumbleNode(id, meta, src)
+  return $applyNodeReplacement(new RumbleNode(id, meta, src))
 }
 
 export function $isRumbleNode (node) {

@@ -1,5 +1,6 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { placeholderNode } from './placeholder'
+import { $applyNodeReplacement } from 'lexical'
 
 function $convertPeerTubeElement (domNode) {
   const id = domNode.getAttribute('data-lexical-peertube-id')
@@ -112,7 +113,7 @@ export class PeerTubeNode extends DecoratorBlockNode {
 }
 
 export function $createPeerTubeNode (id, meta, src) {
-  return new PeerTubeNode(id, meta, src)
+  return $applyNodeReplacement(new PeerTubeNode(id, meta, src))
 }
 
 export function $isPeerTubeNode (node) {

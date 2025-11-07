@@ -16,7 +16,7 @@ function apportionment (prospects, totalMtokens, proportionFieldName) {
   const normalizedProspects = prospects.map(prospect => {
     return {
       ...prospect,
-      normalizedProportion: prospect[proportionFieldName] / totalProportion
+      normalizedProportion: totalProportion > 0 ? prospect[proportionFieldName] / totalProportion : 0
     }
   })
   const apportionedProspects = normalizedProspects.map(prospect => {
@@ -46,6 +46,7 @@ export async function getInitial (models, { totalMsats, rewardProspects }) {
     if (referrerId) {
       referrerMtokens = Math.floor(parseFloat(prospect.apportionedMtokens * 0.1)) // 10% of earnings
     }
+
     const earnerMtokens = prospect.apportionedMtokens - referrerMtokens
 
     // sanity check

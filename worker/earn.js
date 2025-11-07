@@ -56,7 +56,7 @@ export async function earn ({ name }) {
                     SELECT "PayIn".id as "payInId", "PayIn"."payInStateChangedAt" as "payInStateChangedAt"
                     FROM "ItemPayIn"
                     JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-                    WHERE "ItemPayIn"."itemId" = "Item".id AND ("PayIn"."userId" = "Item"."userId" OR "PayIn"."payInState" = 'PAID')
+                    WHERE "ItemPayIn"."itemId" = "Item".id AND "PayIn"."payInState" = 'PAID'
                     ORDER BY "PayIn"."created_at" DESC
                     LIMIT 1
                 ) "PayIn" ON "PayIn"."payInId" IS NOT NULL

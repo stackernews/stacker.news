@@ -28,7 +28,7 @@ async function getActiveRewards (models) {
         "payInType",
         sum("msats") as "msats"
       FROM "AggRewards"
-      WHERE "timeBucket" >= date_trunc('day', now() AT TIME ZONE 'America/Chicago')
+      WHERE "timeBucket" >= date_trunc('day', now() AT TIME ZONE 'America/Chicago') AT TIME ZONE 'America/Chicago'
       AND "payInType" IS NOT NULL
       AND "granularity" = 'HOUR'
       GROUP BY "payInType"

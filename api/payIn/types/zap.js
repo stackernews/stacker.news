@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
 import { getItemResult, getSub } from '../lib/item'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
+import { canWrapBolt11 } from '@/wallets/server'
 
 export const anonable = true
 
@@ -64,8 +65,16 @@ export async function getInitial (models, payInArgs, { me }) {
     try {
       // 3% to routing fee
       const routingFeeMtokens = mcost * 3n / 100n
+
+      // if the user is anon or doesn't have a send wallet, we need to make sure the invoice can be wrapped
+      // because we are forced to display a QR code in these cases
+      let testBolt11Func
+      if (me.id === USER_ID.anon || !payInArgs.hasSendWallet) {
+        testBolt11Func = async (bolt11) => await canWrapBolt11({ msats: zapMtokens, bolt11, maxRoutingFeeMsats: routingFeeMtokens })
+      }
+
       // TODO: description, expiry?
-      payOutBolt11 = await payOutBolt11Prospect(models, { msats: zapMtokens }, { userId, payOutType: 'ZAP' })
+      payOutBolt11 = await payOutBolt11Prospect(models, { msats: zapMtokens }, { userId, payOutType: 'ZAP' }, testBolt11Func)
       payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
     } catch (err) {
       console.error('failed to create user invoice:', err)

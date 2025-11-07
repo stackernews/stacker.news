@@ -25,6 +25,21 @@ const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
   @returns bolt11 {string} the wrapped incoming invoice
 */
 export async function wrapBolt11 ({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description }) {
+  const wrapped = await wrapBolt11Params({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description })
+  return (await createHodlInvoice({ lnd, ...wrapped })).request
+}
+
+export async function canWrapBolt11 ({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description }) {
+  try {
+    await wrapBolt11Params({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description })
+  } catch {
+    return false
+  }
+
+  return true
+}
+
+async function wrapBolt11Params ({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description }) {
   try {
     console.group('wrapInvoice', description, 'msats', msats, 'maxRoutingFeeMsats', maxRoutingFeeMsats)
 
@@ -169,7 +184,7 @@ export async function wrapBolt11 ({ msats, bolt11, maxRoutingFeeMsats, hideInvoi
     // calculate the incoming invoice amount, without fees
     wrapped.mtokens = String(msats)
 
-    return (await createHodlInvoice({ lnd, ...wrapped })).request
+    return wrapped
   } finally {
     console.groupEnd()
   }

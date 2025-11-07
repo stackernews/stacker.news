@@ -391,6 +391,12 @@ export async function retry (payInId, { me }) {
         }
         // if we can no longer produce a payOutBolt11, we fallback to custodial tokens
         payInFailed.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payInFailed.payOutBolt11))
+        // convert the routing fee to another rewards pool output
+        const routingFee = payInFailed.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+        if (routingFee) {
+          routingFee.payOutType = 'REWARDS_POOL'
+          routingFee.userId = USER_ID.rewards
+        }
         payInFailed.payOutBolt11 = null
       }
     }

@@ -7,7 +7,6 @@ import {
   $getSelection, $isNodeSelection, $isRangeSelection
 } from 'lexical'
 import LinkEditor from './editor'
-import { useToolbarState } from '@/components/lexical/contexts/toolbar'
 import { getSelectedNode } from '@/lib/lexical/universal/utils'
 import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/universal/commands/links'
 import { ensureProtocol, removeTracking, URL_REGEXP } from '@/lib/url'
@@ -16,7 +15,6 @@ export default function LinkEditorPlugin ({ anchorElem }) {
   const [isLinkEditable, setIsLinkEditable] = useState(false)
   const [nodeKey, setNodeKey] = useState(null)
   const [editor] = useLexicalComposerContext()
-  const { updateToolbarState } = useToolbarState()
 
   const handleSelectionChange = useCallback((selection) => {
     let isLink = false
@@ -47,13 +45,11 @@ export default function LinkEditorPlugin ({ anchorElem }) {
       }
     }
 
-    // update toolbar state
-    updateToolbarState('isLink', isLink)
     if (editor.isEditable()) {
       setNodeKey(linkNodeKey)
       setIsLinkEditable(isLink)
     }
-  }, [editor, updateToolbarState])
+  }, [editor])
 
   // paste link into selection
   useEffect(() => {

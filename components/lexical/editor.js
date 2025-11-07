@@ -34,10 +34,9 @@ import { MediaCheckExtension } from './plugins/misc/media-check'
 import LocalDraftPlugin from './plugins/core/local-draft'
 import FormikBridgePlugin from './plugins/core/formik'
 import { CheckListExtension, ListExtension } from '@lexical/list'
-import { AutoLinkExtension, createLinkMatcherWithRegExp, LinkExtension } from '@lexical/link'
+import { LinkExtension } from '@lexical/link'
 import { TableExtension } from '@lexical/table'
 import { AutoFocusExtension, HorizontalRuleExtension } from '@lexical/extension'
-import { AUTOLINK_URL_REGEXP, EMAIL_REGEXP, ensureProtocol } from '@/lib/url'
 import { SNAutoLinkExtension } from '../../lib/lexical/extensions/decorative/autolink'
 import PreferencesPlugin from './plugins/core/preferences'
 import MediaDragDropPlugin from './plugins/content/media/dnd'
@@ -80,18 +79,6 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
       namespace: 'SN',
       nodes: DefaultNodes,
       dependencies: [
-        // BUG
-        // remember that this re-creates a link node when the user deletes it
-        configExtension(AutoLinkExtension, {
-          matchers: [
-            createLinkMatcherWithRegExp(AUTOLINK_URL_REGEXP, (text) => {
-              return ensureProtocol(text)
-            }),
-            createLinkMatcherWithRegExp(EMAIL_REGEXP, (text) => {
-              return `mailto:${text}`
-            })
-          ]
-        }),
         SNAutoLinkExtension,
         CodeShikiSNExtension,
         MarkdownModeExtension,

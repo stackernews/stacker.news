@@ -303,7 +303,7 @@ export class MediaNode extends DecoratorNode {
 export function $createMediaNode ({
   altText,
   height,
-  maxWidth = 500,
+  maxWidth = 320,
   captionsEnabled,
   src,
   width,

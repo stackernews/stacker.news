@@ -1,6 +1,6 @@
 import { USER_ID } from '@/lib/constants'
 import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
-import { parseInternalLinks } from '@/lib/url'
+import { parseInternalLinks, SN_ITEM_URL_REGEXP } from '@/lib/url'
 
 export async function getMentions ({ text }, { me, tx }) {
   const mentionPattern = /\B@[\w_]+/gi
@@ -22,7 +22,7 @@ export async function getMentions ({ text }, { me, tx }) {
 }
 
 export const getItemMentions = async ({ text }, { me, tx }) => {
-  const linkPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+[a-zA-Z0-9/?=]*`, 'gi')
+  const linkPattern = new RegExp(SN_ITEM_URL_REGEXP.source, 'gi')
   const refs = text.match(linkPattern)?.map(m => {
     try {
       const { itemId, commentId } = parseInternalLinks(m)

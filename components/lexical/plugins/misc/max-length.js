@@ -15,8 +15,6 @@ function getRemaining (editor, maxLength) {
 
 /**
  * plugin that enforces maximum text length and displays character count
-
- * @param {Object} props.lengthOptions - configuration for length limits
  * @param {number} props.lengthOptions.maxLength - maximum character limit
  * @param {boolean} props.lengthOptions.show - whether to always show character count
  * @returns {JSX.Element|null} character count display or null

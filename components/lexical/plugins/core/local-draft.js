@@ -36,9 +36,13 @@ export default function LocalDraftPlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
-          const state = editor.parseEditorState(value)
-          if (!state.isEmpty()) {
-            editor.setEditorState(state)
+          try {
+            const state = editor.parseEditorState(value)
+            if (!state.isEmpty()) {
+              editor.setEditorState(state)
+            }
+          } catch (error) {
+            console.error('error parsing editor state:', error)
           }
         })
       }

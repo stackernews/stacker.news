@@ -1,9 +1,17 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getSelection, $isRangeSelection, RootNode, $getRoot } from 'lexical'
 import { $trimTextContentFromAnchor } from '@lexical/selection'
 import { $restoreEditorState } from '@lexical/utils'
 import { MAX_POST_TEXT_LENGTH } from '@/lib/constants'
+
+function getRemaining (editor, maxLength) {
+  return editor.getEditorState().read(() => {
+    const root = $getRoot()
+    const textContentSize = root ? root.getTextContentSize() : 0
+    return Math.max(0, maxLength - textContentSize)
+  })
+}
 
 /**
  * plugin that enforces maximum text length and displays character count
@@ -19,6 +27,11 @@ export function MaxLengthPlugin ({ lengthOptions = {} }) {
   // if no limit is set, MAX_POST_TEXT_LENGTH is used
   // rendering is disabled if not requested
   const { maxLength = MAX_POST_TEXT_LENGTH, show = false } = lengthOptions
+
+  // track remaining characters with state so it updates on editor changes
+  const [remaining, setRemaining] = useState(() => {
+    return getRemaining(editor, maxLength)
+  })
 
   useEffect(() => {
     // prevent infinite restoration loops by tracking the last restored editor state
@@ -62,12 +75,14 @@ export function MaxLengthPlugin ({ lengthOptions = {} }) {
     })
   }, [editor, maxLength])
 
-  // calculate remaining characters directly from current editor state
-  const remaining = useMemo(() => editor.getEditorState().read(() => {
-    const root = $getRoot()
-    const textContentSize = root ? root.getTextContentSize() : 0
-    return Math.max(0, maxLength - textContentSize)
-  }), [editor, maxLength])
+  // update remaining characters whenever editor content changes
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        setRemaining(getRemaining(editor, maxLength))
+      })
+    })
+  }, [editor, maxLength])
 
   if (show || remaining < 10) {
     return (

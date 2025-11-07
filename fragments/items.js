@@ -13,7 +13,6 @@ const STREAK_FIELDS = gql`
   }
 `
 
-// TODO DEBUG: remove lexicalState
 export const ITEM_FIELDS = gql`
   ${STREAK_FIELDS}
   fragment ItemFields on Item {

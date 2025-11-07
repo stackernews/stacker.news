@@ -78,7 +78,9 @@ export class MentionNode extends DecoratorNode {
     wrapper.setAttribute('data-lexical-mention-id', this.__mentionId)
     wrapper.setAttribute('data-lexical-mention-name', this.__mentionName)
     const a = document.createElement('a')
-    const href = this.__mentionId ? '/api/u/' + this.__mentionId : '/' + this.__mentionName
+    const href = this.__mentionId
+      ? '/api/u/' + encodeURIComponent(this.__mentionId.toString())
+      : '/' + encodeURIComponent(this.__mentionName.toString())
     a.setAttribute('href', href)
     a.textContent = '@' + this.__mentionName
     wrapper.appendChild(a)

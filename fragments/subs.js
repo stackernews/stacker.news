@@ -29,8 +29,6 @@ export const SUB_FIELDS = gql`
     replyCost
     userId
     desc
-    lexicalState
-    html
     status
     moderated
     moderatedCount

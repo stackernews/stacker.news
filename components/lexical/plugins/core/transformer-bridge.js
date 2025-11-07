@@ -18,7 +18,7 @@ import { CodeHighlighterShikiExtension } from '@lexical/code-shiki'
  */
 export const USE_TRANSFORMER_BRIDGE = createCommand('USE_TRANSFORMER_BRIDGE')
 
-/** bridge plugin that transforms markdown selections using a headless lexical editor
+/** bridge plugin that transforms markdown selections using a headless lexical editor,
  *  registers USE_TRANSFORMER_BRIDGE command to transform markdown selections
  */
 export default function TransformerBridgePlugin ({ nodes }) {

@@ -61,6 +61,10 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
         if (appendValue) {
           return $initializeEditorState(prefs.startInMarkdown, editor, appendValue)
         }
+        // if we're in a territory form, initialize with the desc value as markdown
+        if (values.desc) {
+          return $initializeEditorState(true, editor, values.desc)
+        }
         // if initial state, parse it
         if (values.lexicalState) {
           try {

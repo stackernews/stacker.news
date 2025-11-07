@@ -90,7 +90,6 @@ export default function TerritoryForm ({ sub }) {
         initial={{
           name: sub?.name || '',
           desc: sub?.desc || '',
-          lexicalState: sub?.lexicalState || '',
           baseCost: sub?.baseCost || 10,
           replyCost: sub?.replyCost || 1,
           postTypes: sub?.postTypes || POST_TYPES,

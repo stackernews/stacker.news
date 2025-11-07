@@ -68,7 +68,7 @@ export class ItemMentionNode extends DecoratorNode {
     }
     wrapper.setAttribute('data-lexical-item-mention-id', this.__itemMentionId)
     const a = document.createElement('a')
-    a.setAttribute('href', '/items/' + this.__itemMentionId)
+    a.setAttribute('href', '/items/' + encodeURIComponent(this.__itemMentionId.toString()))
     a.textContent = '#' + this.__itemMentionId
     wrapper.appendChild(a)
     return { element: wrapper }

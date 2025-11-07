@@ -39,8 +39,6 @@ export default gql`
     userId: Int!
     user: User!
     desc: String
-    lexicalState: String
-    html: String
     updatedAt: Date!
     postTypes: [String!]!
     allowFreebies: Boolean!

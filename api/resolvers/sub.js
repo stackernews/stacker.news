@@ -205,6 +205,13 @@ export default {
 
       await validateSchema(territorySchema, data, { models, me, sub: { name: data.oldName } })
 
+      // QUIRK
+      // if we have a lexicalState, we'll convert it to markdown to fit the schema
+      if (data.lexicalState) {
+        const { text } = await prepareLexicalState({ lexicalState: data.lexicalState })
+        data.desc = text
+        delete data.lexicalState
+      }
       data.uploadIds = uploadIdsFromText(data.desc)
 
       if (data.oldName) {
@@ -364,12 +371,6 @@ export default {
 
 async function createSub (parent, data, { me, models, lnd }) {
   try {
-    // QUIRK
-    // if we have a lexicalState, we'll convert it to markdown to fit the schema
-    if (data.lexicalState) {
-      const { text } = prepareLexicalState({ lexicalState: data.lexicalState })
-      data.desc = text
-    }
     return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
@@ -397,12 +398,6 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd }) {
   }
 
   try {
-    // QUIRK
-    // if we have a lexicalState, we'll convert it to markdown to fit the schema
-    if (data.lexicalState) {
-      const { text } = prepareLexicalState({ lexicalState: data.lexicalState })
-      data.desc = text
-    }
     return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {

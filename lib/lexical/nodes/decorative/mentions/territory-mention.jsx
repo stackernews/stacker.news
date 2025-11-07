@@ -68,7 +68,7 @@ export class TerritoryNode extends DecoratorNode {
     }
     wrapper.setAttribute('data-lexical-territory-name', this.__territory)
     const a = document.createElement('a')
-    a.setAttribute('href', '/~' + this.__territory)
+    a.setAttribute('href', '/~' + encodeURIComponent(this.__territory.toString()))
     a.textContent = '~' + this.__territory
     wrapper.appendChild(a)
     return { element: wrapper }

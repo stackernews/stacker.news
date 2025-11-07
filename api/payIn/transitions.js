@@ -1,8 +1,7 @@
 import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
-import { onBegin, onFail, onPaid } from '.'
+import { onBegin, onFail, onPaid, onPaidSideEffects } from '.'
 import { walletLogger } from '@/wallets/server/logger'
-import payInTypeModules from './types'
 import { getPaymentFailureStatus, getPaymentOrNotSent, hodlInvoiceCltvDetails } from '../lnd'
 import { cancelHodlInvoice, parsePaymentRequest, payViaPaymentRequest, settleHodlInvoice, getInvoice } from 'ln-service'
 import { toPositiveNumber, formatSats, msatsToSats, toPositiveBigInt } from '@/lib/format'
@@ -105,7 +104,7 @@ async function transitionPayIn (jobName, data,
 
     console.error('unexpected error', error)
     if (cancelOnError) {
-      models.pessimisticEnv.update({
+      models.pessimisticEnv.updateMany({
         where: { payInId },
         data: {
           error: error.message
@@ -148,14 +147,17 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
       const { mtokens: mtokensFeeEstimated, id: routingFeeId } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
       const mtokensFeeActual = toPositiveBigInt(lndPayOutBolt11.payment.fee_mtokens)
 
+      // update the routing fee to the actual amount paid
+      // in the case of force closures this can exceed the estimated amount
+      await tx.payOutCustodialToken.update({
+        where: { id: routingFeeId },
+        data: {
+          mtokens: mtokensFeeActual
+        }
+      })
+
       // update before calling onPaid where we update balances
       if (mtokensFeeEstimated - mtokensFeeActual > 0) {
-        await tx.payOutCustodialToken.update({
-          where: { id: routingFeeId },
-          data: {
-            mtokens: mtokensFeeActual
-          }
-        })
         await tx.payOutCustodialToken.create({
           data: {
             mtokens: mtokensFeeEstimated - mtokensFeeActual,
@@ -269,9 +271,7 @@ export async function payInPaid ({ data, models, ...args }) {
   if (transitionedPayIn) {
     // run non critical side effects in the background
     // after the transaction has been committed
-    payInTypeModules[transitionedPayIn.payInType]
-      .onPaidSideEffects?.(models, payInId)
-      .catch(console.error)
+    onPaidSideEffects(models, payInId).catch(console.error)
   }
 }
 
@@ -307,7 +307,7 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
       if (payIn.pessimisticEnv) {
         pessimisticEnv = {
           update: {
-            result: await payInTypeModules[payIn.payInType].onBegin?.(tx, payIn.id, payIn.pessimisticEnv.args)
+            result: await onBegin(tx, payIn.id, payIn.pessimisticEnv.args)
           }
         }
       }
@@ -348,7 +348,7 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
     }).catch(
       e => {
         console.error('failed to forward', e)
-        boss.send('payInCancel', { payInId, payInFailureReason: 'INVOICE_FORWARDING_FAILED' }, FINALIZE_OPTIONS)
+        boss.send('payInFailedForward', { payInId }, FINALIZE_OPTIONS)
           .catch(e => console.error('failed to cancel payIn', e))
       }
     )
@@ -382,6 +382,16 @@ export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
 
       const mtokensFeeActual = toPositiveBigInt(payment.fee_mtokens)
 
+      // calculate the amount to add to the rewards pool if routing fee was overestimated
+      const rewardsPoolMtokens = mtokensFeeEstimated - mtokensFeeActual
+      let rewardsPoolMtokensUpdate
+      if (rewardsPoolMtokens >= 0n) {
+        rewardsPoolMtokensUpdate = { increment: rewardsPoolMtokens }
+      } else {
+        // on force closures the routing fee can exceed the estimated amount
+        rewardsPoolMtokensUpdate = 0n
+      }
+
       return {
         payInBolt11: {
           update: {
@@ -401,7 +411,7 @@ export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
               where: { id: payOutRoutingFeeId }
             },
             {
-              data: { mtokens: { increment: (mtokensFeeEstimated - mtokensFeeActual) } },
+              data: { mtokens: rewardsPoolMtokensUpdate },
               where: { id: payOutRewardsPoolId }
             }
           ]
@@ -571,13 +581,40 @@ export async function payInFailed ({ data, models, lnd, boss, ...args }) {
 
       await onFail(tx, payIn.id)
 
-      // TODO: in which cases might we not have this passed by can deduce the error from the payIn/lnd state?
-      const reason = payInFailureReason ?? payIn.payInFailureReason ?? 'UNKNOWN_FAILURE'
-
       return {
-        payInFailureReason: reason,
+        payInFailureReason: deducePayInFailureReason({ payInFailureReason, payIn, lndPayInBolt11 }),
         payInBolt11
       }
     }
   }, { models, lnd, boss, ...args })
+}
+
+function deducePayInFailureReason ({ payInFailureReason, payIn, lndPayInBolt11 }) {
+  if (payInFailureReason) {
+    return payInFailureReason
+  }
+  if (payIn.payInFailureReason) {
+    return payIn.payInFailureReason
+  }
+  if (payIn.payInState === 'PENDING_INVOICE_CREATION') {
+    return 'INVOICE_CREATION_FAILED'
+  }
+  if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
+    return 'INVOICE_WRAPPING_FAILED_UNKNOWN'
+  }
+  if (payIn.payInState === 'FAILED_FORWARD') {
+    return 'INVOICE_FORWARDING_FAILED'
+  }
+  if (payIn.payInState === 'PENDING_WITHDRAWAL') {
+    return 'WITHDRAWAL_FAILED'
+  }
+  if (lndPayInBolt11) {
+    if (lndPayInBolt11.is_canceled) {
+      if (payIn.payInBolt11?.expiresAt < new Date()) {
+        return 'INVOICE_EXPIRED'
+      }
+      return 'SYSTEM_CANCELLED'
+    }
+  }
+  return 'UNKNOWN_FAILURE'
 }

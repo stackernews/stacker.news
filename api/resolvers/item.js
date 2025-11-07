@@ -1196,7 +1196,7 @@ export default {
     },
     boost: async (item, args, { models, me }) => {
       if (me?.id !== item.userId) {
-        return msatsToSats(BigInt(item.boost))
+        return item.boost
       }
       return item.boost + msatsToSats(BigInt(item.mePendingBoostMsats || 0))
     },
@@ -1333,6 +1333,8 @@ export default {
           cursor: null
         }
       }
+
+      console.log('comments', item.ncomments)
 
       return comments(me, models, item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
     },

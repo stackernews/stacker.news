@@ -43,6 +43,7 @@ import MediaDragDropPlugin from './plugins/content/media/dnd'
 import TableActionMenuPlugin from './plugins/inserts/table/action'
 // import DraggableBlockPlugin from './plugins/core/draggable-block'
 import { TableOfContentsExtension } from '@/lib/lexical/extensions/toc'
+import { SpoilerExtension } from '@/lib/lexical/extensions/formatting/spoiler'
 
 /**
  * main Lexical editor component with formik integration
@@ -101,6 +102,7 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
         SNCommandsExtension,
         HorizontalRuleExtension,
         TableOfContentsExtension,
+        SpoilerExtension,
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
       theme,

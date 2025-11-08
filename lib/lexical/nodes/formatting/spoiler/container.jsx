@@ -1,12 +1,27 @@
-import { $getSiblingCaret, $isElementNode, ElementNode, $rewindSiblingCaret, isHTMLElement } from 'lexical'
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 import { IS_CHROME } from '@lexical/utils'
+import {
+  $getSiblingCaret,
+  $isElementNode,
+  $rewindSiblingCaret,
+  ElementNode,
+  isHTMLElement
+} from 'lexical'
+
 import { setDomHiddenUntilFound } from './utils'
 
-// from lexical playground
-export function $convertSpoilerElement (domNode) {
-  const open = domNode.open !== undefined ? domNode.open : true
-  const node = $createSpoilerContainerNode(open)
-  return { node }
+export function $convertDetailsElement (domNode) {
+  const isOpen = domNode.open !== undefined ? domNode.open : true
+  const node = $createSpoilerContainerNode(isOpen)
+  return {
+    node
+  }
 }
 
 export class SpoilerContainerNode extends ElementNode {
@@ -30,6 +45,8 @@ export class SpoilerContainerNode extends ElementNode {
   }
 
   collapseAtStart (selection) {
+    // Unwrap the SpoilerContainerNode by replacing it with the children
+    // of its children (SpoilerTitleNode, SpoilerContentNode)
     const nodesToInsert = []
     for (const child of this.getChildren()) {
       if ($isElementNode(child)) {
@@ -38,36 +55,45 @@ export class SpoilerContainerNode extends ElementNode {
     }
     const caret = $rewindSiblingCaret($getSiblingCaret(this, 'previous'))
     caret.splice(1, nodesToInsert)
-
-    // merge first child of spoiler title with the previous sibling of spoiler container node
+    // Merge the first child of the SpoilerTitleNode with the
+    // previous sibling of the SpoilerContainerNode
     const [firstChild] = nodesToInsert
     if (firstChild) {
       firstChild.selectStart().deleteCharacter(true)
     }
-
     return true
   }
 
   createDOM (config, editor) {
-    const detailsDom = document.createElement('details')
-    detailsDom.open = this.__open
-    detailsDom.addEventListener('toggle', () => {
-      const open = editor.getEditorState().read(() => this.getOpen())
-      if (open !== detailsDom.open) {
-        editor.update(() => this.toggleOpen())
-      }
-    })
-    detailsDom.className = config.theme.spoilerContainer
-    return detailsDom
+    // details is not well supported in Chrome #5582
+    let dom
+    if (IS_CHROME) {
+      dom = document.createElement('div')
+      dom.setAttribute('open', '')
+    } else {
+      const detailsDom = document.createElement('details')
+      detailsDom.open = this.__open
+      detailsDom.addEventListener('toggle', () => {
+        const open = editor.getEditorState().read(() => this.getOpen())
+        if (open !== detailsDom.open) {
+          editor.update(() => this.toggleOpen())
+        }
+      })
+      dom = detailsDom
+    }
+    dom.classList.add('sn__collapsible', 'sn__spoiler__container')
+
+    return dom
   }
 
   updateDOM (prevNode, dom) {
     const currentOpen = this.__open
     if (prevNode.__open !== currentOpen) {
+      // details is not well supported in Chrome #5582
       if (IS_CHROME) {
         const contentDom = dom.children[1]
         if (!isHTMLElement(contentDom)) {
-          throw new Error('content dom is not an html element')
+          throw new Error('Expected contentDom to be an HTMLElement')
         }
         if (currentOpen) {
           dom.setAttribute('open', '')
@@ -80,6 +106,7 @@ export class SpoilerContainerNode extends ElementNode {
         dom.open = this.__open
       }
     }
+
     return false
   }
 
@@ -87,7 +114,7 @@ export class SpoilerContainerNode extends ElementNode {
     return {
       details: (domNode) => {
         return {
-          conversion: $convertSpoilerElement,
+          conversion: $convertDetailsElement,
           priority: 1
         }
       }
@@ -95,7 +122,16 @@ export class SpoilerContainerNode extends ElementNode {
   }
 
   static importJSON (serializedNode) {
-    return $createSpoilerContainerNode(serializedNode.open).updateFromJSON(serializedNode)
+    return $createSpoilerContainerNode(serializedNode.open).updateFromJSON(
+      serializedNode
+    )
+  }
+
+  exportDOM () {
+    const element = document.createElement('details')
+    element.classList.add('sn__collapsible', 'sn__spoiler__container')
+    element.setAttribute('open', this.__open.toString())
+    return { element }
   }
 
   exportJSON () {
@@ -115,13 +151,12 @@ export class SpoilerContainerNode extends ElementNode {
   }
 
   toggleOpen () {
-    console.log('toggleOpen')
     this.setOpen(!this.getOpen())
   }
 }
 
-export function $createSpoilerContainerNode (open = false) {
-  return new SpoilerContainerNode(open)
+export function $createSpoilerContainerNode (isOpen) {
+  return new SpoilerContainerNode(isOpen)
 }
 
 export function $isSpoilerContainerNode (node) {

@@ -1,12 +1,23 @@
-import { IS_CHROME } from '@lexical/utils'
-import { setDomHiddenUntilFound, domOnBeforeMatch } from './utils'
-import { $isSpoilerContainerNode } from './container'
-import { ElementNode, $createParagraphNode } from 'lexical'
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
-// from lexical playground
+import { IS_CHROME } from '@lexical/utils'
+import {
+  ElementNode
+} from 'lexical'
+
+import { $isSpoilerContainerNode } from './container'
+import { domOnBeforeMatch, setDomHiddenUntilFound } from './utils'
+
 export function $convertSpoilerContentElement (domNode) {
   const node = $createSpoilerContentNode()
-  return { node }
+  return {
+    node
+  }
 }
 
 export class SpoilerContentNode extends ElementNode {
@@ -19,13 +30,15 @@ export class SpoilerContentNode extends ElementNode {
   }
 
   createDOM (config, editor) {
-    const dom = document.createElement('content')
-    dom.className = config.theme.spoilerContent
+    const dom = document.createElement('div')
+    dom.classList.add('sn__spoiler__content')
     if (IS_CHROME) {
       editor.getEditorState().read(() => {
         const containerNode = this.getParentOrThrow()
         if (!$isSpoilerContainerNode(containerNode)) {
-          throw new Error('spoiler content node must have a spoiler container node as parent')
+          throw new Error(
+            'Expected parent node to be a SpoilerContainerNode'
+          )
         }
         if (!containerNode.__open) {
           setDomHiddenUntilFound(dom)
@@ -35,7 +48,9 @@ export class SpoilerContentNode extends ElementNode {
         editor.update(() => {
           const containerNode = this.getParentOrThrow().getLatest()
           if (!$isSpoilerContainerNode(containerNode)) {
-            throw new Error('spoiler content node must have a spoiler container node as parent')
+            throw new Error(
+              'Expected parent node to be a SpoilerContainerNode'
+            )
           }
           if (!containerNode.__open) {
             containerNode.toggleOpen()
@@ -53,16 +68,21 @@ export class SpoilerContentNode extends ElementNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-spoiler-content')) return null
-        return { conversion: $convertSpoilerContentElement, priority: 2 }
+        if (!domNode.hasAttribute('data-lexical-spoiler-content')) {
+          return null
+        }
+        return {
+          conversion: $convertSpoilerContentElement,
+          priority: 2
+        }
       }
     }
   }
 
-  exportDOM (config) {
-    const element = document.createElement('content')
-    element.className = config.theme.spoilerContent
-    element.setAttribute('data-lexical-spoiler-content', true)
+  exportDOM () {
+    const element = document.createElement('div')
+    element.classList.add('sn__spoiler__content')
+    element.setAttribute('data-lexical-spoiler-content', 'true')
     return { element }
   }
 
@@ -72,25 +92,6 @@ export class SpoilerContentNode extends ElementNode {
 
   isShadowRoot () {
     return true
-  }
-
-  insertNewAfter (_, restoreSelection = true) {
-    const lastChild = this.getLastChild()
-    if (lastChild) {
-      console.log('lastChild', lastChild)
-      // If we're not at the last child, continue normally
-      const nextSibling = lastChild.getNextSibling()
-      if (nextSibling) {
-        console.log('were not at the last child')
-        return lastChild
-      }
-    }
-    console.log('were at the last child')
-    // We're at the end of content - exit the spoiler
-    const containerNode = this.getParentOrThrow()
-    const paragraph = $createParagraphNode()
-    containerNode.insertAfter(paragraph, restoreSelection)
-    return paragraph
   }
 }
 

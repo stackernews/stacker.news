@@ -1,6 +1,6 @@
 import { IS_CHROME } from '@lexical/utils'
 import { $isSpoilerContainerNode } from './container'
-import { $isSpoilerDetailsNode } from './details'
+import { $isSpoilerContentNode } from './details'
 import { ElementNode, $isElementNode, $createParagraphNode, buildImportMap } from 'lexical'
 
 // from lexical playground
@@ -29,7 +29,7 @@ export class SpoilerSummaryNode extends ElementNode {
 
   createDOM (config, editor) {
     const dom = document.createElement('summary')
-    dom.classList.add('sn__spoilerSummary')
+    dom.className = config.theme.spoilerSummary
     if (IS_CHROME) {
       dom.addEventListener('click', () => {
         editor.update(() => {
@@ -57,7 +57,7 @@ export class SpoilerSummaryNode extends ElementNode {
 
     if (containerNode.getOpen()) {
       const contentNode = this.getNextSibling()
-      if (!$isSpoilerDetailsNode(contentNode)) {
+      if (!$isSpoilerContentNode(contentNode)) {
         throw new Error('spoiler summary node expects to have a spoiler details node as sibling')
       }
       const firstChild = contentNode.getFirstChild()

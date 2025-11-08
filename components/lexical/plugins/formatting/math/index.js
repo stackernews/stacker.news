@@ -1,11 +1,11 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useLexicalEditable } from '@lexical/react/useLexicalEditable'
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { $isMathNode } from './mathnode'
+import { $isMathNode } from '@/lib/lexical/nodes/formatting/math/mathnode'
 import { mergeRegister } from '@lexical/utils'
 import { SELECTION_CHANGE_COMMAND, KEY_ESCAPE_COMMAND, COMMAND_PRIORITY_HIGH, $getNodeByKey, $getSelection, $isNodeSelection } from 'lexical'
 import ErrorBoundary from '@/components/error-boundary'
-import MathEditor from './matheditor'
+import MathEditor from './editor'
 import KatexRenderer from '@/components/katex-renderer'
 import { useToast } from '@/components/toast'
 

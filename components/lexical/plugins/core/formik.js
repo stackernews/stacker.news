@@ -29,14 +29,18 @@ function $prepareMarkdown (editor, markdown) {
       theme: editor._config.theme
     }))
 
-  // convert the markdown to a lexical state
-  tempEditor.update(() => {
-    $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, false)
-  })
+  try {
+    // convert the markdown to a lexical state
+    tempEditor.update(() => {
+      $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, false)
+    })
 
-  tempEditor.read(() => {
-    lexicalState = tempEditor.getEditorState().toJSON()
-  })
+    tempEditor.read(() => {
+      lexicalState = tempEditor.getEditorState().toJSON()
+    })
+  } catch (error) {
+    console.error('cannot prepare markdown:', error)
+  }
 
   return lexicalState
 }

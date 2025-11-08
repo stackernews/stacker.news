@@ -109,14 +109,14 @@ function useOverflow ({ element, truncated = false }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-export function LexicalText ({ lexicalState, html, topLevel, imgproxyUrls, rel = UNKNOWN_LINK_REL, outlawed, children }) {
+export function LexicalText ({ topLevel, rel = UNKNOWN_LINK_REL, children, ...props }) {
   const [element, setElement] = useState(null)
   const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
 
   const textClassNames = useMemo(() => {
     return classNames(
       lexicalStyles.text,
-      topLevel && lexicalStyles.topLevel,
+      topLevel && 'topLevel',
       show ? lexicalStyles.textUncontained : overflowing && lexicalStyles.textContained
     )
   }, [topLevel, show, overflowing])
@@ -135,12 +135,8 @@ export function LexicalText ({ lexicalState, html, topLevel, imgproxyUrls, rel =
       <LexicalReader
         className={textClassNames}
         ref={setElement}
-        lexicalState={lexicalState}
-        topLevel={topLevel}
-        html={html}
-        imgproxyUrls={imgproxyUrls}
-        outlawed={outlawed}
         rel={rel}
+        {...props}
       >
         {Overflow}
       </LexicalReader>

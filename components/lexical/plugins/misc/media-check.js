@@ -51,7 +51,6 @@ export const MediaCheckExtension = defineExtension({
           editor.update(() => {
             const node = $getNodeByKey(nodeKey)
             if (!(node instanceof MediaNode)) return
-            console.log('result', result)
             // if the media is unknown, at this point replace it with a link
             if (result.type === 'unknown') {
               const url = node.getSrc()
@@ -101,7 +100,6 @@ export const MediaCheckExtension = defineExtension({
       }, COMMAND_PRIORITY_EDITOR),
       // register transform to automatically check unknown media nodes
       editor.registerNodeTransform(MediaNode, (node) => {
-        console.log('intercepted media node transform', node)
         // trigger media check for unknown media nodes that are idle and have a source
         if (node.getKind() === 'unknown' && node.getStatus() === 'idle' && node.getSrc()) {
           editor.dispatchCommand(MEDIA_CHECK_COMMAND, { nodeKey: node.getKey(), url: node.getSrc() })

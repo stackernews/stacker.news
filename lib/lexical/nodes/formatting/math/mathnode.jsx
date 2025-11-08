@@ -106,7 +106,7 @@ export class MathNode extends DecoratorNode {
   }
 
   decorate () {
-    const MathComponent = require('./mathcomponent').default
+    const MathComponent = require('@/components/lexical/plugins/formatting/math').default
     return (
       <MathComponent
         math={this.__math}

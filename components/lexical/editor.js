@@ -141,7 +141,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
             contentEditable={
               <div className={styles.editor} ref={onRef}>
                 <ContentEditable
-                  className={classNames(styles.editorInput, styles.text, topLevel && (styles.topLevel, 'topLevel'))}
+                  className={classNames(styles.editorInput, styles.text, topLevel && 'topLevel')}
                   placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
                 />
               </div>

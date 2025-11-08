@@ -20,6 +20,7 @@
   margin-top: 0.75rem;
   margin-bottom: 0.5rem;
   font-size: 1rem;
+  position: relative;
 }
 
 .topLevel h1.sn__headings {
@@ -36,6 +37,19 @@
 
 .topLevel h4.sn__headings {
   font-size: 1.15rem;
+}
+
+/* workaround to make headings clickable, see SNHeadingNode
+   quirk: makes the whole line clickable
+*/
+.sn__headings > a {
+  position: absolute;
+  inset: 0;
+  text-decoration: none;
+}
+
+.sn__headings > a:focus {
+  outline: none;
 }
 
 /* blocks */
@@ -176,8 +190,7 @@ span + .sn__link {
 
 /* list item padding, lookbehind for nested list items */
 .sn__listItem:has(> span) {
-  padding-top: calc(var(--grid-gap) * 0.5);
-  padding-bottom: calc(var(--grid-gap) * 0.5);
+  margin-top: .25rem;
   
   .sn__nestedListItem & {
     padding-top: 0;
@@ -356,6 +369,52 @@ span + .sn__link {
   outline: 1px solid var(--bs-primary);
 }
 
+.sn__spoilerContainer {
+  background-color: var(--theme-commentBg);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 0.4rem;
+  padding: 0;
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+  max-width: fit-content;
+}
+
+/* spoiler */
+.sn__spoilerSummary {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+  padding-right: 0.4rem;
+  margin-bottom: 0;
+  color: var(--bs-body-color);
+  transition: background-color 0.15s ease-in-out;
+  list-style: none;
+}
+
+.sn__spoilerSummary:hover {
+  background-color: var(--theme-clickToContextColor);
+}
+
+.sn__spoilerSummary::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  background-color: var(--bs-body-color);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z'/%3E%3C/svg%3E") no-repeat center / contain;
+  transform: rotate(-90deg);
+  flex-shrink: 0;
+}
+
+.sn__spoilerContainer[open] > .sn__spoilerSummary::before {
+  transform: rotate(0deg);
+}
+
+.sn__spoilerContent {
+  padding: 0.25rem 0.5rem 0.5rem 0.5rem;
+}
+
 .sn__textBold {
   font-weight: bold;
 }
@@ -377,16 +436,6 @@ span + .sn__link {
 }
 
 /* inline */
-/* code TODO: get a better color scheme for light and dark mode */
-.sn__code {
-  font-family: Menlo, Consolas, Monaco, monospace;
-  margin: 0;
-  white-space: break-spaces;
-  background-color: var(--theme-commentBg) !important;
-  color: var(--theme-navLinkActive) !important;
-  border-radius: 0.3rem;
-  padding: 0.2em 0.4em;
-}
 
 .sn__codeBlock {
   position: relative;
@@ -423,7 +472,7 @@ span + .sn__link {
   overflow-y: scroll;
   overflow-x: scroll;
   table-layout: fixed;
-  width: fit-content;
+  width: auto;
   margin-top: 10px;
   margin-bottom: 10px;
 }
@@ -436,14 +485,14 @@ span + .sn__link {
 }
 .sn__tableCell {
   border: 1px solid var(--theme-borderColor);
-  width: 75px;
   min-width: 75px;
   vertical-align: top;
   text-align: start;
-  padding: 6px 8px;
+  padding: .3rem .75rem;
   position: relative;
   outline: none;
   overflow: auto;
+  line-height: 1.2;
 }
 
 /*

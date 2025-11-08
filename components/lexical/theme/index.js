@@ -69,7 +69,10 @@ const theme = {
   },
   math: 'sn__math',
   hr: 'sn__hr',
-  toc: 'sn__toc'
+  toc: 'sn__toc',
+  spoilerContainer: 'sn__spoilerContainer',
+  spoilerSummary: 'sn__spoilerSummary',
+  spoilerContent: 'sn__spoilerContent'
 }
 
 export default theme

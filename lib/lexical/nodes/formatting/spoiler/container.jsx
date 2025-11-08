@@ -49,23 +49,16 @@ export class SpoilerContainerNode extends ElementNode {
   }
 
   createDOM (config, editor) {
-    let dom
-    if (IS_CHROME) {
-      dom = document.createElement('div')
-      dom.setAttribute('open', '')
-    } else {
-      const detailsDom = document.createElement('details')
-      detailsDom.open = this.__open
-      detailsDom.addEventListener('toggle', () => {
-        const open = editor.getEditorState().read(() => this.getOpen())
-        if (open !== detailsDom.open) {
-          editor.update(() => this.toggleOpen())
-        }
-      })
-      dom = detailsDom
-    }
-    dom.classList.add('sn__spoilerContainer')
-    return dom
+    const detailsDom = document.createElement('details')
+    detailsDom.open = this.__open
+    detailsDom.addEventListener('toggle', () => {
+      const open = editor.getEditorState().read(() => this.getOpen())
+      if (open !== detailsDom.open) {
+        editor.update(() => this.toggleOpen())
+      }
+    })
+    detailsDom.className = config.theme.spoilerContainer
+    return detailsDom
   }
 
   updateDOM (prevNode, dom) {
@@ -122,6 +115,7 @@ export class SpoilerContainerNode extends ElementNode {
   }
 
   toggleOpen () {
+    console.log('toggleOpen')
     this.setOpen(!this.getOpen())
   }
 }

@@ -23,7 +23,7 @@
   background-color: var(--theme-body) !important;
 }
 
-.text.topLevel {
+.text:global(.topLevel) {
   max-height: 200vh;
   --grid-gap: 0.75rem;
 }
@@ -59,7 +59,7 @@
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
-.text>*:not(:global(.sn__heading), :global(.sn__toc)) {
+.text>*:not(:global(.sn__heading), :global(.sn__toc), :global(.sn__spoilerContainer)) {
   padding-top: calc(var(--grid-gap) * 0.5);
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
@@ -79,16 +79,16 @@
   margin-top: 0 !important;
 }
 
-.text blockquote, .text.topLevel blockquote  {
+.text blockquote, .text:global(.topLevel) blockquote  {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
 
-.text blockquote *:first-child, .text.topLevel blockquote *:first-child {
+.text blockquote *:first-child, .text:global(.topLevel) blockquote *:first-child {
   padding-top: 0;
 }
 
-.text blockquote *:last-child, .text.topLevel blockquote *:last-child {
+.text blockquote *:last-child, .text:global(.topLevel) blockquote *:last-child {
   padding-bottom: 0;
 }
 

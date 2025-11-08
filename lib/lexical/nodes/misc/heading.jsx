@@ -38,12 +38,19 @@ export class SNHeadingNode extends HeadingNode {
     return slug(this.getTextContent().replace(/[^\w\-\s]+/gi, ''))
   }
 
+  // headings are not links by default, because lexical creates a span
+  // so if we were to append a link to the element, it would render as sibling
+  // instead of wrapping the text in a link.
+  // the workaround used here is to use CSS to make this clickable.
   createDOM (config, editor) {
     const element = super.createDOM(config, editor)
     // anchor navigation
     const headingId = this.getSlug()
     if (headingId) {
       element.setAttribute('id', headingId)
+      const a = document.createElement('a')
+      a.setAttribute('href', `#${headingId}`)
+      element.appendChild(a)
     }
 
     return element
@@ -65,6 +72,9 @@ export class SNHeadingNode extends HeadingNode {
 
     if (headingId) {
       element.setAttribute('id', headingId)
+      const a = document.createElement('a')
+      a.setAttribute('href', `#${headingId}`)
+      element.appendChild(a)
     }
 
     return { element }

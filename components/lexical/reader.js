@@ -9,7 +9,6 @@ import { CodeShikiSNExtension } from '../../lib/lexical/extensions/core/code'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import theme from './theme'
 import { TableExtension } from '@lexical/table'
-import classNames from 'classnames'
 
 /**
  * Lexical Renderer: renders lexical state as read-only content
@@ -17,11 +16,10 @@ import classNames from 'classnames'
  * @param {string} [props.className] - additional CSS class names
  * @param {React.ReactNode} [props.children] - child components
  * @param {React.Ref} [props.contentRef] - ref for content editable element
- * @param {boolean} [props.topLevel] - whether this is top-level content
  * @param {React.Ref} ref - forwarded ref
  * @returns {JSX.Element} lexical renderer
  */
-export default forwardRef(function Reader ({ lexicalState, className, children, contentRef, topLevel }, ref) {
+export default forwardRef(function Reader ({ lexicalState, className, children, contentRef }, ref) {
   const reader = useMemo(() =>
     defineExtension({
       $initialEditorState: (editor) => {
@@ -49,7 +47,7 @@ export default forwardRef(function Reader ({ lexicalState, className, children, 
       <div style={{ position: 'relative' }}>
         <RichTextPlugin
           contentEditable={
-            <ContentEditable className={classNames(className, topLevel && 'topLevel')} ref={contentRef} />
+            <ContentEditable className={className} ref={contentRef} />
           }
           ErrorBoundary={LexicalErrorBoundary}
         />

@@ -1,31 +1,31 @@
 import { IS_CHROME } from '@lexical/utils'
 import { setDomHiddenUntilFound, domOnBeforeMatch } from './utils'
 import { $isSpoilerContainerNode } from './container'
-import { ElementNode } from 'lexical'
+import { ElementNode, $createParagraphNode } from 'lexical'
 
 // from lexical playground
-export function $convertSpoilerDetailsElement (domNode) {
-  const node = $createSpoilerDetailsNode()
+export function $convertSpoilerContentElement (domNode) {
+  const node = $createSpoilerContentNode()
   return { node }
 }
 
-export class SpoilerDetailsNode extends ElementNode {
+export class SpoilerContentNode extends ElementNode {
   static getType () {
-    return 'spoiler-details'
+    return 'spoiler-content'
   }
 
   static clone (node) {
-    return new SpoilerDetailsNode(node.__key)
+    return new SpoilerContentNode(node.__key)
   }
 
   createDOM (config, editor) {
-    const dom = document.createElement('div')
-    dom.classList.add('sn__spoilerDetails')
+    const dom = document.createElement('content')
+    dom.className = config.theme.spoilerContent
     if (IS_CHROME) {
       editor.getEditorState().read(() => {
         const containerNode = this.getParentOrThrow()
         if (!$isSpoilerContainerNode(containerNode)) {
-          throw new Error('spoiler details node must have a spoiler container node as parent')
+          throw new Error('spoiler content node must have a spoiler container node as parent')
         }
         if (!containerNode.__open) {
           setDomHiddenUntilFound(dom)
@@ -35,7 +35,7 @@ export class SpoilerDetailsNode extends ElementNode {
         editor.update(() => {
           const containerNode = this.getParentOrThrow().getLatest()
           if (!$isSpoilerContainerNode(containerNode)) {
-            throw new Error('spoiler details node must have a spoiler container node as parent')
+            throw new Error('spoiler content node must have a spoiler container node as parent')
           }
           if (!containerNode.__open) {
             containerNode.toggleOpen()
@@ -53,32 +53,51 @@ export class SpoilerDetailsNode extends ElementNode {
   static importDOM () {
     return {
       div: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-spoiler-details')) return null
-        return { conversion: $convertSpoilerDetailsElement, priority: 2 }
+        if (!domNode.hasAttribute('data-lexical-spoiler-content')) return null
+        return { conversion: $convertSpoilerContentElement, priority: 2 }
       }
     }
   }
 
-  exportDOM () {
-    const element = document.createElement('div')
-    element.classList.add('sn__spoilerDetails')
-    element.setAttribute('data-lexical-spoiler-details', true)
+  exportDOM (config) {
+    const element = document.createElement('content')
+    element.className = config.theme.spoilerContent
+    element.setAttribute('data-lexical-spoiler-content', true)
     return { element }
   }
 
   static importJSON (serializedNode) {
-    return $createSpoilerDetailsNode().updateFromJSON(serializedNode)
+    return $createSpoilerContentNode().updateFromJSON(serializedNode)
   }
 
   isShadowRoot () {
     return true
   }
+
+  insertNewAfter (_, restoreSelection = true) {
+    const lastChild = this.getLastChild()
+    if (lastChild) {
+      console.log('lastChild', lastChild)
+      // If we're not at the last child, continue normally
+      const nextSibling = lastChild.getNextSibling()
+      if (nextSibling) {
+        console.log('were not at the last child')
+        return lastChild
+      }
+    }
+    console.log('were at the last child')
+    // We're at the end of content - exit the spoiler
+    const containerNode = this.getParentOrThrow()
+    const paragraph = $createParagraphNode()
+    containerNode.insertAfter(paragraph, restoreSelection)
+    return paragraph
+  }
 }
 
-export function $createSpoilerDetailsNode () {
-  return new SpoilerDetailsNode()
+export function $createSpoilerContentNode () {
+  return new SpoilerContentNode()
 }
 
-export function $isSpoilerDetailsNode (node) {
-  return node instanceof SpoilerDetailsNode
+export function $isSpoilerContentNode (node) {
+  return node instanceof SpoilerContentNode
 }

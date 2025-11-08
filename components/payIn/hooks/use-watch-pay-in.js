@@ -11,18 +11,14 @@ export default function useWatchPayIn ({ id, query = GET_PAY_IN_RESULT, onPaymen
   useEffect(() => {
     const controller = payInHelper.waitCheckController(id)
 
-    console.log('useWatchPayIn: useEffect', id)
     const check = async () => {
-      console.log('useWatchPayIn: check', id)
       try {
         const payIn = await controller.wait(waitFor, { query })
-        console.log('useWatchPayIn: check: success', payIn)
         onPaymentSuccess?.(payIn)
       } catch (error) {
         // check for error type so that we don't callback when the controller is stopped
         // on unmount
         if (!(error instanceof WaitCheckControllerAbortedError)) {
-          console.log('useWatchPayIn: check: error', error)
           onPaymentError?.(error)
         }
       }

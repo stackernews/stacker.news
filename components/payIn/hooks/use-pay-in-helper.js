@@ -52,18 +52,15 @@ export default function usePayInHelper () {
 
   const cancel = useCallback(async (payIn, { userCancel = false } = {}) => {
     const { hash, hmac } = payIn.payerPrivates.payInBolt11
-    console.log('canceling payIn:', payIn.id, hash, hmac)
     const { data } = await cancelPayInBolt11({ variables: { hash, hmac, userCancel } })
     return data.cancelPayInBolt11
   }, [cancelPayInBolt11])
 
   const retry = useCallback(async (payIn, { update } = {}) => {
-    console.log('retrying payIn:', payIn.id)
     const { data, error } = await retryPayIn({ variables: { payInId: payIn.id }, update })
     if (error) throw error
 
     const newPayIn = data.retryPayIn
-    console.log('new payIn:', newPayIn?.payerPrivates.payInBolt11?.hash)
 
     return newPayIn
   }, [retryPayIn])
@@ -90,7 +87,6 @@ function waitCheckPayInController (payInId, check) {
         try {
           console.log('waitCheckPayInController: checking', payInId)
           result = await check(payInId, waitFor, options)
-          console.log('waitCheckPayInController: checked', payInId, result)
           if (result.check) {
             resolve(result.payIn)
             clearInterval(interval)

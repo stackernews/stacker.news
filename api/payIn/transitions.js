@@ -22,7 +22,6 @@ async function transitionPayIn (jobName, data,
     const currentPayIn = await models.payIn.findUnique({ where: { id: payInId }, include })
 
     console.group(`${jobName}: transitioning payIn ${payInId} from ${fromStates} to ${toState}`)
-    console.log('currentPayIn', currentPayIn)
 
     if (PAY_IN_TERMINAL_STATES.includes(currentPayIn.payInState)) {
       console.log('payIn is already in a terminal state, skipping transition')

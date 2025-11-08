@@ -54,14 +54,11 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
     // if the mutation returns in a pending state, it has an invoice we need to pay
     let payError
     if (payIn.payInState === 'PENDING' || payIn.payInState === 'PENDING_HELD') {
-      console.log('payInMutation: pending', payIn.payInState, payIn.payInType)
       if (forceWaitForPayment || !me || (payIn.payInState === 'PENDING_HELD' && payIn.payInType !== 'ZAP')) {
-        console.log('payInMutation: forceWaitForPayment', forceWaitForPayment, me, payIn.payInState, payIn.payInType)
         // the action is pessimistic
         try {
           // wait for the invoice to be paid
           const paidPayIn = await payPayIn(payIn, { alwaysShowQROnFailure: true, persistOnNavigate, waitFor, onRetry, protocolLimit })
-          console.log('payInMutation: paidPayIn', paidPayIn)
           // we need to run update functions on mutations now that we have the data
           const data = { [mutationName]: paidPayIn }
           update?.(client.cache, { data })
@@ -73,7 +70,6 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
           payError = e
         }
       } else {
-        console.log('payInMutation: not forceWaitForPayment', forceWaitForPayment, me, payIn.payInState, payIn.payInType)
         // onCompleted is called before the invoice is paid for optimistic updates
         ourOnCompleted?.(data)
         // don't wait to pay the invoice

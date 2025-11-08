@@ -60,7 +60,6 @@ function reduceBolt11Cost (payIn, userId) {
 function reduceCustodialTokenCosts (payIn, userId) {
   // on a payin, the mtokensAfter is going to be the maximum
   let costs = { SATS: { mtokens: 0, mtokensAfter: null }, CREDITS: { mtokens: 0, mtokensAfter: null } }
-  console.log('payerPrivates', payIn.payerPrivates)
 
   if (payIn.isSend) {
     costs = payIn.payerPrivates?.payInCustodialTokens?.reduce((acc, token) => {
@@ -91,7 +90,6 @@ function reduceCustodialTokenCosts (payIn, userId) {
       mtokens: acc[token.custodialTokenType]?.mtokens + token.mtokens,
       mtokensAfter: acc[token.custodialTokenType]?.mtokensAfter ? Math.max(acc[token.custodialTokenType].mtokensAfter, token.privates?.mtokensAfter) : token.privates?.mtokensAfter
     }
-    console.log(token.custodialTokenType, token, acc)
     return acc
   }, { ...costs })
 

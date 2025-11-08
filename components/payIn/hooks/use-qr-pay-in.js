@@ -26,10 +26,8 @@ export default function useQrPayIn () {
       weblnSendPayment(payIn.payerPrivates.payInBolt11.bolt11).catch(e => { console.error('WebLN payment failed:', e) })
     }
     return await new Promise((resolve, reject) => {
-      console.log('waitForQrPayIn', payIn.id, walletError)
       let updatedPayIn
       const cancelAndReject = async (onClose) => {
-        console.log('waitForQrPayIn: cancelAndReject', payIn.id, updatedPayIn, cancelOnClose)
         if (!updatedPayIn && cancelOnClose) {
           const updatedPayIn = await payInHelper.cancel(payIn, { userCancel: true })
           reject(new InvoiceCanceledError(updatedPayIn?.payerPrivates.payInBolt11))
@@ -42,7 +40,6 @@ export default function useQrPayIn () {
           walletError={walletError}
           waitFor={waitFor}
           onPaymentError={err => {
-            console.log('waitForQrPayIn: onPaymentError', err)
             if (err instanceof InvoiceCanceledError) {
               onClose()
               reject(err)
@@ -51,7 +48,6 @@ export default function useQrPayIn () {
             }
           }}
           onPaymentSuccess={(payIn) => {
-            console.log('waitForQrPayIn: onPaymentSuccess', payIn)
             updatedPayIn = payIn
             // this onClose will resolve the promise before the subsequent line runs
             // so we need to set updatedPayIn first

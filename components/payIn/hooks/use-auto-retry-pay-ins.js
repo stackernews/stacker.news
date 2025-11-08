@@ -52,7 +52,6 @@ export function useAutoRetryPayIns () {
         const { data, error } = await getFailedPayIns()
         if (error) throw error
         failedPayIns = data.failedPayIns
-        console.log('failedPayIns', failedPayIns)
       } catch (err) {
         console.error('failed to fetch invoices to retry:', err)
         return

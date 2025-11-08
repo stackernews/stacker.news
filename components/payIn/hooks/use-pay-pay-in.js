@@ -33,7 +33,6 @@ export default function usePayPayIn () {
       const tooSlow = Date.now() - start > 3000
       const skipQr = (tooSlow && !alwaysShowQROnFailure) || invoiceError
       if (skipQr) {
-        console.log('usePayPayIn: skipping QR, err', err, tooSlow, alwaysShowQROnFailure, invoiceError)
         throw err
       }
     }

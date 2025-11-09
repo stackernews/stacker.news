@@ -221,12 +221,13 @@ export default {
       if (meFull.noteDeposits) {
         queries.push(
           `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
-              FLOOR("PayIn"."mcost" / 1000) as "earnedSats",
+              COALESCE(FLOOR("PayIn"."mcost" / 1000), 0) as "earnedSats",
             'PayInification' AS type
             FROM "PayIn"
             WHERE "PayIn"."userId" = $1
             AND "PayIn"."payInState" = 'PAID'
             AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayIn"."mcost" > 1000
             AND "PayIn"."payInType" = 'PROXY_PAYMENT'
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
@@ -236,13 +237,14 @@ export default {
       if (meFull.noteWithdrawals) {
         queries.push(
           `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
-            FLOOR("PayOutBolt11"."msats" / 1000) as "earnedSats",
+            COALESCE(FLOOR("PayOutBolt11"."msats" / 1000), 0) as "earnedSats",
             'PayInification' AS type
             FROM "PayIn"
-            LEFT JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
+            JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
             WHERE "PayIn"."userId" = $1
             AND "PayIn"."payInState" = 'PAID'
             AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayOutBolt11"."msats" > 1000
             AND "PayIn"."payInType" IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL')
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`

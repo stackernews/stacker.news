@@ -27,7 +27,6 @@ const Tips = ({ setOValue }) => {
   return tips.map((num, i) =>
     <Button
       size='sm'
-      className={`${i > 0 ? 'ms-2' : ''} mb-2`}
       key={num}
       onClick={() => { setOValue(num) }}
     >
@@ -170,7 +169,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
 
-        <div>
+        <div className='d-flex flex-wrap gap-2'>
           <Tips setOValue={setOValue} />
         </div>
         <div className='d-flex mt-3'>

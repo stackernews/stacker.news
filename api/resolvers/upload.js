@@ -97,7 +97,7 @@ export async function uploadFees (s3Keys, { models, me }) {
           WHEN ${userId} = 27 THEN 100000::BIGINT
           ELSE CASE
           -- 250MB are free per stacker and 24 hours
-          WHEN uploadinfo."bytes24h" + uploadinfo."bytesUnpaid" <= 250 THEN 0::BIGINT
+          WHEN uploadinfo."bytes24h" + uploadinfo."bytesUnpaid" <= 250 * 1024 * 1024 THEN 0::BIGINT
           -- 100 sats per upload
           ELSE 100000::BIGINT
       END

@@ -404,7 +404,6 @@ function PayInFailed ({ n }) {
   const toaster = useToast()
   const { payIn, payInItem: item } = n
   const updatePayIn = useCallback((cache, { data }) => {
-    console.log('updatePayIn', data)
     cache.writeFragment({
       id: `PayInification:${n.id}`,
       fragment: gql`

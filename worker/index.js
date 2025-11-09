@@ -112,19 +112,6 @@ async function work () {
   if (isServiceEnabled('payments')) {
     await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
     await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
-    // TODO: most of these need to be migrated to payIn jobs
-    // including any existing jobs or recurring, scheduled jobs
-    // paidAction jobs
-    // await boss.work('paidActionForwarding', jobWrapper(paidActionForwarding))
-    // await boss.work('paidActionForwarded', jobWrapper(paidActionForwarded))
-    // await boss.work('paidActionFailedForward', jobWrapper(paidActionFailedForward))
-    // await boss.work('paidActionHeld', jobWrapper(paidActionHeld))
-    // await boss.work('paidActionCanceling', jobWrapper(paidActionCanceling))
-    // await boss.work('paidActionFailed', jobWrapper(paidActionFailed))
-    // await boss.work('paidActionPaid', jobWrapper(paidActionPaid))
-    // payingAction jobs
-    // await boss.work('payingActionFailed', jobWrapper(payingActionFailed))
-    // await boss.work('payingActionConfirmed', jobWrapper(payingActionConfirmed))
 
     // payIn jobs
     await subscribeToBolt11s(args)

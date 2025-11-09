@@ -22,15 +22,15 @@ export default gql`
       replyCost: Int!,
       postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
-    paySub(name: String!): SubPaidAction!
+      moderated: Boolean!, nsfw: Boolean!): PayIn!
+    paySub(name: String!): PayIn!
     toggleMuteSub(name: String!): Boolean!
     toggleSubSubscription(name: String!): Boolean!
     transferTerritory(subName: String!, userName: String!): Sub
     unarchiveTerritory(name: String!, desc: String, baseCost: Int!,
       replyCost: Int!, postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
+      moderated: Boolean!, nsfw: Boolean!): PayIn!
   }
 
   type Sub {
@@ -55,8 +55,7 @@ export default gql`
     moderatedCount: Int!
     meMuteSub: Boolean!
     nsfw: Boolean!
-    nposts(when: String, from: String, to: String): Int!
-    ncomments(when: String, from: String, to: String): Int!
+    nitems(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
 
     optional: SubOptional!

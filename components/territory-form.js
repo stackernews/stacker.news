@@ -12,15 +12,15 @@ import Info from './info'
 import { abbrNum } from '@/lib/format'
 import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
-import { usePaidMutation } from './use-paid-mutation'
-import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
-  const [upsertSub] = usePaidMutation(UPSERT_SUB)
-  const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
+  const [upsertSub] = usePayInMutation(UPSERT_SUB)
+  const [unarchiveTerritory] = usePayInMutation(UNARCHIVE_TERRITORY)
 
   const schema = territorySchema({ client, me, sub })
 

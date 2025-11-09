@@ -123,7 +123,6 @@ a.link:visited {
     display: flex;
     justify-content: flex-start;
     min-width: 0;
-    padding-top: .5rem;
 }
 
 .item .companyImage {
@@ -157,6 +156,10 @@ a.link:visited {
 .grid {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
+}
+
+.grid > * {
+    padding-top: 0.5rem;
 }
 
 .details {

@@ -1,6 +1,5 @@
 import { Form, Input, MarkdownInput } from '@/components/form'
 import { useApolloClient } from '@apollo/client'
-import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '@/lib/validate'
@@ -10,12 +9,12 @@ import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import useItemSubmit from './use-item-submit'
-import { UPSERT_BOUNTY } from '@/fragments/paidAction'
+import { UPSERT_BOUNTY } from '@/fragments/payIn'
 
 export function BountyForm ({
   item,
   sub,
-  editThreshold,
+  EditInfo,
   titleLabel = 'title',
   bountyLabel = 'bounty',
   textLabel = 'text',
@@ -70,15 +69,7 @@ export function BountyForm ({
         }
         name='text'
         minRows={6}
-        hint={
-          editThreshold
-            ? (
-              <div className='text-muted fw-bold font-monospace'>
-                <Countdown date={editThreshold} />
-              </div>
-              )
-            : null
-        }
+        hint={EditInfo}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />

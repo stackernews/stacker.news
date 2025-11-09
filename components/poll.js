@@ -67,7 +67,7 @@ export default function Poll ({ item }) {
             />)}
       <div className='text-muted mt-1'>
         {numWithUnits(item.poll.count, { unitSingular: 'vote', unitPlural: 'votes' })}
-        {hasExpiration && ` \\ ${timeRemaining ? `${timeRemaining} left` : 'poll ended'}`}
+        {hasExpiration && <span suppressHydrationWarning>{` \\ ${timeRemaining ? `${timeRemaining} left` : 'poll ended'}`}</span>}
       </div>
     </div>
   )

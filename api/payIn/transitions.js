@@ -182,8 +182,8 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
   }, { models, ...args })
 
   if (transitionedPayIn) {
-    notifyWithdrawal(transitionedPayIn).catch(console.error)
     const { payOutBolt11 } = transitionedPayIn
+    notifyWithdrawal(payOutBolt11).catch(console.error)
     if (payOutBolt11?.protocolId) {
       const { protocolId, userId } = payOutBolt11
       const logger = walletLogger({ protocolId, userId, payInId, models })

@@ -1250,11 +1250,11 @@ export default {
         return null
       }
 
+      // votes that are paid for have a null payInId
       const options = await models.$queryRaw`
-        SELECT "PollOption".id, option, count("PollVote".id)::INTEGER as count
+        SELECT "PollOption".id, option, count("PollVote".id) FILTER (WHERE "PollVote"."payInId" IS NULL)::INTEGER as count
         FROM "PollOption"
         LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
-        LEFT JOIN "PayIn" on "PayIn"."id" = "PollVote"."payInId" AND "PayIn"."payInState" = 'PAID'
         WHERE "PollOption"."itemId" = ${item.id}
         GROUP BY "PollOption".id
         ORDER BY "PollOption".id ASC

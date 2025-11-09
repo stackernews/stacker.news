@@ -474,22 +474,6 @@ export default {
           }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
         case 'recent':
-          console.log(`
-              ${SELECT}
-              ${relationClause(type)}
-              ${payInJoinFilter(me)}
-              ${whereClause(
-                '"Item".created_at <= $1',
-                '"Item"."deletedAt" IS NULL',
-                subClause(sub, 4, subClauseTable(type), me, showNsfw),
-                activeOrMine(me),
-                await filterClause(me, models, type),
-                typeClause(type),
-                muteClause(me)
-              )}
-              ORDER BY "PayIn"."payInStateChangedAt" DESC
-              OFFSET $2
-              LIMIT $3`)
           items = await itemQueryWithMeta({
             me,
             models,

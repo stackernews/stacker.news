@@ -80,6 +80,7 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
       WHERE "AggPayIn"."timeBucket" >= ${fromDate}
       AND "AggPayIn"."timeBucket" <= ${toDate}
       AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+      AND "AggPayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
       AND "AggPayIn"."slice" = 'USER_BY_TYPE'
       GROUP BY "AggPayIn"."userId"
     ),
@@ -91,7 +92,8 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
       WHERE "AggPayOut"."timeBucket" >= ${fromDate}
       AND "AggPayOut"."timeBucket" <= ${toDate}
       AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
-      AND "AggPayOut"."slice" = 'USER_TOTAL'
+      AND "AggPayOut"."slice" = 'USER_BY_TYPE'
+      AND "AggPayOut"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
       GROUP BY "AggPayOut"."userId", user_outgoing."spent", user_outgoing."nitems"
     )
     SELECT * FROM user_stats
@@ -923,21 +925,15 @@ export default {
       }
 
       const [gte, lte] = whenRange(when, from, to)
-      return await models.item.count({
+      return await models.payIn.count({
         where: {
           userId: user.id,
-          createdAt: {
+          payInStateChangedAt: {
             gte,
             lte
           },
-          itemPayIns: {
-            some: {
-              payIn: {
-                payInState: 'PAID',
-                payInType: 'ITEM_CREATE'
-              }
-            }
-          }
+          payInType: 'ITEM_CREATE',
+          payInState: 'PAID'
         }
       })
     },
@@ -1070,7 +1066,8 @@ export default {
         AND "AggPayOut"."timeBucket" >= ${fromDate}
         AND "AggPayOut"."timeBucket" <= ${toDate}
         AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
-        AND "AggPayOut"."slice" = 'USER_TOTAL'
+        AND "AggPayOut"."slice" = 'USER_BY_TYPE'
+        AND "AggPayOut"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
         GROUP BY "AggPayOut"."userId"
       `
       return (stacked && msatsToSats(stacked)) || 0
@@ -1093,7 +1090,8 @@ export default {
         AND "AggPayIn"."timeBucket" >= ${fromDate}
         AND "AggPayIn"."timeBucket" <= ${toDate}
         AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
-        AND "AggPayIn"."slice" = 'USER_TOTAL'
+        AND "AggPayIn"."slice" = 'USER_BY_TYPE'
+        AND "AggPayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
         GROUP BY "AggPayIn"."userId"
       `
 

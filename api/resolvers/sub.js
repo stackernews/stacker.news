@@ -112,6 +112,7 @@ export default {
           AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
           AND "AggPayIn"."slice" = 'SUB_BY_TYPE'
           AND "AggPayIn"."subName" IS NOT NULL
+          AND "AggPayIn"."payInType" <> 'DEFUNCT_TERRITORY_DAILY_PAYOUT'
           GROUP BY "AggPayIn"."subName"
         ),
         sub_stats AS (
@@ -126,6 +127,7 @@ export default {
           AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
           AND "AggPayOut"."slice" = 'SUB_BY_TYPE'
           AND "AggPayOut"."subName" IS NOT NULL
+          AND "AggPayOut"."payInType" IS NULL
           GROUP BY "AggPayOut"."subName", sub_outgoing."spent", sub_outgoing."nitems"
         )
         SELECT * FROM sub_stats
@@ -176,6 +178,7 @@ export default {
           AND "AggPayOut"."timeBucket" <= ${toDate}
           AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
           AND "AggPayOut"."slice" = 'SUB_BY_TYPE'
+          AND "AggPayOut"."payInType" IS NULL
           GROUP BY user_subs.name
         ),
         sub_stats AS (
@@ -190,6 +193,7 @@ export default {
           AND "AggPayIn"."timeBucket" <= ${toDate}
           AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
           AND "AggPayIn"."slice" = 'SUB_BY_TYPE'
+          AND "AggPayIn"."payInType" <> 'DEFUNCT_TERRITORY_DAILY_PAYOUT'
           GROUP BY sub_outgoing.name, sub_outgoing.revenue, sub_outgoing.stacked
         )
         SELECT * FROM sub_stats
@@ -197,8 +201,6 @@ export default {
         ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
         OFFSET ${decodedCursor.offset}
         LIMIT ${limit}`
-
-      console.log(granularity, subs)
 
       return {
         cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,

@@ -12,7 +12,6 @@ export function PayInContext ({ payIn }) {
     case 'ITEM_CREATE':
     case 'ITEM_UPDATE':
     case 'ZAP':
-    case 'DOWN_ZAP':
     case 'BOOST':
     case 'POLL_VOTE':
       return (
@@ -22,6 +21,8 @@ export function PayInContext ({ payIn }) {
               (payIn.item.title && <Item item={payIn.item} siblingComments />)}
         </>
       )
+    case 'DOWN_ZAP':
+      return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
     case 'TERRITORY_CREATE':
     case 'TERRITORY_UPDATE':
     case 'TERRITORY_BILLING':

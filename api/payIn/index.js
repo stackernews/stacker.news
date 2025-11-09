@@ -5,7 +5,7 @@ import lnd from '../lnd'
 import payInTypeModules from './types'
 import { msatsToSats } from '@/lib/format'
 import { payInBolt11Prospect, payInBolt11WrapProspect } from './lib/payInBolt11'
-import { isPessimistic, isWithdrawal } from './lib/is'
+import { isPessimistic, isProxyPayment, isWithdrawal } from './lib/is'
 import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
 import { NoReceiveWalletError, payOutBolt11Replacement } from './lib/payOutBolt11'
 import { payInClone } from './lib/payInPrisma'
@@ -322,7 +322,7 @@ export async function onPaid (tx, payInId) {
     JOIN outuser ON outuser.id = p."userId"
     WHERE pct.id = p.id`
 
-  if (!isWithdrawal(payIn)) {
+  if (!isWithdrawal(payIn) && !isProxyPayment(payIn)) {
     if (payIn.payOutBolt11) {
       await tx.$executeRaw`
         UPDATE users

@@ -8,37 +8,15 @@ import { timeoutSignal, withTimeout } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import { logContextFromBolt11, walletLogger } from '@/wallets/server/logger'
-import { formatMsats } from '@/lib/format'
+import { walletLogger } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/client/errors'
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
 }
 
-const WalletLogEntry = {
-  context: async ({ level, context, invoice, withdrawal }, args, { me }) => {
-    const isError = ['error', 'warn'].includes(level.toLowerCase())
-
-    if (withdrawal && me?.id === withdrawal.userId) {
-      return {
-        ...await logContextFromBolt11(withdrawal.bolt11),
-        ...(withdrawal.preimage ? { preimage: withdrawal.preimage } : {}),
-        ...(isError ? { max_fee: formatMsats(withdrawal.msatsFeePaying) } : {})
-      }
-    }
-
-    if (invoice && me?.id === invoice.userId) {
-      return await logContextFromBolt11(invoice.bolt11)
-    }
-
-    return context
-  }
-}
-
 export const resolvers = {
   WalletProtocolConfig,
-  WalletLogEntry,
   Query: {
     walletLogs
   },
@@ -295,9 +273,7 @@ async function walletLogs (parent, { protocolId, cursor, debug }, { me, models }
             }
           }
         }
-      },
-      invoice: true,
-      withdrawal: true
+      }
     }
   })
 
@@ -317,10 +293,10 @@ async function walletLogs (parent, { protocolId, cursor, debug }, { me, models }
   }
 }
 
-async function addWalletLog (parent, { protocolId, level, message, timestamp, invoiceId }, { me, models }) {
+async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
-  const logger = walletLogger({ models, protocolId, userId: me.id, invoiceId })
+  const logger = walletLogger({ models, protocolId, userId: me.id, payInId })
   await logger[level.toLowerCase()](message, { createdAt: timestamp })
 
   return true

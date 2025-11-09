@@ -41,7 +41,7 @@ export function useWalletLoggerFactory () {
   const [addWalletLog] = useMutation(ADD_WALLET_LOG)
   const [diagnostics] = useDiagnostics()
 
-  const log = useCallback(({ protocol, level, message, invoiceId }) => {
+  const log = useCallback(({ protocol, level, message, payInId }) => {
     console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
 
     if (protocol && isTemplate(protocol)) {
@@ -50,30 +50,30 @@ export function useWalletLoggerFactory () {
       return
     }
 
-    return addWalletLog({ variables: { protocolId: protocol ? Number(protocol.id) : null, level, message, invoiceId, timestamp: new Date() } })
+    return addWalletLog({ variables: { protocolId: protocol ? Number(protocol.id) : null, level, message, timestamp: new Date(), payInId } })
       .catch(err => {
         console.error('error adding wallet log:', err)
       })
   }, [addWalletLog, addTemplateLog])
 
-  return useCallback((protocol, invoice) => {
-    const invoiceId = invoice ? Number(invoice.id) : null
+  return useCallback((protocol, payIn) => {
+    const payInId = payIn ? Number(payIn.id) : null
     return {
       ok: (message) => {
-        log({ protocol, level: 'OK', message, invoiceId })
+        log({ protocol, level: 'OK', message, payInId })
       },
       info: (message) => {
-        log({ protocol, level: 'INFO', message, invoiceId })
+        log({ protocol, level: 'INFO', message, payInId })
       },
       error: (message) => {
-        log({ protocol, level: 'ERROR', message, invoiceId })
+        log({ protocol, level: 'ERROR', message, payInId })
       },
       warn: (message) => {
-        log({ protocol, level: 'WARN', message, invoiceId })
+        log({ protocol, level: 'WARN', message, payInId })
       },
       debug: (message) => {
         if (!diagnostics) return
-        log({ protocol, level: 'DEBUG', message, invoiceId })
+        log({ protocol, level: 'DEBUG', message, payInId })
       }
     }
   }, [log, diagnostics])

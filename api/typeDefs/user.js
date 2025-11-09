@@ -15,9 +15,6 @@ export default gql`
     hasNewNotes: Boolean!
     mySubscribedUsers(cursor: String): Users!
     myMutedUsers(cursor: String): Users!
-    userStatsActions(when: String, from: String, to: String): [TimeData!]!
-    userStatsIncomingSats(when: String, from: String, to: String): [TimeData!]!
-    userStatsOutgoingSats(when: String, from: String, to: String): [TimeData!]!
   }
 
   type UsersNullable {
@@ -45,7 +42,7 @@ export default gql`
     setSettings(settings: SettingsInput!): User
     cropPhoto(photoId: ID!, cropData: CropData): String!
     setPhoto(photoId: ID!): Int!
-    upsertBio(text: String!): ItemPaidAction!
+    upsertBio(text: String!): PayIn!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
@@ -65,9 +62,7 @@ export default gql`
     createdAt: Date!
     name: String!
     nitems(when: String, from: String, to: String): Int!
-    nposts(when: String, from: String, to: String): Int!
     nterritories(when: String, from: String, to: String): Int!
-    ncomments(when: String, from: String, to: String): Int!
     bio: Item
     bioId: Int
     photoId: Int
@@ -217,8 +212,6 @@ export default gql`
     streak: Int
     gunStreak: Int
     horseStreak: Int
-    infected: Boolean
-    cured: Boolean
     hasSendWallet: Boolean
     hasRecvWallet: Boolean
     hideWalletRecvPrompt: Boolean

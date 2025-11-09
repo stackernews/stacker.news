@@ -53,8 +53,6 @@ export default function TerritoryList ({ ssrData, query, variables, destructureD
     }
   }, [dat])
 
-  console.log(subs)
-
   if (!dat) {
     return <SubsSkeleton />
   }

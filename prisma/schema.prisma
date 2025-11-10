@@ -1642,6 +1642,7 @@ model ItemPayIn {
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
   @@index([itemId])
+  @@index([itemId, payInId])
 }
 
 model SubPayIn {
@@ -1712,6 +1713,7 @@ model PayIn {
   @@index([benefactorId])
   @@index([payInStateChangedAt])
   @@index([userId, payInState, payInStateChangedAt, payInType])
+  @@index([id, payInType, payInState, userId])
 }
 
 enum CustodialTokenType {
@@ -1765,6 +1767,7 @@ model SubPayOutCustodialToken {
   payOutCustodialToken   PayOutCustodialToken @relation(fields: [payOutCustodialTokenId], references: [id], onDelete: Cascade)
 
   @@index([subName])
+  @@index([payOutCustodialTokenId, subName])
 }
 
 model PayOutCustodialToken {

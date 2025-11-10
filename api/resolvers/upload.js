@@ -56,7 +56,7 @@ export default {
 
       if (avatar) {
         if (!me) throw new GqlAuthenticationError()
-        fileParams.paid = undefined
+        fileParams.paid = true
       }
 
       const upload = await models.upload.create({ data: { ...fileParams } })

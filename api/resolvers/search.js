@@ -107,38 +107,151 @@ export default {
 
       let osQuery = moreLikeThisQuery
 
-      // Use hybrid query combining neural and more_like_this if model is available
-      if (process.env.OPENSEARCH_MODEL_ID) {
-        let qtitle = title
-        let qtext = title
-        if (id) {
-          const item = await getItem(parent, { id }, { me, models })
-          qtitle = item.title || item.text
-          qtext = item.text || item.title
+      let qtitle = title
+      let qtext = title
+      if (id) {
+        const item = await getItem(parent, { id }, { me, models })
+        qtitle = item.title || item.text
+        qtext = item.text || item.title
+      }
+
+      if (qtitle || qtext) {
+        const termMatchingQuery = {
+          function_score: {
+            query: {
+              bool: {
+                should: [
+                  {
+                    match: {
+                      title: {
+                        query: qtitle,
+                        boost: 10,
+                        operator: 'or',
+                        minimum_should_match: '50%'
+                      }
+                    }
+                  },
+                  {
+                    match: {
+                      text: {
+                        query: qtext.slice(0, 100),
+                        boost: 5,
+                        operator: 'or',
+                        minimum_should_match: '30%'
+                      }
+                    }
+                  },
+                  {
+                    match_phrase: {
+                      title: {
+                        query: qtitle,
+                        boost: 100
+                      }
+                    }
+                  },
+                  {
+                    match_phrase: {
+                      text: {
+                        query: qtext.slice(0, 100),
+                        boost: 50
+                      }
+                    }
+                  }
+                ],
+                filter: filters,
+                minimum_should_match: 1
+              }
+            },
+            functions: [{
+              field_value_factor: {
+                field: 'wvotes',
+                modifier: 'log1p',
+                factor: 0.15,
+                missing: 0
+              }
+            }],
+            boost_mode: 'multiply'
+          }
         }
 
         osQuery = {
-          hybrid: {
-            pagination_depth: LIMIT * 2,
-            queries: [
-              {
+          bool: {
+            should: [
+              moreLikeThisQuery,
+              termMatchingQuery
+            ],
+            minimum_should_match: 1
+          }
+        }
+      }
+
+      if (process.env.OPENSEARCH_MODEL_ID) {
+        const queries = [
+          {
+            bool: {
+              should: [
+                {
+                  neural: {
+                    title_embedding: {
+                      query_text: qtitle,
+                      model_id: process.env.OPENSEARCH_MODEL_ID,
+                      k: decodedCursor.offset + LIMIT
+                    }
+                  }
+                },
+                {
+                  neural: {
+                    text_embedding: {
+                      query_text: qtext.slice(0, 100),
+                      model_id: process.env.OPENSEARCH_MODEL_ID,
+                      k: decodedCursor.offset + LIMIT
+                    }
+                  }
+                }
+              ],
+              filter: filters,
+              minimum_should_match: 1
+            }
+          },
+          moreLikeThisQuery,
+          {
+            function_score: {
+              query: {
                 bool: {
                   should: [
                     {
-                      neural: {
-                        title_embedding: {
-                          query_text: qtitle,
-                          model_id: process.env.OPENSEARCH_MODEL_ID,
-                          k: decodedCursor.offset + LIMIT
+                      match: {
+                        title: {
+                          query: qtitle,
+                          boost: 10,
+                          operator: 'or',
+                          minimum_should_match: '50%'
                         }
                       }
                     },
                     {
-                      neural: {
-                        text_embedding: {
-                          query_text: qtext.slice(0, 100),
-                          model_id: process.env.OPENSEARCH_MODEL_ID,
-                          k: decodedCursor.offset + LIMIT
+                      match: {
+                        text: {
+                          query: qtext.slice(0, 100),
+                          boost: 5,
+                          operator: 'or',
+                          minimum_should_match: '30%'
+                        }
+                      }
+                    },
+                    {
+                      match_phrase: {
+                        title: {
+                          query: qtitle,
+                          boost: 100
+                        }
+                      }
+                    },
+                    {
+                      match_phrase: {
+                        text: {
+                          query: qtext.slice(0, 100),
+                          boost: 50
                         }
                       }
                     }
@@ -147,8 +260,23 @@ export default {
                   minimum_should_match: 1
                 }
               },
-              moreLikeThisQuery
-            ]
+              functions: [{
+                field_value_factor: {
+                  field: 'wvotes',
+                  modifier: 'log1p',
+                  factor: 0.15,
+                  missing: 0
+                }
+              }],
+              boost_mode: 'multiply'
+            }
+          }
+        ]
+
+        osQuery = {
+          hybrid: {
+            pagination_depth: LIMIT * 2,
+            queries
           }
         }
       }

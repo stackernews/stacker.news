@@ -7,8 +7,8 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import styles from '@/components/form.module.css'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import { USER_SUGGESTIONS } from '@/fragments/users'
-import { $createMentionNode } from '@/lib/lexical/nodes/decorative/mentions/user-mention'
-import { $createTerritoryNode } from '@/lib/lexical/nodes/decorative/mentions/territory-mention'
+import { $createMentionNode } from '@/lib/lexical/nodes/decorative/mentions/user'
+import { $createTerritoryNode } from '@/lib/lexical/nodes/decorative/mentions/territory'
 
 // This comes from Lexical Mentions Plugin
 // Support both @ for mentions and ~ for territories

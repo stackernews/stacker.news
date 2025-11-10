@@ -18,7 +18,7 @@ export default function PreferencesPlugin ({ className }) {
   return (
     <Dropdown drop='up' className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
       <Dropdown.Toggle id='dropdown-basic' as='span' onPointerDown={e => e.preventDefault()} className={classNames(styles.bottomBarItem, className)}>
-        debug options
+        DEV debug options
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
         <Dropdown.Item onClick={() => setOption('startInMarkdown', !prefs.startInMarkdown)} className={styles.dropdownExtraItem}>

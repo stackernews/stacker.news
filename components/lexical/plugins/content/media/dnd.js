@@ -1,7 +1,7 @@
 import { mergeRegister, isHTMLElement, $findMatchingParent } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
-import { MediaNode, $createMediaNode, $isMediaNode } from '@/lib/lexical/nodes/content/media/media'
+import { MediaNode, $createMediaNode, $isMediaNode } from '@/lib/lexical/nodes/content/media'
 import { $isAutoLinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
 import {
   COMMAND_PRIORITY_HIGH, COMMAND_PRIORITY_LOW, COMMAND_PRIORITY_EDITOR, DRAGSTART_COMMAND, DRAGOVER_COMMAND, DROP_COMMAND, $isRootOrShadowRoot, $wrapNodeInElement, $createParagraphNode, $insertNodes,

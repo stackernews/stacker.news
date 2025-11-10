@@ -8,45 +8,44 @@ import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPl
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { useMemo, useState } from 'react'
 import classNames from 'classnames'
-import { useLexicalPreferences } from './contexts/preferences'
-import { useSharedHistoryContext, SharedHistoryContextProvider } from './contexts/sharedhistory'
-import { TableContextProvider } from './contexts/table'
-import { ToolbarContextProvider } from './contexts/toolbar'
-import { CodeShikiSNExtension } from '../../lib/lexical/extensions/core/code'
-import { CodeThemePlugin } from './plugins/core/code-theme'
-import FileUploadPlugin from './plugins/inserts/upload'
-import FloatingToolbarPlugin from './plugins/toolbar/floating/floatingtoolbar'
-import LinkEditorPlugin from './plugins/inserts/link'
-import MentionsPlugin from './plugins/decorative/mention'
-import ModeSwitcherPlugin from './plugins/core/mode/switch'
-import { ShortcutsExtension } from '../../lib/lexical/extensions/core/shortcuts'
-import { ToolbarPlugin } from './plugins/toolbar'
-import { SNCommandsExtension } from '../../lib/lexical/extensions/core/commands'
-import { $initializeEditorState } from '../../lib/lexical/universal/utils'
+import { useLexicalPreferences } from '@/components/lexical/contexts/preferences'
+import { useSharedHistoryContext, SharedHistoryContextProvider } from '@/components/lexical/contexts/sharedhistory'
+import { TableContextProvider } from '@/components/lexical/contexts/table'
+import { ToolbarContextProvider } from '@/components/lexical/contexts/toolbar'
+import { CodeShikiSNExtension } from '@/lib/lexical/extensions/core/code'
+import { CodeThemePlugin } from '@/components/lexical/plugins/core/code-theme'
+import FileUploadPlugin from '@/components/lexical/plugins/inserts/upload'
+import FloatingToolbarPlugin from '@/components/lexical/plugins/toolbar/floating/floatingtoolbar'
+import LinkEditorPlugin from '@/components/lexical/plugins/inserts/link'
+import MentionsPlugin from '@/components/lexical/plugins/decorative/mention'
+import ModeSwitcherPlugin from '@/components/lexical/plugins/core/mode/switch'
+import { ShortcutsExtension } from '@/lib/lexical/extensions/core/shortcuts'
+import { ToolbarPlugin } from '@/components/lexical/plugins/toolbar'
+import { SNCommandsExtension } from '@/lib/lexical/extensions/core/commands'
+import { $initializeEditorState } from '@/lib/lexical/universal/utils'
 import DefaultNodes from '@/lib/lexical/nodes'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import styles from './theme/theme.module.css'
 import theme from './theme'
-import { MaxLengthPlugin } from './plugins/misc/max-length'
-import TransformerBridgePlugin from './plugins/core/transformer-bridge'
-import { MarkdownModeExtension } from '../../lib/lexical/extensions/core/mode'
-import { MediaCheckExtension } from './plugins/misc/media-check'
-import LocalDraftPlugin from './plugins/core/local-draft'
-import FormikBridgePlugin from './plugins/core/formik'
+import { MaxLengthPlugin } from '@/components/lexical/plugins/misc/max-length'
+import TransformerBridgePlugin from '@/components/lexical/plugins/core/transformer-bridge'
+import { MarkdownModeExtension } from '@/lib/lexical/extensions/core/mode'
+import { MediaCheckExtension } from '@/components/lexical/plugins/misc/media-check'
+import LocalDraftPlugin from '@/components/lexical/plugins/core/local-draft'
+import FormikBridgePlugin from '@/components/lexical/plugins/core/formik'
 import { CheckListExtension, ListExtension } from '@lexical/list'
 import { LinkExtension } from '@lexical/link'
 import { TableExtension } from '@lexical/table'
 import { AutoFocusExtension, HorizontalRuleExtension } from '@lexical/extension'
-import { SNAutoLinkExtension } from '../../lib/lexical/extensions/decorative/autolink'
-import PreferencesPlugin from './plugins/core/preferences'
-import MediaDragDropPlugin from './plugins/content/media/dnd'
-import TableActionMenuPlugin from './plugins/inserts/table/action'
-// import DraggableBlockPlugin from './plugins/core/draggable-block'
+import { SNAutoLinkExtension } from '@/lib/lexical/extensions/decorative/autolink'
+import PreferencesPlugin from '@/components/lexical/plugins/core/preferences'
+import MediaDragDropPlugin from '@/components/lexical/plugins/content/media/dnd'
+import TableActionMenuPlugin from '@/components/lexical/plugins/inserts/table/action'
 import { TableOfContentsExtension } from '@/lib/lexical/extensions/toc'
 import { SpoilerExtension } from '@/lib/lexical/extensions/formatting/spoiler'
 
 /**
- * main Lexical editor component with formik integration
+ * main lexical editor component with formik integration
  * @param {string} props.name - form field name
  * @param {string} [props.appendValue] - value to append to initial content
  * @param {boolean} [props.autoFocus] - whether to auto-focus the editor
@@ -59,32 +58,29 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: (editor) => {
+        // append value takes precedence
         if (appendValue) {
           return $initializeEditorState(prefs.startInMarkdown, editor, appendValue)
         }
-        // if we're in a territory form, initialize with the desc value as markdown
+        // territory descriptions are always markdown
         if (values.desc) {
           return $initializeEditorState(true, editor, values.desc)
         }
-        // if initial state, parse it
+        // existing lexical state
         if (values.lexicalState) {
           try {
             const state = editor.parseEditorState(values.lexicalState)
             if (!state.isEmpty()) {
               editor.setEditorState(state)
-            // if the parsed state is empty and start in markdown, initialize markdown
-            } else if (prefs.startInMarkdown) {
-              return $initializeEditorState(true)
+              return
             }
           } catch (error) {
-            console.error('cannot load initial state:', error)
+            console.error('failed to load initial state:', error)
           }
-        // if no initial state and start in markdown, initialize markdown
-        } else if (prefs.startInMarkdown) {
-          return $initializeEditorState(true)
-        } else {
-          return $initializeEditorState(false)
         }
+
+        // default: initialize based on user preference
+        return $initializeEditorState(prefs.startInMarkdown)
       },
       name: 'editor',
       namespace: 'SN',
@@ -122,9 +118,16 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
   )
 }
 
+/**
+ * editor content component containing all plugins and UI elements
+ * @param {string} props.name - form field name for draft saving
+ * @param {string} props.placeholder - placeholder text for empty editor
+ * @param {Object} props.lengthOptions - max length configuration
+ * @param {boolean} props.topLevel - whether this is a top-level editor
+ * @returns {JSX.Element} editor content with all plugins
+ */
 function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
   const [floatingAnchorElem, setFloatingAnchorElem] = useState(null)
-  // history can be shared between editors (e.g. this editor and the child image caption editor)
   const { historyState } = useSharedHistoryContext()
 
   const onRef = (_floatingAnchorElem) => {
@@ -151,33 +154,20 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
             ErrorBoundary={LexicalErrorBoundary}
           />
         </div>
-        {/* shared history across editor and nested editors */}
         <HistoryPlugin externalHistoryState={historyState} />
-        {/* inserts */}
         <FileUploadPlugin />
-        {/* inserts: links */}
         <LinkEditorPlugin anchorElem={floatingAnchorElem} />
-        {/* inserts: table action menu */}
         <TableActionMenuPlugin anchorElem={floatingAnchorElem} cellMerge />
-        {/* decorative plugins */}
         <MentionsPlugin />
-        {/* code */}
         <CodeThemePlugin />
-        {/* markdown */}
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
-        {/* markdown mode status and switch */}
         <div className={styles.bottomBar}>
           <ModeSwitcherPlugin />
           <PreferencesPlugin />
         </div>
         <MaxLengthPlugin lengthOptions={lengthOptions} />
-        {/* floating toolbar */}
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
-        {/* media insert & DnD */}
         <MediaDragDropPlugin />
-        {/* draggable block */}
-        {/* <DraggableBlockPlugin anchorElem={floatingAnchorElem} /> */}
-        {/* formik */}
         <LocalDraftPlugin name={name} />
         <FormikBridgePlugin />
       </div>

@@ -457,7 +457,7 @@ div[contenteditable=true],
   border-color: var(--theme-borderColor);
 }
 
-.form-group {
+.form-group:not(:has([data-lexical-editor])) {
   margin-bottom: 1rem;
 }
 

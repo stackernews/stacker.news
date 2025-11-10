@@ -117,7 +117,6 @@ The basis of Markdown Mode
 
 - **`MediaNode`**: supports captions and resizing
 - **`MediaResizer`**: resizing interface for images, sets the node's dimensions
-  - TODO: took from lexical and the dimensions erroneously clamp to a `max-width` of `100px`, should be fixed before release
 - **`MediaComponent`**: enables captions and resizing, uses `MediaOrLink` for carousel and link fallbacks
   - receives and handles `imgproxyUrls`, `rel`, `outlawed` via `useLexicalItemContext`
 

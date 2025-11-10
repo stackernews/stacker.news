@@ -19,7 +19,7 @@ import {
 import MentionsPlugin from '@/components/lexical/plugins/decorative/mention'
 import { MediaOrLinkExperimental, LinkRaw } from '@/components/media-or-link'
 import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
-import { $isMediaNode } from '../../../../../lib/lexical/nodes/content/media/media'
+import { $isMediaNode } from '../../../../../lib/lexical/nodes/content/media'
 import MediaResizer from './resizer'
 import styles from '@/components/lexical/theme/media.module.css'
 import { useLexicalItemContext } from '@/components/lexical/contexts/item'

@@ -2,7 +2,7 @@ import { createCommand, defineExtension, COMMAND_PRIORITY_EDITOR, $getNodeByKey,
 import { $createLinkNode } from '@lexical/link'
 import { checkMedia } from '@/lib/media/check'
 import { mergeRegister } from '@lexical/utils'
-import { MediaNode } from '@/lib/lexical/nodes/content/media/media'
+import { MediaNode } from '@/lib/lexical/nodes/content/media'
 import { PUBLIC_MEDIA_CHECK_URL, UNKNOWN_LINK_REL } from '@/lib/constants'
 
 export const MEDIA_CHECK_COMMAND = createCommand('MEDIA_CHECK_COMMAND')
@@ -10,25 +10,27 @@ export const MEDIA_CHECK_COMMAND = createCommand('MEDIA_CHECK_COMMAND')
 export const MediaCheckExtension = defineExtension({
   name: 'MediaCheckExtension',
   register: (editor) => {
-    // track abort controllers for each media node to cancel inflight requests
-    const aborters = new Map() // node -> AbortController
-    // track tokens to drop stale results from concurrent requests
-    const tokens = new Map() // node -> token to drop stale results
-    // track promises, these can be useful for waiting for all media checks to complete in some scenarios
-    const promises = new Map() // nodeKey -> Promise
+    const aborters = new Map()
+    const tokens = new Map()
+    const promises = new Map()
 
-    // awaitable API for checking media
+    // replaces a media node with a link node
+    const replaceMediaWithLink = (node) => {
+      const url = node.getSrc()
+      const link = $createLinkNode(url, { target: '_blank', rel: UNKNOWN_LINK_REL })
+      link.append($createTextNode(url))
+      node.replace(link)
+    }
+
+    // checks media type and updates node accordingly
     const checkMediaNode = (nodeKey, url) => {
-      // if there's already a promise for this node, return it
       if (promises.has(nodeKey)) {
         return promises.get(nodeKey)
       }
 
-      // cancel any inflight requests for this media node
       const prev = aborters.get(nodeKey)
       if (prev) prev.abort()
 
-      // increment token to invalidate any pending results
       const token = (tokens.get(nodeKey) ?? 0) + 1
       tokens.set(nodeKey, token)
 
@@ -42,21 +44,16 @@ export const MediaCheckExtension = defineExtension({
       const controller = new AbortController()
       aborters.set(nodeKey, controller)
 
-      // create promise for this check
       const promise = checkMedia(PUBLIC_MEDIA_CHECK_URL, url, { signal: controller.signal })
         .then((result) => {
-          // ignore stale results
           if (tokens.get(nodeKey) !== token) return
-          // update node with the check result
+
           editor.update(() => {
             const node = $getNodeByKey(nodeKey)
             if (!(node instanceof MediaNode)) return
-            // if the media is unknown, at this point replace it with a link
+
             if (result.type === 'unknown') {
-              const url = node.getSrc()
-              const link = $createLinkNode(url, { target: '_blank', rel: UNKNOWN_LINK_REL })
-              link.append($createTextNode(url))
-              node.replace(link)
+              replaceMediaWithLink(node)
             } else {
               node.applyCheckResult(result.type)
             }
@@ -64,25 +61,19 @@ export const MediaCheckExtension = defineExtension({
           return result
         })
         .catch((error) => {
-          console.error('error checking media', error)
-          // ignore stale results
+          console.error('media check failed:', error)
           if (tokens.get(nodeKey) !== token) throw error
-          // set node status to error on failure
+
           editor.update(() => {
             const node = $getNodeByKey(nodeKey)
             if (node instanceof MediaNode) {
               node.setStatus('error')
-              const url = node.getSrc()
-              const link = $createLinkNode(url, { target: '_blank', rel: UNKNOWN_LINK_REL })
-              link.append($createTextNode(url))
-              node.replace(link)
+              replaceMediaWithLink(node)
             }
           })
         })
         .finally(() => {
-          // clean up abort controller if it's still the current one
           if (aborters.get(nodeKey) === controller) aborters.delete(nodeKey)
-          // clean up promise
           promises.delete(nodeKey)
         })
 

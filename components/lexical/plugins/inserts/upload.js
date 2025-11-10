@@ -12,7 +12,7 @@ import { SN_UPLOAD_FILES_COMMAND } from '@/lib/lexical/universal/commands/upload
 import { gql, useLazyQuery } from '@apollo/client'
 import { numWithUnits } from '@/lib/format'
 import { $isMarkdownMode } from '@/lib/lexical/universal/utils'
-import { MediaNode, $createMediaNode } from '@/lib/lexical/nodes/content/media/media'
+import { MediaNode, $createMediaNode } from '@/lib/lexical/nodes/content/media'
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import useDebounceCallback from '@/components/use-debounce-callback'
 

@@ -9,12 +9,12 @@ import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import useItemSubmit from './use-item-submit'
-import { UPSERT_BOUNTY } from '@/fragments/paidAction'
+import { UPSERT_BOUNTY } from '@/fragments/payIn'
 
 export function BountyForm ({
   item,
   sub,
-  editThreshold,
+  EditInfo,
   titleLabel = 'title',
   bountyLabel = 'bounty',
   textLabel = 'text',
@@ -62,6 +62,7 @@ export function BountyForm ({
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
       />
       <LexicalInput name='text' label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>} topLevel />
+      {/* TODO: implement EditInfo in LexicalInput */}
       {/* <MarkdownInput
         topLevel
         label={
@@ -71,15 +72,7 @@ export function BountyForm ({
         }
         name='text'
         minRows={6}
-        hint={
-          editThreshold
-            ? (
-              <div className='text-muted fw-bold font-monospace'>
-                <Countdown date={editThreshold} />
-              </div>
-              )
-            : null
-        }
+        hint={EditInfo}
       /> */}
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />

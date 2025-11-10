@@ -9,7 +9,6 @@ const STREAK_FIELDS = gql`
       streak
       hasSendWallet
       hasRecvWallet
-      infected
     }
   }
 `
@@ -137,8 +136,7 @@ export const TOP_SUBS = gql`
     topSubs(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
       subs {
         ...SubFullFields
-        ncomments(when: $when, from: $from, to: $to)
-        nposts(when: $when, from: $from, to: $to)
+        nitems(when: $when, from: $from, to: $to)
 
         optional {
           stacked(when: $when, from: $from, to: $to)

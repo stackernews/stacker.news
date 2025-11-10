@@ -4,14 +4,14 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
-import { viewGroup } from './growth'
-import { datePivot, timeUnitForRange, whenRange } from '@/lib/time'
+import { USER_ID, RESERVED_MAX_USER_ID, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
+import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { processCrop } from '@/worker/imgproxy'
+import { Prisma } from '@prisma/client'
 
 const contributors = new Set()
 
@@ -55,38 +55,52 @@ async function authMethods (user, args, { models, me }) {
   }
 }
 
-export async function topUsers (parent, { cursor, when, by, from, to, limit }, { models, me }) {
+export async function topUsers (parent, { cursor, when, by = 'stacked', from, to, limit }, { models, me }) {
   const decodedCursor = decodeCursor(cursor)
-  const range = whenRange(when, from, to || decodeCursor.time)
+  const [fromDate, toDate] = whenRange(when, from, to || decodeCursor.time)
+  const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
 
   let column
   switch (by) {
-    case 'spending':
-    case 'spent': column = 'spent'; break
-    case 'posts': column = 'nposts'; break
-    case 'comments': column = 'ncomments'; break
-    case 'referrals': column = 'referrals'; break
-    case 'stacking': column = 'stacked'; break
-    case 'value':
-    default: column = 'proportion'; break
+    case 'stacked':
+      column = Prisma.sql`stacked`; break
+    case 'spent':
+      column = Prisma.sql`spent`; break
+    case 'items':
+      column = Prisma.sql`nitems`; break
+    default:
+      throw new GqlInputError('invalid sort')
   }
 
-  const users = (await models.$queryRawUnsafe(`
-    SELECT * ${column === 'proportion' ? ', proportion' : ''}
-    FROM
-      (SELECT users.*,
-        COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
-        COALESCE(sum(posts), 0) as nposts,
-        COALESCE(sum(comments), 0) as ncomments,
-        COALESCE(sum(referrals), 0) as referrals,
-        COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked
-      FROM ${viewGroup(range, 'user_stats')}
-      JOIN users on users.id = u.id
-      GROUP BY users.id) uu
-      ${column === 'proportion' ? `JOIN ${viewValueGroup()} ON uu.id = vv.id` : ''}
-      ORDER BY ${column} DESC NULLS LAST, uu.created_at ASC
-      OFFSET $3
-      LIMIT $4`, ...range, decodedCursor.offset, limit)
+  const users = (await models.$queryRaw`
+    WITH user_outgoing AS (
+      SELECT "AggPayIn"."userId", floor(sum("AggPayIn"."sumMcost") / 1000) as spent,
+        sum("AggPayIn"."countGroup") FILTER (WHERE "AggPayIn"."payInType" = 'ITEM_CREATE') as nitems
+      FROM "AggPayIn"
+      WHERE "AggPayIn"."timeBucket" >= ${fromDate}
+      AND "AggPayIn"."timeBucket" <= ${toDate}
+      AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+      AND "AggPayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
+      AND "AggPayIn"."slice" = 'USER_BY_TYPE'
+      GROUP BY "AggPayIn"."userId"
+    ),
+    user_stats AS (
+      SELECT "AggPayOut"."userId", COALESCE(user_outgoing."spent", 0) as spent,
+        COALESCE(user_outgoing."nitems", 0) as nitems, floor(sum("AggPayOut"."sumMtokens") / 1000) as stacked
+      FROM "AggPayOut"
+      LEFT JOIN user_outgoing ON "AggPayOut"."userId" = user_outgoing."userId"
+      WHERE "AggPayOut"."timeBucket" >= ${fromDate}
+      AND "AggPayOut"."timeBucket" <= ${toDate}
+      AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+      AND "AggPayOut"."slice" = 'USER_BY_TYPE'
+      AND "AggPayOut"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
+      GROUP BY "AggPayOut"."userId", user_outgoing."spent", user_outgoing."nitems"
+    )
+    SELECT * FROM user_stats
+    JOIN users ON user_stats."userId" = users.id
+    ORDER BY ${column} DESC NULLS LAST, users.created_at ASC
+    OFFSET ${decodedCursor.offset}
+    LIMIT ${limit}`
   ).map(
     u => u.hideFromTopUsers && (!me || me.id !== u.id) ? null : u
   )
@@ -95,25 +109,6 @@ export async function topUsers (parent, { cursor, when, by, from, to, limit }, {
     cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
     users
   }
-}
-
-export function viewValueGroup () {
-  return `(
-    SELECT v.id, sum(proportion) as proportion
-    FROM (
-      (SELECT *
-        FROM user_values_days
-        WHERE user_values_days.t >= date_trunc('day', timezone('America/Chicago', $1))
-        AND date_trunc('day', user_values_days.t) <= date_trunc('day', timezone('America/Chicago', $2)))
-      UNION ALL
-      (SELECT * FROM
-        user_values_today
-        WHERE user_values_today.t >= date_trunc('day', timezone('America/Chicago', $1))
-        AND date_trunc('day', user_values_today.t) <= date_trunc('day', timezone('America/Chicago', $2)))
-      ) v
-    WHERE v.id NOT IN (${SN_NO_REWARDS_IDS.join(',')})
-    GROUP BY v.id
-  ) vv`
 }
 
 export default {
@@ -194,16 +189,9 @@ export default {
       const range = whenRange('forever')
 
       const users = (await models.$queryRawUnsafe(`
-        SELECT users.*,
-          coalesce(floor(sum(msats_spent)/1000),0) as spent,
-          coalesce(sum(posts),0) as nposts,
-          coalesce(sum(comments),0) as ncomments,
-          coalesce(sum(referrals),0) as referrals,
-          coalesce(floor(sum(msats_stacked)/1000),0) as stacked
-          FROM ${viewGroup(range, 'user_stats')}
-          JOIN users on users.id = u.id
+        SELECT *
+          FROM users
           WHERE streak IS NOT NULL
-          GROUP BY users.id
           ORDER BY streak DESC, created_at ASC
           OFFSET $3
           LIMIT ${LIMIT}`, ...range, decodedCursor.offset)
@@ -231,11 +219,18 @@ export default {
       } else {
         users = await models.$queryRaw`
           SELECT id, name
-          FROM user_stats_days
-          JOIN users on users.id = user_stats_days.id
+          FROM "AggPayOut"
+          JOIN users on users.id = "AggPayOut"."userId"
           WHERE NOT users."hideFromTopUsers"
-          AND user_stats_days.t = (SELECT max(t) FROM user_stats_days)
-          ORDER BY msats_stacked DESC, users.created_at ASC
+          AND "AggPayOut"."slice" = 'USER_TOTAL'
+          AND "AggPayOut"."granularity" = 'HOUR'
+          AND "AggPayOut"."timeBucket" = (
+            SELECT max("timeBucket")
+            FROM "AggPayOut"
+            WHERE "AggPayOut"."slice" = 'USER_TOTAL'
+            AND "AggPayOut"."granularity" = 'HOUR'
+          )
+          ORDER BY "AggPayOut"."sumMtokens" DESC, users.created_at ASC
           LIMIT ${limit}`
       }
 
@@ -255,14 +250,17 @@ export default {
         return true
       }
 
-      const foundNotes = () =>
-        models.user.update({
-          where: { id: me.id },
-          data: {
-            foundNotesAt: new Date(),
-            lastSeenAt: new Date()
-          }
-        }).catch(console.error)
+      // this is a performance optimization, so we don't want to block the connection
+      // by trying to update the user if the user is locked
+      const foundNotes = () => {
+        models.$queryRaw`
+          UPDATE users
+          SET "foundNotesAt" = now(), "lastSeenAt" = now()
+          WHERE "id" = (
+            SELECT "id" FROM users WHERE "id" = ${me.id}
+            FOR UPDATE SKIP LOCKED
+          )`.catch(console.error)
+      }
 
       // check if any votes have been cast for them since checkedNotesAt
       if (user.noteItemSats) {
@@ -421,45 +419,36 @@ export default {
       }
 
       if (user.noteDeposits) {
-        const invoice = await models.invoice.findFirst({
+        const proxyPayment = await models.payIn.findFirst({
           where: {
             userId: me.id,
-            confirmedAt: {
+            payInState: 'PAID',
+            payInStateChangedAt: {
               gt: lastChecked
             },
-            OR: [
-              {
-                isHeld: null,
-                actionType: null
-              },
-              {
-                actionType: 'RECEIVE',
-                actionState: 'PAID'
-              }
-            ]
+            payInType: 'PROXY_PAYMENT'
           }
         })
-        if (invoice) {
+        if (proxyPayment) {
           foundNotes()
           return true
         }
       }
 
       if (user.noteWithdrawals) {
-        const wdrwl = await models.withdrawl.findFirst({
+        const withdrawal = await models.payIn.findFirst({
           where: {
             userId: me.id,
-            status: 'CONFIRMED',
-            hash: {
-              not: null
-            },
-            updatedAt: {
+            payInState: 'PAID',
+            payInStateChangedAt: {
               gt: lastChecked
             },
-            invoiceForward: { is: null }
+            payInType: {
+              in: ['WITHDRAWAL', 'AUTO_WITHDRAWAL']
+            }
           }
         })
-        if (wdrwl) {
+        if (withdrawal) {
           foundNotes()
           return true
         }
@@ -506,19 +495,6 @@ export default {
           foundNotes()
           return true
         }
-
-        const infection = await models.infection.findFirst({
-          where: {
-            infecteeId: me.id,
-            createdAt: {
-              gt: lastChecked
-            }
-          }
-        })
-        if (infection) {
-          foundNotes()
-          return true
-        }
       }
 
       const subStatus = await models.sub.findFirst({
@@ -552,67 +528,45 @@ export default {
         return true
       }
 
-      const invoiceActionFailed = await models.invoice.findFirst({
-        where: {
-          userId: me.id,
-          updatedAt: {
-            gt: lastChecked
-          },
-          actionType: {
-            in: INVOICE_ACTION_NOTIFICATION_TYPES
-          },
-          actionState: 'FAILED',
-          OR: [
-            {
-              paymentAttempt: {
-                gte: WALLET_MAX_RETRIES
-              }
-            },
-            {
-              userCancel: true
-            }
-          ]
-        }
-      })
+      const [invoiceActionFailed] = await models.$queryRaw`
+        SELECT EXISTS(
+          SELECT *
+          FROM "PayIn"
+          WHERE "PayIn"."payInState" = 'FAILED'
+          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."userId" = ${me.id}
+          AND "PayIn"."successorId" IS NULL
+          -- help the query planner by narrowing the range of the timestamp
+          AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+          AND (
+            (
+              "PayIn"."payInFailureReason" = 'USER_CANCELLED'
+              AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp
+            )
+            OR (
+              "PayIn"."payInStateChangedAt" <= now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+              AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+            )
+            OR (
+              "PayIn"."retryCount" >= ${WALLET_MAX_RETRIES}
+              AND "PayIn"."payInStateChangedAt" > ${lastChecked}::timestamp
+            )
+          )
+        )`
 
-      if (invoiceActionFailed) {
-        foundNotes()
-        return true
-      }
-
-      const invoiceActionFailed2 = await models.invoice.findFirst({
-        where: {
-          userId: me.id,
-          updatedAt: {
-            gt: datePivot(lastChecked, { milliseconds: -WALLET_RETRY_BEFORE_MS })
-          },
-          actionType: {
-            in: INVOICE_ACTION_NOTIFICATION_TYPES
-          },
-          actionState: 'FAILED',
-          paymentAttempt: {
-            lt: WALLET_MAX_RETRIES
-          },
-          userCancel: false,
-          cancelledAt: {
-            lte: datePivot(new Date(), { milliseconds: -WALLET_RETRY_BEFORE_MS })
-          }
-        }
-      })
-
-      if (invoiceActionFailed2) {
+      if (invoiceActionFailed.exists) {
         foundNotes()
         return true
       }
 
       // update checkedNotesAt to prevent rechecking same time period
-      models.user.update({
-        where: { id: me.id },
-        data: {
-          checkedNotesAt: new Date(),
-          lastSeenAt: new Date()
-        }
-      }).catch(console.error)
+      models.$queryRaw`
+        UPDATE users
+        SET "checkedNotesAt" = now(), "lastSeenAt" = now()
+        WHERE "id" = (
+          SELECT "id" FROM users WHERE "id" = ${me.id}
+          FOR UPDATE SKIP LOCKED
+        )`.catch(console.error)
 
       return false
     },
@@ -622,53 +576,6 @@ export default {
         FROM users
         WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete}))
         AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit)}`
-    },
-    userStatsActions: async (parent, { when, from, to }, { me, models }) => {
-      const range = whenRange(when, from, to)
-      return await models.$queryRawUnsafe(`
-      SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
-      json_build_array(
-        json_build_object('name', 'comments', 'value', COALESCE(SUM(comments), 0)),
-        json_build_object('name', 'posts', 'value', COALESCE(SUM(posts), 0)),
-        json_build_object('name', 'territories', 'value', COALESCE(SUM(territories), 0)),
-        json_build_object('name', 'referrals', 'value', COALESCE(SUM(referrals), 0)),
-        json_build_object('name', 'one day referrals', 'value', COALESCE(SUM(one_day_referrals), 0))
-      ) AS data
-        FROM ${viewGroup(range, 'user_stats')}
-        WHERE id = ${me.id}
-        GROUP BY time
-        ORDER BY time ASC`, ...range)
-    },
-    userStatsIncomingSats: async (parent, { when, from, to }, { me, models }) => {
-      const range = whenRange(when, from, to)
-      return await models.$queryRawUnsafe(`
-      SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
-      json_build_array(
-        json_build_object('name', 'zaps', 'value', ROUND(COALESCE(SUM(msats_tipped), 0) / 1000)),
-        json_build_object('name', 'rewards', 'value', ROUND(COALESCE(SUM(msats_rewards), 0) / 1000)),
-        json_build_object('name', 'referrals', 'value', ROUND( COALESCE(SUM(msats_referrals), 0) / 1000)),
-        json_build_object('name', 'one day referrals', 'value', ROUND( COALESCE(SUM(msats_one_day_referrals), 0) / 1000)),
-        json_build_object('name', 'territories', 'value', ROUND(COALESCE(SUM(msats_revenue), 0) / 1000))
-      ) AS data
-        FROM ${viewGroup(range, 'user_stats')}
-        WHERE id = ${me.id}
-        GROUP BY time
-        ORDER BY time ASC`, ...range)
-    },
-    userStatsOutgoingSats: async (parent, { when, from, to }, { me, models }) => {
-      const range = whenRange(when, from, to)
-      return await models.$queryRawUnsafe(`
-      SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
-      json_build_array(
-        json_build_object('name', 'fees', 'value', FLOOR(COALESCE(SUM(msats_fees), 0) / 1000)),
-        json_build_object('name', 'zapping', 'value', FLOOR(COALESCE(SUM(msats_zaps), 0) / 1000)),
-        json_build_object('name', 'donations', 'value', FLOOR(COALESCE(SUM(msats_donated), 0) / 1000)),
-        json_build_object('name', 'territories', 'value', FLOOR(COALESCE(SUM(msats_billing), 0) / 1000))
-      ) AS data
-      FROM ${viewGroup(range, 'user_stats')}
-      WHERE id = ${me.id}
-      GROUP BY time
-      ORDER BY time ASC`, ...range)
     }
   },
 
@@ -997,7 +904,14 @@ export default {
       const item = await models.item.findFirst({
         where: {
           userId: user.id,
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          itemPayIns: {
+            some: {
+              payIn: {
+                payInState: 'PAID',
+                payInType: 'ITEM_CREATE'
+              }
+            }
+          }
         },
         orderBy: {
           createdAt: 'asc'
@@ -1011,50 +925,15 @@ export default {
       }
 
       const [gte, lte] = whenRange(when, from, to)
-      return await models.item.count({
+      return await models.payIn.count({
         where: {
           userId: user.id,
-          createdAt: {
+          payInStateChangedAt: {
             gte,
             lte
           },
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
-        }
-      })
-    },
-    nposts: async (user, { when, from, to }, { models }) => {
-      if (typeof user.nposts !== 'undefined') {
-        return user.nposts
-      }
-
-      const [gte, lte] = whenRange(when, from, to)
-      return await models.item.count({
-        where: {
-          userId: user.id,
-          parentId: null,
-          createdAt: {
-            gte,
-            lte
-          },
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
-        }
-      })
-    },
-    ncomments: async (user, { when, from, to }, { models }) => {
-      if (typeof user.ncomments !== 'undefined') {
-        return user.ncomments
-      }
-
-      const [gte, lte] = whenRange(when, from, to)
-      return await models.item.count({
-        where: {
-          userId: user.id,
-          parentId: { not: null },
-          createdAt: {
-            gte,
-            lte
-          },
-          OR: [{ invoiceActionState: 'PAID' }, { invoiceActionState: null }]
+          payInType: 'ITEM_CREATE',
+          payInState: 'PAID'
         }
       })
     },
@@ -1178,11 +1057,19 @@ export default {
         return ((user.stackedMsats && msatsToSats(user.stackedMsats)) || 0)
       }
 
-      const range = whenRange(when, from, to)
-      const [{ stacked }] = await models.$queryRawUnsafe(`
-        SELECT sum(msats_stacked) as stacked
-        FROM ${viewGroup(range, 'user_stats')}
-        WHERE id = $3`, ...range, Number(user.id))
+      const [fromDate, toDate] = whenRange(when, from, to)
+      const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
+      const [{ stacked }] = await models.$queryRaw`
+        SELECT sum("AggPayOut"."sumMtokens") as stacked
+        FROM "AggPayOut"
+        WHERE "AggPayOut"."userId" = ${user.id}
+        AND "AggPayOut"."timeBucket" >= ${fromDate}
+        AND "AggPayOut"."timeBucket" <= ${toDate}
+        AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+        AND "AggPayOut"."slice" = 'USER_BY_TYPE'
+        AND "AggPayOut"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
+        GROUP BY "AggPayOut"."userId"
+      `
       return (stacked && msatsToSats(stacked)) || 0
     },
     spent: async (user, { when, from, to }, { models, me }) => {
@@ -1194,11 +1081,19 @@ export default {
         return user.spent
       }
 
-      const range = whenRange(when, from, to)
-      const [{ spent }] = await models.$queryRawUnsafe(`
-        SELECT sum(msats_spent) as spent
-        FROM ${viewGroup(range, 'user_stats')}
-        WHERE id = $3`, ...range, Number(user.id))
+      const [fromDate, toDate] = whenRange(when, from, to)
+      const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
+      const [{ spent }] = await models.$queryRaw`
+        SELECT sum("AggPayIn"."sumMcost") as spent
+        FROM "AggPayIn"
+        WHERE "AggPayIn"."userId" = ${user.id}
+        AND "AggPayIn"."timeBucket" >= ${fromDate}
+        AND "AggPayIn"."timeBucket" <= ${toDate}
+        AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+        AND "AggPayIn"."slice" = 'USER_BY_TYPE'
+        AND "AggPayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
+        GROUP BY "AggPayIn"."userId"
+      `
 
       return (spent && msatsToSats(spent)) || 0
     },

@@ -3,14 +3,15 @@ import styles from './reply.module.css'
 import { commentSchema } from '@/lib/validate'
 import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
-import { UPDATE_COMMENT } from '@/fragments/paidAction'
+import { UPDATE_COMMENT } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 import { MAX_COMMENT_TEXT_LENGTH } from '@/lib/constants'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
-    paidMutationOptions: {
-      update (cache, { data: { upsertComment: { result } } }) {
+    payInMutationOptions: {
+      update (cache, { data: { upsertComment: { payerPrivates } } }) {
+        const result = payerPrivates.result
         if (!result) return
 
         cache.modify({

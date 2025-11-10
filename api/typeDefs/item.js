@@ -27,20 +27,6 @@ export default gql`
     unshorted: String
   }
 
-  type ItemActResult {
-    id: ID!
-    sats: Int!
-    path: String
-    act: String!
-    immune: Boolean
-  }
-
-  type ItemAct {
-    id: ID!
-    act: String!
-    invoice: Invoice
-  }
-
   extend type Mutation {
     bookmarkItem(id: ID): Item
     pinItem(id: ID): Item
@@ -48,30 +34,26 @@ export default gql`
     deleteItem(id: ID): Item
     upsertLink(
       id: ID, sub: String, title: String!, url: String!, text: String, lexicalState: String, boost: Int, forward: [ItemForwardInput],
-      hash: String, hmac: String): ItemPaidAction!
+      hash: String, hmac: String): PayIn!
     upsertDiscussion(
       id: ID, sub: String, title: String!, text: String, lexicalState: String, boost: Int, forward: [ItemForwardInput],
-      hash: String, hmac: String): ItemPaidAction!
+      hash: String, hmac: String): PayIn!
     upsertBounty(
       id: ID, sub: String, title: String!, text: String, lexicalState: String, bounty: Int, boost: Int, forward: [ItemForwardInput],
-      hash: String, hmac: String): ItemPaidAction!
+      hash: String, hmac: String): PayIn!
     upsertJob(
       id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
-      text: String!, lexicalState: String, url: String!, boost: Int, status: String, logo: Int): ItemPaidAction!
+      text: String!, lexicalState: String, url: String!, boost: Int, status: String, logo: Int): PayIn!
     upsertPoll(
       id: ID, sub: String, title: String!, text: String, lexicalState: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
-      randPollOptions: Boolean, hash: String, hmac: String): ItemPaidAction!
+      randPollOptions: Boolean, hash: String, hmac: String): PayIn!
     updateNoteId(id: ID!, noteId: String!): Item!
-    upsertComment(id: ID, text: String, lexicalState: String, parentId: ID, boost: Int, hash: String, hmac: String): ItemPaidAction!
-    act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): ItemActPaidAction!
-    pollVote(id: ID!): PollVotePaidAction!
+    upsertComment(id: ID, text: String, lexicalState: String, parentId: ID, boost: Int, hash: String, hmac: String): PayIn!
+    act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): PayIn!
+    pollVote(id: ID!): PayIn!
     toggleOutlaw(id: ID!): Item!
     updateCommentsViewAt(id: ID!, meCommentsViewedAt: Date!): Date
     debugLexicalConversion(itemId: ID!, fullRefresh: Boolean!): Boolean!
-  }
-
-  type PollVoteResult {
-    id: ID!
   }
 
   type PollOption {
@@ -81,12 +63,10 @@ export default gql`
   }
 
   type Poll {
-    meVoted: Boolean!
-    meInvoiceId: Int
-    meInvoiceActionState: InvoiceActionState
     count: Int!
     options: [PollOption!]!
     randPollOptions: Boolean
+    meVoted: Boolean!
   }
 
   type Items {
@@ -101,19 +81,23 @@ export default gql`
     comments: [Item!]!
   }
 
-  enum InvoiceActionState {
-    PENDING
-    PENDING_HELD
-    HELD
-    PAID
-    FAILED
+  type ItemAct {
+    id: ID!
+    sats: Int!
+    act: String!
+    path: String
+    payIn: PayIn
+  }
+
+  type PollVote {
+    id: ID!
+    payIn: PayIn
   }
 
   type Item {
     id: ID!
     createdAt: Date!
     updatedAt: Date!
-    invoicePaidAt: Date
     deletedAt: Date
     deleteScheduledAt: Date
     reminderScheduledAt: Date
@@ -175,8 +159,8 @@ export default gql`
     imgproxyUrls: JSONObject
     rel: String
     apiKey: Boolean
-    invoice: Invoice
     cost: Int!
+    payIn: PayIn
     meCommentsViewedAt: Date
   }
 

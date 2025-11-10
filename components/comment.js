@@ -104,12 +104,13 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
           </div>)
         : <div />}
       <LinkToContext
-        className='py-2'
+        className='py-2 clickToContext'
         onClick={e => {
           e.preventDefault()
           router.push(href, as)
         }}
         href={href}
+        pad
       >
         <RootProvider root={item.root}>
           <Comment item={item} {...props} />
@@ -121,8 +122,8 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
-  navigator
+  rootText, noComments, noReply, truncate, depth, pin,
+  navigator, ...props
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -262,8 +263,7 @@ export default function Comment ({
                   embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
                   onQuoteReply={quoteReply}
                   nested={!includeParent}
-                  setDisableRetry={setDisableRetry}
-                  disableRetry={disableRetry}
+                  {...props}
                   extraInfo={
                     <>
                       {includeParent && <Parent item={item} rootText={rootText} />}

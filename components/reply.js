@@ -8,7 +8,7 @@ import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
-import { CREATE_COMMENT } from '@/fragments/paidAction'
+import { CREATE_COMMENT } from '@/fragments/payIn'
 import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
@@ -47,8 +47,8 @@ export default forwardRef(function Reply ({
 
   const onSubmit = useItemSubmit(CREATE_COMMENT, {
     extraValues: { parentId },
-    paidMutationOptions: {
-      update (cache, { data: { upsertComment: { result, invoice } } }) {
+    payInMutationOptions: {
+      update (cache, { data: { upsertComment: { payerPrivates: { result } } } }) {
         if (!result) return
 
         // inject the new comment into the cache

@@ -8,6 +8,8 @@ import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
 import search from '@/api/search'
 import { multiAuthMiddleware } from '@/lib/auth'
+import { depthLimit } from '@graphile/depth-limit'
+import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
 
 const apolloServer = new ApolloServer({
@@ -15,6 +17,17 @@ const apolloServer = new ApolloServer({
   resolvers,
   introspection: true,
   allowBatchedHttpRequests: true,
+  validationRules: [depthLimit({
+    revealDetails: true,
+    maxListDepth: COMMENT_DEPTH_LIMIT,
+    maxDepth: 20,
+    maxIntrospectionDepth: 20,
+    maxDepthByFieldCoordinates: {
+      '__Type.ofType': 20,
+      'Item.comments': COMMENT_DEPTH_LIMIT,
+      'Comments.comments': COMMENT_DEPTH_LIMIT
+    }
+  })],
   plugins: [{
     requestDidStart (initialRequestContext) {
       return {

@@ -16,7 +16,7 @@ import { payOutCustodialTokenFromBolt11 } from './lib/payOutCustodialTokens'
 // if we have lock contention of payIns, we don't want to block other queries
 import createPrisma from '@/lib/create-prisma'
 import { PayInFailureReasonError } from './errors'
-const models = createPrisma({ connectionParams: { connection_limit: 1 } })
+const models = createPrisma({ connectionParams: { connection_limit: 2 } })
 
 export default async function pay (payInType, payInArgs, { me, custodialOnly }) {
   try {

@@ -25,7 +25,8 @@ export async function earn ({ name }) {
       SELECT sum("msats") as "msats"
       FROM "AggRewards"
       WHERE date_trunc('day', "timeBucket") = date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day')
-      AND "payInType" IS NULL`
+      AND "payInType" IS NULL
+      AND granularity = 'DAY'`
 
     if (!totalMsatsDecimal || totalMsatsDecimal.lessThanOrEqualTo(0)) {
       throw new Error('no rewards to distribute')

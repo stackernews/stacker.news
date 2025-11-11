@@ -14,6 +14,7 @@ export async function getInitial (models, { msats, maxFeeMsats }, { me }) {
   return {
     payInType: 'AUTO_WITHDRAWAL',
     userId: me?.id,
+    // some wallets truncate msats, so we need to update mcost to the actual amount received
     mcost: payOutBolt11.msats + maxFeeMsats,
     payOutBolt11,
     payOutCustodialTokens: [

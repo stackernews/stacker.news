@@ -65,7 +65,7 @@ export async function getInitial (models, args, { me }) {
       await BOOST.getInitial(models, { sats: args.boost }, { me, sub })
     )
   }
-  if (args.uploadIds.length > 0) {
+  if (args.uploadIds?.length > 0) {
     beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds: args.uploadIds }, { me, sub }))
   }
 

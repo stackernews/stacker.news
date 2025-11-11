@@ -42,9 +42,18 @@ export async function getInitial (models, { msats, description, descriptionHash,
 }
 
 export async function onBegin (tx, payInId, { comment, lud18Data, noteStr }) {
+  let note = null
+  if (noteStr) {
+    try {
+      note = JSON.parse(noteStr)
+    } catch (e) {
+      console.error('invalid noteStr', noteStr)
+    }
+  }
+
   const data = {
     ...(lud18Data && { lud18Data: { create: lud18Data } }),
-    ...(noteStr && { nostrNote: { create: { note: noteStr } } }),
+    ...(note && { nostrNote: { create: { note } } }),
     ...(comment && { comment: { create: { comment } } })
   }
 

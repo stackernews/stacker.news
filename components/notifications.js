@@ -277,7 +277,6 @@ function ReferralReward ({ n }) {
         <div style={{ lineHeight: '140%' }}>
           SN gives referral rewards to stackers like you for referring the top stackers daily. You refer stackers when they visit your posts, comments, profile, territory, or if they visit SN through your referral links.
         </div>
-        <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
       </div>
     </div>
   )

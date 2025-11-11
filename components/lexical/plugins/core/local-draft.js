@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useContext, useCallback, useEffect } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
-import { $isRootEmpty } from '@/lib/lexical/universal/utils'
+import { $isRootEmpty, $initializeEditorState } from '@/lib/lexical/universal/utils'
 
 /**
  * plugin that auto-saves and restores editor drafts to/from local storage
@@ -36,6 +36,9 @@ export default function LocalDraftPlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
+          // MIGRATION: if the value is not JSON, let's assume it's markdown and convert it to JSON
+          // it's not part of the try catch parse because we don't want to mistakenly paste JSON into the editor
+          if (!value.startsWith('{')) $initializeEditorState(true, editor, value)
           try {
             const state = editor.parseEditorState(value)
             if (!state.isEmpty()) {

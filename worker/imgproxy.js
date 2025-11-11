@@ -203,12 +203,12 @@ const sign = (target) => {
 }
 
 export async function processCrop ({ photoId, cropData }) {
-  const { x, y, width, height, originalWidth, originalHeight, scale } = cropData
+  const { x, y, width, height, originalWidth, originalHeight } = cropData
   const cropWidth = Math.round(originalWidth * width)
   const cropHeight = Math.round(originalHeight * height)
 
-  const centerX = x + width / scale
-  const centerY = y + height / scale
+  const centerX = x + width / 2
+  const centerY = y + height / 2
 
   const size = 200 // 200px avatar size
 

@@ -4,7 +4,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS } from '@/lib/constants'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
@@ -102,7 +102,7 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
     OFFSET ${decodedCursor.offset}
     LIMIT ${limit}`
   ).map(
-    u => u.hideFromTopUsers && (!me || me.id !== u.id) ? null : u
+    u => (u.hideFromTopUsers || SN_SYSTEM_ONLY_IDS.includes(u.id)) && (!me || me.id !== u.id) ? null : u
   )
 
   return {

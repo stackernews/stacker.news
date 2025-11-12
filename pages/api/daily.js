@@ -5,13 +5,16 @@ export default async (_, res) => {
   // this should probably be made more generic
   // eg if the title changes this will break
   // ... but this will need to change when we have more subs anyway
-  const [{ id }] = await models.$queryRawUnsafe(`
-    SELECT id
+  const [{ id }] = await models.$queryRaw`
+    SELECT "Item".id as id
     FROM "Item"
-    WHERE "pinId" IS NOT NULL
-    AND title = 'Stacker Saloon'
-    ORDER BY created_at DESC
-    LIMIT 1`)
+    JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = "Item".id
+    JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
+    WHERE "PayIn"."payInState" = 'PAID'
+    AND "Item"."pinId" IS NOT NULL
+    AND "Item"."title" = 'Stacker Saloon'
+    ORDER BY "Item"."created_at" DESC
+    LIMIT 1`
 
   res.redirect(`/items/${id}`)
 }

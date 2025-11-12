@@ -38,7 +38,7 @@ export const MediaCheckExtension = defineExtension({
       editor.update(() => {
         const node = $getNodeByKey(nodeKey)
         if (node instanceof MediaNode) node.setStatus('pending')
-      })
+      }, { tag: 'history-merge' })
 
       // create new abort controller for this request
       const controller = new AbortController()
@@ -57,7 +57,7 @@ export const MediaCheckExtension = defineExtension({
             } else {
               node.applyCheckResult(result.type)
             }
-          })
+          }, { tag: 'history-merge' })
           return result
         })
         .catch((error) => {
@@ -70,7 +70,7 @@ export const MediaCheckExtension = defineExtension({
               node.setStatus('error')
               replaceMediaWithLink(node)
             }
-          })
+          }, { tag: 'history-merge' })
         })
         .finally(() => {
           if (aborters.get(nodeKey) === controller) aborters.delete(nodeKey)
@@ -80,8 +80,6 @@ export const MediaCheckExtension = defineExtension({
       promises.set(nodeKey, promise)
       return promise
     }
-
-    editor.checkMediaNode = checkMediaNode
 
     const unregister = mergeRegister(
       // register command to check media type for a given node

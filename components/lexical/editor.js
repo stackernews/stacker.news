@@ -155,7 +155,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
           />
         </div>
         <HistoryPlugin externalHistoryState={historyState} />
-        <FileUploadPlugin />
+        <FileUploadPlugin anchorElem={floatingAnchorElem} />
         <LinkEditorPlugin anchorElem={floatingAnchorElem} />
         <TableActionMenuPlugin anchorElem={floatingAnchorElem} cellMerge />
         <MentionsPlugin />

@@ -167,6 +167,7 @@
 
 .editorInput code[data-language="markdown"] {
   background-color: var(--theme-body) !important;
+  color: var(--theme-color);
   font-family: inherit;
   font-size: 100% !important;
   display: block;
@@ -640,4 +641,8 @@
   border-top: 3px solid var(--theme-quoteBar);
   padding: 0 !important;
   caret-color: transparent;
+}
+
+.dragOver {
+  box-shadow: 0 0 10px var(--bs-info);
 }

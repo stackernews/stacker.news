@@ -2,7 +2,12 @@ import { useEffect, useRef, useCallback } from 'react'
 import {
   COMMAND_PRIORITY_EDITOR,
   $createParagraphNode, $createTextNode, $getNodeByKey, $insertNodes, $getRoot, $nodesOfType,
-  $getSelection, $isRangeSelection, $selectAll
+  $getSelection, $isRangeSelection, $selectAll,
+  DRAGOVER_COMMAND,
+  DROP_COMMAND,
+  COMMAND_PRIORITY_LOW,
+  PASTE_COMMAND,
+  $isRootOrShadowRoot
 } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -15,12 +20,13 @@ import { $isMarkdownMode } from '@/lib/lexical/universal/utils'
 import { MediaNode, $createMediaNode } from '@/lib/lexical/nodes/content/media'
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import useDebounceCallback from '@/components/use-debounce-callback'
+import styles from '@/components/lexical/theme/theme.module.css'
 
 /**
  * plugin that handles file uploads with progress tracking and fee calcs
  * @returns {JSX.Element} hidden file upload input component
  */
-export default function FileUploadPlugin () {
+export default function FileUploadPlugin ({ anchorElem = document.body }) {
   const [editor] = useLexicalComposerContext()
   const placeholdersRef = useRef(new Map())
   const fileInputRef = useRef(null)
@@ -98,7 +104,9 @@ export default function FileUploadPlugin () {
       if ($isRangeSelection(selection)) {
         // move selection to end of current paragraph
         const anchorNode = selection.anchor.getNode()
-        const topLevelElement = anchorNode.getTopLevelElementOrThrow()
+        const topLevelElement = $isRootOrShadowRoot(anchorNode)
+          ? anchorNode.getFirstChild()
+          : anchorNode.getTopLevelElementOrThrow()
 
         // insert a new paragraph
         const newParagraph = $createParagraphNode()
@@ -117,7 +125,7 @@ export default function FileUploadPlugin () {
         $insertNodes([node])
         $insertNodes([$createParagraphNode()])
       })
-    })
+    }, { tag: 'history-merge' })
     setSubmitDisabled?.(true)
   }, [editor, setSubmitDisabled])
 
@@ -145,7 +153,7 @@ export default function FileUploadPlugin () {
       const node = $getNodeByKey(key)
       const percent = total ? Math.floor((loaded / total) * 100) : 0
       node?.setTextContent(`Uploading ${file.name}… ${percent}%`)
-    })
+    }, { tag: 'history-merge' })
   }, [editor])
 
   const onSuccess = useCallback(({ url, name, id, file }) => {
@@ -182,7 +190,7 @@ export default function FileUploadPlugin () {
       const node = $getNodeByKey(key)
       node?.remove()
       placeholdersRef.current.delete(file)
-    })
+    }, { tag: 'history-merge' })
     setSubmitDisabled?.(false)
   }, [editor, setSubmitDisabled])
 
@@ -219,6 +227,82 @@ export default function FileUploadPlugin () {
       })
     })
   }, [editor, $refreshUploadFees])
+
+  // drag'n'drop + paste file handling
+  useEffect(() => {
+    const unregisters = mergeRegister(
+      editor.registerCommand(
+        PASTE_COMMAND,
+        (e) => {
+          const items = e.clipboardData.items
+          if (items.length === 0) return false
+
+          const fileList = new window.DataTransfer()
+          let hasImages = false
+
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i]
+            if (item.type.startsWith('image')) {
+              const blob = item.getAsFile()
+              const file = new File([blob], 'image', { type: blob.type })
+              fileList.items.add(file)
+              hasImages = true
+            }
+          }
+
+          if (hasImages) {
+            e.preventDefault()
+            const changeEvent = new Event('change', { bubbles: true })
+            fileInputRef.current.files = fileList.files
+            fileInputRef.current.dispatchEvent(changeEvent)
+          }
+
+          return true
+        },
+        COMMAND_PRIORITY_LOW
+      ),
+      editor.registerCommand(
+        DRAGOVER_COMMAND,
+        (e) => {
+          const rootElement = editor.getRootElement()
+          if (rootElement) {
+            rootElement.classList.add(styles.dragOver)
+          }
+          return true
+        },
+        COMMAND_PRIORITY_LOW
+      ),
+      editor.registerCommand(
+        DROP_COMMAND,
+        (e) => {
+          e.preventDefault()
+          editor.getRootElement().classList.remove(styles.dragOver)
+          const changeEvent = new Event('change', { bubbles: true })
+          fileInputRef.current.files = e.dataTransfer.files
+          fileInputRef.current.dispatchEvent(changeEvent)
+          return true
+        },
+        COMMAND_PRIORITY_LOW
+      )
+    )
+
+    const onDragLeave = () => {
+      const rootElement = editor.getRootElement()
+      if (rootElement) {
+        rootElement.classList.remove(styles.dragOver)
+      }
+    }
+
+    if (anchorElem) {
+      anchorElem.addEventListener('dragleave', onDragLeave)
+    }
+    return () => {
+      unregisters()
+      if (anchorElem) {
+        anchorElem.removeEventListener('dragleave', onDragLeave)
+      }
+    }
+  }, [editor, anchorElem])
 
   return (
     <div className='d-none'>

@@ -1,5 +1,5 @@
 import styles from '@/components/lexical/theme/theme.module.css'
-import { useCallback, useEffect, useRef, useState, useLayoutEffect, forwardRef } from 'react'
+import { useCallback, useEffect, useRef, useState, forwardRef } from 'react'
 import { createPortal } from 'react-dom'
 import FormattingTools from './formatting'
 import ActionTooltip from '@/components/action-tooltip'
@@ -236,7 +236,7 @@ export function ToolbarPlugin ({ topLevel }) {
   }, [editor, $updateToolbar])
 
   // overflow detection for mobile devices
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!toolbarRef.current) return
 
     const checkOverflow = () => {

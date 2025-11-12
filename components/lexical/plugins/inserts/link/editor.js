@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { $findMatchingParent, mergeRegister } from '@lexical/utils'
@@ -169,7 +169,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     )
   }, [editor, nodeKey, $updateLink])
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     editor.getEditorState().read(() => {
       $updateLink()
     })

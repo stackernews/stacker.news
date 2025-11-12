@@ -43,6 +43,7 @@ import MediaDragDropPlugin from '@/components/lexical/plugins/content/media/dnd'
 import TableActionMenuPlugin from '@/components/lexical/plugins/inserts/table/action'
 import { TableOfContentsExtension } from '@/lib/lexical/extensions/toc'
 import { SpoilerExtension } from '@/lib/lexical/extensions/formatting/spoiler'
+import CodeActionsPlugin from './plugins/decorative/code-actions'
 
 /**
  * main lexical editor component with formik integration
@@ -160,6 +161,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         <TableActionMenuPlugin anchorElem={floatingAnchorElem} cellMerge />
         <MentionsPlugin />
         <CodeThemePlugin />
+        <CodeActionsPlugin anchorElem={floatingAnchorElem} />
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         <div className={styles.bottomBar}>
           <ModeSwitcherPlugin />

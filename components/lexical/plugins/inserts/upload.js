@@ -234,7 +234,7 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
       editor.registerCommand(
         PASTE_COMMAND,
         (e) => {
-          const items = e.clipboardData.items
+          const items = e.clipboardData?.items || []
           if (items.length === 0) return false
 
           const fileList = new window.DataTransfer()
@@ -257,7 +257,7 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
             fileInputRef.current.dispatchEvent(changeEvent)
           }
 
-          return true
+          return hasImages
         },
         COMMAND_PRIORITY_LOW
       ),

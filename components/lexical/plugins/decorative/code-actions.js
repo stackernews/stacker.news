@@ -41,7 +41,7 @@ function CodeLanguageDropdown ({ langs, selectedLang, className, setLang }) {
       value.toLowerCase().includes(searchTerm.toLowerCase()) ||
       name.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    : langs.slice(0, 5)
+    : langs.filter(([value]) => ['python', 'java', 'javascript', 'cpp', 'go'].includes(value))
 
   return (
     <ActionTooltip notForm overlayText={<>language options <strong>{selectedLang}</strong></>} placement='top' noWrapper showDelay={500} transition disable={dropdownOpen}>
@@ -95,7 +95,7 @@ function CodeActionMenuContainer ({ anchorElem }) {
     right: '0',
     top: '0'
   })
-  const codeSetRef = useRef(new Set())
+  const codeBlocks = useRef(new Set())
   const codeDOMNodeRef = useRef(null)
   const langs = useMemo(() => getCodeLanguageOptions(), [])
 
@@ -155,7 +155,7 @@ function CodeActionMenuContainer ({ anchorElem }) {
       setShown(true)
       setPosition({
         right: `${editorElemRight - right + 8}px`,
-        top: `${y - editorElemY - (isEditable ? 6 : 0)}px`
+        top: `${y - editorElemY}px`
       })
     }
   }
@@ -177,11 +177,12 @@ function CodeActionMenuContainer ({ anchorElem }) {
           for (const [key, type] of mutations) {
             switch (type) {
               case 'created':
-                codeSetRef.current.add(key)
+                codeBlocks.current.add(key)
                 break
 
               case 'destroyed':
-                codeSetRef.current.delete(key)
+                codeBlocks.current.delete(key)
+                setShown(false)
                 break
 
               default:
@@ -189,7 +190,7 @@ function CodeActionMenuContainer ({ anchorElem }) {
             }
           }
         })
-        setShouldListenMouseMove(codeSetRef.current.size > 0)
+        setShouldListenMouseMove(codeBlocks.current.size > 0)
       },
       { skipInitialization: false }
     )
@@ -197,10 +198,12 @@ function CodeActionMenuContainer ({ anchorElem }) {
 
   const codeFriendlyName = getLanguageFriendlyName(lang)
 
-  return (isShown || (isEditable && lang)) && (
+  return isShown && (
     <>
       <div className={styles.codeActionMenuContainer} style={{ ...position }}>
-        {isEditable ? <CodeLanguageDropdown langs={langs} selectedLang={lang} className={styles.codeActionLanguage} setLang={updateLanguage} /> : <div className={styles.codeActionLanguage}>{codeFriendlyName}</div>}
+        {isEditable
+          ? <CodeLanguageDropdown langs={langs} selectedLang={lang} className={styles.codeActionLanguage} setLang={updateLanguage} />
+          : <div className={styles.codeActionLanguage}>{codeFriendlyName}</div>}
         <div className={styles.codeActionCopyButton}>
           <CopyButton bareIcon value={() => getCodeValue()} />
         </div>

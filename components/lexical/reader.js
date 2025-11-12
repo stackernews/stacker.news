@@ -9,6 +9,7 @@ import { CodeShikiSNExtension } from '../../lib/lexical/extensions/core/code'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import theme from './theme'
 import { TableExtension } from '@lexical/table'
+import CodeActionsPlugin from './plugins/decorative/code-actions'
 
 /**
  * Lexical Renderer: renders lexical state as read-only content
@@ -54,6 +55,7 @@ export default forwardRef(function Reader ({ lexicalState, className, children, 
         {children}
       </div>
       <CodeThemePlugin />
+      <CodeActionsPlugin anchorElem={contentRef.current} />
     </LexicalExtensionComposer>
   )
 })

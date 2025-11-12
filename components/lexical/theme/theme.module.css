@@ -353,6 +353,7 @@
   padding: 0.35rem;
   font-size: 14px;
   font-weight: normal;
+  text-wrap: wrap;
 }
 
 .dropdownExtraItem:hover, .tableActionMenuItem:hover {

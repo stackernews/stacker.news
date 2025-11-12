@@ -41,7 +41,7 @@ import { expireBoost } from './expireBoost'
 import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
 import { untrackOldItems } from './untrackOldItems'
-import { migrateLegacyContent, migrateEverythingLegacy } from './migrateLegacyContent'
+import { migrateLegacyContent, migrateBatch } from './migrateLegacyContent'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
@@ -131,7 +131,9 @@ async function work () {
     await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   }
   await boss.work('migrateLegacyContent', jobWrapper(migrateLegacyContent))
-  await boss.work('migrateEverythingLegacy', jobWrapper(migrateEverythingLegacy))
+  await boss.work('migrateBatch', jobWrapper(migrateBatch))
+  // await boss.work('retryFailedMigrations', jobWrapper(retryFailedMigrations))
+  // await boss.work('getMigrationStatus', jobWrapper(getMigrationStatus))
   await boss.work('expireBoost', jobWrapper(expireBoost))
   await boss.work('weeklyPost-*', jobWrapper(weeklyPost))
   await boss.work('payWeeklyPostBounty', jobWrapper(payWeeklyPostBounty))

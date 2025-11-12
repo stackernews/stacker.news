@@ -5,7 +5,9 @@ function $convertMathElement (domNode) {
   let math = domNode.getAttribute('data-lexical-math')
   if (!math || math.length > 10000) return null // prevent massive memory usage
   try {
-    math = atob(math)
+    math = typeof Buffer !== 'undefined'
+      ? Buffer.from(math, 'base64').toString('utf-8')
+      : atob(math)
   } catch (err) {
     return null
   }
@@ -57,7 +59,9 @@ export class MathNode extends DecoratorNode {
   exportDOM () {
     const element = document.createElement(this.__inline ? 'span' : 'div')
     // b64 to avoid issues with special characters
-    const math = btoa(this.__math)
+    const math = typeof Buffer !== 'undefined'
+      ? Buffer.from(this.__math).toString('base64')
+      : btoa(this.__math)
     element.setAttribute('data-lexical-math', math)
     element.setAttribute('data-lexical-inline', this.__inline)
     katex.render(this.__math, element, {

@@ -548,6 +548,7 @@ model Item {
   randPollOptions      Boolean               @default(false)
   itemPayIns           ItemPayIn[]
   CommentsViewAt       CommentsViewAt[]
+  LexicalMigrationLog LexicalMigrationLog[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -1987,4 +1988,37 @@ model AggRewards {
   countGroup  BigInt
 
   @@unique([granularity, timeBucket, payInType], map: "AggRewards_unique_key")
+}
+
+model LexicalMigrationLog {
+  id         Int            @id @default(autoincrement())
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
+  itemId     Int
+  type       MigrationType
+  retryCount Int            @default(0)
+  message    String
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([type])
+  @@index([retryCount])
+  @@index([itemId])
+}
+
+enum MigrationType {
+  LEXICAL_CONVERSION
+  HTML_GENERATION
+  UNEXPECTED
+}
+
+model LexicalBatchMigrationLog {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now()) @map("created_at")
+  durationMs   Int
+  successCount Int
+  failureCount Int
+  summary      Json?    @db.JsonB
+
+  @@index([createdAt])
 }

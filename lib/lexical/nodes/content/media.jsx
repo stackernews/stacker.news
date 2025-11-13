@@ -145,6 +145,7 @@ export class MediaNode extends DecoratorNode {
     this.__showCaption = showCaption || false
     this.__caption =
       caption ||
+      // TODO: leak?
       createEditor({
         namespace: 'snImageCaption',
         nodes: [

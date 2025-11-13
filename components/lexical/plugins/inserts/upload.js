@@ -304,6 +304,12 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
     }
   }, [editor, anchorElem])
 
+  useEffect(() => {
+    return () => {
+      placeholdersRef.current.clear()
+    }
+  }, [placeholdersRef])
+
   return (
     <div className='d-none'>
       <FileUpload

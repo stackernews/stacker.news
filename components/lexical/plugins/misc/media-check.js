@@ -81,7 +81,7 @@ export const MediaCheckExtension = defineExtension({
       return promise
     }
 
-    const unregister = mergeRegister(
+    const unregisterTransforms = mergeRegister(
       // register command to check media type for a given node
       editor.registerCommand(MEDIA_CHECK_COMMAND, ({ nodeKey, url }) => {
         checkMediaNode(nodeKey, url)
@@ -95,6 +95,13 @@ export const MediaCheckExtension = defineExtension({
         }
       })
     )
-    return unregister
+
+    return () => {
+      unregisterTransforms()
+      aborters.forEach((controller) => controller.abort())
+      aborters.clear()
+      tokens.clear()
+      promises.clear()
+    }
   }
 })

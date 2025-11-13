@@ -25,7 +25,7 @@ export default function PayIn ({ id, ssrData }) {
   }
 
   return (
-    <div>
+    <div className='py-5'>
       <div className='d-flex justify-content-between align-items-center'>
         <div className='d-flex gap-3'>
           <h2>{describePayInType(payIn, me)}</h2>
@@ -65,7 +65,7 @@ export default function PayIn ({ id, ssrData }) {
       {payIn.mcost > 0 &&
         <div className='mt-5 d-flex flex-column'>
           <h5 className='mb-3'>transaction diagram</h5>
-          <div className='d-flex justify-content-center'>
+          <div className='d-flex justify-content-center' style={{ marginRight: '-15px', marginLeft: '-15px' }}>
             <PayInSankey payIn={payIn} />
           </div>
         </div>}

@@ -1,4 +1,5 @@
 const theme = {
+  blockCursor: 'sn__blockCursor',
   paragraph: 'sn__paragraph',
   heading: {
     h1: 'sn__headings',
@@ -16,22 +17,38 @@ const theme = {
   mention: 'sn__mention',
   itemMention: 'sn__mention',
   territory: 'sn__mention',
-  // embeds
-  twitterContainer: 'sn__twitterContainer',
-  twitterEmbed: 'sn__twitter',
-  nostrContainer: 'sn__nostrContainer',
-  nostrEmbed: 'sn__nostrContainer',
-  wavlakeContainer: 'sn__wavlakeWrapper',
-  wavlakeEmbed: 'sn__wavlakeWrapper',
-  spotifyContainer: 'sn__spotifyWrapper',
-  spotifyEmbed: 'sn__spotifyWrapper',
-  youtubeContainer: 'sn__videoWrapper',
-  youtubeEmbed: 'sn__videoWrapper',
-  rumbleContainer: 'sn__videoWrapper',
-  rumbleEmbed: 'sn__videoWrapper',
-  peertubeContainer: 'sn__videoWrapper',
-  peertubeEmbed: 'sn__videoWrapper',
-
+  embeds: {
+    base: 'sn__embedWrapper',
+    focus: 'sn__embedWrapperFocus',
+    twitter: {
+      container: 'sn__twitterContainer',
+      embed: 'sn__twitter'
+    },
+    nostr: {
+      container: 'sn__nostrContainer',
+      embed: 'sn__nostrContainer'
+    },
+    wavlake: {
+      container: 'sn__wavlakeWrapper',
+      embed: 'sn__wavlakeWrapper'
+    },
+    spotify: {
+      container: 'sn__spotifyWrapper',
+      embed: 'sn__spotifyWrapper'
+    },
+    youtube: {
+      container: 'sn__videoWrapper',
+      embed: 'sn__videoWrapper'
+    },
+    rumble: {
+      container: 'sn__videoWrapper',
+      embed: 'sn__videoWrapper'
+    },
+    peertube: {
+      container: 'sn__videoWrapper',
+      embed: 'sn__videoWrapper'
+    }
+  },
   list: {
     nested: {
       listitem: 'sn__nestedListItem'
@@ -74,8 +91,7 @@ const theme = {
   spoilerSummary: 'sn__spoilerSummary',
   spoilerContent: 'sn__spoilerContent',
   footnoteReference: 'sn__footnoteReference',
-  footnoteDefinition: 'sn__footnoteDefinition',
-  footnotesCollector: 'sn__footnotesCollector'
+  footnoteDefinition: 'sn__footnoteDefinition'
 }
 
 export default theme

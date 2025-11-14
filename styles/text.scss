@@ -141,6 +141,26 @@ span + .sn__link {
   content: '' !important;
 }
 
+.sn__blockCursor {
+  display: block;
+  pointer-events: none;
+  position: absolute;
+}
+.sn__blockCursor:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid var(--bs-body-color);
+  animation: CursorBlink 1.1s steps(2, start) infinite;
+}
+@keyframes CursorBlink {
+  to {
+    visibility: hidden;
+  }
+}
+
 .sn__twitterContainer,
 .sn__nostrContainer,
 .sn__videoWrapper,
@@ -149,6 +169,15 @@ span + .sn__link {
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
   background-color: var(--theme-body) !important;
+}
+
+.sn__embedWrapper {
+  user-select: none;
+  pointer-events: auto;
+}
+
+.sn__embedWrapperFocus {
+  outline: 2px solid rgb(60, 132, 244);
 }
 
 .sn__embedWrapper__loading {

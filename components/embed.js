@@ -30,17 +30,6 @@ const Loading = ({ provider, src, className, error }) => {
   )
 }
 
-const LoaderWrapper = ({ loading, provider, src, children }) => {
-  return (
-    <>
-      {loading && <Loading provider={provider} src={src} />}
-      <div style={{ display: loading ? 'none' : 'block' }}>
-        {children}
-      </div>
-    </>
-  )
-}
-
 const TweetSkeleton = ({ className }) => {
   return (
     <div className={classNames(styles.tweetsSkeleton, className)}>
@@ -56,13 +45,13 @@ const TweetSkeleton = ({ className }) => {
   )
 }
 
-const TwitterEmbed = ({ id, className, topLevel, ...props }) => {
+const TwitterEmbed = ({ id, className, topLevel, loading, ...props }) => {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(true)
   const [show, setShow] = useState(false)
 
   return (
-    <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
+    <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)} style={{ display: loading ? 'none' : 'block' }}>
       <TwitterTweetEmbed
         tweetId={id}
         options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
@@ -79,9 +68,9 @@ const TwitterEmbed = ({ id, className, topLevel, ...props }) => {
   )
 }
 
-const YouTubeEmbed = ({ id, className, start, ...props }) => {
+const YouTubeEmbed = ({ id, className, start, loading, ...props }) => {
   return (
-    <div className={classNames(styles.videoWrapper, className)}>
+    <div className={classNames(styles.videoWrapper, className)} style={{ display: loading ? 'none' : 'block' }}>
       <YouTube
         videoId={id}
         className={styles.videoContainer}
@@ -97,7 +86,7 @@ const YouTubeEmbed = ({ id, className, start, ...props }) => {
   )
 }
 
-const NostrEmbed = ({ className, topLevel, id, ...props }) => {
+const NostrEmbed = ({ className, topLevel, id, loading, ...props }) => {
   const iframeRef = useRef(null)
   const [darkMode] = useDarkMode()
   const [show, setShow] = useState(false)
@@ -132,7 +121,7 @@ const NostrEmbed = ({ className, topLevel, id, ...props }) => {
   }, [id, darkMode])
 
   return (
-    <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
+    <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)} style={{ display: loading ? 'none' : 'block' }}>
       <iframe
         ref={iframeRef}
         width={topLevel ? '550px' : '350px'}
@@ -152,7 +141,7 @@ const NostrEmbed = ({ className, topLevel, id, ...props }) => {
   )
 }
 
-const SpotifyEmbed = function SpotifyEmbed ({ src, className, ...props }) {
+const SpotifyEmbed = function SpotifyEmbed ({ src, className, loading, ...props }) {
   const iframeRef = useRef(null)
   // https://open.spotify.com/track/1KFxcj3MZrpBGiGA8ZWriv?si=f024c3aa52294aa1
   // Remove any additional path segments
@@ -179,7 +168,7 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className, ...props }) {
   }, [iframeRef.current, url.pathname])
 
   return (
-    <div className={classNames(styles.spotifyWrapper, className)}>
+    <div className={classNames(styles.spotifyWrapper, className)} style={{ display: loading ? 'none' : 'block' }}>
       <iframe
         ref={iframeRef}
         title='Spotify Web Player'
@@ -197,9 +186,9 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className, ...props }) {
   )
 }
 
-const WavlakeEmbed = ({ id, className, ...props }) => {
+const WavlakeEmbed = ({ id, className, loading, ...props }) => {
   return (
-    <div className={classNames(styles.wavlakeWrapper, className)}>
+    <div className={classNames(styles.wavlakeWrapper, className)} style={{ display: loading ? 'none' : 'block' }}>
       <iframe
         src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
         allow='encrypted-media'
@@ -210,9 +199,9 @@ const WavlakeEmbed = ({ id, className, ...props }) => {
   )
 }
 
-const PeerTubeEmbed = ({ className, href, ...props }) => {
+const PeerTubeEmbed = ({ className, href, loading, ...props }) => {
   return (
-    <div className={classNames(styles.videoWrapper, className)}>
+    <div className={classNames(styles.videoWrapper, className)} style={{ display: loading ? 'none' : 'block' }}>
       <div className={styles.videoContainer}>
         <iframe
           title='PeerTube Video'
@@ -226,9 +215,9 @@ const PeerTubeEmbed = ({ className, href, ...props }) => {
   )
 }
 
-const RumbleEmbed = ({ className, href, ...props }) => {
+const RumbleEmbed = ({ className, href, loading, ...props }) => {
   return (
-    <div className={classNames(styles.videoWrapper, className)}>
+    <div className={classNames(styles.videoWrapper, className)} style={{ display: loading ? 'none' : 'block' }}>
       <div className={styles.videoContainer}>
         <iframe
           title='Rumble Video'
@@ -242,12 +231,13 @@ const RumbleEmbed = ({ className, href, ...props }) => {
   )
 }
 
+// TODO: revisit, this got dirty over a lot of iterations
 export default memo(function Embed ({ src, provider, id, meta, className, topLevel }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const onLoad = useCallback(() => setTimeout(() => setLoading(false), 1000), [setLoading])
   const onError = useCallback(() => setError(true), [])
-  const props = { onLoad, onError }
+  const props = { onLoad, onError, loading }
   const isClient = useIsClient()
 
   // after 15 seconds of loading, bail out
@@ -266,7 +256,8 @@ export default memo(function Embed ({ src, provider, id, meta, className, topLev
   }
 
   return (
-    <LoaderWrapper loading={loading} provider={provider} src={src}>
+    <>
+      {loading && <Loading provider={provider} src={src} />}
       {(() => {
         switch (provider) {
           case 'twitter':
@@ -287,6 +278,6 @@ export default memo(function Embed ({ src, provider, id, meta, className, topLev
             return null
         }
       })()}
-    </LoaderWrapper>
+    </>
   )
 })

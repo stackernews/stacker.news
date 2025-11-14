@@ -26,6 +26,30 @@ import { useLexicalItemContext } from '@/components/lexical/contexts/item'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 
 /**
+ * wrapper component that handles media rendering with item-specific logic
+ * like imgproxy, outlawed and rel (link) user settings
+
+ * @param {string} props.src - media source url
+ * @param {string} props.status - media status (error, pending, etc.)
+ * @returns {JSX.Element} media component or fallback
+ */
+export default function Media ({ src, status, ...props }) {
+  const { imgproxyUrls, rel, outlawed, topLevel } = useLexicalItemContext()
+  const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
+  const srcSet = imgproxyUrls?.[url]
+
+  if (outlawed) {
+    return <p className='outlawed'>{url}</p>
+  }
+
+  if (status === 'error') {
+    return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
+  }
+
+  return <MediaComponent srcSet={srcSet} src={src} rel={rel} topLevel={topLevel} {...props} />
+}
+
+/**
  * selectable, captionable and resizable media component
  * TODO: refactor MediaOrLink legacy component
  *
@@ -56,7 +80,8 @@ export function MediaComponent ({
   resizable,
   showCaption,
   caption,
-  captionsEnabled
+  captionsEnabled,
+  topLevel
 }) {
   const mediaRef = useRef(null)
   const buttonRef = useRef(null)
@@ -235,6 +260,7 @@ export function MediaComponent ({
             onError={() => setIsLoadError(true)}
             className={isFocused ? `focused ${isInNodeSelection ? 'draggable' : ''}` : null}
             imageRef={mediaRef}
+            topLevel={topLevel}
           />
         </div>
 
@@ -271,28 +297,4 @@ export function MediaComponent ({
       </>
     </Suspense>
   )
-}
-
-/**
- * wrapper component that handles media rendering with item-specific logic
- * like imgproxy, outlawed and rel (link) user settings
-
- * @param {string} props.src - media source url
- * @param {string} props.status - media status (error, pending, etc.)
- * @returns {JSX.Element} media component or fallback
- */
-export default function Media ({ src, status, ...props }) {
-  const { imgproxyUrls, rel, outlawed } = useLexicalItemContext()
-  const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
-  const srcSet = imgproxyUrls?.[url]
-
-  if (outlawed) {
-    return <p className='outlawed'>{url}</p>
-  }
-
-  if (status === 'error') {
-    return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
-  }
-
-  return <MediaComponent srcSet={srcSet} src={src} rel={rel} {...props} />
 }

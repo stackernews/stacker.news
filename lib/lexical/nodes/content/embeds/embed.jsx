@@ -1,7 +1,7 @@
 import { $getState, $setState, createState } from 'lexical'
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents'
-import placeholderNode from './placeholder'
+import { placeholderNode } from './placeholder'
 
 const idState = createState('id', {
   parse: (value) => (typeof value === 'string' ? value : '')
@@ -78,6 +78,7 @@ export const createEmbedNodeClass = (provider) => {
         base: embedBlockTheme.base || '',
         focus: embedBlockTheme.focus || ''
       }
+
       return (
         <BlockWithAlignableContents
           nodeKey={this.getKey()}
@@ -90,6 +91,7 @@ export const createEmbedNodeClass = (provider) => {
             src={$getState(this, srcState)}
             meta={$getState(this, metaState)}
             className={config.theme?.embeds?.[provider]?.embed}
+            topLevel={config.theme?.topLevel}
           />
         </BlockWithAlignableContents>
       )

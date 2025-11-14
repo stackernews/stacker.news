@@ -21,7 +21,7 @@ import CodeActionsPlugin from './plugins/decorative/code-actions'
  * @param {React.Ref} ref - forwarded ref
  * @returns {JSX.Element} lexical renderer
  */
-export default forwardRef(function Reader ({ lexicalState, className, children, contentRef }, ref) {
+export default forwardRef(function Reader ({ lexicalState, className, children, contentRef, topLevel }, ref) {
   const reader = useMemo(() =>
     defineExtension({
       $initialEditorState: (editor) => {
@@ -40,9 +40,9 @@ export default forwardRef(function Reader ({ lexicalState, className, children, 
       editable: false,
       nodes: DefaultNodes,
       dependencies: [CodeShikiSNExtension, TableExtension], // , FootnotesExtension
-      theme,
+      theme: { ...theme, topLevel: topLevel ? 'topLevel' : '' },
       onError: (error) => console.error('stacker news reader has encountered an error:', error)
-    }), [])
+    }), [topLevel])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>

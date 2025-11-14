@@ -53,7 +53,7 @@ import CodeActionsPlugin from './plugins/decorative/code-actions'
  * @param {boolean} [props.autoFocus] - whether to auto-focus the editor
  * @returns {JSX.Element} lexical editor component
  */
-export default function Editor ({ name, appendValue, autoFocus, ...props }) {
+export default function Editor ({ name, appendValue, autoFocus, topLevel, ...props }) {
   const { prefs } = useLexicalPreferences()
   const { values } = useFormikContext()
 
@@ -104,16 +104,16 @@ export default function Editor ({ name, appendValue, autoFocus, ...props }) {
         // FootnotesExtension,
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
-      theme,
+      theme: { ...theme, topLevel: topLevel ? 'topLevel' : '' },
       onError: (error) => console.error('stacker news editor has encountered an error:', error)
-    }), [autoFocus])
+    }), [autoFocus, topLevel])
 
   return (
     <LexicalExtensionComposer extension={editor} contentEditable={null}>
       <SharedHistoryContextProvider>
         <ToolbarContextProvider>
           <TableContextProvider>
-            <EditorContent {...props} />
+            <EditorContent topLevel={topLevel} {...props} />
           </TableContextProvider>
         </ToolbarContextProvider>
       </SharedHistoryContextProvider>

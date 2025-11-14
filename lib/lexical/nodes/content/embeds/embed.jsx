@@ -67,6 +67,10 @@ export const createEmbedNodeClass = (provider) => {
       }
     }
 
+    getTextContent () {
+      return this.getSrc()
+    }
+
     decorate (_editor, config) {
       const Embed = require('@/components/embed').default
       const embedBlockTheme = config.theme.embeds || {}

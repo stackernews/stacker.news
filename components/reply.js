@@ -142,7 +142,6 @@ export default forwardRef(function Reply ({
                 placeholder={placeholder}
                 autoFocus={reply && !replyOpen}
                 appendValue={quote}
-                topLevel
                 lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />

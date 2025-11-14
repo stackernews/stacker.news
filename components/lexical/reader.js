@@ -10,6 +10,7 @@ import { CodeThemePlugin } from './plugins/core/code-theme'
 import theme from './theme'
 import { TableExtension } from '@lexical/table'
 import CodeActionsPlugin from './plugins/decorative/code-actions'
+// import { FootnotesExtension } from '@/lib/lexical/extensions/formatting/footnotes'
 
 /**
  * Lexical Renderer: renders lexical state as read-only content
@@ -38,7 +39,7 @@ export default forwardRef(function Reader ({ lexicalState, className, children, 
       namespace: 'SN',
       editable: false,
       nodes: DefaultNodes,
-      dependencies: [CodeShikiSNExtension, TableExtension],
+      dependencies: [CodeShikiSNExtension, TableExtension], // , FootnotesExtension
       theme,
       onError: (error) => console.error('stacker news reader has encountered an error:', error)
     }), [])

@@ -450,7 +450,7 @@ a:hover {
 }
 
 select,
-div[contenteditable=true],
+div[contenteditable=true]:not([data-lexical-editor]),
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);

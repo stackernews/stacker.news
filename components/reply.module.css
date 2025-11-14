@@ -2,7 +2,7 @@
     max-width: 600px;
     padding-right: 15px;
     padding-bottom: 1rem;
-    margin-left: 12px;
+    margin-left: .99px;
 }
 
 .replyButtons {
@@ -53,10 +53,6 @@
 
 @media screen and (min-width: 768px) {
     .replyButtons {
-        margin-left: .99px;
-    }
-
-    .reply {
         margin-left: .99px;
     }
 }

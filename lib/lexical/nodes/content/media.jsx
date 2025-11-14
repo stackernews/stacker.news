@@ -281,9 +281,9 @@ export class MediaNode extends DecoratorNode {
   }
 
   decorate (editor) {
-    const MediaComponent = require('@/components/lexical/plugins/content/media').default
+    const Media = require('@/components/lexical/plugins/content/media').default
     return (
-      <MediaComponent
+      <Media
         src={this.__src}
         altText={this.__altText}
         kind={this.__kind}

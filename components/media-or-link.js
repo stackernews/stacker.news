@@ -73,7 +73,7 @@ const Media = memo(function Media ({
   )
 })
 
-export function MediaOrLinkExperimental ({ editable = false, linkFallback = true, onError, className, imageRef, ...props }) {
+export default function MediaOrLink ({ editable = false, linkFallback = true, onError, className, imageRef, ...props }) {
   const media = useMediaHelper({ ...props })
   const [error, setError] = useState(false)
   const { showCarousel, addMedia, confirmMedia, removeMedia } = editable ? {} : (useCarousel() || {})
@@ -112,58 +112,6 @@ export function MediaOrLinkExperimental ({ editable = false, linkFallback = true
         return (
           <Media
             {...media} onClick={handleClick} onError={handleError} className={className} imageRef={imageRef}
-          />
-        )
-      })
-    }
-  }
-
-  if (linkFallback) {
-    return <LinkRaw {...props} />
-  }
-
-  return null
-}
-
-export default function MediaOrLink ({ linkFallback = true, ...props }) {
-  const media = useMediaHelper(props)
-  const [error, setError] = useState(false)
-  const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel() || {}
-
-  // register placeholder immediately on mount if we have a src
-  useEffect(() => {
-    if (!addMedia) return
-    if (!media.bestResSrc) return
-    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: props.rel })
-  }, [addMedia, media.bestResSrc, media.originalSrc, props.rel])
-
-  // confirm media for carousel based on image detection
-  useEffect(() => {
-    if (!confirmMedia) return
-    if (!media.image) return
-    confirmMedia(media.bestResSrc)
-  }, [confirmMedia, media.image, media.bestResSrc])
-
-  const handleClick = useCallback(() => {
-    if (!showCarousel) return
-    showCarousel({ src: media.bestResSrc })
-  }, [showCarousel, media.bestResSrc])
-
-  const handleError = useCallback((err) => {
-    if (!removeMedia) return
-    console.error('Error loading media', err)
-    removeMedia(media.bestResSrc)
-    setError(true)
-  }, [setError, removeMedia, media.bestResSrc])
-
-  if (!media.src) return null
-
-  if (!error) {
-    if (media.image || media.video) {
-      return preserveScroll(() => {
-        return (
-          <Media
-            {...media} onClick={handleClick} onError={handleError}
           />
         )
       })

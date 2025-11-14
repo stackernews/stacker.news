@@ -33,7 +33,7 @@ export function BioForm ({ handleDone, bio, me }) {
           id: `User:${me.id}`,
           fields: {
             bio () {
-              return { text: result.text, lexicalState: result.lexicalState, html: result.html }
+              return { __ref: `Item:${result.id}` } // normalize by updating the item reference
             }
           }
         })

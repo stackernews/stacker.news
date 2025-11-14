@@ -27,7 +27,7 @@ function isGoogleDocsTitle (domNode) {
 // re-implements HeadingNode with slug support
 export class SNHeadingNode extends HeadingNode {
   static getType () {
-    return 'heading'
+    return 'sn-heading'
   }
 
   static clone (node) {

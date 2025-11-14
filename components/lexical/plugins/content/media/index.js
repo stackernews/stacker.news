@@ -17,7 +17,7 @@ import {
   KEY_ESCAPE_COMMAND, RIGHT_CLICK_IMAGE_COMMAND, SELECTION_CHANGE_COMMAND
 } from 'lexical'
 import MentionsPlugin from '@/components/lexical/plugins/decorative/mention'
-import { MediaOrLinkExperimental, LinkRaw } from '@/components/media-or-link'
+import MediaOrLink, { LinkRaw } from '@/components/media-or-link'
 import { useSharedHistoryContext } from '@/components/lexical/contexts/sharedhistory'
 import { $isMediaNode } from '../../../../../lib/lexical/nodes/content/media'
 import MediaResizer from './resizer'
@@ -43,7 +43,7 @@ import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
  * @param {Object} props.caption - lexical editor instance for caption
  * @param {boolean} props.captionsEnabled - whether captions are enabled
  */
-export function MediaOrLink ({
+export function MediaComponent ({
   src,
   srcSet,
   rel,
@@ -224,7 +224,7 @@ export function MediaOrLink ({
     <Suspense fallback={null}>
       <>
         <div draggable={draggable}>
-          <MediaOrLinkExperimental
+          <MediaOrLink
             editable={isEditable}
             src={src}
             srcSet={srcSet}
@@ -281,7 +281,7 @@ export function MediaOrLink ({
  * @param {string} props.status - media status (error, pending, etc.)
  * @returns {JSX.Element} media component or fallback
  */
-export default function MediaComponent ({ src, status, ...props }) {
+export default function Media ({ src, status, ...props }) {
   const { imgproxyUrls, rel, outlawed } = useLexicalItemContext()
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
   const srcSet = imgproxyUrls?.[url]
@@ -294,5 +294,5 @@ export default function MediaComponent ({ src, status, ...props }) {
     return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
   }
 
-  return <MediaOrLink srcSet={srcSet} src={src} rel={rel} {...props} />
+  return <MediaComponent srcSet={srcSet} src={src} rel={rel} {...props} />
 }

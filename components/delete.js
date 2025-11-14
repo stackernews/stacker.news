@@ -15,6 +15,8 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
       mutation deleteItem($id: ID!) {
         deleteItem(id: $id) {
           text
+          lexicalState
+          html
           title
           url
           pollCost
@@ -26,6 +28,8 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
           id: `Item:${itemId}`,
           fields: {
             text: () => deleteItem.text,
+            lexicalState: () => deleteItem.lexicalState,
+            html: () => deleteItem.html,
             title: () => deleteItem.title,
             url: () => deleteItem.url,
             pollCost: () => deleteItem.pollCost,

@@ -130,14 +130,13 @@ export class SpoilerContainerNode extends ElementNode {
   exportDOM () {
     const element = document.createElement('details')
     element.classList.add('sn__collapsible', 'sn__spoiler__container')
-    element.setAttribute('open', this.__open.toString())
     return { element }
   }
 
   exportJSON () {
     return {
       ...super.exportJSON(),
-      open: this.__open
+      open: false // always save spoilers as collapsed
     }
   }
 

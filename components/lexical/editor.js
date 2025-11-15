@@ -44,7 +44,6 @@ import TableActionMenuPlugin from '@/components/lexical/plugins/inserts/table/ac
 import { TableOfContentsExtension } from '@/lib/lexical/extensions/toc'
 import { SpoilerExtension } from '@/lib/lexical/extensions/formatting/spoiler'
 import CodeActionsPlugin from './plugins/decorative/code-actions'
-// import { FootnotesExtension } from '@/lib/lexical/extensions/formatting/footnotes'
 
 /**
  * main lexical editor component with formik integration
@@ -101,7 +100,6 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
         HorizontalRuleExtension,
         TableOfContentsExtension,
         SpoilerExtension,
-        // FootnotesExtension,
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
       theme: { ...theme, topLevel: topLevel ? 'topLevel' : '' },

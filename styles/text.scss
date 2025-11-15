@@ -42,13 +42,13 @@
 /* workaround to make headings clickable, see SNHeadingNode
    quirk: makes the whole line clickable
 */
-.sn__headings > a, .sn__footnoteReference a {
+.sn__headings > a {
   position: absolute;
   inset: 0;
   text-decoration: none;
 }
 
-.sn__headings > a:focus, .sn__footnoteReference a:focus {
+.sn__headings > a:focus {
   outline: none;
 }
 
@@ -601,74 +601,4 @@ span + .sn__link {
 }
 .sn__tableAlignmentRight {
   margin-left: auto;
-}
-
-.sn__footnoteReference {
-  font-size: 75%;
-  line-height: 0;
-  vertical-align: super;
-  user-select: text;
-  text-decoration: none;
-  color: var(--theme-linkHover);
-  cursor: pointer;
-}
-
-[contenteditable="true"] .sn__footnoteReference {
-  pointer-events: none;
-}
-
-.sn__footnoteReference::before {
-  content: '[';
-}
-
-.sn__footnoteReference::after {
-  content: ']';
-}
-
-.sn__footnoteReference:hover > span {
-  text-decoration: underline;
-}
-
-.sn__footnoteDefinition {
-  font-size: 90%;
-  color: var(--theme-grey);
-  border-top: 1px solid var(--theme-borderColor);
-  margin-top: calc(var(--grid-gap) * 0.5);
-  padding-top: calc(var(--grid-gap) * 0.5);
-}
-
-.sn__footnoteDefinition .footnote-label {
-  font-weight: 600;
-  color: var(--theme-linkHover);
-}
-
-.sn__footnotes {
-  font-size: 90%;
-  color: var(--theme-grey);
-}
-
-.sn__footnotes-separator {
-  border-top: 1px solid var(--theme-borderColor);
-  margin: calc(var(--grid-gap) * 0.5) 0;
-}
-
-.sn__footnotes-list {
-  list-style: decimal;
-  padding-left: 1.5em;
-  margin-bottom: 0;
-}
-
-.sn__footnotes-list li {
-  margin-bottom: 0.25rem;
-}
-
-.sn__footnote-backref {
-  text-decoration: none;
-  color: var(--theme-linkHover);
-  margin-left: 0.25em;
-  font-size: 85%;
-}
-
-.sn__footnote-backref:hover {
-  text-decoration: underline;
 }

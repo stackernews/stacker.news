@@ -7,15 +7,14 @@ import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components
 import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
 import Info from '@/components/info'
-import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
+import { useIsFirstStep, useIsLastStep, useNext } from '@/components/multi-step-form'
+import { isTemplate, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import { useFormikContext } from 'formik'
 
-import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
-import { Settings } from './settings'
+import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm, useSaveWallet } from './hooks'
 import { BackButton, SkipButton } from './button'
 
 export function WalletMultiStepForm ({ wallet }) {
@@ -33,8 +32,7 @@ export function WalletMultiStepForm ({ wallet }) {
   const steps = useMemo(() =>
     [
       support.send && Step.SEND,
-      support.receive && Step.RECEIVE,
-      Step.SETTINGS
+      support.receive && Step.RECEIVE
     ].filter(Boolean),
   [support])
 
@@ -51,7 +49,7 @@ export function WalletMultiStepForm ({ wallet }) {
             // and can thus render a different form for send vs. receive
             if (step === Step.SEND) return <WalletForm key={step} />
             if (step === Step.RECEIVE) return <WalletForm key={step} />
-            return <Settings key={step} />
+            return null
           })}
         </WalletMultiStepFormContextProvider>
       </div>
@@ -92,11 +90,20 @@ function WalletProtocolSelector () {
 function WalletProtocolForm () {
   const wallet = useWallet()
   const [protocol] = useProtocol()
-  const next = useNext()
+
+  // on the last step, we save the wallet, otherwise we just go to the next step
+  const isLastStep = useIsLastStep()
+  const formNext = useNext()
+  const formSave = useSaveWallet()
+
   const testSendPayment = useTestSendPayment(protocol)
   const testCreateInvoice = useTestCreateInvoice(protocol)
   const logger = useWalletLogger(protocol)
   const [{ fields, initial, schema }, setFormState] = useProtocolForm(protocol)
+
+  const next = useCallback(() => {
+    isLastStep ? formSave() : formNext()
+  }, [isLastStep, formSave, formNext])
 
   // create a copy of values to avoid mutating the original
   const onSubmit = useCallback(async ({ ...values }) => {
@@ -152,25 +159,31 @@ function WalletProtocolForm () {
 }
 
 function WalletProtocolFormNavigator () {
-  const wallet = useWallet()
-  const stepIndex = useStepIndex()
-  const maxSteps = useMaxSteps()
-  const [formState] = useFormState()
-
-  // was something already configured or was something configured just now?
-  const configExists = (isWallet(wallet) && wallet.protocols.length > 0) || Object.keys(formState).length > 0
-
-  // don't allow going to settings as last step with nothing configured
-  const hideSkip = stepIndex === maxSteps - 2 && !configExists
+  // show 'cancel' in the first step
+  const showCancel = useIsFirstStep()
+  // show 'save' instead of 'next' in the last step
+  const isLastStep = useIsLastStep()
+  // show 'skip' if there's a next step
+  const showSkip = !isLastStep
 
   return (
     <div className='d-flex justify-content-end align-items-center'>
-      {stepIndex === 0 ? <CancelButton>cancel</CancelButton> : <BackButton />}
-      {!hideSkip ? <SkipButton /> : <div className='ms-auto' />}
-      <SubmitButton variant='primary' className='ps-3 pe-2 d-flex align-items-center'>
-        next
-        <ArrowRight width={24} height={24} />
-      </SubmitButton>
+      {showCancel ? <CancelButton>cancel</CancelButton> : <BackButton />}
+      {showSkip ? <SkipButton /> : <div className='ms-auto' />}
+      {
+        isLastStep
+          ? (
+            <SubmitButton variant='primary' className='d-flex align-items-center'>
+              save
+            </SubmitButton>
+            )
+          : (
+            <SubmitButton variant='primary' className='ps-3 pe-2 d-flex align-items-center'>
+              next
+              <ArrowRight width={24} height={24} />
+            </SubmitButton>
+            )
+      }
     </div>
   )
 }

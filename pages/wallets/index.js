@@ -115,6 +115,8 @@ export default function Wallet () {
         <WalletLayoutSubHeader>use real bitcoin</WalletLayoutSubHeader>
         <div className='text-center'>
           <WalletLayoutLink href='/wallets/logs'>wallet logs</WalletLayoutLink>
+          <span className='mx-2'>•</span>
+          <WalletLayoutLink href='/wallets/settings'>settings</WalletLayoutLink>
           {showPassphrase && (
             <>
               <span className='mx-2'>•</span>

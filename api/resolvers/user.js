@@ -68,6 +68,8 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
       column = Prisma.sql`spent`; break
     case 'items':
       column = Prisma.sql`nitems`; break
+    case 'streak':
+      column = Prisma.sql`streak`; break
     default:
       throw new GqlInputError('invalid sort')
   }
@@ -80,29 +82,35 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
       WHERE "AggPayIn"."timeBucket" >= ${fromDate}
       AND "AggPayIn"."timeBucket" <= ${toDate}
       AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
-      AND "AggPayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
+      AND "AggPayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT', 'BUY_CREDITS')
       AND "AggPayIn"."slice" = 'USER_BY_TYPE'
       GROUP BY "AggPayIn"."userId"
     ),
-    user_stats AS (
-      SELECT "AggPayOut"."userId", COALESCE(user_outgoing."spent", 0) as spent,
-        COALESCE(user_outgoing."nitems", 0) as nitems, floor(sum("AggPayOut"."sumMtokens") / 1000) as stacked
+    user_incoming AS (
+      SELECT "AggPayOut"."userId", floor(sum("AggPayOut"."sumMtokens") / 1000) as stacked
       FROM "AggPayOut"
-      LEFT JOIN user_outgoing ON "AggPayOut"."userId" = user_outgoing."userId"
       WHERE "AggPayOut"."timeBucket" >= ${fromDate}
       AND "AggPayOut"."timeBucket" <= ${toDate}
       AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
       AND "AggPayOut"."slice" = 'USER_BY_TYPE'
-      AND "AggPayOut"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
-      GROUP BY "AggPayOut"."userId", user_outgoing."spent", user_outgoing."nitems"
+      AND "AggPayOut"."payInType" IS NOT NULL
+      AND "AggPayOut"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT', 'BUY_CREDITS')
+      GROUP BY "AggPayOut"."userId"
+    ),
+    user_stats AS (
+      SELECT COALESCE(user_outgoing."userId", user_incoming."userId") as "userId", COALESCE(user_outgoing."spent", 0) as spent,
+        COALESCE(user_outgoing."nitems", 0) as nitems, COALESCE(user_incoming."stacked", 0) as stacked
+      FROM user_outgoing
+      FULL JOIN user_incoming ON user_outgoing."userId" = user_incoming."userId"
     )
     SELECT * FROM user_stats
     JOIN users ON user_stats."userId" = users.id
+    WHERE users.id NOT IN (${Prisma.join([...SN_SYSTEM_ONLY_IDS, USER_ID.anon])})
     ORDER BY ${column} DESC NULLS LAST, users.created_at ASC
     OFFSET ${decodedCursor.offset}
     LIMIT ${limit}`
   ).map(
-    u => (u.hideFromTopUsers || SN_SYSTEM_ONLY_IDS.includes(u.id)) && (!me || me.id !== u.id) ? null : u
+    u => u.hideFromTopUsers && (!me || me.id !== u.id) ? null : u
   )
 
   return {
@@ -185,23 +193,11 @@ export default {
       }
     },
     topCowboys: async (parent, { cursor }, { models, me }) => {
-      const decodedCursor = decodeCursor(cursor)
-      const range = whenRange('forever')
-
-      const users = (await models.$queryRawUnsafe(`
-        SELECT *
-          FROM users
-          WHERE streak IS NOT NULL
-          ORDER BY streak DESC, created_at ASC
-          OFFSET $3
-          LIMIT ${LIMIT}`, ...range, decodedCursor.offset)
-      ).map(
-        u => (u.hideFromTopUsers || u.hideCowboyHat) && (!me || me.id !== u.id) ? null : u
-      )
-
+      const { users, cursor: topCowboysCursor } = await topUsers(parent, { cursor, when: 'forever', by: 'streak', limit: LIMIT }, { models, me })
+      const cowboys = users.map(u => (u?.hideCowboyHat && (!me || me.id !== u.id)) ? null : u).filter(u => u?.streak !== null)
       return {
-        cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
-        users
+        cursor: cowboys.length === LIMIT ? topCowboysCursor : null,
+        users: cowboys
       }
     },
     userSuggestions: async (parent, { q, limit }, { models }) => {
@@ -1067,7 +1063,7 @@ export default {
         AND "AggPayOut"."timeBucket" <= ${toDate}
         AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
         AND "AggPayOut"."slice" = 'USER_BY_TYPE'
-        AND "AggPayOut"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
+        AND "AggPayOut"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT', 'BUY_CREDITS')
         GROUP BY "AggPayOut"."userId"
       `
       return (stacked && msatsToSats(stacked)) || 0
@@ -1091,7 +1087,7 @@ export default {
         AND "AggPayIn"."timeBucket" <= ${toDate}
         AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
         AND "AggPayIn"."slice" = 'USER_BY_TYPE'
-        AND "AggPayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
+        AND "AggPayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT', 'BUY_CREDITS')
         GROUP BY "AggPayIn"."userId"
       `
 

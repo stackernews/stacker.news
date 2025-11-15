@@ -22,7 +22,6 @@ export default function MySubscribedSubs ({ ssrData }) {
           destructureData={data => data.mySubscribedSubs}
           rank
           subActionDropdown
-          statCompsProp={[]}
         />
       </SubscribeTerritoryContextProvider>
     </SubscriptionLayout>

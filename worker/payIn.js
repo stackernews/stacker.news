@@ -134,6 +134,14 @@ export async function checkPayInBolt11 ({ data: { hash, invoice }, boss, models,
   }
 
   if (inv.is_confirmed) {
+    // it's possible for a pending_held/forwarding invoice to settle without transitioning to held/forwarded if
+    // the state transition is rolled back
+    if (payIn.payInState === 'PENDING_HELD') {
+      return await payInHeld({ data: { payInId: payIn.id, invoice: inv }, models, lnd, boss })
+    }
+    if (payIn.payInState === 'FORWARDING') {
+      return await payInForwarded({ data: { payInId: payIn.id, invoice: inv }, models, lnd, boss })
+    }
     return await payInPaid({ data: { payInId: payIn.id, invoice: inv }, models, lnd, boss })
   }
 

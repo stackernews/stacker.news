@@ -39,6 +39,7 @@ export function FloatingToolbar ({ editor, anchorElem }) {
     const toolbarElem = floatingToolbarRef.current
     if (!toolbarElem) return
 
+    // left click or right click
     if (e.buttons === 1 || e.buttons === 3) {
       if (toolbarElem.style.pointerEvents !== 'none') {
         const x = e.clientX

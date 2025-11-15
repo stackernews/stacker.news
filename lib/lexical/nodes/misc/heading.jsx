@@ -48,9 +48,6 @@ export class SNHeadingNode extends HeadingNode {
     const headingId = this.getSlug()
     if (headingId) {
       element.setAttribute('id', headingId)
-      const a = document.createElement('a')
-      a.setAttribute('href', `#${headingId}`)
-      element.appendChild(a)
     }
 
     return element
@@ -72,9 +69,6 @@ export class SNHeadingNode extends HeadingNode {
 
     if (headingId) {
       element.setAttribute('id', headingId)
-      const a = document.createElement('a')
-      a.setAttribute('href', `#${headingId}`)
-      element.appendChild(a)
     }
 
     return { element }

@@ -1,8 +1,8 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $createTextNode, $getSelection, $isRangeSelection, $isTextNode, $isLineBreakNode, $isParagraphNode } from 'lexical'
 import { useEffect, useState, useCallback } from 'react'
-import { $createMentionNode, $isMentionNode } from '@/lib/lexical/nodes/decorative/mentions/user'
-import { $createTerritoryNode, $isTerritoryNode } from '@/lib/lexical/nodes/decorative/mentions/territory'
+import { $createUserMentionNode, $isUserMentionNode } from '@/lib/lexical/nodes/decorative/mentions/user'
+import { $createTerritoryMentionNode, $isTerritoryMentionNode } from '@/lib/lexical/nodes/decorative/mentions/territory'
 import { $isMarkdownMode } from '@/lib/lexical/universal/utils'
 
 function extractTextUpToCursor (selection) {
@@ -28,7 +28,7 @@ function extractTextUpToCursor (selection) {
     while (prev && !$isLineBreakNode(prev) && !$isParagraphNode(prev)) {
       if ($isTextNode(prev)) {
         text = prev.getTextContent() + text
-      } else if ($isMentionNode(prev) || $isTerritoryNode(prev)) {
+      } else if ($isUserMentionNode(prev) || $isTerritoryMentionNode(prev)) {
         break
       }
       prev = prev.getPreviousSibling()
@@ -82,8 +82,8 @@ export default function useUniversalAutocomplete () {
         const mentionNode = $isMarkdownMode()
           ? $createTextNode(`${isUser ? '@' : '~'}${item.name || item}`)
           : isUser
-            ? $createMentionNode(item.id || item, item.name || item)
-            : $createTerritoryNode(item.name || item)
+            ? $createUserMentionNode(item.id || item, item.name || item)
+            : $createTerritoryMentionNode(item.name || item)
 
         // rebuilding the structure
         if (beforeMatch) {

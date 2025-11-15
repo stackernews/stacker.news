@@ -1,88 +1,87 @@
 import { DecoratorNode, $applyNodeReplacement } from 'lexical'
 
-function $convertMentionElement (domNode) {
+function $convertUserMentionElement (domNode) {
   const textContent = domNode.textContent
-  const mentionId = domNode.getAttribute('data-lexical-mention-id')
-  const mentionName = domNode.getAttribute('data-lexical-mention-name')
+  const userMentionId = domNode.getAttribute('data-lexical-user-mention-id')
+  const userMentionName = domNode.getAttribute('data-lexical-user-mention-name')
 
   if (textContent !== null) {
-    const node = $createMentionNode(mentionId, mentionName || textContent)
+    const node = $createUserMentionNode(userMentionId, userMentionName || textContent)
     return { node }
   }
 
   return null
 }
 
-export class MentionNode extends DecoratorNode {
-  __mentionId
-  __mentionName
+export class UserMentionNode extends DecoratorNode {
+  __userMentionId
+  __userMentionName
 
   static getType () {
-    return 'mention'
+    return 'user-mention'
   }
 
-  getMentionId () {
-    return this.__mentionId
+  getUserMentionId () {
+    return this.__userMentionId
   }
 
-  getMentionName () {
-    return this.__mentionName
+  getUserMentionName () {
+    return this.__userMentionName
   }
 
   static clone (node) {
-    return new MentionNode(node.__mentionId, node.__mentionName, node.__key)
+    return new UserMentionNode(node.__userMentionId, node.__userMentionName, node.__key)
   }
 
   static importJSON (serializedNode) {
-    return $createMentionNode(serializedNode.mentionId, serializedNode.mentionName)
+    return $createUserMentionNode(serializedNode.userMentionId, serializedNode.userMentionName)
   }
 
-  constructor (mentionId, mentionName, key) {
+  constructor (userMentionId, userMentionName, key) {
     super(key)
-    this.__mentionId = mentionId
-    this.__mentionName = mentionName
+    this.__userMentionId = userMentionId
+    this.__userMentionName = userMentionName
   }
 
   exportJSON () {
     return {
-      type: 'mention',
+      type: 'user-mention',
       version: 1,
-      mentionId: this.__mentionId,
-      mentionName: this.__mentionName
+      userMentionId: this.__userMentionId,
+      userMentionName: this.__userMentionName
     }
   }
 
   createDOM (config) {
     const domNode = document.createElement('span')
     const theme = config.theme
-    const className = theme.mention
+    const className = theme.userMention
     if (className !== undefined) {
       domNode.className = className
     }
-    domNode.setAttribute('data-lexical-mention', true)
-    domNode.setAttribute('data-lexical-mention-id', this.__mentionId)
-    domNode.setAttribute('data-lexical-mention-name', this.__mentionName)
-    domNode.setAttribute('data-mention-text', '@' + this.__mentionName)
+    domNode.setAttribute('data-lexical-user-mention', true)
+    domNode.setAttribute('data-lexical-user-mention-id', this.__userMentionId)
+    domNode.setAttribute('data-lexical-user-mention-name', this.__userMentionName)
     return domNode
   }
 
   // we need to find a way to allow display name changes
   exportDOM (editor) {
     const wrapper = document.createElement('span')
-    wrapper.setAttribute('data-lexical-mention', true)
+    wrapper.setAttribute('data-lexical-user-mention', true)
     const theme = editor._config.theme
-    const className = theme.mention
+    const className = theme.userMention
     if (className !== undefined) {
       wrapper.className = className
     }
-    wrapper.setAttribute('data-lexical-mention-id', this.__mentionId)
-    wrapper.setAttribute('data-lexical-mention-name', this.__mentionName)
+    wrapper.setAttribute('data-lexical-user-mention-id', this.__userMentionId)
+    wrapper.setAttribute('data-lexical-user-mention-name', this.__userMentionName)
     const a = document.createElement('a')
-    const href = this.__mentionId
-      ? '/api/u/' + encodeURIComponent(this.__mentionId.toString())
-      : '/' + encodeURIComponent(this.__mentionName.toString())
+    const href = this.__userMentionId
+      ? '/api/u/' + encodeURIComponent(this.__userMentionId.toString())
+      : '/' + encodeURIComponent(this.__userMentionName.toString())
     a.setAttribute('href', href)
-    a.textContent = '@' + this.__mentionName
+    a.textContent = '@' + this.__userMentionName
     wrapper.appendChild(a)
     return { element: wrapper }
   }
@@ -90,8 +89,8 @@ export class MentionNode extends DecoratorNode {
   static importDOM () {
     return {
       span: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-mention')) return null
-        return { conversion: $convertMentionElement, priority: 1 }
+        if (!domNode.hasAttribute('data-lexical-user-mention')) return null
+        return { conversion: $convertUserMentionElement, priority: 1 }
       }
     }
   }
@@ -107,8 +106,8 @@ export class MentionNode extends DecoratorNode {
   decorate () {
     const UserPopover = require('@/components/user-popover').default
     const Link = require('next/link').default
-    const id = this.__mentionId
-    const name = this.__mentionName
+    const id = this.__userMentionId
+    const name = this.__userMentionName
     const href = id ? '/api/u/' + id : '/' + name
     return (
       <UserPopover id={id} name={name}>
@@ -118,10 +117,10 @@ export class MentionNode extends DecoratorNode {
   }
 }
 
-export function $createMentionNode (mentionId, mentionName) {
-  return $applyNodeReplacement(new MentionNode(mentionId, mentionName))
+export function $createUserMentionNode (userMentionId, userMentionName) {
+  return $applyNodeReplacement(new UserMentionNode(userMentionId, userMentionName))
 }
 
-export function $isMentionNode (node) {
-  return node instanceof MentionNode
+export function $isUserMentionNode (node) {
+  return node instanceof UserMentionNode
 }

@@ -3,19 +3,19 @@ import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents'
 import { placeholderNode } from './placeholder'
 
-const idState = createState('id', {
-  parse: (value) => (typeof value === 'string' ? value : '')
-})
-
-const srcState = createState('src', {
-  parse: (value) => (typeof value === 'string' ? value : '')
-})
-
-const metaState = createState('meta', {
-  parse: (value) => (typeof value === 'object' ? value : null)
-})
-
 export const createEmbedNodeClass = (provider) => {
+  const idState = createState('id', {
+    parse: (value) => (typeof value === 'string' ? value : '')
+  })
+
+  const srcState = createState('src', {
+    parse: (value) => (typeof value === 'string' ? value : '')
+  })
+
+  const metaState = createState('meta', {
+    parse: (value) => (typeof value === 'object' ? value : null)
+  })
+
   return class extends DecoratorBlockNode {
     $config () {
       return this.config(provider, {
@@ -60,15 +60,15 @@ export const createEmbedNodeClass = (provider) => {
       return {
         element: placeholderNode({
           provider,
-          id: $getState(this, idState),
-          src: $getState(this, srcState),
-          meta: $getState(this, metaState)
+          id: this.getId() || '',
+          src: this.getSrc(),
+          meta: this.getMeta() || {}
         })
       }
     }
 
     getTextContent () {
-      return this.getSrc()
+      return this.getSrc() || this.getMeta()?.href
     }
 
     decorate (_editor, config) {
@@ -89,31 +89,14 @@ export const createEmbedNodeClass = (provider) => {
         >
           <Embed
             provider={provider}
-            id={$getState(this, idState)}
-            src={$getState(this, srcState)}
-            meta={$getState(this, metaState)}
+            id={this.getId() || ''}
+            src={this.getSrc() || ''}
+            meta={this.getMeta() || {}}
             className={config.theme?.embeds?.[provider]?.embed}
             topLevel={config.theme?.topLevel}
           />
         </BlockWithAlignableContents>
       )
-    }
-  }
-}
-
-export function $createEmbedNode (NodeClass, props) {
-  const node = new NodeClass()
-  if (props.id !== undefined) node.setId(props.id)
-  if (props.src !== undefined) node.setSrc(props.src)
-  if (props.meta !== undefined) node.setMeta(props.meta)
-  return node
-}
-
-export function createNodeComparison (NodeClass, provider) {
-  const capitalizedProvider = provider.charAt(0).toUpperCase() + provider.slice(1)
-  return {
-    [`$is${capitalizedProvider}Node`]: (node) => {
-      return node instanceof NodeClass
     }
   }
 }

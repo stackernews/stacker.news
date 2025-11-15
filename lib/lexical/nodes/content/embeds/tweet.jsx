@@ -1,9 +1,14 @@
-import { $createEmbedNode, createNodeComparison, createEmbedNodeClass } from './embed'
+import { createEmbedNodeClass } from './embed'
 
 export const TweetNode = createEmbedNodeClass('twitter')
 
-export const { $isTweetNode } = createNodeComparison(TweetNode, 'twitter')
+export function $isTweetNode (node) {
+  return node instanceof TweetNode
+}
 
 export function $createTweetNode (id, src) {
-  return $createEmbedNode(TweetNode, { id, src })
+  const node = new TweetNode()
+  node.setId(id)
+  node.setSrc(src)
+  return node
 }

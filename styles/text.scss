@@ -127,18 +127,11 @@ span + .sn__link {
   margin-left: 0px;
 }
 
-.sn__mention {
+.sn__userMention,
+.sn__territoryMention,
+.sn__itemMention {
   color: var(--theme-link);
   font-weight: bold;
-}
-
-.sn__mention[data-lexical-mention][data-mention-text]::before {
-  content: attr(data-mention-text);
-  pointer-events: none;
-}
-
-.sn__mention[data-lexical-mention]:has(> span)::before {
-  content: '' !important;
 }
 
 .sn__blockCursor {

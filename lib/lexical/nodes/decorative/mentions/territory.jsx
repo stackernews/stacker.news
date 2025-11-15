@@ -1,75 +1,74 @@
 import { DecoratorNode, $applyNodeReplacement } from 'lexical'
 
-function $convertTerritoryElement (domNode) {
+function $convertTerritoryMentionElement (domNode) {
   const textContent = domNode.textContent
-  const territoryName = domNode.getAttribute('data-lexical-territory-name')
+  const territoryName = domNode.getAttribute('data-lexical-territory-mention-name')
 
   if (textContent !== null) {
-    const node = $createTerritoryNode(territoryName || textContent, textContent)
+    const node = $createTerritoryMentionNode(territoryName || textContent, textContent)
     return { node }
   }
 
   return null
 }
 
-export class TerritoryNode extends DecoratorNode {
-  __territory
+export class TerritoryMentionNode extends DecoratorNode {
+  __territoryMentionName
 
   static getType () {
-    return 'territory'
+    return 'territory-mention'
   }
 
-  getTerritoryName () {
-    return this.__territory
+  getTerritoryMentionName () {
+    return this.__territoryMentionName
   }
 
   static clone (node) {
-    return new TerritoryNode(node.__territory, node.__key)
+    return new TerritoryMentionNode(node.__territoryMentionName, node.__key)
   }
 
   static importJSON (serializedNode) {
-    return $createTerritoryNode(serializedNode.territoryName)
+    return $createTerritoryMentionNode(serializedNode.territoryMentionName)
   }
 
-  constructor (territoryName, key) {
+  constructor (territoryMentionName, key) {
     super(key)
-    this.__territory = territoryName
+    this.__territoryMentionName = territoryMentionName
   }
 
   exportJSON () {
     return {
-      type: 'territory',
+      type: 'territory-mention',
       version: 1,
-      territoryName: this.__territory
+      territoryMentionName: this.__territoryMentionName
     }
   }
 
   createDOM (config) {
     const domNode = document.createElement('span')
     const theme = config.theme
-    const className = theme.territory
+    const className = theme.territoryMention
     if (className !== undefined) {
       domNode.className = className
     }
-    domNode.setAttribute('data-lexical-territory', true)
-    domNode.setAttribute('data-lexical-territory-name', this.__territory)
-    domNode.setAttribute('data-territory-text', '~' + this.__territory)
+    domNode.setAttribute('data-lexical-territory-mention', true)
+    domNode.setAttribute('data-lexical-territory-mention-name', this.__territoryMentionName)
     return domNode
   }
 
   // we need to find a way to allow display name changes
   exportDOM (editor) {
     const wrapper = document.createElement('span')
-    wrapper.setAttribute('data-lexical-territory', true)
+    wrapper.setAttribute('data-lexical-territory-mention', true)
     const theme = editor._config.theme
-    const className = theme.territory
+    const className = theme.territoryMention
     if (className !== undefined) {
       wrapper.className = className
     }
-    wrapper.setAttribute('data-lexical-territory-name', this.__territory)
+    wrapper.setAttribute('data-lexical-territory-mention-name', this.__territoryMentionName)
     const a = document.createElement('a')
-    a.setAttribute('href', '/~' + encodeURIComponent(this.__territory.toString()))
-    a.textContent = '~' + this.__territory
+    a.setAttribute('href', '/~' + encodeURIComponent(this.__territoryMentionName.toString()))
+    a.textContent = '~' + this.__territoryMentionName
     wrapper.appendChild(a)
     return { element: wrapper }
   }
@@ -77,8 +76,8 @@ export class TerritoryNode extends DecoratorNode {
   static importDOM () {
     return {
       span: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-territory')) return null
-        return { conversion: $convertTerritoryElement, priority: 1 }
+        if (!domNode.hasAttribute('data-lexical-territory-mention')) return null
+        return { conversion: $convertTerritoryMentionElement, priority: 1 }
       }
     }
   }
@@ -92,7 +91,7 @@ export class TerritoryNode extends DecoratorNode {
   }
 
   decorate () {
-    const name = this.__territory
+    const name = this.__territoryMentionName
     const href = '/~' + name
     const SubPopover = require('@/components/sub-popover').default
     const Link = require('next/link').default
@@ -104,10 +103,10 @@ export class TerritoryNode extends DecoratorNode {
   }
 }
 
-export function $createTerritoryNode (territoryName) {
-  return $applyNodeReplacement(new TerritoryNode(territoryName))
+export function $createTerritoryMentionNode (territoryMentionName) {
+  return $applyNodeReplacement(new TerritoryMentionNode(territoryMentionName))
 }
 
-export function $isTerritoryNode (node) {
-  return node instanceof TerritoryNode
+export function $isTerritoryMentionNode (node) {
+  return node instanceof TerritoryMentionNode
 }

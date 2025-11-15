@@ -84,7 +84,7 @@ function $convertTableOfContentsElement (domNode) {
 
 export class TableOfContentsNode extends DecoratorNode {
   static getType () {
-    return 'tableOfContents'
+    return 'table-of-contents'
   }
 
   static clone (node) {
@@ -97,7 +97,7 @@ export class TableOfContentsNode extends DecoratorNode {
 
   exportJSON () {
     return {
-      type: 'tableOfContents',
+      type: 'table-of-contents',
       version: 1
     }
   }

@@ -14,9 +14,9 @@ const theme = {
   mediaContainer: 'sn__mediaContainer',
   link: 'sn__link',
   code: 'sn__codeBlock',
-  mention: 'sn__mention',
-  itemMention: 'sn__mention',
-  territory: 'sn__mention',
+  userMention: 'sn__userMention',
+  territoryMention: 'sn__territoryMention',
+  itemMention: 'sn__itemMention',
   embeds: {
     base: 'sn__embedWrapper',
     focus: 'sn__embedWrapperFocus',

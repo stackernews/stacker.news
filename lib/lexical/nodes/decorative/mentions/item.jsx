@@ -16,7 +16,7 @@ export class ItemMentionNode extends DecoratorNode {
   __itemMentionId
 
   static getType () {
-    return 'itemMention'
+    return 'item-mention'
   }
 
   getItemMentionId () {
@@ -38,7 +38,7 @@ export class ItemMentionNode extends DecoratorNode {
 
   exportJSON () {
     return {
-      type: 'itemMention',
+      type: 'item-mention',
       version: 1,
       itemMentionId: this.__itemMentionId
     }
@@ -53,7 +53,6 @@ export class ItemMentionNode extends DecoratorNode {
     }
     domNode.setAttribute('data-lexical-item-mention', true)
     domNode.setAttribute('data-lexical-item-mention-id', this.__itemMentionId)
-    domNode.setAttribute('data-item-mention-text', '#' + this.__itemMentionId)
     return domNode
   }
 

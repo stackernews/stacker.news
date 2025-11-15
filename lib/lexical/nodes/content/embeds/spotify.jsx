@@ -1,9 +1,13 @@
-import { $createEmbedNode, createNodeComparison, createEmbedNodeClass } from './embed'
+import { createEmbedNodeClass } from './embed'
 
 export const SpotifyNode = createEmbedNodeClass('spotify')
 
-export const { $isSpotifyNode } = createNodeComparison(SpotifyNode, 'spotify')
+export function $isSpotifyNode (node) {
+  return node instanceof SpotifyNode
+}
 
 export function $createSpotifyNode (src) {
-  return $createEmbedNode(SpotifyNode, { src })
+  const node = new SpotifyNode()
+  node.setSrc(src)
+  return node
 }

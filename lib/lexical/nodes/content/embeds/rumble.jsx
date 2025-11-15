@@ -1,9 +1,15 @@
-import { $createEmbedNode, createNodeComparison, createEmbedNodeClass } from './embed'
+import { createEmbedNodeClass } from './embed'
 
 export const RumbleNode = createEmbedNodeClass('rumble')
 
-export const { $isRumbleNode } = createNodeComparison(RumbleNode, 'rumble')
+export function $isRumbleNode (node) {
+  return node instanceof RumbleNode
+}
 
 export function $createRumbleNode (id, meta, src) {
-  return $createEmbedNode(RumbleNode, { id, meta, src })
+  const node = new RumbleNode()
+  node.setId(id)
+  node.setMeta(meta)
+  node.setSrc(src)
+  return node
 }

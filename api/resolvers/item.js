@@ -814,14 +814,6 @@ export default {
       }, Number(itemId), after)
 
       return { comments }
-    },
-    migratedItems: async (parent, args, { models }) => {
-      const total = await models.item.count({ where: { text: { not: null } } })
-      const converted = await models.item.count({ where: { lexicalState: { not: null } } })
-      return {
-        converted,
-        total
-      }
     }
   },
 

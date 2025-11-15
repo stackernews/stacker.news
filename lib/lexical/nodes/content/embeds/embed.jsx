@@ -2,6 +2,7 @@ import { $getState, $setState, createState } from 'lexical'
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents'
 import { placeholderNode } from './placeholder'
+import { $convertEmbedElement } from './utils'
 
 export const createEmbedNodeClass = (provider) => {
   const idState = createState('id', {
@@ -64,6 +65,28 @@ export const createEmbedNodeClass = (provider) => {
           src: this.getSrc(),
           meta: this.getMeta() || {}
         })
+      }
+    }
+
+    static importDOM () {
+      const checkEmbedNode = (domNode) => {
+        const hasProviderId = domNode.hasAttribute(`data-lexical-${provider}-id`)
+        const hasEmbedSrc = domNode.hasAttribute('data-lexical-embed-src')
+        const hasProviderMeta = domNode.hasAttribute(`data-lexical-${provider}-meta`)
+
+        if (!hasProviderId && !hasEmbedSrc && !hasProviderMeta) {
+          return null
+        }
+
+        return {
+          conversion: (domNode) => $convertEmbedElement(provider, domNode),
+          priority: 2
+        }
+      }
+
+      return {
+        span: checkEmbedNode,
+        div: checkEmbedNode
       }
     }
 

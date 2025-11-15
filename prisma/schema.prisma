@@ -1994,7 +1994,7 @@ model LexicalMigrationLog {
   id         Int            @id @default(autoincrement())
   createdAt  DateTime       @default(now()) @map("created_at")
   updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
-  itemId     Int
+  itemId     Int            @unique
   type       MigrationType
   retryCount Int            @default(0)
   message    String

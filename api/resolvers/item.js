@@ -1154,7 +1154,7 @@ export default {
       return result.lastViewedAt
     },
     executeConversion: async (parent, { itemId, fullRefresh }, { models, me }) => {
-      if (!me || !SN_ADMIN_IDS.includes(Number(me.id))) {
+      if (me?.id !== 21861) {
         throw new GqlAuthenticationError()
       }
 

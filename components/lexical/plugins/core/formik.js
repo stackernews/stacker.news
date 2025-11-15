@@ -4,42 +4,30 @@ import { useField } from 'formik'
 import { $initializeEditorState, $isMarkdownMode, $isRootEmpty } from '@/lib/lexical/universal/utils'
 import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown'
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
-import { buildEditorFromExtensions, defineExtension } from '@lexical/extension'
-import { RichTextExtension } from '@lexical/rich-text'
-import { ListExtension, CheckListExtension } from '@lexical/list'
-import { MediaCheckExtension } from '@/components/lexical/plugins/misc/media-check'
-import DefaultNodes from '@/lib/lexical/nodes'
 import { $getRoot } from 'lexical'
+import useHeadlessBridge from './use-headless-bridge'
+import { MediaCheckExtension } from '@/components/lexical/plugins/misc/media-check'
 
 /**
  * converts markdown to lexical state using a temporary bridge editor
- * @param {Object} editor - lexical editor instance
+ * @param {React.RefObject} bridge - headless editor instance
  * @param {string} markdown - markdown string to convert
  * @returns {string} serialized lexical state as JSON
  */
-function $prepareMarkdown (editor, markdown) {
+function $prepareMarkdown (bridge, markdown) {
   let lexicalState = ''
-
-  const tempEditor = buildEditorFromExtensions(
-    defineExtension({
-      onError: (error) => console.error('stacker news form bridge has encountered an error:', error),
-      name: 'formikBridge',
-      dependencies: [RichTextExtension, ListExtension, CheckListExtension, MediaCheckExtension],
-      nodes: DefaultNodes,
-      theme: editor._config.theme
-    }))
 
   try {
     // convert the markdown to a lexical state
-    tempEditor.update(() => {
+    bridge.current.update(() => {
       $convertFromMarkdownString(markdown, SN_TRANSFORMERS, undefined, false)
     })
 
-    tempEditor.read(() => {
-      lexicalState = tempEditor.getEditorState().toJSON()
+    bridge.current.read(() => {
+      lexicalState = bridge.current.getEditorState().toJSON()
     })
   } catch (error) {
-    console.error('cannot prepare markdown:', error)
+    console.error('cannot prepare markdown using bridge:', error)
   }
 
   return lexicalState
@@ -48,6 +36,7 @@ function $prepareMarkdown (editor, markdown) {
 /** syncs lexical editor state with formik form field values */
 export default function FormikBridgePlugin () {
   const [editor] = useLexicalComposerContext()
+  const bridge = useHeadlessBridge({ extensions: [MediaCheckExtension] })
   const [lexicalField,, lexicalHelpers] = useField({ name: 'lexicalState' })
   const hadContent = useRef(false)
 
@@ -68,7 +57,7 @@ export default function FormikBridgePlugin () {
 
         if (isMarkdownMode) {
           markdown = $getRoot().getFirstChild()?.getTextContent() || ''
-          lexicalState = $prepareMarkdown(editor, markdown)
+          lexicalState = $prepareMarkdown(bridge, markdown)
         } else {
           markdown = $convertToMarkdownString(SN_TRANSFORMERS, undefined, false)
         }
@@ -76,7 +65,7 @@ export default function FormikBridgePlugin () {
         lexicalHelpers.setValue(JSON.stringify(lexicalState))
       })
     })
-  }, [editor, lexicalHelpers])
+  }, [editor, lexicalHelpers, bridge])
 
   // reset the editor state if the field is/goes empty
   useEffect(() => {

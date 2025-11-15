@@ -14,12 +14,11 @@ import {
   COMMENTS_OF_COMMENT_LIMIT,
   FULL_COMMENTS_THRESHOLD,
   WALLET_RETRY_BEFORE_MS,
-  WALLET_MAX_RETRIES,
-  BATCH_MAX_ITEMS_PER_JOB
+  WALLET_MAX_RETRIES
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
-import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema, customMigrationSchema } from '@/lib/validate'
+import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { uploadIdsFromText } from './upload'
@@ -1216,58 +1215,6 @@ export default {
       return {
         success: true,
         message: 'migration scheduled successfully'
-      }
-    },
-    executeBatchConversion: async (parent, { limit, values }, { models, me }) => {
-      if (!me || !SN_ADMIN_IDS.includes(Number(me.id))) {
-        throw new GqlAuthenticationError()
-      }
-
-      if (values) {
-        await validateSchema(customMigrationSchema, values, { models, me })
-      }
-
-      console.log(`[executeBatchConversion] scheduling batch migration with limit ${limit} and values: ${values ? JSON.stringify(values) : '{}'}`)
-
-      // check if batch job is already running
-      const alreadyRunning = await models.$queryRaw`
-        SELECT 1
-        FROM pgboss.job
-        WHERE name = 'migrateBatch'
-          AND state IN ('active', 'retry')
-        LIMIT 1
-      `
-
-      if (alreadyRunning.length > 0) {
-        return {
-          success: false,
-          message: 'batch migration already in progress'
-        }
-      }
-
-      // schedule batch migration job
-      await models.$executeRaw`
-        INSERT INTO pgboss.job (
-          name,
-          data,
-          retrylimit,
-          retrybackoff,
-          startafter,
-          keepuntil
-        )
-        VALUES (
-          'migrateBatch',
-          jsonb_build_object('limit', ${limit || BATCH_MAX_ITEMS_PER_JOB}::INTEGER, 'values', ${JSON.stringify(values)}::jsonb),
-          0, -- no retries for batch migration
-          false,
-          now(),
-          now() + interval '24 hours'
-        )
-      `
-
-      return {
-        success: true,
-        message: `batch migration scheduled for ${limit || BATCH_MAX_ITEMS_PER_JOB} items with values: ${values ? JSON.stringify(values) : '{}'}`
       }
     }
   },

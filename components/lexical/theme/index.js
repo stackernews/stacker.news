@@ -89,9 +89,7 @@ const theme = {
   toc: 'sn__toc',
   spoilerContainer: 'sn__spoilerContainer',
   spoilerSummary: 'sn__spoilerSummary',
-  spoilerContent: 'sn__spoilerContent',
-  footnoteReference: 'sn__footnoteReference',
-  footnoteDefinition: 'sn__footnoteDefinition'
+  spoilerContent: 'sn__spoilerContent'
 }
 
 export default theme

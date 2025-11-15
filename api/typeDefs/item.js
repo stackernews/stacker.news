@@ -13,12 +13,6 @@ export default gql`
     boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
     newComments(itemId: ID, after: Date): Comments!
-    migratedItems: MigratedItems!
-  }
-
-  type MigratedItems {
-    converted: Int!
-    total: Int!
   }
 
   type BoostPositions {
@@ -60,23 +54,11 @@ export default gql`
     toggleOutlaw(id: ID!): Item!
     updateCommentsViewAt(id: ID!, meCommentsViewedAt: Date!): Date
     executeConversion(itemId: ID!, fullRefresh: Boolean): ConversionResult!
-    executeBatchConversion(limit: Int, values: CustomMigrationInput): ConversionResult!
   }
 
   type ConversionResult {
     success: Boolean!
     message: String!
-  }
-
-  input CustomMigrationInput {
-    fromId: ID
-    toId: ID
-    user: String
-    by: String!
-    fromDate: Date
-    toDate: Date
-    migrateComments: Boolean!
-    checkMedia: Boolean!
   }
 
   type PollOption {

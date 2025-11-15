@@ -80,6 +80,8 @@ export const createEmbedNodeClass = (provider) => {
       }
 
       return (
+        // this allows us to subject the embed blocks to formatting
+        // and also select them, show text cursors, etc.
         <BlockWithAlignableContents
           nodeKey={this.getKey()}
           className={className}

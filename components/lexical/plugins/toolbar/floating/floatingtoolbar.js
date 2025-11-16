@@ -8,7 +8,6 @@ import {
 } from 'lexical'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import FormattingTools from '../formatting'
-import { useLexicalPreferences } from '@/components/lexical/contexts/preferences'
 import { useToolbarState } from '@/components/lexical/contexts/toolbar'
 import { setFloatingToolbarPosition } from '@/lib/lexical/universal/utils/position'
 import styles from '@/components/lexical/theme/theme.module.css'
@@ -219,9 +218,6 @@ export function useFloatingToolbar ({ editor, anchorElem }) {
 
 export default function FloatingToolbarPlugin ({ anchorElem }) {
   const [editor] = useLexicalComposerContext()
-  const { prefs } = useLexicalPreferences()
-
-  if (!prefs.showFloatingToolbar) return null
 
   return useFloatingToolbar({ editor, anchorElem })
 }

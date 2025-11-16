@@ -1,10 +1,9 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import More from '@/svgs/lexical/font-style.svg'
 import styles from '@/components/lexical/theme/theme.module.css'
-import { Fragment } from 'react'
 import classNames from 'classnames'
 import { useToolbarState } from '../../contexts/toolbar'
-import { getShortcutCombo } from '@/lib/lexical/extensions/core/shortcuts/keyboard'
+import { useClientShortcut } from '@/lib/lexical/extensions/core/shortcuts/keyboard'
 import { ToolbarIcon, BLOCK_OPTIONS, MAIN_TOOLBAR_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS } from './defs/formatting'
 import ActionTooltip from '@/components/action-tooltip'
 import InsertTools from './insert'
@@ -27,44 +26,54 @@ function BlockOptionsDropdown ({ editor, toolbarState }) {
   )
 }
 
-function MainToolbarOptions ({ editor, toolbarState, isFloating }) {
-  return MAIN_TOOLBAR_OPTIONS.map((option) => {
-    const shortcut = getShortcutCombo(option.id)
-    // block category uses toolbarState.blockType
-    // other categories can use toolbarState[option.lookup]
-    const isActive = option.category === 'block'
-      ? toolbarState.blockType === option.id
-      : option.lookup
-        ? toolbarState[option.lookup]
-        : false
+function MainToolbarOption ({ option, editor, toolbarState, isFloating }) {
+  const shortcut = useClientShortcut(option.id)
+  // block category uses toolbarState.blockType
+  // other categories can use toolbarState[option.lookup]
+  const isActive = option.category === 'block'
+    ? toolbarState.blockType === option.id
+    : option.lookup
+      ? toolbarState[option.lookup]
+      : false
 
-    return (
-      <Fragment key={option.id}>
-        <ActionTooltip
-          notForm
-          overlayText={`${option.name} ${shortcut}`}
-          placement='top'
-          noWrapper
-          showDelay={500}
-          transition
-          disable={isFloating}
-          suppressHydrationWarning
+  const tooltipText = shortcut ? `${option.name} ${shortcut}` : option.name
+
+  return (
+    <>
+      <ActionTooltip
+        notForm
+        overlayText={tooltipText}
+        placement='top'
+        noWrapper
+        showDelay={500}
+        transition
+        disable={isFloating}
+      >
+        <span
+          title={tooltipText}
+          className={classNames(styles.toolbarItem, isActive ? styles.active : '')}
+          style={option.style}
+          onClick={() => option.handler({ editor })}
+          onPointerDown={e => e.preventDefault()}
         >
-          <span
-            title={`${option.name} ${shortcut}`}
-            className={classNames(styles.toolbarItem, isActive ? styles.active : '')}
-            style={option.style}
-            onClick={() => option.handler({ editor })}
-            onPointerDown={e => e.preventDefault()}
-            suppressHydrationWarning
-          >
-            <ToolbarIcon id={option.id} state={isActive && 'active'} />
-          </span>
-        </ActionTooltip>
-        {option.id === 'italic' && <span className={styles.divider} />}
-      </Fragment>
-    )
-  })
+          <ToolbarIcon id={option.id} state={isActive && 'active'} />
+        </span>
+      </ActionTooltip>
+      {option.id === 'italic' && <span className={styles.divider} />}
+    </>
+  )
+}
+
+function MainToolbarOptions ({ editor, toolbarState, isFloating }) {
+  return MAIN_TOOLBAR_OPTIONS.map((option) => (
+    <MainToolbarOption
+      key={option.id}
+      option={option}
+      editor={editor}
+      toolbarState={toolbarState}
+      isFloating={isFloating}
+    />
+  ))
 }
 
 function AlignOptionsDropdown ({ editor, toolbarState }) {

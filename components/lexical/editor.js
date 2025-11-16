@@ -8,7 +8,6 @@ import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPl
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { useMemo, useState } from 'react'
 import classNames from 'classnames'
-import { useLexicalPreferences } from '@/components/lexical/contexts/preferences'
 import { useSharedHistoryContext, SharedHistoryContextProvider } from '@/components/lexical/contexts/sharedhistory'
 import { TableContextProvider } from '@/components/lexical/contexts/table'
 import { ToolbarContextProvider } from '@/components/lexical/contexts/toolbar'
@@ -38,7 +37,7 @@ import { LinkExtension } from '@lexical/link'
 import { TableExtension } from '@lexical/table'
 import { AutoFocusExtension, HorizontalRuleExtension } from '@lexical/extension'
 import { SNAutoLinkExtension } from '@/lib/lexical/extensions/decorative/autolink'
-import PreferencesPlugin from '@/components/lexical/plugins/core/preferences'
+import DebugPlugin from '@/components/lexical/plugins/core/debug'
 import TableActionMenuPlugin from '@/components/lexical/plugins/inserts/table/action'
 import { TableOfContentsExtension } from '@/lib/lexical/extensions/toc'
 import { SpoilerExtension } from '@/lib/lexical/extensions/formatting/spoiler'
@@ -53,7 +52,6 @@ import { MediaDragDropExtension } from '@/lib/lexical/extensions/content/media-d
  * @returns {JSX.Element} lexical editor component
  */
 export default function Editor ({ name, appendValue, autoFocus, topLevel, ...props }) {
-  const { prefs } = useLexicalPreferences()
   const { values } = useFormikContext()
 
   const editor = useMemo(() =>
@@ -61,7 +59,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       $initialEditorState: (editor) => {
         // append value takes precedence
         if (appendValue) {
-          return $initializeEditorState(prefs.startInMarkdown, editor, appendValue)
+          return $initializeEditorState(false, editor, appendValue)
         }
         // territory descriptions are always markdown
         if (values.desc) {
@@ -80,8 +78,8 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
           }
         }
 
-        // default: initialize based on user preference
-        return $initializeEditorState(prefs.startInMarkdown)
+        // default: initialize in rich text mode
+        return $initializeEditorState(false)
       },
       name: 'editor',
       namespace: 'SN',
@@ -167,7 +165,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         <div className={styles.bottomBar}>
           <ModeSwitcherPlugin />
           <span className={styles.bottomBarDivider}> \ </span>
-          <PreferencesPlugin />
+          <DebugPlugin />
         </div>
         <MaxLengthPlugin lengthOptions={lengthOptions} />
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />

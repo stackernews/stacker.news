@@ -2,16 +2,11 @@ import { forwardRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { applySNCustomizations } from '@/lib/lexical/html/customs'
 import { useRouter } from 'next/router'
-import { LexicalPreferencesContextProvider } from './contexts/preferences'
 import { LexicalItemContextProvider } from './contexts/item'
 import Editor from './editor'
 
 export const LexicalEditor = ({ ...props }) => {
-  return (
-    <LexicalPreferencesContextProvider>
-      <Editor {...props} />
-    </LexicalPreferencesContextProvider>
-  )
+  return <Editor {...props} />
 }
 
 export const LexicalReader = forwardRef(function LexicalReader ({ html, children, outlawed, imgproxyUrls, topLevel, rel, ...props }, ref) {

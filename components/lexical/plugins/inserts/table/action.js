@@ -28,7 +28,27 @@ import ActionTooltip from '@/components/action-tooltip'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { SN_TABLE_INSERT_COMMAND, SN_TABLE_DELETE_COMMAND, SN_TABLE_HEADER_TOGGLE_COMMAND, SN_TABLE_MERGE_TOGGLE_COMMAND } from '@/lib/lexical/universal/commands/table'
 import { $canUnmerge, computeSelectionCount } from '@/lib/lexical/universal/utils/table'
-import { getShortcutCombo } from '@/lib/lexical/extensions/core/shortcuts/keyboard'
+import { useClientShortcut } from '@/lib/lexical/extensions/core/shortcuts/keyboard'
+
+function TableMenuItem ({ onClick, children, shortcutId }) {
+  const shortcut = useClientShortcut(shortcutId)
+
+  return (
+    <Dropdown.Item
+      className={styles.tableActionMenuItem}
+      onClick={onClick}
+    >
+      <span className={styles.tableActionMenuLabel}>
+        {children}
+        {shortcut && (
+          <span className={styles.tableActionMenuItemShortcut}>
+            {shortcut}
+          </span>
+        )}
+      </span>
+    </Dropdown.Item>
+  )
+}
 
 function TableActionMenu ({
   onClose,
@@ -194,6 +214,7 @@ function TableActionMenu ({
     onClose()
   }, [editor, clearTableSelection, onClose])
 
+  // TODO: these could benefit from the ACTIONS registry
   return createPortal(
     <div ref={dropDownRef} className={styles.tableActionMenuWrapper}>
       <Dropdown.Menu
@@ -203,145 +224,95 @@ function TableActionMenu ({
         }}
       >
         {cellMerge && (canMergeCells || canUnmergeCell) && (
-          <Dropdown.Item
-            className={styles.tableActionMenuItem}
+          <TableMenuItem
             onClick={() => {
               editor.dispatchCommand(SN_TABLE_MERGE_TOGGLE_COMMAND, selectionCounts)
               onClose()
             }}
+            shortcutId='table-merge'
           >
-            <span className={styles.tableActionMenuLabel}>
-              {canMergeCells ? 'merge cells' : canUnmergeCell ? 'unmerge cells' : ''}
-              <span className={styles.tableActionMenuItemShortcut}>
-                {getShortcutCombo('table-merge')}
-              </span>
-            </span>
-          </Dropdown.Item>
+            {canMergeCells ? 'merge cells' : canUnmergeCell ? 'unmerge cells' : ''}
+          </TableMenuItem>
         )}
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
+        <TableMenuItem
           onClick={() => insertTableRowAtSelection(false)}
+          shortcutId='table-insert-row'
         >
-          <span className={styles.tableActionMenuLabel}>
-            insert{' '}
-            {selectionCounts.rows === 1 ? 'row' : `${selectionCounts.rows} rows`}{' '}
-            above
-            <span className={styles.tableActionMenuItemShortcut}>
-              {getShortcutCombo('table-insert-row')}
-            </span>
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
+          insert{' '}
+          {selectionCounts.rows === 1 ? 'row' : `${selectionCounts.rows} rows`}{' '}
+          above
+        </TableMenuItem>
+        <TableMenuItem
           onClick={() => insertTableRowAtSelection(true)}
+          shortcutId='table-insert-row'
         >
-          <span className={styles.tableActionMenuLabel}>
-            insert{' '}
-            {selectionCounts.rows === 1 ? 'row' : `${selectionCounts.rows} rows`}{' '}
-            below
-            <span className={styles.tableActionMenuItemShortcut}>
-              {getShortcutCombo('table-insert-row')}
-            </span>
-          </span>
-        </Dropdown.Item>
+          insert{' '}
+          {selectionCounts.rows === 1 ? 'row' : `${selectionCounts.rows} rows`}{' '}
+          below
+        </TableMenuItem>
         <hr className='dropdown-divider' />
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
+        <TableMenuItem
           onClick={() => insertTableColumnAtSelection(false)}
+          shortcutId='table-insert-column'
         >
-          <span className={styles.tableActionMenuLabel}>
-            insert{' '}
-            {selectionCounts.columns === 1 ? 'column' : `${selectionCounts.columns} columns`}{' '}
-            left
-            <span className={styles.tableActionMenuItemShortcut}>
-              {getShortcutCombo('table-insert-column')}
-            </span>
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
+          insert{' '}
+          {selectionCounts.columns === 1 ? 'column' : `${selectionCounts.columns} columns`}{' '}
+          left
+        </TableMenuItem>
+        <TableMenuItem
           onClick={() => insertTableColumnAtSelection(true)}
+          shortcutId='table-insert-column'
         >
-          <span className={styles.tableActionMenuLabel}>
-            insert{' '}
-            {selectionCounts.columns === 1 ? 'column' : `${selectionCounts.columns} columns`}{' '}
-            right
-            <span className={styles.tableActionMenuItemShortcut}>
-              {getShortcutCombo('table-insert-column')}
-            </span>
-          </span>
-        </Dropdown.Item>
+          insert{' '}
+          {selectionCounts.columns === 1 ? 'column' : `${selectionCounts.columns} columns`}{' '}
+          right
+        </TableMenuItem>
         <hr className='dropdown-divider' />
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
+        <TableMenuItem
           onClick={() => {
             editor.dispatchCommand(SN_TABLE_DELETE_COMMAND, { type: 'column' })
             onClose()
           }}
+          shortcutId='table-delete-column'
         >
-          <span className={styles.tableActionMenuLabel}>
-            delete column
-            <span className={styles.tableActionMenuItemShortcut}>
-              {getShortcutCombo('table-delete-column')}
-            </span>
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
+          delete column
+        </TableMenuItem>
+        <TableMenuItem
           onClick={() => {
             editor.dispatchCommand(SN_TABLE_DELETE_COMMAND, { type: 'row' })
             onClose()
           }}
+          shortcutId='table-delete-row'
         >
-          <span className={styles.tableActionMenuLabel}>
-            <span className={styles.dropdownExtraItemText}>delete row</span>
-            <span className={styles.tableActionMenuItemShortcut}>
-              {getShortcutCombo('table-delete-row')}
-            </span>
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
+          delete row
+        </TableMenuItem>
+        <TableMenuItem
           onClick={() => deleteTableAtSelection()}
+          shortcutId='table-delete'
         >
-          <span className={styles.tableActionMenuLabel}>
-            delete table
-            <span className={styles.tableActionMenuItemShortcut}>
-              {getShortcutCombo('table-delete')}
-            </span>
-          </span>
-        </Dropdown.Item>
+          delete table
+        </TableMenuItem>
         <hr className='dropdown-divider' />
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
+        <TableMenuItem
           onClick={() => toggleTableRowIsHeader()}
+          shortcutId='table-header-toggle-row'
         >
-          <span className={styles.tableActionMenuLabel}>
-            {(tableCellNode.__headerState & TableCellHeaderStates.ROW) ===
-            TableCellHeaderStates.ROW
-              ? 'remove'
-              : 'add'}{' '}
-            row header
-            <span className={styles.tableActionMenuItemShortcut}>
-              {getShortcutCombo('table-header-toggle-row')}
-            </span>
-          </span>
-        </Dropdown.Item>
-        <Dropdown.Item
-          className={styles.tableActionMenuItem}
+          {(tableCellNode.__headerState & TableCellHeaderStates.ROW) ===
+          TableCellHeaderStates.ROW
+            ? 'remove'
+            : 'add'}{' '}
+          row header
+        </TableMenuItem>
+        <TableMenuItem
           onClick={() => toggleTableColumnIsHeader()}
+          shortcutId='table-header-toggle-column'
         >
-          <span className={styles.tableActionMenuLabel}>
-            {(tableCellNode.__headerState & TableCellHeaderStates.COLUMN) ===
-            TableCellHeaderStates.COLUMN
-              ? 'remove'
-              : 'add'}{' '}
-            column header
-            <span className={styles.tableActionMenuItemShortcut}>
-              {getShortcutCombo('table-header-toggle-column')}
-            </span>
-          </span>
-        </Dropdown.Item>
+          {(tableCellNode.__headerState & TableCellHeaderStates.COLUMN) ===
+          TableCellHeaderStates.COLUMN
+            ? 'remove'
+            : 'add'}{' '}
+          column header
+        </TableMenuItem>
       </Dropdown.Menu>
     </div>,
     document.body

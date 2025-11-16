@@ -3,11 +3,9 @@ import { useCallback, useEffect, useRef, useState, forwardRef } from 'react'
 import { createPortal } from 'react-dom'
 import FormattingTools from './formatting'
 import ActionTooltip from '@/components/action-tooltip'
-import { useLexicalPreferences } from '@/components/lexical/contexts/preferences'
 import { SN_UPLOAD_FILES_COMMAND } from '@/lib/lexical/universal/commands/upload'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { getShortcutCombo } from '@/lib/lexical/extensions/core/shortcuts/keyboard'
-import UploadIcon from '@/svgs/lexical/inserts/paperclip.svg'
+import { useClientShortcut } from '@/lib/lexical/extensions/core/shortcuts/keyboard'
 import { useToolbarState } from '@/components/lexical/contexts/toolbar'
 import { $isMarkdownMode, $findTopLevelElement } from '@/lib/lexical/universal/utils'
 import { $getSelection, $isRangeSelection, $isNodeSelection, $isElementNode, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL } from 'lexical'
@@ -50,11 +48,13 @@ export const MenuAlternateDimension = forwardRef(({ children, style, className }
  * @returns {JSX.Element} dropdown menu item
  */
 function DropdownMenuItem ({ option, isActive, onClick }) {
-  const shortcut = getShortcutCombo(option.id)
+  const shortcut = useClientShortcut(option.id)
+  const tooltipText = shortcut ? `${option.name} ${shortcut}` : option.name
+
   return (
     <Dropdown.Item
       key={option.id}
-      title={`${option.name} ${shortcut}`}
+      title={tooltipText}
       onClick={onClick}
       className={classNames(styles.dropdownExtraItem, isActive ? styles.active : '')}
       onPointerDown={e => e.preventDefault()}
@@ -126,10 +126,13 @@ export function ToolbarDropdown ({ editor, icon, tooltip, options, activeOptionI
  * @returns {JSX.Element} toolbar button component
  */
 export function ToolbarButton ({ id, isActive, onClick, tooltip, disabled = false, showDelay = 500 }) {
+  const shortcut = useClientShortcut(id)
+  const tooltipText = shortcut ? `${tooltip} ${shortcut}` : tooltip
+
   return (
-    <ActionTooltip notForm overlayText={tooltip} placement='top' noWrapper showDelay={showDelay} transition disable={disabled}>
+    <ActionTooltip notForm overlayText={tooltipText} placement='top' noWrapper showDelay={showDelay} transition disable={disabled}>
       <span
-        title={tooltip}
+        title={tooltipText}
         className={classNames(styles.toolbarItem, isActive ? styles.active : '')}
         onPointerDown={e => e.preventDefault()}
         onClick={onClick}
@@ -148,11 +151,10 @@ export function ToolbarButton ({ id, isActive, onClick, tooltip, disabled = fals
  */
 export function ToolbarPlugin ({ topLevel }) {
   const [editor] = useLexicalComposerContext()
-  const { prefs } = useLexicalPreferences()
   const { batchUpdateToolbarState } = useToolbarState()
   const toolbarRef = useRef(null)
 
-  const [showToolbar, setShowToolbar] = useState(prefs.showToolbar || topLevel)
+  const [showToolbar, setShowToolbar] = useState(topLevel)
   const [hasOverflow, setHasOverflow] = useState(false)
 
   const $updateToolbar = useCallback(() => {
@@ -269,17 +271,7 @@ export function ToolbarPlugin ({ topLevel }) {
             {showToolbar ? <ArrowDownIcon style={{ transform: 'rotate(90deg)' }} /> : <HamburgerIcon />}
           </span>
         </ActionTooltip>
-        <ActionTooltip notForm overlayText={`upload files ${getShortcutCombo('upload')}`} placement='top' noWrapper showDelay={500} transition suppressHydrationWarning>
-          <span
-            title={`upload files ${getShortcutCombo('upload')}`}
-            className={styles.toolbarItem}
-            onClick={() => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)}
-            onPointerDown={e => e.preventDefault()}
-            suppressHydrationWarning
-          >
-            <UploadIcon />
-          </span>
-        </ActionTooltip>
+        <ToolbarButton id='upload' onClick={() => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)} tooltip='upload files' />
       </div>
     </div>
   )

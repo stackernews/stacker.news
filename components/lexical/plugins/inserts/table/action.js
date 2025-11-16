@@ -27,16 +27,8 @@ import More from '@/svgs/more-fill.svg'
 import ActionTooltip from '@/components/action-tooltip'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { SN_TABLE_INSERT_COMMAND, SN_TABLE_DELETE_COMMAND, SN_TABLE_HEADER_TOGGLE_COMMAND, SN_TABLE_MERGE_TOGGLE_COMMAND } from '@/lib/lexical/universal/commands/table'
-import { $canUnmerge } from '@/lib/lexical/universal/utils/table'
+import { $canUnmerge, computeSelectionCount } from '@/lib/lexical/universal/utils/table'
 import { getShortcutCombo } from '@/lib/lexical/extensions/core/shortcuts/keyboard'
-
-function computeSelectionCount (selection) {
-  const selectionShape = selection.getShape()
-  return {
-    columns: selectionShape.toX - selectionShape.fromX + 1,
-    rows: selectionShape.toY - selectionShape.fromY + 1
-  }
-}
 
 function TableActionMenu ({
   onClose,
@@ -79,7 +71,7 @@ function TableActionMenu ({
       // Merge cells
       if ($isTableSelection(selection)) {
         const currentSelectionCounts = computeSelectionCount(selection)
-        updateSelectionCounts(computeSelectionCount(selection))
+        updateSelectionCounts(currentSelectionCounts)
         setCanMergeCells(
           currentSelectionCounts.columns > 1 || currentSelectionCounts.rows > 1
         )
@@ -188,19 +180,19 @@ function TableActionMenu ({
     editor.dispatchCommand(SN_TABLE_DELETE_COMMAND, { type: 'table', tableCellNode })
     clearTableSelection()
     onClose()
-  }, [editor, tableCellNode, clearTableSelection, onClose])
+  }, [editor, clearTableSelection, onClose])
 
   const toggleTableRowIsHeader = useCallback(() => {
     editor.dispatchCommand(SN_TABLE_HEADER_TOGGLE_COMMAND, { type: 'row', tableCellNode })
     clearTableSelection()
     onClose()
-  }, [editor, tableCellNode, clearTableSelection, onClose])
+  }, [editor, clearTableSelection, onClose])
 
   const toggleTableColumnIsHeader = useCallback(() => {
     editor.dispatchCommand(SN_TABLE_HEADER_TOGGLE_COMMAND, { type: 'column', tableCellNode })
     clearTableSelection()
     onClose()
-  }, [editor, tableCellNode, clearTableSelection, onClose])
+  }, [editor, clearTableSelection, onClose])
 
   return createPortal(
     <div ref={dropDownRef} className={styles.tableActionMenuWrapper}>

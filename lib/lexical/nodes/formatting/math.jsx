@@ -1,20 +1,33 @@
 import { $applyNodeReplacement, DecoratorNode } from 'lexical'
 import katex from 'katex'
 
+export const $encodeMath = (math) => Buffer.from(math).toString('base64')
+export const $decodeMath = (math) => Buffer.from(math, 'base64').toString('utf-8')
+
+const MAX_MATH_LENGTH = 10000
+
+function $validateMathContent (math) {
+  if (!math) return math
+  if (math.length > MAX_MATH_LENGTH) {
+    console.warn('math too big, truncating')
+    return math.slice(0, MAX_MATH_LENGTH)
+  }
+  return math
+}
+
 function $convertMathElement (domNode) {
   let math = domNode.getAttribute('data-lexical-math')
-  if (!math || math.length > 10000) return null // prevent massive memory usage
+  if (!math) return null
+  math = $validateMathContent(math)
   try {
-    math = typeof Buffer !== 'undefined'
-      ? Buffer.from(math, 'base64').toString('utf-8')
-      : atob(math)
-  } catch (err) {
+    math = $decodeMath(math)
+  } catch (error) {
+    console.error('error decoding math', error)
     return null
   }
   if (!math) return null
   const inline = domNode.getAttribute('data-lexical-inline') === 'true'
-  const node = $createMathNode(math, inline)
-  return { node }
+  return { node: $createMathNode(math, inline) }
 }
 
 export class MathNode extends DecoratorNode {
@@ -31,7 +44,7 @@ export class MathNode extends DecoratorNode {
 
   constructor (math, inline, key) {
     super(key)
-    this.__math = math
+    this.__math = $validateMathContent(math)
     this.__inline = inline ?? false
   }
 
@@ -58,10 +71,13 @@ export class MathNode extends DecoratorNode {
 
   exportDOM () {
     const element = document.createElement(this.__inline ? 'span' : 'div')
-    // b64 to avoid issues with special characters
-    const math = typeof Buffer !== 'undefined'
-      ? Buffer.from(this.__math).toString('base64')
-      : btoa(this.__math)
+    let math = this.__math
+    try {
+      math = $encodeMath(math)
+    } catch (error) {
+      console.error('error encoding math', error)
+      return null
+    }
     element.setAttribute('data-lexical-math', math)
     element.setAttribute('data-lexical-inline', this.__inline)
     katex.render(this.__math, element, {
@@ -106,7 +122,7 @@ export class MathNode extends DecoratorNode {
 
   setMath (math) {
     const writable = this.getWritable()
-    writable.__math = math
+    writable.__math = $validateMathContent(math)
   }
 
   decorate () {

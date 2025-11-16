@@ -7,11 +7,15 @@ const PARTITION_FETCH_SIZE = 1000
 const PARTITION_CONCURRENCY = 5
 const PARTITION_DELAY_MS = 1000
 
-async function addMigrationError ({ itemId, type, message, retryCount = 0, models }) {
+async function addMigrationError ({ itemId, type, message, models }) {
   await models.lexicalMigrationLog.upsert({
     where: { itemId },
-    create: { itemId, type, message, createdAt: new Date() },
-    update: { message, retryCount: retryCount + 1, updatedAt: new Date() }
+    create: { itemId, type, message, retryCount: 1, createdAt: new Date() },
+    update: {
+      message,
+      retryCount: { increment: 1 },
+      updatedAt: new Date()
+    }
   })
 }
 
@@ -66,7 +70,6 @@ export async function migrateItem ({ itemId, fullRefresh = false, checkMedia = t
         itemId,
         type: 'LEXICAL_CONVERSION',
         message: migrationError?.message || 'unknown error',
-        retryCount: migrationError ? 1 : 0,
         models
       })
 
@@ -96,7 +99,6 @@ export async function migrateItem ({ itemId, fullRefresh = false, checkMedia = t
         itemId,
         type: 'HTML_GENERATION',
         message: htmlError?.message || 'unknown error',
-        retryCount: htmlError ? 1 : 0,
         models
       })
 
@@ -149,7 +151,6 @@ export async function migrateItem ({ itemId, fullRefresh = false, checkMedia = t
       itemId,
       type: 'UNEXPECTED',
       message: error.message,
-      retryCount: 1,
       models
     })
 

@@ -6,7 +6,7 @@ import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/m
 import SN_TRANSFORMERS from '@/lib/lexical/transformers'
 import { $getRoot } from 'lexical'
 import useHeadlessBridge from './use-headless-bridge'
-import { MediaCheckExtension } from '@/components/lexical/plugins/misc/media-check'
+import { MediaCheckExtension } from '@/lib/lexical/extensions/content/media-check'
 
 /**
  * converts markdown to lexical state using a temporary bridge editor

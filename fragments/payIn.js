@@ -315,7 +315,7 @@ export const UPSERT_LINK = gql`
 
 export const UPSERT_POLL = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
+  mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String, $lexicalState: String,
     $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date,
     $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}) {
     upsertPoll(sub: $sub, id: $id, title: $title, text: $text, lexicalState: $lexicalState,

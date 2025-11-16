@@ -70,7 +70,8 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
   // instant version for onSuccess
   const $refreshUploadFees = useCallback(() => {
     let s3Keys = []
-    if ($isMarkdownMode()) {
+    const isMarkdownMode = $isMarkdownMode()
+    if (isMarkdownMode) {
       const text = $getRoot().getFirstChild()?.getTextContent() || ''
       s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
     } else {
@@ -91,8 +92,9 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
   const onConfirm = useCallback((files) => {
     editor.update(() => {
       const selection = $getSelection()
+      const isMarkdownMode = $isMarkdownMode()
 
-      if ($isMarkdownMode()) {
+      if (isMarkdownMode) {
         files.forEach(file => {
           const identifier = Math.random().toString(36).substring(2, 8)
           selection.insertText(`\n\n![Uploading ${file.name}… 0%](${identifier})`)
@@ -133,7 +135,8 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
     const key = placeholdersRef.current.get(file)
     if (!key) return
     editor.update(() => {
-      if ($isMarkdownMode()) {
+      const isMarkdownMode = $isMarkdownMode()
+      if (isMarkdownMode) {
         const markdownNode = $getRoot().getFirstChild()
         const text = markdownNode?.getTextContent() || ''
         const percent = total ? Math.floor((loaded / total) * 100) : 0
@@ -162,7 +165,8 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
     editor.update(() => {
       const node = $getNodeByKey(key)
       placeholdersRef.current.delete(file)
-      if ($isMarkdownMode()) {
+      const isMarkdownMode = $isMarkdownMode()
+      if (isMarkdownMode) {
         const markdownNode = $getRoot().getFirstChild()
         const text = markdownNode?.getTextContent() || ''
         const regex = new RegExp(`!\\[Uploading ${file.name}… \\d+%\\]\\(${key}\\)`)
@@ -218,7 +222,8 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
   useEffect(() => {
     return editor.registerMutationListener(MediaNode, (mutations) => {
       editor.getEditorState().read(() => {
-        if ($isMarkdownMode()) return
+        const isMarkdownMode = $isMarkdownMode()
+        if (isMarkdownMode) return
         for (const [, type] of mutations) {
           if (type === 'created' || type === 'destroyed') {
             $refreshUploadFees()

@@ -9,7 +9,7 @@ import { ToolbarIcon, BLOCK_OPTIONS, MAIN_TOOLBAR_OPTIONS, ADDITIONAL_FORMAT_OPT
 import ActionTooltip from '@/components/action-tooltip'
 import InsertTools from './insert'
 import { ToolbarDropdown, ToolbarButton } from './index'
-import { SN_FORMAT_TEXT_COMMAND } from '@/lib/lexical/universal/commands/formatting'
+import { SN_FORMAT_TEXT_COMMAND } from '@/lib/lexical/universal/commands/formatting/inline'
 
 function BlockOptionsDropdown ({ editor, toolbarState }) {
   const blockOption = !toolbarState.markdownMode

@@ -156,8 +156,11 @@ export function ToolbarPlugin ({ topLevel }) {
   const [hasOverflow, setHasOverflow] = useState(false)
 
   const $updateToolbar = useCallback(() => {
+    // compute markdown mode once at the beginning
+    const isMarkdownMode = $isMarkdownMode()
+
     // markdown mode doesn't support toolbar updates
-    if ($isMarkdownMode()) {
+    if (isMarkdownMode) {
       return batchUpdateToolbarState({ markdownMode: true })
     }
 
@@ -166,22 +169,23 @@ export function ToolbarPlugin ({ topLevel }) {
 
     const selection = $getSelection()
     if ($isRangeSelection(selection)) {
-      updates.elementFormat = snGetElementFormat(selection)
-      updates.isLink = snHasLink(selection)
-      updates.isBold = snHasFormat(selection, 'bold')
-      updates.isItalic = snHasFormat(selection, 'italic')
-      updates.isUnderline = snHasFormat(selection, 'underline')
-      updates.isStrikethrough = snHasFormat(selection, 'strikethrough')
-      updates.isCode = snHasFormat(selection, 'code')
-      updates.isHighlight = snHasFormat(selection, 'highlight')
-      updates.isSubscript = snHasFormat(selection, 'subscript')
-      updates.isSuperscript = snHasFormat(selection, 'superscript')
-      updates.isLowercase = snHasFormat(selection, 'lowercase')
-      updates.isUppercase = snHasFormat(selection, 'uppercase')
-      updates.isCapitalize = snHasFormat(selection, 'capitalize')
-      updates.blockType = snGetBlockType({ selection, editor })
+      // pass isMarkdownMode to all formatting utilities
+      updates.elementFormat = snGetElementFormat(selection, isMarkdownMode)
+      updates.isLink = snHasLink(selection, isMarkdownMode)
+      updates.isBold = snHasFormat(selection, 'bold', isMarkdownMode)
+      updates.isItalic = snHasFormat(selection, 'italic', isMarkdownMode)
+      updates.isUnderline = snHasFormat(selection, 'underline', isMarkdownMode)
+      updates.isStrikethrough = snHasFormat(selection, 'strikethrough', isMarkdownMode)
+      updates.isCode = snHasFormat(selection, 'code', isMarkdownMode)
+      updates.isHighlight = snHasFormat(selection, 'highlight', isMarkdownMode)
+      updates.isSubscript = snHasFormat(selection, 'subscript', isMarkdownMode)
+      updates.isSuperscript = snHasFormat(selection, 'superscript', isMarkdownMode)
+      updates.isLowercase = snHasFormat(selection, 'lowercase', isMarkdownMode)
+      updates.isUppercase = snHasFormat(selection, 'uppercase', isMarkdownMode)
+      updates.isCapitalize = snHasFormat(selection, 'capitalize', isMarkdownMode)
+      updates.blockType = snGetBlockType({ selection, editor, isMarkdownMode })
       // useful?
-      updates.codeLanguage = snGetCodeLanguage({ selection, editor })
+      updates.codeLanguage = snGetCodeLanguage({ selection, editor, isMarkdownMode })
     }
 
     if ($isNodeSelection(selection)) {

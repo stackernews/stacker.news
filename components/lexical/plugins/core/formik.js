@@ -33,6 +33,8 @@ function $prepareMarkdown (bridge, markdown) {
   return lexicalState
 }
 
+// TODO: check if we're doing too much by preparing markdown on each keystroke
+// we may also already have prepareMarkdown in the server-side interpolator
 /** syncs lexical editor state with formik form field values */
 export default function FormikBridgePlugin () {
   const [editor] = useLexicalComposerContext()

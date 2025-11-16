@@ -2,10 +2,10 @@ import { prepareLexicalState } from '@/lib/lexical/utils/server/interpolator'
 import { lexicalHTMLGenerator } from '@/lib/lexical/utils/server/html'
 import { Prisma } from '@prisma/client'
 
-const PARTITION_COUNT = 10
-const PARTITION_FETCH_SIZE = 1000
-const PARTITION_CONCURRENCY = 5
-const PARTITION_DELAY_MS = 1000
+const PARTITION_COUNT = 10 // items distributed across n partitions (e.g. 100 items / 10 partitions = 10 items per partition)
+const PARTITION_FETCH_SIZE = 1000 // items fetched per partition batch (e.g. 1000 items per batch)
+const PARTITION_CONCURRENCY = 5 // items processed concurrently per batch (e.g. 5 items per batch)
+const PARTITION_DELAY_MS = 100 // delay between partition batches (e.g. 100ms between batches)
 
 async function addMigrationError ({ itemId, type, message, models }) {
   await models.lexicalMigrationLog.upsert({

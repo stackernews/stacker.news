@@ -18,25 +18,31 @@ export default function PreferencesPlugin ({ className }) {
   return (
     <Dropdown drop='up' className='pointer' as='span' onToggle={(isOpen) => setDropdownOpen(isOpen)} show={dropdownOpen}>
       <Dropdown.Toggle id='dropdown-basic' as='span' onPointerDown={e => e.preventDefault()} className={classNames(styles.bottomBarItem, className)}>
-        DEV debug options
+        options
       </Dropdown.Toggle>
       <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
         <Dropdown.Item onClick={() => setOption('startInMarkdown', !prefs.startInMarkdown)} className={styles.dropdownExtraItem}>
           <span className={styles.dropdownExtraItemLabel}>
-            {prefs.startInMarkdown && <CheckIcon />}
             <span className={styles.dropdownExtraItemText}>start in markdown</span>
+          </span>
+          <span className={styles.dropdownExtraItemShortcut}>
+            {prefs.startInMarkdown && <CheckIcon />}
           </span>
         </Dropdown.Item>
         <Dropdown.Item onClick={() => setOption('showToolbar', !prefs.showToolbar)} className={styles.dropdownExtraItem}>
           <span className={styles.dropdownExtraItemLabel}>
-            {prefs.showToolbar && <CheckIcon />}
             <span className={styles.dropdownExtraItemText}>show full toolbar</span>
+          </span>
+          <span className={styles.dropdownExtraItemShortcut}>
+            {prefs.showToolbar && <CheckIcon />}
           </span>
         </Dropdown.Item>
         <Dropdown.Item onClick={() => setOption('showFloatingToolbar', !prefs.showFloatingToolbar)} className={styles.dropdownExtraItem}>
           <span className={styles.dropdownExtraItemLabel}>
-            {prefs.showFloatingToolbar && <CheckIcon />}
             <span className={styles.dropdownExtraItemText}>show floating toolbar</span>
+          </span>
+          <span className={styles.dropdownExtraItemShortcut}>
+            {prefs.showFloatingToolbar && <CheckIcon />}
           </span>
         </Dropdown.Item>
         <hr className='dropdown-divider' />

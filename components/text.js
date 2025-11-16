@@ -136,6 +136,7 @@ export function LexicalText ({ topLevel, rel = UNKNOWN_LINK_REL, children, ...pr
         className={textClassNames}
         ref={setElement}
         rel={rel}
+        topLevel={topLevel}
         {...props}
       >
         {Overflow}

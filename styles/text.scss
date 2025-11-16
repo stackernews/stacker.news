@@ -6,6 +6,10 @@
   word-break: break-word;
 }
 
+.sn__paragraph mark {
+  background-color: unset;
+}
+
 .sn__hr {
   border-top: 3px solid var(--theme-quoteBar);
   padding: 0 !important;
@@ -169,7 +173,7 @@ span + .sn__link {
   pointer-events: auto;
 }
 
-.sn__embedWrapperFocus {
+[contenteditable="true"] .sn__embedWrapperFocus {
   outline: 2px solid rgb(60, 132, 244);
 }
 
@@ -431,6 +435,26 @@ span + .sn__link {
 
 .sn__textUnderlineStrikethrough {
   text-decoration: underline line-through;
+}
+
+.sn__textSubscript, .sn__textSuperscript {
+  position: relative;
+  line-height: 0;
+  font-size: 0.75em;
+  vertical-align: baseline;
+}
+
+.sn__textSuperscript {
+  top: -0.5em;
+}
+
+.sn__textSubscript {
+  bottom: -0.25em;
+}
+.sn__textHighlight {
+  background-color: #fada5e5e;
+  padding: 0 0.2rem;
+  color: var(--bs-body-color);
 }
 
 /* inline */

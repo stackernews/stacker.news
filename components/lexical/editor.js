@@ -39,11 +39,11 @@ import { TableExtension } from '@lexical/table'
 import { AutoFocusExtension, HorizontalRuleExtension } from '@lexical/extension'
 import { SNAutoLinkExtension } from '@/lib/lexical/extensions/decorative/autolink'
 import PreferencesPlugin from '@/components/lexical/plugins/core/preferences'
-import MediaDragDropPlugin from '@/components/lexical/plugins/content/media/dnd'
 import TableActionMenuPlugin from '@/components/lexical/plugins/inserts/table/action'
 import { TableOfContentsExtension } from '@/lib/lexical/extensions/toc'
 import { SpoilerExtension } from '@/lib/lexical/extensions/formatting/spoiler'
 import CodeActionsPlugin from './plugins/decorative/code-actions'
+import { MediaDragDropExtension } from '@/lib/lexical/extensions/content/media-dnd'
 
 /**
  * main lexical editor component with formik integration
@@ -100,6 +100,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
         HorizontalRuleExtension,
         TableOfContentsExtension,
         SpoilerExtension,
+        MediaDragDropExtension,
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
       theme: { ...theme, topLevel: topLevel ? 'topLevel' : '' },
@@ -165,11 +166,11 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
         <MarkdownShortcutPlugin transformers={SN_TRANSFORMERS} />
         <div className={styles.bottomBar}>
           <ModeSwitcherPlugin />
+          <span className={styles.bottomBarDivider}> \ </span>
           <PreferencesPlugin />
         </div>
         <MaxLengthPlugin lengthOptions={lengthOptions} />
         <FloatingToolbarPlugin anchorElem={floatingAnchorElem} />
-        <MediaDragDropPlugin />
         <LocalDraftPlugin name={name} />
         <FormikBridgePlugin />
       </div>

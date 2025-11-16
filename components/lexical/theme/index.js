@@ -77,8 +77,9 @@ const theme = {
   text: {
     bold: 'sn__textBold',
     italic: 'sn__textItalic',
-    // overflowed: 'sn__textOverflowed',
-    // hashtag: 'sn__textHashtag',
+    superscript: 'sn__textSuperscript',
+    subscript: 'sn__textSubscript',
+    highlight: 'sn__textHighlight',
     underline: 'sn__textUnderline',
     strikethrough: 'sn__textStrikethrough',
     underlineStrikethrough: 'sn__textUnderlineStrikethrough',

@@ -302,7 +302,7 @@
 .bottomBar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   -webkit-touch-callout: none;
   touch-action: manipulation;
 }
@@ -311,6 +311,12 @@
   cursor: pointer;
   font-size: 10px;
   color: var(--theme-grey);
+  margin-top: 2px;
+}
+
+.bottomBarDivider {
+  color: var(--theme-grey);
+  font-size: 10px;
   margin-top: 2px;
 }
 
@@ -448,6 +454,7 @@
   border-radius: 0.4rem;
   background-color: var(--theme-commentBg);
   padding: 4px;
+  padding-bottom: 0;
 }
 
 /* code action menu */

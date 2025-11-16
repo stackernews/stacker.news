@@ -1991,12 +1991,12 @@ model AggRewards {
 }
 
 model LexicalMigrationLog {
-  id         Int            @id @default(autoincrement())
-  createdAt  DateTime       @default(now()) @map("created_at")
-  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
-  itemId     Int            @unique
-  type       MigrationType
-  retryCount Int            @default(0)
+  id         Int                  @id @default(autoincrement())
+  createdAt  DateTime             @default(now()) @map("created_at")
+  updatedAt  DateTime             @default(now()) @updatedAt @map("updated_at")
+  itemId     Int                  @unique
+  type       LexicalMigrationType
+  retryCount Int                  @default(0)
   message    String
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -2006,7 +2006,7 @@ model LexicalMigrationLog {
   @@index([itemId])
 }
 
-enum MigrationType {
+enum LexicalMigrationType {
   LEXICAL_CONVERSION
   HTML_GENERATION
   UNEXPECTED

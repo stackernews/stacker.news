@@ -28,12 +28,11 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
+import { useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
+import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 // TODO: clean up from dev debugging tools
 import { useMutation } from '@apollo/client'
 import gql from 'graphql-tag'
-import BardIcon from '@/svgs/lexical/bard-line.svg'
-import { useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
-import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 
 function itemTitle (item) {
   let title = ''
@@ -101,10 +100,6 @@ export default function ItemInfo ({
 
   return (
     <div className={className || `${styles.other}`}>
-      {item.lexicalState &&
-        <span>
-          <BardIcon fill='red' height={12} width={12} />
-        </span>}
       {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
         <>
           <span title={itemTitle(item)}>

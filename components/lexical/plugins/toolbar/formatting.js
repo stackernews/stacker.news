@@ -8,7 +8,8 @@ import { getShortcutCombo } from '@/lib/lexical/extensions/core/shortcuts/keyboa
 import { ToolbarIcon, BLOCK_OPTIONS, MAIN_TOOLBAR_OPTIONS, ADDITIONAL_FORMAT_OPTIONS, ALIGN_OPTIONS } from './defs/formatting'
 import ActionTooltip from '@/components/action-tooltip'
 import InsertTools from './insert'
-import { ToolbarDropdown } from './index'
+import { ToolbarDropdown, ToolbarButton } from './index'
+import { SN_FORMAT_TEXT_COMMAND } from '@/lib/lexical/universal/commands/formatting'
 
 function BlockOptionsDropdown ({ editor, toolbarState }) {
   const blockOption = !toolbarState.markdownMode
@@ -102,6 +103,9 @@ export default function FormattingTools ({ isFloating, className, toolbarRef, ha
     return (
       <div className={styles.toolbarFormatting}>
         <MainToolbarOptions editor={editor} toolbarState={toolbarState} isFloating />
+        <span className={classNames(styles.divider)} />
+        <ToolbarButton id='subscript' isActive={toolbarState.isSubscript} onClick={() => editor.dispatchCommand(SN_FORMAT_TEXT_COMMAND, 'subscript')} tooltip='subscript' />
+        <ToolbarButton id='superscript' isActive={toolbarState.isSuperscript} onClick={() => editor.dispatchCommand(SN_FORMAT_TEXT_COMMAND, 'superscript')} tooltip='superscript' />
       </div>
     )
   }

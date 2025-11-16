@@ -21,6 +21,7 @@ import CodeActionsPlugin from './plugins/decorative/code-actions'
  * @returns {JSX.Element} lexical renderer
  */
 export default forwardRef(function Reader ({ lexicalState, className, children, contentRef, topLevel }, ref) {
+  console.log('topLevel', topLevel)
   const reader = useMemo(() =>
     defineExtension({
       $initialEditorState: (editor) => {

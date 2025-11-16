@@ -21,6 +21,7 @@ import classNames from 'classnames'
 import { ToolbarIcon } from './defs/formatting'
 import ArrowDownIcon from '@/svgs/arrow-down-s-line.svg'
 import Dropdown from 'react-bootstrap/Dropdown'
+import HamburgerIcon from '@/svgs/lexical/toolbar/hamburger.svg'
 
 /**
  * portal component that renders dropdown menus outside the toolbar to escape overflow rules
@@ -261,7 +262,7 @@ export function ToolbarPlugin ({ topLevel }) {
       <div className='ms-auto d-flex align-items-center'>
         <ActionTooltip notForm overlayText={showToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
           <span className={styles.toolbarItem} onClick={() => setShowToolbar(!showToolbar)}>
-            <ArrowDownIcon style={{ transform: showToolbar ? 'rotate(90deg)' : '' }} />
+            {showToolbar ? <ArrowDownIcon style={{ transform: 'rotate(90deg)' }} /> : <HamburgerIcon />}
           </span>
         </ActionTooltip>
         <ActionTooltip notForm overlayText={`upload files ${getShortcutCombo('upload')}`} placement='top' noWrapper showDelay={500} transition suppressHydrationWarning>

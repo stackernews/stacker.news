@@ -33,7 +33,8 @@ function PayInRow ({ payIn }) {
         <PayInType payIn={payIn} />
       </LinkToContext>
       <LinkToContext className={styles.context} href={`/transactions/${payIn.id}`}>
-        <PayInContext payIn={payIn} />
+        <div className='d-flex d-sm-none small justify-content-center text-muted w-100' />
+        <div className='d-none d-sm-block'><PayInContext payIn={payIn} /></div>
       </LinkToContext>
       <LinkToContext className={styles.money} href={`/transactions/${payIn.id}`}>
         <PayInMoney payIn={payIn} />

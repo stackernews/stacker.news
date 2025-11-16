@@ -7,8 +7,8 @@ export async function autoPost ({ data: item, models, apollo, lnd, boss }) {
   return await pay('ITEM_CREATE',
     { subName: 'meta', ...item, userId: USER_ID.sn, apiKey: true },
     {
-      models,
-      me: { id: USER_ID.sn }
+      me: { id: USER_ID.sn },
+      custodialOnly: true
     })
 }
 
@@ -53,7 +53,7 @@ export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }
   await pay('ZAP',
     { id: winner.id, sats: item.bounty },
     {
-      models,
-      me: { id: USER_ID.sn }
+      me: { id: USER_ID.sn },
+      custodialOnly: true
     })
 }

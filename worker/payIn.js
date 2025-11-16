@@ -134,6 +134,17 @@ export async function checkPayInBolt11 ({ data: { hash, invoice }, boss, models,
   }
 
   if (inv.is_confirmed) {
+    // 1. it's possible for a pending_held/forwarding invoice to settle without transitioning
+    //    to held/forwarded if the state transition is rolled back
+    // 2. we let these transition to paid afterward because this confirmed event is only sent once
+    //    and in practice (1) is rare, but it's common that this event is triggered during the
+    //    pending_held/forwarding state transition
+    if (payIn.payInState === 'PENDING_HELD') {
+      await payInHeld({ data: { payInId: payIn.id, invoice: inv }, models, lnd, boss })
+    }
+    if (payIn.payInState === 'FORWARDING') {
+      await payInForwarded({ data: { payInId: payIn.id, invoice: inv }, models, lnd, boss })
+    }
     return await payInPaid({ data: { payInId: payIn.id, invoice: inv }, models, lnd, boss })
   }
 

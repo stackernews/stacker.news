@@ -354,6 +354,13 @@ export const MY_SUBSCRIBED_SUBS = gql`
     mySubscribedSubs(cursor: $cursor) {
       subs {
         ...SubFullFields
+        nitems(when: "forever")
+
+        optional {
+          stacked(when: "forever")
+          spent(when: "forever")
+          revenue(when: "forever")
+        }
       }
       cursor
     }

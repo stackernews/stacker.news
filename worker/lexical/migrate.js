@@ -86,8 +86,8 @@ export async function migrateItem ({ itemId, fullRefresh = false, checkMedia = t
     try {
       html = lexicalHTMLGenerator(lexicalState)
 
-      if (html && html.startsWith('error')) {
-        throw new Error('html generation returned error')
+      if (!html) {
+        throw new Error('html generation did not produce a valid HTML string')
       }
     } catch (error) {
       console.error(`failed to generate html for item ${itemId}:`, error)

@@ -42,7 +42,7 @@ export default gql`
     setSettings(settings: SettingsInput!): User
     cropPhoto(photoId: ID!, cropData: CropData): String!
     setPhoto(photoId: ID!): Int!
-    upsertBio(text: String, lexicalState: String): PayIn!
+    upsertBio(text: String!, lexicalState: String): PayIn!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean

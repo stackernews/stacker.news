@@ -215,9 +215,12 @@ export default {
       // QUIRK
       // if we have a lexicalState, we'll convert it to markdown to fit the schema
       if (data.lexicalState) {
-        const { text } = await prepareLexicalState({ lexicalState: data.lexicalState })
-        data.desc = text
-        delete data.lexicalState
+        const result = await prepareLexicalState({ lexicalState: data.lexicalState })
+        if (!result) {
+          throw new GqlInputError('failed to process content')
+        }
+        data.desc = result.text
+        delete data.lexicalState // FUTURE: when sub descs will be items, we'll need to keep the lexicalState
       }
       data.uploadIds = uploadIdsFromText(data.desc)
 

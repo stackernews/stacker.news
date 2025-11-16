@@ -1645,7 +1645,11 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
   }
 
   // create markdown from a lexical state
-  const { text, lexicalState } = await prepareLexicalState({ text: item.text, lexicalState: item.lexicalState })
+  const result = await prepareLexicalState({ text: item.text, lexicalState: item.lexicalState })
+  if (!result) {
+    throw new GqlInputError('failed to process content')
+  }
+  const { text, lexicalState } = result
   item.text = text
   item.lexicalState = lexicalState
 
@@ -1683,7 +1687,11 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   item.forwardUsers = await getForwardUsers(models, forward)
 
   // create markdown from a lexical state
-  const { text, lexicalState } = await prepareLexicalState({ text: item.text, lexicalState: item.lexicalState })
+  const result = await prepareLexicalState({ text: item.text, lexicalState: item.lexicalState })
+  if (!result) {
+    throw new GqlInputError('failed to process content')
+  }
+  const { text, lexicalState } = result
   item.text = text
   item.lexicalState = lexicalState
 

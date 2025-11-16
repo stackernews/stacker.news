@@ -40,6 +40,7 @@ export default function FormikBridgePlugin () {
   const [editor] = useLexicalComposerContext()
   const bridge = useHeadlessBridge({ extensions: [MediaCheckExtension] })
   const [lexicalField,, lexicalHelpers] = useField({ name: 'lexicalState' })
+  const [,, textHelpers] = useField({ name: 'text' })
   const hadContent = useRef(false)
 
   // keep formik in sync, so it doesn't yell at us
@@ -51,6 +52,7 @@ export default function FormikBridgePlugin () {
         // if editor is empty, set empty string for formik validation
         if ($isRootEmpty()) {
           lexicalHelpers.setValue('')
+          textHelpers.setValue('')
           return
         }
 
@@ -65,9 +67,10 @@ export default function FormikBridgePlugin () {
         }
 
         lexicalHelpers.setValue(JSON.stringify(lexicalState))
+        textHelpers.setValue(markdown)
       })
     })
-  }, [editor, lexicalHelpers, bridge])
+  }, [editor, lexicalHelpers, textHelpers, bridge])
 
   // reset the editor state if the field is/goes empty
   useEffect(() => {

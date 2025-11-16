@@ -6,6 +6,7 @@ import pay from '../payIn'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
+import { prepareLexicalState } from '@/lib/lexical/utils/server/interpolator'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -211,6 +212,13 @@ export default {
 
       await validateSchema(territorySchema, data, { models, me, sub: { name: data.oldName } })
 
+      // QUIRK
+      // if we have a lexicalState, we'll convert it to markdown to fit the schema
+      if (data.lexicalState) {
+        const { text } = await prepareLexicalState({ lexicalState: data.lexicalState })
+        data.desc = text
+        delete data.lexicalState
+      }
       data.uploadIds = uploadIdsFromText(data.desc)
 
       if (data.oldName) {

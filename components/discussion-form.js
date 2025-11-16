@@ -1,4 +1,4 @@
-import { Form, Input, MarkdownInput } from '@/components/form'
+import { Form, Input, LexicalInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
@@ -44,7 +44,7 @@ export function DiscussionForm ({
     <Form
       initial={{
         title: item?.title || shareTitle || '',
-        text: item?.text || shareText || '',
+        lexicalState: item?.lexicalState || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
@@ -69,13 +69,15 @@ export function DiscussionForm ({
         }}
         maxLength={MAX_TITLE_LENGTH}
       />
-      <MarkdownInput
+      <LexicalInput appendValue={shareText} name='text' label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>} topLevel />
+      {/* TODO: implement EditInfo in LexicalInput */}
+      {/* <MarkdownInput
         topLevel
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}
         name='text'
         minRows={6}
         hint={EditInfo}
-      />
+      /> */}
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
       <ItemButtonBar itemId={item?.id} />
       {!item &&

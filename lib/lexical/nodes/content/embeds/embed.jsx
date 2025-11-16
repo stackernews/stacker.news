@@ -101,7 +101,6 @@ export const createEmbedNodeClass = (provider) => {
         base: embedBlockTheme.base || '',
         focus: embedBlockTheme.focus || ''
       }
-      console.log('config.theme', config.theme)
 
       return (
         // this allows us to subject the embed blocks to formatting

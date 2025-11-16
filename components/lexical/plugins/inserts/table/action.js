@@ -79,7 +79,6 @@ function TableActionMenu ({
       // Merge cells
       if ($isTableSelection(selection)) {
         const currentSelectionCounts = computeSelectionCount(selection)
-        console.log('currentSelectionCounts', currentSelectionCounts)
         updateSelectionCounts(computeSelectionCount(selection))
         setCanMergeCells(
           currentSelectionCounts.columns > 1 || currentSelectionCounts.rows > 1

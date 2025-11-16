@@ -30,7 +30,6 @@ export default function TransformerBridgePlugin () {
       if (!selection) selection = $getSelection()
       // get the markdown from the selection
       const markdown = selection.getTextContent()
-      console.log('markdown', markdown)
 
       // new markdown to be inserted in the original editor
       let newMarkdown = ''

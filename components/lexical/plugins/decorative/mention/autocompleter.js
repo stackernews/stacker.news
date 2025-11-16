@@ -78,7 +78,6 @@ export default function useUniversalAutocomplete () {
         // composing the mention node
         // users: item has { id, name } structure
         // territories: same as users, without id
-        console.log('item', item)
         const mentionNode = $isMarkdownMode()
           ? $createTextNode(`${isUser ? '@' : '~'}${item.name || item}`)
           : isUser

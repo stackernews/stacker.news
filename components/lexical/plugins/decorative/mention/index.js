@@ -58,7 +58,6 @@ export default function MentionsPlugin () {
   // then we find the full item from our stored suggestions
   const handleItemSelect = useCallback((name) => {
     const fullItem = currentSuggestions.find(item => item.name === name)
-    console.log('fullItem', fullItem)
     if (fullItem) {
       handleSelect(fullItem, entityData?.isUser)
     }

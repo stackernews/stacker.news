@@ -198,8 +198,8 @@ export default function MediaResizer ({
     }
   }
 
+  // TODO: sometimes the pointer can get stuck on resizing without ever exiting.
   const handlePointerUp = () => {
-    console.log('handlePointerUp')
     const image = imageRef.current
     const positioning = positioningRef.current
     const controlWrapper = controlWrapperRef.current

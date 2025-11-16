@@ -11,6 +11,7 @@ import { multiAuthMiddleware } from '@/lib/auth'
 import { depthLimit } from '@graphile/depth-limit'
 import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
+import PgBoss from 'pg-boss'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -58,6 +59,8 @@ const apolloServer = new ApolloServer({
   }, ApolloServerPluginLandingPageDisabled()]
 })
 
+const boss = new PgBoss(process.env.DATABASE_URL)
+
 export default startServerAndCreateNextHandler(apolloServer, {
   context: async (req, res) => {
     const apiKey = req.headers['x-api-key']
@@ -83,7 +86,8 @@ export default startServerAndCreateNextHandler(apolloServer, {
       me: session
         ? session.user
         : null,
-      search
+      search,
+      boss
     }
   }
 })

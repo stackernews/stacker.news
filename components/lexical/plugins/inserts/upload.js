@@ -277,7 +277,10 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
         DROP_COMMAND,
         (e) => {
           e.preventDefault()
-          editor.getRootElement().classList.remove(styles.dragOver)
+          const rootElement = editor.getRootElement()
+          if (rootElement) {
+            rootElement.classList.remove(styles.dragOver)
+          }
           const changeEvent = new Event('change', { bubbles: true })
           fileInputRef.current.files = e.dataTransfer.files
           fileInputRef.current.dispatchEvent(changeEvent)

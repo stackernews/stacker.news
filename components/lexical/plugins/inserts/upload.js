@@ -145,12 +145,10 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
 
         // wip: this basically blocks editor updates, seems to be the only reliable way to replace text in markdown
         $selectAll()
-        editor.update(() => {
-          const selection = $getSelection()
-          if ($isRangeSelection(selection)) {
-            selection.insertText(newText)
-          }
-        })
+        const selection = $getSelection()
+        if ($isRangeSelection(selection)) {
+          selection.insertText(newText)
+        }
         return
       }
       const node = $getNodeByKey(key)
@@ -172,16 +170,14 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
         const regex = new RegExp(`!\\[Uploading ${file.name}… \\d+%\\]\\(${key}\\)`)
         const newText = text.replace(regex, `![](${url})`)
         $selectAll()
-        editor.update(() => {
-          const selection = $getSelection()
-          if ($isRangeSelection(selection)) {
-            selection.insertText(newText)
-          }
-        })
+        const selection = $getSelection()
+        if ($isRangeSelection(selection)) {
+          selection.insertText(newText)
+        }
       } else {
         node.replace($createMediaNode({ src: url }))
       }
-    })
+    }, { tag: 'history-merge' })
     // refresh upload fees after the update is complete
     editor.read(() => $refreshUploadFees())
     setSubmitDisabled?.(false)

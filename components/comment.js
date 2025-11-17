@@ -315,7 +315,7 @@ export default function Comment ({
                       <LexicalText lexicalState={item.lexicalState} topLevel={topLevel} html={item.html} imgproxyUrls={item.imgproxyUrls} outlawed={item.outlawed} rel={item.rel ?? UNKNOWN_LINK_REL}>
                         {item.outlawed && !me?.privates?.wildWestMode
                           ? <i className='text-muted'>stackers have outlawed this. turn on wild west mode in your <Link href='/settings'>settings</Link> to see outlawed content.</i>
-                          : truncate ? <div dangerouslySetInnerHTML={{ __html: truncateHTML(item.html) }} /> : undefined}
+                          : truncate ? <div dangerouslySetInnerHTML={{ __html: truncateHTML(item.html, item.text) }} /> : undefined}
                       </LexicalText>
                       )
                     : (

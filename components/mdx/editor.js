@@ -1,6 +1,6 @@
 import { headingsPlugin, thematicBreakPlugin, markdownShortcutPlugin, listsPlugin, quotePlugin, MDXEditor } from '@mdxeditor/editor'
 import { useFormikContext } from 'formik'
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import classNames from 'classnames'
 import styles from './editor.module.css'
 import { localDraftPlugin } from './plugins/core/local-draft'
@@ -13,12 +13,9 @@ export default function Editor ({ editorRef, name, lengthOptions, autoFocus, app
     setFieldValue(name, value)
   }, [setFieldValue, name, lengthOptions])
 
-  useEffect(() => {
-    console.log('current values[name]', values[name])
-  }, [values[name]])
-
   return (
     <MDXEditor
+      {...props}
       className={classNames(styles.editor, className)}
       contentEditableClassName={classNames(styles.editorInput, styles.text, topLevel && 'topLevel')}
       markdown={appendValue || values[name] || ''}
@@ -35,7 +32,6 @@ export default function Editor ({ editorRef, name, lengthOptions, autoFocus, app
         localDraftPlugin({ storageKey })
       ]}
       ref={editorRef}
-      {...props}
     />
   )
 }

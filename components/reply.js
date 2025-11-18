@@ -72,7 +72,7 @@ export default forwardRef(function Reply ({
     },
     onSuccessfulSubmit: (data, { resetForm }) => {
       resetForm({ values: { text: '' } })
-      // editorRef.current.setMarkdown('')
+      editorRef.current.setMarkdown('')
       setReply(replyOpen || false)
     },
     navigateOnSubmit: false

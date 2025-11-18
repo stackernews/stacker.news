@@ -1,12 +1,15 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form } from '@/components/form'
 import styles from './reply.module.css'
 import { commentSchema } from '@/lib/validate'
 import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
 import { UPDATE_COMMENT } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
+import { useRef } from 'react'
+import { SNMDXEditor } from './mdx'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
+  const editorRef = useRef(null)
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
     payInMutationOptions: {
       update (cache, { data: { upsertComment: { payerPrivates } } }) {
@@ -39,11 +42,10 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           schema={commentSchema}
           onSubmit={onSubmit}
         >
-          <MarkdownInput
+          <SNMDXEditor
             name='text'
-            minRows={6}
+            ref={editorRef}
             autoFocus
-            required
           />
           <ItemButtonBar itemId={comment.id} onDelete={onSuccess} hasCancel={false} />
         </Form>

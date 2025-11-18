@@ -21,6 +21,7 @@
     "@graphile/depth-limit": "^0.3.1",
     "@graphql-tools/schema": "^10.0.6",
     "@lightninglabs/lnc-web": "^0.3.2-alpha",
+    "@mdxeditor/editor": "^3.49.2",
     "@nivo/core": "^0.99.0",
     "@nivo/sankey": "^0.99.0",
     "@noble/curves": "^1.6.0",

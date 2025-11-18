@@ -1,4 +1,4 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, SNMDXInput } from '@/components/form'
 import styles from './reply.module.css'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
@@ -30,6 +30,7 @@ export default forwardRef(function Reply ({
   const root = useRoot()
   const sub = item?.sub || root?.sub
   const { markCommentViewedAt } = useCommentsView(root.id)
+  const editorRef = useRef(null)
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -71,6 +72,7 @@ export default forwardRef(function Reply ({
     },
     onSuccessfulSubmit: (data, { resetForm }) => {
       resetForm({ values: { text: '' } })
+      // editorRef.current.setMarkdown('')
       setReply(replyOpen || false)
     },
     navigateOnSubmit: false
@@ -141,14 +143,12 @@ export default forwardRef(function Reply ({
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <MarkdownInput
+              <SNMDXInput
                 name='text'
-                minRows={6}
+                ref={editorRef}
                 autoFocus={!replyOpen}
-                required
                 appendValue={quote}
                 placeholder={placeholder}
-                hint={sub?.moderated && 'this territory is moderated'}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>

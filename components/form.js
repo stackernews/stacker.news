@@ -2,7 +2,7 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, forwardRef } from 'react'
 import copy from 'clipboard-copy'
 import Col from 'react-bootstrap/Col'
 import Dropdown from 'react-bootstrap/Dropdown'
@@ -40,6 +40,7 @@ import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 import { WalletPromptClosed } from '@/wallets/client/hooks'
+import { SNMDXEditor } from './mdx'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -305,6 +306,24 @@ export function DualAutocompleteWrapper ({
     </UserSuggest>
   )
 }
+
+export const SNMDXInput = forwardRef(({ label, topLevel, groupClassName, onChange, ...props }, ref) => {
+  // local draft plugin storage key
+  const storageKeyPrefix = useContext(StorageKeyPrefixContext)
+  const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <SNMDXEditor
+        ref={ref}
+        name={props.name}
+        topLevel={topLevel}
+        onChange={onChange}
+        storageKey={storageKey}
+        {...props}
+      />
+    </FormGroup>
+  )
+})
 
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')

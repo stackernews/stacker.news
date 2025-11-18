@@ -60,6 +60,7 @@ module.exports = withPlausibleProxy()({
     scrollRestoration: true,
     serverSourceMaps: true
   },
+  transpilePackages: ['@mdxeditor/editor'],
   reactStrictMode: true,
   productionBrowserSourceMaps: true,
   generateBuildId: commitHash ? async () => commitHash : undefined,
@@ -294,6 +295,9 @@ module.exports = withPlausibleProxy()({
         ]
       }
     )
+
+    // needed to allow dynamic imports of @mdxeditor/editor
+    config.experiments = { ...config.experiments, topLevelAwait: true }
 
     return config
   }

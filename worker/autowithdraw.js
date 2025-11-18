@@ -1,4 +1,4 @@
-import { msatsSatsFloor, satsToMsats } from '@/lib/format'
+import { msatsSatsFloor, msatsToSats, satsToMsats } from '@/lib/format'
 import pay from '@/api/payIn'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
@@ -36,7 +36,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       AND status IS DISTINCT FROM 'CONFIRMED'
       AND "payOutType" = 'WITHDRAWAL'
       AND created_at > now() - interval '1 hour'
-      AND "msats" >= ${msats}
+      AND "msats" >= ${satsToMsats(msatsToSats(msats))}
     )`
 
   if (pendingOrFailed.exists) return

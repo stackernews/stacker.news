@@ -1,12 +1,24 @@
-import { headingsPlugin, thematicBreakPlugin, markdownShortcutPlugin, listsPlugin, quotePlugin, MDXEditor } from '@mdxeditor/editor'
+import {
+  headingsPlugin,
+  thematicBreakPlugin,
+  markdownShortcutPlugin,
+  listsPlugin,
+  quotePlugin,
+  toolbarPlugin,
+  MDXEditor,
+  diffSourcePlugin
+} from '@mdxeditor/editor'
 import { useFormikContext } from 'formik'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import classNames from 'classnames'
 import styles from './editor.module.css'
 import { localDraftPlugin } from './plugins/core/local-draft'
+import '@mdxeditor/editor/style.css'
+import FullToolbar from './plugins/toolbar'
 
-export default function Editor ({ editorRef, name, lengthOptions, autoFocus, appendValue, placeholder, className, topLevel, storageKey, ...props }) {
+export default function Editor ({ editorRef, name, lengthOptions, autoFocus, appendValue, placeholder, className, topLevel, storageKey, isEdit, ...props }) {
   const { values, setFieldValue } = useFormikContext()
+  const originalText = useMemo(() => values[name] || '', [])
 
   const handleChange = useCallback((value) => {
     if (lengthOptions?.max && value.length > lengthOptions.max) return
@@ -23,13 +35,18 @@ export default function Editor ({ editorRef, name, lengthOptions, autoFocus, app
       autoFocus={autoFocus}
       placeholder={placeholder}
       plugins={[
+        toolbarPlugin({
+          toolbarClassName: styles.toolbar,
+          toolbarContents: () => <FullToolbar isEdit={isEdit} />
+        }),
         headingsPlugin(),
         listsPlugin(),
         quotePlugin(),
         thematicBreakPlugin(),
         markdownShortcutPlugin(),
         // realm plugin to store the draft in local storage
-        localDraftPlugin({ storageKey })
+        localDraftPlugin({ storageKey }),
+        diffSourcePlugin({ viewMode: 'source', diffMarkdown: originalText })
       ]}
       ref={editorRef}
     />

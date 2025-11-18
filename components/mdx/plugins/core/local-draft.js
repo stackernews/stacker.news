@@ -1,6 +1,7 @@
 import { setMarkdown$, markdown$, realmPlugin } from '@mdxeditor/editor'
 
 export const localDraftPlugin = realmPlugin({
+  // dev notes: happens during editor initialization
   init (realm, params) {
     const storageKey = params?.storageKey
     if (!storageKey) return
@@ -16,6 +17,7 @@ export const localDraftPlugin = realmPlugin({
       }
     })
   },
+  // dev notes: happens after the editor is initialized
   postInit (realm, params) {
     const storageKey = params?.storageKey
     if (!storageKey) return

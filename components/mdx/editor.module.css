@@ -102,6 +102,83 @@
 
 .editor {
   position: relative;
+
+  /* this is how MDXEditor sets the colors - base scale for backgrounds, borders, text */
+  --baseBase: var(--bs-body-bg);
+  --baseBg: var(--bs-body-bg);
+  --base1: var(--bs-body-bg);
+  --base2: var(--theme-inputBg);
+  --base3: var(--theme-commentBg);
+  --base4: var(--theme-toolbarActive);
+  --base5: var(--theme-clickToContextColor);
+  --base6: var(--theme-borderColor);
+  --base7: var(--theme-borderColor);
+  --base8: var(--theme-borderColor);
+  --base9: var(--theme-grey);
+  --base10: var(--theme-grey);
+  --base11: var(--bs-body-color);
+  --base12: var(--bs-body-color);
+
+  /* this is how MDXEditor sets the colors - accent scale for interactive elements */
+  --accentBase: var(--bs-primary);
+  --accent1: color-mix(in srgb, var(--bs-primary) 5%, transparent);
+  --accent2: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+  --accent3: color-mix(in srgb, var(--bs-primary) 20%, transparent);
+  --accent4: color-mix(in srgb, var(--bs-primary) 30%, transparent);
+  --accent5: color-mix(in srgb, var(--bs-primary) 40%, transparent);
+  --accent6: color-mix(in srgb, var(--bs-primary) 50%, transparent);
+  --accent7: color-mix(in srgb, var(--bs-primary) 60%, transparent);
+  --accent8: color-mix(in srgb, var(--bs-primary) 70%, transparent);
+  --accent9: var(--bs-primary);
+  --accent10: var(--theme-brandColor);
+  --accent11: var(--bs-primary);
+  --accent12: var(--bs-primary-text, #000);
+
+  --accentTextContrast: var(--bs-primary-text, #000);
+  --baseTextContrast: var(--bs-body-color);
+
+  /* this is how MDXEditor sets the colors - component-specific overrides */
+  --mdxeditor-button-active-bg: var(--theme-toolbarActive);
+  --mdxeditor-button-hover-bg: var(--theme-toolbarHover);
+}
+
+/* dark mode overrides for MDXEditor CSS variables */
+:global([data-bs-theme="dark"]) .editor {
+  /* this is how MDXEditor sets the colors - base scale for dark mode */
+  --baseBase: var(--bs-body-bg);
+  --baseBg: var(--bs-body-bg);
+  --base1: var(--bs-body-bg);
+  --base2: var(--theme-inputBg);
+  --base3: var(--theme-commentBg);
+  --base4: var(--theme-toolbarActive);
+  --base5: var(--theme-clickToContextColor);
+  --base6: var(--theme-borderColor);
+  --base7: var(--theme-borderColor);
+  --base8: var(--theme-borderColor);
+  --base9: var(--theme-grey);
+  --base10: var(--theme-grey);
+  --base11: var(--bs-body-color);
+  --base12: var(--bs-body-color);
+
+  /* this is how MDXEditor sets the colors - accent scale for dark mode */
+  --accentBase: var(--bs-primary);
+  --accent1: color-mix(in srgb, var(--bs-primary) 5%, transparent);
+  --accent2: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+  --accent3: color-mix(in srgb, var(--bs-primary) 20%, transparent);
+  --accent4: color-mix(in srgb, var(--bs-primary) 30%, transparent);
+  --accent5: color-mix(in srgb, var(--bs-primary) 40%, transparent);
+  --accent6: color-mix(in srgb, var(--bs-primary) 50%, transparent);
+  --accent7: color-mix(in srgb, var(--bs-primary) 60%, transparent);
+  --accent8: color-mix(in srgb, var(--bs-primary) 70%, transparent);
+  --accent9: var(--bs-primary);
+  --accent10: var(--theme-brandColor);
+  --accent11: var(--bs-primary);
+  --accent12: #000;
+
+  /* this is how MDXEditor sets the colors - accent text contrast for dark mode */
+  --accentTextContrast: #000;
+  /* this is how MDXEditor sets the colors - base text contrast for dark mode */
+  --baseTextContrast: var(--bs-body-color);
 }
 
 .editorContainer {
@@ -119,15 +196,13 @@
   position: relative;
 }
 
-/* editor input */
-
 .editorInput {
   caret-color: var(--theme-color);
   position: relative;
   tab-size: 1;
   outline: 0;
   padding: 10px;
-  border: 1px solid var(--theme-borderColor);
+  border: 1px solid var(--base6);
   border-radius: 0.4rem;
   min-height: 120px;
   resize: vertical;
@@ -136,17 +211,18 @@
 
 .editorInput:focus-within {
   outline: 0;
-  border: 1px solid var(--bs-primary) !important;
+  border: 1px solid var(--accent9) !important;
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
+
 :global([class*="reply"]) .editorInput {
-  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 50%, transparent) !important;
-  background-color: var(--theme-commentBg) !important;
+  border: 1px solid color-mix(in srgb, var(--base6) 50%, transparent) !important;
+  background-color: var(--base3) !important;
 }
 
 :global([class*="reply"]) .editorInput:focus-within {
-  border: 1px solid var(--bs-primary) !important;
+  border: 1px solid var(--accent9) !important;
 }
 
 .editorPlaceholder {
@@ -184,9 +260,22 @@
 .toolbar {
   display: flex;
   align-items: center;
-  padding-bottom: 4px;
+  padding: 8px;
+  gap: 4px;
+  background-color: var(--base2);
+  border-bottom: 1px solid var(--base6);
   -webkit-touch-callout: none;
   touch-action: manipulation;
+}
+
+.editor :global(.mdxeditor-toolbar) {
+  border: 0;
+  background-color: transparent;
+  padding: 0 0 4px 0;
+}
+
+.toolbar :global([aria-label="Bold"]) {
+  --accent9: var(--bs-danger);
 }
 
 .toolbar :global(.dropdown-toggle::after),

@@ -46,6 +46,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             name='text'
             ref={editorRef}
             autoFocus
+            isEdit
           />
           <ItemButtonBar itemId={comment.id} onDelete={onSuccess} hasCancel={false} />
         </Form>

@@ -1318,8 +1318,6 @@ export default {
         }
       }
 
-      console.log('comments', item.ncomments)
-
       return comments(me, models, item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
     },
     freedFreebie: async (item) => {

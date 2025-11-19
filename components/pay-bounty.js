@@ -55,7 +55,6 @@ export default function PayBounty ({ children, item }) {
   const hasSendWallet = useHasSendWallet()
 
   const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet }
-  console.log('payBounty', item.path)
   const act = useAct({
     variables,
     optimisticResponse: { payInType: 'ZAP', mcost: satsToMsats(root.bounty), payerPrivates: { result: { path: item.path, id: item.id, sats: root.bounty, act: 'TIP', __typename: 'ItemAct' } } },

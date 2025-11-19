@@ -296,7 +296,7 @@ export function LnAddrWithdrawal () {
               ...values
             }
           })
-          router.push(`/withdrawals/${data.sendToLnAddr.id}`)
+          router.push(`/transactions/${data.sendToLnAddr.id}`)
         }}
       >
         <InputUserSuggest

@@ -71,7 +71,7 @@ async function obtainRowLevelLocks (tx, payIn) {
 // so this is inserted atomically with the payIn creation
 async function queueCheckPayInInvoiceCreation (tx, payInId) {
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-    VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payInId}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
+    VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payInId}::INTEGER), now() + INTERVAL '60 seconds', 1000)`
 }
 
 // if there's a terminal failure after begin or retry, we want the payIn to get marked as failed as fast as possible
@@ -141,37 +141,42 @@ export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
 
 async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
-    const inStates = ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP']
-    const updatedPayIn = await models.payIn.update({
-      where: {
-        id: payIn.id,
-        payInState: { in: inStates }
-      },
-      data: {
-        payInState,
-        payInBolt11: {
-          create: payInBolt11
+    try {
+      const inStates = ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP']
+      const updatedPayIn = await models.payIn.update({
+        where: {
+          id: payIn.id,
+          payInState: { in: inStates }
         },
-        beneficiaries: {
-          updateMany: {
-            data: {
-              payInState
-            },
-            where: {
-              benefactorId: payIn.id
+        data: {
+          payInState,
+          payInBolt11: {
+            create: payInBolt11
+          },
+          beneficiaries: {
+            updateMany: {
+              data: {
+                payInState
+              },
+              where: {
+                benefactorId: payIn.id
+              }
             }
           }
-        }
-      },
-      include: PAY_IN_INCLUDE
-    })
-    // the HMAC is only returned during invoice creation
-    // this makes sure that only the person who created this invoice
-    // has access to the HMAC
-    updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
-    // NOTE: this circular reference is intentional, as it allows us to modify the payIn from the result
-    // (e.g. item) in the clientside cache
-    return { ...updatedPayIn, result: result ? { ...result, payIn: updatedPayIn } : undefined }
+        },
+        include: PAY_IN_INCLUDE
+      })
+      // the HMAC is only returned during invoice creation
+      // this makes sure that only the person who created this invoice
+      // has access to the HMAC
+      updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
+      // NOTE: this circular reference is intentional, as it allows us to modify the payIn from the result
+      // (e.g. item) in the clientside cache
+      return { ...updatedPayIn, result: result ? { ...result, payIn: updatedPayIn } : undefined }
+    } catch (e) {
+      console.error('error transitioning to ' + payInState + ' after invoice creation', e)
+      throw new PayInFailureReasonError('transitioning to ' + payInState + ' failed', 'INVOICE_CREATION_FAILED')
+    }
   }
 
   try {

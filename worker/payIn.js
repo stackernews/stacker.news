@@ -252,7 +252,7 @@ export async function checkPayInInvoiceCreation ({ data: { payInId }, models, ln
     where: {
       id: payInId,
       payInState: { in: ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'] },
-      createdAt: { lt: datePivot(new Date(), { seconds: -30 }) }
+      createdAt: { lt: datePivot(new Date(), { seconds: -60 }) }
     }
   })
   if (!payIn) return
@@ -274,7 +274,7 @@ export async function checkPendingPayInInvoiceCreations ({ models, ...args }) {
   const pendingPayIns = await models.payIn.findMany({
     where: {
       payInState: { in: ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'] },
-      createdAt: { lt: datePivot(new Date(), { seconds: -30 }) }
+      createdAt: { lt: datePivot(new Date(), { seconds: -60 }) }
     }
   })
 

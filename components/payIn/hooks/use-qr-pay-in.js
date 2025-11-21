@@ -29,7 +29,7 @@ export default function useQrPayIn () {
       let updatedPayIn
       const cancelAndReject = async (onClose) => {
         if (!updatedPayIn && cancelOnClose) {
-          const updatedPayIn = await payInHelper.cancel(payIn, { userCancel: true })
+          updatedPayIn = await payInHelper.cancel(payIn, { userCancel: true })
           reject(new InvoiceCanceledError(updatedPayIn?.payerPrivates.payInBolt11))
         }
         resolve(updatedPayIn)

@@ -203,6 +203,17 @@ export function useStep () {
   return steps[stepIndex]
 }
 
+export function useIsFirstStep () {
+  const stepIndex = useStepIndex()
+  return stepIndex === 0
+}
+
+export function useIsLastStep () {
+  const maxSteps = useMaxSteps()
+  const stepIndex = useStepIndex()
+  return stepIndex === maxSteps - 1
+}
+
 export function useNext () {
   const { next } = useContext(MultiStepFormContext)
   return next

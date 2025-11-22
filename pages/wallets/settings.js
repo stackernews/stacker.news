@@ -1,8 +1,6 @@
 import { useCallback } from 'react'
-import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { useField } from 'formik'
-import classNames from 'classnames'
 import { useRouter } from 'next/router'
 import { useMutation, useQuery } from '@apollo/client'
 import { Checkbox, Form, Input, SubmitButton } from '@/components/form'
@@ -11,26 +9,17 @@ import { useToast } from '@/components/toast'
 import AccordianItem from '@/components/accordian-item'
 import { isNumber } from '@/lib/format'
 import { walletSettingsSchema } from '@/lib/validate'
-import styles from '@/styles/wallet.module.css'
-import { useShowModal } from '@/components/modal'
 import { SET_WALLET_SETTINGS, WALLET_SETTINGS } from '@/wallets/client/fragments'
-import { useWalletDelete } from '@/wallets/client/hooks'
+import { WalletLayout, WalletLayoutHeader } from '@/wallets/client/components'
 
-import { useSaveWallet, useWallet } from './hooks'
-import { BackButton } from './button'
-import { isWallet } from '@/wallets/lib/util'
-
-export function Settings () {
-  const wallet = useWallet()
+export default function WalletSettings () {
   const { data } = useQuery(WALLET_SETTINGS)
   const [setSettings] = useMutation(SET_WALLET_SETTINGS)
   const toaster = useToast()
-  const saveWallet = useSaveWallet()
   const router = useRouter()
 
   const onSubmit = useCallback(async (settings) => {
     try {
-      await saveWallet()
       await setSettings({
         variables: { settings },
         update: (cache, { data }) => {
@@ -45,11 +34,12 @@ export function Settings () {
           })
         }
       })
+      router.push('/wallets')
     } catch (err) {
       console.error(err)
       toaster.danger('failed to save wallet')
     }
-  }, [saveWallet, setSettings, toaster, router])
+  }, [setSettings, toaster, router])
 
   const initial = {
     receiveCreditsBelowSats: data?.walletSettings?.receiveCreditsBelowSats ?? 10,
@@ -61,84 +51,28 @@ export function Settings () {
   }
 
   return (
-    <>
+    <WalletLayout>
       <Form
         enableReinitialize
         initial={initial}
         schema={walletSettingsSchema}
         onSubmit={onSubmit}
       >
-        <GlobalSettings />
+        <div className='py-5'>
+          <WalletLayoutHeader>wallet settings</WalletLayoutHeader>
+        </div>
+        <Settings />
         <div className='d-flex mt-5 justify-content-end align-items-center'>
-          <BackButton className='me-auto' />
-          {isWallet(wallet) && <WalletDeleteButton className='me-2' />}
           <SubmitButton variant='primary'>save</SubmitButton>
         </div>
       </Form>
-    </>
+    </WalletLayout>
   )
 }
 
-function Separator ({ children, className }) {
-  return (
-    <div className={classNames(styles.separator, 'fw-bold', className)}>{children}</div>
-  )
-}
-
-function WalletDeleteButton ({ className }) {
-  const showModal = useShowModal()
-  const wallet = useWallet()
-
-  return (
-    <Button
-      variant='danger'
-      className={className}
-      onClick={() => {
-        showModal(onClose => {
-          // need to pass wallet as prop because the modal can't use the hooks
-          // since it's not rendered as a children of the form
-          return <WalletDeleteObstacle wallet={wallet} onClose={onClose} />
-        })
-      }}
-    >delete
-    </Button>
-  )
-}
-
-function WalletDeleteObstacle ({ wallet, onClose }) {
-  const deleteWallet = useWalletDelete(wallet)
-  const toaster = useToast()
-  const router = useRouter()
-
-  const onClick = useCallback(async () => {
-    try {
-      await deleteWallet()
-      onClose()
-      router.push('/wallets')
-    } catch (err) {
-      console.error('failed to delete wallet:', err)
-      toaster.danger('failed to delete wallet')
-    }
-  }, [deleteWallet, onClose, toaster, router])
-
-  return (
-    <div>
-      <h4>Delete wallet</h4>
-      <p className='line-height-md fw-bold mt-3'>
-        Are you sure you want to delete this wallet?
-      </p>
-      <div className='mt-3 d-flex justify-content-end align-items-center'>
-        <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={onClose}>cancel</Button>
-        <Button variant='danger' onClick={onClick}>delete </Button>
-      </div>
-    </div>
-  )
-}
-
-function GlobalSettings () {
+function Settings () {
   return (
     <>
-      <Separator>global settings</Separator>
       <AutowithdrawSettings />
       <AccordianItem
         header='advanced'

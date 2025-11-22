@@ -100,6 +100,8 @@ function WalletProtocolForm () {
 
   // create a copy of values to avoid mutating the original
   const onSubmit = useCallback(async ({ ...values }) => {
+    // the schema transformation already does this to pass validation on submit
+    // so it would be better to use the transformed values instead of manually appending the domain part again here
     const lud16Domain = walletLud16Domain(wallet.name)
     if (values.address && lud16Domain) {
       values.address = `${values.address}@${lud16Domain}`
@@ -180,7 +182,7 @@ function WalletProtocolFormField ({ type, ...props }) {
   const [protocol] = useProtocol()
   const formik = useFormikContext()
 
-  function transform ({ validate, encrypt, editable, help, share, ...props }) {
+  function transform ({ validate, encrypt, editable, help, share, populate, ...props }) {
     const [upperHint, bottomHint] = Array.isArray(props.hint) ? props.hint : [null, props.hint]
 
     const parseHelpText = text => Array.isArray(text) ? text.join('\n\n') : text

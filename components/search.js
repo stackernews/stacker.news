@@ -72,7 +72,6 @@ export default function Search ({ sub }) {
               <SearchInput
                 name='q'
                 required
-                autoFocus
                 groupClassName='me-3 mb-0 flex-grow-1'
                 className='flex-grow-1'
                 setOuterQ={setQ}
@@ -144,6 +143,12 @@ function SearchInput ({ name, setOuterQ, ...props }) {
   useEffect(() => {
     if (meta.value !== undefined) setOuterQ(meta.value.trim())
   }, [meta.value, setOuterQ])
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus({ preventScroll: true })
+    }
+  }, [])
 
   const setCaret = useCallback(({ start, end }) => {
     inputRef.current?.setSelectionRange(start, end)

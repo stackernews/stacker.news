@@ -1,4 +1,6 @@
 export default function preserveScroll (callback) {
+  if (typeof window === 'undefined') return callback()
+
   // preserve the actual scroll position
   const scrollTop = window.scrollY
 

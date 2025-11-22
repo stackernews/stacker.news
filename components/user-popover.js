@@ -22,11 +22,11 @@ function StackingSince ({ since }) {
   )
 }
 
-export default function UserPopover ({ name, children }) {
+export default function UserPopover ({ id, name, children }) {
   const [getUser, { loading, data }] = useLazyQuery(
     USER,
     {
-      variables: { name },
+      variables: id ? { id } : { name },
       fetchPolicy: 'cache-first'
     }
   )

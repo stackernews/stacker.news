@@ -290,6 +290,14 @@ export const USER = gql`
     }
   }`
 
+export const USER_BY_MENTION = gql`
+  ${USER_FIELDS}
+  query UserByMention($name: String!, $itemId: ID) {
+    userByMention(name: $name, itemId: $itemId) {
+      ...UserFields
+    }
+  }`
+
 export const USER_WITH_ITEMS = gql`
   ${USER_FIELDS}
   ${ITEM_FIELDS}

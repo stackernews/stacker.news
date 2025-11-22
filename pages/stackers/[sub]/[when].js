@@ -94,6 +94,8 @@ export default function Growth ({ ssrData }) {
           <div className='text-center text-muted fw-bold'>sats stacked</div>
           <WhenAreaChart data={stackingGrowth} />
         </Col>
+      </Row>
+      <Row>
         <Col className='mt-3'>
           <div className='text-center text-muted fw-bold'>sats spent</div>
           <WhenAreaChart data={spendingGrowth} />
@@ -104,6 +106,8 @@ export default function Growth ({ ssrData }) {
           <div className='text-center text-muted fw-bold'>unique stackers</div>
           <WhenLineChart data={stackerGrowth} />
         </Col>
+      </Row>
+      <Row>
         <Col className='mt-3'>
           <div className='text-center text-muted fw-bold'>unique spenders</div>
           <WhenLineChart data={spenderGrowth} />
@@ -114,6 +118,8 @@ export default function Growth ({ ssrData }) {
           <div className='text-center text-muted fw-bold'>spend counts</div>
           <WhenLineChart data={itemGrowth} />
         </Col>
+      </Row>
+      <Row>
         <Col className='mt-3'>
           {sub === 'all' && <div className='text-center text-muted fw-bold'>registrations</div>}
           <WhenAreaChart data={registrationGrowth} />

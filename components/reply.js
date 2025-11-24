@@ -1,4 +1,4 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, SNInput } from '@/components/form'
 import styles from './reply.module.css'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
@@ -13,6 +13,7 @@ import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
+import { MAX_COMMENT_TEXT_LENGTH } from '@/lib/constants'
 
 export default forwardRef(function Reply ({
   item,
@@ -141,14 +142,13 @@ export default forwardRef(function Reply ({
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <MarkdownInput
+              <SNInput
                 name='text'
-                minRows={6}
                 autoFocus={!replyOpen}
                 required
                 appendValue={quote}
+                lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
                 placeholder={placeholder}
-                hint={sub?.moderated && 'this territory is moderated'}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>

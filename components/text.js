@@ -1,4 +1,5 @@
 import styles from './text.module.css'
+import lexicalStyles from './editor/theme/theme.module.css'
 import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
 import dynamic from 'next/dynamic'
@@ -21,6 +22,7 @@ import remarkUnicode from '@/lib/remark-unicode'
 import Embed from './embed'
 import remarkMath from 'remark-math'
 import remarkToc from '@/lib/remark-toc'
+import { SNReader } from './editor'
 
 const rehypeSNStyled = () => rehypeSN({
   stylers: [{
@@ -52,8 +54,101 @@ export function SearchText ({ text }) {
   )
 }
 
+export function useOverflow ({ element, truncated = false }) {
+  // would the text overflow on the current screen size?
+  const [overflowing, setOverflowing] = useState(false)
+  // should we show the full text?
+  const [show, setShow] = useState(false)
+  const showOverflow = useCallback(() => setShow(true), [setShow])
+
+  // clip item and give it a`show full text` button if we are overflowing
+  useEffect(() => {
+    if (!element) return
+
+    const node = 'current' in element ? element.current : element
+    if (!node || !(node instanceof window.Element)) return
+
+    function checkOverflow () {
+      setOverflowing(
+        truncated
+          ? node.scrollHeight > window.innerHeight * 0.5
+          : node.scrollHeight > window.innerHeight * 2
+      )
+    }
+
+    let resizeObserver
+    if ('ResizeObserver' in window) {
+      resizeObserver = new window.ResizeObserver(checkOverflow)
+      resizeObserver.observe(node)
+    }
+
+    window.addEventListener('resize', checkOverflow)
+    checkOverflow()
+    return () => {
+      window.removeEventListener('resize', checkOverflow)
+      resizeObserver?.disconnect()
+    }
+  }, [element, setOverflowing])
+
+  const Overflow = useMemo(() => {
+    if (overflowing && !show) {
+      return (
+        <Button
+          size='lg'
+          variant='info'
+          className={lexicalStyles.textShowFull}
+          onClick={showOverflow}
+        >
+          show full text
+        </Button>
+      )
+    }
+    return null
+  }, [showOverflow, overflowing, show, setShow])
+
+  return { overflowing, show, setShow, Overflow }
+}
+
+// TODO: revisit
+export default function Text ({ markdown, topLevel, rel = UNKNOWN_LINK_REL, children, ...props }) {
+  const [element, setElement] = useState(null)
+  const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
+
+  const textClassNames = useMemo(() => {
+    return classNames(
+      lexicalStyles.text,
+      topLevel && 'topLevel',
+      show ? lexicalStyles.textUncontained : overflowing && lexicalStyles.textContained
+    )
+  }, [topLevel, show, overflowing])
+
+  if (children) {
+    return (
+      <div ref={setElement} className={classNames(textClassNames, lexicalStyles.textTruncated)}>
+        {children}
+        {Overflow}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <SNReader
+        markdown={markdown}
+        className={textClassNames}
+        ref={setElement}
+        rel={rel}
+        topLevel={topLevel}
+        {...props}
+      >
+        {Overflow}
+      </SNReader>
+    </div>
+  )
+}
+
 // this is one of the slowest components to render
-export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+export const LegacyText = memo(function LegacyText ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
   // include remarkToc if topLevel
   const remarkPlugins = topLevel ? [...baseRemarkPlugins, remarkToc] : baseRemarkPlugins
 

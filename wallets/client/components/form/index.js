@@ -5,7 +5,7 @@ import styles from '@/styles/wallet.module.css'
 import navStyles from '@/styles/nav.module.css'
 import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
 import CancelButton from '@/components/cancel-button'
-import Text from '@/components/text'
+import { LegacyText } from '@/components/text'
 import Info from '@/components/info'
 import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/multi-step-form'
 import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
@@ -203,12 +203,12 @@ function WalletProtocolFormField ({ type, ...props }) {
         {props.label}
         {_help && (
           <Info label={_help.label}>
-            <Text>{_help.text}</Text>
+            <LegacyText>{_help.text}</LegacyText>
           </Info>
         )}
         <small className={classNames('text-muted', !help && 'ms-2')}>
           {upperHint
-            ? <Text>{upperHint}</Text>
+            ? <LegacyText>{upperHint}</LegacyText>
             : (!props.required ? 'optional' : null)}
         </small>
       </div>

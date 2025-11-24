@@ -10,7 +10,7 @@ import { inviteSchema } from '@/lib/validate'
 import { SSR } from '@/lib/constants'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import Info from '@/components/info'
-import Text from '@/components/text'
+import { LegacyText } from '@/components/text'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
@@ -91,10 +91,10 @@ function InviteForm () {
                   <div className='d-flex align-items-center'>
                     description <small className='text-muted ms-2'>optional</small>
                     <Info>
-                      <Text>
+                      <LegacyText>
                         A brief description to keep track of the invite purpose, such as "Shared in group chat".
                         This description is private and visible only to you.
-                      </Text>
+                      </LegacyText>
                     </Info>
                   </div>
                 </>

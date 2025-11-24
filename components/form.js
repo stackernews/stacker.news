@@ -11,7 +11,7 @@ import Row from 'react-bootstrap/Row'
 import Markdown from '@/svgs/markdown-line.svg'
 import AddFileIcon from '@/svgs/file-upload-line.svg'
 import styles from './form.module.css'
-import Text from '@/components/text'
+import { LegacyText } from '@/components/text'
 import AddIcon from '@/svgs/add-fill.svg'
 import CloseIcon from '@/svgs/close-line.svg'
 import { gql, useLazyQuery } from '@apollo/client'
@@ -40,6 +40,7 @@ import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 import { WalletPromptClosed } from '@/wallets/client/hooks'
+import SNEditor from './editor/editor'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -306,6 +307,14 @@ export function DualAutocompleteWrapper ({
   )
 }
 
+export function SNInput ({ label, topLevel, groupClassName, onChange, ...props }) {
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <SNEditor name={props.name} topLevel={topLevel} onChange={onChange} {...props} />
+    </FormGroup>
+  )
+}
+
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
@@ -553,7 +562,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
         {tab !== 'write' &&
           <div className='form-group'>
             <div className={`${styles.text} form-control`}>
-              <Text topLevel={topLevel} tab={tab}>{meta.value}</Text>
+              <LegacyText topLevel={topLevel} tab={tab}>{meta.value}</LegacyText>
             </div>
           </div>}
       </div>
@@ -1045,7 +1054,7 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
   )
 }
 
-const StorageKeyPrefixContext = createContext()
+export const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, validate, schema, onSubmit, children, initialError, validateImmediately,

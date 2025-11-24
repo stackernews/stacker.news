@@ -1,0 +1,621 @@
+@import 'katex/dist/katex.min.css';
+
+.sn__paragraph {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sn__paragraph mark {
+  background-color: unset;
+}
+
+.sn__hr {
+  border-top: 3px solid var(--theme-quoteBar);
+  padding: 0 !important;
+  caret-color: transparent;
+}
+
+[contenteditable="true"] .sn__hr.selected {
+  opacity: 1 !important;
+}
+
+.sn__headings {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  position: relative;
+}
+
+.topLevel h1.sn__headings {
+  font-size: 1.6rem;
+}
+
+.topLevel h2.sn__headings {
+  font-size: 1.45rem;
+}
+
+.topLevel h3.sn__headings {
+  font-size: 1.3rem;
+}
+
+.topLevel h4.sn__headings {
+  font-size: 1.15rem;
+}
+
+/* workaround to make headings clickable, see SNHeadingNode
+   quirk: makes the whole line clickable
+*/
+.sn__headings > a {
+  position: absolute;
+  inset: 0;
+  text-decoration: none;
+}
+
+.sn__headings > a:focus {
+  outline: none;
+}
+
+/* blocks */
+.sn__quote {
+  border-left: 3px solid var(--theme-quoteBar);
+  padding-left: .75rem;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+}
+
+.sn__quote *:first-child {
+  padding-top: 0;
+}
+
+.sn__quote *:last-child {
+  padding-bottom: 0;
+}
+
+span.sn__mediaContainer {
+  cursor: default;
+  display: inline-block;
+  position: relative;
+  user-select: none;
+  --max-width: 500px;
+}
+
+span.sn__mediaContainer .outlawed {
+  user-select: text;
+  cursor: text;
+}
+
+.sn__mediaContainer img,
+.sn__mediaContainer video {
+  max-width: var(--max-width);
+  max-height: var(--max-width);
+  display: block;
+  cursor: default;
+  aspect-ratio: var(--aspect-ratio);
+}
+
+[contenteditable="false"] .sn__mediaContainer img {
+  cursor: zoom-in;
+  min-width: 30%;
+  object-position: left top;
+}
+
+[contenteditable="true"] .sn__mediaContainer .focused img, [contenteditable="true"] .sn__mediaContainer .focused video {
+  outline: 2px solid rgb(60, 132, 244);
+  user-select: none;
+}
+
+[contenteditable="true"] .sn__mediaContainer .focused.draggable img, [contenteditable="true"] .sn__mediaContainer .focused.draggable video {
+  cursor: grab;
+}
+
+[contenteditable="true"] .sn__mediaContainer .focused.draggable:active img, [contenteditable="true"] .sn__mediaContainer .focused.draggable:active video {
+  cursor: grabbing;
+}
+
+.sn__image {
+  cursor: zoom-in;
+  min-width: 30%;
+  max-width: 100%;
+  object-position: left top;
+}
+
+.sn__link {
+  color: var(--theme-link);
+  text-decoration: none;
+}
+
+span + .sn__link {
+  margin-left: 0px;
+}
+
+.sn__userMention,
+.sn__territoryMention,
+.sn__itemMention {
+  color: var(--theme-link);
+  font-weight: bold;
+}
+
+.sn__blockCursor {
+  display: block;
+  pointer-events: none;
+  position: absolute;
+}
+.sn__blockCursor:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid var(--bs-body-color);
+  animation: CursorBlink 1.1s steps(2, start) infinite;
+}
+@keyframes CursorBlink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.sn__twitterContainer,
+.sn__nostrContainer,
+.sn__videoWrapper,
+.sn__wavlakeWrapper,
+.sn__spotifyWrapper {
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+  background-color: var(--theme-body) !important;
+}
+
+.sn__embedWrapper {
+  user-select: none;
+  pointer-events: auto;
+}
+
+[contenteditable="true"] .sn__embedWrapperFocus {
+  outline: 2px solid rgb(60, 132, 244);
+}
+
+.sn__embedWrapper__loading {
+  display: flex;
+  flex-flow: row wrap;
+  max-width: 350px;
+  width: 100%;
+  padding-right: 12px;
+}
+
+.sn__embedWrapper__loading__message {
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.4rem;
+  height: 150px;
+  width: 100%;
+  padding: 1.5rem;
+  background-color: var(--theme-commentBg);
+}
+
+.sn__embedWrapper__loading__message svg {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 1rem;
+  margin-left: -0.15rem;
+}
+
+.sn__nestedListItem {
+  list-style-type: none;
+}
+
+.sn__listOl, .sn__listUl {
+  margin-top: 0;
+  margin-bottom: 0rem;
+  padding-left: 2rem;
+  max-width: calc(100% - 1rem);
+}
+
+/* list item padding, lookbehind for nested list items */
+.sn__listItem:has(> span) {
+  margin-top: .25rem;
+  
+  .sn__nestedListItem & {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+.sn__listItem {
+  margin-top: .25rem;
+}
+
+.sn__listItemChecked, .sn__listItemUnchecked {
+  position: relative;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  padding-left: 1.5em;
+  padding-right: 1.5em;
+  list-style-type: none;
+  outline: none;
+  display: block;
+  min-height: 1.5em;
+}
+
+.sn__listItemChecked > *, .sn__listItemUnchecked > * {
+  margin-left: 0.01em;
+}
+
+.sn__listItemChecked:before, .sn__listItemUnchecked:before {
+  content: '\200B';
+  width: 0.9em;
+  height: 0.9em;
+  top: 45%;
+  left: 0;
+  cursor: pointer;
+  display: block;
+  background-size: cover;
+  position: absolute;
+  transform: translateY(-50%);
+}
+
+.sn__listItemChecked {
+  text-decoration: line-through;
+}
+
+.sn__listItemChecked:focus:before, .sn__listItemUnchecked:focus:before {
+  box-shadow: 0 0 0 2px #a6cdfe;
+  border-radius: 2px;
+}
+
+.sn__listItemUnchecked:before {
+  border: 1px solid #999;
+  border-radius: 2px;
+}
+
+.sn__listItemChecked:before {
+  border: 1px solid var(--bs-primary);
+  border-radius: 2px;
+  background-color: var(--bs-primary);
+  background-repeat: no-repeat;
+}
+
+.sn__listItemChecked:after {
+  content: '';
+  cursor: pointer;
+  border-color: #000;
+  border-style: solid;
+  position: absolute;
+  display: block;
+  top: 45%;
+  width: 0.2em;
+  left: 0.35em;
+  height: 0.4em;
+  transform: translateY(-50%) rotate(45deg);
+  border-width: 0 0.1em 0.1em 0;
+}
+
+[contenteditable="false"] .sn__listItemChecked:before,
+[contenteditable="false"] .sn__listItemUnchecked:before {
+  cursor: default;
+  pointer-events: none;
+}
+
+[contenteditable="false"] .sn__listItemChecked:before,
+[contenteditable="false"] .sn__listItemUnchecked:before {
+  opacity: 0.5;
+  filter: grayscale(0.3);
+}
+
+[contenteditable="false"] .sn__listItemChecked:after {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+[contenteditable="false"] .sn__listItemChecked:focus:before,
+[contenteditable="false"] .sn__listItemUnchecked:focus:before {
+  box-shadow: 0 0 0 0;
+  border-radius: 2px;
+}
+
+/* shared collapsible for ToC and spoilers */
+.sn__collapsible {
+  background-color: var(--theme-commentBg);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 0.4rem;
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+  max-width: fit-content;
+}
+
+.sn__collapsible__header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0.5rem 0.5rem 0.25rem;
+  cursor: pointer;
+  color: var(--bs-body-color);
+  transition: background-color 0.15s ease-in-out;
+}
+
+.sn__collapsible__header:hover {
+  background-color: var(--theme-clickToContextColor);
+}
+
+/* svg is imported like this for 1:1 html-lexical compatibility */
+.sn__collapsible__header::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  background-color: var(--bs-body-color);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z'/%3E%3C/svg%3E") no-repeat center / contain;
+  transform: rotate(-90deg);
+  flex-shrink: 0;
+}
+
+.sn__collapsible[open] > .sn__collapsible__header::before {
+  transform: rotate(0deg);
+}
+
+/* table of contents specific */
+.sn__toc {
+  padding: 0;
+}
+
+.sn__toc > summary {
+  font-weight: bold;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  list-style: none;
+}
+
+.sn__toc ul {
+  margin-left: 2rem;
+  margin-right: 1rem;
+  margin-bottom: 1rem;
+  padding-left: 0;
+  line-height: 1.6;
+  list-style-type: disc;
+}
+
+.sn__toc > ul {
+  padding-left: 0;
+  margin-top: 0.5rem;
+}
+
+.sn__toc ul ul {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  list-style-type: circle;
+}
+
+.sn__toc li {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* can select the entire ToC node if we're inside an editor */
+[contenteditable="true"] [data-lexical-toc].selected .sn__toc {
+  background-color: var(--theme-clickToContextColor);
+  outline: 1px solid var(--bs-primary);
+}
+
+/* spoiler specific */
+.sn__spoiler__title {
+  padding: 0rem 0.5rem 0rem 0.25rem;
+}
+
+.sn__spoiler__content {
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+  padding-bottom: 0.15rem;
+}
+
+.sn__spoiler__collapsed .sn__spoiler__content {
+  display: none;
+  user-select: none;
+}
+
+.sn__textBold {
+  font-weight: bold;
+}
+
+.sn__textItalic {
+  font-style: italic;
+}
+
+.sn__textUnderline {
+  text-decoration: underline;
+}
+
+.sn__textStrikethrough {
+  text-decoration: line-through;
+}
+
+.sn__textUnderlineStrikethrough {
+  text-decoration: underline line-through;
+}
+
+.sn__textSubscript, .sn__textSuperscript {
+  position: relative;
+  line-height: 0;
+  font-size: 0.75em;
+  vertical-align: baseline;
+}
+
+.sn__textSuperscript {
+  top: -0.5em;
+}
+
+.sn__textSubscript {
+  bottom: -0.25em;
+}
+.sn__textHighlight {
+  background-color: #fada5e5e;
+  padding: 0 0.2rem;
+  color: var(--bs-body-color);
+}
+
+/* inline */
+
+.sn__codeBlock {
+  position: relative;
+  background-color: var(--theme-commentBg) !important;
+  font-family: Menlo, Consolas, Monaco, monospace;
+  display: block;
+  line-height: 1.53;
+  font-size: 13px;
+  margin: 0;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  overflow-y: hidden;
+  overflow-x: auto;
+  position: relative;
+  tab-size: 2;
+  white-space: pre;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
+}
+
+.sn__math {
+  cursor: default;
+  user-select: none;
+}
+
+.sn__math.focused {
+  outline: 2px solid rgb(60, 132, 244);
+}
+
+.sn__table {
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow-y: scroll;
+  overflow-x: scroll;
+  table-layout: fixed;
+  width: auto;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.sn__tableSelection *::selection {
+  background-color: transparent;
+}
+.sn__tableSelected {
+  outline: 2px solid rgb(60, 132, 244);
+}
+.sn__tableCell {
+  border: 1px solid var(--theme-borderColor);
+  min-width: 75px;
+  vertical-align: top;
+  text-align: start;
+  padding: .3rem .75rem;
+  position: relative;
+  outline: none;
+  overflow: auto;
+  line-height: 1.2;
+}
+
+/*
+  lexical dev notes:
+  A firefox workaround to allow scrolling of overflowing table cell
+  ref: https://bugzilla.mozilla.org/show_bug.cgi?id=1904159
+*/
+.sn__tableCell > * {
+  overflow: inherit;
+}
+.sn__tableCellResizer {
+  position: absolute;
+  right: -4px;
+  height: 100%;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 10;
+  top: 0;
+}
+.sn__tableCellHeader {
+  background-color: var(--theme-commentBg);
+  text-align: start;
+}
+.sn__tableCellSelected {
+  caret-color: transparent;
+}
+.sn__tableCellSelected::after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  background-color: highlight;
+  mix-blend-mode: multiply;
+  content: '';
+  pointer-events: none;
+}
+
+.sn__tableCellResizeRuler {
+  display: block;
+  position: absolute;
+  width: 1px;
+  background-color: rgb(60, 132, 244);
+  height: 100%;
+  top: 0;
+}
+.sn__tableCellActionButtonContainer {
+  display: block;
+  right: 5px;
+  top: 6px;
+  position: absolute;
+  z-index: 4;
+  width: 20px;
+  height: 20px;
+}
+.sn__tableCellActionButton {
+  background-color: #eee;
+  display: block;
+  border: 0;
+  border-radius: 20px;
+  width: 20px;
+  height: 20px;
+  color: #222;
+  cursor: pointer;
+}
+.sn__tableCellActionButton:hover {
+  background-color: #ddd;
+}
+.sn__tableScrollableWrapper {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 10px 0 10px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-borderColor) transparent;
+}
+
+.sn__tableScrollableWrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.sn__tableScrollableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sn__tableScrollableWrapper::-webkit-scrollbar-thumb {
+  background-color: var(--theme-borderColor);
+  border-radius: 4px;
+}
+
+.sn__tableScrollableWrapper::-webkit-scrollbar-thumb:hover {
+  background-color: var(--theme-navLink);
+}
+
+.sn__tableScrollableWrapper > .sn__table {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.sn__tableAlignmentCenter {
+  margin-left: auto;
+  margin-right: auto;
+}
+.sn__tableAlignmentRight {
+  margin-left: auto;
+}

@@ -416,11 +416,6 @@ export function Sorts ({ sub, prefix, className }) {
       {sub !== 'jobs' &&
         <>
           <Nav.Item className={className}>
-            <Link href={prefix + '/random'} passHref legacyBehavior>
-              <Nav.Link eventKey='random' className={styles.navLink}>random</Nav.Link>
-            </Link>
-          </Nav.Item>
-          <Nav.Item className={className}>
             <Link
               href={{
                 pathname: '/~/top/[type]/[when]',

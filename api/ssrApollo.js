@@ -18,6 +18,10 @@ import { satsToMsats } from '@/lib/format'
 import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
+  // switch session cookie before getting session on SSR
+  if (req) {
+    req = await multiAuthMiddleware(req, res)
+  }
   const session = req && await getServerSession(req, res, getAuthOptions(req))
   const client = new ApolloClient({
     ssrMode: true,

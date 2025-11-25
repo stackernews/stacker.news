@@ -15,7 +15,7 @@ import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import { NOFOLLOW_LIMIT } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
-import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
+import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   // switch session cookie before getting session on SSR

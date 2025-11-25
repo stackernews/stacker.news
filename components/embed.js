@@ -55,10 +55,13 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
   }, [iframeRef.current, darkMode])
 
   return (
-    <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
+    <div
+      className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}
+      style={{ width: topLevel ? '550px' : '350px', maxWidth: '100%' }}
+    >
       <iframe
         ref={iframeRef}
-        width={topLevel ? '550px' : '350px'}
+        width='100%'
         style={{ maxWidth: '100%' }}
         height={iframeRef.current?.height || (topLevel ? '200px' : '150px')}
         frameBorder='0'
@@ -126,10 +129,13 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
   if (provider === 'twitter') {
     return (
       <>
-        <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
+        <div
+          className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}
+          style={{ width: topLevel ? '550px' : '350px', maxWidth: '100%' }}
+        >
           <TwitterTweetEmbed
             tweetId={id}
-            options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
+            options={{ theme: darkMode ? 'dark' : 'light', width: '100%' }}
             key={darkMode ? '1' : '2'}
             placeholder={<TweetSkeleton className={className} />}
             onLoad={() => setOverflowing(true)}

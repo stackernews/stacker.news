@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Form, Input, MarkdownInput } from '@/components/form'
+import { Form, Input, LexicalInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
@@ -101,7 +101,7 @@ export function LinkForm ({ item, sub, EditInfo, children }) {
       initial={{
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
-        text: item?.text || '',
+        lexicalState: item?.lexicalState || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
@@ -161,13 +161,14 @@ export function LinkForm ({ item, sub, EditInfo, children }) {
         }}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
-        <MarkdownInput
+        <LexicalInput name='text' label='context' />
+        {/* <MarkdownInput
           label='context'
           name='text'
           minRows={2}
           // https://github.com/Andarist/react-textarea-autosize/pull/371
           style={{ width: 'auto' }}
-        />
+        /> */}
       </AdvPostForm>
       <ItemButtonBar itemId={item?.id} disable={postDisabled}>
         {!item && postDisabled &&

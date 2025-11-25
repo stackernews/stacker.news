@@ -27,9 +27,12 @@ export async function repin ({ name, models }) {
   }
 
   // create a new item with matching 1) title, text, and url and 2) setting pinId
+  // TODO REVIEW: we get lexicalState and html from the current item, so that we don't have to generate them again
   await pay('ITEM_CREATE', {
     title: current.title,
     text: current.text,
+    lexicalState: current.lexicalState,
+    html: current.html,
     url: current.url,
     userId: current.userId,
     subName: current.subName,

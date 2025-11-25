@@ -5,7 +5,7 @@ import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client'
 import piexif from 'piexifjs'
 
-export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar, allow }, ref) => {
+export const FileUpload = forwardRef(({ children, className, onSelect, onConfirm, onUpload, onSuccess, onError, onProgress, multiple, avatar, allow }, ref) => {
   const toaster = useToast()
   ref ??= useRef(null)
 
@@ -22,8 +22,6 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
     const element = file.type.startsWith('image/')
       ? new window.Image()
       : document.createElement('video')
-
-    file = await removeExifData(file)
 
     return new Promise((resolve, reject) => {
       async function onload () {
@@ -51,25 +49,37 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         form.append('acl', 'public-read')
         form.append('file', file)
 
-        const res = await fetch(data.getSignedPOST.url, {
-          method: 'POST',
-          body: form
-        })
+        const xhr = new window.XMLHttpRequest()
+        xhr.open('POST', data.getSignedPOST.url)
 
-        if (!res.ok) {
-          // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
-          onError?.({ ...variables, name: file.name, file })
-          reject(new Error(res.statusText))
-          return
+        xhr.upload.onprogress = (e) => {
+          if (!e.lengthComputable) return
+          onProgress?.({
+            file,
+            loaded: e.loaded,
+            total: e.total
+          })
         }
 
-        const url = `${MEDIA_URL}/${data.getSignedPOST.fields.key}`
-        // key is upload id in database
-        const id = data.getSignedPOST.fields.key
-        onSuccess?.({ ...variables, id, name: file.name, url, file })
+        xhr.onerror = () => {
+          onError?.({ ...variables, name: file.name, file })
+          reject(new Error('Upload failed'))
+        }
 
-        console.log('resolve id', id)
-        resolve(id)
+        xhr.onload = () => {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            onError?.({ ...variables, name: file.name, file })
+            reject(new Error(xhr.statusText))
+            return
+          }
+
+          const url = `${MEDIA_URL}/${data.getSignedPOST.fields.key}`
+          const id = data.getSignedPOST.fields.key
+          onSuccess?.({ ...variables, id, name: file.name, url, file })
+          resolve(id)
+        }
+
+        xhr.send(form)
       }
 
       // img fire 'load' event while videos fire 'loadeddata'
@@ -98,22 +108,35 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         accept={accept.join(', ')}
         onChange={async (e) => {
           const fileList = e.target.files
-          for (const file of Array.from(fileList)) {
+          // remove files that are not allowed and alert the user
+          const filteredFiles = Array.from(fileList).filter((file) => {
+            if (!accept.includes(file.type)) {
+              toaster.danger(`file must be ${accept.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
+              return false
+            }
+            if (file.type === 'video/quicktime') {
+              toaster.danger(`upload of '${file.name}' failed: codec might not be supported, check video settings`)
+              return false
+            }
+            return true
+          })
+          // remove exif data from the remaining files
+          const cleanedFiles = await Promise.all(filteredFiles.map(async (file) => {
+            return await removeExifData(file)
+          }))
+          if (onConfirm && cleanedFiles.length > 0) await onConfirm?.(cleanedFiles)
+
+          const uploadPromises = cleanedFiles.map(async (file) => {
             try {
-              if (accept.indexOf(file.type) === -1) {
-                throw new Error(`file must be ${accept.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
-              }
               if (onSelect) await onSelect?.(file, s3Upload)
               else await s3Upload(file)
             } catch (e) {
-              if (file.type === 'video/quicktime') {
-                toaster.danger(`upload of '${file.name}' failed: codec might not be supported, check video settings`)
-              } else {
-                toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
-              }
-              continue
+              toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
             }
-          }
+          })
+          // upload files concurrently
+          await Promise.allSettled(uploadPromises)
+
           // reset file input
           // see https://bobbyhadz.com/blog/react-reset-file-input#reset-a-file-input-in-react
           e.target.value = null

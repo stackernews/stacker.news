@@ -175,6 +175,10 @@ module.exports = withPlausibleProxy()({
         source: '/~:sub/:slug*',
         destination: '/~/:slug*?sub=:sub'
       },
+      {
+        source: '/u/:id',
+        destination: '/api/u/:id'
+      },
       ...['/', '/post', '/rss', '/random', '/recent/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
     ]
   },
@@ -288,6 +292,11 @@ module.exports = withPlausibleProxy()({
         ]
       }
     )
+    // linkedom references canvas but we're not using it
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      canvas: false
+    }
 
     return config
   }

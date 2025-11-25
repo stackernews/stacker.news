@@ -283,9 +283,9 @@ export const ACT_MUTATION = gql`
 
 export const UPSERT_DISCUSSION = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String,
+  mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $lexicalState: String,
     $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
-    upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost,
+    upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, lexicalState: $lexicalState, boost: $boost,
       forward: $forward, ${HASH_HMAC_INPUT_2}) {
       ...PayInFields
     }
@@ -294,11 +294,11 @@ export const UPSERT_DISCUSSION = gql`
 export const UPSERT_JOB = gql`
   ${PAY_IN_FIELDS}
   mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!,
-    $location: String, $remote: Boolean, $text: String!, $url: String!, $boost: Int,
+    $location: String, $remote: Boolean, $text: String!, $lexicalState: String, $url: String!, $boost: Int,
     $status: String, $logo: Int) {
     upsertJob(sub: $sub, id: $id, title: $title, company: $company,
       location: $location, remote: $remote, text: $text,
-      url: $url, boost: $boost, status: $status, logo: $logo) {
+      lexicalState: $lexicalState, url: $url, boost: $boost, status: $status, logo: $logo) {
       ...PayInFields
     }
   }`
@@ -306,8 +306,8 @@ export const UPSERT_JOB = gql`
 export const UPSERT_LINK = gql`
   ${PAY_IN_FIELDS}
   mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
-    upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text,
+    $text: String, $lexicalState: String, $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
+    upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, lexicalState: $lexicalState,
       boost: $boost, forward: $forward, ${HASH_HMAC_INPUT_2}) {
       ...PayInFields
     }
@@ -315,10 +315,10 @@ export const UPSERT_LINK = gql`
 
 export const UPSERT_POLL = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
+  mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String, $lexicalState: String,
     $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date,
     $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}) {
-    upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
+    upsertPoll(sub: $sub, id: $id, title: $title, text: $text, lexicalState: $lexicalState,
       options: $options, boost: $boost, forward: $forward, pollExpiresAt: $pollExpiresAt,
       randPollOptions: $randPollOptions, ${HASH_HMAC_INPUT_2}) {
       ...PayInFields
@@ -328,9 +328,9 @@ export const UPSERT_POLL = gql`
 export const UPSERT_BOUNTY = gql`
   ${PAY_IN_FIELDS}
   mutation upsertBounty($sub: String, $id: ID, $title: String!, $bounty: Int!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput]) {
+    $text: String, $lexicalState: String, $boost: Int, $forward: [ItemForwardInput]) {
     upsertBounty(sub: $sub, id: $id, title: $title, bounty: $bounty, text: $text,
-      boost: $boost, forward: $forward) {
+      lexicalState: $lexicalState, boost: $boost, forward: $forward) {
       ...PayInFields
     }
   }`
@@ -345,34 +345,34 @@ export const POLL_VOTE = gql`
 
 export const UPSERT_BIO = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertBio($text: String!) {
-    upsertBio(text: $text) {
+  mutation upsertBio($text: String!, $lexicalState: String) {
+    upsertBio(text: $text, lexicalState: $lexicalState) {
       ...PayInFields
     }
   }`
 
 export const CREATE_COMMENT = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertComment($text: String!, $parentId: ID!) {
-    upsertComment(text: $text, parentId: $parentId) {
+  mutation upsertComment($text: String!, $lexicalState: String, $parentId: ID!) {
+    upsertComment(text: $text, lexicalState: $lexicalState, parentId: $parentId) {
       ...PayInFields
     }
   }`
 
 export const UPDATE_COMMENT = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertComment($id: ID!, $text: String!, $boost: Int, ${HASH_HMAC_INPUT_1}) {
-    upsertComment(id: $id, text: $text, boost: $boost, ${HASH_HMAC_INPUT_2}) {
+  mutation upsertComment($id: ID!, $text: String!, $lexicalState: String, $boost: Int, ${HASH_HMAC_INPUT_1}) {
+    upsertComment(id: $id, text: $text, lexicalState: $lexicalState, boost: $boost, ${HASH_HMAC_INPUT_2}) {
       ...PayInFields
     }
   }`
 
 export const UPSERT_SUB = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
+  mutation upsertSub($oldName: String, $name: String!, $desc: String, $lexicalState: String, $baseCost: Int!,
     $replyCost: Int!, $postTypes: [String!]!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
-      upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
+      upsertSub(oldName: $oldName, name: $name, desc: $desc, lexicalState: $lexicalState, baseCost: $baseCost,
         replyCost: $replyCost, postTypes: $postTypes, billingType: $billingType,
         billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       ...PayInFields
@@ -381,10 +381,10 @@ export const UPSERT_SUB = gql`
 
 export const UNARCHIVE_TERRITORY = gql`
   ${PAY_IN_FIELDS}
-  mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
+  mutation unarchiveTerritory($name: String!, $desc: String, $lexicalState: String, $baseCost: Int!,
     $replyCost: Int!, $postTypes: [String!]!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $nsfw: Boolean!) {
-      unarchiveTerritory(name: $name, desc: $desc, baseCost: $baseCost,
+      unarchiveTerritory(name: $name, desc: $desc, lexicalState: $lexicalState, baseCost: $baseCost,
         replyCost: $replyCost, postTypes: $postTypes, billingType: $billingType,
         billingAutoRenew: $billingAutoRenew, moderated: $moderated, nsfw: $nsfw) {
       ...PayInFields

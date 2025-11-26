@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import styles from './pull-to-refresh.module.css'
+import NProgress from 'nprogress'
 
 const REFRESH_THRESHOLD = 150
 
@@ -41,7 +42,7 @@ export default function PullToRefresh ({ children, className }) {
       clearPullDistance()
       return
     }
-
+    e.preventDefault()
     touchEndY.current = e.touches[0].clientY
     const distance = touchEndY.current - touchStartY.current
     setPullDistance(distance)
@@ -51,7 +52,8 @@ export default function PullToRefresh ({ children, className }) {
   const handleTouchEnd = useCallback(() => {
     if (touchStartY.current === 0 || touchEndY.current === 0) return
     if (touchEndY.current - touchStartY.current > REFRESH_THRESHOLD) {
-      router.push(router.asPath)
+      NProgress.done()
+      router.replace(router.asPath)
     }
     clearPullDistance()
   }, [router])
@@ -59,8 +61,8 @@ export default function PullToRefresh ({ children, className }) {
   useEffect(() => {
     if (!isPWA) return
     document.body.style.overscrollBehaviorY = 'contain'
-    document.addEventListener('touchstart', handleTouchStart)
-    document.addEventListener('touchmove', handleTouchMove)
+    document.addEventListener('touchstart', handleTouchStart, { passive: false })
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
     document.addEventListener('touchend', handleTouchEnd)
     return () => {
       document.body.style.overscrollBehaviorY = ''

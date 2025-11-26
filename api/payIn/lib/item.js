@@ -43,7 +43,20 @@ export async function getMentions (tx, { text, userId }) {
         }
       }
     })
-    return users.map(user => ({ userId: user.id }))
+    const userMap = new Map(users.map(u => [u.name.toLowerCase(), u]))
+    const seen = new Set()
+    const orderedMentions = []
+    for (const name of names) {
+      const lowerName = name.toLowerCase()
+      if (!seen.has(lowerName)) {
+        const user = userMap.get(lowerName)
+        if (user) {
+          orderedMentions.push({ userId: user.id })
+          seen.add(lowerName)
+        }
+      }
+    }
+    return orderedMentions
   }
   return []
 }

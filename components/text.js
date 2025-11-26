@@ -22,18 +22,6 @@ import Embed from './embed'
 import remarkMath from 'remark-math'
 import remarkToc from '@/lib/remark-toc'
 
-const rehypeSNStyled = () => rehypeSN({
-  stylers: [{
-    startTag: '<sup>',
-    endTag: '</sup>',
-    className: styles.superscript
-  }, {
-    startTag: '<sub>',
-    endTag: '</sub>',
-    className: styles.subscript
-  }]
-})
-
 const baseRemarkPlugins = [
   gfm,
   remarkUnicode,
@@ -53,7 +41,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
+export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel, mentions }) {
   // include remarkToc if topLevel
   const remarkPlugins = topLevel ? [...baseRemarkPlugins, remarkToc] : baseRemarkPlugins
 
@@ -151,6 +139,19 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
 
   const carousel = useCarousel()
 
+  const rehypeSNStyled = useMemo(() => () => rehypeSN({
+    mentions,
+    stylers: [{
+      startTag: '<sup>',
+      endTag: '</sup>',
+      className: styles.superscript
+    }, {
+      startTag: '<sub>',
+      endTag: '</sub>',
+      className: styles.subscript
+    }]
+  }), [mentions])
+
   const markdownContent = useMemo(() => (
     <ReactMarkdown
       components={components}
@@ -160,7 +161,7 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
     >
       {children}
     </ReactMarkdown>
-  ), [components, remarkPlugins, mathJaxPlugin, children, itemId])
+  ), [components, remarkPlugins, mathJaxPlugin, children, itemId, rehypeSNStyled])
 
   const showOverflow = useCallback(() => setShow(true), [setShow])
 

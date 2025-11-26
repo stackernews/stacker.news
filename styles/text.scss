@@ -43,19 +43,6 @@
   font-size: 1.15rem;
 }
 
-/* workaround to make headings clickable, see SNHeadingNode
-   quirk: makes the whole line clickable
-*/
-.sn__headings > a {
-  position: absolute;
-  inset: 0;
-  text-decoration: none;
-}
-
-.sn__headings > a:focus {
-  outline: none;
-}
-
 /* blocks */
 .sn__quote {
   border-left: 3px solid var(--theme-quoteBar);

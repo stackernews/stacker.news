@@ -19,7 +19,7 @@ export function $convertEmbedElement (domNode) {
     }
   }
 
-  const node = $createEmbedNode(provider, id, src, meta)
+  const node = $createEmbedNode(provider, src, id, meta)
   return { node }
 }
 
@@ -29,44 +29,66 @@ export class EmbedNode extends DecoratorBlockNode {
   __src
   __meta
 
-  $config () {
-    return this.config('embed', {
-      extends: DecoratorBlockNode,
-      importDOM: {
-        span: (domNode) => {
-          const provider = domNode.getAttribute('data-lexical-embed-provider')
-          if (!provider) return null
+  static getType () {
+    return 'embed'
+  }
 
-          const hasEmbedId = domNode.hasAttribute('data-lexical-embed-id')
-          const hasEmbedSrc = domNode.hasAttribute('data-lexical-embed-src')
-          const hasEmbedMeta = domNode.hasAttribute('data-lexical-embed-meta')
+  static clone (node) {
+    return new EmbedNode(
+      node.__provider,
+      node.__src,
+      node.__id,
+      node.__meta,
+      node.__key
+    )
+  }
 
-          if (!hasEmbedId && !hasEmbedSrc && !hasEmbedMeta) {
-            return null
-          }
+  static importJSON (serializedNode) {
+    const { provider, src, id, meta } = serializedNode
+    return $createEmbedNode(provider, src, id, meta)
+  }
 
-          return {
-            conversion: (domNode) => $convertEmbedElement(domNode),
-            priority: 2
-          }
-        },
-        div: (domNode) => {
-          return this.importDOM().span(domNode)
+  static importDOM () {
+    return {
+      span: (domNode) => {
+        const provider = domNode.getAttribute('data-lexical-embed-provider')
+        if (!provider) return null
+
+        const hasEmbedId = domNode.hasAttribute('data-lexical-embed-id')
+        const hasEmbedSrc = domNode.hasAttribute('data-lexical-embed-src')
+        const hasEmbedMeta = domNode.hasAttribute('data-lexical-embed-meta')
+
+        if (!hasEmbedId && !hasEmbedSrc && !hasEmbedMeta) {
+          return null
         }
+
+        return {
+          conversion: $convertEmbedElement,
+          priority: 2
+        }
+      },
+      div: (domNode) => {
+        return EmbedNode.importDOM().span(domNode)
       }
-    })
+    }
   }
 
   constructor (provider = null, src = null, id = null, meta = null, key) {
     super(key)
     this.__provider = provider
-    this.__id = id
     this.__src = src
+    this.__id = id
     this.__meta = meta
   }
 
-  updateDOM (prevNode, domNode) {
-    return false
+  exportJSON () {
+    return {
+      ...super.exportJSON(),
+      provider: this.__provider,
+      src: this.__src,
+      id: this.__id,
+      meta: this.__meta
+    }
   }
 
   exportDOM () {
@@ -80,8 +102,28 @@ export class EmbedNode extends DecoratorBlockNode {
     }
   }
 
+  updateDOM () {
+    return false
+  }
+
   getTextContent () {
     return this.__src || this.__meta?.href
+  }
+
+  getProvider () {
+    return this.__provider
+  }
+
+  getSrc () {
+    return this.__src
+  }
+
+  getId () {
+    return this.__id
+  }
+
+  getMeta () {
+    return this.__meta
   }
 
   decorate (_editor, config) {
@@ -93,8 +135,6 @@ export class EmbedNode extends DecoratorBlockNode {
     }
 
     return (
-      // this allows us to subject the embed blocks to formatting
-      // and also select them, show text cursors, etc.
       <BlockWithAlignableContents
         nodeKey={this.getKey()}
         className={className}

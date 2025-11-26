@@ -20,6 +20,8 @@ export const COMMENT_FIELDS = gql`
     createdAt
     deletedAt
     text
+    lexicalState
+    html
     user {
       id
       name
@@ -73,6 +75,8 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     createdAt
     deletedAt
     text
+    lexicalState
+    html
     user {
       id
       name
@@ -109,6 +113,8 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
   ${STREAK_FIELDS}
   fragment CommentItemExtFields on Item {
     text
+    lexicalState
+    html
     root {
       id
       title

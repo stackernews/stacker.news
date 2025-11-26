@@ -29,6 +29,8 @@ import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 import pay from '../payIn'
+import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
+import { prepareLexicalState } from '@/lib/lexical/server/interpolator'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -1150,6 +1152,62 @@ export default {
       })
 
       return result.lastViewedAt
+    },
+    executeConversion: async (parent, { itemId, fullRefresh }, { models, me }) => {
+      if (process.env.NODE_ENV !== 'development') {
+        throw new GqlAuthenticationError()
+      }
+
+      console.log(`[executeConversion] scheduling conversion for item ${itemId}`)
+
+      // check if job is already scheduled or running
+      const alreadyScheduled = await models.$queryRaw`
+        SELECT state
+        FROM pgboss.job
+        WHERE name = 'migrateLegacyContent'
+          AND data->>'itemId' = ${itemId}::TEXT
+          AND state IN ('created', 'active', 'retry')
+        LIMIT 1
+      `
+
+      if (alreadyScheduled.length > 0) {
+        console.log(`[executeConversion] item ${itemId} already has active job`)
+        return {
+          success: false,
+          message: `migration already ${alreadyScheduled[0].state} for this item`
+        }
+      }
+
+      // schedule the migration job
+      await models.$executeRaw`
+        INSERT INTO pgboss.job (
+          name,
+          data,
+          retrylimit,
+          retrybackoff,
+          startafter,
+          keepuntil,
+          singletonKey
+        )
+        VALUES (
+          'migrateLegacyContent',
+          jsonb_build_object(
+            'itemId', ${itemId}::INTEGER,
+            'fullRefresh', ${fullRefresh}::BOOLEAN,
+            'checkMedia', true
+          ),
+          3, -- reduced retry limit for manual conversions
+          true,
+          now(),
+          now() + interval '1 hour',
+          'migrateLegacyContent:' || ${itemId}::TEXT
+        )
+      `
+
+      return {
+        success: true,
+        message: 'migration scheduled successfully'
+      }
     }
   },
   Item: {
@@ -1584,20 +1642,32 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     item.url = removeTracking(item.url)
   }
 
+  // create markdown from a lexical state
+  item.lexicalState = await prepareLexicalState({ text: item.text })
+  if (!item.lexicalState) {
+    throw new GqlInputError('failed to process content')
+  }
+
   if (old.bio) {
     // prevent editing a bio like a regular item
-    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio` }
+    item = { id: Number(item.id), text: item.text, lexicalState: item.lexicalState, title: `@${user.name}'s bio` }
   } else if (old.parentId) {
     // prevent editing a comment like a post
-    item = { id: Number(item.id), text: item.text, boost: item.boost }
+    item = { id: Number(item.id), text: item.text, lexicalState: item.lexicalState, boost: item.boost }
   } else {
     item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
   }
+  // todo: refactor to use uploadIdsFromLexicalState
+  // it should be way faster and more reliable
+  // by checking MediaNodes directly.
   item.uploadIds = uploadIdsFromText(item.text)
 
   // never change author of item
   item.userId = old.userId
+
+  // generate sanitized html from lexical state
+  item.html = lexicalHTMLGenerator(item.lexicalState)
 
   return await pay('ITEM_UPDATE', item, { models, me, lnd })
 }
@@ -1610,6 +1680,16 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   item.userId = me ? Number(me.id) : USER_ID.anon
 
   item.forwardUsers = await getForwardUsers(models, forward)
+
+  // create markdown from a lexical state
+  item.lexicalState = await prepareLexicalState({ text: item.text })
+  if (!item.lexicalState) {
+    throw new GqlInputError('failed to process content')
+  }
+
+  // todo: refactor to use uploadIdsFromLexicalState
+  // it should be way faster and more reliable
+  // by checking MediaNodes directly.
   item.uploadIds = uploadIdsFromText(item.text)
 
   if (item.url && !isJob(item)) {
@@ -1626,6 +1706,9 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
 
   // mark item as created with API key
   item.apiKey = me?.apiKey
+
+  // generate sanitized html from lexical state
+  item.html = lexicalHTMLGenerator(item.lexicalState)
 
   return await pay('ITEM_CREATE', item, { models, me, lnd })
 }

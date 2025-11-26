@@ -2,7 +2,7 @@ import Item from './item'
 import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
-import { LegacyText, SearchText } from './text'
+import Text, { LegacyText, SearchText } from './text'
 import MediaOrLink from './media-or-link'
 import Comments from './comments'
 import styles from '@/styles/item.module.css'
@@ -157,7 +157,9 @@ function TopLevelItem ({ item, noReply, ...props }) {
 function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : <LegacyText itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</LegacyText>
+    : item.lexicalState
+      ? <Text lexicalState={item.lexicalState} html={item.html} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} />
+      : <LegacyText itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</LegacyText>
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {

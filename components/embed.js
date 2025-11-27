@@ -280,6 +280,10 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
     )
   }
 
+  if (provider === 'audio') {
+    return <AudioEmbed src={src} meta={meta} className={className} />
+  }
+
   return null
 })
 

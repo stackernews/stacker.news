@@ -1,5 +1,5 @@
 import { gql } from '@apollo/client'
-import { STREAK_FIELDS } from './users'
+import { STREAK_FIELDS } from './common'
 
 export const INVITE_FIELDS = gql`
   ${STREAK_FIELDS}

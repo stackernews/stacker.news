@@ -17,6 +17,7 @@ import styles from './theme/theme.module.css'
 import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin'
 import { ToolbarPlugin } from './plugins/tinytoolbar'
 import { ToolbarContextProvider } from './contexts/toolbar'
+import { $initializeEditorState } from '@/lib/lexical/utils'
 
 /**
  * main lexical editor component with formik integration
@@ -41,6 +42,11 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
           } catch (error) {
             console.error('failed to load initial state:', error)
           }
+        // or existing markdown text
+        } else if (values.text) {
+          editor.update(() => {
+            $initializeEditorState(editor, values.text)
+          })
         }
       },
       name: 'editor',

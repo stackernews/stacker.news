@@ -51,6 +51,7 @@
   border-radius: 0;
 }
 
+/* spacing for paragraphs and list item spans (paragraphs inside list items are rendered as inline content) */
 .text :global(.sn__paragraph) {
   display: block;
   white-space: pre-wrap;

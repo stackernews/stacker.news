@@ -190,10 +190,6 @@ span + .sn__link {
   margin-left: -0.15rem;
 }
 
-.sn__nestedListItem {
-  list-style-type: none;
-}
-
 .sn__listOl, .sn__listUl {
   margin-top: 0;
   margin-bottom: 0rem;
@@ -456,7 +452,7 @@ span + .sn__link {
   margin: 0;
   margin-top: 8px;
   margin-bottom: 8px;
-  padding: 8px;
+  padding: 0.5em !important; /* conflict with blockquote children padding */
   overflow-y: hidden;
   overflow-x: auto;
   position: relative;
@@ -464,6 +460,7 @@ span + .sn__link {
   white-space: pre;
   scrollbar-width: thin;
   scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
+  border-radius: 0.3rem;
 }
 
 .sn__math {

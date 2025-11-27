@@ -1,68 +1,5 @@
 import { gql } from '@apollo/client'
-
-// we can't import from users because of circular dependency
-const STREAK_FIELDS = gql`
-  fragment StreakFields on User {
-    optional {
-      streak
-      hasSendWallet
-      hasRecvWallet
-    }
-  }
-`
-
-export const COMMENT_FIELDS = gql`
-  ${STREAK_FIELDS}
-  fragment CommentFields on Item {
-    id
-    position
-    parentId
-    createdAt
-    deletedAt
-    text
-    user {
-      id
-      name
-      meMute
-      ...StreakFields
-    }
-    payIn {
-      id
-      payInState
-      payInType
-      payInStateChangedAt
-      payerPrivates {
-        payInFailureReason
-        retryCount
-      }
-    }
-    sats
-    credits
-    meAnonSats @client
-    upvotes
-    freedFreebie
-    boost
-    meSats
-    meCredits
-    meDontLikeSats
-    meBookmark
-    meSubscription
-    outlawed
-    freebie
-    path
-    commentSats
-    commentCredits
-    mine
-    otsHash
-    ncomments
-    nDirectComments
-    live @client
-    imgproxyUrls
-    rel
-    apiKey
-    cost
-  }
-`
+import { STREAK_FIELDS } from './common'
 
 export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
   ${STREAK_FIELDS}
@@ -102,6 +39,25 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     rel
     apiKey
     cost
+  }
+`
+
+export const COMMENT_FIELDS = gql`
+  ${COMMENT_FIELDS_NO_CHILD_COMMENTS}
+  fragment CommentFields on Item {
+    ...CommentFieldsNoChildComments
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
+    }
+    ncomments
+    nDirectComments
   }
 `
 

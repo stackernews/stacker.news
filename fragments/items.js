@@ -1,16 +1,6 @@
 import { gql } from '@apollo/client'
 import { COMMENTS } from './comments'
-
-// we can't import from users because of circular dependency
-const STREAK_FIELDS = gql`
-  fragment StreakFields on User {
-    optional {
-      streak
-      hasSendWallet
-      hasRecvWallet
-    }
-  }
-`
+import { STREAK_FIELDS } from './common'
 
 export const ITEM_FIELDS = gql`
   ${STREAK_FIELDS}
@@ -128,6 +118,7 @@ export const ITEM_FULL_FIELDS = gql`
     }
   }`
 
+/** displays timestamp verification infos */
 export const ITEM_OTS_FIELDS = gql`
   fragment ItemOtsFields on Item {
     id

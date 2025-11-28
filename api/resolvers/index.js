@@ -28,7 +28,9 @@ const date = new GraphQLScalarType({
     if (value instanceof Date) {
       return value.toISOString() // Convert outgoing Date to string for JSON
     } else if (typeof value === 'string') {
-      return value
+      // our db will return timestamps without timezone (which is UTC), but the browser expects a timezone
+      // else uses the local timezone, so we convert to UTC
+      return new Date(value).toISOString()
     }
     throw Error('GraphQL Date Scalar serializer expected a `Date` object got `' + typeof value + '` ' + value)
   },

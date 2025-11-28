@@ -7,16 +7,15 @@ import { msatsToSats } from '@/lib/format'
 import { payInBolt11Prospect, payInBolt11WrapProspect } from './lib/payInBolt11'
 import { isPessimistic, isProxyPayment, isWithdrawal } from './lib/is'
 import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
-import { NoReceiveWalletError, payOutBolt11Replacement } from './lib/payOutBolt11'
 import { payInClone } from './lib/payInPrisma'
 import { createHmac } from '../resolvers/wallet'
-import { payOutCustodialTokenFromBolt11 } from './lib/payOutCustodialTokens'
 
 // grab a greedy connection for the payIn system on any server
 // if we have lock contention of payIns, we don't want to block other queries
 import createPrisma from '@/lib/create-prisma'
 import { PayInFailureReasonError } from './errors'
-const models = createPrisma({ connectionParams: { connection_limit: 1 } })
+import { payInReplacePayOuts } from './lib/payInFailed'
+const models = createPrisma({ connectionParams: { connection_limit: 2 } })
 
 export default async function pay (payInType, payInArgs, { me, custodialOnly }) {
   try {
@@ -71,7 +70,7 @@ async function obtainRowLevelLocks (tx, payIn) {
 // so this is inserted atomically with the payIn creation
 async function queueCheckPayInInvoiceCreation (tx, payInId) {
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-    VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payInId}::INTEGER), now() + INTERVAL '30 seconds', 1000)`
+    VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payInId}::INTEGER), now() + INTERVAL '60 seconds', 1000)`
 }
 
 // if there's a terminal failure after begin or retry, we want the payIn to get marked as failed as fast as possible
@@ -141,37 +140,42 @@ export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
 
 async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
-    const inStates = ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP']
-    const updatedPayIn = await models.payIn.update({
-      where: {
-        id: payIn.id,
-        payInState: { in: inStates }
-      },
-      data: {
-        payInState,
-        payInBolt11: {
-          create: payInBolt11
+    try {
+      const inStates = ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP']
+      const updatedPayIn = await models.payIn.update({
+        where: {
+          id: payIn.id,
+          payInState: { in: inStates }
         },
-        beneficiaries: {
-          updateMany: {
-            data: {
-              payInState
-            },
-            where: {
-              benefactorId: payIn.id
+        data: {
+          payInState,
+          payInBolt11: {
+            create: payInBolt11
+          },
+          beneficiaries: {
+            updateMany: {
+              data: {
+                payInState
+              },
+              where: {
+                benefactorId: payIn.id
+              }
             }
           }
-        }
-      },
-      include: PAY_IN_INCLUDE
-    })
-    // the HMAC is only returned during invoice creation
-    // this makes sure that only the person who created this invoice
-    // has access to the HMAC
-    updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
-    // NOTE: this circular reference is intentional, as it allows us to modify the payIn from the result
-    // (e.g. item) in the clientside cache
-    return { ...updatedPayIn, result: result ? { ...result, payIn: updatedPayIn } : undefined }
+        },
+        include: PAY_IN_INCLUDE
+      })
+      // the HMAC is only returned during invoice creation
+      // this makes sure that only the person who created this invoice
+      // has access to the HMAC
+      updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
+      // NOTE: this circular reference is intentional, as it allows us to modify the payIn from the result
+      // (e.g. item) in the clientside cache
+      return { ...updatedPayIn, result: result ? { ...result, payIn: updatedPayIn } : undefined }
+    } catch (e) {
+      console.error('error transitioning to ' + payInState + ' after invoice creation', e)
+      throw new PayInFailureReasonError('transitioning to ' + payInState + ' failed', 'INVOICE_CREATION_FAILED')
+    }
   }
 
   try {
@@ -366,43 +370,24 @@ export async function retry (payInId, { me }) {
     }
     const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: null, benefactorId: null }
 
-    const payInFailed = await models.payIn.findFirst({
+    const payInFailedInitial = await models.payIn.findFirst({
       where,
       include: { ...include, beneficiaries: { include } }
     })
-    if (!payInFailed) {
+    if (!payInFailedInitial) {
       throw new Error('PayIn with id ' + payInId + ' not found')
     }
-    if (isWithdrawal(payInFailed)) {
+    if (isWithdrawal(payInFailedInitial)) {
       throw new Error('Withdrawal payIns cannot be retried')
     }
-    if (isPessimistic(payInFailed, { me })) {
+    if (isPessimistic(payInFailedInitial, { me })) {
       throw new Error('Pessimistic payIns cannot be retried')
     }
 
-    let payOutBolt11
-    if (payInFailed.payOutBolt11) {
-      try {
-        payOutBolt11 = await payOutBolt11Replacement(models, payInFailed.genesisId ?? payInFailed.id, payInFailed.payOutBolt11)
-      } catch (e) {
-        console.error('payOutBolt11Replacement failed', e)
-        if (!(e instanceof NoReceiveWalletError)) {
-          throw e
-        }
-        // if we can no longer produce a payOutBolt11, we fallback to custodial tokens
-        payInFailed.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payInFailed.payOutBolt11))
-        // convert the routing fee to another rewards pool output
-        const routingFee = payInFailed.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
-        if (routingFee) {
-          routingFee.payOutType = 'REWARDS_POOL'
-          routingFee.userId = USER_ID.rewards
-        }
-        payInFailed.payOutBolt11 = null
-      }
-    }
+    const payInFailed = await payInReplacePayOuts(models, payInFailedInitial)
 
     const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
-      const payInInitial = { ...payInClone({ ...payInFailed, payOutBolt11 }), retryCount: payInFailed.retryCount + 1 }
+      const payInInitial = { ...payInClone(payInFailed), retryCount: payInFailed.retryCount + 1 }
       await obtainRowLevelLocks(tx, payInInitial)
       const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, undefined, { me })
 

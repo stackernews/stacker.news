@@ -1,5 +1,4 @@
 const { ApolloClient, InMemoryCache, HttpLink, gql } = require('@apollo/client')
-const { quote } = require('../lib/md.js')
 const { datePivot } = require('../lib/time.js')
 
 const ITEMS = gql`
@@ -162,7 +161,7 @@ async function main () {
 
   const ama = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'custom', from, to, sub: 'booksandarticles' }
+    variables: { sort: 'top', when: 'custom', from, to, sub: 'ama' }
   })
 
   const boosts = await client.query({
@@ -171,10 +170,9 @@ async function main () {
   })
 
   const topMeme = await bountyWinner('meme monday')
-  const topFact = await bountyWinner('fun fact')
 
   const topCowboys = await getTopUsers({ cowboys: true, when: 'custom', from, to })
-  const topStackers = await getTopUsers({ by: 'stacking', when: 'custom', from, to })
+  const topStackers = await getTopUsers({ by: 'stacked', when: 'custom', from, to })
   const topSpenders = await getTopUsers({ by: 'spent', when: 'custom', from, to })
 
   process.stdout.write(
@@ -187,12 +185,12 @@ ${top.data.items.items.map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
     - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
-##### Top Fiction Month
+##### Top AMAs
 ${ama.data.items.items.slice(0, 10).map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
     - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
-[**all of this week's fiction month**](https://stacker.news/~booksandarticles/top/posts/week)
+[**all of this week's AMAs**](https://stacker.news/~ama/top/posts/week)
 
 ##### Don't miss
 ${top.data.items.items.map((item, i) =>
@@ -214,13 +212,6 @@ ${meta.data.items.items.slice(0, 10).map((item, i) =>
 ![](${new URL(topMeme?.winner.image, 'https://imgprxy.stacker.news').href})
 
 [**all monday memes**](https://stacker.news/items/${topMeme?.bounty})
-
-------
-
-##### Top Friday fun fact
-${topFact && quote(topFact?.winner.text)}
-
-[**all friday fun facts**](https://stacker.news/items/${topFact?.bounty})
 
 ------
 

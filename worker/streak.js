@@ -96,6 +96,7 @@ function getStreakQuery (type, userId) {
         WHERE "PayIn"."payInState" = 'PAID'
         AND ("PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= ${dayFragment}
         ${userId ? Prisma.sql`AND "PayIn"."userId" = ${userId}` : Prisma.empty}
+        AND "PayIn"."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT')
         GROUP BY "PayIn"."userId"
         HAVING sum("PayIn"."mcost") / 1000.0 >= ${COWBOY_HAT_STREAK_THRESHOLD}`
 }

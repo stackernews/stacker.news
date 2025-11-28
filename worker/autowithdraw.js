@@ -1,4 +1,4 @@
-import { msatsSatsFloor, satsToMsats } from '@/lib/format'
+import { msatsSatsFloor, msatsToSats, satsToMsats } from '@/lib/format'
 import pay from '@/api/payIn'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
@@ -22,8 +22,8 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   // msats will be floored by createInvoice if it needs to be
   const msats = BigInt(excess) - maxFeeMsats
 
-  // must be >= 1 sat
-  if (msats < 1000n) return
+  // must be >= 100000 msats (100 sats)
+  if (msats < 100000n) return
 
   // check that
   // 1. the user doesn't have an autowithdraw pending
@@ -34,8 +34,9 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       FROM "PayOutBolt11"
       WHERE "userId" = ${id}
       AND status IS DISTINCT FROM 'CONFIRMED'
-      AND now() < created_at + interval '1 hour'
-      AND "msats" >= ${msats}
+      AND "payOutType" = 'WITHDRAWAL'
+      AND created_at > now() - interval '1 hour'
+      AND "msats" >= ${satsToMsats(msatsToSats(msats))}
     )`
 
   if (pendingOrFailed.exists) return

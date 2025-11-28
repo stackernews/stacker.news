@@ -11,7 +11,7 @@ export default function Transaction ({ ssrData }) {
   const router = useRouter()
 
   return (
-    <Layout containClassName='p-5'>
+    <Layout>
       <PayIn id={Number(router.query.id)} ssrData={ssrData} />
     </Layout>
   )

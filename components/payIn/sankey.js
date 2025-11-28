@@ -5,10 +5,10 @@ import { ResponsiveSankey, SankeyLabelComponent } from '@nivo/sankey'
 export function PayInSankey ({ payIn }) {
   const data = getSankeyData(payIn)
   return (
-    <div className='position-relative' style={{ width: '100%', maxWidth: '600px', height: '300px' }}>
+    <div className='position-relative' style={{ width: '100%', maxWidth: '600px', height: '360px' }}>
       <ResponsiveSankey
         data={data}
-        margin={{ top: 30, right: 60, bottom: 30, left: 60 }}
+        margin={{ top: 60, right: 60, bottom: 60, left: 60 }}
         align='justify'
         labelPosition='outside'
         labelTextColor={{ from: 'color', modifiers: [['brighter', 0.8]] }}
@@ -16,8 +16,8 @@ export function PayInSankey ({ payIn }) {
         nodeBorderColor={{ from: 'color', modifiers: [['darker', 0.8]] }}
         labelOrientation='horizontal'
         linkBlendMode='normal'
-        defaultHeight={300}
-        defaultWidth={500}
+        defaultHeight={240}
+        defaultWidth={480}
         animate={false}
         linkOpacity={0.5}
         linkHoverOpacity={0.65}
@@ -37,7 +37,7 @@ export function PayInSankey ({ payIn }) {
 
 export function PayInSankeySkeleton () {
   return (
-    <div style={{ width: '100%', maxWidth: '600px', height: '300px' }} className='clouds' />
+    <div style={{ width: '100%', maxWidth: '600px', height: '360px' }} className='clouds' />
   )
 }
 

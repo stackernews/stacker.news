@@ -79,6 +79,16 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
       meMute
       ...StreakFields
     }
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
+    }
     sats
     credits
     meAnonSats @client

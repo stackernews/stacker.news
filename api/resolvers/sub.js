@@ -33,6 +33,72 @@ export async function getSub (parent, { name }, { models, me }) {
   })
 }
 
+export async function topSubs (parent, { query, cursor, when, from, to, limit, by = 'revenue' }, { models, me }) {
+  const decodedCursor = decodeCursor(cursor)
+  const [fromDate, toDate] = whenRange(when, from, to || decodeCursor.time)
+  const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
+
+  let column
+  switch (by) {
+    case 'revenue': column = Prisma.sql`revenue`; break
+    case 'spent': column = Prisma.sql`spent`; break
+    case 'stacked': column = Prisma.sql`stacked`; break
+    case 'items': column = Prisma.sql`nitems`; break
+    default: throw new GqlInputError('invalid sort')
+  }
+
+  const subs = await models.$queryRaw`
+    WITH user_subs AS (
+      ${query}
+    ),
+    sub_outgoing AS (
+      SELECT user_subs.name,
+        COALESCE(floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'TERRITORY_REVENUE') / 1000), 0) as revenue,
+        COALESCE(floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'ZAP') / 1000), 0) as stacked
+      FROM user_subs
+      LEFT JOIN "AggPayOut" ON "AggPayOut"."subName" = user_subs.name
+      WHERE "AggPayOut"."timeBucket" >= ${fromDate}
+      AND "AggPayOut"."timeBucket" <= ${toDate}
+      AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+      AND "AggPayOut"."slice" = 'SUB_BY_TYPE'
+      AND "AggPayOut"."payInType" IS NULL
+      GROUP BY user_subs.name
+    ),
+    sub_incoming AS (
+      SELECT user_subs.name,
+        floor(COALESCE(sum("AggPayIn"."sumMcost"), 0) / 1000) as spent,
+        sum("AggPayIn"."countGroup") FILTER (WHERE "AggPayIn"."payInType" = 'ITEM_CREATE') as nitems
+      FROM user_subs
+      LEFT JOIN "AggPayIn" ON "AggPayIn"."subName" = user_subs.name
+      WHERE "AggPayIn"."timeBucket" >= ${fromDate}
+      AND "AggPayIn"."timeBucket" <= ${toDate}
+      AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+      AND "AggPayIn"."slice" = 'SUB_BY_TYPE'
+      AND "AggPayIn"."subName" IS NOT NULL
+      AND "AggPayIn"."payInType" <> 'DEFUNCT_TERRITORY_DAILY_PAYOUT'
+      GROUP BY user_subs.name
+    ),
+    sub_stats AS (
+      SELECT COALESCE(sub_outgoing.name, sub_incoming.name) as name,
+        COALESCE(sub_outgoing."revenue", 0) as revenue,
+        COALESCE(sub_outgoing."stacked", 0) as stacked,
+        COALESCE(sub_incoming."spent", 0) as spent,
+        COALESCE(sub_incoming."nitems", 0) as nitems
+      FROM sub_outgoing
+      FULL JOIN sub_incoming ON sub_outgoing.name = sub_incoming.name
+    )
+    SELECT * FROM sub_stats
+    JOIN "Sub" ON sub_stats.name = "Sub".name
+    ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
+    OFFSET ${decodedCursor.offset}
+    LIMIT ${limit}`
+
+  return {
+    cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+    subs
+  }
+}
+
 export default {
   Query: {
     sub: getSub,
@@ -89,147 +155,51 @@ export default {
       return latest?.createdAt
     },
     topSubs: async (parent, { cursor, when, by = 'stacked', from, to, limit }, { models, me }) => {
-      const decodedCursor = decodeCursor(cursor)
-      const [fromDate, toDate] = whenRange(when, from, to || decodeCursor.time)
-      const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
+      const query = Prisma.sql`
+        SELECT "Sub".name
+        FROM "Sub"
+        WHERE "Sub".status <> 'STOPPED'
+        GROUP BY "Sub".name
+      `
 
-      let column
-      switch (by) {
-        case 'revenue': column = Prisma.sql`revenue`; break
-        case 'spent': column = Prisma.sql`spent`; break
-        case 'stacked': column = Prisma.sql`stacked`; break
-        case 'items': column = Prisma.sql`nitems`; break
-        default: throw new GqlInputError('invalid sort')
-      }
-
-      const subs = await models.$queryRaw`
-        WITH sub_outgoing AS (
-          SELECT "AggPayIn"."subName", floor(coalesce(sum("AggPayIn"."sumMcost"), 0) / 1000)  as spent,
-            sum("AggPayIn"."countGroup") FILTER (WHERE "AggPayIn"."payInType" = 'ITEM_CREATE') as nitems
-          FROM "AggPayIn"
-          WHERE "AggPayIn"."timeBucket" >= ${fromDate}
-          AND "AggPayIn"."timeBucket" <= ${toDate}
-          AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
-          AND "AggPayIn"."slice" = 'SUB_BY_TYPE'
-          AND "AggPayIn"."subName" IS NOT NULL
-          AND "AggPayIn"."payInType" <> 'DEFUNCT_TERRITORY_DAILY_PAYOUT'
-          GROUP BY "AggPayIn"."subName"
-        ),
-        sub_stats AS (
-          SELECT "AggPayOut"."subName", COALESCE(sub_outgoing."spent", 0) as spent,
-            COALESCE(sub_outgoing."nitems", 0) as nitems,
-            floor(coalesce(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'ZAP'), 0) / 1000) as stacked,
-            floor(coalesce(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'TERRITORY_REVENUE'), 0) / 1000) as revenue
-          FROM "AggPayOut"
-          LEFT JOIN sub_outgoing ON "AggPayOut"."subName" = sub_outgoing."subName"
-          WHERE "AggPayOut"."timeBucket" >= ${fromDate}
-          AND "AggPayOut"."timeBucket" <= ${toDate}
-          AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
-          AND "AggPayOut"."slice" = 'SUB_BY_TYPE'
-          AND "AggPayOut"."subName" IS NOT NULL
-          AND "AggPayOut"."payInType" IS NULL
-          GROUP BY "AggPayOut"."subName", sub_outgoing."spent", sub_outgoing."nitems"
-        )
-        SELECT * FROM sub_stats
-        JOIN "Sub" ON sub_stats."subName" = "Sub".name
-        ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
-        OFFSET ${decodedCursor.offset}
-        LIMIT ${limit}`
-
-      return {
-        cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
-        subs
-      }
+      return await topSubs(parent, { query, cursor, when, from, to, limit, by }, { models, me })
     },
-    userSubs: async (_parent, { name, cursor, when, by = 'revenue', from, to, limit }, { models, me }) => {
+    userSubs: async (parent, { name, cursor, when, by = 'revenue', from, to, limit }, { models, me }) => {
       if (!name) {
         throw new GqlInputError('must supply user name')
       }
 
-      const decodedCursor = decodeCursor(cursor)
-      const [fromDate, toDate] = whenRange(when, from, to || decodeCursor.time)
-      const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
+      const query = Prisma.sql`
+        SELECT "Sub".name
+        FROM "Sub"
+        JOIN users ON users.id = "Sub"."userId" AND users.name = ${name}
+        WHERE "Sub".status <> 'STOPPED'
+        GROUP BY "Sub".name
+      `
 
-      let column
-      switch (by) {
-        case 'revenue': column = Prisma.sql`revenue`; break
-        case 'spent': column = Prisma.sql`spent`; break
-        case 'stacked': column = Prisma.sql`stacked`; break
-        case 'items': column = Prisma.sql`nitems`; break
-        default: throw new GqlInputError('invalid sort')
-      }
-
-      const subs = await models.$queryRaw`
-        WITH user_subs AS (
-          SELECT "Sub".name
-          FROM "Sub"
-          JOIN users ON users.id = "Sub"."userId"
-          WHERE users.name = ${name}
-          AND "Sub".status = 'ACTIVE'
-          GROUP BY "Sub".name
-        ),
-        sub_outgoing AS (
-          SELECT user_subs.name,
-            COALESCE(floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'TERRITORY_REVENUE') / 1000), 0) as revenue,
-            COALESCE(floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'ZAP') / 1000), 0) as stacked
-          FROM user_subs
-          LEFT JOIN "AggPayOut" ON "AggPayOut"."subName" = user_subs.name
-          WHERE "AggPayOut"."timeBucket" >= ${fromDate}
-          AND "AggPayOut"."timeBucket" <= ${toDate}
-          AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
-          AND "AggPayOut"."slice" = 'SUB_BY_TYPE'
-          AND "AggPayOut"."payInType" IS NULL
-          GROUP BY user_subs.name
-        ),
-        sub_stats AS (
-          SELECT sub_outgoing.name,
-            COALESCE(sub_outgoing."revenue", 0) as revenue,
-            COALESCE(sub_outgoing."stacked", 0) as stacked,
-            COALESCE(floor(sum("AggPayIn"."sumMcost") / 1000), 0) as spent,
-            COALESCE(sum("AggPayIn"."countGroup") FILTER (WHERE "AggPayIn"."payInType" = 'ITEM_CREATE'), 0) as nitems
-          FROM sub_outgoing
-          LEFT JOIN "AggPayIn" ON "AggPayIn"."subName" = sub_outgoing.name
-          WHERE "AggPayIn"."timeBucket" >= ${fromDate}
-          AND "AggPayIn"."timeBucket" <= ${toDate}
-          AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
-          AND "AggPayIn"."slice" = 'SUB_BY_TYPE'
-          AND "AggPayIn"."payInType" <> 'DEFUNCT_TERRITORY_DAILY_PAYOUT'
-          GROUP BY sub_outgoing.name, sub_outgoing.revenue, sub_outgoing.stacked
-        )
-        SELECT * FROM sub_stats
-        JOIN "Sub" ON sub_stats.name = "Sub".name
-        ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
-        OFFSET ${decodedCursor.offset}
-        LIMIT ${limit}`
-
-      return {
-        cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
-        subs
-      }
+      return await topSubs(parent, { query, cursor, when, from, to, limit, by }, { models, me })
     },
     mySubscribedSubs: async (parent, { cursor }, { models, me }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      const decodedCursor = decodeCursor(cursor)
-      const subs = await models.$queryRaw`
-        SELECT "Sub".*,
-          "MuteSub"."userId" IS NOT NULL as "meMuteSub",
-          TRUE as "meSubscription"
+      const query = Prisma.sql`
+        SELECT "Sub".name
         FROM "SubSubscription"
         JOIN "Sub" ON "SubSubscription"."subName" = "Sub".name
-        LEFT JOIN "MuteSub" ON "MuteSub"."subName" = "Sub".name AND "MuteSub"."userId" = ${me.id}
         WHERE "SubSubscription"."userId" = ${me.id}
-          AND "Sub".status <> 'STOPPED'
-        ORDER BY "Sub".name ASC
-        OFFSET ${decodedCursor.offset}
-        LIMIT ${LIMIT}
+        AND "Sub".status <> 'STOPPED'
+        GROUP BY "Sub".name
       `
 
+      const { subs, cursor: mySubscribedSubsCursor } = await topSubs(parent, { query, cursor, when: 'forever', limit: LIMIT }, { models, me })
       return {
-        cursor: subs.length === LIMIT ? nextCursorEncoded(decodedCursor, LIMIT) : null,
-        subs
+        cursor: mySubscribedSubsCursor,
+        subs: subs.map(sub => ({
+          ...sub,
+          meSubscription: true
+        }))
       }
     }
   },

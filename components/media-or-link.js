@@ -2,9 +2,10 @@ import styles from './text.module.css'
 import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useMe } from './me'
-import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
 import { useCarousel } from './carousel'
+import { registerAudioElement } from '@/lib/audio-manager'
 
 function LinkRaw ({ href, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -21,14 +22,18 @@ function LinkRaw ({ href, children, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width,
-  height, onClick, onError, style, className, video
+  height, onClick, onError, style, className, video, audio
 }) {
-  const [loaded, setLoaded] = useState(!video)
+  const [loaded, setLoaded] = useState(!video && !audio)
   const ref = useRef(null)
 
   const handleLoadedMedia = () => {
     setLoaded(true)
   }
+  useEffect(() => {
+    if (!audio || !ref.current) return
+    return registerAudioElement(ref.current)
+  }, [audio, ref.current])
 
   // events are not fired on elements during hydration
   // https://github.com/facebook/react/issues/15446
@@ -57,17 +62,27 @@ const Media = memo(function Media ({
             onError={onError}
             onLoadedMetadata={handleLoadedMedia}
           />
-        : <img
-            ref={ref}
-            src={src}
-            srcSet={srcSet}
-            sizes={sizes}
-            width={width}
-            height={height}
-            onClick={onClick}
-            onError={onError}
-            onLoad={handleLoadedMedia}
-          />}
+        : audio
+          ? <audio
+              ref={ref}
+              src={src}
+              preload='metadata'
+              controls
+              onError={onError}
+              onLoadedMetadata={handleLoadedMedia}
+              style={{ width: '100%' }}
+            />
+          : <img
+              ref={ref}
+              src={src}
+              srcSet={srcSet}
+              sizes={sizes}
+              width={width}
+              height={height}
+              onClick={onClick}
+              onError={onError}
+              onLoad={handleLoadedMedia}
+            />}
     </div>
   )
 })
@@ -101,7 +116,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
   if (!media.src) return null
 
   if (!error) {
-    if (media.image || media.video) {
+    if (media.image || media.video || media.audio) {
       return (
         <Media
           {...media} onClick={handleClick} onError={handleError}
@@ -124,39 +139,46 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
   const [isImage, setIsImage] = useState(video === false && trusted)
   const [isVideo, setIsVideo] = useState(video)
+  const [isAudio, setIsAudio] = useState(false)
   const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
 
   useEffect(() => {
-    // don't load the video at all if user doesn't want these
-    if (!showMedia || isVideo || isImage) return
+    if (!showMedia || isVideo || isAudio || isImage) return
 
-    const controller = new AbortController()
-
-    const checkMedia = async () => {
-      try {
-        const res = await fetch(`${PUBLIC_MEDIA_CHECK_URL}/${encodeURIComponent(src)}`, { signal: controller.signal })
-        if (!res.ok) return
-
-        const data = await res.json()
-
-        if (data.isVideo) {
-          setIsVideo(true)
-          setIsImage(false)
-        } else if (data.isImage) {
-          setIsImage(true)
-        }
-      } catch (error) {
-        if (error.name === 'AbortError') return
-        console.error('cannot check media type', error)
-      }
+    const video = document.createElement('video')
+    video.onloadedmetadata = () => {
+      setIsVideo(true)
+      setIsAudio(false)
+      setIsImage(false)
     }
-    checkMedia()
+    video.onerror = () => {
+      const audio = new window.Audio()
+      audio.onloadedmetadata = () => {
+        setIsAudio(true)
+        setIsVideo(false)
+        setIsImage(false)
+      }
+      audio.onerror = () => {
+        const img = new window.Image()
+        img.src = src
+        img.decode().then(() => {
+          setIsImage(true)
+          setIsAudio(false)
+          setIsVideo(false)
+        }).catch((e) => {
+          console.warn('Cannot decode media:', src, e)
+        })
+      }
+      audio.src = src
+    }
+    video.src = src
 
     return () => {
-      // abort the fetch
-      try { controller.abort() } catch {}
+      video.onloadedmetadata = null
+      video.onerror = null
+      video.src = ''
     }
-  }, [src, setIsImage, setIsVideo, showMedia])
+  }, [src, setIsImage, setIsVideo, setIsAudio, showMedia, isImage, isAudio])
 
   const srcSet = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return undefined
@@ -205,7 +227,8 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
     style,
     width,
     height,
-    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo,
-    video: !me?.privates?.imgproxyOnly && showMedia && isVideo
+    image: (!me?.privates?.imgproxyOnly || trusted) && showMedia && isImage && !isVideo && !isAudio,
+    video: !me?.privates?.imgproxyOnly && showMedia && isVideo,
+    audio: !me?.privates?.imgproxyOnly && showMedia && isAudio
   }
 }

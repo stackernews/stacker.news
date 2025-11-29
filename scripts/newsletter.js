@@ -251,7 +251,7 @@ Yeehaw,
 Keyan
 A guy who works on Stacker News
 
-[Watch](https://www.youtube.com/@stackernews/live) or [Listen](https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2) to SN's top stories every week.
+[Watch](https://www.youtube.com/@stackernews/live) or [Listen to](https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2) or [Read in print](https://www.plebpoet.com/zines.html) SN's top stories every week.
 
 Get this newsletter sent to your email inbox by signing up [here](https://mail.stacker.news/subscription/form).`)
 }

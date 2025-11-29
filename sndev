@@ -287,6 +287,73 @@ sndev__withdraw() {
   fi
 }
 
+sndev__lnurl_auth() {
+  shift
+  lnurl="$1"
+  if [ -z "$lnurl" ]; then
+    echo "LNURL required"
+    sndev__help_lnurl_auth
+    exit 1
+  fi
+  docker__exec app node -e "const{bech32}=require('bech32');const{words}=bech32.decode('$lnurl',2000);console.log(Buffer.from(bech32.fromWords(words)).toString('utf8'));" > /tmp/sndev_lnurl
+  decoded=$(cat /tmp/sndev_lnurl)
+  echo "Decoded: $decoded"
+  k1=$(echo "$decoded" | grep -oP 'k1=\K[^&]*')
+  identity_pubkey=$(sndev__cli lnd getinfo | jq -r '.identity_pubkey')
+  domain=$(echo "$decoded" | grep -oP '://\K[^/]*')
+  docker__exec app node -e "const{secp256k1}=require('@noble/curves/secp256k1');const{createHash}=require('crypto');const k1='$k1';const key=createHash('sha256').update('$identity_pubkey'+'$domain').digest();const sig=secp256k1.sign(Buffer.from(k1,'hex'),key);const pub=secp256k1.getPublicKey(key);const cb='$decoded'.split('?')[0];const p=new URLSearchParams({k1,sig:Buffer.from(sig.toCompactRawBytes()).toString('hex'),key:Buffer.from(pub).toString('hex')});console.log(\`\${cb}?\${p}\`);" | xargs curl -s | jq
+  rm -f /tmp/sndev_lnurl
+}
+
+sndev__help_lnurl_auth() {
+  help="
+mock lnurl-auth for local testing
+
+USAGE
+  $ sndev lnurl_auth LNURL
+
+DESCRIPTION
+  Decodes the LNURL, derives a linking key from stacker_lnd identity,
+  signs the k1 challenge, and sends the response to the callback URL.
+"
+  echo "$help"
+}
+
+sndev__lnurl_withdraw() {
+  shift
+  lnurl="$1"
+  if [ -z "$lnurl" ]; then
+    echo "LNURL required"
+    sndev__help_lnurl_withdraw
+    exit 1
+  fi
+  docker__exec app node -e "const{bech32}=require('bech32');const{words}=bech32.decode('$lnurl',2000);console.log(Buffer.from(bech32.fromWords(words)).toString('utf8'));" > /tmp/sndev_lnurl
+  decoded=$(cat /tmp/sndev_lnurl)
+  echo "Decoded: $decoded"
+  params=$(curl -s "$decoded")
+  echo "$params" | jq
+  callback=$(echo "$params" | jq -r '.callback')
+  max=$(echo "$params" | jq -r '.maxWithdrawable')
+  k1=$(echo "$params" | jq -r '.k1')
+  bolt11=$(sndev__cli lnd addinvoice --amt $((max/1000)) | jq -r '.payment_request')
+  echo "Invoice: $bolt11"
+  curl -s "${callback}?k1=${k1}&pr=${bolt11}" | jq
+  rm -f /tmp/sndev_lnurl
+}
+
+sndev__help_lnurl_withdraw() {
+  help="
+mock lnurl-withdraw for local testing
+
+USAGE
+  $ sndev lnurl_withdraw LNURL
+
+DESCRIPTION
+  Decodes the LNURL, fetches withdrawal parameters, creates an invoice
+  for the maximum amount, and sends it to the callback URL.
+"
+  echo "$help"
+}
 sndev__help_withdraw() {
   help="
 create a bolt11 for withdrawal
@@ -689,6 +756,8 @@ COMMANDS
   lightning:
     fund                   pay a bolt11 for funding
     withdraw               create a bolt11 for withdrawal
+    lnurl_auth             mock lnurl-auth
+    lnurl_withdraw         mock lnurl-withdraw
 
   db:
     psql                   open psql on db

@@ -17,7 +17,7 @@ import { gql, useLazyQuery } from '@apollo/client'
 import { numWithUnits } from '@/lib/format'
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import useDebounceCallback from '@/components/use-debounce-callback'
-import styles from '@/components/editor/theme/theme.module.css'
+import styles from '@/components/editor/theme/editor.module.css'
 
 export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
 

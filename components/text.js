@@ -1,5 +1,4 @@
 import styles from './text.module.css'
-import lexicalStyles from './editor/theme/theme.module.css'
 import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
 import dynamic from 'next/dynamic'
@@ -96,7 +95,7 @@ export function useOverflow ({ element, truncated = false }) {
         <Button
           size='lg'
           variant='info'
-          className={lexicalStyles.textShowFull}
+          className='sn__textShowFull'
           onClick={showOverflow}
         >
           show full text
@@ -116,15 +115,15 @@ export default function Text ({ markdown, topLevel, rel = UNKNOWN_LINK_REL, chil
 
   const textClassNames = useMemo(() => {
     return classNames(
-      lexicalStyles.text,
-      topLevel && 'topLevel',
-      show ? lexicalStyles.textUncontained : overflowing && lexicalStyles.textContained
+      'sn__text',
+      topLevel && 'sn__topLevel',
+      show ? 'sn__textUncontained' : overflowing && 'sn__textContained'
     )
   }, [topLevel, show, overflowing])
 
   if (children) {
     return (
-      <div ref={setElement} className={classNames(textClassNames, lexicalStyles.textTruncated)}>
+      <div ref={setElement} className={classNames(textClassNames, 'sn__textTruncated')}>
         {children}
         {Overflow}
       </div>
@@ -132,18 +131,16 @@ export default function Text ({ markdown, topLevel, rel = UNKNOWN_LINK_REL, chil
   }
 
   return (
-    <div>
-      <SNReader
-        markdown={markdown}
-        className={textClassNames}
-        ref={setElement}
-        rel={rel}
-        topLevel={topLevel}
-        {...props}
-      >
-        {Overflow}
-      </SNReader>
-    </div>
+    <SNReader
+      markdown={markdown}
+      className={textClassNames}
+      ref={setElement}
+      rel={rel}
+      topLevel={topLevel}
+      {...props}
+    >
+      {Overflow}
+    </SNReader>
   )
 }
 

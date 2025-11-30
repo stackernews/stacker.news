@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useFormikContext } from 'formik'
-import styles from '@/components/editor/theme/theme.module.css'
+import styles from '@/components/editor/theme/editor.module.css'
 import Nav from 'react-bootstrap/Nav'
 import { useToolbarState } from '../contexts/toolbar'
 

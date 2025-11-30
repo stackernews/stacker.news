@@ -3,8 +3,9 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { createCommand, COMMAND_PRIORITY_CRITICAL } from 'lexical'
 import { useFormikContext } from 'formik'
 import Reader from '../../reader'
-import styles from '@/components/editor/theme/theme.module.css'
+import styles from '@/components/editor/theme/editor.module.css'
 import { useToolbarState } from '../../contexts/toolbar'
+import classNames from 'classnames'
 
 export const TOGGLE_PREVIEW_COMMAND = createCommand('TOGGLE_PREVIEW_COMMAND')
 
@@ -37,7 +38,7 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
     <div className={styles.previewWrapper}>
       <Reader
         markdown={values.text}
-        className={`${styles.editorInput} ${styles.text} ${topLevel ? 'topLevel' : ''}`}
+        className={classNames(styles.editorInput, 'sn__text', topLevel && 'sn__topLevel')}
         topLevel={topLevel}
       />
     </div>

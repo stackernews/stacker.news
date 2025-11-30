@@ -1,6 +1,6 @@
 import ActionTooltip from '@/components/action-tooltip'
 import classNames from 'classnames'
-import styles from '@/components/editor/theme/theme.module.css'
+import styles from '@/components/editor/theme/editor.module.css'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { SN_UPLOAD_FILES_COMMAND } from '../upload'
 import ModeSwitcherPlugin from '../switch'

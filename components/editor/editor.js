@@ -13,7 +13,7 @@ import { useFormikContext } from 'formik'
 import { configExtension, defineExtension } from 'lexical'
 import { useMemo, useState } from 'react'
 import theme from './theme'
-import styles from './theme/theme.module.css'
+import styles from './theme/editor.module.css'
 import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin'
 import { ToolbarPlugin } from './plugins/tinytoolbar'
 import { ToolbarContextProvider } from './contexts/toolbar'
@@ -54,7 +54,7 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
       dependencies: [
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
-      theme: { ...theme, topLevel: topLevel ? 'topLevel' : '' },
+      theme: { ...theme, topLevel: topLevel ? 'sn__topLevel' : '' },
       onError: (error) => console.error('editor has encountered an error:', error)
     }), [autoFocus, topLevel])
 
@@ -93,7 +93,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
           contentEditable={
             <div className={styles.editor} ref={onRef}>
               <ContentEditable
-                className={classNames(styles.editorInput, styles.text, topLevel && 'topLevel')}
+                className={classNames(styles.editorInput, 'sn__text', topLevel && 'sn__topLevel')}
                 placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
               />
             </div>

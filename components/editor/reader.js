@@ -45,7 +45,7 @@ export default forwardRef(function Reader ({ className, contentRef, topLevel, le
       ],
       theme: {
         ...theme,
-        topLevel: topLevel && 'topLevel'
+        topLevel: topLevel && 'sn__topLevel'
       },
       $initialEditorState: (editor) => initiateLexical(editor, lexicalState, markdown),
       onError: (error) => console.error(error)

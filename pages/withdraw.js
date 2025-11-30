@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { InputGroup, Nav } from 'react-bootstrap'
 import styles from '@/styles/nav.module.css'
-import { gql, useMutation, useQuery } from '@apollo/client'
+import { useMutation } from '@apollo/client'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/withdrawal'
 import { requestProvider } from 'webln'
 import { useEffect, useState } from 'react'
@@ -16,8 +16,6 @@ import { useField } from 'formik'
 import { useToast } from '@/components/toast'
 import { decode } from 'bolt11'
 import CameraIcon from '@/svgs/camera-line.svg'
-import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
-import Qr, { QrSkeleton } from '@/components/qr'
 import useDebounceCallback from '@/components/use-debounce-callback'
 import { lnAddrOptions } from '@/lib/lnurl'
 import AccordianItem from '@/components/accordian-item'
@@ -56,11 +54,6 @@ function WithdrawForm () {
           </Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/withdraw?type=lnurl' passHref legacyBehavior>
-            <Nav.Link eventKey='lnurl'>QR code</Nav.Link>
-          </Link>
-        </Nav.Item>
-        <Nav.Item>
           <Link href='/withdraw?type=lnaddr' passHref legacyBehavior>
             <Nav.Link eventKey='lnaddr'>lightning address</Nav.Link>
           </Link>
@@ -75,8 +68,6 @@ export function SelectedWithdrawalForm () {
   const router = useRouter()
 
   switch (router.query.type) {
-    case 'lnurl':
-      return <LnurlWithdrawal />
     case 'lnaddr':
       return <LnAddrWithdrawal />
     default:
@@ -199,50 +190,6 @@ function InvoiceScanner ({ fieldName }) {
       />
     </InputGroup.Text>
   )
-}
-
-function LnQRWith ({ k1, encodedUrl }) {
-  const router = useRouter()
-  const query = gql`
-  {
-    lnWith(k1: "${k1}") {
-      payInId
-      k1
-    }
-  }`
-  const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
-
-  if (data?.lnWith?.payInId) {
-    router.push(`/transactions/${data.lnWith.payInId}`)
-  }
-
-  return <Qr value={encodedUrl} status='waiting for you' />
-}
-
-export function LnurlWithdrawal () {
-  // query for challenge
-  const [createWith, { data, error }] = useMutation(gql`
-    mutation createWith {
-      createWith {
-        k1
-        encodedUrl
-      }
-    }`)
-  const toaster = useToast()
-
-  useEffect(() => {
-    createWith().catch(e => {
-      toaster.danger('withdrawal creation: ' + e?.message || e?.toString?.())
-    })
-  }, [createWith, toaster])
-
-  if (error) return <QrSkeleton status='error' />
-
-  if (!data) {
-    return <QrSkeleton status='generating' />
-  }
-
-  return <LnQRWith {...data.createWith} />
 }
 
 export function LnAddrWithdrawal () {

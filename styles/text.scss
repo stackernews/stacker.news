@@ -518,20 +518,23 @@ span + .sn__link {
   text-decoration: underline line-through;
 }
 
-.sn__textSubscript, .sn__textSuperscript {
-  position: relative;
-  line-height: 0;
-  font-size: 0.75em;
+.sn__text sup,
+.sn__text sub {
   vertical-align: baseline;
+  font-size: inherit;
+  position: static;
 }
 
 .sn__textSuperscript {
-  top: -0.5em;
+  vertical-align: super;
+  font-size: smaller;
 }
 
 .sn__textSubscript {
-  bottom: -0.25em;
+  vertical-align: sub;
+  font-size: smaller;
 }
+
 .sn__textHighlight {
   background-color: #fada5e5e;
   padding: 0 0.2rem;

@@ -44,9 +44,7 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
           }
         // or existing markdown text
         } else if (values.text) {
-          editor.update(() => {
-            $initializeEditorState(editor, values.text)
-          })
+          $initializeEditorState(editor, values.text)
         }
       },
       name: 'editor',

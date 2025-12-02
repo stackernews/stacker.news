@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $createTextNode, $getSelection, $isRangeSelection, $isTextNode, $isLineBreakNode, $isParagraphNode } from 'lexical'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 
 function extractTextUpToCursor (selection) {
   const anchor = selection.anchor
@@ -34,6 +34,8 @@ function extractTextUpToCursor (selection) {
 }
 
 function checkForMentionPattern (text) {
+  if (!text) return null
+
   const mentionRegex = /(^|\s|\()([@~]\w{0,75})$/
   const match = mentionRegex.exec(text)
 
@@ -51,6 +53,7 @@ function checkForMentionPattern (text) {
 export default function useUniversalAutocomplete () {
   const [editor] = useLexicalComposerContext()
   const [entityData, setEntityData] = useState(null)
+  const matchLengthRef = useRef(0)
 
   const handleSelect = useCallback((item, isUser) => {
     editor.update(() => {
@@ -64,7 +67,7 @@ export default function useUniversalAutocomplete () {
       if ($isTextNode(anchorNode)) {
         const textContent = anchorNode.getTextContent()
         const cursorOffset = anchor.offset
-        const matchLength = entityData.matchLength
+        const matchLength = matchLengthRef.current
 
         // split text node
         const beforeMatch = textContent.slice(0, cursorOffset - matchLength)
@@ -95,38 +98,53 @@ export default function useUniversalAutocomplete () {
     })
 
     setEntityData(null)
-  }, [editor, entityData])
+  }, [editor])
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
+      let match = null
+
       editorState.read(() => {
         const selection = $getSelection()
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-          setEntityData(null)
           return
         }
 
         const textUpToCursor = extractTextUpToCursor(selection)
-        const match = checkForMentionPattern(textUpToCursor)
+        match = checkForMentionPattern(textUpToCursor)
+      })
 
-        if (match) {
-          // calculate dropdown position from DOM
-          const domSelection = window.getSelection()
-          const range = domSelection.getRangeAt(0)
-          const rect = range.getBoundingClientRect()
+      if (!match) {
+        setEntityData(null)
+        return
+      }
 
-          setEntityData({
-            query: match.query,
-            isUser: match.isUser,
-            matchLength: match.matchingString.length,
-            style: {
-              position: 'absolute',
-              top: `${rect.bottom + window.scrollY}px`,
-              left: `${rect.left + window.scrollX}px`
-            }
-          })
-        } else {
-          setEntityData(null)
+      // calculate dropdown position from DOM
+      const domSelection = window.getSelection()
+      if (!domSelection || domSelection.rangeCount === 0) {
+        setEntityData(null)
+        return
+      }
+
+      const range = domSelection.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+
+      // rect validation
+      if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0) {
+        setEntityData(null)
+        return
+      }
+
+      matchLengthRef.current = match.matchingString.length
+
+      setEntityData({
+        query: match.query,
+        isUser: match.isUser,
+        matchLength: match.matchingString.length,
+        style: {
+          position: 'absolute',
+          top: `${rect.bottom + window.scrollY}px`,
+          left: `${rect.left + window.scrollX}px`
         }
       })
     })

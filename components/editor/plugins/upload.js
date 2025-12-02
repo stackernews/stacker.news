@@ -25,7 +25,7 @@ export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
  * plugin that handles file uploads with progress tracking and fee calcs
  * @returns {JSX.Element} hidden file upload input component
  */
-export default function FileUploadPlugin ({ anchorElem = document.body }) {
+export default function FileUploadPlugin ({ editorRef }) {
   const [editor] = useLexicalComposerContext()
   const placeholdersRef = useRef(new Map())
   const fileInputRef = useRef(null)
@@ -191,6 +191,8 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
         },
         COMMAND_PRIORITY_LOW
       ),
+      // TODO: this doesn't handle selection, won't create a selection
+      // use MediaNode DnD to figure this out
       editor.registerCommand(
         DROP_COMMAND,
         (e) => {
@@ -217,16 +219,16 @@ export default function FileUploadPlugin ({ anchorElem = document.body }) {
       }
     }
 
-    if (anchorElem) {
-      anchorElem.addEventListener('dragleave', onDragLeave)
+    if (editorRef) {
+      editorRef.addEventListener('dragleave', onDragLeave)
     }
     return () => {
       unregisters()
-      if (anchorElem) {
-        anchorElem.removeEventListener('dragleave', onDragLeave)
+      if (editorRef) {
+        editorRef.removeEventListener('dragleave', onDragLeave)
       }
     }
-  }, [editor, anchorElem])
+  }, [editor, editorRef])
 
   useEffect(() => {
     return () => {

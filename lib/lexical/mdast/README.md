@@ -375,7 +375,7 @@ importMarkdownToLexical({
 ## file structure
 
 ```
-lib/lexical-markdown/
+lib/lexical/mdast/
   index.js                      # main exports
   importMarkdownToLexical.js    # mdast → lexical core
   exportMarkdownFromLexical.js  # lexical → mdast core

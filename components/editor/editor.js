@@ -64,11 +64,11 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
  * @returns {JSX.Element} editor content with all plugins
  */
 function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
-  const [floatingAnchorElem, setFloatingAnchorElem] = useState(null)
+  const [editorRef, setEditorRef] = useState(null)
 
-  const onRef = (_floatingAnchorElem) => {
-    if (_floatingAnchorElem !== null) {
-      setFloatingAnchorElem(_floatingAnchorElem)
+  const onRef = (_editorRef) => {
+    if (_editorRef !== null) {
+      setEditorRef(_editorRef)
     }
   }
 
@@ -88,8 +88,8 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
-        {floatingAnchorElem && <PreviewPlugin editorRef={floatingAnchorElem} topLevel={topLevel} />}
-        <FileUploadPlugin anchorElem={floatingAnchorElem} />
+        {editorRef && <PreviewPlugin editorRef={editorRef} topLevel={topLevel} />}
+        <FileUploadPlugin editorRef={editorRef} />
         <MentionsPlugin />
         <MaxLengthPlugin lengthOptions={lengthOptions} />
         <LocalDraftPlugin name={name} />

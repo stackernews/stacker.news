@@ -113,6 +113,7 @@ export default gql`
     noteMentions: Boolean!
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
+    proxyEmbeds: Boolean!
     tipDefault: Int!
     tipRandomMin: Int
     tipRandomMax: Int
@@ -188,6 +189,7 @@ export default gql`
     noteMentions: Boolean!
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
+    proxyEmbeds: Boolean!
     tipDefault: Int!
     tipRandom: Boolean!
     tipRandomMin: Int

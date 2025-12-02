@@ -32,19 +32,9 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: (editor) => {
-        // existing lexical state
-        if (values.lexicalState) {
-          try {
-            const state = editor.parseEditorState(values.lexicalState)
-            if (!state.isEmpty()) {
-              editor.setEditorState(state)
-            }
-          } catch (error) {
-            console.error('failed to load initial state:', error)
-          }
-        // or existing markdown text
-        } else if (values.text) {
-          $initializeEditorState(editor, values.text)
+        // initialize editor state with appendValue or existing formik text
+        if (appendValue || values.text) {
+          $initializeEditorState(editor, appendValue ?? values.text)
         }
       },
       name: 'editor',

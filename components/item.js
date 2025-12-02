@@ -79,7 +79,7 @@ export function ProxyLink ({ url, rel, text }) {
         target='_blank'
         title={title}
         href={proxy.href}
-        rel={rel}
+        rel={rel ?? UNKNOWN_LINK_REL}
         data-proxy-link='true'
       >
         {text ?? title}
@@ -99,17 +99,16 @@ function ItemLink ({ url, rel }) {
       )
     }
 
-    const linkRel = rel ?? UNKNOWN_LINK_REL
     return (
       <>
         {/* eslint-disable-next-line */}
         <a
           className={styles.link} target='_blank' href={url}
-          rel={linkRel}
+          rel={rel ?? UNKNOWN_LINK_REL}
         >
           {url.replace(/(^https?:|^)\/\//, '')}
         </a>
-        <ProxyLink url={url} rel={linkRel} text='[proxy]' />
+        <ProxyLink url={url} rel={rel} text='[proxy]' />
       </>
     )
   } catch {

@@ -62,12 +62,14 @@ function mediaType ({ url, imgproxyUrls }) {
   return imgproxyUrls?.[src]?.video ? 'video' : 'image'
 }
 
-export function ProxyLink ({ url, rel }) {
+export function ProxyLink ({ url, rel, text }) {
   const { me } = useMe()
   if (!me?.privates?.proxyEmbeds) return null
 
   const proxy = proxyEmbedUrl(url)
   if (!proxy) return null
+
+  const title = `view ${proxy.provider} on ${proxy.service}`
 
   return (
     <sup>
@@ -75,12 +77,12 @@ export function ProxyLink ({ url, rel }) {
       <a
         className={styles.link}
         target='_blank'
-        title={`view ${proxy.provider} on ${proxy.service}`}
+        title={title}
         href={proxy.href}
         rel={rel}
         data-proxy-link='true'
       >
-        [proxy]
+        {text ?? title}
       </a>
     </sup>
   )
@@ -107,7 +109,7 @@ function ItemLink ({ url, rel }) {
         >
           {url.replace(/(^https?:|^)\/\//, '')}
         </a>
-        <ProxyLink url={url} rel={linkRel} />
+        <ProxyLink url={url} rel={linkRel} text='[proxy]' />
       </>
     )
   } catch {

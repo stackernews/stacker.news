@@ -1,12 +1,10 @@
-import { memo, useEffect, useRef, useState, useMemo } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import classNames from 'classnames'
 import useDarkMode from './dark-mode'
 import styles from './text.module.css'
 import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
-import { useMe } from './me'
-import { proxyEmbedUrl } from '@/lib/url'
 import { ProxyLink } from './item'
 
 function TweetSkeleton ({ className }) {
@@ -121,12 +119,9 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
 }
 
 const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
-  const { me } = useMe()
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(true)
   const [show, setShow] = useState(false)
-
-  const proxy = useMemo(() => me?.privates?.proxyEmbeds && proxyEmbedUrl(src, provider), [me?.privates?.proxyEmbeds, src, provider])
 
   // This Twitter embed could use similar logic to the video embeds below
   if (provider === 'twitter') {
@@ -145,7 +140,7 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
               show full tweet
             </Button>}
         </div>
-        {proxy && <ProxyLink url={src} provider={provider} />}
+        <ProxyLink url={src} provider={provider} />
       </>
     )
   }

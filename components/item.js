@@ -62,11 +62,11 @@ function mediaType ({ url, imgproxyUrls }) {
   return imgproxyUrls?.[src]?.video ? 'video' : 'image'
 }
 
-export function ProxyLink ({ url, rel, text }) {
+export function ProxyLink ({ url, rel, text, provider }) {
   const { me } = useMe()
   if (!me?.privates?.proxyEmbeds) return null
 
-  const proxy = proxyEmbedUrl(url)
+  const proxy = proxyEmbedUrl(url, provider)
   if (!proxy) return null
 
   const title = `view ${proxy.provider} on ${proxy.service}`

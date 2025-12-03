@@ -161,6 +161,7 @@ export class SNHeadingNode extends HeadingNode {
   }
 }
 
+// will also be used internally by Lexical, signature should then match HeadingNode
 export function $createSNHeadingNode (tag = 'h1') {
   return $applyNodeReplacement(new SNHeadingNode(tag))
 }

@@ -1,6 +1,7 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents'
 import { placeholderNode } from './placeholder'
+import { $applyNodeReplacement } from 'lexical'
 
 export function $convertEmbedElement (domNode) {
   const provider = domNode.getAttribute('data-lexical-embed-provider')
@@ -19,7 +20,7 @@ export function $convertEmbedElement (domNode) {
     }
   }
 
-  const node = $createEmbedNode(provider, src, id, meta)
+  const node = $createEmbedNode({ provider, src, id, meta })
   return { node }
 }
 
@@ -45,7 +46,7 @@ export class EmbedNode extends DecoratorBlockNode {
 
   static importJSON (serializedNode) {
     const { provider, src, id, meta } = serializedNode
-    return $createEmbedNode(provider, src, id, meta)
+    return $createEmbedNode({ provider, src, id, meta })
   }
 
   static importDOM () {
@@ -153,8 +154,8 @@ export class EmbedNode extends DecoratorBlockNode {
   }
 }
 
-export function $createEmbedNode (provider = null, src = null, id = null, meta = null) {
-  return new EmbedNode(provider, src, id, meta)
+export function $createEmbedNode ({ provider, src, id, meta }) {
+  return $applyNodeReplacement(new EmbedNode(provider, src, id, meta))
 }
 
 export function $isEmbedNode (node) {

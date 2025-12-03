@@ -5,7 +5,7 @@ function $convertTerritoryMentionElement (domNode) {
   const territoryName = domNode.getAttribute('data-lexical-territory-mention-name')
 
   if (textContent !== null) {
-    const node = $createTerritoryMentionNode(territoryName || textContent, textContent)
+    const node = $createTerritoryMentionNode({ name: territoryName || textContent })
     return { node }
   }
 
@@ -14,34 +14,34 @@ function $convertTerritoryMentionElement (domNode) {
 
 // TODO: support path like item and user mentions
 export class TerritoryMentionNode extends DecoratorNode {
-  __territoryMentionName
+  __name
 
   static getType () {
     return 'territory-mention'
   }
 
-  getTerritoryMentionName () {
-    return this.__territoryMentionName
+  getName () {
+    return this.__name
   }
 
   static clone (node) {
-    return new TerritoryMentionNode(node.__territoryMentionName, node.__key)
+    return new TerritoryMentionNode(node.__name, node.__key)
   }
 
   static importJSON (serializedNode) {
-    return $createTerritoryMentionNode(serializedNode.territoryMentionName)
+    return $createTerritoryMentionNode({ name: serializedNode.name })
   }
 
-  constructor (territoryMentionName, key) {
+  constructor (name, key) {
     super(key)
-    this.__territoryMentionName = territoryMentionName
+    this.__name = name
   }
 
   exportJSON () {
     return {
       type: 'territory-mention',
       version: 1,
-      territoryMentionName: this.__territoryMentionName
+      name: this.__name
     }
   }
 
@@ -53,7 +53,7 @@ export class TerritoryMentionNode extends DecoratorNode {
       domNode.className = className
     }
     domNode.setAttribute('data-lexical-territory-mention', true)
-    domNode.setAttribute('data-lexical-territory-mention-name', this.__territoryMentionName)
+    domNode.setAttribute('data-lexical-territory-mention-name', this.__name)
     return domNode
   }
 
@@ -66,10 +66,10 @@ export class TerritoryMentionNode extends DecoratorNode {
     if (className !== undefined) {
       wrapper.className = className
     }
-    wrapper.setAttribute('data-lexical-territory-mention-name', this.__territoryMentionName)
+    wrapper.setAttribute('data-lexical-territory-mention-name', this.__name)
     const a = document.createElement('a')
-    a.setAttribute('href', '/~' + encodeURIComponent(this.__territoryMentionName.toString()))
-    a.textContent = '~' + this.__territoryMentionName
+    a.setAttribute('href', '/~' + encodeURIComponent(this.__name.toString()))
+    a.textContent = '~' + this.__name
     wrapper.appendChild(a)
     return { element: wrapper }
   }
@@ -92,7 +92,7 @@ export class TerritoryMentionNode extends DecoratorNode {
   }
 
   decorate () {
-    const name = this.__territoryMentionName
+    const name = this.__name
     const href = '/~' + name
     const SubPopover = require('@/components/sub-popover').default
     const Link = require('next/link').default
@@ -104,8 +104,8 @@ export class TerritoryMentionNode extends DecoratorNode {
   }
 }
 
-export function $createTerritoryMentionNode (territoryMentionName) {
-  return $applyNodeReplacement(new TerritoryMentionNode(territoryMentionName))
+export function $createTerritoryMentionNode ({ name }) {
+  return $applyNodeReplacement(new TerritoryMentionNode(name))
 }
 
 export function $isTerritoryMentionNode (node) {

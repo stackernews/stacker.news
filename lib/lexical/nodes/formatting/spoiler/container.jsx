@@ -4,14 +4,15 @@ import {
   $isElementNode,
   $rewindSiblingCaret,
   ElementNode,
-  isHTMLElement
+  isHTMLElement,
+  $applyNodeReplacement
 } from 'lexical'
 
 import { setDomHiddenUntilFound } from './utils'
 
 export function $convertDetailsElement (domNode) {
   const isOpen = domNode.open !== undefined ? domNode.open : true
-  const node = $createSpoilerContainerNode(isOpen)
+  const node = $createSpoilerContainerNode({ isOpen })
   return {
     node
   }
@@ -116,7 +117,7 @@ export class SpoilerContainerNode extends ElementNode {
   }
 
   static importJSON (serializedNode) {
-    return $createSpoilerContainerNode(serializedNode.open).updateFromJSON(
+    return $createSpoilerContainerNode({ isOpen: serializedNode.open }).updateFromJSON(
       serializedNode
     )
   }
@@ -148,8 +149,8 @@ export class SpoilerContainerNode extends ElementNode {
   }
 }
 
-export function $createSpoilerContainerNode (isOpen) {
-  return new SpoilerContainerNode(isOpen)
+export function $createSpoilerContainerNode ({ isOpen = true } = {}) {
+  return $applyNodeReplacement(new SpoilerContainerNode(isOpen))
 }
 
 export function $isSpoilerContainerNode (node) {

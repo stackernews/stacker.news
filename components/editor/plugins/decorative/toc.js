@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { buildNestedTocStructure } from '@/lib/lexical/nodes/misc/toc'
+import { buildNestedTocStructure } from '@/lib/lexical/utils/toc'
 
 /**
  * recursively renders table of contents items with nested structure

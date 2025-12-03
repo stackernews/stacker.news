@@ -158,7 +158,7 @@ function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
     : item.lexicalState
-      ? <Text lexicalState={item.lexicalState} html={item.html} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} />
+      ? <Text state={item.lexicalState} html={item.html} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} />
       : <LegacyText itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</LegacyText>
 }
 

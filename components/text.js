@@ -109,7 +109,7 @@ export function useOverflow ({ element, truncated = false }) {
 }
 
 // TODO: revisit
-export default function Text ({ markdown, topLevel, rel = UNKNOWN_LINK_REL, children, ...props }) {
+export default function Text ({ topLevel, children, ...props }) {
   const [element, setElement] = useState(null)
   const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
 
@@ -132,10 +132,8 @@ export default function Text ({ markdown, topLevel, rel = UNKNOWN_LINK_REL, chil
 
   return (
     <SNReader
-      markdown={markdown}
       className={textClassNames}
       ref={setElement}
-      rel={rel}
       topLevel={topLevel}
       {...props}
     >

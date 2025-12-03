@@ -17,7 +17,7 @@ import { gql, useLazyQuery } from '@apollo/client'
 import { numWithUnits } from '@/lib/format'
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import useDebounceCallback from '@/components/use-debounce-callback'
-import styles from '@/components/editor/theme/editor.module.css'
+import styles from '@/lib/lexical/theme/editor.module.css'
 
 export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
 
@@ -60,12 +60,10 @@ export default function FileUploadPlugin ({ editorRef }) {
     }
   })
 
-  // todo: this is too messy
-  // instant version for onSuccess
+  // extracts S3 keys from text and updates upload fees
   const $refreshUploadFees = useCallback(() => {
-    let s3Keys = []
     const text = $getRoot().getTextContent() || ''
-    s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
+    const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
     updateUploadFees({ variables: { s3Keys } })
   }, [updateUploadFees])
 
@@ -76,49 +74,39 @@ export default function FileUploadPlugin ({ editorRef }) {
     })
   }, 1000, [$refreshUploadFees])
 
+  // helper to replace placeholder text in editor
+  const replacePlaceholder = useCallback((placeholder, newText) => {
+    editor.update(() => {
+      let text = $getRoot().getTextContent() || ''
+      text = text.replace(placeholder, newText)
+      $selectAll()
+      const selection = $getSelection()
+      if ($isRangeSelection(selection)) {
+        selection.insertText(text)
+      }
+    }, { tag: 'history-merge' })
+  }, [editor])
+
   const onUpload = useCallback((file) => {
     editor.update(() => {
       const selection = $getSelection()
-      const identifier = Math.random().toString(36).substring(2, 8)
-      selection.insertText(`\n\n![Uploading ${file.name}…](${identifier})`)
-      placeholdersRef.current.set(file, identifier)
+      selection.insertText(`\n\n![Uploading ${file.name}…]()`)
     }, { tag: 'history-merge' })
     setSubmitDisabled?.(true)
   }, [editor, setSubmitDisabled])
 
-  const onSuccess = useCallback(({ url, name, id, file }) => {
-    const identifier = placeholdersRef.current.get(file)
-    if (!identifier) return
-    editor.update(() => {
-      placeholdersRef.current.delete(file)
-      let text = $getRoot().getTextContent() || ''
-      text = text.replace(`![Uploading ${name}…](${identifier})`, `![](${url})`)
-      $selectAll()
-      const selection = $getSelection()
-      if ($isRangeSelection(selection)) {
-        selection.insertText(text)
-      }
-    }, { tag: 'history-merge' })
-    // refresh upload fees after the update is complete
+  const onSuccess = useCallback(({ url, name, file }) => {
+    replacePlaceholder(`![Uploading ${name}…]()`, `![](${url})`)
+
+    // refresh upload fees
     editor.read(() => $refreshUploadFees())
     setSubmitDisabled?.(false)
-  }, [editor, setSubmitDisabled])
+  }, [editor, replacePlaceholder, $refreshUploadFees, setSubmitDisabled])
 
   const onError = useCallback(({ file }) => {
-    const identifier = placeholdersRef.current.get(file)
-    if (!identifier) return
-    editor.update(() => {
-      placeholdersRef.current.delete(file)
-      let text = $getRoot().getTextContent() || ''
-      text = text.replace(`![Uploading ${file.name}…](${identifier})`, '')
-      $selectAll()
-      const selection = $getSelection()
-      if ($isRangeSelection(selection)) {
-        selection.insertText(text)
-      }
-    }, { tag: 'history-merge' })
+    replacePlaceholder(`![Uploading ${file.name}…]()`, '')
     setSubmitDisabled?.(false)
-  }, [editor, setSubmitDisabled])
+  }, [replacePlaceholder, setSubmitDisabled])
 
   useEffect(() => {
     return mergeRegister(

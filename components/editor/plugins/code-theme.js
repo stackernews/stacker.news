@@ -11,7 +11,7 @@ export function CodeThemePlugin () {
   const theme = darkMode ? 'github-dark-default' : 'github-light-default'
 
   useEffect(() => {
-    return editor.dispatchCommand(UPDATE_CODE_THEME_COMMAND, theme)
+    editor.dispatchCommand(UPDATE_CODE_THEME_COMMAND, theme)
   }, [editor, darkMode, theme])
 
   return null

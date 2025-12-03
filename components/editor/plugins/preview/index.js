@@ -3,7 +3,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { createCommand, COMMAND_PRIORITY_CRITICAL } from 'lexical'
 import { useFormikContext } from 'formik'
 import Reader from '../../reader'
-import styles from '@/components/editor/theme/editor.module.css'
+import styles from '@/lib/lexical/theme/editor.module.css'
 import { useToolbarState } from '../../contexts/toolbar'
 import classNames from 'classnames'
 

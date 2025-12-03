@@ -5,24 +5,24 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { TableExtension } from '@lexical/table'
-import theme from './theme'
+import theme from '../../lib/lexical/theme'
 import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { markdownToLexical } from '@/lib/lexical/utils/mdast'
 
-const initiateLexical = (editor, lexicalState, markdown) => {
-  if (markdown) {
-    markdownToLexical(editor, markdown)
+const initiateLexical = (editor, state, text) => {
+  if (text) {
+    markdownToLexical(editor, text)
     return
   }
 
-  if (lexicalState) {
+  if (state) {
     try {
-      const state = editor.parseEditorState(lexicalState)
+      const lexicalState = editor.parseEditorState(state)
 
-      if (!state.isEmpty()) {
-        editor.setEditorState(state)
+      if (!lexicalState.isEmpty()) {
+        editor.setEditorState(lexicalState)
       }
     } catch (error) {
       console.error(error)
@@ -30,7 +30,7 @@ const initiateLexical = (editor, lexicalState, markdown) => {
   }
 }
 
-export default forwardRef(function Reader ({ className, contentRef, topLevel, lexicalState, markdown, children }, ref) {
+export default forwardRef(function Reader ({ className, contentRef, topLevel, state, text, children }, ref) {
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -47,9 +47,9 @@ export default forwardRef(function Reader ({ className, contentRef, topLevel, le
         ...theme,
         topLevel: topLevel && 'sn__topLevel'
       },
-      $initialEditorState: (editor) => initiateLexical(editor, lexicalState, markdown),
+      $initialEditorState: (editor) => initiateLexical(editor, state, text),
       onError: (error) => console.error(error)
-    }), [topLevel, markdown])
+    }), [topLevel, text])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>

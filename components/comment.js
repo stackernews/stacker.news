@@ -287,7 +287,7 @@ export default function Comment ({
                 {item.searchText
                   ? <SearchText text={item.searchText} />
                   : item.lexicalState
-                    ? <Text lexicalState={item.lexicalState} html={item.html} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} />
+                    ? <Text state={item.lexicalState} html={item.html} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} />
                     : (
                       <LegacyText itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
                         {item.outlawed && !me?.privates?.wildWestMode

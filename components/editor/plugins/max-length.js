@@ -6,7 +6,6 @@ import { $restoreEditorState } from '@lexical/utils'
 import { MAX_POST_TEXT_LENGTH } from '@/lib/constants'
 
 function getRemaining (editor, maxLength) {
-  console.log('getRemaining', maxLength)
   return editor.getEditorState().read(() => {
     const root = $getRoot()
     const textContentSize = root ? root.getTextContentSize() : 0
@@ -26,8 +25,6 @@ export function MaxLengthPlugin ({ lengthOptions = {} }) {
   // if no limit is set, MAX_POST_TEXT_LENGTH is used
   // rendering is disabled if not requested
   const { maxLength = MAX_POST_TEXT_LENGTH, show = false } = lengthOptions
-
-  console.log('MaxLengthPlugin', maxLength, show)
 
   // track remaining characters with state so it updates on editor changes
   const [remaining, setRemaining] = useState(() => {

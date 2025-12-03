@@ -61,9 +61,10 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
  * @param {string} props.placeholder - placeholder text for empty editor
  * @param {Object} props.lengthOptions - max length configuration
  * @param {boolean} props.topLevel - whether this is a top-level editor
+ * @param {boolean} props.required - whether the field is required
  * @returns {JSX.Element} editor content with all plugins
  */
-function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
+function EditorContent ({ name, placeholder, lengthOptions, topLevel, required }) {
   const [editorRef, setEditorRef] = useState(null)
 
   const onRef = (_editorRef) => {
@@ -83,6 +84,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel }) {
               <ContentEditable
                 className={classNames(styles.editorInput, 'sn__text', topLevel && 'sn__topLevel')}
                 placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
+                aria-required={required}
               />
             </div>
           }

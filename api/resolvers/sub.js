@@ -214,7 +214,7 @@ export default {
 
       // QUIRK
       // if we have a lexicalState, we'll convert it to markdown to fit the schema
-      data.lexicalState = await prepareLexicalState({ text: data.desc })
+      data.lexicalState = await prepareLexicalState({ text: data.desc }, { checkMedia: false })
       if (!data.lexicalState) {
         throw new GqlInputError('failed to process content')
       }

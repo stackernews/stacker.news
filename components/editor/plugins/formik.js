@@ -4,9 +4,7 @@ import { useField } from 'formik'
 import { $initializeEditorState, $isMarkdownEmpty } from '@/lib/lexical/utils'
 import { $getRoot } from 'lexical'
 
-// TODO: check if we're doing too much by preparing markdown on each keystroke
-// we may also already have prepareMarkdown in the server-side interpolator
-/** syncs lexical editor state with formik form field values */
+/** syncs lexical with formik values */
 export default function FormikBridgePlugin () {
   const [editor] = useLexicalComposerContext()
   const [textField,, textHelpers] = useField({ name: 'text' })

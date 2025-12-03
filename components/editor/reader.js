@@ -9,11 +9,11 @@ import theme from './theme'
 import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
-import { setMarkdown } from '@/lib/lexical/utils/mdast'
+import { markdownToLexical } from '@/lib/lexical/utils/mdast'
 
 const initiateLexical = (editor, lexicalState, markdown) => {
   if (markdown) {
-    setMarkdown(editor, markdown)
+    markdownToLexical(editor, markdown)
     return
   }
 

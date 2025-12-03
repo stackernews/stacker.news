@@ -42,6 +42,7 @@ import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
 import { untrackOldItems } from './untrackOldItems'
 import { distributedMigration, migratePartition, migrateLegacyContent } from './lexical/migrate'
+import { mediaCheck } from './lexical/mediaCheck'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
@@ -129,6 +130,8 @@ async function work () {
   if (isServiceEnabled('images')) {
     await boss.work('imgproxy', jobWrapper(imgproxy))
     await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
+    // lexical media check job
+    await boss.work('mediaCheck', jobWrapper(mediaCheck))
   }
   // lexical migration jobs
   await boss.work('migrateLegacyContent', jobWrapper(migrateLegacyContent))

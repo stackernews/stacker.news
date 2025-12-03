@@ -39,7 +39,7 @@ export class ItemMentionNode extends DecoratorNode {
   }
 
   static importJSON (serializedNode) {
-    return $createItemMentionNode(serializedNode.itemMentionId, serializedNode.text, serializedNode.url)
+    return $createItemMentionNode({ id: serializedNode.itemMentionId, text: serializedNode.text, url: serializedNode.url })
   }
 
   constructor (itemMentionId, text, url, key) {

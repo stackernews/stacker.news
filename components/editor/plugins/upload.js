@@ -98,7 +98,6 @@ export default function FileUploadPlugin ({ editorRef }) {
       if ($isRangeSelection(selection)) {
         selection.insertText(text)
       }
-      console.log('onSuccess markdown', text)
     }, { tag: 'history-merge' })
     // refresh upload fees after the update is complete
     editor.read(() => $refreshUploadFees())
@@ -151,14 +150,12 @@ export default function FileUploadPlugin ({ editorRef }) {
         (e) => {
           const items = e.clipboardData?.items || []
           if (items.length === 0) return false
-          console.log('paste command', items)
 
           const fileList = new window.DataTransfer()
           let hasImages = false
 
           for (let i = 0; i < items.length; i++) {
             const item = items[i]
-            console.log('item', item)
             if (item.type.startsWith('image')) {
               const blob = item.getAsFile()
               const file = new File([blob], 'image', { type: blob.type })
@@ -168,14 +165,12 @@ export default function FileUploadPlugin ({ editorRef }) {
           }
 
           if (hasImages) {
-            console.log('has images', hasImages)
             e.preventDefault()
             const changeEvent = new Event('change', { bubbles: true })
             fileInputRef.current.files = fileList.files
             fileInputRef.current.dispatchEvent(changeEvent)
           }
 
-          console.log('return', hasImages)
           return hasImages
         },
         COMMAND_PRIORITY_LOW
@@ -201,11 +196,9 @@ export default function FileUploadPlugin ({ editorRef }) {
           if (rootElement) {
             rootElement.classList.remove(styles.dragOver)
           }
-          console.log('drop command', e.dataTransfer.files)
           const changeEvent = new Event('change', { bubbles: true })
           fileInputRef.current.files = e.dataTransfer.files
           fileInputRef.current.dispatchEvent(changeEvent)
-          console.log('return', e.dataTransfer.files)
           return true
         },
         COMMAND_PRIORITY_LOW

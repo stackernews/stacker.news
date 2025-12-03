@@ -26,7 +26,7 @@ markdown string
 ## how to handle markdown transformations
 
 ```javascript
-const mentionTransform = createMentionTransform()
+import { mentionTransform } from './transforms/mentions.js'
 
 function setMarkdown (editor, markdown) {
   editor.update(() => {
@@ -39,9 +39,7 @@ function setMarkdown (editor, markdown) {
       visitors: importVisitors,
       syntaxExtensions: [],      // micromark extensions
       mdastExtensions: [],       // mdast-util extensions
-      mdastTransforms: [         // tree transforms (that run after parsing)
-        mentionTransform
-      ]
+      mdastTransforms: [mentionTransform]
     })
   })
 }
@@ -211,53 +209,47 @@ export const LexicalEmbedVisitor = {
 
 ## mdast transforms
 
-transforms modify the mdast tree after parsing but before visitor traversal. useful for:
-- custom syntax that conflicts with standard markdown (like `~territory` vs `~strikethrough~`)
-- post-processing parsed content
-- injecting custom node types
+transforms still run after parsing but before visitor traversal. we now lean on `mdast-util-find-and-replace`, which wraps all the `visit` boilerplate for us. it keeps the code small while still letting us ignore specific node types (code blocks, inline code, etc.) and emit custom nodes.
 
-### creating a transform with Unist
-
-**WIP: this might not be the best way to present a mentionTransform**
+### example: mentions with `findAndReplace`
 
 ```javascript
-import { visit, SKIP } from 'unist-util-visit'
+import { findAndReplace } from 'mdast-util-find-and-replace'
 
-export function createMentionTransform () {
-  return function mentionTransform (tree) {
-    visit(tree, 'text', (node, index, parent) => {
-      // skip text inside code blocks
-      if (parent?.type === 'code' || parent?.type === 'inlineCode') {
-        return SKIP
-      }
+const USER = /\B@[a-z0-9_]+(?:\/[a-z0-9_/]+)?/gi
+const TERRITORY = /~[a-z][\w_]+/gi
 
-      // find mentions in text
-      const parts = node.value.split(/(@\w+)/g)
-      if (parts.length === 1) return
-
-      // replace text node with multiple nodes
-      const newNodes = parts.filter(Boolean).map(part => {
-        if (part.startsWith('@')) {
-          return { type: 'userMention', value: { name: part.slice(1) } }
+export function mentionTransform (tree) {
+  findAndReplace(
+    tree,
+    [
+      [
+        USER,
+        (value) => {
+          const [name, ...pathParts] = value.slice(1).split('/')
+          return {
+            type: 'userMention',
+            value: { name, path: pathParts.length ? '/' + pathParts.join('/') : '' }
+          }
         }
-        return { type: 'text', value: part }
-      })
-
-      parent.children.splice(index, 1, ...newNodes)
-      return SKIP  // don't revisit inserted nodes
-    })
-  }
+      ],
+      [
+        TERRITORY,
+        (value) => ({
+          type: 'territoryMention',
+          value: value.slice(1)
+        })
+      ]
+    ],
+    { ignore: ['code', 'inlineCode'] }
+  )
 }
 ```
 
-### using transforms
-
-**WIP: this might not be the best way to use mentionTransform**
+and wire it up:
 
 ```javascript
-import { createMentionTransform } from './transforms/mentions'
-
-const mentionTransform = createMentionTransform()
+import { mentionTransform } from './transforms/mentions'
 
 importMarkdownToLexical({
   root,
@@ -267,14 +259,11 @@ importMarkdownToLexical({
 })
 ```
 
-### why unist transforms instead of micromark extensions
+this is extremely similar to what we do with rehypeSN (lib/rehype-sn.js):
+1. scan text nodes
+2. inject custom nodes
 
-| approach | pros | cons |
-|----------|------|------|
-| mdast transform | simple regex, no conflicts, easy to test | extra tree pass |
-| micromark extension | single parse pass, context-aware | complex state machine, can conflict |
-
-as said before, we can use transforms for custom syntax that might conflict with standard markdown (like `~territory` vs `~strikethrough~`).
+the key difference is that we're not working with an HTML (HAST) pipeline, instead we're running this post-processing on the MDAST tree, leaning on a well-established helper (findAndReplace) without having to do Unist visits by hand.
 
 ## adding new features
 

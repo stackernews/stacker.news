@@ -37,7 +37,7 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
   return (
     <div className={styles.previewWrapper}>
       <Reader
-        markdown={values.text}
+        text={values.text}
         className={classNames(styles.editorInput, 'sn__text', topLevel && 'sn__topLevel')}
         topLevel={topLevel}
       />

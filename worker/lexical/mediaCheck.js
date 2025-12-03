@@ -28,12 +28,20 @@ async function patchMedia (lexicalState) {
 }
 
 export async function mediaCheck ({ data: { id }, models }) {
-  const item = await models.item.findUnique({ where: { id }, select: { lexicalState: true } })
+  const item = await models.item.findUnique({ where: { id }, select: { lexicalState: true, updatedAt: true } })
   if (!item?.lexicalState) return null
 
   const newLexicalState = await patchMedia(item.lexicalState)
   if (!newLexicalState) return null
 
   const html = lexicalHTMLGenerator(newLexicalState)
-  await models.item.update({ where: { id }, data: { lexicalState: newLexicalState, html } })
+
+  const result = await models.item.updateMany({
+    where: { id, updatedAt: item.updatedAt },
+    data: { lexicalState: newLexicalState, html }
+  })
+
+  if (result.count === 0) {
+    console.warn(`[mediaCheck] item ${id} was updated by another process, skipping update`)
+  }
 }

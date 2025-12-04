@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Form, Input, MarkdownInput } from '@/components/form'
+import { Form, Input, SNInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
@@ -161,7 +161,7 @@ export function LinkForm ({ item, sub, EditInfo, children }) {
         }}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
-        <MarkdownInput
+        <SNInput
           label='context'
           name='text'
           minRows={2}

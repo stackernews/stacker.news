@@ -9,6 +9,7 @@
   position: relative;
   max-height: 200vh;
   --grid-gap: 0.5rem;
+  line-height: 140%;
 }
 
 .sn__text p {
@@ -94,7 +95,7 @@
 
 @media screen and (min-width: 767px) {
   .sn__text {
-    line-height: 130% !important;
+    line-height: 130%;
   }
 }
 

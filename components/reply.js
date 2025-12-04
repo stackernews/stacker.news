@@ -146,6 +146,7 @@ export default forwardRef(function Reply ({
                 name='text'
                 autoFocus={!replyOpen}
                 required
+                minRows={6}
                 appendValue={quote}
                 lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
                 placeholder={placeholder}

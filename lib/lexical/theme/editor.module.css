@@ -2,13 +2,18 @@
 
 .editor {
   position: relative;
+  border: 1px solid var(--theme-borderColor);
+  border-bottom-left-radius: 0.4rem;
+  border-bottom-right-radius: 0.4rem;
+  border-top-right-radius: 0.4rem;
+  padding: 2px;
+  line-height: 20px;
 }
 
 .editorContainer {
   width: 100%;
   color: var(--theme-color);
   position: relative;
-  line-height: 20px;
   font-weight: 400;
   text-align: left;
   border-top-left-radius: 0.4rem;
@@ -23,31 +28,36 @@
 
 .editorInput {
   caret-color: var(--theme-color);
+  margin-top: -1px;
+  font-size: 94%;
+  line-height: 140%;
   position: relative;
   tab-size: 1;
   outline: 0;
-  padding: 10px;
-  border: 1px solid var(--theme-borderColor);
-  border-bottom-left-radius: 0.4rem;
-  border-bottom-right-radius: 0.4rem;
-  border-top-right-radius: 0.4rem;
+  padding: 8px;
   min-height: 120px;
   resize: vertical;
   overflow: auto;
 }
 
-.editorInput:focus-within {
-  outline: 0;
-  border: 1px solid var(--bs-primary) !important;
-  box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
+@media screen and (min-width: 767px) {
+  .editorInput {
+    line-height: 130%;
+  }
 }
 
-:global([class*="reply"]) .editorInput {
+.editor:has(.editorInput:focus-within) {
+  outline: 0;
+  border: 1px solid var(--bs-primary) !important;
+  box-shadow: 0 0 4px var(--bs-primary);
+}
+
+.editorContainer:not(:global(.sn__topLevel)) .editor {
   border: 1px solid color-mix(in srgb, var(--theme-borderColor) 50%, transparent) !important;
   background-color: var(--theme-commentBg) !important;
 }
 
-:global([class*="reply"]) .editorInput:focus-within {
+.editor:has(.editorInput:focus-within) {
   border: 1px solid var(--bs-primary) !important;
 }
 
@@ -94,6 +104,15 @@
 .bottomBar :global(.dropdown-toggle::after),
 .tableCellActionButtonContainer :global(.dropdown-toggle::after) {
   display: none;
+}
+
+.innerToolbar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+  top: -4px;
 }
 
 .divider {
@@ -322,17 +341,28 @@
   }
 }
 
-/* preview warning icon */
+/* editor mode tabs: a complete mess */
+.modeTabs {
+  padding-top: .2rem;
+  padding-bottom: .3rem;
+  position: relative;
+}
 
-.snPreview {
-  font-size: 16px;
-  font-family: 'lightning';
-  font-weight: 500;
-  margin-right: 8px;
-  margin-top: 4px;
-  gap: 4px;
-  color: var(--bs-danger);
-  filter: drop-shadow(0 0 6px var(--bs-danger));
+.modeTabs:global(.nav-link.active) {
+  border-bottom: 0 !important;
+}
+
+.editorContainer:not(:global(.sn__topLevel)) .modeTabs:global(.nav-link.active) {
+  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 50%, transparent) !important;
+  background-color: var(--theme-forceCommentBg) !important;
+  border-bottom: 0 !important;
+}
+
+.toolbar:has(~ .editor .editorInput:focus-within) .modeTabs:global(.nav-link.active) {
+  border: 1px solid var(--bs-primary) !important;
+  border-bottom: 0 !important;
+  box-shadow: 0 0 4px var(--bs-primary);
+  clip-path: inset(-0.2rem -0.2rem 0.008rem -0.2rem);
 }
 
 /* floating toolbar */

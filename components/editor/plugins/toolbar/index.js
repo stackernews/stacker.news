@@ -3,7 +3,7 @@ import classNames from 'classnames'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { SN_UPLOAD_FILES_COMMAND } from '../upload'
-import ModeSwitcherPlugin from '../switch'
+import ModeSwitchPlugin from './switch'
 import UploadIcon from '@/svgs/editor/toolbar/inserts/upload-paperclip.svg'
 import { useToolbarState } from '../../contexts/toolbar'
 
@@ -13,14 +13,12 @@ export function ToolbarPlugin () {
 
   return (
     <div className={styles.toolbar}>
-      <ModeSwitcherPlugin />
-      {!toolbarState.previewMode && (
-        <div className='ms-auto d-flex align-items-center'>
-          <ToolbarButton id='upload' onClick={() => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)} tooltip='upload files'>
-            <UploadIcon />
-          </ToolbarButton>
-        </div>
-      )}
+      <ModeSwitchPlugin />
+      <div className={styles.innerToolbar} style={{ visibility: toolbarState.previewMode ? 'hidden' : 'visible' }}>
+        <ToolbarButton id='upload' onClick={() => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)} tooltip='upload files'>
+          <UploadIcon />
+        </ToolbarButton>
+      </div>
     </div>
   )
 }

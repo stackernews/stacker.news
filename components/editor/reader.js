@@ -49,7 +49,7 @@ export default forwardRef(function Reader ({ className, contentRef, topLevel, st
       },
       $initialEditorState: (editor) => initiateLexical(editor, state, text),
       onError: (error) => console.error(error)
-    }), [topLevel, text])
+    }), [topLevel, text, state])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>

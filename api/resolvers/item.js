@@ -29,6 +29,7 @@ import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 import pay from '../payIn'
+import { Prisma } from '@prisma/client'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -758,22 +759,44 @@ export default {
       return await models.item.count({ where }) + 1
     },
     boostPosition: async (parent, { id, sub, boost = 0 }, { models, me }) => {
-      const where = {
-        boost: { gte: boost },
-        status: 'ACTIVE',
-        deletedAt: null,
-        outlawed: false,
-        parentId: null
+      const currentUser = me ? await models.user.findUnique({ where: { id: me.id } }) : null
+      const showNsfw = currentUser ? currentUser.nsfwMode : false
+      const homeAggResult = await models.$queryRaw`
+        SELECT COUNT(i.id)::INTEGER as count, MAX(i.boost)::INTEGER as "maxBoost"
+        FROM "Item" i
+        LEFT JOIN "Sub" s ON s.name = i."subName"
+        WHERE i.boost >= ${boost}
+        AND i.status = 'ACTIVE'
+        AND i."deletedAt" IS NULL
+        AND i.outlawed = false
+        AND i."parentId" IS NULL
+        ${id ? Prisma.sql`AND i.id <> ${Number(id)}` : Prisma.empty}
+        ${sub
+          ? Prisma.empty
+          : (showNsfw
+              ? Prisma.empty
+              : Prisma.sql`AND (s.nsfw = false OR s.nsfw IS NULL)`
+            )
+        }
+        ${me && !sub
+          ? Prisma.sql`AND NOT EXISTS (
+            SELECT 1 FROM "MuteSub" 
+            WHERE "MuteSub"."userId" = ${me.id} 
+            AND "MuteSub"."subName" = i."subName"
+          )`
+          : Prisma.empty}
+        ${me
+          ? Prisma.sql`AND NOT EXISTS (
+            SELECT 1 FROM "Mute" 
+            WHERE "Mute"."muterId" = ${me.id} 
+            AND "Mute"."mutedId" = i."userId"
+          )`
+          : Prisma.empty}
+      `
+      const homeAgg = {
+        _count: { id: homeAggResult[0]?.count || 0 },
+        _max: { boost: homeAggResult[0]?.maxBoost || 0 }
       }
-      if (id) {
-        where.id = { not: Number(id) }
-      }
-
-      const homeAgg = await models.item.aggregate({
-        _count: { id: true },
-        _max: { boost: true },
-        where
-      })
 
       let subAgg
       if (sub) {
@@ -781,7 +804,12 @@ export default {
           _count: { id: true },
           _max: { boost: true },
           where: {
-            ...where,
+            boost: { gte: boost },
+            status: 'ACTIVE',
+            deletedAt: null,
+            outlawed: false,
+            parentId: null,
+            ...(id && { id: { not: Number(id) } }),
             subName: sub
           }
         })

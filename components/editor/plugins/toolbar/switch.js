@@ -3,7 +3,6 @@ import { useFormikContext } from 'formik'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import Nav from 'react-bootstrap/Nav'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
-import classNames from 'classnames'
 
 /** displays and toggles between write and preview modes */
 export default function ModeSwitchPlugin () {

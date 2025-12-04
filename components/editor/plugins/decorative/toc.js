@@ -36,8 +36,8 @@ export function TableOfContents ({ headings }) {
   const tocItems = buildNestedTocStructure(headings)
 
   return (
-    <details className='sn__collapsible sn__toc'>
-      <summary className='sn__collapsible__header'>table of contents</summary>
+    <details className='sn-collapsible sn-toc'>
+      <summary className='sn-collapsible__header'>table of contents</summary>
       {tocItems.length > 0
         ? (
           <ul>

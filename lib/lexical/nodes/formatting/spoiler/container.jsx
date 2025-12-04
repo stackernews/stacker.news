@@ -76,7 +76,7 @@ export class SpoilerContainerNode extends ElementNode {
       })
       dom = detailsDom
     }
-    dom.classList.add('sn__collapsible', 'sn__spoiler__container')
+    dom.classList.add('sn-collapsible', 'sn-spoiler')
 
     return dom
   }
@@ -124,7 +124,7 @@ export class SpoilerContainerNode extends ElementNode {
 
   exportDOM () {
     const element = document.createElement('details')
-    element.classList.add('sn__collapsible', 'sn__spoiler__container')
+    element.classList.add('sn-collapsible', 'sn-spoiler')
     return { element }
   }
 

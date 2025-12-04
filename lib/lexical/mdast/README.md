@@ -366,9 +366,9 @@ importMarkdownToLexical({
 ```
 lib/lexical/mdast/
   index.js                      # main exports
-  importMarkdownToLexical.js    # mdast → lexical core
-  exportMarkdownFromLexical.js  # lexical → mdast core
-  FormatConstants.js            # text format flags (bold, italic, etc.)
+  import.js    # mdast → lexical core
+  export.js  # lexical → mdast core
+  format-constants.js            # text format flags (bold, italic, etc.)
   visitors/
     index.js                    # visitor arrays
     root.js                     # root visitors

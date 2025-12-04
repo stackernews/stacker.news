@@ -38,6 +38,7 @@
   min-height: 120px;
   resize: vertical;
   overflow: auto;
+  background-color: transparent;
 }
 
 @media screen and (min-width: 767px) {
@@ -52,9 +53,9 @@
   box-shadow: 0 0 4px var(--bs-primary);
 }
 
-.editorContainer:not(:global(.sn__topLevel)) .editor {
+.editorContainer:not(:global(.sn-text--top-level)) .editor {
   border: 1px solid color-mix(in srgb, var(--theme-borderColor) 50%, transparent) !important;
-  background-color: var(--theme-commentBg) !important;
+  background-color: var(--theme-forceCommentBg) !important;
 }
 
 .editor:has(.editorInput:focus-within) {
@@ -352,7 +353,7 @@
   border-bottom: 0 !important;
 }
 
-.editorContainer:not(:global(.sn__topLevel)) .modeTabs:global(.nav-link.active) {
+.editorContainer:not(:global(.sn-text--top-level)) .modeTabs:global(.nav-link.active) {
   border: 1px solid color-mix(in srgb, var(--theme-borderColor) 50%, transparent) !important;
   background-color: var(--theme-forceCommentBg) !important;
   border-bottom: 0 !important;

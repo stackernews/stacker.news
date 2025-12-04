@@ -40,10 +40,10 @@ export class TableOfContentsNode extends DecoratorNode {
       const div = document.createElement('div')
       div.setAttribute('data-lexical-toc', 'true')
       const details = document.createElement('details')
-      details.setAttribute('class', 'sn__collapsible sn__toc')
+      details.setAttribute('class', 'sn-collapsible sn-toc')
 
       const summary = document.createElement('summary')
-      summary.setAttribute('class', 'sn__collapsible__header')
+      summary.setAttribute('class', 'sn-collapsible__header')
       summary.textContent = 'table of contents'
       details.appendChild(summary)
 

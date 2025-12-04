@@ -8,17 +8,17 @@
  */
 export function placeholderNode ({ provider, id, src, meta = {} }) {
   const container = document.createElement('span')
-  container.className = 'sn__videoWrapper'
+  container.className = 'sn-video-wrapper'
   id && container.setAttribute('data-lexical-' + provider + '-id', id)
   src && container.setAttribute('data-lexical-embed-src', src)
   meta && container.setAttribute('data-lexical-' + provider + '-meta', JSON.stringify(meta))
 
   const loadingContainer = document.createElement('span')
-  loadingContainer.className = 'sn__embedWrapper__loading'
+  loadingContainer.className = 'sn-embed-wrapper__loading'
   container.append(loadingContainer)
 
   const messageContainer = document.createElement('span')
-  messageContainer.className = 'sn__embedWrapper__loading__message'
+  messageContainer.className = 'sn-embed-wrapper__loading-message'
   loadingContainer.append(messageContainer)
 
   // copied from svg source

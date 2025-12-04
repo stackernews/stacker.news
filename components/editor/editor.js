@@ -19,6 +19,9 @@ import { ToolbarPlugin } from '@/components/editor/plugins/toolbar'
 import { ToolbarContextProvider } from '@/components/editor/contexts/toolbar'
 import { $initializeEditorState } from '@/lib/lexical/utils'
 import BootstrapForm from 'react-bootstrap/Form'
+import { ShortcutsExtension } from '@/lib/lexical/exts/shortcuts'
+import { MDCommandsExtension } from '@/lib/lexical/exts/md-commands'
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 
 /**
  * main lexical editor component with formik integration
@@ -41,9 +44,11 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
       name: 'editor',
       namespace: 'sn',
       dependencies: [
+        ShortcutsExtension,
+        MDCommandsExtension,
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
-      theme: { ...theme, topLevel: topLevel ? 'sn__topLevel' : '' },
+      theme: { ...theme, topLevel: topLevel ? 'sn-text--top-level' : '' },
       onError: (error) => console.error('editor has encountered an error:', error)
     }), [autoFocus, topLevel])
 
@@ -69,7 +74,7 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
  * @param {React.ReactNode} [props.warn] - warning text for the editor
  * @returns {JSX.Element} editor content with all plugins
  */
-function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows = 6, hint, warn }) {
+function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn }) {
   const [editorRef, setEditorRef] = useState(null)
 
   const onRef = (_editorRef) => {
@@ -80,14 +85,14 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
 
   return (
     <>
-      <div className={classNames(styles.editorContainer, topLevel && 'sn__topLevel')}>
+      <div className={classNames(styles.editorContainer, topLevel && 'sn-text--top-level')}>
         <ToolbarPlugin topLevel={topLevel} />
         {/* we only need a plain text editor for markdown */}
         <PlainTextPlugin
           contentEditable={
             <div className={styles.editor} ref={onRef}>
               <ContentEditable
-                className={classNames(styles.editorInput, 'sn__text')}
+                className={classNames(styles.editorInput, 'sn-text')}
                 /* lh is a css unit that is equal to the line height of the element
                    probably the worst thing is that we have to add 1 to the minRows to get the correct height
                 */
@@ -100,6 +105,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
           ErrorBoundary={LexicalErrorBoundary}
         />
         {editorRef && <PreviewPlugin editorRef={editorRef} topLevel={topLevel} />}
+        <HistoryPlugin />
         <FileUploadPlugin editorRef={editorRef} />
         <MentionsPlugin />
         <LocalDraftPlugin name={name} />

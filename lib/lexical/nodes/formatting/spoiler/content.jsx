@@ -25,7 +25,7 @@ export class SpoilerContentNode extends ElementNode {
 
   createDOM (config, editor) {
     const dom = document.createElement('div')
-    dom.classList.add('sn__spoiler__content')
+    dom.classList.add('sn-spoiler__content')
     if (IS_CHROME) {
       editor.getEditorState().read(() => {
         const containerNode = this.getParentOrThrow()
@@ -75,7 +75,7 @@ export class SpoilerContentNode extends ElementNode {
 
   exportDOM () {
     const element = document.createElement('div')
-    element.classList.add('sn__spoiler__content')
+    element.classList.add('sn-spoiler__content')
     element.setAttribute('data-lexical-spoiler-content', 'true')
     return { element }
   }

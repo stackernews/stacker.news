@@ -95,7 +95,7 @@ export function useOverflow ({ element, truncated = false }) {
         <Button
           size='lg'
           variant='info'
-          className='sn__textShowFull'
+          className='sn-text__show-full'
           onClick={showOverflow}
         >
           show full text
@@ -115,15 +115,15 @@ export default function Text ({ topLevel, children, ...props }) {
 
   const textClassNames = useMemo(() => {
     return classNames(
-      'sn__text',
-      topLevel && 'sn__topLevel',
-      show ? 'sn__textUncontained' : overflowing && 'sn__textContained'
+      'sn-text',
+      topLevel && 'sn-text--top-level',
+      show ? 'sn-text--uncontained' : overflowing && 'sn-text--contained'
     )
   }, [topLevel, show, overflowing])
 
   if (children) {
     return (
-      <div ref={setElement} className={classNames(textClassNames, 'sn__textTruncated')}>
+      <div ref={setElement} className={classNames(textClassNames, 'sn-text--truncated')}>
         {children}
         {Overflow}
       </div>

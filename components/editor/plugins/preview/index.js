@@ -38,7 +38,7 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
     <div className={styles.editor}>
       <Reader
         text={values.text}
-        className={classNames(styles.editorInput, 'sn__text', topLevel && 'sn__topLevel')}
+        className={classNames(styles.editorInput, 'sn-text', topLevel && 'sn-text--top-level')}
         topLevel={topLevel}
       />
     </div>

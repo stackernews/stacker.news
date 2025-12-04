@@ -39,7 +39,7 @@ export class SpoilerTitleNode extends ElementNode {
 
   createDOM (config, editor) {
     const dom = document.createElement('summary')
-    dom.classList.add('sn__collapsible__header', 'sn__spoiler__title')
+    dom.classList.add('sn-collapsible__header', 'sn-spoiler__title')
     if (IS_CHROME) {
       dom.addEventListener('click', () => {
         editor.update(() => {

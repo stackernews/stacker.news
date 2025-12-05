@@ -76,10 +76,9 @@ a.title:visited {
 
 .dontLike {
     fill: #a5a5a5;
-    margin-right: .35rem;
-    margin-left: -.2rem;
     flex-shrink: 0;
     cursor: pointer;
+    margin-right: 2px;
 }
 
 .case {
@@ -124,7 +123,6 @@ a.link:visited {
     display: flex;
     justify-content: flex-start;
     min-width: 0;
-    padding-top: .5rem;
 }
 
 .item .companyImage {
@@ -158,6 +156,10 @@ a.link:visited {
 .grid {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
+}
+
+.grid > * {
+    padding-top: 0.5rem;
 }
 
 .details {

@@ -17,7 +17,7 @@ function itemToContent (item, { includeTitle = true } = {}) {
     content += `\n\n${item.text}`
   }
 
-  content += `\n\noriginally posted at https://stacker.news/items/${item.id}`
+  content += `\n\nhttps://stacker.news/items/${item.id}`
 
   return content.trim()
 }

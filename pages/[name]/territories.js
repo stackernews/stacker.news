@@ -25,6 +25,7 @@ export default function UserTerritories ({ ssrData }) {
           query={USER_WITH_SUBS}
           variables={variables}
           destructureData={data => data.userSubs}
+          subActionDropdown
           rank
         />
       </div>

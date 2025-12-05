@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Dropdown, Image, Nav, Navbar, Offcanvas } from 'react-bootstrap'
 import { MEDIA_URL } from '@/lib/constants'
 import Link from 'next/link'
@@ -7,6 +7,21 @@ import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
 import canvasStyles from './offcanvas.module.css'
 import classNames from 'classnames'
+import { useWalletIndicator } from '@/wallets/client/hooks'
+
+function MeImage ({ me, onClick }) {
+  const src = useMemo(() => me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg', [me?.photoId])
+  if (!me) {
+    return <span className='text-muted pointer'><AnonIcon onClick={onClick} width='22' height='22' /></span>
+  }
+  return (
+    <Image
+      src={src} width='28' height='28'
+      className={canvasStyles.meimg}
+      onClick={onClick}
+    />
+  )
+}
 
 export default function OffCanvas ({ me, dropNavKey }) {
   const [show, setShow] = useState(false)
@@ -14,23 +29,13 @@ export default function OffCanvas ({ me, dropNavKey }) {
   const handleClose = () => setShow(false)
   const handleShow = () => setShow(true)
 
-  const MeImage = ({ onClick }) => me
-    ? (
-      <Image
-        src={me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg'} width='28' height='28'
-        style={{ clipPath: 'polygon(0 0, 83% 0, 100% 100%, 17% 100%)' }}
-        onClick={onClick}
-        className='pointer'
-      />
-      )
-    : <span className='text-muted pointer'><AnonIcon onClick={onClick} width='22' height='22' /></span>
-
   const profileIndicator = me && !me.bioId
+  const walletIndicator = useWalletIndicator()
+  const indicator = profileIndicator || walletIndicator
 
   return (
     <>
-      <MeImage onClick={handleShow} />
-
+      <Indicator show={indicator}><MeImage me={me} onClick={handleShow} /></Indicator>
       <Offcanvas className={canvasStyles.offcanvas} show={show} onHide={handleClose} placement='end'>
         <Offcanvas.Header closeButton>
           <Offcanvas.Title><NavWalletSummary /></Offcanvas.Title>
@@ -51,25 +56,26 @@ export default function OffCanvas ({ me, dropNavKey }) {
                 <>
                   <Link href={'/' + me.name} passHref legacyBehavior>
                     <Dropdown.Item active={me.name === dropNavKey}>
-                      profile
-                      {profileIndicator && <Indicator />}
+                      <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
                     </Dropdown.Item>
                   </Link>
                   <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
                     <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
                   </Link>
                   <Link href='/wallets' passHref legacyBehavior>
-                    <Dropdown.Item eventKey='wallets'>wallets</Dropdown.Item>
+                    <Dropdown.Item eventKey='wallets'>
+                      <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
+                    </Dropdown.Item>
                   </Link>
                   <Link href='/credits' passHref legacyBehavior>
                     <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>
                   </Link>
-                  <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
+                  <Link href='/satistics' passHref legacyBehavior>
                     <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
                   </Link>
                   <Dropdown.Divider />
-                  <Link href='/referrals/month' passHref legacyBehavior>
-                    <Dropdown.Item eventKey='referrals'>referrals</Dropdown.Item>
+                  <Link href='/invites' passHref legacyBehavior>
+                    <Dropdown.Item eventKey='invites'>invites</Dropdown.Item>
                   </Link>
                   <Dropdown.Divider />
                   <div className='d-flex align-items-center'>
@@ -86,9 +92,9 @@ export default function OffCanvas ({ me, dropNavKey }) {
               <Navbar className={classNames('container d-flex flex-row px-0 text-muted')}>
                 <Nav>
                   <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
-                    <MeImage />
+                    <MeImage me={me} />
                     <div className='ms-2'>
-                      @{me?.name || 'anon'}
+                      <Indicator show={indicator} top='2px' right='-5px'>@{me?.name || 'anon'}</Indicator>
                     </div>
                   </Link>
                 </Nav>

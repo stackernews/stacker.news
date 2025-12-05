@@ -1,4 +1,5 @@
 import { gql } from 'graphql-tag'
+import { LIMIT } from '@/lib/cursor'
 
 export default gql`
   extend type Query {
@@ -7,16 +8,13 @@ export default gql`
     user(id: ID, name: String): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): UsersNullable!
+    topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): UsersNullable!
     topCowboys(cursor: String): UsersNullable!
-    searchUsers(q: String!, limit: Limit, similarity: Float): [User!]!
-    userSuggestions(q: String, limit: Limit): [User!]!
+    searchUsers(q: String!, limit: Limit! = 5, similarity: Float): [User!]!
+    userSuggestions(q: String, limit: Limit! = 5): [User!]!
     hasNewNotes: Boolean!
     mySubscribedUsers(cursor: String): Users!
     myMutedUsers(cursor: String): Users!
-    userStatsActions(when: String, from: String, to: String): [TimeData!]!
-    userStatsIncomingSats(when: String, from: String, to: String): [TimeData!]!
-    userStatsOutgoingSats(when: String, from: String, to: String): [TimeData!]!
   }
 
   type UsersNullable {
@@ -29,21 +27,34 @@ export default gql`
     users: [User!]!
   }
 
+  input CropData {
+    x: Float!
+    y: Float!
+    width: Float!
+    height: Float!
+    originalWidth: Int!
+    originalHeight: Int!
+    scale: Float!
+  }
+
   extend type Mutation {
     setName(name: String!): String
     setSettings(settings: SettingsInput!): User
+    cropPhoto(photoId: ID!, cropData: CropData): String!
     setPhoto(photoId: ID!): Int!
-    upsertBio(text: String!): ItemPaidAction!
+    upsertBio(text: String!): PayIn!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
     hideWelcomeBanner: Boolean
+    hideWalletRecvPrompt: Boolean
     subscribeUserPosts(id: ID): User
     subscribeUserComments(id: ID): User
     toggleMute(id: ID): User
     generateApiKey(id: ID!): String
     deleteApiKey(id: ID!): User
     disableFreebies: Boolean
+    setDiagnostics(diagnostics: Boolean!): Boolean
   }
 
   type User {
@@ -51,9 +62,7 @@ export default gql`
     createdAt: Date!
     name: String!
     nitems(when: String, from: String, to: String): Int!
-    nposts(when: String, from: String, to: String): Int!
     nterritories(when: String, from: String, to: String): Int!
-    ncomments(when: String, from: String, to: String): Int!
     bio: Item
     bioId: Int
     photoId: Int
@@ -74,7 +83,6 @@ export default gql`
 
   input SettingsInput {
     autoDropBolt11s: Boolean!
-    diagnostics: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
@@ -112,10 +120,6 @@ export default gql`
     zapUndos: Int
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
-    proxyReceive: Boolean
-    directReceive: Boolean
-    receiveCreditsBelowSats: Int!
-    sendCreditsBelowSats: Int!
   }
 
   type AuthMethods {
@@ -141,16 +145,18 @@ export default gql`
     """
     lastCheckedJobs: String
     hideWelcomeBanner: Boolean!
+    hideWalletRecvPrompt: Boolean!
     tipPopover: Boolean!
     upvotePopover: Boolean!
     hasInvites: Boolean!
     apiKeyEnabled: Boolean!
+    showPassphrase: Boolean!
+    diagnostics: Boolean!
 
     """
     mirrors SettingsInput
     """
     autoDropBolt11s: Boolean!
-    diagnostics: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
@@ -191,14 +197,9 @@ export default gql`
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
-    autoWithdrawMaxFeePercent: Float
-    autoWithdrawMaxFeeTotal: Int
     vaultKeyHash: String
+    vaultKeyHashUpdatedAt: Date
     walletsUpdatedAt: Date
-    proxyReceive: Boolean
-    directReceive: Boolean
-    receiveCreditsBelowSats: Int!
-    sendCreditsBelowSats: Int!
   }
 
   type UserOptional {
@@ -211,6 +212,9 @@ export default gql`
     streak: Int
     gunStreak: Int
     horseStreak: Int
+    hasSendWallet: Boolean
+    hasRecvWallet: Boolean
+    hideWalletRecvPrompt: Boolean
     maxStreak: Int
     isContributor: Boolean
     githubId: String

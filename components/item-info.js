@@ -22,13 +22,14 @@ import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
-import useQrPayment from './use-qr-payment'
-import { useRetryCreateItem } from './use-item-submit'
+import useQrPayIn from './payIn/hooks/use-qr-pay-in'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
+import { useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
+import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 
 function itemTitle (item) {
   let title = ''
@@ -67,7 +68,7 @@ export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, toggleEdit, editText,
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
-  setDisableRetry, disableRetry
+  setDisableRetry, disableRetry, updatePayIn
 }) {
   const { me } = useMe()
   const router = useRouter()
@@ -89,11 +90,14 @@ export default function ItemInfo ({
   const myPost = (me && root && Number(me.id) === Number(root.user.id))
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
+  const isPinnedPost = isPost && item.position && (pinnable || !item.subName)
+  const isPinnedSubReply = !isPost && item.position && !item.subName
+  const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
 
   return (
     <div className={className || `${styles.other}`}>
-      {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === USER_ID.ad) &&
+      {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
         <>
           <span title={itemTitle(item)}>
             {numWithUnits(item.sats)}
@@ -107,7 +111,7 @@ export default function ItemInfo ({
         </>}
       <Link
         href={`/items/${item.id}`} onClick={(e) => {
-          const viewedAt = commentsViewedAt(item)
+          const viewedAt = commentsViewedAt(item.id)
           if (viewedAt) {
             e.preventDefault()
             router.push(
@@ -131,12 +135,12 @@ export default function ItemInfo ({
         {showUser &&
           <Link href={`/${item.user.name}`}>
             <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
-            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} />
+            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} bot={item.apiKey} />
             {embellishUser}
           </Link>}
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.invoicePaidAt || item.createdAt))}
+        <Link href={`/items/${item.id}`} title={item.payIn?.payInStateChangedAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+          {timeSince(new Date(item.payIn?.payInStateChangedAt || item.createdAt))}
         </Link>
         {item.prior &&
           <>
@@ -163,9 +167,6 @@ export default function ItemInfo ({
             {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
           </Link>
         )}
-      {(item.apiKey &&
-        <>{' '}<Badge className={styles.newComment} bg={null}>bot</Badge></>
-        )}
       {extraBadges}
       {
         showActionDropdown &&
@@ -174,7 +175,7 @@ export default function ItemInfo ({
               item={item} edit={edit} canEdit={canEdit}
               setCanEdit={setCanEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
             />
-            <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
+            {item.payIn && <PayInInfo item={item} updatePayIn={updatePayIn} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />}
             <ActionDropdown>
               <CopyLinkDropdownItem item={item} />
               <InfoDropdownItem item={item} />
@@ -202,11 +203,11 @@ export default function ItemInfo ({
                   <hr className='dropdown-divider' />
                   <OutlawDropdownItem item={item} />
                 </>}
-              {item.mine && item.invoice?.id &&
+              {item.mine && item.payIn?.id &&
                 <>
                   <hr className='dropdown-divider' />
-                  <Link href={`/invoices/${item.invoice?.id}`} className='text-reset dropdown-item'>
-                    view invoice
+                  <Link href={`/transactions/${item.payIn?.id}`} className='text-reset dropdown-item'>
+                    view payment
                   </Link>
                 </>}
               {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
@@ -249,10 +250,10 @@ function InfoDropdownItem ({ item }) {
           <div>{item.id}</div>
           <div>created at</div>
           <div>{item.createdAt}</div>
-          {item.invoicePaidAt &&
+          {item.payIn?.payInState === 'PAID' &&
             <>
               <div>paid at</div>
-              <div>{item.invoicePaidAt}</div>
+              <div>{item.payIn?.payInStateChangedAt}</div>
             </>}
           <div>cost</div>
           <div>{item.cost}</div>
@@ -282,11 +283,11 @@ function InfoDropdownItem ({ item }) {
   )
 }
 
-function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
+export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry }) {
   const { me } = useMe()
   const toaster = useToast()
-  const retryCreateItem = useRetryCreateItem({ id: item.id })
-  const waitForQrPayment = useQrPayment()
+  const retryPayIn = useRetryPayIn(item.payIn.id, { update: updatePayIn })
+  const waitForQrPayIn = useQrPayIn()
   const [disableInfoRetry, setDisableInfoRetry] = useState(disableRetry)
   if (item.deletedAt) return null
 
@@ -298,14 +299,17 @@ function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
 
   let Component
   let onClick
-  if (me && item.invoice?.actionState && item.invoice?.actionState !== 'PAID') {
-    if (item.invoice?.actionState === 'FAILED') {
-      Component = () => <span className={classNames('text-warning', disableDualRetry && 'pulse')}>retry payment</span>
+  if (me && item.payIn?.payInState !== 'PAID' && item.payIn?.payerPrivates) {
+    // are we automatically retrying?
+    if (willAutoRetryPayIn(item.payIn)) {
+      Component = () => <span className={classNames('text-info')}>pending</span>
+    } else if (item.payIn.payInState === 'FAILED') {
+      Component = () => <span className={classNames('text-warning', disableDualRetry ? 'pulse' : 'pointer')}>retry payment</span>
       onClick = async () => {
         if (disableDualRetry) return
         setDisableDualRetry(true)
         try {
-          const { error } = await retryCreateItem({ variables: { invoiceId: parseInt(item.invoice?.id) } })
+          const { error } = await retryPayIn()
           if (error) throw error
         } catch (error) {
           toaster.danger(error.message)
@@ -316,11 +320,11 @@ function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
     } else {
       Component = () => (
         <span
-          className='text-info'
+          className='text-info pointer'
         >pending
         </span>
       )
-      onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false }).catch(console.error)
+      onClick = () => waitForQrPayIn(item.payIn, null, { cancelOnClose: false }).catch(console.error)
     }
   } else {
     return null
@@ -330,7 +334,7 @@ function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
     <>
       <span> \ </span>
       <span
-        className='text-reset pointer fw-bold'
+        className='text-reset fw-bold'
         onClick={onClick}
       >
         <Component />
@@ -351,7 +355,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
-          {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID')
+          {(!item.payIn?.payInState || item.payIn?.payInState === 'PAID')
             ? <Countdown
                 date={editThreshold}
                 onComplete={() => { setCanEdit(false) }}

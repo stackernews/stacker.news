@@ -5,20 +5,18 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
+import { useMe } from './me'
 import Info from './info'
-import { TerritoryInfo } from './territory-header'
+import ActionDropdown from './action-dropdown'
+import { TerritoryInfo, ToggleSubSubscriptionDropdownItem, MuteSubDropdownItem } from './territory-header'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Revenue = ({ sub }) => (sub.optional.revenue !== null && <span>{abbrNum(sub.optional.revenue)} revenue</span>)
 const Stacked = ({ sub }) => (sub.optional.stacked !== null && <span>{abbrNum(sub.optional.stacked)} stacked</span>)
 const Spent = ({ sub }) => (sub.optional.spent !== null && <span>{abbrNum(sub.optional.spent)} spent</span>)
-const Posts = ({ sub }) => (
+const Items = ({ sub }) => (
   <span>
-    {numWithUnits(sub.nposts, { unitSingular: 'post', unitPlural: 'posts' })}
-  </span>)
-const Comments = ({ sub }) => (
-  <span>
-    {numWithUnits(sub.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })}
+    {numWithUnits(sub.nitems, { unitSingular: 'item', unitPlural: 'items' })}
   </span>)
 const Separator = () => (<span> \ </span>)
 
@@ -26,25 +24,25 @@ const STAT_POS = {
   stacked: 0,
   revenue: 1,
   spent: 2,
-  posts: 3,
-  comments: 4
+  items: 3
 }
-const STAT_COMPONENTS = [Stacked, Revenue, Spent, Posts, Comments]
+const STAT_COMPONENTS = [Stacked, Revenue, Spent, Items]
 
 function separate (arr, separator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, separator] : [x])
 }
 
-export default function TerritoryList ({ ssrData, query, variables, destructureData, rank }) {
+export default function TerritoryList ({ ssrData, query, variables, destructureData, rank, subActionDropdown, statCompsProp = STAT_COMPONENTS }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
-  const [statComps, setStatComps] = useState(separate(STAT_COMPONENTS, Separator))
+  const { me } = useMe()
+  const [statComps, setStatComps] = useState(separate(statCompsProp, Separator))
 
   useEffect(() => {
     // shift the stat we are sorting by to the front
-    const comps = [...STAT_COMPONENTS]
+    const comps = [...statCompsProp]
     setStatComps(separate([...comps.splice(STAT_POS[variables?.by || 0], 1), ...comps], Separator))
-  }, [variables?.by])
+  }, [variables?.by], statCompsProp)
 
   const { subs, cursor } = useMemo(() => {
     if (!dat) return {}
@@ -77,6 +75,12 @@ export default function TerritoryList ({ ssrData, query, variables, destructureD
                     {sub.name}
                   </Link>
                   <Info className='d-flex'><TerritoryInfo sub={sub} /></Info>
+                  {me && subActionDropdown && (
+                    <ActionDropdown>
+                      <ToggleSubSubscriptionDropdownItem sub={sub} />
+                      <MuteSubDropdownItem sub={sub} />
+                    </ActionDropdown>
+                  )}
                 </div>
                 <div className={styles.other}>
                   {statComps.map((Comp, i) => <Comp key={i} sub={sub} />)}

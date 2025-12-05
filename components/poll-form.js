@@ -1,6 +1,5 @@
-import { DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
+import { Checkbox, DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
 import { useApolloClient } from '@apollo/client'
-import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
@@ -9,10 +8,10 @@ import { SubSelectInitial } from './sub-select'
 import { normalizeForwards } from '@/lib/form'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
-import { UPSERT_POLL } from '@/fragments/paidAction'
+import { UPSERT_POLL } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 
-export function PollForm ({ item, sub, editThreshold, children }) {
+export function PollForm ({ item, sub, EditInfo, children }) {
   const client = useApolloClient()
   const { me } = useMe()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
@@ -30,6 +29,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         text: item?.text || '',
         options: initialOptions || ['', ''],
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
+        randPollOptions: item?.poll?.randPollOptions || false,
         pollExpiresAt: item ? item.pollExpiresAt : datePivot(new Date(), { hours: 25 }),
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
@@ -57,9 +57,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         readOnlyLen={initialOptions?.length}
         max={MAX_POLL_NUM_CHOICES}
         min={2}
-        hint={editThreshold
-          ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
-          : null}
+        hint={EditInfo}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
@@ -68,6 +66,11 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           label='poll expiration'
           name='pollExpiresAt'
           className='pr-4'
+          groupClassName='mb-0'
+        />
+        <Checkbox
+          label={<div className='d-flex align-items-center'>randomize order of poll choices</div>}
+          name='randPollOptions'
         />
       </AdvPostForm>
       <ItemButtonBar itemId={item?.id} />

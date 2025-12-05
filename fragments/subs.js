@@ -6,9 +6,9 @@ import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
 const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `
@@ -122,14 +122,21 @@ export const SUB_SEARCH = gql`
   }
 `
 
+export const SUB_SUGGESTIONS = gql`
+  query subSuggestions($q: String!, $limit: Limit) {
+    subSuggestions(q: $q, limit: $limit) {
+      name
+    }
+  }
+`
+
 export const TOP_SUBS = gql`
   ${SUB_FULL_FIELDS}
   query TopSubs($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
     topSubs(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
       subs {
         ...SubFullFields
-        ncomments(when: $when, from: $from, to: $to)
-        nposts(when: $when, from: $from, to: $to)
+        nitems(when: $when, from: $from, to: $to)
 
         optional {
           stacked(when: $when, from: $from, to: $to)

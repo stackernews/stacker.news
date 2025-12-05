@@ -29,7 +29,7 @@ import { useShowModal } from './modal'
 import { BoostHelp } from './adv-post-form'
 
 function onItemClick (e, router, item) {
-  const viewedAt = commentsViewedAt(item)
+  const viewedAt = commentsViewedAt(item.id)
   if (viewedAt) {
     e.preventDefault()
     if (e.ctrlKey || e.metaKey) {
@@ -89,7 +89,7 @@ function ItemLink ({ url, rel }) {
 
 export default function Item ({
   item, rank, belowTitle, right, full, children, itemClassName,
-  onQuoteReply, pinnable, setDisableRetry, disableRetry, ad
+  onQuoteReply, pinnable, ad, ...props
 }) {
   const titleRef = useRef()
   const router = useRouter()
@@ -150,8 +150,7 @@ export default function Item ({
                   top boost
                 </Badge>
               </>}
-            setDisableRetry={setDisableRetry}
-            disableRetry={disableRetry}
+            {...props}
           />
           {belowTitle}
         </div>

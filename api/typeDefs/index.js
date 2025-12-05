@@ -17,8 +17,7 @@ import price from './price'
 import admin from './admin'
 import blockHeight from './blockHeight'
 import chainFee from './chainFee'
-import paidAction from './paidAction'
-import vault from './vault'
+import payIn from './payIn'
 
 const common = gql`
   type Query {
@@ -36,7 +35,8 @@ const common = gql`
   scalar JSONObject
   scalar Date
   scalar Limit
+  scalar BigInt
 `
 
 export default [common, user, item, itemForward, message, wallet, lnurl, notifications, invite,
-  sub, upload, growth, rewards, referrals, price, admin, blockHeight, chainFee, paidAction, vault]
+  sub, upload, growth, rewards, referrals, price, admin, blockHeight, chainFee, payIn]

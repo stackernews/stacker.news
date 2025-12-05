@@ -128,7 +128,7 @@ export function middleware (request) {
   // more useful headers
   resp.headers.set('X-Content-Type-Options', 'nosniff')
   resp.headers.set('Referrer-Policy', 'origin-when-cross-origin')
-  resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
 
   return resp
 }

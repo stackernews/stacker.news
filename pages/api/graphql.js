@@ -7,17 +7,28 @@ import typeDefs from '@/api/typeDefs'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
 import search from '@/api/search'
-import {
-  ApolloServerPluginLandingPageLocalDefault,
-  ApolloServerPluginLandingPageProductionDefault
-} from '@apollo/server/plugin/landingPage/default'
 import { multiAuthMiddleware } from '@/lib/auth'
+import { depthLimit } from '@graphile/depth-limit'
+import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
+import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
+import PgBoss from 'pg-boss'
 
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
   introspection: true,
   allowBatchedHttpRequests: true,
+  validationRules: [depthLimit({
+    revealDetails: true,
+    maxListDepth: COMMENT_DEPTH_LIMIT,
+    maxDepth: 20,
+    maxIntrospectionDepth: 20,
+    maxDepthByFieldCoordinates: {
+      '__Type.ofType': 20,
+      'Item.comments': COMMENT_DEPTH_LIMIT,
+      'Comments.comments': COMMENT_DEPTH_LIMIT
+    }
+  })],
   plugins: [{
     requestDidStart (initialRequestContext) {
       return {
@@ -45,13 +56,10 @@ const apolloServer = new ApolloServer({
         }
       }
     }
-  },
-  process.env.NODE_ENV === 'production'
-    ? ApolloServerPluginLandingPageProductionDefault(
-      { embed: { endpointIsEditable: false, persistExplorerState: true, displayOptions: { theme: 'dark' } }, footer: false })
-    : ApolloServerPluginLandingPageLocalDefault(
-      { embed: { endpointIsEditable: false, persistExplorerState: true, displayOptions: { theme: 'dark' } }, footer: false })]
+  }, ApolloServerPluginLandingPageDisabled()]
 })
+
+const boss = new PgBoss(process.env.DATABASE_URL)
 
 export default startServerAndCreateNextHandler(apolloServer, {
   context: async (req, res) => {
@@ -78,7 +86,8 @@ export default startServerAndCreateNextHandler(apolloServer, {
       me: session
         ? session.user
         : null,
-      search
+      search,
+      boss
     }
   }
 })

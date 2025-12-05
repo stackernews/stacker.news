@@ -1,5 +1,7 @@
 import express from 'express'
 import puppeteer from 'puppeteer'
+import mediaCheck from './media-check.js'
+import cors from 'cors'
 
 const captureUrl = process.env.CAPTURE_URL || 'http://host.docker.internal:3000/'
 const port = process.env.PORT || 5678
@@ -55,9 +57,18 @@ app.get('/health', (req, res) => {
   res.status(200).end()
 })
 
+app.get('/media/:url', cors({
+  origin: process.env.NEXT_PUBLIC_URL,
+  methods: ['GET', 'OPTIONS'],
+  credentials: false
+}), mediaCheck)
+
 app.get('/*', async (req, res) => {
   const url = new URL(req.originalUrl, captureUrl)
   const timeLabel = `${Date.now()}-${url.href}`
+  if (!url.href.startsWith(captureUrl)) {
+    return res.status(400).end()
+  }
 
   const urlParams = new URLSearchParams(url.search)
   const commentId = urlParams.get('commentId')

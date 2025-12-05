@@ -4,9 +4,9 @@ import { gql } from '@apollo/client'
 const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `
@@ -18,7 +18,6 @@ export const COMMENT_FIELDS = gql`
     position
     parentId
     createdAt
-    invoicePaidAt
     deletedAt
     text
     user {
@@ -26,6 +25,16 @@ export const COMMENT_FIELDS = gql`
       name
       meMute
       ...StreakFields
+    }
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
     }
     sats
     credits
@@ -47,14 +56,61 @@ export const COMMENT_FIELDS = gql`
     otsHash
     ncomments
     nDirectComments
+    live @client
     imgproxyUrls
     rel
     apiKey
-    invoice {
+    cost
+  }
+`
+
+export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
+  ${STREAK_FIELDS}
+  fragment CommentFieldsNoChildComments on Item {
+    id
+    position
+    parentId
+    createdAt
+    deletedAt
+    text
+    user {
       id
-      actionState
-      confirmedAt
+      name
+      meMute
+      ...StreakFields
     }
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
+    }
+    sats
+    credits
+    meAnonSats @client
+    upvotes
+    freedFreebie
+    boost
+    meSats
+    meCredits
+    meDontLikeSats
+    meBookmark
+    meSubscription
+    outlawed
+    freebie
+    path
+    commentSats
+    commentCredits
+    mine
+    otsHash
+    live @client
+    imgproxyUrls
+    rel
+    apiKey
     cost
   }
 `
@@ -105,6 +161,16 @@ export const COMMENTS = gql`
                     comments {
                       comments {
                         ...CommentFields
+                        comments {
+                          comments {
+                            ...CommentFields
+                            comments {
+                              comments {
+                                ...CommentFields
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -116,3 +182,21 @@ export const COMMENTS = gql`
       }
     }
   }`
+
+export const HAS_COMMENTS = gql`
+  fragment HasComments on Item {
+    comments
+  }
+`
+
+export const GET_NEW_COMMENTS = gql`
+  ${COMMENT_FIELDS_NO_CHILD_COMMENTS}
+
+  query GetNewComments($itemId: ID, $after: Date) {
+    newComments(itemId: $itemId, after: $after) {
+      comments {
+        ...CommentFieldsNoChildComments
+      }
+    }
+  }
+`

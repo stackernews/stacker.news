@@ -40,11 +40,27 @@ sndev__start() {
   shift
 
   if [ $# -eq 0 ]; then
-    docker__compose up --build
-    exit 0
+    if command -v dmenu > /dev/null 2>&1;  then
+      # use dmenu if installed to select a profile
+      profiles=$(sndev__dmenu_profile)
+      if [ -z "$profiles" ]; then
+        exit 1
+      fi
+      COMPOSE_PROFILES="$profiles" docker__compose up --build
+    else
+      docker__compose up --build
+    fi
+  else
+    docker__compose up "$@"
   fi
+}
 
-  docker__compose up "$@"
+sndev__dmenu_profile() {
+  # dmenu allows to select multiple profiles with CTRL+Enter in which case it will
+  # immediately write the selected profile to stdout even if it was already selected
+  # so we use sort+uniq to remove duplicates
+  profiles="minimal payments wallets email search images capture"
+  echo "$profiles" | tr ' ' '\n' | dmenu | sort | uniq | tr '\n' ',' | sed 's/,$//'
 }
 
 sndev__help_start() {
@@ -178,7 +194,7 @@ sndev__delete() {
   printf "this deletes containers, volumes, and orphans - are you sure? [y/N] "
   read -r answer
   if [ "$answer" = "y" ]; then
-    docker__compose down --volumes --remove-orphans
+    COMPOSE_PROFILES="*" docker__compose down --volumes --remove-orphans
   else
     echo "delete cancelled"
   fi
@@ -322,6 +338,43 @@ COMMANDS"
   sndev__prisma --help | awk '/Commands/{y=1;next}y' | awk '!/^([\t ]+init)|([\t ]+studio)/' | sed -n '/Flags/q;p'
 }
 
+sndev__domains() {
+  shift
+  case $1 in
+  dns)
+    shift
+    if ./scripts/set-dnsmasq "$@" && { [ "$1" = "add" ] || [ "$1" = "remove" ]; }; then
+      echo "restarting dnsmasq to apply changes"
+      if docker ps | grep -q dnsmasq; then
+        docker__compose restart dnsmasq
+        exit 0
+      else
+        echo "dnsmasq is not running, you may need to start it manually"
+        exit 1
+      fi
+    fi
+    ;;
+  # PLACEHOLDER for domain verification management
+  *)
+    sndev__help_domains
+    exit 0
+  esac
+}
+
+sndev__help_domains() {
+  help="
+manage custom domains
+
+USAGE
+  $ sndev domains [COMMAND]
+
+COMMANDS
+  dns             [add|remove|list]
+"
+
+  echo "$help"
+}
+
 sndev__lint() {
   shift
   docker__exec -t -u apprunner app npm run lint
@@ -444,6 +497,14 @@ sndev__login() {
   salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
   # upsert user with nym and nym@sndev.team
   email="$1@sndev.team"
+
+  # Detect Codespaces and set the correct base URL
+  if [ -n "$CODESPACE_NAME" ]; then
+    BASE_URL="https://${CODESPACE_NAME}-3000.app.github.dev"
+  else
+    BASE_URL="http://localhost:3000"
+  fi
+
   docker__exec db psql -U sn -d stackernews -q <<EOF
     INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
     UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
@@ -455,7 +516,7 @@ EOF
 
   echo
   echo "open url in browser"
-  echo "http://localhost:3000/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
+  echo "$BASE_URL/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
   echo
 }
 
@@ -465,6 +526,29 @@ login as a nym
 
 USAGE
   $ sndev login NYM
+"
+
+  echo "$help"
+}
+
+sndev__setup_codespaces() {
+  shift
+  ./scripts/setup-codespaces.sh
+}
+
+sndev__help_setup_codespaces() {
+  help="
+setup Codespaces environment variables
+
+USAGE
+  $ sndev setup_codespaces
+
+DESCRIPTION
+  Creates or updates .env.local with the correct URLs for GitHub Codespaces.
+  This is automatically run when the Codespace is created.
+
+REQUIREMENTS
+  - Set forwarded ports to 'Public' in the Ports tab for external access
 "
 
   echo "$help"
@@ -499,7 +583,7 @@ sndev__cert() {
     echo "no CERTDIR label found for $1"
     exit 1
   fi
-  docker__exec $1 cat $certdir/tls.cert | base64
+  docker__exec $1 cat $certdir/tls.cert | base64 -w0
 }
 
 sndev__help_cert() {
@@ -599,6 +683,9 @@ COMMANDS
     login                 login as a nym
     set_balance           set the balance of a nym
 
+  codespaces:
+    setup_codespaces      setup environment for GitHub Codespaces
+
   lightning:
     fund                   pay a bolt11 for funding
     withdraw               create a bolt11 for withdrawal
@@ -606,6 +693,9 @@ COMMANDS
   db:
     psql                   open psql on db
     prisma                 run prisma commands
+
+  domains:
+    domains                custom domains dev management
 
   dev:
     pr                     fetch and checkout a pr

@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: March 25, 2025
+last updated: October 20, 2025
 
 ---
 
@@ -46,7 +46,7 @@ See the [section about territories](#territories) for details.
 
 ### Do I need bitcoin to use Stacker News?
 
-No. Every new stacker can post or comment for free (with limited visibility) while they earn their first few CCs or sats. After a stacker has gained a balance, subsequent posts and comments will incur a small fee to prevent spam and to encourage quality contributions. Many stackers earn enough from their posts and comments to continue posting on the site indefinitely without ever buying CCs with sats.
+No. You don't need bitcoin to get started. You can create your bio for free (with limited visibility) and earn Cowboy Credits (CCs) from zaps to cover fees. Posts and comments incur a small fee to prevent spam and to encourage quality contributions. Many stackers earn enough from their posts and comments to continue posting on the site indefinitely without ever buying CCs with sats.
 
 [Post and comment fees vary depending on the territory](#why-does-it-cost-more-to-post-in-some-territories).
 
@@ -84,40 +84,13 @@ Stacker News is non-custodial. To send and receive sats, you need to attach a wa
 
 Click [here](/wallets) or click on your name and select 'wallets'. You should then see this:
 
-![](https://m.stacker.news/75164)
-
-We currently support the following wallets:
-
-- [WebLN](https://www.webln.guide/ressources/webln-providers)
-- [Blink](https://www.blink.sv/) | [guide](https://stacker.news/items/705629/r/supratic)
-- [Core Lightning](https://docs.corelightning.org/) via [CLNRest](https://docs.corelightning.org/docs/rest) | [guide](https://stacker.news/items/545926/r/supratic)
-- [Lightning Node Connect](https://docs.lightning.engineering/lightning-network-tools/lightning-terminal/lightning-node-connect) (LNC)
-- [Lightning Network Daemon](https://github.com/lightningnetwork/lnd) (LND) via [gRPC](https://lightning.engineering/api-docs/api/lnd/) | [guide](https://stacker.news/items/704693/r/supratic)
-- [LNbits](https://lnbits.com/) | [guide](https://stacker.news/items/697132/r/supratic)
-- [Nostr Wallet Connect](https://nwc.dev/) (NWC) | [guide](https://stacker.news/items/698497/r/supratic)
-- [lightning address](https://strike.me/learn/what-is-a-lightning-address/) | [guide](https://stacker.news/items/694593/r/supratic)
-- [phoenixd](https://phoenix.acinq.co/server) | [guide](https://stacker.news/items/695912/r/supratic)
-
+![](https://m.stacker.news/112907)
 
 ### I can't find my wallet. Can I not attach one?
 
-We currently don't list every wallet individually but [this is planned](https://github.com/stackernews/stacker.news/issues/1495).
+If you can't find your wallet, there is still a high chance that you can attach one. Many wallets support Nostr Wallet Connect or provide lightning addresses.
 
-If you can't find your wallet, there is still a high chance that you can attach one. Many wallets support Nostr Wallet Connect or provide lightning addresses. The following table shows how you can attach some common wallets:
-
-| Wallet | Lightning Address | Nostr Wallet Connect |
-| --- | --- | --- |
-| [Strike](https://strike.me/) | ✅ | ❌ |
-| [cashu.me](https://cashu.me/) | ✅ | ✅ |
-| [Wallet of Satoshi](https://www.walletofsatoshi.com/) | ✅ | ❌ |
-| [Zebedee](https://zbd.gg/) | ✅ | ❌ |
-| [Coinos](https://coinos.io/) | ✅ | ✅ |
-
-### What do the arrows mean?
-
-Not every wallet supports both sending and receiving sats. For example, a lightning address can receive sats but not send them. This is indicated with an arrow to the bottom-left ↙️. A wallet that can send sats will have an arrow to the top-right ↗️.
-
-If you still can't attach a wallet, you can reach out to us in the [saloon](/daily) or simply reply to this FAQ.
+You can also let us know in the [saloon](/daily) that your wallet isn't listed so we can add it!
 
 ### I receive notifications about failed zaps. What do I do?
 
@@ -129,7 +102,7 @@ The link to the wallet logs can be found on the [wallet page](/wallets).
 
 ### Why do I need to enter two strings for NWC?
 
-For security reasons, we never store permissions to spend from your wallet on the server in plain text.
+For security reasons, we never store permissions to spend from your wallet on the server in plaintext.
 
 Since we however need to request invoices from your wallet when there is an incoming payment, we need to store the details to receive payments on the server in plaintext.
 
@@ -141,11 +114,11 @@ Other applications don't require two strings for one of the following reasons:
 2. you can only receive while you are logged in
 3. they (irresponsibly) store permissions to spend in plaintext on their server
 
-### Why is my wallet not showing up on another device?
+### Why do I need to enter a passphrase on another device to see my wallets?
 
-By default, permissions to spend from your wallet are only stored on your device.
+Credentials to spend from your wallet are always stored encrypted on the server. The encryption key is generated and stored on your device.
 
-However, you can enable [device sync](/settings/passphrase) in your settings to securely sync your wallets across devices. Once enabled, your wallets will show up on all devices you entered your passphrase.
+You need to enter your passphrase on another device so it can derive the same key to decrypt your wallets.
 
 ### I have a wallet attached but I still receive CCs. Why?
 
@@ -192,6 +165,12 @@ The only limitation is that we will currently not attempt to pay with CCs at the
 ### Are payments retried in the background?
 
 Yes. We try each payment three times in total with all sender and receiver fallbacks. If a payment still wasn't successful after that, you will receive a notification allowing you to retry the payment manually.
+
+### How do I get a gun or a horse?
+
+You receive a gun when you [attach a wallet](#how-do-i-attach-a-wallet) to send sats.
+
+You receive a horse when you [attach a wallet](#how-do-i-attach-a-wallet) to receive sats.
 
 ---
 
@@ -250,7 +229,7 @@ Upload fees are applied when you submit your post or comment.
 
 ### Are media uploads stored forever?
 
-Yes, if it was used in a post or comment. **Uploads that haven't been used within 24 hours in a post or comment are deleted.**
+Yes, if it was used in a post or comment. **Uploads that haven't been used within 7 days in a post or comment are deleted.**
 
 ### I no longer want to pay for my territory. What should I do?
 

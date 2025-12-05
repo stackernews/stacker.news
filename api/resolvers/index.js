@@ -1,7 +1,8 @@
 import user from './user'
 import message from './message'
 import item from './item'
-import wallet from './wallet'
+import walletV1 from './wallet'
+import walletV2 from '@/wallets/server/resolvers'
 import lnurl from './lnurl'
 import notifications from './notifications'
 import invite from './invite'
@@ -18,8 +19,7 @@ import blockHeight from './blockHeight'
 import chainFee from './chainFee'
 import { GraphQLScalarType, Kind } from 'graphql'
 import { createIntScalar } from 'graphql-scalar'
-import paidAction from './paidAction'
-import vault from './vault'
+import payIn from './payIn'
 
 const date = new GraphQLScalarType({
   name: 'Date',
@@ -28,7 +28,9 @@ const date = new GraphQLScalarType({
     if (value instanceof Date) {
       return value.toISOString() // Convert outgoing Date to string for JSON
     } else if (typeof value === 'string') {
-      return value
+      // our db will return timestamps without timezone (which is UTC), but the browser expects a timezone
+      // else uses the local timezone, so we convert to UTC
+      return new Date(value).toISOString()
     }
     throw Error('GraphQL Date Scalar serializer expected a `Date` object got `' + typeof value + '` ' + value)
   },
@@ -48,12 +50,55 @@ const date = new GraphQLScalarType({
   }
 })
 
+function isSafeInteger (val) {
+  return val <= Number.MAX_SAFE_INTEGER && val >= Number.MIN_SAFE_INTEGER
+}
+
+function serializeBigInt (value) {
+  if (isSafeInteger(value)) {
+    return Number(value)
+  }
+  return value.toString()
+}
+
+const bigint = new GraphQLScalarType({
+  name: 'BigInt',
+  description: 'BigInt custom scalar type',
+  serialize (value) {
+    if (typeof value === 'bigint' || typeof value === 'number') {
+      return serializeBigInt(value)
+    } else if (typeof value === 'string') {
+      const bigint = BigInt(value)
+      if (bigint.toString() === value) {
+        return serializeBigInt(bigint)
+      }
+    }
+    throw Error('GraphQL BigInt Scalar serializer expected a `bigint` object got `' + typeof value + '` ' + value)
+  },
+  parseValue (value) {
+    const bigint = BigInt(value.toString())
+    if (bigint.toString() === value.toString()) {
+      return bigint
+    }
+
+    throw new Error('GraphQL BigInt Scalar parser expected a `number` or `string` got `' + typeof value + '` ' + value)
+  },
+  parseLiteral (ast) {
+    const bigint = BigInt(ast.value)
+    if (bigint.toString() === ast.value.toString()) {
+      return bigint
+    }
+
+    throw new Error('GraphQL BigInt Scalar parser expected a `number` or `string` got `' + typeof ast.value + '` ' + ast.value)
+  }
+})
+
 const limit = createIntScalar({
   name: 'Limit',
   description: 'Limit custom scalar type',
   maximum: 1000
 })
 
-export default [user, item, message, wallet, lnurl, notifications, invite, sub,
+export default [user, item, message, walletV1, walletV2, lnurl, notifications, invite, sub,
   upload, search, growth, rewards, referrals, price, admin, blockHeight, chainFee,
-  { JSONObject }, { Date: date }, { Limit: limit }, paidAction, vault]
+  { JSONObject }, { Date: date }, { Limit: limit }, { BigInt: bigint }, payIn]

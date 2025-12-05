@@ -1,8 +1,8 @@
 import { HAS_NOTIFICATIONS } from '@/fragments/notifications'
-import { clearNotifications } from '@/lib/badge'
-import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { useQuery } from '@apollo/client'
 import React, { useContext } from 'react'
+import { clearNotifications } from '@/components/serviceworker'
 
 export const HasNewNotesContext = React.createContext(false)
 
@@ -11,7 +11,7 @@ export function HasNewNotesProvider ({ me, children }) {
     SSR
       ? {}
       : {
-          pollInterval: NORMAL_POLL_INTERVAL,
+          pollInterval: NORMAL_POLL_INTERVAL_MS,
           nextFetchPolicy: 'cache-and-network',
           onCompleted: ({ hasNewNotes }) => {
             if (!hasNewNotes) {

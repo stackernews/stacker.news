@@ -9,7 +9,7 @@ import { useLazyQuery, gql } from '@apollo/client'
 import Avatar from './avatar'
 import { jobSchema } from '@/lib/validate'
 import { BOOST_MIN, BOOST_MULT, MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
-import { UPSERT_JOB } from '@/fragments/paidAction'
+import { UPSERT_JOB } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 import { BoostInput } from './adv-post-form'
 import { numWithUnits, giveOrdinalSuffix } from '@/lib/format'
@@ -114,7 +114,7 @@ export default function JobForm ({ item, sub }) {
           label={
             <div className='d-flex align-items-center'>boost
               <Info>
-                <ol className='line-height-md'>
+                <ol>
                   <li>Boost ranks jobs higher based on the amount</li>
                   <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
                   <li>Boost must be divisible by {numWithUnits(BOOST_MULT, { abbreviate: false })}</li>

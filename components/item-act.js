@@ -6,23 +6,27 @@ import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema, boostSchema } from '@/lib/validate'
 import { useToast } from './toast'
-import { useLightning } from './lightning'
 import { nextTip, defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
-import { usePaidMutation } from './use-paid-mutation'
-import { ACT_MUTATION } from '@/fragments/paidAction'
+import { ACT_MUTATION } from '@/fragments/payIn'
 import { meAnonSats } from '@/lib/apollo'
 import { BoostItemInput } from './adv-post-form'
-import { useSendWallets } from '@/wallets/index'
+import { useHasSendWallet } from '@/wallets/client/hooks'
+import { useAnimation } from '@/components/animation'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { getOperationName } from '@apollo/client/utilities'
+import { satsToMsats } from '@/lib/format'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
 const Tips = ({ setOValue }) => {
-  const tips = [...getCustomTips(), ...defaultTips].sort((a, b) => a - b)
+  const customTips = getCustomTips()
+  const defaultNoCustom = defaultTips.filter(d => !customTips.includes(d))
+  const tips = [...customTips, ...defaultNoCustom].slice(0, 7).sort((a, b) => a - b)
+
   return tips.map((num, i) =>
     <Button
       size='sm'
-      className={`${i > 0 ? 'ms-2' : ''} mb-2`}
       key={num}
       onClick={() => { setOValue(num) }}
     >
@@ -37,11 +41,7 @@ const Tips = ({ setOValue }) => {
 const getCustomTips = () => JSON.parse(window.localStorage.getItem('custom-tips')) || []
 
 const addCustomTip = (amount) => {
-  if (defaultTips.includes(amount)) return
-  let customTips = Array.from(new Set([amount, ...getCustomTips()]))
-  if (customTips.length > 3) {
-    customTips = customTips.slice(0, 3)
-  }
+  const customTips = Array.from(new Set([amount, ...getCustomTips()])).slice(0, 7)
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
@@ -89,7 +89,7 @@ function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'B
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
-  const wallets = useSendWallets()
+  const hasSendWallet = useHasSendWallet()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   }, [onClose, item.id])
 
   const actor = useAct()
-  const strike = useLightning()
+  const animate = useAnimation()
 
   const onSubmit = useCallback(async ({ amount }) => {
     if (abortSignal && zapUndoTrigger({ me, amount })) {
@@ -111,13 +111,13 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       }
     }
 
-    const onPaid = () => {
-      strike()
+    const onPaid = (cache, { data } = {}) => {
+      animate()
       onClose?.()
       if (!me) setItemMeAnonSats({ id: item.id, amount })
     }
 
-    const closeImmediately = wallets.length > 0 || me?.privates?.sats > Number(amount)
+    const closeImmediately = hasSendWallet || me?.privates?.sats > Number(amount)
     if (closeImmediately) {
       onPaid()
     }
@@ -127,24 +127,25 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         id: item.id,
         sats: Number(amount),
         act,
-        hasSendWallet: wallets.length > 0
+        hasSendWallet
       },
       optimisticResponse: me
         ? {
-            act: {
-              __typename: 'ItemActPaidAction',
-              result: {
-                id: item.id, sats: Number(amount), act, path: item.path
-              }
+            payInType: act === 'DONT_LIKE_THIS' ? 'DOWN_ZAP' : act === 'BOOST' ? 'BOOST' : 'ZAP',
+            mcost: satsToMsats(Number(amount)),
+            payerPrivates: {
+              result: { path: item.path, id: item.id, sats: Number(amount), act, __typename: 'ItemAct' }
             }
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
-      onPaid: closeImmediately ? undefined : onPaid
+      onPaid: closeImmediately
+        ? undefined
+        : onPaid
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, wallets.length, act, item.id, onClose, abortSignal, strike])
+  }, [me, actor, hasSendWallet, act, item.id, onClose, abortSignal, animate])
 
   return act === 'BOOST'
     ? <BoostForm step={step} onSubmit={onSubmit} item={item} inputRef={inputRef} act={act}>{children}</BoostForm>
@@ -168,7 +169,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
 
-        <div>
+        <div className='d-flex flex-wrap gap-2'>
           <Tips setOValue={setOValue} />
         </div>
         <div className='d-flex mt-3'>
@@ -180,10 +181,12 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       </Form>)
 }
 
-function modifyActCache (cache, { result, invoice }, me) {
+function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
+  const result = payerPrivates?.result
+  console.log('modifyActCache', payerPrivates, payOutBolt11Public, result)
   if (!result) return
   const { id, sats, act } = result
-  const p2p = invoice?.invoiceForward
+  const p2p = !!payOutBolt11Public
 
   cache.modify({
     id: `Item:${id}`,
@@ -231,10 +234,11 @@ function modifyActCache (cache, { result, invoice }, me) {
 
 // doing this onPaid fixes issue #1695 because optimistically updating all ancestors
 // conflicts with the writeQuery on navigation from SSR
-function updateAncestors (cache, { result, invoice }) {
+function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
+  const result = payerPrivates?.result
   if (!result) return
   const { id, sats, act, path } = result
-  const p2p = invoice?.invoiceForward
+  const p2p = !!payOutBolt11Public
 
   if (act === 'TIP') {
     // update all ancestors
@@ -263,33 +267,33 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const { me } = useMe()
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
-  const getPaidActionResult = data => Object.values(data)[0]
-  const wallets = useSendWallets()
+  const getPayInResult = data => data[getOperationName(query)]
+  const hasSendWallet = useHasSendWallet()
 
-  const [act] = usePaidMutation(query, {
-    waitFor: inv =>
+  const [act] = usePayInMutation(query, {
+    waitFor: payIn =>
       // if we have attached wallets, we might be paying a wrapped invoice in which case we need to make sure
       // we don't prematurely consider the payment as successful (important for receiver fallbacks)
-      wallets.length > 0
-        ? inv?.actionState === 'PAID'
-        : inv?.satsReceived > 0,
+      hasSendWallet
+        ? payIn?.payInState === 'PAID'
+        : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
     ...options,
     update: (cache, { data }) => {
-      const response = getPaidActionResult(data)
+      const response = getPayInResult(data)
       if (!response) return
       modifyActCache(cache, response, me)
       options?.update?.(cache, { data })
     },
     onPayError: (e, cache, { data }) => {
-      const response = getPaidActionResult(data)
-      if (!response || !response.result) return
-      const { result: { sats } } = response
-      const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
+      const response = getPayInResult(data)
+      if (!response || !response.payerPrivates.result) return
+      const { payerPrivates: { result: { sats } } } = response
+      const negate = { ...response, payerPrivates: { ...response.payerPrivates, result: { ...response.payerPrivates.result, sats: -1 * sats } } }
       modifyActCache(cache, negate, me)
       options?.onPayError?.(e, cache, { data })
     },
     onPaid: (cache, { data }) => {
-      const response = getPaidActionResult(data)
+      const response = getPayInResult(data)
       if (!response) return
       updateAncestors(cache, response)
       options?.onPaid?.(cache, { data })
@@ -299,9 +303,9 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
 }
 
 export function useZap () {
-  const wallets = useSendWallets()
+  const hasSendWallet = useHasSendWallet()
   const act = useAct()
-  const strike = useLightning()
+  const animate = useAnimation()
   const toaster = useToast()
 
   return useCallback(async ({ item, me, abortSignal }) => {
@@ -310,14 +314,14 @@ export function useZap () {
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = nextTip(meSats, { ...me?.privates })
 
-    const variables = { id: item.id, sats, act: 'TIP', hasSendWallet: wallets.length > 0 }
-    const optimisticResponse = { act: { __typename: 'ItemActPaidAction', result: { path: item.path, ...variables } } }
+    const variables = { id: item.id, sats, act: 'TIP', hasSendWallet }
+    const optimisticResponse = { payInType: 'ZAP', mcost: satsToMsats(sats), payerPrivates: { result: { path: item.path, ...variables, __typename: 'ItemAct' } } }
 
     try {
       await abortSignal.pause({ me, amount: sats })
-      strike()
+      animate()
       // batch zaps if wallet is enabled or using fee credits so they can be executed serially in a single request
-      const { error } = await act({ variables, optimisticResponse, context: { batch: wallets.length > 0 || me?.privates?.sats > sats } })
+      const { error } = await act({ variables, optimisticResponse, context: { batch: hasSendWallet || me?.privates?.sats > sats } })
       if (error) throw error
     } catch (error) {
       if (error instanceof ActCanceledError) {
@@ -328,7 +332,7 @@ export function useZap () {
       // but right now this toast is noisy for optimistic zaps
       console.error(error)
     }
-  }, [act, toaster, strike, wallets.length])
+  }, [act, toaster, animate, hasSendWallet])
 }
 
 export class ActCanceledError extends Error {

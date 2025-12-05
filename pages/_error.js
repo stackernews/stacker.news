@@ -48,18 +48,18 @@ const statusDescribe = {
 
 function ErrorImage ({ statusCode }) {
   if (statusCode === 404) {
-    return <Image className='rounded-1 shadow-sm' width='500' height='376' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/maze.gif`} fluid />
+    return <Image className='rounded-1 shadow-sm' width='500' height='376' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/maze.webp`} fluid />
   }
   if (statusCode >= 500) {
-    return <Image className='rounded-1 shadow-sm' width='300' height='225' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/falling.gif`} fluid />
+    return <Image className='rounded-1 shadow-sm' width='300' height='225' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/falling.webp`} fluid />
   }
   if (statusCode >= 400) {
-    return <Image className='rounded-1 shadow-sm' width='500' height='381' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/forbidden.gif`} fluid />
+    return <Image className='rounded-1 shadow-sm' width='500' height='381' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/forbidden.webp`} fluid />
   }
   if (statusCode >= 300) {
-    return <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.gif`} fluid />
+    return <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.webp`} fluid />
   }
-  return <Image className='rounded-1 shadow-sm' width='500' height='376' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/falling.gif`} fluid />
+  return <Image className='rounded-1 shadow-sm' width='500' height='376' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/falling.webp`} fluid />
 }
 
 export default function Error ({ statusCode }) {

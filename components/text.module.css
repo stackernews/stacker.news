@@ -241,6 +241,7 @@
 
 .text table {
     width: auto;
+    white-space: nowrap;
 }
 
 .text blockquote {
@@ -252,11 +253,18 @@
     margin-top: .25rem;
 }
 
+.text li > :is(.twitterContainer, .nostrContainer, .wavlakeWrapper, .spotifyWrapper, .onlyImages) {
+  display: inline-flex;
+  vertical-align: top;
+  width: 100%;
+}
+
 .text ul,
 .text ol {
   margin-top: 0;
   margin-bottom: 0rem;
   padding-left: 2rem;
+  max-width: calc(100% - 1rem);
 }
 
 .text ol ol,

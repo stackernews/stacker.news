@@ -3,24 +3,6 @@
     margin-bottom: 0;
 }
 
-.nav {
-    margin: 1rem 0;
-    justify-content: start;
-    font-size: 110%;
-}
-
-.nav :global .nav-link {
-    padding-left: 0;
-}
-
-.nav :global .nav-item:not(:first-child) {
-    margin-left: 1rem;
-}
-
-.nav :global .active {
-    border-bottom: 2px solid var(--bs-primary);
-}
-
 .userimg {
     clip-path: polygon(0% 0%, 83% 0%, 100% 100%, 17% 100%);
     object-fit: cover;

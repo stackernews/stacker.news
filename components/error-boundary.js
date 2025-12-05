@@ -3,7 +3,6 @@ import { StaticLayout } from './layout'
 import styles from '@/styles/error.module.css'
 import Image from 'react-bootstrap/Image'
 import copy from 'clipboard-copy'
-import { LoggerContext } from './logger'
 import Button from 'react-bootstrap/Button'
 import { useToast } from './toast'
 import { decodeMinifiedStackTrace } from '@/lib/stacktrace'
@@ -36,8 +35,6 @@ class ErrorBoundary extends Component {
     // You can use your own error logging service here
     console.log({ error, errorInfo })
     this.setState({ errorInfo })
-    const logger = this.context
-    logger?.error(this.getErrorDetails())
   }
 
   render () {
@@ -47,7 +44,7 @@ class ErrorBoundary extends Component {
       const errorDetails = this.getErrorDetails()
       return (
         <StaticLayout footer={false}>
-          <Image width='500' height='375' className='rounded-1 shadow-sm' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/floating.gif`} fluid />
+          <Image width='500' height='375' className='rounded-1 shadow-sm' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/floating.webp`} fluid />
           <h1 className={styles.status} style={{ fontSize: '48px' }}>something went wrong</h1>
           {this.state.error && <CopyErrorButton errorDetails={errorDetails} />}
         </StaticLayout>
@@ -58,8 +55,6 @@ class ErrorBoundary extends Component {
     return this.props.children
   }
 }
-
-ErrorBoundary.contextType = LoggerContext
 
 export default ErrorBoundary
 

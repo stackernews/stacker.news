@@ -2,20 +2,21 @@ import React from 'react'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
 import { useMe } from './me'
-import { numWithUnits } from '@/lib/format'
+import { numWithUnits, satsToMsats } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
 import { ActCanceledError, useAct } from './item-act'
-import { useLightning } from './lightning'
+import { useAnimation } from '@/components/animation'
 import { useToast } from './toast'
-import { useSendWallets } from '@/wallets/index'
+import { useHasSendWallet } from '@/wallets/client/hooks'
 import { Form, SubmitButton } from './form'
 
 export const payBountyCacheMods = {
-  onPaid: (cache, { data }) => {
+  update: (cache, { data }) => {
     const response = Object.values(data)[0]
-    if (!response?.result) return
-    const { id, path } = response.result
+    if (!response?.payerPrivates.result) return
+    console.log('payBounty: update', response)
+    const { id, path } = response.payerPrivates.result
     const root = path.split('.')[0]
     cache.modify({
       id: `Item:${root}`,
@@ -29,8 +30,9 @@ export const payBountyCacheMods = {
   },
   onPayError: (e, cache, { data }) => {
     const response = Object.values(data)[0]
-    if (!response?.result) return
-    const { id, path } = response.result
+    if (!response?.payerPrivates.result) return
+    console.log('payBounty: onPayError', response)
+    const { id, path } = response.payerPrivates.result
     const root = path.split('.')[0]
     cache.modify({
       id: `Item:${root}`,
@@ -48,20 +50,20 @@ export default function PayBounty ({ children, item }) {
   const { me } = useMe()
   const showModal = useShowModal()
   const root = useRoot()
-  const strike = useLightning()
+  const animate = useAnimation()
   const toaster = useToast()
-  const wallets = useSendWallets()
+  const hasSendWallet = useHasSendWallet()
 
-  const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet: wallets.length > 0 }
+  const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet }
   const act = useAct({
     variables,
-    optimisticResponse: { act: { __typename: 'ItemActPaidAction', result: { ...variables, path: item.path } } },
+    optimisticResponse: { payInType: 'ZAP', mcost: satsToMsats(root.bounty), payerPrivates: { result: { path: item.path, id: item.id, sats: root.bounty, act: 'TIP', __typename: 'ItemAct' } } },
     ...payBountyCacheMods
   })
 
   const handlePayBounty = async onCompleted => {
     try {
-      strike()
+      animate()
       const { error } = await act({ onCompleted })
       if (error) throw error
     } catch (error) {

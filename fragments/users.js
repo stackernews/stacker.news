@@ -6,9 +6,9 @@ import { SUB_FULL_FIELDS } from './subs'
 export const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `
@@ -23,17 +23,14 @@ ${STREAK_FIELDS}
     photoId
     privates {
       autoDropBolt11s
-      diagnostics
       noReferralLinks
       fiatCurrency
-      autoWithdrawMaxFeePercent
-      autoWithdrawMaxFeeTotal
-      autoWithdrawThreshold
       withdrawMaxFeeDefault
       satsFilter
       hideFromTopUsers
       hideWalletBalance
       hideWelcomeBanner
+      hideWalletRecvPrompt
       imgproxyOnly
       showImagesAndVideos
       nostrCrossposting
@@ -51,9 +48,10 @@ ${STREAK_FIELDS}
       wildWestMode
       disableFreebies
       vaultKeyHash
+      vaultKeyHashUpdatedAt
       walletsUpdatedAt
-      proxyReceive
-      directReceive
+      showPassphrase
+      diagnostics
     }
     optional {
       isContributor
@@ -97,7 +95,6 @@ export const SETTINGS_FIELDS = gql`
       imgproxyOnly
       showImagesAndVideos
       hideWalletBalance
-      diagnostics
       noReferralLinks
       nostrPubkey
       nostrCrossposting
@@ -115,10 +112,6 @@ export const SETTINGS_FIELDS = gql`
         apiKey
       }
       apiKeyEnabled
-      proxyReceive
-      directReceive
-      receiveCreditsBelowSats
-      sendCreditsBelowSats
     }
   }`
 
@@ -136,11 +129,6 @@ export const SET_SETTINGS = gql`
     setSettings(settings: $settings) {
       ...SettingsFields
     }
-  }`
-
-export const DELETE_WALLET = gql`
-  mutation removeWallet {
-    removeWallet
   }`
 
 export const NAME_QUERY = gql`
@@ -165,6 +153,11 @@ export const USER_SUGGESTIONS = gql`
     userSuggestions(q: $q, limit: $limit) {
       name
     }
+  }`
+
+export const HIDE_WALLET_RECV_PROMPT_MUTATION = gql`
+  mutation hideWalletRecvPrompt {
+    hideWalletRecvPrompt
   }`
 
 export const USER_SEARCH = gql`
@@ -210,25 +203,6 @@ export const USER_FIELDS = gql`
     ...StreakFields
   }`
 
-export const MY_SUBSCRIBED_USERS = gql`
-  ${STREAK_FIELDS}
-  query MySubscribedUsers($cursor: String) {
-    mySubscribedUsers(cursor: $cursor) {
-      users {
-        id
-        name
-        photoId
-        meSubscriptionPosts
-        meSubscriptionComments
-        meMute
-
-        ...StreakFields
-      }
-      cursor
-    }
-  }
-`
-
 export const MY_MUTED_USERS = gql`
   ${STREAK_FIELDS}
   query MyMutedUsers($cursor: String) {
@@ -255,13 +229,11 @@ export const TOP_USERS = gql`
         id
         name
         photoId
-        ncomments(when: $when, from: $from, to: $to)
-        nposts(when: $when, from: $from, to: $to)
+        nitems(when: $when, from: $from, to: $to)
         proportion
         optional {
           stacked(when: $when, from: $from, to: $to)
           spent(when: $when, from: $from, to: $to)
-          referrals(when: $when, from: $from, to: $to)
         }
         ...StreakFields
       }
@@ -278,13 +250,11 @@ export const TOP_COWBOYS = gql`
         id
         name
         photoId
-        ncomments(when: "forever")
-        nposts(when: "forever")
+        nitems(when: "forever")
 
         optional {
           stacked(when: "forever")
           spent(when: "forever")
-          referrals(when: "forever")
         }
         ...StreakFields
       }
@@ -348,8 +318,7 @@ export const USER_WITH_SUBS = gql`
         cursor
         subs {
           ...SubFullFields
-          ncomments(when: "forever")
-          nposts(when: "forever")
+          nitems(when: "forever")
 
           optional {
             stacked(when: "forever")
@@ -360,27 +329,45 @@ export const USER_WITH_SUBS = gql`
       }
     }`
 
-export const USER_STATS = gql`
-    query UserStats($when: String, $from: String, $to: String) {
-      userStatsActions(when: $when, from: $from, to: $to) {
-        time
-        data {
-          name
-          value
+export const MY_SUBSCRIBED_USERS = gql`
+  ${STREAK_FIELDS}
+  query MySubscribedUsers($cursor: String) {
+    mySubscribedUsers(cursor: $cursor) {
+      users {
+        id
+        name
+        photoId
+        meSubscriptionPosts
+        meSubscriptionComments
+        meMute
+        ...StreakFields
+      }
+      cursor
+    }
+  }
+`
+
+export const MY_SUBSCRIBED_SUBS = gql`
+  ${SUB_FULL_FIELDS}
+  query MySubscribedSubs($cursor: String) {
+    mySubscribedSubs(cursor: $cursor) {
+      subs {
+        ...SubFullFields
+        nitems(when: "forever")
+
+        optional {
+          stacked(when: "forever")
+          spent(when: "forever")
+          revenue(when: "forever")
         }
       }
-      userStatsIncomingSats(when: $when, from: $from, to: $to) {
-        time
-        data {
-          name
-          value
-        }
-      }
-      userStatsOutgoingSats(when: $when, from: $from, to: $to) {
-        time
-        data {
-          name
-          value
-        }
-      }
-    }`
+      cursor
+    }
+  }
+`
+
+export const SET_DIAGNOSTICS = gql`
+  mutation setDiagnostics($diagnostics: Boolean!) {
+    setDiagnostics(diagnostics: $diagnostics)
+  }
+`

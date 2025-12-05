@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react'
 import { Badge, Button, CardFooter, Dropdown } from 'react-bootstrap'
 import { AccordianCard } from './accordian-item'
 import TerritoryPaymentDue, { TerritoryBillingLine } from './territory-payment-due'
@@ -13,9 +14,21 @@ import { useToast } from './toast'
 import ActionDropdown from './action-dropdown'
 import { TerritoryTransferDropdownItem } from './territory-transfer'
 
-export function TerritoryDetails ({ sub, children }) {
+const SubscribeTerritoryContext = createContext({ refetchQueries: [] })
+
+export const SubscribeTerritoryContextProvider = ({ children, value }) => (
+  <SubscribeTerritoryContext.Provider value={value}>
+    {children}
+  </SubscribeTerritoryContext.Provider>
+)
+
+export const useSubscribeTerritoryContext = () => useContext(SubscribeTerritoryContext)
+
+export function TerritoryDetails ({ sub, children, className, show }) {
   return (
     <AccordianCard
+      className={className}
+      show={show}
       header={
         <small className='text-muted fw-bold align-items-center d-flex'>
           {sub.name}
@@ -42,9 +55,10 @@ export function TerritoryInfoSkeleton ({ children, className }) {
   )
 }
 
-export function TerritoryInfo ({ sub }) {
+export function TerritoryInfo ({ sub, includeLink }) {
   return (
     <>
+      {includeLink && <Link href={`/~${sub.name}`}>{sub.name}</Link>}
       <div className='py-2'>
         <Text>{sub.desc}</Text>
       </div>
@@ -55,7 +69,7 @@ export function TerritoryInfo ({ sub }) {
             @{sub.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
           </Link>
           <span> on </span>
-          <span className='fw-bold'>{new Date(sub.createdAt).toDateString()}</span>
+          <span className='fw-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
         </div>
         <div className='d-flex'>
           <div className='text-muted'>
@@ -148,12 +162,15 @@ export default function TerritoryHeader ({ sub }) {
 
 export function MuteSubDropdownItem ({ item, sub }) {
   const toaster = useToast()
+  const { refetchQueries } = useSubscribeTerritoryContext()
 
   const [toggleMuteSub] = useMutation(
     gql`
       mutation toggleMuteSub($name: String!) {
         toggleMuteSub(name: $name)
       }`, {
+      refetchQueries,
+      awaitRefetchQueries: true,
       update (cache, { data: { toggleMuteSub } }) {
         cache.modify({
           id: `Sub:{"name":"${sub.name}"}`,
@@ -212,11 +229,14 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
 
 export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription } }) {
   const toaster = useToast()
+  const { refetchQueries } = useSubscribeTerritoryContext()
   const [toggleSubSubscription] = useMutation(
     gql`
       mutation toggleSubSubscription($name: String!) {
         toggleSubSubscription(name: $name)
       }`, {
+      refetchQueries,
+      awaitRefetchQueries: true,
       update (cache, { data: { toggleSubSubscription } }) {
         cache.modify({
           id: `Sub:{"name":"${name}"}`,

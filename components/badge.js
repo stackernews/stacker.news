@@ -1,30 +1,16 @@
+import { Fragment } from 'react'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
-import { numWithUnits } from '@/lib/format'
-import { USER_ID } from '@/lib/constants'
 import GunIcon from '@/svgs/revolver.svg'
 import HorseIcon from '@/svgs/horse.svg'
+import BotIcon from '@/svgs/robot-2-fill.svg'
+import { numWithUnits } from '@/lib/format'
+import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
 
-const BADGES = [
-  {
-    icon: CowboyHatIcon,
-    streakName: 'streak'
-  },
-  {
-    icon: HorseIcon,
-    streakName: 'horseStreak'
-  },
-  {
-    icon: GunIcon,
-    streakName: 'gunStreak',
-    sizeDelta: 2
-  }
-]
-
-export default function Badges ({ user, badge, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
+export default function Badges ({ user, badge, bot, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
   if (!user || Number(user.id) === USER_ID.ad) return null
   if (Number(user.id) === USER_ID.anon) {
     return (
@@ -34,14 +20,50 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
     )
   }
 
+  let badges = []
+
+  const streak = user.optional.streak
+  if (streak !== null) {
+    badges.push({
+      icon: CowboyHatIcon,
+      overlayText: streak
+        ? `${numWithUnits(streak, { abbreviate: false, unitSingular: 'day', unitPlural: 'days' })}`
+        : 'new'
+    })
+  }
+
+  if (user.optional.hasRecvWallet) {
+    badges.push({
+      icon: HorseIcon,
+      overlayText: 'can receive sats'
+    })
+  }
+
+  if (user.optional.hasSendWallet) {
+    badges.push({
+      icon: GunIcon,
+      sizeDelta: 2,
+      overlayText: 'can send sats'
+    })
+  }
+
+  if (bot) {
+    badges = [{
+      icon: BotIcon,
+      overlayText: 'posted as bot'
+    }]
+  }
+
+  if (badges.length === 0) return null
+
   return (
     <span className={className}>
-      {BADGES.map(({ icon, streakName, sizeDelta }, i) => (
+      {badges.map(({ icon, overlayText, sizeDelta }, i) => (
         <SNBadge
-          key={streakName}
+          key={i}
           user={user}
           badge={badge}
-          streakName={streakName}
+          overlayText={overlayText}
           badgeClassName={classNames(badgeClassName, i > 0 && spacingClassName)}
           IconForBadge={icon}
           height={height}
@@ -53,20 +75,19 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
   )
 }
 
-function SNBadge ({ user, badge, streakName, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0 }) {
-  const streak = user.optional[streakName]
-  if (streak === null) {
-    return null
+function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0 }) {
+  let Wrapper = Fragment
+
+  if (overlayText) {
+    Wrapper = ({ children }) => (
+      <BadgeTooltip overlayText={overlayText}>{children}</BadgeTooltip>
+    )
   }
 
   return (
-    <BadgeTooltip
-      overlayText={streak
-        ? `${numWithUnits(streak, { abbreviate: false, unitSingular: 'day', unitPlural: 'days' })}`
-        : 'new'}
-    >
+    <Wrapper>
       <span><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
-    </BadgeTooltip>
+    </Wrapper>
   )
 }
 

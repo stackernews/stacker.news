@@ -11,7 +11,6 @@ import { useMe } from './me'
 import Button from 'react-bootstrap/Button'
 import { useEffect } from 'react'
 import Poll from './poll'
-import { commentsViewed } from '@/lib/new-comments'
 import Related from './related'
 import PastBounties from './past-bounties'
 import Check from '@/svgs/check-double-line.svg'
@@ -26,6 +25,7 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
+import useCommentsView from './use-comments-view'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
@@ -161,9 +161,12 @@ function ItemText ({ item }) {
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
+  // no cache update here because we need to preserve the initial value
+  const { markItemViewed } = useCommentsView(item.id, { updateCache: false })
+
   useEffect(() => {
-    commentsViewed(item)
-  }, [item.lastCommentAt])
+    markItemViewed(item)
+  }, [item.id, markItemViewed])
 
   return (
     <>
@@ -178,7 +181,7 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
           {item.parentId
             ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
             : (
-              <div>{bio
+              <div className='pt-2'>{bio
                 ? <BioItem item={item} {...props} />
                 : <TopLevelItem item={item} {...props} />}
               </div>)}
@@ -191,6 +194,8 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
                 comments={item.comments.comments}
                 commentsCursor={item.comments.cursor}
                 fetchMoreComments={fetchMoreComments}
+                lastCommentAt={item.lastCommentAt}
+                item={item}
               />
             </div>}
         </CarouselProvider>

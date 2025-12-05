@@ -1,9 +1,13 @@
-import Nostr from '@/lib/nostr'
+import Nostr, { getNostrProfile } from '@/lib/nostr'
 import { TwitterApi } from 'twitter-api-v2'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 
+const isProd = process.env.NODE_ENV === 'production'
+const WEIGHTED_VOTE_THRESHOLD = 3
+
 async function postToTwitter ({ message }) {
-  if (!process.env.TWITTER_POSTER_API_KEY ||
+  if (!isProd ||
+    !process.env.TWITTER_POSTER_API_KEY ||
     !process.env.TWITTER_POSTER_API_KEY_SECRET ||
     !process.env.TWITTER_POSTER_ACCESS_TOKEN ||
     !process.env.TWITTER_POSTER_ACCESS_TOKEN_SECRET) {
@@ -38,7 +42,7 @@ const RELAYS = [
 ]
 
 async function postToNostr ({ message }) {
-  if (!process.env.NOSTR_PRIVATE_KEY) {
+  if (!isProd || !process.env.NOSTR_PRIVATE_KEY) {
     console.log('Nostr poster not configured')
     return
   }
@@ -70,6 +74,7 @@ async function getHottestItem ({ models }) {
     LEFT JOIN "AutoSocialPost" ON "Item"."id" = "AutoSocialPost"."itemId"
     WHERE "AutoSocialPost"."id" IS NULL
     AND "Item"."parentId" IS NULL
+    AND "Item"."weightedVotes" - "Item"."weightedDownVotes" > ${WEIGHTED_VOTE_THRESHOLD}
     AND NOT "Item".bio
     AND "Item"."deletedAt" IS NULL
     ORDER BY "hot_score_view"."hot_score" DESC
@@ -89,10 +94,10 @@ async function getHottestItem ({ models }) {
   return item[0]
 }
 
-async function itemToMessage ({ item }) {
+async function itemToMessage ({ item, postAuthorNostrProfile }) {
   return `${item.title}
 
-by ${item.userName} in ~${item.subName}
+by ${postAuthorNostrProfile ? `nostr:${postAuthorNostrProfile}` : `${item.userName}`} in ~${item.subName}
 ${numWithUnits(msatsToSats(item.msats), { abbreviate: false })} and ${numWithUnits(item.ncomments, { abbreviate: false, unitSingular: 'comment', unitPlural: 'comments' })} so far
 
 https://stacker.news/items/${item.id}`
@@ -100,10 +105,21 @@ https://stacker.news/items/${item.id}`
 
 export async function postToSocial ({ models }) {
   const item = await getHottestItem({ models })
-  if (item) {
-    const message = await itemToMessage({ item })
-    console.log('Message:', message)
-    await postToTwitter({ message })
-    await postToNostr({ message })
-  }
+  if (!item) return
+
+  const postAuthor = await models.user.findUnique({
+    where: { id: item.userId, hideNostr: false },
+    select: { nostrPubkey: true, nostrAuthPubkey: true }
+  })
+
+  const nostrKey = postAuthor?.nostrPubkey || postAuthor?.nostrAuthPubkey
+  const postAuthorNostrProfile = nostrKey ? getNostrProfile(nostrKey) : null
+
+  const twitterMessage = await itemToMessage({ item, postAuthorNostrProfile: null })
+  const nostrMessage = await itemToMessage({ item, postAuthorNostrProfile })
+  console.log('Twitter Message:', twitterMessage)
+  console.log('Nostr Message:', nostrMessage)
+
+  await postToTwitter({ message: twitterMessage })
+  await postToNostr({ message: nostrMessage })
 }

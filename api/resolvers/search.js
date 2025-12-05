@@ -1,6 +1,8 @@
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { whenToFrom } from '@/lib/time'
 import { getItem, itemQueryWithMeta, SELECT } from './item'
+import { parse } from 'tldts'
+import { searchSchema, validateSchema } from '@/lib/validate'
 
 function queryParts (q) {
   const regex = /"([^"]*)"/gm
@@ -23,7 +25,7 @@ function queryParts (q) {
 
 export default {
   Query: {
-    related: async (parent, { title, id, cursor, limit = LIMIT, minMatch }, { me, models, search }) => {
+    related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
 
       if (!id && (!title || title.trim().split(/\s+/).length < 1)) {
@@ -39,9 +41,7 @@ export default {
           _index: process.env.OPENSEARCH_INDEX,
           _id: id
         })
-      }
-
-      if (title) {
+      } else if (title) {
         like.push(title)
       }
 
@@ -50,22 +50,64 @@ export default {
         mustNot.push({ term: { id } })
       }
 
-      let should = [
+      const filters = [
         {
-          more_like_this: {
-            fields: ['title', 'text'],
-            like,
-            min_term_freq: 1,
-            min_doc_freq: 1,
-            max_doc_freq: 5,
-            min_word_length: 2,
-            max_query_terms: 25,
-            minimum_should_match: minMatch || '10%',
-            boost_terms: 100
+          bool: {
+            should: [
+              { match: { status: 'ACTIVE' } },
+              { match: { status: 'NOSATS' } }
+            ],
+            must_not: mustNot
           }
+        },
+        {
+          range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
         }
       ]
 
+      // Build the more_like_this query for traditional similarity search
+      const moreLikeThisQuery = {
+        function_score: {
+          query: {
+            bool: {
+              should: [
+                {
+                  more_like_this: {
+                    fields: ['title', 'text'],
+                    like,
+                    max_doc_freq: 10000,
+                    minimum_should_match: minMatch || '20%',
+                    boost_terms: 10
+                  }
+                },
+                {
+                  more_like_this: {
+                    fields: ['title', 'text'],
+                    like,
+                    max_doc_freq: 1000,
+                    minimum_should_match: minMatch || '20%',
+                    boost_terms: 100
+                  }
+                }
+              ],
+              filter: filters
+            }
+          },
+          functions: [{
+            field_value_factor: {
+              field: 'wvotes',
+              modifier: 'log1p',
+              factor: 0.1,
+              missing: 0
+            }
+          }],
+          boost_mode: 'multiply'
+        }
+      }
+
+      let osQuery = moreLikeThisQuery
+
+      // Use hybrid query combining neural and more_like_this if model is available
       if (process.env.OPENSEARCH_MODEL_ID) {
         let qtitle = title
         let qtext = title
@@ -75,26 +117,40 @@ export default {
           qtext = item.text || item.title
         }
 
-        should = [
-          {
-            neural: {
-              title_embedding: {
-                query_text: qtext,
-                model_id: process.env.OPENSEARCH_MODEL_ID,
-                k: decodedCursor.offset + LIMIT
-              }
-            }
-          },
-          {
-            neural: {
-              text_embedding: {
-                query_text: qtitle,
-                model_id: process.env.OPENSEARCH_MODEL_ID,
-                k: decodedCursor.offset + LIMIT
-              }
-            }
+        osQuery = {
+          hybrid: {
+            pagination_depth: LIMIT * 2,
+            queries: [
+              {
+                bool: {
+                  should: [
+                    {
+                      neural: {
+                        title_embedding: {
+                          query_text: qtitle,
+                          model_id: process.env.OPENSEARCH_MODEL_ID,
+                          k: decodedCursor.offset + LIMIT
+                        }
+                      }
+                    },
+                    {
+                      neural: {
+                        text_embedding: {
+                          query_text: qtext.slice(0, 100),
+                          model_id: process.env.OPENSEARCH_MODEL_ID,
+                          k: decodedCursor.offset + LIMIT
+                        }
+                      }
+                    }
+                  ],
+                  filter: filters,
+                  minimum_should_match: 1
+                }
+              },
+              moreLikeThisQuery
+            ]
           }
-        ]
+        }
       }
 
       const results = await search.search({
@@ -109,38 +165,7 @@ export default {
           ]
         },
         body: {
-          query: {
-            function_score: {
-              query: {
-                bool: {
-                  should,
-                  filter: [
-                    {
-                      bool: {
-                        should: [
-                          { match: { status: 'ACTIVE' } },
-                          { match: { status: 'NOSATS' } }
-                        ],
-                        must_not: mustNot
-                      }
-                    },
-                    {
-                      range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
-                    }
-                  ]
-                }
-              },
-              functions: [{
-                field_value_factor: {
-                  field: 'wvotes',
-                  modifier: 'none',
-                  factor: 1,
-                  missing: 0
-                }
-              }],
-              boost_mode: 'multiply'
-            }
-          }
+          query: osQuery
         }
       })
 
@@ -167,11 +192,12 @@ export default {
       })
 
       return {
-        cursor: items.length === (limit || LIMIT) ? nextCursorEncoded(decodedCursor) : null,
+        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items
       }
     },
     search: async (parent, { q, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
+      await validateSchema(searchSchema, { q })
       const decodedCursor = decodeCursor(cursor)
       let sitems = null
 
@@ -253,24 +279,17 @@ export default {
 
       // if search contains a url term, modify the query text
       if (url) {
-        const uri = url.slice(4)
-        let uriObj
-        try {
-          uriObj = new URL(uri)
-        } catch {
-          try {
-            uriObj = new URL(`https://${uri}`)
-          } catch {}
+        let uri = url.slice(4)
+        termQueries.push({
+          match_bool_prefix: { url: { query: uri, operator: 'and', boost: 1000 } }
+        })
+        const parsed = parse(uri)
+        if (parsed?.subdomain?.length > 0) {
+          uri = uri.replace(`${parsed.subdomain}.`, '')
         }
-
-        if (uriObj) {
-          termQueries.push({
-            wildcard: { url: `*${uriObj?.hostname ?? uri}${uriObj?.pathname ?? ''}*` }
-          })
-          termQueries.push({
-            match: { text: `${uriObj?.hostname ?? uri}${uriObj?.pathname ?? ''}` }
-          })
-        }
+        termQueries.push({
+          wildcard: { url: { value: `*${uri}*` } }
+        })
       }
 
       // if nym, items must contain nym
@@ -289,25 +308,25 @@ export default {
 
       // if quoted phrases, items must contain entire phrase
       for (const quote of quotes) {
-        termQueries.push({
-          multi_match: {
-            query: quote,
-            type: 'phrase',
-            fields: ['title', 'text']
-          }
-        })
-
-        // force the search to include the quoted phrase
         filters.push({
           multi_match: {
             query: quote,
+            fields: ['title.exact', 'text.exact'],
+            type: 'phrase'
+          }
+        })
+        termQueries.push({
+          multi_match: {
+            query: quote,
+            fields: ['title.exact^10', 'text.exact'],
             type: 'phrase',
-            fields: ['title', 'text']
+            boost: 1000
           }
         })
       }
 
-      // functions for boosting search rank by recency or popularity
+      let addMembers = {}
+
       switch (sort) {
         case 'comments':
           functions.push({
@@ -326,15 +345,21 @@ export default {
           })
           break
         case 'recent':
-          functions.push({
-            gauss: {
-              createdAt: {
-                origin: 'now',
-                scale: '7d',
-                decay: 0.5
+          addMembers = {
+            min_score: 500,
+            sort: [
+              {
+                createdAt: {
+                  order: 'desc'
+                }
+              },
+              {
+                _id: {
+                  order: 'desc'
+                }
               }
-            }
-          })
+            ]
+          }
           break
         case 'zaprank':
           functions.push({
@@ -395,6 +420,24 @@ export default {
               fields: ['title^10', 'text'],
               boost: 1000
             }
+          },
+          // match on exact fields higher
+          {
+            multi_match: {
+              query,
+              type: 'best_fields',
+              fields: ['title.exact^10', 'text.exact'],
+              boost: 100
+            }
+          },
+          // exact phrase matches higher
+          {
+            multi_match: {
+              query,
+              fields: ['title.exact^10', 'text.exact'],
+              type: 'phrase',
+              boost: 10000
+            }
           }
         ]
 
@@ -406,6 +449,7 @@ export default {
         if (process.env.OPENSEARCH_MODEL_ID) {
           osQuery = {
             hybrid: {
+              pagination_depth: LIMIT * 2,
               queries: [
                 {
                   bool: {
@@ -454,10 +498,13 @@ export default {
           from: decodedCursor.offset,
           body: {
             query: osQuery,
+            ...addMembers,
             highlight: {
               fields: {
                 title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
-                text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
+                'title.exact': { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
+                text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
+                'text.exact': { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
               }
             }
           }
@@ -492,8 +539,14 @@ export default {
         orderBy: 'ORDER BY rank ASC, msats DESC'
       })).map((item, i) => {
         const e = sitems.body.hits.hits[i]
-        item.searchTitle = (e.highlight?.title && e.highlight.title[0]) || item.title
-        item.searchText = (e.highlight?.text && e.highlight.text.join(' ... ')) || undefined
+
+        // prefer the fuzzier highlight for title
+        item.searchTitle = e.highlight?.title?.[0] || e.highlight?.['title.exact']?.[0] || item.title
+
+        // prefer the exact highlight for text
+        const searchTextHighlight = e.highlight?.['text.exact'] || e.highlight?.text || []
+        item.searchText = searchTextHighlight?.join(' ... ')
+
         return item
       })
 

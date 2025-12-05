@@ -2,11 +2,11 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import CCInfo from '@/components/info/cc'
 import { Form, Input, SubmitButton } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
-import { useLightning } from '@/components/lightning'
+import { useAnimation } from '@/components/animation'
 import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
-import { usePaidMutation } from '@/components/use-paid-mutation'
-import { BUY_CREDITS } from '@/fragments/paidAction'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { BUY_CREDITS } from '@/fragments/payIn'
 import { amountSchema } from '@/lib/validate'
 import classNames from 'classnames'
 import { Button, Col, InputGroup, Row } from 'react-bootstrap'
@@ -76,8 +76,8 @@ function WithdrawButton ({ className }) {
 
 export function BuyCreditsButton ({ className }) {
   const showModal = useShowModal()
-  const strike = useLightning()
-  const [buyCredits] = usePaidMutation(BUY_CREDITS)
+  const animate = useAnimation()
+  const [buyCredits] = usePayInMutation(BUY_CREDITS)
 
   return (
     <>
@@ -94,7 +94,7 @@ export function BuyCreditsButton ({ className }) {
                   credits: Number(amount)
                 },
                 onCompleted: () => {
-                  strike()
+                  animate()
                 }
               })
               onClose()

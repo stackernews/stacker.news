@@ -1,0 +1,419 @@
+#!/bin/bash
+
+# ----------------------------------------------
+# usage() function - prints help/usage message
+# ----------------------------------------------
+usage() {
+  cat <<EOF
+Usage: nlp-setup [OPTIONS] [KW_INDEX] [NLP_INDEX]
+
+This script will setup a model and index in opensearch to enable semantic
+search. It assumes the existence of a default, keyword based index that has
+already been fully indexed. It then creates a new index for semantic search
+and re-indexes it using the items from the old index.
+
+It then sets:
+
+OPENSEARCH_INDEX=<NLP_INDEX>
+OPENSEARCH_MODEL_ID=<MODEL_ID>
+
+in .env.local.
+
+After running this script, you will need to remove and rebuild your containers
+using "sndev stop" and "sndev start", in order to enable semantic search.
+
+Options:
+  -h, --help     Display this help message and exit
+
+Arguments:
+  KW_INDEX       The name of the keyword index (default: item)
+  NLP_INDEX      The name of the semantic index (default: item-nlp)
+
+EOF
+}
+
+# -------------------------------------------------
+# Check if user requested help via -h or --help
+# -------------------------------------------------
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+  esac
+done
+
+# ---------------------------------------
+# Set defaults if not provided
+# ---------------------------------------
+KW_INDEX="${1:-item}"
+NLP_INDEX="${2:-item-nlp}"
+
+# ---------------------------------------
+# Main script
+# ---------------------------------------
+OS_URL="http://localhost:9200"
+MODEL_NAME="huggingface/sentence-transformers/all-mpnet-base-v2"
+
+set -e
+
+# Ensure that search is in COMPOSE_PROFILES
+COMPOSE_PROFILES=$(docker exec app printenv COMPOSE_PROFILES)
+if [[ ! "$COMPOSE_PROFILES" == *"search"* ]]; then
+  cat <<EOF
+Please ensure that COMPOSE_PROFILES contains search, then restart the
+containers and try again.
+EOF
+  exit 1
+fi
+
+# Ensure that KW_INDEX is reachable
+echo -ne "Checking that index $KW_INDEX is reachable... "
+response=$(curl -s -o /dev/null -w "%{http_code}" -I "$OS_URL/$KW_INDEX")
+if [ "$response" -eq 200 ]; then
+  echo "yes."
+else
+  echo "no."
+  cat <<EOF
+An index named $KW_INDEX must exist in your stackernews_os volume.
+
+If you just started up the container, wait a while and try again.
+
+Otherwise, you may need to delete and rebuild the opensearch container and
+stackernews_os volume. Check the value of OPENSEARCH_INDEX in your env
+variables.
+EOF
+  exit 1
+fi
+
+# Check if KW_INDEX is still indexing
+kw_count=$(curl -s -X GET "$OS_URL/$KW_INDEX/_count" | jq -r '.count')
+sleep 2
+kw_count_2=$(curl -s -X GET "$OS_URL/$KW_INDEX/_count" | jq -r '.count')
+if [ "$kw_count_2" != "$kw_count" ] || [ "$kw_count_2" -lt 5000 ]; then
+  echo "It appears that $KW_INDEX is not done indexing."
+  echo "Please wait until it finishes indexing, then try again."
+  exit 0
+fi
+
+# Configure the ML plugin
+echo -ne "Configuring the ML plugin... "
+curl \
+  -s -o /dev/null \
+  -X PUT "$OS_URL/_cluster/settings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "persistent": {
+     "plugins.ml_commons.only_run_on_ml_node": "false",
+     "plugins.ml_commons.model_access_control_enabled": "true",
+     "plugins.ml_commons.native_memory_threshold": "99"
+    }}'
+echo "done."
+
+# Check if a local model group is registered and register if not
+echo -ne "Checking if local model group is registered... "
+response=$(curl -s \
+  -X POST "$OS_URL/_plugins/_ml/model_groups/_search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": {
+      "term": {
+        "name.keyword": "local_model_group"
+      }
+    }}')
+exists=$(echo "$response" | jq -r '.hits.total.value')
+if [ "$exists" -gt 0 ]; then
+  echo "yes."
+  model_group_id=$(echo "$response" | jq -r '.hits.hits[0]._id')
+else
+  echo "no."
+  echo "Creating local model group."
+  model_group_id=$(curl -s \
+    -X POST "$OS_URL/_plugins/_ml/model_groups/_register" \
+    -H "Content-Type: application/json" \
+    -d '{
+         "name": "local_model_group",
+         "description": "A model group for local models"
+       }' | jq -r '.model_group_id')
+fi
+echo "model_group_id=$model_group_id"
+
+# Check if the model is registered and register if not
+echo -ne "Checking if the NLP model is registered... "
+response=$(curl \
+  -s -X POST "$OS_URL/_plugins/_ml/models/_search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": {
+      "bool": {
+        "must": [
+          {"term": {"name.keyword": "'"$MODEL_NAME"'"}},
+          {"term": {"model_group_id": "'"$model_group_id"'"}}
+        ]
+      }
+    }}')
+exists=$(echo "$response" | jq -r '.hits.total.value')
+if [ "$exists" -gt 0 ]; then
+  model_id=$(echo "$response" | jq -r '.hits.hits[0]._id')
+  echo "yes."
+else
+  echo "no."
+  # Create the model
+  task_id=$(curl \
+    -s -X POST "$OS_URL/_plugins/_ml/models/_register" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "name": "'"$MODEL_NAME"'",
+      "version": "1.0.1",
+      "model_group_id": "'"$model_group_id"'",
+      "model_format": "TORCH_SCRIPT"
+    }' | jq -r '.task_id')
+  echo "Downloading and registering the model (task_id=$task_id)"
+  state="INCOMPLETE"
+  start_time=$(date +%s)
+  while [ $state != "COMPLETED" ]
+  do
+    response=$(curl \
+      -s -X GET "$OS_URL/_plugins/_ml/tasks/$task_id" \
+      -H "Content-Type: application/json")
+    state=$(echo "$response" | jq -r '.state')
+    elapsed=$(( $(date +%s) - start_time ))
+    echo -ne "\rPlease wait (~1 min)... ${elapsed}s "
+    sleep 1
+  done
+  echo "done."
+  model_id=$(echo "$response" | jq -r '.model_id')
+fi
+echo "model_id=$model_id"
+
+# Check if the model is deployed and deploy if not
+echo -ne "Checking if the model is deployed... "
+response=$(curl \
+  -s -X GET "$OS_URL/_plugins/_ml/models/$model_id" \
+  -H "Content-Type: application/json")
+state=$(echo "$response" | jq -r '.model_state')
+if [ $state == "DEPLOYED" ]; then
+  echo "yes."
+else
+  echo "no."
+  task_id=$(curl -s \
+    -X POST "$OS_URL/_plugins/_ml/models/$model_id/_deploy" \
+    -H "Content-Type: application/json" | jq -r '.task_id')
+  echo "Deploying the model (task_id=$task_id)"
+  start_time=$(date +%s)
+  while [ $state != "DEPLOYED" ]
+  do
+    response=$(curl \
+      -s -X GET "$OS_URL/_plugins/_ml/models/$model_id" \
+      -H "Content-Type: application/json")
+    state=$(echo "$response" | jq -r '.model_state')
+    if [ $state == "DEPLOY_FAILED" ]; then
+      echo "Deploy failed."
+      echo "Try again later."
+      exit 1
+    fi
+    elapsed=$(( $(date +%s) - start_time ))
+    echo -ne "\rPlease wait... ${elapsed}s "
+    sleep 1
+  done
+  echo "done."
+fi
+
+# Create the ingest pipeline
+echo -ne "Creating the ingest pipeline... "
+curl -s -o /dev/null \
+  -X PUT "$OS_URL/_ingest/pipeline/nlp-ingest-pipeline" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"description\": \"An NLP ingest pipeline\",
+    \"processors\": [
+      {
+        \"remove\": {
+          \"field\": \"text\",
+          \"if\": \"ctx?.text?.trim() == ''\"
+        }
+      },
+      {
+        \"remove\": {
+          \"field\": \"title\",
+          \"if\": \"ctx?.title?.trim() == ''\"
+        }
+      },
+      {
+        \"text_embedding\": {
+          \"model_id\": \"$model_id\",
+          \"field_map\": {
+            \"text\": \"text_embedding\",
+            \"title\": \"title_embedding\"
+          }
+        }}]}"
+echo "done."
+
+# Create the hybrid search pipeline
+echo -ne "Creating the hybrid search pipeline... "
+curl -s -o /dev/null \
+  -X PUT "$OS_URL/_search/pipeline/nlp-search-pipeline" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Pre and post processor for hybrid search",
+    "request_processors": [{
+      "neural_query_enricher": {
+        "description": "Sets the default model ID at index and field levels (which doesnt actually work)",
+        "default_model_id": "'"$model_id"'"
+      }
+    }],
+    "phase_results_processors": [{
+      "normalization-processor": {
+        "normalization": {"technique": "min_max"},
+        "combination": {
+          "technique": "arithmetic_mean",
+          "parameters": {"weights": [0.7,0.3]}
+        }
+      }
+    }]}'
+echo "done."
+
+# Check if NLP_INDEX exists and create if note
+echo -ne "Checking if index $NLP_INDEX exists... "
+response=$(curl -s -o /dev/null -w "%{http_code}" -I "$OS_URL/$NLP_INDEX")
+if [ "$response" -eq 200 ]; then
+  echo "yes."
+else
+  echo "no."
+  echo -ne "Creating NLP index... "
+  curl -s -o /dev/null \
+    -X PUT "$OS_URL/$NLP_INDEX" \
+    -H "Content-Type: application/json" \
+    -d '{
+     "settings": {
+       "index.knn": true,
+       "default_pipeline": "nlp-ingest-pipeline"
+     },
+     "mappings": {
+       "properties": {
+         "text": {
+           "type": "text",
+           "analyzer": "english",
+           "fields": {
+             "keyword": {"type": "keyword", "ignore_above": 256},
+             "exact": {
+               "type": "text",
+               "analyzer": "standard"
+             }
+           }
+         },
+         "title": {
+           "type": "text",
+           "analyzer": "english",
+           "fields": {
+             "keyword": {"type": "keyword", "ignore_above": 256},
+             "exact": {
+               "type": "text",
+               "analyzer": "standard"
+             }
+           }
+         },
+         "title_embedding": {
+           "type": "knn_vector",
+           "dimension": 768,
+           "method": {
+             "engine": "lucene",
+             "space_type": "l2",
+             "name": "hnsw",
+             "parameters": {}
+           }
+         },
+         "text_embedding": {
+           "type": "knn_vector",
+           "dimension": 768,
+           "method": {
+             "engine": "lucene",
+             "space_type": "l2",
+             "name": "hnsw",
+             "parameters": {}
+           }
+          }
+        }
+      }}'
+  echo "done."
+fi
+
+# Set hybrid search as default search pipeline
+echo -ne "Setting hybrid search as default search pipeline... "
+curl -s -o /dev/null \
+  -X PUT "$OS_URL/$NLP_INDEX/_settings" \
+  -H "Content-Type: application/json" \
+  -d '{
+     "index.search.default_pipeline": "nlp-search-pipeline"
+  }'
+echo "done."
+
+# Ask user if they want to begin reindexing
+kw_count=$(curl -s -X GET "$OS_URL/$KW_INDEX/_count" | jq -r '.count')
+nlp_count=$(curl -s -X GET "$OS_URL/$NLP_INDEX/_count" | jq -r '.count')
+
+echo "Ready to begin re-indexing. It may take a while (~10 min)."
+echo "Indexed items in $KW_INDEX: $kw_count"
+echo "Indexed items in $NLP_INDEX: $nlp_count"
+read -p "Do you want to begin re-indexing? (y/n) " response
+if [[ "$response" =~ ^[Nn]$ ]]; then
+  echo "If you need to re-index $NLP_INDEX, run this script again."
+  exit 0
+fi
+
+# Re-index the data
+task_id=$(curl -s \
+  -X POST "$OS_URL/_reindex?wait_for_completion=false" \
+  -H "Content-Type: application/json" \
+  -d '{
+       "source": {
+         "index": "'"$KW_INDEX"'"
+       },
+       "dest": {
+         "index": "'"$NLP_INDEX"'"
+       }
+     }' | jq -r '.task')
+echo "Re-indexing the data (task_id=$task_id)"
+completed="false"
+start_time=$(date +%s)
+while [ $completed != "true" ]
+do
+  completed=$(curl -s -X GET "$OS_URL/_tasks/$task_id" \
+    -H "Content-Type: application/json" | jq -r '.completed')
+  elapsed=$(( $(date +%s) - start_time ))
+  echo -ne "\rThis may take a while (~10 min)... ${elapsed}s "
+  sleep 1
+done
+echo "done."
+
+kw_count=$(curl -s -X GET "$OS_URL/$KW_INDEX/_count" | jq -r '.count')
+nlp_count=$(curl -s -X GET "$OS_URL/$NLP_INDEX/_count" | jq -r '.count')
+echo "Indexed items in $KW_INDEX: $kw_count"
+echo "Indexed items in $NLP_INDEX: $nlp_count"
+
+# Update .env.local
+echo "Updating .env.local with:"
+echo "OPENSEARCH_INDEX=$NLP_INDEX"
+echo "OPENSEARCH_MODEL_ID=$model_id"
+if grep -q "^OPENSEARCH_INDEX=" ".env.local"; then
+  sed -i '' "s|^OPENSEARCH_INDEX=.*|OPENSEARCH_INDEX=$NLP_INDEX|" ".env.local"
+else
+  echo "OPENSEARCH_INDEX=item-nlp" >> ".env.local"
+fi
+
+if grep -q "^OPENSEARCH_MODEL_ID=" ".env.local"; then
+  sed -i '' "s|^OPENSEARCH_MODEL_ID=.*|OPENSEARCH_MODEL_ID=$model_id|" ".env.local"
+else
+  echo "OPENSEARCH_MODEL_ID=$model_id" >> ".env.local"
+fi
+echo "done."
+
+cat <<EOF
+To enable semantic search, you should restart your containers:
+
+> ./sndev restart
+
+Do NOT rebuild the stackernews_os volume or you will have to run this
+process again.
+EOF

@@ -15,9 +15,13 @@ import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import { NOFOLLOW_LIMIT } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
-import { MULTI_AUTH_ANON, MULTI_AUTH_LIST } from '@/lib/auth'
+import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
+  // switch session cookie before getting session on SSR
+  if (req) {
+    req = await multiAuthMiddleware(req, res)
+  }
   const session = req && await getServerSession(req, res, getAuthOptions(req))
   const client = new ApolloClient({
     ssrMode: true,
@@ -156,7 +160,7 @@ export function getGetServerSideProps (
 
     // required to redirect to /signup on page reload
     // if we switched to anon and authentication is required
-    if (req.cookies[MULTI_AUTH_LIST] === MULTI_AUTH_ANON) {
+    if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON) {
       me = null
     }
 

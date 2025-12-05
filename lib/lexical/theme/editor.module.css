@@ -1,13 +1,30 @@
 /* editor container */
 
 .editor {
+  --editor-border-color: var(--theme-borderColor);
+  --editor-bg: transparent;
+
   position: relative;
-  border: 1px solid var(--theme-borderColor);
+  border: 1px solid var(--editor-border-color);
+  background-color: var(--editor-bg);
   border-bottom-left-radius: 0.4rem;
   border-bottom-right-radius: 0.4rem;
   border-top-right-radius: 0.4rem;
   padding: 2px;
   line-height: 20px;
+}
+
+/* non-top-level editor for things such as comments */
+.editorContainer:not(:global(.sn-text--top-level)) .editor {
+  --editor-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --editor-bg: var(--theme-forceCommentBg);
+}
+
+/* editor focus state */
+.editor:has(.editorInput:focus-within) {
+  --editor-border-color: var(--bs-primary);
+  outline: 0;
+  box-shadow: 0 0 4px var(--bs-primary);
 }
 
 .editorContainer {
@@ -45,21 +62,6 @@
   .editorInput {
     line-height: 130%;
   }
-}
-
-.editor:has(.editorInput:focus-within) {
-  outline: 0;
-  border: 1px solid var(--bs-primary) !important;
-  box-shadow: 0 0 4px var(--bs-primary);
-}
-
-.editorContainer:not(:global(.sn-text--top-level)) .editor {
-  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 50%, transparent) !important;
-  background-color: var(--theme-forceCommentBg) !important;
-}
-
-.editor:has(.editorInput:focus-within) {
-  border: 1px solid var(--bs-primary) !important;
 }
 
 .editorPlaceholder {
@@ -123,10 +125,11 @@
   border-radius: 0.4rem;
   margin: 0 4px;
   opacity: 0.3;
-}
 
-:global(.dropdown) + .divider {
-  margin-left: 1.25rem !important;
+  /* extra space when divider follows a dropdown */
+  :global(.dropdown) + & {
+    margin-left: 1.25rem;
+  }
 }
 
 .toolbarFormatting {
@@ -162,12 +165,10 @@
   touch-action: manipulation;
 }
 
-.toolbarItem + .toolbarItem {
-  margin-left: 0.25rem !important;
-}
-
+/* spacing between adjacent toolbar items and dropdowns */
+.toolbarItem + .toolbarItem,
 :global(.dropdown):has(.toolbarItem) + :global(.dropdown):has(.toolbarItem) {
-  margin-left: 0.25rem !important;
+  margin-left: 0.25rem;
 }
 
 .toolbarItem:hover {
@@ -195,7 +196,12 @@
   font-size: 12px;
   font-weight: 500;
   margin-left: 0.25rem;
-  color: var(--bs-body-color) !important;
+}
+
+/* bootstrap dropdown override */
+.toolbarItem .toolbarItemText,
+:global(.dropdown-toggle) .toolbarItemText {
+  color: var(--bs-body-color);
 }
 
 .toolbarInsert {
@@ -213,9 +219,14 @@
 }
 
 .toolbarInsert svg {
-  fill: var(--bs-body-color) !important;
   width: 20px;
   height: 20px;
+}
+
+/* bootstrap dropdown item svg override */
+.toolbar .toolbarInsert svg,
+:global(.dropdown-toggle).toolbarInsert svg {
+  fill: var(--bs-body-color);
 }
 
 /* bottom bar */
@@ -316,7 +327,7 @@
 
 .dropdownExtraItemShortcut, .tableActionMenuItemShortcut {
   color: var(--theme-grey);
-  font-size: 12px !important;
+  font-size: 12px;
   font-weight: 400;
   opacity: 0.5;
 }
@@ -342,28 +353,37 @@
   }
 }
 
-/* editor mode tabs: a complete mess */
+/* editor mode tabs */
 .modeTabs {
+  --tab-border-color: var(--theme-borderColor);
+  --tab-bg: var(--theme-commentBg);
+  --tab-shadow: none;
+  --tab-clip: none;
+
   padding-top: .2rem;
   padding-bottom: .3rem;
   position: relative;
 }
 
 .modeTabs:global(.nav-link.active) {
-  border-bottom: 0 !important;
+  border: 1px solid var(--tab-border-color);
+  border-bottom: 0;
+  background-color: var(--tab-bg);
+  box-shadow: var(--tab-shadow);
+  clip-path: var(--tab-clip);
 }
 
-.editorContainer:not(:global(.sn-text--top-level)) .modeTabs:global(.nav-link.active) {
-  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 50%, transparent) !important;
-  background-color: var(--theme-forceCommentBg) !important;
-  border-bottom: 0 !important;
+/* non-top-level editor tabs (comments, etc.) */
+.editorContainer:not(:global(.sn-text--top-level)) .modeTabs {
+  --tab-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --tab-bg: var(--theme-forceCommentBg);
 }
 
-.toolbar:has(~ .editor .editorInput:focus-within) .modeTabs:global(.nav-link.active) {
-  border: 1px solid var(--bs-primary) !important;
-  border-bottom: 0 !important;
-  box-shadow: 0 0 4px var(--bs-primary);
-  clip-path: inset(-0.2rem -0.2rem 0.008rem -0.2rem);
+/* focus state for tabs */
+.toolbar:has(~ .editor .editorInput:focus-within) .modeTabs {
+  --tab-border-color: var(--bs-primary);
+  --tab-shadow: 0 0 4px var(--bs-primary);
+  --tab-clip: inset(-0.2rem -0.2rem 0.008rem -0.2rem);
 }
 
 /* floating toolbar */
@@ -567,10 +587,11 @@
   width: 100% !important;
 }
 
-.tableActionMenuLabel {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;
+/* increase specificity for table action menu label, instead of !important */
+.tableActionMenuLabel.tableActionMenuLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .tableActionMenuItemShortcut {
@@ -586,25 +607,31 @@
 }
 
 .modeSwitcherContainer {
-  margin-bottom: -0.05rem !important;
+  --switcher-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --switcher-shadow: none;
+  --switcher-clip: none;
+
+  margin-bottom: -0.05rem;
 }
 
 .modeSwitcherContainer :global(.nav-tabs .nav-link) {
-  color: var(--theme-dropdownItemColor) !important;
-  font-size: 12px !important;
+  color: var(--theme-dropdownItemColor);
+  font-size: 12px;
   padding-bottom: 0.25rem;
   padding-top: 0.25rem;
 }
 
 .modeSwitcherContainer :global(.nav-tabs .nav-link.active) {
-  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 50%, transparent) !important;
-  border-bottom: 0 !important;
+  border: 1px solid var(--switcher-border-color);
+  border-bottom: 0;
   background-color: var(--theme-commentBg);
+  box-shadow: var(--switcher-shadow);
+  clip-path: var(--switcher-clip);
 }
 
-.toolbar:has(~ .editor .editorInput:focus-within) .modeSwitcherContainer :global(.nav-tabs .nav-link.active) {
-  border: 1px solid var(--bs-primary) !important;
-  border-bottom: 0 !important;
-  box-shadow: 0 0 0 0.2rem rgb(240 218 94 / 25%);
-  clip-path: inset(-0.2rem -0.2rem -0.005rem -0.2rem);
+/* focus state for mode switcher */
+.toolbar:has(~ .editor .editorInput:focus-within) .modeSwitcherContainer {
+  --switcher-border-color: var(--bs-primary);
+  --switcher-shadow: 0 0 0 0.2rem rgb(240 218 94 / 25%);
+  --switcher-clip: inset(-0.2rem -0.2rem -0.005rem -0.2rem);
 }

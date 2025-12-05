@@ -22,7 +22,7 @@ export const ToolbarContextProvider = ({ children }) => {
 
   const contextValue = useMemo(() => {
     return { toolbarState, updateToolbarState, batchUpdateToolbarState }
-  }, [toolbarState, updateToolbarState])
+  }, [toolbarState, updateToolbarState, batchUpdateToolbarState])
 
   return (
     <ToolbarContext.Provider value={contextValue}>

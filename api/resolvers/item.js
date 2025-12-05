@@ -1658,9 +1658,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
   }
-  // todo: refactor to use uploadIdsFromLexicalState
-  // it should be way faster and more reliable
-  // by checking MediaNodes directly.
+  // note for the future: could also check MediaNodes directly via Lexical
   item.uploadIds = uploadIdsFromText(item.text)
 
   // never change author of item

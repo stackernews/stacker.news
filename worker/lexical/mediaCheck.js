@@ -1,13 +1,13 @@
-import { $createSNHeadlessEditor } from '@/lib/lexical/server/headless'
-import { $ssrCheckMediaNodes } from '@/lib/lexical/server/media/check'
+import { createSNHeadlessEditor } from '@/lib/lexical/server/headless'
+import { ssrCheckMediaNodes } from '@/lib/lexical/server/media/check'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 async function patchMedia (lexicalState) {
-  const editor = $createSNHeadlessEditor()
+  const editor = createSNHeadlessEditor()
   editor.setEditorState(editor.parseEditorState(lexicalState))
 
   try {
-    const updated = await $ssrCheckMediaNodes(editor)
+    const updated = await ssrCheckMediaNodes(editor)
     if (!updated) return null
   } catch (error) {
     console.error('error checking media nodes: ', error)

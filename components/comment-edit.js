@@ -42,6 +42,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           {/* what does minRows and required do? */}
           <SNInput
             name='text'
+            minRows={6}
             autoFocus
             required
           />

@@ -150,6 +150,7 @@ export default forwardRef(function Reply ({
                 appendValue={quote}
                 lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
                 placeholder={placeholder}
+                hint={sub?.moderated && 'this territory is moderated'}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>

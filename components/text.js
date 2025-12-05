@@ -121,20 +121,12 @@ export default function Text ({ topLevel, children, ...props }) {
     )
   }, [topLevel, show, overflowing])
 
-  if (children) {
-    return (
-      <div ref={setElement} className={classNames(textClassNames, 'sn-text--truncated')}>
-        {children}
-        {Overflow}
-      </div>
-    )
-  }
-
   return (
     <SNReader
       className={textClassNames}
       ref={setElement}
       topLevel={topLevel}
+      text={children} // if children is provided, it will be used as the markdown text content
       {...props}
     >
       {Overflow}

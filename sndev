@@ -295,14 +295,15 @@ sndev__lnurl_auth() {
     sndev__help_lnurl_auth
     exit 1
   fi
-  docker__exec app node -e "const{bech32}=require('bech32');const{words}=bech32.decode('$lnurl',2000);console.log(Buffer.from(bech32.fromWords(words)).toString('utf8'));" > /tmp/sndev_lnurl
-  decoded=$(cat /tmp/sndev_lnurl)
+  decoded=$(docker__exec app node /app/scripts/lnurl-decode.js "$lnurl")
   echo "Decoded: $decoded"
-  k1=$(echo "$decoded" | grep -oP 'k1=\K[^&]*')
+  k1=$(echo "$decoded" | sed -n 's/.*k1=\([^&]*\).*/\1/p')
   identity_pubkey=$(sndev__cli lnd getinfo | jq -r '.identity_pubkey')
-  domain=$(echo "$decoded" | grep -oP '://\K[^/]*')
-  docker__exec app node -e "const{secp256k1}=require('@noble/curves/secp256k1');const{createHash}=require('crypto');const k1='$k1';const key=createHash('sha256').update('$identity_pubkey'+'$domain').digest();const sig=secp256k1.sign(Buffer.from(k1,'hex'),key);const pub=secp256k1.getPublicKey(key);const cb='$decoded'.split('?')[0];const p=new URLSearchParams({k1,sig:Buffer.from(sig.toCompactRawBytes()).toString('hex'),key:Buffer.from(pub).toString('hex')});console.log(\`\${cb}?\${p}\`);" | xargs curl -s | jq
-  rm -f /tmp/sndev_lnurl
+  domain=$(echo "$decoded" | sed 's|.*://\([^/]*\).*|\1|')
+  callback_base=$(echo "$decoded" | cut -d'?' -f1)
+  callback_url=$(docker__exec app node /app/scripts/lnurl-auth.js "$k1" "$identity_pubkey" "$domain" "$callback_base")
+  echo "Callback: $callback_url"
+  curl -s "$callback_url" | jq
 }
 
 sndev__help_lnurl_auth() {
@@ -327,8 +328,7 @@ sndev__lnurl_withdraw() {
     sndev__help_lnurl_withdraw
     exit 1
   fi
-  docker__exec app node -e "const{bech32}=require('bech32');const{words}=bech32.decode('$lnurl',2000);console.log(Buffer.from(bech32.fromWords(words)).toString('utf8'));" > /tmp/sndev_lnurl
-  decoded=$(cat /tmp/sndev_lnurl)
+  decoded=$(docker__exec app node /app/scripts/lnurl-decode.js "$lnurl")
   echo "Decoded: $decoded"
   params=$(curl -s "$decoded")
   echo "$params" | jq
@@ -338,7 +338,6 @@ sndev__lnurl_withdraw() {
   bolt11=$(sndev__cli lnd addinvoice --amt $((max/1000)) | jq -r '.payment_request')
   echo "Invoice: $bolt11"
   curl -s "${callback}?k1=${k1}&pr=${bolt11}" | jq
-  rm -f /tmp/sndev_lnurl
 }
 
 sndev__help_lnurl_withdraw() {

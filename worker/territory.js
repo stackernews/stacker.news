@@ -48,7 +48,7 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
       throw new Error('not enough fee credits to auto-renew territory')
     } else if (sub.status === 'GRACE' && result.status === 'ACTIVE') {
       // if the sub was in grace and we successfully auto-renewed it, send a push notification
-      await notifyTerritoryStatusChange({ result })
+      await notifyTerritoryStatusChange({ sub: result })
     }
   } catch (e) {
     console.error(e)

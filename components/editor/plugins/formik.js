@@ -1,13 +1,16 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect, useRef } from 'react'
-import { useField } from 'formik'
+import { useField, useFormikContext } from 'formik'
 import { $initializeEditorState, $isMarkdownEmpty } from '@/lib/lexical/utils'
-import { $getRoot } from 'lexical'
+import { $getRoot, COMMAND_PRIORITY_HIGH, createCommand } from 'lexical'
+
+export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
 
 /** syncs lexical with formik values */
 export default function FormikBridgePlugin () {
   const [editor] = useLexicalComposerContext()
   const [textField,, textHelpers] = useField({ name: 'text' })
+  const formik = useFormikContext()
   const hadContent = useRef(false)
 
   // keep formik in sync
@@ -26,6 +29,17 @@ export default function FormikBridgePlugin () {
       })
     })
   }, [editor, textHelpers])
+
+  useEffect(() => {
+    return editor.registerCommand(
+      SUBMIT_FORMIK_COMMAND,
+      () => {
+        formik?.submitForm()
+        return true
+      },
+      COMMAND_PRIORITY_HIGH
+    )
+  }, [editor, formik])
 
   // reset the editor state if the field is/goes empty
   useEffect(() => {

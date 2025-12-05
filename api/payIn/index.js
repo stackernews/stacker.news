@@ -366,7 +366,8 @@ export async function retry (payInId, { me }) {
       payOutBolt11: true,
       subPayIn: true,
       itemPayIn: true,
-      uploadPayIns: true
+      uploadPayIns: true,
+      pessimisticEnv: true
     }
     const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: null, benefactorId: null }
 
@@ -381,7 +382,8 @@ export async function retry (payInId, { me }) {
       throw new Error('Withdrawal payIns cannot be retried')
     }
     if (isPessimistic(payInFailedInitial, { me })) {
-      throw new Error('Pessimistic payIns cannot be retried')
+      // pessimistic payIns are fully re-executed without tracking
+      return await pay(payInFailedInitial.payInType, payInFailedInitial.pessimisticEnv.args, { me })
     }
 
     const payInFailed = await payInReplacePayOuts(models, payInFailedInitial)

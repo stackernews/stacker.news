@@ -39,14 +39,28 @@ docker__exec() {
 sndev__start() {
   shift
 
-
-
   if [ $# -eq 0 ]; then
-    docker__compose up --build
-    exit 0
+    if command -v dmenu > /dev/null 2>&1;  then
+      # use dmenu if installed to select a profile
+      profiles=$(sndev__dmenu_profile)
+      if [ -z "$profiles" ]; then
+        exit 1
+      fi
+      COMPOSE_PROFILES="$profiles" docker__compose up --build
+    else
+      docker__compose up --build
+    fi
+  else
+    docker__compose up "$@"
   fi
+}
 
-  docker__compose up "$@"
+sndev__dmenu_profile() {
+  # dmenu allows to select multiple profiles with CTRL+Enter in which case it will
+  # immediately write the selected profile to stdout even if it was already selected
+  # so we use sort+uniq to remove duplicates
+  profiles="minimal payments wallets email search images capture"
+  echo "$profiles" | tr ' ' '\n' | dmenu | sort | uniq | tr '\n' ',' | sed 's/,$//'
 }
 
 sndev__help_start() {
@@ -180,7 +194,7 @@ sndev__delete() {
   printf "this deletes containers, volumes, and orphans - are you sure? [y/N] "
   read -r answer
   if [ "$answer" = "y" ]; then
-    docker__compose down --volumes --remove-orphans
+    COMPOSE_PROFILES="*" docker__compose down --volumes --remove-orphans
   else
     echo "delete cancelled"
   fi

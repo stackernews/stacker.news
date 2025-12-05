@@ -8,12 +8,11 @@ import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletGuideUrl, walletLud16Domain } from '@/wallets/lib/util'
-import { WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
+import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
+import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
-import InfoIcon from '@/svgs/information-fill.svg'
-import Link from 'next/link'
+import { useFormikContext } from 'formik'
 
 import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
 import { Settings } from './settings'
@@ -39,20 +38,13 @@ export function WalletMultiStepForm ({ wallet }) {
     ].filter(Boolean),
   [support])
 
-  const guideUrl = walletGuideUrl(wallet.name)
-
   return (
     <WalletLayout>
       <div className={styles.form}>
         <WalletLayoutHeader>
           <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />
         </WalletLayoutHeader>
-        {guideUrl && (
-          <Link href={guideUrl} className='text-center text-reset fw-bold text-underline'>
-            <InfoIcon width={18} height={18} className='mx-1' />
-            guide
-          </Link>
-        )}
+        <WalletGuide name={wallet.name} />
         <WalletMultiStepFormContextProvider wallet={wallet} initial={initial} steps={steps}>
           {steps.map(step => {
             // WalletForm is aware of the current step via hooks
@@ -186,6 +178,7 @@ function WalletProtocolFormNavigator () {
 function WalletProtocolFormField ({ type, ...props }) {
   const wallet = useWallet()
   const [protocol] = useProtocol()
+  const formik = useFormikContext()
 
   function transform ({ validate, encrypt, editable, help, share, ...props }) {
     const [upperHint, bottomHint] = Array.isArray(props.hint) ? props.hint : [null, props.hint]
@@ -221,17 +214,28 @@ function WalletProtocolFormField ({ type, ...props }) {
       </div>
     )
 
-    return { ...props, hint: bottomHint, label, readOnly }
+    let append, onPaste
+    const lud16Domain = walletLud16Domain(wallet.name)
+    if (props.name === 'address' && lud16Domain) {
+      append = <InputGroup.Text className='text-monospace'>@{lud16Domain}</InputGroup.Text>
+      onPaste = (e) => {
+        e.preventDefault()
+        const value = (e.clipboardData || window.clipboardData).getData('text')
+        formik.setFieldValue(
+          props.name,
+          value.endsWith(`@${lud16Domain}`)
+            ? value.slice(0, -`@${lud16Domain}`.length)
+            : value
+        )
+      }
+    }
+
+    return { ...props, hint: bottomHint, label, readOnly, append, onPaste }
   }
 
   switch (type) {
     case 'text': {
-      let append
-      const lud16Domain = walletLud16Domain(wallet.name)
-      if (props.name === 'address' && lud16Domain) {
-        append = <InputGroup.Text className='text-monospace'>@{lud16Domain}</InputGroup.Text>
-      }
-      return <Input {...transform(props)} append={append} />
+      return <Input {...transform(props)} />
     }
     case 'password':
       return <PasswordInput {...transform(props)} />

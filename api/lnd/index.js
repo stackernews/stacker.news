@@ -2,8 +2,6 @@ import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
-import { datePivot } from '@/lib/time'
-import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 
 const lnd = global.lnd || authenticatedLndGrpc({
   cert: process.env.LND_CERT,
@@ -60,17 +58,11 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
       timeout
     }, (err, res) => {
       if (err) {
-        if (res?.failure_reason) {
-          reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
-        } else {
-          reject(err)
-        }
-        return
+        return reject(err)
       }
 
-      if (res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
-        reject(new Error('Unable to estimate route, excessive values: ' + JSON.stringify(res)))
-        return
+      if (res.failure_reason !== 'FAILURE_REASON_NONE' || res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
+        return reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
       }
 
       resolve({
@@ -185,13 +177,11 @@ export const getNodeSockets = cachedFetcher(async function fetchNodeSockets ({ l
   }
 })
 
-export async function getPaymentOrNotSent ({ id, lnd, createdAt }) {
+export async function getPaymentOrNotSent ({ id, lnd }) {
   try {
     return await getPayment({ id, lnd })
   } catch (err) {
-    if (err[1] === 'SentPaymentNotFound' &&
-      createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
-      // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
+    if (err[1] === 'SentPaymentNotFound') {
       return { notSent: true, is_failed: true }
     } else {
       throw err

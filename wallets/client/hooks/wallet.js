@@ -1,5 +1,5 @@
 import { useMe } from '@/components/me'
-import { useWallets } from '@/wallets/client/context'
+import { useWallets } from '@/wallets/client/hooks/global'
 import protocols from '@/wallets/client/protocols'
 import { isWallet } from '@/wallets/lib/util'
 import { useMemo } from 'react'

@@ -1,9 +1,8 @@
-import { whenRange } from '@/lib/time'
+import { timeUnitForRange, whenRange } from '@/lib/time'
 import { validateSchema, territorySchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import { viewGroup } from './growth'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
-import performPaidAction from '../paidAction'
+import pay from '../payIn'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
@@ -32,6 +31,72 @@ export async function getSub (parent, { name }, { models, me }) {
         }
       : {})
   })
+}
+
+export async function topSubs (parent, { query, cursor, when, from, to, limit, by = 'revenue' }, { models, me }) {
+  const decodedCursor = decodeCursor(cursor)
+  const [fromDate, toDate] = whenRange(when, from, to || decodeCursor.time)
+  const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
+
+  let column
+  switch (by) {
+    case 'revenue': column = Prisma.sql`revenue`; break
+    case 'spent': column = Prisma.sql`spent`; break
+    case 'stacked': column = Prisma.sql`stacked`; break
+    case 'items': column = Prisma.sql`nitems`; break
+    default: throw new GqlInputError('invalid sort')
+  }
+
+  const subs = await models.$queryRaw`
+    WITH user_subs AS (
+      ${query}
+    ),
+    sub_outgoing AS (
+      SELECT user_subs.name,
+        COALESCE(floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'TERRITORY_REVENUE') / 1000), 0) as revenue,
+        COALESCE(floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'ZAP') / 1000), 0) as stacked
+      FROM user_subs
+      LEFT JOIN "AggPayOut" ON "AggPayOut"."subName" = user_subs.name
+      WHERE "AggPayOut"."timeBucket" >= ${fromDate}
+      AND "AggPayOut"."timeBucket" <= ${toDate}
+      AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+      AND "AggPayOut"."slice" = 'SUB_BY_TYPE'
+      AND "AggPayOut"."payInType" IS NULL
+      GROUP BY user_subs.name
+    ),
+    sub_incoming AS (
+      SELECT user_subs.name,
+        floor(COALESCE(sum("AggPayIn"."sumMcost"), 0) / 1000) as spent,
+        sum("AggPayIn"."countGroup") FILTER (WHERE "AggPayIn"."payInType" = 'ITEM_CREATE') as nitems
+      FROM user_subs
+      LEFT JOIN "AggPayIn" ON "AggPayIn"."subName" = user_subs.name
+      WHERE "AggPayIn"."timeBucket" >= ${fromDate}
+      AND "AggPayIn"."timeBucket" <= ${toDate}
+      AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+      AND "AggPayIn"."slice" = 'SUB_BY_TYPE'
+      AND "AggPayIn"."subName" IS NOT NULL
+      AND "AggPayIn"."payInType" <> 'DEFUNCT_TERRITORY_DAILY_PAYOUT'
+      GROUP BY user_subs.name
+    ),
+    sub_stats AS (
+      SELECT COALESCE(sub_outgoing.name, sub_incoming.name) as name,
+        COALESCE(sub_outgoing."revenue", 0) as revenue,
+        COALESCE(sub_outgoing."stacked", 0) as stacked,
+        COALESCE(sub_incoming."spent", 0) as spent,
+        COALESCE(sub_incoming."nitems", 0) as nitems
+      FROM sub_outgoing
+      FULL JOIN sub_incoming ON sub_outgoing.name = sub_incoming.name
+    )
+    SELECT * FROM sub_stats
+    JOIN "Sub" ON sub_stats.name = "Sub".name
+    ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
+    OFFSET ${decodedCursor.offset}
+    LIMIT ${limit}`
+
+  return {
+    cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+    subs
+  }
 }
 
 export default {
@@ -89,110 +154,52 @@ export default {
 
       return latest?.createdAt
     },
-    topSubs: async (parent, { cursor, when, by, from, to, limit }, { models, me }) => {
-      const decodedCursor = decodeCursor(cursor)
-      const range = whenRange(when, from, to || decodeCursor.time)
+    topSubs: async (parent, { cursor, when, by = 'stacked', from, to, limit }, { models, me }) => {
+      const query = Prisma.sql`
+        SELECT "Sub".name
+        FROM "Sub"
+        WHERE "Sub".status <> 'STOPPED'
+        GROUP BY "Sub".name
+      `
 
-      let column
-      switch (by) {
-        case 'revenue': column = 'revenue'; break
-        case 'spent': column = 'spent'; break
-        case 'posts': column = 'nposts'; break
-        case 'comments': column = 'ncomments'; break
-        default: column = 'stacked'; break
-      }
-
-      const subs = await models.$queryRawUnsafe(`
-          SELECT "Sub".*,
-            COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
-            COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
-            COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
-            COALESCE(sum(posts), 0) as nposts,
-            COALESCE(sum(comments), 0) as ncomments
-          FROM ${viewGroup(range, 'sub_stats')}
-          JOIN "Sub" on "Sub".name = u.sub_name
-          GROUP BY "Sub".name
-          ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
-          OFFSET $3
-          LIMIT $4`, ...range, decodedCursor.offset, limit)
-
-      return {
-        cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
-        subs
-      }
+      return await topSubs(parent, { query, cursor, when, from, to, limit, by }, { models, me })
     },
-    userSubs: async (_parent, { name, cursor, when, by, from, to, limit }, { models, me }) => {
+    userSubs: async (parent, { name, cursor, when, by = 'revenue', from, to, limit }, { models, me }) => {
       if (!name) {
         throw new GqlInputError('must supply user name')
       }
 
-      const user = await models.user.findUnique({ where: { name } })
-      if (!user) {
-        throw new GqlInputError('no user has that name')
-      }
+      const query = Prisma.sql`
+        SELECT "Sub".name
+        FROM "Sub"
+        JOIN users ON users.id = "Sub"."userId" AND users.name = ${name}
+        WHERE "Sub".status <> 'STOPPED'
+        GROUP BY "Sub".name
+      `
 
-      const decodedCursor = decodeCursor(cursor)
-      const range = whenRange(when, from, to || decodeCursor.time)
-
-      let column
-      switch (by) {
-        case 'revenue': column = 'revenue'; break
-        case 'spent': column = 'spent'; break
-        case 'posts': column = 'nposts'; break
-        case 'comments': column = 'ncomments'; break
-        default: column = 'stacked'; break
-      }
-
-      const subs = await models.$queryRawUnsafe(`
-        SELECT "Sub".*,
-          "Sub".created_at as "createdAt",
-          COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
-          COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
-          COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
-          COALESCE(sum(posts), 0) as nposts,
-          COALESCE(sum(comments), 0) as ncomments,
-          ss."userId" IS NOT NULL as "meSubscription",
-          ms."userId" IS NOT NULL as "meMuteSub"
-        FROM ${viewGroup(range, 'sub_stats')}
-        JOIN "Sub" on "Sub".name = u.sub_name
-        LEFT JOIN "SubSubscription" ss ON ss."subName" = "Sub".name AND ss."userId" IS NOT DISTINCT FROM $4
-        LEFT JOIN "MuteSub" ms ON ms."subName" = "Sub".name AND ms."userId" IS NOT DISTINCT FROM $4
-        WHERE "Sub"."userId" = $3
-          AND "Sub".status = 'ACTIVE'
-        GROUP BY "Sub".name, ss."userId", ms."userId"
-        ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
-        OFFSET $5
-        LIMIT $6
-      `, ...range, user.id, me?.id, decodedCursor.offset, limit)
-
-      return {
-        cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
-        subs
-      }
+      return await topSubs(parent, { query, cursor, when, from, to, limit, by }, { models, me })
     },
     mySubscribedSubs: async (parent, { cursor }, { models, me }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      const decodedCursor = decodeCursor(cursor)
-      const subs = await models.$queryRaw`
-        SELECT "Sub".*,
-          "MuteSub"."userId" IS NOT NULL as "meMuteSub",
-          TRUE as "meSubscription"
+      const query = Prisma.sql`
+        SELECT "Sub".name
         FROM "SubSubscription"
         JOIN "Sub" ON "SubSubscription"."subName" = "Sub".name
-        LEFT JOIN "MuteSub" ON "MuteSub"."subName" = "Sub".name AND "MuteSub"."userId" = ${me.id}
         WHERE "SubSubscription"."userId" = ${me.id}
-          AND "Sub".status <> 'STOPPED'
-        ORDER BY "Sub".name ASC
-        OFFSET ${decodedCursor.offset}
-        LIMIT ${LIMIT}
+        AND "Sub".status <> 'STOPPED'
+        GROUP BY "Sub".name
       `
 
+      const { subs, cursor: mySubscribedSubsCursor } = await topSubs(parent, { query, cursor, when: 'forever', limit: LIMIT }, { models, me })
       return {
-        cursor: subs.length === LIMIT ? nextCursorEncoded(decodedCursor, LIMIT) : null,
-        subs
+        cursor: mySubscribedSubsCursor,
+        subs: subs.map(sub => ({
+          ...sub,
+          meSubscription: true
+        }))
       }
     }
   },
@@ -232,7 +239,7 @@ export default {
         return sub
       }
 
-      return await performPaidAction('TERRITORY_BILLING', { name }, { me, models, lnd })
+      return await pay('TERRITORY_BILLING', { name }, { me, models, lnd })
     },
     toggleMuteSub: async (parent, { name }, { me, models }) => {
       if (!me) {
@@ -323,7 +330,7 @@ export default {
         throw new GqlInputError('sub should not be archived')
       }
 
-      return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd })
+      return await pay('TERRITORY_UNARCHIVE', data, { me, models, lnd })
     }
   },
   Sub: {
@@ -340,14 +347,9 @@ export default {
       }
       return sub.MuteSub?.length > 0
     },
-    nposts: async (sub, { when, from, to }, { models }) => {
-      if (typeof sub.nposts !== 'undefined') {
-        return sub.nposts
-      }
-    },
-    ncomments: async (sub, { when, from, to }, { models }) => {
-      if (typeof sub.ncomments !== 'undefined') {
-        return sub.ncomments
+    nitems: async (sub, { when, from, to }, { models }) => {
+      if (typeof sub.nitems !== 'undefined') {
+        return sub.nitems
       }
     },
     meSubscription: async (sub, args, { me, models }) => {
@@ -363,7 +365,7 @@ export default {
 
 async function createSub (parent, data, { me, models, lnd }) {
   try {
-    return await performPaidAction('TERRITORY_CREATE', data, { me, models, lnd })
+    return await pay('TERRITORY_CREATE', data, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GqlInputError('name taken')
@@ -390,7 +392,7 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd }) {
   }
 
   try {
-    return await performPaidAction('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
+    return await pay('TERRITORY_UPDATE', { oldName, ...data }, { me, models, lnd })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GqlInputError('name taken')

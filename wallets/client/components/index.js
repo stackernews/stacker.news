@@ -1,5 +1,5 @@
 export * from './card'
-export * from './draggable'
+export * from './dnd'
 export * from './form/index'
 export * from './layout'
 export * from './passphrase'

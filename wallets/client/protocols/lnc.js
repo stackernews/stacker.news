@@ -11,7 +11,7 @@ export async function sendPayment (bolt11, credentials, { logger }) {
     const { paymentError, paymentPreimage: preimage } = await lnc.lnd.lightning.sendPaymentSync({ payment_request: bolt11 })
     if (paymentError) throw new Error(paymentError)
     if (!preimage) throw new Error('No preimage in response')
-    return preimage
+    return Buffer.from(preimage, 'base64').toString('hex')
   })
 }
 

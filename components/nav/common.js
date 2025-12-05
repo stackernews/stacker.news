@@ -18,7 +18,6 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-// import { useWallets } from '@/wallets/client/hooks'
 import { useWalletIndicator } from '@/wallets/client/hooks'
 import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
 import { useShowModal } from '@/components/modal'
@@ -121,12 +120,10 @@ export function NavNotifications ({ className }) {
   return (
     <>
       <Link href='/notifications' passHref legacyBehavior>
-        <Nav.Link eventKey='notifications' className={classNames('position-relative', className)}>
-          <NoteIcon height={28} width={20} className='theme' />
-          {hasNewNotes &&
-            <span className={styles.notification}>
-              <span className='invisible'>{' '}</span>
-            </span>}
+        <Nav.Link eventKey='notifications' className={className}>
+          <Indicator show={hasNewNotes} top='2px' right='0px' variant='danger'>
+            <NoteIcon height={28} width={20} className='theme' />
+          </Indicator>
         </Nav.Link>
       </Link>
     </>
@@ -160,18 +157,16 @@ export function NavWalletSummary ({ className }) {
   )
 }
 
-export const Indicator = ({ show, children }) => {
+export const Indicator = ({ show, top = '0px', right = '0px', variant = 'secondary', children }) => {
   return (
     <div className='w-fit-content position-relative'>
       {children}
       {show && (
-        <span className='d-inline-block p-1'>
-          <span
-            className='position-absolute p-1 bg-secondary'
-            style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}
-          >
-            <span className='invisible'>{' '}</span>
-          </span>
+        <span
+          className={`position-absolute p-1 bg-${variant}`}
+          style={{ top, right, height: '5px', width: '5px', border: '1px solid var(--bs-body-bg)' }}
+        >
+          <span className='invisible'>{' '}</span>
         </span>
       )}
     </div>
@@ -186,20 +181,20 @@ export function MeDropdown ({ me, dropNavKey }) {
   const indicator = profileIndicator || walletIndicator
 
   return (
-    <div className=''>
+    <div className='ms-2'>
       <Dropdown className={styles.dropdown} align='end'>
         <Dropdown.Toggle className='nav-link nav-item fw-normal' id='profile' variant='custom'>
           <div className='d-flex align-items-center'>
-            <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
-              <Indicator show={indicator}>@{me.name}</Indicator>
+            <Nav.Link eventKey={me.name} as='span' className='p-0'>
+              <Indicator show={indicator} top='2px' right='-5px'>@{me.name}</Indicator>
             </Nav.Link>
-            <Badges user={me} />
+            <Badges user={me} className='ms-1' height={16} width={14} />
           </div>
         </Dropdown.Toggle>
         <Dropdown.Menu>
           <Link href={'/' + me.name} passHref legacyBehavior>
             <Dropdown.Item active={me.name === dropNavKey}>
-              <Indicator show={profileIndicator}>profile</Indicator>
+              <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
             </Dropdown.Item>
           </Link>
           <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
@@ -207,18 +202,18 @@ export function MeDropdown ({ me, dropNavKey }) {
           </Link>
           <Link href='/wallets' passHref legacyBehavior>
             <Dropdown.Item eventKey='wallets'>
-              <Indicator show={walletIndicator}>wallets</Indicator>
+              <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
             </Dropdown.Item>
           </Link>
           <Link href='/credits' passHref legacyBehavior>
             <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>
           </Link>
-          <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
+          <Link href='/satistics' passHref legacyBehavior>
             <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
           </Link>
           <Dropdown.Divider />
-          <Link href='/referrals/month' passHref legacyBehavior>
-            <Dropdown.Item eventKey='referrals'>referrals</Dropdown.Item>
+          <Link href='/invites' passHref legacyBehavior>
+            <Dropdown.Item eventKey='invites'>invites</Dropdown.Item>
           </Link>
           <Dropdown.Divider />
           <div className='d-flex align-items-center'>
@@ -283,7 +278,6 @@ export default function LoginButton () {
 
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  // const { removeLocalWallets } = useWallets()
   const router = useRouter()
 
   return (
@@ -388,8 +382,8 @@ export function LoginButtons ({ handleClose }) {
 export function AnonDropdown ({ path }) {
   return (
     <div className='position-relative'>
-      <Dropdown className={styles.dropdown} align='end' autoClose>
-        <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
+      <Dropdown className={classNames(styles.dropdown, 'pe-0')} align='end' autoClose>
+        <Dropdown.Toggle className='nav-link nav-item pe-0' id='profile' variant='custom'>
           <Nav.Link eventKey='anon' as='span' className='p-0 fw-normal'>
             @anon<Badges user={{ id: USER_ID.anon }} />
           </Nav.Link>
@@ -418,11 +412,6 @@ export function Sorts ({ sub, prefix, className }) {
       {sub !== 'jobs' &&
         <>
           <Nav.Item className={className}>
-            <Link href={prefix + '/random'} passHref legacyBehavior>
-              <Nav.Link eventKey='random' className={styles.navLink}>random</Nav.Link>
-            </Link>
-          </Nav.Item>
-          <Nav.Item className={className}>
             <Link
               href={{
                 pathname: '/~/top/[type]/[when]',
@@ -450,7 +439,7 @@ export function MeCorner ({ dropNavKey, me, className }) {
     <div className={className}>
       <NavNotifications />
       <MeDropdown me={me} dropNavKey={dropNavKey} />
-      <NavWalletSummary className='d-inline-block' />
+      <NavWalletSummary className='d-inline-block ms-1' />
     </div>
   )
 }

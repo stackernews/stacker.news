@@ -1,7 +1,7 @@
 import pay from '@/api/payIn'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { datePivot } from '@/lib/time'
-import { notifyTerritoryStatusChange, notifyTerritoryRevenue } from '@/lib/webPush'
+import { notifyTerritoryStatusChange } from '@/lib/webPush'
 
 export async function territoryBilling ({ data: { subName }, boss, models }) {
   let sub = await models.sub.findUnique({

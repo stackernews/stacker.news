@@ -330,6 +330,8 @@ export default {
         throw new GqlInputError('sub should not be archived')
       }
 
+      data.uploadIds = uploadIdsFromText(data.desc)
+
       return await pay('TERRITORY_UNARCHIVE', data, { me, models, lnd })
     }
   },

@@ -1299,6 +1299,14 @@ export default {
         }
       })
     },
+    mentions: async (item, args, { models }) => {
+      const mentions = await models.mention.findMany({
+        where: { itemId: item.id },
+        include: { user: true },
+        orderBy: { id: 'asc' }
+      })
+      return mentions.map(m => m.user)
+    },
     comments: async (item, { sort, cursor }, { me, models }) => {
       if (typeof item.comments !== 'undefined') {
         if (Array.isArray(item.comments)) {

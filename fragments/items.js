@@ -86,6 +86,9 @@ export const ITEM_FIELDS = gql`
     apiKey
     cost
     meCommentsViewedAt
+    mentions {
+      name
+    }
   }`
 
 export const ITEM_FULL_FIELDS = gql`

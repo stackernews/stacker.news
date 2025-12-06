@@ -159,6 +159,7 @@ export default gql`
     cost: Int!
     payIn: PayIn
     meCommentsViewedAt: Date
+    mentions: [User!]!
   }
 
   input ItemForwardInput {

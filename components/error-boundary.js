@@ -1,4 +1,4 @@
-import { Component, useState } from 'react'
+import { Component } from 'react'
 import { StaticLayout } from './layout'
 import styles from '@/styles/error.module.css'
 import Image from 'react-bootstrap/Image'
@@ -61,10 +61,8 @@ export default ErrorBoundary
 // This button is a functional component so we can use `useToast` hook, which
 // can't be easily done in a class component that already consumes a context
 const CopyErrorButton = ({ errorDetails }) => {
-  const [copying, setCopying] = useState(false)
   const toaster = useToast()
   const onClick = async () => {
-    setCopying(true)
     try {
       const { decodeMinifiedStackTrace } = await import('@/lib/stacktrace')
       const decodedDetails = await decodeMinifiedStackTrace(errorDetails)
@@ -73,13 +71,7 @@ const CopyErrorButton = ({ errorDetails }) => {
     } catch (err) {
       console.error(err)
       toaster?.danger?.('failed to copy')
-    } finally {
-      setCopying(false)
     }
   }
-  return (
-    <Button className='mt-3' onClick={onClick} disabled={copying}>
-      {copying ? 'copying...' : 'copy error information'}
-    </Button>
-  )
+  return <Button className='mt-3' onClick={onClick}>copy error information</Button>
 }

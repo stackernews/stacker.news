@@ -289,6 +289,12 @@ module.exports = withPlausibleProxy()({
       }
     )
 
+    // linkedom references canvas but we're not using it
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      canvas: false
+    }
+
     return config
   }
 })

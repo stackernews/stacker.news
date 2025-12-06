@@ -25,9 +25,11 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
           statusUpdatedAt: new Date()
         }
       })
+
+      // send push notification with the new status
+      await notifyTerritoryStatusChange({ sub })
     }
-    // send push notification with the new status
-    await notifyTerritoryStatusChange({ sub })
+
     // retry billing in one day
     await boss.send('territoryBilling', { subName }, { startAfter: datePivot(new Date(), { days: 1 }) })
   }

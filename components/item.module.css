@@ -94,7 +94,7 @@ a.title:visited {
     vertical-align: text-top;
 }
 
-a.link:visited {
+a.link:visited:not([data-proxy-link]) {
     color: var(--theme-linkVisited) !important;
 }
 

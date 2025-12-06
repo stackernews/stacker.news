@@ -45,6 +45,7 @@ ${STREAK_FIELDS}
       turboTipping
       zapUndos
       upvotePopover
+      proxyEmbeds
       wildWestMode
       disableFreebies
       vaultKeyHash
@@ -91,6 +92,7 @@ export const SETTINGS_FIELDS = gql`
       hideGithub
       hideNostr
       hideTwitter
+      proxyEmbeds
       hideIsContributor
       imgproxyOnly
       showImagesAndVideos

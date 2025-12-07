@@ -18,7 +18,7 @@ export default function Layout ({
       <Navigation sub={sub} />
       {contain
         ? (
-          <Container as={PullToRefresh} className={`px-sm-0 ${styles.contain}`}>
+          <Container as={PullToRefresh} className={`px-sm-0 ${styles.contain} ${containClassName}`}>
             {children}
           </Container>
           )

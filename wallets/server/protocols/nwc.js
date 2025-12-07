@@ -1,3 +1,4 @@
+import { WalletPermissionsError } from '@/wallets/client/errors'
 import { nwcTryRun, supportedMethods } from '@/wallets/lib/protocols/nwc'
 
 export const name = 'NWC'
@@ -16,13 +17,13 @@ export async function testCreateInvoice ({ url }, { signal }) {
   const supports = (method) => supported.includes(method)
 
   if (!supports('make_invoice')) {
-    throw new Error('make_invoice not supported')
+    throw new WalletPermissionsError('credentials do not allow receiving')
   }
 
   const mustNotSupport = ['pay_invoice', 'multi_pay_invoice', 'pay_keysend', 'multi_pay_keysend']
   for (const method of mustNotSupport) {
     if (supports(method)) {
-      throw new Error(`${method} must not be supported`)
+      throw new WalletPermissionsError('credentials allow spending')
     }
   }
 

@@ -1,0 +1,432 @@
+import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, USER_ID } from '@/lib/constants'
+import { Prisma } from '@prisma/client'
+import { payViaPaymentRequest } from 'ln-service'
+import lnd from '../lnd'
+import payInTypeModules from './types'
+import { msatsToSats } from '@/lib/format'
+import { payInBolt11Prospect, payInBolt11WrapProspect } from './lib/payInBolt11'
+import { isPessimistic, isProxyPayment, isWithdrawal } from './lib/is'
+import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
+import { payInClone } from './lib/payInPrisma'
+import { createHmac } from '../resolvers/wallet'
+
+// grab a greedy connection for the payIn system on any server
+// if we have lock contention of payIns, we don't want to block other queries
+import createPrisma from '@/lib/create-prisma'
+import { PayInFailureReasonError } from './errors'
+import { payInReplacePayOuts } from './lib/payInFailed'
+const models = createPrisma({ connectionParams: { connection_limit: 2 } })
+
+export default async function pay (payInType, payInArgs, { me, custodialOnly }) {
+  try {
+    const payInModule = payInTypeModules[payInType]
+
+    console.group('payIn', payInType, payInArgs)
+
+    if (!payInModule) {
+      throw new Error(`Invalid payIn type ${payInType}`)
+    }
+
+    if (!me && !payInModule.anonable) {
+      throw new Error('You must be logged in to perform this action')
+    }
+
+    me ??= { id: USER_ID.anon }
+
+    if (payInModule.systemOnly) {
+      if (!custodialOnly) {
+        throw new Error('System payIns must be performed with custodialOnly set to true')
+      }
+      if (![USER_ID.rewards, USER_ID.sn].includes(me.id)) {
+        throw new Error('You must be the rewards or sn user to perform this system-only action: ' + me.id)
+      }
+    }
+
+    const payIn = await payInModule.getInitial(models, payInArgs, { me })
+    return await begin(models, payIn, payInArgs, { me, custodialOnly })
+  } catch (e) {
+    console.error('payIn failed', e)
+    throw e
+  } finally {
+    console.groupEnd()
+  }
+}
+
+// we lock all users in the payIn in order to avoid deadlocks with other payIns
+// that might be competing to update the same users, e.g. two users simultaneously zapping each other
+// https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE
+// alternative approaches:
+// 1. do NOT lock all users, but use NOWAIT on users locks so that we can catch AND retry transactions that fail with a deadlock error
+// anything we can do to minimize the time spent in these interactive txs would also help
+async function obtainRowLevelLocks (tx, payIn) {
+  const payOutUserIds = [...new Set(payIn.payOutCustodialTokens.map(t => t.userId)).add(payIn.userId)]
+  if (payIn.payOutBolt11) {
+    payOutUserIds.push(payIn.payOutBolt11.userId)
+  }
+  await tx.$executeRaw`SELECT * FROM users WHERE id IN (${Prisma.join(payOutUserIds)}) ORDER BY id ASC FOR NO KEY UPDATE`
+}
+
+// after begin and retry, we want to double check that the invoice we're assuming will be created is actually created
+// so this is inserted atomically with the payIn creation
+async function queueCheckPayInInvoiceCreation (tx, payInId) {
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+    VALUES ('checkPayInInvoiceCreation', jsonb_build_object('payInId', ${payInId}::INTEGER), now() + INTERVAL '60 seconds', 1000)`
+}
+
+// if there's a terminal failure after begin or retry, we want the payIn to get marked as failed as fast as possible
+async function queuePayInFailed (tx, payInId, payInFailureReason) {
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+    VALUES ('payInFailed', jsonb_build_object('payInId', ${payInId}::INTEGER, 'payInFailureReason', ${payInFailureReason ?? 'EXECUTION_FAILED'}),
+      now(), 1000)`
+}
+
+async function begin (models, payInInitial, payInArgs, { me, custodialOnly }) {
+  const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
+    await obtainRowLevelLocks(tx, payInInitial)
+    const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, payInArgs, { me })
+
+    if (mCostRemaining > 0n && custodialOnly) {
+      throw new Error('Insufficient funds')
+    }
+
+    // if it's pessimistic, we don't perform the action until the invoice is held
+    if (payIn.pessimisticEnv) {
+      await queueCheckPayInInvoiceCreation(tx, payIn.id)
+
+      return {
+        payIn,
+        mCostRemaining
+      }
+    }
+
+    // if it's optimistic or already paid, we perform the action
+    const result = await onBegin(tx, payIn.id, payInArgs)
+
+    // if it's already paid, we run onPaid and do payOuts in the same transaction
+    if (payIn.payInState === 'PAID') {
+      await onPaid(tx, payIn.id, payInArgs)
+      return {
+        payIn,
+        result,
+        mCostRemaining: 0n
+      }
+    }
+
+    await queueCheckPayInInvoiceCreation(tx, payIn.id)
+    return {
+      payIn,
+      result,
+      mCostRemaining
+    }
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10000 })
+
+  return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
+}
+
+export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
+  if (!payIn) {
+    throw new Error('PayIn not found')
+  }
+
+  const result = await payInTypeModules[payIn.payInType].onBegin?.(tx, payIn.id, payInArgs, benefactorResult)
+
+  for (const beneficiary of payIn.beneficiaries) {
+    await onBegin(tx, beneficiary.id, payInArgs, result)
+  }
+
+  return result
+}
+
+async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
+  async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
+    try {
+      const inStates = ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP']
+      const updatedPayIn = await models.payIn.update({
+        where: {
+          id: payIn.id,
+          payInState: { in: inStates }
+        },
+        data: {
+          payInState,
+          payInBolt11: {
+            create: payInBolt11
+          },
+          beneficiaries: {
+            updateMany: {
+              data: {
+                payInState
+              },
+              where: {
+                benefactorId: payIn.id
+              }
+            }
+          }
+        },
+        include: PAY_IN_INCLUDE
+      })
+      // the HMAC is only returned during invoice creation
+      // this makes sure that only the person who created this invoice
+      // has access to the HMAC
+      updatedPayIn.payInBolt11.hmac = createHmac(updatedPayIn.payInBolt11.hash)
+      // NOTE: this circular reference is intentional, as it allows us to modify the payIn from the result
+      // (e.g. item) in the clientside cache
+      return { ...updatedPayIn, result: result ? { ...result, payIn: updatedPayIn } : undefined }
+    } catch (e) {
+      console.error('error transitioning to ' + payInState + ' after invoice creation', e)
+      throw new PayInFailureReasonError('transitioning to ' + payInState + ' failed', 'INVOICE_CREATION_FAILED')
+    }
+  }
+
+  try {
+    if (payIn.payInState === 'PAID') {
+      onPaidSideEffects(models, payIn.id).catch(console.error)
+    } else if (payIn.payInState === 'PENDING_INVOICE_CREATION') {
+      const payInBolt11 = await payInBolt11Prospect(models, payIn,
+        { msats: mCostRemaining, description: await payInTypeModules[payIn.payInType].describe(models, payIn.id) })
+      return await afterInvoiceCreation({
+        payInState: payIn.pessimisticEnv ? 'PENDING_HELD' : 'PENDING',
+        payInBolt11
+      })
+    } else if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
+      const payInBolt11 = await payInBolt11WrapProspect(models, payIn,
+        { msats: mCostRemaining, description: await payInTypeModules[payIn.payInType].describe(models, payIn.id) })
+      return await afterInvoiceCreation({
+        payInState: 'PENDING_HELD',
+        payInBolt11
+      })
+    } else if (payIn.payInState === 'PENDING_WITHDRAWAL') {
+      const { mtokens } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+      payViaPaymentRequest({
+        lnd,
+        request: payIn.payOutBolt11.bolt11,
+        max_fee: msatsToSats(mtokens),
+        pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
+        confidence: LND_PATHFINDING_TIME_PREF_PPM
+      }).catch(e => queuePayInFailed(models, payIn.id, e.payInFailureReason ?? 'WITHDRAWAL_FAILED').catch(console.error))
+    } else {
+      throw new Error('Invalid payIn begin state')
+    }
+  } catch (e) {
+    queuePayInFailed(models, payIn.id, e.payInFailureReason).catch(console.error)
+    // if invoice creation or wrapping failed, we want to return the payIn to the client
+    // so that their view is optimistic while we retry
+    // unless it's a payIn that was retried, or it's a pessimistic payIn
+    if (!(e instanceof PayInFailureReasonError) || payIn.pessimisticEnv || payIn.genesisId) {
+      throw e
+    }
+  }
+
+  return {
+    ...payIn,
+    result: result
+      ? {
+          ...result,
+          // XXX this weirdness is for ITEM_UPDATE payIns, which we want to return
+          // the ITEM_CREATE payIn which can be unpaid while the (free) ITEM_UPDATE payIn is paid
+          payIn: payIn.payInType === 'ITEM_UPDATE' ? result.payIn : payIn
+        }
+      : undefined
+  }
+}
+
+// NOTE: I considered using Promise.all within these onFail and onPaid txs to avoid round trips to the database, but
+// prisma does not support pipelining this way (or any other way afaict), but a lot of the
+// deadlock and timeout risks of these interactive txs would be helped by such a thing
+export async function onFail (tx, payInId) {
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { payInCustodialTokens: true, beneficiaries: true } })
+  if (!payIn) {
+    throw new Error('PayIn not found')
+  }
+
+  // refund the custodial tokens
+  for (const payInCustodialToken of payIn.payInCustodialTokens) {
+    const isSats = payInCustodialToken.custodialTokenType === 'SATS'
+    await tx.$executeRaw`
+      WITH refunduser AS (
+        UPDATE users
+        SET msats = msats + ${isSats ? payInCustodialToken.mtokens : 0},
+          mcredits = mcredits + ${!isSats ? payInCustodialToken.mtokens : 0}
+        WHERE id = ${payIn.userId}
+        RETURNING mcredits as "mcreditsAfter", msats as "msatsAfter"
+      )
+      INSERT INTO "RefundCustodialToken" ("payInId", "mtokens", "mtokensAfter", "custodialTokenType")
+      SELECT ${payIn.id}, ${payInCustodialToken.mtokens}, ${isSats ? Prisma.sql`refunduser."msatsAfter"` : Prisma.sql`refunduser."mcreditsAfter"`}, ${payInCustodialToken.custodialTokenType}::"CustodialTokenType"
+      FROM refunduser`
+  }
+
+  await payInTypeModules[payIn.payInType].onFail?.(tx, payInId)
+  for (const beneficiary of payIn.beneficiaries) {
+    await onFail(tx, beneficiary.id)
+  }
+}
+
+export async function onPaid (tx, payInId) {
+  const payIn = await tx.payIn.findUnique({
+    where: { id: payInId },
+    include: {
+      payOutBolt11: true,
+      beneficiaries: true,
+      // need this for obtaining row level locks on the payOutCustodialTokens
+      payOutCustodialTokens: true
+    }
+  })
+  if (!payIn) {
+    throw new Error('PayIn not found')
+  }
+
+  await obtainRowLevelLocks(tx, payIn)
+
+  // Batch all payOut updates into a single query
+  // Each payOut gets sequential mtokensAfter using running totals
+  // payouts are unbounded,may be very numerous, e.g. rewards, so we only want one roundtrip to the database
+  await tx.$executeRaw`
+    WITH payouts_with_running_totals AS (
+      SELECT
+        id,
+        "userId",
+        "custodialTokenType",
+        mtokens,
+        SUM(CASE WHEN "custodialTokenType" = 'SATS' THEN mtokens ELSE 0 END)
+          OVER (PARTITION BY "userId" ORDER BY id) as running_sats,
+        SUM(CASE WHEN "custodialTokenType" = 'CREDITS' THEN mtokens ELSE 0 END)
+          OVER (PARTITION BY "userId" ORDER BY id) as running_credits
+      FROM "PayOutCustodialToken"
+      WHERE "payInId" = ${payIn.id}
+    ),
+    user_totals AS (
+      SELECT
+        "userId",
+        SUM(CASE WHEN "custodialTokenType" = 'SATS' THEN mtokens ELSE 0 END) as final_sats,
+        SUM(CASE WHEN "custodialTokenType" = 'CREDITS' THEN mtokens ELSE 0 END) as final_credits,
+        SUM(mtokens) as final_total
+      FROM "PayOutCustodialToken"
+      WHERE "payInId" = ${payIn.id}
+      GROUP BY "userId"
+    ),
+    outuser AS (
+      UPDATE users
+      SET
+        msats = users.msats + ut.final_sats,
+        "stackedMsats" = users."stackedMsats" + ${isWithdrawal(payIn) ? 0 : Prisma.sql`ut.final_sats`},
+        mcredits = users.mcredits + ut.final_credits,
+        "stackedMcredits" = users."stackedMcredits" + ${isWithdrawal(payIn) ? 0 : Prisma.sql`ut.final_credits`}
+      FROM user_totals ut
+      WHERE users.id = ut."userId"
+      RETURNING users.id, users.mcredits, users.msats
+    )
+    UPDATE "PayOutCustodialToken" pct
+    SET "mtokensAfter" = CASE
+      WHEN pct."custodialTokenType" = 'SATS'
+        THEN outuser.msats - ut.final_sats + p.running_sats
+      ELSE outuser.mcredits - ut.final_credits + p.running_credits
+    END
+    FROM payouts_with_running_totals p
+    JOIN user_totals ut ON ut."userId" = p."userId"
+    JOIN outuser ON outuser.id = p."userId"
+    WHERE pct.id = p.id`
+
+  if (!isWithdrawal(payIn) && !isProxyPayment(payIn)) {
+    if (payIn.payOutBolt11) {
+      await tx.$executeRaw`
+        UPDATE users
+        SET "stackedMsats" = "stackedMsats" + ${payIn.payOutBolt11.msats}
+        WHERE id = ${payIn.payOutBolt11.userId}`
+    }
+
+    // most paid actions are eligible for a cowboy hat streak
+    await tx.$executeRaw`
+      INSERT INTO pgboss.job (name, data)
+      VALUES ('checkStreak', jsonb_build_object('id', ${payIn.userId}, 'type', 'COWBOY_HAT'))`
+  }
+
+  const payInModule = payInTypeModules[payIn.payInType]
+  await payInModule.onPaid?.(tx, payInId)
+  for (const beneficiary of payIn.beneficiaries) {
+    await onPaid(tx, beneficiary.id)
+  }
+}
+
+export async function onPaidSideEffects (models, payInId) {
+  const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { beneficiaries: true } })
+  if (!payIn) {
+    throw new Error('PayIn not found')
+  }
+
+  await payInTypeModules[payIn.payInType].onPaidSideEffects?.(models, payInId)
+  for (const beneficiary of payIn.beneficiaries) {
+    await onPaidSideEffects(models, beneficiary.id)
+  }
+}
+
+export async function retry (payInId, { me }) {
+  try {
+    const include = {
+      payOutCustodialTokens: { include: { subPayOutCustodialToken: true } },
+      payOutBolt11: true,
+      subPayIn: true,
+      itemPayIn: true,
+      uploadPayIns: true,
+      pessimisticEnv: true
+    }
+    const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: null, benefactorId: null }
+
+    const payInFailedInitial = await models.payIn.findFirst({
+      where,
+      include: { ...include, beneficiaries: { include } }
+    })
+    if (!payInFailedInitial) {
+      throw new Error('PayIn with id ' + payInId + ' not found')
+    }
+    if (isWithdrawal(payInFailedInitial)) {
+      throw new Error('Withdrawal payIns cannot be retried')
+    }
+    if (isPessimistic(payInFailedInitial, { me })) {
+      // pessimistic payIns are fully re-executed without tracking
+      return await pay(payInFailedInitial.payInType, payInFailedInitial.pessimisticEnv.args, { me })
+    }
+
+    const payInFailed = await payInReplacePayOuts(models, payInFailedInitial)
+
+    const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
+      const payInInitial = { ...payInClone(payInFailed), retryCount: payInFailed.retryCount + 1 }
+      await obtainRowLevelLocks(tx, payInInitial)
+      const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, undefined, { me })
+
+      // use an optimistic lock on successorId on the payIn
+      const rows = await tx.$queryRaw`UPDATE "PayIn" SET "successorId" = ${payIn.id} WHERE "id" = ${payInFailed.id} AND "successorId" IS NULL RETURNING id`
+      if (rows.length === 0) {
+        throw new Error('PayIn with id ' + payInFailed.id + ' is already being retried')
+      }
+
+      // run the onRetry hook for the payIn and its beneficiaries
+      const result = await payInTypeModules[payIn.payInType].onRetry?.(tx, payInFailed.id, payIn.id)
+      for (const beneficiary of payIn.beneficiaries) {
+        await payInTypeModules[beneficiary.payInType].onRetry?.(tx, beneficiary.id, payIn.id)
+      }
+
+      // if it's already paid, we run onPaid and do payOuts in the same transaction
+      if (payIn.payInState === 'PAID') {
+        await onPaid(tx, payIn.id, { me })
+        return {
+          payIn,
+          result,
+          mCostRemaining: 0n
+        }
+      }
+
+      await queueCheckPayInInvoiceCreation(tx, payIn.id)
+
+      return {
+        payIn,
+        result,
+        mCostRemaining
+      }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10000 })
+
+    return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
+  } catch (e) {
+    console.error('retry failed', e)
+    throw e
+  }
+}

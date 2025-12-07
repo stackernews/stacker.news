@@ -109,12 +109,6 @@ module.exports = withPlausibleProxy()({
           noCacheHeader
         ]
       },
-      {
-        source: '/api/lnwith',
-        headers: [
-          ...corsHeaders
-        ]
-      },
       ...['ttf', 'woff', 'woff2'].map(ext => ({
         source: `/Lightningvolt-xoqm.${ext}`,
         headers: [
@@ -188,7 +182,7 @@ module.exports = withPlausibleProxy()({
     return [
       {
         source: '/statistics',
-        destination: '/satistics?inc=invoice,withdrawal',
+        destination: '/satistics',
         permanent: true
       },
       {
@@ -239,12 +233,13 @@ module.exports = withPlausibleProxy()({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.MEDIA_URL_DOCKER': JSON.stringify(process.env.MEDIA_URL_DOCKER),
             'process.env.NEXT_PUBLIC_MEDIA_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_URL),
+            'process.env.NEXT_PUBLIC_MEDIA_CHECK_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_CHECK_URL),
             'process.env.NEXT_PUBLIC_MEDIA_DOMAIN': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_DOMAIN),
             'process.env.NEXT_PUBLIC_URL': JSON.stringify(process.env.NEXT_PUBLIC_URL),
-            'process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL),
-            'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL),
-            'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL),
-            'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL),
+            'process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL_MS),
             'process.env.SANCTIONED_COUNTRY_CODES': JSON.stringify(process.env.SANCTIONED_COUNTRY_CODES),
             'process.env.NEXT_IS_EXPORT_WORKER': 'true'
           })

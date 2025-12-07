@@ -24,9 +24,11 @@ export const SubscribeTerritoryContextProvider = ({ children, value }) => (
 
 export const useSubscribeTerritoryContext = () => useContext(SubscribeTerritoryContext)
 
-export function TerritoryDetails ({ sub, children }) {
+export function TerritoryDetails ({ sub, children, className, show }) {
   return (
     <AccordianCard
+      className={className}
+      show={show}
       header={
         <small className='text-muted fw-bold align-items-center d-flex'>
           {sub.name}
@@ -67,7 +69,7 @@ export function TerritoryInfo ({ sub, includeLink }) {
             @{sub.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
           </Link>
           <span> on </span>
-          <span className='fw-bold'>{new Date(sub.createdAt).toDateString()}</span>
+          <span className='fw-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
         </div>
         <div className='d-flex'>
           <div className='text-muted'>

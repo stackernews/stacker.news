@@ -1,5 +1,4 @@
 const { ApolloClient, InMemoryCache, HttpLink, gql } = require('@apollo/client')
-const { quote } = require('../lib/md.js')
 const { datePivot } = require('../lib/time.js')
 
 const ITEMS = gql`
@@ -171,10 +170,9 @@ async function main () {
   })
 
   const topMeme = await bountyWinner('meme monday')
-  const topFact = await bountyWinner('fun fact')
 
   const topCowboys = await getTopUsers({ cowboys: true, when: 'custom', from, to })
-  const topStackers = await getTopUsers({ by: 'stacking', when: 'custom', from, to })
+  const topStackers = await getTopUsers({ by: 'stacked', when: 'custom', from, to })
   const topSpenders = await getTopUsers({ by: 'spent', when: 'custom', from, to })
 
   process.stdout.write(
@@ -188,11 +186,11 @@ ${top.data.items.items.map((item, i) =>
     - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
 ##### Top AMAs
-${ama.data.items.items.slice(0, 3).map((item, i) =>
+${ama.data.items.items.slice(0, 10).map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
     - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
-[**all of this week's AMAs**](https://stacker.news/~AMA/top/posts/week)
+[**all of this week's AMAs**](https://stacker.news/~ama/top/posts/week)
 
 ##### Don't miss
 ${top.data.items.items.map((item, i) =>
@@ -214,13 +212,6 @@ ${meta.data.items.items.slice(0, 10).map((item, i) =>
 ![](${new URL(topMeme?.winner.image, 'https://imgprxy.stacker.news').href})
 
 [**all monday memes**](https://stacker.news/items/${topMeme?.bounty})
-
-------
-
-##### Top Friday fun fact
-${topFact && quote(topFact?.winner.text)}
-
-[**all friday fun facts**](https://stacker.news/items/${topFact?.bounty})
 
 ------
 
@@ -260,7 +251,7 @@ Yeehaw,
 Keyan
 A guy who works on Stacker News
 
-[Watch](https://www.youtube.com/@stackernews/live) or [Listen](https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2) to SN's top stories every week.
+[Watch](https://www.youtube.com/@stackernews/live) or [Listen to](https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2) or [Read in print](https://www.plebpoet.com/zines.html) SN's top stories every week.
 
 Get this newsletter sent to your email inbox by signing up [here](https://mail.stacker.news/subscription/form).`)
 }

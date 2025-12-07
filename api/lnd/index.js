@@ -2,8 +2,6 @@ import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
-import { datePivot } from '@/lib/time'
-import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
 
 const lnd = global.lnd || authenticatedLndGrpc({
   cert: process.env.LND_CERT,
@@ -43,42 +41,48 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
     }
   }
 
-  return await new Promise((resolve, reject) => {
-    const params = {}
+  let failureReason
+  try {
+    return await new Promise((resolve, reject) => {
+      const params = {}
 
-    if (request) {
-      console.log('estimateRouteFee using payment request')
-      params.payment_request = request
-    } else {
-      console.log('estimateRouteFee using destination and amount')
-      params.dest = Buffer.from(destination, 'hex')
-      params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
-    }
+      if (request) {
+        console.log('estimateRouteFee using payment request')
+        params.payment_request = request
+      } else {
+        console.log('estimateRouteFee using destination and amount')
+        params.dest = Buffer.from(destination, 'hex')
+        params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
+      }
 
-    lnd.router.estimateRouteFee({
-      ...params,
-      timeout
-    }, (err, res) => {
-      if (err) {
-        if (res?.failure_reason) {
-          reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
-        } else {
-          reject(err)
+      lnd.router.estimateRouteFee({
+        ...params,
+        timeout
+      }, (err, res) => {
+        if (err) {
+          return reject(err)
         }
-        return
-      }
 
-      if (res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
-        reject(new Error('Unable to estimate route, excessive values: ' + JSON.stringify(res)))
-        return
-      }
+        if (res.failure_reason !== 'FAILURE_REASON_NONE' || res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
+          failureReason = res.failure_reason
+          return reject(new Error(`Unable to estimate route: ${failureReason}`))
+        }
 
-      resolve({
-        routingFeeMsat: toPositiveNumber(res.routing_fee_msat),
-        timeLockDelay: toPositiveNumber(res.time_lock_delay)
+        resolve({
+          routingFeeMsat: toPositiveNumber(res.routing_fee_msat),
+          timeLockDelay: toPositiveNumber(res.time_lock_delay)
+        })
       })
     })
-  })
+  } catch (err) {
+    if (request && failureReason === 'FAILURE_REASON_ERROR') {
+      // try again without the payment request
+      // there appears to be a compatibility bug when probing ldk nodes with payment requests
+      // https://github.com/lightningnetwork/lnd/discussions/10427
+      return await estimateRouteFee({ lnd, destination, tokens, mtokens, timeout })
+    }
+    throw err
+  }
 }
 
 // created_height is the accepted_height, timeout is the expiry height
@@ -185,13 +189,11 @@ export const getNodeSockets = cachedFetcher(async function fetchNodeSockets ({ l
   }
 })
 
-export async function getPaymentOrNotSent ({ id, lnd, createdAt }) {
+export async function getPaymentOrNotSent ({ id, lnd }) {
   try {
     return await getPayment({ id, lnd })
   } catch (err) {
-    if (err[1] === 'SentPaymentNotFound' &&
-      createdAt < datePivot(new Date(), { milliseconds: -LND_PATHFINDING_TIMEOUT_MS * 2 })) {
-      // if the payment is older than 2x timeout, but not found in LND, we can assume it errored before lnd stored it
+    if (err[1] === 'SentPaymentNotFound') {
       return { notSent: true, is_failed: true }
     } else {
       throw err

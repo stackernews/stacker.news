@@ -45,7 +45,7 @@ You can run Stacker News on Github Codespaces
 #### Setup
 
 1. Open the repository on GitHub and click the **"Code"** button
-2. Select the Codespaces tab and create a new codespace. 
+2. Select the Codespaces tab and create a new codespace.
    - You can also configure your codespace to run select services based on  `COMPOSE_PROFILES` as well as in a different region and machine type by clicking "..." and selecting "New with options...". Check [Modifying services](#modifying-services) for more information on `COMPOSE_PROFILES`
 3. Wait for the environment to set up (this may take several minutes the first time)
 4. Once ready, you'll see a terminal with the environment initialized
@@ -537,7 +537,7 @@ In addition, we run other critical services the above services interact with lik
 
 To ensure stackers balances are kept sane, some wallet updates are run in [serializable transactions](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE) at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in [plpgsql](https://www.postgresql.org/docs/current/plpgsql.html) stored procedures and can be found in the `prisma/migrations` folder.
 
-*UPDATE*: Most wallet updates are now run in [read committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED) transactions. See `api/paidAction/README.md` for more information.
+*UPDATE*: Most wallet updates are now run in [read committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED) transactions. See `api/payIn/README.md` for more information.
 
 <br>
 

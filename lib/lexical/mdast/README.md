@@ -209,7 +209,10 @@ export const LexicalEmbedVisitor = {
 
 ## mdast transforms
 
-transforms still run after parsing but before visitor traversal. we now lean on `mdast-util-find-and-replace`, which wraps all the `visit` boilerplate for us. it keeps the code small while still letting us ignore specific node types (code blocks, inline code, etc.) and emit custom nodes.
+transforms still run after parsing but before visitor traversal. here is where we can use Unist utilities to our advantage.
+
+for example, the mentions transform leans on `mdast-util-find-and-replace`, which wraps all the `visit` boilerplate for us.
+`findAndReplace` lets us search text node contents with regexes and split them into multiple nodes.
 
 ### example: mentions with `findAndReplace`
 
@@ -259,11 +262,8 @@ importMarkdownToLexical({
 })
 ```
 
-this is extremely similar to what we do with rehypeSN (lib/rehype-sn.js):
-1. scan text nodes
-2. inject custom nodes
-
-the key difference is that we're not working with an HTML (HAST) pipeline, instead we're running this post-processing on the MDAST tree, leaning on a well-established helper (findAndReplace) without having to do Unist visits by hand.
+if we instead want to find existing nodes and manipulate the tree structure, Unist's `visit` is a better fit.
+for example, the footnotes transform (`mdast/transforms/footnotes.js`) *visits* `footnoteDefinition` nodes and relocates them inside a `footnotesSection` node.
 
 ## adding new features
 

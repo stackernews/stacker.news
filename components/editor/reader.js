@@ -7,7 +7,7 @@ import { ReactExtension } from '@lexical/react/ReactExtension'
 import { TableExtension } from '@lexical/table'
 import theme from '../../lib/lexical/theme'
 import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
-import { CodeThemePlugin } from './plugins/code-theme'
+import { CodeThemePlugin } from './plugins/core/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { markdownToLexical } from '@/lib/lexical/utils/mdast'
 

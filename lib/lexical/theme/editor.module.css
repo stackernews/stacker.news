@@ -383,7 +383,7 @@
 .toolbar:has(~ .editor .editorInput:focus-within) .modeTabs {
   --tab-border-color: var(--bs-primary);
   --tab-shadow: 0 0 4px var(--bs-primary);
-  --tab-clip: inset(-0.2rem -0.2rem 0.008rem -0.2rem);
+  --tab-clip: inset(-0.2rem -0.2rem -0.1rem -0.2rem);
 }
 
 /* floating toolbar */

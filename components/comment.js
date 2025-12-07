@@ -80,12 +80,13 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
           </div>)
         : <div />}
       <LinkToContext
-        className='py-2'
+        className='py-2 clickToContext'
         onClick={e => {
           e.preventDefault()
           router.push(href, as)
         }}
         href={href}
+        pad
       >
         <RootProvider root={item.root}>
           <Comment item={item} {...props} />
@@ -96,9 +97,9 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 }
 
 export default function Comment ({
-  item, children, replyOpen, includeParent, topLevel, rootLastCommentAt,
-  rootText, noComments, noReply, truncate, depth, pin, setDisableRetry, disableRetry,
-  navigator
+  item, children, replyOpen, includeParent, topLevel,
+  rootText, noComments, noReply, truncate, depth, pin,
+  navigator, ...props
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
@@ -120,11 +121,11 @@ export default function Comment ({
 
     const classes = ref.current.classList
     const hasOutline = classes.contains('outline-new-comment')
-    const hasInjectedOutline = classes.contains('outline-new-injected-comment')
+    const hasLiveOutline = classes.contains('outline-new-live-comment')
     const hasOutlineUnset = classes.contains('outline-new-comment-unset')
 
     // don't try to untrack and unset the outline if the comment is not outlined or we already unset the outline
-    if (!(hasInjectedOutline || hasOutline) || hasOutlineUnset) return
+    if (!(hasLiveOutline || hasOutline) || hasOutlineUnset) return
 
     classes.add('outline-new-comment-unset')
     // untrack new comment and its descendants if it's not a live comment
@@ -157,31 +158,41 @@ export default function Comment ({
   }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
-    if (me?.id === item.user?.id) return
+    // checking navigator because outlining should happen only on item pages
+    if (!navigator || me?.id === item.user?.id) return
 
     const itemCreatedAt = new Date(item.createdAt).getTime()
-    // it's a new comment if it was created after the last comment was viewed
-    // or, in the case of live comments, after the last comment was created
-    const isNewComment = (router.query.commentsViewedAt && itemCreatedAt > router.query.commentsViewedAt) ||
-                        (rootLastCommentAt && itemCreatedAt > new Date(rootLastCommentAt).getTime())
-    if (!isNewComment) return
 
-    if (item.injected) {
-      // newly injected comments (item.injected) have to use a different class to outline every new comment
-      ref.current.classList.add('outline-new-injected-comment')
+    const meViewedAt = new Date(root.meCommentsViewedAt).getTime()
+    const viewedAt = me?.id ? meViewedAt : router.query.commentsViewedAt
+
+    const isNewComment = viewedAt && itemCreatedAt > viewedAt
+    // live comments are new regardless of me or anon view time
+    const rootLast = new Date(root.lastCommentAt || root.createdAt).getTime()
+    const isNewLiveComment = item.live && itemCreatedAt > (meViewedAt || rootLast)
+
+    if (!isNewComment && !isNewLiveComment) return
+
+    if (item.live) {
+      // live comments (item.live) have to use a different class to outline every new comment
+      ref.current.classList.add('outline-new-live-comment')
 
       // wait for the injection animation to end before removing its class
       ref.current.addEventListener('animationend', () => {
-        ref.current.classList.remove(styles.injectedComment)
+        ref.current.classList.remove(styles.liveComment)
       }, { once: true })
       // animate the live comment injection
-      ref.current.classList.add(styles.injectedComment)
+      ref.current.classList.add(styles.liveComment)
     } else {
       ref.current.classList.add('outline-new-comment')
     }
 
-    navigator?.trackNewComment(ref, itemCreatedAt)
-  }, [item.id, rootLastCommentAt])
+    navigator.trackNewComment(ref, itemCreatedAt)
+
+    return () => {
+      navigator.untrackNewComment(ref, { includeDescendants: true })
+    }
+  }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts
@@ -228,8 +239,7 @@ export default function Comment ({
                   embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
                   onQuoteReply={quoteReply}
                   nested={!includeParent}
-                  setDisableRetry={setDisableRetry}
-                  disableRetry={disableRetry}
+                  {...props}
                   extraInfo={
                     <>
                       {includeParent && <Parent item={item} rootText={rootText} />}
@@ -303,7 +313,7 @@ export default function Comment ({
                   ? (
                     <>
                       {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} rootLastCommentAt={rootLastCommentAt} />
+                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>

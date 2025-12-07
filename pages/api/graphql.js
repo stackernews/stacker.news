@@ -8,13 +8,27 @@ import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
 import search from '@/api/search'
 import { multiAuthMiddleware } from '@/lib/auth'
+import { depthLimit } from '@graphile/depth-limit'
+import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
+import PgBoss from 'pg-boss'
 
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
   introspection: true,
   allowBatchedHttpRequests: true,
+  validationRules: [depthLimit({
+    revealDetails: true,
+    maxListDepth: COMMENT_DEPTH_LIMIT,
+    maxDepth: 20,
+    maxIntrospectionDepth: 20,
+    maxDepthByFieldCoordinates: {
+      '__Type.ofType': 20,
+      'Item.comments': COMMENT_DEPTH_LIMIT,
+      'Comments.comments': COMMENT_DEPTH_LIMIT
+    }
+  })],
   plugins: [{
     requestDidStart (initialRequestContext) {
       return {
@@ -45,6 +59,8 @@ const apolloServer = new ApolloServer({
   }, ApolloServerPluginLandingPageDisabled()]
 })
 
+const boss = new PgBoss(process.env.DATABASE_URL)
+
 export default startServerAndCreateNextHandler(apolloServer, {
   context: async (req, res) => {
     const apiKey = req.headers['x-api-key']
@@ -70,7 +86,8 @@ export default startServerAndCreateNextHandler(apolloServer, {
       me: session
         ? session.user
         : null,
-      search
+      search,
+      boss
     }
   }
 })

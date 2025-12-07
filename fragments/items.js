@@ -18,7 +18,6 @@ export const ITEM_FIELDS = gql`
     id
     parentId
     createdAt
-    invoicePaidAt
     deletedAt
     title
     url
@@ -36,6 +35,16 @@ export const ITEM_FIELDS = gql`
       meSubscription
       nsfw
       replyCost
+    }
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
     }
     otsHash
     position
@@ -75,12 +84,8 @@ export const ITEM_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
-    invoice {
-      id
-      actionState
-      confirmedAt
-    }
     cost
+    meCommentsViewedAt
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -91,12 +96,15 @@ export const ITEM_FULL_FIELDS = gql`
     text
     root {
       id
+      createdAt
       title
       bounty
       bountyPaidTo
       subName
       mine
       ncomments
+      lastCommentAt
+      meCommentsViewedAt
       user {
         id
         name
@@ -144,8 +152,6 @@ export const POLL_FIELDS = gql`
   fragment PollFields on Item {
     poll {
       meVoted
-      meInvoiceId
-      meInvoiceActionState
       count
       options {
         id
@@ -209,5 +215,11 @@ export const RELATED_ITEMS_WITH_ITEM = gql`
         ...ItemFields
       }
     }
+  }
+`
+
+export const UPDATE_ITEM_USER_VIEW = gql`
+  mutation updateCommentsViewAt($id: ID!, $meCommentsViewedAt: Date!) {
+    updateCommentsViewAt(id: $id, meCommentsViewedAt: $meCommentsViewedAt)
   }
 `

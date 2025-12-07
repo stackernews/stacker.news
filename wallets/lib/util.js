@@ -22,6 +22,10 @@ export function walletLud16Domain (name) {
   return typeof url === 'string' ? new URL(url).hostname : url.lud16Domain
 }
 
+export function walletGuideUrl (name) {
+  return walletJson(name)?.guide
+}
+
 function protocol ({ name, send }) {
   return protocols.find(protocol => protocol.name === name && protocol.send === send)
 }

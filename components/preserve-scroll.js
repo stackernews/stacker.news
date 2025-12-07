@@ -4,8 +4,7 @@ export default function preserveScroll (callback) {
 
   // if the scroll position is at the top, we don't need to preserve it, just call the callback
   if (scrollTop <= 0) {
-    callback()
-    return
+    return callback()
   }
 
   // get a reference element at the center of the viewport to track if content is added above it
@@ -49,5 +48,5 @@ export default function preserveScroll (callback) {
 
   observer.observe(document.body, { childList: true, subtree: true })
 
-  callback()
+  return callback()
 }

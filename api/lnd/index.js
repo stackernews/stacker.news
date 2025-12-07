@@ -41,36 +41,48 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
     }
   }
 
-  return await new Promise((resolve, reject) => {
-    const params = {}
+  let failureReason
+  try {
+    return await new Promise((resolve, reject) => {
+      const params = {}
 
-    if (request) {
-      console.log('estimateRouteFee using payment request')
-      params.payment_request = request
-    } else {
-      console.log('estimateRouteFee using destination and amount')
-      params.dest = Buffer.from(destination, 'hex')
-      params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
-    }
-
-    lnd.router.estimateRouteFee({
-      ...params,
-      timeout
-    }, (err, res) => {
-      if (err) {
-        return reject(err)
+      if (request) {
+        console.log('estimateRouteFee using payment request')
+        params.payment_request = request
+      } else {
+        console.log('estimateRouteFee using destination and amount')
+        params.dest = Buffer.from(destination, 'hex')
+        params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
       }
 
-      if (res.failure_reason !== 'FAILURE_REASON_NONE' || res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
-        return reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
-      }
+      lnd.router.estimateRouteFee({
+        ...params,
+        timeout
+      }, (err, res) => {
+        if (err) {
+          return reject(err)
+        }
 
-      resolve({
-        routingFeeMsat: toPositiveNumber(res.routing_fee_msat),
-        timeLockDelay: toPositiveNumber(res.time_lock_delay)
+        if (res.failure_reason !== 'FAILURE_REASON_NONE' || res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
+          failureReason = res.failure_reason
+          return reject(new Error(`Unable to estimate route: ${failureReason}`))
+        }
+
+        resolve({
+          routingFeeMsat: toPositiveNumber(res.routing_fee_msat),
+          timeLockDelay: toPositiveNumber(res.time_lock_delay)
+        })
       })
     })
-  })
+  } catch (err) {
+    if (request && failureReason === 'FAILURE_REASON_ERROR') {
+      // try again without the payment request
+      // there appears to be a compatibility bug when probing ldk nodes with payment requests
+      // https://github.com/lightningnetwork/lnd/discussions/10427
+      return await estimateRouteFee({ lnd, destination, tokens, mtokens, timeout })
+    }
+    throw err
+  }
 }
 
 // created_height is the accepted_height, timeout is the expiry height

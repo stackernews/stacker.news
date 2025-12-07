@@ -279,3 +279,6 @@ kravhen,pr,#1767,#1422,easy,,,defunct but our fault,100k,nichro@getalby.com,???
 m0wer,pr,#2212,#603,hard,,1,outdated but our fault - tough to review,200k,m0wer@lnbits.sgn.space,???
 brymut,pr,#2253,#2252,good-first-issue,,,defunct but our fault,20k,brymut@stacker.news,???
 brymut,pr,#2422,#2363,good-first-issue,,,blocked by mdast,20k,brymut@stacker.news,???
+brymut,pr,#2493,#2480,medium,low,,unplanned and untested,100k,brymut@stacker.news,???
+gndelia,helpfulness,#2493,#2480,medium,low,,unplanned and untested,10k,???,???
+brymut,pr,#2483,#709,medium,,,unplanned and untested,100k,brymut@stacker.news,???

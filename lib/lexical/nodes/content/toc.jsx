@@ -99,7 +99,7 @@ export class TableOfContentsNode extends DecoratorNode {
   }
 
   decorate (editor) {
-    const { TableOfContents } = require('@/components/editor/plugins/decorative/toc')
+    const { TableOfContents } = require('@/components/editor/plugins/content/toc')
     const headings = $extractHeadingsFromRoot()
     return <TableOfContents headings={headings} />
   }

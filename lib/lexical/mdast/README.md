@@ -97,30 +97,11 @@ testNode: (node) => node.type === 'html' && node.value === tag
 
 | action | description |
 |--------|-------------|
-| `actions.addAndStepInto(lexicalNode)` | append node to parent, then recursively visit mdast children |
+| `actions.addAndStepInto(lexicalNode)` | append node to parent, then recursively visit mdast children (if any) |
 | `actions.visitChildren(mdastNode, lexicalParent)` | manually visit children |
 | `actions.nextVisitor()` | skip this visitor, try the next matching one |
 | `actions.addFormatting(format)` | add text formatting (bold, italic, etc.) |
 | `actions.getParentFormatting()` | get inherited formatting from parent |
-
-#### element nodes vs decorator nodes
-
-**element nodes** (have children): use `actions.addAndStepInto()`
-```javascript
-// paragraph, heading, list, quote, etc.
-visitNode ({ mdastNode, actions }) {
-  actions.addAndStepInto($createParagraphNode())
-}
-```
-
-**decorator nodes** (leaf nodes, no children): append directly
-```javascript
-// embed, media, mentions, etc.
-visitNode ({ mdastNode, lexicalParent }) {
-  const node = $createEmbedNode(...)
-  lexicalParent.append(node)
-}
-```
 
 #### priority and nextVisitor
 
@@ -131,7 +112,7 @@ when multiple visitors match the same mdast type, we can use priority to control
 export const MdastEmbedFromLinkVisitor = {
   testNode: 'link',
   priority: 15,
-  visitNode ({ mdastNode, lexicalParent, actions }) {
+  visitNode ({ mdastNode, actions }) {
     if (!isBareLink(mdastNode)) {
       actions.nextVisitor()  // not a raw link, try next visitor
       return
@@ -140,7 +121,7 @@ export const MdastEmbedFromLinkVisitor = {
     const embed = getEmbed(mdastNode.url)
     if (embed.provider) {
       const node = $createEmbedNode(...)
-      lexicalParent.append(node)
+      actions.addAndStepInto(node)
       return
     }
 

@@ -21,7 +21,6 @@ export const SNReader = forwardRef(function SNReader ({ html, children, outlawed
   const Reader = useMemo(() => dynamic(() => import('./reader'), { ssr: false, loading: () => snCustomizedHTML }), [])
 
   return (
-
     <LexicalItemContextProvider imgproxyUrls={imgproxyUrls} topLevel={topLevel} outlawed={outlawed} rel={rel}>
       <Reader {...props} contentRef={ref} topLevel={topLevel}>
         {children}

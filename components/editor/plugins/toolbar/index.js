@@ -2,10 +2,10 @@ import ActionTooltip from '@/components/action-tooltip'
 import classNames from 'classnames'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { SN_UPLOAD_FILES_COMMAND } from '../upload'
-import ModeSwitchPlugin from './switch'
+import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/tools/upload'
+import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
 import UploadIcon from '@/svgs/editor/toolbar/inserts/upload-paperclip.svg'
-import { useToolbarState } from '../../contexts/toolbar'
+import { useToolbarState } from '@/components/editor/contexts/toolbar'
 
 export function ToolbarPlugin () {
   const [editor] = useLexicalComposerContext()

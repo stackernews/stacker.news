@@ -679,3 +679,44 @@ span + .sn-link {
 .sn-table--align-right {
   margin-left: auto;
 }
+
+/* footnotes */
+.sn-footnote-ref {
+  vertical-align: super;
+  font-size: smaller;
+  line-height: 1;
+
+  a {
+    text-decoration: none;
+    color: var(--theme-link);
+  }
+}
+
+.sn-footnotes {
+  font-size: smaller;
+  color: #8b949e;
+  border-top: 1px solid #30363d;
+  margin-top: calc(var(--grid-gap) * 0.5);
+  padding-top: 0!important;
+  padding-left: 1.75rem;
+  margin-bottom: 0;
+}
+
+.sn-footnote-def {
+  margin-bottom: 0.25rem;
+  padding-left: 0.25rem;
+
+  &:first-child {
+    margin-top: 0.5rem;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  // backref link
+  a[href^="#fnref-"] {
+    text-decoration: none;
+    color: var(--theme-link);
+  }
+}

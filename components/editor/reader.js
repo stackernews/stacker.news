@@ -10,6 +10,7 @@ import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { markdownToLexical } from '@/lib/lexical/utils/mdast'
+import { ExtractMarkdownFromEditor } from '@/components/editor/debug/tools'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
@@ -58,6 +59,7 @@ export default forwardRef(function Reader ({ className, contentRef, topLevel, st
         {children}
       </div>
       <CodeThemePlugin />
+      <ExtractMarkdownFromEditor />
     </LexicalExtensionComposer>
   )
 })

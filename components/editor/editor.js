@@ -1,7 +1,7 @@
 import FormikBridgePlugin from '@/components/editor/plugins/core/formik'
 import LocalDraftPlugin from '@/components/editor/plugins/core/local-draft'
 import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
-import NewMentionsPlugin from '@/components/editor/plugins/content/mention/mentions'
+import MentionsPlugin from '@/components/editor/plugins/tools/mentions'
 import FileUploadPlugin from '@/components/editor/plugins/tools/upload'
 import PreviewPlugin from '@/components/editor/plugins/preview'
 import { AutoFocusExtension } from '@lexical/extension'
@@ -107,7 +107,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
         {editorRef && <PreviewPlugin editorRef={editorRef} topLevel={topLevel} />}
         <HistoryPlugin />
         <FileUploadPlugin editorRef={editorRef} />
-        <NewMentionsPlugin />
+        <MentionsPlugin />
         <LocalDraftPlugin name={name} />
         <FormikBridgePlugin />
         <MaxLengthPlugin lengthOptions={lengthOptions} />

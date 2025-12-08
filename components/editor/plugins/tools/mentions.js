@@ -51,7 +51,7 @@ function useSuggestions ({ query }) {
   return suggestions
 }
 
-export default function NewMentionsPlugin () {
+export default function MentionsPlugin () {
   const [editor] = useLexicalComposerContext()
   const [query, setQuery] = useState(null)
   const suggestions = useSuggestions({ query })

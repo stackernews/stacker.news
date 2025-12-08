@@ -14,6 +14,10 @@
   line-height: 20px;
 }
 
+.editor[data-lexical-preview='true'] {
+  border-radius: 0.4rem;
+}
+
 /* non-top-level editor for things such as comments */
 .editorContainer:not(:global(.sn-text--top-level)) .editor {
   --editor-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);

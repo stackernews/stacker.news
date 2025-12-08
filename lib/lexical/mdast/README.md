@@ -1,8 +1,25 @@
-# mdast4lexical
+# MDAST <-> Lexical
 
-mdast-based markdown transformation for lexical
+mdast-based markdown transformations for lexical
 
-## bi-directional architecture
+## the old [React-Markdown](https://github.com/remarkjs/react-markdown?tab=readme-ov-file#architecture) architecture
+
+```
+                                                           react-markdown
+         +----------------------------------------------------------------------------------------------------------------+
+         |                                                                                                                |
+         |  +----------+        +----------------+        +---------------+       +----------------+       +------------+ |
+         |  |          |        |                |        |               |       |                |       |            | |
+markdown-+->+  remark  +-mdast->+ remark plugins +-mdast->+ remark-rehype +-hast->+ rehype plugins +-hast->+ components +-+->react elements
+         |  |          |        |                |        |               |       |                |       |            | |
+         |  +----------+        +----------------+        +---------------+       +----------------+       +------------+ |
+         |                                                                                                                |
+         +----------------------------------------------------------------------------------------------------------------+
+```
+
+Pipeline intended only for rendering Markdown to React
+
+## the new **bi-directional** architecture
 
 ```
 markdown string

@@ -35,7 +35,7 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
   if (!toolbarState.previewMode) return null
 
   return (
-    <div className={styles.editor}>
+    <div data-lexical-preview='true' className={styles.editor}>
       <Reader
         text={values.text}
         className={classNames(styles.editorInput, 'sn-text', topLevel && 'sn-text--top-level')}

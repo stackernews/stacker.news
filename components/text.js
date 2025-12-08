@@ -54,11 +54,26 @@ export function SearchText ({ text }) {
 }
 
 export function useOverflow ({ element, truncated = false }) {
+  const router = useRouter()
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?
   const [show, setShow] = useState(false)
   const showOverflow = useCallback(() => setShow(true), [setShow])
+
+  // if we are navigating to a hash, show the full text
+  useEffect(() => {
+    setShow(router.asPath.includes('#'))
+    const handleRouteChange = (url, { shallow }) => {
+      setShow(url.includes('#'))
+    }
+
+    router.events.on('hashChangeStart', handleRouteChange)
+
+    return () => {
+      router.events.off('hashChangeStart', handleRouteChange)
+    }
+  }, [router.asPath, router.events])
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {

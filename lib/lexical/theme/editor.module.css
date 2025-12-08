@@ -639,3 +639,9 @@
   --switcher-shadow: 0 0 0 0.2rem rgb(240 218 94 / 25%);
   --switcher-clip: inset(-0.2rem -0.2rem -0.005rem -0.2rem);
 }
+
+/* https://github.com/react-bootstrap/react-bootstrap/issues/5475 */
+.suggestionsMenu {
+  opacity: 1 !important;
+  pointer-events: unset !important;
+}

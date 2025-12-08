@@ -24,7 +24,7 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
       },
       COMMAND_PRIORITY_CRITICAL
     )
-  }, [editor, updateToolbarState])
+  }, [editor, updateToolbarState, toolbarState.previewMode])
 
   // toggle editor visibility
   useEffect(() => {

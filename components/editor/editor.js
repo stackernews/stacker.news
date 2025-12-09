@@ -50,6 +50,8 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
       ],
       theme: { ...theme, topLevel: topLevel ? 'sn-text--top-level' : '' },
       onError: (error) => console.error('editor has encountered an error:', error)
+    // only depend on stable values to avoid unnecessary re-renders
+    // appendValue and values.text are, for example, not stable because they are updated by the formik context
     }), [autoFocus, topLevel])
 
   return (

@@ -49,7 +49,8 @@ export default forwardRef(function Reader ({ className, contentRef, topLevel, st
         topLevel: topLevel && 'sn-text--top-level'
       },
       $initialEditorState: (editor) => initiateLexical(editor, state, text),
-      onError: (error) => console.error(error)
+      onError: (error) => console.error('reader has encountered an error:', error)
+    // text and state are not stable, but we need the Reader to re-render when they change
     }), [topLevel, text, state])
 
   return (

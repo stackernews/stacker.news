@@ -1,6 +1,8 @@
 import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
+import { randomBytes } from 'crypto'
+import { chanNumber } from 'bolt07'
 import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
 
 const lnd = global.lnd || authenticatedLndGrpc({
@@ -19,6 +21,59 @@ getWalletInfo({ lnd }, (err, result) => {
   }
   console.log('LND GRPC connection successful')
 })
+
+// we don't use this because it doesn't solve https://github.com/lightningnetwork/lnd/discussions/10427
+// due to this bug, real probes cause the channel to be marked as unusable and the real payment fails
+// this should be useful in the future though when need more control over probing
+export async function rawProbePayment ({ lnd, request, maxFeeMsat, timeoutSeconds, maxCltvDelta }) {
+  if (!request) {
+    throw new Error('Payment request is required')
+  }
+  const inv = parsePaymentRequest({ request })
+  const params = {
+    allow_self_payment: true,
+    amt_msat: inv.mtokens,
+    cancelable: true,
+    cltv_limit: maxCltvDelta,
+    dest: Buffer.from(inv.destination, 'hex'),
+    dest_custom_records: undefined,
+    dest_features: inv.features.map(n => n.bit),
+    fee_limit_msat: maxFeeMsat,
+    final_cltv_delta: inv.cltv_delta,
+    last_hop_pubkey: undefined,
+    max_parts: 1,
+    max_shard_size_msat: undefined,
+    no_inflight_updates: true,
+    outgoing_chan_id: undefined,
+    outgoing_chan_ids: [],
+    payment_addr: undefined,
+    payment_hash: randomBytes(32),
+    payment_request: undefined,
+    route_hints: inv.routes?.map(r => ({
+      hop_hints: r.slice(1).map((h, i) => ({
+        fee_base_msat: h.base_fee_mtokens,
+        fee_proportional_millionths: h.fee_rate,
+        chan_id: chanNumber({ channel: h.channel }).number,
+        cltv_expiry_delta: h.cltv_delta,
+        node_id: r[i].public_key
+      }))
+    })) ?? [],
+    time_pref: 1,
+    timeout_seconds: timeoutSeconds
+  }
+  return await new Promise((resolve, reject) => {
+    const sub = lnd.router.sendPaymentV2(params)
+    sub.on('data', (res) => {
+      resolve(res)
+    })
+    sub.on('error', (err) => {
+      reject(err)
+    })
+    sub.on('end', () => {
+      reject(new Error('Payment timed out'))
+    })
+  })
+}
 
 export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
   // if the payment request includes us as route hint, we needd to use the destination and amount
@@ -39,50 +94,42 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
         }
       }
     }
+    // XXX we don't use the payment request anymore because it causes the channel to be marked as unusable
+    // and the real payment fails see: https://github.com/lightningnetwork/lnd/discussions/10427
+    // without the request, the estimate is a statistical estimate based on past payments
+    request = false
   }
 
-  let failureReason
-  try {
-    return await new Promise((resolve, reject) => {
-      const params = {}
+  return await new Promise((resolve, reject) => {
+    const params = {}
 
-      if (request) {
-        console.log('estimateRouteFee using payment request')
-        params.payment_request = request
-      } else {
-        console.log('estimateRouteFee using destination and amount')
-        params.dest = Buffer.from(destination, 'hex')
-        params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
+    if (request) {
+      console.log('estimateRouteFee using payment request')
+      params.payment_request = request
+    } else {
+      console.log('estimateRouteFee using destination and amount')
+      params.dest = Buffer.from(destination, 'hex')
+      params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
+    }
+
+    lnd.router.estimateRouteFee({
+      ...params,
+      timeout
+    }, (err, res) => {
+      if (err) {
+        return reject(err)
       }
 
-      lnd.router.estimateRouteFee({
-        ...params,
-        timeout
-      }, (err, res) => {
-        if (err) {
-          return reject(err)
-        }
+      if (res.failure_reason !== 'FAILURE_REASON_NONE' || res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
+        return reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
+      }
 
-        if (res.failure_reason !== 'FAILURE_REASON_NONE' || res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
-          failureReason = res.failure_reason
-          return reject(new Error(`Unable to estimate route: ${failureReason}`))
-        }
-
-        resolve({
-          routingFeeMsat: toPositiveNumber(res.routing_fee_msat),
-          timeLockDelay: toPositiveNumber(res.time_lock_delay)
-        })
+      resolve({
+        routingFeeMsat: toPositiveNumber(res.routing_fee_msat),
+        timeLockDelay: toPositiveNumber(res.time_lock_delay)
       })
     })
-  } catch (err) {
-    if (request && failureReason === 'FAILURE_REASON_ERROR') {
-      // try again without the payment request
-      // there appears to be a compatibility bug when probing ldk nodes with payment requests
-      // https://github.com/lightningnetwork/lnd/discussions/10427
-      return await estimateRouteFee({ lnd, destination, tokens, mtokens, timeout })
-    }
-    throw err
-  }
+  })
 }
 
 // created_height is the accepted_height, timeout is the expiry height

@@ -1,54 +1,71 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import Dropdown from 'react-bootstrap/Dropdown'
+import { useLazyQuery } from '@apollo/client'
 import { LexicalTypeaheadMenuPlugin, MenuOption } from '@lexical/react/LexicalTypeaheadMenuPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import Dropdown from 'react-bootstrap/Dropdown'
-import styles from '@/lib/lexical/theme/editor.module.css'
-import { useLazyQuery } from '@apollo/client'
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
+import styles from '@/lib/lexical/theme/editor.module.css'
 
+/** regex to match \@user or \~sub mentions, max length 75 characters */
+const MENTION_PATTERN = /(^|\s|\()([@~]\w{0,75})$/
+
+/** takes the full \@user or \~sub and fetches the suggestions */
 function useSuggestions ({ query }) {
   const [suggestions, setSuggestions] = useState([])
 
-  const params = useMemo(() => {
-    if (!query) return null
-
-    if (query.startsWith('@')) {
-      return {
-        suggestionsQuery: USER_SUGGESTIONS,
-        itemsField: 'userSuggestions'
-      }
-    } else if (query.startsWith('~')) {
-      return {
-        suggestionsQuery: SUB_SUGGESTIONS,
-        itemsField: 'subSuggestions'
-      }
-    }
-
-    return null
-  }, [query])
-
-  const [getSuggestions] = useLazyQuery(params?.suggestionsQuery ?? USER_SUGGESTIONS, {
-    onCompleted: data => {
-      query !== undefined && setSuggestions(data[params.itemsField])
-    }
+  const [getUserSuggestions] = useLazyQuery(USER_SUGGESTIONS, {
+    onCompleted: data => query && data && setSuggestions(data.userSuggestions)
+  })
+  const [getSubSuggestions] = useLazyQuery(SUB_SUGGESTIONS, {
+    onCompleted: data => query && data && setSuggestions(data.subSuggestions)
   })
 
-  const resetSuggestions = useCallback(() => setSuggestions([]), [])
-
   useEffect(() => {
-    if (query && params) {
-      const q = query?.replace(/^[@ ~]+|[ ]+$/g, '').replace(/@[^\s]*$/, '').replace(/~[^\s]*$/, '')
-      getSuggestions({ variables: { q, limit: 5 } })
-    } else {
-      resetSuggestions()
+    if (!query) {
+      setSuggestions([])
+      return
     }
-  }, [query, params, resetSuggestions, getSuggestions])
 
-  if (!query) return null
+    const q = query.slice(1)
+    if (query.startsWith('@')) {
+      getUserSuggestions({ variables: { q, limit: 5 } })
+    } else if (query.startsWith('~')) {
+      getSubSuggestions({ variables: { q, limit: 5 } })
+    }
+  }, [query, getUserSuggestions, getSubSuggestions])
 
   return suggestions
+}
+
+/** tests if the text is of the form \@user or \~sub via MENTION_PATTERN,
+ * and returns the match object for the TypeaheadMenuPlugin */
+function testQueryMatch (text) {
+  const match = MENTION_PATTERN.exec(text)
+  if (match) {
+    const leadingWhiteSpace = match[1]
+    const fullMention = match[2]
+
+    if (fullMention?.length >= 2) {
+      return {
+        leadOffset: match.index + leadingWhiteSpace.length,
+        matchingString: fullMention,
+        replaceableString: fullMention
+      }
+    }
+  }
+  return null
+}
+
+// custom MenuOption class for LexicalTypeaheadMenuPlugin
+class MentionOption extends MenuOption {
+  name
+
+  constructor (name) {
+    super(name)
+    this.name = name
+  }
 }
 
 export default function MentionsPlugin () {
@@ -58,9 +75,7 @@ export default function MentionsPlugin () {
 
   const options = useMemo(() => {
     if (!suggestions?.length) return []
-    return suggestions.map(s =>
-      new MenuOption(s.name, { name: s.name })
-    )
+    return suggestions.map(s => new MentionOption(s.name))
   }, [suggestions])
 
   const onSelect = useCallback((selectedOption, nodeToReplace, closeMenu) => {
@@ -75,28 +90,11 @@ export default function MentionsPlugin () {
     })
   }, [editor, query])
 
-  const checkMentionTrigger = useCallback((text) => {
-    const match = /(^|\s|\()([@~]\w{0,75})$/.exec(text)
-    if (match) {
-      const leadingWhiteSpace = match[1]
-      const fullMention = match[2]
-
-      if (fullMention?.length >= 2) {
-        return {
-          leadOffset: match.index + leadingWhiteSpace.length,
-          matchingString: fullMention,
-          replaceableString: fullMention
-        }
-      }
-    }
-    return null
-  }, [])
-
   return (
     <LexicalTypeaheadMenuPlugin
       onQueryChange={setQuery}
       onSelectOption={onSelect}
-      triggerFn={checkMentionTrigger}
+      triggerFn={testQueryMatch}
       options={options}
       menuRenderFn={(
         anchorElementRef,
@@ -115,7 +113,7 @@ export default function MentionsPlugin () {
                       selectOptionAndCleanUp(o)
                     }}
                   >
-                    {o.key}
+                    {o.name}
                   </Dropdown.Item>)}
               </Dropdown.Menu>
             </Dropdown>, anchorElementRef.current)

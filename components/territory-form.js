@@ -129,6 +129,7 @@ export default function TerritoryForm ({ sub }) {
           lengthOptions={{ maxLength: MAX_TERRITORY_DESC_LENGTH, show: true }}
           required
           minRows={3}
+          topLevel
         />
         <Input
           label='post cost'

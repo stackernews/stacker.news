@@ -60,7 +60,7 @@ export function TerritoryInfo ({ sub, includeLink }) {
     <>
       {includeLink && <Link href={`/~${sub.name}`}>{sub.name}</Link>}
       <div className='py-2'>
-        {sub.lexicalState ? <Text state={sub.lexicalState} html={sub.html} /> : <LegacyText>{sub.desc}</LegacyText>}
+        {sub.lexicalState ? <Text state={sub.lexicalState} html={sub.html} topLevel /> : <LegacyText>{sub.desc}</LegacyText>}
       </div>
       <CardFooter className={`py-1 ${styles.other}`}>
         <div className='text-muted'>

@@ -96,7 +96,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
                 /* lh is a css unit that is equal to the line height of the element
                    probably the worst thing is that we have to add 1 to the minRows to get the correct height
                 */
-                style={{ minHeight: `${(minRows + 1)}lh` }}
+                style={{ minHeight: `${(minRows ?? 0) + 1}lh` }}
                 placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
                 aria-required={required}
               />

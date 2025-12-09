@@ -127,6 +127,7 @@ export function useOverflow ({ element, truncated = false }) {
 export default function Text ({ topLevel, children, ...props }) {
   const [element, setElement] = useState(null)
   const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
+  const carousel = useCarousel()
 
   const textClassNames = useMemo(() => {
     return classNames(
@@ -136,16 +137,26 @@ export default function Text ({ topLevel, children, ...props }) {
     )
   }, [topLevel, show, overflowing])
 
+  const lexicalContent = useMemo(() => {
+    return (
+      <SNReader
+        className={textClassNames}
+        ref={setElement}
+        topLevel={topLevel}
+        text={children} // if children is provided, it will be used as the markdown text content
+        {...props}
+      >
+        {Overflow}
+      </SNReader>
+    )
+  }, [children, textClassNames, topLevel, props])
+
   return (
-    <SNReader
-      className={textClassNames}
-      ref={setElement}
-      topLevel={topLevel}
-      text={children} // if children is provided, it will be used as the markdown text content
-      {...props}
-    >
-      {Overflow}
-    </SNReader>
+    <>
+      {carousel
+        ? lexicalContent
+        : <CarouselProvider>{lexicalContent}</CarouselProvider>}
+    </>
   )
 }
 

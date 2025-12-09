@@ -45,7 +45,7 @@ export function MaxLengthPlugin ({ lengthOptions = {} }) {
       // get the previous editor state to compare text content size
       const prevEditorState = editor.getEditorState()
       const prevTextContentSize = prevEditorState.read(() => {
-        node.getTextContentSize()
+        return node.getTextContentSize()
       })
 
       // get the current text content size

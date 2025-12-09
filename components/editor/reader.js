@@ -59,7 +59,7 @@ export default forwardRef(function Reader ({ className, contentRef, topLevel, st
         {children}
       </div>
       <CodeThemePlugin />
-      <ExtractMarkdownFromEditor />
+      {process.env.NODE_ENV === 'development' && <ExtractMarkdownFromEditor />}
     </LexicalExtensionComposer>
   )
 })

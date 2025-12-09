@@ -15,6 +15,7 @@ export function ExtractMarkdownFromEditor () {
             toaster.success('markdown copied to clipboard')
             navigator.clipboard.writeText(lexicalToMarkdown(editor))
           } catch (error) {
+            console.error('failed to copy markdown to clipboard', error)
             toaster.danger('failed to copy markdown to clipboard')
           }
         }}

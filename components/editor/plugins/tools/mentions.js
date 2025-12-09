@@ -8,8 +8,9 @@ import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import styles from '@/lib/lexical/theme/editor.module.css'
 
-/** regex to match \@user or \~sub mentions, max length 75 characters */
+/** regex to match \@user or \~sub mentions */
 const MENTION_PATTERN = /(^|\s|\()([@~]\w{0,75})$/
+const MAX_SUGGESTIONS = 5
 
 /** takes the full \@user or \~sub and fetches the suggestions */
 function useSuggestions ({ query }) {
@@ -30,9 +31,9 @@ function useSuggestions ({ query }) {
 
     const q = query.slice(1)
     if (query.startsWith('@')) {
-      getUserSuggestions({ variables: { q, limit: 5 } })
+      getUserSuggestions({ variables: { q, limit: MAX_SUGGESTIONS } })
     } else if (query.startsWith('~')) {
-      getSubSuggestions({ variables: { q, limit: 5 } })
+      getSubSuggestions({ variables: { q, limit: MAX_SUGGESTIONS } })
     }
   }, [query, getUserSuggestions, getSubSuggestions])
 

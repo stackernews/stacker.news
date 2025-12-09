@@ -720,3 +720,8 @@ span + .sn-link {
     color: var(--theme-link);
   }
 }
+
+.sn-footnote-backref {
+  text-decoration: none;
+  color: var(--theme-link);
+}

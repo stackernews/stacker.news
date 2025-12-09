@@ -164,7 +164,6 @@ import { $isHeadingNode } from '@lexical/rich-text'
 export const LexicalHeadingVisitor = {
   // match lexical nodes by predicate function
   testLexicalNode: $isHeadingNode,
-
   visitLexicalNode ({ lexicalNode, actions }) {
     const depth = parseInt(lexicalNode.getTag().slice(1))
     actions.addAndStepInto('heading', { depth })
@@ -358,6 +357,104 @@ importMarkdownToLexical({
   mdastExtensions: [gfmTableFromMarkdown()]
 })
 ```
+
+## adding custom bi-directional nodes
+
+for nodes with custom syntax that doesn't exist in standard markdown (like `@mentions`), you need the provide the full round-trip:
+
+```
+import:  markdown → transform → custom MDAST → visitor → Lexical
+export:  Lexical → visitor → custom MDAST → toMarkdown handler → markdown
+```
+
+### example: user mentions (@user)
+
+**1. create the transform** (`transforms/mentions.js`)
+
+transforms parse text patterns into custom MDAST nodes:
+
+```javascript
+import { findAndReplace } from 'mdast-util-find-and-replace'
+
+const USER_MENTION = /some-regex/gi
+
+export function mentionTransform (tree) {
+  findAndReplace(tree, [
+    [USER_MENTION, (_, name) => ({
+      type: 'userMention',
+      value: { name }
+    })]
+  ], { ignore: ['code', 'inlineCode'] })
+}
+```
+
+**2. create import visitor** (`visitors/mentions.js`)
+
+```javascript
+import { $createUserMentionNode, $isUserMentionNode } from '@/lib/lexical/nodes/mentions'
+
+export const MdastUserMentionVisitor = {
+  testNode: 'userMention',
+  visitNode ({ mdastNode, actions }) {
+    const node = $createUserMentionNode({ name: mdastNode.value.name })
+    actions.addAndStepInto(node)
+  }
+}
+```
+
+**3. create export visitor** (same file)
+
+lexical -> custom MDAST
+
+```javascript
+export const LexicalUserMentionVisitor = {
+  testLexicalNode: $isUserMentionNode,
+  visitLexicalNode ({ lexicalNode, mdastParent, actions }) {
+    actions.appendToParent(mdastParent, {
+      type: 'userMention',
+      value: { name: lexicalNode.getName() }
+    })
+  },
+  mdastType: 'userMention',
+  toMarkdown (node) {
+    return `@${node.value.name}`
+  }
+}
+```
+
+to add a custom node to MDAST when going from Lexical to MDAST, we need to provide:
+- `mdastType`: name of the custom node
+- `toMarkdown` handler: the markdown string you want to return
+
+**4. try it out**
+
+normally we would need to create a `toMarkdown` extension, but `lexicalToMarkdown` already gathers every `toMarkdown` handlers via the `exportVisitors` (in this case `LexicalUserMentionVisitor`) and transforms it into an extension.
+
+### when to use this pattern
+
+use custom MDAST nodes when:
+- the syntax doesn't map to standard MDAST types
+- you want semantic information preserved in the MDAST tree
+- you need the same representation in both directions
+
+for simple cases where you just need markdown output, you can skip the custom type and emit a `text` node directly in the export visitor:
+
+```javascript
+// item mentions are created from bare links (see link.js)
+// lexical -> mdast: outputs plain text URL
+export const LexicalItemMentionVisitor = {
+  testLexicalNode: $isItemMentionNode,
+  visitLexicalNode ({ lexicalNode, mdastParent, actions }) {
+    // export as plain text URL, not a link
+    actions.appendToParent(mdastParent, {
+      type: 'text',
+      value: lexicalNode.getURL()
+    })
+  }
+}
+```
+
+it is, anyway, recommended to map every custom Lexical node to a custom MDAST node. it'll allow us to manipulate the MDAST tree confidently, without extra-parsing in both directions.
 
 ## file structure
 

@@ -6,7 +6,7 @@ import pay from '../payIn'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
-import { prepareLexicalState } from '@/lib/lexical/server/interpolator'
+import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -212,13 +212,6 @@ export default {
 
       await validateSchema(territorySchema, data, { models, me, sub: { name: data.oldName } })
 
-      // QUIRK
-      // if we have a lexicalState, we'll convert it to markdown to fit the schema
-      data.lexicalState = await prepareLexicalState({ text: data.desc }, { checkMedia: false })
-      if (!data.lexicalState) {
-        throw new GqlInputError('failed to process content')
-      }
-
       data.uploadIds = uploadIdsFromText(data.desc)
 
       if (data.oldName) {
@@ -367,7 +360,22 @@ export default {
 
       return sub.SubSubscription?.length > 0
     },
-    createdAt: sub => sub.createdAt || sub.created_at
+    createdAt: sub => sub.createdAt || sub.created_at,
+    lexicalState: async (sub, args, { lexicalStateLoader }) => {
+      if (!sub.desc) return null
+      return lexicalStateLoader.load(sub.desc)
+    },
+    html: async (sub, args, { lexicalStateLoader }) => {
+      if (!sub.desc) return null
+      try {
+        const lexicalState = await lexicalStateLoader.load(sub.desc)
+        if (!lexicalState) return null
+        return lexicalHTMLGenerator(lexicalState)
+      } catch (error) {
+        console.error('error generating HTML from Lexical State:', error)
+        return null
+      }
+    }
   }
 }
 

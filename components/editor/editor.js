@@ -109,7 +109,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
         <FileUploadPlugin editorRef={editorRef} />
         <MentionsPlugin />
         <LocalDraftPlugin name={name} />
-        <FormikBridgePlugin />
+        <FormikBridgePlugin name={name} />
         <MaxLengthPlugin lengthOptions={lengthOptions} />
         {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
         {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}

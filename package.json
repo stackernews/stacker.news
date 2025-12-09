@@ -57,6 +57,7 @@
     "copy-webpack-plugin": "^13.0.1",
     "cross-fetch": "^4.0.0",
     "csv-parser": "^3.0.0",
+    "dataloader": "^2.2.3",
     "domino": "^2.1.6",
     "dompurify": "^3.2.6",
     "formik": "^2.4.6",

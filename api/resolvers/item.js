@@ -30,7 +30,6 @@ import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 import pay from '../payIn'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
-import { prepareLexicalState } from '@/lib/lexical/server/interpolator'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -1565,6 +1564,21 @@ export default {
         AND data->>'userId' = ${meId}::TEXT
         AND state = 'created'`
       return reminderJobs[0]?.startafter ?? null
+    },
+    lexicalState: async (item, args, { lexicalStateLoader }) => {
+      if (!item.text) return null
+      return lexicalStateLoader.load(item.text)
+    },
+    html: async (item, args, { lexicalStateLoader }) => {
+      if (!item.text) return null
+      try {
+        const lexicalState = await lexicalStateLoader.load(item.text)
+        if (!lexicalState) return null
+        return lexicalHTMLGenerator(lexicalState)
+      } catch (error) {
+        console.error('error generating HTML from Lexical State:', error)
+        return null
+      }
     }
   }
 }
@@ -1642,18 +1656,12 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     item.url = removeTracking(item.url)
   }
 
-  // create lexical state from markdown
-  item.lexicalState = await prepareLexicalState({ text: item.text }, { checkMedia: false })
-  if (!item.lexicalState) {
-    throw new GqlInputError('failed to process content')
-  }
-
   if (old.bio) {
     // prevent editing a bio like a regular item
-    item = { id: Number(item.id), text: item.text, lexicalState: item.lexicalState, title: `@${user.name}'s bio` }
+    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio` }
   } else if (old.parentId) {
     // prevent editing a comment like a post
-    item = { id: Number(item.id), text: item.text, lexicalState: item.lexicalState, boost: item.boost }
+    item = { id: Number(item.id), text: item.text, boost: item.boost }
   } else {
     item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
@@ -1663,9 +1671,6 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 
   // never change author of item
   item.userId = old.userId
-
-  // generate sanitized html from lexical state
-  item.html = lexicalHTMLGenerator(item.lexicalState)
 
   return await pay('ITEM_UPDATE', item, { models, me, lnd })
 }
@@ -1678,16 +1683,6 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   item.userId = me ? Number(me.id) : USER_ID.anon
 
   item.forwardUsers = await getForwardUsers(models, forward)
-
-  // create lexical state from markdown
-  item.lexicalState = await prepareLexicalState({ text: item.text }, { checkMedia: false })
-  if (!item.lexicalState) {
-    throw new GqlInputError('failed to process content')
-  }
-
-  // todo: refactor to use uploadIdsFromLexicalState
-  // it should be way faster and more reliable
-  // by checking MediaNodes directly.
   item.uploadIds = uploadIdsFromText(item.text)
 
   if (item.url && !isJob(item)) {
@@ -1704,9 +1699,6 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
 
   // mark item as created with API key
   item.apiKey = me?.apiKey
-
-  // generate sanitized html from lexical state
-  item.html = lexicalHTMLGenerator(item.lexicalState)
 
   return await pay('ITEM_CREATE', item, { models, me, lnd })
 }

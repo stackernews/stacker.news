@@ -7,9 +7,9 @@ import { $getRoot, COMMAND_PRIORITY_HIGH, createCommand } from 'lexical'
 export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
 
 /** syncs lexical with formik values */
-export default function FormikBridgePlugin () {
+export default function FormikBridgePlugin ({ name = 'text' }) {
   const [editor] = useLexicalComposerContext()
-  const [textField,, textHelpers] = useField({ name: 'text' })
+  const [textField,, textHelpers] = useField({ name })
   const formik = useFormikContext()
   const hadContent = useRef(false)
 

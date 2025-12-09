@@ -3,7 +3,7 @@ import { Badge, Button, CardFooter, Dropdown } from 'react-bootstrap'
 import { AccordianCard } from './accordian-item'
 import TerritoryPaymentDue, { TerritoryBillingLine } from './territory-payment-due'
 import Link from 'next/link'
-import { LegacyText } from './text'
+import Text, { LegacyText } from './text'
 import { numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
 import Badges from './badge'
@@ -60,7 +60,7 @@ export function TerritoryInfo ({ sub, includeLink }) {
     <>
       {includeLink && <Link href={`/~${sub.name}`}>{sub.name}</Link>}
       <div className='py-2'>
-        <LegacyText>{sub.desc}</LegacyText>
+        {sub.lexicalState ? <Text state={sub.lexicalState} html={sub.html} /> : <LegacyText>{sub.desc}</LegacyText>}
       </div>
       <CardFooter className={`py-1 ${styles.other}`}>
         <div className='text-muted'>

@@ -46,7 +46,7 @@ export async function rawProbePayment ({ lnd, request, maxFeeMsat, timeoutSecond
     no_inflight_updates: true,
     outgoing_chan_id: undefined,
     outgoing_chan_ids: [],
-    payment_addr: undefined,
+    payment_addr: Buffer.from(inv.payment, 'hex'),
     payment_hash: randomBytes(32),
     payment_request: undefined,
     route_hints: inv.routes?.map(r => ({

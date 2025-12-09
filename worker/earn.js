@@ -7,7 +7,7 @@ const PERCENTILE_CUTOFF = 50
 const ZAP_THRESHOLD = 20
 const EACH_ZAP_PORTION = 4.0
 const EACH_ITEM_PORTION = 4.0
-const HANDICAP_IDS = [616, 6030, 4502, 27]
+const HANDICAP_IDS = [616, 4502, 27]
 const HANDICAP_ZAP_MULT = 0.5
 
 export async function earn ({ name }) {

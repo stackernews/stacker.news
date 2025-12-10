@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import { LexicalItemContextProvider } from './contexts/item'
@@ -9,7 +9,7 @@ export function SNEditor ({ ...props }) {
   return <Editor {...props} />
 }
 
-export const SNReader = forwardRef(function SNReader ({ html, children, outlawed, imgproxyUrls, topLevel, rel, ...props }, ref) {
+export function SNReader ({ html, outlawed, imgproxyUrls, topLevel, rel, ...props }) {
   const router = useRouter()
   const snCustomizedHTML = useMemo(() => (
     <div
@@ -27,9 +27,7 @@ export const SNReader = forwardRef(function SNReader ({ html, children, outlawed
 
   return (
     <LexicalItemContextProvider imgproxyUrls={imgproxyUrls} topLevel={topLevel} outlawed={outlawed} rel={rel}>
-      <Reader {...props} contentRef={ref} topLevel={topLevel}>
-        {children}
-      </Reader>
+      <Reader topLevel={topLevel} {...props} />
     </LexicalItemContextProvider>
   )
-})
+}

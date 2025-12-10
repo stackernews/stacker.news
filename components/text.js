@@ -141,23 +141,20 @@ export default function Text ({ topLevel, children, className, ...props }) {
   const lexicalContent = useMemo(() => {
     return (
       <SNReader
-        className={textClassNames}
-        ref={setElement}
         topLevel={topLevel}
         text={children} // if children is provided, it will be used as the markdown text content
         {...props}
-      >
-        {Overflow}
-      </SNReader>
+      />
     )
-  }, [children, textClassNames, topLevel, props])
+  }, [children, topLevel, props])
 
   return (
-    <>
+    <div className={textClassNames} ref={setElement}>
       {carousel
         ? lexicalContent
         : <CarouselProvider>{lexicalContent}</CarouselProvider>}
-    </>
+      {Overflow}
+    </div>
   )
 }
 

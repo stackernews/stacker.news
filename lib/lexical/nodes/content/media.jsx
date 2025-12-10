@@ -10,15 +10,28 @@ const statusState = createState('status', {
 })
 
 function $convertMediaElement (domNode) {
+  let src, alt, title, width, height, kind
+
   if (domNode instanceof window.HTMLImageElement || domNode instanceof window.HTMLVideoElement) {
-    const { alt, title, src, width, height } = domNode
-    const kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
-    const node = $createMediaNode({ alt, title, src, width, height })
-    $setState(node, kindState, kind)
-    $setState(node, statusState, 'done')
-    return { node }
+    ({ alt, title, src, width, height } = domNode)
+    kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
+  } else if (domNode instanceof window.HTMLAnchorElement && domNode.hasAttribute('data-media-kind')) {
+    src = domNode.getAttribute('href')
+    alt = domNode.getAttribute('data-media-alt') || ''
+    title = domNode.getAttribute('title') || ''
+    width = domNode.getAttribute('data-media-width')
+    height = domNode.getAttribute('data-media-height')
+    kind = domNode.getAttribute('data-media-kind') || 'unknown'
+    width = width ? parseInt(width, 10) : 0
+    height = height ? parseInt(height, 10) : 0
+  } else {
+    return null
   }
-  return null
+
+  const node = $createMediaNode({ src, alt, title, width, height })
+  $setState(node, kindState, kind)
+  $setState(node, statusState, 'done')
+  return { node }
 }
 
 export class MediaNode extends DecoratorNode {
@@ -93,36 +106,38 @@ export class MediaNode extends DecoratorNode {
       video: () => ({
         conversion: $convertMediaElement,
         priority: 0
+      }),
+      a: () => ({
+        conversion: $convertMediaElement,
+        priority: 0
       })
     }
   }
 
-  exportDOM (editor) {
-    const element = document.createElement('span')
-    const className = editor._config.theme?.mediaContainer
-    if (className) {
-      element.className = className
+  // we're exporting a link node instead of a media node
+  // it contains everything we need to re-import it as a media node (html -> lexical)
+  // because of media checks, rendering HTML as a link ensures the only layout shift will be the media itself (SSR -> Lexical)
+  exportDOM () {
+    const link = document.createElement('a')
+    link.setAttribute('href', this.__src)
+    link.setAttribute('target', '_blank')
+    link.setAttribute('rel', 'noopener noreferrer')
+
+    if (this.__title) {
+      link.setAttribute('title', this.__title)
     }
 
-    const style = {
-      '--width': this.__width ? `${this.__width}px` : 'inherit',
-      '--height': this.__height ? `${this.__height}px` : 'inherit',
-      '--aspect-ratio': this.__width && this.__height ? `${this.__width} / ${this.__height}` : 'auto',
-      '--max-width': `${this.__maxWidth}px`
-    }
-    element.setAttribute('style', Object.entries(style).map(([k, v]) => `${k}: ${v}`).join('; '))
+    link.setAttribute('data-media-alt', this.__alt || '')
+    if (this.__width) link.setAttribute('data-media-width', String(this.__width))
+    if (this.__height) link.setAttribute('data-media-height', String(this.__height))
 
     const kind = $getState(this, kindState)
-    const media = document.createElement(kind === 'video' ? 'video' : 'img')
-    media.setAttribute('src', this.__src)
-    media.setAttribute('title', this.__title)
-    media.setAttribute('alt', this.__alt)
-    if (this.__width) media.setAttribute('width', String(this.__width))
-    if (this.__height) media.setAttribute('height', String(this.__height))
-    if (kind === 'video') media.setAttribute('controls', 'true')
+    link.setAttribute('data-media-kind', kind)
 
-    element.appendChild(media)
-    return { element }
+    const linkText = this.__src
+    link.textContent = linkText
+
+    return { element: link }
   }
 
   createDOM (config) {

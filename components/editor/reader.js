@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from 'react'
+import { useMemo } from 'react'
 import { defineExtension, configExtension } from 'lexical'
 import { RichTextExtension } from '@lexical/rich-text'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -31,7 +31,7 @@ const initiateLexical = (editor, state, text) => {
   }
 }
 
-export default forwardRef(function Reader ({ className, contentRef, topLevel, state, text, children }, ref) {
+export default function Reader ({ topLevel, state, text }) {
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -56,11 +56,10 @@ export default forwardRef(function Reader ({ className, contentRef, topLevel, st
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>
       <div style={{ position: 'relative' }}>
-        <ContentEditable className={className} ref={contentRef} />
-        {children}
+        <ContentEditable />
       </div>
       <CodeThemePlugin />
       {process.env.NODE_ENV === 'development' && <ExtractMarkdownFromEditor />}
     </LexicalExtensionComposer>
   )
-})
+}

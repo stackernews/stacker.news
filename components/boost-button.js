@@ -7,12 +7,12 @@ import getColor from '@/lib/rainbow'
 import BoostIcon from '@/svgs/arrow-up-double-line.svg'
 import styles from './upvote.module.css'
 import { BoostHelp } from './adv-post-form'
-import { BOOST_MULT } from '@/lib/constants'
+import { BOOST_MIN } from '@/lib/constants'
 import classNames from 'classnames'
 
 export default function Boost ({ item, className, ...props }) {
   const { boost } = item
-  const [color, nextColor] = useMemo(() => [getColor(boost), getColor(boost + BOOST_MULT)], [boost])
+  const [color, nextColor] = useMemo(() => [getColor(boost), getColor(boost + BOOST_MIN)], [boost])
 
   const style = useMemo(() => ({
     '--hover-fill': nextColor,
@@ -51,7 +51,7 @@ function Booster ({ item, As, children }) {
       onClick={async () => {
         try {
           showModal(onClose =>
-            <ItemAct onClose={onClose} item={item} act='BOOST' step={BOOST_MULT}>
+            <ItemAct onClose={onClose} item={item} act='BOOST' step={BOOST_MIN}>
               <AccordianItem header='what is boost?' body={<BoostHelp />} />
             </ItemAct>)
         } catch (error) {

@@ -8,13 +8,13 @@ import {
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
-  BOOST_MULT,
   ITEM_EDIT_SECONDS,
   COMMENTS_LIMIT,
   COMMENTS_OF_COMMENT_LIMIT,
   FULL_COMMENTS_THRESHOLD,
   WALLET_RETRY_BEFORE_MS,
-  WALLET_MAX_RETRIES
+  WALLET_MAX_RETRIES,
+  BOOST_MIN
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
@@ -762,7 +762,6 @@ export default {
         boost: { gte: boost },
         status: 'ACTIVE',
         deletedAt: null,
-        outlawed: false,
         parentId: null
       }
       if (id) {
@@ -788,8 +787,8 @@ export default {
       }
 
       return {
-        home: homeAgg._count.id === 0 && boost >= BOOST_MULT,
-        sub: subAgg?._count.id === 0 && boost >= BOOST_MULT,
+        home: homeAgg._count.id === 0 && boost >= BOOST_MIN,
+        sub: subAgg?._count.id === 0 && boost >= BOOST_MIN,
         homeMaxBoost: homeAgg._max.boost || 0,
         subMaxBoost: subAgg?._max.boost || 0
       }

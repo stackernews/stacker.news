@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { BOOST_MIN, BOOST_MAX, BOOST_MULT, MAX_FORWARDS, SSR } from '@/lib/constants'
+import { BOOST_MIN, MAX_FORWARDS, SSR } from '@/lib/constants'
 import { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import Info from './info'
-import { abbrNum, numWithUnits } from '@/lib/format'
+import { abbrNum } from '@/lib/format'
 import styles from './adv-post-form.module.css'
 import { useMe } from './me'
 import { useFeeButton } from './fee-button'
@@ -15,6 +15,7 @@ import { gql, useQuery } from '@apollo/client'
 import useDebounceCallback from './use-debounce-callback'
 import { Button } from 'react-bootstrap'
 import classNames from 'classnames'
+import Link from 'next/link'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -33,19 +34,13 @@ const FormStatus = {
 export function BoostHelp () {
   return (
     <ol>
-      <li>Boost ranks items higher based on the amount</li>
-      <li>The highest boost in a territory over the last 30 days is pinned to the top of the territory</li>
-      <li>The highest boost across all territories over the last 30 days is pinned to the top of the homepage</li>
-      <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
-      <li>The maximum boost is {numWithUnits(BOOST_MAX, { abbreviate: false })}</li>
-      <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to a zap-vote from a maximally trusted stacker (very rare)
-        <ul>
-          <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like five zap-votes from a maximally trusted stacker</li>
-        </ul>
-      </li>
-      <li>boost can take a few minutes to show higher ranking in feed</li>
+      <li>Boost is <strong>exactly</strong> like a zap from other stackers: it ranks the item higher based on the amount</li>
+      <li>The highest boosted post in a territory over the last 7 days is pinned to the top of the territory</li>
+      <li>The highest boosted post across all territories over the last 7 days is pinned to the top of the homepage and the <Link href='/rewards'>rewards page</Link></li>
+      <li>The top 5 highest boosted posts across all territories are shared in the newsletter</li>
       <li>100% of boost goes to the territory founder and top stackers as rewards</li>
-      <li>If a boost is outlawed, it will only be visible to stackers in wild west mode</li>
+      <li>Boosted items can be downzapped to reduce their rank</li>
+      <li>Boosted items can be outlawed and become only visible to stackers in wild west mode if they receive enough downzaps</li>
     </ol>
   )
 }
@@ -77,7 +72,7 @@ export function BoostInput ({ onChange, ...props }) {
         })
         onChange && onChange(_, e)
       }}
-      hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
+      hint={<span className='text-muted'>ranks items higher temporarily based on the amount</span>}
       append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
       {...props}
     />
@@ -88,19 +83,19 @@ const BoostMaxes = ({ subName, homeMax, subMax, boost, updateBoost }) => {
   return (
     <div className='d-flex flex-row mb-2'>
       <Button
-        className={classNames(styles.boostMax, 'me-2', homeMax + BOOST_MULT <= (boost || 0) && 'invisible')}
+        className={classNames(styles.boostMax, 'me-2', homeMax + BOOST_MIN <= (boost || 0) && 'invisible')}
         size='sm'
-        onClick={() => updateBoost(homeMax + BOOST_MULT)}
+        onClick={() => updateBoost(homeMax + BOOST_MIN)}
       >
-        {abbrNum(homeMax + BOOST_MULT)} <small>top of homepage</small>
+        {abbrNum(homeMax + BOOST_MIN)} <small>top of homepage</small>
       </Button>
       {subName &&
         <Button
-          className={classNames(styles.boostMax, subMax + BOOST_MULT <= (boost || 0) && 'invisible')}
+          className={classNames(styles.boostMax, subMax + BOOST_MIN <= (boost || 0) && 'invisible')}
           size='sm'
-          onClick={() => updateBoost(subMax + BOOST_MULT)}
+          onClick={() => updateBoost(subMax + BOOST_MIN)}
         >
-          {abbrNum(subMax + BOOST_MULT)} <small>top of ~{subName}</small>
+          {abbrNum(subMax + BOOST_MIN)} <small>top of ~{subName}</small>
         </Button>}
     </div>
   )
@@ -137,7 +132,7 @@ export function BoostItemInput ({ item, sub, act = false, ...props }) {
   const dat = data || previousData
 
   const boostMessage = useMemo(() => {
-    if (!item?.parentId && boost >= BOOST_MULT) {
+    if (!item?.parentId && boost >= BOOST_MIN) {
       if (dat?.boostPosition?.home || dat?.boostPosition?.sub || boost > dat?.boostPosition?.homeMaxBoost || boost > dat?.boostPosition?.subMaxBoost) {
         const boostPinning = []
         if (dat?.boostPosition?.home || boost > dat?.boostPosition?.homeMaxBoost) {
@@ -149,7 +144,7 @@ export function BoostItemInput ({ item, sub, act = false, ...props }) {
         return `pins to the top of ${boostPinning.join(' and ')}`
       }
     }
-    return 'ranks posts higher based on the amount'
+    return 'ranks items higher based on the amount'
   }, [boost, dat?.boostPosition?.home, dat?.boostPosition?.sub, item?.subName, sub?.name])
 
   return (
@@ -186,7 +181,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
 
   useEffect(() => {
     const isDirty = formik?.values.forward?.[0].nym !== '' || formik?.values.forward?.[0].pct !== '' ||
-      formik?.values.boost !== '' || (router.query?.type === 'link' && formik?.values.text !== '')
+      (router.query?.type === 'link' && formik?.values.text !== '')
 
     // if the adv post form is dirty on first render, show the accordian
     if (isDirty) {
@@ -209,7 +204,7 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
 
   useEffect(() => {
     // force show the accordian if there is an error and the form is submitting
-    const hasError = !!formik?.errors?.boost || formik?.errors?.forward?.length > 0
+    const hasError = formik?.errors?.forward?.length > 0
     // if it's open we don't want to collapse on submit
     setShow(show => hasError && formik?.isSubmitting ? FormStatus.ERROR : show)
   }, [formik?.isSubmitting])
@@ -261,7 +256,6 @@ export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) 
       body={
         <>
           {children}
-          <BoostItemInput item={item} sub={sub} />
           <VariableInput
             label='forward sats to'
             name='forward'

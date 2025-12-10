@@ -8,11 +8,11 @@ import styles from '@/styles/post.module.css'
 import { useLazyQuery, gql } from '@apollo/client'
 import Avatar from './avatar'
 import { jobSchema } from '@/lib/validate'
-import { BOOST_MIN, BOOST_MULT, MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
+import { MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
 import { UPSERT_JOB } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 import { BoostInput } from './adv-post-form'
-import { numWithUnits, giveOrdinalSuffix } from '@/lib/format'
+import { giveOrdinalSuffix } from '@/lib/format'
 import useDebounceCallback from './use-debounce-callback'
 import FeeButton from './fee-button'
 import CancelButton from './cancel-button'
@@ -116,8 +116,6 @@ export default function JobForm ({ item, sub }) {
               <Info>
                 <ol>
                   <li>Boost ranks jobs higher based on the amount</li>
-                  <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
-                  <li>Boost must be divisible by {numWithUnits(BOOST_MULT, { abbreviate: false })}</li>
                   <li>100% of boost goes to the territory founder and top stackers as rewards</li>
                 </ol>
               </Info>

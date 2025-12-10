@@ -142,8 +142,6 @@ export default {
       }
       return await models.user.findUnique({ where: { id, name } })
     },
-    users: async (parent, args, { models }) =>
-      await models.user.findMany(),
     nameAvailable: async (parent, { name }, { models, me }) => {
       let user
       if (me) {

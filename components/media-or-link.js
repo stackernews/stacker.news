@@ -26,8 +26,6 @@ const Media = memo(function Media ({
   const [loaded, setLoaded] = useState(!video)
   const ref = useRef(null)
 
-  console.log('alt', alt)
-
   const handleLoadedMedia = () => {
     setLoaded(true)
   }

@@ -165,11 +165,6 @@ export async function onBegin (tx, payInId, args) {
     }
   })
 
-  // lexical media check job
-  await tx.$executeRaw`
-    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
-    VALUES ('mediaCheck', jsonb_build_object('id', ${id}::INTEGER), 21, true,
-              now() + interval '5 seconds', now() + interval '1 day')`
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,

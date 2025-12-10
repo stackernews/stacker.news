@@ -53,12 +53,6 @@ export default gql`
     pollVote(id: ID!): PayIn!
     toggleOutlaw(id: ID!): Item!
     updateCommentsViewAt(id: ID!, meCommentsViewedAt: Date!): Date
-    executeConversion(itemId: ID!, fullRefresh: Boolean): ConversionResult!
-  }
-
-  type ConversionResult {
-    success: Boolean!
-    message: String!
   }
 
   type PollOption {

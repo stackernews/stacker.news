@@ -1151,62 +1151,6 @@ export default {
       })
 
       return result.lastViewedAt
-    },
-    executeConversion: async (parent, { itemId, fullRefresh }, { models, me }) => {
-      if (process.env.NODE_ENV !== 'development') {
-        throw new GqlAuthenticationError()
-      }
-
-      console.log(`[executeConversion] scheduling conversion for item ${itemId}`)
-
-      // check if job is already scheduled or running
-      const alreadyScheduled = await models.$queryRaw`
-        SELECT state
-        FROM pgboss.job
-        WHERE name = 'migrateLegacyContent'
-          AND data->>'itemId' = ${itemId}::TEXT
-          AND state IN ('created', 'active', 'retry')
-        LIMIT 1
-      `
-
-      if (alreadyScheduled.length > 0) {
-        console.log(`[executeConversion] item ${itemId} already has active job`)
-        return {
-          success: false,
-          message: `migration already ${alreadyScheduled[0].state} for this item`
-        }
-      }
-
-      // schedule the migration job
-      await models.$executeRaw`
-        INSERT INTO pgboss.job (
-          name,
-          data,
-          retrylimit,
-          retrybackoff,
-          startafter,
-          keepuntil,
-          singletonKey
-        )
-        VALUES (
-          'migrateLegacyContent',
-          jsonb_build_object(
-            'itemId', ${itemId}::INTEGER,
-            'fullRefresh', ${fullRefresh}::BOOLEAN,
-            'checkMedia', true
-          ),
-          3, -- reduced retry limit for manual conversions
-          true,
-          now(),
-          now() + interval '1 hour',
-          'migrateLegacyContent:' || ${itemId}::TEXT
-        )
-      `
-
-      return {
-        success: true,
-        message: 'migration scheduled successfully'
-      }
     }
   },
   Item: {

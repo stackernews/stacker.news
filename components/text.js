@@ -123,7 +123,7 @@ export function useOverflow ({ element, truncated = false }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-export default function Text ({ topLevel, children, className, state, html, outlawed, imgProxyUrls, rel }) {
+export default function Text ({ topLevel, children, className, state, html, outlawed, imgproxyUrls, rel }) {
   const [element, setElement] = useState(null)
   const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
   const carousel = useCarousel()
@@ -145,11 +145,11 @@ export default function Text ({ topLevel, children, className, state, html, outl
         text={children} // if children is provided, it will be used as the markdown text content
         html={html}
         outlawed={outlawed}
-        imgProxyUrls={imgProxyUrls}
+        imgproxyUrls={imgproxyUrls}
         rel={rel}
       />
     )
-  }, [children, topLevel, html, outlawed, imgProxyUrls, rel])
+  }, [children, topLevel, html, outlawed, imgproxyUrls, rel])
 
   return (
     <div className={textClassNames} ref={setElement}>

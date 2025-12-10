@@ -88,31 +88,29 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
   }
 
   return (
-    <>
-      <div className={classNames(styles.editorContainer, topLevel && 'sn-text--top-level')}>
-        <ToolbarPlugin topLevel={topLevel} />
-        {/* we only need a plain text editor for markdown */}
-        <div className={styles.editor} ref={onRef}>
-          <ContentEditable
-            className={classNames(styles.editorInput, 'sn-text')}
-            /* lh is a css unit that is equal to the line height of the element
-                probably the worst thing is that we have to add 1 to the minRows to get the correct height
-            */
-            style={{ minHeight: `${(minRows ?? 0) + 1}lh` }}
-            placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
-            aria-required={required}
-          />
-        </div>
-        {editorRef && <PreviewPlugin editorRef={editorRef} topLevel={topLevel} />}
-        <HistoryPlugin />
-        <FileUploadPlugin editorRef={editorRef} />
-        <MentionsPlugin />
-        <LocalDraftPlugin name={name} />
-        <FormikBridgePlugin name={name} />
-        <MaxLengthPlugin lengthOptions={lengthOptions} />
-        {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
-        {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
+    <div className={classNames(styles.editorContainer, topLevel && 'sn-text--top-level')}>
+      <ToolbarPlugin topLevel={topLevel} />
+      {/* we only need a plain text editor for markdown */}
+      <div className={styles.editor} ref={onRef}>
+        <ContentEditable
+          className={classNames(styles.editorInput, 'sn-text')}
+          /* lh is a css unit that is equal to the line height of the element
+              probably the worst thing is that we have to add 1 to the minRows to get the correct height
+          */
+          style={{ minHeight: `${(minRows ?? 0) + 1}lh` }}
+          placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
+          aria-required={required}
+        />
       </div>
-    </>
+      {editorRef && <PreviewPlugin editorRef={editorRef} topLevel={topLevel} />}
+      <HistoryPlugin />
+      <FileUploadPlugin editorRef={editorRef} />
+      <MentionsPlugin />
+      <LocalDraftPlugin name={name} />
+      <FormikBridgePlugin name={name} />
+      <MaxLengthPlugin lengthOptions={lengthOptions} />
+      {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+      {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
+    </div>
   )
 }

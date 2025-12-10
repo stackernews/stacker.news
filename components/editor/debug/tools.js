@@ -2,6 +2,8 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 import { useToast } from '@/components/toast'
 
+// simple plugin to extract markdown from rich text
+// useful for debugging mdast export pipeline
 export function ExtractMarkdownFromEditor () {
   const [editor] = useLexicalComposerContext()
   const toaster = useToast()

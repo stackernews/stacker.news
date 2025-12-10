@@ -151,8 +151,11 @@ span.sn-media-container {
   cursor: default;
   display: inline-block;
   position: relative;
-  user-select: none;
   --max-width: 500px;
+}
+
+span.sn-media-container:has(a) {
+  display: inline;
 }
 
 span.sn-media-container .outlawed {

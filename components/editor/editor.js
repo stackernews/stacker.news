@@ -30,7 +30,7 @@ import styles from '@/lib/lexical/theme/editor.module.css'
  * @param {boolean} [props.autoFocus] - whether to auto-focus the editor
  * @returns {JSX.Element} lexical editor component
  */
-export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...props }) {
+export default function Editor ({ name, appendValue, autoFocus, topLevel, ...props }) {
   const { values } = useFormikContext()
 
   const editor = useMemo(() =>

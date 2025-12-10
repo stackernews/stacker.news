@@ -40,7 +40,7 @@ import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 import { WalletPromptClosed } from '@/wallets/client/hooks'
-import SNEditor from './editor/editor'
+import { SNEditor } from './editor'
 
 export class SessionRequiredError extends Error {
   constructor () {

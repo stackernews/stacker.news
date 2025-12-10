@@ -3,6 +3,11 @@ import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import { LexicalItemContextProvider } from './contexts/item'
 import { applySNCustomizations } from '@/lib/lexical/html/customs'
+import Editor from './editor'
+
+export function SNEditor ({ ...props }) {
+  return <Editor {...props} />
+}
 
 export const SNReader = forwardRef(function SNReader ({ html, children, outlawed, imgproxyUrls, topLevel, rel, ...props }, ref) {
   const router = useRouter()

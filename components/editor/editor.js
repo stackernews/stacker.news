@@ -1,27 +1,27 @@
-import FormikBridgePlugin from '@/components/editor/plugins/core/formik'
-import LocalDraftPlugin from '@/components/editor/plugins/core/local-draft'
-import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
-import MentionsPlugin from '@/components/editor/plugins/tools/mentions'
-import FileUploadPlugin from '@/components/editor/plugins/tools/upload'
-import PreviewPlugin from '@/components/editor/plugins/preview'
-import { AutoFocusExtension } from '@lexical/extension'
-import { ContentEditable } from '@lexical/react/LexicalContentEditable'
-import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
 import classNames from 'classnames'
 import { useFormikContext } from 'formik'
-import { configExtension, defineExtension } from 'lexical'
 import { useMemo, useState } from 'react'
-import theme from '@/lib/lexical/theme'
-import styles from '@/lib/lexical/theme/editor.module.css'
-import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin'
-import { ToolbarPlugin } from '@/components/editor/plugins/toolbar'
-import { ToolbarContextProvider } from '@/components/editor/contexts/toolbar'
-import { $initializeEditorState } from '@/lib/lexical/utils'
 import BootstrapForm from 'react-bootstrap/Form'
+import { configExtension, defineExtension } from 'lexical'
+import { PlainTextExtension } from '@lexical/plain-text'
+import { ReactExtension } from '@lexical/react/ReactExtension'
+import { ContentEditable } from '@lexical/react/LexicalContentEditable'
+import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
+import { AutoFocusExtension } from '@lexical/extension'
 import { ShortcutsExtension } from '@/lib/lexical/exts/shortcuts'
 import { MDCommandsExtension } from '@/lib/lexical/exts/md-commands'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
+import { ToolbarContextProvider } from '@/components/editor/contexts/toolbar'
+import { ToolbarPlugin } from '@/components/editor/plugins/toolbar'
+import FormikBridgePlugin from '@/components/editor/plugins/core/formik'
+import LocalDraftPlugin from '@/components/editor/plugins/core/local-draft'
+import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
+import MentionsPlugin from '@/components/editor/plugins/mentions'
+import FileUploadPlugin from '@/components/editor/plugins/upload'
+import PreviewPlugin from '@/components/editor/plugins/preview'
+import { $initializeEditorState } from '@/lib/lexical/utils'
+import theme from '@/lib/lexical/theme'
+import styles from '@/lib/lexical/theme/editor.module.css'
 
 /**
  * main lexical editor component with formik integration
@@ -44,8 +44,10 @@ export default function SNEditor ({ name, appendValue, autoFocus, topLevel, ...p
       name: 'editor',
       namespace: 'sn',
       dependencies: [
+        PlainTextExtension,
         ShortcutsExtension,
         MDCommandsExtension,
+        configExtension(ReactExtension, { contentEditable: null }),
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
       theme: { ...theme, topLevel: topLevel ? 'sn-text--top-level' : '' },
@@ -90,22 +92,17 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       <div className={classNames(styles.editorContainer, topLevel && 'sn-text--top-level')}>
         <ToolbarPlugin topLevel={topLevel} />
         {/* we only need a plain text editor for markdown */}
-        <PlainTextPlugin
-          contentEditable={
-            <div className={styles.editor} ref={onRef}>
-              <ContentEditable
-                className={classNames(styles.editorInput, 'sn-text')}
-                /* lh is a css unit that is equal to the line height of the element
-                   probably the worst thing is that we have to add 1 to the minRows to get the correct height
-                */
-                style={{ minHeight: `${(minRows ?? 0) + 1}lh` }}
-                placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
-                aria-required={required}
-              />
-            </div>
-          }
-          ErrorBoundary={LexicalErrorBoundary}
-        />
+        <div className={styles.editor} ref={onRef}>
+          <ContentEditable
+            className={classNames(styles.editorInput, 'sn-text')}
+            /* lh is a css unit that is equal to the line height of the element
+                probably the worst thing is that we have to add 1 to the minRows to get the correct height
+            */
+            style={{ minHeight: `${(minRows ?? 0) + 1}lh` }}
+            placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
+            aria-required={required}
+          />
+        </div>
         {editorRef && <PreviewPlugin editorRef={editorRef} topLevel={topLevel} />}
         <HistoryPlugin />
         <FileUploadPlugin editorRef={editorRef} />

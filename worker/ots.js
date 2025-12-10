@@ -3,8 +3,9 @@ import stringifyCanon from 'canonical-json'
 import { createHash } from 'crypto'
 import Ots from 'opentimestamps'
 
-const ITEM_OTS_FIELDS = gql`
-  fragment ItemOTSFields on Item {
+/** fetches the necessary fields to compute the ots hash */
+const ITEM_OTS_HASH_FIELDS = gql`
+  fragment ItemOtsHashFields on Item {
     parentId
     parentOtsHash
     title
@@ -15,10 +16,10 @@ const ITEM_OTS_FIELDS = gql`
 export async function timestampItem ({ data: { id }, apollo, models }) {
   const { data: { item: { parentId, parentOtsHash, title, text, url } } } = await apollo.query({
     query: gql`
-        ${ITEM_OTS_FIELDS}
+        ${ITEM_OTS_HASH_FIELDS}
         query Item {
           item(id: ${id}) {
-            ...ItemOTSFields
+            ...ItemOtsHashFields
           }
         }`
   })

@@ -102,7 +102,7 @@ export function useOverflow ({ element, truncated = false }) {
       window.removeEventListener('resize', checkOverflow)
       resizeObserver?.disconnect()
     }
-  }, [element, setOverflowing])
+  }, [element, setOverflowing, truncated])
 
   const Overflow = useMemo(() => {
     if (overflowing && !show) {
@@ -124,7 +124,7 @@ export function useOverflow ({ element, truncated = false }) {
 }
 
 // TODO: revisit
-export default function Text ({ topLevel, children, ...props }) {
+export default function Text ({ topLevel, children, className, ...props }) {
   const [element, setElement] = useState(null)
   const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
   const carousel = useCarousel()
@@ -133,9 +133,10 @@ export default function Text ({ topLevel, children, ...props }) {
     return classNames(
       'sn-text',
       topLevel && 'sn-text--top-level',
-      show ? 'sn-text--uncontained' : overflowing && 'sn-text--contained'
+      show ? 'sn-text--uncontained' : overflowing && 'sn-text--contained',
+      className
     )
-  }, [topLevel, show, overflowing])
+  }, [topLevel, show, overflowing, className])
 
   const lexicalContent = useMemo(() => {
     return (

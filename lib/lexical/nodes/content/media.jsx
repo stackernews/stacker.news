@@ -11,9 +11,9 @@ const statusState = createState('status', {
 
 function $convertMediaElement (domNode) {
   if (domNode instanceof window.HTMLImageElement || domNode instanceof window.HTMLVideoElement) {
-    const { alt: altText, src, width, height } = domNode
+    const { alt, title, src, width, height } = domNode
     const kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
-    const node = $createMediaNode({ altText, src, width, height })
+    const node = $createMediaNode({ alt, title, src, width, height })
     $setState(node, kindState, kind)
     $setState(node, statusState, 'done')
     return { node }
@@ -23,7 +23,8 @@ function $convertMediaElement (domNode) {
 
 export class MediaNode extends DecoratorNode {
   __src
-  __altText
+  __title
+  __alt
   __width
   __height
   __maxWidth
@@ -38,10 +39,11 @@ export class MediaNode extends DecoratorNode {
     })
   }
 
-  constructor (src, altText, width, height, maxWidth, key) {
+  constructor (src, title, alt, width, height, maxWidth, key) {
     super(key)
     this.__src = src
-    this.__altText = altText ?? ''
+    this.__title = title ?? ''
+    this.__alt = alt ?? ''
     this.__width = width ?? 0
     this.__height = height ?? 0
     this.__maxWidth = maxWidth ?? 500
@@ -50,7 +52,8 @@ export class MediaNode extends DecoratorNode {
   static clone (node) {
     const clone = new MediaNode(
       node.__src,
-      node.__altText,
+      node.__title,
+      node.__alt,
       node.__width,
       node.__height,
       node.__maxWidth,
@@ -60,8 +63,8 @@ export class MediaNode extends DecoratorNode {
   }
 
   static importJSON (serializedNode) {
-    const { src, altText, width, height, maxWidth, kind, status } = serializedNode
-    const node = $createMediaNode({ src, altText, width, height, maxWidth })
+    const { src, title, alt, width, height, maxWidth, kind, status } = serializedNode
+    const node = $createMediaNode({ src, title, alt, width, height, maxWidth })
     $setState(node, kindState, kind ?? 'unknown')
     $setState(node, statusState, status ?? 'idle')
     return node
@@ -71,7 +74,8 @@ export class MediaNode extends DecoratorNode {
     return {
       ...super.exportJSON(),
       src: this.__src,
-      altText: this.__altText,
+      title: this.__title,
+      alt: this.__alt,
       width: this.__width,
       height: this.__height,
       maxWidth: this.__maxWidth,
@@ -111,7 +115,8 @@ export class MediaNode extends DecoratorNode {
     const kind = $getState(this, kindState)
     const media = document.createElement(kind === 'video' ? 'video' : 'img')
     media.setAttribute('src', this.__src)
-    media.setAttribute('alt', this.__altText)
+    media.setAttribute('title', this.__title)
+    media.setAttribute('alt', this.__alt)
     if (this.__width) media.setAttribute('width', String(this.__width))
     if (this.__height) media.setAttribute('height', String(this.__height))
     if (kind === 'video') media.setAttribute('controls', 'true')
@@ -138,8 +143,12 @@ export class MediaNode extends DecoratorNode {
     return this.__src
   }
 
-  getAltText () {
-    return this.__altText
+  getAlt () {
+    return this.__alt
+  }
+
+  getTitle () {
+    return this.__title
   }
 
   getKind () {
@@ -169,11 +178,12 @@ export class MediaNode extends DecoratorNode {
   }
 
   decorate () {
-    const Media = require('@/components/editor/plugins/content/media').default
+    const MediaComponent = require('@/components/editor/nodes/media').default
     return (
-      <Media
+      <MediaComponent
         src={this.__src}
-        altText={this.__altText}
+        title={this.__title}
+        alt={this.__alt}
         kind={$getState(this, kindState)}
         status={$getState(this, statusState)}
         width={this.__width}
@@ -185,11 +195,12 @@ export class MediaNode extends DecoratorNode {
   }
 }
 
-export function $createMediaNode ({ src, altText, width, height, maxWidth, key }) {
+export function $createMediaNode ({ src, title, alt, width, height, maxWidth, key }) {
   return $applyNodeReplacement(
     new MediaNode(
       src,
-      altText,
+      title,
+      alt,
       width,
       height,
       maxWidth ? Math.min(maxWidth, 500) : Math.min(width ?? 320, 500),

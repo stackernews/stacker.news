@@ -126,7 +126,7 @@ export class MathNode extends DecoratorNode {
   }
 
   decorate () {
-    const MathComponent = require('@/components/editor/plugins/content/math').default
+    const MathComponent = require('@/components/editor/nodes/math').default
     return (
       <MathComponent
         math={this.__math}

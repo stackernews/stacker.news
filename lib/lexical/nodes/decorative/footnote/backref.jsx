@@ -51,6 +51,7 @@ export class FootnoteBackrefNode extends ElementNode {
 
   exportJSON () {
     return {
+      ...super.exportJSON(),
       type: 'footnote-backref',
       version: 1,
       identifier: this.__identifier

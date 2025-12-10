@@ -2,10 +2,9 @@ import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_CRITICAL } from 'lexical'
 import { useFormikContext } from 'formik'
-import Reader from '@/components/editor/reader'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
-import classNames from 'classnames'
+import Text from '@/components/text'
 
 export const TOGGLE_PREVIEW_COMMAND = createCommand('TOGGLE_PREVIEW_COMMAND')
 
@@ -36,11 +35,7 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
 
   return (
     <div data-lexical-preview='true' className={styles.editor}>
-      <Reader
-        text={values.text}
-        className={classNames(styles.editorInput, 'sn-text', topLevel && 'sn-text--top-level')}
-        topLevel={topLevel}
-      />
+      <Text className={styles.editorInput} topLevel={topLevel}>{values.text}</Text>
     </div>
   )
 }

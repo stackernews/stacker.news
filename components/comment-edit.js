@@ -39,7 +39,6 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           schema={commentSchema}
           onSubmit={onSubmit}
         >
-          {/* what does minRows and required do? */}
           <SNInput
             name='text'
             minRows={6}

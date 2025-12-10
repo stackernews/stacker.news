@@ -123,8 +123,7 @@ export function useOverflow ({ element, truncated = false }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-// TODO: revisit
-export default function Text ({ topLevel, children, className, ...props }) {
+export default function Text ({ topLevel, children, className, state, html, outlawed, imgProxyUrls, rel }) {
   const [element, setElement] = useState(null)
   const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
   const carousel = useCarousel()
@@ -142,11 +141,15 @@ export default function Text ({ topLevel, children, className, ...props }) {
     return (
       <SNReader
         topLevel={topLevel}
+        state={state}
         text={children} // if children is provided, it will be used as the markdown text content
-        {...props}
+        html={html}
+        outlawed={outlawed}
+        imgProxyUrls={imgProxyUrls}
+        rel={rel}
       />
     )
-  }, [children, topLevel, props])
+  }, [children, topLevel, html, outlawed, imgProxyUrls, rel])
 
   return (
     <div className={textClassNames} ref={setElement}>

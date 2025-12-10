@@ -55,9 +55,7 @@ export default function Reader ({ topLevel, state, text }) {
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>
-      <div style={{ position: 'relative' }}>
-        <ContentEditable />
-      </div>
+      <ContentEditable />
       <CodeThemePlugin />
       {process.env.NODE_ENV === 'development' && <ExtractMarkdownFromEditor />}
     </LexicalExtensionComposer>

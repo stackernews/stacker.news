@@ -13,7 +13,6 @@ export function SNReader ({ html, outlawed, imgproxyUrls, topLevel, rel, ...prop
   const router = useRouter()
   const snCustomizedHTML = useMemo(() => (
     <div
-      className={props.className}
       // suppressHydrationWarning is used as a band-aid but maybe applySNCustomizations is not the proper solution.
       dangerouslySetInnerHTML={{ __html: applySNCustomizations(html, { outlawed, imgproxyUrls, topLevel }) }}
       suppressHydrationWarning

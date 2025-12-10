@@ -21,7 +21,7 @@ import { DownZap } from './dont-link-this'
 import { timeLeft } from '@/lib/time'
 import classNames from 'classnames'
 import removeMd from 'remove-markdown'
-import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks, proxyEmbedUrl } from '@/lib/url'
 import ItemPopover from './item-popover'
 import { useMe } from './me'
 import Boost from './boost-button'
@@ -62,6 +62,32 @@ function mediaType ({ url, imgproxyUrls }) {
   return imgproxyUrls?.[src]?.video ? 'video' : 'image'
 }
 
+export function ProxyLink ({ url, rel, text, provider }) {
+  const { me } = useMe()
+  if (!me?.privates?.proxyEmbeds) return null
+
+  const proxy = proxyEmbedUrl(url, provider)
+  if (!proxy) return null
+
+  const title = `view ${proxy.provider} on ${proxy.service}`
+
+  return (
+    <sup>
+      {/* eslint-disable-next-line */}
+      <a
+        className={styles.link}
+        target='_blank'
+        title={title}
+        href={proxy.href}
+        rel={rel ?? UNKNOWN_LINK_REL}
+        data-proxy-link='true'
+      >
+        {text ?? title}
+      </a>
+    </sup>
+  )
+}
+
 function ItemLink ({ url, rel }) {
   try {
     const { linkText } = parseInternalLinks(url)
@@ -74,13 +100,16 @@ function ItemLink ({ url, rel }) {
     }
 
     return (
-      // eslint-disable-next-line
-      <a
-        className={styles.link} target='_blank' href={url}
-        rel={rel ?? UNKNOWN_LINK_REL}
-      >
-        {url.replace(/(^https?:|^)\/\//, '')}
-      </a>
+      <>
+        {/* eslint-disable-next-line */}
+        <a
+          className={styles.link} target='_blank' href={url}
+          rel={rel ?? UNKNOWN_LINK_REL}
+        >
+          {url.replace(/(^https?:|^)\/\//, '')}
+        </a>
+        <ProxyLink url={url} rel={rel} text='[proxy]' />
+      </>
     )
   } catch {
     return null

@@ -112,6 +112,7 @@ model User {
   hideGithub                Boolean                @default(true)
   hideNostr                 Boolean                @default(true)
   hideTwitter               Boolean                @default(true)
+  proxyEmbeds               Boolean                @default(false)
   noReferralLinks           Boolean                @default(false)
   githubId                  String?
   twitterId                 String?

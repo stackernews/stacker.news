@@ -5,6 +5,7 @@ import styles from './text.module.css'
 import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
+import { ProxyLink } from './item'
 
 function TweetSkeleton ({ className }) {
   return (
@@ -139,6 +140,7 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
               show full tweet
             </Button>}
         </div>
+        <ProxyLink url={src} provider={provider} />
       </>
     )
   }

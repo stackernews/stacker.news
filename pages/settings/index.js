@@ -139,6 +139,7 @@ export default function Settings ({ ssrData }) {
             hideGithub: settings?.hideGithub,
             hideNostr: settings?.hideNostr,
             hideTwitter: settings?.hideTwitter,
+            proxyEmbeds: settings?.proxyEmbeds,
             imgproxyOnly: settings?.imgproxyOnly,
             showImagesAndVideos: settings?.showImagesAndVideos,
             wildWestMode: settings?.wildWestMode,
@@ -509,6 +510,23 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='showImagesAndVideos'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>show proxy links for 3rd party embeds
+                <Info>
+                  <ul>
+                    <li>if a link can be embedded and we have a proxy for it, we will show a link to the proxy</li>
+                    <li>we support these proxies:</li>
+                    <ul>
+                      <li>twitter.com: <a href='https://xcancel.com' target='_blank' rel='noopener noreferrer'>xcancel.com</a></li>
+                    </ul>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='proxyEmbeds'
             groupClassName='mb-0'
           />
           <Checkbox

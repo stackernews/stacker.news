@@ -17,6 +17,7 @@ function $convertSNHeadingElement (element) {
   }
 }
 
+// from Lexical's HeadingNode
 function isGoogleDocsTitle (domNode) {
   if (domNode.nodeName.toLowerCase() === 'span') {
     return domNode.style.fontSize === '26pt'

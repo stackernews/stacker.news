@@ -12,7 +12,7 @@ export default function KatexRenderer ({ equation, inline, onClick, onDoubleClic
       displayMode: !inline,
       errorColor: '#cc0000',
       output: 'html',
-      strict: 'warn',
+      strict: false,
       throwOnError: false,
       trust: false
     })

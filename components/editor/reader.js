@@ -10,7 +10,7 @@ import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { markdownToLexical } from '@/lib/lexical/utils/mdast'
-import { ExtractMarkdownFromEditor } from '@/components/editor/debug/tools'
+import PreviewSyncPlugin from './plugins/core/previewsync'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
@@ -50,14 +50,13 @@ export default function Reader ({ topLevel, state, text }) {
       },
       $initialEditorState: (editor) => initiateLexical(editor, state, text),
       onError: (error) => console.error('reader has encountered an error:', error)
-    // text and state are not stable, but we need the Reader to re-render when they change
-    }), [topLevel, text, state])
+    }), [topLevel])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>
       <ContentEditable />
+      <PreviewSyncPlugin text={text} />
       <CodeThemePlugin />
-      {process.env.NODE_ENV === 'development' && <ExtractMarkdownFromEditor />}
     </LexicalExtensionComposer>
   )
 }

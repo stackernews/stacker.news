@@ -10,7 +10,6 @@ import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionCompose
 import { AutoFocusExtension } from '@lexical/extension'
 import { ShortcutsExtension } from '@/lib/lexical/exts/shortcuts'
 import { MDCommandsExtension } from '@/lib/lexical/exts/md-commands'
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { ToolbarContextProvider } from '@/components/editor/contexts/toolbar'
 import { ToolbarPlugin } from '@/components/editor/plugins/toolbar'
 import FormikBridgePlugin from '@/components/editor/plugins/core/formik'
@@ -22,6 +21,7 @@ import PreviewPlugin from '@/components/editor/plugins/preview'
 import { $initializeEditorState } from '@/lib/lexical/utils'
 import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
+import { HistoryExtension } from '@lexical/history'
 
 /**
  * main lexical editor component with formik integration
@@ -45,6 +45,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       namespace: 'sn',
       dependencies: [
         PlainTextExtension,
+        HistoryExtension,
         ShortcutsExtension,
         MDCommandsExtension,
         configExtension(ReactExtension, { contentEditable: null }),
@@ -103,7 +104,6 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
         />
       </div>
       {editorRef && <PreviewPlugin editorRef={editorRef} topLevel={topLevel} />}
-      <HistoryPlugin />
       <FileUploadPlugin editorRef={editorRef} />
       <MentionsPlugin />
       <LocalDraftPlugin name={name} />

@@ -17,7 +17,8 @@ export async function getInitial (models, { sats, id: itemId }, { me }) {
   const sub = await getSub(models, { subName: item.subName, parentId: item.parentId })
 
   const mcost = satsToMsats(sats)
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
+  // all of the sats for a downzap go to the rewards pool
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost, rewardsPct: 100n })
 
   return {
     payInType: 'DOWN_ZAP',

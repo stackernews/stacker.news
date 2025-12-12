@@ -218,9 +218,9 @@ type PayOutBolt11 {
   status: WithdrawlStatus
   msats: BigInt!
   payInId: Int!
-  hash: String!
+  hash: String
   preimage: String
-  bolt11: String!
+  bolt11: String
   expiresAt: Date!
 }
 

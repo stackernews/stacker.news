@@ -42,8 +42,9 @@ export default forwardRef(function Reply ({
     return [
       'comment for currency',
       'fractions of a penny for your thoughts?',
-      'put your money where your mouth is'
-    ][parentId % 3]
+      'put your money where your mouth is',
+      'speak now and forever hold your keys'
+    ][parentId % 4]
   }, [parentId])
 
   const onSubmit = useItemSubmit(CREATE_COMMENT, {

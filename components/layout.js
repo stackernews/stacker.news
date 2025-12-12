@@ -10,11 +10,11 @@ import PullToRefresh from './pull-to-refresh'
 
 export default function Layout ({
   sub, contain = true, footer = true, footerLinks = true,
-  containClassName = '', seo = true, item, user, children
+  containClassName = '', seo = true, item, user, territory, children
 }) {
   return (
     <>
-      {seo && <Seo sub={sub} item={item} user={user} />}
+      {seo && <Seo sub={sub} item={item} user={user} territory={territory} />}
       <Navigation sub={sub} />
       {contain
         ? (

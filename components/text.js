@@ -123,7 +123,7 @@ export function useOverflow ({ containerRef, truncated = false }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-const Text = function Text ({ topLevel, children, className, state, html, outlawed, imgproxyUrls, rel, readerRef }) {
+export default function Text ({ topLevel, children, className, state, html, outlawed, imgproxyUrls, rel, readerRef }) {
   const containerRef = useRef(null)
   const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
   const carousel = useCarousel()
@@ -161,8 +161,6 @@ const Text = function Text ({ topLevel, children, className, state, html, outlaw
     </div>
   )
 }
-
-export default Text
 
 // this is one of the slowest components to render
 export const LegacyText = memo(function LegacyText ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {

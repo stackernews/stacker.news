@@ -1,5 +1,5 @@
 import { createHodlInvoice, parsePaymentRequest } from 'ln-service'
-import lnd, { estimateRouteFee, getBlockHeight } from '@/api/lnd'
+import lnd, { estimateRouteFeeProbe, getBlockHeight } from '@/api/lnd'
 import { toPositiveBigInt, toPositiveNumber } from '@/lib/format'
 import { PayInFailureReasonError } from '@/api/payIn/errors'
 
@@ -145,12 +145,12 @@ async function wrapBolt11Params ({ msats, bolt11, maxRoutingFeeMsats, hideInvoic
 
     // get routing estimates
     const { routingFeeMsat, timeLockDelay } =
-      await estimateRouteFee({
+      await estimateRouteFeeProbe({
         lnd,
-        destination: inv.destination,
-        mtokens: inv.mtokens,
         request: bolt11,
-        timeout: FEE_ESTIMATE_TIMEOUT_SECS
+        maxFeeMsat: maxRoutingFeeMsats,
+        timeoutSeconds: FEE_ESTIMATE_TIMEOUT_SECS,
+        maxCltvDelta: MAX_OUTGOING_CLTV_DELTA
       })
 
     const blockHeight = await getBlockHeight({ lnd })

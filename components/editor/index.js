@@ -9,7 +9,7 @@ export function SNEditor ({ ...props }) {
   return <Editor {...props} />
 }
 
-export function SNReader ({ html, outlawed, imgproxyUrls, topLevel, rel, ...props }) {
+export function SNReader ({ html, outlawed, imgproxyUrls, topLevel, rel, readerRef, ...props }) {
   const router = useRouter()
   const snCustomizedHTML = useMemo(() => (
     <div
@@ -26,7 +26,7 @@ export function SNReader ({ html, outlawed, imgproxyUrls, topLevel, rel, ...prop
 
   return (
     <LexicalItemContextProvider imgproxyUrls={imgproxyUrls} topLevel={topLevel} outlawed={outlawed} rel={rel}>
-      <Reader topLevel={topLevel} {...props} />
+      <Reader topLevel={topLevel} readerRef={readerRef} {...props} />
     </LexicalItemContextProvider>
   )
 }

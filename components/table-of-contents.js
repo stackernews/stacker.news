@@ -1,17 +1,23 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import Dropdown from 'react-bootstrap/Dropdown'
 import FormControl from 'react-bootstrap/FormControl'
 import TocIcon from '@/svgs/list-unordered.svg'
 import { useRouter } from 'next/router'
-import { extractHeadings } from '@/lib/toc'
+import { $extractHeadingsFromRoot } from '@/lib/lexical/utils/toc'
 
-export default function Toc ({ text }) {
+export default function Toc ({ text, readerRef }) {
   const router = useRouter()
   if (!text || text.length === 0) {
     return null
   }
 
-  const toc = useMemo(() => extractHeadings(text), [text])
+  const toc = useMemo(() => {
+    if (readerRef) {
+      // access the lexical editor state and extract the headings
+      return readerRef.getEditorState().read($extractHeadingsFromRoot)
+    }
+    return []
+  }, [text, readerRef])
 
   if (toc.length === 0) {
     return null
@@ -34,7 +40,7 @@ export default function Toc ({ text }) {
               href={`#${v.slug}`} key={v.slug}
               // nextjs router doesn't emit hashChangeStart events
               onClick={() => router.events.emit('hashChangeStart', `#${v.slug}`, { shallow: true })}
-            >{v.heading}
+            >{v.text || v.heading}
             </Dropdown.Item>
           )
         })}

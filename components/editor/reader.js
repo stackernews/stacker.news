@@ -11,6 +11,7 @@ import { CodeThemePlugin } from './plugins/core/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { markdownToLexical } from '@/lib/lexical/utils/mdast'
 import PreviewSyncPlugin from './plugins/core/previewsync'
+import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
@@ -31,7 +32,7 @@ const initiateLexical = (editor, state, text) => {
   }
 }
 
-export default function Reader ({ topLevel, state, text }) {
+export default function Reader ({ topLevel, state, text, readerRef }) {
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -54,6 +55,7 @@ export default function Reader ({ topLevel, state, text }) {
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>
+      <EditorRefPlugin editorRef={readerRef} />
       <ContentEditable />
       <PreviewSyncPlugin text={text} />
       <CodeThemePlugin />

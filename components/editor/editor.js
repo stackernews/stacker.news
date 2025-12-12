@@ -1,6 +1,6 @@
 import classNames from 'classnames'
 import { useFormikContext } from 'formik'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
 import { PlainTextExtension } from '@lexical/plain-text'
@@ -22,6 +22,7 @@ import { $initializeEditorState } from '@/lib/lexical/utils'
 import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
+import useCallbackRef from '../use-callback-ref'
 
 /**
  * main lexical editor component with formik integration
@@ -80,13 +81,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
  * @returns {JSX.Element} editor content with all plugins
  */
 function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn }) {
-  const [editorRef, setEditorRef] = useState(null)
-
-  const onRef = (_editorRef) => {
-    if (_editorRef !== null) {
-      setEditorRef(_editorRef)
-    }
-  }
+  const { ref: containerRef, onRef } = useCallbackRef()
 
   return (
     <div className={classNames(styles.editorContainer, topLevel && 'sn-text--top-level')}>
@@ -103,8 +98,8 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
           aria-required={required}
         />
       </div>
-      {editorRef && <PreviewPlugin editorRef={editorRef} topLevel={topLevel} />}
-      <FileUploadPlugin editorRef={editorRef} />
+      {containerRef && <PreviewPlugin editorRef={containerRef} topLevel={topLevel} />}
+      <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />

@@ -53,7 +53,7 @@ export function SearchText ({ text }) {
   )
 }
 
-export function useOverflow ({ element, truncated = false }) {
+export function useOverflow ({ containerRef, truncated = false }) {
   const router = useRouter()
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
@@ -77,10 +77,10 @@ export function useOverflow ({ element, truncated = false }) {
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
-    if (!element) return
+    if (!containerRef.current) return
 
-    const node = 'current' in element ? element.current : element
-    if (!node || !(node instanceof window.Element)) return
+    const node = containerRef.current
+    if (!node) return
 
     function checkOverflow () {
       setOverflowing(
@@ -102,7 +102,7 @@ export function useOverflow ({ element, truncated = false }) {
       window.removeEventListener('resize', checkOverflow)
       resizeObserver?.disconnect()
     }
-  }, [element, setOverflowing, truncated])
+  }, [containerRef, setOverflowing, truncated])
 
   const Overflow = useMemo(() => {
     if (overflowing && !show) {
@@ -123,9 +123,9 @@ export function useOverflow ({ element, truncated = false }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-export default function Text ({ topLevel, children, className, state, html, outlawed, imgproxyUrls, rel }) {
-  const [element, setElement] = useState(null)
-  const { overflowing, show, Overflow } = useOverflow({ element, truncated: !!children })
+const Text = function Text ({ topLevel, children, className, state, html, outlawed, imgproxyUrls, rel, readerRef }) {
+  const containerRef = useRef(null)
+  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
   const carousel = useCarousel()
 
   const textClassNames = useMemo(() => {
@@ -147,12 +147,13 @@ export default function Text ({ topLevel, children, className, state, html, outl
         outlawed={outlawed}
         imgproxyUrls={imgproxyUrls}
         rel={rel}
+        readerRef={readerRef}
       />
     )
-  }, [children, topLevel, html, outlawed, imgproxyUrls, rel])
+  }, [children, topLevel, state, html, outlawed, imgproxyUrls, rel, readerRef])
 
   return (
-    <div className={textClassNames} ref={setElement}>
+    <div className={textClassNames} ref={containerRef}>
       {carousel
         ? lexicalContent
         : <CarouselProvider>{lexicalContent}</CarouselProvider>}
@@ -160,6 +161,8 @@ export default function Text ({ topLevel, children, className, state, html, outl
     </div>
   )
 }
+
+export default Text
 
 // this is one of the slowest components to render
 export const LegacyText = memo(function LegacyText ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {

@@ -17,7 +17,7 @@ export function SNReader ({ html, outlawed, imgproxyUrls, topLevel, rel, readerR
       dangerouslySetInnerHTML={{ __html: applySNCustomizations(html, { outlawed, imgproxyUrls, topLevel }) }}
       suppressHydrationWarning
     />
-  ), [html, outlawed, imgproxyUrls, topLevel, props.className])
+  ), [html, outlawed, imgproxyUrls, topLevel])
 
   // debug html with ?html
   if (router.query.html) return snCustomizedHTML

@@ -12,7 +12,7 @@ import { depthLimit } from '@graphile/depth-limit'
 import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
 import PgBoss from 'pg-boss'
-import { lexicalStateLoader } from '@/api/lexical/loader'
+import { lexicalStateLoader } from '@/lib/lexical/server/loader'
 
 const apolloServer = new ApolloServer({
   typeDefs,

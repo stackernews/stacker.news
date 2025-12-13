@@ -159,7 +159,7 @@ export class EmbedNode extends DecoratorBlockNode {
           src={this.__src || ''}
           meta={this.__meta || {}}
           className={config.theme?.embeds?.[this.__provider]?.embed}
-          topLevel={config.theme?.topLevel}
+          topLevel={!!config.theme?.topLevel}
         />
       </BlockWithAlignableContents>
     )

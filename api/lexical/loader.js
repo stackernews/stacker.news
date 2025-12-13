@@ -5,7 +5,7 @@ export function lexicalStateLoader () {
   return new DataLoader(async (texts) => {
     return Promise.all(
       texts.map(text =>
-        prepareLexicalState({ text }, { checkMedia: false })
+        prepareLexicalState({ text })
           .catch(error => {
             console.error('error preparing Lexical State:', error)
             return null

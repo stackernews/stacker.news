@@ -287,6 +287,72 @@ sndev__withdraw() {
   fi
 }
 
+sndev__lnurl_auth() {
+  shift
+  lnurl="$1"
+  if [ -z "$lnurl" ]; then
+    echo "LNURL required"
+    sndev__help_lnurl_auth
+    exit 1
+  fi
+  decoded=$(docker__exec app node /app/scripts/lnurl-decode.js "$lnurl")
+  echo "Decoded: $decoded"
+  k1=$(echo "$decoded" | sed -n 's/.*k1=\([^&]*\).*/\1/p')
+  identity_pubkey=$(sndev__cli lnd getinfo | jq -r '.identity_pubkey')
+  domain=$(echo "$decoded" | sed 's|.*://\([^/]*\).*|\1|')
+  callback_base=$(echo "$decoded" | cut -d'?' -f1)
+  callback_url=$(docker__exec app node /app/scripts/lnurl-auth.js "$k1" "$identity_pubkey" "$domain" "$callback_base")
+  echo "Callback: $callback_url"
+  curl -s "$callback_url" | jq
+}
+
+sndev__help_lnurl_auth() {
+  help="
+mock lnurl-auth for local testing
+
+USAGE
+  $ sndev lnurl_auth LNURL
+
+DESCRIPTION
+  Decodes the LNURL, derives a linking key from stacker_lnd identity,
+  signs the k1 challenge, and sends the response to the callback URL.
+"
+  echo "$help"
+}
+
+sndev__lnurl_withdraw() {
+  shift
+  lnurl="$1"
+  if [ -z "$lnurl" ]; then
+    echo "LNURL required"
+    sndev__help_lnurl_withdraw
+    exit 1
+  fi
+  decoded=$(docker__exec app node /app/scripts/lnurl-decode.js "$lnurl")
+  echo "Decoded: $decoded"
+  params=$(curl -s "$decoded")
+  echo "$params" | jq
+  callback=$(echo "$params" | jq -r '.callback')
+  max=$(echo "$params" | jq -r '.maxWithdrawable')
+  k1=$(echo "$params" | jq -r '.k1')
+  bolt11=$(sndev__cli lnd addinvoice --amt $((max/1000)) | jq -r '.payment_request')
+  echo "Invoice: $bolt11"
+  curl -s "${callback}?k1=${k1}&pr=${bolt11}" | jq
+}
+
+sndev__help_lnurl_withdraw() {
+  help="
+mock lnurl-withdraw for local testing
+
+USAGE
+  $ sndev lnurl_withdraw LNURL
+
+DESCRIPTION
+  Decodes the LNURL, fetches withdrawal parameters, creates an invoice
+  for the maximum amount, and sends it to the callback URL.
+"
+  echo "$help"
+}
 sndev__help_withdraw() {
   help="
 create a bolt11 for withdrawal
@@ -694,6 +760,8 @@ COMMANDS
   lightning:
     fund                   pay a bolt11 for funding
     withdraw               create a bolt11 for withdrawal
+    lnurl_auth             mock lnurl-auth
+    lnurl_withdraw         mock lnurl-withdraw
 
   db:
     psql                   open psql on db

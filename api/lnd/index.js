@@ -69,7 +69,8 @@ export async function estimateRouteFeeProbe ({ lnd, request, maxFeeMsat, timeout
     const { htlcs: [{ route: { total_fees_msat: routingFeeMsat, total_time_lock: timeLockDelay } }] } = probe
     return {
       routingFeeMsat: toPositiveNumber(routingFeeMsat),
-      timeLockDelay: toPositiveNumber(timeLockDelay)
+      // subtract the cltv delta of the invoice to emulate estimateRouteFee
+      timeLockDelay: toPositiveNumber(timeLockDelay - inv.cltv_delta)
     }
   }
 

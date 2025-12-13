@@ -9,7 +9,7 @@ import styles from '@/styles/item.module.css'
 import itemStyles from './item.module.css'
 import { useMe } from './me'
 import Button from 'react-bootstrap/Button'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Poll from './poll'
 import Related from './related'
 import PastBounties from './past-bounties'
@@ -26,8 +26,10 @@ import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import useCommentsView from './use-comments-view'
+import AiSummary from './ai-summary'
+import { useRouter } from 'next/router'
 
-function BioItem ({ item, handleClick }) {
+function BioItem({ item, handleClick }) {
   const { me } = useMe()
   if (!item.text) {
     return null
@@ -50,7 +52,7 @@ function BioItem ({ item, handleClick }) {
   )
 }
 
-function ItemEmbed ({ url, imgproxyUrls }) {
+function ItemEmbed({ url, imgproxyUrls }) {
   const provider = parseEmbedUrl(url)
   if (provider) {
     return (
@@ -73,7 +75,7 @@ function ItemEmbed ({ url, imgproxyUrls }) {
   return null
 }
 
-function FwdUsers ({ forwards }) {
+function FwdUsers({ forwards }) {
   return (
     <div className={styles.other}>
       zaps forwarded to {' '}
@@ -89,7 +91,7 @@ function FwdUsers ({ forwards }) {
   )
 }
 
-function TopLevelItem ({ item, noReply, ...props }) {
+function TopLevelItem({ item, noReply, ...props }) {
   const ItemComponent = item.isJob ? ItemJob : Item
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
@@ -100,10 +102,10 @@ function TopLevelItem ({ item, noReply, ...props }) {
       onQuoteReply={quoteReply}
       right={
         !noReply &&
-          <>
-            <Share title={item?.title} path={`/items/${item?.id}`} />
-            <Toc text={item.text} />
-          </>
+        <>
+          <Share title={item?.title} path={`/items/${item?.id}`} />
+          <Toc text={item.text} />
+        </>
       }
       belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
@@ -136,16 +138,16 @@ function TopLevelItem ({ item, noReply, ...props }) {
             quote={quote}
           />
           {
-          // Don't show related items for Saloon items (position is set but no subName)
-          (!item.position && item.subName) &&
-          // Don't show related items for jobs
-          !item.isJob &&
-          // Don't show related items for child items
-          !item.parentId &&
-          // Don't show related items for deleted items
-          !item.deletedAt &&
-          // Don't show related items for items with bounties, show past bounties instead
-          !(item.bounty > 0) &&
+            // Don't show related items for Saloon items (position is set but no subName)
+            (!item.position && item.subName) &&
+            // Don't show related items for jobs
+            !item.isJob &&
+            // Don't show related items for child items
+            !item.parentId &&
+            // Don't show related items for deleted items
+            !item.deletedAt &&
+            // Don't show related items for items with bounties, show past bounties instead
+            !(item.bounty > 0) &&
             <Related title={item.title} itemId={item.id} show={item.ncomments === 0} />
           }
           {item.bounty > 0 && <PastBounties item={item} />}
@@ -154,19 +156,23 @@ function TopLevelItem ({ item, noReply, ...props }) {
   )
 }
 
-function ItemText ({ item }) {
+function ItemText({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
     : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }
 
-export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
+export default function ItemFull({ item, fetchMoreComments, bio, rank, ...props }) {
+  const router = useRouter()
+  const sort = router.query.sort
   // no cache update here because we need to preserve the initial value
   const { markItemViewed } = useCommentsView(item.id, { updateCache: false })
 
   useEffect(() => {
     markItemViewed(item)
   }, [item.id, markItemViewed])
+
+  const [tab, setTab] = useState('original')
 
   return (
     <>
@@ -178,26 +184,48 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
         : <div />}
       <RootProvider root={item.root || item}>
         <CarouselProvider key={item.id}>
-          {item.parentId
-            ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
-            : (
-              <div className='pt-2'>{bio
-                ? <BioItem item={item} {...props} />
-                : <TopLevelItem item={item} {...props} />}
-              </div>)}
-          {item.comments &&
-            <div className={styles.comments}>
-              <Comments
-                parentId={item.id} parentCreatedAt={item.createdAt}
-                pinned={item.position} bio={bio} commentSats={item.commentSats}
-                ncomments={item.ncomments}
-                comments={item.comments.comments}
-                commentsCursor={item.comments.cursor}
-                fetchMoreComments={fetchMoreComments}
-                lastCommentAt={item.lastCommentAt}
-                item={item}
-              />
-            </div>}
+          <div className="d-flex mb-3">
+            <Button
+              variant={tab === 'original' ? 'primary' : 'outline-primary'}
+              onClick={() => setTab('original')}
+              className="me-2"
+            >
+              Original
+            </Button>
+            <Button
+              variant={tab === 'ai' ? 'primary' : 'outline-primary'}
+              onClick={() => setTab('ai')}
+            >
+              AI Summary
+            </Button>
+          </div>
+
+          {tab === 'original' ? (
+            <>
+              {item.parentId
+                ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
+                : (
+                  <div className='pt-2'>{bio
+                    ? <BioItem item={item} {...props} />
+                    : <TopLevelItem item={item} {...props} />}
+                  </div>)}
+              {item.comments &&
+                <div className={styles.comments}>
+                  <Comments
+                    parentId={item.id} parentCreatedAt={item.createdAt}
+                    pinned={item.position} bio={bio} commentSats={item.commentSats}
+                    ncomments={item.ncomments}
+                    comments={item.comments.comments}
+                    commentsCursor={item.comments.cursor}
+                    fetchMoreComments={fetchMoreComments}
+                    lastCommentAt={item.lastCommentAt}
+                    item={item}
+                  />
+                </div>}
+            </>
+          ) : (
+            <AiSummary itemId={item.id} />
+          )}
         </CarouselProvider>
       </RootProvider>
     </>

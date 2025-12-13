@@ -30,7 +30,7 @@ import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 import pay from '../payIn'
 
-function commentsOrderByClause (me, models, sort) {
+function commentsOrderByClause(me, models, sort) {
   const sharedSortsArray = []
   sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
   sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
@@ -53,7 +53,7 @@ function commentsOrderByClause (me, models, sort) {
   }
 }
 
-async function comments (me, models, item, sort, cursor) {
+async function comments(me, models, item, sort, cursor) {
   const orderBy = commentsOrderByClause(me, models, sort)
 
   // if we're logged in, there might be pending comments from us we want to show but weren't counted
@@ -101,7 +101,7 @@ async function comments (me, models, item, sort, cursor) {
   }
 }
 
-export async function getItem (parent, { id }, { me, models }) {
+export async function getItem(parent, { id }, { me, models }) {
   const [item] = await itemQueryWithMeta({
     me,
     models,
@@ -110,14 +110,14 @@ export async function getItem (parent, { id }, { me, models }) {
       FROM "Item"
       ${payInJoinFilter(me)}
       ${whereClause(
-        '"Item".id = $1',
-        activeOrMine(me)
-      )}`
+      '"Item".id = $1',
+      activeOrMine(me)
+    )}`
   }, Number(id))
   return item
 }
 
-export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { me, models }) {
+export async function getAd(parent, { sub, subArr = [], showNsfw = false }, { me, models }) {
   return (await itemQueryWithMeta({
     me,
     models,
@@ -127,16 +127,16 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
       ${payInJoinFilter(me)}
       LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
       ${whereClause(
-        '"parentId" IS NULL',
-        '"Item"."pinId" IS NULL',
-        '"Item"."deletedAt" IS NULL',
-        '"Item"."parentId" IS NULL',
-        '"Item".bio = false',
-        '"Item".boost > 0',
-        await filterClause(me, models),
-        activeOrMine(),
-        subClause(sub, 1, 'Item', me, showNsfw),
-        muteClause(me))}
+      '"parentId" IS NULL',
+      '"Item"."pinId" IS NULL',
+      '"Item"."deletedAt" IS NULL',
+      '"Item"."parentId" IS NULL',
+      '"Item".bio = false',
+      '"Item".boost > 0',
+      await filterClause(me, models),
+      activeOrMine(),
+      subClause(sub, 1, 'Item', me, showNsfw),
+      muteClause(me))}
       ORDER BY boost desc, "Item".created_at ASC
       LIMIT 1`
   }, ...subArr))?.[0] || null
@@ -159,14 +159,14 @@ const orderByClause = (by, me, models, type, sub) => {
   }
 }
 
-export function joinHotScoreView (me, models) {
+export function joinHotScoreView(me, models) {
   return ' JOIN hot_score_view g ON g.id = "Item".id '
 }
 
 // this grabs all the stuff we need to display the item list and only
 // hits the db once ... orderBy needs to be duplicated on the outer query because
 // joining does not preserve the order of the inner query
-export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
+export async function itemQueryWithMeta({ me, models, query, orderBy = '' }, ...args) {
   if (!me) {
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_json(users.*) as user, to_jsonb("Sub".*) as sub, to_jsonb("PayIn".*) as "payIn"
@@ -294,7 +294,7 @@ export const whereClause = (...clauses) => {
   return clause ? ` WHERE ${clause} ` : ''
 }
 
-function whenClause (when, table) {
+function whenClause(when, table) {
   return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
 }
 
@@ -326,7 +326,7 @@ const subClause = (sub, num, table = 'Item', me, showNsfw) => {
   return excludeMuted + ' AND ' + HIDE_NSFW_CLAUSE
 }
 
-function investmentClause (sats) {
+function investmentClause(sats) {
   return `(
     CASE WHEN "Item"."parentId" IS NULL
       THEN ("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${sats}
@@ -335,7 +335,7 @@ function investmentClause (sats) {
   )`
 }
 
-export async function filterClause (me, models, type) {
+export async function filterClause(me, models, type) {
   // if you are explicitly asking for marginal content, don't filter them
   if (['outlawed', 'borderland', 'freebies'].includes(type)) {
     if (me && ['outlawed', 'borderland'].includes(type)) {
@@ -370,7 +370,7 @@ export async function filterClause (me, models, type) {
   return [satsFilter, outlawClause]
 }
 
-function typeClause (type) {
+function typeClause(type) {
   switch (type) {
     case 'links':
       return ['"Item".url IS NOT NULL', '"Item"."parentId" IS NULL']
@@ -461,12 +461,12 @@ export default {
               ${relationClause(type)}
               ${payInJoinFilter(me)}
               ${whereClause(
-                `"${table}"."userId" = $3`,
-                activeOrMine(me),
-                nsfwClause(showNsfw),
-                typeClause(type),
-                by === 'boost' && '"Item".boost > 0',
-                whenClause(when || 'forever', table))}
+              `"${table}"."userId" = $3`,
+              activeOrMine(me),
+              nsfwClause(showNsfw),
+              typeClause(type),
+              by === 'boost' && '"Item".boost > 0',
+              whenClause(when || 'forever', table))}
               ${orderByClause(by, me, models, type)}
               OFFSET $4
               LIMIT $5`,
@@ -482,14 +482,14 @@ export default {
               ${relationClause(type)}
               ${payInJoinFilter(me)}
               ${whereClause(
-                '"Item".created_at <= $1',
-                '"Item"."deletedAt" IS NULL',
-                subClause(sub, 4, subClauseTable(type), me, showNsfw),
-                activeOrMine(me),
-                await filterClause(me, models, type),
-                typeClause(type),
-                muteClause(me)
-              )}
+              '"Item".created_at <= $1',
+              '"Item"."deletedAt" IS NULL',
+              subClause(sub, 4, subClauseTable(type), me, showNsfw),
+              activeOrMine(me),
+              await filterClause(me, models, type),
+              typeClause(type),
+              muteClause(me)
+            )}
               ORDER BY "PayIn"."payInStateChangedAt" DESC
               OFFSET $2
               LIMIT $3`,
@@ -505,15 +505,15 @@ export default {
               ${relationClause(type)}
               ${payInJoinFilter(me)}
               ${whereClause(
-                '"Item"."deletedAt" IS NULL',
-                type === 'posts' && '"Item"."subName" IS NOT NULL',
-                subClause(sub, 5, subClauseTable(type), me, showNsfw),
-                typeClause(type),
-                whenClause(when, 'Item'),
-                activeOrMine(me),
-                await filterClause(me, models, type),
-                by === 'boost' && '"Item".boost > 0',
-                muteClause(me))}
+              '"Item"."deletedAt" IS NULL',
+              type === 'posts' && '"Item"."subName" IS NOT NULL',
+              subClause(sub, 5, subClauseTable(type), me, showNsfw),
+              typeClause(type),
+              whenClause(when, 'Item'),
+              activeOrMine(me),
+              await filterClause(me, models, type),
+              by === 'boost' && '"Item".boost > 0',
+              muteClause(me))}
               ${orderByClause(by || 'zaprank', me, models, type, sub)}
               OFFSET $3
               LIMIT $4`,
@@ -528,17 +528,17 @@ export default {
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
-                '"Item"."deletedAt" IS NULL',
-                '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
-                '"Item"."ncomments" > 0',
-                '"Item"."parentId" IS NULL',
-                '"Item".bio = false',
-                type === 'posts' && '"Item"."subName" IS NOT NULL',
-                subClause(sub, 3, subClauseTable(type), me, showNsfw),
-                typeClause(type),
-                await filterClause(me, models, type),
-                activeOrMine(me),
-                muteClause(me))}
+              '"Item"."deletedAt" IS NULL',
+              '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
+              '"Item"."ncomments" > 0',
+              '"Item"."parentId" IS NULL',
+              '"Item".bio = false',
+              type === 'posts' && '"Item"."subName" IS NOT NULL',
+              subClause(sub, 3, subClauseTable(type), me, showNsfw),
+              typeClause(type),
+              await filterClause(me, models, type),
+              activeOrMine(me),
+              muteClause(me))}
               ${orderByClause('random', me, models, type)}
               OFFSET $1
               LIMIT $2`,
@@ -565,13 +565,13 @@ export default {
                     FROM "Item"
                     ${payInJoinFilter(me)}
                     ${whereClause(
-                      '"parentId" IS NULL',
-                      '"Item"."deletedAt" IS NULL',
-                      activeOrMine(me),
-                      '"Item".created_at <= $1',
-                      '"pinId" IS NULL',
-                      subClause(sub, 4)
-                    )}
+                  '"parentId" IS NULL',
+                  '"Item"."deletedAt" IS NULL',
+                  activeOrMine(me),
+                  '"Item".created_at <= $1',
+                  '"pinId" IS NULL',
+                  subClause(sub, 4)
+                )}
                     ORDER BY group_rank DESC, rank
                   OFFSET $2
                   LIMIT $3`,
@@ -580,7 +580,7 @@ export default {
               break
             default:
               if (decodedCursor.offset === 0) {
-              // get pins for the page and return those separately
+                // get pins for the page and return those separately
                 pins = await itemQueryWithMeta({
                   me,
                   models,
@@ -596,10 +596,10 @@ export default {
                       JOIN "Pin" ON "Item"."pinId" = "Pin".id
                       ${payInJoinFilter(me)}
                       ${whereClause(
-                        '"pinId" IS NOT NULL',
-                        '"parentId" IS NULL',
-                        sub ? '"subName" = $1' : '"subName" IS NULL',
-                        muteClause(me))}
+                    '"pinId" IS NOT NULL',
+                    '"parentId" IS NULL',
+                    sub ? '"subName" = $1' : '"subName" IS NULL',
+                    muteClause(me))}
                   ) rank_filter WHERE RANK = 1
                   ORDER BY position ASC`,
                   orderBy: 'ORDER BY position ASC'
@@ -618,17 +618,17 @@ export default {
                     ${joinHotScoreView(me, models)}
                     ${payInJoinFilter(me)}
                     ${whereClause(
-                      // in home (sub undefined), filter out global pinned items since we inject them later
-                      sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
-                      '"Item"."deletedAt" IS NULL',
-                      '"Item"."parentId" IS NULL',
-                      '"Item".outlawed = false',
-                      '"Item".bio = false',
-                      ad ? `"Item".id <> ${ad.id}` : '',
-                      activeOrMine(me),
-                      await filterClause(me, models, type),
-                      subClause(sub, 3, 'Item', me, showNsfw),
-                      muteClause(me))}
+                  // in home (sub undefined), filter out global pinned items since we inject them later
+                  sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
+                  '"Item"."deletedAt" IS NULL',
+                  '"Item"."parentId" IS NULL',
+                  '"Item".outlawed = false',
+                  '"Item".bio = false',
+                  ad ? `"Item".id <> ${ad.id}` : '',
+                  activeOrMine(me),
+                  await filterClause(me, models, type),
+                  subClause(sub, 3, 'Item', me, showNsfw),
+                  muteClause(me))}
                     ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC
                     OFFSET $1
                     LIMIT $2`,
@@ -804,10 +804,10 @@ export default {
           ${payInJoinFilter(me)}
           -- comments can be nested, so we need to get all comments that are descendants of the root
           ${whereClause(
-            '"Item".path <@ (SELECT path FROM "Item" WHERE id = $1 AND "Item"."lastCommentAt" > $2)',
-            activeOrMine(me),
-            '"Item"."created_at" > $2'
-          )}
+          '"Item".path <@ (SELECT path FROM "Item" WHERE id = $1 AND "Item"."lastCommentAt" > $2)',
+          activeOrMine(me),
+          '"Item"."created_at" > $2'
+        )}
           ORDER BY "Item"."created_at" ASC`
       }, Number(itemId), after)
 
@@ -887,8 +887,7 @@ export default {
         const [{ count: npins }] = await models.$queryRawUnsafe(`
           SELECT COUNT(p.id) FROM "Pin" p
           JOIN "Item" i ON i."pinId" = p.id
-          ${
-            whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')
+          ${whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')
           }`, ...args)
 
         if (npins >= 3) {
@@ -1461,7 +1460,7 @@ export default {
           ${SELECT}
           FROM "Item"
           ${whereClause(
-            '"Item".id = $1')}`
+          '"Item".id = $1')}`
       }, Number(item.rootId))
 
       return root
@@ -1507,6 +1506,76 @@ export default {
         AND data->>'userId' = ${meId}::TEXT
         AND state = 'created'`
       return reminderJobs[0]?.startafter ?? null
+    },
+    aiSummary: async (item, args, { models }) => {
+      // Check if we already have a summary
+      const existingSummary = await models.itemSummary.findUnique({
+        where: { itemId: Number(item.id) }
+      });
+
+      if (existingSummary) {
+        return existingSummary;
+      }
+
+      let summary = await models.itemSummary.findUnique({
+        where: { itemId: item.id }
+      })
+
+      if (!summary) {
+        try {
+          if (!process.env.GEMINI_API_KEY) {
+            return null;
+          }
+
+          const { GoogleGenerativeAI } = require("@google/generative-ai");
+          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-09-2025" });
+
+          // Fetch item text and comments to send to AI
+          // For simplicity, we'll just use the item text and top-level comments for now
+          // In a real app, we'd want to fetch the full thread or a significant portion of it
+          const fullItem = await models.item.findUnique({
+            where: { id: item.id },
+            include: {
+              children: {
+                take: 20,
+                orderBy: { weightedVotes: 'desc' }
+              }
+            }
+          });
+
+          let context = `Title: ${fullItem.title}\nText: ${fullItem.text}\n\nComments:\n`;
+          fullItem.children.forEach(c => {
+            context += `- ${c.text}\n`;
+          });
+
+          const prompt = `Summarize the following discussion thread. Highlight key points and any controversies. 
+        Context:
+        ${context}`;
+
+          console.log("Calling Gemini API...");
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          const text = response.text();
+          console.log("Gemini API response received");
+
+          // Mock sources for now as extracting them reliably requires more complex prompting/parsing
+          const mockSources = {}
+
+          summary = await models.itemSummary.create({
+            data: {
+              itemId: item.id,
+              text,
+              sources: mockSources
+            }
+          })
+        } catch (error) {
+          console.error("Error generating summary:", error);
+          // Return null or throw? Let's return null so the UI handles it gracefully
+          return null;
+        }
+      }
+      return summary
     }
   }
 }
@@ -1651,7 +1720,7 @@ export const SELECT =
   `SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
     ltree2text("Item"."path") AS "path"`
 
-function topOrderByWeightedSats (me, models, sub) {
+function topOrderByWeightedSats(me, models, sub) {
   if (sub) {
     return 'ORDER BY "Item"."subWeightedVotes" - "Item"."subWeightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
   }

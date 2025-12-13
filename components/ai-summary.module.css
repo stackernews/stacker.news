@@ -1,0 +1,13 @@
+.container {
+  padding: 1rem;
+  background-color: var(--theme-body);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 5px;
+  margin-top: 1rem;
+}
+
+.summaryText {
+  font-size: 1rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}

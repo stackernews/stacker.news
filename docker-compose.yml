@@ -7,7 +7,7 @@ x-healthcheck: &healthcheck
   interval: 10s
   timeout: 10s
   retries: 10
-  start_period: 1m
+  start_period: 5m
 x-depends-on-db: &depends_on_db
   db:
     condition: service_healthy
@@ -86,6 +86,7 @@ services:
     labels:
       CONNECT: "localhost:3000"
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
+    command: ["sh","-c","npx prisma migrate dev && npx next dev"]
   capture:
     container_name: capture
     build:

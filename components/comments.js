@@ -11,7 +11,7 @@ import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { useCommentsNavigatorContext } from './use-comments-navigator'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
+export function CommentsHeader({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -64,7 +64,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   )
 }
 
-export default function Comments ({
+export default function Comments({
   parentId, pinned, bio, parentCreatedAt,
   commentSats, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
 }) {
@@ -82,19 +82,19 @@ export default function Comments ({
     <>
       {comments?.length > 0
         ? <CommentsHeader
-            commentSats={commentSats} parentCreatedAt={parentCreatedAt}
-            pinned={pinned} bio={bio} handleSort={sort => {
-              const { commentsViewedAt, commentId, ...query } = router.query
-              delete query.nodata
-              router.push({
-                pathname: router.pathname,
-                query: { ...query, commentsViewedAt, sort }
-              }, {
-                pathname: `/items/${parentId}`,
-                query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
-              }, { scroll: false })
-            }}
-          />
+          commentSats={commentSats} parentCreatedAt={parentCreatedAt}
+          pinned={pinned} bio={bio} handleSort={sort => {
+            const { commentsViewedAt, commentId, ...query } = router.query
+            delete query.nodata
+            router.push({
+              pathname: router.pathname,
+              query: { ...query, commentsViewedAt, sort }
+            }, {
+              pathname: `/items/${parentId}`,
+              query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
+            }, { scroll: false })
+          }}
+        />
         : null}
       {pins.map(item => (
         <Fragment key={item.id}>
@@ -114,6 +114,6 @@ export default function Comments ({
   )
 }
 
-export function CommentsSkeleton () {
+export function CommentsSkeleton() {
   return <CommentSkeleton skeletonChildren={7} />
 }

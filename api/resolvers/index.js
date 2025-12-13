@@ -20,11 +20,12 @@ import chainFee from './chainFee'
 import { GraphQLScalarType, Kind } from 'graphql'
 import { createIntScalar } from 'graphql-scalar'
 import payIn from './payIn'
+import ai from './ai'
 
 const date = new GraphQLScalarType({
   name: 'Date',
   description: 'Date custom scalar type',
-  serialize (value) {
+  serialize(value) {
     if (value instanceof Date) {
       return value.toISOString() // Convert outgoing Date to string for JSON
     } else if (typeof value === 'string') {
@@ -34,13 +35,13 @@ const date = new GraphQLScalarType({
     }
     throw Error('GraphQL Date Scalar serializer expected a `Date` object got `' + typeof value + '` ' + value)
   },
-  parseValue (value) {
+  parseValue(value) {
     if (typeof value === 'string') {
       return new Date(value) // Convert incoming string to Date
     }
     throw new Error('GraphQL Date Scalar parser expected a `string`')
   },
-  parseLiteral (ast) {
+  parseLiteral(ast) {
     if (ast.kind === Kind.STRING) {
       // Convert hard-coded AST string to integer and then to Date
       return new Date(ast.value)
@@ -50,11 +51,11 @@ const date = new GraphQLScalarType({
   }
 })
 
-function isSafeInteger (val) {
+function isSafeInteger(val) {
   return val <= Number.MAX_SAFE_INTEGER && val >= Number.MIN_SAFE_INTEGER
 }
 
-function serializeBigInt (value) {
+function serializeBigInt(value) {
   if (isSafeInteger(value)) {
     return Number(value)
   }
@@ -64,7 +65,7 @@ function serializeBigInt (value) {
 const bigint = new GraphQLScalarType({
   name: 'BigInt',
   description: 'BigInt custom scalar type',
-  serialize (value) {
+  serialize(value) {
     if (typeof value === 'bigint' || typeof value === 'number') {
       return serializeBigInt(value)
     } else if (typeof value === 'string') {
@@ -75,7 +76,7 @@ const bigint = new GraphQLScalarType({
     }
     throw Error('GraphQL BigInt Scalar serializer expected a `bigint` object got `' + typeof value + '` ' + value)
   },
-  parseValue (value) {
+  parseValue(value) {
     const bigint = BigInt(value.toString())
     if (bigint.toString() === value.toString()) {
       return bigint
@@ -83,7 +84,7 @@ const bigint = new GraphQLScalarType({
 
     throw new Error('GraphQL BigInt Scalar parser expected a `number` or `string` got `' + typeof value + '` ' + value)
   },
-  parseLiteral (ast) {
+  parseLiteral(ast) {
     const bigint = BigInt(ast.value)
     if (bigint.toString() === ast.value.toString()) {
       return bigint
@@ -101,4 +102,4 @@ const limit = createIntScalar({
 
 export default [user, item, message, walletV1, walletV2, lnurl, notifications, invite, sub,
   upload, search, growth, rewards, referrals, price, admin, blockHeight, chainFee,
-  { JSONObject }, { Date: date }, { Limit: limit }, { BigInt: bigint }, payIn]
+  { JSONObject }, { Date: date }, { Limit: limit }, { BigInt: bigint }, payIn, ai]

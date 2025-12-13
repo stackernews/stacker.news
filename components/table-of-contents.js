@@ -4,6 +4,7 @@ import FormControl from 'react-bootstrap/FormControl'
 import TocIcon from '@/svgs/list-unordered.svg'
 import { useRouter } from 'next/router'
 import { $extractHeadingsFromRoot } from '@/lib/lexical/utils/toc'
+import { extractHeadings } from '@/lib/toc'
 
 export default function Toc ({ text, readerRef }) {
   const router = useRouter()
@@ -15,8 +16,10 @@ export default function Toc ({ text, readerRef }) {
     if (readerRef) {
       // access the lexical editor state and extract the headings
       return readerRef.getEditorState().read($extractHeadingsFromRoot)
+    } else {
+      // extract headings from markdown text if we're not using Lexical
+      return extractHeadings(text)
     }
-    return []
   }, [text, readerRef])
 
   if (toc.length === 0) {

@@ -40,7 +40,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       $initialEditorState: () => {
         // initialize editor state with appendValue or existing formik text
         if (appendValue || values.text) {
-          $initializeEditorState(appendValue ?? values.text)
+          $initializeEditorState(appendValue || values.text)
         }
       },
       name: 'editor',

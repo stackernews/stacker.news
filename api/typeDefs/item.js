@@ -33,26 +33,32 @@ export default gql`
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
     upsertLink(
-      id: ID, sub: String, title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput],
+      id: ID, sub: String, title: String!, url: String!, text: String, lexicalState: String, boost: Int, forward: [ItemForwardInput],
       hash: String, hmac: String): PayIn!
     upsertDiscussion(
-      id: ID, sub: String, title: String!, text: String, boost: Int, forward: [ItemForwardInput],
+      id: ID, sub: String, title: String!, text: String, lexicalState: String, boost: Int, forward: [ItemForwardInput],
       hash: String, hmac: String): PayIn!
     upsertBounty(
-      id: ID, sub: String, title: String!, text: String, bounty: Int, boost: Int, forward: [ItemForwardInput],
+      id: ID, sub: String, title: String!, text: String, lexicalState: String, bounty: Int, boost: Int, forward: [ItemForwardInput],
       hash: String, hmac: String): PayIn!
     upsertJob(
       id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
-      text: String!, url: String!, boost: Int, status: String, logo: Int): PayIn!
+      text: String!, lexicalState: String, url: String!, boost: Int, status: String, logo: Int): PayIn!
     upsertPoll(
-      id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
+      id: ID, sub: String, title: String!, text: String, lexicalState: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
       randPollOptions: Boolean, hash: String, hmac: String): PayIn!
     updateNoteId(id: ID!, noteId: String!): Item!
-    upsertComment(id: ID, text: String!, parentId: ID, boost: Int, hash: String, hmac: String): PayIn!
+    upsertComment(id: ID, text: String!, lexicalState: String, parentId: ID, boost: Int, hash: String, hmac: String): PayIn!
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): PayIn!
     pollVote(id: ID!): PayIn!
     toggleOutlaw(id: ID!): Item!
     updateCommentsViewAt(id: ID!, meCommentsViewedAt: Date!): Date
+    executeConversion(itemId: ID!, fullRefresh: Boolean): ConversionResult!
+  }
+
+  type ConversionResult {
+    success: Boolean!
+    message: String!
   }
 
   type PollOption {
@@ -105,6 +111,8 @@ export default gql`
     url: String
     searchText: String
     text: String
+    lexicalState: String
+    html: String
     parentId: Int
     parent: Item
     root: Item

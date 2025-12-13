@@ -23,6 +23,7 @@ import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
+import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 
 /**
  * main lexical editor component with formik integration
@@ -36,10 +37,10 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
 
   const editor = useMemo(() =>
     defineExtension({
-      $initialEditorState: (editor) => {
+      $initialEditorState: () => {
         // initialize editor state with appendValue or existing formik text
         if (appendValue || values.text) {
-          $initializeEditorState(editor, appendValue ?? values.text)
+          $initializeEditorState(appendValue ?? values.text)
         }
       },
       name: 'editor',
@@ -80,14 +81,15 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
  * @param {React.ReactNode} [props.warn] - warning text for the editor
  * @returns {JSX.Element} editor content with all plugins
  */
-function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn }) {
-  const { ref: containerRef, onRef } = useCallbackRef()
+function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, editorRef }) {
+  const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
   return (
     <div className={classNames(styles.editorContainer, topLevel && 'sn-text--top-level')}>
+      <EditorRefPlugin editorRef={editorRef} />
       <ToolbarPlugin topLevel={topLevel} />
       {/* we only need a plain text editor for markdown */}
-      <div className={styles.editor} ref={onRef}>
+      <div className={styles.editor} ref={onContainerRef}>
         <ContentEditable
           className={classNames(styles.editorInput, 'sn-text')}
           /* lh is a css unit that is equal to the line height of the element

@@ -36,7 +36,7 @@ export default function LocalDraftPlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
-          $initializeEditorState(editor, value)
+          $initializeEditorState(value)
         })
       }
     }

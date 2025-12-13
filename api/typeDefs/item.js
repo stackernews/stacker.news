@@ -159,6 +159,23 @@ export default gql`
     cost: Int!
     payIn: PayIn
     meCommentsViewedAt: Date
+    aiSummary: ItemSummary
+  }
+
+  type ItemSummary {
+    id: ID!
+    text: String!
+    sources: JSONObject
+  }
+
+  type ItemClarification {
+    id: ID!
+    term: String!
+    text: String!
+  }
+
+  extend type Query {
+    getClarification(itemId: ID!, term: String!): ItemClarification
   }
 
   input ItemForwardInput {

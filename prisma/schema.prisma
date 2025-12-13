@@ -546,6 +546,8 @@ model Item {
   randPollOptions      Boolean               @default(false)
   itemPayIns           ItemPayIn[]
   CommentsViewAt       CommentsViewAt[]
+  itemSummary          ItemSummary?
+  itemClarifications   ItemClarification[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -799,6 +801,29 @@ model MuteSub {
   @@id([userId, subName])
   @@index([subName])
   @@index([createdAt])
+}
+
+model ItemSummary {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  itemId    Int      @unique
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  text      String
+  sources   Json?
+}
+
+model ItemClarification {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  itemId    Int
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  term      String
+  text      String
+
+  @@index([itemId])
+  @@unique([itemId, term])
 }
 
 model Pin {

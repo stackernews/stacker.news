@@ -14,8 +14,8 @@ function $convertUserMentionElement (domNode) {
 }
 
 export class UserMentionNode extends DecoratorNode {
-  __userMentionName
-  __path
+  __userMentionName = ''
+  __path = ''
 
   static getType () {
     return 'user-mention'

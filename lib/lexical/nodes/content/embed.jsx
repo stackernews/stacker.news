@@ -1,6 +1,5 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents'
-import { placeholderNode } from './placeholder'
 import { $applyNodeReplacement } from 'lexical'
 
 export function $convertEmbedElement (domNode) {
@@ -93,14 +92,27 @@ export class EmbedNode extends DecoratorBlockNode {
   }
 
   exportDOM () {
-    return {
-      element: placeholderNode({
-        provider: this.__provider || '',
-        id: this.__id || '',
-        src: this.__src || '',
-        meta: this.__meta || {}
-      })
+    const container = document.createElement('span')
+    container.className = 'sn-embed-placeholder'
+    container.setAttribute('data-lexical-embed-provider', this.__provider || '')
+    this.__id && container.setAttribute('data-lexical-embed-id', this.__id)
+    this.__src && container.setAttribute('data-lexical-embed-src', this.__src)
+    this.__meta && container.setAttribute('data-lexical-embed-meta', JSON.stringify(this.__meta))
+
+    if (this.__src) {
+      const link = document.createElement('a')
+      link.href = this.__src
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      try {
+        link.textContent = 'view on ' + new URL(this.__src).hostname
+      } catch {
+        link.textContent = 'view on ' + this.__provider
+      }
+      container.append(link)
     }
+
+    return { element: container }
   }
 
   updateDOM () {

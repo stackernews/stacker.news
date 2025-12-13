@@ -10,10 +10,6 @@ const INCOMING_EXPIRATION_BUFFER_MSECS = 120_000 // the buffer enforce for the i
 const MAX_OUTGOING_CLTV_DELTA = 1000 // the maximum cltv delta we'll allow for the outgoing invoice
 export const MIN_SETTLEMENT_CLTV_DELTA = 80 // the minimum blocks we'll leave for settling the incoming invoice
 const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
-// the buffer in case we underestimated the cltv delta with our probe
-// also ln-service enforces a 3 block buffer ontop of the final hop's cltv delta
-// preventing outgoing cltv limits that may be exact from being sent
-const CLTV_DELTA_BUFFER = 10
 
 /*
   The wrapInvoice function is used to wrap an outgoing invoice with the necessary parameters for an incoming hold invoice.
@@ -169,7 +165,7 @@ async function wrapBolt11Params ({ msats, bolt11, maxRoutingFeeMsats, hideInvoic
     */
     wrapped.cltv_delta = toPositiveNumber(
       toPositiveNumber(timeLockDelay) + toPositiveNumber(inv.cltv_delta) -
-      toPositiveNumber(blockHeight) + MIN_SETTLEMENT_CLTV_DELTA + CLTV_DELTA_BUFFER)
+      toPositiveNumber(blockHeight) + MIN_SETTLEMENT_CLTV_DELTA)
     console.log('routingFeeMsat', routingFeeMsat, 'wrapped cltv_delta', wrapped.cltv_delta,
       'timeLockDelay', timeLockDelay, 'inv.cltv_delta', inv.cltv_delta, 'blockHeight', blockHeight)
 

@@ -27,7 +27,7 @@ export function PayInContext ({ payIn }) {
     case 'TERRITORY_UPDATE':
     case 'TERRITORY_BILLING':
     case 'TERRITORY_UNARCHIVE':
-      if (!payIn.payerPrivates.sub) return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
+      if (!payIn.payerPrivates?.sub) return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
       return <TerritoryDetails sub={{ ...payIn.payerPrivates.sub, desc: truncateString(payIn.payerPrivates.sub.desc, 280) }} className='w-100' show={false} />
     case 'INVITE_GIFT':
       if (!payIn.payerPrivates?.invite) return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>

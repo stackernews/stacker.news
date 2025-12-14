@@ -38,6 +38,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           }}
           schema={commentSchema}
           onSubmit={onSubmit}
+          storageKeyPrefix={`comment-edit-${comment.id}`}
         >
           <MarkdownInput
             name='text'

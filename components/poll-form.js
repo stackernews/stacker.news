@@ -1,4 +1,4 @@
-import { Checkbox, DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
+import { Checkbox, DateTimeInput, Form, Input, SNInput, VariableInput } from '@/components/form'
 import { useApolloClient } from '@apollo/client'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '@/lib/constants'
@@ -45,7 +45,7 @@ export function PollForm ({ item, sub, EditInfo, children }) {
         required
         maxLength={MAX_TITLE_LENGTH}
       />
-      <MarkdownInput
+      <SNInput
         topLevel
         label={<>text <small className='text-muted ms-2'>optional</small></>}
         name='text'

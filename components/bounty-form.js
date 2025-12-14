@@ -1,4 +1,4 @@
-import { Form, Input, MarkdownInput } from '@/components/form'
+import { Form, Input, SNInput } from '@/components/form'
 import { useApolloClient } from '@apollo/client'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -60,7 +60,7 @@ export function BountyForm ({
         label={bountyLabel} name='bounty' required
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
       />
-      <MarkdownInput
+      <SNInput
         topLevel
         label={
           <>

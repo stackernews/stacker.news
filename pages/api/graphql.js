@@ -12,6 +12,7 @@ import { depthLimit } from '@graphile/depth-limit'
 import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
 import PgBoss from 'pg-boss'
+import { lexicalStateLoader } from '@/lib/lexical/server/loader'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -87,7 +88,8 @@ export default startServerAndCreateNextHandler(apolloServer, {
         ? session.user
         : null,
       search,
-      boss
+      boss,
+      lexicalStateLoader: lexicalStateLoader()
     }
   }
 })

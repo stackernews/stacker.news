@@ -1,6 +1,6 @@
 import AccordianItem from './accordian-item'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
-import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
+import { Checkbox, CheckboxGroup, Form, Input, SNInput } from './form'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
@@ -123,12 +123,13 @@ export default function TerritoryForm ({ sub }) {
             </div>
           )}
         />
-        <MarkdownInput
+        <SNInput
           label='description'
           name='desc'
-          maxLength={MAX_TERRITORY_DESC_LENGTH}
+          lengthOptions={{ maxLength: MAX_TERRITORY_DESC_LENGTH, show: true }}
           required
           minRows={3}
+          topLevel
         />
         <Input
           label='post cost'

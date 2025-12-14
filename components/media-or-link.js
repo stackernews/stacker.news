@@ -20,7 +20,7 @@ function LinkRaw ({ href, children, src, rel }) {
 }
 
 const Media = memo(function Media ({
-  src, bestResSrc, srcSet, sizes, width,
+  src, bestResSrc, srcSet, sizes, width, alt, title,
   height, onClick, onError, style, className, video
 }) {
   const [loaded, setLoaded] = useState(!video)
@@ -60,6 +60,8 @@ const Media = memo(function Media ({
         : <img
             ref={ref}
             src={src}
+            alt={alt}
+            title={title}
             srcSet={srcSet}
             sizes={sizes}
             width={width}
@@ -118,7 +120,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) => {
+export const useMediaHelper = ({ src, alt, title, srcSet: srcSetIntital, topLevel, tab }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
@@ -199,6 +201,8 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
   return {
     src,
     srcSet,
+    alt,
+    title,
     originalSrc: IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src,
     sizes,
     bestResSrc,

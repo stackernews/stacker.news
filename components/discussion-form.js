@@ -1,4 +1,4 @@
-import { Form, Input, MarkdownInput } from '@/components/form'
+import { Form, Input, SNInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
@@ -69,7 +69,7 @@ export function DiscussionForm ({
         }}
         maxLength={MAX_TITLE_LENGTH}
       />
-      <MarkdownInput
+      <SNInput
         topLevel
         label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}
         name='text'

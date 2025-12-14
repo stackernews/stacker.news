@@ -1,0 +1,44 @@
+import { useEffect, useRef } from 'react'
+import katex from 'katex'
+
+export default function KatexRenderer ({ equation, inline, onClick, onDoubleClick }) {
+  const katexElementRef = useRef(null)
+
+  useEffect(() => {
+    const katexElement = katexElementRef.current
+    if (!katexElement) return
+
+    katex.render(equation, katexElement, {
+      displayMode: !inline,
+      errorColor: '#cc0000',
+      output: 'html',
+      strict: false,
+      throwOnError: false,
+      trust: false
+    })
+  }, [equation, inline])
+
+  return (
+    <>
+      <img
+        src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+        width={0}
+        height={0}
+        alt=''
+      />
+      <span
+        role='button'
+        tabIndex={-1}
+        onClick={onClick}
+        onDoubleClick={onDoubleClick}
+        ref={katexElementRef}
+      />
+      <img
+        src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+        width={0}
+        height={0}
+        alt=''
+      />
+    </>
+  )
+}

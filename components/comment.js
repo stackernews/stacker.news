@@ -1,6 +1,6 @@
 import itemStyles from './item.module.css'
 import styles from './comment.module.css'
-import Text, { SearchText } from './text'
+import Text, { LegacyText, SearchText } from './text'
 import Link from 'next/link'
 import Reply from './reply'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -28,6 +28,7 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
+import useCallbackRef from './use-callback-ref'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -110,6 +111,7 @@ export default function Comment ({
       ? 'yep'
       : 'nope')
   const ref = useRef(null)
+  const { onRef: onReaderRef } = useCallbackRef()
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
@@ -286,12 +288,20 @@ export default function Comment ({
               <div className={styles.text} ref={textRef}>
                 {item.searchText
                   ? <SearchText text={item.searchText} />
-                  : (
-                    <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
-                      {item.outlawed && !me?.privates?.wildWestMode
-                        ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
-                        : truncate ? truncateString(item.text) : item.text}
-                    </Text>)}
+                  : item.lexicalState
+                    ? (
+                      <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} readerRef={onReaderRef}>
+                        {item.outlawed && !me?.privates?.wildWestMode
+                          ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
+                          : truncate ? truncateString(item.text) : undefined}
+                      </Text>
+                      )
+                    : (
+                      <LegacyText itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
+                        {item.outlawed && !me?.privates?.wildWestMode
+                          ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
+                          : truncate ? truncateString(item.text) : item.text}
+                      </LegacyText>)}
               </div>
               )}
         </div>

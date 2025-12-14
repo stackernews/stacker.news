@@ -1,4 +1,4 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, SNInput } from '@/components/form'
 import styles from './reply.module.css'
 import { commentSchema } from '@/lib/validate'
 import { FeeButtonProvider } from './fee-button'
@@ -39,7 +39,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           schema={commentSchema}
           onSubmit={onSubmit}
         >
-          <MarkdownInput
+          <SNInput
             name='text'
             minRows={6}
             autoFocus

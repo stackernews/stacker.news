@@ -763,7 +763,9 @@ export default {
         status: 'ACTIVE',
         deletedAt: null,
         outlawed: false,
-        parentId: null
+        parentId: null,
+        pinId: null,
+        bio: false
       }
       if (id) {
         where.id = { not: Number(id) }

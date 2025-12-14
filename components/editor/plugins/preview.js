@@ -51,7 +51,7 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
     editorRef.style.display = isPreview ? 'none' : ''
     previewEl.style.display = isPreview ? '' : 'none'
 
-    if (isPreview) previewEl.focus()
+    if (isPreview) previewEl.focus({ preventScroll: true })
     else editor.focus()
   }, [toolbarState.previewMode, editorRef, editor, handlePreviewKeyDown])
 

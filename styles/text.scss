@@ -67,6 +67,10 @@
   max-height: none;
 }
 
+.sn-text--contained {
+  overflow: hidden !important;
+}
+
 .sn-text--contained::before {
   content: "";
   position: absolute;

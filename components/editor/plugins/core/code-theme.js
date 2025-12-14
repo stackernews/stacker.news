@@ -8,11 +8,10 @@ export function CodeThemePlugin () {
   const [editor] = useLexicalComposerContext()
   const [darkMode] = useDarkMode()
 
-  const theme = darkMode ? 'github-dark-default' : 'github-light-default'
-
   useEffect(() => {
+    const theme = darkMode === false ? 'github-light-default' : 'github-dark-default'
     editor.dispatchCommand(UPDATE_CODE_THEME_COMMAND, theme)
-  }, [editor, darkMode, theme])
+  }, [editor, darkMode])
 
   return null
 }

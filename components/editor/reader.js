@@ -12,6 +12,7 @@ import DefaultNodes from '@/lib/lexical/nodes'
 import { markdownToLexical } from '@/lib/lexical/utils/mdast'
 import PreviewSyncPlugin from './plugins/core/previewsync'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
+import { GalleryExtension } from '@/lib/lexical/exts/gallery'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
@@ -43,6 +44,7 @@ export default function Reader ({ topLevel, state, text, readerRef }) {
         RichTextExtension,
         TableExtension,
         CodeShikiSNExtension,
+        GalleryExtension,
         configExtension(ReactExtension, { contentEditable: null })
       ],
       theme: {

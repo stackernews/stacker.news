@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_CRITICAL } from 'lexical'
 import { useFormikContext } from 'formik'
@@ -19,22 +19,50 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
     return editor.registerCommand(
       TOGGLE_PREVIEW_COMMAND,
       () => {
+        // disable toggle if no text to preview
+        if (!values.text) return false
+
         updateToolbarState('previewMode', !toolbarState.previewMode)
         return true
       },
       COMMAND_PRIORITY_CRITICAL
     )
-  }, [editor, updateToolbarState, toolbarState.previewMode])
+  }, [editor, updateToolbarState, toolbarState.previewMode, values.text])
+
+  // ??: duplicates shortcuts extension
+  // but since the editor loses focus when toggling preview mode
+  // we also need to handle the keydown event here
+  const handlePreviewKeyDown = useCallback((e) => {
+    const metaOrCtrl = e.metaKey || e.ctrlKey
+    if (!metaOrCtrl) return
+    if (e.key.toLowerCase() !== 'p') return
+
+    e.preventDefault()
+    editor.dispatchCommand(TOGGLE_PREVIEW_COMMAND, editor)
+  }, [editor])
 
   // toggle editor and preview visibility
   useEffect(() => {
     if (!editorRef) return
-    editorRef.style.display = toolbarState.previewMode ? 'none' : ''
-    previewRef.current.style.display = toolbarState.previewMode ? '' : 'none'
-  }, [toolbarState, editorRef, previewRef])
+    const previewEl = previewRef.current
+    if (!previewEl) return
+
+    const isPreview = toolbarState.previewMode
+    editorRef.style.display = isPreview ? 'none' : ''
+    previewEl.style.display = isPreview ? '' : 'none'
+
+    if (isPreview) previewEl.focus()
+    else editor.focus()
+  }, [toolbarState.previewMode, editorRef, editor, handlePreviewKeyDown])
 
   return (
-    <div data-lexical-preview='true' ref={previewRef} className={styles.editor}>
+    <div
+      data-lexical-preview='true'
+      tabIndex={-1} // focusable
+      ref={previewRef}
+      className={styles.editor}
+      onKeyDown={handlePreviewKeyDown}
+    >
       <Text className={styles.editorInput} topLevel={topLevel}>{values.text}</Text>
     </div>
   )

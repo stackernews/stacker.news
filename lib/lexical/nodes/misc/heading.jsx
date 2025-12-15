@@ -2,12 +2,11 @@ import { HeadingNode } from '@lexical/rich-text'
 import { slug } from 'github-slugger'
 import { setNodeIndentFromDOM, $applyNodeReplacement, $createParagraphNode } from 'lexical'
 
-const HEADING_TAG_RE = /^h[1-6]$/
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 
 function $convertSNHeadingElement (element) {
   const tag = element.nodeName.toLowerCase()
-  if (!HEADING_TAG_RE.test(tag)) return { node: null }
+  if (!HEADING_TAGS.includes(tag)) return null
 
   const node = $createSNHeadingNode(tag)
   if (element.style !== null) {
@@ -40,7 +39,7 @@ function setHeadingId (domElement, headingId) {
   else domElement.removeAttribute('id')
 }
 
-function updateHeadingAnchorLinkIfPresent (domElement, headingId, textContent) {
+function tryUpdateHeadingAnchorLink (domElement, headingId, textContent) {
   const first = domElement.firstChild
   if (first && first.nodeName === 'A' && first.classList?.contains('sn-heading__link')) {
     first.setAttribute('href', `#${headingId}`)
@@ -51,7 +50,7 @@ function updateHeadingAnchorLinkIfPresent (domElement, headingId, textContent) {
 }
 
 function upsertHeadingAnchorLink (domElement, headingId, textContent) {
-  if (updateHeadingAnchorLinkIfPresent(domElement, headingId, textContent)) return
+  if (tryUpdateHeadingAnchorLink(domElement, headingId, textContent)) return
   domElement.insertBefore(createHeadingAnchorLink(domElement, headingId, textContent), domElement.firstChild)
 }
 // re-implements HeadingNode with slug support
@@ -93,7 +92,7 @@ export class SNHeadingNode extends HeadingNode {
     const currentSlug = this.getSlug()
     if (prevSlug !== currentSlug) {
       setHeadingId(dom, currentSlug)
-      updateHeadingAnchorLinkIfPresent(dom, currentSlug, this.getTextContent())
+      tryUpdateHeadingAnchorLink(dom, currentSlug, this.getTextContent())
     }
     return super.updateDOM(prevNode, dom, config)
   }

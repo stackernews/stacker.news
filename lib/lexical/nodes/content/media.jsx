@@ -10,10 +10,11 @@ const statusState = createState('status', {
 })
 
 function $convertMediaElement (domNode) {
-  let src, alt, title, width, height, kind
+  let src, alt, title, width, height, kind, autolink
 
   if (domNode instanceof window.HTMLImageElement || domNode instanceof window.HTMLVideoElement) {
     ({ alt, title, src, width, height } = domNode)
+    autolink = domNode.hasAttribute('data-autolink')
     kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
   } else if (domNode instanceof window.HTMLAnchorElement && domNode.hasAttribute('data-media-kind')) {
     src = domNode.getAttribute('href')
@@ -24,11 +25,12 @@ function $convertMediaElement (domNode) {
     kind = domNode.getAttribute('data-media-kind') || 'unknown'
     width = width ? parseInt(width, 10) : 0
     height = height ? parseInt(height, 10) : 0
+    autolink = domNode.hasAttribute('data-autolink')
   } else {
     return null
   }
 
-  const node = $createMediaNode({ src, alt, title, width, height })
+  const node = $createMediaNode({ src, alt, title, width, height, autolink })
   $setState(node, kindState, kind)
   $setState(node, statusState, 'done')
   return { node }
@@ -41,6 +43,7 @@ export class MediaNode extends DecoratorNode {
   __width
   __height
   __maxWidth
+  __autolink
 
   $config () {
     return this.config('media', {
@@ -52,7 +55,7 @@ export class MediaNode extends DecoratorNode {
     })
   }
 
-  constructor (src, title, alt, width, height, maxWidth, key) {
+  constructor (src, title, alt, width, height, maxWidth, autolink, key) {
     super(key)
     this.__src = src
     this.__title = title ?? ''
@@ -60,6 +63,7 @@ export class MediaNode extends DecoratorNode {
     this.__width = width ?? 0
     this.__height = height ?? 0
     this.__maxWidth = maxWidth ?? 500
+    this.__autolink = autolink ?? false
   }
 
   static clone (node) {
@@ -70,14 +74,15 @@ export class MediaNode extends DecoratorNode {
       node.__width,
       node.__height,
       node.__maxWidth,
+      node.__autolink,
       node.__key
     )
     return clone
   }
 
   static importJSON (serializedNode) {
-    const { src, title, alt, width, height, maxWidth, kind, status } = serializedNode
-    const node = $createMediaNode({ src, title, alt, width, height, maxWidth })
+    const { src, title, alt, width, height, maxWidth, kind, status, autolink } = serializedNode
+    const node = $createMediaNode({ src, title, alt, width, height, maxWidth, autolink })
     $setState(node, kindState, kind ?? 'unknown')
     $setState(node, statusState, status ?? 'idle')
     return node
@@ -93,7 +98,8 @@ export class MediaNode extends DecoratorNode {
       height: this.__height,
       maxWidth: this.__maxWidth,
       kind: $getState(this, kindState),
-      status: $getState(this, statusState)
+      status: $getState(this, statusState),
+      autolink: this.__autolink
     }
   }
 
@@ -117,27 +123,38 @@ export class MediaNode extends DecoratorNode {
   // we're exporting a link node instead of a media node
   // it contains everything we need to re-import it as a media node (html -> lexical)
   // because of media checks, rendering HTML as a link ensures the only layout shift will be the media itself (SSR -> Lexical)
-  exportDOM () {
-    const link = document.createElement('a')
-    link.setAttribute('href', this.__src)
-    link.setAttribute('target', '_blank')
-    link.setAttribute('rel', 'noopener noreferrer')
-
-    if (this.__title) {
-      link.setAttribute('title', this.__title)
+  exportDOM (editor) {
+    // if autolink, export as a link instead of media
+    if (this.__autolink) {
+      const link = document.createElement('a')
+      link.setAttribute('href', this.__src)
+      link.setAttribute('target', '_blank')
+      link.setAttribute('rel', 'noopener nofollow noreferrer')
+      link.textContent = this.__src
+      return { element: link }
     }
 
-    link.setAttribute('data-media-alt', this.__alt || '')
-    if (this.__width) link.setAttribute('data-media-width', String(this.__width))
-    if (this.__height) link.setAttribute('data-media-height', String(this.__height))
+    const element = document.createElement('span')
+    const className = editor._config.theme?.mediaContainer
+    if (className) element.className = className
+
+    element.style.setProperty('--width', this.__width ? `${this.__width}px` : 'inherit')
+    element.style.setProperty('--height', this.__height ? `${this.__height}px` : 'inherit')
+    element.style.setProperty('--aspect-ratio', this.__width && this.__height ? `${this.__width} / ${this.__height}` : 'auto')
+    element.style.setProperty('--max-width', `${this.__maxWidth}px`)
 
     const kind = $getState(this, kindState)
-    link.setAttribute('data-media-kind', kind)
+    const media = document.createElement(kind === 'video' ? 'video' : 'img')
 
-    const linkText = this.__src
-    link.textContent = linkText
+    media.setAttribute('src', this.__src)
+    if (this.__title) media.setAttribute('title', this.__title)
+    if (this.__alt) media.setAttribute('alt', this.__alt)
+    if (this.__width) media.setAttribute('width', String(this.__width))
+    if (this.__height) media.setAttribute('height', String(this.__height))
+    if (kind === 'video') media.setAttribute('controls', 'true')
 
-    return { element: link }
+    element.appendChild(media)
+    return { element }
   }
 
   createDOM (config) {
@@ -186,6 +203,10 @@ export class MediaNode extends DecoratorNode {
     $setState(this, statusState, status)
   }
 
+  isAutolink () {
+    return this.__autolink
+  }
+
   // shortcut for setting kind and status via media check
   applyCheckResult (kind) {
     $setState(this, kindState, kind)
@@ -204,13 +225,14 @@ export class MediaNode extends DecoratorNode {
         width={this.__width}
         height={this.__height}
         maxWidth={this.__maxWidth}
+        autolink={this.__autolink}
         nodeKey={this.getKey()}
       />
     )
   }
 }
 
-export function $createMediaNode ({ src, title, alt, width, height, maxWidth, key }) {
+export function $createMediaNode ({ src, title, alt, width, height, maxWidth, autolink, key }) {
   return $applyNodeReplacement(
     new MediaNode(
       src,
@@ -219,6 +241,7 @@ export function $createMediaNode ({ src, title, alt, width, height, maxWidth, ke
       width,
       height,
       maxWidth ? Math.min(maxWidth, 500) : Math.min(width ?? 320, 500),
+      autolink,
       key
     )
   )

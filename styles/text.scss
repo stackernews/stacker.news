@@ -153,9 +153,23 @@
 
 span.sn-media-container {
   cursor: default;
-  display: inline-block;
+  display: block;
   position: relative;
-  --max-width: 500px;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  overflow: hidden;
+  max-height: 25vh;
+  aspect-ratio: var(--aspect-ratio);
+  margin: 0;
+}
+
+.sn-paragraph:has(span.sn-media-container) {
+  padding-bottom: 0 !important;
+}
+
+.sn-paragraph:has(span.sn-media-container) + .sn-paragraph:has(span.sn-media-container) {
+  padding-top: 0 !important;
 }
 
 span.sn-media-container:has(a) {
@@ -169,11 +183,14 @@ span.sn-media-container .outlawed {
 
 .sn-media-container img,
 .sn-media-container video {
-  max-width: var(--max-width);
-  max-height: var(--max-width);
   display: block;
-  cursor: default;
+  object-fit: contain;
+  width: auto;
+  max-height: inherit;
+  height: 100%;
+  max-width: 100%;
   aspect-ratio: var(--aspect-ratio);
+  cursor: default;
 }
 
 [contenteditable="false"] .sn-media-container img {
@@ -182,17 +199,22 @@ span.sn-media-container .outlawed {
   object-position: left top;
 }
 
-[contenteditable="true"] .sn-media-container .focused img, [contenteditable="true"] .sn-media-container .focused video {
-  outline: 2px solid rgb(60, 132, 244);
-  user-select: none;
+.sn-text--top-level .sn-media-container {
+  max-height: 35vh;
 }
 
-[contenteditable="true"] .sn-media-container .focused.draggable img, [contenteditable="true"] .sn-media-container .focused.draggable video {
-  cursor: grab;
+.sn-gallery {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--grid-gap);
+  width: 100%;
+  max-width: 100%;
 }
 
-[contenteditable="true"] .sn-media-container .focused.draggable:active img, [contenteditable="true"] .sn-media-container .focused.draggable:active video {
-  cursor: grabbing;
+.sn-gallery > span.sn-media-container {
+  display: block;
+  width: auto;
 }
 
 .sn-image {

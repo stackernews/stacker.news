@@ -13,6 +13,7 @@ import { markdownToLexical } from '@/lib/lexical/utils/mdast'
 import PreviewSyncPlugin from './plugins/core/previewsync'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
+import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
@@ -44,6 +45,7 @@ export default function Reader ({ topLevel, state, text, readerRef }) {
         RichTextExtension,
         TableExtension,
         CodeShikiSNExtension,
+        AutoLinkExtension,
         GalleryExtension,
         configExtension(ReactExtension, { contentEditable: null })
       ],

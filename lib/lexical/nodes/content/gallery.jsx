@@ -53,6 +53,10 @@ export class GalleryNode extends ElementNode {
   isInline () {
     return false
   }
+
+  updateDOM () {
+    return false
+  }
 }
 
 export function $createGalleryNode () {

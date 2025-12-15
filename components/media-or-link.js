@@ -120,7 +120,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, alt, title, srcSet: srcSetIntital, topLevel, tab }) => {
+export const useMediaHelper = ({ src, alt, title, srcSet: srcSetIntital, topLevel, tab, setIsLink }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
   const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
@@ -146,6 +146,8 @@ export const useMediaHelper = ({ src, alt, title, srcSet: srcSetIntital, topLeve
           setIsImage(false)
         } else if (data.isImage) {
           setIsImage(true)
+        } else {
+          setIsLink?.(true)
         }
       } catch (error) {
         if (error.name === 'AbortError') return
@@ -158,7 +160,7 @@ export const useMediaHelper = ({ src, alt, title, srcSet: srcSetIntital, topLeve
       // abort the fetch
       try { controller.abort() } catch {}
     }
-  }, [src, setIsImage, setIsVideo, showMedia])
+  }, [src, setIsImage, setIsVideo, showMedia, setIsLink])
 
   const srcSet = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return undefined

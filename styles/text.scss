@@ -138,6 +138,15 @@
   font-size: 1.15rem;
 }
 
+/* stays on top of the heading */
+.sn-heading__link {
+  width: fit-content;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: 1;
+}
+
 /* blocks */
 .sn-quote {
   border-left: 3px solid var(--theme-quoteBar);

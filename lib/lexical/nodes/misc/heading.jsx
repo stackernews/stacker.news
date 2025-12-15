@@ -2,19 +2,20 @@ import { HeadingNode } from '@lexical/rich-text'
 import { slug } from 'github-slugger'
 import { setNodeIndentFromDOM, $applyNodeReplacement, $createParagraphNode } from 'lexical'
 
+const HEADING_TAG_RE = /^h[1-6]$/
+const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+
 function $convertSNHeadingElement (element) {
-  const nodeName = element.nodeName.toLowerCase()
-  let node = null
-  if (nodeName === 'h1' || nodeName === 'h2' || nodeName === 'h3' || nodeName === 'h4' || nodeName === 'h5' || nodeName === 'h6') {
-    node = $createSNHeadingNode(nodeName)
-    if (element.style !== null) {
-      setNodeIndentFromDOM(element, node)
-      node.setFormat(element.style.textAlign)
-    }
+  const tag = element.nodeName.toLowerCase()
+  if (!HEADING_TAG_RE.test(tag)) return { node: null }
+
+  const node = $createSNHeadingNode(tag)
+  if (element.style !== null) {
+    setNodeIndentFromDOM(element, node)
+    node.setFormat(element.style.textAlign)
   }
-  return {
-    node
-  }
+
+  return { node }
 }
 
 // from Lexical's HeadingNode
@@ -25,6 +26,34 @@ function isGoogleDocsTitle (domNode) {
   return false
 }
 
+function createHeadingAnchorLink (domElement, headingId, textContent) {
+  const doc = domElement.ownerDocument
+  const link = doc.createElement('a')
+  link.className = 'sn-heading__link'
+  link.setAttribute('href', `#${headingId}`)
+  link.textContent = textContent
+  return link
+}
+
+function setHeadingId (domElement, headingId) {
+  if (headingId) domElement.setAttribute('id', headingId)
+  else domElement.removeAttribute('id')
+}
+
+function updateHeadingAnchorLinkIfPresent (domElement, headingId, textContent) {
+  const first = domElement.firstChild
+  if (first && first.nodeName === 'A' && first.classList?.contains('sn-heading__link')) {
+    first.setAttribute('href', `#${headingId}`)
+    first.textContent = textContent
+    return true
+  }
+  return false
+}
+
+function upsertHeadingAnchorLink (domElement, headingId, textContent) {
+  if (updateHeadingAnchorLinkIfPresent(domElement, headingId, textContent)) return
+  domElement.insertBefore(createHeadingAnchorLink(domElement, headingId, textContent), domElement.firstChild)
+}
 // re-implements HeadingNode with slug support
 export class SNHeadingNode extends HeadingNode {
   static getType () {
@@ -48,7 +77,11 @@ export class SNHeadingNode extends HeadingNode {
     // anchor navigation
     const headingId = this.getSlug()
     if (headingId) {
-      element.setAttribute('id', headingId)
+      setHeadingId(element, headingId)
+
+      if (editor && !editor.isEditable()) {
+        upsertHeadingAnchorLink(element, headingId, this.getTextContent())
+      }
     }
 
     return element
@@ -59,7 +92,8 @@ export class SNHeadingNode extends HeadingNode {
     const prevSlug = prevNode.getSlug()
     const currentSlug = this.getSlug()
     if (prevSlug !== currentSlug) {
-      dom.setAttribute('id', currentSlug)
+      setHeadingId(dom, currentSlug)
+      updateHeadingAnchorLinkIfPresent(dom, currentSlug, this.getTextContent())
     }
     return super.updateDOM(prevNode, dom, config)
   }
@@ -69,7 +103,8 @@ export class SNHeadingNode extends HeadingNode {
     const headingId = this.getSlug()
 
     if (headingId) {
-      element.setAttribute('id', headingId)
+      setHeadingId(element, headingId)
+      upsertHeadingAnchorLink(element, headingId, this.getTextContent())
     }
 
     return { element }
@@ -107,39 +142,24 @@ export class SNHeadingNode extends HeadingNode {
   }
 
   static importDOM () {
+    const headingConverters = Object.fromEntries(
+      HEADING_TAGS.map(tag => [
+        tag,
+        () => ({
+          conversion: $convertSNHeadingElement,
+          priority: 0
+        })
+      ])
+    )
+
     return {
-      h1: node => ({
-        conversion: $convertSNHeadingElement,
-        priority: 0
-      }),
-      h2: node => ({
-        conversion: $convertSNHeadingElement,
-        priority: 0
-      }),
-      h3: node => ({
-        conversion: $convertSNHeadingElement,
-        priority: 0
-      }),
-      h4: node => ({
-        conversion: $convertSNHeadingElement,
-        priority: 0
-      }),
-      h5: node => ({
-        conversion: $convertSNHeadingElement,
-        priority: 0
-      }),
-      h6: node => ({
-        conversion: $convertSNHeadingElement,
-        priority: 0
-      }),
+      ...headingConverters,
       p: node => {
         const paragraph = node
         const firstChild = paragraph.firstChild
         if (firstChild !== null && isGoogleDocsTitle(firstChild)) {
           return {
-            conversion: () => ({
-              node: null
-            }),
+            conversion: () => ({ node: null }),
             priority: 3
           }
         }
@@ -148,11 +168,7 @@ export class SNHeadingNode extends HeadingNode {
       span: node => {
         if (isGoogleDocsTitle(node)) {
           return {
-            conversion: domNode => {
-              return {
-                node: $createSNHeadingNode('h1')
-              }
-            },
+            conversion: () => ({ node: $createSNHeadingNode('h1') }),
             priority: 3
           }
         }

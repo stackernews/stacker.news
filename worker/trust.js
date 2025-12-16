@@ -7,7 +7,7 @@ const MAX_DEPTH = 40
 const MAX_TRUST = 1
 const MIN_SUCCESS = 0
 // https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
-const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
+const Z_CONFIDENCE = 1.959963984540 // 95% confidence
 const SEED_WEIGHT = 0.83
 const AGAINST_MSAT_MIN = 1000
 const MSAT_MIN = 1001 // 20001 is the minimum for a tip to be counted in trust
@@ -188,6 +188,7 @@ async function getGraph (models, subName, postTrust = true, seeds = GLOBAL_SEEDS
               "Item"."parentId" IS NOT NULL
               JOIN "Item" root ON "Item"."rootId" = root.id AND root."subName" = ${subName}::TEXT`
           }
+          AND "Item".created_at > NOW() - INTERVAL '1 year'
         JOIN users ON "PayIn"."userId" = users.id AND users.id <> ${USER_ID.anon}
         GROUP BY user_id, users.name, item_id, user_at, against
         HAVING CASE WHEN

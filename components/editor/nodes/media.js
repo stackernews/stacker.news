@@ -27,14 +27,6 @@ export default function MediaComponent ({ src, alt, title, status, kind, width, 
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
   const srcSet = imgproxyUrls?.[url]
 
-  if (outlawed) {
-    return <p className='outlawed'>{url}</p>
-  }
-
-  if (status === 'error') {
-    return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
-  }
-
   // TODO: basically an hack, Lexical could handle this via MediaCheckExtension
   // we're profiting from the fact that MediaOrLink actually does a media check
   // if the media turned out to be a link, replace the media node with a link node
@@ -69,6 +61,14 @@ export default function MediaComponent ({ src, alt, title, status, kind, width, 
       }
     })
   }, [isLink, editor, nodeKey, url, rel])
+
+  if (outlawed) {
+    return <p className='outlawed'>{url}</p>
+  }
+
+  if (status === 'error') {
+    return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
+  }
 
   return (
     <MediaOrLink

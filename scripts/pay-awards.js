@@ -15,7 +15,7 @@ if (typeof WebSocket === 'undefined') {
   global.WebSocket = ws
 }
 
-const { nwc } = require('@getalby/sdk')
+const nwc = require('@getalby/sdk')
 
 // Ask for confirmation
 const rl = readline.createInterface({

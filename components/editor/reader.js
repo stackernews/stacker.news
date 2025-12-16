@@ -14,6 +14,7 @@ import PreviewSyncPlugin from './plugins/core/previewsync'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
 import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
+import NextLinkPlugin from './plugins/links'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
@@ -64,6 +65,7 @@ export default function Reader ({ topLevel, state, text, readerRef }) {
       <ContentEditable />
       <PreviewSyncPlugin text={text} />
       <CodeThemePlugin />
+      <NextLinkPlugin />
     </LexicalExtensionComposer>
   )
 }

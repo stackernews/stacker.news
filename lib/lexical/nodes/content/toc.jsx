@@ -1,4 +1,5 @@
-import { DecoratorNode, $applyNodeReplacement } from 'lexical'
+import { $applyNodeReplacement } from 'lexical'
+import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { $extractHeadingsFromRoot, buildNestedTocStructure, buildHtmlFromStructure } from '@/lib/lexical/utils/toc'
 
 function $convertTableOfContentsElement (domNode) {
@@ -9,7 +10,7 @@ function $convertTableOfContentsElement (domNode) {
   return null
 }
 
-export class TableOfContentsNode extends DecoratorNode {
+export class TableOfContentsNode extends DecoratorBlockNode {
   static getType () {
     return 'table-of-contents'
   }

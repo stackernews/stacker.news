@@ -34,8 +34,6 @@ function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
   sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
   sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
-  // outlawed items should be at the bottom
-  sharedSortsArray.push(`NOT ("Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD} OR "Item".outlawed) DESC`)
   const sharedSorts = sharedSortsArray.join(', ')
 
   if (sort === 'recent') {
@@ -46,10 +44,10 @@ function commentsOrderByClause (me, models, sort) {
 
   if (sort === 'hot') {
     return `ORDER BY ${sharedSorts},
-      "hotScore" DESC NULLS LAST,
+      "rankhot" DESC,
       "Item".msats DESC, "Item".id DESC`
   } else {
-    return `ORDER BY ${sharedSorts}, "Item"."weightedVotes" - "Item"."weightedDownVotes" DESC NULLS LAST, "Item".msats DESC, "Item".id DESC`
+    return `ORDER BY ${sharedSorts}, "ranktop" DESC, "Item".msats DESC, "Item".id DESC`
   }
 }
 
@@ -149,7 +147,7 @@ const orderByClause = (by, me, models, type, sub) => {
     case 'sats':
       return 'ORDER BY "Item".msats DESC'
     case 'zaprank':
-      return topOrderByWeightedSats(me, models, sub)
+      return 'ORDER BY ranktop DESC, "Item".id DESC'
     case 'boost':
       return 'ORDER BY "Item".boost DESC'
     case 'random':
@@ -157,10 +155,6 @@ const orderByClause = (by, me, models, type, sub) => {
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
-}
-
-export function joinHotScoreView (me, models) {
-  return ' JOIN hot_score_view g ON g.id = "Item".id '
 }
 
 // this grabs all the stuff we need to display the item list and only
@@ -612,10 +606,9 @@ export default {
                 me,
                 models,
                 query: `
-                    ${SELECT}, g.hot_score AS "hotScore", g.sub_hot_score AS "subHotScore"
+                    ${SELECT}
                     FROM "Item"
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-                    ${joinHotScoreView(me, models)}
                     ${payInJoinFilter(me)}
                     ${whereClause(
                       // in home (sub undefined), filter out global pinned items since we inject them later
@@ -629,10 +622,10 @@ export default {
                       await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
-                    ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC
+                    ORDER BY rankhot DESC, "Item".id DESC
                     OFFSET $1
                     LIMIT $2`,
-                orderBy: `ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC`
+                orderBy: 'ORDER BY rankhot DESC, "Item".id DESC'
               }, decodedCursor.offset, limit, ...subArr)
               break
           }
@@ -1649,10 +1642,3 @@ export const getForwardUsers = async (models, forward) => {
 export const SELECT =
   `SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
     ltree2text("Item"."path") AS "path"`
-
-function topOrderByWeightedSats (me, models, sub) {
-  if (sub) {
-    return 'ORDER BY "Item"."subWeightedVotes" - "Item"."subWeightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
-  }
-  return 'ORDER BY "Item"."weightedVotes" - "Item"."weightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
-}

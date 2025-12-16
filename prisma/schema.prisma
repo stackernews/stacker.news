@@ -355,7 +355,6 @@ model Donation {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// todo: this isn't used bah
 model ItemUpload {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
@@ -489,12 +488,14 @@ model Item {
   pollCost             Int?
   paidImgLink          Boolean               @default(false)
   commentMsats         BigInt                @default(0)
+  commentDownMsats     BigInt                @default(0)
   commentMcredits      BigInt                @default(0)
   lastCommentAt        DateTime?
   lastZapAt            DateTime?
   ncomments            Int                   @default(0)
   nDirectComments      Int                   @default(0)
   msats                BigInt                @default(0)
+  downMsats            BigInt                @default(0)
   mcredits             BigInt                @default(0)
   cost                 Int                   @default(0)
   weightedDownVotes    Float                 @default(0)
@@ -546,6 +547,8 @@ model Item {
   randPollOptions      Boolean               @default(false)
   itemPayIns           ItemPayIn[]
   CommentsViewAt       CommentsViewAt[]
+  ranktop              Float                 @default(dbgenerated())
+  rankhot              Float                 @default(dbgenerated())
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -571,6 +574,8 @@ model Item {
   @@index([boost])
   @@index([invoicePaidAt])
   @@index([userId, createdAt])
+  @@index([ranktop])
+  @@index([rankhot])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

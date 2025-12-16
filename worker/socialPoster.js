@@ -69,7 +69,6 @@ async function getHottestItem ({ models }) {
   const item = await models.$queryRaw`
     SELECT "Item".*, users.name as "userName"
     FROM "Item"
-    JOIN hot_score_view ON "Item"."id" = hot_score_view.id
     JOIN users ON "Item"."userId" = users.id
     LEFT JOIN "AutoSocialPost" ON "Item"."id" = "AutoSocialPost"."itemId"
     WHERE "AutoSocialPost"."id" IS NULL
@@ -77,7 +76,7 @@ async function getHottestItem ({ models }) {
     AND "Item"."weightedVotes" - "Item"."weightedDownVotes" > ${WEIGHTED_VOTE_THRESHOLD}
     AND NOT "Item".bio
     AND "Item"."deletedAt" IS NULL
-    ORDER BY "hot_score_view"."hot_score" DESC
+    ORDER BY "Item"."rankhot" DESC
     LIMIT 1`
 
   if (item.length === 0) {

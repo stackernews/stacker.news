@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
-import { LexicalItemContextProvider } from './contexts/item'
 import Editor from './editor'
 
 export function SNEditor ({ ...props }) {
@@ -20,9 +19,5 @@ export function SNReader ({ html, outlawed, imgproxyUrls, topLevel, rel, readerR
       loading: () => <div dangerouslySetInnerHTML={{ __html: html }} />
     }), [html])
 
-  return (
-    <LexicalItemContextProvider imgproxyUrls={imgproxyUrls} topLevel={topLevel} outlawed={outlawed} rel={rel}>
-      <Reader topLevel={topLevel} readerRef={readerRef} {...props} />
-    </LexicalItemContextProvider>
-  )
+  return <Reader topLevel={topLevel} readerRef={readerRef} {...props} />
 }

@@ -1,14 +1,13 @@
 import MediaOrLink, { LinkRaw } from '@/components/media-or-link'
-import { useLexicalItemContext } from '@/components/editor/contexts/item'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import { useState, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $createLinkNode } from '@lexical/link'
 import { $getNodeByKey, $createTextNode, $createParagraphNode } from 'lexical'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
 
 /**
- * wrapper component that handles media rendering with item-specific logic
- * like imgproxy, outlawed, rel (link) and top level
+ * wrapper component that handles media rendering
 
  * @param {string} props.src - media source url
  * @param {string} props.srcSet - media source set string from imgproxy and ItemContextExtension
@@ -25,7 +24,6 @@ import { $getNodeByKey, $createTextNode, $createParagraphNode } from 'lexical'
 export default function MediaComponent ({ src, srcSet, bestResSrc, width, height, alt, title, status, kind, maxWidth, nodeKey }) {
   const [editor] = useLexicalComposerContext()
   const [isLink, setIsLink] = useState(false)
-  const { rel } = useLexicalItemContext()
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
 
   // TODO: basically an hack, Lexical could handle this via MediaCheckExtension
@@ -43,7 +41,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
 
       const linkNode = $createLinkNode(url, {
         title: url,
-        rel
+        rel: UNKNOWN_LINK_REL
       }).append($createTextNode(url))
 
       // If parent is a paragraph, directly replace the media node with the link
@@ -61,10 +59,10 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
         parent.remove()
       }
     })
-  }, [isLink, editor, nodeKey, url, rel])
+  }, [isLink, editor, nodeKey, url])
 
   if (status === 'error') {
-    return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
+    return <LinkRaw src={url} rel={UNKNOWN_LINK_REL}>{url}</LinkRaw>
   }
 
   return (
@@ -77,7 +75,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       height={height}
       title={title}
       alt={alt}
-      rel={rel}
+      rel={UNKNOWN_LINK_REL}
       kind={kind}
       linkFallback
       topLevel={!!editor._config.theme?.topLevel}

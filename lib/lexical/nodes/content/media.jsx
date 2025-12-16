@@ -9,11 +9,27 @@ const statusState = createState('status', {
   parse: (value) => (typeof value === 'string' ? value : 'idle')
 })
 
+const widthState = createState('width', {
+  parse: (value) => (typeof value === 'number' ? value : 0)
+})
+
+const heightState = createState('height', {
+  parse: (value) => (typeof value === 'number' ? value : 0)
+})
+
+const srcSetState = createState('srcSet', {
+  parse: (value) => (typeof value === 'string' ? value : null)
+})
+
+const bestResSrcState = createState('bestResSrc', {
+  parse: (value) => (typeof value === 'string' ? value : null)
+})
+
 function $convertMediaElement (domNode) {
-  let src, alt, title, width, height, kind, autolink
+  let src, alt, title, width, height, kind, autolink, srcSet, bestResSrc
 
   if (domNode instanceof window.HTMLImageElement || domNode instanceof window.HTMLVideoElement) {
-    ({ alt, title, src, width, height } = domNode)
+    ({ alt, title, src, width, height, srcSet, bestResSrc } = domNode)
     autolink = domNode.hasAttribute('data-autolink')
     kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
   } else if (domNode instanceof window.HTMLAnchorElement && domNode.hasAttribute('data-media-kind')) {
@@ -30,7 +46,7 @@ function $convertMediaElement (domNode) {
     return null
   }
 
-  const node = $createMediaNode({ src, alt, title, width, height, autolink })
+  const node = $createMediaNode({ src, alt, title, width, height, autolink, srcSet, bestResSrc })
   $setState(node, kindState, kind)
   $setState(node, statusState, 'done')
   return { node }
@@ -40,8 +56,6 @@ export class MediaNode extends DecoratorNode {
   __src
   __title
   __alt
-  __width
-  __height
   __maxWidth
   __autolink
 
@@ -50,18 +64,20 @@ export class MediaNode extends DecoratorNode {
       extends: DecoratorNode,
       stateConfigs: [
         { flat: true, stateConfig: kindState },
-        { flat: true, stateConfig: statusState }
+        { flat: true, stateConfig: statusState },
+        { flat: true, stateConfig: srcSetState },
+        { flat: true, stateConfig: bestResSrcState },
+        { flat: true, stateConfig: widthState },
+        { flat: true, stateConfig: heightState }
       ]
     })
   }
 
-  constructor (src, title, alt, width, height, maxWidth, autolink, key) {
+  constructor (src, title, alt, maxWidth, autolink, key) {
     super(key)
     this.__src = src
     this.__title = title ?? ''
     this.__alt = alt ?? ''
-    this.__width = width ?? 0
-    this.__height = height ?? 0
     this.__maxWidth = maxWidth ?? 500
     this.__autolink = autolink ?? false
   }
@@ -71,8 +87,6 @@ export class MediaNode extends DecoratorNode {
       node.__src,
       node.__title,
       node.__alt,
-      node.__width,
-      node.__height,
       node.__maxWidth,
       node.__autolink,
       node.__key
@@ -81,10 +95,14 @@ export class MediaNode extends DecoratorNode {
   }
 
   static importJSON (serializedNode) {
-    const { src, title, alt, width, height, maxWidth, kind, status, autolink } = serializedNode
+    const { src, srcSet, bestResSrc, title, alt, width, height, maxWidth, kind, status, autolink } = serializedNode
     const node = $createMediaNode({ src, title, alt, width, height, maxWidth, autolink })
     $setState(node, kindState, kind ?? 'unknown')
     $setState(node, statusState, status ?? 'idle')
+    $setState(node, srcSetState, srcSet ?? null)
+    $setState(node, bestResSrcState, bestResSrc ?? null)
+    $setState(node, widthState, width ?? 0)
+    $setState(node, heightState, height ?? 0)
     return node
   }
 
@@ -92,10 +110,12 @@ export class MediaNode extends DecoratorNode {
     return {
       ...super.exportJSON(),
       src: this.__src,
+      srcSet: $getState(this, srcSetState),
+      bestResSrc: $getState(this, bestResSrcState),
       title: this.__title,
       alt: this.__alt,
-      width: this.__width,
-      height: this.__height,
+      width: $getState(this, widthState),
+      height: $getState(this, heightState),
       maxWidth: this.__maxWidth,
       kind: $getState(this, kindState),
       status: $getState(this, statusState),
@@ -138,19 +158,31 @@ export class MediaNode extends DecoratorNode {
     const className = editor._config.theme?.mediaContainer
     if (className) element.className = className
 
-    element.style.setProperty('--width', this.__width ? `${this.__width}px` : 'inherit')
-    element.style.setProperty('--height', this.__height ? `${this.__height}px` : 'inherit')
-    element.style.setProperty('--aspect-ratio', this.__width && this.__height ? `${this.__width} / ${this.__height}` : 'auto')
+    const width = $getState(this, widthState)
+    const height = $getState(this, heightState)
+
+    element.style.setProperty('--width', width ? `${width}px` : 'inherit')
+    element.style.setProperty('--height', height ? `${height}px` : 'inherit')
+    element.style.setProperty('--aspect-ratio', width && height ? `${width} / ${height}` : 'auto')
     element.style.setProperty('--max-width', `${this.__maxWidth}px`)
 
     const kind = $getState(this, kindState)
     const media = document.createElement(kind === 'video' ? 'video' : 'img')
 
     media.setAttribute('src', this.__src)
+    const srcSet = $getState(this, srcSetState)
+    const bestResSrc = $getState(this, bestResSrcState)
+    if (srcSet) {
+      media.setAttribute('srcset', srcSet)
+    }
+    if (bestResSrc) {
+      media.setAttribute('poster', bestResSrc !== this.__src ? bestResSrc : undefined)
+      media.setAttribute('preload', bestResSrc !== this.__src ? 'metadata' : undefined)
+    }
     if (this.__title) media.setAttribute('title', this.__title)
     if (this.__alt) media.setAttribute('alt', this.__alt)
-    if (this.__width) media.setAttribute('width', String(this.__width))
-    if (this.__height) media.setAttribute('height', String(this.__height))
+    if (width) media.setAttribute('width', String(width))
+    if (height) media.setAttribute('height', String(height))
     if (kind === 'video') media.setAttribute('controls', 'true')
 
     element.appendChild(media)
@@ -163,6 +195,16 @@ export class MediaNode extends DecoratorNode {
     if (className) {
       span.className = className
     }
+
+    const { width, height } = this.getWidthAndHeight()
+    if (width) {
+      span.style.setProperty('--width', `${width}px`)
+    }
+    if (height) {
+      span.style.setProperty('--height', `${height}px`)
+    }
+    span.style.setProperty('--aspect-ratio', width && height ? `${width} / ${height}` : 'auto')
+
     span.style.setProperty('--max-width', `${this.__maxWidth}px`)
     return span
   }
@@ -173,6 +215,22 @@ export class MediaNode extends DecoratorNode {
 
   getSrc () {
     return this.__src
+  }
+
+  getSrcSet () {
+    return $getState(this, srcSetState)
+  }
+
+  getBestResSrc () {
+    return $getState(this, bestResSrcState)
+  }
+
+  setBestResSrc (bestResSrc) {
+    $setState(this, bestResSrcState, bestResSrc ?? null)
+  }
+
+  setSrcSet (srcSet) {
+    $setState(this, srcSetState, srcSet ?? null)
   }
 
   getAlt () {
@@ -192,7 +250,12 @@ export class MediaNode extends DecoratorNode {
   }
 
   getWidthAndHeight () {
-    return { width: this.__width, height: this.__height }
+    return { width: $getState(this, widthState), height: $getState(this, heightState) }
+  }
+
+  setWidthAndHeight (width, height) {
+    $setState(this, widthState, width)
+    $setState(this, heightState, height)
   }
 
   setKind (kind) {
@@ -218,12 +281,14 @@ export class MediaNode extends DecoratorNode {
     return (
       <MediaComponent
         src={this.__src}
+        srcSet={$getState(this, srcSetState)}
+        bestResSrc={$getState(this, bestResSrcState)}
         title={this.__title}
         alt={this.__alt}
         kind={$getState(this, kindState)}
         status={$getState(this, statusState)}
-        width={this.__width}
-        height={this.__height}
+        width={$getState(this, widthState)}
+        height={$getState(this, heightState)}
         maxWidth={this.__maxWidth}
         autolink={this.__autolink}
         nodeKey={this.getKey()}
@@ -232,19 +297,25 @@ export class MediaNode extends DecoratorNode {
   }
 }
 
-export function $createMediaNode ({ src, title, alt, width, height, maxWidth, autolink, key }) {
-  return $applyNodeReplacement(
-    new MediaNode(
-      src,
-      title,
-      alt,
-      width,
-      height,
-      maxWidth ? Math.min(maxWidth, 500) : Math.min(width ?? 320, 500),
-      autolink,
-      key
-    )
+export function $createMediaNode ({ src, title, alt, width, height, maxWidth, autolink, key, srcSet, bestResSrc }) {
+  const node = new MediaNode(
+    src,
+    title,
+    alt,
+    maxWidth ? Math.min(maxWidth, 500) : Math.min(width ?? 320, 500),
+    autolink,
+    key
   )
+  if (width && height) {
+    node.setWidthAndHeight(width, height)
+  }
+  if (srcSet) {
+    node.setSrcSet(srcSet)
+  }
+  if (bestResSrc) {
+    node.setBestResSrc(bestResSrc)
+  }
+  return $applyNodeReplacement(node)
 }
 
 export function $isMediaNode (node) {

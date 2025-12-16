@@ -1511,12 +1511,12 @@ export default {
     },
     lexicalState: async (item, args, { lexicalStateLoader }) => {
       if (!item.text) return null
-      return lexicalStateLoader.load(item.text)
+      return lexicalStateLoader.load({ text: item.text, context: { outlawed: item.outlawed, imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
     },
     html: async (item, args, { lexicalStateLoader }) => {
       if (!item.text) return null
       try {
-        const lexicalState = await lexicalStateLoader.load(item.text)
+        const lexicalState = await lexicalStateLoader.load({ text: item.text, context: { outlawed: item.outlawed, imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
         if (!lexicalState) return null
         return lexicalHTMLGenerator(lexicalState)
       } catch (error) {

@@ -11,21 +11,22 @@ import { $getNodeByKey, $createTextNode, $createParagraphNode } from 'lexical'
  * like imgproxy, outlawed, rel (link) and top level
 
  * @param {string} props.src - media source url
+ * @param {string} props.srcSet - media source set string from imgproxy and ItemContextExtension
+ * @param {string} props.bestResSrc - media best resolution source url from imgproxy and ItemContextExtension
+ * @param {number} props.width - media width
+ * @param {number} props.height - media height
  * @param {string} props.alt - media alt text
  * @param {string} props.title - media title
  * @param {string} props.status - media status (error, pending, etc.)
  * @param {string} props.kind - media kind (image, video)
- * @param {number} props.width - media width
- * @param {number} props.height - media height
  * @param {number} props.maxWidth - media max width
  * @returns {JSX.Element} media or link component
  */
-export default function MediaComponent ({ src, alt, title, status, kind, width, height, maxWidth, nodeKey }) {
+export default function MediaComponent ({ src, srcSet, bestResSrc, width, height, alt, title, status, kind, maxWidth, nodeKey }) {
   const [editor] = useLexicalComposerContext()
   const [isLink, setIsLink] = useState(false)
-  const { imgproxyUrls, rel, outlawed, topLevel } = useLexicalItemContext()
+  const { rel } = useLexicalItemContext()
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
-  const srcSet = imgproxyUrls?.[url]
 
   // TODO: basically an hack, Lexical could handle this via MediaCheckExtension
   // we're profiting from the fact that MediaOrLink actually does a media check
@@ -62,10 +63,6 @@ export default function MediaComponent ({ src, alt, title, status, kind, width, 
     })
   }, [isLink, editor, nodeKey, url, rel])
 
-  if (outlawed) {
-    return <p className='outlawed'>{url}</p>
-  }
-
   if (status === 'error') {
     return <LinkRaw src={url} rel={rel}>{url}</LinkRaw>
   }
@@ -74,14 +71,16 @@ export default function MediaComponent ({ src, alt, title, status, kind, width, 
     <MediaOrLink
       setIsLink={setIsLink}
       src={src}
+      srcSet={srcSet}
+      bestResSrc={bestResSrc}
+      width={width}
+      height={height}
       title={title}
       alt={alt}
-      srcSet={srcSet}
       rel={rel}
       kind={kind}
       linkFallback
-      preTailor={{ width, height, maxWidth: maxWidth ?? 500 }}
-      topLevel={topLevel}
+      topLevel={!!editor._config.theme?.topLevel}
     />
   )
 }

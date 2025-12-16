@@ -365,12 +365,12 @@ export default {
     createdAt: sub => sub.createdAt || sub.created_at,
     lexicalState: async (sub, args, { lexicalStateLoader }) => {
       if (!sub.desc) return null
-      return lexicalStateLoader.load(sub.desc)
+      return lexicalStateLoader.load({ text: sub.desc })
     },
     html: async (sub, args, { lexicalStateLoader }) => {
       if (!sub.desc) return null
       try {
-        const lexicalState = await lexicalStateLoader.load(sub.desc)
+        const lexicalState = await lexicalStateLoader.load({ text: sub.desc })
         if (!lexicalState) return null
         return lexicalHTMLGenerator(lexicalState)
       } catch (error) {

@@ -80,12 +80,24 @@ export async function onPaid (tx, payInId) {
       ON CONFLICT ("itemId", "userId") DO UPDATE
       SET "downZapSats" = "ItemUserAgg"."downZapSats" + ${sats}::INTEGER, updated_at = now()
       RETURNING LOG("downZapSats" / GREATEST("downZapSats" - ${sats}::INTEGER, 1)::FLOAT) AS log_sats
+    ), item_downzapped AS (
+      UPDATE "Item"
+      SET "weightedDownVotes" = "weightedDownVotes" + zapper."zapTrust" * zap.log_sats,
+          "subWeightedDownVotes" = "subWeightedDownVotes" + zapper."subZapTrust" * zap.log_sats,
+          "downMsats" = "downMsats" + ${msats}::BIGINT
+      FROM zap, zapper
+      WHERE "Item".id = ${item.id}::INTEGER
+      RETURNING "Item".*
     )
     UPDATE "Item"
-    SET "weightedDownVotes" = "weightedDownVotes" + zapper."zapTrust" * zap.log_sats,
-        "subWeightedDownVotes" = "subWeightedDownVotes" + zapper."subZapTrust" * zap.log_sats
-    FROM zap, zapper
-    WHERE "Item".id = ${item.id}::INTEGER`
+    SET "commentDownMsats" = "commentDownMsats" + ${msats}::BIGINT
+    FROM (
+      SELECT "Item".id
+      FROM "Item", item_downzapped
+      WHERE "Item".path @> item_downzapped.path AND "Item".id <> item_downzapped.id
+      ORDER BY "Item".id
+    ) AS ancestors
+    WHERE "Item".id = ancestors.id`
 }
 
 export async function describe (models, payInId) {

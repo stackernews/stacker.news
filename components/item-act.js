@@ -117,9 +117,12 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       if (!me) setItemMeAnonSats({ id: item.id, amount })
     }
 
-    const closeImmediately = hasSendWallet || me?.privates?.sats > Number(amount)
-    if (closeImmediately) {
+    const options = {}
+    if (hasSendWallet || me?.privates?.sats > Number(amount)) {
       onPaid()
+    } else {
+      // we want to close the modal only after paid so the modal can stack
+      options.onPaid = onPaid
     }
 
     const { error } = await actor({
@@ -139,9 +142,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
-      onPaid: closeImmediately
-        ? undefined
-        : onPaid
+      ...options
     })
     if (error) throw error
     addCustomTip(Number(amount))
@@ -183,7 +184,6 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
 
 function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
   const result = payerPrivates?.result
-  console.log('modifyActCache', payerPrivates, payOutBolt11Public, result)
   if (!result) return
   const { id, sats, act } = result
   const p2p = !!payOutBolt11Public
@@ -216,6 +216,12 @@ function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
         return existingCredits
       },
       meDontLikeSats: (existingSats = 0) => {
+        if (act === 'DONT_LIKE_THIS') {
+          return existingSats + sats
+        }
+        return existingSats
+      },
+      downSats: (existingSats = 0) => {
         if (act === 'DONT_LIKE_THIS') {
           return existingSats + sats
         }
@@ -255,6 +261,21 @@ function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
           },
           commentSats (existingCommentSats = 0) {
             return existingCommentSats + sats
+          }
+        },
+        optimistic: true
+      })
+    })
+  }
+  if (act === 'DONT_LIKE_THIS') {
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      cache.modify({
+        id: `Item:${aId}`,
+        fields: {
+          commentDownSats (existingCommentDownSats = 0) {
+            return existingCommentDownSats + sats
           }
         },
         optimistic: true

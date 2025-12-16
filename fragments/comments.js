@@ -42,6 +42,8 @@ export const COMMENT_FIELDS = gql`
     upvotes
     freedFreebie
     boost
+    downSats
+    commentDownSats
     meSats
     meCredits
     meDontLikeSats
@@ -95,6 +97,8 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     upvotes
     freedFreebie
     boost
+    downSats
+    commentDownSats
     meSats
     meCredits
     meDontLikeSats

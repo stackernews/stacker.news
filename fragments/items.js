@@ -60,6 +60,8 @@ export const ITEM_FIELDS = gql`
     meSats
     meCredits
     meDontLikeSats
+    downSats
+    commentDownSats
     meBookmark
     meSubscription
     meForward

@@ -1,4 +1,4 @@
-import MediaOrLink, { LinkRaw } from '@/components/media-or-link'
+import MediaOrLink from '@/components/media-or-link'
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
 import { useState, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -60,10 +60,6 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       }
     })
   }, [isLink, editor, nodeKey, url])
-
-  if (status === 'error') {
-    return <LinkRaw src={url} rel={UNKNOWN_LINK_REL}>{url}</LinkRaw>
-  }
 
   return (
     <MediaOrLink

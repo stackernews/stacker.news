@@ -133,7 +133,7 @@ export const useMediaHelper = ({ src, srcSet, bestResSrc, width, height, kind, a
     }
   }, [src, setIsImage, setIsVideo, showMedia, setIsLink])
 
-  const sizes = useMemo(() => srcSet ? `${(topLevel ? 100 : 66)}vw` : undefined)
+  const sizes = useMemo(() => srcSet ? `${(topLevel ? 100 : 66)}vw` : undefined, [srcSet, topLevel])
 
   return {
     src,

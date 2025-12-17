@@ -576,6 +576,9 @@ model Item {
   @@index([userId, createdAt])
   @@index([ranktop])
   @@index([rankhot])
+  @@index([subName, createdAt])
+  @@index([subName, ranktop])
+  @@index([subName, rankhot])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

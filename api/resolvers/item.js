@@ -575,7 +575,7 @@ export default {
               break
             default:
               if (decodedCursor.offset === 0) {
-              // get pins for the page and return those separately
+                // get pins for the page and return those separately
                 pins = await itemQueryWithMeta({
                   me,
                   models,

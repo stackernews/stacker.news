@@ -145,6 +145,7 @@
   inset: 0;
   opacity: 0;
   z-index: 1;
+  user-select: text;
 }
 
 /* blocks */
@@ -351,13 +352,12 @@ span + .sn-link {
   content: '\200B';
   width: 0.9em;
   height: 0.9em;
-  top: 45%;
+  top: 0.25em;
   left: 0;
   cursor: pointer;
   display: block;
   background-size: cover;
   position: absolute;
-  transform: translateY(-50%);
 }
 
 .sn-list__item--checked {

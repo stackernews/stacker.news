@@ -174,6 +174,7 @@ export class MediaNode extends DecoratorNode {
     const bestResSrc = $getState(this, bestResSrcState)
     if (srcSet) {
       media.setAttribute('srcset', srcSet)
+      media.setAttribute('sizes', '66vw')
     }
     if (bestResSrc) {
       media.setAttribute('poster', bestResSrc !== this.__src ? bestResSrc : undefined)

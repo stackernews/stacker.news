@@ -32,8 +32,8 @@ CREATE OR REPLACE FUNCTION ranktop_sort_key(
   "boost"              numeric,
   "oldBoost"           numeric,
   "commentMsats"       numeric,
-  "downMsats"           numeric,
-  "commentDownMsats"  numeric
+  "downMsats"          numeric,
+  "commentDownMsats"   numeric
 ) RETURNS double precision
 LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
   SELECT
@@ -48,19 +48,22 @@ LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
 $$;
 
 -- Static exponential ORDER BY key in log-space (H=12 hours ⇒ λ ≈ 0.057762/h)
+-- Allowing the hot key to be computer in this function allows us to adjust the half-life of hot ranking
+-- by replacing this function then running UPDATE "Item" SET created_at = created_at;
 CREATE OR REPLACE FUNCTION rankhot_sort_key(
   "msats"              numeric,
   "boost"              numeric,
   "oldBoost"           numeric,
   "commentMsats"       numeric,
-  "downMsats"           numeric,
-  "commentDownMsats"  numeric
+  "downMsats"          numeric,
+  "commentDownMsats"   numeric,
+  "created_at"         timestamp(3)
 ) RETURNS double precision
 LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
   SELECT CASE
-        WHEN rankhot_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats") > 0
-            THEN LN(rankhot_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats"))
-                + LN(2)/12.0 * (EXTRACT(EPOCH FROM "Item".created_at) / 3600.0)
+        WHEN ranktop_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats") > 0
+            THEN LN(ranktop_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats"))
+                + LN(2)/12.0 * (EXTRACT(EPOCH FROM "created_at") / 3600.0)
             ELSE -1e300
         END
 $$;
@@ -72,7 +75,7 @@ ALTER TABLE "Item"
 
 ALTER TABLE "Item"
   ADD COLUMN rankhot double precision GENERATED ALWAYS AS (
-    rankhot_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats")
+    rankhot_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats", "created_at")
   ) STORED NOT NULL;
 
 ALTER TABLE "Item" ADD COLUMN "rankboost" DOUBLE PRECISION GENERATED ALWAYS AS (

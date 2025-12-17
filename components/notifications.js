@@ -24,7 +24,7 @@ import { Checkbox, Form } from './form'
 import { useRouter } from 'next/router'
 import { useData } from './use-data'
 import { nostrZapDetails } from '@/lib/nostr'
-import { LegacyText } from './text'
+import Text from '@/components/text'
 import NostrIcon from '@/svgs/nostr.svg'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 import BountyIcon from '@/svgs/bounty-bag.svg'
@@ -355,7 +355,7 @@ function NostrZap ({ n }) {
             </Link>)
           : 'nostr'}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {content && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><LegacyText>{content}</LegacyText></small>}
+      {content && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{content}</Text></small>}
     </div>
   )
 }
@@ -391,7 +391,7 @@ function PayInProxyPayment ({ n }) {
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {n.payIn.payerPrivates.payInBolt11.comment &&
         <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
-          <LegacyText>{n.payIn.payerPrivates.payInBolt11.comment.comment}</LegacyText>
+          <Text>{n.payIn.payerPrivates.payInBolt11.comment.comment}</Text>
           {payerSig}
         </small>}
     </div>

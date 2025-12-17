@@ -549,6 +549,7 @@ model Item {
   CommentsViewAt       CommentsViewAt[]
   ranktop              Float                 @default(dbgenerated())
   rankhot              Float                 @default(dbgenerated())
+  rankboost            Float                 @default(dbgenerated())
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -576,9 +577,11 @@ model Item {
   @@index([userId, createdAt])
   @@index([ranktop])
   @@index([rankhot])
+  @@index([rankboost])
   @@index([subName, createdAt])
   @@index([subName, ranktop])
   @@index([subName, rankhot])
+  @@index([subName, rankboost])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item

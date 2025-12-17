@@ -135,7 +135,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
-      ORDER BY boost desc, "Item".created_at ASC
+      ORDER BY rankboost DESC, "Item".created_at ASC
       LIMIT 1`
   }, ...subArr))?.[0] || null
 }
@@ -147,9 +147,9 @@ const orderByClause = (by, me, models, type, sub) => {
     case 'sats':
       return 'ORDER BY "Item".msats DESC'
     case 'zaprank':
-      return 'ORDER BY ranktop DESC, "Item".id DESC'
+      return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
     case 'boost':
-      return 'ORDER BY "Item".boost DESC'
+      return 'ORDER BY "Item".boost + "Item"."oldBoost" DESC'
     case 'random':
       return 'ORDER BY RANDOM()'
     default:
@@ -723,10 +723,11 @@ export default {
         // if there's boost
         // has a larger boost than ours, or has an equal boost and is older
         // count items: (boost > ours.boost OR (boost = ours.boost AND create_at < ours.created_at))
+        const rankboost = Number(boost) * 1000.0 * 0.3
         where = {
           OR: [
-            { boost: { gt: boost } },
-            { boost, createdAt: { lt: createdAt } }
+            { rankboost: { gt: rankboost } },
+            { rankboost, createdAt: { lt: createdAt } }
           ]
         }
       } else {
@@ -735,7 +736,7 @@ export default {
         // count items: ((bid > ours.bid AND status = 'ACTIVE') OR (created_at > ours.created_at AND status <> 'STOPPED'))
         where = {
           OR: [
-            { boost: { gt: 0 } },
+            { rankboost: { gt: 0 } },
             { createdAt: { gt: createdAt } }
           ]
         }
@@ -753,8 +754,9 @@ export default {
       return await models.item.count({ where }) + 1
     },
     boostPosition: async (parent, { id, sub, boost = 0 }, { models, me }) => {
+      const rankboost = Number(boost) * 1000.0 * 0.3
       const where = {
-        boost: { gte: boost },
+        rankboost: { gte: rankboost },
         status: 'ACTIVE',
         deletedAt: null,
         parentId: null
@@ -1183,9 +1185,9 @@ export default {
     },
     boost: async (item, args, { models, me }) => {
       if (me?.id !== item.userId) {
-        return item.boost
+        return item.boost + item.oldBoost
       }
-      return item.boost + msatsToSats(BigInt(item.mePendingBoostMsats || 0))
+      return (item.boost + item.oldBoost) + msatsToSats(BigInt(item.mePendingBoostMsats || 0))
     },
     credits: async (item, args, { models, me }) => {
       if (me?.id === item.userId) {

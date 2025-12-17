@@ -165,8 +165,6 @@ export function LinkForm ({ item, sub, EditInfo, children }) {
           label='context'
           name='text'
           minRows={2}
-          // https://github.com/Andarist/react-textarea-autosize/pull/371
-          style={{ width: 'auto' }}
         />
       </AdvPostForm>
       <ItemButtonBar itemId={item?.id} disable={postDisabled}>

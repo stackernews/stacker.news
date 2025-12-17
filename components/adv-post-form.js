@@ -1,21 +1,14 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { BOOST_MIN, MAX_FORWARDS, SSR } from '@/lib/constants'
+import { MAX_FORWARDS } from '@/lib/constants'
 import { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import Info from './info'
-import { abbrNum } from '@/lib/format'
 import styles from './adv-post-form.module.css'
 import { useMe } from './me'
-import { useFeeButton } from './fee-button'
 import { useRouter } from 'next/router'
 import { useFormikContext } from 'formik'
-import { gql, useQuery } from '@apollo/client'
-import useDebounceCallback from './use-debounce-callback'
-import { Button } from 'react-bootstrap'
-import classNames from 'classnames'
-import Link from 'next/link'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -29,147 +22,6 @@ export function AdvPostInitial ({ forward, boost }) {
 const FormStatus = {
   DIRTY: 'dirty',
   ERROR: 'error'
-}
-
-export function BoostHelp () {
-  return (
-    <ol>
-      <li>Boost is <strong>exactly</strong> like a zap from other stackers: it ranks the item higher based on the amount</li>
-      <li>The highest boosted post in a territory over the last 7 days is pinned to the top of the territory</li>
-      <li>The highest boosted post across all territories over the last 7 days is pinned to the top of the homepage and the <Link href='/rewards'>rewards page</Link></li>
-      <li>The top 5 highest boosted posts across all territories are shared in the newsletter</li>
-      <li>100% of boost goes to the territory founder and top stackers as rewards</li>
-      <li>Boosted items can be downzapped to reduce their rank</li>
-      <li>Boosted items can be outlawed and become only visible to stackers in wild west mode if they receive enough downzaps</li>
-    </ol>
-  )
-}
-
-export function BoostInput ({ onChange, ...props }) {
-  const feeButton = useFeeButton()
-  let merge
-  if (feeButton) {
-    ({ merge } = feeButton)
-  }
-  return (
-    <Input
-      label={
-        <div className='d-flex align-items-center'>boost
-          <Info>
-            <BoostHelp />
-          </Info>
-        </div>
-    }
-      name='boost'
-      onChange={(_, e) => {
-        merge?.({
-          boost: {
-            term: `+ ${e.target.value}`,
-            label: 'boost',
-            op: '+',
-            modifier: cost => cost + Number(e.target.value)
-          }
-        })
-        onChange && onChange(_, e)
-      }}
-      hint={<span className='text-muted'>ranks items higher temporarily based on the amount</span>}
-      append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-      {...props}
-    />
-  )
-}
-
-const BoostMaxes = ({ subName, homeMax, subMax, boost, updateBoost }) => {
-  return (
-    <div className='d-flex flex-row mb-2'>
-      <Button
-        className={classNames(styles.boostMax, 'me-2', homeMax + BOOST_MIN <= (boost || 0) && 'invisible')}
-        size='sm'
-        onClick={() => updateBoost(homeMax + BOOST_MIN)}
-      >
-        {abbrNum(homeMax + BOOST_MIN)} <small>top of homepage</small>
-      </Button>
-      {subName &&
-        <Button
-          className={classNames(styles.boostMax, subMax + BOOST_MIN <= (boost || 0) && 'invisible')}
-          size='sm'
-          onClick={() => updateBoost(subMax + BOOST_MIN)}
-        >
-          {abbrNum(subMax + BOOST_MIN)} <small>top of ~{subName}</small>
-        </Button>}
-    </div>
-  )
-}
-
-// act means we are adding to existing boost
-export function BoostItemInput ({ item, sub, act = false, ...props }) {
-  // act adds boost to existing boost
-  const existingBoost = act ? Number(item?.boost || 0) : 0
-  const [boost, setBoost] = useState(act ? 0 : Number(item?.boost || 0))
-
-  const { data, previousData, refetch } = useQuery(gql`
-    query BoostPosition($sub: String, $id: ID, $boost: Int) {
-      boostPosition(sub: $sub, id: $id, boost: $boost) {
-        home
-        sub
-        homeMaxBoost
-        subMaxBoost
-      }
-    }`,
-  {
-    variables: { sub: item?.subName || sub?.name, boost: existingBoost + boost, id: item?.id },
-    fetchPolicy: 'cache-and-network',
-    skip: !!item?.parentId || SSR
-  })
-
-  const getPositionDebounce = useDebounceCallback((...args) => refetch(...args), 1000, [refetch])
-  const updateBoost = useCallback((boost) => {
-    const boostToUse = Number(boost || 0)
-    setBoost(boostToUse)
-    getPositionDebounce({ sub: item?.subName || sub?.name, boost: Number(existingBoost + boostToUse), id: item?.id })
-  }, [getPositionDebounce, item?.id, item?.subName, sub?.name, existingBoost])
-
-  const dat = data || previousData
-
-  const boostMessage = useMemo(() => {
-    if (!item?.parentId && boost >= BOOST_MIN) {
-      if (dat?.boostPosition?.home || dat?.boostPosition?.sub || boost > dat?.boostPosition?.homeMaxBoost || boost > dat?.boostPosition?.subMaxBoost) {
-        const boostPinning = []
-        if (dat?.boostPosition?.home || boost > dat?.boostPosition?.homeMaxBoost) {
-          boostPinning.push('homepage')
-        }
-        if ((item?.subName || sub?.name) && (dat?.boostPosition?.sub || boost > dat?.boostPosition?.subMaxBoost)) {
-          boostPinning.push(`~${item?.subName || sub?.name}`)
-        }
-        return `pins to the top of ${boostPinning.join(' and ')}`
-      }
-    }
-    return 'ranks items higher based on the amount'
-  }, [boost, dat?.boostPosition?.home, dat?.boostPosition?.sub, item?.subName, sub?.name])
-
-  return (
-    <>
-      <BoostInput
-        hint={<span className='text-muted'>{boostMessage}</span>}
-        onChange={(_, e) => {
-          if (e.target.value >= 0) {
-            updateBoost(Number(e.target.value))
-          }
-        }}
-        overrideValue={boost}
-        {...props}
-        groupClassName='mb-1'
-      />
-      {!item?.parentId &&
-        <BoostMaxes
-          subName={item?.subName || sub?.name}
-          homeMax={(dat?.boostPosition?.homeMaxBoost || 0) - existingBoost}
-          subMax={(dat?.boostPosition?.subMaxBoost || 0) - existingBoost}
-          boost={existingBoost + boost}
-          updateBoost={updateBoost}
-        />}
-    </>
-  )
 }
 
 export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) {

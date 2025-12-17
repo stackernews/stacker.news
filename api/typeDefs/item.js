@@ -9,17 +9,8 @@ export default gql`
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit! = ${LIMIT}): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
-    auctionPosition(sub: String, id: ID, boost: Int): Int!
-    boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
     newComments(itemId: ID, after: Date): Comments!
-  }
-
-  type BoostPositions {
-    home: Boolean!
-    sub: Boolean!
-    homeMaxBoost: Int!
-    subMaxBoost: Int!
   }
 
   type TitleUnshorted {

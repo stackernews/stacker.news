@@ -13,8 +13,7 @@ import {
   COMMENTS_OF_COMMENT_LIMIT,
   FULL_COMMENTS_THRESHOLD,
   WALLET_RETRY_BEFORE_MS,
-  WALLET_MAX_RETRIES,
-  BOOST_MIN
+  WALLET_MAX_RETRIES
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
@@ -715,80 +714,6 @@ export default {
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)
-    },
-    auctionPosition: async (parent, { id, sub, boost }, { models, me }) => {
-      const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
-      let where
-      if (boost > 0) {
-        // if there's boost
-        // has a larger boost than ours, or has an equal boost and is older
-        // count items: (boost > ours.boost OR (boost = ours.boost AND create_at < ours.created_at))
-        const rankboost = Number(boost) * 1000.0 * 0.3
-        where = {
-          OR: [
-            { rankboost: { gt: rankboost } },
-            { rankboost, createdAt: { lt: createdAt } }
-          ]
-        }
-      } else {
-        // else
-        // it's an active with a bid gt ours, or its newer than ours and not STOPPED
-        // count items: ((bid > ours.bid AND status = 'ACTIVE') OR (created_at > ours.created_at AND status <> 'STOPPED'))
-        where = {
-          OR: [
-            { rankboost: { gt: 0 } },
-            { createdAt: { gt: createdAt } }
-          ]
-        }
-      }
-
-      where.AND = {
-        subName: sub,
-        status: 'ACTIVE',
-        deletedAt: null
-      }
-      if (id) {
-        where.AND.id = { not: Number(id) }
-      }
-
-      return await models.item.count({ where }) + 1
-    },
-    boostPosition: async (parent, { id, sub, boost = 0 }, { models, me }) => {
-      const rankboost = Number(boost) * 1000.0 * 0.3
-      const where = {
-        rankboost: { gte: rankboost },
-        status: 'ACTIVE',
-        deletedAt: null,
-        parentId: null
-      }
-      if (id) {
-        where.id = { not: Number(id) }
-      }
-
-      const homeAgg = await models.item.aggregate({
-        _count: { id: true },
-        _max: { boost: true },
-        where
-      })
-
-      let subAgg
-      if (sub) {
-        subAgg = await models.item.aggregate({
-          _count: { id: true },
-          _max: { boost: true },
-          where: {
-            ...where,
-            subName: sub
-          }
-        })
-      }
-
-      return {
-        home: homeAgg._count.id === 0 && boost >= BOOST_MIN,
-        sub: subAgg?._count.id === 0 && boost >= BOOST_MIN,
-        homeMaxBoost: homeAgg._max.boost || 0,
-        subMaxBoost: subAgg?._max.boost || 0
-      }
     },
     newComments: async (parent, { itemId, after }, { models, me }) => {
       const comments = await itemQueryWithMeta({

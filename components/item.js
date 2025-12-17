@@ -24,9 +24,8 @@ import removeMd from 'remove-markdown'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
 import ItemPopover from './item-popover'
 import { useMe } from './me'
-import Boost from './boost-button'
+import Boost, { BoostHelp } from './boost-button'
 import { useShowModal } from './modal'
-import { BoostHelp } from './adv-post-form'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item.id)

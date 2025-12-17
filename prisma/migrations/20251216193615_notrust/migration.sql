@@ -27,7 +27,7 @@ FROM (
 ) subquery
 WHERE "Item"."id" = subquery."itemId";
 
-CREATE OR REPLACE FUNCTION ranktop_base_exp(
+CREATE OR REPLACE FUNCTION ranktop_sort_key(
   "msats"              numeric,
   "boost"              numeric,
   "oldBoost"           numeric,
@@ -47,19 +47,32 @@ LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
     )
 $$;
 
+-- Static exponential ORDER BY key in log-space (H=12 hours ⇒ λ ≈ 0.057762/h)
+CREATE OR REPLACE FUNCTION rankhot_sort_key(
+  "msats"              numeric,
+  "boost"              numeric,
+  "oldBoost"           numeric,
+  "commentMsats"       numeric,
+  "downMsats"           numeric,
+  "commentDownMsats"  numeric
+) RETURNS double precision
+LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+  SELECT CASE
+        WHEN rankhot_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats") > 0
+            THEN LN(rankhot_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats"))
+                + LN(2)/12.0 * (EXTRACT(EPOCH FROM "Item".created_at) / 3600.0)
+            ELSE -1e300
+        END
+$$;
+
 ALTER TABLE "Item"
   ADD COLUMN ranktop double precision GENERATED ALWAYS AS (
-    ranktop_base_exp("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats")
+    ranktop_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats")
   ) STORED NOT NULL;
 
--- Static exponential ORDER BY key in log-space (H=8h ⇒ λ ≈ 0.086643/h)
 ALTER TABLE "Item"
   ADD COLUMN rankhot double precision GENERATED ALWAYS AS (
-    CASE
-      WHEN ranktop_base_exp("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats") > 0
-        THEN LN(ranktop_base_exp("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats")) + 0.086643 * (EXTRACT(EPOCH FROM "Item".created_at) / 3600.0)
-      ELSE -1e300
-    END
+    rankhot_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats")
   ) STORED NOT NULL;
 
 ALTER TABLE "Item" ADD COLUMN "rankboost" DOUBLE PRECISION GENERATED ALWAYS AS (

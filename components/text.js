@@ -348,7 +348,7 @@ function MediaLink ({
 
   const srcSet = imgproxyUrls?.[url]
 
-  return <MediaOrLink srcSet={srcSet} src={src} rel={rel} {...props} />
+  return <MediaOrLink srcSetIntital={srcSet} src={src} rel={rel} {...props} />
 }
 
 function Table ({ node, ...props }) {

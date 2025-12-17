@@ -313,9 +313,9 @@ export function $createMediaNode ({ src, title, alt, width, height, maxWidth, au
   if (srcSet) {
     node.setSrcSet(srcSet)
   }
-  if (bestResSrc) {
-    node.setBestResSrc(bestResSrc)
-  }
+  // if imgproxy didn't return a bestResSrc, use the original src
+  // this is to ensure the media is displayed even if imgproxy is not available
+  node.setBestResSrc(bestResSrc ?? src)
   return $applyNodeReplacement(node)
 }
 

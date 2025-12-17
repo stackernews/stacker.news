@@ -67,7 +67,7 @@ function ItemEmbed ({ url, imgproxyUrls }) {
     const srcSet = imgproxyUrls?.[url]
     return (
       <div className='mt-3'>
-        <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
+        <MediaOrLink src={src} srcSetIntital={srcSet} topLevel linkFallback={false} />
       </div>
     )
   }

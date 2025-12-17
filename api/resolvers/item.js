@@ -555,7 +555,7 @@ export default {
                   ${SELECT},
                     (boost IS NOT NULL AND boost > 0)::INT AS group_rank,
                     CASE WHEN boost IS NOT NULL AND boost > 0
-                         THEN rank() OVER (ORDER BY boost DESC, "Item".created_at ASC)
+                         THEN rank() OVER (ORDER BY rankboost DESC, "Item".created_at ASC)
                          ELSE rank() OVER (ORDER BY "Item".created_at DESC) END AS rank
                     FROM "Item"
                     ${payInJoinFilter(me)}

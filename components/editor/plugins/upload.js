@@ -152,6 +152,7 @@ export default function FileUploadPlugin ({ editorRef }) {
             const item = items[i]
             if (item.type.startsWith('image')) {
               const blob = item.getAsFile()
+              if (!blob) continue
               const file = new File([blob], 'image', { type: blob.type })
               fileList.items.add(file)
               hasImages = true

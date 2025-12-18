@@ -1368,8 +1368,9 @@ export default {
     },
     rel: async (item, args, { me, models }) => {
       const sats = item.msats ? msatsToSats(item.msats) : 0
-      const boost = item.boost ?? 0
-      return (sats + boost < NOFOLLOW_LIMIT) ? UNKNOWN_LINK_REL : 'noopener noreferrer'
+      const boost = (item.boost ?? 0) + (item.oldBoost ?? 0)
+      const cost = (item.cost ?? 0)
+      return (sats + boost + cost < NOFOLLOW_LIMIT || item.genoutlawed) ? UNKNOWN_LINK_REL : 'noopener noreferrer'
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId

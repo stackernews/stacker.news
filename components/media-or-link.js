@@ -24,7 +24,8 @@ const Media = memo(function Media ({
 }) {
   const content = (
     video
-      ? <video
+      ? (
+        <video
           src={src}
           preload={bestResSrc !== src ? 'metadata' : undefined}
           controls
@@ -33,7 +34,9 @@ const Media = memo(function Media ({
           height={height}
           onError={onError}
         />
-      : <img
+        )
+      : (
+        <img
           src={src}
           alt={alt}
           title={title}
@@ -44,6 +47,7 @@ const Media = memo(function Media ({
           onClick={onClick}
           onError={onError}
         />
+        )
   )
 
   return style ? <div style={style}>{content}</div> : content
@@ -98,7 +102,7 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setIsLink, tab }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!(srcSet || srcSetIntital) || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [srcSet, srcSetIntital, src])
-  // TODO: REMOVE on cleanup
+  // backwards compatibility: legacy srcSet handling
   const legacySrcSet = useMemo(() => processSrcSetInitial(srcSetIntital, src), [srcSetIntital, src])
   const [isImage, setIsImage] = useState((kind === 'image' || legacySrcSet?.video === false) && trusted)
   const [isVideo, setIsVideo] = useState(kind === 'video' || legacySrcSet?.video)

@@ -7,15 +7,12 @@ import { $extractHeadingsFromRoot } from '@/lib/lexical/utils/toc'
 
 export default function Toc ({ text, readerRef }) {
   const router = useRouter()
-  if (!text || text.length === 0) {
-    return null
-  }
 
   const toc = useMemo(() => {
-    if (!readerRef) return []
+    if (!readerRef || !text || text.length === 0) return []
     // access the lexical editor state and extract the headings
     return readerRef.getEditorState().read($extractHeadingsFromRoot)
-  }, [readerRef])
+  }, [readerRef, text])
 
   if (toc.length === 0) {
     return null

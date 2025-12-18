@@ -123,7 +123,7 @@ export function useOverflow ({ containerRef, truncated = false }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-export default function Text ({ topLevel, children, className, state, html, outlawed, imgproxyUrls, rel, readerRef }) {
+export default function Text ({ topLevel, children, className, state, html, outlawed, imgproxyUrls, rel, preview, readerRef }) {
   const containerRef = useRef(null)
   const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
   const carousel = useCarousel()
@@ -142,12 +142,13 @@ export default function Text ({ topLevel, children, className, state, html, outl
       <SNReader
         topLevel={topLevel}
         state={state}
-        text={children} // if children is provided, it will be used as the markdown text content
+        text={children} // if children is provided, markdown will be parsed and rendered
         html={html}
         outlawed={outlawed}
         imgproxyUrls={imgproxyUrls}
         rel={rel}
         readerRef={readerRef}
+        preview={preview}
       />
     )
   }, [children, topLevel, state, html, outlawed, imgproxyUrls, rel, readerRef])

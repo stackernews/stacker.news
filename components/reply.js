@@ -88,10 +88,17 @@ export default forwardRef(function Reply ({
   })
 
   const onCancel = useCallback(() => {
+    // clear editor
+    if (replyEditorRef) {
+      replyEditorRef.update(() => {
+        $initializeEditorState('')
+      })
+    }
+
     window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
     setReply(false)
     onCancelQuote?.()
-  }, [setReply, parentId, onCancelQuote])
+  }, [setReply, parentId, onCancelQuote, replyEditorRef])
 
   return (
     <div>
@@ -150,7 +157,7 @@ export default forwardRef(function Reply ({
             >
               <SNInput
                 name='text'
-                autoFocus={!replyOpen}
+                autoFocus={reply && !replyOpen}
                 required
                 minRows={6}
                 appendValue={quote}

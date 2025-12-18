@@ -145,7 +145,8 @@ export class MediaNode extends DecoratorNode {
   // because of media checks, rendering HTML as a link ensures the only layout shift will be the media itself (SSR -> Lexical)
   exportDOM (editor) {
     // if autolink, export as a link instead of media
-    if (this.__autolink) {
+    const kind = $getState(this, kindState)
+    if (kind === 'unknown' || this.__autolink) {
       const link = document.createElement('a')
       link.setAttribute('href', this.__src)
       link.setAttribute('target', '_blank')
@@ -166,7 +167,6 @@ export class MediaNode extends DecoratorNode {
     element.style.setProperty('--aspect-ratio', width && height ? `${width} / ${height}` : 'auto')
     element.style.setProperty('--max-width', `${this.__maxWidth}px`)
 
-    const kind = $getState(this, kindState)
     const media = document.createElement(kind === 'video' ? 'video' : 'img')
 
     media.setAttribute('src', this.__src)

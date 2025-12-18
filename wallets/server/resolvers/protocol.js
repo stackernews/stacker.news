@@ -72,7 +72,12 @@ export function testWalletProtocol (protocol) {
       throw new GqlInputError('failed to create invoice: ' + e.message)
     }
 
-    if (!invoice || !invoice.startsWith('lnbc')) {
+    // Validate Lightning invoice format for all networks
+    // lnbc = mainnet, lntb = testnet, lnrt = regtest, lnsb = signet
+    const validPrefixes = ['lnbc', 'lntb', 'lnrt', 'lnsb']
+    const hasValidPrefix = validPrefixes.some(prefix => invoice?.startsWith(prefix))
+    
+    if (!invoice || !hasValidPrefix) {
       throw new GqlInputError('wallet returned invalid invoice')
     }
 

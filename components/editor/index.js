@@ -17,7 +17,7 @@ export function SNReader ({ html, outlawed, imgproxyUrls, topLevel, rel, readerR
     dynamic(() => import('./reader'), {
       ssr: false,
       loading: () => <div dangerouslySetInnerHTML={{ __html: html }} />
-    }), [html])
+    }), [])
 
   return <Reader topLevel={topLevel} readerRef={readerRef} {...props} />
 }

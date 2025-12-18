@@ -24,7 +24,8 @@ const Media = memo(function Media ({
 }) {
   const content = (
     video
-      ? <video
+      ? (
+        <video
           src={src}
           preload={bestResSrc !== src ? 'metadata' : undefined}
           controls
@@ -33,7 +34,9 @@ const Media = memo(function Media ({
           height={height}
           onError={onError}
         />
-      : <img
+        )
+      : (
+        <img
           src={src}
           alt={alt}
           title={title}
@@ -44,6 +47,7 @@ const Media = memo(function Media ({
           onClick={onClick}
           onError={onError}
         />
+        )
   )
 
   return style ? <div style={style}>{content}</div> : content

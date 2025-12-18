@@ -211,7 +211,7 @@ export default function Comment ({
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
-          ? <Skull className={styles.dontLike} width={24} height={24} />
+          ? <Skull className={styles.dontLike} width={18} height={18} />
           : pin
             ? <Pin width={22} height={22} className={styles.pin} />
             : item.mine
@@ -289,7 +289,7 @@ export default function Comment ({
                   : (
                     <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
                       {item.outlawed && !me?.privates?.wildWestMode
-                        ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
+                        ? '*stackers have outlawed this. turn on wild west mode in your `settings` to see outlawed content.*'
                         : truncate ? truncateString(item.text) : item.text}
                     </Text>)}
               </div>

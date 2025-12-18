@@ -4,7 +4,7 @@ import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
 import {
-  ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
+  ITEM_SPAM_INTERVAL,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
@@ -37,16 +37,15 @@ function commentsOrderByClause (me, models, sort) {
 
   if (sort === 'recent') {
     return `ORDER BY ${sharedSorts},
-      ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC,
+      ("Item".genoutlawed = FALSE) DESC,
       "Item".created_at DESC, "Item".id DESC`
   }
 
   if (sort === 'hot') {
     return `ORDER BY ${sharedSorts},
-      "rankhot" DESC,
-      "Item".msats DESC, "Item".id DESC`
+      "rankhot" DESC, "Item".id DESC`
   } else {
-    return `ORDER BY ${sharedSorts}, "ranktop" DESC, "Item".msats DESC, "Item".id DESC`
+    return `ORDER BY ${sharedSorts}, "ranktop" DESC, "Item".id DESC`
   }
 }
 
@@ -356,7 +355,7 @@ export async function filterClause (me, models, type) {
 
   // handle outlawed
   // if the item is above the threshold or is mine
-  const outlawClauses = [`"Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD} AND NOT "Item".outlawed`]
+  const outlawClauses = ['"Item".genoutlawed = FALSE']
   if (me) {
     outlawClauses.push(`"Item"."userId" = ${me.id}`)
   }
@@ -384,7 +383,7 @@ function typeClause (type) {
     case 'freebies':
       return '"Item".cost = 0'
     case 'outlawed':
-      return `"Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD} OR "Item".outlawed`
+      return '"Item".genoutlawed = TRUE'
     case 'borderland':
       return '"Item"."weightedVotes" - "Item"."weightedDownVotes" < 0'
     case 'all':
@@ -1365,7 +1364,7 @@ export default {
       if (me && Number(item.userId) === Number(me.id)) {
         return false
       }
-      return item.outlawed || item.weightedVotes - item.weightedDownVotes <= -ITEM_FILTER_THRESHOLD
+      return item.genoutlawed
     },
     rel: async (item, args, { me, models }) => {
       const sats = item.msats ? msatsToSats(item.msats) : 0

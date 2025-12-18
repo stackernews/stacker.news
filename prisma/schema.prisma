@@ -550,6 +550,7 @@ model Item {
   ranktop              Float                 @default(dbgenerated())
   rankhot              Float                 @default(dbgenerated())
   rankboost            Float                 @default(dbgenerated())
+  genoutlawed          Boolean               @default(dbgenerated())
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -578,6 +579,7 @@ model Item {
   @@index([ranktop])
   @@index([rankhot])
   @@index([rankboost])
+  @@index([genoutlawed])
   @@index([subName, createdAt])
   @@index([subName, ranktop])
   @@index([subName, rankhot])

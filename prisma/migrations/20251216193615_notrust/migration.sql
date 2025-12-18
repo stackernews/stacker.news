@@ -68,6 +68,27 @@ LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
         END
 $$;
 
+CREATE OR REPLACE FUNCTION genoutlawed_state(
+  "weightedVotes"      double precision,
+  "weightedDownVotes"  double precision,
+  "outlawed"           boolean,
+  "created_at"         timestamp(3),
+  "msats"              numeric,
+  "downMsats"          numeric,
+  "boost"              numeric,
+  "oldBoost"           numeric
+) RETURNS boolean
+LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+  SELECT "outlawed"
+  OR (
+    "created_at" < '2026-01-01 00:00:00'::timestamp(3)
+    AND "weightedVotes" - "weightedDownVotes" <= -1.2)
+  OR (
+    (COALESCE("msats", 0)
+        + (COALESCE("boost", 0) + COALESCE("oldBoost", 0)) * 1000.0
+    ) * 0.3 - COALESCE("downMsats", 0) <= -1000000)
+$$;
+
 ALTER TABLE "Item"
   ADD COLUMN ranktop double precision GENERATED ALWAYS AS (
     ranktop_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats")
@@ -85,9 +106,15 @@ ALTER TABLE "Item" ADD COLUMN "rankboost" DOUBLE PRECISION GENERATED ALWAYS AS (
     - COALESCE("downMsats",0)::double precision
 ) STORED NOT NULL;
 
+ALTER TABLE "Item"
+  ADD COLUMN genoutlawed boolean GENERATED ALWAYS AS (
+    genoutlawed_state("weightedVotes", "weightedDownVotes", "outlawed", "created_at", "msats", "downMsats", "boost", "oldBoost")
+  ) STORED NOT NULL;
+
 CREATE INDEX "Item_ranktop_idx" ON "Item"("ranktop");
 CREATE INDEX "Item_rankhot_idx" ON "Item"("rankhot");
 CREATE INDEX "Item_rankboost_idx" ON "Item"("rankboost");
+CREATE INDEX "Item_genoutlawed_idx" ON "Item"("genoutlawed");
 
 CREATE INDEX "Item_subName_rankboost_idx" ON "Item"("subName", "rankboost");
 CREATE INDEX "Item_subName_created_at_idx" ON "Item"("subName", "created_at");

@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useEffect, useRef } from 'react'
 import { markdownToLexical } from '@/lib/lexical/utils/mdast'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
+import { useField } from 'formik'
 
 /**
  * PreviewSyncPlugin synchronizes the preview editor state
@@ -11,21 +12,21 @@ import { useToolbarState } from '@/components/editor/contexts/toolbar'
  *
  * this plugin is disabled if not rendered under a toolbar context provider, i.e., under Editor.
  *
- * @param {string} props.text - the text to synchronize the preview with
  */
-export default function PreviewSyncPlugin ({ text }) {
+export default function PreviewSyncPlugin () {
   const [editor] = useLexicalComposerContext()
+  const [text] = useField({ name: 'text' })
   const toolbarContext = useToolbarState()
-  const prevText = useRef(text)
+  const prevText = useRef('')
 
   useEffect(() => {
-    if (!toolbarContext) return
+    if (!toolbarContext || !text.value) return
     if (!editor || !toolbarContext.toolbarState.previewMode) return
-    if (prevText.current === text) return
+    if (prevText.current === text.value) return
 
-    markdownToLexical(editor, text)
-    prevText.current = text
-  }, [editor, text, toolbarContext])
+    markdownToLexical(editor, text.value)
+    prevText.current = text.value
+  }, [editor, text.value, toolbarContext?.toolbarState.previewMode])
 
   return null
 }

@@ -29,7 +29,7 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
     if (!iframeRef.current) return
 
     const setHeightFromIframe = (e) => {
-      if (e.origin !== 'https://njump.me' || !e?.data?.height || e.source !== iframeRef.current.contentWindow) return
+      if (e.origin !== 'https://njump.to' || !e?.data?.height || e.source !== iframeRef.current.contentWindow) return
       iframeRef.current.height = `${e.data.height}px`
     }
 
@@ -46,7 +46,7 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
     }
 
     // https://github.com/vercel/next.js/issues/39451
-    iframeRef.current.src = `https://njump.me/${id}?embed=yes`
+    iframeRef.current.src = `https://njump.to/${id}?embed=yes`
 
     return () => {
       window?.removeEventListener('message', setHeightFromIframe)

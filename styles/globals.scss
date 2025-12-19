@@ -142,6 +142,7 @@ $zindex-sticky: 900;
   --theme-dropdownItemColor: rgba(0, 0, 0, 0.7);
   --theme-dropdownItemColorHover: rgba(0, 0, 0, 0.9);
   --theme-commentBg: rgba(0, 0, 0, 0.03);
+  --theme-forceCommentBg: rgb(244, 244, 247);
   --theme-clickToContextColor: rgba(0, 0, 0, 0.07);
   --theme-brandColor: rgba(0, 0, 0, 0.9);
   --theme-grey: #707070;
@@ -166,6 +167,7 @@ $zindex-sticky: 900;
   --theme-dropdownItemColor: rgba(255, 255, 255, 0.7);
   --theme-dropdownItemColorHover: rgba(255, 255, 255, 0.9);
   --theme-commentBg: rgba(255, 255, 255, 0.025);
+  --theme-forceCommentBg: rgb(24, 24, 26);
   --theme-clickToContextColor: rgba(255, 255, 255, 0.1);
   --theme-brandColor: var(--bs-primary);
   --theme-grey: #969696;
@@ -448,7 +450,7 @@ a:hover {
 }
 
 select,
-div[contenteditable],
+div[contenteditable]:not(.sn-text):not(.sn-text *),
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -490,7 +492,7 @@ select:focus {
 }
 
 
-div[contenteditable]:focus,
+div[contenteditable]:not(.sn-text):not(.sn-text *):focus,
 .form-control:focus {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -498,7 +500,7 @@ div[contenteditable]:focus,
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
-div[contenteditable]:disabled,
+div[contenteditable]:not(.sn-text):not(.sn-text *):disabled,
 .form-control:disabled,
 .form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
@@ -632,8 +634,8 @@ footer {
   textarea,
   .form-control,
   .form-control:focus,
-  div[contenteditable],
-  div[contenteditable]:focus,
+  div[contenteditable]:not(.sn-text):not(.sn-text *),
+  div[contenteditable]:not(.sn-text):not(.sn-text *):focus,
   .input-group-text {
     font-size: 1rem !important;
   }
@@ -646,7 +648,7 @@ footer {
 }
 
 textarea.form-control,
-div[contenteditable] {
+div[contenteditable]:not(.sn-text):not(.sn-text *) {
   line-height: 1rem;
 }
 
@@ -747,7 +749,7 @@ header .navbar:not(:first-child) {
   text-shadow: 0 0 10px var(--bs-primary);
 }
 
-div[contenteditable]:focus,
+div[contenteditable]:not(.sn-text):not(.sn-text *):focus,
 .form-control:focus {
   border-color: var(--bs-primary);
 }
@@ -987,6 +989,22 @@ div[contenteditable]:focus,
   padding: 0.1rem 0.3rem;
   color: #fff;
 }
+
+.fade.tooltip {
+  opacity: 1;
+  visibility: visible;
+  animation: fadeIn 0.15s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 
 .popover {
   .popover-header {

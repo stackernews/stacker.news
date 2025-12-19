@@ -1,7 +1,7 @@
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, SNInput } from '@/components/form'
 import styles from './reply.module.css'
 import { useMe } from './me'
-import { forwardRef, useCallback, useEffect, useState, useRef, useMemo } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useMemo } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentSchema } from '@/lib/validate'
 import { ItemButtonBar } from './post'
@@ -13,6 +13,9 @@ import { injectComment } from '@/lib/comments'
 import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
+import { MAX_COMMENT_TEXT_LENGTH } from '@/lib/constants'
+import { $initializeEditorState } from '@/lib/lexical/utils'
+import useCallbackRef from './use-callback-ref'
 
 export default forwardRef(function Reply ({
   item,
@@ -25,7 +28,7 @@ export default forwardRef(function Reply ({
   const [reply, setReply] = useState(replyOpen || quote)
   const { me } = useMe()
   const parentId = item.id
-  const replyInput = useRef(null)
+  const { ref: replyEditorRef, onRef: onReplyEditorRef } = useCallbackRef()
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
@@ -71,21 +74,31 @@ export default forwardRef(function Reply ({
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {
-      resetForm({ values: { text: '' } })
+      const text = ''
+      resetForm({ values: { text } })
+      // reset the Lexical editor state
+      if (replyEditorRef) {
+        replyEditorRef.update(() => {
+          $initializeEditorState(text)
+        })
+      }
       setReply(replyOpen || false)
     },
     navigateOnSubmit: false
   })
 
-  useEffect(() => {
-    if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
-  }, [reply])
-
   const onCancel = useCallback(() => {
+    // clear editor
+    if (replyEditorRef) {
+      replyEditorRef.update(() => {
+        $initializeEditorState('')
+      })
+    }
+
     window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
     setReply(false)
     onCancelQuote?.()
-  }, [setReply, parentId, onCancelQuote])
+  }, [setReply, parentId, onCancelQuote, replyEditorRef])
 
   return (
     <div>
@@ -142,14 +155,16 @@ export default forwardRef(function Reply ({
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >
-              <MarkdownInput
+              <SNInput
                 name='text'
-                minRows={6}
-                autoFocus={!replyOpen}
+                autoFocus={reply && !replyOpen}
                 required
+                minRows={6}
                 appendValue={quote}
+                lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
                 placeholder={placeholder}
                 hint={sub?.moderated && 'this territory is moderated'}
+                editorRef={onReplyEditorRef}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>

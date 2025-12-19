@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
+import { Checkbox, Form, Input, SNInput, SubmitButton } from './form'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Image from 'react-bootstrap/Image'
@@ -97,7 +97,7 @@ export default function JobForm ({ item, sub }) {
             />
           </Col>
         </Row>
-        <MarkdownInput
+        <SNInput
           topLevel
           label='description'
           name='text'

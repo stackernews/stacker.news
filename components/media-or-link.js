@@ -1,10 +1,9 @@
-import styles from './text.module.css'
-import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useMe } from './me'
 import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
-import classNames from 'classnames'
 import { useCarousel } from './carousel'
+import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 
 function LinkRaw ({ href, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -20,56 +19,38 @@ function LinkRaw ({ href, children, src, rel }) {
 }
 
 const Media = memo(function Media ({
-  src, bestResSrc, srcSet, sizes, width,
-  height, onClick, onError, style, className, video
+  src, bestResSrc, srcSet, sizes, width, alt, title,
+  height, onClick, onError, video, style
 }) {
-  const [loaded, setLoaded] = useState(!video)
-  const ref = useRef(null)
-
-  const handleLoadedMedia = () => {
-    setLoaded(true)
-  }
-
-  // events are not fired on elements during hydration
-  // https://github.com/facebook/react/issues/15446
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.src = src
-    }
-  }, [ref.current, src])
-
-  return (
-    <div
-      // will set min-content ONLY after the media is loaded
-      // due to safari video bug
-      className={classNames(className, styles.mediaContainer, { [styles.loaded]: loaded })}
-      style={style}
-    >
-      {video
-        ? <video
-            ref={ref}
-            src={src}
-            preload={bestResSrc !== src ? 'metadata' : undefined}
-            controls
-            poster={bestResSrc !== src ? bestResSrc : undefined}
-            width={width}
-            height={height}
-            onError={onError}
-            onLoadedMetadata={handleLoadedMedia}
-          />
-        : <img
-            ref={ref}
-            src={src}
-            srcSet={srcSet}
-            sizes={sizes}
-            width={width}
-            height={height}
-            onClick={onClick}
-            onError={onError}
-            onLoad={handleLoadedMedia}
-          />}
-    </div>
+  const content = (
+    video
+      ? (
+        <video
+          src={src}
+          preload={bestResSrc !== src ? 'metadata' : undefined}
+          controls
+          poster={bestResSrc !== src ? bestResSrc : undefined}
+          width={width}
+          height={height}
+          onError={onError}
+        />
+        )
+      : (
+        <img
+          src={src}
+          alt={alt}
+          title={title}
+          srcSet={srcSet}
+          sizes={sizes}
+          width={width}
+          height={height}
+          onClick={onClick}
+          onError={onError}
+        />
+        )
   )
+
+  return style ? <div style={style}>{content}</div> : content
 })
 
 export default function MediaOrLink ({ linkFallback = true, ...props }) {
@@ -118,13 +99,14 @@ export default function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) => {
+export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setIsLink, tab }) => {
   const { me } = useMe()
-  const trusted = useMemo(() => !!srcSetIntital || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [!!srcSetIntital, src])
-  const { dimensions, video, format, ...srcSetObj } = srcSetIntital || {}
-  const [isImage, setIsImage] = useState(video === false && trusted)
-  const [isVideo, setIsVideo] = useState(video)
-  const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [tab, me?.privates?.showImagesAndVideos])
+  const trusted = useMemo(() => !!(srcSet || srcSetIntital) || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [srcSet, srcSetIntital, src])
+  // backwards compatibility: legacy srcSet handling
+  const legacySrcSet = useMemo(() => processSrcSetInitial(srcSetIntital, src), [srcSetIntital, src])
+  const [isImage, setIsImage] = useState((kind === 'image' || legacySrcSet?.video === false) && trusted)
+  const [isVideo, setIsVideo] = useState(kind === 'video' || legacySrcSet?.video)
+  const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [me?.privates?.showImagesAndVideos, tab])
 
   useEffect(() => {
     // don't load the video at all if user doesn't want these
@@ -144,6 +126,8 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
           setIsImage(false)
         } else if (data.isImage) {
           setIsImage(true)
+        } else {
+          setIsLink?.(true)
         }
       } catch (error) {
         if (error.name === 'AbortError') return
@@ -156,49 +140,30 @@ export const useMediaHelper = ({ src, srcSet: srcSetIntital, topLevel, tab }) =>
       // abort the fetch
       try { controller.abort() } catch {}
     }
-  }, [src, setIsImage, setIsVideo, showMedia])
+  }, [src, setIsImage, setIsVideo, showMedia, setIsLink])
 
-  const srcSet = useMemo(() => {
-    if (Object.keys(srcSetObj).length === 0) return undefined
-    // srcSetObj shape: { [widthDescriptor]: <imgproxyUrl>, ... }
-    return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url], i, arr) => {
-      // backwards compatibility: we used to replace image urls with imgproxy urls rather just storing paths
-      if (!url.startsWith('http')) {
-        url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
-      }
-      return acc + `${url} ${wDescriptor}` + (i < arr.length - 1 ? ', ' : '')
-    }, '')
-  }, [srcSetObj])
-  const sizes = useMemo(() => srcSet ? `${(topLevel ? 100 : 66)}vw` : undefined)
-
-  // get source url in best resolution
-  const bestResSrc = useMemo(() => {
-    if (Object.keys(srcSetObj).length === 0) return src
-    return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url]) => {
-      if (!url.startsWith('http')) {
-        url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
-      }
-      const w = Number(wDescriptor.replace(/w$/, ''))
-      return w > acc.w ? { w, url } : acc
-    }, { w: 0, url: undefined }).url
-  }, [srcSetObj])
-
-  const [style, width, height] = useMemo(() => {
-    if (dimensions) {
-      const { width, height } = dimensions
-      const style = {
+  let style = null
+  if (legacySrcSet?.srcSet) {
+    srcSet = legacySrcSet?.srcSet
+    bestResSrc = legacySrcSet?.bestResSrc
+    width = legacySrcSet?.width
+    height = legacySrcSet?.height
+    if (width && height && width > 0 && height > 0) {
+      style = {
         '--height': `${height}px`,
         '--width': `${width}px`,
         '--aspect-ratio': `${width} / ${height}`
       }
-      return [style, width, height]
     }
-    return []
-  }, [dimensions?.width, dimensions?.height])
+  }
+
+  const sizes = useMemo(() => srcSet ? '66vw' : undefined, [srcSet])
 
   return {
     src,
     srcSet,
+    alt,
+    title,
     originalSrc: IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src,
     sizes,
     bestResSrc,

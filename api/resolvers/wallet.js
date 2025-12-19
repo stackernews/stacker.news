@@ -63,9 +63,9 @@ const resolvers = {
 
 export default resolvers
 
-export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, protocol, logger }) {
+export async function createWithdrawal (parent, { invoice, maxFee, amount }, { me, models, lnd, headers, protocol, logger }) {
   assertApiKeyNotPermitted({ me })
-  await validateSchema(withdrawlSchema, { invoice, maxFee })
+  await validateSchema(withdrawlSchema, { invoice, maxFee, amount })
   await assertGofacYourself({ models, headers })
 
   // remove 'lightning:' prefix if present
@@ -95,7 +95,10 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   }
 
   if (!decoded.mtokens || BigInt(decoded.mtokens) <= 0) {
-    throw new GqlInputError('invoice must specify an amount')
+    if (!amount) {
+      throw new GqlInputError('invoice must specify an amount')
+    }
+    decoded.mtokens = BigInt(amount) * 1000n
   }
 
   if (decoded.mtokens > Number.MAX_SAFE_INTEGER) {

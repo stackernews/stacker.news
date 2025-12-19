@@ -20,12 +20,18 @@ export default function PreviewSyncPlugin () {
   const prevText = useRef('')
 
   useEffect(() => {
-    if (!toolbarContext || !text.value) return
+    if (!toolbarContext) return
     if (!editor || !toolbarContext.toolbarState.previewMode) return
     if (prevText.current === text.value) return
 
-    markdownToLexical(editor, text.value)
     prevText.current = text.value
+    // if the text is empty, return to editor
+    if (text.value.trim() === '') {
+      toolbarContext.updateToolbarState('previewMode', false)
+      return
+    }
+
+    markdownToLexical(editor, text.value)
   }, [editor, text.value, toolbarContext?.toolbarState.previewMode])
 
   return null

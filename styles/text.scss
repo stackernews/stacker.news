@@ -541,23 +541,6 @@ span + .sn-link {
   text-decoration: underline line-through;
 }
 
-.sn-text sup,
-.sn-text sub {
-  vertical-align: baseline;
-  font-size: inherit;
-  position: static;
-}
-
-.sn-text__superscript {
-  vertical-align: super;
-  font-size: smaller;
-}
-
-.sn-text__subscript {
-  vertical-align: sub;
-  font-size: smaller;
-}
-
 .sn-text__highlight {
   background-color: #fada5e5e;
   padding: 0 0.2rem;

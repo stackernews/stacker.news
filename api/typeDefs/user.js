@@ -6,7 +6,6 @@ export default gql`
     me: User
     settings: User
     user(id: ID, name: String): User
-    users: [User!]
     nameAvailable(name: String!): Boolean!
     topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): UsersNullable!
     topCowboys(cursor: String): UsersNullable!

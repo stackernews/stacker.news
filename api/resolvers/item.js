@@ -29,6 +29,7 @@ import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
 import pay from '../payIn'
+import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
@@ -1507,6 +1508,21 @@ export default {
         AND data->>'userId' = ${meId}::TEXT
         AND state = 'created'`
       return reminderJobs[0]?.startafter ?? null
+    },
+    lexicalState: async (item, args, { lexicalStateLoader }) => {
+      if (!item.text) return null
+      return lexicalStateLoader.load({ text: item.text, context: { outlawed: item.outlawed, imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
+    },
+    html: async (item, args, { lexicalStateLoader }) => {
+      if (!item.text) return null
+      try {
+        const lexicalState = await lexicalStateLoader.load({ text: item.text, context: { outlawed: item.outlawed, imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
+        if (!lexicalState) return null
+        return lexicalHTMLGenerator(lexicalState)
+      } catch (error) {
+        console.error('error generating HTML from Lexical State:', error)
+        return null
+      }
     }
   }
 }
@@ -1594,6 +1610,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
   }
+  // note for the future: could also check MediaNodes directly via Lexical
   item.uploadIds = uploadIdsFromText(item.text)
 
   // never change author of item

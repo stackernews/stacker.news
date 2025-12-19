@@ -222,7 +222,7 @@ services:
       CONNECT: "localhost:5601"
     cpu_shares: "${CPU_SHARES_LOW}"
   bitcoin:
-    image: polarlightning/bitcoind:27.0
+    image: polarlightning/bitcoind:30.0
     container_name: bitcoin
     restart: unless-stopped
     profiles:
@@ -241,7 +241,6 @@ services:
       - '-zmqpubhashblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}'
       - '-txindex=1'
       - '-dnsseed=0'
-      - '-upnp=0'
       - '-rpcbind=0.0.0.0'
       - '-rpcallowip=0.0.0.0/0'
       - '-whitelist=0.0.0.0/0'

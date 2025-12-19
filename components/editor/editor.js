@@ -39,8 +39,10 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: () => {
-        // initialize editor state with existing formik text
-        if (text.value) $initializeEditorState(text.value)
+        // initialize editor state with appendValue or existing formik text
+        if (appendValue || text.value) {
+          $initializeEditorState(appendValue || text.value)
+        }
       },
       name: 'editor',
       namespace: 'sn',

@@ -1,8 +1,8 @@
 import { gql } from '@apollo/client'
 
 export const CREATE_WITHDRAWL = gql`
-  mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
-    createWithdrawl(invoice: $invoice, maxFee: $maxFee) {
+  mutation createWithdrawl($invoice: String!, $maxFee: Int!, $amount: Int) {
+    createWithdrawl(invoice: $invoice, maxFee: $maxFee, amount: $amount) {
       id
     }
 }`

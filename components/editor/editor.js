@@ -24,7 +24,6 @@ import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
-import { SNFormattingExtension } from '@/lib/lexical/exts/formatting'
 
 /**
  * main lexical editor component with formik integration
@@ -48,7 +47,6 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       namespace: 'sn',
       dependencies: [
         PlainTextExtension,
-        SNFormattingExtension,
         HistoryExtension,
         ShortcutsExtension,
         MDCommandsExtension,

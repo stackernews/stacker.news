@@ -55,12 +55,12 @@ export function TerritoryInfoSkeleton ({ children, className }) {
   )
 }
 
-export function TerritoryInfo ({ sub, includeLink }) {
+export function TerritoryInfo ({ sub, includeLink, truncated }) {
   return (
     <>
       {includeLink && <Link href={`/~${sub.name}`}>{sub.name}</Link>}
       <div className='py-2'>
-        <Text state={sub.lexicalState} html={sub.html} />
+        <Text state={sub.lexicalState} html={sub.html}>{truncated ? sub.desc : undefined}</Text>
       </div>
       <CardFooter className={`py-1 ${styles.other}`}>
         <div className='text-muted'>

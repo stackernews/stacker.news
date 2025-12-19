@@ -45,7 +45,7 @@ export class ItemMentionNode extends DecoratorNode {
   constructor (itemMentionId, text, url, key) {
     super(key)
     this.__itemMentionId = itemMentionId
-    this.__text = text
+    this.__text = text || `#${itemMentionId}`
     this.__url = url
   }
 
@@ -62,7 +62,7 @@ export class ItemMentionNode extends DecoratorNode {
   createDOM (config) {
     const domNode = document.createElement('span')
     const theme = config.theme
-    const className = theme.itemMention
+    const className = !this.__text.startsWith('#') ? theme.link : theme.itemMention
     if (className !== undefined) {
       domNode.className = className
     }
@@ -76,7 +76,7 @@ export class ItemMentionNode extends DecoratorNode {
     const wrapper = document.createElement('span')
     wrapper.setAttribute('data-lexical-item-mention', true)
     const theme = editor._config.theme
-    const className = theme.itemMention
+    const className = !this.__text.startsWith('#') ? theme.link : theme.itemMention
     if (className !== undefined) {
       wrapper.className = className
     }

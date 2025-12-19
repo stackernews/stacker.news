@@ -24,6 +24,7 @@ import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
+import QuoteReplyPlugin from './plugins/core/quotereply'
 
 /**
  * main lexical editor component with formik integration
@@ -38,10 +39,8 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: () => {
-        // initialize editor state with appendValue or existing formik text
-        if (appendValue || text.value) {
-          $initializeEditorState(appendValue || text.value)
-        }
+        // initialize editor state with existing formik text
+        if (text.value) $initializeEditorState(text.value)
       },
       name: 'editor',
       namespace: 'sn',
@@ -56,13 +55,13 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       theme: { ...theme, topLevel: topLevel ? 'sn-text--top-level' : '' },
       onError: (error) => console.error('editor has encountered an error:', error)
     // only depend on stable values to avoid unnecessary re-renders
-    // appendValue and text.value are, for example, not stable because they are updated by the formik context
+    // text.value is not stable because it's updated on each keystroke
     }), [autoFocus, topLevel])
 
   return (
     <LexicalExtensionComposer extension={editor} contentEditable={null}>
       <ToolbarContextProvider>
-        <EditorContent topLevel={topLevel} name={name} {...props} />
+        <EditorContent topLevel={topLevel} name={name} appendValue={appendValue} {...props} />
       </ToolbarContextProvider>
     </LexicalExtensionComposer>
   )
@@ -81,7 +80,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
  * @param {React.ReactNode} [props.warn] - warning text for the editor
  * @returns {JSX.Element} editor content with all plugins
  */
-function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, editorRef }) {
+function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, editorRef, appendValue }) {
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
   return (
@@ -103,6 +102,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       {containerRef && <PreviewPlugin editorRef={containerRef} topLevel={topLevel} name={name} />}
       <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
+      <QuoteReplyPlugin appendValue={appendValue} />
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />
       <MaxLengthPlugin lengthOptions={lengthOptions} />

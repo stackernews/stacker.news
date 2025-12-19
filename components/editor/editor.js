@@ -1,5 +1,5 @@
 import classNames from 'classnames'
-import { useFormikContext } from 'formik'
+import { useField } from 'formik'
 import { useMemo } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
@@ -33,14 +33,14 @@ import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
  * @returns {JSX.Element} lexical editor component
  */
 export default function Editor ({ name, appendValue, autoFocus, topLevel, ...props }) {
-  const { values } = useFormikContext()
+  const [text] = useField({ name })
 
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: () => {
         // initialize editor state with appendValue or existing formik text
-        if (appendValue || values.text) {
-          $initializeEditorState(appendValue || values.text)
+        if (appendValue || text.value) {
+          $initializeEditorState(appendValue || text.value)
         }
       },
       name: 'editor',
@@ -56,7 +56,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       theme: { ...theme, topLevel: topLevel ? 'sn-text--top-level' : '' },
       onError: (error) => console.error('editor has encountered an error:', error)
     // only depend on stable values to avoid unnecessary re-renders
-    // appendValue and values.text are, for example, not stable because they are updated by the formik context
+    // appendValue and text.value are, for example, not stable because they are updated by the formik context
     }), [autoFocus, topLevel])
 
   return (
@@ -87,7 +87,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
   return (
     <div className={classNames(styles.editorContainer, topLevel && 'sn-text--top-level')}>
       <EditorRefPlugin editorRef={editorRef} />
-      <ToolbarPlugin topLevel={topLevel} />
+      <ToolbarPlugin topLevel={topLevel} name={name} />
       {/* we only need a plain text editor for markdown */}
       <div className={styles.editor} ref={onContainerRef}>
         <ContentEditable
@@ -100,7 +100,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
           aria-required={required}
         />
       </div>
-      {containerRef && <PreviewPlugin editorRef={containerRef} topLevel={topLevel} />}
+      {containerRef && <PreviewPlugin editorRef={containerRef} topLevel={topLevel} name={name} />}
       <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
       <LocalDraftPlugin name={name} />

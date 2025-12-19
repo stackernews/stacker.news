@@ -89,7 +89,7 @@ export function useOverflow ({ containerRef, truncated = false }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-export default function Text ({ topLevel, children, className, state, html, outlawed, imgproxyUrls, rel, preview, readerRef }) {
+export default function Text ({ topLevel, children, className, state, html, outlawed, imgproxyUrls, rel, preview, name, readerRef }) {
   const containerRef = useRef(null)
   const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
   const carousel = useCarousel()
@@ -115,9 +115,10 @@ export default function Text ({ topLevel, children, className, state, html, outl
         rel={rel}
         readerRef={readerRef}
         preview={preview}
+        name={name}
       />
     )
-  }, [children, topLevel, state, html, outlawed, imgproxyUrls, rel, readerRef])
+  }, [children, topLevel, state, html, outlawed, imgproxyUrls, rel, readerRef, preview, name])
 
   return (
     <div className={textClassNames} ref={containerRef}>

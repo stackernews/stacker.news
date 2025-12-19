@@ -7,13 +7,13 @@ import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
 import UploadIcon from '@/svgs/editor/toolbar/inserts/upload-paperclip.svg'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
 
-export function ToolbarPlugin () {
+export function ToolbarPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
   const { toolbarState } = useToolbarState()
 
   return (
     <div className={styles.toolbar}>
-      <ModeSwitchPlugin />
+      <ModeSwitchPlugin name={name} />
       <div className={styles.innerToolbar} style={{ visibility: toolbarState.previewMode ? 'hidden' : 'visible' }}>
         <ToolbarButton id='upload' onClick={() => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)} tooltip='upload files'>
           <UploadIcon />

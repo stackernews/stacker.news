@@ -13,9 +13,9 @@ import { useField } from 'formik'
  * this plugin is disabled if not rendered under a toolbar context provider, i.e., under Editor.
  *
  */
-export default function PreviewSyncPlugin () {
+export default function PreviewSyncPlugin ({ name = 'text' }) {
   const [editor] = useLexicalComposerContext()
-  const [text] = useField({ name: 'text' })
+  const [text] = useField({ name })
   const toolbarContext = useToolbarState()
   const prevText = useRef('')
 

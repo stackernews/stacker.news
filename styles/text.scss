@@ -148,6 +148,11 @@
   user-select: text;
 }
 
+.sn-heading__link:has(~ .sn-link),
+.sn-link ~ .sn-heading__link {
+  display: none;
+}
+
 /* blocks */
 .sn-quote {
   border-left: 3px solid var(--theme-quoteBar);

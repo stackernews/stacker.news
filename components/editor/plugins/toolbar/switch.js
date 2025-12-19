@@ -1,12 +1,12 @@
 import { useCallback } from 'react'
-import { useFormikContext } from 'formik'
+import { useField } from 'formik'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import Nav from 'react-bootstrap/Nav'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
 
 /** displays and toggles between write and preview modes */
-export default function ModeSwitchPlugin () {
-  const { values } = useFormikContext()
+export default function ModeSwitchPlugin ({ name }) {
+  const [text] = useField({ name })
   const { toolbarState, updateToolbarState } = useToolbarState()
 
   const handleTabSelect = useCallback((eventKey) => {
@@ -25,7 +25,7 @@ export default function ModeSwitchPlugin () {
           className={styles.modeTabs}
           eventKey='preview'
           title='preview'
-          disabled={!values.text}
+          disabled={!text.value}
         >
           preview
         </Nav.Link>

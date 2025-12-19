@@ -1,17 +1,17 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_CRITICAL } from 'lexical'
-import { useFormikContext } from 'formik'
+import { useField } from 'formik'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
 import Text from '@/components/text'
 
 export const TOGGLE_PREVIEW_COMMAND = createCommand('TOGGLE_PREVIEW_COMMAND')
 
-export default function PreviewPlugin ({ editorRef, topLevel }) {
+export default function PreviewPlugin ({ editorRef, topLevel, name }) {
   const [editor] = useLexicalComposerContext()
   const { toolbarState, updateToolbarState } = useToolbarState()
-  const { values } = useFormikContext()
+  const [text] = useField({ name })
   const previewRef = useRef(null)
 
   // register toggle command
@@ -20,14 +20,14 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
       TOGGLE_PREVIEW_COMMAND,
       () => {
         // disable toggle if no text to preview
-        if (!values.text) return false
+        if (!text.value) return false
 
         updateToolbarState('previewMode', !toolbarState.previewMode)
         return true
       },
       COMMAND_PRIORITY_CRITICAL
     )
-  }, [editor, updateToolbarState, toolbarState.previewMode, values.text])
+  }, [editor, updateToolbarState, toolbarState.previewMode, text.value])
 
   // ??: duplicates shortcuts extension
   // but since the editor loses focus when toggling preview mode
@@ -53,7 +53,7 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
 
     if (isPreview) previewEl.focus({ preventScroll: true })
     else editor.focus()
-  }, [toolbarState.previewMode, editorRef, editor, handlePreviewKeyDown])
+  }, [toolbarState.previewMode, editorRef, editor])
 
   return (
     <div
@@ -63,7 +63,7 @@ export default function PreviewPlugin ({ editorRef, topLevel }) {
       className={styles.editor}
       onKeyDown={handlePreviewKeyDown}
     >
-      <Text className={styles.editorInput} topLevel={topLevel} preview />
+      <Text className={styles.editorInput} topLevel={topLevel} preview name={name} />
     </div>
   )
 }

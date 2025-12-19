@@ -1,5 +1,5 @@
 import MediaOrLink from '@/components/media-or-link'
-import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl, getLinkAttributes } from '@/lib/url'
 import { useState, useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $createLinkNode } from '@lexical/link'
@@ -39,9 +39,11 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       const parent = node.getParent()
       if (!parent) return
 
+      const { target, rel } = getLinkAttributes(url)
       const linkNode = $createLinkNode(url, {
         title: url,
-        rel: UNKNOWN_LINK_REL
+        target,
+        rel
       }).append($createTextNode(url))
 
       // If parent is a paragraph, directly replace the media node with the link

@@ -24,7 +24,7 @@ export const SubscribeTerritoryContextProvider = ({ children, value }) => (
 
 export const useSubscribeTerritoryContext = () => useContext(SubscribeTerritoryContext)
 
-export function TerritoryDetails ({ sub, children, className, show }) {
+export function TerritoryDetails ({ sub, children, className, show, truncated }) {
   return (
     <AccordianCard
       className={className}
@@ -39,7 +39,7 @@ export function TerritoryDetails ({ sub, children, className, show }) {
       }
     >
       {children}
-      <TerritoryInfo sub={sub} />
+      <TerritoryInfo sub={sub} truncated={truncated} />
     </AccordianCard>
   )
 }

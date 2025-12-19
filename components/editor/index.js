@@ -1,4 +1,4 @@
-import { useRouter } from 'next/router'
+import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import Editor from './editor'
 
@@ -6,16 +6,15 @@ export function SNEditor ({ ...props }) {
   return <Editor {...props} />
 }
 
+const Reader = dynamic(() => import('./reader'), { ssr: false })
+
 export function SNReader ({ html, ...props }) {
-  const router = useRouter()
+  const [ready, setReady] = useState(false)
 
-  // debug html with ?html
-  if (router.query.html) return <div dangerouslySetInnerHTML={{ __html: html }} />
-
-  const Reader = dynamic(() => import('./reader'), {
-    ssr: false,
-    loading: () => <div dangerouslySetInnerHTML={{ __html: html }} />
-  })
-
-  return <Reader {...props} />
+  return (
+    <>
+      {!ready && <div dangerouslySetInnerHTML={{ __html: html }} />}
+      <Reader onReady={() => setReady(true)} {...props} />
+    </>
+  )
 }

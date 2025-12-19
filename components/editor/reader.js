@@ -35,7 +35,7 @@ const initiateLexical = (editor, state, text) => {
   }
 }
 
-export default function Reader ({ topLevel, state, text, preview, readerRef }) {
+export default function Reader ({ topLevel, state, text, preview, readerRef, onReady }) {
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -54,7 +54,10 @@ export default function Reader ({ topLevel, state, text, preview, readerRef }) {
         ...theme,
         topLevel: topLevel && 'sn-text--top-level'
       },
-      $initialEditorState: (editor) => initiateLexical(editor, state, text),
+      $initialEditorState: (editor) => {
+        initiateLexical(editor, state, text)
+        onReady?.()
+      },
       onError: (error) => console.error('reader has encountered an error:', error)
     // avoid unnecessary re-renders by only depending on stable values
     }), [topLevel])

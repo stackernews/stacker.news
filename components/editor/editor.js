@@ -24,7 +24,8 @@ import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
-import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
+import { LexicalPatchExtension } from '@/lib/lexical/exts/lexical-patch'
+import { TreeViewPlugin } from '@/components/editor/plugins/core/treeview'
 
 /**
  * main lexical editor component with formik integration
@@ -48,7 +49,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       namespace: 'sn',
       dependencies: [
         PlainTextExtension,
-        ApplePatchExtension,
+        LexicalPatchExtension,
         HistoryExtension,
         ShortcutsExtension,
         MDCommandsExtension,
@@ -108,6 +109,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />
       <MaxLengthPlugin lengthOptions={lengthOptions} />
+      <TreeViewPlugin />
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

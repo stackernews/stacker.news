@@ -248,13 +248,6 @@ span + .sn-link {
   margin-left: 0px;
 }
 
-.sn-user-mention,
-.sn-territory-mention,
-.sn-item-mention {
-  color: var(--theme-link);
-  font-weight: bold;
-}
-
 .sn-block-cursor {
   display: block;
   pointer-events: none;
@@ -539,23 +532,6 @@ span + .sn-link {
 
 .sn-text__underline-strikethrough {
   text-decoration: underline line-through;
-}
-
-.sn-text sup,
-.sn-text sub {
-  vertical-align: baseline;
-  font-size: inherit;
-  position: static;
-}
-
-.sn-text__superscript {
-  vertical-align: super;
-  font-size: smaller;
-}
-
-.sn-text__subscript {
-  vertical-align: sub;
-  font-size: smaller;
 }
 
 .sn-text__highlight {

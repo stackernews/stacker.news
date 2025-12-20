@@ -310,7 +310,7 @@ export const USER_WITH_ITEMS = gql`
 export const USER_WITH_SUBS = gql`
     ${USER_FIELDS}
     ${SUB_FULL_FIELDS}
-    query UserWithSubs($name: String!, $cursor: String, $type: String, $when: String, $from: String, $to: String, $by: String) {
+    query UserWithSubs($name: String!, $cursor: String) {
       user(name: $name) {
         ...UserFields
       }

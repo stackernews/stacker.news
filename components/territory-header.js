@@ -3,7 +3,7 @@ import { Badge, Button, CardFooter, Dropdown } from 'react-bootstrap'
 import { AccordianCard } from './accordian-item'
 import TerritoryPaymentDue, { TerritoryBillingLine } from './territory-payment-due'
 import Link from 'next/link'
-import Text from './text'
+import Text from '@/components/text'
 import { numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
 import Badges from './badge'
@@ -24,7 +24,7 @@ export const SubscribeTerritoryContextProvider = ({ children, value }) => (
 
 export const useSubscribeTerritoryContext = () => useContext(SubscribeTerritoryContext)
 
-export function TerritoryDetails ({ sub, children, className, show }) {
+export function TerritoryDetails ({ sub, children, className, show, truncated }) {
   return (
     <AccordianCard
       className={className}
@@ -39,7 +39,7 @@ export function TerritoryDetails ({ sub, children, className, show }) {
       }
     >
       {children}
-      <TerritoryInfo sub={sub} />
+      <TerritoryInfo sub={sub} truncated={truncated} />
     </AccordianCard>
   )
 }
@@ -55,12 +55,12 @@ export function TerritoryInfoSkeleton ({ children, className }) {
   )
 }
 
-export function TerritoryInfo ({ sub, includeLink }) {
+export function TerritoryInfo ({ sub, includeLink, truncated }) {
   return (
     <>
       {includeLink && <Link href={`/~${sub.name}`}>{sub.name}</Link>}
       <div className='py-2'>
-        <Text>{sub.desc}</Text>
+        <Text state={sub.lexicalState} html={sub.html}>{truncated ? sub.desc : undefined}</Text>
       </div>
       <CardFooter className={`py-1 ${styles.other}`}>
         <div className='text-muted'>

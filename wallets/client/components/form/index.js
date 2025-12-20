@@ -13,7 +13,6 @@ import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName,
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import { useFormikContext } from 'formik'
-
 import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
 import { Settings } from './settings'
 import { BackButton, SkipButton } from './button'

@@ -22,7 +22,7 @@ SET "commentDownMsats" = subquery."commentDownMsats"
 FROM (
     SELECT b.id AS "itemId", SUM(a."downMsats") AS "commentDownMsats"
     FROM downzaps a
-    JOIN "Item" b ON b.path <@ a.path AND a.id <> b.id
+    JOIN "Item" b ON b.path @> a.path AND a.id <> b.id
     GROUP BY b.id
 ) subquery
 WHERE "Item"."id" = subquery."itemId";

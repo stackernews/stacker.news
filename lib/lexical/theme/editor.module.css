@@ -19,13 +19,13 @@
 }
 
 /* non-top-level editor for things such as comments */
-.editorContainer:not(:global(.sn-text--top-level)) .editor {
+.editorContainer:not([data-top-level='true']) .editor {
   --editor-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
   --editor-bg: var(--theme-forceCommentBg);
 }
 
 /* editor focus state */
-.editor:has(.editorInput:focus-within) {
+.editor:has(.editorContent:focus-within) {
   --editor-border-color: var(--bs-primary);
   outline: 0;
   box-shadow: 0 0 4px var(--bs-primary);
@@ -47,13 +47,9 @@
 
 /* editor input */
 
-.editorInput {
-  caret-color: var(--theme-color);
+.editorContent {
   margin-top: -1px;
-  font-size: 94%;
-  line-height: 140%;
   position: relative;
-  tab-size: 1;
   outline: 0;
   padding: 8px;
   min-height: 120px;
@@ -62,8 +58,15 @@
   background-color: transparent;
 }
 
+.editorContentInput {
+  caret-color: var(--theme-color);
+  font-size: 94%;
+  line-height: 140%;
+  tab-size: 1;
+}
+
 @media screen and (min-width: 767px) {
-  .editorInput {
+  .editorContentInput {
     line-height: 130%;
   }
 }
@@ -80,22 +83,6 @@
   white-space: nowrap;
   display: inline-block;
   pointer-events: none;
-}
-
-/* markdown mode code block styling */
-
-.editorInput code[data-language="markdown"] {
-  background-color: var(--theme-body) !important;
-  color: var(--theme-color);
-  font-family: inherit;
-  font-size: 100% !important;
-  display: block;
-  padding: 0 !important;
-  line-height: 1.53;
-  margin: 0 0 8px;
-  tab-size: 2;
-  overflow-x: auto;
-  position: relative;
 }
 
 /* toolbar */
@@ -360,7 +347,7 @@
 /* editor mode tabs */
 .modeTabs {
   --tab-border-color: var(--theme-borderColor);
-  --tab-bg: var(--theme-commentBg);
+  --tab-bg: var(--theme-inputBg);
   --tab-shadow: none;
   --tab-clip: none;
 
@@ -378,13 +365,13 @@
 }
 
 /* non-top-level editor tabs (comments, etc.) */
-.editorContainer:not(:global(.sn-text--top-level)) .modeTabs {
+.editorContainer:not([data-top-level='true']) .modeTabs {
   --tab-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
   --tab-bg: var(--theme-forceCommentBg);
 }
 
 /* focus state for tabs */
-.toolbar:has(~ .editor .editorInput:focus-within) .modeTabs {
+.toolbar:has(~ .editor .editorContent:focus-within) .modeTabs {
   --tab-border-color: var(--bs-primary);
   --tab-shadow: 0 0 4px var(--bs-primary);
   --tab-clip: inset(-0.2rem -0.2rem -0.1rem -0.2rem);
@@ -634,7 +621,7 @@
 }
 
 /* focus state for mode switcher */
-.toolbar:has(~ .editor .editorInput:focus-within) .modeSwitcherContainer {
+.toolbar:has(~ .editor .editorContent:focus-within) .modeSwitcherContainer {
   --switcher-border-color: var(--bs-primary);
   --switcher-shadow: 0 0 0 0.2rem rgb(240 218 94 / 25%);
   --switcher-clip: inset(-0.2rem -0.2rem -0.005rem -0.2rem);

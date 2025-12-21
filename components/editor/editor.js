@@ -87,13 +87,14 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
   return (
-    <div className={classNames(styles.editorContainer, topLevel && 'sn-text--top-level')}>
+    <div className={classNames(styles.editorContainer)} data-top-level={topLevel ? 'true' : 'false'}>
       <EditorRefPlugin editorRef={editorRef} />
       <ToolbarPlugin topLevel={topLevel} name={name} />
       {/* we only need a plain text editor for markdown */}
       <div className={styles.editor} ref={onContainerRef}>
         <ContentEditable
-          className={classNames(styles.editorInput, 'sn-text')}
+          data-sn-editor='true'
+          className={classNames(styles.editorContent, styles.editorContentInput, 'sn-text')}
           /* lh is a css unit that is equal to the line height of the element
               probably the worst thing is that we have to add 1 to the minRows to get the correct height
           */

@@ -40,14 +40,14 @@ LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
     (
     (COALESCE("msats",0)::double precision
        + (COALESCE("boost",0)::double precision + COALESCE("oldBoost",0)::double precision) * 1000.0
-       + COALESCE("commentMsats",0)::double precision * 0.1
+       + COALESCE("commentMsats",0)::double precision * 0.25
       ) * 0.3
       - COALESCE("downMsats",0)::double precision
       - COALESCE("commentDownMsats",0)::double precision * 0.1
     )
 $$;
 
--- Static exponential ORDER BY key in log-space (H=12 hours ⇒ λ ≈ 0.057762/h)
+-- Static exponential ORDER BY key in log-space (H=4 hours ⇒ λ ≈ 0.173287/h)
 -- Allowing the hot key to be computer in this function allows us to adjust the half-life of hot ranking
 -- by replacing this function then running UPDATE "Item" SET created_at = created_at;
 CREATE OR REPLACE FUNCTION rankhot_sort_key(
@@ -63,7 +63,7 @@ LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
   SELECT CASE
         WHEN ranktop_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats") > 0
             THEN LN(ranktop_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats"))
-                + LN(2)/12.0 * (EXTRACT(EPOCH FROM "created_at") / 3600.0)
+                + LN(2)/4.0 * (EXTRACT(EPOCH FROM "created_at") / 3600.0)
             ELSE -1e300
         END
 $$;
@@ -92,21 +92,16 @@ $$;
 ALTER TABLE "Item"
   ADD COLUMN ranktop double precision GENERATED ALWAYS AS (
     ranktop_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats")
-  ) STORED NOT NULL;
-
-ALTER TABLE "Item"
+  ) STORED NOT NULL,
   ADD COLUMN rankhot double precision GENERATED ALWAYS AS (
     rankhot_sort_key("msats", "boost", "oldBoost", "commentMsats", "downMsats", "commentDownMsats", "created_at")
-  ) STORED NOT NULL;
-
-ALTER TABLE "Item" ADD COLUMN "rankboost" DOUBLE PRECISION GENERATED ALWAYS AS (
+  ) STORED NOT NULL,
+  ADD COLUMN "rankboost" DOUBLE PRECISION GENERATED ALWAYS AS (
     (COALESCE("boost",0)::double precision)
         * 1000.0
         * 0.3
     - COALESCE("downMsats",0)::double precision
-) STORED NOT NULL;
-
-ALTER TABLE "Item"
+  ) STORED NOT NULL,
   ADD COLUMN genoutlawed boolean GENERATED ALWAYS AS (
     genoutlawed_state("weightedVotes", "weightedDownVotes", "outlawed", "created_at", "msats", "downMsats", "boost", "oldBoost")
   ) STORED NOT NULL;
@@ -415,3 +410,19 @@ BEGIN
     RETURN result;
 END
 $$;
+
+-- fix old boosts recorded as msats instead of sats
+WITH boost AS (
+    SELECT sum("mcost") FILTER (WHERE "PayIn"."payInStateChangedAt" <= now() - interval '30 days') as old_msats,
+          sum("mcost") FILTER (WHERE "PayIn"."payInStateChangedAt" > now() - interval '30 days') as cur_msats,
+          "ItemPayIn"."itemId"
+    FROM "PayIn"
+    JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn"."id"
+    WHERE "payInType" = 'BOOST'
+    AND "payInState" = 'PAID'
+    GROUP BY "ItemPayIn"."itemId"
+  )
+  UPDATE "Item"
+  SET boost = COALESCE(boost.cur_msats, 0) / 1000, "oldBoost" = COALESCE(boost.old_msats, 0) / 1000
+  FROM boost
+  WHERE "Item".id = boost."itemId";

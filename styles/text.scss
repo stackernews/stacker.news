@@ -17,7 +17,7 @@
   }
 }
 
-.sn-text > div >*:not(.sn-heading, .sn-toc, .sn-spoiler, .sn-code-block) {
+.sn-text > div >*:not(.sn-heading, .sn-toc, .sn-spoiler, .sn-code-block, .sn-hr) {
   padding-top: calc(var(--grid-gap) * 0.5);
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }

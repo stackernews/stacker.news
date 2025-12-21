@@ -5,8 +5,8 @@ import pay from '@/api/payIn'
 const TOTAL_UPPER_BOUND_MSATS = 1_000_000_000
 const PERCENTILE_CUTOFF = 50
 const ZAP_THRESHOLD = 20
-const EACH_ZAP_PORTION = 4.0
-const EACH_ITEM_PORTION = 4.0
+const EACH_ZAP_PORTION = 2.0
+const EACH_ITEM_PORTION = 0
 const HANDICAP_IDS = [616, 4502, 27]
 const HANDICAP_ZAP_MULT = 0.5
 
@@ -113,10 +113,12 @@ export async function earn ({ name }) {
             "type", NULL as "typeId"
         FROM item_zapper_ratios
         WHERE item_zapper_proportion > 0
+        AND ${EACH_ZAP_PORTION} > 0
         UNION ALL
         SELECT "userId", rank, item_proportions.proportion/${EACH_ITEM_PORTION} as "typeProportion",
             "type", item_proportions.id as "typeId"
         FROM item_proportions
+        WHERE ${EACH_ITEM_PORTION} > 0
     ),
     reward_prospects AS (
       SELECT "userId",

@@ -213,7 +213,7 @@ export default function Comment ({
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.outlawed && !me?.privates?.wildWestMode
-          ? <Skull className={styles.dontLike} width={24} height={24} />
+          ? <Skull className={styles.dontLike} width={18} height={18} />
           : pin
             ? <Pin width={22} height={22} className={styles.pin} />
             : item.mine

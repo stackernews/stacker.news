@@ -8,7 +8,7 @@ sub: meta
 
 _To quickly browse through this FAQ page, click the chapters icon in the top-right corner. This will let you scroll through all chapters or search for a particular topic within this page._
 
-last updated: October 20, 2025
+last updated: December 17, 2025
 
 ---
 
@@ -64,9 +64,7 @@ Stackers can also earn sats via daily rewards. Stacker News uses the revenue it 
 
 **3. Referrals**
 
-Another way to earn sats is via [referrals](/referrals/month). If a stacker signs up through one of your referral links, you will earn 10% of their rewards in perpetuity. A referral link is any link that ends with /r/\<your name\>. Additionally, if a stacker clicks your referral links more than anyone else's on a given day, you will also receive 10% of their rewards for that day.
-
-Your posts, comments and profile are implicit referral links. They don't need to have the /r/\<your name\> suffix.
+Another way to earn sats is via [referrals](/referrals/month). If a stacker signs up through one of your referral links, you will earn 10% of their rewards in perpetuity. A referral link is any link that ends with /r/\<your name\>. Your posts, comments and profile are also implicit referral links. They don't need to have the /r/\<your name\> suffix.
 
 To make referring stackers easy, clicking on `...` next to a post or comment and selecting 'copy link' will copy it as a referral link by default. You can disable this in your [settings](/settings).
 
@@ -125,22 +123,22 @@ You need to enter your passphrase on another device so it can derive the same ke
 This can happen for any of the following reasons:
 
 1. The sender did not have a wallet attached
-2. Sender's dust limit was too high for the outgoing zap amount ('send credits for zaps below' in [settings](/settings))
-3. Your dust limit was too high for the incoming zap amount ('receive credits for zaps and deposits below' in [settings](/settings))
+2. Sender's dust limit is higher than the outgoing zap amount
+3. Your dust limit is higher than the incoming zap amount (configured on the last screen when attaching a wallet)
 3. Sender's wallet was not able to pay
-4. Routing the payment to you was too expensive for the zap amount (3% are reserved for network fees)
-5. The zap was forwarded to you
+4. Routing the payment to your wallet was too expensive relative to the zap amount (3% is reserved for network fees)
+5. The OP chose you as a split for the zaps (split zaps are CCs-only currently)
 
 ### I have a wallet attached but I still send CCs. Why?
 
 This can happen for any of the following reasons:
 
 1. The receiver did not have a wallet attached
-2. Your dust limit was too high for the outgoing zap amount ('send credits for zaps below' in [settings](/settings))
-3. Receiver's dust limit was too high for the incoming zap amount ('receive credits for zaps and deposits below' in [settings](/settings))
+2. Your dust limit is higher than the outgoing zap amount (configured on the last screen when attaching a wallet)
+3. Receiver's dust limit is higher than the incoming zap amount
 4. Your wallet was not able to pay
-5. Routing the payment to the sender was too expensive for the zap amount (3% are reserved for network fees)
-6. The zap was forwarded to the receiver
+5. Routing the payment to your wallet was too expensive relative to the zap amount (3% are reserved for network fees)
+6. The OP chose to split the zaps (split zaps are CCs-only currently)
 
 ### I don't want to receive CCs. How do I disable them?
 
@@ -148,23 +146,21 @@ You cannot disable receiving CCs but we might change that in the future. For now
 
 ### If I attach a wallet, do I always pay with sats?
 
-No. We will only try to pay with sats from your wallet when you zap other stackers. In any other case, you're paying us, Stacker News, and we will thus try to first use any CCs you already have. If you don't have enough CCs, we will fallback to your attached wallet.
+No. Even if you have CCs, we will only try to pay with sats from your wallet when you zap other stackers that have attached a receiving wallet. In any other case, you're paying us, Stacker News, and we will thus try to first use any CCs you already have. If you don't have enough CCs, we will attempt to pay the remainder using your attached wallet.
 
 ### Can I pay only the remainder with sats?
 
-No. Payments can currently only be made entirely in CCs or sats.
+Yes. Anytime you pay Stacker News for something, we will spend the less desirable CCs first, and pay any remainder with Reward Sats, and pay any remainder of that with an attached wallet.
 
 ### Which wallet is used if I attached multiple wallets for send or receive?
 
-All of them! The wallet that is the furthest to the top-left will be attempted first. If it fails, we will attempt the next wallet in order. On desktop, you can drag the wallets around to rearrange their priority. On mobile, you need to click on a wallet and then select where you want the wallet to be.
+The wallet that is most top-left will be attempted first. If it fails, we will attempt the next wallet in left-to-right order. On desktop, you can drag the wallets around to rearrange their priority. On mobile, you need to click on a wallet and then select where you want the wallet to be.
 
-These sender and receiver fallbacks happen if the payment failed for any reason. The sender will attempt the next wallet if the error was caused by the sender side and the same is true for the receiver.
-
-The only limitation is that we will currently not attempt to pay with CCs at the end once we started to try paying with sats but all wallets failed. This will change in the future.
+These sender and receiver fallbacks happen if the payment failed. The sender will attempt their next wallet if the error was caused by them. We will attempt the next receiving wallet if the error was caused by the receiving side.
 
 ### Are payments retried in the background?
 
-Yes. We try each payment three times in total with all sender and receiver fallbacks. If a payment still wasn't successful after that, you will receive a notification allowing you to retry the payment manually.
+Yes. We retry failed payments multiple times attempting different sender and receiver fallbacks. If a payment still wasn't successful, you will receive a notification allowing you to retry the payment manually.
 
 ### How do I get a gun or a horse?
 
@@ -194,9 +190,9 @@ If you later change your mind, your payment for the current period is included i
 
 ### Do I earn sats from territories?
 
-Yes. Territory founders earn 70% of all posting and boost fees as well as 21% of all sats zapped within their territory. These earnings are paid out at the end of each day. You will receive a notification and you can withdraw your sats at any time [here](/credits).
+Yes. Territory founders earn 70% of all posting and boost fees as well as 21% of all sats zapped within their territory.
 
-The remaining 30% of posting and boost fees and 9% of zapped sats go to the Stacker News daily rewards pool, which rewards the best contributors each day.
+The remaining fees go to the Stacker News daily rewards pool, which rewards the best contributors each day.
 
 ### Why does it cost more to post in some territories?
 
@@ -208,8 +204,6 @@ As an example, if it costs 10 sats for a stacker to make a post in a territory, 
 
 This 10x fee escalation continues until 10 minutes have elapsed, and will reset to a fee of 10 sats when the stacker goes 10 minutes or more without posting or replying to themselves in a comment thread.
 
-This 10 minute fee escalation rule does not apply to stackers who are replying to other stackers, only those who repetitively post or reply to themselves within a single thread.
-
 ### Are media uploads free?
 
 Your first 250 MB within 24 hours are free. After that, the following fees apply:
@@ -217,9 +211,7 @@ Your first 250 MB within 24 hours are free. After that, the following fees apply
 | uploaded within 24 hours | cost per upload |
 | -------------------------| --------------- |
 | up to 250 MB             | 0 sats          |
-| 250-500 MB               | 10 sats         |
-| 500-1 GB                 | 100 sats        |
-| more than 1GB            | 1,000 sats      |
+| more than 250 MB         | 100 sats        |
 
 After 24 hours, you can upload 250 MB for free again.
 
@@ -260,8 +252,7 @@ The stats for each territory are the following:
 - stacked: how many sats stackers stacked in this territory without the 30% sybil fee
 - revenue: how much revenue went to the founder
 - spent: how many sats have been spent in this territory on posts, comments, boosts, zaps, downzaps, jobs and poll votes
-- posts: the total number of posts in the territory
-- comments: the total number of comments in the territory
+- items: the total number of items in the territory
 
 You can filter the same stats by different periods in [top territories](/top/territories/day).
 
@@ -285,35 +276,30 @@ Your last five custom amounts are saved so you can quickly zap the same amount a
 
 ### Do zaps help content rank higher?
 
-Yes. The ranking of an item is affected by:
+Yes, in hot ranking:
 
 - the amount stackers zapped a post or comment
-- the trust of the zappers
 - the time elapsed since the creation of the item
 
-Zapping an item with more sats gives you more influence on an item's ranking. However, the relationship between sats contributed and a stacker's influence on item ranking is not linear, it's logarithmic: the effect a stacker's zap has on an item's ranking is `trust*log10(total zap amount)`. This basically means that 10 sats equal 1 vote, 100 sats 2, 1000 sats 3, and so on ... all values in between and above 0 are valid as well.
+Zapping an item with more sats gives you more influence on an item's ranking.
 
 To make this feature sybil-resistant, SN takes 30% of zaps and re-distributes them to territory founders and the SN community as part of the daily rewards.
 
 ### Why should I zap?
 
-There are four reasons to zap posts on Stacker News:
+Here are few reasons to zap content on Stacker News:
 
 1. To influence the ranking of content on the site
 
-Every post and comment is ranked based on the number of people who zapped it and the trust level of each zapping stacker. More zaps from more trusted stackers means more people will see a particular piece of content.
+More zaps means more people will see a particular piece of content.
 
 2. To acknowledge the value of the content other people create (value for value)
 
 Sending someone a like or an upvote incurs no cost to you, and therefore these metrics can easily be gamed by bots. Sending someone sats incurs a direct cost to you, which gives the recipient a meaningful reward and acts as a clear signal that you found a particular piece of content to be valuable.
 
-3. To earn trust for identifying good content
-
-On Stacker News, new stackers start with zero trust and either earn trust by zapping good content or lose trust by zapping bad content. Good and bad content is determined by overall consensus based on zaps.
-
 4. To earn sats from the daily rewards pool
 
-You can earn sats from the daily rewards pool by zapping content that ends up performing well. The amount you receive is proportional to your trust, the amount of sats you zapped and how early you zapped compared to others.
+You can earn sats from the daily rewards pool by zapping content that ends up performing well. The amount you receive is proportional to the amount of sats you zapped, how early you zapped the day's best content, and your trust level.
 
 ### Can I donate sats to Stacker News?
 
@@ -323,17 +309,17 @@ To donate sats directly to the Stacker News rewards pool, or to view the rewards
 
 ### Someone zapped me 100 sats but I only received 70 sats. Why?
 
-SN takes 30% of zaps and re-distributes them to territory founders (21%) and the SN community as part of the daily rewards (9%).
+30% of zaps go to territory founders (21%) and the SN community as part of the daily rewards (9%). This sacrifice allows Stacker News to determine that the zap is genuine and can be used as a signal for ranking and daily rewards.
 
-So this means if someone zaps your post or comment 100 sats, 70 sats go to you, 21 sats go to the territory founder and the remaining 9 sats are distributed as part of the daily rewards.
+By example, if someone zaps your post or comment 100 sats, 70 sats go to you, 21 sats go to the territory founder and the remaining 9 sats are distributed as part of the daily rewards.
 
 ### Is there an equivalent to downvotes?
 
 Yes. If you see content that you think should not be on Stacker News, you can click the `...` next to the post or comment and select 'downzap'. You can then enter a custom amount to downzap the content.
 
-Downzapping content is a form of negative feedback that reduces the visibility of the specific item for all stackers who don't have Wild West mode enabled in their [settings](/settings). If Wild West mode is not enabled, you are in Tenderfoot mode which is the default mode.
+Downzapping content is a form of negative feedback that reduces the visibility of the specific item.
 
-If an item gets flagged by stackers with enough combined trust, it is outlawed and hidden from view for stackers on Tenderfoot mode. If you wish to see this flagged content without any modifications, you can enable Wild West mode in your settings.
+If an item gets downzapped using enough sats, it is outlawed and hidden from view for stackers who do not have Wild West mode enabled in their [settings](/settings). If you wish to see outlawed content, you can enable Wild West mode in your [settings](/settings).
 
 ### What are turbo zaps?
 
@@ -363,27 +349,21 @@ _In case you wonder how we can undo zaps when lightning transactions are final: 
 
 ## Web of Trust
 
-Stacker News relies on a [Web of Trust](https://en.wikipedia.org/wiki/Web_of_trust) between stackers to drive ranking and daily rewards.
+Stacker News relies on a [Web of Trust](https://en.wikipedia.org/wiki/Web_of_trust) for daily rewards.
 
 ### How does the Web of Trust work?
 
-There are two trust scores: trust scores between stackers and global trust scores (trust scores assigned to individual stackers).
-
 New accounts start without any trust and over time earn trust from other stackers by zapping content before them.
 
-The only consideration that factors into a stacker's trust level is whether or not they are zapping good content. Zap amounts do not impact stackers' trust scores.
+The only determinant of a stacker's trust level is whether or not they are zapping good content earlier than other stackers.
 
-In addition, stackers do not lose or gain trust for making posts or comments. Instead, the post and comment fees are the mechanism that incentivizes stackers to only make high quality posts and comments.
+Stackers do not lose or gain trust for making posts or comments.
 
-A stacker’s trust is an important factor in determining how much influence their zaps have on the ranking of content, and how much they earn from the daily sat reward pool paid to zappers.
-
-The trust scores are computed daily based on the zapping activity of stackers.
-
-Your global trust score is basically how much stackers trust you on average.
+A stacker’s trust is an important factor in determining how much they earn from the rewards pool for their zaps.
 
 ### Can I see my trust scores?
 
-No. All trust scores are private. We might make them public in the future but for now, they are kept private to protect the integrity of ranking and rewards.
+No. All trust scores are private, and even if it weren't confusing to see them, it'd make trust an easier target for manipulation.
 
 ---
 

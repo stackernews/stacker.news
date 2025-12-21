@@ -63,7 +63,7 @@ export async function onPaid (tx, payInId) {
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('expireBoost', jsonb_build_object('id', ${payIn.itemPayIn.itemId}::INTEGER), 21, true,
-              now() + interval '30 days', now() + interval '40 days')`
+              now() + interval '7 days', now() + interval '10 days')`
 }
 
 export async function describe (models, payInId) {

@@ -151,8 +151,7 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
     if (width && height && width > 0 && height > 0) {
       style = {
         '--height': `${height}px`,
-        '--width': `${width}px`,
-        '--aspect-ratio': `${width} / ${height}`
+        '--width': `${width}px`
       }
     }
   }

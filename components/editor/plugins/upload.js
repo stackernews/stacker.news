@@ -101,9 +101,8 @@ export default function FileUploadPlugin ({ editorRef }) {
   // and dispatches a change event to the file input
   const $onDrop = useCallback((e) => {
     e.preventDefault()
-    const rootElement = editor.getRootElement()
-    if (rootElement) {
-      rootElement.classList.remove(styles.dragOver)
+    if (editorRef) {
+      editorRef.classList.remove(styles.dragOver)
     }
 
     // set lexical selection to the drag selection
@@ -117,7 +116,7 @@ export default function FileUploadPlugin ({ editorRef }) {
     const changeEvent = new Event('change', { bubbles: true })
     fileInputRef.current.files = e.dataTransfer.files
     fileInputRef.current.dispatchEvent(changeEvent)
-  }, [])
+  }, [editorRef])
 
   // command that opens the file upload dialog
   useEffect(() => {
@@ -173,9 +172,8 @@ export default function FileUploadPlugin ({ editorRef }) {
       editor.registerCommand(
         DRAGOVER_COMMAND,
         (e) => {
-          const rootElement = editor.getRootElement()
-          if (rootElement) {
-            rootElement.classList.add(styles.dragOver)
+          if (editorRef) {
+            editorRef.classList.add(styles.dragOver)
           }
           return true
         },
@@ -192,9 +190,8 @@ export default function FileUploadPlugin ({ editorRef }) {
     )
 
     const onDragLeave = () => {
-      const rootElement = editor.getRootElement()
-      if (rootElement) {
-        rootElement.classList.remove(styles.dragOver)
+      if (editorRef) {
+        editorRef.classList.remove(styles.dragOver)
       }
     }
 

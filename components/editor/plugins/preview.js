@@ -63,7 +63,7 @@ export default function PreviewPlugin ({ editorRef, topLevel, name }) {
       className={styles.editor}
       onKeyDown={handlePreviewKeyDown}
     >
-      <Text className={styles.editorInput} topLevel={topLevel} preview name={name} />
+      <Text className={styles.editorContent} topLevel={topLevel} preview name={name} />
     </div>
   )
 }

@@ -62,7 +62,7 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>
       <EditorRefPlugin editorRef={readerRef} />
-      <ContentEditable />
+      <ContentEditable data-sn-reader='true' />
       {preview && <PreviewSyncPlugin name={name} />}
       <CodeThemePlugin />
       <NextLinkPlugin />

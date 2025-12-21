@@ -1,10 +1,8 @@
 import { useRouter } from 'next/router'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import styles from './pull-to-refresh.module.css'
-import NProgress from 'nprogress'
 
 const REFRESH_THRESHOLD = 150
-const PULL_TIMEOUT = 1500
 
 export default function PullToRefresh ({ children, className }) {
   const router = useRouter()
@@ -12,7 +10,6 @@ export default function PullToRefresh ({ children, className }) {
   const [isPWA, setIsPWA] = useState(false)
   const touchStartY = useRef(0)
   const touchEndY = useRef(0)
-  const pullTimeoutRef = useRef(null)
 
   const checkPWA = () => {
     const androidPWA = window.matchMedia('(display-mode: standalone)').matches
@@ -25,10 +22,6 @@ export default function PullToRefresh ({ children, className }) {
     document.body.style.marginTop = '0px'
     touchStartY.current = 0
     touchEndY.current = 0
-    if (pullTimeoutRef.current) {
-      clearTimeout(pullTimeoutRef.current)
-      pullTimeoutRef.current = null
-    }
   }
 
   useEffect(checkPWA, [])
@@ -37,9 +30,6 @@ export default function PullToRefresh ({ children, className }) {
     // don't handle if the user is not scrolling from the top of the page, is not on a PWA or if we want Android's native PTR
     if (!isPWA || window.scrollY > 0) return
     touchStartY.current = e.touches[0].clientY
-    pullTimeoutRef.current = setTimeout(() => {
-      clearPullDistance()
-    }, PULL_TIMEOUT)
   }, [isPWA])
 
   const handleTouchMove = useCallback((e) => {
@@ -51,32 +41,27 @@ export default function PullToRefresh ({ children, className }) {
       clearPullDistance()
       return
     }
+
     touchEndY.current = e.touches[0].clientY
     const distance = touchEndY.current - touchStartY.current
-    if (distance > 0) {
-      e.preventDefault()
-      setPullDistance(distance)
-      document.body.style.marginTop = `${Math.max(0, Math.min(distance / 2, 25))}px`
-    } else {
-      clearPullDistance()
-    }
+    setPullDistance(distance)
+    document.body.style.marginTop = `${Math.max(0, Math.min(distance / 2, 25))}px`
   }, [isPWA])
 
   const handleTouchEnd = useCallback(() => {
     if (touchStartY.current === 0 || touchEndY.current === 0) return
     if (touchEndY.current - touchStartY.current > REFRESH_THRESHOLD) {
-      NProgress.done()
-      router.replace(router.asPath)
+      router.push(router.asPath)
     }
     clearPullDistance()
   }, [router])
 
   useEffect(() => {
     if (!isPWA) return
-    document.body.style.overscrollBehaviorY = 'contain'
     document.documentElement.style.overscrollBehaviorY = 'contain'
-    document.addEventListener('touchstart', handleTouchStart, { passive: false })
-    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.body.style.overscrollBehaviorY = 'contain'
+    document.addEventListener('touchstart', handleTouchStart)
+    document.addEventListener('touchmove', handleTouchMove)
     document.addEventListener('touchend', handleTouchEnd)
     return () => {
       document.body.style.overscrollBehaviorY = ''
@@ -96,6 +81,9 @@ export default function PullToRefresh ({ children, className }) {
   return (
     <main
       className={className}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <p
         className={`${styles.pullMessage}`}

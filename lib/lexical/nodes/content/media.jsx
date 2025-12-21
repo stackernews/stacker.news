@@ -164,7 +164,6 @@ export class MediaNode extends DecoratorNode {
 
     element.style.setProperty('--width', width ? `${width}px` : 'inherit')
     element.style.setProperty('--height', height ? `${height}px` : 'inherit')
-    element.style.setProperty('--aspect-ratio', width && height ? `${width} / ${height}` : 'auto')
     element.style.setProperty('--max-width', `${this.__maxWidth}px`)
 
     const media = document.createElement(kind === 'video' ? 'video' : 'img')
@@ -176,7 +175,7 @@ export class MediaNode extends DecoratorNode {
       media.setAttribute('srcset', srcSet)
       media.setAttribute('sizes', '66vw')
     }
-    if (bestResSrc) {
+    if (bestResSrc && kind === 'video') {
       media.setAttribute('poster', bestResSrc !== this.__src ? bestResSrc : undefined)
       media.setAttribute('preload', bestResSrc !== this.__src ? 'metadata' : undefined)
     }
@@ -204,7 +203,6 @@ export class MediaNode extends DecoratorNode {
     if (height) {
       span.style.setProperty('--height', `${height}px`)
     }
-    span.style.setProperty('--aspect-ratio', width && height ? `${width} / ${height}` : 'auto')
 
     span.style.setProperty('--max-width', `${this.__maxWidth}px`)
     return span

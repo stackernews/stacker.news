@@ -166,10 +166,8 @@
   }
 }
 
-span.sn-media-container {
-  cursor: default;
+.sn-media-container {
   display: block;
-  position: relative;
   width: 100%;
   max-width: 100%;
   height: auto;
@@ -179,25 +177,26 @@ span.sn-media-container {
   margin: 0;
 }
 
-.sn-paragraph:has(span.sn-media-container) {
-  padding-bottom: 0 !important;
+.sn-paragraph:has(> .sn-media-container) .sn-media-container
+{
+  display: flex;
+  max-width: 100%;
+  width: min-content;
 }
 
-.sn-paragraph:has(span.sn-media-container) + .sn-paragraph:has(span.sn-media-container) {
-  padding-top: 0 !important;
+.sn-paragraph:has(> .sn-media-container) .sn-media-container img,
+.sn-paragraph:has(> .sn-media-container) .sn-media-container video
+{
+  min-width: 30%;
+  max-width: stretch;
 }
 
-span.sn-media-container:has(a) {
-  display: inline;
+.sn-paragraph:has(> .sn-media-container) .sn-media-container img
+{
+  block-size: revert-layer;
 }
 
-span.sn-media-container .outlawed {
-  user-select: text;
-  cursor: text;
-}
-
-.sn-media-container img,
-.sn-media-container video {
+.sn-media-container img, .sn-media-container video {
   display: block;
   object-fit: contain;
   width: auto;
@@ -205,7 +204,6 @@ span.sn-media-container .outlawed {
   height: 100%;
   max-width: 100%;
   aspect-ratio: var(--width) / var(--height);
-  cursor: default;
 }
 
 .sn-media-container img {
@@ -216,6 +214,53 @@ span.sn-media-container .outlawed {
 
 .sn-text--top-level .sn-media-container {
   max-height: 35vh;
+}
+
+.sn-media-container {
+  display: flex;
+  max-width: 100%;
+  max-height: 25vh;
+}
+
+.sn-media-container img,
+.sn-media-container video {
+  display: block;
+  object-fit: contain;
+  max-width: 100%;
+  min-width: 30%;
+  width: auto;
+  height: 100%;
+  aspect-ratio: var(--width) / var(--height);
+}
+
+.sn-media-container img {
+  cursor: zoom-in;
+  min-width: 30%;
+  object-position: left top;
+}
+
+.sn-text--top-level .sn-media-container {
+  max-height: 35vh;
+}
+
+/* in case media-or-link detects a link */
+.sn-media-container:has(a) {
+  display: inline;
+}
+
+/* remove padding if the media is the last child of a paragraph */
+.sn-paragraph:has(.sn-media-container) {
+  padding-bottom: 0 !important;
+}
+
+/* remove padding if the media is the first child of a paragraph */
+.sn-paragraph:has(.sn-media-container) + .sn-paragraph:has(.sn-media-container) {
+  padding-top: 0 !important;
+}
+
+.sn-media-container .outlawed {
+  user-select: text;
+  cursor: text;
 }
 
 .sn-gallery {

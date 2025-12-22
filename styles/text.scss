@@ -735,15 +735,9 @@ span + .sn-link {
 }
 
 /* footnotes */
-.sn-footnote-ref {
-  vertical-align: super;
-  font-size: smaller;
-  line-height: 1;
-
-  a {
-    text-decoration: none;
-    color: var(--theme-link);
-  }
+.sn-footnote-ref a {
+  text-decoration: none;
+  color: var(--theme-link);
 }
 
 .sn-footnotes {

@@ -248,16 +248,6 @@
   display: inline;
 }
 
-/* remove padding if the media is the last child of a paragraph */
-.sn-paragraph:has(.sn-media-container) {
-  padding-bottom: 0 !important;
-}
-
-/* remove padding if the media is the first child of a paragraph */
-.sn-paragraph:has(.sn-media-container) + .sn-paragraph:has(.sn-media-container) {
-  padding-top: 0 !important;
-}
-
 .sn-media-container .outlawed {
   user-select: text;
   cursor: text;

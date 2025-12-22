@@ -275,6 +275,10 @@ export class MediaNode extends DecoratorNode {
     $setState(this, statusState, kind === 'unknown' ? 'error' : 'done')
   }
 
+  isInline () {
+    return false
+  }
+
   decorate () {
     const MediaComponent = require('@/components/editor/nodes/media').default
     return (

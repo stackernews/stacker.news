@@ -450,7 +450,7 @@ a:hover {
 }
 
 select,
-div[contenteditable]:not(.sn-text):not(.sn-text *),
+div[contenteditable]:not([data-lexical-editor]):not([data-lexical-editor] *),
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -492,7 +492,7 @@ select:focus {
 }
 
 
-div[contenteditable]:not(.sn-text):not(.sn-text *):focus,
+div[contenteditable]:not([data-lexical-editor]):not([data-lexical-editor] *):focus,
 .form-control:focus {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -500,7 +500,7 @@ div[contenteditable]:not(.sn-text):not(.sn-text *):focus,
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
-div[contenteditable]:not(.sn-text):not(.sn-text *):disabled,
+div[contenteditable]:not([data-lexical-editor]):not([data-lexical-editor] *):disabled,
 .form-control:disabled,
 .form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
@@ -628,14 +628,15 @@ footer {
   cursor: pointer;
 }
 
+/* prevent zooming on mobile */
 @media screen and (max-width: 767px) {
 
   input,
   textarea,
   .form-control,
   .form-control:focus,
-  div[contenteditable]:not(.sn-text):not(.sn-text *),
-  div[contenteditable]:not(.sn-text):not(.sn-text *):focus,
+  div[contenteditable]:not([data-sn-reader]):not([data-sn-reader] *),
+  div[contenteditable]:not([data-sn-reader]):not([data-sn-reader] *):focus,
   .input-group-text {
     font-size: 1rem !important;
   }
@@ -648,7 +649,7 @@ footer {
 }
 
 textarea.form-control,
-div[contenteditable]:not(.sn-text):not(.sn-text *) {
+div[contenteditable]:not([data-sn-reader]):not([data-sn-reader] *) {
   line-height: 1rem;
 }
 
@@ -749,7 +750,7 @@ header .navbar:not(:first-child) {
   text-shadow: 0 0 10px var(--bs-primary);
 }
 
-div[contenteditable]:not(.sn-text):not(.sn-text *):focus,
+div[contenteditable]:not([data-lexical-editor]):not([data-lexical-editor] *):focus,
 .form-control:focus {
   border-color: var(--bs-primary);
 }

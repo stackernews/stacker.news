@@ -50,8 +50,7 @@ export function BoostHelp () {
   return (
     <ol>
       <li>Boost is <strong>exactly</strong> like a zap from other stackers: it ranks the item higher based on the amount</li>
-      <li>The highest boosted post in a territory over the last 7 days is pinned to the top of the territory</li>
-      <li>The highest boosted post across all territories over the last 7 days is pinned to the top of the homepage and the <Link href='/rewards'>rewards page</Link></li>
+      <li>The highest boosted post across all territories over the last 7 days is pinned to the top of the <Link href='/rewards'>rewards page</Link></li>
       <li>The top 5 highest boosted posts across all territories are shared in the newsletter</li>
       <li>100% of boost goes to the territory founder and top stackers as rewards</li>
       <li>Boosted items can be downzapped to reduce their rank</li>

@@ -599,8 +599,6 @@ export default {
                   ORDER BY position ASC`,
                   orderBy: 'ORDER BY position ASC'
                 }, ...subArr)
-
-                ad = await getAd(parent, { sub, subArr, showNsfw }, { me, models })
               }
 
               items = await itemQueryWithMeta({

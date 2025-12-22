@@ -103,7 +103,14 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
           aria-required={required}
         />
       </div>
-      {containerRef && <PreviewPlugin editorRef={containerRef} topLevel={topLevel} name={name} />}
+      {containerRef && (
+        <PreviewPlugin
+          editorRef={containerRef}
+          topLevel={topLevel}
+          name={name}
+          minRows={minRows}
+        />
+      )}
       <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
       <LocalDraftPlugin name={name} />

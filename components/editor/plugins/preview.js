@@ -8,7 +8,7 @@ import Text from '@/components/text'
 
 export const TOGGLE_PREVIEW_COMMAND = createCommand('TOGGLE_PREVIEW_COMMAND')
 
-export default function PreviewPlugin ({ editorRef, topLevel, name }) {
+export default function PreviewPlugin ({ editorRef, topLevel, name, minRows }) {
   const [editor] = useLexicalComposerContext()
   const { toolbarState, updateToolbarState } = useToolbarState()
   const [text] = useField({ name })
@@ -63,7 +63,7 @@ export default function PreviewPlugin ({ editorRef, topLevel, name }) {
       className={styles.editor}
       onKeyDown={handlePreviewKeyDown}
     >
-      <Text className={styles.editorContent} topLevel={topLevel} preview name={name} />
+      <Text className={styles.editorContent} topLevel={topLevel} preview name={name} minRows={minRows} />
     </div>
   )
 }

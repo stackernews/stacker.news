@@ -48,6 +48,18 @@ export default function PreviewPlugin ({ editorRef, topLevel, name }) {
     if (!previewEl) return
 
     const isPreview = toolbarState.previewMode
+
+    // workaround: capture editor height before hiding to prevent layout jump
+    // involves accessing contentEditable to get the current height
+    // and pass it to the preview element as a CSS variable
+    if (isPreview) {
+      const contentEditable = editorRef.firstElementChild
+      if (contentEditable) {
+        const editorHeight = contentEditable.offsetHeight
+        previewEl.style.setProperty('--editor-height', `${editorHeight}px`)
+      }
+    }
+
     editorRef.style.display = isPreview ? 'none' : ''
     previewEl.style.display = isPreview ? '' : 'none'
 
@@ -63,7 +75,7 @@ export default function PreviewPlugin ({ editorRef, topLevel, name }) {
       className={styles.editor}
       onKeyDown={handlePreviewKeyDown}
     >
-      <Text className={styles.editorContent} topLevel={topLevel} preview name={name} />
+      <Text innerClassName={styles.editorContent} topLevel={topLevel} preview name={name} />
     </div>
   )
 }

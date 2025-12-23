@@ -4,7 +4,7 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import Nav from 'react-bootstrap/Nav'
 import Layout from '@/components/layout'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import LoginButton from '@/components/login-button'
@@ -25,9 +25,10 @@ import { authErrorMessage } from '@/components/login'
 import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
+import { debounce } from '@/components/use-debounce-callback'
 import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
-import { useField } from 'formik'
+import { useField, useFormikContext } from 'formik'
 import styles from '@/styles/nav.module.css'
 import { AuthBanner } from '@/components/banners'
 
@@ -103,6 +104,96 @@ export default function Settings ({ ssrData }) {
   // if we switched to anon, me is null before the page is reloaded
   if ((!data && !ssrData) || !me) return <PageLoading />
 
+  const autoSaveSettings = useCallback(async (values) => {
+    const {
+      tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
+      zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
+      ...otherValues
+    } = values
+
+    let processedNostrPubkey = nostrPubkey
+    if (processedNostrPubkey && processedNostrPubkey.length > 0) {
+      const isValidHex = /^[0-9a-fA-F]{64}$/.test(processedNostrPubkey)
+      const isValidBech32 = NOSTR_PUBKEY_BECH32.test(processedNostrPubkey)
+      if (!isValidHex && !isValidBech32) {
+        return
+      }
+      if (isValidBech32) {
+        try {
+          const { words } = bech32.decode(processedNostrPubkey)
+          processedNostrPubkey = Buffer.from(bech32.fromWords(words)).toString('hex')
+        } catch (err) {
+          return
+        }
+      }
+    } else {
+      processedNostrPubkey = null
+    }
+
+    const nostrRelaysFiltered = nostrRelays
+      ?.filter(word => word.trim().length > 0)
+      .map(relay => relay.startsWith('wss://') ? relay : `wss://${relay}`)
+
+    try {
+      await setSettings({
+        variables: {
+          settings: {
+            tipDefault: Number(tipDefault),
+            tipRandomMin: tipRandom ? Number(tipRandomMin) : null,
+            tipRandomMax: tipRandom ? Number(tipRandomMax) : null,
+            withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
+            satsFilter: Number(satsFilter),
+            zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
+            nostrPubkey: processedNostrPubkey,
+            nostrRelays: nostrRelaysFiltered,
+            ...otherValues
+          }
+        }
+      })
+      toaster.success('your settings have been saved')
+    } catch (err) {
+      console.error(err)
+      toaster.danger('failed to save settings')
+    }
+  }, [setSettings, toaster])
+
+  const debouncedAutoSave = useMemo(
+    () => debounce(autoSaveSettings, 1500),
+    [autoSaveSettings]
+  )
+
+  const isInitialLoad = useRef(true)
+  useEffect(() => {
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false
+    }
+  }, [])
+
+  const AutoSaveHandler = () => {
+    const { values, errors, isValid, submitForm } = useFormikContext()
+    const previousValues = useRef(values)
+
+    useEffect(() => {
+      if (isInitialLoad.current) {
+        previousValues.current = values
+        return
+      }
+      const hasChanged = JSON.stringify(values) !== JSON.stringify(previousValues.current)
+      if (hasChanged) {
+        previousValues.current = values
+        submitForm().then(() => {
+          if (isValid && Object.keys(errors).length === 0) {
+            debouncedAutoSave(values)
+          }
+        }).catch((err) => {
+          console.error(err)
+        })
+      }
+    }, [values, debouncedAutoSave])
+
+    return null
+  }
+
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
@@ -153,46 +244,6 @@ export default function Settings ({ ssrData }) {
             noReferralLinks: settings?.noReferralLinks
           }}
           schema={settingsSchema}
-          onSubmit={async ({
-            tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
-            zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
-            ...values
-          }) => {
-            if (nostrPubkey.length === 0) {
-              nostrPubkey = null
-            } else {
-              if (NOSTR_PUBKEY_BECH32.test(nostrPubkey)) {
-                const { words } = bech32.decode(nostrPubkey)
-                nostrPubkey = Buffer.from(bech32.fromWords(words)).toString('hex')
-              }
-            }
-
-            const nostrRelaysFiltered = nostrRelays
-              ?.filter(word => word.trim().length > 0)
-              .map(relay => relay.startsWith('wss://') ? relay : `wss://${relay}`)
-
-            try {
-              await setSettings({
-                variables: {
-                  settings: {
-                    tipDefault: Number(tipDefault),
-                    tipRandomMin: tipRandom ? Number(tipRandomMin) : null,
-                    tipRandomMax: tipRandom ? Number(tipRandomMax) : null,
-                    withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
-                    satsFilter: Number(satsFilter),
-                    zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
-                    nostrPubkey,
-                    nostrRelays: nostrRelaysFiltered,
-                    ...values
-                  }
-                }
-              })
-              toaster.success('saved settings')
-            } catch (err) {
-              console.error(err)
-              toaster.danger('failed to save settings')
-            }
-          }}
         >
           <Input
             label='zap default'
@@ -572,9 +623,7 @@ export default function Settings ({ ssrData }) {
             max={NOSTR_MAX_RELAY_NUM}
             hint={<small className='text-muted'>used for NIP-05 and crossposting</small>}
           />
-          <div className='d-flex'>
-            <SubmitButton variant='info' className='ms-auto mt-1 px-4'>save</SubmitButton>
-          </div>
+          <AutoSaveHandler />
         </Form>
         <div className='text-start w-100'>
           <div className='form-label'>saturday newsletter</div>
@@ -593,25 +642,29 @@ const DropBolt11sCheckbox = ({ ssrData, ...props }) => {
 
   return (
     <Checkbox
-      onClick={e => {
-        if (e.target.checked) {
-          showModal(onClose => {
-            return (
-              <>
-                <p className='fw-bolder'>{numBolt11s} withdrawal invoices will be deleted with this setting.</p>
-                <p className='fw-bolder'>You sure? This is a gone forever kind of delete.</p>
-                <div className='d-flex justify-content-end'>
-                  <Button
-                    variant='danger' onClick={async () => {
-                      await onClose()
-                    }}
-                  >I am sure
-                  </Button>
-                </div>
-              </>
-            )
-          })
+      handleChange={(checked, setValue) => {
+        if (!checked) {
+          setValue(false)
+          return
         }
+        setValue(false)
+        showModal(onClose => {
+          return (
+            <>
+              <p className='fw-bolder'>{numBolt11s} withdrawal invoices will be deleted with this setting.</p>
+              <p className='fw-bolder'>You sure? This is a gone forever kind of delete.</p>
+              <div className='d-flex justify-content-end'>
+                <Button
+                  variant='danger' onClick={async () => {
+                    setValue(true)
+                    await onClose()
+                  }}
+                >I am sure
+                </Button>
+              </div>
+            </>
+          )
+        })
       }}
       {...props}
     />

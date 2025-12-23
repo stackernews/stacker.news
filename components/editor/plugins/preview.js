@@ -8,7 +8,7 @@ import Text from '@/components/text'
 
 export const TOGGLE_PREVIEW_COMMAND = createCommand('TOGGLE_PREVIEW_COMMAND')
 
-export default function PreviewPlugin ({ editorRef, topLevel, name, minRows }) {
+export default function PreviewPlugin ({ editorRef, topLevel, name }) {
   const [editor] = useLexicalComposerContext()
   const { toolbarState, updateToolbarState } = useToolbarState()
   const [text] = useField({ name })
@@ -48,6 +48,16 @@ export default function PreviewPlugin ({ editorRef, topLevel, name, minRows }) {
     if (!previewEl) return
 
     const isPreview = toolbarState.previewMode
+
+    // workaround: capture editor height before hiding to prevent layout jump
+    // involves accessing contentEditable to get the current height
+    // and pass it to the preview element as a CSS variable
+    if (isPreview) {
+      const contentEditable = editorRef.firstElementChild
+      const editorHeight = contentEditable.offsetHeight
+      previewEl.style.setProperty('--editor-height', `${editorHeight}px`)
+    }
+
     editorRef.style.display = isPreview ? 'none' : ''
     previewEl.style.display = isPreview ? '' : 'none'
 
@@ -63,7 +73,7 @@ export default function PreviewPlugin ({ editorRef, topLevel, name, minRows }) {
       className={styles.editor}
       onKeyDown={handlePreviewKeyDown}
     >
-      <Text className={styles.editorContent} topLevel={topLevel} preview name={name} minRows={minRows} />
+      <Text innerClassName={styles.editorContent} topLevel={topLevel} preview name={name} />
     </div>
   )
 }

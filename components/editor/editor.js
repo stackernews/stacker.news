@@ -108,7 +108,6 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
           editorRef={containerRef}
           topLevel={topLevel}
           name={name}
-          minRows={minRows}
         />
       )}
       <FileUploadPlugin editorRef={containerRef} />

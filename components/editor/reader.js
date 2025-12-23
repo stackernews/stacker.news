@@ -35,7 +35,7 @@ const initiateLexical = (editor, state, text) => {
   }
 }
 
-export default function Reader ({ topLevel, state, text, preview, name, readerRef, minRows }) {
+export default function Reader ({ topLevel, state, text, preview, name, readerRef, innerClassName }) {
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -64,7 +64,7 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
       <EditorRefPlugin editorRef={readerRef} />
       <ContentEditable
         data-sn-reader='true'
-        style={{ minHeight: `${(minRows ?? 0) + 1}lh` }}
+        className={innerClassName}
       />
       {preview && <PreviewSyncPlugin name={name} />}
       <CodeThemePlugin />

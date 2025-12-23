@@ -55,6 +55,10 @@
   background-color: transparent;
 }
 
+[data-lexical-preview='true'] .editorContent {
+  min-height: var(--editor-height, auto);
+}
+
 .editorContentInput {
   caret-color: var(--theme-color);
   font-size: 94%;

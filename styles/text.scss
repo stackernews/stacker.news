@@ -245,7 +245,7 @@
 
 /* in case media-or-link detects a link */
 .sn-media-container:has(a) {
-  display: inline;
+  display: inline !important;
 }
 
 .sn-media-container .outlawed {

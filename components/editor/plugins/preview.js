@@ -54,8 +54,10 @@ export default function PreviewPlugin ({ editorRef, topLevel, name }) {
     // and pass it to the preview element as a CSS variable
     if (isPreview) {
       const contentEditable = editorRef.firstElementChild
-      const editorHeight = contentEditable.offsetHeight
-      previewEl.style.setProperty('--editor-height', `${editorHeight}px`)
+      if (contentEditable) {
+        const editorHeight = contentEditable.offsetHeight
+        previewEl.style.setProperty('--editor-height', `${editorHeight}px`)
+      }
     }
 
     editorRef.style.display = isPreview ? 'none' : ''

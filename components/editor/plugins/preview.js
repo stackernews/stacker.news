@@ -69,6 +69,7 @@ export default function PreviewPlugin ({ editorRef, topLevel, name }) {
 
   return (
     <div
+      translate='no'
       data-lexical-preview='true'
       tabIndex={-1} // focusable
       ref={previewRef}

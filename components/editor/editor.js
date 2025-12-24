@@ -25,6 +25,7 @@ import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
+import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey-unborker'
 
 /**
  * main lexical editor component with formik integration
@@ -109,6 +110,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />
       <MaxLengthPlugin lengthOptions={lengthOptions} />
+      <SoftkeyUnborkerPlugin />
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

@@ -7,7 +7,7 @@ import styles from '@/styles/nav.module.css'
 import { useMutation } from '@apollo/client'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/withdrawal'
 import { requestProvider } from 'webln'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useMe } from '@/components/me'
 import { Checkbox, Form, Input, InputUserSuggest, SubmitButton } from '@/components/form'
 import { lnAddrSchema, withdrawlSchema } from '@/lib/validate'
@@ -82,6 +82,15 @@ export function InvWithdrawal () {
   const [createWithdrawl] = useMutation(CREATE_WITHDRAWL)
 
   const maxFeeDefault = me?.privates?.withdrawMaxFeeDefault
+  const [zeroAmount, setZeroAmount] = useState(false)
+  const checkInvoice = useCallback((invoice) => {
+    try {
+      const decoded = decode(invoice)
+      setZeroAmount(!decoded.mtokens || BigInt(decoded.mtokens) <= 0)
+    } catch {
+      setZeroAmount(false)
+    }
+  }, [])
 
   useEffect(() => {
     async function effect () {
@@ -106,11 +115,14 @@ export function InvWithdrawal () {
         autoComplete='off'
         initial={{
           invoice: '',
-          maxFee: maxFeeDefault
+          maxFee: maxFeeDefault,
+          amount: ''
         }}
         schema={withdrawlSchema}
-        onSubmit={async ({ invoice, maxFee }) => {
-          const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
+        onSubmit={async ({ invoice, maxFee, amount }) => {
+          const variables = { invoice, maxFee: Number(maxFee) }
+          if (zeroAmount) variables.amount = Number(amount)
+          const { data } = await createWithdrawl({ variables })
           router.push(`/transactions/${data.createWithdrawl.id}`)
         }}
       >
@@ -120,8 +132,18 @@ export function InvWithdrawal () {
           required
           autoFocus
           clear
-          append={<InvoiceScanner fieldName='invoice' />}
+          append={<InvoiceScanner fieldName='invoice' onInvoiceChange={checkInvoice} />}
+          onChange={(_, e) => { checkInvoice(e.target.value) }}
         />
+        {zeroAmount && (
+          <Input
+            label='amount (sats)'
+            name='amount'
+            type='number'
+            required
+            min={1}
+          />
+        )}
         <Input
           label='max fee'
           name='maxFee'
@@ -136,7 +158,7 @@ export function InvWithdrawal () {
   )
 }
 
-function InvoiceScanner ({ fieldName }) {
+function InvoiceScanner ({ fieldName, onInvoiceChange }) {
   const showModal = useShowModal()
   const [,, helpers] = useField(fieldName)
   const toaster = useToast()
@@ -157,13 +179,22 @@ function InvoiceScanner ({ fieldName }) {
                   formats={['qr_code']}
                   onScan={([{ rawValue: result }]) => {
                     result = result.toLowerCase()
-                    if (result.split('lightning=')[1]) {
-                      helpers.setValue(result.split('lightning=')[1].split(/[&?]/)[0])
-                    } else if (decode(result.replace(/^lightning:/, ''))) {
-                      helpers.setValue(result.replace(/^lightning:/, ''))
+                    let invoice
+                    if (result.includes('lightning=')) {
+                      invoice = result.split('lightning=')[1].split(/[&?]/)[0]
+                      helpers.setValue(invoice)
                     } else {
-                      throw new Error('Not a proper lightning payment request')
+                      try {
+                        invoice = result.replace(/^lightning:/, '')
+                        decode(invoice)
+                        helpers.setValue(invoice)
+                      } catch {
+                        toaster.danger('Not a proper lightning payment request')
+                        onClose()
+                        return
+                      }
                     }
+                    if (onInvoiceChange) onInvoiceChange(invoice)
                     onClose()
                   }}
                   styles={{

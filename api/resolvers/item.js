@@ -44,9 +44,9 @@ function commentsOrderByClause (me, models, sort) {
 
   if (sort === 'hot') {
     return `ORDER BY ${sharedSorts},
-      "rankhot" DESC, "Item".id DESC`
+      "Item"."rankhot" DESC, "Item".id DESC`
   } else {
-    return `ORDER BY ${sharedSorts}, "ranktop" DESC, "Item".id DESC`
+    return `ORDER BY ${sharedSorts}, "Item"."ranktop" DESC, "Item".id DESC`
   }
 }
 

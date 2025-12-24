@@ -49,7 +49,7 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
         CodeShikiSNExtension,
         AutoLinkExtension,
         GalleryExtension,
-        configExtension(MuteLexicalExtension, { disabled: !preview }),
+        configExtension(MuteLexicalExtension, { disabled: preview }),
         configExtension(ReactExtension, { contentEditable: null })
       ],
       theme: {

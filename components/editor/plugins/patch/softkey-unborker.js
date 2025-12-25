@@ -31,7 +31,7 @@ const suppressionTriggers = new Set([
   'deleteByComposition'
 ])
 
-function applySoftkeyWorkaround (el, editor) {
+function applySoftkeyWorkaround (el) {
   let isSuppressed = false
   let suppressionTimeout = null
 
@@ -91,7 +91,7 @@ export function SoftkeyUnborkerPlugin () {
     disposeListener = editor.registerRootListener((root, prevRoot) => {
       disposeWorkaround?.()
       if (root) {
-        disposeWorkaround = applySoftkeyWorkaround(root, editor)
+        disposeWorkaround = applySoftkeyWorkaround(root)
       }
     })
     return () => {

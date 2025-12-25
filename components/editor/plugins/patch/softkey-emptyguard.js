@@ -20,8 +20,6 @@ const GUARD_TAG = 'ensure-guard'
 
 // recursively add the guard character at the end of every text node.
 function ensureGuard (el) {
-  if (!el) el = $getRoot()
-  if (!el) return
   if ($isTextNode(el)) {
     let content = el.getTextContent()
     if (GUARD_CHARACTER === ' ') { // special handling if the guard character is a space
@@ -47,26 +45,30 @@ function ensureGuard (el) {
 
 function clearEditorIfEmpty (root) {
   const children = root.getChildren?.()
-  if (!children || children.length !== 1) return
+  if (children?.length !== 1) return
+  // a single child
 
   const firstChildren = children[0]
   if (!$isParagraphNode(firstChildren)) return
+  // that is a paragraph
 
   const grandChildren = firstChildren.getChildren()
-  if (!grandChildren || grandChildren.length !== 1) return
+  if (grandChildren?.length !== 1) return
+  // with a single node
 
   const child = grandChildren[0]
   if (!$isTextNode(child)) return
+  // that is a text node
 
   const content = child.getTextContent()
-
-  if (GUARD_CHARACTER === ' ') { // special handling if the guard character is a space
+  if (GUARD_CHARACTER === ' ') {
+    // special handling if the guard character is a space
     if (content.trim()) return
   } else {
     if (content !== GUARD_CHARACTER) return
   }
-
-  // if we reached this point, it means the editor is effectively empty
+  // with a guard only or empty content:
+  //     if we reached this point, it means the editor is effectively empty
 
   // reset the editor
   firstChildren.clear()
@@ -85,18 +87,26 @@ export function SoftkeyEmptyGuardPlugin () {
     const disposeListener = editor.registerUpdateListener(({ editorState, tags }) => {
       if (tags.has(GUARD_TAG)) return
       editor.update(() => {
-        ensureGuard()
-        clearEditorIfEmpty($getRoot())
+        const root = $getRoot()
+        if (root) {
+          ensureGuard(root)
+          clearEditorIfEmpty(root)
+        }
       }, { tag: GUARD_TAG })
     })
 
-    editor.update(() => {
-      ensureGuard()
-      clearEditorIfEmpty($getRoot())
-    }, { tag: GUARD_TAG })
+    const disposeRootListener = editor.registerRootListener((root, prevRoot) => {
+      editor.update(() => {
+        if (root) {
+          ensureGuard(root)
+          clearEditorIfEmpty(root)
+        }
+      }, { tag: GUARD_TAG })
+    })
 
     return () => {
       disposeListener()
+      disposeRootListener()
     }
   }, [editor])
 

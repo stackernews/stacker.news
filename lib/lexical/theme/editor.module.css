@@ -11,7 +11,6 @@
   border-bottom-right-radius: 0.4rem;
   border-top-right-radius: 0.4rem;
   padding: 2px;
-  line-height: 20px;
 }
 
 .editor[data-lexical-preview='true'] {
@@ -48,14 +47,16 @@
 /* editor input */
 
 .editorContent {
-  margin-top: -1px;
   position: relative;
   outline: 0;
   padding: 8px;
-  min-height: 120px;
   resize: vertical;
   overflow: auto;
   background-color: transparent;
+}
+
+[data-lexical-preview='true'] .editorContent {
+  min-height: var(--editor-height, auto);
 }
 
 .editorContentInput {

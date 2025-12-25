@@ -27,7 +27,7 @@ const Tips = ({ setOValue }) => {
     <Button
       size='sm'
       key={num}
-      onClick={() => { setOValue({ value: num, ts: Date.now() }) }}
+      onClick={() => { setOValue(num) }}
     >
       <UpBolt
         className='me-1'
@@ -125,16 +125,16 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       onSubmit={onSubmit}
     >
       <Input
-        key={oValue?.ts || 0}
         label='amount'
         name='amount'
         type='number'
         innerRef={inputRef}
-        overrideValue={oValue?.value}
+        overrideValue={oValue}
         step={step}
         required
         autoFocus
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        onChange={() => setOValue(undefined)}
       />
 
       <div className='d-flex flex-wrap gap-2'>

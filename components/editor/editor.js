@@ -93,6 +93,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       {/* we only need a plain text editor for markdown */}
       <div className={styles.editor} ref={onContainerRef}>
         <ContentEditable
+          translate='no'
           data-sn-editor='true'
           className={classNames(styles.editorContent, styles.editorContentInput, 'sn-text')}
           /* lh is a css unit that is equal to the line height of the element

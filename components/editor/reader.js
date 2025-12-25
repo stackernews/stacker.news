@@ -15,6 +15,7 @@ import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
 import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
 import NextLinkPlugin from './plugins/links'
+import { MuteLexicalExtension } from '@/lib/lexical/exts/mute-lexical'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
@@ -48,6 +49,7 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
         CodeShikiSNExtension,
         AutoLinkExtension,
         GalleryExtension,
+        configExtension(MuteLexicalExtension, { disabled: preview }),
         configExtension(ReactExtension, { contentEditable: null })
       ],
       theme: {
@@ -57,7 +59,7 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
       $initialEditorState: (editor) => initiateLexical(editor, state, text),
       onError: (error) => console.error('reader has encountered an error:', error)
     // avoid unnecessary re-renders by only depending on stable values
-    }), [topLevel])
+    }), [topLevel, preview])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>

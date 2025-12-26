@@ -110,7 +110,7 @@ export class ItemMentionNode extends DecoratorNode {
   }
 
   getTextContent () {
-    return this.__text || this.__url
+    return this.__text || `#${this.__itemMentionId}`
   }
 
   decorate () {

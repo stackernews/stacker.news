@@ -37,7 +37,7 @@ function applySoftkeyWorkaround (el) {
 
   const beginSuppression = (e) => {
     if (!e) return
-    if (suppressionTriggers.has(e.inputType)) {
+    if (!e.inputType||suppressionTriggers.has(e.inputType)) {
       isSuppressed = true
 
       if (suppressionTimeout != null) {
@@ -63,17 +63,21 @@ function applySoftkeyWorkaround (el) {
   }
 
   el.addEventListener('beforeinput', beginSuppression, true)
+  document.addEventListener('selectionchange', beginSuppression, true)
 
   el.addEventListener('compositionstart', filterSuppressedEvents, true)
   el.addEventListener('compositionupdate', filterSuppressedEvents, true)
   el.addEventListener('compositionend', filterSuppressedEvents, true)
+  document.addEventListener('selectionchange', filterSuppressedEvents, true)
 
   return () => { // cleanup
     el.removeEventListener('beforeinput', beginSuppression, true)
+    document.removeEventListener('selectionchange', beginSuppression, true)
 
     el.removeEventListener('compositionstart', filterSuppressedEvents, true)
     el.removeEventListener('compositionupdate', filterSuppressedEvents, true)
     el.removeEventListener('compositionend', filterSuppressedEvents, true)
+    document.removeEventListener('selectionchange', filterSuppressedEvents, true)
 
     if (suppressionTimeout != null) {
       clearTimeout(suppressionTimeout)

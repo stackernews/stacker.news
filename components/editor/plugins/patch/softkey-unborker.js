@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { IS_ANDROID } from "@lexical/utils";
+import { IS_ANDROID } from '@lexical/utils'
 /**
  * Workaround for what appears to be an unresolved race condition in some Android IME
  * stacks: a composition event containing the word is emitted immediately after
@@ -37,7 +37,7 @@ function applySoftkeyWorkaround (el) {
 
   const beginSuppression = (e) => {
     if (!e) return
-    if (!e.inputType||suppressionTriggers.has(e.inputType)) {
+    if (!e.inputType || suppressionTriggers.has(e.inputType)) {
       isSuppressed = true
 
       if (suppressionTimeout != null) {
@@ -90,7 +90,7 @@ export function SoftkeyUnborkerPlugin () {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
-    if (!IS_ANDROID) return; // only apply on Android
+    if (!IS_ANDROID) return // only apply on Android
     let disposeWorkaround = null
     let disposeListener = null
     disposeListener = editor.registerRootListener((root, prevRoot) => {

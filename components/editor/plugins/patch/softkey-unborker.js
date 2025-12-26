@@ -32,14 +32,21 @@ function applySoftkeyWorkaround (el) {
   let compositionTimeout = null
   let selectionTimeout = null
 
-  const beginSelectionSuppression = (e) => {
+  const endSelectionSuppression = (e) => {
     if (!e) return
-    isSelectionSuppressed = true
+    isSelectionSuppressed = false
 
     if (selectionTimeout != null) {
       clearTimeout(selectionTimeout)
       selectionTimeout = null
     }
+  }
+
+  const beginSelectionSuppression = (e) => {
+    if (!e) return
+    endSelectionSuppression()
+
+    isSelectionSuppressed = true
 
     selectionTimeout = setTimeout(() => {
       isSelectionSuppressed = false
@@ -92,6 +99,7 @@ function applySoftkeyWorkaround (el) {
 
   document.addEventListener('selectionchange', beginSelectionSuppression, true)
   document.addEventListener('selectionchange', filterSelection, true)
+  el.addEventListener('cut', endSelectionSuppression, true)
 
   return () => { // cleanup
     el.removeEventListener('beforeinput', beginCompositionSuppression, true)
@@ -102,6 +110,7 @@ function applySoftkeyWorkaround (el) {
 
     document.removeEventListener('selectionchange', beginSelectionSuppression, true)
     document.removeEventListener('selectionchange', filterSelection, true)
+    el.removeEventListener('cut', endSelectionSuppression, true)
 
     if (compositionTimeout != null) {
       clearTimeout(compositionTimeout)

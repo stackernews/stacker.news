@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-
+import { IS_ANDROID } from "@lexical/utils";
 /**
  * Workaround for what appears to be an unresolved race condition in some Android IME
  * stacks: a composition event containing the word is emitted immediately after
@@ -86,6 +86,7 @@ export function SoftkeyUnborkerPlugin () {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
+    if (!IS_ANDROID) return; // only apply on Android
     let disposeWorkaround = null
     let disposeListener = null
     disposeListener = editor.registerRootListener((root, prevRoot) => {

@@ -283,3 +283,6 @@ brymut,pr,#2493,#2480,medium,low,,unplanned and untested,100k,brymut@blink.sv,20
 gndelia,helpfulness,#2493,#2480,medium,low,,unplanned and untested,10k,???,???
 brymut,pr,#2483,#709,medium,,,unplanned and untested,100k,brymut@blink.sv,2025-12-12
 pory-gone,pr,#2470,#2271,good-first-issue,,1,,18k,pory@porygone.xyz,2025-12-12
+riccardobl,pr,#2708,#2691,medium,urgent,,,750k,bolt11,???
+sir-opti,issue,#2708,#2691,medium,urgent,,,75k,???,???
+riccardobl,pr,#2708,#2704,hard,high,,,2m,bolt11,???

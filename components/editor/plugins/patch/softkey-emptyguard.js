@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $createRangeSelection, $setSelection, $isTextNode, $isParagraphNode, TextNode, RootNode } from 'lexical'
-import { IS_ANDROID } from "@lexical/utils";
+import { IS_ANDROID } from '@lexical/utils'
 
 /**
  * Workaround to prevent a text node from becoming truly empty.
@@ -78,7 +78,7 @@ export function SoftkeyEmptyGuardPlugin () {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
-    if (!IS_ANDROID) return; // only apply on Android
+    if (!IS_ANDROID) return // only apply on Android
     const disposeTextNodeListener = editor.registerNodeTransform(TextNode, node => {
       ensureGuard(node)
     })

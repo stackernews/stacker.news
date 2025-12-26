@@ -142,6 +142,12 @@ Here's `MediaNode`'s `decorate()` function:
 
 We're passing the `MediaNode` internal values and states as props to `MediaComponent`.
 
+**note**
+
+Make sure to implement a `getTextContent()` function for stuff that is displayed as text, such as `UserMentionNode`.
+
+Lexical copy/paste handlers need to know what's the plain text equivalent of a `DecoratorNode`.
+
 ### Requirements
 
 To create a node, we **must** provide a way to:

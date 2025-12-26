@@ -91,6 +91,10 @@ export class TerritoryMentionNode extends DecoratorNode {
     return false
   }
 
+  getTextContent () {
+    return '~' + this.__name
+  }
+
   decorate () {
     const name = this.__name
     const href = '/~' + name

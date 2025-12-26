@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $createRangeSelection, $setSelection, $getRoot, $isTextNode, $isParagraphNode } from 'lexical'
+import { $createRangeSelection, $setSelection, $isTextNode, $isParagraphNode, TextNode, RootNode } from 'lexical'
 
 /**
  * Workaround to prevent a text node from becoming truly empty.
@@ -16,35 +16,34 @@ import { $createRangeSelection, $setSelection, $getRoot, $isTextNode, $isParagra
 const GUARD_CHARACTER = ' '
 
 const GUARD_REGEX = new RegExp(GUARD_CHARACTER, 'g')
-const GUARD_TAG = 'ensure-guard'
 
 // recursively add the guard character at the end of every text node.
-function ensureGuard (el) {
-  if ($isTextNode(el)) {
-    let content = el.getTextContent()
+function ensureGuard (node) {
+  if ($isTextNode(node)) {
+    let content = node.getTextContent()
     if (GUARD_CHARACTER === ' ') { // special handling if the guard character is a space
       // ensure there is a guard character at the end
       if (!content.endsWith(GUARD_CHARACTER)) {
         content += GUARD_CHARACTER
-        el.setTextContent(content)
+        node.setTextContent(content)
       }
     } else {
       // remove all existing guard characters
       content = content.replace(GUARD_REGEX, '')
       // add a single guard character at the end
       content += GUARD_CHARACTER
-      el.setTextContent(content)
+      node.setTextContent(content)
     }
   } else {
-    const children = el?.getChildren?.() || []
+    const children = node?.getChildren?.() || []
     for (const child of children) {
       ensureGuard(child)
     }
   }
 }
 
-function clearEditorIfEmpty (root) {
-  const children = root.getChildren?.()
+function clearEditorIfEmpty (rootNode) {
+  const children = rootNode.getChildren?.()
   if (children?.length !== 1) return
   // a single child
 
@@ -75,8 +74,8 @@ function clearEditorIfEmpty (root) {
 
   // reset the selection
   const sel = $createRangeSelection()
-  sel.anchor.set(root.getKey(), 0, 'element')
-  sel.focus.set(root.getKey(), 0, 'element')
+  sel.anchor.set(rootNode.getKey(), 0, 'element')
+  sel.focus.set(rootNode.getKey(), 0, 'element')
   $setSelection(sel)
 }
 
@@ -84,29 +83,17 @@ export function SoftkeyEmptyGuardPlugin () {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
-    const disposeListener = editor.registerUpdateListener(({ editorState, tags }) => {
-      if (tags.has(GUARD_TAG)) return
-      editor.update(() => {
-        const root = $getRoot()
-        if (root) {
-          ensureGuard(root)
-          clearEditorIfEmpty(root)
-        }
-      }, { tag: GUARD_TAG })
+    const disposeTextNodeListener = editor.registerNodeTransform(TextNode, node => {
+      ensureGuard(node)
     })
 
-    const disposeRootListener = editor.registerRootListener((root, prevRoot) => {
-      editor.update(() => {
-        if (root) {
-          ensureGuard(root)
-          clearEditorIfEmpty(root)
-        }
-      }, { tag: GUARD_TAG })
+    const disposeRootListener = editor.registerNodeTransform(RootNode, node => {
+      clearEditorIfEmpty(node)
     })
 
     return () => {
-      disposeListener()
       disposeRootListener()
+      disposeTextNodeListener()
     }
   }, [editor])
 

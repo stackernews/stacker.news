@@ -17,44 +17,56 @@ const suppressionWindow = 80 // ms (tweak as necessary)
 const suppressionTriggers = new Set([
   'deleteContentBackward',
   'deleteContentForward',
-  'deleteByCut',
-  'historyUndo',
-  'historyRedo',
   'deleteHardLineBackward',
   'deleteHardLineForward',
   'deleteSoftLineBackward',
   'deleteSoftLineForward',
   'deleteWordBackward',
-  'deleteWordForward',
-  'deleteByCut',
-  'deleteByDrag',
-  'deleteByComposition'
+  'deleteWordForward'
 ])
 
 function applySoftkeyWorkaround (el) {
-  let isSuppressed = false
-  let suppressionTimeout = null
+  let isCompositionSuppressed = false
+  let isSelectionSuppressed = false
 
-  const beginSuppression = (e) => {
+  let compositionTimeout = null
+  let selectionTimeout = null
+
+  const beginSelectionSuppression = (e) => {
+    if (!e) return
+    isSelectionSuppressed = true
+
+    if (selectionTimeout != null) {
+      clearTimeout(selectionTimeout)
+      selectionTimeout = null
+    }
+
+    selectionTimeout = setTimeout(() => {
+      isSelectionSuppressed = false
+      selectionTimeout = null
+    }, suppressionWindow)
+  }
+
+  const beginCompositionSuppression = (e) => {
     if (!e) return
     if (!e.inputType || suppressionTriggers.has(e.inputType)) {
-      isSuppressed = true
+      isCompositionSuppressed = true
 
-      if (suppressionTimeout != null) {
-        clearTimeout(suppressionTimeout)
-        suppressionTimeout = null
+      if (compositionTimeout != null) {
+        clearTimeout(compositionTimeout)
+        compositionTimeout = null
       }
 
-      suppressionTimeout = setTimeout(() => {
-        isSuppressed = false
-        suppressionTimeout = null
+      compositionTimeout = setTimeout(() => {
+        isCompositionSuppressed = false
+        compositionTimeout = null
       }, suppressionWindow)
     }
   }
 
-  const filterSuppressedEvents = (e) => {
+  const filterComposition = (e) => {
     if (!e) return
-    if (isSuppressed) {
+    if (isCompositionSuppressed) {
       // stop the event from propagating further
       try {
         e.stopPropagation()
@@ -62,26 +74,43 @@ function applySoftkeyWorkaround (el) {
     }
   }
 
-  el.addEventListener('beforeinput', beginSuppression, true)
-  document.addEventListener('selectionchange', beginSuppression, true)
+  const filterSelection = (e) => {
+    if (!e) return
+    if (isSelectionSuppressed) {
+      // stop the event from propagating further
+      try {
+        e.stopPropagation()
+      } catch (_) { }
+    }
+  }
 
-  el.addEventListener('compositionstart', filterSuppressedEvents, true)
-  el.addEventListener('compositionupdate', filterSuppressedEvents, true)
-  el.addEventListener('compositionend', filterSuppressedEvents, true)
-  document.addEventListener('selectionchange', filterSuppressedEvents, true)
+  el.addEventListener('beforeinput', beginCompositionSuppression, true)
+
+  el.addEventListener('compositionstart', filterComposition, true)
+  el.addEventListener('compositionupdate', filterComposition, true)
+  el.addEventListener('compositionend', filterComposition, true)
+
+  document.addEventListener('selectionchange', beginSelectionSuppression, true)
+  document.addEventListener('selectionchange', filterSelection, true)
 
   return () => { // cleanup
-    el.removeEventListener('beforeinput', beginSuppression, true)
-    document.removeEventListener('selectionchange', beginSuppression, true)
+    el.removeEventListener('beforeinput', beginCompositionSuppression, true)
 
-    el.removeEventListener('compositionstart', filterSuppressedEvents, true)
-    el.removeEventListener('compositionupdate', filterSuppressedEvents, true)
-    el.removeEventListener('compositionend', filterSuppressedEvents, true)
-    document.removeEventListener('selectionchange', filterSuppressedEvents, true)
+    el.removeEventListener('compositionstart', filterComposition, true)
+    el.removeEventListener('compositionupdate', filterComposition, true)
+    el.removeEventListener('compositionend', filterComposition, true)
 
-    if (suppressionTimeout != null) {
-      clearTimeout(suppressionTimeout)
-      suppressionTimeout = null
+    document.removeEventListener('selectionchange', beginSelectionSuppression, true)
+    document.removeEventListener('selectionchange', filterSelection, true)
+
+    if (compositionTimeout != null) {
+      clearTimeout(compositionTimeout)
+      compositionTimeout = null
+    }
+
+    if (selectionTimeout != null) {
+      clearTimeout(selectionTimeout)
+      selectionTimeout = null
     }
   }
 }

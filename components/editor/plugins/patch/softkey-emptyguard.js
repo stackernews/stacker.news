@@ -19,26 +19,20 @@ const GUARD_REGEX = new RegExp(GUARD_CHARACTER, 'g')
 
 // recursively add the guard character at the end of every text node.
 function ensureGuard (node) {
-  if ($isTextNode(node)) {
-    let content = node.getTextContent()
-    if (GUARD_CHARACTER === ' ') { // special handling if the guard character is a space
-      // ensure there is a guard character at the end
-      if (!content.endsWith(GUARD_CHARACTER)) {
-        content += GUARD_CHARACTER
-        node.setTextContent(content)
-      }
-    } else {
-      // remove all existing guard characters
-      content = content.replace(GUARD_REGEX, '')
-      // add a single guard character at the end
+  if (!$isTextNode(node)) return
+  let content = node.getTextContent()
+  if (GUARD_CHARACTER === ' ') { // special handling if the guard character is a space
+    // ensure there is a guard character at the end
+    if (!content.endsWith(GUARD_CHARACTER)) {
       content += GUARD_CHARACTER
       node.setTextContent(content)
     }
   } else {
-    const children = node?.getChildren?.() || []
-    for (const child of children) {
-      ensureGuard(child)
-    }
+    // remove all existing guard characters
+    content = content.replace(GUARD_REGEX, '')
+    // add a single guard character at the end
+    content += GUARD_CHARACTER
+    node.setTextContent(content)
   }
 }
 

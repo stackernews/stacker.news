@@ -18,10 +18,14 @@ const GUARD_CHARACTER = ' '
 
 const GUARD_REGEX = new RegExp(GUARD_CHARACTER, 'g')
 
-// recursively add the guard character at the end of every text node.
+// add the guard character at the end of every text node.
 function ensureGuard (node) {
   if (!$isTextNode(node)) return
   let content = node.getTextContent()
+
+  // trigger only if the node is about to become empty
+  if (content.length > 1) return
+
   if (GUARD_CHARACTER === ' ') { // special handling if the guard character is a space
     // ensure there is a guard character at the end
     if (!content.endsWith(GUARD_CHARACTER)) {

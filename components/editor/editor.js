@@ -3,7 +3,7 @@ import { useField } from 'formik'
 import { useMemo } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
-import { PlainTextExtension } from '@lexical/plain-text'
+import { RichTextExtension } from '@lexical/rich-text'
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
@@ -25,6 +25,8 @@ import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
+import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey-unborker'
+import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softkey-emptyguard'
 
 /**
  * main lexical editor component with formik integration
@@ -47,7 +49,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       name: 'editor',
       namespace: 'sn',
       dependencies: [
-        PlainTextExtension,
+        RichTextExtension,
         ApplePatchExtension,
         HistoryExtension,
         ShortcutsExtension,
@@ -116,6 +118,8 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />
       <MaxLengthPlugin lengthOptions={lengthOptions} />
+      <SoftkeyUnborkerPlugin />
+      <SoftkeyEmptyGuardPlugin />
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

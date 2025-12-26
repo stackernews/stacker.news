@@ -3,7 +3,7 @@ import { useField } from 'formik'
 import { useMemo } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
-import { RichTextExtension } from '@lexical/rich-text'
+import { PlainTextExtension } from '@lexical/plain-text'
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
@@ -49,7 +49,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       name: 'editor',
       namespace: 'sn',
       dependencies: [
-        RichTextExtension,
+        PlainTextExtension,
         ApplePatchExtension,
         HistoryExtension,
         ShortcutsExtension,

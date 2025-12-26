@@ -102,6 +102,10 @@ export class UserMentionNode extends DecoratorNode {
     return false
   }
 
+  getTextContent () {
+    return '@' + this.__userMentionName + this.__path
+  }
+
   decorate () {
     const UserPopover = require('@/components/user-popover').default
     const Link = require('next/link').default

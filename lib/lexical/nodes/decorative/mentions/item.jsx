@@ -109,6 +109,10 @@ export class ItemMentionNode extends DecoratorNode {
     return false
   }
 
+  getTextContent () {
+    return this.__text || `#${this.__itemMentionId}`
+  }
+
   decorate () {
     const ItemPopover = require('@/components/item-popover').default
     const Link = require('next/link').default

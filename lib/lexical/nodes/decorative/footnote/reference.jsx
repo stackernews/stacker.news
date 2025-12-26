@@ -98,6 +98,10 @@ export class FootnoteReferenceNode extends DecoratorNode {
     return false
   }
 
+  getTextContent () {
+    return `[${this.__label}]`
+  }
+
   decorate () {
     const Link = require('next/link').default
     const identifier = this.__identifier

@@ -100,7 +100,9 @@ function applySoftkeyWorkaround (el) {
 
   const filterSelection = (e) => {
     if (!e) return
-    if (isSelectionSuppressed) {
+    const sel = window.getSelection()
+    const isRangeSelection = sel.type === 'Range'
+    if (isSelectionSuppressed && isRangeSelection) {
       // stop the event from propagating further
       try {
         e.stopPropagation()

@@ -72,7 +72,7 @@
 .navbarNav {
     width: 100%;
     align-items: center;
-    height: 39px;
+    height: var(--navbar-height);
     align-content: center;
 }
 
@@ -101,12 +101,21 @@
     padding-left: 0 !important;
 }
 
+.navbarSpacer {
+    height: var(--navbar-total-height);
+}
+
 .sticky {
     position: fixed;
-    border-bottom: 1px solid var(--theme-toolbarActive);
-    width: 100vw;
-    top: -1px;
-    padding-top: 1px;
+    left: 0;
+    right: 0;
+    top: 0;
+    padding-top: var(--navbar-padding-top);
     background-color: var(--bs-body-bg);
+    border-bottom: var(--navbar-border-width) solid transparent;
     z-index: 1000;
+}
+
+.sticky.scrolled {
+    border-bottom-color: var(--theme-toolbarActive);
 }

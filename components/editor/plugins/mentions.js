@@ -7,6 +7,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import styles from '@/lib/lexical/theme/editor.module.css'
+import { BLUR_COMMAND, COMMAND_PRIORITY_HIGH } from 'lexical'
 
 /** regex to match \@user or \~sub mentions */
 const MENTION_PATTERN = /(^|\s|\()([@~]\w{0,75})$/
@@ -74,6 +75,14 @@ export default function MentionsPlugin () {
   const [query, setQuery] = useState(null)
   const suggestions = useSuggestions({ query })
 
+  // close menu on blur
+  useEffect(() => {
+    return editor.registerCommand(BLUR_COMMAND, () => {
+      setQuery(null)
+      return false // let other handlers handle the blur
+    }, COMMAND_PRIORITY_HIGH)
+  }, [editor])
+
   const options = useMemo(() => {
     if (!suggestions?.length) return []
     return suggestions.map(s => new MentionOption(s.name))
@@ -104,7 +113,7 @@ export default function MentionsPlugin () {
         anchorElementRef.current && suggestions?.length
           ? createPortal(
             <Dropdown show style={{ zIndex: 1000 }}>
-              <Dropdown.Menu className={styles.suggestionsMenu}>
+              <Dropdown.Menu className={styles.suggestionsMenu} onMouseDown={e => e.preventDefault()}>
                 {options.map((o, i) =>
                   <Dropdown.Item
                     key={o.key}

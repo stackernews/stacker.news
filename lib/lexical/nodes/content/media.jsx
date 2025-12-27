@@ -10,11 +10,11 @@ const statusState = createState('status', {
 })
 
 const widthState = createState('width', {
-  parse: (value) => (typeof value === 'number' ? value : 0)
+  parse: (value) => (typeof value === 'number' ? value : null)
 })
 
 const heightState = createState('height', {
-  parse: (value) => (typeof value === 'number' ? value : 0)
+  parse: (value) => (typeof value === 'number' ? value : null)
 })
 
 const srcSetState = createState('srcSet', {
@@ -39,8 +39,8 @@ function $convertMediaElement (domNode) {
     width = domNode.getAttribute('data-media-width')
     height = domNode.getAttribute('data-media-height')
     kind = domNode.getAttribute('data-media-kind') || 'unknown'
-    width = width ? parseInt(width, 10) : 0
-    height = height ? parseInt(height, 10) : 0
+    width = width ? parseInt(width, 10) : null
+    height = height ? parseInt(height, 10) : null
     autolink = domNode.hasAttribute('data-autolink')
   } else {
     return null
@@ -101,8 +101,8 @@ export class MediaNode extends DecoratorNode {
     $setState(node, statusState, status ?? 'idle')
     $setState(node, srcSetState, srcSet ?? null)
     $setState(node, bestResSrcState, bestResSrc ?? null)
-    $setState(node, widthState, width ?? 0)
-    $setState(node, heightState, height ?? 0)
+    $setState(node, widthState, width ?? null)
+    $setState(node, heightState, height ?? null)
     return node
   }
 
@@ -164,7 +164,6 @@ export class MediaNode extends DecoratorNode {
 
     element.style.setProperty('--width', width ? `${width}px` : 'inherit')
     element.style.setProperty('--height', height ? `${height}px` : 'inherit')
-    element.style.setProperty('--aspect-ratio', width && height ? `${width} / ${height}` : 'auto')
     element.style.setProperty('--max-width', `${this.__maxWidth}px`)
 
     const media = document.createElement(kind === 'video' ? 'video' : 'img')
@@ -176,7 +175,7 @@ export class MediaNode extends DecoratorNode {
       media.setAttribute('srcset', srcSet)
       media.setAttribute('sizes', '66vw')
     }
-    if (bestResSrc) {
+    if (bestResSrc && kind === 'video') {
       media.setAttribute('poster', bestResSrc !== this.__src ? bestResSrc : undefined)
       media.setAttribute('preload', bestResSrc !== this.__src ? 'metadata' : undefined)
     }
@@ -204,7 +203,6 @@ export class MediaNode extends DecoratorNode {
     if (height) {
       span.style.setProperty('--height', `${height}px`)
     }
-    span.style.setProperty('--aspect-ratio', width && height ? `${width} / ${height}` : 'auto')
 
     span.style.setProperty('--max-width', `${this.__maxWidth}px`)
     return span
@@ -275,6 +273,10 @@ export class MediaNode extends DecoratorNode {
   applyCheckResult (kind) {
     $setState(this, kindState, kind)
     $setState(this, statusState, kind === 'unknown' ? 'error' : 'done')
+  }
+
+  isInline () {
+    return false
   }
 
   decorate () {

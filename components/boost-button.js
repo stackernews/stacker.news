@@ -6,13 +6,17 @@ import { useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import BoostIcon from '@/svgs/arrow-up-double-line.svg'
 import styles from './upvote.module.css'
-import { BoostHelp } from './adv-post-form'
-import { BOOST_MULT } from '@/lib/constants'
+import { BOOST_MIN } from '@/lib/constants'
 import classNames from 'classnames'
+import { useFeeButton } from './fee-button'
+import { Input } from './form'
+import Info from './info'
+import { InputGroup } from 'react-bootstrap'
+import Link from 'next/link'
 
 export default function Boost ({ item, className, ...props }) {
   const { boost } = item
-  const [color, nextColor] = useMemo(() => [getColor(boost), getColor(boost + BOOST_MULT)], [boost])
+  const [color, nextColor] = useMemo(() => [getColor(boost), getColor(boost + BOOST_MIN)], [boost])
 
   const style = useMemo(() => ({
     '--hover-fill': nextColor,
@@ -42,6 +46,53 @@ export default function Boost ({ item, className, ...props }) {
   )
 }
 
+export function BoostHelp () {
+  return (
+    <ol>
+      <li>Boost is <strong>exactly</strong> like a zap from other stackers: it ranks the item higher based on the amount</li>
+      <li>The highest boosted post across all territories over the last 7 days is pinned to the top of the <Link href='/rewards'>rewards page</Link></li>
+      <li>The top 5 highest boosted posts across all territories are shared in the newsletter</li>
+      <li>100% of boost goes to the territory founder and top stackers as rewards</li>
+      <li>Boosted items can be downzapped to reduce their rank</li>
+      <li>Boosted items can be outlawed and become only visible to stackers in wild west mode if they receive enough downzaps</li>
+    </ol>
+  )
+}
+
+export function BoostInput ({ onChange, ...props }) {
+  const feeButton = useFeeButton()
+  let merge
+  if (feeButton) {
+    ({ merge } = feeButton)
+  }
+  return (
+    <Input
+      label={
+        <div className='d-flex align-items-center'>boost
+          <Info>
+            <BoostHelp />
+          </Info>
+        </div>
+    }
+      name='boost'
+      onChange={(_, e) => {
+        merge?.({
+          boost: {
+            term: `+ ${e.target.value}`,
+            label: 'boost',
+            op: '+',
+            modifier: cost => cost + Number(e.target.value)
+          }
+        })
+        onChange && onChange(_, e)
+      }}
+      hint={<span className='text-muted'>ranks items higher based on the amount</span>}
+      append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      {...props}
+    />
+  )
+}
+
 function Booster ({ item, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
@@ -51,7 +102,7 @@ function Booster ({ item, As, children }) {
       onClick={async () => {
         try {
           showModal(onClose =>
-            <ItemAct onClose={onClose} item={item} act='BOOST' step={BOOST_MULT}>
+            <ItemAct onClose={onClose} item={item} act='BOOST' step={BOOST_MIN}>
               <AccordianItem header='what is boost?' body={<BoostHelp />} />
             </ItemAct>)
         } catch (error) {

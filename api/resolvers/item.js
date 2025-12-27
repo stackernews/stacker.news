@@ -4,11 +4,10 @@ import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
 import {
-  ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
+  ITEM_SPAM_INTERVAL,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
-  BOOST_MULT,
   ITEM_EDIT_SECONDS,
   COMMENTS_LIMIT,
   COMMENTS_OF_COMMENT_LIMIT,
@@ -35,22 +34,19 @@ function commentsOrderByClause (me, models, sort) {
   const sharedSortsArray = []
   sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
   sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
-  // outlawed items should be at the bottom
-  sharedSortsArray.push(`NOT ("Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD} OR "Item".outlawed) DESC`)
   const sharedSorts = sharedSortsArray.join(', ')
 
   if (sort === 'recent') {
     return `ORDER BY ${sharedSorts},
-      ("Item".cost > 0 OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0) DESC,
+      ("Item".genoutlawed = FALSE) DESC,
       "Item".created_at DESC, "Item".id DESC`
   }
 
   if (sort === 'hot') {
     return `ORDER BY ${sharedSorts},
-      "hotScore" DESC NULLS LAST,
-      "Item".msats DESC, "Item".id DESC`
+      "Item"."rankhot" DESC, "Item".id DESC`
   } else {
-    return `ORDER BY ${sharedSorts}, "Item"."weightedVotes" - "Item"."weightedDownVotes" DESC NULLS LAST, "Item".msats DESC, "Item".id DESC`
+    return `ORDER BY ${sharedSorts}, "Item"."ranktop" DESC, "Item".id DESC`
   }
 }
 
@@ -138,7 +134,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
-      ORDER BY boost desc, "Item".created_at ASC
+      ORDER BY rankboost DESC, "Item".created_at ASC
       LIMIT 1`
   }, ...subArr))?.[0] || null
 }
@@ -150,18 +146,14 @@ const orderByClause = (by, me, models, type, sub) => {
     case 'sats':
       return 'ORDER BY "Item".msats DESC'
     case 'zaprank':
-      return topOrderByWeightedSats(me, models, sub)
+      return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
     case 'boost':
-      return 'ORDER BY "Item".boost DESC'
+      return 'ORDER BY "Item".boost + "Item"."oldBoost" DESC'
     case 'random':
       return 'ORDER BY RANDOM()'
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
-}
-
-export function joinHotScoreView (me, models) {
-  return ' JOIN hot_score_view g ON g.id = "Item".id '
 }
 
 // this grabs all the stuff we need to display the item list and only
@@ -190,7 +182,8 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("MeItemPayIn"."meMsats", 0) as "meMsats", COALESCE("MeItemPayIn"."mePendingMsats", 0) as "mePendingMsats",
         COALESCE("MeItemPayIn"."meMcredits", 0) as "meMcredits", COALESCE("MeItemPayIn"."mePendingMcredits", 0) as "mePendingMcredits",
-        COALESCE("MeItemPayIn"."meDontLikeMsats", 0) as "meDontLikeMsats", COALESCE("MeItemPayIn"."mePendingBoostMsats", 0) as "mePendingBoostMsats",
+        COALESCE("MeItemPayIn"."meDontLikeMsats", 0) as "meDontLikeMsats", COALESCE("MeItemPayIn"."mePendingDontLikeMsats", 0) as "mePendingDontLikeMsats",
+        COALESCE("MeItemPayIn"."mePendingBoostMsats", 0) as "mePendingBoostMsats",
         b."itemId" IS NOT NULL AS "meBookmark", "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription",
         "ItemForward"."itemId" IS NOT NULL AS "meForward", to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
           || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub,
@@ -215,6 +208,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
           sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayOutBolt11".id IS NOT NULL AND "PayIn"."payInType" = 'ZAP') AS "mePendingMsats",
           sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayOutBolt11".id IS NULL AND "PayIn"."payInType" = 'ZAP') AS "mePendingMcredits",
           sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInType" = 'DOWN_ZAP') AS "meDontLikeMsats",
+          sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInType" = 'DOWN_ZAP' AND "PayIn"."payInState" <> 'PAID') AS "mePendingDontLikeMsats",
           sum("PayIn".mcost) FILTER (WHERE "PayIn"."payInState" <> 'PAID' AND "PayIn"."payInType" = 'BOOST') AS "mePendingBoostMsats"
         FROM "ItemPayIn"
         JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId"
@@ -362,7 +356,7 @@ export async function filterClause (me, models, type) {
 
   // handle outlawed
   // if the item is above the threshold or is mine
-  const outlawClauses = [`"Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD} AND NOT "Item".outlawed`]
+  const outlawClauses = ['"Item".genoutlawed = FALSE']
   if (me) {
     outlawClauses.push(`"Item"."userId" = ${me.id}`)
   }
@@ -390,7 +384,7 @@ function typeClause (type) {
     case 'freebies':
       return '"Item".cost = 0'
     case 'outlawed':
-      return `"Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD} OR "Item".outlawed`
+      return '"Item".genoutlawed = TRUE'
     case 'borderland':
       return '"Item"."weightedVotes" - "Item"."weightedDownVotes" < 0'
     case 'all':
@@ -561,7 +555,7 @@ export default {
                   ${SELECT},
                     (boost IS NOT NULL AND boost > 0)::INT AS group_rank,
                     CASE WHEN boost IS NOT NULL AND boost > 0
-                         THEN rank() OVER (ORDER BY boost DESC, "Item".created_at ASC)
+                         THEN rank() OVER (ORDER BY rankboost DESC, "Item".created_at ASC)
                          ELSE rank() OVER (ORDER BY "Item".created_at DESC) END AS rank
                     FROM "Item"
                     ${payInJoinFilter(me)}
@@ -581,7 +575,7 @@ export default {
               break
             default:
               if (decodedCursor.offset === 0) {
-              // get pins for the page and return those separately
+                // get pins for the page and return those separately
                 pins = await itemQueryWithMeta({
                   me,
                   models,
@@ -605,18 +599,15 @@ export default {
                   ORDER BY position ASC`,
                   orderBy: 'ORDER BY position ASC'
                 }, ...subArr)
-
-                ad = await getAd(parent, { sub, subArr, showNsfw }, { me, models })
               }
 
               items = await itemQueryWithMeta({
                 me,
                 models,
                 query: `
-                    ${SELECT}, g.hot_score AS "hotScore", g.sub_hot_score AS "subHotScore"
+                    ${SELECT}
                     FROM "Item"
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-                    ${joinHotScoreView(me, models)}
                     ${payInJoinFilter(me)}
                     ${whereClause(
                       // in home (sub undefined), filter out global pinned items since we inject them later
@@ -630,10 +621,10 @@ export default {
                       await filterClause(me, models, type),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
-                    ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC
+                    ORDER BY rankhot DESC, "Item".id DESC
                     OFFSET $1
                     LIMIT $2`,
-                orderBy: `ORDER BY ${sub ? '"subHotScore"' : '"hotScore"'} DESC, "Item".msats DESC, "Item".id DESC`
+                orderBy: 'ORDER BY rankhot DESC, "Item".id DESC'
               }, decodedCursor.offset, limit, ...subArr)
               break
           }
@@ -721,79 +712,6 @@ export default {
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)
-    },
-    auctionPosition: async (parent, { id, sub, boost }, { models, me }) => {
-      const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
-      let where
-      if (boost > 0) {
-        // if there's boost
-        // has a larger boost than ours, or has an equal boost and is older
-        // count items: (boost > ours.boost OR (boost = ours.boost AND create_at < ours.created_at))
-        where = {
-          OR: [
-            { boost: { gt: boost } },
-            { boost, createdAt: { lt: createdAt } }
-          ]
-        }
-      } else {
-        // else
-        // it's an active with a bid gt ours, or its newer than ours and not STOPPED
-        // count items: ((bid > ours.bid AND status = 'ACTIVE') OR (created_at > ours.created_at AND status <> 'STOPPED'))
-        where = {
-          OR: [
-            { boost: { gt: 0 } },
-            { createdAt: { gt: createdAt } }
-          ]
-        }
-      }
-
-      where.AND = {
-        subName: sub,
-        status: 'ACTIVE',
-        deletedAt: null
-      }
-      if (id) {
-        where.AND.id = { not: Number(id) }
-      }
-
-      return await models.item.count({ where }) + 1
-    },
-    boostPosition: async (parent, { id, sub, boost = 0 }, { models, me }) => {
-      const where = {
-        boost: { gte: boost },
-        status: 'ACTIVE',
-        deletedAt: null,
-        outlawed: false,
-        parentId: null
-      }
-      if (id) {
-        where.id = { not: Number(id) }
-      }
-
-      const homeAgg = await models.item.aggregate({
-        _count: { id: true },
-        _max: { boost: true },
-        where
-      })
-
-      let subAgg
-      if (sub) {
-        subAgg = await models.item.aggregate({
-          _count: { id: true },
-          _max: { boost: true },
-          where: {
-            ...where,
-            subName: sub
-          }
-        })
-      }
-
-      return {
-        home: homeAgg._count.id === 0 && boost >= BOOST_MULT,
-        sub: subAgg?._count.id === 0 && boost >= BOOST_MULT,
-        homeMaxBoost: homeAgg._max.boost || 0,
-        subMaxBoost: subAgg?._max.boost || 0
-      }
     },
     newComments: async (parent, { itemId, after }, { models, me }) => {
       const comments = await itemQueryWithMeta({
@@ -1179,11 +1097,20 @@ export default {
       }
       return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0) + BigInt(item.mePendingMcredits || 0))
     },
+    downSats: async (item, args, { models, me }) => {
+      if (me?.id === item.userId) {
+        return msatsToSats(BigInt(item.downMsats))
+      }
+      return msatsToSats(BigInt(item.downMsats) + BigInt(item.mePendingDontLikeMsats || 0))
+    },
+    commentDownSats: async (item, args, { models }) => {
+      return msatsToSats(item.commentDownMsats)
+    },
     boost: async (item, args, { models, me }) => {
       if (me?.id !== item.userId) {
-        return item.boost
+        return item.boost + item.oldBoost
       }
-      return item.boost + msatsToSats(BigInt(item.mePendingBoostMsats || 0))
+      return (item.boost + item.oldBoost) + msatsToSats(BigInt(item.mePendingBoostMsats || 0))
     },
     credits: async (item, args, { models, me }) => {
       if (me?.id === item.userId) {
@@ -1436,12 +1363,13 @@ export default {
       if (me && Number(item.userId) === Number(me.id)) {
         return false
       }
-      return item.outlawed || item.weightedVotes - item.weightedDownVotes <= -ITEM_FILTER_THRESHOLD
+      return item.genoutlawed
     },
     rel: async (item, args, { me, models }) => {
       const sats = item.msats ? msatsToSats(item.msats) : 0
-      const boost = item.boost ?? 0
-      return (sats + boost < NOFOLLOW_LIMIT) ? UNKNOWN_LINK_REL : 'noopener noreferrer'
+      const boost = (item.boost ?? 0) + (item.oldBoost ?? 0)
+      const cost = (item.cost ?? 0)
+      return (sats + boost + cost < NOFOLLOW_LIMIT || item.genoutlawed) ? UNKNOWN_LINK_REL : 'noopener noreferrer'
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
@@ -1667,10 +1595,3 @@ export const getForwardUsers = async (models, forward) => {
 export const SELECT =
   `SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
     ltree2text("Item"."path") AS "path"`
-
-function topOrderByWeightedSats (me, models, sub) {
-  if (sub) {
-    return 'ORDER BY "Item"."subWeightedVotes" - "Item"."subWeightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
-  }
-  return 'ORDER BY "Item"."weightedVotes" - "Item"."weightedDownVotes" DESC, "Item".msats DESC, "Item".id DESC'
-}

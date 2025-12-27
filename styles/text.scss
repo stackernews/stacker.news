@@ -17,7 +17,7 @@
   }
 }
 
-.sn-text > div >*:not(.sn-heading, .sn-toc, .sn-spoiler, .sn-code-block) {
+.sn-text > div >*:not(.sn-heading, .sn-toc, .sn-spoiler, .sn-code-block, .sn-hr) {
   padding-top: calc(var(--grid-gap) * 0.5);
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
@@ -166,34 +166,29 @@
   }
 }
 
-span.sn-media-container {
-  cursor: default;
-  display: block;
-  position: relative;
+.sn-media-container {
+  display: flex;
   width: 100%;
   max-width: 100%;
+  max-height: 25vh;
   height: auto;
   overflow: hidden;
-  max-height: 25vh;
-  aspect-ratio: var(--aspect-ratio);
+  aspect-ratio: var(--width) / var(--height);
   margin: 0;
 }
 
-.sn-paragraph:has(span.sn-media-container) {
-  padding-bottom: 0 !important;
+.sn-paragraph:has(> .sn-media-container) .sn-media-container {
+  width: min-content;
 }
 
-.sn-paragraph:has(span.sn-media-container) + .sn-paragraph:has(span.sn-media-container) {
-  padding-top: 0 !important;
+.sn-paragraph:has(> .sn-media-container) .sn-media-container img,
+.sn-paragraph:has(> .sn-media-container) .sn-media-container video {
+  min-width: 30%;
+  max-width: stretch;
 }
 
-span.sn-media-container:has(a) {
-  display: inline;
-}
-
-span.sn-media-container .outlawed {
-  user-select: text;
-  cursor: text;
+.sn-paragraph:has(> .sn-media-container) .sn-media-container img {
+  block-size: revert-layer;
 }
 
 .sn-media-container img,
@@ -201,21 +196,30 @@ span.sn-media-container .outlawed {
   display: block;
   object-fit: contain;
   width: auto;
-  max-height: inherit;
-  height: 100%;
   max-width: 100%;
-  aspect-ratio: var(--aspect-ratio);
-  cursor: default;
+  min-width: 30%;
+  height: 100%;
+  max-height: inherit;
+  aspect-ratio: var(--width) / var(--height);
 }
 
 .sn-media-container img {
   cursor: zoom-in;
-  min-width: 30%;
   object-position: left top;
 }
 
 .sn-text--top-level .sn-media-container {
   max-height: 35vh;
+}
+
+/* in case media-or-link detects a link */
+.sn-media-container:has(a) {
+  display: inline !important;
+}
+
+.sn-media-container .outlawed {
+  user-select: text;
+  cursor: text;
 }
 
 .sn-gallery {
@@ -700,15 +704,9 @@ span + .sn-link {
 }
 
 /* footnotes */
-.sn-footnote-ref {
-  vertical-align: super;
-  font-size: smaller;
-  line-height: 1;
-
-  a {
-    text-decoration: none;
-    color: var(--theme-link);
-  }
+.sn-footnote-ref a {
+  text-decoration: none;
+  color: var(--theme-link);
 }
 
 .sn-footnotes {

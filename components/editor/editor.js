@@ -25,6 +25,9 @@ import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import QuoteReplyPlugin from './plugins/core/quotereply'
+import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
+import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey-unborker'
+import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softkey-emptyguard'
 
 /**
  * main lexical editor component with formik integration
@@ -48,6 +51,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       namespace: 'sn',
       dependencies: [
         PlainTextExtension,
+        ApplePatchExtension,
         HistoryExtension,
         ShortcutsExtension,
         MDCommandsExtension,
@@ -86,13 +90,15 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
   return (
-    <div className={classNames(styles.editorContainer, topLevel && 'sn-text--top-level')}>
+    <div className={classNames(styles.editorContainer)} data-top-level={topLevel ? 'true' : 'false'}>
       <EditorRefPlugin editorRef={editorRef} />
       <ToolbarPlugin topLevel={topLevel} name={name} />
       {/* we only need a plain text editor for markdown */}
       <div className={styles.editor} ref={onContainerRef}>
         <ContentEditable
-          className={classNames(styles.editorInput, 'sn-text')}
+          translate='no'
+          data-sn-editor='true'
+          className={classNames(styles.editorContent, styles.editorContentInput, 'sn-text')}
           /* lh is a css unit that is equal to the line height of the element
               probably the worst thing is that we have to add 1 to the minRows to get the correct height
           */
@@ -101,13 +107,21 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
           aria-required={required}
         />
       </div>
-      {containerRef && <PreviewPlugin editorRef={containerRef} topLevel={topLevel} name={name} />}
+      {containerRef && (
+        <PreviewPlugin
+          editorRef={containerRef}
+          topLevel={topLevel}
+          name={name}
+        />
+      )}
       <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
       <QuoteReplyPlugin appendValue={appendValue} />
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />
       <MaxLengthPlugin lengthOptions={lengthOptions} />
+      <SoftkeyUnborkerPlugin />
+      <SoftkeyEmptyGuardPlugin />
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

@@ -169,7 +169,7 @@
     height: auto;
     overflow: hidden;
     max-height: 25vh;
-    aspect-ratio: var(--aspect-ratio);
+    aspect-ratio: var(--width) / var(--height);
     margin: 0;
 }
 
@@ -226,7 +226,7 @@
     max-height: inherit;
     height: 100%;
     max-width: 100%;
-    aspect-ratio: var(--aspect-ratio);
+    aspect-ratio: var(--width) / var(--height);
 }
 
 .mediaContainer img {

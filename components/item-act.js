@@ -134,6 +134,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         required
         autoFocus
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        onChange={() => setOValue(undefined)}
       />
 
       <div className='d-flex flex-wrap gap-2'>

@@ -24,6 +24,7 @@ import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
+import QuoteReplyPlugin from './plugins/core/quotereply'
 import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
 import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey-unborker'
 import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softkey-emptyguard'
@@ -60,13 +61,13 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       theme: { ...theme, topLevel: topLevel ? 'sn-text--top-level' : '' },
       onError: (error) => console.error('editor has encountered an error:', error)
     // only depend on stable values to avoid unnecessary re-renders
-    // appendValue and text.value are, for example, not stable because they are updated by the formik context
+    // text.value is not stable because it's updated on each keystroke
     }), [autoFocus, topLevel])
 
   return (
     <LexicalExtensionComposer extension={editor} contentEditable={null}>
       <ToolbarContextProvider>
-        <EditorContent topLevel={topLevel} name={name} {...props} />
+        <EditorContent topLevel={topLevel} name={name} appendValue={appendValue} {...props} />
       </ToolbarContextProvider>
     </LexicalExtensionComposer>
   )
@@ -85,7 +86,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
  * @param {React.ReactNode} [props.warn] - warning text for the editor
  * @returns {JSX.Element} editor content with all plugins
  */
-function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, editorRef }) {
+function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, editorRef, appendValue }) {
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
   return (
@@ -115,6 +116,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       )}
       <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
+      <QuoteReplyPlugin appendValue={appendValue} />
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />
       <MaxLengthPlugin lengthOptions={lengthOptions} />

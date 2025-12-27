@@ -14,23 +14,20 @@ import { IS_ANDROID } from '@lexical/utils'
 const suppressionWindow = 80 // ms (tweak as necessary)
 
 // events that will trigger the suppression window
-const suppressionTriggers = new Set([
-  'deleteContentBackward',
-  'deleteContentForward',
-  'deleteHardLineBackward',
-  'deleteHardLineForward',
-  'deleteSoftLineBackward',
-  'deleteSoftLineForward',
-  'deleteWordBackward',
-  'deleteWordForward',
-  'insertText'
-])
+const ALWAYS = null
+const suppressionTriggers = new Map([
+  ['deleteContentBackward', ALWAYS],
+  ['deleteContentForward', ALWAYS],
+  ['deleteHardLineBackward', ALWAYS],
+  ['deleteHardLineForward', ALWAYS],
+  ['deleteSoftLineBackward', ALWAYS],
+  ['deleteSoftLineForward', ALWAYS],
+  ['deleteWordBackward', ALWAYS],
+  ['deleteWordForward', ALWAYS],
 
-// Additional checks:
-// If a trigger has an associated check, suppression starts only if the check passes.
-const suppressionTriggersChecks = {
-  insertText: (e) => e.data === ''
-}
+  // Only treat insertText as a trigger when it has empty data
+  ['insertText', (e) => e.data === '']
+])
 
 function applySoftkeyWorkaround (el) {
   let isCompositionSuppressed = false
@@ -63,9 +60,19 @@ function applySoftkeyWorkaround (el) {
 
   const beginCompositionSuppression = (e) => {
     if (!e) return
-    if (!e.inputType || suppressionTriggers.has(e.inputType)) {
-      const extraChecks = suppressionTriggersChecks[e.inputType]
-      if (extraChecks && !extraChecks(e)) return
+    let suppress = !e.inputType
+    let checks = ALWAYS
+
+    if (!suppress) {
+      const v = suppressionTriggers.get(e.inputType)
+      if (v !== undefined) {
+        suppress = true
+        checks = v
+      }
+    }
+
+    if (suppress) {
+      if (checks !== ALWAYS && !checks(e)) return
 
       isCompositionSuppressed = true
 

@@ -1,8 +1,8 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
 import { useField, useFormikContext } from 'formik'
-import { $isMarkdownEmpty } from '@/lib/lexical/utils'
-import { $getRoot, COMMAND_PRIORITY_HIGH, createCommand } from 'lexical'
+import { $isMarkdownEmpty, $getMarkdown } from '@/lib/lexical/utils'
+import { COMMAND_PRIORITY_HIGH, createCommand } from 'lexical'
 
 export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
 
@@ -22,7 +22,7 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
           return
         }
 
-        const text = $getRoot().getTextContent()
+        const text = $getMarkdown()
 
         textHelpers.setValue(text)
       })

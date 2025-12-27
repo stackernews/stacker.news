@@ -22,8 +22,15 @@ const suppressionTriggers = new Set([
   'deleteSoftLineBackward',
   'deleteSoftLineForward',
   'deleteWordBackward',
-  'deleteWordForward'
+  'deleteWordForward',
+  'insertText'
 ])
+
+// Additional checks:
+// If a trigger has an associated check, suppression starts only if the check passes.
+const suppressionTriggersChecks = {
+  insertText: (e) => e.data === ''
+}
 
 function applySoftkeyWorkaround (el) {
   let isCompositionSuppressed = false
@@ -57,6 +64,9 @@ function applySoftkeyWorkaround (el) {
   const beginCompositionSuppression = (e) => {
     if (!e) return
     if (!e.inputType || suppressionTriggers.has(e.inputType)) {
+      const extraChecks = suppressionTriggersChecks[e.inputType]
+      if (extraChecks && !extraChecks(e)) return
+
       isCompositionSuppressed = true
 
       if (compositionTimeout != null) {

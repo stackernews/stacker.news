@@ -115,6 +115,7 @@ testNode: (node) => node.type === 'html' && node.value === tag
 | action | description |
 |--------|-------------|
 | `actions.addAndStepInto(lexicalNode)` | append node to parent, then recursively visit mdast children (if any) |
+| `actions.appendInlineNode(lexicalNode)` | append inline node to parent, wrapping in paragraph if the parent is RootNode |
 | `actions.visitChildren(mdastNode, lexicalParent)` | manually visit children |
 | `actions.nextVisitor()` | skip this visitor, try the next matching one |
 | `actions.addFormatting(format)` | add text formatting (bold, italic, etc.) |

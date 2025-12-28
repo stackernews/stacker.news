@@ -14,15 +14,19 @@ import { IS_ANDROID } from '@lexical/utils'
 const suppressionWindow = 80 // ms (tweak as necessary)
 
 // events that will trigger the suppression window
-const suppressionTriggers = new Set([
-  'deleteContentBackward',
-  'deleteContentForward',
-  'deleteHardLineBackward',
-  'deleteHardLineForward',
-  'deleteSoftLineBackward',
-  'deleteSoftLineForward',
-  'deleteWordBackward',
-  'deleteWordForward'
+const ALWAYS = null
+const suppressionTriggers = new Map([
+  ['deleteContentBackward', ALWAYS],
+  ['deleteContentForward', ALWAYS],
+  ['deleteHardLineBackward', ALWAYS],
+  ['deleteHardLineForward', ALWAYS],
+  ['deleteSoftLineBackward', ALWAYS],
+  ['deleteSoftLineForward', ALWAYS],
+  ['deleteWordBackward', ALWAYS],
+  ['deleteWordForward', ALWAYS],
+
+  // Only treat insertText as a trigger when it has empty data
+  ['insertText', (e) => e.data === '']
 ])
 
 function applySoftkeyWorkaround (el) {
@@ -56,7 +60,20 @@ function applySoftkeyWorkaround (el) {
 
   const beginCompositionSuppression = (e) => {
     if (!e) return
-    if (!e.inputType || suppressionTriggers.has(e.inputType)) {
+    let suppress = !e.inputType
+    let checks = ALWAYS
+
+    if (!suppress) {
+      const v = suppressionTriggers.get(e.inputType)
+      if (v !== undefined) {
+        suppress = true
+        checks = v
+      }
+    }
+
+    if (suppress) {
+      if (checks !== ALWAYS && !checks(e)) return
+
       isCompositionSuppressed = true
 
       if (compositionTimeout != null) {
@@ -83,7 +100,9 @@ function applySoftkeyWorkaround (el) {
 
   const filterSelection = (e) => {
     if (!e) return
-    if (isSelectionSuppressed) {
+    const sel = window.getSelection()
+    const isRangeSelection = sel.type === 'Range'
+    if (isSelectionSuppressed && isRangeSelection) {
       // stop the event from propagating further
       try {
         e.stopPropagation()

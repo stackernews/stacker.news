@@ -187,10 +187,6 @@
   max-width: stretch;
 }
 
-.sn-paragraph:has(> .sn-media-container) .sn-media-container img {
-  block-size: revert-layer;
-}
-
 .sn-media-container img,
 .sn-media-container video {
   display: block;
@@ -282,7 +278,6 @@ span + .sn-link {
 
 .sn-embed-wrapper {
   user-select: none;
-  pointer-events: auto;
 }
 
 [contenteditable="true"] .sn-embed-wrapper--focus {

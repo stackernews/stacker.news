@@ -5,7 +5,7 @@ import Button from 'react-bootstrap/Button'
 import styles from '@/styles/user.module.css'
 import { useState } from 'react'
 import ItemFull from '@/components/item-full'
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, SNInput } from '@/components/form'
 import { useMe } from '@/components/me'
 import { USER_FULL } from '@/fragments/users'
 import { getGetServerSideProps } from '@/api/ssrApollo'
@@ -55,7 +55,7 @@ export function BioForm ({ handleDone, bio, me }) {
           onSubmit={onSubmit}
           storageKeyPrefix={`bio-${me.id}`}
         >
-          <MarkdownInput
+          <SNInput
             topLevel
             name='text'
             minRows={6}

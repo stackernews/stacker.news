@@ -22,7 +22,7 @@ export async function rankViews () {
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
 
   try {
-    for (const view of ['hot_score_view']) {
+    for (const view of []) {
       await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
     }
   } finally {

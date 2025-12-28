@@ -4,13 +4,12 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
-import { amountSchema, boostSchema } from '@/lib/validate'
+import { amountSchema } from '@/lib/validate'
 import { useToast } from './toast'
 import { nextTip, defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { meAnonSats } from '@/lib/apollo'
-import { BoostItemInput } from './adv-post-form'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
@@ -55,37 +54,6 @@ const setItemMeAnonSats = ({ id, amount }) => {
   window.localStorage.setItem(storageKey, existingAmount + amount)
 }
 
-function BoostForm ({ step, onSubmit, children, item, oValue, inputRef, act = 'BOOST' }) {
-  return (
-    <Form
-      initial={{
-        amount: step
-      }}
-      schema={boostSchema}
-      onSubmit={onSubmit}
-    >
-      <BoostItemInput
-        label='add boost'
-        act
-        name='amount'
-        type='number'
-        innerRef={inputRef}
-        sub={item.sub}
-        step={step}
-        required
-        autoFocus
-        item={item}
-      />
-      <div className='d-flex mt-3'>
-        <SubmitButton variant='success' className='ms-auto mt-1 px-4' value={act}>
-          boost
-        </SubmitButton>
-      </div>
-      {children}
-    </Form>
-  )
-}
-
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
@@ -117,9 +85,12 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       if (!me) setItemMeAnonSats({ id: item.id, amount })
     }
 
-    const closeImmediately = hasSendWallet || me?.privates?.sats > Number(amount)
-    if (closeImmediately) {
+    const options = {}
+    if (hasSendWallet || me?.privates?.sats > Number(amount)) {
       onPaid()
+    } else {
+      // we want to close the modal only after paid so the modal can stack
+      options.onPaid = onPaid
     }
 
     const { error } = await actor({
@@ -139,51 +110,47 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
           }
         : undefined,
       // don't close modal immediately because we want the QR modal to stack
-      onPaid: closeImmediately
-        ? undefined
-        : onPaid
+      ...options
     })
     if (error) throw error
     addCustomTip(Number(amount))
   }, [me, actor, hasSendWallet, act, item.id, onClose, abortSignal, animate])
 
-  return act === 'BOOST'
-    ? <BoostForm step={step} onSubmit={onSubmit} item={item} inputRef={inputRef} act={act}>{children}</BoostForm>
-    : (
-      <Form
-        initial={{
-          amount: defaultTipIncludingRandom(me?.privates) || defaultTips[0]
-        }}
-        schema={amountSchema}
-        onSubmit={onSubmit}
-      >
-        <Input
-          label='amount'
-          name='amount'
-          type='number'
-          innerRef={inputRef}
-          overrideValue={oValue}
-          step={step}
-          required
-          autoFocus
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
+  return (
+    <Form
+      initial={{
+        amount: defaultTipIncludingRandom(me?.privates) || defaultTips[0]
+      }}
+      schema={amountSchema}
+      onSubmit={onSubmit}
+    >
+      <Input
+        label='amount'
+        name='amount'
+        type='number'
+        innerRef={inputRef}
+        overrideValue={oValue}
+        step={step}
+        required
+        autoFocus
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      />
 
-        <div className='d-flex flex-wrap gap-2'>
-          <Tips setOValue={setOValue} />
-        </div>
-        <div className='d-flex mt-3'>
-          <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>
-            {act === 'DONT_LIKE_THIS' ? 'downzap' : 'zap'}
-          </SubmitButton>
-        </div>
-        {children}
-      </Form>)
+      <div className='d-flex flex-wrap gap-2'>
+        <Tips setOValue={setOValue} />
+      </div>
+      <div className='d-flex mt-3'>
+        <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>
+          {act === 'DONT_LIKE_THIS' ? 'downzap' : act === 'BOOST' ? 'boost' : 'zap'}
+        </SubmitButton>
+      </div>
+      {children}
+    </Form>
+  )
 }
 
 function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
   const result = payerPrivates?.result
-  console.log('modifyActCache', payerPrivates, payOutBolt11Public, result)
   if (!result) return
   const { id, sats, act } = result
   const p2p = !!payOutBolt11Public
@@ -216,6 +183,12 @@ function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
         return existingCredits
       },
       meDontLikeSats: (existingSats = 0) => {
+        if (act === 'DONT_LIKE_THIS') {
+          return existingSats + sats
+        }
+        return existingSats
+      },
+      downSats: (existingSats = 0) => {
         if (act === 'DONT_LIKE_THIS') {
           return existingSats + sats
         }
@@ -255,6 +228,21 @@ function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
           },
           commentSats (existingCommentSats = 0) {
             return existingCommentSats + sats
+          }
+        },
+        optimistic: true
+      })
+    })
+  }
+  if (act === 'DONT_LIKE_THIS') {
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      cache.modify({
+        id: `Item:${aId}`,
+        fields: {
+          commentDownSats (existingCommentDownSats = 0) {
+            return existingCommentDownSats + sats
           }
         },
         optimistic: true

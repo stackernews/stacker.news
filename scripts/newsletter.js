@@ -83,6 +83,8 @@ query Search($q: String, $sort: String, $what: String, $when: String, $from: Str
 const to = String(new Date(new Date().setHours(0, 0, 0, 0)).getTime())
 const from = String(datePivot(new Date(Number(to)), { days: -8 }).getTime())
 
+// we don't have bounties in the newsletter currently
+// eslint-disable-next-line no-unused-vars
 async function bountyWinner (q) {
   const WINNER = gql`
     query Item($id: ID!) {
@@ -115,6 +117,47 @@ async function bountyWinner (q) {
     return { bounty: items[0].id, winner }
   } catch (e) {
 
+  }
+}
+
+async function topComment (q) {
+  const TOP_COMMENT = gql`
+    query Item($id: ID!) {
+      item(id: $id) {
+        comments(sort: "top") {
+          comments {
+            text
+            sats
+            user {
+              name
+            }
+            imgproxyUrls
+          }
+        }
+      }
+    }`
+
+  const items = await client.query({
+    query: SEARCH,
+    variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'custom', from, to }
+  })
+
+  const post = items?.data.search.items?.length > 0 ? items.data.search.items[0] : null
+
+  if (!post) return
+
+  try {
+    const item = await client.query({
+      query: TOP_COMMENT,
+      variables: { id: post.id }
+    })
+
+    const topComment = item.data.item.comments.comments[0]
+
+    const winner = { ...topComment, image: Object.values(topComment.imgproxyUrls)[0]?.['640w'] }
+
+    return { item: post.id, winner }
+  } catch (e) {
   }
 }
 
@@ -169,7 +212,7 @@ async function main () {
     variables: { sort: 'top', when: 'forever', by: 'boost' }
   })
 
-  const topMeme = await bountyWinner('meme monday')
+  const topMeme = await topComment('meme monday ~memes')
 
   const topCowboys = await getTopUsers({ cowboys: true, when: 'custom', from, to })
   const topStackers = await getTopUsers({ by: 'stacked', when: 'custom', from, to })
@@ -211,7 +254,7 @@ ${meta.data.items.items.slice(0, 10).map((item, i) =>
 ##### Top Monday meme
 ![](${new URL(topMeme?.winner.image, 'https://imgprxy.stacker.news').href})
 
-[**all monday memes**](https://stacker.news/items/${topMeme?.bounty})
+[**all monday memes**](https://stacker.news/items/${topMeme?.item})
 
 ------
 
@@ -251,7 +294,7 @@ Yeehaw,
 Keyan
 A guy who works on Stacker News
 
-[Watch](https://www.youtube.com/@stackernews/live) or [Listen](https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2) to SN's top stories every week.
+[Watch](https://www.youtube.com/@stackernews/live) or [Listen to](https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2) or [Read in print](https://www.plebpoet.com/zines.html) SN's top stories every week.
 
 Get this newsletter sent to your email inbox by signing up [here](https://mail.stacker.news/subscription/form).`)
 }

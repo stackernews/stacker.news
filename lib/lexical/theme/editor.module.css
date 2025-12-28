@@ -1,0 +1,635 @@
+/* editor container */
+
+.editor {
+  --editor-border-color: var(--theme-borderColor);
+  --editor-bg: transparent;
+
+  position: relative;
+  border: 1px solid var(--editor-border-color);
+  background-color: var(--editor-bg);
+  border-bottom-left-radius: 0.4rem;
+  border-bottom-right-radius: 0.4rem;
+  border-top-right-radius: 0.4rem;
+  padding: 2px;
+}
+
+.editor[data-lexical-preview='true'] {
+  border-radius: 0.4rem;
+}
+
+/* non-top-level editor for things such as comments */
+.editorContainer:not([data-top-level='true']) .editor {
+  --editor-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --editor-bg: var(--theme-forceCommentBg);
+}
+
+/* editor focus state */
+.editor:has(.editorContent:focus-within) {
+  --editor-border-color: var(--bs-primary);
+  outline: 0;
+  box-shadow: 0 0 4px var(--bs-primary);
+}
+
+.editorContainer {
+  width: 100%;
+  color: var(--theme-color);
+  position: relative;
+  font-weight: 400;
+  text-align: left;
+  border-top-left-radius: 0.4rem;
+  border-top-right-radius: 0.4rem;
+}
+
+.editorInner {
+  position: relative;
+}
+
+/* editor input */
+
+.editorContent {
+  position: relative;
+  outline: 0;
+  padding: 8px;
+  resize: vertical;
+  overflow: auto;
+  background-color: transparent;
+}
+
+[data-lexical-preview='true'] .editorContent {
+  min-height: var(--editor-height, auto);
+}
+
+.editorContentInput {
+  caret-color: var(--theme-color);
+  font-size: 94%;
+  line-height: 140%;
+  tab-size: 1;
+}
+
+@media screen and (min-width: 767px) {
+  .editorContentInput {
+    line-height: 130%;
+  }
+}
+
+.editorPlaceholder {
+  top: 8px;
+  left: 11px;
+  font-size: 94%;
+  opacity: 0.5;
+  position: absolute;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+  white-space: nowrap;
+  display: inline-block;
+  pointer-events: none;
+}
+
+/* toolbar */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.toolbar :global(.dropdown-toggle::after),
+.bottomBar :global(.dropdown-toggle::after),
+.tableCellActionButtonContainer :global(.dropdown-toggle::after) {
+  display: none;
+}
+
+.innerToolbar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+  top: -4px;
+}
+
+.divider {
+  min-width: 1px;
+  height: 20px;
+  background-color: var(--theme-borderColor);
+  border-radius: 0.4rem;
+  margin: 0 4px;
+  opacity: 0.3;
+
+  /* extra space when divider follows a dropdown */
+  :global(.dropdown) + & {
+    margin-left: 1.25rem;
+  }
+}
+
+.toolbarFormatting {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  opacity: 1;
+  overflow: auto;
+  scrollbar-width: none;
+  transition: opacity 0.1s ease-in-out, visibility 0.1s ease-in-out;
+}
+
+.toolbarFormatting.hasOverflow {
+  mask: linear-gradient(to right, black 0%, black calc(100% - 0.2rem), transparent 100%);
+}
+
+.toolbarFormatting.hidden {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* toolbar items */
+
+.toolbarItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 0.4rem;
+  opacity: 0.6;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* spacing between adjacent toolbar items and dropdowns */
+.toolbarItem + .toolbarItem,
+:global(.dropdown):has(.toolbarItem) + :global(.dropdown):has(.toolbarItem) {
+  margin-left: 0.25rem;
+}
+
+.toolbarItem:hover {
+  background-color: var(--theme-toolbarActive);
+  opacity: 1;
+}
+
+.toolbarItem:active,
+.toolbarItem.active:active {
+  opacity: 0.8;
+}
+
+.toolbarItem.active {
+  background-color: var(--theme-toolbarActive);
+  opacity: 1;
+}
+
+.toolbarItem svg {
+  color: var(--bs-body-color);
+  width: 20px;
+  height: 20px;
+}
+
+.toolbarItemText {
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 0.25rem;
+}
+
+/* bootstrap dropdown override */
+.toolbarItem .toolbarItemText,
+:global(.dropdown-toggle) .toolbarItemText {
+  color: var(--bs-body-color);
+}
+
+.toolbarInsert {
+  display: flex;
+  align-items: center;
+  border-radius: 0.4rem;
+  opacity: 0.6;
+  padding: 0.25rem;
+}
+
+.toolbarInsert:hover,
+.toolbarInsert.active {
+  background-color: var(--theme-toolbarActive);
+  opacity: 1;
+}
+
+.toolbarInsert svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* bootstrap dropdown item svg override */
+.toolbar .toolbarInsert svg,
+:global(.dropdown-toggle).toolbarInsert svg {
+  fill: var(--bs-body-color);
+}
+
+/* bottom bar */
+
+.bottomBar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.bottomBarItem {
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--theme-grey);
+  margin-top: 2px;
+}
+
+.bottomBarDivider {
+  color: var(--theme-grey);
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.bottomBarItem:hover,
+.bottomBarItem:active {
+  color: var(--theme-brandColor);
+  filter: drop-shadow(0 0 6px var(--bs-primary));
+}
+
+.bottomBarItem:active {
+  opacity: 0.8;
+}
+
+/* dropdown menus */
+
+.dropdownExtra, .tableActionMenuDropdown {
+  padding: 0.45rem 0.35rem;
+  width: 240px;
+  border-radius: 0.4rem;
+  z-index: 2000;
+}
+
+.dropdownSearchContainer {
+  padding: 0.15rem;
+  margin-bottom: 0.1rem;
+  border-radius: 0.3rem;
+  opacity: 0.5;
+}
+
+.dropdownSearchInput {
+  width: 100%;
+}
+
+.dropdownExtraItem, .tableActionMenuItem {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.1rem;
+  padding: 0.35rem;
+  font-size: 14px;
+  font-weight: normal;
+  text-wrap: wrap;
+}
+
+.dropdownExtraItem:hover, .tableActionMenuItem:hover {
+  background-color: var(--theme-toolbarActive);
+  opacity: 1;
+  border-radius: 0.3rem;
+}
+
+.dropdownExtraItem.active {
+  opacity: 1;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.dropdownExtraItem.active .dropdownExtraItemText {
+  color: var(--theme-brandColor) !important;
+  filter: drop-shadow(0 0 6px var(--bs-primary));
+  font-weight: 500;
+}
+
+.dropdownExtraItemLabel, .tableActionMenuItemLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.dropdownExtraItemLabel svg, .tableActionMenuItemLabel svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  margin-right: 0.25rem;
+}
+
+.dropdownExtraItemShortcut, .tableActionMenuItemShortcut {
+  color: var(--theme-grey);
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.5;
+}
+
+/* skeleton animation */
+
+.skeleton .otherItem {
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.27rem;
+  background-size: 200% 100%;
+  animation: shimmer 4s infinite linear;
+  margin-bottom: 0.5rem;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* editor mode tabs */
+.modeTabs {
+  --tab-border-color: var(--theme-borderColor);
+  --tab-bg: var(--theme-inputBg);
+  --tab-shadow: none;
+  --tab-clip: none;
+
+  padding-top: .2rem;
+  padding-bottom: .3rem;
+  position: relative;
+}
+
+.modeTabs:global(.nav-link.active) {
+  border: 1px solid var(--tab-border-color);
+  border-bottom: 0;
+  background-color: var(--tab-bg);
+  box-shadow: var(--tab-shadow);
+  clip-path: var(--tab-clip);
+}
+
+/* non-top-level editor tabs (comments, etc.) */
+.editorContainer:not([data-top-level='true']) .modeTabs {
+  --tab-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --tab-bg: var(--theme-forceCommentBg);
+}
+
+/* focus state for tabs */
+.toolbar:has(~ .editor .editorContent:focus-within) .modeTabs {
+  --tab-border-color: var(--bs-primary);
+  --tab-shadow: 0 0 4px var(--bs-primary);
+  --tab-clip: inset(-0.2rem -0.2rem -0.1rem -0.2rem);
+}
+
+/* floating toolbar */
+
+.floatingToolbarContainer {
+  position: absolute;
+  background-color: var(--theme-inputBg);
+  border-radius: 0.4rem;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  opacity: 0;
+  transform: translate(-10000px, -10000px);
+  box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--theme-floating-toolbar-shadow-opacity));
+  transition: opacity 0.2s ease-in-out;
+  will-change: transform;
+}
+
+.floatingToolbar {
+  border-radius: 0.4rem;
+  background-color: var(--theme-commentBg);
+  padding: 4px;
+  padding-bottom: 0;
+}
+
+/* code action menu */
+
+.codeActionMenuContainer {
+  height: 36px;
+  font-size: 10px;
+  color: var(--theme-navLink);
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.codeActionCopyButton svg,
+.codeActionLanguage svg {
+  fill: var(--theme-navLink);
+  width: 16px;
+  height: 16px;
+}
+
+.codeActionCopyButton svg {
+  margin-bottom: 3px;
+}
+
+.codeActionCopyButton svg:hover,
+.codeActionLanguage svg:hover {
+  fill: var(--theme-navLinkFocus);
+}
+
+.codeActionCopyButton svg:active,
+.codeActionLanguage svg:active {
+  fill: var(--theme-navLinkActive);
+}
+
+.draggableBlockMenu {
+  border-radius: 4px;
+  padding: 2px 1px;
+  cursor: grab;
+  opacity: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  display: flex;
+  gap: 2px;
+  z-index: 1000;
+}
+
+.draggableBlockMenuAdd {
+  cursor: pointer;
+}
+
+.draggableBlockMenu:active {
+  cursor: grabbing;
+}
+
+.draggableBlockMenu svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0.3;
+}
+
+.draggableBlockTargetLine {
+  pointer-events: none;
+  background: deepskyblue;
+  height: 4px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  will-change: transform;
+}
+
+/* to be implemented */
+.tableAddColumns {
+  position: absolute;
+  background-color: var(--theme-toolbarActive);
+  height: 100%;
+  animation: table-controls 0.2s ease;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tableAddColumns svg, .tableAddRows svg {
+  fill: var(--bs-body-color);
+  width: 12px;
+  height: 12px;
+}
+
+.tableAddColumns:hover,
+.tableAddRows:hover {
+  background-color: var(--theme-toolbarActive);
+  opacity: 0.8;
+}
+.tableAddRows {
+  position: absolute;
+  width: calc(100% - 25px);
+  background-color: var(--theme-toolbarActive);
+  animation: table-controls 0.2s ease;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes table-controls {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* table action menu */
+.tableCellActionButtonContainer {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.tableCellActionButtonContainerActive {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.tableCellActionButtonContainerInactive {
+  pointer-events: none;
+  opacity: 0;
+}
+.tableCellActionButton {
+  background-color: var(--theme-commentBg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 4px;
+  position: absolute;
+  top: 17px;
+  right: 2px;
+  color: var(--theme-color);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.tableCellActionButton:hover {
+  background-color: var(--theme-toolbarActive);
+}
+
+.tableCellActionButton svg {
+  fill: var(--bs-body-color);
+  width: 12px;
+  height: 12px;
+}
+
+.tableActionMenuWrapper {
+  position: fixed;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tableActionMenuDropdown {
+  width: 100% !important;
+}
+
+/* increase specificity for table action menu label, instead of !important */
+.tableActionMenuLabel.tableActionMenuLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.tableActionMenuItemShortcut {
+  font-size: 10px !important;
+}
+
+.tableActionMenuGroup {
+  padding: 0.25rem 0;
+}
+
+.dragOver {
+  box-shadow: 0 0 10px var(--bs-info);
+}
+
+.modeSwitcherContainer {
+  --switcher-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --switcher-shadow: none;
+  --switcher-clip: none;
+
+  margin-bottom: -0.05rem;
+}
+
+.modeSwitcherContainer :global(.nav-tabs .nav-link) {
+  color: var(--theme-dropdownItemColor);
+  font-size: 12px;
+  padding-bottom: 0.25rem;
+  padding-top: 0.25rem;
+}
+
+.modeSwitcherContainer :global(.nav-tabs .nav-link.active) {
+  border: 1px solid var(--switcher-border-color);
+  border-bottom: 0;
+  background-color: var(--theme-commentBg);
+  box-shadow: var(--switcher-shadow);
+  clip-path: var(--switcher-clip);
+}
+
+/* focus state for mode switcher */
+.toolbar:has(~ .editor .editorContent:focus-within) .modeSwitcherContainer {
+  --switcher-border-color: var(--bs-primary);
+  --switcher-shadow: 0 0 0 0.2rem rgb(240 218 94 / 25%);
+  --switcher-clip: inset(-0.2rem -0.2rem -0.005rem -0.2rem);
+}
+
+/* https://github.com/react-bootstrap/react-bootstrap/issues/5475 */
+.suggestionsMenu {
+  opacity: 1 !important;
+  pointer-events: unset !important;
+}

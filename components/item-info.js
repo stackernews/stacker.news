@@ -261,6 +261,10 @@ function InfoDropdownItem ({ item }) {
           <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
           <div>stacked (comments)</div>
           <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
+          <div>downsats</div>
+          <div>{item.downSats}</div>
+          <div>downsats (comments)</div>
+          <div>{item.commentDownSats}</div>
           {me && (
             <>
               <div>from me</div>

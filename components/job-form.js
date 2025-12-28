@@ -1,19 +1,16 @@
-import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
+import { Checkbox, Form, Input, SNInput, SubmitButton } from './form'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Image from 'react-bootstrap/Image'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Info from './info'
 import styles from '@/styles/post.module.css'
-import { useLazyQuery, gql } from '@apollo/client'
 import Avatar from './avatar'
 import { jobSchema } from '@/lib/validate'
-import { BOOST_MIN, BOOST_MULT, MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
+import { MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
 import { UPSERT_JOB } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
-import { BoostInput } from './adv-post-form'
-import { numWithUnits, giveOrdinalSuffix } from '@/lib/format'
-import useDebounceCallback from './use-debounce-callback'
+import { BoostInput } from './boost-button'
 import FeeButton from './fee-button'
 import CancelButton from './cancel-button'
 
@@ -21,20 +18,6 @@ import CancelButton from './cancel-button'
 export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const [logoId, setLogoId] = useState(item?.uploadId)
-
-  const [getAuctionPosition, { data }] = useLazyQuery(gql`
-     query AuctionPosition($id: ID, $boost: Int) {
-       auctionPosition(sub: "${item?.subName || sub?.name}", id: $id, boost: $boost)
-     }`,
-  { fetchPolicy: 'cache-and-network' })
-
-  const getPositionDebounce = useDebounceCallback((...args) => getAuctionPosition(...args), 1000, [getAuctionPosition])
-
-  useEffect(() => {
-    if (item?.boost) {
-      getPositionDebounce({ variables: { boost: item.boost, id: item.id } })
-    }
-  }, [item?.boost])
 
   const extraValues = logoId ? { logo: Number(logoId) } : {}
   const onSubmit = useItemSubmit(UPSERT_JOB, { item, sub, extraValues })
@@ -97,7 +80,7 @@ export default function JobForm ({ item, sub }) {
             />
           </Col>
         </Row>
-        <MarkdownInput
+        <SNInput
           topLevel
           label='description'
           name='text'
@@ -116,15 +99,12 @@ export default function JobForm ({ item, sub }) {
               <Info>
                 <ol>
                   <li>Boost ranks jobs higher based on the amount</li>
-                  <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
-                  <li>Boost must be divisible by {numWithUnits(BOOST_MULT, { abbreviate: false })}</li>
                   <li>100% of boost goes to the territory founder and top stackers as rewards</li>
                 </ol>
               </Info>
             </div>
           }
-          hint={<span className='text-muted'>{data?.auctionPosition ? `your job will rank ${giveOrdinalSuffix(data.auctionPosition)}` : 'higher boost ranks your job higher'}</span>}
-          onChange={(_, e) => getPositionDebounce({ variables: { boost: Number(e.target.value), id: item?.id } })}
+          hint={<span className='text-muted'>higher boost ranks your job higher</span>}
         />
         <JobButtonBar itemId={item?.id} />
       </Form>

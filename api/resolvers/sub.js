@@ -6,6 +6,7 @@ import pay from '../payIn'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
+import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -330,6 +331,8 @@ export default {
         throw new GqlInputError('sub should not be archived')
       }
 
+      data.uploadIds = uploadIdsFromText(data.desc)
+
       return await pay('TERRITORY_UNARCHIVE', data, { me, models, lnd })
     }
   },
@@ -359,7 +362,22 @@ export default {
 
       return sub.SubSubscription?.length > 0
     },
-    createdAt: sub => sub.createdAt || sub.created_at
+    createdAt: sub => sub.createdAt || sub.created_at,
+    lexicalState: async (sub, args, { lexicalStateLoader }) => {
+      if (!sub.desc) return null
+      return lexicalStateLoader.load({ text: sub.desc })
+    },
+    html: async (sub, args, { lexicalStateLoader }) => {
+      if (!sub.desc) return null
+      try {
+        const lexicalState = await lexicalStateLoader.load({ text: sub.desc })
+        if (!lexicalState) return null
+        return lexicalHTMLGenerator(lexicalState)
+      } catch (error) {
+        console.error('error generating HTML from Lexical State:', error)
+        return null
+      }
+    }
   }
 }
 

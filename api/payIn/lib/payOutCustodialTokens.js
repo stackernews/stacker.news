@@ -1,6 +1,6 @@
 import { USER_ID } from '@/lib/constants'
 
-export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTokens = [], payOutBolt11 = { msats: 0n }, mcost }) {
+export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTokens = [], payOutBolt11 = { msats: 0n }, mcost, rewardsPct }) {
   // routing fee is only deducted from rewards pool, so it can be added back to the rewards pool when the actual routing fee is known
   const remainingMtokens = mcost - payOutBolt11.msats -
     payOutCustodialTokens.filter(t => t.payOutType !== 'ROUTING_FEE').reduce((acc, token) => acc + token.mtokens, 0n)
@@ -11,7 +11,7 @@ export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTok
   const payOutCustodialTokensCopy = [...payOutCustodialTokens]
   let revenueMtokens = 0n
   if (sub) {
-    revenueMtokens = remainingMtokens * (100n - BigInt(sub.rewardsPct)) / 100n
+    revenueMtokens = remainingMtokens * (100n - BigInt(rewardsPct ?? sub.rewardsPct)) / 100n
     payOutCustodialTokensCopy.push({
       payOutType: 'TERRITORY_REVENUE',
       userId: sub.userId,

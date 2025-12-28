@@ -24,9 +24,8 @@ import removeMd from 'remove-markdown'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
 import ItemPopover from './item-popover'
 import { useMe } from './me'
-import Boost from './boost-button'
+import Boost, { BoostHelp } from './boost-button'
 import { useShowModal } from './modal'
-import { BoostHelp } from './adv-post-form'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item.id)
@@ -135,7 +134,7 @@ export default function Item ({
               {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-grey ms-1' height={14} width={14} /></span>}
               {media && <span className={styles.icon}><MediaIcon className='fill-grey ms-2' height={16} width={16} /></span>}
             </Link>
-            {item.url && !media && <ItemLink url={item.url} rel={UNKNOWN_LINK_REL} />}
+            {item.url && !media && <ItemLink url={item.url} rel={item.rel} />}
           </div>
           <ItemInfo
             full={full} item={item}

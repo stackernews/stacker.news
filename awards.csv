@@ -271,7 +271,17 @@ Scroogey-SN,pr,#2451,#2392,good-first-issue,,,,20k,Scroogey@coinos.io,2025-09-03
 ed-kung,issue,#2432,#2427,medium,,,,25k,simplestacker@getalby.com,2025-09-30
 pory-gone,pr,#2514,#2511,good-first-issue,,1,,18k,pory@porygone.xyz,2025-09-30
 brymut,pr,#2566,#2555,good-first-issue,,,,20k,brymut@stacker.news,2025-09-30
-pory-gone,pr,#2641,#2639,good-first-issue,,,,20k,pory@porygone.xyz,???
-ed-kung,issue,#2641,#2639,good-first-issue,,,,2k,simplestacker@getalby.com,???
-abhiShandy,pr,#2651,,,,,,20k,abhishandy@stacker.news,???
-pory-gone,helpfulness,#2652,#2646,,,,identified problem,20k,pory@porygone.xyz,???
+pory-gone,pr,#2641,#2639,good-first-issue,,,,20k,pory@porygone.xyz,2025-12-12
+ed-kung,issue,#2641,#2639,good-first-issue,,,,2k,simplestacker@getalby.com,2025-12-12
+abhiShandy,pr,#2651,,,,,,20k,abhishandy@stacker.news,2025-12-12
+pory-gone,helpfulness,#2652,#2646,,,,identified problem,20k,pory@porygone.xyz,2025-12-12
+kravhen,pr,#1767,#1422,easy,,,defunct but our fault,100k,nichro@getalby.com,2025-12-12
+m0wer,pr,#2212,#603,hard,,1,outdated but our fault - tough to review,200k,m0wer@lnbits.sgn.space,2025-12-12
+brymut,pr,#2253,#2252,good-first-issue,,,defunct but our fault,20k,brymut@blink.sv,2025-12-12
+brymut,pr,#2422,#2363,good-first-issue,,,blocked by mdast,20k,brymut@blink.sv,2025-12-12
+brymut,pr,#2493,#2480,medium,low,,unplanned and untested,100k,brymut@blink.sv,2025-12-12
+gndelia,helpfulness,#2493,#2480,medium,low,,unplanned and untested,10k,???,???
+brymut,pr,#2483,#709,medium,,,unplanned and untested,100k,brymut@blink.sv,2025-12-12
+pory-gone,pr,#2470,#2271,good-first-issue,,1,,18k,pory@porygone.xyz,2025-12-12
+riccardobl,pr,#2708,#2691,high,urgent,,solved multitudes,3m,???,???
+sir-opti,issue,#2708,#2691,high,urgent,,,300k,???,???

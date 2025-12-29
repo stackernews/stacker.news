@@ -357,10 +357,6 @@ span + .sn-link {
   position: absolute;
 }
 
-.sn-list__item--checked {
-  text-decoration: line-through;
-}
-
 .sn-list__item--checked:focus:before, .sn-list__item--unchecked:focus:before {
   box-shadow: 0 0 0 2px #a6cdfe;
   border-radius: 2px;

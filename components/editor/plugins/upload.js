@@ -9,10 +9,11 @@ import {
   PASTE_COMMAND,
   createCommand,
   $createTextNode,
-  $createLineBreakNode,
+  $isTextNode,
   $createParagraphNode,
   $createRangeSelection,
-  $setSelection
+  $setSelection,
+  $insertNodes
 } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -65,13 +66,22 @@ export default function FileUploadPlugin ({ editorRef }) {
       // placeholderKey is the nodekey of the TextNode that contains the placeholder text
       const placeholderNode = $createTextNode(`![Uploading ${file.name}…]()`)
 
+      // WIP: restructure upload insertion via new MarkdownTextExtension
+      const root = $getRoot()
       const selection = $getSelection()
+
       if ($isRangeSelection(selection)) {
-        // we must insert line breaks before and after the placeholder node to ensure it is on a new line
-        selection.insertNodes([$createLineBreakNode(), placeholderNode, $createLineBreakNode()])
+        const anchorNode = selection.anchor.getNode()
+        if ($isTextNode(anchorNode)) {
+          selection.insertParagraph()
+          selection.insertParagraph()
+        }
+
+        selection.insertNodes([$createParagraphNode().append(placeholderNode), $createParagraphNode(), $createParagraphNode()])
       } else {
-        // if there is no selection, we just append the placeholder node to the root
-        $getRoot().append($createParagraphNode().append(placeholderNode))
+        console.log('inserting placeholder node to root')
+        $insertNodes([$createParagraphNode().append(placeholderNode), $createParagraphNode(), $createParagraphNode()])
+        root.selectEnd()
       }
 
       // update the placeholder key

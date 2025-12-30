@@ -17,7 +17,7 @@ import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
 import MentionsPlugin from '@/components/editor/plugins/mentions'
 import FileUploadPlugin from '@/components/editor/plugins/upload'
 import PreviewPlugin from '@/components/editor/plugins/preview'
-import { $setMarkdown, $appendMarkdown } from '@/lib/lexical/utils'
+import { $setMarkdown } from '@/lib/lexical/utils'
 import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
@@ -27,26 +27,23 @@ import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
 import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey-unborker'
 import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softkey-emptyguard'
 import { MarkdownTextExtension } from '@/lib/lexical/exts/markdown'
+import AppendValuePlugin from '@/components/editor/plugins/append-value'
 
 /**
  * main lexical editor component with formik integration
  * @param {string} props.name - form field name
- * @param {string} [props.appendValue] - value to append to initial content
  * @param {boolean} [props.autoFocus] - whether to auto-focus the editor
  * @returns {JSX.Element} lexical editor component
  */
-export default function Editor ({ name, appendValue, autoFocus, topLevel, ...props }) {
+export default function Editor ({ name, autoFocus, topLevel, ...props }) {
   const [text] = useField({ name })
 
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: () => {
-        // initialize editor state with appendValue or existing formik text
+        // initialize editor state with existing formik text
         if (text.value) {
           $setMarkdown(text.value)
-        }
-        if (appendValue) {
-          $appendMarkdown(appendValue)
         }
       },
       name: 'editor',
@@ -63,7 +60,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       theme: { ...theme, topLevel: topLevel ? 'sn-text--top-level' : '' },
       onError: (error) => console.error('editor has encountered an error:', error)
     // only depend on stable values to avoid unnecessary re-renders
-    // appendValue and text.value are, for example, not stable because they are updated by the formik context
+    // text.value is, for example, not stable because it is updated by the formik context
     }), [autoFocus, topLevel])
 
   return (
@@ -88,7 +85,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
  * @param {React.ReactNode} [props.warn] - warning text for the editor
  * @returns {JSX.Element} editor content with all plugins
  */
-function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, editorRef }) {
+function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, editorRef, appendValue }) {
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
   return (
@@ -120,6 +117,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       <MentionsPlugin />
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />
+      <AppendValuePlugin value={appendValue} />
       <MaxLengthPlugin lengthOptions={lengthOptions} />
       <SoftkeyUnborkerPlugin />
       <SoftkeyEmptyGuardPlugin />

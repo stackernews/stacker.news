@@ -17,7 +17,7 @@ import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
 import MentionsPlugin from '@/components/editor/plugins/mentions'
 import FileUploadPlugin from '@/components/editor/plugins/upload'
 import PreviewPlugin from '@/components/editor/plugins/preview'
-import { $initializeEditorState } from '@/lib/lexical/utils'
+import { $setMarkdown } from '@/lib/lexical/utils'
 import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
@@ -43,7 +43,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       $initialEditorState: () => {
         // initialize editor state with appendValue or existing formik text
         if (appendValue || text.value) {
-          $initializeEditorState(appendValue || text.value)
+          $setMarkdown(appendValue || text.value)
         }
       },
       name: 'editor',

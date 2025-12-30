@@ -11,8 +11,7 @@ export default function AppendValuePlugin ({ value }) {
   const lastAppendedRef = useRef(null)
 
   useEffect(() => {
-    if (!value) return
-    if (lastAppendedRef.current === value) editor.focus()
+    if (!value || lastAppendedRef.current === value) return
 
     editor.update(() => {
       $appendMarkdown(value)

@@ -3,7 +3,6 @@ import { useField } from 'formik'
 import { useMemo } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
-import { PlainTextExtension } from '@lexical/plain-text'
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
@@ -27,6 +26,7 @@ import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
 import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey-unborker'
 import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softkey-emptyguard'
+import { MarkdownTextExtension } from '@/lib/lexical/exts/markdown'
 
 /**
  * main lexical editor component with formik integration
@@ -49,7 +49,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
       name: 'editor',
       namespace: 'sn',
       dependencies: [
-        PlainTextExtension,
+        MarkdownTextExtension,
         ApplePatchExtension,
         HistoryExtension,
         ShortcutsExtension,

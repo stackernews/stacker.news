@@ -10,7 +10,8 @@ import {
   createCommand,
   $createTextNode,
   $createRangeSelection,
-  $setSelection
+  $setSelection,
+  COMMAND_PRIORITY_HIGH
 } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -142,10 +143,11 @@ export default function FileUploadPlugin ({ editorRef }) {
 
           for (let i = 0; i < items.length; i++) {
             const item = items[i]
-            if (item.type.startsWith('image')) {
+            const type = item.type.split('/')[0]
+            if (type === 'image' || type === 'video') {
               const blob = item.getAsFile()
               if (!blob) continue
-              const file = new File([blob], 'image', { type: blob.type })
+              const file = new File([blob], type, { type: blob.type })
               fileList.items.add(file)
               hasImages = true
             }
@@ -160,7 +162,7 @@ export default function FileUploadPlugin ({ editorRef }) {
 
           return hasImages
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_HIGH
       ),
       editor.registerCommand(
         DRAGOVER_COMMAND,

@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useContext, useCallback, useEffect } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
-import { $isMarkdownEmpty, $initializeEditorState, $getMarkdown } from '@/lib/lexical/utils'
+import { $isMarkdownEmpty, $setMarkdown, $getMarkdown } from '@/lib/lexical/utils'
 
 /**
  * plugin that auto-saves and restores editor drafts to/from local storage
@@ -36,7 +36,7 @@ export default function LocalDraftPlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
-          $initializeEditorState(value)
+          $setMarkdown(value)
         })
       }
     }

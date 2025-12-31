@@ -11,7 +11,12 @@ export default function AppendValuePlugin ({ value }) {
   const lastAppendedRef = useRef(null)
 
   useEffect(() => {
-    if (!value || lastAppendedRef.current === value) return
+    if (!value) {
+      // allow same appends to happen when onCancel(Quote) is called
+      lastAppendedRef.current = null
+      return
+    }
+    if (lastAppendedRef.current === value) return
 
     lastAppendedRef.current = value
     editor.update(() => {

@@ -22,7 +22,7 @@ import { numWithUnits } from '@/lib/format'
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { getDragSelection } from '@/lib/lexical/utils/dom'
 import styles from '@/lib/lexical/theme/editor.module.css'
-import { $insertMarkdownAtSelection } from '@/lib/lexical/utils'
+import { $insertTextAtSelection } from '@/lib/lexical/utils'
 
 export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
 
@@ -66,7 +66,7 @@ export default function FileUploadPlugin ({ editorRef }) {
     editor.update(() => {
       // placeholderKey is the nodekey of the TextNode that contains the placeholder text
       const placeholderNode = $createTextNode(`![Uploading ${file.name}…]()`)
-      $insertMarkdownAtSelection(placeholderNode, 2)
+      $insertTextAtSelection(placeholderNode, 2)
       // update the placeholder key
       placeholderKey.current = placeholderNode.getKey()
     }, { tag: 'history-merge' })

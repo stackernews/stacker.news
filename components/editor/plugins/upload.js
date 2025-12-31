@@ -2,18 +2,15 @@ import { useEffect, useRef, useCallback } from 'react'
 import {
   COMMAND_PRIORITY_EDITOR,
   $getRoot,
-  $getSelection, $isRangeSelection, $getNodeByKey,
+  $getNodeByKey,
   DRAGOVER_COMMAND,
   DROP_COMMAND,
   COMMAND_PRIORITY_LOW,
   PASTE_COMMAND,
   createCommand,
   $createTextNode,
-  $isTextNode,
-  $createParagraphNode,
   $createRangeSelection,
-  $setSelection,
-  $insertNodes
+  $setSelection
 } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -25,6 +22,7 @@ import { numWithUnits } from '@/lib/format'
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { getDragSelection } from '@/lib/lexical/utils/dom'
 import styles from '@/lib/lexical/theme/editor.module.css'
+import { $insertMarkdownAtSelection } from '@/lib/lexical/utils'
 
 export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
 
@@ -54,6 +52,9 @@ export default function FileUploadPlugin ({ editorRef }) {
       const placeholderNode = $getNodeByKey(placeholderKey.current)
       if (placeholderNode) {
         placeholderNode.setTextContent(newText)
+        // move selection to end of the replaced node to avoid stale offset errors
+        // (the old selection offset may exceed the new text length)
+        placeholderNode.selectEnd()
       }
     }, { tag: 'history-merge' })
   }, [editor, placeholderKey])
@@ -65,25 +66,7 @@ export default function FileUploadPlugin ({ editorRef }) {
     editor.update(() => {
       // placeholderKey is the nodekey of the TextNode that contains the placeholder text
       const placeholderNode = $createTextNode(`![Uploading ${file.name}…]()`)
-
-      // WIP: restructure upload insertion via new MarkdownTextExtension
-      const root = $getRoot()
-      const selection = $getSelection()
-
-      if ($isRangeSelection(selection)) {
-        const anchorNode = selection.anchor.getNode()
-        if ($isTextNode(anchorNode)) {
-          selection.insertParagraph()
-          selection.insertParagraph()
-        }
-
-        selection.insertNodes([$createParagraphNode().append(placeholderNode), $createParagraphNode(), $createParagraphNode()])
-      } else {
-        console.log('inserting placeholder node to root')
-        $insertNodes([$createParagraphNode().append(placeholderNode), $createParagraphNode(), $createParagraphNode()])
-        root.selectEnd()
-      }
-
+      $insertMarkdownAtSelection(placeholderNode, 2)
       // update the placeholder key
       placeholderKey.current = placeholderNode.getKey()
     }, { tag: 'history-merge' })

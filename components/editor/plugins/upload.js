@@ -2,15 +2,13 @@ import { useEffect, useRef, useCallback } from 'react'
 import {
   COMMAND_PRIORITY_EDITOR,
   $getRoot,
-  $getSelection, $isRangeSelection, $getNodeByKey,
+  $getNodeByKey,
   DRAGOVER_COMMAND,
   DROP_COMMAND,
   COMMAND_PRIORITY_LOW,
   PASTE_COMMAND,
   createCommand,
   $createTextNode,
-  $createLineBreakNode,
-  $createParagraphNode,
   $createRangeSelection,
   $setSelection
 } from 'lexical'
@@ -24,6 +22,7 @@ import { numWithUnits } from '@/lib/format'
 import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { getDragSelection } from '@/lib/lexical/utils/dom'
 import styles from '@/lib/lexical/theme/editor.module.css'
+import { $insertTextAtSelection } from '@/lib/lexical/utils'
 
 export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
 
@@ -53,6 +52,9 @@ export default function FileUploadPlugin ({ editorRef }) {
       const placeholderNode = $getNodeByKey(placeholderKey.current)
       if (placeholderNode) {
         placeholderNode.setTextContent(newText)
+        // move selection to end of the replaced node to avoid stale offset errors
+        // (the old selection offset may exceed the new text length)
+        placeholderNode.selectEnd()
       }
     }, { tag: 'history-merge' })
   }, [editor, placeholderKey])
@@ -64,16 +66,7 @@ export default function FileUploadPlugin ({ editorRef }) {
     editor.update(() => {
       // placeholderKey is the nodekey of the TextNode that contains the placeholder text
       const placeholderNode = $createTextNode(`![Uploading ${file.name}…]()`)
-
-      const selection = $getSelection()
-      if ($isRangeSelection(selection)) {
-        // we must insert line breaks before and after the placeholder node to ensure it is on a new line
-        selection.insertNodes([$createLineBreakNode(), placeholderNode, $createLineBreakNode()])
-      } else {
-        // if there is no selection, we just append the placeholder node to the root
-        $getRoot().append($createParagraphNode().append(placeholderNode))
-      }
-
+      $insertTextAtSelection(placeholderNode, 2)
       // update the placeholder key
       placeholderKey.current = placeholderNode.getKey()
     }, { tag: 'history-merge' })

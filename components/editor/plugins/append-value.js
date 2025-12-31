@@ -13,9 +13,9 @@ export default function AppendValuePlugin ({ value }) {
   useEffect(() => {
     if (!value || lastAppendedRef.current === value) return
 
+    lastAppendedRef.current = value
     editor.update(() => {
       $appendMarkdown(value)
-      lastAppendedRef.current = value
     })
   }, [value, editor])
 

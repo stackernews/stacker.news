@@ -5,7 +5,6 @@ import {
   $getNodeByKey,
   DRAGOVER_COMMAND,
   DROP_COMMAND,
-  COMMAND_PRIORITY_LOW,
   PASTE_COMMAND,
   createCommand,
   $createTextNode,
@@ -172,7 +171,7 @@ export default function FileUploadPlugin ({ editorRef }) {
           }
           return true
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_HIGH
       ),
       editor.registerCommand(
         DROP_COMMAND,
@@ -180,7 +179,7 @@ export default function FileUploadPlugin ({ editorRef }) {
           $onDrop(e)
           return true
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_HIGH
       )
     )
 

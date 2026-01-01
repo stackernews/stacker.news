@@ -14,6 +14,7 @@ import { useWalletRecvPrompt } from '@/wallets/client/hooks'
 // it's a bit much for an abstraction ... but it makes it easy to modify item-payment UX
 // and other side effects like crossposting and redirection
 // ... or I just spent too much time in this code and this is overcooked
+// NOTE: sub is only used for the job form currently since it's the only form that can exist in a single territory
 export default function useItemSubmit (mutation,
   { item, sub, onSuccessfulSubmit, navigateOnSubmit = true, extraValues = {}, payInMutationOptions = { } } = {}) {
   const router = useRouter()
@@ -24,7 +25,7 @@ export default function useItemSubmit (mutation,
   const walletPrompt = useWalletRecvPrompt()
 
   return useCallback(
-    async ({ boost, crosspost, title, options, bounty, status, ...values }, { resetForm }) => {
+    async ({ subNames: submittedSubNames, boost, crosspost, title, options, bounty, status, ...values }, { resetForm }) => {
       await walletPrompt()
 
       if (options) {
@@ -42,10 +43,12 @@ export default function useItemSubmit (mutation,
         }
       }
 
+      const subNames = submittedSubNames || item?.subNames || (sub?.name ? [sub.name] : [])
+
       const { data, error, payError } = await upsertItem({
         variables: {
           id: item?.id,
-          sub: item?.subName || sub?.name,
+          subNames,
           boost: boost ? Number(boost) : item?.boost ? Number(item.boost) : undefined,
           bounty: bounty ? Number(bounty) : undefined,
           status: status === 'STOPPED' ? 'STOPPED' : 'ACTIVE',
@@ -89,10 +92,10 @@ export default function useItemSubmit (mutation,
         if (item) {
           await router.push(`/items/${item.id}`)
         } else {
-          await router.push(sub ? `/~${sub.name}/recent` : '/recent')
+          await router.push(subNames.length === 1 ? `/~${subNames[0]}/recent` : '/recent')
         }
       }
-    }, [me, upsertItem, router, crossposter, item, sub, onSuccessfulSubmit,
+    }, [me, upsertItem, router, crossposter, item, onSuccessfulSubmit,
       navigateOnSubmit, extraValues, payInMutationOptions, walletPrompt]
   )
 }

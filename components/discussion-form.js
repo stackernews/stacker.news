@@ -15,14 +15,14 @@ import { UPSERT_DISCUSSION } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 
 export function DiscussionForm ({
-  item, sub, EditInfo, titleLabel = 'title',
+  item, subs, EditInfo, titleLabel = 'title',
   textLabel = 'text',
   handleSubmit, children
 }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
-  const onSubmit = useItemSubmit(UPSERT_DISCUSSION, { item, sub })
+  const onSubmit = useItemSubmit(UPSERT_DISCUSSION, { item })
   const schema = discussionSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareTitle = router.query.title
@@ -47,7 +47,7 @@ export function DiscussionForm ({
         text: item?.text || shareText || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
+        ...SubSelectInitial({ subNames: item?.subNames || subs?.map(s => s.name) || [] })
       }}
       schema={schema}
       onSubmit={handleSubmit || onSubmit}
@@ -76,7 +76,7 @@ export function DiscussionForm ({
         minRows={6}
         hint={EditInfo}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
       <ItemButtonBar itemId={item?.id} />
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>

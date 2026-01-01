@@ -11,9 +11,9 @@ import { useLazyQuery, useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { FeeButtonProvider } from '@/components/fee-button'
-import SubSelect from '@/components/sub-select'
+import { SubMultiSelect } from '@/components/sub-select'
 import useCanEdit from '@/components/use-can-edit'
-import { SUB } from '@/fragments/subs'
+import { SUBS } from '@/fragments/subs'
 import Countdown from '@/components/countdown'
 
 export const getServerSideProps = getGetServerSideProps({
@@ -24,11 +24,11 @@ export const getServerSideProps = getGetServerSideProps({
 export default function PostEdit ({ ssrData }) {
   const router = useRouter()
   const { data } = useQuery(ITEM, { variables: { id: router.query.id } })
-  const [fetchSub] = useLazyQuery(SUB)
+  const [fetchSubs] = useLazyQuery(SUBS)
   if (!data && !ssrData) return <PageLoading />
 
   const { item } = data || ssrData
-  const [sub, setSub] = useState(item.subName)
+  const [subs, setSubs] = useState(item.subNames)
   const [baseLineItems, setBaseLineItems] = useState(item.boost
     ? {
         existingBoost: {
@@ -41,25 +41,39 @@ export default function PostEdit ({ ssrData }) {
     : {})
 
   useEffect(() => {
-    if (item.subName === sub) {
-      setBaseLineItems(prev => {
-        const { territory, ...rest } = prev
-        return rest
-      })
+    if (subs.every(sub => item.subNames.includes(sub))) {
+      setBaseLineItems(prev => Object.entries(prev).reduce((acc, [key, value]) => {
+        if (!key.startsWith('territory-add-')) {
+          acc[key] = value
+        }
+        return acc
+      }, {}))
       return
     }
-    fetchSub({ variables: { sub } }).then(res => {
-      setBaseLineItems(prev => ({
-        ...prev,
-        territory: {
-          label: 'territory change',
-          term: `+ ${res.data.sub.baseCost}`,
-          op: '+',
-          modifier: cost => cost + res.data.sub.baseCost
+    fetchSubs({ variables: { subNames: subs.filter(sub => !item.subNames.includes(sub)) } }).then(res => {
+      setBaseLineItems(prev => {
+        const newBaseLineItems = Object.entries(prev).reduce((acc, [key, value]) => {
+          if (!key.startsWith('territory-add-')) {
+            acc[key] = value
+          }
+          return acc
+        }, {})
+        const territoryAdds = res.data.subs.reduce((acc, sub) => ({
+          ...acc,
+          [`territory-add-${sub.name}`]: {
+            label: `~${sub.name} post`,
+            term: `+ ${sub.baseCost}`,
+            op: '+',
+            modifier: cost => cost + sub.baseCost
+          }
+        }), {})
+        return {
+          ...newBaseLineItems,
+          ...territoryAdds
         }
-      }))
+      })
     })
-  }, [sub])
+  }, [subs])
 
   const [,, editThreshold] = useCanEdit(item)
   const EditInfo = editThreshold && item.payIn?.payInState === 'PAID'
@@ -83,17 +97,18 @@ export default function PostEdit ({ ssrData }) {
   }
 
   return (
-    <CenterLayout sub={sub}>
+    <CenterLayout>
       <FeeButtonProvider baseLineItems={baseLineItems}>
         <FormType item={item} EditInfo={EditInfo}>
           {!item.isJob &&
-            <SubSelect
+            <SubMultiSelect
+              placeholder='pick territories'
               className='d-flex'
-              size='medium'
+              size='md'
               label='territory'
               filterSubs={s => s.name !== 'jobs' && s.postTypes?.includes(itemType)}
-              onChange={(_, e) => setSub(e.target.value)}
-              sub={sub}
+              onChange={(_, e) => setSubs(e)}
+              subs={subs}
             />}
         </FormType>
       </FeeButtonProvider>

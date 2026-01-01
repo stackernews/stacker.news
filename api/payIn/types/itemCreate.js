@@ -1,6 +1,6 @@
 import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
-import { getItemMentions, getMentions, performBotBehavior, getSub } from '../lib/item'
+import { getItemMentions, getMentions, performBotBehavior, getSubs } from '../lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 import * as BOOST from './boost'
@@ -20,24 +20,37 @@ export const paymentMethods = [
 
 const DEFAULT_ITEM_COST = 1000n
 
-async function getBaseCost (models, { bio, parentId, subName }) {
+async function getBaseCost (models, { bio, parentId, subNames }) {
   if (bio) return DEFAULT_ITEM_COST
 
-  const sub = await getSub(models, { subName, parentId })
+  const subs = await getSubs(models, { subNames, parentId })
 
-  if (parentId && sub?.replyCost) {
-    return satsToMsats(sub.replyCost)
+  if (parentId) {
+    let replyCost = 0n
+    for (const sub of subs) {
+      if (sub.replyCost) {
+        replyCost += satsToMsats(sub.replyCost)
+      } else {
+        replyCost += DEFAULT_ITEM_COST
+      }
+    }
+    return replyCost > 0n ? replyCost : DEFAULT_ITEM_COST
   }
 
-  if (sub?.baseCost) {
-    return satsToMsats(sub.baseCost)
+  let baseCost = 0n
+  for (const sub of subs) {
+    if (sub.baseCost) {
+      baseCost += satsToMsats(sub.baseCost)
+    } else {
+      baseCost += DEFAULT_ITEM_COST
+    }
   }
 
-  return DEFAULT_ITEM_COST
+  return baseCost > 0n ? baseCost : DEFAULT_ITEM_COST
 }
 
-async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }, { me }) {
-  const baseCost = await getBaseCost(models, { bio, parentId, subName })
+async function getCost (models, { subNames, parentId, uploadIds, boost = 0, bio }, { me }) {
+  const baseCost = await getBaseCost(models, { bio, parentId, subNames })
 
   // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
   const [{ cost }] = await models.$queryRaw`
@@ -56,17 +69,25 @@ async function getCost (models, { subName, parentId, uploadIds, boost = 0, bio }
 
 export async function getInitial (models, args, { me }) {
   const mcost = await getCost(models, args, { me })
-  const sub = await getSub(models, args)
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
+  const subs = await getSubs(models, args)
+
+  // for item creation, each sub can have a different cost
+  const subsWithCosts = subs.map(sub => ({
+    ...sub,
+    mcost: args.parentId
+      ? satsToMsats(sub.replyCost ?? DEFAULT_ITEM_COST)
+      : satsToMsats(sub.baseCost ?? DEFAULT_ITEM_COST)
+  }))
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
 
   const beneficiaries = []
   if (args.boost > 0) {
     beneficiaries.push(
-      await BOOST.getInitial(models, { sats: args.boost }, { me, sub })
+      await BOOST.getInitial(models, { sats: args.boost }, { me, subs })
     )
   }
   if (args.uploadIds?.length > 0) {
-    beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds: args.uploadIds }, { me, sub }))
+    beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds: args.uploadIds }, { me, subs }))
   }
 
   return {
@@ -80,7 +101,7 @@ export async function getInitial (models, args, { me }) {
 
 export async function onBegin (tx, payInId, args) {
   // don't want to double count boost ... it should be a beneficiary
-  const { parentId, uploadIds = [], boost: _, forwardUsers = [], options: pollOptions = [], ...data } = args
+  const { parentId, uploadIds = [], boost: _, forwardUsers = [], options: pollOptions = [], subNames = [], ...data } = args
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
   const mentions = await getMentions(tx, { ...args, userId: payIn.userId })
@@ -103,6 +124,11 @@ export async function onBegin (tx, payInId, args) {
     cost: msatsToSats(payIn.mcost),
     itemPayIns: {
       create: [{ payInId }]
+    },
+    subs: {
+      createMany: {
+        data: subNames.map(subName => ({ subName }))
+      }
     },
     threadSubscriptions: {
       createMany: {
@@ -246,14 +272,14 @@ export async function describe (models, payInId) {
   }
   const payIn = await models.payIn.findUnique({ where: { id: payInId }, include: { pessimisticEnv: true } })
   if (payIn.pessimisticEnv?.args) {
-    const { subName, parentId, bio } = payIn.pessimisticEnv.args
+    const { subNames, parentId, bio } = payIn.pessimisticEnv.args
     if (bio) {
       return 'SN: create bio'
     }
     if (parentId) {
-      return `SN: create reply to #${parentId} in ${subName}`
+      return `SN: create reply to #${parentId}`
     }
-    return `SN: create post in ${subName}`
+    return `SN: create post in ${subNames.join(', ')}`
   }
   return 'SN: create item'
 }

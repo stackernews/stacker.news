@@ -317,7 +317,7 @@ export default {
         SELECT EXISTS(
           SELECT *
           FROM "SubSubscription"
-          JOIN "Item" ON "SubSubscription"."subName" = "Item"."subName"
+          JOIN "Item" ON "Item"."subNames" @> ARRAY["SubSubscription"."subName"]::CITEXT[]
           ${whereClause(
             '"SubSubscription"."userId" = $1',
             '"Item".created_at > $2',

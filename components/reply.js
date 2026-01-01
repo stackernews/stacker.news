@@ -31,7 +31,7 @@ export default forwardRef(function Reply ({
   const { ref: replyEditorRef, onRef: onReplyEditorRef } = useCallbackRef()
   const showModal = useShowModal()
   const root = useRoot()
-  const sub = item?.sub || root?.sub
+  const subs = item?.subs || root.subs || []
   const { markCommentViewedAt } = useCommentsView(root.id)
 
   useEffect(() => {
@@ -144,7 +144,7 @@ export default forwardRef(function Reply ({
       {reply &&
         <div className={styles.reply}>
           <FeeButtonProvider
-            baseLineItems={postCommentBaseLineItems({ baseCost: sub?.replyCost ?? 1, comment: true, me: !!me })}
+            baseLineItems={subs.length ? postCommentBaseLineItems({ subs, comment: true, me: !!me }) : undefined}
             useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, me: !!me })}
           >
             <Form
@@ -163,7 +163,7 @@ export default forwardRef(function Reply ({
                 appendValue={quote}
                 lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
                 placeholder={placeholder}
-                hint={sub?.moderated && 'this territory is moderated'}
+                hint={subs.some(s => s.moderated) ? 'some territories are moderated' : undefined}
                 editorRef={onReplyEditorRef}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />

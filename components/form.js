@@ -33,7 +33,8 @@ import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 import { WalletPromptClosed } from '@/wallets/client/hooks'
 import { SNEditor } from './editor'
-
+import ArrowDownSFill from '@/svgs/arrow-down-s-fill.svg'
+import ReactSelect, { components as ReactSelectComponents } from 'react-select'
 export class SessionRequiredError extends Error {
   constructor () {
     super('session required')
@@ -862,6 +863,215 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
         {info && <Info>{info}</Info>}
       </span>
       <BootstrapForm.Control.Feedback type='invalid'>
+        {meta.touched && meta.error}
+      </BootstrapForm.Control.Feedback>
+      {hint &&
+        <BootstrapForm.Text>
+          {hint}
+        </BootstrapForm.Text>}
+    </FormGroup>
+  )
+}
+
+const DropdownIndicator = (props) => {
+  const { selectProps } = props
+  const size = selectProps.size || 'md'
+  const iconSize = size === 'sm' ? 16 : size === 'lg' ? 24 : 20
+  return (
+    <div style={{ padding: '0 8px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+      <ArrowDownSFill width={iconSize} height={iconSize} className='fill-grey' />
+    </div>
+  )
+}
+
+// Custom clear indicator using your close-line SVG
+const ClearIndicator = (props) => {
+  const { innerProps, selectProps } = props
+  const size = selectProps.size || 'md'
+  const iconSize = size === 'sm' ? 14 : size === 'lg' ? 20 : 16
+  return (
+    <div {...innerProps} style={{ padding: '0 4px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+      <CloseIcon width={iconSize} height={iconSize} className='fill-grey' />
+    </div>
+  )
+}
+
+const MultiValueRemove = (props) => {
+  const { innerProps } = props
+  return (
+    <div
+      {...innerProps}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 4px',
+        cursor: 'pointer',
+        borderRadius: '0 2px 2px 0'
+      }}
+    >
+      <CloseIcon width={14} height={14} className='fill-grey' />
+    </div>
+  )
+}
+
+export function MultiSelect ({ label, items, size, info, groupClassName, onChange, noForm, overrideValue, hint, placeholder, onValueClick, ...props }) {
+  const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
+  const formik = noForm ? null : useFormikContext()
+  const invalid = meta.touched && meta.error
+
+  useEffect(() => {
+    if (overrideValue) {
+      helpers.setValue(overrideValue)
+    }
+  }, [overrideValue])
+
+  // Convert string items to react-select option format
+  const options = items.map(item => ({ label: item, value: item }))
+
+  // Convert formik's string array to react-select's object array format for display
+  const selectValue = options.filter(option => field.value ? field.value.includes(option.value) : props.value.includes(option.value))
+  // Size-based styling
+  const sizeStyles = {
+    sm: {
+      minHeight: 'calc(1.5em + 0.5rem + 2px)',
+      fontSize: '.875rem',
+      padding: '6px .5rem'
+    },
+    md: {
+      minHeight: 'calc(1.75em + 0.84rem + 2px)',
+      fontSize: '.93rem',
+      padding: '6px .84rem'
+    },
+    lg: {
+      minHeight: 'calc(1.75em + 1rem + 2px)',
+      fontSize: '1.25rem',
+      padding: '6px 1rem'
+    }
+  }
+
+  const currentSize = sizeStyles[size] || sizeStyles.lg
+
+  const customStyles = {
+    control: (base, state) => ({
+      ...base,
+      backgroundColor: 'var(--theme-inputBg)',
+      borderColor: invalid ? '#c03221' : state.isFocused ? 'var(--bs-primary)' : 'var(--theme-borderColor)',
+      borderRadius: '.4rem',
+      minHeight: currentSize.minHeight,
+      fontSize: currentSize.fontSize,
+      minWidth: '200px',
+      boxShadow: state.isFocused ? (invalid ? '0 0 0 0.2rem rgba(192, 50, 33, 0.25)' : '0 0 0 0.2rem rgb(250 218 94 / 25%)') : 'none',
+      '&:hover': {
+        borderColor: invalid ? '#c03221' : state.isFocused ? 'var(--bs-primary)' : 'var(--theme-borderColor)'
+      }
+    }),
+    valueContainer: (base) => ({
+      ...base,
+      padding: currentSize.padding,
+      gap: '6px'
+    }),
+    menu: (base) => ({
+      ...base,
+      backgroundColor: 'var(--theme-inputBg)',
+      border: '1px solid var(--theme-borderColor)',
+      zIndex: 1050
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isFocused ? 'var(--theme-clickToContextColor)' : 'transparent',
+      color: 'var(--bs-body-color)',
+      fontSize: currentSize.fontSize,
+      cursor: 'pointer',
+      '&:active': {
+        backgroundColor: 'var(--theme-clickToContextColor)'
+      }
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: 'var(--bs-body-color)'
+    }),
+    multiValue: (base) => ({
+      ...base,
+      backgroundColor: 'var(--theme-clickToContextColor)',
+      margin: 0,
+      paddingTop: '0px',
+      paddingBottom: '0px'
+    }),
+    multiValueLabel: (base) => ({
+      ...base,
+      color: 'var(--bs-body-color)',
+      fontWeight: 'bold',
+      padding: '2px 6px'
+    }),
+    multiValueRemove: (base) => ({
+      ...base,
+      color: 'var(--theme-grey)',
+      '&:hover': {
+        backgroundColor: 'var(--theme-clickToContextColor)',
+        color: 'var(--bs-body-color)'
+      }
+    }),
+    input: (base) => ({
+      ...base,
+      color: 'var(--bs-body-color)',
+      padding: 0,
+      margin: 0,
+      minWidth: '60px'
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: '#6c757d'
+    }),
+    indicatorSeparator: () => ({
+      display: 'none'
+    })
+  }
+
+  const MultiValueLabel = (props) => {
+    const { data } = props
+
+    const handleMouseDown = (e) => {
+      if (onValueClick) {
+        e.preventDefault()
+        e.stopPropagation()
+        onValueClick(data.value)
+      }
+    }
+
+    return (
+      <div onMouseDown={handleMouseDown} style={{ cursor: onValueClick ? 'pointer' : 'default' }}>
+        <ReactSelectComponents.MultiValueLabel {...props} />
+      </div>
+    )
+  }
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <span className='d-flex align-items-center'>
+        <ReactSelect
+          instanceId={field.name + '-multi-select'}
+          name={field.name}
+          styles={customStyles}
+          value={selectValue}
+          placeholder={placeholder}
+          defaultValue={[]}
+          isMulti
+          options={options}
+          components={{ DropdownIndicator, ClearIndicator, MultiValueRemove, MultiValueLabel }}
+          onChange={(selectedOptions) => {
+          // Extract just the string values for formik
+            const values = selectedOptions ? selectedOptions.map(item => item.value) : []
+            helpers?.setValue?.(values)
+
+            if (onChange) {
+              onChange(formik, values)
+            }
+          }}
+          isInvalid={invalid}
+        />
+        {info && <Info>{info}</Info>}
+      </span>
+      <BootstrapForm.Control.Feedback type='invalid' className={meta.touched && meta.error ? 'd-block' : ''}>
         {meta.touched && meta.error}
       </BootstrapForm.Control.Feedback>
       {hint &&

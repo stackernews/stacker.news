@@ -122,7 +122,6 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
       ${SELECT}
       FROM "Item"
       ${payInJoinFilter(me)}
-      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
       ${whereClause(
         '"parentId" IS NULL',
         '"Item"."pinId" IS NULL',
@@ -162,12 +161,16 @@ const orderByClause = (by, me, models, type, sub) => {
 export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
   if (!me) {
     return await models.$queryRawUnsafe(`
-      SELECT "Item".*, to_json(users.*) as user, to_jsonb("Sub".*) as sub, to_jsonb("PayIn".*) as "payIn"
+      SELECT "Item".*, to_json(users.*) as user, "subs".subs as subs, to_jsonb("PayIn".*) as "payIn"
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
-      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+      LEFT JOIN LATERAL (
+          SELECT COALESCE(json_agg("Sub".*), '[]') as subs
+          FROM "Sub"
+          WHERE "Sub"."name" = ANY("Item"."subNames")
+      ) "subs" ON true
       LEFT JOIN LATERAL (
         SELECT "PayIn".*
         FROM "ItemPayIn"
@@ -185,8 +188,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         COALESCE("MeItemPayIn"."meDontLikeMsats", 0) as "meDontLikeMsats", COALESCE("MeItemPayIn"."mePendingDontLikeMsats", 0) as "mePendingDontLikeMsats",
         COALESCE("MeItemPayIn"."mePendingBoostMsats", 0) as "mePendingBoostMsats",
         b."itemId" IS NOT NULL AS "meBookmark", "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription",
-        "ItemForward"."itemId" IS NOT NULL AS "meForward", to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
-          || jsonb_build_object('meSubscription', "SubSubscription"."userId" IS NOT NULL) as sub,
+        "ItemForward"."itemId" IS NOT NULL AS "meForward", "subs".subs as subs,
         to_jsonb("PayIn".*) || jsonb_build_object('payInStateChangedAt', "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC') as "payIn",
         "CommentsViewAt"."last_viewed_at" as "meCommentsViewedAt"
       FROM (
@@ -197,10 +199,17 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "Bookmark" b ON b."itemId" = "Item".id AND b."userId" = ${me.id}
       LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
       LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
-      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-      LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
-      LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
       LEFT JOIN "CommentsViewAt" ON "CommentsViewAt"."itemId" = "Item".id AND "CommentsViewAt"."userId" = ${me.id}
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(json_agg("Sub".*), '[]') as subs
+        FROM (
+          SELECT "Sub".*, "MuteSub"."userId" IS NOT NULL as "meMuteSub", "SubSubscription"."userId" IS NOT NULL as "meSubscription"
+          FROM "Sub"
+          LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
+          LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
+          WHERE "Sub"."name" = ANY("Item"."subNames")
+        ) "Sub"
+      ) "subs" ON true
       LEFT JOIN LATERAL (
         SELECT "itemId",
           sum("PayIn".mcost) FILTER (WHERE "PayOutBolt11".id IS NOT NULL AND "PayIn"."payInType" = 'ZAP') AS "meMsats",
@@ -246,17 +255,17 @@ const relationClause = (type) => {
   let clause = ''
   switch (type) {
     case 'bookmarks':
-      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = COALESCE(root."subName", "Item"."subName") '
+      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
       break
     case 'comments':
     case 'outlawed':
     case 'borderland':
     case 'freebies':
     case 'all':
-      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = COALESCE(root."subName", "Item"."subName") '
+      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
       break
     default: // posts which are their own root
-      clause += ' FROM "Item" LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName" '
+      clause += ' FROM "Item" '
   }
 
   return clause
@@ -302,23 +311,22 @@ export const activeOrMine = (me) => {
 export const muteClause = me =>
   me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
 
-const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
-
-export const nsfwClause = showNsfw => showNsfw ? '' : HIDE_NSFW_CLAUSE
-
 const subClause = (sub, num, table = 'Item', me, showNsfw) => {
   // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
   if (sub) {
     const tables = [...new Set(['Item', table])].map(t => `"${t}".`)
-    return `(${tables.map(t => `${t}"subName" = $${num}::CITEXT`).join(' OR ')})`
+    return `(${tables.map(t => `${t}"subNames" @> ARRAY[$${num}]::CITEXT[]`).join(' OR ')})`
   }
 
-  if (!me) { return HIDE_NSFW_CLAUSE }
+  // XXX heh, we don't have any nsfw subs so we don't need to hide them
+  const hideNsfwClause = undefined // `NOT EXISTS (SELECT 1 FROM "Sub" WHERE "Sub"."name" = ANY(${table ? `"${table}".` : ''}"subNames") AND "Sub"."nsfw" = TRUE)`
 
-  const excludeMuted = `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ${table ? `"${table}".` : ''}"subName")`
+  if (!me) { return hideNsfwClause }
+
+  const excludeMuted = `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ANY(${table ? `"${table}".` : ''}"subNames"))`
   if (showNsfw) return excludeMuted
 
-  return excludeMuted + ' AND ' + HIDE_NSFW_CLAUSE
+  return [excludeMuted, hideNsfwClause].filter(Boolean).join(' AND ')
 }
 
 function investmentClause (sats) {
@@ -391,7 +399,7 @@ function typeClause (type) {
     case 'bookmarks':
       return ''
     case 'jobs':
-      return '"Item"."subName" = \'jobs\''
+      return '"Item"."subNames" @> ARRAY[\'jobs\']'
     default:
       return '"Item"."parentId" IS NULL'
   }
@@ -458,7 +466,6 @@ export default {
               ${whereClause(
                 `"${table}"."userId" = $3`,
                 activeOrMine(me),
-                nsfwClause(showNsfw),
                 typeClause(type),
                 by === 'boost' && '"Item".boost > 0',
                 whenClause(when || 'forever', table))}
@@ -501,7 +508,7 @@ export default {
               ${payInJoinFilter(me)}
               ${whereClause(
                 '"Item"."deletedAt" IS NULL',
-                type === 'posts' && '"Item"."subName" IS NOT NULL',
+                type === 'posts' && '"Item"."subNames" IS NOT NULL',
                 subClause(sub, 5, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 whenClause(when, 'Item'),
@@ -528,7 +535,7 @@ export default {
                 '"Item"."ncomments" > 0',
                 '"Item"."parentId" IS NULL',
                 '"Item".bio = false',
-                type === 'posts' && '"Item"."subName" IS NOT NULL',
+                type === 'posts' && '"Item"."subNames" IS NOT NULL',
                 subClause(sub, 3, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 await filterClause(me, models, type),
@@ -593,7 +600,7 @@ export default {
                       ${whereClause(
                         '"pinId" IS NOT NULL',
                         '"parentId" IS NULL',
-                        sub ? '"subName" = $1' : '"subName" IS NULL',
+                        sub ? '"Item"."subNames" @> ARRAY[$1]::CITEXT[]' : '"Item"."subNames" IS NULL',
                         muteClause(me))}
                   ) rank_filter WHERE RANK = 1
                   ORDER BY position ASC`,
@@ -607,11 +614,10 @@ export default {
                 query: `
                     ${SELECT}
                     FROM "Item"
-                    LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
                     ${payInJoinFilter(me)}
                     ${whereClause(
                       // in home (sub undefined), filter out global pinned items since we inject them later
-                      sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subName" IS NULL)',
+                      sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)',
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
                       '"Item".outlawed = false',
@@ -748,40 +754,28 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      const [item] = await models.$queryRawUnsafe(
-        `${SELECT}, p.position
-        FROM "Item" LEFT JOIN "Pin" p ON p.id = "Item"."pinId"
-        WHERE "Item".id = $1`, Number(id))
+      const item = await models.item.findUnique({
+        where: { id: Number(id) },
+        include: { pin: true, root: true, subs: { include: { sub: true } } }
+      })
 
-      const args = []
       if (item.parentId) {
-        args.push(item.parentId)
-
         // OPs can only pin top level replies
-        if (item.path.split('.').length > 2) {
+        if (item.parentId !== item.rootId) {
           throw new GqlInputError('can only pin root replies')
         }
 
-        const root = await models.item.findUnique({
-          where: {
-            id: Number(item.parentId)
-          },
-          include: { pin: true }
-        })
-
-        if (root.userId !== Number(me.id)) {
+        if (item.root.userId !== Number(me.id)) {
           throw new GqlInputError('not your post')
         }
-      } else if (item.subName) {
-        args.push(item.subName)
-
+      } else if (item.subNames?.length === 1) {
         // only territory founder can pin posts
-        const sub = await models.sub.findUnique({ where: { name: item.subName } })
+        const sub = item.subs[0].sub
         if (Number(me.id) !== sub.userId) {
           throw new GqlInputError('not your sub')
         }
       } else {
-        throw new GqlInputError('item must have subName or parentId')
+        throw new GqlInputError('item must belong to a single sub or be a comment')
       }
 
       let pinId
@@ -796,19 +790,22 @@ export default {
             SET position = position - 1
             WHERE position > $2 AND id IN (
               SELECT "pinId" FROM "Item" i
-              ${whereClause('"pinId" IS NOT NULL', item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
-            )`, ...args, item.position)
+              ${whereClause(
+                '"pinId" IS NOT NULL',
+                item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]')}
+            )`, item.parentId ?? item.subNames[0], item.position)
         ])
 
         pinId = null
       } else {
         // only max 3 pins allowed per territory and post
         const [{ count: npins }] = await models.$queryRawUnsafe(`
-          SELECT COUNT(p.id) FROM "Pin" p
+          SELECT COUNT(p.id)
+          FROM "Pin" p
           JOIN "Item" i ON i."pinId" = p.id
-          ${
-            whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')
-          }`, ...args)
+          ${whereClause(
+            item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
+          )}`, item.parentId ?? item.subNames[0])
 
         if (npins >= 3) {
           throw new GqlInputError('max 3 pins allowed')
@@ -820,14 +817,16 @@ export default {
             SELECT COALESCE(MAX(p.position), 0) + 1 AS position
             FROM "Pin" p
             JOIN "Item" i ON i."pinId" = p.id
-            ${whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+            ${whereClause(
+              item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
+            )}
             RETURNING id
           )
           UPDATE "Item"
           SET "pinId" = pin.id
           FROM pin
           WHERE "Item".id = $2
-          RETURNING "pinId"`, ...args, item.id)
+          RETURNING "pinId"`, item.parentId ?? item.subNames[0], item.id)
 
         pinId = newPinId
       }
@@ -1127,16 +1126,16 @@ export default {
     isJob: async (item, args, { models }) => {
       return item.subName === 'jobs'
     },
-    sub: async (item, args, { models }) => {
-      if (!item.subName && !item.root) {
+    subs: async (item, args, { models }) => {
+      if (!item.subNames?.length && !item.root) {
         return null
       }
 
-      if (item.sub) {
-        return item.sub
+      if (item.subs) {
+        return item.subs
       }
 
-      return await models.sub.findUnique({ where: { name: item.subName || item.root?.subName } })
+      return await models.sub.findMany({ where: { name: { in: item.subNames || item.root?.subNames } } })
     },
     position: async (item, args, { models }) => {
       if (!item.pinId) {
@@ -1455,7 +1454,7 @@ export default {
   }
 }
 
-export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ...item }, { me, models, lnd }) => {
+export const updateItem = async (parent, { forward, hash, hmac, ...item }, { me, models, lnd }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({
     where: { id: Number(item.id) },
@@ -1474,8 +1473,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
             }
           }
         }
-      },
-      sub: true
+      }
     }
   })
 
@@ -1501,14 +1499,6 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     throw new GqlInputError('item does not belong to you')
   }
 
-  const differentSub = subName && old.subName !== subName
-  if (differentSub) {
-    const sub = await models.sub.findUnique({ where: { name: subName } })
-    if (sub.baseCost > old.sub.baseCost) {
-      throw new GqlInputError('cannot change to a more expensive sub')
-    }
-  }
-
   // in case they lied about their existing boost
   await validateSchema(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
@@ -1523,7 +1513,7 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     throw new GqlInputError('item can no longer be edited')
   }
 
-  if (item.url && !isJob({ subName, ...item })) {
+  if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
@@ -1535,7 +1525,6 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
     // prevent editing a comment like a post
     item = { id: Number(item.id), text: item.text, boost: item.boost }
   } else {
-    item = { subName, ...item }
     item.forwardUsers = await getForwardUsers(models, forward)
   }
   // note for the future: could also check MediaNodes directly via Lexical
@@ -1548,10 +1537,6 @@ export const updateItem = async (parent, { sub: subName, forward, hash, hmac, ..
 }
 
 export const createItem = async (parent, { forward, ...item }, { me, models, lnd }) => {
-  // rename to match column name
-  item.subName = item.sub
-  delete item.sub
-
   item.userId = me ? Number(me.id) : USER_ID.anon
 
   item.forwardUsers = await getForwardUsers(models, forward)

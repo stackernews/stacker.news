@@ -11,12 +11,12 @@ import { ItemButtonBar } from './post'
 import { UPSERT_POLL } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 
-export function PollForm ({ item, sub, EditInfo, children }) {
+export function PollForm ({ item, subs, EditInfo, children }) {
   const client = useApolloClient()
   const { me } = useMe()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
 
-  const onSubmit = useItemSubmit(UPSERT_POLL, { item, sub })
+  const onSubmit = useItemSubmit(UPSERT_POLL, { item })
 
   const initialOptions = item?.poll?.options.map(i => i.option)
 
@@ -32,7 +32,7 @@ export function PollForm ({ item, sub, EditInfo, children }) {
         randPollOptions: item?.poll?.randPollOptions || false,
         pollExpiresAt: item ? item.pollExpiresAt : datePivot(new Date(), { hours: 25 }),
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
+        ...SubSelectInitial({ subNames: item?.subNames || subs?.map(s => s.name) || [] })
       }}
       schema={schema}
       onSubmit={onSubmit}
@@ -60,7 +60,7 @@ export function PollForm ({ item, sub, EditInfo, children }) {
         hint={EditInfo}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item}>
         <DateTimeInput
           isClearable
           label='poll expiration'

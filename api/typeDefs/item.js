@@ -24,19 +24,19 @@ export default gql`
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
     upsertLink(
-      id: ID, sub: String, title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput],
+      id: ID, subNames: [String!], title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput],
       hash: String, hmac: String): PayIn!
     upsertDiscussion(
-      id: ID, sub: String, title: String!, text: String, boost: Int, forward: [ItemForwardInput],
+      id: ID, subNames: [String!], title: String!, text: String, boost: Int, forward: [ItemForwardInput],
       hash: String, hmac: String): PayIn!
     upsertBounty(
-      id: ID, sub: String, title: String!, text: String, bounty: Int, boost: Int, forward: [ItemForwardInput],
+      id: ID, subNames: [String!], title: String!, text: String, bounty: Int, boost: Int, forward: [ItemForwardInput],
       hash: String, hmac: String): PayIn!
     upsertJob(
-      id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
+      id: ID, subNames: [String!], title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, boost: Int, status: String, logo: Int): PayIn!
     upsertPoll(
-      id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
+      id: ID, subNames: [String!], title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], pollExpiresAt: Date,
       randPollOptions: Boolean, hash: String, hmac: String): PayIn!
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id: ID, text: String!, parentId: ID, boost: Int, hash: String, hmac: String): PayIn!
@@ -141,8 +141,8 @@ export default gql`
     company: String
     location: String
     remote: Boolean
-    sub: Sub
-    subName: String
+    subs: [Sub!]
+    subNames: [String!]
     status: String!
     uploadId: Int
     otsHash: String

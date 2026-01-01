@@ -550,9 +550,7 @@ model Item {
   rankhot              Float                 @default(dbgenerated())
   rankboost            Float                 @default(dbgenerated())
   genoutlawed          Boolean               @default(dbgenerated())
-  itemSubs             ItemSub[]
-  sub                  Sub?                  @relation(fields: [subName], references: [name])
-  subName              String?               @db.Citext
+  subs                 ItemSub[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -567,7 +565,13 @@ model Item {
   @@index([rootId], map: "Item.rootId_index")
   @@index([statusUpdatedAt], map: "Item.statusUpdatedAt_index")
   @@index([status], map: "Item.status_index")
-  @@index([subNames])
+  // NOTE: we create btree_gin indexes on subNames for createdAt, ranktop, rankhot, and rankboost
+  // but prisma doesn't support them so we omit them from the model
+  @@index([subNames], type: Gin)
+  @@index([subNames, createdAt(ops: raw("timestamp_ops"))], type: Gin)
+  @@index([subNames, ranktop(ops: raw("float8_ops"))], type: Gin)
+  @@index([subNames, rankhot(ops: raw("float8_ops"))], type: Gin)
+  @@index([subNames, rankboost(ops: raw("float8_ops"))], type: Gin)
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
@@ -582,10 +586,6 @@ model Item {
   @@index([rankhot])
   @@index([rankboost])
   @@index([genoutlawed])
-  @@index([subNames, createdAt])
-  @@index([subNames, ranktop])
-  @@index([subNames, rankhot])
-  @@index([subNames, rankboost])
 }
 
 model ItemSub {
@@ -780,7 +780,6 @@ model Sub {
   parent                  Sub?                      @relation("ParentChildren", fields: [parentName], references: [name])
   children                Sub[]                     @relation("ParentChildren")
   user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Item                    Item[]
   SubAct                  SubAct[]
   MuteSub                 MuteSub[]
   SubSubscription         SubSubscription[]

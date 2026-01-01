@@ -90,8 +90,8 @@ export default function ItemInfo ({
   const myPost = (me && root && Number(me.id) === Number(root.user.id))
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
-  const isPinnedPost = isPost && item.position && (pinnable || !item.subName)
-  const isPinnedSubReply = !isPost && item.position && !item.subName
+  const isPinnedPost = isPost && item.position && (pinnable || !item.subNames)
+  const isPinnedSubReply = !isPost && item.position && !item.subNames
   const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
 
@@ -150,12 +150,13 @@ export default function ItemInfo ({
             </Link>
           </>}
       </span>
-      {item.subName &&
-        <SubPopover sub={item.subName}>
-          <Link href={`/~${item.subName}`}>
-            {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
+      {item.subNames?.map(subName => (
+        <SubPopover key={subName} sub={subName}>
+          <Link href={`/~${subName}`}>
+            {' '}<Badge className={styles.newComment} bg={null}>{subName}</Badge>
           </Link>
-        </SubPopover>}
+        </SubPopover>
+      ))}
       {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
       {(item.outlawed && !item.mine &&

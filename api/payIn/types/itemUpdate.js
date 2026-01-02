@@ -40,7 +40,7 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSubs, parent
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
 
   let cost = 0n
-  const subDiff = flatDifference(newSubs.map(sub => sub.name), old.subNames)
+  const subDiff = flatDifference(newSubs.map(sub => sub.name), old.subNames ?? [])
   if (!parentId && subDiff.length > 0) {
     if (old.boost > 0) {
       throw new Error('cannot move boosted items into different territories')
@@ -70,7 +70,7 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNa
     ? subs
     : subs.map(sub => ({
       ...sub,
-      mcost: old.subNames.includes(sub.name) ? 0n : satsToMsats(sub.baseCost ?? 1)
+      mcost: old.subNames?.includes(sub.name) ? 0n : satsToMsats(sub.baseCost ?? 1)
     }))
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
 
@@ -129,10 +129,10 @@ export async function onBegin (tx, payInId, args) {
         }
       },
       subs: {
-        create: flatDifference(subNames, old.subNames).map(subName => ({ subName })),
+        create: flatDifference(subNames, old.subNames ?? []).map(subName => ({ subName })),
         deleteMany: {
           subName: {
-            in: flatDifference(old.subNames, subNames)
+            in: flatDifference(old.subNames ?? [], subNames)
           }
         }
       },

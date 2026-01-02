@@ -167,9 +167,9 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
       LEFT JOIN LATERAL (
-          SELECT COALESCE(json_agg("Sub".*), '[]') as subs
-          FROM "Sub"
-          WHERE "Sub"."name" = ANY("Item"."subNames")
+        SELECT COALESCE(json_agg("Sub".*), '[]') as subs
+        FROM "Sub"
+        WHERE "Sub"."name" = ANY("Item"."subNames")
       ) "subs" ON true
       LEFT JOIN LATERAL (
         SELECT "PayIn".*

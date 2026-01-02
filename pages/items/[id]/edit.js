@@ -41,7 +41,7 @@ export default function PostEdit ({ ssrData }) {
     : {})
 
   useEffect(() => {
-    if (subs.every(sub => item.subNames.includes(sub))) {
+    if (!subs || subs.every(sub => item.subNames?.includes(sub))) {
       setBaseLineItems(prev => Object.entries(prev).reduce((acc, [key, value]) => {
         if (!key.startsWith('territory-add-')) {
           acc[key] = value
@@ -50,7 +50,7 @@ export default function PostEdit ({ ssrData }) {
       }, {}))
       return
     }
-    fetchSubs({ variables: { subNames: subs.filter(sub => !item.subNames.includes(sub)) } }).then(res => {
+    fetchSubs({ variables: { subNames: subs.filter(sub => !item.subNames?.includes(sub)) } }).then(res => {
       setBaseLineItems(prev => {
         const newBaseLineItems = Object.entries(prev).reduce((acc, [key, value]) => {
           if (!key.startsWith('territory-add-')) {

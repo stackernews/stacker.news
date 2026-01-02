@@ -167,6 +167,8 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
       id='subNames'
       onValueClick={handleTerritoryClick}
       onChange={onChange || ((_, e) => {
+        // NOTE: a lot of this is not used yet, because this component is only used in PostForm,
+        // but we'll keep it here for future use
         if (e.length === 1 && e.includes('create')) {
           router.push('/territory')
           return

@@ -31,8 +31,8 @@ export default forwardRef(function Reply ({
   const { ref: replyEditorRef, onRef: onReplyEditorRef } = useCallbackRef()
   const showModal = useShowModal()
   const root = useRoot()
-  const subs = item?.subs || root.subs || []
-  const { markCommentViewedAt } = useCommentsView(root.id)
+  const subs = item?.subs || root?.subs || []
+  const { markCommentViewedAt } = useCommentsView(root?.id)
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {

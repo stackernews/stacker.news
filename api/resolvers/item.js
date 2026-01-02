@@ -1124,7 +1124,7 @@ export default {
       return msatsToSats(item.commentMcredits)
     },
     isJob: async (item, args, { models }) => {
-      return item.subName === 'jobs'
+      return item.subNames?.includes('jobs') ?? false
     },
     subs: async (item, args, { models }) => {
       if (!item.subNames?.length && !item.root) {

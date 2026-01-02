@@ -75,8 +75,8 @@ export async function getInitial (models, args, { me }) {
   const subsWithCosts = subs.map(sub => ({
     ...sub,
     mcost: args.parentId
-      ? satsToMsats(sub.replyCost ?? DEFAULT_ITEM_COST)
-      : satsToMsats(sub.baseCost ?? DEFAULT_ITEM_COST)
+      ? satsToMsats(sub.replyCost ?? 1)
+      : satsToMsats(sub.baseCost ?? 1)
   }))
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
 

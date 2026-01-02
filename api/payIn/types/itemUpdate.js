@@ -70,7 +70,7 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNa
     ? subs
     : subs.map(sub => ({
       ...sub,
-      mcost: old.subNames.includes(sub.name) ? 0n : satsToMsats(sub.baseCost ?? 1000n)
+      mcost: old.subNames.includes(sub.name) ? 0n : satsToMsats(sub.baseCost ?? 1)
     }))
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
 

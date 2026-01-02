@@ -14,7 +14,7 @@ import useItemSubmit from './use-item-submit'
 import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
 import { MAX_COMMENT_TEXT_LENGTH } from '@/lib/constants'
-import { $initializeEditorState } from '@/lib/lexical/utils'
+import { $setMarkdown } from '@/lib/lexical/utils'
 import useCallbackRef from './use-callback-ref'
 
 export default forwardRef(function Reply ({
@@ -79,7 +79,7 @@ export default forwardRef(function Reply ({
       // reset the Lexical editor state
       if (replyEditorRef) {
         replyEditorRef.update(() => {
-          $initializeEditorState(text)
+          $setMarkdown(text)
         })
       }
       setReply(replyOpen || false)
@@ -91,7 +91,7 @@ export default forwardRef(function Reply ({
     // clear editor
     if (replyEditorRef) {
       replyEditorRef.update(() => {
-        $initializeEditorState('')
+        $setMarkdown('')
       })
     }
 

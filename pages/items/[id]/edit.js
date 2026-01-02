@@ -99,7 +99,7 @@ export default function PostEdit ({ ssrData }) {
   return (
     <CenterLayout>
       <FeeButtonProvider baseLineItems={baseLineItems}>
-        <FormType item={item} EditInfo={EditInfo}>
+        <FormType item={item} subs={subs} EditInfo={EditInfo}>
           {!item.isJob &&
             <SubMultiSelect
               placeholder='pick territories'

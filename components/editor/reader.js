@@ -9,7 +9,7 @@ import theme from '../../lib/lexical/theme'
 import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
-import { markdownToLexical } from '@/lib/lexical/utils/mdast'
+import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
 import PreviewSyncPlugin from './plugins/core/previewsync'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
@@ -19,7 +19,7 @@ import { MuteLexicalExtension } from '@/lib/lexical/exts/mute-lexical'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
-    markdownToLexical(editor, text)
+    $markdownToLexical(text)
     return
   }
 

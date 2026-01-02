@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect, useRef } from 'react'
-import { markdownToLexical } from '@/lib/lexical/utils/mdast'
+import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
 import { useField } from 'formik'
 
@@ -31,7 +31,9 @@ export default function PreviewSyncPlugin ({ name = 'text' }) {
       return
     }
 
-    markdownToLexical(editor, text.value)
+    editor.update(() => {
+      $markdownToLexical(text.value)
+    })
   }, [editor, text.value, toolbarContext?.toolbarState.previewMode])
 
   return null

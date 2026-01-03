@@ -16,7 +16,7 @@ export class TableOfContentsNode extends DecoratorBlockNode {
   }
 
   static clone (node) {
-    return new TableOfContentsNode(node.__key)
+    return new TableOfContentsNode(node.__format, node.__key)
   }
 
   static importJSON (serializedNode) {

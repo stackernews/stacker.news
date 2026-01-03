@@ -36,7 +36,7 @@ export default function LocalDraftPlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
-          $setMarkdown(value)
+          $setMarkdown(value, false)
         })
       }
     }
@@ -47,7 +47,7 @@ export default function LocalDraftPlugin ({ name }) {
     // whenever the editor state changes, save the markdown draft
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        upsertDraft($getMarkdown())
+        upsertDraft($getMarkdown(false))
       })
     })
   }, [editor, upsertDraft])

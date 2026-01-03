@@ -39,6 +39,7 @@ export class EmbedNode extends DecoratorBlockNode {
       node.__src,
       node.__id,
       node.__meta,
+      node.__format,
       node.__key
     )
   }
@@ -73,8 +74,8 @@ export class EmbedNode extends DecoratorBlockNode {
     }
   }
 
-  constructor (provider = null, src = null, id = null, meta = null, key) {
-    super(key)
+  constructor (provider = null, src = null, id = null, meta = null, format, key) {
+    super(format, key)
     this.__provider = provider
     this.__src = src
     this.__id = id

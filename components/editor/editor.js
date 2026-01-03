@@ -46,7 +46,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
           $setMarkdown(text.value)
         }
         if (appendValue) {
-          $appendMarkdown(appendValue)
+          $appendMarkdown(appendValue, 2)
         }
       },
       name: 'editor',

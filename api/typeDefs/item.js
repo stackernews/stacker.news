@@ -11,11 +11,19 @@ export default gql`
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
     itemRepetition(parentId: ID): Int!
     newComments(itemId: ID, after: Date): Comments!
+    auctionPosition(id: ID, sub: String!, boost: Int): Int!
+    boostPosition(id: ID, sub: String, boost: Int): BoostPosition!
   }
 
   type TitleUnshorted {
     title: String
     unshorted: String
+  }
+  type BoostPosition {
+    home: Boolean!
+    sub: Boolean
+    homeMaxBoost: Int!
+    subMaxBoost: Int
   }
 
   extend type Mutation {

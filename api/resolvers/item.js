@@ -13,7 +13,8 @@ import {
   COMMENTS_OF_COMMENT_LIMIT,
   FULL_COMMENTS_THRESHOLD,
   WALLET_RETRY_BEFORE_MS,
-  WALLET_MAX_RETRIES
+  WALLET_MAX_RETRIES,
+  BOOST_MIN
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
@@ -713,7 +714,6 @@ export default {
           LIMIT 3`
       }, similar)
     },
-<<<<<<< HEAD
     auctionPosition: async (parent, { id, sub, boost }, { models, me }) => {
       const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
       let where
@@ -783,8 +783,8 @@ export default {
       }
 
       return {
-        home: homeAgg._count.id === 0 && boost >= BOOST_MULT,
-        sub: subAgg?._count.id === 0 && boost >= BOOST_MULT,
+        home: homeAgg._count.id === 0 && boost >= BOOST_MIN,
+        sub: subAgg?._count.id === 0 && boost >= BOOST_MIN,
         homeMaxBoost: homeAgg._max.boost || 0,
         subMaxBoost: subAgg?._max.boost || 0
       }

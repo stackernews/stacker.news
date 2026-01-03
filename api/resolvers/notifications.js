@@ -161,7 +161,7 @@ export default {
       queries.push(
         // Only record per item ID
         `(
-          SELECT DISTINCT ON (id) "Item".id::TEXT, "Item"."sortTime", NULL::BIGINT AS "earnedSats", "Item".type
+          SELECT DISTINCT ON (id) "Item".id::TEXT, "Item"."sortTime", NULL::INTEGER AS "earnedSats", "Item".type
           FROM (
             ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
           ) as "Item"
@@ -184,7 +184,7 @@ export default {
 
       // territory transfers
       queries.push(
-        `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
+        `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL::INTEGER as "earnedSats",
           'TerritoryTransfer' AS type
           FROM "TerritoryTransfer"
           WHERE "TerritoryTransfer"."newUserId" = $1
@@ -196,7 +196,7 @@ export default {
       if (meFull.noteItemSats) {
         queries.push(
           `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
-            "Item".msats/1000 as "earnedSats", 'Votification' AS type
+            ("Item".msats/1000)::INTEGER as "earnedSats", 'Votification' AS type
             FROM "Item"
             WHERE "Item"."userId" = $1
             AND "Item"."lastZapAt" < $2
@@ -208,7 +208,7 @@ export default {
       if (meFull.noteForwardedSats) {
         queries.push(
           `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
-            ("Item".msats / 1000 * "ItemForward".pct / 100) as "earnedSats", 'ForwardedVotification' AS type
+            ("Item".msats / 1000 * "ItemForward".pct / 100)::INTEGER as "earnedSats", 'ForwardedVotification' AS type
             FROM "Item"
             JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
             WHERE "Item"."userId" <> $1
@@ -223,7 +223,7 @@ export default {
         // the payInBolt11 record exists for the payIn
         queries.push(
           `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
-              COALESCE(FLOOR("PayIn"."mcost" / 1000), 0) as "earnedSats",
+              COALESCE(FLOOR("PayIn"."mcost" / 1000), 0)::INTEGER as "earnedSats",
             'PayInification' AS type
             FROM "PayIn"
             JOIN "PayInBolt11" ON "PayInBolt11"."payInId" = "PayIn".id
@@ -240,7 +240,7 @@ export default {
       if (meFull.noteWithdrawals) {
         queries.push(
           `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
-            COALESCE(FLOOR("PayOutBolt11"."msats" / 1000), 0) as "earnedSats",
+            COALESCE(FLOOR("PayOutBolt11"."msats" / 1000), 0)::INTEGER as "earnedSats",
             'PayInification' AS type
             FROM "PayIn"
             JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
@@ -256,7 +256,7 @@ export default {
 
       if (meFull.noteInvites) {
         queries.push(
-          `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
+          `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL::INTEGER as "earnedSats",
             'Invitification' AS type
             FROM users JOIN "Invite" on users."inviteId" = "Invite".id
             WHERE "Invite"."userId" = $1
@@ -266,7 +266,7 @@ export default {
             LIMIT ${LIMIT})`
         )
         queries.push(
-          `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
+          `(SELECT users.id::text, users.created_at AS "sortTime", NULL::INTEGER as "earnedSats",
             'Referral' AS type
             FROM users
             WHERE "users"."referrerId" = $1
@@ -279,7 +279,7 @@ export default {
 
       if (meFull.noteEarning) {
         queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000)::INTEGER as "earnedSats",
           'Earn' AS type
           FROM "Earn"
           WHERE "userId" = $1
@@ -290,7 +290,7 @@ export default {
           LIMIT ${LIMIT})`
         )
         queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000)::INTEGER as "earnedSats",
           'ReferralReward' AS type
           FROM "Earn"
           WHERE "userId" = $1
@@ -304,7 +304,7 @@ export default {
 
       if (meFull.noteCowboyHat) {
         queries.push(
-          `(SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'CowboyHat' AS type
+          `(SELECT id::text, updated_at AS "sortTime", 0::INTEGER as "earnedSats", 'CowboyHat' AS type
           FROM "Streak"
           WHERE "userId" = $1
           AND updated_at < $2
@@ -315,7 +315,7 @@ export default {
         for (const type of ['HORSE', 'GUN']) {
           const gqlType = type.charAt(0) + type.slice(1).toLowerCase()
           queries.push(
-            `(SELECT id::text, "startedAt" AS "sortTime", 0 as "earnedSats", 'New${gqlType}' AS type
+            `(SELECT id::text, "startedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'New${gqlType}' AS type
             FROM "Streak"
             WHERE "userId" = $1
             AND updated_at < $2
@@ -324,7 +324,7 @@ export default {
             LIMIT ${LIMIT})`
           )
           queries.push(
-            `(SELECT id::text AS id, "endedAt" AS "sortTime", 0 as "earnedSats", 'Lost${gqlType}' AS type
+            `(SELECT id::text AS id, "endedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'Lost${gqlType}' AS type
             FROM "Streak"
             WHERE "userId" = $1
             AND updated_at < $2
@@ -337,7 +337,7 @@ export default {
       }
 
       queries.push(
-        `(SELECT "Sub".name::text, "Sub"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
+        `(SELECT "Sub".name::text, "Sub"."statusUpdatedAt" AS "sortTime", NULL::INTEGER as "earnedSats",
           'SubStatus' AS type
           FROM "Sub"
           WHERE "Sub"."userId" = $1
@@ -348,7 +348,7 @@ export default {
       )
 
       queries.push(
-        `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL as "earnedSats", 'Reminder' AS type
+        `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL::INTEGER as "earnedSats", 'Reminder' AS type
         FROM "Reminder"
         WHERE "Reminder"."userId" = $1
         AND "Reminder"."remindAt" < $2
@@ -360,7 +360,7 @@ export default {
       // are too old, or were manually cancelled
       queries.push(
         `(SELECT "PayIn".id::text,
-          "PayIn"."payInStateChangedAt" AS "sortTime", 0 as "earnedSats", 'PayInification' AS type
+          "PayIn"."payInStateChangedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'PayInification' AS type
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
           AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
@@ -486,11 +486,19 @@ export default {
       const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id), landing: true } })
       if (!referral) return null // if no landing record, it will return a generic referral
 
+      // HACK this is needed because referral.typeId for territory referrals is the sub name,
+      // but the sub name can change after the referral is created
+      // TODO: make OneDayReferral polymorphism normalized (denormalizing with triggers)
+      async function getSubOrNull (name) {
+        const sub = await getSub(n, { name }, { models, me })
+        return sub ? { ...sub, type: 'Sub' } : null
+      }
+
       switch (referral.type) {
         case 'POST':
         case 'COMMENT': return { ...await getItem(n, { id: referral.typeId }, { models, me }), type: 'Item' }
-        case 'TERRITORY': return { ...await getSub(n, { name: referral.typeId }, { models, me }), type: 'Sub' }
         case 'PROFILE': return { ...await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }), type: 'User' }
+        case 'TERRITORY': return await getSubOrNull(referral.typeId)
         default: return null
       }
     }

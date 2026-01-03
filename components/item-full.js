@@ -26,16 +26,18 @@ import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import useCommentsView from './use-comments-view'
+import useCallbackRef from './use-callback-ref'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
+  const { onRef: onReaderRef } = useCallbackRef()
   if (!item.text) {
     return null
   }
 
   return (
     <>
-      <ItemText item={item} />
+      <ItemText item={item} readerRef={onReaderRef} />
       {me?.name === item.user.name &&
         <div className='d-flex'>
           <Button
@@ -65,7 +67,7 @@ function ItemEmbed ({ url, imgproxyUrls }) {
     const srcSet = imgproxyUrls?.[url]
     return (
       <div className='mt-3'>
-        <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
+        <MediaOrLink src={src} srcSetIntital={srcSet} topLevel linkFallback={false} />
       </div>
     )
   }
@@ -91,6 +93,7 @@ function FwdUsers ({ forwards }) {
 
 function TopLevelItem ({ item, noReply, ...props }) {
   const ItemComponent = item.isJob ? ItemJob : Item
+  const { ref: readerRef, onRef: onReaderRef } = useCallbackRef()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   return (
@@ -101,15 +104,15 @@ function TopLevelItem ({ item, noReply, ...props }) {
       right={
         !noReply &&
           <>
+            <Toc text={item.text} readerRef={readerRef} />
             <Share title={item?.title} path={`/items/${item?.id}`} />
-            <Toc text={item.text} />
           </>
       }
       belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
-        {item.text && <ItemText item={item} />}
+        {item.text && <ItemText item={item} readerRef={onReaderRef} />}
         {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
@@ -154,10 +157,10 @@ function TopLevelItem ({ item, noReply, ...props }) {
   )
 }
 
-function ItemText ({ item }) {
+function ItemText ({ item, readerRef }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
+    : <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} readerRef={readerRef} />
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {

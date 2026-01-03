@@ -1,6 +1,6 @@
 import { USER_ID } from '@/lib/constants'
 
-export const GLOBAL_SEEDS = [USER_ID.k00b, USER_ID.ek]
+export const GLOBAL_SEEDS = [USER_ID.k00b]
 
 export function initialTrust ({ name, userId }) {
   const results = GLOBAL_SEEDS.map(id => ({

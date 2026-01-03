@@ -1,6 +1,9 @@
 import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
+import { randomBytes } from 'crypto'
+import { chanNumber } from 'bolt07'
+import { once } from 'events'
 import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
 
 const lnd = global.lnd || authenticatedLndGrpc({
@@ -19,6 +22,60 @@ getWalletInfo({ lnd }, (err, result) => {
   }
   console.log('LND GRPC connection successful')
 })
+
+// we create our own probe because estimateRouteFee is busted https://github.com/lightningnetwork/lnd/discussions/10427
+export async function estimateRouteFeeProbe ({ lnd, request, maxFeeMsat, timeoutSeconds, maxCltvDelta }) {
+  if (!request) {
+    throw new Error('Payment request is required')
+  }
+  const inv = parsePaymentRequest({ request })
+  const params = {
+    allow_self_payment: true,
+    amt_msat: inv.mtokens,
+    cancelable: true,
+    cltv_limit: maxCltvDelta ? toPositiveNumber(maxCltvDelta) : undefined,
+    dest: Buffer.from(inv.destination, 'hex'),
+    dest_custom_records: undefined,
+    dest_features: inv.features.map(n => n.bit),
+    fee_limit_msat: maxFeeMsat ? toPositiveNumber(maxFeeMsat) : undefined,
+    final_cltv_delta: inv.cltv_delta,
+    last_hop_pubkey: undefined,
+    max_parts: 1,
+    max_shard_size_msat: undefined,
+    no_inflight_updates: true,
+    outgoing_chan_id: undefined,
+    outgoing_chan_ids: [],
+    payment_addr: Buffer.from(inv.payment, 'hex'),
+    payment_hash: randomBytes(32), // this is what makes it a probe
+    payment_request: undefined,
+    route_hints: inv.routes?.map(r => ({
+      hop_hints: r.slice(1).map((h, i) => ({
+        fee_base_msat: h.base_fee_mtokens,
+        fee_proportional_millionths: h.fee_rate,
+        chan_id: chanNumber({ channel: h.channel }).number,
+        cltv_expiry_delta: h.cltv_delta,
+        node_id: r[i].public_key
+      }))
+    })) ?? [],
+    time_pref: 1,
+    timeout_seconds: timeoutSeconds ? toPositiveNumber(timeoutSeconds) : undefined
+  }
+  const sub = lnd.router.sendPaymentV2(params)
+  const [probe] = await once(sub, 'data')
+
+  // a successful probe returns FAILURE_REASON_INCORRECT_PAYMENT_DETAILS
+  if (probe.failure_reason === 'FAILURE_REASON_INCORRECT_PAYMENT_DETAILS') {
+    // there's only one htlc in the probe, because max_parts is 1
+    const { htlcs: [{ route: { total_fees_msat: routingFeeMsat, total_time_lock: timeLockDelay } }] } = probe
+    return {
+      routingFeeMsat: toPositiveNumber(routingFeeMsat),
+      // subtract the cltv delta of the invoice to emulate estimateRouteFee
+      timeLockDelay: toPositiveNumber(timeLockDelay - inv.cltv_delta)
+    }
+  }
+
+  throw new Error(`Unable to estimate route: ${probe.failure_reason || 'unknown reason'}`)
+}
 
 export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
   // if the payment request includes us as route hint, we needd to use the destination and amount
@@ -39,6 +96,11 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
         }
       }
     }
+    // XXX we don't use the payment request anymore because it causes the channel to be marked as unusable
+    // and the real payment fails see: https://github.com/lightningnetwork/lnd/discussions/10427
+    // without the request, the estimate is a statistical estimate based on past payments
+    // NOTE: this should be fixed in v0.20.1-beta
+    request = false
   }
 
   return await new Promise((resolve, reject) => {

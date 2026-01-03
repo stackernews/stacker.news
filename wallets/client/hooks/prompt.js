@@ -127,7 +127,7 @@ function SkipForm ({ onSkip }) {
   return (
     <Form
       initial={{ dontShowAgain: false }}
-      className='d-flex align-items-center mt-3'
+      className='d-flex align-items-center justify-content-end mt-3'
       onSubmit={onSubmit}
       schema={schema}
     >

@@ -9,17 +9,8 @@ export default gql`
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit! = ${LIMIT}): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
-    auctionPosition(sub: String, id: ID, boost: Int): Int!
-    boostPosition(sub: String, id: ID, boost: Int): BoostPositions!
     itemRepetition(parentId: ID): Int!
     newComments(itemId: ID, after: Date): Comments!
-  }
-
-  type BoostPositions {
-    home: Boolean!
-    sub: Boolean!
-    homeMaxBoost: Int!
-    subMaxBoost: Int!
   }
 
   type TitleUnshorted {
@@ -105,6 +96,8 @@ export default gql`
     url: String
     searchText: String
     text: String
+    lexicalState: JSONObject
+    html: String
     parentId: Int
     parent: Item
     root: Item
@@ -117,9 +110,11 @@ export default gql`
     bountyPaidTo: [Int]
     noteId: String
     sats: Int!
+    downSats: Int!
     credits: Int!
     commentSats: Int!
     commentCredits: Int!
+    commentDownSats: Int!
     lastCommentAt: Date
     upvotes: Int!
     meSats: Int!

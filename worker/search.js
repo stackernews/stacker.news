@@ -56,10 +56,11 @@ async function _indexItem (item, { models, updatedAt }) {
 
   const itemdb = await models.item.findUnique({
     where: { id: Number(item.id) },
-    select: { weightedVotes: true, weightedDownVotes: true }
+    select: { weightedVotes: true, weightedDownVotes: true, ranktop: true }
   })
 
   itemcp.wvotes = itemdb.weightedVotes - itemdb.weightedDownVotes
+  itemcp.ranktop = itemdb.ranktop
 
   const bookmarkedBy = await models.bookmark.findMany({
     where: { itemId: Number(item.id) },

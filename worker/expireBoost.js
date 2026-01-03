@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 
 export async function expireBoost ({ data: { id }, models }) {
-  // reset boost 30 days after last boost
+  // reset boost 7 days after last boost
   // run in serializable because we use an aggregate here
   // and concurrent boosts could be double counted
   // serialization errors will cause pgboss retries
@@ -9,8 +9,8 @@ export async function expireBoost ({ data: { id }, models }) {
     [
       models.$executeRaw`
         WITH boost AS (
-          SELECT sum("mcost") FILTER (WHERE "PayIn"."payInStateChangedAt" <= now() - interval '30 days') as old_msats,
-                sum("mcost") FILTER (WHERE "PayIn"."payInStateChangedAt" > now() - interval '30 days') as cur_msats
+          SELECT sum("mcost") FILTER (WHERE "PayIn"."payInStateChangedAt" <= now() - interval '7 days') as old_msats,
+                sum("mcost") FILTER (WHERE "PayIn"."payInStateChangedAt" > now() - interval '7 days') as cur_msats
           FROM "PayIn"
           JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn"."id"
           WHERE "payInType" = 'BOOST'

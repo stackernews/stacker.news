@@ -7,7 +7,8 @@ import { datePivot, sleep } from '@/lib/time'
 import retry from 'async-retry'
 import {
   payInWithdrawalPaid, payInWithdrawalFailed, payInPaid, payInForwarding, payInForwarded, payInFailedForward, payInHeld, payInFailed,
-  PAY_IN_TERMINAL_STATES
+  PAY_IN_TERMINAL_STATES,
+  PAY_IN_PENDING_STATES
 } from '@/api/payIn/transitions'
 import { isWithdrawal } from '@/api/payIn/lib/is'
 import { LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
@@ -292,7 +293,7 @@ export async function checkPendingPayInBolt11s (args) {
   const { models } = args
   const pendingPayIns = await models.payIn.findMany({
     where: {
-      payInState: { notIn: PAY_IN_TERMINAL_STATES },
+      payInState: { in: PAY_IN_PENDING_STATES },
       payInBolt11: { isNot: null }
     },
     include: { payInBolt11: true }
@@ -312,7 +313,7 @@ export async function checkPendingPayOutBolt11s (args) {
   const { models } = args
   const pendingPayOuts = await models.payIn.findMany({
     where: {
-      payInState: { notIn: PAY_IN_TERMINAL_STATES },
+      payInState: { in: PAY_IN_PENDING_STATES },
       payOutBolt11: { isNot: null }
     },
     include: { payOutBolt11: true }

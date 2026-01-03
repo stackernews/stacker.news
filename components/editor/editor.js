@@ -3,7 +3,6 @@ import { useField } from 'formik'
 import { useMemo } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
-import { PlainTextExtension } from '@lexical/plain-text'
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
@@ -18,7 +17,7 @@ import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
 import MentionsPlugin from '@/components/editor/plugins/mentions'
 import FileUploadPlugin from '@/components/editor/plugins/upload'
 import PreviewPlugin from '@/components/editor/plugins/preview'
-import { $initializeEditorState } from '@/lib/lexical/utils'
+import { $setMarkdown, $appendMarkdown } from '@/lib/lexical/utils'
 import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
@@ -27,6 +26,7 @@ import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
 import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey-unborker'
 import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softkey-emptyguard'
+import { MarkdownTextExtension } from '@/lib/lexical/exts/markdown'
 
 /**
  * main lexical editor component with formik integration
@@ -42,14 +42,17 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
     defineExtension({
       $initialEditorState: () => {
         // initialize editor state with appendValue or existing formik text
-        if (appendValue || text.value) {
-          $initializeEditorState(appendValue || text.value)
+        if (text.value) {
+          $setMarkdown(text.value)
+        }
+        if (appendValue) {
+          $appendMarkdown(appendValue)
         }
       },
       name: 'editor',
       namespace: 'sn',
       dependencies: [
-        PlainTextExtension,
+        MarkdownTextExtension,
         ApplePatchExtension,
         HistoryExtension,
         ShortcutsExtension,

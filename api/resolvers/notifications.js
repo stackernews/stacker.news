@@ -486,11 +486,19 @@ export default {
       const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id), landing: true } })
       if (!referral) return null // if no landing record, it will return a generic referral
 
+      // HACK this is needed because referral.typeId for territory referrals is the sub name,
+      // but the sub name can change after the referral is created
+      // TODO: make OneDayReferral polymorphism normalized (denormalizing with triggers)
+      async function getSubOrNull (name) {
+        const sub = await getSub(n, { name }, { models, me })
+        return sub ? { ...sub, type: 'Sub' } : null
+      }
+
       switch (referral.type) {
         case 'POST':
         case 'COMMENT': return { ...await getItem(n, { id: referral.typeId }, { models, me }), type: 'Item' }
-        case 'TERRITORY': return { ...await getSub(n, { name: referral.typeId }, { models, me }), type: 'Sub' }
         case 'PROFILE': return { ...await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }), type: 'User' }
+        case 'TERRITORY': return await getSubOrNull(referral.typeId)
         default: return null
       }
     }

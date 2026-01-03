@@ -73,8 +73,8 @@
 }
 
 .editorPlaceholder {
-  top: 8px;
-  left: 11px;
+  top: 0.35rem;
+  left: 0.625rem;
   font-size: 94%;
   opacity: 0.5;
   position: absolute;

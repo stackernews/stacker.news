@@ -11,6 +11,11 @@ CREATE TABLE "ItemSub" (
     CONSTRAINT "ItemSub_pkey" PRIMARY KEY ("itemId","subName")
 );
 
+-- migrate old subnames to ItemSub
+INSERT INTO "ItemSub" ("itemId", "subName") SELECT "id", "subName" FROM "Item" WHERE "subName" IS NOT NULL;
+
+UPDATE "Item" SET "subNames" = ARRAY["subName"] WHERE "subName" IS NOT NULL;
+
 CREATE FUNCTION denormalize_subnames() RETURNS TRIGGER AS $$
 BEGIN
     UPDATE "Item" SET "subNames" = subquery."subNames"
@@ -28,22 +33,7 @@ CREATE TRIGGER "denormalize_subnames_trigger"
 AFTER INSERT OR UPDATE OR DELETE ON "ItemSub"
 FOR EACH ROW EXECUTE FUNCTION denormalize_subnames();
 
--- migrate old subnames to ItemSub
-INSERT INTO "ItemSub" ("itemId", "subName") SELECT "id", "subName" FROM "Item" WHERE "subName" IS NOT NULL;
-
 CREATE EXTENSION IF NOT EXISTS btree_gin;
-
--- can't use subName in the unique time constraint anymore
-ALTER TABLE "Item" DROP CONSTRAINT "Item_unique_time_constraint";
-ALTER TABLE "Item" ADD CONSTRAINT "Item_unique_time_constraint"
-  EXCLUDE USING gist (
-    "userId" WITH =,
-    COALESCE("parentId", -1) WITH =,
-    md5(COALESCE("title", '')) WITH =,
-    md5(COALESCE("text", '')) WITH =,
-    tsrange(created_at, created_at + INTERVAL '10 minutes') WITH &&
-  )
-  WHERE (created_at > '2024-12-30' AND "deletedAt" IS NULL);
 
 -- CreateIndex
 CREATE INDEX "ItemSub_itemId_idx" ON "ItemSub"("itemId");

@@ -72,12 +72,14 @@ export async function getInitial (models, args, { me }) {
   const subs = await getSubs(models, args)
 
   // for item creation, each sub can have a different cost
-  const subsWithCosts = subs.map(sub => ({
-    ...sub,
-    mcost: args.parentId
-      ? satsToMsats(sub.replyCost ?? 1)
-      : satsToMsats(sub.baseCost ?? 1)
-  }))
+  const subsWithCosts = subs?.length > 0
+    ? subs.map(sub => ({
+      ...sub,
+      mcost: args.parentId
+        ? satsToMsats(sub.replyCost ?? 1)
+        : satsToMsats(sub.baseCost ?? 1)
+    }))
+    : []
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
 
   const beneficiaries = []

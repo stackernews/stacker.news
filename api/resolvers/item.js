@@ -793,7 +793,7 @@ export default {
               ${whereClause(
                 '"pinId" IS NOT NULL',
                 item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]')}
-            )`, item.parentId ?? item.subNames[0], item.position)
+            )`, item.parentId ?? item.subNames[0], item.pin.position)
         ])
 
         pinId = null

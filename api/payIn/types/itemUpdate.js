@@ -40,7 +40,7 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSubs, parent
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
 
   let cost = 0n
-  const subDiff = flatDifference(newSubs.map(sub => sub.name), old.subNames ?? [])
+  const subDiff = flatDifference(newSubs?.map(sub => sub.name) ?? [], old.subNames ?? [])
   if (!parentId && subDiff.length > 0) {
     if (old.boost > 0) {
       throw new Error('cannot move boosted items into different territories')

@@ -11,11 +11,11 @@ import { CodeThemePlugin } from './plugins/core/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { markdownToLexical } from '@/lib/lexical/utils/mdast'
 import PreviewSyncPlugin from './plugins/core/previewsync'
-import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
 import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
 import NextLinkPlugin from './plugins/links'
 import { MuteLexicalExtension } from '@/lib/lexical/exts/mute-lexical'
+import RegisterEditorPlugin from '@/components/editor/plugins/core/register-editor'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
@@ -36,7 +36,7 @@ const initiateLexical = (editor, state, text) => {
   }
 }
 
-export default function Reader ({ topLevel, state, text, preview, name, readerRef, innerClassName }) {
+export default function Reader ({ topLevel, state, text, preview, name, itemId, innerClassName }) {
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -63,7 +63,7 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>
-      <EditorRefPlugin editorRef={readerRef} />
+      {itemId && <RegisterEditorPlugin itemId={itemId} preview={preview} />}
       <ContentEditable
         data-sn-reader='true'
         className={innerClassName}

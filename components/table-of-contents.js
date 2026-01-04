@@ -4,15 +4,17 @@ import FormControl from 'react-bootstrap/FormControl'
 import TocIcon from '@/svgs/list-unordered.svg'
 import { useRouter } from 'next/router'
 import { $extractHeadingsFromRoot } from '@/lib/lexical/utils/toc'
+import { useReader } from '@/components/editor/contexts/lexical'
 
-export default function Toc ({ text, readerRef }) {
+export default function Toc ({ text, itemId }) {
   const router = useRouter()
+  const reader = useReader(itemId)
 
   const toc = useMemo(() => {
-    if (!readerRef || !text || text.length === 0) return []
+    if (!reader || !text || text.length === 0) return []
     // access the lexical editor state and extract the headings
-    return readerRef.getEditorState().read($extractHeadingsFromRoot)
-  }, [readerRef, text])
+    return reader.getEditorState().read($extractHeadingsFromRoot)
+  }, [text, reader])
 
   if (toc.length === 0) {
     return null

@@ -28,7 +28,6 @@ import LinkToContext from './link-to-context'
 import Boost from './boost-button'
 import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
-import useCallbackRef from './use-callback-ref'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -111,7 +110,6 @@ export default function Comment ({
       ? 'yep'
       : 'nope')
   const ref = useRef(null)
-  const { onRef: onReaderRef } = useCallbackRef()
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
@@ -289,7 +287,7 @@ export default function Comment ({
                 {item.searchText
                   ? <SearchText text={item.searchText} />
                   : (
-                    <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} readerRef={onReaderRef}>
+                    <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
                       {item.outlawed && !me?.privates?.wildWestMode
                         ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
                         : truncate ? truncateString(item.text) : undefined}

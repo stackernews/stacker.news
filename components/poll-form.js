@@ -50,6 +50,7 @@ export function PollForm ({ item, sub, EditInfo, children }) {
         label={<>text <small className='text-muted ms-2'>optional</small></>}
         name='text'
         minRows={2}
+        itemId={item?.id}
       />
       <VariableInput
         label='choices'

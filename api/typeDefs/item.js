@@ -141,6 +141,8 @@ export default gql`
     company: String
     location: String
     remote: Boolean
+    sub: Sub
+    subName: String
     subs: [Sub!]
     subNames: [String!]
     status: String!

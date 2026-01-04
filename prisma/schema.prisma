@@ -477,6 +477,7 @@ model Item {
   maxSalary            Int?
   minSalary            Int?
   remote               Boolean?
+  subName              String?               @db.Citext // TODO: remove after migration
   subNames             String[]              @db.Citext
   statusUpdatedAt      DateTime?
   status               Status                @default(ACTIVE)
@@ -551,6 +552,7 @@ model Item {
   rankboost            Float                 @default(dbgenerated())
   genoutlawed          Boolean               @default(dbgenerated())
   subs                 ItemSub[]
+  sub                  Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -565,8 +567,6 @@ model Item {
   @@index([rootId], map: "Item.rootId_index")
   @@index([statusUpdatedAt], map: "Item.statusUpdatedAt_index")
   @@index([status], map: "Item.status_index")
-  // NOTE: we create btree_gin indexes on subNames for createdAt, ranktop, rankhot, and rankboost
-  // but prisma doesn't support them so we omit them from the model
   @@index([subNames], type: Gin)
   @@index([subNames, createdAt(ops: raw("timestamp_ops"))], type: Gin)
   @@index([subNames, ranktop(ops: raw("float8_ops"))], type: Gin)
@@ -586,6 +586,11 @@ model Item {
   @@index([rankhot])
   @@index([rankboost])
   @@index([genoutlawed])
+  @@index([subName], map: "Item.subName_index") // TODO: remove after migration
+  @@index([subName, createdAt]) // TODO: remove after migration
+  @@index([subName, ranktop]) // TODO: remove after migration
+  @@index([subName, rankhot]) // TODO: remove after migration
+  @@index([subName, rankboost]) // TODO: remove after migration
 }
 
 model ItemSub {
@@ -790,6 +795,7 @@ model Sub {
   AggPayIn                AggPayIn[]
   AggPayOut               AggPayOut[]
   itemSubs                ItemSub[]
+  items                   Item[]
 
   @@index([parentName])
   @@index([createdAt])

@@ -1126,6 +1126,15 @@ export default {
     isJob: async (item, args, { models }) => {
       return item.subNames?.includes('jobs') ?? false
     },
+    sub: async (item, args, { models }) => {
+      if (!item.subNames?.length && !item.root) {
+        return null
+      }
+      return item.subs[0]
+    },
+    subName: async (item, args, { models }) => {
+      return item.subNames?.[0]
+    },
     subs: async (item, args, { models }) => {
       if (!item.subNames?.length && !item.root) {
         return null

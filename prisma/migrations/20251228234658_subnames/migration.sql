@@ -45,9 +45,6 @@ ALTER TABLE "Item" ADD CONSTRAINT "Item_unique_time_constraint"
   )
   WHERE (created_at > '2024-12-30' AND "deletedAt" IS NULL);
 
--- Drop column
-ALTER TABLE "Item" DROP COLUMN "subName";
-
 -- CreateIndex
 CREATE INDEX "ItemSub_itemId_idx" ON "ItemSub"("itemId");
 

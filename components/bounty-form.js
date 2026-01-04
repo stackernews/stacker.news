@@ -1,15 +1,11 @@
 import { Form, Input, SNInput } from '@/components/form'
-import { useApolloClient } from '@apollo/client'
-import AdvPostForm, { AdvPostInitial } from './adv-post-form'
+import AdvPostForm from './adv-post-form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '@/lib/validate'
-import { SubSelectInitial } from './sub-select'
-import { normalizeForwards } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
-import { useMe } from './me'
 import { ItemButtonBar } from './post'
-import useItemSubmit from './use-item-submit'
 import { UPSERT_BOUNTY } from '@/fragments/payIn'
+import { usePostFormShared } from './use-post-form-shared'
 
 export function BountyForm ({
   item,
@@ -21,24 +17,18 @@ export function BountyForm ({
   handleSubmit,
   children
 }) {
-  const client = useApolloClient()
-  const { me } = useMe()
-  const schema = bountySchema({ client, me, existingBoost: item?.boost })
-
-  const onSubmit = useItemSubmit(UPSERT_BOUNTY, { item })
-
-  const storageKeyPrefix = item ? undefined : 'bounty'
+  const { initial, onSubmit, storageKeyPrefix, schema } = usePostFormShared({
+    item,
+    subs,
+    mutation: UPSERT_BOUNTY,
+    storageKeyPrefix: 'bounty',
+    schemaFn: bountySchema,
+    extraInitialValues: { bounty: item?.bounty || 1000 }
+  })
 
   return (
     <Form
-      initial={{
-        title: item?.title || '',
-        text: item?.text || '',
-        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        bounty: item?.bounty || 1000,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ item, subs })
-      }}
+      initial={initial}
       schema={schema}
       requireSession
       onSubmit={

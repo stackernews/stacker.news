@@ -1,30 +1,35 @@
 import { useState, useEffect } from 'react'
 import { Form, Input, SNInput } from '@/components/form'
 import { useRouter } from 'next/router'
-import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
-import AdvPostForm, { AdvPostInitial } from './adv-post-form'
+import { gql, useLazyQuery } from '@apollo/client'
+import AdvPostForm from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
 import { linkSchema } from '@/lib/validate'
 import Moon from '@/svgs/moon-fill.svg'
-import { normalizeForwards } from '@/lib/form'
-import { SubSelectInitial } from './sub-select'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
-import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import { UPSERT_LINK } from '@/fragments/payIn'
-import useItemSubmit from './use-item-submit'
+import { usePostFormShared } from './use-post-form-shared'
 import useDebounceCallback from './use-debounce-callback'
 
 export function LinkForm ({ item, subs, EditInfo, children }) {
   const router = useRouter()
-  const client = useApolloClient()
-  const { me } = useMe()
-  const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareUrl = router.query.url
-  const shareTitle = router.query.title
+
+  const { initial, onSubmit, client, storageKeyPrefix, schema } = usePostFormShared({
+    item,
+    subs,
+    mutation: UPSERT_LINK,
+    schemaFn: linkSchema,
+    storageKeyPrefix: 'link',
+    extraInitialValues: {
+      url: item?.url || shareUrl || ''
+    }
+  })
+
   // allows finer control over dupe accordian layout shift
   const [dupes, setDupes] = useState()
 
@@ -67,8 +72,6 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
     }
   }
 
-  const onSubmit = useItemSubmit(UPSERT_LINK, { item })
-
   const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), 1000, [getDupes])
 
   useEffect(() => {
@@ -94,18 +97,9 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   const [postDisabled, setPostDisabled] = useState(false)
   const [titleOverride, setTitleOverride] = useState()
 
-  const storageKeyPrefix = item ? undefined : 'link'
-
   return (
     <Form
-      initial={{
-        title: item?.title || shareTitle || '',
-        url: item?.url || shareUrl || '',
-        text: item?.text || '',
-        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ item, subs })
-      }}
+      initial={initial}
       schema={schema}
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}

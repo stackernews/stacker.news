@@ -1,32 +1,27 @@
 import { Form, Input, SNInput } from '@/components/form'
-import { useRouter } from 'next/router'
-import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
-import AdvPostForm, { AdvPostInitial } from './adv-post-form'
+import { gql, useLazyQuery } from '@apollo/client'
+import AdvPostForm from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
 import AccordianItem from './accordian-item'
 import Item from './item'
 import { discussionSchema } from '@/lib/validate'
-import { SubSelectInitial } from './sub-select'
-import { normalizeForwards } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
-import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import { UPSERT_DISCUSSION } from '@/fragments/payIn'
-import useItemSubmit from './use-item-submit'
+import { usePostFormShared } from './use-post-form-shared'
 
 export function DiscussionForm ({
   item, subs, EditInfo, titleLabel = 'title',
   textLabel = 'text',
   handleSubmit, children
 }) {
-  const router = useRouter()
-  const client = useApolloClient()
-  const { me } = useMe()
-  const onSubmit = useItemSubmit(UPSERT_DISCUSSION, { item })
-  const schema = discussionSchema({ client, me, existingBoost: item?.boost })
-  // if Web Share Target API was used
-  const shareTitle = router.query.title
-  const shareText = router.query.text ? decodeURI(router.query.text) : undefined
+  const { initial, onSubmit, storageKeyPrefix, schema } = usePostFormShared({
+    item,
+    subs,
+    mutation: UPSERT_DISCUSSION,
+    storageKeyPrefix: 'discussion',
+    schemaFn: discussionSchema
+  })
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
     ${ITEM_FIELDS}
@@ -39,16 +34,9 @@ export function DiscussionForm ({
     }`)
 
   const related = relatedData?.related?.items || []
-  const storageKeyPrefix = item ? undefined : 'discussion'
   return (
     <Form
-      initial={{
-        title: item?.title || shareTitle || '',
-        text: item?.text || shareText || '',
-        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ item, subs })
-      }}
+      initial={initial}
       schema={schema}
       onSubmit={handleSubmit || onSubmit}
       storageKeyPrefix={storageKeyPrefix}

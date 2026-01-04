@@ -15,12 +15,12 @@ import FeeButton from './fee-button'
 import CancelButton from './cancel-button'
 
 // need to recent list items
-export default function JobForm ({ item, sub }) {
-  const storageKeyPrefix = item ? undefined : `${sub.name}-job`
+export default function JobForm ({ item, subs }) {
+  const storageKeyPrefix = item ? undefined : 'job'
   const [logoId, setLogoId] = useState(item?.uploadId)
 
   const extraValues = logoId ? { logo: Number(logoId) } : {}
-  const onSubmit = useItemSubmit(UPSERT_JOB, { item, sub, extraValues })
+  const onSubmit = useItemSubmit(UPSERT_JOB, { item, sub: subs[0], extraValues })
 
   return (
     <>

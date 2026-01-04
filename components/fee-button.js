@@ -14,7 +14,7 @@ import { SubmitButton } from './form'
 
 const FeeButtonContext = createContext()
 
-export function postCommentBaseLineItems ({ baseCost = 1, comment = false, bio = false, me }) {
+export function postCommentBaseLineItems ({ subs, comment = false, bio = false, me }) {
   const anonCharge = me
     ? {}
     : {
@@ -25,14 +25,33 @@ export function postCommentBaseLineItems ({ baseCost = 1, comment = false, bio =
           modifier: (cost) => cost * ANON_FEE_MULTIPLIER
         }
       }
+
+  if (subs.length === 0) {
+    return {
+      baseCost: {
+        term: 1,
+        label: comment ? 'comment' : 'post',
+        op: '_',
+        modifier: (cost) => cost + 1,
+        allowFreebies: bio
+      },
+      ...anonCharge
+    }
+  }
+
   return {
-    baseCost: {
-      term: baseCost,
-      label: `${bio ? 'bio' : (comment ? 'comment' : 'post')} cost`,
-      op: '_',
-      modifier: (cost) => cost + baseCost,
-      allowFreebies: bio
-    },
+    ...subs.reduce((acc, s) => ({
+      ...acc,
+      ...{
+        [`${s.name}-baseCost`]: {
+          term: `+ ${comment ? s.replyCost : s.baseCost}`,
+          label: `~${s.name} ${comment ? 'comment' : 'post'}`,
+          op: '_',
+          modifier: (cost) => cost + (comment ? s.replyCost : s.baseCost),
+          allowFreebies: s.allowFreebies
+        }
+      }
+    }), {}),
     ...anonCharge
   }
 }

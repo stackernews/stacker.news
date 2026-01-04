@@ -17,7 +17,7 @@ import { UPSERT_LINK } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 import useDebounceCallback from './use-debounce-callback'
 
-export function LinkForm ({ item, sub, EditInfo, children }) {
+export function LinkForm ({ item, subs, EditInfo, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
@@ -67,7 +67,7 @@ export function LinkForm ({ item, sub, EditInfo, children }) {
     }
   }
 
-  const onSubmit = useItemSubmit(UPSERT_LINK, { item, sub })
+  const onSubmit = useItemSubmit(UPSERT_LINK, { item })
 
   const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), 1000, [getDupes])
 
@@ -104,7 +104,7 @@ export function LinkForm ({ item, sub, EditInfo, children }) {
         text: item?.text || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
+        ...SubSelectInitial({ subNames: item?.subNames || subs?.map(s => s.name) || [] })
       }}
       schema={schema}
       onSubmit={onSubmit}
@@ -160,7 +160,7 @@ export function LinkForm ({ item, sub, EditInfo, children }) {
           }
         }}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item}>
         <SNInput
           label='context'
           name='text'

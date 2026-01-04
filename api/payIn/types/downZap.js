@@ -1,7 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { msatsToSats, satsToMsats, numWithUnits } from '@/lib/format'
 import { Prisma } from '@prisma/client'
-import { getItemResult, getSub } from '../lib/item'
+import { getItemResult, getSubs } from '../lib/item'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 
 export const anonable = false
@@ -14,11 +14,11 @@ export const paymentMethods = [
 
 export async function getInitial (models, { sats, id: itemId }, { me }) {
   const item = await models.item.findUnique({ where: { id: parseInt(itemId) } })
-  const sub = await getSub(models, { subName: item.subName, parentId: item.parentId })
+  const subs = await getSubs(models, { subNames: item.subNames, parentId: item.parentId })
 
   const mcost = satsToMsats(sats)
   // all of the sats for a downzap go to the rewards pool
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost, rewardsPct: 100n })
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs, mcost, rewardsPct: 100n })
 
   return {
     payInType: 'DOWN_ZAP',
@@ -57,9 +57,12 @@ export async function onPaid (tx, payInId) {
   const item = payIn.itemPayIn.item
 
   // denormalize downzaps
+  // XXX we base the zap weight on the first sub in the subNames array
+  // this is mostly a placeholder becasue we are running a no trust experiment
+  // if we use trust again, we'll need an approach to this for multiple territories
   await tx.$executeRaw`
     WITH territory AS (
-      SELECT COALESCE(r."subName", i."subName", 'meta')::CITEXT as "subName"
+      SELECT COALESCE(r."subNames"[1], i."subNames"[1], 'meta')::CITEXT as "subName"
       FROM "Item" i
       LEFT JOIN "Item" r ON r.id = i."rootId"
       WHERE i.id = ${item.id}::INTEGER

@@ -12,13 +12,13 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-export async function getInitial (models, { uploadIds }, { me, sub }) {
+export async function getInitial (models, { uploadIds }, { me, subs }) {
   await throwOnExpiredUploads(uploadIds, { tx: models })
 
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
 
   const mcost = totalFeesMsats
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs, mcost })
 
   return {
     payInType: 'MEDIA_UPLOAD',

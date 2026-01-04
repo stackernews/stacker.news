@@ -5,7 +5,8 @@ export default gql`
   extend type Query {
     sub(name: String): Sub
     subLatestPost(name: String!): String
-    subs: [Sub!]!
+    subs(subNames: [String!]): [Sub!]!
+    activeSubs: [Sub!]!
     topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
     userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
     mySubscribedSubs(cursor: String): Subs

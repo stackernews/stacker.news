@@ -115,7 +115,18 @@ export default {
 
       return subs
     },
-    subs: async (parent, args, { models, me }) => {
+    subs: async (parent, { subNames }, { models, me }) => {
+      if (!subNames || !subNames.length) {
+        return []
+      }
+
+      return await models.sub.findMany({
+        where: {
+          name: { in: subNames }
+        }
+      })
+    },
+    activeSubs: async (parent, args, { models, me }) => {
       if (me) {
         const currentUser = await models.user.findUnique({ where: { id: me.id } })
         const showNsfw = currentUser ? currentUser.nsfwMode : false

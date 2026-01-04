@@ -1,6 +1,6 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
-import { getItemResult, getSub } from '../lib/item'
+import { getItemResult, getSubs } from '../lib/item'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 
 export const anonable = false
@@ -11,14 +11,14 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-export async function getInitial (models, { sats, id }, { me, sub }) {
-  if (id && !sub) {
-    const { subName, parentId } = await models.item.findUnique({ where: { id: parseInt(id) } })
-    sub = await getSub(models, { subName, parentId })
+export async function getInitial (models, { sats, id }, { me, subs }) {
+  if (id && !subs) {
+    const { subNames, parentId } = await models.item.findUnique({ where: { id: parseInt(id) } })
+    subs = await getSubs(models, { subNames, parentId })
   }
 
   const mcost = satsToMsats(sats)
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs, mcost })
 
   // if we have a benefactor, we might not know the itemId until after the payIn is created
   // so we create the itemPayIn in onBegin

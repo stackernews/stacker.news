@@ -24,7 +24,7 @@ const FormStatus = {
   ERROR: 'error'
 }
 
-export default function AdvPostForm ({ children, item, sub, storageKeyPrefix }) {
+export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
   const { me } = useMe()
   const router = useRouter()
   const [itemType, setItemType] = useState()

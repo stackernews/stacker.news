@@ -33,7 +33,7 @@ import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 import { WalletPromptClosed } from '@/wallets/client/hooks'
 import { SNEditor } from './editor'
-
+export { MultiSelect } from './multi-select'
 export class SessionRequiredError extends Error {
   constructor () {
     super('session required')

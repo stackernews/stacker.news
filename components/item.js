@@ -106,7 +106,7 @@ export default function Item ({
           </div>)
         : <div />}
       <div className={classNames(styles.item, itemClassName)}>
-        {item.position && (pinnable || !item.subName)
+        {item.position && (pinnable || !item.subNames)
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.mine || item.meForward
             ? <Boost item={item} className={classNames(styles.upvote, item.bio && 'invisible')} />

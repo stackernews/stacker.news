@@ -1,0 +1,182 @@
+/* Base control styles */
+.multiSelect :global(.ms__control) {
+  background-color: var(--theme-inputBg);
+  border-color: var(--theme-borderColor);
+  border-radius: .4rem;
+  min-width: 200px;
+  box-shadow: none;
+}
+
+.multiSelect :global(.ms__control:hover) {
+  border-color: var(--theme-borderColor);
+}
+
+.multiSelect :global(.ms__control--is-focused) {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
+}
+
+.multiSelect :global(.ms__control--is-focused:hover) {
+  border-color: var(--bs-primary);
+}
+
+/* Invalid state */
+.multiSelect.isInvalid :global(.ms__control) {
+  border-color: #c03221;
+}
+
+.multiSelect.isInvalid :global(.ms__control--is-focused) {
+  box-shadow: 0 0 0 0.2rem rgba(192, 50, 33, 0.25);
+}
+
+.multiSelect.isInvalid :global(.ms__control:hover),
+.multiSelect.isInvalid :global(.ms__control--is-focused:hover) {
+  border-color: #c03221;
+}
+
+/* Value container */
+.multiSelect :global(.ms__value-container) {
+  gap: 6px;
+}
+
+/* Menu styles */
+.multiSelect :global(.ms__menu) {
+  background-color: var(--theme-inputBg);
+  border: 1px solid var(--theme-borderColor);
+  z-index: 1050;
+}
+
+/* Option styles */
+.multiSelect :global(.ms__option) {
+  background-color: transparent;
+  color: var(--bs-body-color);
+  cursor: pointer;
+}
+
+.multiSelect :global(.ms__option--is-focused) {
+  background-color: var(--theme-clickToContextColor);
+}
+
+.multiSelect :global(.ms__option:active) {
+  background-color: var(--theme-clickToContextColor);
+}
+
+/* Single value */
+.multiSelect :global(.ms__single-value) {
+  color: var(--bs-body-color);
+}
+
+/* Multi value (tags) */
+.multiSelect :global(.ms__multi-value) {
+  background-color: var(--theme-clickToContextColor);
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.multiSelect :global(.ms__multi-value__label) {
+  color: var(--bs-body-color);
+  font-weight: bold;
+  padding: 2px 6px;
+}
+
+.multiSelect :global(.ms__multi-value__remove) {
+  color: var(--theme-grey);
+}
+
+.multiSelect :global(.ms__multi-value__remove:hover) {
+  background-color: var(--theme-clickToContextColor);
+  color: var(--bs-body-color);
+}
+
+/* Input */
+.multiSelect :global(.ms__input-container) {
+  color: var(--bs-body-color);
+  padding: 0;
+  margin: 0;
+  min-width: 60px;
+}
+
+/* Placeholder */
+.multiSelect :global(.ms__placeholder) {
+  color: #6c757d;
+}
+
+/* Hide indicator separator */
+.multiSelect :global(.ms__indicator-separator) {
+  display: none;
+}
+
+/* Size variants - small */
+.multiSelect.sm :global(.ms__control) {
+  min-height: calc(1.5em + 0.5rem + 2px);
+  font-size: .875rem;
+}
+
+.multiSelect.sm :global(.ms__value-container) {
+  padding: 6px .5rem;
+}
+
+.multiSelect.sm :global(.ms__option) {
+  font-size: .875rem;
+}
+
+/* Size variants - medium */
+.multiSelect.md :global(.ms__control) {
+  min-height: calc(1.75em + 0.84rem + 2px);
+  font-size: .93rem;
+}
+
+.multiSelect.md :global(.ms__value-container) {
+  padding: 6px .84rem;
+}
+
+.multiSelect.md :global(.ms__option) {
+  font-size: .93rem;
+}
+
+/* Size variants - large (default) */
+.multiSelect.lg :global(.ms__control) {
+  min-height: calc(1.75em + 1rem + 2px);
+  font-size: 1.25rem;
+}
+
+.multiSelect.lg :global(.ms__value-container) {
+  padding: 6px 1rem;
+}
+
+.multiSelect.lg :global(.ms__option) {
+  font-size: 1.25rem;
+}
+
+/* Custom indicators */
+.dropdownIndicator {
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.clearIndicator {
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.multiValueRemove {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  cursor: pointer;
+  border-radius: 0 2px 2px 0;
+}
+
+.multiValueLabelClickable {
+  cursor: pointer;
+}
+
+.multiValueLabelDefault {
+  cursor: default;
+}
+

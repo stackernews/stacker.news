@@ -1,6 +1,6 @@
 import { USER_ID } from '@/lib/constants'
 
-export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTokens = [], payOutBolt11 = { msats: 0n }, mcost, rewardsPct }) {
+export function getRedistributedPayOutCustodialTokens ({ subs = [], payOutCustodialTokens = [], payOutBolt11 = { msats: 0n }, mcost, rewardsPct }) {
   // routing fee is only deducted from rewards pool, so it can be added back to the rewards pool when the actual routing fee is known
   const remainingMtokens = mcost - payOutBolt11.msats -
     payOutCustodialTokens.filter(t => t.payOutType !== 'ROUTING_FEE').reduce((acc, token) => acc + token.mtokens, 0n)
@@ -9,26 +9,39 @@ export function getRedistributedPayOutCustodialTokens ({ sub, payOutCustodialTok
   }
 
   const payOutCustodialTokensCopy = [...payOutCustodialTokens]
-  let revenueMtokens = 0n
-  if (sub) {
-    revenueMtokens = remainingMtokens * (100n - BigInt(rewardsPct ?? sub.rewardsPct)) / 100n
-    payOutCustodialTokensCopy.push({
-      payOutType: 'TERRITORY_REVENUE',
-      userId: sub.userId,
-      mtokens: revenueMtokens,
-      custodialTokenType: 'SATS',
-      subPayOutCustodialToken: {
-        subName: sub.name
-      }
-    })
+  let totalRevenueMtokens = 0n
+  if (subs?.length > 0) {
+    // total sub costs for proportional distribution
+    // uses even split if subs don't have individual mcosts
+    const totalSubMcost = subs.reduce((acc, sub) => acc + (sub.mcost ?? 0n), 0n)
+    const useProportional = totalSubMcost > 0n
+    for (const sub of subs) {
+      const subShare = useProportional
+        ? remainingMtokens * (sub.mcost ?? 0n) / totalSubMcost
+        : remainingMtokens / BigInt(subs.length)
+
+      const revenueMtokens = subShare * (100n - BigInt(rewardsPct ?? sub.rewardsPct)) / 100n
+      totalRevenueMtokens += revenueMtokens
+      payOutCustodialTokensCopy.push({
+        payOutType: 'TERRITORY_REVENUE',
+        userId: sub.userId,
+        mtokens: revenueMtokens,
+        custodialTokenType: 'SATS',
+        subPayOutCustodialToken: {
+          subName: sub.name
+        }
+      })
+    }
   }
 
+  // XXX this is here because even if there isn't territory revenue, we want an entry
+  // of payOutCustodialToken for the territory
   if (remainingMtokens === 0n) {
     return payOutCustodialTokensCopy
   }
 
   const routingFeeMtokens = payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')?.mtokens ?? 0n
-  const rewardMtokens = remainingMtokens - revenueMtokens - routingFeeMtokens
+  const rewardMtokens = remainingMtokens - totalRevenueMtokens - routingFeeMtokens
   payOutCustodialTokensCopy.push({
     payOutType: 'REWARDS_POOL',
     userId: USER_ID.rewards,

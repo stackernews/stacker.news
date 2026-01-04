@@ -2,23 +2,23 @@ import { USER_ID } from '@/lib/constants'
 import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
 import { parseInternalLinks } from '@/lib/url'
 
-export async function getSub (models, { subName, parentId }) {
-  if (!subName && !parentId) {
-    return null
+export async function getSubs (models, { subNames, parentId }) {
+  if (!subNames && !parentId) {
+    return []
   }
 
   if (parentId) {
-    const [sub] = await models.$queryRaw`
+    const subs = await models.$queryRaw`
       SELECT "Sub".*
       FROM "Item" i
       LEFT JOIN "Item" r ON r.id = i."rootId"
-      JOIN "Sub" ON "Sub".name = COALESCE(r."subName", i."subName")
+      JOIN "Sub" ON "Sub".name = ANY(COALESCE(r."subNames", i."subNames"))
       WHERE i.id = ${Number(parentId)}`
 
-    return sub
+    return subs
   }
 
-  return await models.sub.findUnique({ where: { name: subName } })
+  return await models.sub.findMany({ where: { name: { in: subNames } } })
 }
 
 // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)

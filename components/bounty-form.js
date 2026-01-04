@@ -13,7 +13,7 @@ import { UPSERT_BOUNTY } from '@/fragments/payIn'
 
 export function BountyForm ({
   item,
-  sub,
+  subs,
   EditInfo,
   titleLabel = 'title',
   bountyLabel = 'bounty',
@@ -25,7 +25,7 @@ export function BountyForm ({
   const { me } = useMe()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
 
-  const onSubmit = useItemSubmit(UPSERT_BOUNTY, { item, sub })
+  const onSubmit = useItemSubmit(UPSERT_BOUNTY, { item })
 
   const storageKeyPrefix = item ? undefined : 'bounty'
 
@@ -37,7 +37,7 @@ export function BountyForm ({
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         bounty: item?.bounty || 1000,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
+        ...SubSelectInitial({ subNames: item?.subNames || subs?.map(s => s.name) || [] })
       }}
       schema={schema}
       requireSession
@@ -71,7 +71,7 @@ export function BountyForm ({
         minRows={6}
         hint={EditInfo}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )

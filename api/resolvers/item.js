@@ -768,7 +768,7 @@ export default {
         if (item.root.userId !== Number(me.id)) {
           throw new GqlInputError('not your post')
         }
-      } else if (item.subNames?.length === 1) {
+      } else if (item.subs?.length === 1) {
         // only territory founder can pin posts
         const sub = item.subs[0].sub
         if (Number(me.id) !== sub.userId) {

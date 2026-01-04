@@ -148,7 +148,7 @@ export async function earn ({ name }) {
   }
 }
 
-const DAILY_STIMULUS_SATS = 25_000
+const DAILY_STIMULUS_SATS = 10_000
 export async function earnRefill ({ models, lnd }) {
   return await pay('DONATE',
     { sats: DAILY_STIMULUS_SATS },

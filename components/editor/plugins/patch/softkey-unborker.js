@@ -102,18 +102,16 @@ function applySoftkeyWorkaround (el, editor) {
   const filterSelection = (e) => {
     if (!e) return
     const sel = window.getSelection()
-    // since we're suppressing selection changes,
-    // let's sync the Lexical selection from the DOM
-    if (sel && sel.rangeCount > 0) {
+    const isRangeSelection = sel.type === 'Range'
+    if (isSelectionSuppressed && isRangeSelection) {
+      // since we're suppressing selection changes,
+      // let's sync the Lexical selection from the DOM
       const range = sel.getRangeAt(0)
       editor.update(() => {
         const selection = $getSelection()
         if (!$isRangeSelection(selection)) return
         selection.applyDOMRange(range)
       })
-    }
-    const isRangeSelection = sel.type === 'Range'
-    if (isSelectionSuppressed && isRangeSelection) {
       // stop the event from propagating further
       try {
         e.stopPropagation()

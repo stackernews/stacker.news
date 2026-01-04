@@ -15,11 +15,13 @@ const ITEM_SEARCH_FIELDS = gql`
     user {
       name
     }
-    sub {
+    subs {
       name
     }
     root {
-      subName
+      subs {
+        name
+      }
     }
     status
     company
@@ -47,12 +49,12 @@ async function _indexItem (item, { models, updatedAt }) {
   if (item.location || item.remote) {
     itemcp.title += ` \\ ${item.location || ''}${item.location && item.remote ? ' or ' : ''}${item.remote ? 'Remote' : ''}`
   }
-  if (!item.sub?.name && item.root?.subName) {
-    itemcp.sub = { name: item.root.subName }
-  }
   if (item.text) {
     itemcp.text = removeMd(item.text)
   }
+
+  // array of { name: string }
+  itemcp.sub = item.subs?.length > 0 ? item.subs : item.root?.subs
 
   const itemdb = await models.item.findUnique({
     where: { id: Number(item.id) },

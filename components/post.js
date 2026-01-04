@@ -9,18 +9,18 @@ import { DiscussionForm } from './discussion-form'
 import { LinkForm } from './link-form'
 import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
-import SubSelect from './sub-select'
+import { SubMultiSelect } from './sub-select'
 import { useCallback, useState } from 'react'
 import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import Delete from './delete'
 import CancelButton from './cancel-button'
-import { TerritoryInfo } from './territory-header'
+import { subNames, subsPostPrefix, subsAllSupport, subsAnyModerated } from '@/lib/subs'
 
-export function PostForm ({ type, sub, children }) {
+export function PostForm ({ type, subs, children }) {
   const { me } = useMe()
   const [errorMessage, setErrorMessage] = useState()
 
-  const prefix = sub?.name ? `/~${sub.name}` : ''
+  const prefix = subsPostPrefix(subs)
 
   const checkSession = useCallback((e) => {
     if (!me) {
@@ -33,8 +33,8 @@ export function PostForm ({ type, sub, children }) {
     let postButtons = []
     let morePostButtons = []
 
-    if (sub) {
-      if (sub?.postTypes?.includes('LINK')) {
+    if (subs.length) {
+      if (subsAllSupport(subs, 'LINK')) {
         postButtons.push(
           <Link key='LINK' href={prefix + '/post?type=link'}>
             <Button variant='secondary'>link</Button>
@@ -42,7 +42,7 @@ export function PostForm ({ type, sub, children }) {
         )
       }
 
-      if (sub?.postTypes?.includes('DISCUSSION')) {
+      if (subsAllSupport(subs, 'DISCUSSION')) {
         postButtons.push(
           <Link key='DISCUSSION' href={prefix + '/post?type=discussion'}>
             <Button variant='secondary'>discussion</Button>
@@ -50,7 +50,7 @@ export function PostForm ({ type, sub, children }) {
         )
       }
 
-      if (sub?.postTypes?.includes('POLL')) {
+      if (subsAllSupport(subs, 'POLL')) {
         const array = postButtons.length < 2 ? postButtons : morePostButtons
         array.push(
           <Link key='POLL' href={prefix + '/post?type=poll'}>
@@ -59,7 +59,7 @@ export function PostForm ({ type, sub, children }) {
         )
       }
 
-      if (sub?.postTypes?.includes('BOUNTY')) {
+      if (subsAllSupport(subs, 'BOUNTY')) {
         const array = postButtons.length < 2 ? postButtons : morePostButtons
         array.push(
           <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
@@ -104,14 +104,13 @@ export function PostForm ({ type, sub, children }) {
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        <SubSelect
-          prependSubs={['pick territory']}
+        <SubMultiSelect
+          placeholder='pick territories'
           className='d-flex'
           noForm
           size='medium'
-          sub={sub?.name}
-          info={sub && <TerritoryInfo sub={sub} includeLink />}
-          hint={sub?.moderated && 'this territory is moderated'}
+          subs={subNames(subs)}
+          hint={subsAnyModerated(subs) && 'some of the territories are moderated'}
         />
         <div>
           {postButtons}
@@ -149,36 +148,34 @@ export function PostForm ({ type, sub, children }) {
 
   return (
     <FeeButtonProvider
-      baseLineItems={sub ? postCommentBaseLineItems({ baseCost: sub.baseCost, me: !!me }) : undefined}
+      baseLineItems={subs.length ? postCommentBaseLineItems({ subs, me: !!me }) : undefined}
       useRemoteLineItems={postCommentUseRemoteLineItems()}
     >
-      <FormType sub={sub}>{children}</FormType>
+      <FormType subs={subs}>{children}</FormType>
     </FeeButtonProvider>
   )
 }
 
-export default function Post ({ sub }) {
+export default function Post ({ subs }) {
   const router = useRouter()
   let type = router.query.type
 
-  if (sub?.postTypes?.length === 1) {
-    type = sub.postTypes[0].toLowerCase()
+  if (subs.length === 1 && subs[0].postTypes?.length === 1) {
+    type = subs[0].postTypes[0].toLowerCase()
   }
 
   return (
     <>
-      <PostForm type={type} sub={sub}>
-        {sub?.name !== 'jobs' &&
-          <SubSelect
-            sub={sub?.name}
-            prependSubs={sub?.name ? undefined : ['pick territory']}
-            filterSubs={s => s.postTypes?.includes(type.toUpperCase())}
-            className='d-flex'
-            size='medium'
-            label='territory'
-            info={sub && <TerritoryInfo sub={sub} includeLink />}
-            hint={sub?.moderated && 'this territory is moderated'}
-          />}
+      <PostForm type={type} subs={subs}>
+        <SubMultiSelect
+          subs={subNames(subs)}
+          placeholder='pick territories'
+          filterSubs={s => s.postTypes?.includes(type.toUpperCase())}
+          className='d-flex'
+          size='medium'
+          label='territory'
+          hint={subsAnyModerated(subs) && 'some of the territories are moderated'}
+        />
       </PostForm>
     </>
   )

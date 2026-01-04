@@ -63,12 +63,13 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
                 {timeSince(new Date(item.createdAt))}
               </Link>
             </span>
-            {item.subName &&
-              <SubPopover sub={item.subName}>
-                <Link href={`/~${item.subName}`}>
-                  {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
+            {item.subNames?.map(subName => (
+              <SubPopover key={subName} sub={subName}>
+                <Link href={`/~${subName}`}>
+                  {' '}<Badge className={styles.newComment} bg={null}>{subName}</Badge>
                 </Link>
-              </SubPopover>}
+              </SubPopover>
+            ))}
             {item.status === 'STOPPED' &&
               <>{' '}<Badge bg='info' className={styles.badge}>stopped</Badge></>}
             {item.mine && !item.deletedAt &&

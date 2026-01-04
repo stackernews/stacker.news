@@ -114,7 +114,7 @@ export default {
       itemDrivenQueries.push(
         `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
           FROM "Item"
-          JOIN "SubSubscription" ON "Item"."subName" = "SubSubscription"."subName"
+          JOIN "SubSubscription" ON "Item"."subNames" @> ARRAY["SubSubscription"."subName"]::CITEXT[]
           ${whereClause(
             '"Item".created_at < $2',
             '"SubSubscription"."userId" = $1',

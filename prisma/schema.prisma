@@ -477,7 +477,8 @@ model Item {
   maxSalary            Int?
   minSalary            Int?
   remote               Boolean?
-  subName              String?               @db.Citext
+  subName              String?               @db.Citext // TODO: remove after migration
+  subNames             String[]              @db.Citext
   statusUpdatedAt      DateTime?
   status               Status                @default(ACTIVE)
   company              String?
@@ -518,7 +519,6 @@ model Item {
   pin                  Pin?                  @relation(fields: [pinId], references: [id])
   root                 Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
   descendants          Item[]                @relation("RootDescendant")
-  sub                  Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   user                 User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
   itemActs             ItemAct[]
   mentions             Mention[]
@@ -551,6 +551,8 @@ model Item {
   rankhot              Float                 @default(dbgenerated())
   rankboost            Float                 @default(dbgenerated())
   genoutlawed          Boolean               @default(dbgenerated())
+  subs                 ItemSub[]
+  sub                  Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -565,7 +567,11 @@ model Item {
   @@index([rootId], map: "Item.rootId_index")
   @@index([statusUpdatedAt], map: "Item.statusUpdatedAt_index")
   @@index([status], map: "Item.status_index")
-  @@index([subName], map: "Item.subName_index")
+  @@index([subNames], type: Gin)
+  @@index([subNames, createdAt(ops: raw("timestamp_ops"))], type: Gin)
+  @@index([subNames, ranktop(ops: raw("float8_ops"))], type: Gin)
+  @@index([subNames, rankhot(ops: raw("float8_ops"))], type: Gin)
+  @@index([subNames, rankboost(ops: raw("float8_ops"))], type: Gin)
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
@@ -580,10 +586,25 @@ model Item {
   @@index([rankhot])
   @@index([rankboost])
   @@index([genoutlawed])
-  @@index([subName, createdAt])
-  @@index([subName, ranktop])
-  @@index([subName, rankhot])
-  @@index([subName, rankboost])
+  @@index([subName], map: "Item.subName_index") // TODO: remove after migration
+  @@index([subName, createdAt]) // TODO: remove after migration
+  @@index([subName, ranktop]) // TODO: remove after migration
+  @@index([subName, rankhot]) // TODO: remove after migration
+  @@index([subName, rankboost]) // TODO: remove after migration
+}
+
+model ItemSub {
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  itemId    Int
+  subName   String   @db.Citext
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  sub       Sub      @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([itemId, subName])
+  @@index([itemId])
+  @@index([subName])
+  @@index([createdAt])
 }
 
 // we use this to denormalize a user's aggregated interactions (zaps) with an item
@@ -764,7 +785,6 @@ model Sub {
   parent                  Sub?                      @relation("ParentChildren", fields: [parentName], references: [name])
   children                Sub[]                     @relation("ParentChildren")
   user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Item                    Item[]
   SubAct                  SubAct[]
   MuteSub                 MuteSub[]
   SubSubscription         SubSubscription[]
@@ -774,6 +794,8 @@ model Sub {
   SubPayOutCustodialToken SubPayOutCustodialToken[]
   AggPayIn                AggPayIn[]
   AggPayOut               AggPayOut[]
+  itemSubs                ItemSub[]
+  items                   Item[]
 
   @@index([parentName])
   @@index([createdAt])

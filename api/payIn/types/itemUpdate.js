@@ -1,6 +1,6 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { uploadFees } from '../../resolvers/upload'
-import { getItemMentions, getMentions, getSub, performBotBehavior } from '../lib/item'
+import { getItemMentions, getMentions, getSubs, performBotBehavior } from '../lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
@@ -8,6 +8,7 @@ import { satsToMsats } from '@/lib/format'
 import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
 import { getItem } from '@/api/resolvers/item'
+import { subsDiff } from '@/lib/subs'
 export const anonable = true
 
 export const paymentMethods = [
@@ -16,7 +17,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function getCost (models, { id, boost = 0, uploadIds, bio, newSub, parentId }, { me }) {
+async function getCost (models, { id, boost = 0, uploadIds, bio, newSubs, parentId }, { me }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
   const old = await models.item.findUnique({
@@ -38,11 +39,15 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSub, parentI
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
 
   let cost = 0n
-  if (!parentId && newSub && newSub.name !== old.subName) {
+  const addedSubs = subsDiff(newSubs, old.subNames)
+  if (!parentId && addedSubs.length > 0) {
     if (old.boost > 0) {
-      throw new Error('cannot move boosted items to a different territory')
+      throw new Error('cannot move boosted items into different territories')
     }
-    cost += satsToMsats(newSub.baseCost)
+    for (const subName of addedSubs) {
+      const sub = newSubs.find(sub => sub.name === subName)
+      cost += satsToMsats(sub.baseCost)
+    }
   }
 
   if ((cost > 0 || totalFeesMsats > 0 || (boost - old.boost) > 0) && old.itemPayIns.length === 0) {
@@ -52,18 +57,28 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSub, parentI
   return cost
 }
 
-export async function getInitial (models, { id, boost = 0, uploadIds, bio, subName }, { me }) {
+export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNames }, { me }) {
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
-  const sub = await getSub(models, { subName, parentId: old.parentId })
-  const mcost = await getCost(models, { id, boost, uploadIds, bio, newSub: sub, parentId: old.parentId }, { me })
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost })
+  const subs = await getSubs(models, { subNames, parentId: old.parentId })
+  const mcost = await getCost(models, { id, boost, uploadIds, bio, newSubs: subs, parentId: old.parentId }, { me })
+
+  // for post updates, when a sub is added, it contributes to the cost
+  // we populate the mcost so that the new sub gets their proportional share of the revenue
+  // for reply updates, they can't change subs, so we don't populate the mcost
+  const subsWithCosts = old.parentId
+    ? subs
+    : subs.map(sub => ({
+      ...sub,
+      mcost: old.subNames?.includes(sub.name) ? 0n : satsToMsats(sub.baseCost ?? 1)
+    }))
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
 
   const beneficiaries = []
   if (boost - old.boost > 0) {
-    beneficiaries.push(await BOOST.getInitial(models, { sats: boost - old.boost, id }, { me, sub }))
+    beneficiaries.push(await BOOST.getInitial(models, { sats: boost - old.boost, id }, { me, subs }))
   }
   if (uploadIds.length > 0) {
-    beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds }, { me, sub }))
+    beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds }, { me, subs }))
   }
 
   return {
@@ -77,7 +92,7 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNa
 }
 
 export async function onBegin (tx, payInId, args) {
-  const { id, boost: _, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
+  const { id, boost: _, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], subNames = [], ...data } = args
 
   const old = await tx.item.findUnique({
     where: { id: parseInt(id) },
@@ -110,6 +125,14 @@ export async function onBegin (tx, payInId, args) {
       pollOptions: {
         createMany: {
           data: pollOptions?.map(option => ({ option }))
+        }
+      },
+      subs: {
+        create: subsDiff(subNames, old.subNames).map(subName => ({ subName })),
+        deleteMany: {
+          subName: {
+            in: subsDiff(old.subNames, subNames)
+          }
         }
       },
       itemUploads: {

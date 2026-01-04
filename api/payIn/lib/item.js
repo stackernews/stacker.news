@@ -4,7 +4,7 @@ import { parseInternalLinks } from '@/lib/url'
 
 export async function getSubs (models, { subNames, parentId }) {
   if (!subNames && !parentId) {
-    return null
+    return []
   }
 
   if (parentId) {

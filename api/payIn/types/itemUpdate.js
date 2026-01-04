@@ -66,7 +66,7 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNa
   // for post updates, when a sub is added, it contributes to the cost
   // we populate the mcost so that the new sub gets their proportional share of the revenue
   // for reply updates, they can't change subs, so we don't populate the mcost
-  const subsWithCosts = old.parentId || !subs
+  const subsWithCosts = old.parentId
     ? subs
     : subs.map(sub => ({
       ...sub,

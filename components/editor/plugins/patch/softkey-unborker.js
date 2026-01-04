@@ -110,6 +110,7 @@ function applySoftkeyWorkaround (el, editor) {
       editor.update(() => {
         const selection = $getSelection()
         if (!$isRangeSelection(selection)) return
+        // lexical will check if the selection is within the editor before applying it
         selection.applyDOMRange(range)
       })
       // stop the event from propagating further

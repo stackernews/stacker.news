@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { IS_ANDROID } from '@lexical/utils'
+import { $getSelection, $isRangeSelection } from 'lexical'
 /**
  * Workaround for what appears to be an unresolved race condition in some Android IME
  * stacks: a composition event containing the word is emitted immediately after
@@ -29,7 +30,7 @@ const suppressionTriggers = new Map([
   ['insertText', (e) => e.data === '']
 ])
 
-function applySoftkeyWorkaround (el) {
+function applySoftkeyWorkaround (el, editor) {
   let isCompositionSuppressed = false
   let isSelectionSuppressed = false
 
@@ -101,6 +102,16 @@ function applySoftkeyWorkaround (el) {
   const filterSelection = (e) => {
     if (!e) return
     const sel = window.getSelection()
+    // since we're suppressing selection changes,
+    // let's sync the Lexical selection from the DOM
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0)
+      editor.update(() => {
+        const selection = $getSelection()
+        if (!$isRangeSelection(selection)) return
+        selection.applyDOMRange(range)
+      })
+    }
     const isRangeSelection = sel.type === 'Range'
     if (isSelectionSuppressed && isRangeSelection) {
       // stop the event from propagating further
@@ -153,7 +164,7 @@ export function SoftkeyUnborkerPlugin () {
     disposeListener = editor.registerRootListener((root, prevRoot) => {
       disposeWorkaround?.()
       if (root) {
-        disposeWorkaround = applySoftkeyWorkaround(root)
+        disposeWorkaround = applySoftkeyWorkaround(root, editor)
       }
     })
     return () => {

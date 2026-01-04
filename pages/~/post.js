@@ -5,17 +5,18 @@ import Post from '@/components/post'
 import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
+import { subNamesFromSlug } from '@/lib/subs'
 
 export const getServerSideProps = getGetServerSideProps({
   query: SUBS,
-  variables: vars => ({ subNames: vars.sub?.split('~').filter(Boolean) || [] }),
-  notFound: (data, vars) => vars.sub && !vars.sub.split('~').every(s => data?.subs?.some(sub => sub.name === s))
+  variables: vars => ({ subNames: subNamesFromSlug(vars.sub) }),
+  notFound: (data, vars) => vars.sub && !subNamesFromSlug(vars.sub).every(s => data?.subs?.some(sub => sub.name === s))
 })
 
 export default function PostPage ({ ssrData }) {
   const router = useRouter()
-  const subNames = router.query.sub?.split('~').filter(Boolean) || []
-  const { data } = useQuery(SUBS, { variables: { subNames } })
+  const names = subNamesFromSlug(router.query.sub)
+  const { data } = useQuery(SUBS, { variables: { subNames: names } })
   if (!data && !ssrData) return <PageLoading />
 
   const { subs } = data || ssrData

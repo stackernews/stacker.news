@@ -8,13 +8,14 @@ import styles from './sub-select.module.css'
 import { useMe } from './me'
 import { useShowModal } from './modal'
 import { TerritoryInfo } from './territory-header'
+import { subNames, subNamesFromSlug } from '@/lib/subs'
 
 export function SubSelectInitial ({ item, subs }) {
   const router = useRouter()
-  const subNames = item?.subNames || subs?.map(s => s.name) || router.query.sub?.split('~').filter(Boolean)
+  const names = item?.subNames || subNames(subs) || subNamesFromSlug(router.query.sub)
 
   return {
-    subNames: subNames || []
+    subNames: names || []
   }
 }
 

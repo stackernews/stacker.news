@@ -15,6 +15,7 @@ import { SubMultiSelect } from '@/components/sub-select'
 import useCanEdit from '@/components/use-can-edit'
 import { SUBS } from '@/fragments/subs'
 import Countdown from '@/components/countdown'
+import { subsDiff } from '@/lib/subs'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
@@ -41,26 +42,28 @@ export default function PostEdit ({ ssrData }) {
     : {})
 
   useEffect(() => {
-    if (!subs || subs.every(sub => item.subNames?.includes(sub))) {
+    const territoryAddPrefix = 'territory-add-'
+    const addedSubs = subsDiff(subs, item.subNames)
+    if (!addedSubs.length) {
       setBaseLineItems(prev => Object.entries(prev).reduce((acc, [key, value]) => {
-        if (!key.startsWith('territory-add-')) {
+        if (!key.startsWith(territoryAddPrefix)) {
           acc[key] = value
         }
         return acc
       }, {}))
       return
     }
-    fetchSubs({ variables: { subNames: subs.filter(sub => !item.subNames?.includes(sub)) } }).then(res => {
+    fetchSubs({ variables: { subNames: addedSubs } }).then(res => {
       setBaseLineItems(prev => {
         const newBaseLineItems = Object.entries(prev).reduce((acc, [key, value]) => {
-          if (!key.startsWith('territory-add-')) {
+          if (!key.startsWith(territoryAddPrefix)) {
             acc[key] = value
           }
           return acc
         }, {})
         const territoryAdds = res.data.subs.reduce((acc, sub) => ({
           ...acc,
-          [`territory-add-${sub.name}`]: {
+          [`${territoryAddPrefix}${sub.name}`]: {
             label: `~${sub.name} post`,
             term: `+ ${sub.baseCost}`,
             op: '+',

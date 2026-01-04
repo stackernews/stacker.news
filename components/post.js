@@ -14,12 +14,13 @@ import { useCallback, useState } from 'react'
 import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import Delete from './delete'
 import CancelButton from './cancel-button'
+import { subNames, subsPostPrefix, subsAllSupport, subsAnyModerated } from '@/lib/subs'
 
 export function PostForm ({ type, subs, children }) {
   const { me } = useMe()
   const [errorMessage, setErrorMessage] = useState()
 
-  const prefix = subs.length ? `/~${subs.map(s => s.name).join('~')}` : ''
+  const prefix = subsPostPrefix(subs)
 
   const checkSession = useCallback((e) => {
     if (!me) {
@@ -33,7 +34,7 @@ export function PostForm ({ type, subs, children }) {
     let morePostButtons = []
 
     if (subs.length) {
-      if (subs.every(s => s.postTypes?.includes('LINK'))) {
+      if (subsAllSupport(subs, 'LINK')) {
         postButtons.push(
           <Link key='LINK' href={prefix + '/post?type=link'}>
             <Button variant='secondary'>link</Button>
@@ -41,7 +42,7 @@ export function PostForm ({ type, subs, children }) {
         )
       }
 
-      if (subs.every(s => s.postTypes?.includes('DISCUSSION'))) {
+      if (subsAllSupport(subs, 'DISCUSSION')) {
         postButtons.push(
           <Link key='DISCUSSION' href={prefix + '/post?type=discussion'}>
             <Button variant='secondary'>discussion</Button>
@@ -49,7 +50,7 @@ export function PostForm ({ type, subs, children }) {
         )
       }
 
-      if (subs.every(s => s.postTypes?.includes('POLL'))) {
+      if (subsAllSupport(subs, 'POLL')) {
         const array = postButtons.length < 2 ? postButtons : morePostButtons
         array.push(
           <Link key='POLL' href={prefix + '/post?type=poll'}>
@@ -58,7 +59,7 @@ export function PostForm ({ type, subs, children }) {
         )
       }
 
-      if (subs.every(s => s.postTypes?.includes('BOUNTY'))) {
+      if (subsAllSupport(subs, 'BOUNTY')) {
         const array = postButtons.length < 2 ? postButtons : morePostButtons
         array.push(
           <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
@@ -108,8 +109,8 @@ export function PostForm ({ type, subs, children }) {
           className='d-flex'
           noForm
           size='medium'
-          subs={subs.map(s => s.name)}
-          hint={subs.some(s => s.moderated) && 'some of the territories are moderated'}
+          subs={subNames(subs)}
+          hint={subsAnyModerated(subs) && 'some of the territories are moderated'}
         />
         <div>
           {postButtons}
@@ -167,13 +168,13 @@ export default function Post ({ subs }) {
     <>
       <PostForm type={type} subs={subs}>
         <SubMultiSelect
-          subs={subs.map(s => s.name)}
+          subs={subNames(subs)}
           placeholder='pick territories'
           filterSubs={s => s.postTypes?.includes(type.toUpperCase())}
           className='d-flex'
           size='medium'
           label='territory'
-          hint={subs.some(s => s.moderated) && 'some of the territories are moderated'}
+          hint={subsAnyModerated(subs) && 'some of the territories are moderated'}
         />
       </PostForm>
     </>

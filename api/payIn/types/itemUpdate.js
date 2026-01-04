@@ -8,6 +8,7 @@ import { satsToMsats } from '@/lib/format'
 import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
 import { getItem } from '@/api/resolvers/item'
+import { subsDiff } from '@/lib/subs'
 export const anonable = true
 
 export const paymentMethods = [
@@ -15,8 +16,6 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.REWARD_SATS,
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
-
-const flatDifference = (a = [], b = []) => a.filter(x => !b.find(y => y === x))
 
 async function getCost (models, { id, boost = 0, uploadIds, bio, newSubs, parentId }, { me }) {
   // the only reason updating items costs anything is when it has new uploads
@@ -40,12 +39,12 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSubs, parent
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
 
   let cost = 0n
-  const subDiff = flatDifference(newSubs?.map(sub => sub.name) ?? [], old.subNames ?? [])
-  if (!parentId && subDiff.length > 0) {
+  const addedSubs = subsDiff(newSubs, old.subNames)
+  if (!parentId && addedSubs.length > 0) {
     if (old.boost > 0) {
       throw new Error('cannot move boosted items into different territories')
     }
-    for (const subName of subDiff) {
+    for (const subName of addedSubs) {
       const sub = newSubs.find(sub => sub.name === subName)
       cost += satsToMsats(sub.baseCost)
     }
@@ -129,10 +128,10 @@ export async function onBegin (tx, payInId, args) {
         }
       },
       subs: {
-        create: flatDifference(subNames, old.subNames ?? []).map(subName => ({ subName })),
+        create: subsDiff(subNames, old.subNames).map(subName => ({ subName })),
         deleteMany: {
           subName: {
-            in: flatDifference(old.subNames ?? [], subNames)
+            in: subsDiff(old.subNames, subNames)
           }
         }
       },

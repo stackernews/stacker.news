@@ -37,7 +37,7 @@ export function BountyForm ({
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         bounty: item?.bounty || 1000,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ subNames: item?.subNames || subs?.map(s => s.name) || [] })
+        ...SubSelectInitial({ item, subs })
       }}
       schema={schema}
       requireSession

@@ -9,12 +9,12 @@ import { useMe } from './me'
 import { useShowModal } from './modal'
 import { TerritoryInfo } from './territory-header'
 
-export function SubSelectInitial ({ subNames }) {
+export function SubSelectInitial ({ item, subs }) {
   const router = useRouter()
-  subNames = subNames || router.query.sub?.split('~').filter(Boolean)
+  const subNames = item?.subNames || subs?.map(s => s.name) || router.query.sub?.split('~').filter(Boolean)
 
   return {
-    subNames
+    subNames: subNames || []
   }
 }
 

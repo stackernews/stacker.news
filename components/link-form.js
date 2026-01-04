@@ -104,7 +104,7 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
         text: item?.text || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ subNames: item?.subNames || subs?.map(s => s.name) || [] })
+        ...SubSelectInitial({ item, subs })
       }}
       schema={schema}
       onSubmit={onSubmit}

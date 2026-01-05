@@ -59,11 +59,26 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
     }
   }, [overrideValue])
 
-  // Convert string items to react-select option format
-  const options = items.map(item => ({ label: item, value: item }))
+  // Convert items to react-select option format, handling grouped items
+  const options = items.map(item => {
+    if (item && typeof item === 'object' && item.label && item.items) {
+      // Handle grouped items (e.g., muted subs)
+      return {
+        label: item.label,
+        options: item.items.map(subItem => ({ label: subItem, value: subItem }))
+      }
+    }
+    return { label: item, value: item }
+  })
+
+  // Flatten options to get all possible values for matching
+  const flatOptions = options.flatMap(opt =>
+    opt.options ? opt.options : [opt]
+  )
 
   // Convert formik's string array to react-select's object array format for display
-  const selectValue = options.filter(option => field.value ? field.value.includes(option.value) : props.value.includes(option.value))
+  const currentValue = field.value || props.value || []
+  const selectValue = flatOptions.filter(option => currentValue.includes(option.value))
 
   const MultiValueLabel = (props) => {
     const { data } = props

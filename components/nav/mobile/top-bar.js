@@ -1,29 +1,36 @@
-import { Nav, Navbar } from 'react-bootstrap'
+import { Nav, Navbar, Container } from 'react-bootstrap'
 import styles from '../../header.module.css'
-import { Back, NavPrice, NavSelect, NavWalletSummary, SignUpButton, hasNavSelect } from '../common'
+import { Back, NavPrice, NavWalletSummary, SignUpButton, hasNavSelect } from '../common'
 import { useMe } from '@/components/me'
 import { useCommentsNavigatorContext, CommentsNavigator } from '@/components/use-comments-navigator'
+import classNames from 'classnames'
+import { useScrollThreshold } from '@/components/use-scroll-threshold'
 
 export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNavKey }) {
   const { me } = useMe()
   const { navigator, commentCount } = useCommentsNavigatorContext()
+  const showNavSelect = hasNavSelect({ path, pathname })
+  const { sentinelRef, past } = useScrollThreshold(0)
 
   return (
-    <Navbar>
-      <Nav
-        className={styles.navbarNav}
-        activeKey={topNavKey}
-      >
-        <Back className='d-flex d-md-none' />
-        {hasNavSelect({ path, pathname })
-          ? <NavSelect sub={sub} className='w-100' />
-          : (
-            <>
+    <>
+      <div ref={sentinelRef} style={{ height: 1 }} />
+      {!showNavSelect && <div className={styles.navbarSpacer} />}
+      <div className={classNames(styles.sticky, past && styles.scrolled, showNavSelect && !past && styles.hide)}>
+        <Container className='px-sm-0'>
+          <Navbar className='py-0'>
+            <Nav
+              className={styles.navbarNav}
+              activeKey={topNavKey}
+            >
+              <Back className='d-flex d-md-none' />
               <NavPrice className='flex-shrink-1' />
               <CommentsNavigator navigator={navigator} commentCount={commentCount} className='px-2' />
               {me ? <NavWalletSummary /> : <SignUpButton width='fit-content' />}
-            </>)}
-      </Nav>
-    </Navbar>
+            </Nav>
+          </Navbar>
+        </Container>
+      </div>
+    </>
   )
 }

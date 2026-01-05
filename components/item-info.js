@@ -74,7 +74,7 @@ export default function ItemInfo ({
   const router = useRouter()
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
-  const sub = item?.sub || root?.sub
+  const sub = item?.subs?.[0] || root?.subs?.[0]
   const [canEdit, setCanEdit, editThreshold] = useCanEdit(item)
 
   useEffect(() => {

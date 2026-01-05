@@ -209,7 +209,7 @@ async function main () {
 
   const boosts = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'forever', by: 'boost' }
+    variables: { sort: 'top', when: 'week', by: 'boost' }
   })
 
   const topMeme = await topComment('meme monday ~memes')

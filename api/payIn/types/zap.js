@@ -3,7 +3,7 @@ import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
-import { getItemResult, getSub } from '../lib/item'
+import { getItemResult, getSubs } from '../lib/item'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import { canWrapBolt11 } from '@/wallets/server'
 
@@ -52,8 +52,8 @@ async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
 //    if p2p, 27% to rewards pool, 3% to routing fee
 //    if not p2p, all 30% to rewards pool
 export async function getInitial (models, payInArgs, { me }) {
-  const { subName, parentId, itemForwards, userId } = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { itemForwards: true, user: true } })
-  const sub = await getSub(models, { subName, parentId })
+  const { subNames, parentId, itemForwards, userId } = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { itemForwards: true, user: true } })
+  const subs = await getSubs(models, { subNames, parentId })
   const mcost = satsToMsats(payInArgs.sats)
   let payOutBolt11
 
@@ -99,7 +99,7 @@ export async function getInitial (models, payInArgs, { me }) {
   }
 
   // what's left goes to the rewards pool
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub, mcost, payOutCustodialTokens: payOutCustodialTokensProspects, payOutBolt11 })
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs, mcost, payOutCustodialTokens: payOutCustodialTokensProspects, payOutBolt11 })
 
   return {
     payInType: 'ZAP',
@@ -138,9 +138,12 @@ export async function onPaid (tx, payInId) {
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
+  // XXX we base the zap weight on the first sub in the subNames array
+  // this is mostly a placeholder becasue we are running a no trust experiment
+  // if we use trust again, we'll need an approach to this for multiple territories
   await tx.$queryRaw`
     WITH territory AS (
-      SELECT COALESCE(r."subName", i."subName", 'meta')::CITEXT as "subName"
+      SELECT COALESCE(r."subNames"[1], i."subNames"[1], 'meta')::CITEXT as "subName"
       FROM "Item" i
       LEFT JOIN "Item" r ON r.id = i."rootId"
       WHERE i.id = ${item.id}::INTEGER

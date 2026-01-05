@@ -58,19 +58,20 @@ export function TerritoryInfoSkeleton ({ children, className }) {
 export function TerritoryInfo ({ sub, includeLink, truncated }) {
   return (
     <>
-      {includeLink && <Link href={`/~${sub.name}`}>{sub.name}</Link>}
+      {includeLink && <Link className='fw-bold' href={`/~${sub.name}`}>~{sub.name}</Link>}
       <div className='py-2'>
         <Text state={sub.lexicalState} html={sub.html} itemId={sub.name}>{truncated ? sub.desc : undefined}</Text>
       </div>
       <CardFooter className={`py-1 ${styles.other}`}>
-        <div className='text-muted'>
-          <span>founded by </span>
-          <Link href={`/${sub.user.name}`}>
-            @{sub.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
-          </Link>
-          <span> on </span>
-          <span className='fw-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
-        </div>
+        {sub.user &&
+          <div className='text-muted'>
+            <span>founded by </span>
+            <Link href={`/${sub.user.name}`}>
+              @{sub.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
+            </Link>
+            <span> on </span>
+            <span className='fw-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
+          </div>}
         <div className='d-flex'>
           <div className='text-muted'>
             <span>post cost </span>

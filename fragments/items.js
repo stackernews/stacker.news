@@ -27,7 +27,7 @@ export const ITEM_FIELDS = gql`
       meMute
       ...StreakFields
     }
-    sub {
+    subs {
       name
       userId
       moderated
@@ -78,7 +78,7 @@ export const ITEM_FIELDS = gql`
     company
     location
     remote
-    subName
+    subNames
     pollCost
     pollExpiresAt
     uploadId
@@ -104,7 +104,7 @@ export const ITEM_FULL_FIELDS = gql`
       title
       bounty
       bountyPaidTo
-      subName
+      subNames
       mine
       ncomments
       lastCommentAt
@@ -114,7 +114,7 @@ export const ITEM_FULL_FIELDS = gql`
         name
         ...StreakFields
       }
-      sub {
+      subs {
         name
         userId
         moderated

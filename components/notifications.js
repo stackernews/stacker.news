@@ -676,7 +676,7 @@ function TerritoryPost ({ n }) {
   return (
     <>
       <NoteHeader color='info'>
-        new post in ~{n.item.sub.name}
+        new post in ~{n.item.subs?.length === 1 ? n.item.subs[0].name : 'a territory you follow'}
       </NoteHeader>
       <div>
         <Item item={n.item} itemClassName='pt-0' />

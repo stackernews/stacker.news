@@ -48,10 +48,11 @@ function Parent ({ item, rootText }) {
       <Link href={`/items/${root.id}`} className='text-reset'>
         {rootText || 'on:'} {root?.title}
       </Link>
-      {root.subName &&
-        <Link href={`/~${root.subName}`}>
-          {' '}<Badge className={itemStyles.newComment} bg={null}>{root.subName}</Badge>
-        </Link>}
+      {root.subNames?.map(subName => (
+        <Link key={subName} href={`/~${subName}`}>
+          {' '}<Badge className={itemStyles.newComment} bg={null}>{subName}</Badge>
+        </Link>
+      ))}
     </>
   )
 }

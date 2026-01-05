@@ -137,7 +137,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
           />
           {
           // Don't show related items for Saloon items (position is set but no subName)
-          (!item.position && item.subName) &&
+          (!item.position && item.subNames?.length > 0) &&
           // Don't show related items for jobs
           !item.isJob &&
           // Don't show related items for child items

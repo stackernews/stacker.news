@@ -135,8 +135,8 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       bounty
       ncomments
       bountyPaidTo
-      subName
-      sub {
+      subNames
+      subs {
         name
         userId
         moderated

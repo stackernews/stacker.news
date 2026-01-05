@@ -1,39 +1,31 @@
 import { Checkbox, DateTimeInput, Form, Input, SNInput, VariableInput } from '@/components/form'
-import { useApolloClient } from '@apollo/client'
-import AdvPostForm, { AdvPostInitial } from './adv-post-form'
+import AdvPostForm from './adv-post-form'
 import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import { pollSchema } from '@/lib/validate'
-import { SubSelectInitial } from './sub-select'
-import { normalizeForwards } from '@/lib/form'
-import { useMe } from './me'
 import { ItemButtonBar } from './post'
 import { UPSERT_POLL } from '@/fragments/payIn'
-import useItemSubmit from './use-item-submit'
+import { usePostFormShared } from './use-post-form-shared'
 
-export function PollForm ({ item, sub, EditInfo, children }) {
-  const client = useApolloClient()
-  const { me } = useMe()
-  const schema = pollSchema({ client, me, existingBoost: item?.boost })
-
-  const onSubmit = useItemSubmit(UPSERT_POLL, { item, sub })
-
+export function PollForm ({ item, subs, EditInfo, children }) {
   const initialOptions = item?.poll?.options.map(i => i.option)
 
-  const storageKeyPrefix = item ? undefined : 'poll'
+  const { initial, onSubmit, storageKeyPrefix, schema } = usePostFormShared({
+    item,
+    subs,
+    mutation: UPSERT_POLL,
+    schemaFn: pollSchema,
+    storageKeyPrefix: 'poll',
+    extraInitialValues: {
+      options: initialOptions || ['', ''],
+      randPollOptions: item?.poll?.randPollOptions || false,
+      pollExpiresAt: item ? item.pollExpiresAt : datePivot(new Date(), { hours: 48 })
+    }
+  })
 
   return (
     <Form
-      initial={{
-        title: item?.title || '',
-        text: item?.text || '',
-        options: initialOptions || ['', ''],
-        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        randPollOptions: item?.poll?.randPollOptions || false,
-        pollExpiresAt: item ? item.pollExpiresAt : datePivot(new Date(), { hours: 25 }),
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
-      }}
+      initial={initial}
       schema={schema}
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
@@ -61,7 +53,7 @@ export function PollForm ({ item, sub, EditInfo, children }) {
         hint={EditInfo}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item}>
         <DateTimeInput
           isClearable
           label='poll expiration'

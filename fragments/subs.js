@@ -70,9 +70,17 @@ export const SUB_FULL = gql`
 
 export const SUBS = gql`
   ${SUB_FIELDS}
+  query Subs($subNames: [String!]) {
+    subs(subNames: $subNames) {
+      ...SubFields
+    }
+  }`
 
-  query Subs {
-    subs {
+export const ACTIVE_SUBS = gql`
+  ${SUB_FIELDS}
+
+  query ActiveSubs {
+    activeSubs {
       ...SubFields
     }
   }`

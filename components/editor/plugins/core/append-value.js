@@ -18,7 +18,7 @@ export default function AppendValuePlugin ({ value }) {
         $appendMarkdown(value, 2)
       })
     }
-  }, [value])
+  }, [editor, value])
 
   return null
 }

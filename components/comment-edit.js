@@ -44,6 +44,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             minRows={6}
             autoFocus
             required
+            itemId={comment.id}
           />
           <ItemButtonBar itemId={comment.id} onDelete={onSuccess} hasCancel={false} />
         </Form>

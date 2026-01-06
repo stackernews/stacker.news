@@ -22,11 +22,12 @@ import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
 import useCallbackRef from '../use-callback-ref'
-import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
 import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey-unborker'
 import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softkey-emptyguard'
 import { MarkdownTextExtension } from '@/lib/lexical/exts/markdown'
+import RegisterEditorPlugin from '@/components/editor/plugins/core/register-editor'
+import { TreeViewPlugin } from './plugins/core/treeview'
 
 /**
  * main lexical editor component with formik integration
@@ -81,6 +82,7 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
  * @param {string} props.placeholder - placeholder text for empty editor
  * @param {Object} props.lengthOptions - max length configuration
  * @param {boolean} props.topLevel - whether this is a top-level editor
+ * @param {string} [props.itemId] - item id for the editor
  * @param {boolean} [props.required] - whether the field is required
  * @param {number} [props.minRows] - minimum number of rows for the editor
  * @param {React.ReactNode} [props.label] - label for the editor
@@ -88,12 +90,12 @@ export default function Editor ({ name, appendValue, autoFocus, topLevel, ...pro
  * @param {React.ReactNode} [props.warn] - warning text for the editor
  * @returns {JSX.Element} editor content with all plugins
  */
-function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, editorRef }) {
+function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, itemId }) {
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
   return (
     <div className={classNames(styles.editorContainer)} data-top-level={topLevel ? 'true' : 'false'}>
-      <EditorRefPlugin editorRef={editorRef} />
+      {itemId && <RegisterEditorPlugin itemId={itemId} />}
       <ToolbarPlugin topLevel={topLevel} name={name} />
       {/* we only need a plain text editor for markdown */}
       <div className={styles.editor} ref={onContainerRef}>
@@ -111,6 +113,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       </div>
       {containerRef && (
         <PreviewPlugin
+          itemId={itemId}
           editorRef={containerRef}
           topLevel={topLevel}
           name={name}
@@ -123,6 +126,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       <MaxLengthPlugin lengthOptions={lengthOptions} />
       <SoftkeyUnborkerPlugin />
       <SoftkeyEmptyGuardPlugin />
+      <TreeViewPlugin />
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

@@ -15,7 +15,7 @@ import gql from 'graphql-tag'
 import useCommentsView from './use-comments-view'
 import { MAX_COMMENT_TEXT_LENGTH } from '@/lib/constants'
 import { $setMarkdown } from '@/lib/lexical/utils'
-import useCallbackRef from './use-callback-ref'
+import { useEditor } from '@/components/editor/contexts/lexical'
 import { subsAnyModerated } from '@/lib/subs'
 
 export default forwardRef(function Reply ({
@@ -29,9 +29,9 @@ export default forwardRef(function Reply ({
   const [reply, setReply] = useState(replyOpen || quote)
   const { me } = useMe()
   const parentId = item.id
-  const { ref: replyEditorRef, onRef: onReplyEditorRef } = useCallbackRef()
   const showModal = useShowModal()
   const root = useRoot()
+  const editor = useEditor(parentId)
   const subs = item?.subs || root?.subs || []
   const { markCommentViewedAt } = useCommentsView(root?.id)
 
@@ -78,8 +78,8 @@ export default forwardRef(function Reply ({
       const text = ''
       resetForm({ values: { text } })
       // reset the Lexical editor state
-      if (replyEditorRef) {
-        replyEditorRef.update(() => {
+      if (editor) {
+        editor.update(() => {
           $setMarkdown(text)
         })
       }
@@ -90,8 +90,8 @@ export default forwardRef(function Reply ({
 
   const onCancel = useCallback(() => {
     // clear editor
-    if (replyEditorRef) {
-      replyEditorRef.update(() => {
+    if (editor) {
+      editor.update(() => {
         $setMarkdown('')
       })
     }
@@ -99,7 +99,7 @@ export default forwardRef(function Reply ({
     window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
     setReply(false)
     onCancelQuote?.()
-  }, [setReply, parentId, onCancelQuote, replyEditorRef])
+  }, [setReply, parentId, onCancelQuote, editor])
 
   return (
     <div>
@@ -164,8 +164,8 @@ export default forwardRef(function Reply ({
                 appendValue={quote}
                 lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
                 placeholder={placeholder}
+                itemId={parentId}
                 hint={subsAnyModerated(subs) ? 'some territories are moderated' : undefined}
-                editorRef={onReplyEditorRef}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>

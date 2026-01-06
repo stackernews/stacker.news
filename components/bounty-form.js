@@ -60,6 +60,7 @@ export function BountyForm ({
         name='text'
         minRows={6}
         hint={EditInfo}
+        itemId={item?.id}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />

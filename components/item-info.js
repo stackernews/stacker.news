@@ -74,7 +74,10 @@ export default function ItemInfo ({
   const router = useRouter()
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
-  const sub = item?.sub || root?.sub
+  // XXX sub controls pinning and outlawing options for territory founders
+  // so we only expose it if there's only one sub
+  const subs = item?.subs || root?.subs
+  const sub = subs?.length === 1 ? subs[0] : undefined
   const [canEdit, setCanEdit, editThreshold] = useCanEdit(item)
 
   useEffect(() => {

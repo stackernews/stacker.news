@@ -23,30 +23,22 @@ const client = new ApolloClient({
 })
 
 // GraphQL queries
-const GROWTH_QUERY = gql`
-  query Growth($when: String!, $from: String, $to: String) {
-    registrationGrowth(when: $when, from: $from, to: $to) {
+const GROWTH_TOTALS_QUERY = gql`
+  query GrowthTotals($when: String, $from: String, $to: String, $sub: String) {
+    growthTotals(when: $when, from: $from, to: $to, sub: $sub) {
+      spending
+      stacking
+      items
+      registrations
+    }
+    spendingGrowth(when: $when, from: $from, to: $to, sub: $sub) {
       time
       data {
         name
         value
       }
     }
-    spendingGrowth(when: $when, from: $from, to: $to) {
-      time
-      data {
-        name
-        value
-      }
-    }
-    spenderGrowth(when: $when, from: $from, to: $to) {
-      time
-      data {
-        name
-        value
-      }
-    }
-    stackingGrowth(when: $when, from: $from, to: $to) {
+    spenderGrowth(when: $when, from: $from, to: $to, sub: $sub) {
       time
       data {
         name
@@ -55,6 +47,9 @@ const GROWTH_QUERY = gql`
     }
   }
 `
+
+// Territory payment types that represent SN revenue
+const TERRITORY_REVENUE_TYPES = ['TERRITORY_BILLING', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_UNARCHIVE']
 
 const TOP_SUBS_QUERY = gql`
   query TopSubs($when: String, $from: String, $to: String, $by: String) {
@@ -85,16 +80,15 @@ function formatSats (sats) {
 }
 
 function calculatePercentChange (current, previous) {
-  if (previous === 0) return '+100%'
+  if (previous === 0) return current > 0 ? '+∞' : '0%'
   const change = ((current - previous) / previous) * 100
   const sign = change >= 0 ? '+' : ''
   return `${sign}${change.toFixed(1)}%`
 }
 
 function formatMonth (monthStr) {
-  // monthStr format: "2025-07" or "2025-07-01"
-  const yearMonth = monthStr.slice(0, 7) // Get "2025-07" part
-  const [year, month] = yearMonth.split('-')
+  // monthStr format: "2025-07"
+  const [year, month] = monthStr.split('-')
   const monthNames = [
     'january', 'february', 'march', 'april', 'may', 'june',
     'july', 'august', 'september', 'october', 'november', 'december'
@@ -102,110 +96,43 @@ function formatMonth (monthStr) {
   return `${monthNames[parseInt(month) - 1]} ${year}`
 }
 
-// Data processing functions
+// Get the list of months to query (complete months only)
+function getMonthsToQuery (monthsBack) {
+  const months = []
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() // 0-indexed
 
-function processRegistrationData (registrationData) {
-  const monthlyData = {}
+  // Start from the previous month (most recent complete month)
+  // and go back monthsBack months, plus 1 extra for comparison
+  for (let i = 0; i < monthsBack + 1; i++) {
+    let targetMonth = currentMonth - 1 - i
+    let targetYear = currentYear
 
-  registrationData.forEach(entry => {
-    const month = new Date(entry.time).toISOString().slice(0, 7) // YYYY-MM
-
-    // Find referrals and organic data points
-    const referrals = entry.data.find(d => d.name === 'referrals')?.value || 0
-    const organic = entry.data.find(d => d.name === 'organic')?.value || 0
-    const total = referrals + organic
-
-    if (!monthlyData[month]) {
-      monthlyData[month] = 0
+    while (targetMonth < 0) {
+      targetMonth += 12
+      targetYear -= 1
     }
-    monthlyData[month] += total
-  })
 
-  return Object.entries(monthlyData)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, value]) => ({
-      month,
-      value
-    }))
+    const monthStr = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`
+    months.unshift(monthStr) // Add to beginning to keep chronological order
+  }
+
+  return months
 }
 
-function processSpenderData (spenderData) {
-  const monthlyData = {}
-
-  spenderData.forEach(entry => {
-    const month = new Date(entry.time).toISOString().slice(0, 7) // YYYY-MM
-    const anySpenders = entry.data.find(d => d.name === 'any')
-
-    if (anySpenders) {
-      // With year aggregation, each entry should be monthly aggregated data
-      monthlyData[month] = anySpenders.value
-    }
-  })
-
-  return Object.entries(monthlyData)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, value]) => ({
-      month,
-      value
-    }))
+// Get date range for a month
+function getMonthDateRange (monthStr) {
+  const [year, month] = monthStr.split('-').map(Number)
+  const startDate = new Date(year, month - 1, 1)
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999)
+  return {
+    from: startDate.getTime().toString(),
+    to: endDate.getTime().toString(),
+    startDateStr: startDate.toISOString().slice(0, 10),
+    endDateStr: endDate.toISOString().slice(0, 10)
+  }
 }
-
-function processAllSpending (spendingData) {
-  const monthlyData = {}
-
-  spendingData.forEach(entry => {
-    const month = new Date(entry.time).toISOString().slice(0, 7) // YYYY-MM
-
-    // Sum all spending categories: jobs, boost, fees, zaps, donations, territories
-    const total = entry.data.reduce((sum, item) => {
-      return sum + (item.value || 0)
-    }, 0)
-
-    if (!monthlyData[month]) {
-      monthlyData[month] = 0
-    }
-    monthlyData[month] += total
-  })
-
-  return Object.entries(monthlyData)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, value]) => ({
-      month,
-      value
-    }))
-}
-
-// Temporarily commented out - not currently used
-// function processAllStacking (stackingData) { ... }
-
-function processTerritoryRevenue (stackingData) {
-  const monthlyData = {}
-
-  stackingData.forEach(entry => {
-    const month = new Date(entry.time).toISOString().slice(0, 7) // YYYY-MM
-
-    // Only include territories revenue
-    const territoriesRevenue = entry.data.find(d => d.name === 'territories')?.value || 0
-
-    if (!monthlyData[month]) {
-      monthlyData[month] = 0
-    }
-    monthlyData[month] += territoriesRevenue
-  })
-
-  return Object.entries(monthlyData)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, value]) => ({
-      month,
-      value
-    }))
-}
-
-// Removed - using inline date calculations for exact month alignment
-
-// Removed - using inline territory queries for exact month alignment
-
-// Removed - using inline Plausible queries for exact month alignment
 
 async function generateKPISummary (monthsBack = 6) {
   try {
@@ -213,53 +140,85 @@ async function generateKPISummary (monthsBack = 6) {
 
     const now = new Date()
     console.log('Current date:', now.toISOString().slice(0, 10))
-    console.log('Current month:', now.toISOString().slice(0, 7))
+    console.log('Endpoint:', GRAPHQL_ENDPOINT)
 
-    // Fetch growth data using year aggregation to get monthly values
-    const { data: growthData } = await client.query({
-      query: GROWTH_QUERY,
-      variables: {
-        when: 'year'
-      }
-    })
+    // Get the months we need to query
+    const months = getMonthsToQuery(monthsBack)
+    console.log('Months to query:', months)
 
-    // Process registrations using corrected function
-    const allRegistrations = processRegistrationData(growthData.registrationGrowth)
-    // Take complete months (exclude current incomplete month) + 1 extra for comparison
-    const registrations = allRegistrations.slice(-(monthsBack + 2), -1)
+    // Fetch growth totals for each month
+    const monthlyData = []
 
-    // Process other metrics
-    const allSpenders = processSpenderData(growthData.spenderGrowth)
-    const spenders = allSpenders.slice(-(monthsBack + 2), -1)
+    for (const month of months) {
+      const { from, to, startDateStr, endDateStr } = getMonthDateRange(month)
 
-    console.log('All available months:', allRegistrations.map(r => r.month))
-    console.log('Selected months for display:', registrations.map(r => r.month))
-
-    // Sum all spending categories for total bitcoin volume
-    const allSpending = processAllSpending(growthData.spendingGrowth)
-    const spending = allSpending.slice(-(monthsBack + 2), -1)
-
-    // Get territory revenue from spending data (what users paid for territories)
-    const allRevenue = processTerritoryRevenue(growthData.spendingGrowth)
-    const revenue = allRevenue.slice(-(monthsBack + 2), -1)
-
-    // Get territory profits data for the exact same months as registrations
-    const territoryProfits = []
-
-    for (const regData of registrations) {
-      // For each month in registrations, get the corresponding territory profits
-      const month = regData.month
-      const [year, monthNum] = month.split('-').map(Number)
+      console.log(`Querying ${month}: ${startDateStr} to ${endDateStr}`)
 
       try {
-        // Query this specific month
-        const startDate = new Date(year, monthNum - 1, 1)
-        const endDate = new Date(year, monthNum, 0, 23, 59, 59, 999)
-        const from = startDate.getTime().toString()
-        const to = endDate.getTime().toString()
+        const { data } = await client.query({
+          query: GROWTH_TOTALS_QUERY,
+          variables: {
+            when: 'custom',
+            from,
+            to,
+            sub: 'all'
+          }
+        })
 
-        console.log(`Querying territory profits for ${month}: ${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`)
+        // Calculate territory revenue from spendingGrowth (what users paid SN for territories)
+        let territoryRevenue = 0
+        if (data.spendingGrowth) {
+          data.spendingGrowth.forEach(entry => {
+            const territorySpending = entry.data
+              .filter(d => TERRITORY_REVENUE_TYPES.includes(d.name))
+              .reduce((sum, d) => sum + (d.value || 0), 0)
+            territoryRevenue += territorySpending
+          })
+        }
 
+        // Get unique spenders from spenderGrowth (the 'total' entry has unique count)
+        let uniqueSpenders = 0
+        if (data.spenderGrowth) {
+          data.spenderGrowth.forEach(entry => {
+            const total = entry.data.find(d => d.name === 'total')
+            if (total) {
+              uniqueSpenders += total.value || 0
+            }
+          })
+        }
+
+        monthlyData.push({
+          month,
+          spending: data.growthTotals?.spending || 0,
+          stacking: data.growthTotals?.stacking || 0,
+          items: data.growthTotals?.items || 0,
+          registrations: data.growthTotals?.registrations || 0,
+          territoryRevenue,
+          uniqueSpenders
+        })
+      } catch (error) {
+        console.warn(`Failed to fetch growth totals for ${month}:`, error.message)
+        monthlyData.push({
+          month,
+          spending: 'N/A',
+          stacking: 'N/A',
+          items: 'N/A',
+          registrations: 'N/A',
+          territoryRevenue: 'N/A',
+          uniqueSpenders: 'N/A'
+        })
+      }
+    }
+
+    // Get territory profits data for each month
+    const territoryProfits = []
+
+    for (const month of months) {
+      const { from, to, startDateStr, endDateStr } = getMonthDateRange(month)
+
+      console.log(`Querying territory profits for ${month}: ${startDateStr} to ${endDateStr}`)
+
+      try {
         const { data } = await client.query({
           query: TOP_SUBS_QUERY,
           variables: {
@@ -272,39 +231,30 @@ async function generateKPISummary (monthsBack = 6) {
 
         const profitableTerritories = data.topSubs.subs.filter(sub => {
           if (sub.status === 'STOPPED') return false
-
           const revenue = sub.optional?.revenue || 0
-
           return revenue > TERRITORY_PROFIT_THRESHOLD
         })
 
         territoryProfits.push({
           month,
-          value: profitableTerritories.length
+          profitable: profitableTerritories.length
         })
       } catch (error) {
         console.warn(`Failed to fetch territory profits for ${month}:`, error.message)
-        territoryProfits.push({ month, value: 'N/A' })
+        territoryProfits.push({ month, profitable: 'N/A' })
       }
     }
 
-    // Get Plausible data for the exact same months as registrations
-    const pageViews = []
-    const visitors = []
+    // Get Plausible data for each month
+    const plausibleData = []
 
-    for (const regData of registrations) {
-      // For each month in registrations, get the corresponding Plausible data
-      const month = regData.month
-      const [year, monthNum] = month.split('-').map(Number)
+    for (const month of months) {
+      const { startDateStr, endDateStr } = getMonthDateRange(month)
+      const dateRange = `${startDateStr},${endDateStr}`
+
+      console.log(`Querying Plausible for ${month}: ${dateRange}`)
 
       try {
-        // Query this specific month
-        const startDate = new Date(year, monthNum - 1, 1)
-        const endDate = new Date(year, monthNum, 0)
-        const dateRange = `${startDate.toISOString().slice(0, 10)},${endDate.toISOString().slice(0, 10)}`
-
-        console.log(`Querying Plausible for ${month}: ${dateRange}`)
-
         // Get pageviews
         const pvResponse = await fetch(
           `https://plausible.io/api/v1/stats/timeseries?site_id=stacker.news&period=custom&date=${dateRange}&interval=month&metrics=pageviews`,
@@ -313,8 +263,7 @@ async function generateKPISummary (monthsBack = 6) {
           }
         )
         const pvData = await pvResponse.json()
-        const pageviewValue = pvData.results?.[0]?.pageviews || 'N/A'
-        pageViews.push({ month, value: pageviewValue })
+        const pageviews = pvData.results?.[0]?.pageviews || 'N/A'
 
         // Get visitors
         const vResponse = await fetch(
@@ -324,92 +273,108 @@ async function generateKPISummary (monthsBack = 6) {
           }
         )
         const vData = await vResponse.json()
-        const visitorValue = vData.results?.[0]?.visitors || 'N/A'
-        visitors.push({ month, value: visitorValue })
+        const visitors = vData.results?.[0]?.visitors || 'N/A'
+
+        plausibleData.push({ month, pageviews, visitors })
       } catch (error) {
         console.warn(`Failed to fetch Plausible data for ${month}:`, error.message)
-        pageViews.push({ month, value: 'N/A' })
-        visitors.push({ month, value: 'N/A' })
+        plausibleData.push({ month, pageviews: 'N/A', visitors: 'N/A' })
       }
     }
 
-    console.log('Registration months:', registrations.map(r => r.month))
-    console.log('PageViews months:', pageViews.map(p => p.month))
-    console.log('Visitors months:', visitors.map(v => v.month))
-    console.log('Territory Profits months:', territoryProfits.map(t => t.month))
-
-    // Display results
-    console.log('## Registrations:')
-    // Start from index 1 if we have extra data for comparison, otherwise start from 0
-    const startIndex = registrations.length > monthsBack ? 1 : 0
-    for (let i = startIndex; i < registrations.length; i++) {
-      const current = registrations[i]
-      const previous = registrations[i - 1]
-      const change = previous ? ` (${calculatePercentChange(current.value, previous.value)})` : ''
-      console.log(`${formatMonth(current.month + '-01')}: ${current.value}${change}`)
+    // Display results (skip first month, it's just for comparison)
+    console.log('\n## Registrations:')
+    for (let i = 1; i < monthlyData.length; i++) {
+      const current = monthlyData[i]
+      const previous = monthlyData[i - 1]
+      const change = current.registrations !== 'N/A' && previous.registrations !== 'N/A'
+        ? ` (${calculatePercentChange(current.registrations, previous.registrations)})`
+        : ''
+      const value = current.registrations === 'N/A' ? 'N/A' : current.registrations
+      console.log(`${formatMonth(current.month)}: ${value}${change}`)
     }
 
     console.log('\n## Unique Visitors:')
-    for (let i = startIndex; i < visitors.length; i++) {
-      const current = visitors[i]
-      const previous = visitors[i - 1]
-      const change = previous && current.value !== 'N/A' && previous.value !== 'N/A'
-        ? ` (${calculatePercentChange(current.value, previous.value)})`
+    for (let i = 1; i < plausibleData.length; i++) {
+      const current = plausibleData[i]
+      const previous = plausibleData[i - 1]
+      const change = current.visitors !== 'N/A' && previous.visitors !== 'N/A'
+        ? ` (${calculatePercentChange(current.visitors, previous.visitors)})`
         : ''
-      const formattedValue = current.value === 'N/A' ? 'N/A' : formatNumber(current.value)
-      console.log(`${formatMonth(current.month + '-01')}: ${formattedValue}${change}`)
-    }
-
-    console.log('\n## Monthly Spenders:')
-    for (let i = startIndex; i < spenders.length; i++) {
-      const current = spenders[i]
-      const previous = spenders[i - 1]
-      const change = previous ? ` (${calculatePercentChange(current.value, previous.value)})` : ''
-      console.log(`${formatMonth(current.month + '-01')}: ${current.value}${change}`)
+      const value = current.visitors === 'N/A' ? 'N/A' : formatNumber(current.visitors)
+      console.log(`${formatMonth(current.month)}: ${value}${change}`)
     }
 
     console.log('\n## Page Views:')
-    for (let i = startIndex; i < pageViews.length; i++) {
-      const current = pageViews[i]
-      const previous = pageViews[i - 1]
-      const change = previous && current.value !== 'N/A' && previous.value !== 'N/A'
-        ? ` (${calculatePercentChange(current.value, previous.value)})`
+    for (let i = 1; i < plausibleData.length; i++) {
+      const current = plausibleData[i]
+      const previous = plausibleData[i - 1]
+      const change = current.pageviews !== 'N/A' && previous.pageviews !== 'N/A'
+        ? ` (${calculatePercentChange(current.pageviews, previous.pageviews)})`
         : ''
-      const formattedValue = current.value === 'N/A' ? 'N/A' : formatNumber(current.value)
-      console.log(`${formatMonth(current.month + '-01')}: ${formattedValue}${change}`)
+      const value = current.pageviews === 'N/A' ? 'N/A' : formatNumber(current.pageviews)
+      console.log(`${formatMonth(current.month)}: ${value}${change}`)
     }
 
-    console.log('\n## Total Bitcoin Volume (Spending):')
-    for (let i = startIndex; i < spending.length; i++) {
-      const current = spending[i]
-      const previous = spending[i - 1]
-      const change = previous ? ` (${calculatePercentChange(current.value, previous.value)})` : ''
-      console.log(`${formatMonth(current.month + '-01')}: ${formatSats(current.value)}${change}`)
+    console.log('\n## Unique Spenders:')
+    for (let i = 1; i < monthlyData.length; i++) {
+      const current = monthlyData[i]
+      const previous = monthlyData[i - 1]
+      const change = current.uniqueSpenders !== 'N/A' && previous.uniqueSpenders !== 'N/A'
+        ? ` (${calculatePercentChange(current.uniqueSpenders, previous.uniqueSpenders)})`
+        : ''
+      const value = current.uniqueSpenders === 'N/A' ? 'N/A' : formatNumber(current.uniqueSpenders)
+      console.log(`${formatMonth(current.month)}: ${value}${change}`)
     }
 
-    console.log('\n## Total Bitcoin Revenue (Territory Billing):')
-    for (let i = startIndex; i < revenue.length; i++) {
-      const current = revenue[i]
-      const previous = revenue[i - 1]
-      const change = previous ? ` (${calculatePercentChange(current.value, previous.value)})` : ''
-      console.log(`${formatMonth(current.month + '-01')}: ${formatSats(current.value)}${change}`)
+    console.log('\n## Total Spending:')
+    for (let i = 1; i < monthlyData.length; i++) {
+      const current = monthlyData[i]
+      const previous = monthlyData[i - 1]
+      const change = current.spending !== 'N/A' && previous.spending !== 'N/A'
+        ? ` (${calculatePercentChange(current.spending, previous.spending)})`
+        : ''
+      const value = current.spending === 'N/A' ? 'N/A' : formatSats(current.spending)
+      console.log(`${formatMonth(current.month)}: ${value}${change}`)
+    }
+
+    console.log('\n## Total Stacking:')
+    for (let i = 1; i < monthlyData.length; i++) {
+      const current = monthlyData[i]
+      const previous = monthlyData[i - 1]
+      const change = current.stacking !== 'N/A' && previous.stacking !== 'N/A'
+        ? ` (${calculatePercentChange(current.stacking, previous.stacking)})`
+        : ''
+      const value = current.stacking === 'N/A' ? 'N/A' : formatSats(current.stacking)
+      console.log(`${formatMonth(current.month)}: ${value}${change}`)
+    }
+
+    console.log('\n## Territory Revenue (SN earnings):')
+    for (let i = 1; i < monthlyData.length; i++) {
+      const current = monthlyData[i]
+      const previous = monthlyData[i - 1]
+      const change = current.territoryRevenue !== 'N/A' && previous.territoryRevenue !== 'N/A'
+        ? ` (${calculatePercentChange(current.territoryRevenue, previous.territoryRevenue)})`
+        : ''
+      const value = current.territoryRevenue === 'N/A' ? 'N/A' : formatSats(current.territoryRevenue)
+      console.log(`${formatMonth(current.month)}: ${value}${change}`)
     }
 
     console.log('\n## Territories in Profit:')
-    for (let i = startIndex; i < territoryProfits.length; i++) {
+    for (let i = 1; i < territoryProfits.length; i++) {
       const current = territoryProfits[i]
       const previous = territoryProfits[i - 1]
-      const change = previous && current.value !== 'N/A' && previous.value !== 'N/A'
-        ? ` (${calculatePercentChange(current.value, previous.value)})`
+      const change = current.profitable !== 'N/A' && previous.profitable !== 'N/A'
+        ? ` (${calculatePercentChange(current.profitable, previous.profitable)})`
         : ''
-      console.log(`${formatMonth(current.month + '-01')}: ${current.value}${change}`)
+      console.log(`${formatMonth(current.month)}: ${current.profitable}${change}`)
     }
 
     console.log('\n---')
     if (!PLAUSIBLE_API_KEY) {
       console.log('Note: Set PLAUSIBLE_API_KEY environment variable to fetch page views and visitor data.')
     }
-    console.log('Usage: PLAUSIBLE_API_KEY=your_key node scripts/kpi.js [months]\n')
+    console.log('Usage: GRAPHQL_ENDPOINT=url PLAUSIBLE_API_KEY=key node scripts/kpi.js [months]\n')
   } catch (error) {
     console.error('Error generating KPI summary:', error)
     process.exit(1)
@@ -423,7 +388,7 @@ const monthsBack = args[0] ? parseInt(args[0]) : 6
 if (isNaN(monthsBack) || monthsBack < 1) {
   console.error('Usage: node scripts/kpi.js [months_back]')
   console.error('Example: node scripts/kpi.js 12  # for last 12 months')
-  console.error('Example: PLAUSIBLE_API_KEY=key node scripts/kpi.js 6')
+  console.error('Example: GRAPHQL_ENDPOINT=https://stacker.news/api/graphql PLAUSIBLE_API_KEY=key node scripts/kpi.js 6')
   process.exit(1)
 }
 

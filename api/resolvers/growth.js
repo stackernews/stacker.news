@@ -11,6 +11,17 @@ function sliceClause (sub, me) {
         : Prisma.sql`"slice" = 'GLOBAL_BY_TYPE'`
 }
 
+// For total unique counts across all types (not sum of per-type counts)
+function totalSliceClause (sub, me) {
+  return sub === 'all'
+    ? Prisma.sql`"slice" = 'GLOBAL'`
+    : sub
+      ? Prisma.sql`"slice" = 'SUB_TOTAL' AND "subName" = ${sub}`
+      : me
+        ? Prisma.sql`"slice" = 'USER_TOTAL' AND "userId" = ${me.id}`
+        : Prisma.sql`"slice" = 'GLOBAL'`
+}
+
 function countClause (sub, me) {
   return sub
     ? Prisma.sql`COALESCE("countUsers", 0)`
@@ -53,6 +64,64 @@ function stackerPayOutsExcluded (sub, me) {
 
 export default {
   Query: {
+    growthTotals: async (parent, { when, to, from, sub, mine }, { me, models }) => {
+      // Use same timeHelper and grid pattern as time series queries so totals match
+      const { granularity, series } = timeHelper(when, from, to)
+
+      // Get spending totals using same grid pattern as spendingGrowth
+      const payInResult = await models.$queryRaw`
+        WITH series AS (
+          ${series}
+        ), grid AS (
+          SELECT "timeBucket", "payInType"
+          FROM series, unnest(enum_range(NULL::"PayInType")) domain("payInType")
+        )
+        SELECT
+          COALESCE(SUM("sumMcost"), 0) / 1000 AS spending,
+          COALESCE(SUM("countGroup"), 0)::int AS items
+        FROM grid
+        LEFT JOIN "AggPayIn" ON "AggPayIn"."timeBucket" = grid."timeBucket" AND "AggPayIn"."payInType" = grid."payInType"
+        AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+        AND ${sliceClause(sub, mine ? me : null)}
+        WHERE ${spenderPayInsExcluded(sub, mine ? me : null)}`
+
+      // Get stacking totals using same grid pattern as stackingGrowth
+      const payOutResult = await models.$queryRaw`
+        WITH series AS (
+          ${series}
+        ), grid AS (
+          SELECT "timeBucket", "payOutType"
+          FROM series, unnest(enum_range(NULL::"PayOutType")) domain("payOutType")
+        )
+        SELECT COALESCE(SUM("sumMtokens"), 0) / 1000 AS stacking
+        FROM grid
+        LEFT JOIN "AggPayOut" ON "AggPayOut"."timeBucket" = grid."timeBucket" AND "AggPayOut"."payOutType" = grid."payOutType"
+        AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+        AND ${sliceClause(sub, mine ? me : null)}
+        AND "AggPayOut"."payInType" IS NULL
+        WHERE ${stackerPayOutsExcluded(sub, mine ? me : null)}`
+
+      // Get registration totals (only for global/all view)
+      let registrations = null
+      if (sub === 'all' && !mine) {
+        const regResult = await models.$queryRaw`
+          WITH series AS (
+            ${series}
+          )
+          SELECT COALESCE(SUM("count"), 0)::int AS registrations
+          FROM "AggRegistrations", series
+          WHERE "granularity" = ${granularity}::"AggGranularity"
+          AND "AggRegistrations"."timeBucket" = series."timeBucket"`
+        registrations = regResult[0]?.registrations || 0
+      }
+
+      return {
+        spending: payInResult[0]?.spending || 0,
+        items: payInResult[0]?.items || 0,
+        stacking: payOutResult[0]?.stacking || 0,
+        registrations
+      }
+    },
     registrationGrowth: async (parent, { when, from, to }, { models }) => {
       const { granularity, series } = timeHelper(when, from, to)
 
@@ -80,16 +149,25 @@ export default {
         ), grid AS (
           SELECT "timeBucket", "payInType"
           FROM series, unnest(enum_range(NULL::"PayInType")) domain("payInType")
+        ), totals AS (
+          SELECT series."timeBucket", COALESCE("countUsers", 0) as total
+          FROM series
+          LEFT JOIN "AggPayIn" ON "AggPayIn"."timeBucket" = series."timeBucket"
+          AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+          AND ${totalSliceClause(sub, mine ? me : null)}
+          AND "AggPayIn"."payInType" IS NULL
         )
-        SELECT grid."timeBucket" as time, json_agg(
-          json_build_object('name', grid."payInType", 'value', ${countClause(sub, mine ? me : null)})
-        ) AS data
+        SELECT grid."timeBucket" as time,
+          (jsonb_agg(jsonb_build_object('name', grid."payInType", 'value', ${countClause(sub, mine ? me : null)}))
+          || jsonb_build_array(jsonb_build_object('name', 'total', 'value', totals.total)))::json
+          AS data
         FROM grid
         LEFT JOIN "AggPayIn" ON "AggPayIn"."timeBucket" = grid."timeBucket" AND "AggPayIn"."payInType" = grid."payInType"
         AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
         AND ${sliceClause(sub, mine ? me : null)}
+        JOIN totals ON totals."timeBucket" = grid."timeBucket"
         WHERE ${spenderPayInsExcluded(sub, mine ? me : null)}
-        GROUP BY grid."timeBucket"
+        GROUP BY grid."timeBucket", totals.total
         ORDER BY grid."timeBucket" ASC`
 
       return result
@@ -147,17 +225,27 @@ export default {
         ), grid AS (
           SELECT "timeBucket", "payOutType"
           FROM series, unnest(enum_range(NULL::"PayOutType")) domain("payOutType")
+        ), totals AS (
+          SELECT series."timeBucket", COALESCE("countUsers", 0) as total
+          FROM series
+          LEFT JOIN "AggPayOut" ON "AggPayOut"."timeBucket" = series."timeBucket"
+          AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+          AND ${totalSliceClause(sub, mine ? me : null)}
+          AND "AggPayOut"."payInType" IS NULL
+          AND "AggPayOut"."payOutType" IS NULL
         )
-        SELECT grid."timeBucket" as time, json_agg(
-          json_build_object('name', grid."payOutType", 'value', ${countClause(sub, mine ? me : null)})
-        ) AS data
+        SELECT grid."timeBucket" as time,
+          (jsonb_agg(jsonb_build_object('name', grid."payOutType", 'value', ${countClause(sub, mine ? me : null)}))
+          || jsonb_build_array(jsonb_build_object('name', 'total', 'value', totals.total)))::json
+          AS data
         FROM grid
         LEFT JOIN "AggPayOut" ON "AggPayOut"."timeBucket" = grid."timeBucket" AND "AggPayOut"."payOutType" = grid."payOutType"
         AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
         AND ${sliceClause(sub, mine ? me : null)}
-        AND "payInType" IS NULL
+        AND "AggPayOut"."payInType" IS NULL
+        JOIN totals ON totals."timeBucket" = grid."timeBucket"
         WHERE ${stackerPayOutsExcluded(sub, mine ? me : null)}
-        GROUP BY grid."timeBucket"
+        GROUP BY grid."timeBucket", totals.total
         ORDER BY grid."timeBucket" ASC`
     },
     stackingGrowth: async (parent, { when, to, from, sub, mine }, { me, models }) => {

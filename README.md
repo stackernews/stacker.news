@@ -4,7 +4,6 @@
 </a>
 </p>
 
-
 - Stacker News is trying to fix online communities with economics
 - What You See is What We Ship (look ma, I invented an initialism)
 - 100% FOSS

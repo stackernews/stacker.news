@@ -22,23 +22,31 @@ const client = new ApolloClient({
   }
 })
 
-// GraphQL queries
-const GROWTH_TOTALS_QUERY = gql`
-  query GrowthTotals($when: String, $from: String, $to: String, $sub: String) {
-    growthTotals(when: $when, from: $from, to: $to, sub: $sub) {
-      spending
-      stacking
-      items
-      registrations
-    }
-    spendingGrowth(when: $when, from: $from, to: $to, sub: $sub) {
+// GraphQL queries - using when=year gives monthly time buckets
+const GROWTH_QUERY = gql`
+  query Growth($when: String!, $sub: String) {
+    registrationGrowth(when: $when) {
       time
       data {
         name
         value
       }
     }
-    spenderGrowth(when: $when, from: $from, to: $to, sub: $sub) {
+    spendingGrowth(when: $when, sub: $sub) {
+      time
+      data {
+        name
+        value
+      }
+    }
+    stackingGrowth(when: $when, sub: $sub) {
+      time
+      data {
+        name
+        value
+      }
+    }
+    spenderGrowth(when: $when, sub: $sub) {
       time
       data {
         name
@@ -96,8 +104,14 @@ function formatMonth (monthStr) {
   return `${monthNames[parseInt(month) - 1]} ${year}`
 }
 
-// Get the list of months to query (complete months only)
-function getMonthsToQuery (monthsBack) {
+// Convert a time bucket date to month string "YYYY-MM"
+function timeToMonth (time) {
+  const date = new Date(time)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+// Get the list of complete months to display
+function getMonthsToDisplay (monthsBack) {
   const months = []
   const now = new Date()
   const currentYear = now.getFullYear()
@@ -121,7 +135,7 @@ function getMonthsToQuery (monthsBack) {
   return months
 }
 
-// Get date range for a month
+// Get date range for a month (used for territory profits and Plausible)
 function getMonthDateRange (monthStr) {
   const [year, month] = monthStr.split('-').map(Number)
   const startDate = new Date(year, month - 1, 1)
@@ -134,6 +148,21 @@ function getMonthDateRange (monthStr) {
   }
 }
 
+// Sum values for specific types from a data entry
+function sumDataValues (dataArray, types = null) {
+  if (!dataArray) return 0
+  return dataArray
+    .filter(d => types === null || types.includes(d.name))
+    .reduce((sum, d) => sum + (d.value || 0), 0)
+}
+
+// Get the 'total' value from a data entry (unique count)
+function getTotalValue (dataArray) {
+  if (!dataArray) return 0
+  const total = dataArray.find(d => d.name === 'total')
+  return total?.value || 0
+}
+
 async function generateKPISummary (monthsBack = 6) {
   try {
     console.log(`\n# Stacker News KPI Summary (Last ${monthsBack} months)\n`)
@@ -142,73 +171,69 @@ async function generateKPISummary (monthsBack = 6) {
     console.log('Current date:', now.toISOString().slice(0, 10))
     console.log('Endpoint:', GRAPHQL_ENDPOINT)
 
-    // Get the months we need to query
-    const months = getMonthsToQuery(monthsBack)
-    console.log('Months to query:', months)
+    // Get the months we want to display (complete months only)
+    const months = getMonthsToDisplay(monthsBack)
+    console.log('Months to display:', months)
 
-    // Fetch growth totals for each month
-    const monthlyData = []
+    // Query with when=year to get monthly time buckets
+    console.log('Querying growth data with when=year...')
+    const { data } = await client.query({
+      query: GROWTH_QUERY,
+      variables: {
+        when: 'year',
+        sub: 'all'
+      }
+    })
 
-    for (const month of months) {
-      const { from, to, startDateStr, endDateStr } = getMonthDateRange(month)
+    // Build a map of monthly data from the time series responses
+    const monthlyDataMap = {}
 
-      console.log(`Querying ${month}: ${startDateStr} to ${endDateStr}`)
-
-      try {
-        const { data } = await client.query({
-          query: GROWTH_TOTALS_QUERY,
-          variables: {
-            when: 'custom',
-            from,
-            to,
-            sub: 'all'
-          }
-        })
-
-        // Calculate territory revenue from spendingGrowth (what users paid SN for territories)
-        let territoryRevenue = 0
-        if (data.spendingGrowth) {
-          data.spendingGrowth.forEach(entry => {
-            const territorySpending = entry.data
-              .filter(d => TERRITORY_REVENUE_TYPES.includes(d.name))
-              .reduce((sum, d) => sum + (d.value || 0), 0)
-            territoryRevenue += territorySpending
-          })
-        }
-
-        // Get unique spenders from spenderGrowth (the 'total' entry has unique count)
-        let uniqueSpenders = 0
-        if (data.spenderGrowth) {
-          data.spenderGrowth.forEach(entry => {
-            const total = entry.data.find(d => d.name === 'total')
-            if (total) {
-              uniqueSpenders += total.value || 0
-            }
-          })
-        }
-
-        monthlyData.push({
-          month,
-          spending: data.growthTotals?.spending || 0,
-          stacking: data.growthTotals?.stacking || 0,
-          items: data.growthTotals?.items || 0,
-          registrations: data.growthTotals?.registrations || 0,
-          territoryRevenue,
-          uniqueSpenders
-        })
-      } catch (error) {
-        console.warn(`Failed to fetch growth totals for ${month}:`, error.message)
-        monthlyData.push({
-          month,
-          spending: 'N/A',
-          stacking: 'N/A',
-          items: 'N/A',
-          registrations: 'N/A',
-          territoryRevenue: 'N/A',
-          uniqueSpenders: 'N/A'
-        })
+    // Process registration data
+    if (data.registrationGrowth) {
+      for (const entry of data.registrationGrowth) {
+        const month = timeToMonth(entry.time)
+        if (!monthlyDataMap[month]) monthlyDataMap[month] = {}
+        monthlyDataMap[month].registrations = sumDataValues(entry.data)
       }
     }
+
+    // Process spending data
+    if (data.spendingGrowth) {
+      for (const entry of data.spendingGrowth) {
+        const month = timeToMonth(entry.time)
+        if (!monthlyDataMap[month]) monthlyDataMap[month] = {}
+        monthlyDataMap[month].spending = sumDataValues(entry.data)
+        monthlyDataMap[month].territoryRevenue = sumDataValues(entry.data, TERRITORY_REVENUE_TYPES)
+      }
+    }
+
+    // Process stacking data
+    if (data.stackingGrowth) {
+      for (const entry of data.stackingGrowth) {
+        const month = timeToMonth(entry.time)
+        if (!monthlyDataMap[month]) monthlyDataMap[month] = {}
+        monthlyDataMap[month].stacking = sumDataValues(entry.data)
+      }
+    }
+
+    // Process unique spenders - each monthly bucket already has the correct unique count
+    if (data.spenderGrowth) {
+      for (const entry of data.spenderGrowth) {
+        const month = timeToMonth(entry.time)
+        if (!monthlyDataMap[month]) monthlyDataMap[month] = {}
+        monthlyDataMap[month].uniqueSpenders = getTotalValue(entry.data)
+      }
+    }
+
+    // Convert map to array for the months we want to display
+    const monthlyData = months.map(month => ({
+      month,
+      spending: monthlyDataMap[month]?.spending ?? 'N/A',
+      stacking: monthlyDataMap[month]?.stacking ?? 'N/A',
+      registrations: monthlyDataMap[month]?.registrations ?? 'N/A',
+      territoryRevenue: monthlyDataMap[month]?.territoryRevenue ?? 'N/A',
+      uniqueSpenders: monthlyDataMap[month]?.uniqueSpenders ?? 'N/A'
+    }))
 
     // Get territory profits data for each month
     const territoryProfits = []

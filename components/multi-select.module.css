@@ -7,8 +7,10 @@
   box-shadow: none;
 }
 
-.multiSelect :global(.ms__control:hover) {
-  border-color: var(--theme-borderColor);
+@media (hover: hover) {
+  .multiSelect :global(.ms__control:hover) {
+    border-color: var(--theme-borderColor);
+  }
 }
 
 .multiSelect :global(.ms__control--is-focused) {
@@ -16,8 +18,10 @@
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
-.multiSelect :global(.ms__control--is-focused:hover) {
-  border-color: var(--bs-primary);
+@media (hover: hover) {
+  .multiSelect :global(.ms__control--is-focused:hover) {
+    border-color: var(--bs-primary);
+  }
 }
 
 /* Invalid state */
@@ -29,9 +33,11 @@
   box-shadow: 0 0 0 0.2rem rgba(192, 50, 33, 0.25);
 }
 
-.multiSelect.isInvalid :global(.ms__control:hover),
-.multiSelect.isInvalid :global(.ms__control--is-focused:hover) {
-  border-color: #c03221;
+@media (hover: hover) {
+  .multiSelect.isInvalid :global(.ms__control:hover),
+  .multiSelect.isInvalid :global(.ms__control--is-focused:hover) {
+    border-color: #c03221;
+  }
 }
 
 /* Value container */
@@ -46,11 +52,18 @@
   z-index: 1050;
 }
 
+.multiSelect :global(.ms__menu-list) {
+  overflow-x: hidden;
+}
+
 /* Option styles */
 .multiSelect :global(.ms__option) {
   background-color: transparent;
   color: var(--bs-body-color);
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .multiSelect :global(.ms__option--is-focused) {
@@ -69,24 +82,42 @@
 /* Multi value (tags) */
 .multiSelect :global(.ms__multi-value) {
   background-color: var(--theme-clickToContextColor);
-  margin: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+  margin: 2px;
+  padding: 0;
+  align-items: center;
+  border-radius: 2px;
 }
 
 .multiSelect :global(.ms__multi-value__label) {
   color: var(--bs-body-color);
   font-weight: bold;
-  padding: 2px 6px;
+  padding: 6px 10px;
 }
 
 .multiSelect :global(.ms__multi-value__remove) {
-  color: var(--theme-grey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 4px;
+  margin-left: 6px;
+  border-left: 1px solid var(--theme-borderColor);
+  opacity: 0.5;
+  cursor: pointer;
 }
 
-.multiSelect :global(.ms__multi-value__remove:hover) {
-  background-color: var(--theme-clickToContextColor);
-  color: var(--bs-body-color);
+.multiSelect :global(.ms__multi-value__remove svg) {
+  width: 10px;
+  height: 10px;
+}
+
+@media (hover: hover) {
+  .multiSelect :global(.ms__multi-value__remove:hover) {
+    background-color: transparent;
+    color: var(--bs-body-color);
+    opacity: 1;
+  }
 }
 
 /* Input */
@@ -158,7 +189,9 @@
 }
 
 .clearIndicator {
-  padding: 0 4px;
+  padding: 0 8px;
+  margin-left: 4px;
+  border-left: 1px solid var(--theme-borderColor);
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -167,9 +200,18 @@
 .multiValueRemove {
   display: flex;
   align-items: center;
-  padding: 0 4px;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 4px;
+  margin-left: 6px;
+  border-left: 1px solid var(--theme-borderColor);
   cursor: pointer;
-  border-radius: 0 2px 2px 0;
+  opacity: 0.5;
+}
+
+.multiValueRemove:hover {
+  opacity: 1;
 }
 
 .multiValueLabelClickable {
@@ -178,5 +220,285 @@
 
 .multiValueLabelDefault {
   cursor: default;
+}
+
+/* Mobile touch targets (for react-select fallback) */
+@media (max-width: 767px) {
+  .multiSelect :global(.ms__option) {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+  }
+
+  .multiSelect :global(.ms__multi-value) {
+    align-items: center;
+  }
+
+  .multiSelect :global(.ms__multi-value__label) {
+    padding: 6px 8px;
+  }
+
+  .multiSelect :global(.ms__multi-value__remove) {
+    padding: 4px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .clearIndicator {
+    padding: 0 10px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .dropdownIndicator {
+    padding: 0 10px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
+
+/* Mobile control (mimics react-select appearance) */
+.mobileControl {
+  background-color: var(--theme-inputBg);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: .4rem;
+  min-width: 200px;
+  min-height: calc(1.75em + 1rem + 2px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  width: 100%;
+}
+
+.mobileControl.isInvalid {
+  border-color: #c03221;
+}
+
+.mobileValueContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobilePlaceholder {
+  color: #6c757d;
+  font-size: 1.25rem;
+}
+
+.mobileMultiValue {
+  background-color: var(--theme-clickToContextColor);
+  display: flex;
+  align-items: center;
+  border-radius: 2px;
+  margin-right: 4px;
+  pointer-events: none; /* Let clicks fall through to parent */
+}
+
+.mobileMultiValue > span {
+  color: var(--bs-body-color);
+  font-weight: bold;
+  padding: 6px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: auto; /* Re-enable clicks on label */
+}
+
+.mobileMultiValueRemove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 4px;
+  margin-left: 6px;
+  border-left: 1px solid var(--theme-borderColor);
+  cursor: pointer;
+  opacity: 0.5;
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+
+.mobileIndicators {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mobileClearIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  margin-left: 4px;
+  border-left: 1px solid var(--theme-borderColor);
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+/* Sheet styles */
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sheetOverlay.sheetOpen {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.sheetBackdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  touch-action: none; /* Prevent scroll on backdrop tap */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sheetOpen .sheetBackdrop {
+  opacity: 1;
+}
+
+.sheetContainer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 70vh;
+  background-color: var(--theme-inputBg);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.sheetOpen .sheetContainer {
+  transform: translateY(0);
+}
+
+.sheetHeader {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  flex-shrink: 0;
+  touch-action: none; /* Enable swipe-to-close */
+  cursor: grab;
+}
+
+.sheetHandle {
+  width: 36px;
+  height: 4px;
+  background-color: var(--theme-grey);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+.sheetSearch {
+  padding: 0 12px 12px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sheetSearchInput {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  font-size: 1rem;
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 8px;
+  background-color: var(--theme-inputBg);
+  color: var(--bs-body-color);
+  outline: none;
+}
+
+.sheetSearchInput:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
+}
+
+.sheetSearchInput::placeholder {
+  color: #6c757d;
+}
+
+.sheetSearchClear {
+  position: absolute;
+  right: 20px;
+  top: 0;
+  height: calc(100% - 12px); /* account for container's bottom padding */
+  background: none;
+  border: none;
+  padding: 0 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheetContent {
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+  flex: 1;
+}
+
+.sheetNoResults {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--theme-grey);
+  font-size: 1rem;
+}
+
+.sheetGroup {
+  margin-bottom: 8px;
+}
+
+.sheetGroupLabel {
+  padding: 12px 16px 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--theme-grey);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sheetOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  min-height: 52px;
+  cursor: pointer;
+  color: var(--bs-body-color);
+  font-size: 1.1rem;
+  border-bottom: 1px solid var(--theme-borderColor);
+}
+
+.sheetOption:active {
+  background-color: var(--theme-clickToContextColor);
+}
+
+.sheetOptionSelected {
+  background-color: var(--theme-clickToContextColor);
+}
+
+.sheetOptionLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 12px;
 }
 

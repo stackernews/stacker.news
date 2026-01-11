@@ -301,9 +301,9 @@ export default function Settings ({ ssrData }) {
               <div className='d-flex align-items-center'>use blank invoice descriptions
                 <Info>
                   <ul>
-                    <li>Use this if you don't want funding sources to know you're paying stacker.news.</li>
+                    <li>Use this if you don't want funding sources to know you're using stacker.news.</li>
                     <li>It makes your bolt11 descriptions blank.</li>
-                    <li>Note: lnurl-pay and lightning addresses still reference your nym</li>
+                    <li>Note: lnurl-pay and lightning addresses still reference SN and your nym</li>
                   </ul>
                 </Info>
               </div>
@@ -410,7 +410,7 @@ export default function Settings ({ ssrData }) {
                   <ul>
                     <li>only load images and videos when we can proxy them</li>
                     <li>this prevents IP address leaks to arbitrary sites</li>
-                    <li>if we can't, the raw link will be shown instead</li>
+                    <li>if we can't proxy them, the raw link will be shown instead</li>
                   </ul>
                 </Info>
               </div>
@@ -422,7 +422,7 @@ export default function Settings ({ ssrData }) {
             label={<>don't create referral links on copy</>}
             name='noReferralLinks'
           />
-          <h4>content</h4>
+          <h4 className='mt-5'>content</h4>
           <Input
             label={
               <div className='d-flex align-items-center'>filter by sats
@@ -473,7 +473,6 @@ export default function Settings ({ ssrData }) {
                 <Info>
                   <ul>
                     <li>don't hide flagged content</li>
-                    <li>don't down rank flagged content</li>
                   </ul>
                 </Info>
               </div>
@@ -493,7 +492,7 @@ export default function Settings ({ ssrData }) {
             }
             name='nsfwMode'
           />
-          <h4>nostr</h4>
+          <h4 className='mt-5'>nostr</h4>
           <Checkbox
             label={
               <div className='d-flex align-items-center'>crosspost to nostr
@@ -699,7 +698,8 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
 
   return (
     <>
-      <div className='form-label mt-3'>auth methods</div>
+      <h4 className='mt-5'>auth</h4>
+      <div className='form-label mt-3'>linked auth methods</div>
       {err && (
         <Alert
           variant='danger' onClose={() => {

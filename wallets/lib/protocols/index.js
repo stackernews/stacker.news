@@ -36,6 +36,14 @@ import clinkSuite from './clink'
  * @property {string} [hint] - hint text shown below field
  * @property {boolean} [share] - whether field can be used to prepopulate field of complementary send/receive protocol
  * @property {boolean} [editable] - whether the field is editable after it was saved
+ * @property {ProtocolFieldPopulate} [populate] - function to populate the field using values from other protocol forms
+ */
+
+/**
+ * @callback ProtocolFieldPopulate
+ * @param {Object} wallet - the wallet we are configuring
+ * @param {Object} formState - the current form state across all protocols
+ * @returns {string|null} - the value to populate the field with, or null if no value is available
  */
 
 /** @type {Protocol[]} */

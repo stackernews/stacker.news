@@ -239,7 +239,6 @@ export const WALLET_SETTINGS = gql`
     walletSettings {
       receiveCreditsBelowSats
       sendCreditsBelowSats
-      proxyReceive
       autoWithdrawMaxFeePercent
       autoWithdrawMaxFeeTotal
       autoWithdrawThreshold
@@ -252,7 +251,6 @@ export const SET_WALLET_SETTINGS = gql`
     setWalletSettings(settings: $settings) {
       receiveCreditsBelowSats
       sendCreditsBelowSats
-      proxyReceive
       autoWithdrawMaxFeePercent
       autoWithdrawMaxFeeTotal
       autoWithdrawThreshold

@@ -574,26 +574,6 @@ export default {
   },
 
   Mutation: {
-    disableFreebies: async (parent, args, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      // disable freebies if it hasn't been set yet
-      try {
-        await models.user.update({
-          where: { id: me.id, disableFreebies: null },
-          data: { disableFreebies: true }
-        })
-      } catch (err) {
-        // ignore 'record not found' errors
-        if (err.code !== 'P2025') {
-          throw err
-        }
-      }
-
-      return true
-    },
     setName: async (parent, data, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -822,22 +802,6 @@ export default {
       }
       return { id }
     },
-    hideWelcomeBanner: async (parent, data, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
-      return true
-    },
-    hideWalletRecvPrompt: async (parent, data, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      await models.user.update({ where: { id: me.id }, data: { hideWalletRecvPrompt: true } })
-      return true
-    },
     setDiagnostics: async (parent, { diagnostics }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -990,9 +954,6 @@ export default {
         return false
       }
       return !!user.tipRandomMin && !!user.tipRandomMax
-    },
-    hideWalletRecvPrompt: async (user, args, { models }) => {
-      return user.hideWalletRecvPrompt || user.hasRecvWallet
     }
   },
 

@@ -117,7 +117,24 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
     })
   }, [isLink, editor, nodeKey, url])
 
-  const media = useMediaHelper({ src, srcSet, bestResSrc, width, height, alt, title, kind, setIsLink })
+  return (
+    <MediaOrLink
+      src={src}
+      srcSet={srcSet}
+      bestResSrc={bestResSrc}
+      width={width}
+      height={height}
+      alt={alt}
+      title={title}
+      kind={kind}
+      linkFallback={linkFallback}
+      setIsLink={setIsLink}
+    />
+  )
+}
+
+export function MediaOrLink ({ linkFallback = true, ...props }) {
+  const media = useMediaHelper(props)
   const [error, setError] = useState(false)
   const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel()
 
@@ -155,7 +172,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
   }
 
   if (linkFallback) {
-    return <LinkRaw rel={UNKNOWN_LINK_REL} src={src} />
+    return <LinkRaw rel={UNKNOWN_LINK_REL} src={media.src} />
   }
 
   return null

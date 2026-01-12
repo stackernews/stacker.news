@@ -13,10 +13,18 @@ export default gql`
     spenderGrowth(when: String, from: String, to: String, sub: String, mine: Boolean): [TimeData!]!
     stackingGrowth(when: String, from: String, to: String, sub: String, mine: Boolean): [TimeData!]!
     stackerGrowth(when: String, from: String, to: String, sub: String, mine: Boolean): [TimeData!]!
+    growthTotals(when: String, from: String, to: String, sub: String, mine: Boolean): GrowthTotals
   }
 
   type TimeData {
     time: Date!
     data: [NameValue!]!
+  }
+
+  type GrowthTotals {
+    spending: Float!
+    stacking: Float!
+    items: Int!
+    registrations: Int
   }
 `

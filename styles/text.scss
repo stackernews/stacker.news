@@ -167,30 +167,14 @@
 }
 
 .sn-media {
-  /* max height can vary depending on context (top-level vs nested) */
   --sn-media-max-h: 25vh;
-
-  /* Lexical exports this wrapper as a <span>, so make it block-level */
   display: block;
-  margin: 1rem 0;
-
   max-width: 100%;
   max-height: var(--sn-media-max-h);
-
-  /*
-   * Preserve the original aspect ratio (from Lexical-provided --width/--height)
-   * while staying within viewport constraints.
-   *
-   * The second `width` line is invalid if --width/--height are missing, so
-   * browsers will fall back to `width: 100%`.
-   */
-  width: 100%;
+  width: fit-content;
   width: min(100%, calc(var(--sn-media-max-h) * var(--width) / var(--height)));
+  aspect-ratio: var(--width) / var(--height);
   overflow: hidden;
-}
-
-.sn-text--top-level .sn-media {
-  --sn-media-max-h: 35vh;
 }
 
 .sn-media__img, .sn-media__video {
@@ -200,6 +184,10 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+
+.sn-text--top-level .sn-media {
+  --sn-media-max-h: 35vh;
 }
 
 .sn-media__img {

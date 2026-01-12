@@ -221,8 +221,11 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
 
   const sizes = useMemo(() => srcSet ? '66vw' : undefined, [srcSet])
 
+  // avoid canonical fetch if we have a srcset and thus bestResSrc
+  const displaySrc = useMemo(() => (srcSet && bestResSrc) ? bestResSrc : src, [src, srcSet, bestResSrc])
+
   return {
-    src,
+    src: displaySrc,
     srcSet,
     alt,
     title,

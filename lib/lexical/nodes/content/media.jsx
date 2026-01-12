@@ -164,9 +164,13 @@ export class MediaNode extends DecoratorBlockNode {
     span.style.setProperty('--width', this.getWidthAndHeight().width)
     span.style.setProperty('--height', this.getWidthAndHeight().height)
 
+    const srcSet = this.getSrcSet()
+    const bestResSrc = this.getBestResSrc()
+
     const media = document.createElement(kind === 'video' ? 'video' : 'img')
     media.className = kind === 'video' ? editor._config.theme?.mediaVideo : editor._config.theme?.mediaImg
-    media.setAttribute('src', this.__src)
+    // avoid canonical fetch if we have bestResSrc
+    media.setAttribute('src', bestResSrc || this.__src)
     media.setAttribute('alt', this.__alt)
     media.setAttribute('title', this.__title)
 
@@ -177,16 +181,18 @@ export class MediaNode extends DecoratorBlockNode {
     if (kind === 'image') {
       media.setAttribute('loading', 'lazy')
       media.setAttribute('decoding', 'async')
-      if (this.__srcSet) {
-        media.setAttribute('srcset', this.__srcSet)
+      if (srcSet) {
+        media.setAttribute('srcset', srcSet)
         media.setAttribute('sizes', '66vw')
       }
     }
 
     if (kind === 'video') {
       media.setAttribute('controls', 'true')
-      media.setAttribute('poster', this.__bestResSrc)
-      media.setAttribute('preload', this.__bestResSrc !== this.__src ? 'metadata' : undefined)
+      if (bestResSrc) {
+        media.setAttribute('poster', bestResSrc)
+      }
+      media.setAttribute('preload', bestResSrc && bestResSrc !== this.__src ? 'metadata' : undefined)
     }
 
     media.style.opacity = 0

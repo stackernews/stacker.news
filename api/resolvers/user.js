@@ -1032,10 +1032,7 @@ export default {
       if (contributors.size === 0) {
         await loadContributors(contributors)
       }
-      if (me?.id === user.id) {
-        return contributors.has(user.name)
-      }
-      return !user.hideIsContributor && contributors.has(user.name)
+      return contributors.has(user.name)
     },
     stacked: async (user, { when, from, to }, { models, me }) => {
       if ((!me || me.id !== user.id) && user.hideFromTopUsers) {

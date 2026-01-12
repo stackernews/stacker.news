@@ -85,7 +85,6 @@ export default gql`
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
-    disableFreebies: Boolean
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -93,8 +92,6 @@ export default gql`
     hideTwitter: Boolean!
     hideFromTopUsers: Boolean!
     hideInvoiceDesc: Boolean!
-    hideIsContributor: Boolean!
-    hideWalletBalance: Boolean!
     imgproxyOnly: Boolean!
     showImagesAndVideos: Boolean!
     nostrCrossposting: Boolean!
@@ -108,7 +105,6 @@ export default gql`
     noteForwardedSats: Boolean!
     noteInvites: Boolean!
     noteItemSats: Boolean!
-    noteJobIndicator: Boolean!
     noteMentions: Boolean!
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
@@ -118,7 +114,6 @@ export default gql`
     turboTipping: Boolean!
     zapUndos: Int
     wildWestMode: Boolean!
-    withdrawMaxFeeDefault: Int!
   }
 
   type AuthMethods {

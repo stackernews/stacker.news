@@ -461,7 +461,8 @@ model Item {
   rankboost            Float                 @default(dbgenerated())
   genoutlawed          Boolean               @default(dbgenerated())
   subs                 ItemSub[]
-  sub                  Sub?                  @relation(fields: [subName], references: [name])
+  // Note: we leave this because there's an expensive exclusion constraint
+  // that depends on this column unnecessarily ... remove during next maintenance window
   subName              String?               @db.Citext
 
   @@index([uploadId])
@@ -672,7 +673,6 @@ model Sub {
   AggPayIn                AggPayIn[]
   AggPayOut               AggPayOut[]
   itemSubs                ItemSub[]
-  items                   Item[]
 
   @@index([parentName])
   @@index([createdAt])

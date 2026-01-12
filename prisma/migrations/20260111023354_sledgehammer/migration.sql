@@ -355,9 +355,6 @@ CREATE INDEX "WalletLog_created_at_idx" ON "WalletLog"("created_at");
 -- CreateIndex
 CREATE INDEX "WalletLog_protocolId_idx" ON "WalletLog"("protocolId");
 
--- AddForeignKey
-ALTER TABLE "Item" ADD CONSTRAINT "Item_subName_fkey" FOREIGN KEY ("subName") REFERENCES "Sub"("name") ON DELETE SET NULL ON UPDATE CASCADE;
-
 DROP FUNCTION IF EXISTS create_scheduled_jobs;
 DROP FUNCTION IF EXISTS get_territory_revenue;
 DROP FUNCTION IF EXISTS get_custodial_token_type;

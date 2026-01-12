@@ -105,6 +105,8 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
     <FormGroup label={label} className={groupClassName}>
       <span className='d-flex align-items-center'>
         <ReactSelect
+          maxMenuHeight={432}
+          menuPlacement='auto'
           instanceId={field.name + '-multi-select'}
           name={field.name}
           className={classNames(styles.multiSelect, styles[size], invalid && styles.isInvalid)}

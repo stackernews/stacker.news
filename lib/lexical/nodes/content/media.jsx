@@ -1,4 +1,5 @@
-import { $applyNodeReplacement, DecoratorNode, createState, $getState, $setState } from 'lexical'
+import { $applyNodeReplacement, createState, $getState, $setState } from 'lexical'
+import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 
 // kind and status can change over time, so we need to store them in states
 const kindState = createState('kind', {
@@ -52,7 +53,7 @@ function $convertMediaElement (domNode) {
   return { node }
 }
 
-export class MediaNode extends DecoratorNode {
+export class MediaNode extends DecoratorBlockNode {
   __src
   __title
   __alt
@@ -61,7 +62,7 @@ export class MediaNode extends DecoratorNode {
 
   $config () {
     return this.config('media', {
-      extends: DecoratorNode,
+      extends: DecoratorBlockNode,
       stateConfigs: [
         { flat: true, stateConfig: kindState },
         { flat: true, stateConfig: statusState },
@@ -73,8 +74,8 @@ export class MediaNode extends DecoratorNode {
     })
   }
 
-  constructor (src, title, alt, maxWidth, autolink, key) {
-    super(key)
+  constructor (src, title, alt, maxWidth, autolink, format, key) {
+    super(format, key)
     this.__src = src
     this.__title = title ?? ''
     this.__alt = alt ?? ''
@@ -89,6 +90,7 @@ export class MediaNode extends DecoratorNode {
       node.__alt,
       node.__maxWidth,
       node.__autolink,
+      node.__format,
       node.__key
     )
     return clone
@@ -155,56 +157,52 @@ export class MediaNode extends DecoratorNode {
       return { element: link }
     }
 
-    const element = document.createElement('span')
-    const className = editor._config.theme?.mediaContainer
-    if (className) element.className = className
-
-    const width = $getState(this, widthState)
-    const height = $getState(this, heightState)
-
-    element.style.setProperty('--width', width ? `${width}px` : 'inherit')
-    element.style.setProperty('--height', height ? `${height}px` : 'inherit')
-    element.style.setProperty('--max-width', `${this.__maxWidth}px`)
+    const span = document.createElement('span')
+    span.className = editor._config.theme?.media
+    span.setAttribute('data-sn-media', kind)
+    span.setAttribute('data-src', this.__src)
+    span.style.setProperty('--width', this.getWidthAndHeight().width)
+    span.style.setProperty('--height', this.getWidthAndHeight().height)
 
     const media = document.createElement(kind === 'video' ? 'video' : 'img')
-
+    media.className = kind === 'video' ? editor._config.theme?.mediaVideo : editor._config.theme?.mediaImg
     media.setAttribute('src', this.__src)
-    const srcSet = $getState(this, srcSetState)
-    const bestResSrc = $getState(this, bestResSrcState)
-    if (srcSet) {
-      media.setAttribute('srcset', srcSet)
-      media.setAttribute('sizes', '66vw')
-    }
-    if (bestResSrc && kind === 'video') {
-      media.setAttribute('poster', bestResSrc !== this.__src ? bestResSrc : undefined)
-      media.setAttribute('preload', bestResSrc !== this.__src ? 'metadata' : undefined)
-    }
-    if (this.__title) media.setAttribute('title', this.__title)
-    if (this.__alt) media.setAttribute('alt', this.__alt)
-    if (width) media.setAttribute('width', String(width))
-    if (height) media.setAttribute('height', String(height))
-    if (kind === 'video') media.setAttribute('controls', 'true')
+    media.setAttribute('alt', this.__alt)
+    media.setAttribute('title', this.__title)
 
-    element.appendChild(media)
-    return { element }
+    const { width, height } = this.getWidthAndHeight() || {}
+    if (width) media.setAttribute('width', width)
+    if (height) media.setAttribute('height', height)
+
+    if (kind === 'image') {
+      media.setAttribute('loading', 'lazy')
+      media.setAttribute('decoding', 'async')
+      if (this.__srcSet) {
+        media.setAttribute('srcset', this.__srcSet)
+        media.setAttribute('sizes', '66vw')
+      }
+    }
+
+    if (kind === 'video') {
+      media.setAttribute('controls', 'true')
+      media.setAttribute('poster', this.__bestResSrc)
+      media.setAttribute('preload', this.__bestResSrc !== this.__src ? 'metadata' : undefined)
+    }
+
+    media.style.opacity = 0
+
+    span.appendChild(media)
+
+    return { element: span }
   }
 
   createDOM (config) {
     const span = document.createElement('span')
-    const className = config.theme?.mediaContainer
-    if (className) {
-      span.className = className
-    }
-
-    const { width, height } = this.getWidthAndHeight()
-    if (width) {
-      span.style.setProperty('--width', `${width}px`)
-    }
-    if (height) {
-      span.style.setProperty('--height', `${height}px`)
-    }
-
-    span.style.setProperty('--max-width', `${this.__maxWidth}px`)
+    span.className = config.theme?.media
+    span.setAttribute('data-sn-media', this.getKind())
+    span.setAttribute('data-src', this.__src)
+    span.style.setProperty('--width', this.getWidthAndHeight().width)
+    span.style.setProperty('--height', this.getWidthAndHeight().height)
     return span
   }
 

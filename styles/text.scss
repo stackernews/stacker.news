@@ -166,46 +166,45 @@
   }
 }
 
-.sn-media-container {
-  display: flex;
-  width: 100%;
-  max-width: 100%;
-  max-height: 25vh;
-  height: auto;
-  overflow: hidden;
-  aspect-ratio: var(--width) / var(--height);
-  margin: 0;
-}
+.sn-media {
+  /* max height can vary depending on context (top-level vs nested) */
+  --sn-media-max-h: 25vh;
 
-.sn-paragraph:has(> .sn-media-container) .sn-media-container {
-  width: min-content;
-}
-
-.sn-paragraph:has(> .sn-media-container) .sn-media-container img,
-.sn-paragraph:has(> .sn-media-container) .sn-media-container video {
-  min-width: 30%;
-  max-width: stretch;
-}
-
-.sn-media-container img,
-.sn-media-container video {
+  /* Lexical exports this wrapper as a <span>, so make it block-level */
   display: block;
-  object-fit: contain;
-  width: auto;
+  margin: 1rem 0;
+
   max-width: 100%;
-  min-width: 30%;
-  height: 100%;
-  max-height: inherit;
-  aspect-ratio: var(--width) / var(--height);
+  max-height: var(--sn-media-max-h);
+
+  /*
+   * Preserve the original aspect ratio (from Lexical-provided --width/--height)
+   * while staying within viewport constraints.
+   *
+   * The second `width` line is invalid if --width/--height are missing, so
+   * browsers will fall back to `width: 100%`.
+   */
+  width: 100%;
+  width: min(100%, calc(var(--sn-media-max-h) * var(--width) / var(--height)));
+  overflow: hidden;
 }
 
-.sn-media-container img {
+.sn-text--top-level .sn-media {
+  --sn-media-max-h: 35vh;
+}
+
+.sn-media__img, .sn-media__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.sn-media__img {
   cursor: zoom-in;
   object-position: left top;
-}
-
-.sn-text--top-level .sn-media-container {
-  max-height: 35vh;
 }
 
 /* in case media-or-link detects a link */

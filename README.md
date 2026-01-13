@@ -1,11 +1,11 @@
 <p align="center">
 <a href="https://stacker.news">
-<img height="50" alt="Internet Communities with Bitcoin Economies" src="https://github.com/stackernews/stacker.news/assets/34140557/a8ccc5dc-c453-46dc-be74-60dd0a42ce09">
+<img height="50" alt="sn banner" src="https://github.com/stackernews/stacker.news/assets/34140557/a8ccc5dc-c453-46dc-be74-60dd0a42ce09">
 </a>
 </p>
 
 
-- Stacker News is trying to fix online communities with economics
+- Stacker News moderates forums with money
 - What You See is What We Ship (look ma, I invented an initialism)
 - 100% FOSS
 - We pay bitcoin for PRs, issues, documentation, code reviews and more

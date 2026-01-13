@@ -52,7 +52,7 @@ function MediaError ({ width, height, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width, alt, title,
-  height, onClick, onError, video, style, onLoad
+  height, onClick, onError, video, style, onLoad, innerStyle
 }) {
   const sized = !!(width && height && width > 0 && height > 0)
   const content = (
@@ -69,6 +69,7 @@ const Media = memo(function Media ({
             height={height}
             onError={onError}
             onLoad={onLoad}
+            style={innerStyle}
           />
           )
         : (
@@ -86,6 +87,7 @@ const Media = memo(function Media ({
             onClick={onClick}
             onError={onError}
             onLoad={onLoad}
+            style={innerStyle}
           />
           )}
     </>
@@ -192,6 +194,7 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
     console.error('Error loading media', err)
     removeMedia(media.bestResSrc)
     setError(true)
+    setIsLoading(false)
   }, [setError, removeMedia, media.bestResSrc])
 
   const handleLoad = useCallback(() => {
@@ -206,7 +209,7 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
         <>
           {isLoading && <MediaLoading autolink={props.kind === 'unknown'} />}
           <Media
-            {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad}
+            {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad} innerStyle={isLoading ? { width: 0, height: 0 } : undefined}
           />
         </>
       )

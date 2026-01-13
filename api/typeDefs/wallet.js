@@ -236,7 +236,6 @@ const typeDefs = gql`
     autoWithdrawThreshold: Int
     autoWithdrawMaxFeePercent: Float
     autoWithdrawMaxFeeTotal: Int
-    proxyReceive: Boolean!
   }
 
   input WalletSettingsInput {

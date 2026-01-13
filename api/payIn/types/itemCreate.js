@@ -210,7 +210,7 @@ export async function onPaid (tx, payInId) {
     // denormalize ncomments, lastCommentAt for ancestors, and insert into reply table
     await tx.$executeRaw`
       WITH comment AS (
-        SELECT "Item".*, users.trust
+        SELECT "Item".*
         FROM "Item"
         JOIN users ON "Item"."userId" = users.id
         WHERE "Item".id = ${item.id}::INTEGER

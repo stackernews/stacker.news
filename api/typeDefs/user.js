@@ -45,14 +45,11 @@ export default gql`
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
-    hideWelcomeBanner: Boolean
-    hideWalletRecvPrompt: Boolean
     subscribeUserPosts(id: ID): User
     subscribeUserComments(id: ID): User
     toggleMute(id: ID): User
     generateApiKey(id: ID!): String
     deleteApiKey(id: ID!): User
-    disableFreebies: Boolean
     setDiagnostics(diagnostics: Boolean!): Boolean
   }
 
@@ -85,7 +82,6 @@ export default gql`
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
-    disableFreebies: Boolean
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -93,8 +89,6 @@ export default gql`
     hideTwitter: Boolean!
     hideFromTopUsers: Boolean!
     hideInvoiceDesc: Boolean!
-    hideIsContributor: Boolean!
-    hideWalletBalance: Boolean!
     imgproxyOnly: Boolean!
     showImagesAndVideos: Boolean!
     nostrCrossposting: Boolean!
@@ -108,7 +102,6 @@ export default gql`
     noteForwardedSats: Boolean!
     noteInvites: Boolean!
     noteItemSats: Boolean!
-    noteJobIndicator: Boolean!
     noteMentions: Boolean!
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
@@ -118,7 +111,6 @@ export default gql`
     turboTipping: Boolean!
     zapUndos: Int
     wildWestMode: Boolean!
-    withdrawMaxFeeDefault: Int!
   }
 
   type AuthMethods {
@@ -137,14 +129,10 @@ export default gql`
     sats: Int!
     credits: Int!
     authMethods: AuthMethods!
-    lnAddr: String
 
     """
     only relevant to user
     """
-    lastCheckedJobs: String
-    hideWelcomeBanner: Boolean!
-    hideWalletRecvPrompt: Boolean!
     tipPopover: Boolean!
     upvotePopover: Boolean!
     hasInvites: Boolean!
@@ -159,8 +147,6 @@ export default gql`
     noReferralLinks: Boolean!
     fiatCurrency: String!
     satsFilter: Int!
-    disableFreebies: Boolean
-    greeterMode: Boolean!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -168,8 +154,6 @@ export default gql`
     hideTwitter: Boolean!
     hideFromTopUsers: Boolean!
     hideInvoiceDesc: Boolean!
-    hideIsContributor: Boolean!
-    hideWalletBalance: Boolean!
     imgproxyOnly: Boolean!
     showImagesAndVideos: Boolean!
     nostrCrossposting: Boolean!
@@ -183,7 +167,6 @@ export default gql`
     noteForwardedSats: Boolean!
     noteInvites: Boolean!
     noteItemSats: Boolean!
-    noteJobIndicator: Boolean!
     noteMentions: Boolean!
     noteItemMentions: Boolean!
     nsfwMode: Boolean!
@@ -194,7 +177,6 @@ export default gql`
     turboTipping: Boolean!
     zapUndos: Int
     wildWestMode: Boolean!
-    withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
     vaultKeyHash: String
     vaultKeyHashUpdatedAt: Date
@@ -213,7 +195,6 @@ export default gql`
     horseStreak: Int
     hasSendWallet: Boolean
     hasRecvWallet: Boolean
-    hideWalletRecvPrompt: Boolean
     maxStreak: Int
     isContributor: Boolean
     githubId: String

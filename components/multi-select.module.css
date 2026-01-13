@@ -7,8 +7,10 @@
   box-shadow: none;
 }
 
-.multiSelect :global(.ms__control:hover) {
-  border-color: var(--theme-borderColor);
+@media (hover: hover) {
+  .multiSelect :global(.ms__control:hover) {
+    border-color: var(--theme-borderColor);
+  }
 }
 
 .multiSelect :global(.ms__control--is-focused) {
@@ -16,8 +18,10 @@
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
-.multiSelect :global(.ms__control--is-focused:hover) {
-  border-color: var(--bs-primary);
+@media (hover: hover) {
+  .multiSelect :global(.ms__control--is-focused:hover) {
+    border-color: var(--bs-primary);
+  }
 }
 
 /* Invalid state */
@@ -29,9 +33,11 @@
   box-shadow: 0 0 0 0.2rem rgba(192, 50, 33, 0.25);
 }
 
-.multiSelect.isInvalid :global(.ms__control:hover),
-.multiSelect.isInvalid :global(.ms__control--is-focused:hover) {
-  border-color: #c03221;
+@media (hover: hover) {
+  .multiSelect.isInvalid :global(.ms__control:hover),
+  .multiSelect.isInvalid :global(.ms__control--is-focused:hover) {
+    border-color: #c03221;
+  }
 }
 
 /* Value container */
@@ -46,11 +52,18 @@
   z-index: 1050;
 }
 
+.multiSelect :global(.ms__menu-list) {
+  overflow-x: hidden;
+}
+
 /* Option styles */
 .multiSelect :global(.ms__option) {
   background-color: transparent;
   color: var(--bs-body-color);
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .multiSelect :global(.ms__option--is-focused) {
@@ -84,9 +97,11 @@
   color: var(--theme-grey);
 }
 
-.multiSelect :global(.ms__multi-value__remove:hover) {
-  background-color: var(--theme-clickToContextColor);
-  color: var(--bs-body-color);
+@media (hover: hover) {
+  .multiSelect :global(.ms__multi-value__remove:hover) {
+    background-color: var(--theme-clickToContextColor);
+    color: var(--bs-body-color);
+  }
 }
 
 /* Input */
@@ -178,5 +193,41 @@
 
 .multiValueLabelDefault {
   cursor: default;
+}
+
+/* Mobile touch targets */
+@media (max-width: 767px) {
+  .multiSelect :global(.ms__option) {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+  }
+
+  .multiSelect :global(.ms__multi-value) {
+    align-items: center;
+  }
+
+  .multiSelect :global(.ms__multi-value__label) {
+    padding: 6px 8px;
+  }
+
+  .multiValueRemove {
+    padding: 6px 8px;
+  }
+
+  .clearIndicator {
+    padding: 0 10px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .dropdownIndicator {
+    padding: 0 10px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
 }
 

@@ -127,7 +127,6 @@ export default gql`
     freebie: Boolean!
     freedFreebie: Boolean!
     bio: Boolean!
-    paidImgLink: Boolean
     ncomments: Int!
     nDirectComments: Int!
     comments(sort: String, cursor: String): Comments!

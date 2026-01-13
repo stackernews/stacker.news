@@ -168,13 +168,15 @@ export class MediaNode extends DecoratorBlockNode {
     const bestResSrc = this.getBestResSrc()
 
     const media = document.createElement(kind === 'video' ? 'video' : 'img')
-    media.className = kind === 'video' ? editor._config.theme?.mediaVideo : editor._config.theme?.mediaImg
+    const { width, height } = this.getWidthAndHeight() || {}
+    const sized = width && height
+    const baseClass = kind === 'video' ? editor._config.theme?.mediaVideo : editor._config.theme?.mediaImg
+    media.className = `${baseClass}${sized ? ` ${baseClass}--sized` : ''}`
     // avoid canonical fetch if we have bestResSrc
     media.setAttribute('src', bestResSrc || this.__src)
     media.setAttribute('alt', this.__alt)
     media.setAttribute('title', this.__title)
 
-    const { width, height } = this.getWidthAndHeight() || {}
     if (width) media.setAttribute('width', width)
     if (height) media.setAttribute('height', height)
 
@@ -195,6 +197,7 @@ export class MediaNode extends DecoratorBlockNode {
       media.setAttribute('preload', bestResSrc && bestResSrc !== this.__src ? 'metadata' : undefined)
     }
 
+    // hide media during SSR
     media.style.opacity = 0
 
     span.appendChild(media)

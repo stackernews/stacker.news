@@ -23,19 +23,21 @@ function LinkRaw ({ children, src, rel }) {
   )
 }
 
-function MediaError ({ src, rel }) {
+function MediaError ({ width, height, src, rel }) {
   return (
     <LinkRaw rel={rel} src={src}>
-      <div className='sn-media__error'>
-        <FileError />
-        <p>
-          content not available
-          <br />
-          <span className='fw-medium'>
-            view original <sup><ExternalLink width={14} height={14} /></sup>
-          </span>
-        </p>
-      </div>
+      {width && height && (
+        <div className='sn-media__error'>
+          <FileError />
+          <p>
+            content not available
+            <br />
+            <span className='fw-medium'>
+              view original <sup><ExternalLink width={14} height={14} /></sup>
+            </span>
+          </p>
+        </div>
+      )}
     </LinkRaw>
   )
 }
@@ -44,11 +46,12 @@ const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width, alt, title,
   height, onClick, onError, video, style
 }) {
+  const sized = !!(width && height && width > 0 && height > 0)
   const content = (
     video
       ? (
         <video
-          className='sn-media__video'
+          className={`sn-media__video${sized ? ' sn-media__video--sized' : ''}`}
           src={src}
           preload={bestResSrc !== src ? 'metadata' : undefined}
           controls
@@ -60,7 +63,7 @@ const Media = memo(function Media ({
         )
       : (
         <img
-          className='sn-media__img'
+          className={`sn-media__img${sized ? ' sn-media__img--sized' : ''}`}
           src={src}
           alt={alt}
           title={title}
@@ -191,7 +194,7 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
   }
 
   if (linkFallback) {
-    return <MediaError src={media.src} rel={UNKNOWN_LINK_REL} />
+    return <MediaError width={media.width} height={media.height} src={media.src} rel={UNKNOWN_LINK_REL} />
   }
 
   return null

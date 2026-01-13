@@ -172,7 +172,11 @@
   max-width: 100%;
   max-height: var(--sn-media-max-h);
   width: fit-content;
-  width: min(100%, calc(var(--sn-media-max-h) * var(--width) / var(--height)));
+  width: min(
+    100%,
+    calc(var(--sn-media-max-h) * var(--width) / var(--height)),
+    calc(var(--width) * 1px)
+  );
   aspect-ratio: var(--width) / var(--height);
   overflow: hidden;
 }

@@ -7,6 +7,8 @@ import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
 import { useCarousel } from '@/components/carousel'
 import { useMe } from '@/components/me'
 import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
+import FileError from '@/svgs/editor/file-error.svg'
+import ExternalLink from '@/svgs/editor/external-link.svg'
 
 function LinkRaw ({ children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -18,6 +20,23 @@ function LinkRaw ({ children, src, rel }) {
       href={src}
     >{isRawURL || !children ? src : children}
     </a>
+  )
+}
+
+function MediaError ({ src, rel }) {
+  return (
+    <LinkRaw rel={rel} src={src}>
+      <div className='sn-media__error'>
+        <FileError />
+        <p>
+          content not available
+          <br />
+          <span className='fw-medium'>
+            view original <sup><ExternalLink width={14} height={14} /></sup>
+          </span>
+        </p>
+      </div>
+    </LinkRaw>
   )
 }
 
@@ -172,7 +191,7 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
   }
 
   if (linkFallback) {
-    return <LinkRaw rel={UNKNOWN_LINK_REL} src={media.src} />
+    return <MediaError src={media.src} rel={UNKNOWN_LINK_REL} />
   }
 
   return null
@@ -238,11 +257,8 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
 
   const sizes = useMemo(() => srcSet ? '66vw' : undefined, [srcSet])
 
-  // avoid canonical fetch if we have a srcset and thus bestResSrc
-  const displaySrc = useMemo(() => (srcSet && bestResSrc) ? bestResSrc : src, [src, srcSet, bestResSrc])
-
   return {
-    src: displaySrc,
+    src,
     srcSet,
     alt,
     title,

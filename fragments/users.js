@@ -84,7 +84,6 @@ export const SETTINGS_FIELDS = gql`
       hideGithub
       hideNostr
       hideTwitter
-      hideIsContributor
       imgproxyOnly
       showImagesAndVideos
       noReferralLinks

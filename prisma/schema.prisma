@@ -100,7 +100,6 @@ model User {
   followers                 UserSubscription[]     @relation("follower")
   followees                 UserSubscription[]     @relation("followee")
   diagnostics               Boolean                @default(false)
-  hideIsContributor         Boolean                @default(false)
   autoWithdrawMaxFeePercent Float?
   autoWithdrawThreshold     Int?
   autoWithdrawMaxFeeTotal   Int?

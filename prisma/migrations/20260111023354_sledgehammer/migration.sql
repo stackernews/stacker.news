@@ -294,7 +294,8 @@ DROP COLUMN "proxyReceive",
 DROP COLUMN "slashtagId",
 DROP COLUMN "trust",
 DROP COLUMN "upvoteTrust",
-DROP COLUMN "withdrawMaxFeeDefault";
+DROP COLUMN "withdrawMaxFeeDefault",
+DROP COLUMN "hideIsContributor";
 
 -- DropTable
 DROP TABLE "Arc";

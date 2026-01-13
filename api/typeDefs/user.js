@@ -89,7 +89,6 @@ export default gql`
     hideTwitter: Boolean!
     hideFromTopUsers: Boolean!
     hideInvoiceDesc: Boolean!
-    hideIsContributor: Boolean!
     imgproxyOnly: Boolean!
     showImagesAndVideos: Boolean!
     nostrCrossposting: Boolean!
@@ -155,7 +154,6 @@ export default gql`
     hideTwitter: Boolean!
     hideFromTopUsers: Boolean!
     hideInvoiceDesc: Boolean!
-    hideIsContributor: Boolean!
     imgproxyOnly: Boolean!
     showImagesAndVideos: Boolean!
     nostrCrossposting: Boolean!

@@ -74,7 +74,7 @@ export async function getInitial (models, payInArgs, { me }) {
       }
 
       // TODO: description, expiry?
-      payOutBolt11 = await payOutBolt11Prospect(models, { msats: zapMtokens }, { userId, payOutType: 'ZAP' }, testBolt11Func)
+      payOutBolt11 = await payOutBolt11Prospect(models, { msats: zapMtokens, description: 'SN: zap to item #' + parseInt(payInArgs.id) }, { userId, payOutType: 'ZAP' }, testBolt11Func)
       // some wallets truncate msats, so we need to update zapMtokens to the actual amount received
       zapMtokens = payOutBolt11.msats
       payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })

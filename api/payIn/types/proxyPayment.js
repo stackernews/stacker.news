@@ -18,7 +18,7 @@ export async function getInitial (models, { msats, description, descriptionHash,
   // payInBolt11 and payOutBolt11 belong to the same user
   const payOutBolt11 = await payOutBolt11Prospect(models, {
     msats: proxyPaymentMtokens,
-    description: me.hideInvoiceDesc ? undefined : description,
+    description,
     descriptionHash,
     expiry
   }, { payOutType: 'PROXY_PAYMENT', userId: me.id })

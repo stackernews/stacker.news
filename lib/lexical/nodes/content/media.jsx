@@ -199,6 +199,9 @@ export class MediaNode extends DecoratorBlockNode {
 
     // hide media during SSR
     media.style.opacity = 0
+    const loading = document.createElement('div')
+    loading.className = 'sn-media__loading'
+    loading.appendChild(media)
 
     span.appendChild(media)
 

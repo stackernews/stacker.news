@@ -37,6 +37,7 @@ const initiateLexical = (editor, state, text) => {
 }
 
 export default function Reader ({ topLevel, state, text, preview, name, readerRef, innerClassName }) {
+  console.log('Reader', { topLevel, state, text, preview, name, readerRef, innerClassName })
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',

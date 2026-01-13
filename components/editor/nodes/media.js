@@ -9,6 +9,7 @@ import { useMe } from '@/components/me'
 import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
 import ExternalLink from '@/svgs/editor/external-link.svg'
+import Moon from '@/svgs/moon-fill.svg'
 
 function LinkRaw ({ children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -20,6 +21,13 @@ function LinkRaw ({ children, src, rel }) {
       href={src}
     >{isRawURL || !children ? src : children}
     </a>
+  )
+}
+
+function MediaLoading ({ autolink }) {
+  const style = autolink ? { width: '200px', height: '150px' } : undefined
+  return (
+    <div className='sn-media__loading' style={style} />
   )
 }
 
@@ -44,39 +52,43 @@ function MediaError ({ width, height, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width, alt, title,
-  height, onClick, onError, video, style
+  height, onClick, onError, video, style, onLoad
 }) {
   const sized = !!(width && height && width > 0 && height > 0)
   const content = (
-    video
-      ? (
-        <video
-          className={`sn-media__video${sized ? ' sn-media__video--sized' : ''}`}
-          src={src}
-          preload={bestResSrc !== src ? 'metadata' : undefined}
-          controls
-          poster={bestResSrc !== src ? bestResSrc : undefined}
-          width={width}
-          height={height}
-          onError={onError}
-        />
-        )
-      : (
-        <img
-          className={`sn-media__img${sized ? ' sn-media__img--sized' : ''}`}
-          src={src}
-          alt={alt}
-          title={title}
-          srcSet={srcSet}
-          sizes={sizes}
-          width={width}
-          height={height}
-          loading='lazy'
-          decoding='async'
-          onClick={onClick}
-          onError={onError}
-        />
-        )
+    <>
+      {video
+        ? (
+          <video
+            className={`sn-media__video${sized ? ' sn-media__video--sized' : ''}`}
+            src={src}
+            preload={bestResSrc !== src ? 'metadata' : undefined}
+            controls
+            poster={bestResSrc !== src ? bestResSrc : undefined}
+            width={width}
+            height={height}
+            onError={onError}
+            onLoad={onLoad}
+          />
+          )
+        : (
+          <img
+            className={`sn-media__img${sized ? ' sn-media__img--sized' : ''}`}
+            src={src}
+            alt={alt}
+            title={title}
+            srcSet={srcSet}
+            sizes={sizes}
+            width={width}
+            height={height}
+            loading='lazy'
+            decoding='async'
+            onClick={onClick}
+            onError={onError}
+            onLoad={onLoad}
+          />
+          )}
+    </>
   )
 
   return style ? <div style={style}>{content}</div> : content
@@ -157,6 +169,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
 
 export function MediaOrLink ({ linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
   const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel()
 
@@ -181,14 +194,28 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
     setError(true)
   }, [setError, removeMedia, media.bestResSrc])
 
+  const handleLoad = useCallback(() => {
+    setIsLoading(false)
+  }, [setIsLoading])
+
   if (!media.src) return null
 
   if (!error) {
     if (media.image || media.video) {
       return (
-        <Media
-          {...media} onClick={handleClick} onError={handleError}
-        />
+        <>
+          {isLoading && <MediaLoading autolink={props.kind === 'unknown'} />}
+          <Media
+            {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad}
+          />
+        </>
+      )
+    } else {
+      return (
+        <div className='d-flex gap-1'>
+          <LinkRaw src={media.src} rel={UNKNOWN_LINK_REL} />
+          <Moon className='spin fill-grey' width={14} height={14} style={{ marginTop: '2px' }} />
+        </div>
       )
     }
   }

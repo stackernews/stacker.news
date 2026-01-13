@@ -148,6 +148,8 @@ export class EmbedNode extends DecoratorBlockNode {
       focus: embedBlockTheme.focus || ''
     }
 
+    console.log('toplevel', !!config.theme?.topLevel)
+
     return (
       <BlockWithAlignableContents
         nodeKey={this.getKey()}

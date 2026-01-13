@@ -42,7 +42,7 @@ export default function Seo ({ sub, item, user }) {
   const defaultTitle = pathNoQuery.slice(1)
   const snStr = `stacker news${sub ? ` ~${sub}` : ''}`
   let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}stacker news`
-  let desc = "It's like Hacker News but we pay you Bitcoin."
+  let desc = "moderating forums with money"
   if (item) {
     if (item.title) {
       fullTitle = `${item.title} \\ ${snStr}`

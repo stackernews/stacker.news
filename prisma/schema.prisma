@@ -20,10 +20,10 @@ model User {
   email                     String?                @unique(map: "users.email_unique")
   emailVerified             DateTime?              @map("email_verified")
   emailHash                 String?                @unique(map: "users.email_hash_unique")
-  image                     String?
+  image                     String?                @ignore
   msats                     BigInt                 @default(0)
-  freeComments              Int                    @default(5)
-  freePosts                 Int                    @default(2)
+  freeComments              Int                    @default(5) @ignore
+  freePosts                 Int                    @default(2) @ignore
   checkedNotesAt            DateTime?
   foundNotesAt              DateTime?
   pubkey                    String?                @unique(map: "users.pubkey_unique")
@@ -36,7 +36,7 @@ model User {
   inviteId                  String?
   tipPopover                Boolean                @default(false)
   upvotePopover             Boolean                @default(false)
-  trust                     Float                  @default(0)
+  trust                     Float                  @default(0) @ignore
   lastSeenAt                DateTime?
   stackedMsats              BigInt                 @default(0)
   stackedMcredits           BigInt                 @default(0)
@@ -49,30 +49,30 @@ model User {
   noteMentions              Boolean                @default(true)
   noteItemMentions          Boolean                @default(true)
   noteForwardedSats         Boolean                @default(true)
-  lastCheckedJobs           DateTime?
-  noteJobIndicator          Boolean                @default(true)
+  lastCheckedJobs           DateTime?              @ignore
+  noteJobIndicator          Boolean                @default(true) @ignore
   photoId                   Int?
-  upvoteTrust               Float                  @default(0)
+  upvoteTrust               Float                  @default(0) @ignore
   hideInvoiceDesc           Boolean                @default(false)
   wildWestMode              Boolean                @default(false)
   satsFilter                Int                    @default(10)
   nsfwMode                  Boolean                @default(false)
   fiatCurrency              String                 @default("USD")
-  withdrawMaxFeeDefault     Int                    @default(10)
+  withdrawMaxFeeDefault     Int                    @default(10) @ignore
   autoDropBolt11s           Boolean                @default(false)
   hideFromTopUsers          Boolean                @default(false)
   turboTipping              Boolean                @default(false)
   zapUndos                  Int?
   imgproxyOnly              Boolean                @default(false)
   showImagesAndVideos       Boolean                @default(true)
-  hideWalletBalance         Boolean                @default(false)
-  disableFreebies           Boolean?
+  hideWalletBalance         Boolean                @default(false) @ignore
+  disableFreebies           Boolean?               @ignore
   referrerId                Int?
   nostrPubkey               String?
-  greeterMode               Boolean                @default(false)
+  greeterMode               Boolean                @default(false) @ignore
   nostrAuthPubkey           String?                @unique(map: "users.nostrAuthPubkey_unique")
   nostrCrossposting         Boolean                @default(false)
-  slashtagId                String?                @unique(map: "users.slashtagId_unique")
+  slashtagId                String?                @unique(map: "users.slashtagId_unique") @ignore
   noteCowboyHat             Boolean                @default(true)
   streak                    Int?
   gunStreak                 Int?
@@ -84,22 +84,22 @@ model User {
   subs                      String[]
   hideCowboyHat             Boolean                @default(false)
   Bookmarks                 Bookmark[]
-  Donation                  Donation[]
+  Donation                  Donation[]             @ignore
   Earn                      Earn[]
   invites                   Invite[]               @relation("Invites")
-  invoices                  Invoice[]
+  invoices                  Invoice[]              @ignore
   items                     Item[]                 @relation("UserItems")
-  actions                   ItemAct[]
+  actions                   ItemAct[]              @ignore
   mentions                  Mention[]
-  messages                  Message[]
+  messages                  Message[]              @ignore
   PushSubscriptions         PushSubscription[]
-  ReferralAct               ReferralAct[]
+  ReferralAct               ReferralAct[]          @ignore
   Streak                    Streak[]
   ThreadSubscriptions       ThreadSubscription[]
   SubSubscriptions          SubSubscription[]
   Upload                    Upload[]               @relation("Uploads")
   nostrRelays               UserNostrRelay[]
-  withdrawls                Withdrawl[]
+  withdrawls                Withdrawl[]            @ignore
   bio                       Item?                  @relation(fields: [bioId], references: [id])
   invite                    Invite?                @relation(fields: [inviteId], references: [id])
   photo                     Upload?                @relation(fields: [photoId], references: [id])
@@ -117,11 +117,11 @@ model User {
   twitterId                 String?
   followers                 UserSubscription[]     @relation("follower")
   followees                 UserSubscription[]     @relation("followee")
-  hideWelcomeBanner         Boolean                @default(false)
-  hideWalletRecvPrompt      Boolean                @default(false)
+  hideWelcomeBanner         Boolean                @default(false) @ignore
+  hideWalletRecvPrompt      Boolean                @default(false) @ignore
   diagnostics               Boolean                @default(false)
-  hideIsContributor         Boolean                @default(false)
-  lnAddr                    String?
+  hideIsContributor         Boolean                @default(false) @ignore
+  lnAddr                    String?                @ignore
   autoWithdrawMaxFeePercent Float?
   autoWithdrawThreshold     Int?
   autoWithdrawMaxFeeTotal   Int?
@@ -130,10 +130,10 @@ model User {
   sendCreditsBelowSats      Int                    @default(10)
   muters                    Mute[]                 @relation("muter")
   muteds                    Mute[]                 @relation("muted")
-  ArcOut                    Arc[]                  @relation("fromUser")
-  ArcIn                     Arc[]                  @relation("toUser")
+  ArcOut                    Arc[]                  @relation("fromUser") @ignore
+  ArcIn                     Arc[]                  @relation("toUser") @ignore
   Sub                       Sub[]
-  SubAct                    SubAct[]
+  SubAct                    SubAct[]               @ignore
   MuteSub                   MuteSub[]
   wallets                   Wallet[]
   TerritoryTransfers        TerritoryTransfer[]    @relation("TerritoryTransfer_oldUser")
@@ -142,7 +142,7 @@ model User {
   Replies                   Reply[]
   walletLogs                WalletLog[]
   Reminder                  Reminder[]
-  PollBlindVote             PollBlindVote[]
+  PollBlindVote             PollBlindVote[]        @ignore
   ItemUserAgg               ItemUserAgg[]
   oneDayReferrals           OneDayReferral[]       @relation("OneDayReferral_referrer")
   oneDayReferrees           OneDayReferral[]       @relation("OneDayReferral_referrees")
@@ -150,9 +150,9 @@ model User {
   vaultKeyHashUpdatedAt     DateTime?
   showPassphrase            Boolean                @default(true)
   walletsUpdatedAt          DateTime?
-  proxyReceive              Boolean                @default(true)
-  DirectPaymentReceived     DirectPayment[]        @relation("DirectPaymentReceived")
-  DirectPaymentSent         DirectPayment[]        @relation("DirectPaymentSent")
+  proxyReceive              Boolean                @default(true) @ignore
+  DirectPaymentReceived     DirectPayment[]        @relation("DirectPaymentReceived") @ignore
+  DirectPaymentSent         DirectPayment[]        @relation("DirectPaymentSent") @ignore
   UserSubTrust              UserSubTrust[]
   PayIn                     PayIn[]
   PayInBolt11               PayInBolt11[]
@@ -176,8 +176,8 @@ model User {
 model Infection {
   id         Int      @id @default(autoincrement())
   createdAt  DateTime @default(now()) @map("created_at")
-  itemActId  Int?     @unique(map: "Infection_itemActId_unique")
-  itemAct    ItemAct? @relation(fields: [itemActId], references: [id], onDelete: Cascade)
+  itemActId  Int?     @unique(map: "Infection_itemActId_unique") @ignore
+  itemAct    ItemAct? @relation(fields: [itemActId], references: [id], onDelete: Cascade) @ignore
   infecteeId Int      @unique(map: "Infection_infecteeId_unique")
   infectorId Int?
   infectee   User     @relation("Infection_infectee", fields: [infecteeId], references: [id], onDelete: Cascade)
@@ -189,8 +189,8 @@ model Infection {
 model Cure {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")
-  itemActId Int?     @unique(map: "Cure_itemActId_unique")
-  itemAct   ItemAct? @relation(fields: [itemActId], references: [id], onDelete: Cascade)
+  itemActId Int?     @unique(map: "Cure_itemActId_unique") @ignore
+  itemAct   ItemAct? @relation(fields: [itemActId], references: [id], onDelete: Cascade) @ignore
   cureeId   Int      @unique(map: "Cure_cureeId_unique")
   curerId   Int?
   curee     User     @relation("Cure_curee", fields: [cureeId], references: [id], onDelete: Cascade)
@@ -268,10 +268,10 @@ model WalletLog {
   user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   level        LogLevel
   message      String
-  invoiceId    Int?
-  invoice      Invoice?        @relation(fields: [invoiceId], references: [id])
-  withdrawalId Int?
-  withdrawal   Withdrawl?      @relation(fields: [withdrawalId], references: [id])
+  invoiceId    Int?            @ignore
+  invoice      Invoice?        @relation(fields: [invoiceId], references: [id]) @ignore
+  withdrawalId Int?            @ignore
+  withdrawal   Withdrawl?      @relation(fields: [withdrawalId], references: [id]) @ignore
   context      Json?           @db.JsonB
   protocolId   Int?
   protocol     WalletProtocol? @relation(fields: [protocolId], references: [id], onDelete: Cascade)
@@ -304,6 +304,7 @@ model Arc {
 
   @@id([fromId, toId])
   @@index([toId, fromId])
+  @@ignore
 }
 
 enum StreakType {
@@ -353,6 +354,8 @@ model Donation {
   sats      Int
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@ignore
 }
 
 model ItemUpload {
@@ -379,9 +382,9 @@ model Upload {
   height             Int?
   userId             Int
   paid               Boolean             @default(false)
-  invoiceId          Int?
-  invoiceActionState InvoiceActionState?
-  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  invoiceId          Int?                @ignore
+  invoiceActionState InvoiceActionState? @ignore
+  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull) @ignore
   user               User                @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
   User               User[]
   ItemUpload         ItemUpload[]
@@ -430,6 +433,8 @@ model LnWith {
   withdrawalId Int?
   payInId      Int?     @unique
   payIn        PayIn?   @relation(fields: [payInId], references: [id], onDelete: Cascade)
+
+  @@ignore
 }
 
 model Invite {
@@ -456,6 +461,8 @@ model Message {
   text   String
   userId Int
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@ignore
 }
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
@@ -470,12 +477,12 @@ model Item {
   parentId             Int?
   path                 Unsupported("ltree")?
   pinId                Int?
-  latitude             Float?
+  latitude             Float?                @ignore
   location             String?
-  longitude            Float?
-  maxBid               Int?
-  maxSalary            Int?
-  minSalary            Int?
+  longitude            Float?                @ignore
+  maxBid               Int?                  @ignore
+  maxSalary            Int?                  @ignore
+  minSalary            Int?                  @ignore
   remote               Boolean?
   subName              String?               @db.Citext // TODO: remove after migration
   subNames             String[]              @db.Citext
@@ -487,7 +494,7 @@ model Item {
   boost                Int                   @default(0)
   oldBoost             Int                   @default(0)
   pollCost             Int?
-  paidImgLink          Boolean               @default(false)
+  paidImgLink          Boolean               @default(false) @ignore
   commentMsats         BigInt                @default(0)
   commentDownMsats     BigInt                @default(0)
   commentMcredits      BigInt                @default(0)
@@ -520,7 +527,7 @@ model Item {
   root                 Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
   descendants          Item[]                @relation("RootDescendant")
   user                 User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
-  itemActs             ItemAct[]
+  itemActs             ItemAct[]             @ignore
   mentions             Mention[]
   itemReferrers        ItemMention[]         @relation("referrer")
   itemReferees         ItemMention[]         @relation("referee")
@@ -531,17 +538,17 @@ model Item {
   itemForwards         ItemForward[]
   itemUploads          ItemUpload[]
   uploadId             Int?
-  invoiceId            Int?
-  invoiceActionState   InvoiceActionState?
-  invoicePaidAt        DateTime?
+  invoiceId            Int?                  @ignore
+  invoiceActionState   InvoiceActionState?   @ignore
+  invoicePaidAt        DateTime?             @ignore
   outlawed             Boolean               @default(false)
   apiKey               Boolean               @default(false)
   pollExpiresAt        DateTime?
   Ancestors            Reply[]               @relation("AncestorReplyItem")
   Replies              Reply[]
   Reminder             Reminder[]
-  invoice              Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  PollBlindVote        PollBlindVote[]
+  invoice              Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: SetNull) @ignore
+  PollBlindVote        PollBlindVote[]       @ignore
   ItemUserAgg          ItemUserAgg[]
   AutoSocialPost       AutoSocialPost[]
   randPollOptions      Boolean               @default(false)
@@ -552,7 +559,7 @@ model Item {
   rankboost            Float                 @default(dbgenerated())
   genoutlawed          Boolean               @default(dbgenerated())
   subs                 ItemSub[]
-  sub                  Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  sub                  Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade) @ignore
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -713,11 +720,11 @@ model PollVote {
   updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
   itemId             Int
   pollOptionId       Int
-  invoiceId          Int?
-  invoiceActionState InvoiceActionState?
+  invoiceId          Int?                @ignore
+  invoiceActionState InvoiceActionState? @ignore
   payIn              PayIn?              @relation(fields: [payInId], references: [id])
   payInId            Int?                @unique
-  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull) @ignore
   item               Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
   pollOption         PollOption          @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
 
@@ -742,6 +749,7 @@ model PollBlindVote {
   @@unique([itemId, userId], map: "PollBlindVote.itemId_userId_unique")
   @@index([userId], map: "PollBlindVote.userId_index")
   @@index([invoiceActionState])
+  @@ignore
 }
 
 enum BillingType {
@@ -785,7 +793,7 @@ model Sub {
   parent                  Sub?                      @relation("ParentChildren", fields: [parentName], references: [name])
   children                Sub[]                     @relation("ParentChildren")
   user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  SubAct                  SubAct[]
+  SubAct                  SubAct[]                  @ignore
   MuteSub                 MuteSub[]
   SubSubscription         SubSubscription[]
   TerritoryTransfer       TerritoryTransfer[]
@@ -795,7 +803,7 @@ model Sub {
   AggPayIn                AggPayIn[]
   AggPayOut               AggPayOut[]
   itemSubs                ItemSub[]
-  items                   Item[]
+  items                   Item[]                    @ignore
 
   @@index([parentName])
   @@index([createdAt])
@@ -821,6 +829,7 @@ model SubAct {
   @@index([createdAt])
   @@index([createdAt, type])
   @@index([userId, createdAt, type])
+  @@ignore
 }
 
 model MuteSub {
@@ -859,6 +868,7 @@ model ReferralAct {
 
   @@index([referrerId])
   @@index([itemActId])
+  @@ignore
 }
 
 model ItemAct {
@@ -891,6 +901,7 @@ model ItemAct {
   @@index([userId], map: "Vote.userId_index")
   @@index([invoiceId])
   @@index([invoiceActionState])
+  @@ignore
 }
 
 model Mention {
@@ -1001,6 +1012,7 @@ model Invoice {
   @@index([cancelledAt])
   @@index([actionType])
   @@index([actionState])
+  @@ignore
 }
 
 model DirectPayment {
@@ -1024,6 +1036,7 @@ model DirectPayment {
   @@index([createdAt])
   @@index([senderId])
   @@index([receiverId])
+  @@ignore
 }
 
 model InvoiceForward {
@@ -1049,6 +1062,7 @@ model InvoiceForward {
   @@index([invoiceId])
   @@index([protocolId])
   @@index([withdrawlId])
+  @@ignore
 }
 
 model Withdrawl {
@@ -1077,6 +1091,7 @@ model Withdrawl {
   @@index([protocolId])
   @@index([autoWithdraw])
   @@index([status])
+  @@ignore
 }
 
 model Account {
@@ -1415,9 +1430,9 @@ model WalletProtocol {
   enabled  Boolean              @default(true)
   status   WalletProtocolStatus @default(OK)
 
-  withdrawals    Withdrawl[]
-  directPayments DirectPayment[]
-  invoiceForward InvoiceForward[]
+  withdrawals    Withdrawl[]      @ignore
+  directPayments DirectPayment[]  @ignore
+  invoiceForward InvoiceForward[] @ignore
   logs           WalletLog[]
 
   walletSendNWC      WalletSendNWC?
@@ -1738,7 +1753,7 @@ model PayIn {
   pollVote              PollVote?
   uploadPayIns          UploadPayIn[]
   walletLogs            WalletLog[]
-  lnWiths               LnWith[]
+  lnWiths               LnWith[]               @ignore
   refundCustodialTokens RefundCustodialToken[]
 
   @@index([userId])

@@ -118,10 +118,30 @@ export async function onBegin (tx, payInId, args) {
     }
   }
 
+  // pre-populate imgproxyUrls with upload dimensions and type
+  // the imgproxy job will overwrite these with the actual imgproxy URLs and data
+  let imgproxyUrls
+  if (uploadIds.length > 0) {
+    const uploads = await tx.upload.findMany({
+      where: { id: { in: uploadIds } },
+      select: { id: true, width: true, height: true, type: true }
+    })
+
+    imgproxyUrls = {}
+    for (const upload of uploads) {
+      const url = `${process.env.NEXT_PUBLIC_MEDIA_URL}/${upload.id}`
+      imgproxyUrls[url] = {
+        dimensions: { width: upload.width, height: upload.height },
+        video: upload.type?.startsWith('video/')
+      }
+    }
+  }
+
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
     ...data,
     cost: msatsToSats(payIn.mcost),
+    imgproxyUrls,
     itemPayIns: {
       create: [{ payInId }]
     },

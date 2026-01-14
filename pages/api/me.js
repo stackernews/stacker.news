@@ -13,7 +13,7 @@ export default async (req, res) => {
   }
 
   const me = await models.user.findUnique({ where: { id: user.id } })
-  if (!me) {
+  if (!me?.name) {
     return res.redirect('/')
   }
 

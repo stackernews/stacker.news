@@ -18,6 +18,6 @@ CREATE INDEX "NotificationBulletin_created_at_idx" ON "NotificationBulletin"("cr
 
 INSERT INTO "NotificationBulletin" ("title", "text", "iconType","created_at") VALUES (
     'Howdy stranger, welcome to Stacker News!',
-    E'Check out our FAQ [**here**](/faq) or our guide [**here**](/guide). Get started by [**creating your bio**](https://stacker.news/me) and [**commenting in the Saloon**](https://stacker.news/daily).\n\nIf you''re here to earn sats, you''ll want to [**attach a wallet**](https://stacker.news/wallets).',
+    E'Check out our FAQ [**here**](/faq) or our guide [**here**](/guide). Get started by [**creating your bio**](/api/me) and [**commenting in the Saloon**](/api/daily).\n\nIf you''re here to earn sats, you''ll want to [**attach a wallet**](/wallets).',
     'MAP',
     '2021-01-13 00:00:00');

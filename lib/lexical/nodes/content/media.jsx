@@ -142,13 +142,11 @@ export class MediaNode extends DecoratorBlockNode {
     }
   }
 
-  // we're exporting a link node instead of a media node
-  // it contains everything we need to re-import it as a media node (html -> lexical)
-  // because of media checks, rendering HTML as a link ensures the only layout shift will be the media itself (SSR -> Lexical)
+  // we're exporting
   exportDOM (editor) {
     // if autolink, export as a link instead of media
     const kind = $getState(this, kindState)
-    if (kind === 'unknown' || this.__autolink) {
+    if (kind === 'unknown') {
       const link = document.createElement('a')
       link.setAttribute('href', this.__src)
       link.setAttribute('target', '_blank')
@@ -161,46 +159,9 @@ export class MediaNode extends DecoratorBlockNode {
     span.className = editor._config.theme?.media
     span.setAttribute('data-sn-media', kind)
     span.setAttribute('data-src', this.__src)
-    span.style.setProperty('--width', this.getWidthAndHeight().width)
-    span.style.setProperty('--height', this.getWidthAndHeight().height)
-
-    const srcSet = this.getSrcSet()
-    const bestResSrc = this.getBestResSrc()
-
-    const media = document.createElement(kind === 'video' ? 'video' : 'img')
     const { width, height } = this.getWidthAndHeight() || {}
-    const sized = width && height
-    const baseClass = kind === 'video' ? editor._config.theme?.mediaVideo : editor._config.theme?.mediaImg
-    media.className = `${baseClass}${sized ? ` ${baseClass}--sized` : ''}`
-    // avoid canonical fetch if we have bestResSrc
-    media.setAttribute('src', bestResSrc || this.__src)
-    media.setAttribute('alt', this.__alt)
-    media.setAttribute('title', this.__title)
-
-    if (width) media.setAttribute('width', width)
-    if (height) media.setAttribute('height', height)
-
-    if (kind === 'image') {
-      media.setAttribute('loading', 'lazy')
-      media.setAttribute('decoding', 'async')
-      if (srcSet) {
-        media.setAttribute('srcset', srcSet)
-        media.setAttribute('sizes', '66vw')
-      }
-    }
-
-    if (kind === 'video') {
-      media.setAttribute('controls', 'true')
-      if (bestResSrc) {
-        media.setAttribute('poster', bestResSrc)
-      }
-      media.setAttribute('preload', bestResSrc && bestResSrc !== this.__src ? 'metadata' : undefined)
-    }
-
-    // hide media during SSR
-    media.style.opacity = 0
-
-    span.appendChild(media)
+    width && span.style.setProperty('--width', width)
+    height && span.style.setProperty('--height', height)
 
     return { element: span }
   }

@@ -2,10 +2,10 @@ import { timeUnitForRange, whenRange } from '@/lib/time'
 import { Prisma } from '@prisma/client'
 
 function sliceClause (sub, me) {
-  return sub === 'all'
+  return sub === ALL_SUB
     ? Prisma.sql`"slice" = 'GLOBAL_BY_TYPE'`
     : sub
-      ? Prisma.sql`"slice" = 'SUB_BY_TYPE' AND "subName" = ${sub}`
+      ? Prisma.sql`"slice" = 'SUB_BY_TYPE' AND "subId" = ${sub.id}`
       : me
         ? Prisma.sql`"slice" = 'USER_BY_TYPE' AND "userId" = ${me.id}`
         : Prisma.sql`"slice" = 'GLOBAL_BY_TYPE'`
@@ -13,10 +13,10 @@ function sliceClause (sub, me) {
 
 // For total unique counts across all types (not sum of per-type counts)
 function totalSliceClause (sub, me) {
-  return sub === 'all'
+  return sub === ALL_SUB
     ? Prisma.sql`"slice" = 'GLOBAL'`
     : sub
-      ? Prisma.sql`"slice" = 'SUB_TOTAL' AND "subName" = ${sub}`
+      ? Prisma.sql`"slice" = 'SUB_TOTAL' AND "subId" = ${sub.id}`
       : me
         ? Prisma.sql`"slice" = 'USER_TOTAL' AND "userId" = ${me.id}`
         : Prisma.sql`"slice" = 'GLOBAL'`
@@ -44,7 +44,7 @@ function timeHelper (when, from, to) {
 }
 
 function spenderPayInsExcluded (sub, me) {
-  return (sub === 'all' || me)
+  return (sub === ALL_SUB || me)
     ? Prisma.sql`grid."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT',
       'DEFUNCT_TERRITORY_DAILY_PAYOUT', 'REWARDS', 'BUY_CREDITS')`
     : Prisma.sql`grid."payInType" NOT IN ('DONATE', 'INVITE_GIFT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL',
@@ -53,7 +53,7 @@ function spenderPayInsExcluded (sub, me) {
 }
 
 function stackerPayOutsExcluded (sub, me) {
-  return (sub === 'all' || me)
+  return (sub === ALL_SUB || me)
     ? Prisma.sql`grid."payOutType" NOT IN ('PROXY_PAYMENT', 'DEFUNCT_DELAYED_TERRITORY_REVENUE',
       'DEFUNCT_REFERRAL_ACT', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'WITHDRAWAL',
       'SYSTEM_REVENUE', 'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER')`
@@ -62,11 +62,22 @@ function stackerPayOutsExcluded (sub, me) {
         'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER')`
 }
 
+const ALL_SUB = 'all'
+
+const findSub = async (subName, models) => {
+  if (subName) {
+    return subName === 'all' ? ALL_SUB : await models.sub.findUnique({ where: { name: subName } })
+  }
+  return null
+}
+
 export default {
   Query: {
-    growthTotals: async (parent, { when, to, from, sub, mine }, { me, models }) => {
+    growthTotals: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
       // Use same timeHelper and grid pattern as time series queries so totals match
       const { granularity, series } = timeHelper(when, from, to)
+
+      const sub = await findSub(subName, models)
 
       // Get spending totals using same grid pattern as spendingGrowth
       const payInResult = await models.$queryRaw`
@@ -103,7 +114,7 @@ export default {
 
       // Get registration totals (only for global/all view)
       let registrations = null
-      if (sub === 'all' && !mine) {
+      if (sub === ALL_SUB && !mine) {
         const regResult = await models.$queryRaw`
           WITH series AS (
             ${series}
@@ -140,8 +151,10 @@ export default {
         GROUP BY series."timeBucket"
         ORDER BY series."timeBucket" ASC`
     },
-    spenderGrowth: async (parent, { when, to, from, sub, mine }, { me, models }) => {
+    spenderGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
       const { granularity, series } = timeHelper(when, from, to)
+
+      const sub = await findSub(subName, models)
 
       const result = await models.$queryRaw`
         WITH series AS (
@@ -172,8 +185,10 @@ export default {
 
       return result
     },
-    spendingGrowth: async (parent, { when, to, from, sub, mine }, { me, models }) => {
+    spendingGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
       const { granularity, series } = timeHelper(when, from, to)
+
+      const sub = await findSub(subName, models)
 
       return await models.$queryRaw`
          WITH series AS (
@@ -193,8 +208,10 @@ export default {
         GROUP BY grid."timeBucket"
         ORDER BY grid."timeBucket" ASC`
     },
-    itemGrowth: async (parent, { when, to, from, sub, mine }, { me, models }) => {
+    itemGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
       const { granularity, series } = timeHelper(when, from, to)
+
+      const sub = await findSub(subName, models)
 
       const result = await models.$queryRaw`
         WITH series AS (
@@ -216,8 +233,10 @@ export default {
 
       return result
     },
-    stackerGrowth: async (parent, { when, to, from, sub, mine }, { me, models }) => {
+    stackerGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
       const { granularity, series } = timeHelper(when, from, to)
+
+      const sub = await findSub(subName, models)
 
       return await models.$queryRaw`
         WITH series AS (
@@ -248,8 +267,10 @@ export default {
         GROUP BY grid."timeBucket", totals.total
         ORDER BY grid."timeBucket" ASC`
     },
-    stackingGrowth: async (parent, { when, to, from, sub, mine }, { me, models }) => {
+    stackingGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
       const { granularity, series } = timeHelper(when, from, to)
+
+      const sub = await findSub(subName, models)
 
       return await models.$queryRaw`
         WITH series AS (

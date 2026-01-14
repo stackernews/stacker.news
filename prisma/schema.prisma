@@ -636,6 +636,7 @@ enum RankingType {
 
 model Sub {
   name       String                @id @db.Citext
+  id         Int                   @unique @default(autoincrement())
   createdAt  DateTime              @default(now()) @map("created_at")
   updatedAt  DateTime              @default(now()) @updatedAt @map("updated_at")
   userId     Int
@@ -1412,13 +1413,13 @@ enum PayOutType {
 
 model SubPayOutCustodialToken {
   id                     Int                  @id @default(autoincrement())
-  subName                String               @db.Citext
-  sub                    Sub                  @relation(fields: [subName], references: [name], onDelete: Cascade)
+  subId                  Int
+  sub                    Sub                  @relation(fields: [subId], references: [id], onDelete: Cascade)
   payOutCustodialTokenId Int                  @unique
   payOutCustodialToken   PayOutCustodialToken @relation(fields: [payOutCustodialTokenId], references: [id], onDelete: Cascade)
 
-  @@index([subName])
-  @@index([payOutCustodialTokenId, subName])
+  @@index([subId])
+  @@index([payOutCustodialTokenId, subId])
 }
 
 model PayOutCustodialToken {
@@ -1577,7 +1578,7 @@ model AggPayIn {
   timeBucket  DateTime       @db.Timestamptz(3)
   granularity AggGranularity
   payInType   PayInType?
-  subName     String?        @db.Citext
+  subId       Int?
   userId      Int?
 
   // Minimal measures
@@ -1587,15 +1588,15 @@ model AggPayIn {
 
   slice AggSlice
 
-  sub Sub? @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  sub Sub? @relation(fields: [subId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([granularity, timeBucket, payInType, subName, userId, slice], map: "AggPayIn_unique_key")
+  @@unique([granularity, timeBucket, payInType, subId, userId, slice], map: "AggPayIn_unique_key")
   @@index([granularity, slice, timeBucket])
   @@index([granularity, timeBucket])
   @@index([granularity, payInType])
-  @@index([granularity, subName])
+  @@index([granularity, subId])
   @@index([granularity, userId])
-  @@index([subName])
+  @@index([subId])
 }
 
 model AggPayOut {
@@ -1604,7 +1605,7 @@ model AggPayOut {
   granularity AggGranularity
   payOutType  PayOutType?
   payInType   PayInType?
-  subName     String?        @db.Citext
+  subId       Int?
   userId      Int?
 
   // Minimal measures
@@ -1614,16 +1615,16 @@ model AggPayOut {
 
   slice AggSlice
 
-  sub Sub? @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  sub Sub? @relation(fields: [subId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([granularity, timeBucket, payOutType, payInType, subName, userId, slice], map: "AggPayOut_unique_key")
+  @@unique([granularity, timeBucket, payOutType, payInType, subId, userId, slice], map: "AggPayOut_unique_key")
   @@index([granularity, slice, timeBucket])
   @@index([granularity, timeBucket])
   @@index([granularity, payInType])
   @@index([granularity, payOutType])
-  @@index([granularity, subName])
+  @@index([granularity, subId])
   @@index([granularity, userId])
-  @@index([subName])
+  @@index([subId])
 }
 
 model AggRegistrations {

@@ -518,14 +518,19 @@ export default {
       if (!bulletin) {
         return null
       }
-      const lexicalState = await lexicalStateLoader.load({ text: bulletin.text })
-      if (!lexicalState) {
-        return null
+      let lexicalState = null
+      let html = null
+      try {
+        if (bulletin.text) {
+          lexicalState = await lexicalStateLoader.load({ text: bulletin.text })
+          html = await lexicalHTMLGenerator(lexicalState)
+        }
+      } catch (error) {
+        console.error('error generating HTML from Lexical State:', error)
+        lexicalState = null
+        html = null
       }
-      const html = await lexicalHTMLGenerator(lexicalState)
-      if (!html) {
-        return null
-      }
+
       return {
         title: bulletin.title,
         text: bulletin.text,

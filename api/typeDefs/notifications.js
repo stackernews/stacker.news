@@ -29,9 +29,9 @@ export default gql`
 
   type Bulletin {
     title: String!
-    text: String!
-    lexicalState: JSONObject!
-    html: String!
+    text: String
+    lexicalState: JSONObject
+    html: String
     iconType: BulletinIconType
   }
 

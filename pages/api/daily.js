@@ -18,6 +18,7 @@ export default async (_, res) => {
 
   if (items.length === 0) {
     res.redirect('/')
+    return
   }
 
   res.redirect(`/items/${items[0].id}`)

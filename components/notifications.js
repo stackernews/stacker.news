@@ -183,12 +183,13 @@ function blurb (n) {
 }
 
 function Bulletinification ({ n }) {
+  if (!n.bulletin) return null
   return (
     <div className='d-flex'>
       {n.bulletin.iconType === 'MAP' ? <div style={{ fontSize: '2rem', alignSelf: 'center' }}><MapIcon className='align-self-center fill-theme-color mx-1' width={64} height={100} /></div> : null}
       <div className='ms-3 p-1'>
         <div className='fw-bold pb-2'>{n.bulletin.title}</div>
-        <Text html={n.bulletin.html} state={n.bulletin.lexicalState} />
+        {n.bulletin.html && n.bulletin.lexicalState && <Text html={n.bulletin.html} state={n.bulletin.lexicalState} />}
       </div>
     </div>
   )

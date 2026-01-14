@@ -57,7 +57,7 @@ export async function topSubs (parent, { query, cursor, when, from, to, limit, b
         COALESCE(floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'TERRITORY_REVENUE') / 1000), 0) as revenue,
         COALESCE(floor(sum("AggPayOut"."sumMtokens") FILTER (WHERE "AggPayOut"."payOutType" = 'ZAP') / 1000), 0) as stacked
       FROM user_subs
-      LEFT JOIN "AggPayOut" ON "AggPayOut"."subName" = user_subs.name
+      LEFT JOIN "AggPayOut" ON "AggPayOut"."subId" = user_subs.id
       WHERE "AggPayOut"."timeBucket" >= ${fromDate}
       AND "AggPayOut"."timeBucket" <= ${toDate}
       AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
@@ -70,12 +70,12 @@ export async function topSubs (parent, { query, cursor, when, from, to, limit, b
         floor(COALESCE(sum("AggPayIn"."sumMcost"), 0) / 1000) as spent,
         sum("AggPayIn"."countGroup") FILTER (WHERE "AggPayIn"."payInType" = 'ITEM_CREATE') as nitems
       FROM user_subs
-      LEFT JOIN "AggPayIn" ON "AggPayIn"."subName" = user_subs.name
+      LEFT JOIN "AggPayIn" ON "AggPayIn"."subId" = user_subs.id
       WHERE "AggPayIn"."timeBucket" >= ${fromDate}
       AND "AggPayIn"."timeBucket" <= ${toDate}
       AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
       AND "AggPayIn"."slice" = 'SUB_BY_TYPE'
-      AND "AggPayIn"."subName" IS NOT NULL
+      AND "AggPayIn"."subId" IS NOT NULL
       AND "AggPayIn"."payInType" <> 'DEFUNCT_TERRITORY_DAILY_PAYOUT'
       GROUP BY user_subs.name
     ),
@@ -168,7 +168,7 @@ export default {
     },
     topSubs: async (parent, { cursor, when, by = 'stacked', from, to, limit }, { models, me }) => {
       const query = Prisma.sql`
-        SELECT "Sub".name
+        SELECT "Sub".name, "Sub".id
         FROM "Sub"
         WHERE "Sub".status <> 'STOPPED'
         GROUP BY "Sub".name
@@ -182,7 +182,7 @@ export default {
       }
 
       const query = Prisma.sql`
-        SELECT "Sub".name
+        SELECT "Sub".name, "Sub".id
         FROM "Sub"
         JOIN users ON users.id = "Sub"."userId" AND users.name = ${name}
         WHERE "Sub".status <> 'STOPPED'
@@ -197,7 +197,7 @@ export default {
       }
 
       const query = Prisma.sql`
-        SELECT "Sub".name
+        SELECT "Sub".name, "Sub".id
         FROM "SubSubscription"
         JOIN "Sub" ON "SubSubscription"."subName" = "Sub".name
         WHERE "SubSubscription"."userId" = ${me.id}

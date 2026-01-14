@@ -68,7 +68,7 @@ const Media = memo(function Media ({
             width={width}
             height={height}
             onError={onError}
-            onLoad={onLoad}
+            onLoadedMetadata={onLoad}
             style={innerStyle}
           />
           )

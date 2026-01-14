@@ -14,11 +14,12 @@ export const paymentMethods = [
 export async function getInitial (models, { id }, { me }) {
   const pollOption = await models.pollOption.findUnique({
     where: { id: parseInt(id) },
-    include: { item: { include: { sub: true } } }
+    include: { item: { include: { subs: { include: { sub: true } } } } }
   })
 
   const mcost = satsToMsats(pollOption.item.pollCost)
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ sub: pollOption.item.sub, mcost })
+  const subs = pollOption.item.subs.map(subItem => subItem.sub)
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs, mcost })
 
   return {
     payInType: 'POLL_VOTE',

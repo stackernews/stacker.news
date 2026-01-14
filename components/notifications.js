@@ -41,6 +41,7 @@ import CCInfo from './info/cc'
 import { useMe } from './me'
 import { useRetryPayIn, useRetryBountyPayIn, useRetryItemActPayIn } from './payIn/hooks/use-retry-pay-in'
 import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
+import MapIcon from '@/svgs/map.svg'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -71,7 +72,8 @@ function Notification ({ n, fresh }) {
           ((n.payIn.payInType === 'WITHDRAWAL' || n.payIn.payInType === 'AUTO_WITHDRAWAL') && <PayInWithdrawal n={n} />) ||
             <PayInFailed n={n} />
         )) ||
-        (type === 'ReferralReward' && <ReferralReward n={n} />)
+        (type === 'ReferralReward' && <ReferralReward n={n} />) ||
+        (type === 'Bulletinification' && <Bulletinification n={n} />)
       }
     </NotificationLayout>
   )
@@ -178,6 +180,18 @@ function blurb (n) {
   const index = Number(n.id) % Math.min(FOUND_BLURBS[type].length, LOST_BLURBS[type].length)
   const lost = n.days || n.__typename.includes('Lost')
   return lost ? LOST_BLURBS[type][index] : FOUND_BLURBS[type][index]
+}
+
+function Bulletinification ({ n }) {
+  return (
+    <div className='d-flex'>
+      {n.bulletin.iconType === 'MAP' ? <div style={{ fontSize: '2rem', alignSelf: 'center' }}><MapIcon className='align-self-center fill-theme-color mx-1' width={64} height={100} /></div> : null}
+      <div className='ms-3 p-1'>
+        <div className='fw-bold pb-2'>{n.bulletin.title}</div>
+        <Text html={n.bulletin.html} state={n.bulletin.lexicalState} />
+      </div>
+    </div>
+  )
 }
 
 function CowboyHat ({ n }) {

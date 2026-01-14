@@ -6,6 +6,7 @@ import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { getPayIn } from './payIn'
 import { WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
+import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 export default {
   Query: {
@@ -377,6 +378,14 @@ export default {
         LIMIT ${LIMIT})`
       )
 
+      queries.push(
+        `(SELECT "NotificationBulletin".id::text, "NotificationBulletin"."created_at" AS "sortTime", NULL::INTEGER as "earnedSats", 'Bulletinification' AS type
+        FROM "NotificationBulletin"
+        WHERE "NotificationBulletin"."created_at" < $2
+        ORDER BY "sortTime" DESC
+        LIMIT ${LIMIT})`
+      )
+
       const notifications = await models.$queryRawUnsafe(
         `SELECT id, "sortTime", "earnedSats", type,
             "sortTime" AS "minSortTime"
@@ -500,6 +509,29 @@ export default {
         case 'PROFILE': return { ...await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }), type: 'User' }
         case 'TERRITORY': return await getSubOrNull(referral.typeId)
         default: return null
+      }
+    }
+  },
+  Bulletinification: {
+    bulletin: async (n, args, { models, lexicalStateLoader }) => {
+      const bulletin = await models.notificationBulletin.findUnique({ where: { id: Number(n.id) } })
+      if (!bulletin) {
+        return null
+      }
+      const lexicalState = await lexicalStateLoader.load({ text: bulletin.text })
+      if (!lexicalState) {
+        return null
+      }
+      const html = await lexicalHTMLGenerator(lexicalState)
+      if (!html) {
+        return null
+      }
+      return {
+        title: bulletin.title,
+        text: bulletin.text,
+        lexicalState,
+        html,
+        iconType: bulletin.iconType
       }
     }
   },

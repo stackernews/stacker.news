@@ -1,5 +1,4 @@
-import { $applyNodeReplacement, createState, $getState, $setState } from 'lexical'
-import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
+import { $applyNodeReplacement, createState, $getState, $setState, DecoratorNode } from 'lexical'
 
 // kind and status can change over time, so we need to store them in states
 const kindState = createState('kind', {
@@ -53,7 +52,7 @@ function $convertMediaElement (domNode) {
   return { node }
 }
 
-export class MediaNode extends DecoratorBlockNode {
+export class MediaNode extends DecoratorNode {
   __src
   __title
   __alt
@@ -62,7 +61,7 @@ export class MediaNode extends DecoratorBlockNode {
 
   $config () {
     return this.config('media', {
-      extends: DecoratorBlockNode,
+      extends: DecoratorNode,
       stateConfigs: [
         { flat: true, stateConfig: kindState },
         { flat: true, stateConfig: statusState },
@@ -74,8 +73,8 @@ export class MediaNode extends DecoratorBlockNode {
     })
   }
 
-  constructor (src, title, alt, maxWidth, autolink, format, key) {
-    super(format, key)
+  constructor (src, title, alt, maxWidth, autolink, key) {
+    super(key)
     this.__src = src
     this.__title = title ?? ''
     this.__alt = alt ?? ''
@@ -90,7 +89,6 @@ export class MediaNode extends DecoratorBlockNode {
       node.__alt,
       node.__maxWidth,
       node.__autolink,
-      node.__format,
       node.__key
     )
     return clone

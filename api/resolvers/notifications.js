@@ -523,7 +523,9 @@ export default {
       try {
         if (bulletin.text) {
           lexicalState = await lexicalStateLoader.load({ text: bulletin.text })
-          html = await lexicalHTMLGenerator(lexicalState)
+          if (lexicalState) {
+            html = await lexicalHTMLGenerator(lexicalState)
+          }
         }
       } catch (error) {
         console.error('error generating HTML from Lexical State:', error)

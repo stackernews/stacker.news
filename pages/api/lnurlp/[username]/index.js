@@ -9,10 +9,7 @@ export default async ({ query: { username } }, res) => {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
-  let minSendable = 1000n
-  if (user.proxyReceive) {
-    minSendable += minSendable * PROXY_RECEIVE_FEE_PERCENT / 100n
-  }
+  const minSendable = 1000n * PROXY_RECEIVE_FEE_PERCENT / 100n
 
   const url = process.env.NODE_ENV === 'development' ? process.env.SELF_URL : process.env.NEXT_PUBLIC_URL
   const { metadata } = lnurlPayMetadata(username)

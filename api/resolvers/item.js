@@ -1011,16 +1011,23 @@ export default {
       const item = await models.item.findUnique({
         where: { id: Number(id) },
         include: {
-          sub: true,
+          subs: { include: { sub: true } },
           root: {
             include: {
-              sub: true
+              subs: { include: { sub: true } }
             }
           }
         }
       })
 
-      const sub = item.sub || item.root?.sub
+      const subs = item.subs.map(subItem => subItem.sub)
+      const rootSubs = item.root?.subs.map(subItem => subItem.sub)
+
+      if (subs.length > 1 || rootSubs.length > 1) {
+        throw new GqlInputError('item has multiple subs')
+      }
+
+      const sub = subs[0] || rootSubs[0]
 
       if (Number(sub.userId) !== Number(me.id)) {
         throw new GqlInputError('you cant do this broh')

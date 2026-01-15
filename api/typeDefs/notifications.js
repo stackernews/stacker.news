@@ -17,6 +17,24 @@ export default gql`
     sortTime: Date!
   }
 
+  enum BulletinIconType {
+    MAP
+  }
+
+  type Bulletinification {
+    id: ID!
+    bulletin: Bulletin
+    sortTime: Date!
+  }
+
+  type Bulletin {
+    title: String!
+    text: String
+    lexicalState: JSONObject
+    html: String
+    iconType: BulletinIconType
+  }
+
   type ForwardedVotification {
     id: ID!
     earnedSats: Int!
@@ -168,6 +186,7 @@ export default gql`
     | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | PayInification
     | ReferralReward | CowboyHat | NewHorse | LostHorse | NewGun | LostGun
+    | Bulletinification
 
   type Notifications {
     lastChecked: Date

@@ -475,7 +475,7 @@ async function getPayInFull ({ models, query, orderBy = Prisma.empty }) {
                         (
                           SELECT to_jsonb(spo.*) || jsonb_build_object('sub', to_jsonb(s.*))
                           FROM "SubPayOutCustodialToken" spo
-                          JOIN "Sub" s ON s."name" = spo."subName"
+                          JOIN "Sub" s ON s."id" = spo."subId"
                           WHERE spo."payOutCustodialTokenId" = o.id
                           LIMIT 1
                         )
@@ -501,7 +501,7 @@ async function getPayInFull ({ models, query, orderBy = Prisma.empty }) {
                             'subPayOutCustodialToken',
                               (SELECT to_jsonb(spo.*) || jsonb_build_object('sub', to_jsonb(s.*))
                                 FROM "SubPayOutCustodialToken" spo
-                                JOIN "Sub" s ON s."name" = spo."subName"
+                                JOIN "Sub" s ON s."id" = spo."subId"
                                 WHERE spo."payOutCustodialTokenId" = po.id
                                 LIMIT 1
                               )

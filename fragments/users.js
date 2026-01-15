@@ -25,12 +25,8 @@ ${STREAK_FIELDS}
       autoDropBolt11s
       noReferralLinks
       fiatCurrency
-      withdrawMaxFeeDefault
       satsFilter
       hideFromTopUsers
-      hideWalletBalance
-      hideWelcomeBanner
-      hideWalletRecvPrompt
       imgproxyOnly
       showImagesAndVideos
       nostrCrossposting
@@ -46,7 +42,6 @@ ${STREAK_FIELDS}
       zapUndos
       upvotePopover
       wildWestMode
-      disableFreebies
       vaultKeyHash
       vaultKeyHashUpdatedAt
       walletsUpdatedAt
@@ -71,7 +66,6 @@ export const SETTINGS_FIELDS = gql`
       turboTipping
       zapUndos
       fiatCurrency
-      withdrawMaxFeeDefault
       noteItemSats
       noteEarning
       noteAllDescendants
@@ -80,7 +74,6 @@ export const SETTINGS_FIELDS = gql`
       noteDeposits
       noteWithdrawals
       noteInvites
-      noteJobIndicator
       noteCowboyHat
       noteForwardedSats
       hideInvoiceDesc
@@ -91,17 +84,14 @@ export const SETTINGS_FIELDS = gql`
       hideGithub
       hideNostr
       hideTwitter
-      hideIsContributor
       imgproxyOnly
       showImagesAndVideos
-      hideWalletBalance
       noReferralLinks
       nostrPubkey
       nostrCrossposting
       nostrRelays
       wildWestMode
       satsFilter
-      disableFreebies
       nsfwMode
       authMethods {
         lightning
@@ -142,22 +132,11 @@ export const NAME_MUTATION = gql`
   }
 `
 
-export const WELCOME_BANNER_MUTATION = gql`
-  mutation hideWelcomeBanner {
-    hideWelcomeBanner
-  }
-`
-
 export const USER_SUGGESTIONS = gql`
   query userSuggestions($q: String!, $limit: Limit) {
     userSuggestions(q: $q, limit: $limit) {
       name
     }
-  }`
-
-export const HIDE_WALLET_RECV_PROMPT_MUTATION = gql`
-  mutation hideWalletRecvPrompt {
-    hideWalletRecvPrompt
   }`
 
 export const USER_SEARCH = gql`

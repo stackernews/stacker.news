@@ -5,7 +5,7 @@ export default async (_, res) => {
   // this should probably be made more generic
   // eg if the title changes this will break
   // ... but this will need to change when we have more subs anyway
-  const [{ id }] = await models.$queryRaw`
+  const items = await models.$queryRaw`
     SELECT "Item".id as id
     FROM "Item"
     JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = "Item".id
@@ -16,5 +16,10 @@ export default async (_, res) => {
     ORDER BY "Item"."created_at" DESC
     LIMIT 1`
 
-  res.redirect(`/items/${id}`)
+  if (items.length === 0) {
+    res.redirect('/')
+    return
+  }
+
+  res.redirect(`/items/${items[0].id}`)
 }

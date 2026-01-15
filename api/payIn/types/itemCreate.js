@@ -62,7 +62,7 @@ async function getCost (models, { subNames, parentId, uploadIds, boost = 0, bio 
   // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon,
   // cost must be greater than user's balance, and user has not disabled freebies
   const freebie = (parentId || bio) && cost <= baseCost && me.id !== USER_ID.anon &&
-    me.msats < cost && !me.disableFreebies && me.mcredits < cost && boost <= 0
+    me.msats < cost && me.mcredits < cost && boost <= 0
 
   return freebie ? BigInt(0) : BigInt(cost)
 }
@@ -210,7 +210,7 @@ export async function onPaid (tx, payInId) {
     // denormalize ncomments, lastCommentAt for ancestors, and insert into reply table
     await tx.$executeRaw`
       WITH comment AS (
-        SELECT "Item".*, users.trust
+        SELECT "Item".*
         FROM "Item"
         JOIN users ON "Item"."userId" = users.id
         WHERE "Item".id = ${item.id}::INTEGER

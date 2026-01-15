@@ -28,7 +28,7 @@ export function getRedistributedPayOutCustodialTokens ({ subs = [], payOutCustod
         mtokens: revenueMtokens,
         custodialTokenType: 'SATS',
         subPayOutCustodialToken: {
-          subName: sub.name
+          subId: sub.id
         }
       })
     }

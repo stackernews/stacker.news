@@ -116,11 +116,9 @@ export default function Settings ({ ssrData }) {
             tipRandomMin: settings?.tipRandomMin || 1,
             tipRandomMax: settings?.tipRandomMax || 10,
             turboTipping: settings?.turboTipping,
-            disableFreebies: settings?.disableFreebies || undefined,
             zapUndos: settings?.zapUndos || (settings?.tipDefault ? 100 * settings.tipDefault : 2100),
             zapUndosEnabled: settings?.zapUndos !== null,
             fiatCurrency: settings?.fiatCurrency || 'USD',
-            withdrawMaxFeeDefault: settings?.withdrawMaxFeeDefault,
             noteItemSats: settings?.noteItemSats,
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,
@@ -129,7 +127,6 @@ export default function Settings ({ ssrData }) {
             noteDeposits: settings?.noteDeposits,
             noteWithdrawals: settings?.noteWithdrawals,
             noteInvites: settings?.noteInvites,
-            noteJobIndicator: settings?.noteJobIndicator,
             noteCowboyHat: settings?.noteCowboyHat,
             noteForwardedSats: settings?.noteForwardedSats,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
@@ -148,13 +145,11 @@ export default function Settings ({ ssrData }) {
             nostrCrossposting: settings?.nostrCrossposting,
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
             hideBookmarks: settings?.hideBookmarks,
-            hideWalletBalance: settings?.hideWalletBalance,
-            hideIsContributor: settings?.hideIsContributor,
             noReferralLinks: settings?.noReferralLinks
           }}
           schema={settingsSchema}
           onSubmit={async ({
-            tipDefault, tipRandom, tipRandomMin, tipRandomMax, withdrawMaxFeeDefault,
+            tipDefault, tipRandom, tipRandomMin, tipRandomMax,
             zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
             ...values
           }) => {
@@ -178,7 +173,6 @@ export default function Settings ({ ssrData }) {
                     tipDefault: Number(tipDefault),
                     tipRandomMin: tipRandom ? Number(tipRandomMin) : null,
                     tipRandomMax: tipRandom ? Number(tipRandomMax) : null,
-                    withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                     satsFilter: Number(satsFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
                     nostrPubkey,
@@ -248,26 +242,7 @@ export default function Settings ({ ssrData }) {
             size='sm'
             items={SUPPORTED_CURRENCIES}
             required
-          />
-          <Input
-            label='default max fee for withdrawals'
-            name='withdrawMaxFeeDefault'
-            required
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>disable freebies
-                <Info>
-                  <p>Some content can occasionally be created without paying, but such content has limited visibility.</p>
-
-                  <p>If you disable freebies, you will always pay standard fees and get standard visibility.</p>
-
-                  <p>If you attach a sending wallet, we may disable freebies for you unless you have checked/unchecked this value already.</p>
-                </Info>
-              </div>
-            }
-            name='disableFreebies'
+            className='mb-2'
           />
           <div className='form-label'>notify me when ...</div>
           <Checkbox
@@ -316,27 +291,19 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='there is a new job'
-            name='noteJobIndicator'
-            groupClassName='mb-0'
-          />
-          <Checkbox
             label='I find or lose cowboy essentials (e.g. cowboy hat)'
             name='noteCowboyHat'
+            groupClassName='mb-3'
           />
           <div className='form-label'>wallet</div>
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>hide invoice descriptions
+              <div className='d-flex align-items-center'>use blank invoice descriptions
                 <Info>
                   <ul>
-                    <li>Use this if you don't want funding sources to be linkable to your SN identity.</li>
-                    <li>It makes your invoice descriptions blank.</li>
-                    <li>This only applies to invoices you create
-                      <ul>
-                        <li>lnurl-pay and lightning addresses still reference your nym</li>
-                      </ul>
-                    </li>
+                    <li>Use this if you don't want funding sources to know you're using stacker.news.</li>
+                    <li>It makes your bolt11 descriptions blank.</li>
+                    <li>Note: lnurl-pay and lightning addresses still reference SN and your nym</li>
                   </ul>
                 </Info>
               </div>
@@ -345,25 +312,20 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <DropBolt11sCheckbox
-            groupClassName='mb-0'
+            groupClassName='mb-3'
             ssrData={ssrData}
             label={
-              <div className='d-flex align-items-center'>autodelete withdrawal invoices
+              <div className='d-flex align-items-center'>autodelete outgoing invoices
                 <Info>
                   <ul>
-                    <li>use this to protect receiver privacy</li>
                     <li>applies retroactively, cannot be reversed</li>
-                    <li>withdrawal invoices are kept at least {INVOICE_RETENTION_DAYS} days for security and debugging purposes</li>
+                    <li>outgoing invoices are kept at least {INVOICE_RETENTION_DAYS} days for security and debugging purposes</li>
                     <li>autodeletions are run on a daily basis at night</li>
                   </ul>
                 </Info>
               </div>
             }
             name='autoDropBolt11s'
-          />
-          <Checkbox
-            label={<>hide my wallet balance</>}
-            name='hideWalletBalance'
           />
           <div className='form-label'>privacy</div>
           <Checkbox
@@ -388,7 +350,7 @@ export default function Settings ({ ssrData }) {
                 <Info>
                   <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
-                    <li>uncheck this to display your github on your profile</li>
+                    <li>Uncheck this to display your github on your profile</li>
                     {!settings?.authMethods?.github &&
                       <div className='my-2'>
                         <li><i>You don't seem to have a linked github account</i></li>
@@ -441,12 +403,6 @@ export default function Settings ({ ssrData }) {
             name='hideTwitter'
             groupClassName='mb-0'
           />
-          {me.optional?.isContributor &&
-            <Checkbox
-              label={<>hide that I'm a stacker.news contributor</>}
-              name='hideIsContributor'
-              groupClassName='mb-0'
-            />}
           <Checkbox
             label={
               <div className='d-flex align-items-center'>do not load images, videos, or content from external sites
@@ -454,7 +410,7 @@ export default function Settings ({ ssrData }) {
                   <ul>
                     <li>only load images and videos when we can proxy them</li>
                     <li>this prevents IP address leaks to arbitrary sites</li>
-                    <li>if we can't, the raw link will be shown instead</li>
+                    <li>if we can't proxy them, the raw link will be shown instead</li>
                   </ul>
                 </Info>
               </div>
@@ -466,7 +422,7 @@ export default function Settings ({ ssrData }) {
             label={<>don't create referral links on copy</>}
             name='noReferralLinks'
           />
-          <h4>content</h4>
+          <h4 className='mt-5'>content</h4>
           <Input
             label={
               <div className='d-flex align-items-center'>filter by sats
@@ -517,7 +473,6 @@ export default function Settings ({ ssrData }) {
                 <Info>
                   <ul>
                     <li>don't hide flagged content</li>
-                    <li>don't down rank flagged content</li>
                   </ul>
                 </Info>
               </div>
@@ -537,7 +492,7 @@ export default function Settings ({ ssrData }) {
             }
             name='nsfwMode'
           />
-          <h4>nostr</h4>
+          <h4 className='mt-5'>nostr</h4>
           <Checkbox
             label={
               <div className='d-flex align-items-center'>crosspost to nostr
@@ -576,11 +531,7 @@ export default function Settings ({ ssrData }) {
             <SubmitButton variant='info' className='ms-auto mt-1 px-4'>save</SubmitButton>
           </div>
         </Form>
-        <div className='text-start w-100'>
-          <div className='form-label'>saturday newsletter</div>
-          <Button href='https://mail.stacker.news/subscription/form' target='_blank'>(re)subscribe</Button>
-          {settings?.authMethods && <AuthMethods methods={settings.authMethods} apiKeyEnabled={settings.apiKeyEnabled} />}
-        </div>
+        {settings?.authMethods && <AuthMethods methods={settings.authMethods} apiKeyEnabled={settings.apiKeyEnabled} />}
       </div>
     </Layout>
   )
@@ -747,7 +698,8 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
 
   return (
     <>
-      <div className='form-label mt-3'>auth methods</div>
+      <h4 className='mt-5'>auth</h4>
+      <div className='form-label mt-3'>linked auth methods</div>
       {err && (
         <Alert
           variant='danger' onClose={() => {

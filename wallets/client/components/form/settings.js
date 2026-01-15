@@ -5,7 +5,7 @@ import { useField } from 'formik'
 import classNames from 'classnames'
 import { useRouter } from 'next/router'
 import { useMutation, useQuery } from '@apollo/client'
-import { Checkbox, Form, Input, SubmitButton } from '@/components/form'
+import { Form, Input, SubmitButton } from '@/components/form'
 import Info from '@/components/info'
 import { useToast } from '@/components/toast'
 import AccordianItem from '@/components/accordian-item'
@@ -57,8 +57,7 @@ export function Settings () {
     sendCreditsBelowSats: data?.walletSettings?.sendCreditsBelowSats ?? 10,
     autoWithdrawThreshold: data?.walletSettings?.autoWithdrawThreshold ?? 10000,
     autoWithdrawMaxFeePercent: data?.walletSettings?.autoWithdrawMaxFeePercent ?? 1,
-    autoWithdrawMaxFeeTotal: data?.walletSettings?.autoWithdrawMaxFeeTotal ?? 1,
-    proxyReceive: data?.walletSettings?.proxyReceive ?? true
+    autoWithdrawMaxFeeTotal: data?.walletSettings?.autoWithdrawMaxFeeTotal ?? 1
   }
 
   return (
@@ -145,7 +144,6 @@ function GlobalSettings () {
         header='advanced'
         body={
           <>
-            <LightningAddressSettings />
             <CowboyCreditsSettings />
           </>
         }
@@ -207,30 +205,6 @@ function AutowithdrawSettings () {
         required
         type='number'
         min={0}
-      />
-    </>
-  )
-}
-
-function LightningAddressSettings () {
-  return (
-    <>
-      <Checkbox
-        label={
-          <div className='d-flex align-items-center'>enhance privacy of my lightning address
-            <Info>
-              <ul>
-                <li>Enabling this setting hides details (ie node pubkey) of your attached wallets when anyone pays your SN lightning address or lnurl-pay</li>
-                <li>The lightning invoice will appear to have SN's node as the destination to preserve your wallet's privacy</li>
-                <li className='fw-bold'>This will incur in a 10% fee</li>
-                <li>Disable this setting to receive payments directly to your attached wallets (which will reveal their details to the payer)</li>
-                <li>Note: this privacy behavior is standard for internal zaps/payments on SN, and this setting only applies to external payments</li>
-              </ul>
-            </Info>
-          </div>
-            }
-        name='proxyReceive'
-        groupClassName='mb-3'
       />
     </>
   )

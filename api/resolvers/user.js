@@ -256,6 +256,16 @@ export default {
           )`.catch(console.error)
       }
 
+      const [newBulletin] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
+          FROM "NotificationBulletin"
+          WHERE "NotificationBulletin"."created_at" > $1)`, lastChecked)
+      if (newBulletin.exists) {
+        foundNotes()
+        return true
+      }
+
       // check if any votes have been cast for them since checkedNotesAt
       if (user.noteItemSats) {
         const [newSats] = await models.$queryRawUnsafe(`
@@ -574,26 +584,6 @@ export default {
   },
 
   Mutation: {
-    disableFreebies: async (parent, args, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      // disable freebies if it hasn't been set yet
-      try {
-        await models.user.update({
-          where: { id: me.id, disableFreebies: null },
-          data: { disableFreebies: true }
-        })
-      } catch (err) {
-        // ignore 'record not found' errors
-        if (err.code !== 'P2025') {
-          throw err
-        }
-      }
-
-      return true
-    },
     setName: async (parent, data, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -822,22 +812,6 @@ export default {
       }
       return { id }
     },
-    hideWelcomeBanner: async (parent, data, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
-      return true
-    },
-    hideWalletRecvPrompt: async (parent, data, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      await models.user.update({ where: { id: me.id }, data: { hideWalletRecvPrompt: true } })
-      return true
-    },
     setDiagnostics: async (parent, { diagnostics }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -990,9 +964,6 @@ export default {
         return false
       }
       return !!user.tipRandomMin && !!user.tipRandomMax
-    },
-    hideWalletRecvPrompt: async (user, args, { models }) => {
-      return user.hideWalletRecvPrompt || user.hasRecvWallet
     }
   },
 
@@ -1032,10 +1003,7 @@ export default {
       if (contributors.size === 0) {
         await loadContributors(contributors)
       }
-      if (me?.id === user.id) {
-        return contributors.has(user.name)
-      }
-      return !user.hideIsContributor && contributors.has(user.name)
+      return contributors.has(user.name)
     },
     stacked: async (user, { when, from, to }, { models, me }) => {
       if ((!me || me.id !== user.id) && user.hideFromTopUsers) {

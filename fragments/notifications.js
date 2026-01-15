@@ -101,6 +101,17 @@ export const NOTIFICATIONS = gql`
           id
           sortTime
         }
+        ... on Bulletinification {
+          id
+          sortTime
+          bulletin {
+            title
+            text
+            lexicalState
+            html
+            iconType
+          }
+        }
         ... on Earn {
           id
           sortTime

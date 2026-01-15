@@ -28,7 +28,9 @@ function LinkRaw ({ children, src, rel }) {
 function MediaLoading ({ autolink }) {
   const style = autolink ? { width: '200px', height: '150px' } : undefined
   return (
-    <div className='sn-media__loading' style={style} />
+    <div className='sn-media__loading' style={style}>
+      <Moon className='spin fill-grey fade-in' style={{ width: '2rem', height: '2rem' }} />
+    </div>
   )
 }
 

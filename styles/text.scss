@@ -243,21 +243,6 @@
   height: 100%;
 }
 
-.sn-media__loading::before {
-  content: '';
-  width: 2rem;
-  height: 2rem;
-  // note: svg is base64 encoded, re-check might not see the light
-  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ij48cGF0aCBmaWxsPSJub25lIiBkPSJNMCAwaDI0djI0SDB6Ii8+PHBhdGggZmlsbD0iIzgwODA4MCIgZD0iTTExLjM4IDIuMDE5YTcuNSA3LjUgMCAxIDAgMTAuNiAxMC42QzIxLjY2MiAxNy44NTQgMTcuMzE2IDIyIDEyLjAwMSAyMiA2LjQ3NyAyMiAyIDE3LjUyMyAyIDEyYzAtNS4zMTUgNC4xNDYtOS42NjEgOS4zOC05Ljk4MXoiLz48L3N2Zz4=');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  animation: spin 1s linear infinite, fadeIn 1s ease-in;
-  color: var(--theme-grey);
-  opacity: 0;
-  animation-fill-mode: forwards;
-}
-
 // image can load very fast, fade in to avoid flashing
 @keyframes fadeIn {
   from {

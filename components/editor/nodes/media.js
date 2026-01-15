@@ -10,6 +10,7 @@ import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
 import ExternalLink from '@/svgs/editor/external-link.svg'
 import Moon from '@/svgs/moon-fill.svg'
+import preserveScroll from '@/components/preserve-scroll'
 
 function LinkRaw ({ children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -205,14 +206,16 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
 
   if (!error) {
     if (media.image || media.video) {
-      return (
+      // when we don't know the dimensions of the media (e.g. autolink),
+      // preserveScroll helps us avoid layout shift when media finally loads
+      return preserveScroll(() => (
         <>
           {isLoading && <MediaLoading autolink={props.kind === 'unknown'} />}
           <Media
             {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad} innerStyle={isLoading ? { width: 0, height: 0 } : undefined}
           />
         </>
-      )
+      ))
     } else {
       return (
         <div className='d-flex gap-1'>

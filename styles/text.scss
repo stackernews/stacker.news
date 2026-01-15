@@ -265,11 +265,11 @@
 }
 
 /* in case media-or-link detects a link */
-.sn-media-container:has(a) {
+.sn-media:has(a) {
   display: inline !important;
 }
 
-.sn-media-container .outlawed {
+.sn-media .outlawed {
   user-select: text;
   cursor: text;
 }
@@ -281,11 +281,6 @@
   gap: var(--grid-gap);
   width: 100%;
   max-width: 100%;
-}
-
-.sn-gallery > span.sn-media-container {
-  display: block;
-  width: auto;
 }
 
 .sn-image {

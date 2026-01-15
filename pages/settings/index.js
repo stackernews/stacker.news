@@ -451,7 +451,7 @@ export default function Settings ({ ssrData }) {
                     <li>if checked and a link is an image, video or can be embedded in another way, we will do it</li>
                     <li>we support embeds from following sites:</li>
                     <ul>
-                      <li>njump.me</li>
+                      <li>njump.to</li>
                       <li>youtube.com</li>
                       <li>twitter.com</li>
                       <li>spotify.com</li>

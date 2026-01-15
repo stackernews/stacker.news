@@ -181,6 +181,17 @@
   overflow: hidden;
 }
 
+.sn-media-autolink__loading {
+  color: var(--theme-link);
+  text-decoration: none;
+  animation: fadeInOut 1s ease-in-out infinite alternate;
+}
+
+@keyframes fadeInOut {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}
+
 .sn-media__img, .sn-media__video {
   display: block;
   max-width: 100%;

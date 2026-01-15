@@ -12,11 +12,12 @@ import ExternalLink from '@/svgs/editor/external-link.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import preserveScroll from '@/components/preserve-scroll'
 
-function LinkRaw ({ children, src, rel }) {
+function LinkRaw ({ className, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
   return (
     // eslint-disable-next-line
     <a
+      className={className}
       target='_blank'
       rel={rel ?? UNKNOWN_LINK_REL}
       href={src}
@@ -219,12 +220,7 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
         </>
       ))
     } else {
-      return (
-        <div className='d-flex gap-1'>
-          <LinkRaw src={media.src} rel={UNKNOWN_LINK_REL} />
-          <Moon className='spin fill-grey' width={14} height={14} style={{ marginTop: '2px' }} />
-        </div>
-      )
+      return <LinkRaw className='sn-media-autolink__loading' src={media.src} rel={UNKNOWN_LINK_REL} />
     }
   }
 

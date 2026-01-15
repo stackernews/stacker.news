@@ -157,6 +157,7 @@ export class MediaNode extends DecoratorNode {
       link.setAttribute('href', this.__src)
       link.setAttribute('target', '_blank')
       link.setAttribute('rel', 'noopener nofollow noreferrer')
+      link.className = 'sn-media-autolink__loading'
       link.textContent = this.__src
       return { element: link }
     }

@@ -156,6 +156,10 @@ module.exports = withPlausibleProxy()({
         destination: '/api/daily'
       },
       {
+        source: '/me',
+        destination: '/api/me'
+      },
+      {
         source: '/.well-known/lnurlp/:username',
         destination: '/api/lnurlp/:username'
       },

@@ -256,6 +256,16 @@ export default {
           )`.catch(console.error)
       }
 
+      const [newBulletin] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
+          FROM "NotificationBulletin"
+          WHERE "NotificationBulletin"."created_at" > $1)`, lastChecked)
+      if (newBulletin.exists) {
+        foundNotes()
+        return true
+      }
+
       // check if any votes have been cast for them since checkedNotesAt
       if (user.noteItemSats) {
         const [newSats] = await models.$queryRawUnsafe(`

@@ -8,7 +8,6 @@ import { useCarousel } from '@/components/carousel'
 import { useMe } from '@/components/me'
 import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
-import ExternalLink from '@/svgs/editor/external-link.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import preserveScroll from '@/components/preserve-scroll'
 
@@ -45,7 +44,7 @@ function MediaError ({ width, height, src, rel }) {
             content not available
             <br />
             <span className='fw-medium'>
-              view original <sup><ExternalLink width={14} height={14} /></sup>
+              {src}
             </span>
           </p>
         </div>
@@ -210,7 +209,7 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
   if (!error) {
     if (media.image || media.video) {
       // when we don't know the dimensions of the media (e.g. autolink),
-      // preserveScroll helps us avoid layout shift when media finally loads
+      // preserveScroll helps us avoid scrolling shift when media finally loads
       return preserveScroll(() => (
         <>
           {isLoading && <MediaLoading autolink={props.kind === 'unknown'} />}

@@ -181,6 +181,11 @@
   overflow: hidden;
 }
 
+.sn-media:has(.sn-media__error) {
+  min-width: 160px;
+  min-height: 150px;
+}
+
 .sn-media-autolink__loading {
   color: var(--theme-link);
   text-decoration: none;
@@ -244,6 +249,20 @@
   justify-content: center;
   align-items: center;
   text-align: center;
+
+  // ellipsis
+  p {
+    max-width: 75%;
+    overflow: hidden;
+  }
+
+  span {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 }
 
 .sn-media__loading {
@@ -265,7 +284,7 @@
 }
 
 /* in case media-or-link detects a link */
-.sn-media:has(a) {
+.sn-media:has(a):not(> .sn-media__error) {
   display: inline !important;
 }
 

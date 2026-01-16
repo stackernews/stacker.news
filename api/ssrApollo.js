@@ -15,7 +15,7 @@ import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import { NOFOLLOW_LIMIT } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
-import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
+import { MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
@@ -226,7 +226,13 @@ export function getGetServerSideProps (
         price,
         blockHeight,
         chainFee,
-        ssrData: data
+        ssrData: data,
+        // only non-httpOnly cookies should be passed here
+        // passing httpOnly cookies would expose them to client JavaScript
+        ssrPublicCookies: {
+          [MULTI_AUTH_POINTER]: req.cookies[MULTI_AUTH_POINTER] || null,
+          [MULTI_AUTH_LIST]: req.cookies[MULTI_AUTH_LIST] || null
+        }
       }
     }
   }

@@ -92,6 +92,11 @@ const AccountListRow = ({ account, selected, ...props }) => {
   )
 }
 
+export const useIsLurker = () => {
+  const accounts = useAccounts()
+  return accounts.length === 0
+}
+
 export const useAccounts = () => {
   const [listCookie] = useCookie(MULTI_AUTH_LIST)
   return listCookie ? JSON.parse(b64Decode(listCookie)) : []

@@ -150,6 +150,12 @@ export class MediaNode extends DecoratorNode {
 
   exportDOM (editor) {
     const kind = $getState(this, kindState)
+
+    const span = document.createElement('span')
+    span.className = editor._config.theme?.media
+    span.setAttribute('data-sn-media-kind', kind)
+    span.setAttribute('data-sn-media-src', this.__src)
+
     if (kind === 'unknown') {
       // export a link instead of media if we don't know the type
       const link = document.createElement('a')
@@ -158,13 +164,10 @@ export class MediaNode extends DecoratorNode {
       link.setAttribute('rel', 'noopener nofollow noreferrer')
       link.className = 'sn-media-autolink__loading'
       link.textContent = this.__src
-      return { element: link }
+      span.appendChild(link)
+      return { element: span }
     }
 
-    const span = document.createElement('span')
-    span.className = editor._config.theme?.media
-    span.setAttribute('data-sn-media-kind', kind)
-    span.setAttribute('data-sn-media-src', this.__src)
     const { width, height } = this.getWidthAndHeight() || {}
     width && span.style.setProperty('--width', width)
     height && span.style.setProperty('--height', height)

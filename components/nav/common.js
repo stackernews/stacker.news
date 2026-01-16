@@ -19,7 +19,7 @@ import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
 import { useWalletIndicator } from '@/wallets/client/hooks'
-import SwitchAccountList, { nextAccount, useAccounts } from '@/components/account'
+import SwitchAccountList, { nextAccount, useAccounts, useIsLurker } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
 
@@ -232,7 +232,7 @@ export function MeDropdown ({ me, dropNavKey }) {
 // this is the width of the 'switch account' button if no width is given
 const SWITCH_ACCOUNT_BUTTON_WIDTH = '162px'
 
-export function SignUpButton ({ className = 'py-0', width }) {
+export function SignUpButton ({ className, width }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -241,7 +241,7 @@ export function SignUpButton ({ className = 'py-0', width }) {
 
   return (
     <Button
-      className={classNames('align-items-center ps-2 pe-3', className)}
+      className={classNames('align-items-center ps-2 pe-3 py-0', className)}
       // 161px is the width of the 'switch account' button
       style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
@@ -427,10 +427,25 @@ export function Sorts ({ sub, prefix, className }) {
 }
 
 export function PostItem ({ className, prefix }) {
+  const isLurker = useIsLurker()
   return (
-    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-primary py-md-1`}>
+    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-${isLurker ? 'grey' : 'primary'} text-black py-md-1`}>
       post
     </Link>
+  )
+}
+
+export function RightCorner ({ dropNavKey, path, className = 'd-none d-md-flex' }) {
+  const { me } = useMe()
+  const isLurker = useIsLurker()
+  return (
+    <>
+      {me
+        ? <MeCorner dropNavKey={dropNavKey} me={me} className={className} />
+        : isLurker
+          ? <LurkerCorner className={className} />
+          : <AnonCorner path={path} className={className} />}
+    </>
   )
 }
 
@@ -448,6 +463,15 @@ export function AnonCorner ({ dropNavKey, className }) {
   return (
     <div className={className}>
       <AnonDropdown dropNavKey={dropNavKey} />
+    </div>
+  )
+}
+
+// add signup button to lurker corner
+export function LurkerCorner ({ className }) {
+  return (
+    <div className={className}>
+      <SignUpButton />
     </div>
   )
 }

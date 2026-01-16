@@ -58,7 +58,6 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
       },
       $initialEditorState: (editor) => initiateLexical(editor, state, text),
       onError: (error) => console.error('reader has encountered an error:', error)
-    // avoid unnecessary re-renders by only depending on stable values
     }), [topLevel, state, text, preview])
 
   return (

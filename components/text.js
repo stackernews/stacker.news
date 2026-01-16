@@ -62,10 +62,21 @@ export function useOverflow ({ containerRef, truncated = false }) {
       resizeObserver.observe(node)
     }
 
+    // when media is loaded from autolinks, scrollHeight changes but box size may not
+    // which ResizeObserver doesn't detect, so we need to capture load events from media
+    // and recheck overflow when media loads.
+    function handleMediaLoad (e) {
+      if (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') {
+        checkOverflow()
+      }
+    }
+    node.addEventListener('load', handleMediaLoad, true)
+
     window.addEventListener('resize', checkOverflow)
     checkOverflow()
     return () => {
       window.removeEventListener('resize', checkOverflow)
+      node.removeEventListener('load', handleMediaLoad, true)
       resizeObserver?.disconnect()
     }
   }, [containerRef, setOverflowing, truncated])

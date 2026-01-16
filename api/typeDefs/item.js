@@ -96,7 +96,7 @@ export default gql`
     url: String
     searchText: String
     text: String
-    lexicalState: JSONObject
+    lexicalState: String
     html: String
     parentId: Int
     parent: Item

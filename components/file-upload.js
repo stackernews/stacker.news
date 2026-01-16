@@ -33,8 +33,8 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
           avatar,
           type: file.type,
           size: file.size,
-          width: element.width,
-          height: element.height
+          width: element.width || element.videoWidth,
+          height: element.height || element.videoHeight
         }
         try {
           ({ data } = await getSignedPOST({ variables }))

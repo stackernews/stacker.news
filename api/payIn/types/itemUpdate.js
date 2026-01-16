@@ -9,6 +9,7 @@ import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
 import { getItem } from '@/api/resolvers/item'
 import { subsDiff } from '@/lib/subs'
+import { getTempImgproxyUrls } from '../lib/upload'
 export const anonable = true
 
 export const paymentMethods = [
@@ -116,12 +117,16 @@ export async function onBegin (tx, payInId, args) {
   const itemMentions = await getItemMentions(tx, args)
   const itemUploads = uploadIds.map(id => ({ uploadId: id }))
 
+  const newUploadIds = difference(itemUploads, old.itemUploads, 'uploadId').map(({ uploadId }) => uploadId)
+  const imgproxyUrls = await getTempImgproxyUrls(tx, newUploadIds, old.imgproxyUrls)
+
   // we put boost in the where clause because we don't want to update the boost
   // if it has changed concurrently
   await tx.item.update({
     where: { id: parseInt(id) },
     data: {
       ...data,
+      imgproxyUrls,
       pollOptions: {
         createMany: {
           data: pollOptions?.map(option => ({ option }))

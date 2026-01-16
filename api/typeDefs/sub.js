@@ -40,7 +40,7 @@ export default gql`
     userId: Int!
     user: User!
     desc: String
-    lexicalState: JSONObject
+    lexicalState: String
     html: String
     updatedAt: Date!
     postTypes: [String!]!

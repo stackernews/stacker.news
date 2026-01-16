@@ -991,6 +991,10 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
   color: #fff;
 }
 
+.spin.fade-in {
+  animation: spin 2s linear infinite, fadeIn 0.5s ease-in;
+}
+
 .fade.tooltip {
   opacity: 1;
   visibility: visible;

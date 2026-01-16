@@ -6,13 +6,118 @@ import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
 import UploadIcon from '@/svgs/editor/toolbar/inserts/upload-paperclip.svg'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, forwardRef } from 'react'
 import ArrowLeftIcon from '@/svgs/editor/toolbar/arrow-left.svg'
 import MenuIcon from '@/svgs/editor/toolbar/menu.svg'
 import BoldIcon from '@/svgs/editor/toolbar/inline/bold.svg'
 import ItalicIcon from '@/svgs/editor/toolbar/inline/italic.svg'
-import { MD_INSERT_BOLD_COMMAND, MD_INSERT_ITALIC_COMMAND, MD_INSERT_LINK_COMMAND } from '@/lib/lexical/exts/md-commands'
+import { MD_INSERT_BOLD_COMMAND, MD_INSERT_ITALIC_COMMAND, MD_INSERT_LINK_COMMAND, MD_INSERT_QUOTE_COMMAND, MD_INSERT_CODE_COMMAND, MD_INSERT_SUPERSCRIPT_COMMAND, MD_INSERT_SUBSCRIPT_COMMAND, MD_INSERT_STRIKETHROUGH_COMMAND } from '@/lib/lexical/exts/md-commands'
 import LinkIcon from '@/svgs/editor/toolbar/inline/link.svg'
+import QuoteIcon from '@/svgs/editor/toolbar/block/quote-text.svg'
+import CodeIcon from '@/svgs/editor/toolbar/inline/code.svg'
+import Dropdown from 'react-bootstrap/Dropdown'
+import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
+import { createPortal } from 'react-dom'
+import FontStyleIcon from '@/svgs/editor/toolbar/font-style.svg'
+import SuperscriptIcon from '@/svgs/editor/toolbar/inline/superscript.svg'
+import SubscriptIcon from '@/svgs/editor/toolbar/inline/subscript.svg'
+import StrikethroughIcon from '@/svgs/editor/toolbar/inline/strikethrough.svg'
+import { SHORTCUTS } from '@/lib/lexical/exts/shortcuts'
+
+/**
+ * portal component that renders dropdown menus outside the toolbar to escape overflow rules
+
+ * @param {React.ReactNode} props.children - menu content to render
+ * @param {Object} props.style - inline styles
+ * @param {string} props.className - css classes
+ * @param {React.Ref} ref - forwarded ref
+ * @returns {React.ReactPortal} portal to document body
+ */
+export const MenuAlternateDimension = forwardRef(({ children, style, className }, ref) => {
+  return createPortal(
+    <div ref={ref} style={style} className={className}>
+      {children}
+    </div>,
+    document.body
+  )
+})
+
+/**
+ * single menu item within a toolbar dropdown
+
+ * @param {Object} props.option - menu option configuration
+ * @param {boolean} props.isActive - whether option is currently active
+ * @param {Function} props.onClick - click handler
+ * @param {React.ReactNode} props.icon - icon to display in menu item
+ * @returns {JSX.Element} dropdown menu item
+ */
+function DropdownMenuItem ({ option, isActive, onClick, icon }) {
+  const shortcut = SHORTCUTS[option.id]
+  const tooltipText = shortcut ? `${option.name} ${shortcut.key}` : option.name
+
+  return (
+    <Dropdown.Item
+      key={option.id}
+      title={tooltipText}
+      onClick={onClick}
+      className={classNames(styles.dropdownExtraItem, isActive ? styles.active : '')}
+      onPointerDown={e => e.preventDefault()}
+    >
+      <span className={styles.dropdownExtraItemLabel}>
+        {icon}
+        <span className={styles.dropdownExtraItemText}>{option.name}</span>
+      </span>
+      <span className={styles.dropdownExtraItemShortcut}>
+        {shortcut?.key}
+      </span>
+    </Dropdown.Item>
+  )
+}
+
+/**
+ * dropdown button for toolbar with tooltip and menu options
+
+ * @param {Object} props.editor - lexical editor instance
+ * @param {React.ReactNode} props.icon - icon to display in button
+ * @param {string} props.tooltip - tooltip text
+ * @param {Array} props.options - menu options to display
+ * @param {string} props.activeOptionId - currently active option id
+ * @param {Function} props.getIsActive - function to determine if option is active
+ * @param {number} props.showDelay - tooltip show delay in ms
+ * @param {boolean} props.arrow - whether to show dropdown arrow
+ * @param {string} props.className - additional css classes
+ * @returns {JSX.Element} toolbar dropdown component
+ */
+export function ToolbarDropdown ({ editor, icon, tooltip, options, activeOptionId, getIsActive, showDelay = 500, arrow = true, className }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+
+  return (
+    <ActionTooltip notForm overlayText={tooltip} placement='top' noWrapper showDelay={showDelay} transition disable={dropdownOpen}>
+      <Dropdown drop='up' className='pointer' as='span' onToggle={setDropdownOpen} show={dropdownOpen}>
+        <Dropdown.Toggle
+          id='dropdown-basic'
+          as='a'
+          onPointerDown={e => e.preventDefault()}
+          className={classNames(className || styles.toolbarItem, dropdownOpen ? styles.active : '')}
+        >
+          {icon}
+          {arrow && <ArrowDownIcon />}
+        </Dropdown.Toggle>
+        <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
+          {options?.map(option => (
+            <DropdownMenuItem
+              key={option.id}
+              option={option}
+              isActive={getIsActive ? getIsActive(option.lookup || option.id) : activeOptionId === option.id}
+              onClick={() => editor.dispatchCommand(option.command, editor)}
+              icon={option.icon}
+            />
+          ))}
+        </Dropdown.Menu>
+      </Dropdown>
+    </ActionTooltip>
+  )
+}
 
 export function ToolbarPlugin ({ name, topLevel }) {
   const [editor] = useLexicalComposerContext()
@@ -31,6 +136,12 @@ export function ToolbarPlugin ({ name, topLevel }) {
         break
       case 'link':
         editor.dispatchCommand(MD_INSERT_LINK_COMMAND, editor)
+        break
+      case 'quote':
+        editor.dispatchCommand(MD_INSERT_QUOTE_COMMAND, editor)
+        break
+      case 'inlineCode':
+        editor.dispatchCommand(MD_INSERT_CODE_COMMAND, editor)
         break
       default:
         break
@@ -70,9 +181,27 @@ export function ToolbarPlugin ({ name, topLevel }) {
             <ItalicIcon />
           </ToolbarButton>
           <span className={classNames(styles.divider)} />
+          <ToolbarButton id='quote' onClick={() => triggerCommand('quote')} tooltip='quote'>
+            <QuoteIcon />
+          </ToolbarButton>
+          <ToolbarButton id='inlineCode' onClick={() => triggerCommand('inlineCode')} tooltip='code'>
+            <CodeIcon />
+          </ToolbarButton>
           <ToolbarButton id='link' onClick={() => triggerCommand('link')} tooltip='link'>
             <LinkIcon />
           </ToolbarButton>
+          <span className={classNames(styles.divider)} />
+          <ToolbarDropdown
+            icon={<FontStyleIcon />}
+            tooltip='additional formatting options'
+            options={[
+              { id: 'superscript', name: 'superscript', icon: <SuperscriptIcon />, command: MD_INSERT_SUPERSCRIPT_COMMAND },
+              { id: 'subscript', name: 'subscript', icon: <SubscriptIcon />, command: MD_INSERT_SUBSCRIPT_COMMAND },
+              { id: 'strikethrough', name: 'strikethrough', icon: <StrikethroughIcon />, command: MD_INSERT_STRIKETHROUGH_COMMAND }
+            ]}
+            getIsActive={(lookup) => toolbarState[lookup]}
+            editor={editor}
+          />
         </div>
         <ActionTooltip notForm overlayText={showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
           <span className={styles.toolbarItem} onClick={() => setShowFormattingToolbar(!showFormattingToolbar)}>
@@ -99,10 +228,12 @@ export function ToolbarPlugin ({ name, topLevel }) {
  * @returns {JSX.Element} toolbar button component
  */
 export function ToolbarButton ({ id, isActive, onClick, tooltip, disabled = false, children, showDelay = 500 }) {
+  const shortcut = SHORTCUTS[id]
+  const tooltipText = shortcut ? `${tooltip} ${shortcut.key}` : tooltip
   return (
-    <ActionTooltip notForm overlayText={tooltip} placement='top' noWrapper showDelay={showDelay} transition disable={disabled}>
+    <ActionTooltip notForm overlayText={tooltipText} placement='top' noWrapper showDelay={showDelay} transition disable={disabled}>
       <span
-        title={tooltip}
+        title={tooltipText}
         className={classNames(styles.toolbarItem, isActive ? styles.active : '')}
         onPointerDown={e => e.preventDefault()}
         onClick={onClick}

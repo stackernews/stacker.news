@@ -471,7 +471,7 @@ export function AnonCorner ({ dropNavKey, className }) {
 export function LurkerCorner ({ className }) {
   return (
     <div className={className}>
-      <SignUpButton />
+      <SignUpButton width='auto' />
     </div>
   )
 }

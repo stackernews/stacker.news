@@ -14,6 +14,8 @@ export default gql`
     hasNewNotes: Boolean!
     mySubscribedUsers(cursor: String): Users!
     myMutedUsers(cursor: String): Users!
+    userMutedUsers(name: String!, cursor: String): Users
+    userSubscribedUsers(name: String!, cursor: String): Users
   }
 
   type UsersNullable {
@@ -75,6 +77,8 @@ export default gql`
     meMute: Boolean!
     meSubscriptionPosts: Boolean!
     meSubscriptionComments: Boolean!
+    showSubscribedUsers: Boolean!
+    showMutedUsers: Boolean!
   }
 
   input SettingsInput {
@@ -91,6 +95,8 @@ export default gql`
     hideInvoiceDesc: Boolean!
     imgproxyOnly: Boolean!
     showImagesAndVideos: Boolean!
+    showMutedUsers: Boolean!
+    showSubscribedUsers: Boolean!
     nostrCrossposting: Boolean!
     nostrPubkey: String
     nostrRelays: [String!]

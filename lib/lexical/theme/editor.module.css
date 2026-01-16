@@ -108,6 +108,7 @@
   gap: 0.25rem;
   position: relative;
   top: -4px;
+  transition: opacity 0.1s ease-in-out, visibility 0.1s ease-in-out;
 }
 
 .divider {
@@ -138,7 +139,7 @@
   mask: linear-gradient(to right, black 0%, black calc(100% - 0.2rem), transparent 100%);
 }
 
-.toolbarFormatting.hidden {
+.hidden {
   visibility: hidden;
   opacity: 0;
 }

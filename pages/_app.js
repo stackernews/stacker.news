@@ -22,6 +22,7 @@ import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { WalletsProvider } from '@/wallets/client/hooks'
 import FaviconProvider from '@/components/favicon'
+import { CookiesProvider } from '@/components/use-cookie'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -98,7 +99,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, blockHeight, chainFee, ...otherProps } = props
+  const { apollo, ssrData, ssrPublicCookies, me, price, blockHeight, chainFee, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -112,30 +113,32 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
           <ApolloProvider client={client}>
             <MeProvider me={me}>
-              <WalletsProvider>
-                <HasNewNotesProvider>
-                  <FaviconProvider>
-                    <ServiceWorkerProvider>
-                      <PriceProvider price={price}>
-                        <AnimationProvider>
-                          <ToastProvider>
-                            <ShowModalProvider>
-                              <BlockHeightProvider blockHeight={blockHeight}>
-                                <ChainFeeProvider chainFee={chainFee}>
-                                  <ErrorBoundary>
-                                    <Component ssrData={ssrData} {...otherProps} />
-                                    {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
-                                  </ErrorBoundary>
-                                </ChainFeeProvider>
-                              </BlockHeightProvider>
-                            </ShowModalProvider>
-                          </ToastProvider>
-                        </AnimationProvider>
-                      </PriceProvider>
-                    </ServiceWorkerProvider>
-                  </FaviconProvider>
-                </HasNewNotesProvider>
-              </WalletsProvider>
+              <CookiesProvider ssrPublicCookies={ssrPublicCookies}>
+                <WalletsProvider>
+                  <HasNewNotesProvider>
+                    <FaviconProvider>
+                      <ServiceWorkerProvider>
+                        <PriceProvider price={price}>
+                          <AnimationProvider>
+                            <ToastProvider>
+                              <ShowModalProvider>
+                                <BlockHeightProvider blockHeight={blockHeight}>
+                                  <ChainFeeProvider chainFee={chainFee}>
+                                    <ErrorBoundary>
+                                      <Component ssrData={ssrData} {...otherProps} />
+                                      {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                    </ErrorBoundary>
+                                  </ChainFeeProvider>
+                                </BlockHeightProvider>
+                              </ShowModalProvider>
+                            </ToastProvider>
+                          </AnimationProvider>
+                        </PriceProvider>
+                      </ServiceWorkerProvider>
+                    </FaviconProvider>
+                  </HasNewNotesProvider>
+                </WalletsProvider>
+              </CookiesProvider>
             </MeProvider>
           </ApolloProvider>
         </PlausibleProvider>

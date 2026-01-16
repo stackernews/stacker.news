@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import styles from '@/components/header.module.css'
 import { Container, Nav, Navbar } from 'react-bootstrap'
-import { NavPrice, MeCorner, AnonCorner, SearchItem, Back, NavWalletSummary, Brand, SignUpButton } from './common'
+import { NavPrice, SearchItem, Back, NavWalletSummary, Brand, SignUpButton, RightCorner } from './common'
 import { useMe } from '@/components/me'
 import classNames from 'classnames'
 import { CommentsNavigator, useCommentsNavigatorContext } from '../use-comments-navigator'
@@ -40,7 +40,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
             <SearchItem className='me-0 ms-2' />
             <NavPrice />
             <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
-            {me ? <MeCorner dropNavKey={dropNavKey} me={me} className='d-flex' /> : <AnonCorner path={path} className='d-flex' />}
+            <RightCorner dropNavKey={dropNavKey} path={path} className='d-flex' />
           </Nav>
         </Navbar>
       </Container>
@@ -53,7 +53,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
             <Back />
             <NavPrice className='flex-shrink-1' />
             <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
-            {me ? <NavWalletSummary className='px-2' /> : <SignUpButton width='fit-content' />}
+            {me ? <NavWalletSummary className='px-2' /> : <SignUpButton className='ms-auto' width='fit-content' />}
           </Nav>
         </Navbar>
       </Container>

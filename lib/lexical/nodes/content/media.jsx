@@ -31,9 +31,8 @@ function $convertMediaElement (domNode) {
   if (domNode instanceof window.HTMLImageElement || domNode instanceof window.HTMLVideoElement) {
     ({ alt, title, src, width, height, srcSet, bestResSrc } = domNode)
     kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
-  } else if (domNode instanceof window.HTMLSpanElement && domNode.hasAttribute('data-sn-media')) {
+  } else if (domNode instanceof window.HTMLSpanElement && domNode.hasAttribute('data-sn-media-src')) {
     src = domNode.getAttribute('data-sn-media-src')
-    if (!src) return null
     kind = domNode.getAttribute('data-sn-media-kind') || 'unknown'
     alt = ''
     title = ''
@@ -138,7 +137,7 @@ export class MediaNode extends DecoratorNode {
         priority: 0
       }),
       span: (domNode) => {
-        if (!domNode.hasAttribute('data-sn-media')) {
+        if (!domNode.hasAttribute('data-sn-media-src')) {
           return null
         }
         return {
@@ -177,6 +176,7 @@ export class MediaNode extends DecoratorNode {
     const span = document.createElement('span')
     span.className = config.theme?.media
     span.setAttribute('data-sn-media-kind', this.getKind())
+    span.setAttribute('data-sn-media-src', this.__src)
     const { width, height } = this.getWidthAndHeight() || {}
     width && span.style.setProperty('--width', width)
     height && span.style.setProperty('--height', height)

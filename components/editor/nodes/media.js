@@ -34,9 +34,9 @@ function MediaLoading ({ autolink }) {
   )
 }
 
-function MediaError ({ width, height, src, rel }) {
+function MediaError ({ className, width, height, src, rel }) {
   return (
-    <LinkRaw rel={rel} src={src}>
+    <LinkRaw className={className} rel={rel} src={src}>
       {width && height && (
         <div className='sn-media__error'>
           <FileError />
@@ -218,13 +218,15 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
           />
         </>
       ))
-    } else {
-      return <LinkRaw className='sn-media-autolink__loading' src={media.src} rel={UNKNOWN_LINK_REL} />
     }
   }
 
   if (linkFallback) {
-    return <MediaError width={media.width} height={media.height} src={media.src} rel={UNKNOWN_LINK_REL} />
+    if (media.image || media.video) {
+      return <MediaError width={media.width} height={media.height} src={media.src} rel={UNKNOWN_LINK_REL} />
+    } else {
+      return <LinkRaw className='sn-media-autolink__loading' src={media.src} rel={UNKNOWN_LINK_REL} />
+    }
   }
 
   return null

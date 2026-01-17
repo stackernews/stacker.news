@@ -98,7 +98,9 @@ export default function Settings ({ ssrData }) {
   })
 
   const { data } = useQuery(SETTINGS)
-  const { settings: { privates: settings } } = useMemo(() => data ?? ssrData, [data, ssrData])
+  const settingsData = useMemo(() => data ?? ssrData, [data, ssrData])
+  const settings = settingsData?.settings?.privates
+  const user = settingsData?.settings
 
   // if we switched to anon, me is null before the page is reloaded
   if ((!data && !ssrData) || !me) return <PageLoading />
@@ -136,6 +138,8 @@ export default function Settings ({ ssrData }) {
             hideGithub: settings?.hideGithub,
             hideNostr: settings?.hideNostr,
             hideTwitter: settings?.hideTwitter,
+            showSubscribedUsers: user?.showSubscribedUsers,
+            showMutedUsers: user?.showMutedUsers,
             imgproxyOnly: settings?.imgproxyOnly,
             showImagesAndVideos: settings?.showImagesAndVideos,
             wildWestMode: settings?.wildWestMode,
@@ -401,6 +405,36 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='hideTwitter'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>show my subscribed stackers on my profile
+                <Info>
+                  <ul>
+                    <li>Your subscribed stackers list is private by default</li>
+                    <li>Check this to make it visible on your public profile</li>
+                    <li>Others will be able to see who you are subscribed to</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='showSubscribedUsers'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>show my muted stackers on my profile
+                <Info>
+                  <ul>
+                    <li>Your muted stackers list is private by default</li>
+                    <li>Check this to make it visible on your public profile</li>
+                    <li>Others will be able to see who you have muted</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='showMutedUsers'
             groupClassName='mb-0'
           />
           <Checkbox

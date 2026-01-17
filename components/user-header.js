@@ -36,10 +36,25 @@ const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NE
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
+  const { me } = useMe()
 
   const pathParts = router.asPath.split('/')
-  const activeKey = pathParts[2] === 'territories' ? 'territories' : pathParts.length === 2 ? 'bio' : 'items'
+  let activeKey = 'bio'
+  if (pathParts[2] === 'territories') {
+    activeKey = 'territories'
+  } else if (pathParts[2] === 'subscribed') {
+    activeKey = 'subscribed'
+  } else if (pathParts[2] === 'muted') {
+    activeKey = 'muted'
+  } else if (pathParts.length > 2) {
+    activeKey = 'items'
+  }
+
+  const isMe = me?.name === user.name
   const showTerritoriesTab = activeKey === 'territories' || user.nterritories > 0
+  // Show subscribed/muted tabs only if: viewing own profile OR list is public
+  const showSubscribedTab = isMe || user.showSubscribedUsers === true
+  const showMutedTab = isMe || user.showMutedUsers === true
 
   return (
     <>
@@ -72,6 +87,32 @@ export default function UserHeader ({ user }) {
                   abbreviate: false,
                   unitSingular: 'territory',
                   unitPlural: 'territories'
+                })}
+              </Nav.Link>
+            </Link>
+          </Nav.Item>
+        )}
+        {showSubscribedTab && (
+          <Nav.Item>
+            <Link href={'/' + user.name + '/subscribed'} passHref legacyBehavior>
+              <Nav.Link eventKey='subscribed'>
+                {numWithUnits(user.nsubscribed, {
+                  abbreviate: false,
+                  unitSingular: 'subscription',
+                  unitPlural: 'subscriptions'
+                })}
+              </Nav.Link>
+            </Link>
+          </Nav.Item>
+        )}
+        {showMutedTab && (
+          <Nav.Item>
+            <Link href={'/' + user.name + '/muted'} passHref legacyBehavior>
+              <Nav.Link eventKey='muted'>
+                {numWithUnits(user.nmuted, {
+                  abbreviate: false,
+                  unitSingular: 'muted',
+                  unitPlural: 'muted'
                 })}
               </Nav.Link>
             </Link>

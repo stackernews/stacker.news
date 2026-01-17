@@ -58,6 +58,8 @@ ${STREAK_FIELDS}
 
 export const SETTINGS_FIELDS = gql`
   fragment SettingsFields on User {
+    showSubscribedUsers
+    showMutedUsers
     privates {
       tipDefault
       tipRandom
@@ -170,6 +172,10 @@ export const USER_FIELDS = gql`
     meSubscriptionPosts
     meSubscriptionComments
     meMute
+    showSubscribedUsers
+    showMutedUsers
+    nsubscribed
+    nmuted
 
     optional {
       stacked
@@ -339,6 +345,50 @@ export const MY_SUBSCRIBED_SUBS = gql`
           spent(when: "forever")
           revenue(when: "forever")
         }
+      }
+      cursor
+    }
+  }
+`
+
+export const USER_SUBSCRIBED_USERS = gql`
+  ${USER_FIELDS}
+  ${STREAK_FIELDS}
+  query UserSubscribedUsers($name: String!, $cursor: String) {
+    user(name: $name) {
+      ...UserFields
+    }
+    userSubscribedUsers(name: $name, cursor: $cursor) {
+      users {
+        id
+        name
+        photoId
+        meSubscriptionPosts
+        meSubscriptionComments
+        meMute
+        ...StreakFields
+      }
+      cursor
+    }
+  }
+`
+
+export const USER_MUTED_USERS = gql`
+  ${USER_FIELDS}
+  ${STREAK_FIELDS}
+  query UserMutedUsers($name: String!, $cursor: String) {
+    user(name: $name) {
+      ...UserFields
+    }
+    userMutedUsers(name: $name, cursor: $cursor) {
+      users {
+        id
+        name
+        photoId
+        meSubscriptionPosts
+        meSubscriptionComments
+        meMute
+        ...StreakFields
       }
       cursor
     }

@@ -904,6 +904,24 @@ export default {
     },
     showSubscribedUsers: user => user.showSubscribedUsers ?? false,
     showMutedUsers: user => user.showMutedUsers ?? false,
+    nsubscribed: async (user, args, { models }) => {
+      if (typeof user.nsubscribed !== 'undefined') return user.nsubscribed
+      return await models.userSubscription.count({
+        where: {
+          followerId: user.id,
+          OR: [
+            { postsSubscribedAt: { not: null } },
+            { commentsSubscribedAt: { not: null } }
+          ]
+        }
+      })
+    },
+    nmuted: async (user, args, { models }) => {
+      if (typeof user.nmuted !== 'undefined') return user.nmuted
+      return await models.mute.count({
+        where: { muterId: user.id }
+      })
+    },
     since: async (user, args, { models }) => {
       // get the user's first item
       const item = await models.item.findFirst({

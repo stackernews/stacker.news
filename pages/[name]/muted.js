@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
 import { USER_MUTED_USERS } from '@/fragments/users'
@@ -6,6 +7,7 @@ import PageLoading from '@/components/page-loading'
 import { UserLayout } from '.'
 import UserList from '@/components/user-list'
 import { useMe } from '@/components/me'
+import { MuteUserContextProvider } from '@/components/mute'
 
 export const getServerSideProps = getGetServerSideProps({ query: USER_MUTED_USERS })
 
@@ -14,6 +16,7 @@ export default function UserMuted ({ ssrData }) {
   const variables = { ...router.query }
   const { me } = useMe()
   const { data } = useQuery(USER_MUTED_USERS, { variables })
+  const muteContextValue = useMemo(() => ({ refetchQueries: ['UserMutedUsers'] }), [])
   if (!data && !ssrData) return <PageLoading />
   const { user } = data || ssrData
   const mutedData = data?.userMutedUsers || ssrData?.userMutedUsers
@@ -30,15 +33,17 @@ export default function UserMuted ({ ssrData }) {
             </div>
             )
           : (
-            <UserList
-              ssrData={ssrData}
-              query={USER_MUTED_USERS}
-              variables={variables}
-              destructureData={data => data.userMutedUsers || { users: [], cursor: null }}
-              rank
-              nymActionDropdown
-              statCompsProp={[]}
-            />
+            <MuteUserContextProvider value={muteContextValue}>
+              <UserList
+                ssrData={ssrData}
+                query={USER_MUTED_USERS}
+                variables={variables}
+                destructureData={data => data.userMutedUsers || { users: [], cursor: null }}
+                rank
+                nymActionDropdown
+                statCompsProp={[]}
+              />
+            </MuteUserContextProvider>
             )}
       </div>
     </UserLayout>

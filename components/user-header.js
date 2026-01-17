@@ -52,6 +52,7 @@ export default function UserHeader ({ user }) {
 
   const isMe = me?.name === user.name
   const showTerritoriesTab = activeKey === 'territories' || user.nterritories > 0
+  // Show subscribed/muted tabs only if: viewing own profile OR list is public
   const showSubscribedTab = isMe || user.showSubscribedUsers === true
   const showMutedTab = isMe || user.showMutedUsers === true
 
@@ -94,14 +95,26 @@ export default function UserHeader ({ user }) {
         {showSubscribedTab && (
           <Nav.Item>
             <Link href={'/' + user.name + '/subscribed'} passHref legacyBehavior>
-              <Nav.Link eventKey='subscribed'>subscribed</Nav.Link>
+              <Nav.Link eventKey='subscribed'>
+                {numWithUnits(user.nsubscribed, {
+                  abbreviate: false,
+                  unitSingular: 'subscription',
+                  unitPlural: 'subscriptions'
+                })}
+              </Nav.Link>
             </Link>
           </Nav.Item>
         )}
         {showMutedTab && (
           <Nav.Item>
             <Link href={'/' + user.name + '/muted'} passHref legacyBehavior>
-              <Nav.Link eventKey='muted'>muted</Nav.Link>
+              <Nav.Link eventKey='muted'>
+                {numWithUnits(user.nmuted, {
+                  abbreviate: false,
+                  unitSingular: 'muted',
+                  unitPlural: 'muted'
+                })}
+              </Nav.Link>
             </Link>
           </Nav.Item>
         )}

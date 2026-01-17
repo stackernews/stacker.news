@@ -174,6 +174,8 @@ export const USER_FIELDS = gql`
     meMute
     showSubscribedUsers
     showMutedUsers
+    nsubscribed
+    nmuted
 
     optional {
       stacked

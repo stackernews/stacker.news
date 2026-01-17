@@ -79,6 +79,8 @@ export default gql`
     meSubscriptionComments: Boolean!
     showSubscribedUsers: Boolean!
     showMutedUsers: Boolean!
+    nsubscribed: Int!
+    nmuted: Int!
   }
 
   input SettingsInput {

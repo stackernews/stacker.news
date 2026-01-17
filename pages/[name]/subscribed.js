@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
 import { USER_SUBSCRIBED_USERS } from '@/fragments/users'
@@ -6,6 +7,7 @@ import PageLoading from '@/components/page-loading'
 import { UserLayout } from '.'
 import UserList from '@/components/user-list'
 import { useMe } from '@/components/me'
+import { SubscribeUserContextProvider } from '@/components/subscribeUser'
 
 export const getServerSideProps = getGetServerSideProps({ query: USER_SUBSCRIBED_USERS })
 
@@ -14,6 +16,7 @@ export default function UserSubscribed ({ ssrData }) {
   const variables = { ...router.query }
   const { me } = useMe()
   const { data } = useQuery(USER_SUBSCRIBED_USERS, { variables })
+  const subscribeContextValue = useMemo(() => ({ refetchQueries: ['UserSubscribedUsers'] }), [])
   if (!data && !ssrData) return <PageLoading />
   const { user } = data || ssrData
   const subscribedData = data?.userSubscribedUsers || ssrData?.userSubscribedUsers
@@ -30,15 +33,17 @@ export default function UserSubscribed ({ ssrData }) {
             </div>
             )
           : (
-            <UserList
-              ssrData={ssrData}
-              query={USER_SUBSCRIBED_USERS}
-              variables={variables}
-              destructureData={data => data.userSubscribedUsers || { users: [], cursor: null }}
-              rank
-              nymActionDropdown
-              statCompsProp={[]}
-            />
+            <SubscribeUserContextProvider value={subscribeContextValue}>
+              <UserList
+                ssrData={ssrData}
+                query={USER_SUBSCRIBED_USERS}
+                variables={variables}
+                destructureData={data => data.userSubscribedUsers || { users: [], cursor: null }}
+                rank
+                nymActionDropdown
+                statCompsProp={[]}
+              />
+            </SubscribeUserContextProvider>
             )}
       </div>
     </UserLayout>

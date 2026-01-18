@@ -55,10 +55,10 @@ function MediaError ({ className, width, height, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width, alt, title,
-  height, onClick, onError, video, style, onLoad, innerStyle
+  height, onClick, onError, video, onLoad, innerStyle
 }) {
   const sized = !!(width && height && width > 0 && height > 0)
-  const content = (
+  return (
     <>
       {video
         ? (
@@ -95,8 +95,6 @@ const Media = memo(function Media ({
           )}
     </>
   )
-
-  return style ? <div style={style}>{content}</div> : content
 })
 
 /**
@@ -210,14 +208,17 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
     if (media.image || media.video) {
       // when we don't know the dimensions of the media (e.g. autolink),
       // preserveScroll helps us avoid scrolling shift when media finally loads
-      return preserveScroll(() => (
+      const content = (
         <>
           {isLoading && <MediaLoading autolink={props.kind === 'unknown'} />}
           <Media
             {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad} innerStyle={isLoading ? { width: 0, height: 0 } : undefined}
           />
         </>
-      ))
+      )
+
+      // ItemEmbed doesn't create a container for us, in that case we wrap the content in the sn-media span
+      return preserveScroll(() => media?.style ? <span className='sn-media' style={media.style}>{content}</span> : content)
     }
   }
 
@@ -284,8 +285,8 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
     height = legacySrcSet?.height
     if (width && height && width > 0 && height > 0) {
       style = {
-        '--height': `${height}px`,
-        '--width': `${width}px`
+        '--height': `${height}`,
+        '--width': `${width}`
       }
     }
   }

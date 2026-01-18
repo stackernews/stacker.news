@@ -338,22 +338,19 @@ span + .sn-link {
   }
 }
 
-.sn-twitter-container,
-.sn-nostr-container,
-.sn-video-wrapper,
-.sn-wavlake-wrapper,
-.sn-spotify-wrapper {
-  background-color: var(--theme-body);
-}
-
+// embed wrapper
 .sn-embed-wrapper {
   user-select: none;
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+  background-color: var(--theme-bg);
 }
 
 [contenteditable="true"] .sn-embed-wrapper--focus {
   outline: 2px solid rgb(60, 132, 244);
 }
 
+// work in progress loading state
 .sn-embed-wrapper__loading {
   display: flex;
   flex-flow: row wrap;
@@ -378,6 +375,226 @@ span + .sn-link {
   height: 24px;
   margin-bottom: 1rem;
   margin-left: -0.15rem;
+}
+
+.sn-embed-placeholder,
+.sn-embed {
+  max-width: 100%;
+}
+
+// embed containers
+.sn-twitter-container,
+.sn-nostr-container,
+.sn-video-wrapper,
+.sn-wavlake-wrapper,
+.sn-spotify-wrapper {
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+  background-color: var(--theme-bg);
+}
+
+// twitter and nostr
+.sn-twitter-container,
+.sn-nostr-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.sn-twitter-container iframe,
+.sn-nostr-container iframe {
+  border-radius: 13px;
+}
+
+.sn-nostr-container {
+  margin-right: 15px;
+}
+
+/* Contained state (collapsed) */
+.sn-embed-contained {
+  overflow: hidden;
+}
+
+.sn-embed-contained.sn-embed--twitter,
+.sn-embed-contained.sn-embed--nostr {
+  height: 150px;
+}
+
+.sn-text--top-level .sn-embed-contained.sn-embed--twitter,
+.sn-text--top-level .sn-embed-contained.sn-embed--nostr {
+  height: 200px;
+}
+
+// overflow 'show full' button
+.sn-embed-show-full {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  border-radius: 0;
+  line-height: 1.2;
+  padding: .75rem 1rem;
+}
+
+// video wrapper and container
+.sn-video-wrapper {
+  max-width: 320px;
+}
+
+.sn-video-wrapper:not(:first-child) {
+  margin-top: .75rem;
+}
+
+.sn-text--top-level .sn-video-wrapper {
+  max-width: 640px;
+  margin: 0.75rem 0;
+}
+
+.sn-video-container {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  overflow: hidden;
+}
+
+.sn-video-container iframe {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+// wavlake wrapper
+.sn-wavlake-wrapper {
+  width: 100%;
+  height: 380px;
+  max-width: 480px;
+  border-radius: 1.65rem;
+  overflow: hidden;
+}
+
+// spotify wrapper
+.sn-spotify-wrapper {
+  width: 100%;
+  height: 152px;
+  max-width: 480px;
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+// tweet skeleton
+.sn-tweets-skeleton {
+  display: flex;
+  flex-flow: row wrap;
+  max-width: 350px;
+  width: 100%;
+  padding-right: 12px;
+}
+
+.sn-text--top-level .sn-tweets-skeleton {
+  max-width: 550px;
+}
+
+.sn-tweet-skeleton {
+  width: 100%;
+  border: 0.05rem solid var(--theme-borderColor);
+  border-radius: 12px;
+  height: 150px;
+  padding: 1.5rem;
+}
+
+.sn-text--top-level .sn-tweet-skeleton {
+  height: 200px;
+}
+
+.sn-tweet-skeleton__img {
+  height: 48px;
+  width: 48px;
+  border-radius: 50%;
+}
+
+.sn-tweet-skeleton__content {
+  height: 50%;
+  margin-top: 1rem;
+}
+
+.sn-tweet-skeleton__line {
+  height: 25%;
+  margin: 0.5rem 0;
+  width: 100%;
+  border-radius: .4rem;
+}
+
+.sn-tweet-skeleton__line:last-child {
+  width: 75%;
+}
+
+// embed dimensions per provider
+// twitter embed
+.sn-embed--twitter {
+  width: 350px;
+  max-width: 100%;
+}
+
+.sn-text--top-level .sn-embed--twitter {
+  width: 550px;
+}
+
+// nostr embed
+.sn-embed--nostr {
+  width: 350px;
+  max-width: 100%;
+}
+
+.sn-text--top-level .sn-embed--nostr {
+  width: 550px;
+}
+
+// youtube embed
+.sn-embed--youtube {
+  width: 320px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.sn-text--top-level .sn-embed--youtube {
+  width: 640px;
+}
+
+// rumble embed
+.sn-embed--rumble {
+  width: 320px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.sn-text--top-level .sn-embed--rumble {
+  width: 640px;
+}
+
+// peertube embed
+.sn-embed--peertube {
+  width: 320px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.sn-text--top-level .sn-embed--peertube {
+  width: 640px;
+}
+
+// wavlake embed
+.sn-embed--wavlake {
+  width: 100%;
+  max-width: 480px;
+  height: 380px;
+}
+
+// spotify embed
+.sn-embed--spotify {
+  width: 100%;
+  max-width: 480px;
+  height: 152px;
 }
 
 .sn-list-ol, .sn-list-ul {

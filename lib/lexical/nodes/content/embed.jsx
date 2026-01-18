@@ -101,13 +101,16 @@ export class EmbedNode extends DecoratorBlockNode {
     // 1:1 styling with placeholder
     const placeholderClass = editor?._config?.theme?.embeds?.placeholder
     const providerClasses = editor?._config?.theme?.embeds?.[this.__provider]
-    container.classList.add(
+    const classes = [
       placeholderClass,
       providerClasses?.container,
-      providerClasses?.embed,
-      // only twitter and nostr have a contained state
-      (this.__provider === 'twitter' || this.__provider === 'nostr') ? providerClasses?.contained : ''
-    )
+      providerClasses?.embed
+    ]
+    // only twitter and nostr have a contained state
+    if (this.__provider === 'twitter' || this.__provider === 'nostr') {
+      classes.push(providerClasses?.contained)
+    }
+    container.classList.add(...classes.filter(Boolean))
 
     container.setAttribute('data-lexical-embed-provider', this.__provider || '')
     this.__id && container.setAttribute('data-lexical-embed-id', this.__id)

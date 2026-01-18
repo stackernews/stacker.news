@@ -331,7 +331,7 @@
 
 .topLevel .videoWrapper,
 :global(.topLevel) .videoWrapper,
-:global(.sn-text--top-level) .videoWrapper {
+:global(.topLevel) .videoWrapper {
     max-width: 640px;
     margin: 0.75rem 0;
 }
@@ -376,7 +376,7 @@
 
 .topLevel .twitterContained,
 :global(.topLevel) .twitterContained,
-:global(.sn-text--top-level) .twitterContained {
+:global(.topLevel) .twitterContained {
     height: 200px;
 }
 
@@ -399,7 +399,7 @@
 
 .topLevel .tweetsSkeleton,
 :global(.topLevel) .tweetsSkeleton,
-:global(.sn-text--top-level) .tweetsSkeleton {
+:global(.topLevel) .tweetsSkeleton {
     max-width: 550px;
 }
 
@@ -416,7 +416,7 @@
 
 .topLevel .tweetSkeleton,
 :global(.topLevel) .tweetSkeleton,
-:global(.sn-text--top-level) .tweetSkeleton {
+:global(.topLevel) .tweetSkeleton {
     height: 200px;
 }
 

@@ -108,7 +108,7 @@ export default function Text ({ topLevel, children, className, innerClassName, s
   const textClassNames = useMemo(() => {
     return classNames(
       'sn-text',
-      topLevel && 'sn-text--top-level',
+      topLevel && 'topLevel',
       show ? 'sn-text--uncontained' : overflowing && 'sn-text--contained',
       className
     )

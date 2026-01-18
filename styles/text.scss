@@ -58,7 +58,7 @@
   background-color: var(--theme-body) !important;
 }
 
-.sn-text.sn-text--top-level {
+.sn-text.topLevel {
   max-height: 200vh;
   --grid-gap: 0.75rem;
 }
@@ -122,19 +122,19 @@
   position: relative;
 }
 
-.sn-text--top-level h1.sn-heading {
+.topLevel h1.sn-heading {
   font-size: 1.6rem;
 }
 
-.sn-text--top-level h2.sn-heading {
+.topLevel h2.sn-heading {
   font-size: 1.45rem;
 }
 
-.sn-text--top-level h3.sn-heading {
+.topLevel h3.sn-heading {
   font-size: 1.3rem;
 }
 
-.sn-text--top-level h4.sn-heading {
+.topLevel h4.sn-heading {
   font-size: 1.15rem;
 }
 
@@ -224,7 +224,7 @@
   aspect-ratio: var(--width) / var(--height);
 }
 
-.sn-text--top-level .sn-media {
+.topLevel .sn-media {
   --sn-media-max-h: 35vh;
 }
 
@@ -419,8 +419,8 @@ span + .sn-link {
   height: 150px;
 }
 
-.sn-text--top-level .sn-embed-contained.sn-embed--twitter,
-.sn-text--top-level .sn-embed-contained.sn-embed--nostr {
+.topLevel .sn-embed-contained.sn-embed--twitter,
+.topLevel .sn-embed-contained.sn-embed--nostr {
   height: 200px;
 }
 
@@ -443,7 +443,7 @@ span + .sn-link {
   margin-top: .75rem;
 }
 
-.sn-text--top-level .sn-video-wrapper {
+.topLevel .sn-video-wrapper {
   max-width: 640px;
   margin: 0.75rem 0;
 }
@@ -491,7 +491,7 @@ span + .sn-link {
   padding-right: 12px;
 }
 
-.sn-text--top-level .sn-tweets-skeleton {
+.topLevel .sn-tweets-skeleton {
   max-width: 550px;
 }
 
@@ -503,7 +503,7 @@ span + .sn-link {
   padding: 1.5rem;
 }
 
-.sn-text--top-level .sn-tweet-skeleton {
+.topLevel .sn-tweet-skeleton {
   height: 200px;
 }
 
@@ -536,7 +536,7 @@ span + .sn-link {
   max-width: 100%;
 }
 
-.sn-text--top-level .sn-embed--twitter {
+.topLevel .sn-embed--twitter {
   width: 550px;
 }
 
@@ -546,7 +546,7 @@ span + .sn-link {
   max-width: 100%;
 }
 
-.sn-text--top-level .sn-embed--nostr {
+.topLevel .sn-embed--nostr {
   width: 550px;
 }
 
@@ -557,7 +557,7 @@ span + .sn-link {
   aspect-ratio: 16 / 9;
 }
 
-.sn-text--top-level .sn-embed--youtube {
+.topLevel .sn-embed--youtube {
   width: 640px;
 }
 
@@ -568,7 +568,7 @@ span + .sn-link {
   aspect-ratio: 16 / 9;
 }
 
-.sn-text--top-level .sn-embed--rumble {
+.topLevel .sn-embed--rumble {
   width: 640px;
 }
 
@@ -579,7 +579,7 @@ span + .sn-link {
   aspect-ratio: 16 / 9;
 }
 
-.sn-text--top-level .sn-embed--peertube {
+.topLevel .sn-embed--peertube {
   width: 640px;
 }
 

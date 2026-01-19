@@ -38,7 +38,7 @@ function MediaError ({ className, width, height, src, rel }) {
   return (
     <LinkRaw className={className} rel={rel} src={src}>
       {width && height && (
-        <div className='sn-media__error'>
+        <div className='sn-media__error' title={src}>
           <FileError />
           <p>
             content not available

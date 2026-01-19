@@ -182,8 +182,8 @@
 }
 
 .sn-media:has(.sn-media__error) {
-  min-width: 160px;
-  min-height: 150px;
+  min-width: 50px;
+  min-height: 50px;
 }
 
 .sn-media-autolink__loading {
@@ -214,13 +214,10 @@
 
 .sn-media__img:not(.sn-media__img--sized),
 .sn-media__video:not(.sn-media__video--sized) {
-  // we don't know the dimensions, let's go with a minimum width of 30%
   object-fit: contain;
   width: auto;
   max-width: 100%;
-  min-width: 30%;
-  height: 100%;
-  max-height: inherit;
+  max-height: var(--sn-media-max-h);
   aspect-ratio: var(--width) / var(--height);
 }
 
@@ -234,6 +231,7 @@
 }
 
 .sn-media__error {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -249,11 +247,16 @@
   justify-content: center;
   align-items: center;
   text-align: center;
+  min-width: 50px;
+  min-height: 50px;
 
   // ellipsis
   p {
     max-width: 75%;
     overflow: hidden;
+    @container (max-width: 50px) {
+      display: none;
+    }
   }
 
   span {
@@ -284,7 +287,7 @@
 }
 
 /* in case media-or-link detects a link */
-.sn-media:has(a):not(> .sn-media__error) {
+.sn-media:has(> .sn-media-autolink__loading) {
   display: inline !important;
 }
 

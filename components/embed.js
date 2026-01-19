@@ -178,7 +178,6 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
           title='YouTube Video'
           aspectWidth={16}
           aspectHeight={9}
-          iframeClass='sn-video-container'
           params={`start=${meta?.start || 0}`}
         />
       </div>

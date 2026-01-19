@@ -1,4 +1,4 @@
-import { $applyNodeReplacement, DecoratorNode, createState, $getState, $setState } from 'lexical'
+import { $applyNodeReplacement, createState, $getState, $setState, DecoratorNode } from 'lexical'
 
 // kind and status can change over time, so we need to store them in states
 const kindState = createState('kind', {
@@ -26,27 +26,26 @@ const bestResSrcState = createState('bestResSrc', {
 })
 
 function $convertMediaElement (domNode) {
-  let src, alt, title, width, height, kind, autolink, srcSet, bestResSrc
+  let src, alt, title, width, height, kind, srcSet, bestResSrc
 
   if (domNode instanceof window.HTMLImageElement || domNode instanceof window.HTMLVideoElement) {
     ({ alt, title, src, width, height, srcSet, bestResSrc } = domNode)
-    autolink = domNode.hasAttribute('data-autolink')
     kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
-  } else if (domNode instanceof window.HTMLAnchorElement && domNode.hasAttribute('data-media-kind')) {
-    src = domNode.getAttribute('href')
-    alt = domNode.getAttribute('data-media-alt') || ''
-    title = domNode.getAttribute('title') || ''
-    width = domNode.getAttribute('data-media-width')
-    height = domNode.getAttribute('data-media-height')
-    kind = domNode.getAttribute('data-media-kind') || 'unknown'
+  } else if (domNode instanceof window.HTMLSpanElement && domNode.hasAttribute('data-sn-media-src')) {
+    src = domNode.getAttribute('data-sn-media-src')
+    kind = domNode.getAttribute('data-sn-media-kind') || 'unknown'
+    alt = ''
+    title = ''
+    const style = domNode.style
+    width = style.getPropertyValue('--width')
+    height = style.getPropertyValue('--height')
     width = width ? parseInt(width, 10) : null
     height = height ? parseInt(height, 10) : null
-    autolink = domNode.hasAttribute('data-autolink')
   } else {
     return null
   }
 
-  const node = $createMediaNode({ src, alt, title, width, height, autolink, srcSet, bestResSrc })
+  const node = $createMediaNode({ src, alt, title, width, height, srcSet, bestResSrc })
   $setState(node, kindState, kind)
   $setState(node, statusState, 'done')
   return { node }
@@ -136,75 +135,58 @@ export class MediaNode extends DecoratorNode {
       a: () => ({
         conversion: $convertMediaElement,
         priority: 0
-      })
+      }),
+      span: (domNode) => {
+        if (!domNode.hasAttribute('data-sn-media-src')) {
+          return null
+        }
+        return {
+          conversion: $convertMediaElement,
+          priority: 1
+        }
+      }
     }
   }
 
-  // we're exporting a link node instead of a media node
-  // it contains everything we need to re-import it as a media node (html -> lexical)
-  // because of media checks, rendering HTML as a link ensures the only layout shift will be the media itself (SSR -> Lexical)
   exportDOM (editor) {
-    // if autolink, export as a link instead of media
     const kind = $getState(this, kindState)
-    if (kind === 'unknown' || this.__autolink) {
+
+    const span = document.createElement('span')
+    span.className = editor._config.theme?.media
+    span.setAttribute('data-sn-media-kind', kind)
+    span.setAttribute('data-sn-media-src', this.__src)
+
+    if (kind === 'unknown') {
+      // export a link instead of media if we don't know the type
       const link = document.createElement('a')
       link.setAttribute('href', this.__src)
       link.setAttribute('target', '_blank')
       link.setAttribute('rel', 'noopener nofollow noreferrer')
+      link.className = 'sn-media-autolink__loading'
       link.textContent = this.__src
-      return { element: link }
+      span.appendChild(link)
+      return { element: span }
     }
 
-    const element = document.createElement('span')
-    const className = editor._config.theme?.mediaContainer
-    if (className) element.className = className
+    const { width, height } = this.getWidthAndHeight() || {}
+    width && span.style.setProperty('--width', width)
+    height && span.style.setProperty('--height', height)
 
-    const width = $getState(this, widthState)
-    const height = $getState(this, heightState)
+    const loading = document.createElement('div')
+    loading.className = 'sn-media__loading'
+    span.appendChild(loading)
 
-    element.style.setProperty('--width', width ? `${width}px` : 'inherit')
-    element.style.setProperty('--height', height ? `${height}px` : 'inherit')
-    element.style.setProperty('--max-width', `${this.__maxWidth}px`)
-
-    const media = document.createElement(kind === 'video' ? 'video' : 'img')
-
-    media.setAttribute('src', this.__src)
-    const srcSet = $getState(this, srcSetState)
-    const bestResSrc = $getState(this, bestResSrcState)
-    if (srcSet) {
-      media.setAttribute('srcset', srcSet)
-      media.setAttribute('sizes', '66vw')
-    }
-    if (bestResSrc && kind === 'video') {
-      media.setAttribute('poster', bestResSrc !== this.__src ? bestResSrc : undefined)
-      media.setAttribute('preload', bestResSrc !== this.__src ? 'metadata' : undefined)
-    }
-    if (this.__title) media.setAttribute('title', this.__title)
-    if (this.__alt) media.setAttribute('alt', this.__alt)
-    if (width) media.setAttribute('width', String(width))
-    if (height) media.setAttribute('height', String(height))
-    if (kind === 'video') media.setAttribute('controls', 'true')
-
-    element.appendChild(media)
-    return { element }
+    return { element: span }
   }
 
   createDOM (config) {
     const span = document.createElement('span')
-    const className = config.theme?.mediaContainer
-    if (className) {
-      span.className = className
-    }
-
-    const { width, height } = this.getWidthAndHeight()
-    if (width) {
-      span.style.setProperty('--width', `${width}px`)
-    }
-    if (height) {
-      span.style.setProperty('--height', `${height}px`)
-    }
-
-    span.style.setProperty('--max-width', `${this.__maxWidth}px`)
+    span.className = config.theme?.media
+    span.setAttribute('data-sn-media-kind', this.getKind())
+    span.setAttribute('data-sn-media-src', this.__src)
+    const { width, height } = this.getWidthAndHeight() || {}
+    width && span.style.setProperty('--width', width)
+    height && span.style.setProperty('--height', height)
     return span
   }
 

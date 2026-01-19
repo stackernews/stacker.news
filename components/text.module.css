@@ -329,7 +329,9 @@
     max-width: 320px;
 }
 
-.topLevel .videoWrapper, :global(.topLevel) .videoWrapper {
+.topLevel .videoWrapper,
+:global(.topLevel) .videoWrapper,
+:global(.topLevel) .videoWrapper {
     max-width: 640px;
     margin: 0.75rem 0;
 }
@@ -372,7 +374,9 @@
     overflow: hidden;
 }
 
-.topLevel .twitterContained, :global(.topLevel) .twitterContained {
+.topLevel .twitterContained,
+:global(.topLevel) .twitterContained,
+:global(.topLevel) .twitterContained {
     height: 200px;
 }
 
@@ -393,7 +397,9 @@
     padding-right: 12px;
 }
 
-.topLevel .tweetsSkeleton, :global(.topLevel) .tweetsSkeleton {
+.topLevel .tweetsSkeleton,
+:global(.topLevel) .tweetsSkeleton,
+:global(.topLevel) .tweetsSkeleton {
     max-width: 550px;
 }
 
@@ -408,7 +414,9 @@
     padding: 1.5rem;
 }
 
-.topLevel .tweetSkeleton, :global(.topLevel) .tweetSkeleton {
+.topLevel .tweetSkeleton,
+:global(.topLevel) .tweetSkeleton,
+:global(.topLevel) .tweetSkeleton {
     height: 200px;
 }
 

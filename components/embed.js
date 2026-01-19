@@ -1,27 +1,27 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import classNames from 'classnames'
 import useDarkMode from './dark-mode'
-import styles from './text.module.css'
 import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
-import YouTube from 'react-youtube'
+import LiteYouTubeEmbed from 'react-lite-youtube-embed'
+import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css'
 
 function TweetSkeleton ({ className }) {
   return (
-    <div className={classNames(styles.tweetsSkeleton, className)}>
-      <div className={styles.tweetSkeleton}>
-        <div className={`${styles.img} clouds`} />
-        <div className={styles.content1}>
-          <div className={`${styles.line} clouds`} />
-          <div className={`${styles.line} clouds`} />
-          <div className={`${styles.line} clouds`} />
+    <div className={classNames('sn-tweets-skeleton', className)}>
+      <div className='sn-tweet-skeleton'>
+        <div className='sn-tweet-skeleton__img clouds' />
+        <div className='sn-tweet-skeleton__content'>
+          <div className='sn-tweet-skeleton__line clouds' />
+          <div className='sn-tweet-skeleton__line clouds' />
+          <div className='sn-tweet-skeleton__line clouds' />
         </div>
       </div>
     </div>
   )
 }
 
-export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, darkMode, id }) {
+export const NostrEmbed = memo(function NostrEmbed ({ className, darkMode, id }) {
   const [show, setShow] = useState(false)
   const iframeRef = useRef(null)
 
@@ -55,18 +55,18 @@ export const NostrEmbed = memo(function NostrEmbed ({ src, className, topLevel, 
   }, [iframeRef.current, darkMode])
 
   return (
-    <div className={classNames(styles.nostrContainer, !show && styles.twitterContained, className)}>
+    <div className={classNames('sn-nostr-container', !show && 'sn-embed-contained', className)}>
       <iframe
         ref={iframeRef}
-        width={topLevel ? '550px' : '350px'}
+        width='100%'
         style={{ maxWidth: '100%' }}
-        height={iframeRef.current?.height || (topLevel ? '200px' : '150px')}
+        height={iframeRef.current?.height || '100%'}
         frameBorder='0'
         sandbox='allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox'
         allow=''
       />
       {!show &&
-        <Button size='md' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
+        <Button size='md' variant='info' className='sn-embed-show-full' onClick={() => setShow(true)}>
           <div>show full note</div>
           <small className='fw-normal fst-italic'>or other stuff</small>
         </Button>}
@@ -100,13 +100,13 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   }, [iframeRef.current, url.pathname])
 
   return (
-    <div className={classNames(styles.spotifyWrapper, className)}>
+    <div className={classNames('sn-spotify-wrapper', className)}>
       <iframe
         ref={iframeRef}
         title='Spotify Web Player'
         src={`https://open.spotify.com/embed${url.pathname}`}
         width='100%'
-        height='152'
+        height='100%'
         allowFullScreen
         frameBorder='0'
         allow='encrypted-media; clipboard-write;'
@@ -117,25 +117,25 @@ const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   )
 }
 
-const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel, onError }) {
+const Embed = memo(function Embed ({ src, provider, id, meta, className, topLevel }) {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(true)
   const [show, setShow] = useState(false)
+  const embedClass = className || `sn-embed--${provider}`
 
-  // This Twitter embed could use similar logic to the video embeds below
   if (provider === 'twitter') {
     return (
       <>
-        <div className={classNames(styles.twitterContainer, !show && styles.twitterContained, className)}>
+        <div className={classNames('sn-twitter-container', !show && 'sn-embed-contained', embedClass)}>
           <TwitterTweetEmbed
             tweetId={id}
-            options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? '550px' : '350px' }}
+            options={{ theme: darkMode ? 'dark' : 'light', width: topLevel ? 550 : 350 }}
             key={darkMode ? '1' : '2'}
-            placeholder={<TweetSkeleton className={className} />}
+            placeholder={<TweetSkeleton className={embedClass} />}
             onLoad={() => setOverflowing(true)}
           />
           {overflowing && !show &&
-            <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
+            <Button size='lg' variant='info' className='sn-embed-show-full' onClick={() => setShow(true)}>
               show full tweet
             </Button>}
         </div>
@@ -145,15 +145,18 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
 
   if (provider === 'nostr') {
     return (
-      <NostrEmbed src={src} className={className} topLevel={topLevel} id={id} darkMode={darkMode} />
+      <NostrEmbed src={src} className={embedClass} id={id} darkMode={darkMode} />
     )
   }
 
   if (provider === 'wavlake') {
     return (
-      <div className={classNames(styles.wavlakeWrapper, className)}>
+      <div className={classNames('sn-wavlake-wrapper', embedClass)}>
         <iframe
-          src={`https://embed.wavlake.com/track/${id}`} width='100%' height='380' frameBorder='0'
+          src={`https://embed.wavlake.com/track/${id}`}
+          width='100%'
+          height='100%'
+          frameBorder='0'
           allow='encrypted-media'
           sandbox='allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-same-origin'
         />
@@ -163,19 +166,19 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
 
   if (provider === 'spotify') {
     return (
-      <SpotifyEmbed src={src} className={className} />
+      <SpotifyEmbed src={src} className={embedClass} />
     )
   }
 
   if (provider === 'youtube') {
     return (
-      <div className={classNames(styles.videoWrapper, className)}>
-        <YouTube
-          videoId={id} className={styles.videoContainer} opts={{
-            playerVars: {
-              start: meta?.start || 0
-            }
-          }}
+      <div className={classNames('sn-video-wrapper', embedClass)}>
+        <LiteYouTubeEmbed
+          id={id}
+          title='YouTube Video'
+          aspectWidth={16}
+          aspectHeight={9}
+          params={`start=${meta?.start || 0}`}
         />
       </div>
     )
@@ -183,8 +186,8 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
 
   if (provider === 'rumble') {
     return (
-      <div className={classNames(styles.videoWrapper, className)}>
-        <div className={styles.videoContainer}>
+      <div className={classNames('sn-video-wrapper', embedClass)}>
+        <div className='sn-video-container'>
           <iframe
             title='Rumble Video'
             allowFullScreen
@@ -198,8 +201,8 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
 
   if (provider === 'peertube') {
     return (
-      <div className={classNames(styles.videoWrapper, className)}>
-        <div className={styles.videoContainer}>
+      <div className={classNames('sn-video-wrapper', embedClass)}>
+        <div className='sn-video-container'>
           <iframe
             title='PeerTube Video'
             allowFullScreen

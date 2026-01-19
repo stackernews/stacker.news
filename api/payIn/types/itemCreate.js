@@ -8,6 +8,7 @@ import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTok
 import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
 import { getItem } from '@/api/resolvers/item'
+import { getTempImgproxyUrls } from '../lib/upload'
 
 export const anonable = true
 
@@ -118,10 +119,13 @@ export async function onBegin (tx, payInId, args) {
     }
   }
 
+  const imgproxyUrls = await getTempImgproxyUrls(tx, uploadIds)
+
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
     ...data,
     cost: msatsToSats(payIn.mcost),
+    imgproxyUrls,
     itemPayIns: {
       create: [{ payInId }]
     },

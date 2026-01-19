@@ -30,7 +30,7 @@ export default gql`
   type Bulletin {
     title: String!
     text: String
-    lexicalState: JSONObject
+    lexicalState: String
     html: String
     iconType: BulletinIconType
   }

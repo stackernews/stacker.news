@@ -54,11 +54,10 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
       ],
       theme: {
         ...theme,
-        topLevel: topLevel && 'sn-text--top-level'
+        topLevel: topLevel && 'topLevel'
       },
       $initialEditorState: (editor) => initiateLexical(editor, state, text),
       onError: (error) => console.error('reader has encountered an error:', error)
-    // avoid unnecessary re-renders by only depending on stable values
     }), [topLevel, state, text, preview])
 
   return (

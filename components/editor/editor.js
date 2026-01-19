@@ -58,7 +58,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         configExtension(ReactExtension, { contentEditable: null }),
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],
-      theme: { ...theme, topLevel: topLevel ? 'sn-text--top-level' : '' },
+      theme: { ...theme, topLevel: topLevel ? 'topLevel' : '' },
       onError: (error) => console.error('editor has encountered an error:', error)
     // only depend on stable values to avoid unnecessary re-renders
     // text.value is, for example, not stable because it is updated by the formik context

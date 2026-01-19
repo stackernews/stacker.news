@@ -112,47 +112,64 @@ const Media = memo(function Media ({
  * @param {number} props.maxWidth - media max width
  * @returns {JSX.Element} media or link component
  */
-export default function MediaComponent ({ src, srcSet, bestResSrc, width, height, alt, title, kind, linkFallback = true, nodeKey }) {
+export default function MediaComponent ({ src, srcSet, bestResSrc, width, height, alt, title, kind: initialKind, linkFallback = true, nodeKey }) {
   const [editor] = useLexicalComposerContext()
-  const [isLink, setIsLink] = useState(false)
+  const [kind, setKind] = useState()
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
 
   // TODO: basically an hack, Lexical could handle this via MediaCheckExtension
   // we're profiting from the fact that MediaOrLink actually does a media check
   // if the media turned out to be a link, replace the media node with a link node
+  const $replaceWithLink = useCallback(() => {
+    const node = $getNodeByKey(nodeKey)
+    if (!node) return
+
+    const parent = node.getParent()
+    if (!parent) return
+
+    const { target, rel } = getLinkAttributes(url)
+    const linkNode = $createLinkNode(url, {
+      title: url,
+      target,
+      rel
+    }).append($createTextNode(url))
+
+    // If parent is a paragraph, directly replace the media node with the link
+    if (parent.getType() === 'paragraph') {
+      node.replace(linkNode)
+      return
+    }
+
+    // Otherwise, insert a new paragraph with the link after the parent and remove the media node
+    parent.insertAfter($createParagraphNode().append(linkNode))
+    node.remove()
+
+    // Clean up empty parent nodes
+    if (parent.getChildrenSize() === 0) {
+      parent.remove()
+    }
+  }, [url])
+
+  const $confirmMedia = useCallback(() => {
+    const node = $getNodeByKey(nodeKey)
+    if (!node) return
+
+    if (kind === 'image' || kind === 'video') {
+      node.setKind(kind)
+      node.setStatus('done')
+    }
+  }, [kind, nodeKey])
+
   useEffect(() => {
-    if (!isLink) return
-
     editor.update(() => {
-      const node = $getNodeByKey(nodeKey)
-      if (!node) return
-
-      const parent = node.getParent()
-      if (!parent) return
-
-      const { target, rel } = getLinkAttributes(url)
-      const linkNode = $createLinkNode(url, {
-        title: url,
-        target,
-        rel
-      }).append($createTextNode(url))
-
-      // If parent is a paragraph, directly replace the media node with the link
-      if (parent.getType() === 'paragraph') {
-        node.replace(linkNode)
-        return
+      if (kind === 'unknown') {
+        $replaceWithLink()
       }
-
-      // Otherwise, insert a new paragraph with the link after the parent and remove the media node
-      parent.insertAfter($createParagraphNode().append(linkNode))
-      node.remove()
-
-      // Clean up empty parent nodes
-      if (parent.getChildrenSize() === 0) {
-        parent.remove()
+      if (kind === 'image' || kind === 'video') {
+        $confirmMedia()
       }
     })
-  }, [isLink, editor, nodeKey, url])
+  }, [kind, $replaceWithLink, $confirmMedia, editor])
 
   return (
     <MediaOrLink
@@ -163,9 +180,9 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       height={height}
       alt={alt}
       title={title}
-      kind={kind}
+      kind={initialKind}
       linkFallback={linkFallback}
-      setIsLink={setIsLink}
+      setKind={setKind}
     />
   )
 }
@@ -234,7 +251,7 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setIsLink, tab }) => {
+export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setKind, tab }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!(srcSet || srcSetIntital) || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [srcSet, srcSetIntital, src])
   // backwards compatibility: legacy srcSet handling
@@ -259,10 +276,12 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
         if (data.isVideo) {
           setIsVideo(true)
           setIsImage(false)
+          setKind?.('video')
         } else if (data.isImage) {
           setIsImage(true)
+          setKind?.('image')
         } else {
-          setIsLink?.(true)
+          setKind?.('unknown')
         }
       } catch (error) {
         if (error.name === 'AbortError') return
@@ -275,7 +294,7 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
       // abort the fetch
       try { controller.abort() } catch {}
     }
-  }, [src, setIsImage, setIsVideo, showMedia, setIsLink])
+  }, [src, setIsImage, setIsVideo, showMedia, setKind])
 
   let style = null
   if (legacySrcSet?.srcSet) {

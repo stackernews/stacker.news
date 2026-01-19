@@ -143,7 +143,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
     if (parent.getChildrenSize() === 0) {
       parent.remove()
     }
-  }, [url])
+  }, [url, nodeKey])
 
   const $confirmMedia = useCallback(() => {
     const node = $getNodeByKey(nodeKey)

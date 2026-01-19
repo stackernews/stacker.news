@@ -8,7 +8,6 @@ import { useCarousel } from '@/components/carousel'
 import { useMe } from '@/components/me'
 import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
-import Moon from '@/svgs/moon-fill.svg'
 import preserveScroll from '@/components/preserve-scroll'
 
 function LinkRaw ({ className, children, src, rel }) {
@@ -25,13 +24,9 @@ function LinkRaw ({ className, children, src, rel }) {
   )
 }
 
-function MediaLoading ({ autolink }) {
+function MediaLoading ({ autolink = false }) {
   const style = autolink ? { width: '200px', height: '150px' } : undefined
-  return (
-    <div className='sn-media__loading' style={style}>
-      <Moon className='spin fill-grey fade-in' style={{ width: '2rem', height: '2rem' }} />
-    </div>
-  )
+  return <div className='sn-media__loading' style={style} />
 }
 
 function MediaError ({ className, width, height, src, rel }) {

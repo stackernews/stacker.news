@@ -5,7 +5,7 @@ import Image from 'react-bootstrap/Image'
 import copy from 'clipboard-copy'
 import Button from 'react-bootstrap/Button'
 import { useToast } from './toast'
-import { decodeMinifiedStackTrace } from '@/lib/stacktrace'
+
 class ErrorBoundary extends Component {
   constructor (props) {
     super(props)
@@ -64,6 +64,7 @@ const CopyErrorButton = ({ errorDetails }) => {
   const toaster = useToast()
   const onClick = async () => {
     try {
+      const { decodeMinifiedStackTrace } = await import('@/lib/stacktrace')
       const decodedDetails = await decodeMinifiedStackTrace(errorDetails)
       await copy(decodedDetails)
       toaster?.success?.('copied')

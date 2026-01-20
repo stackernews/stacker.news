@@ -50,9 +50,17 @@ function MediaError ({ className, width, height, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width, alt, title,
-  height, onClick, onError, video, onLoad, innerStyle
+  height, onClick, onError, video, onLoad, isLoading
 }) {
   const sized = !!(width && height && width > 0 && height > 0)
+
+  // Hide while loading: use opacity: 0 but keep visible dimensions
+  // iOS 18 won't fire onload for images with zero dimensions + loading='lazy'
+  // Using opacity keeps the image "visible" to the browser so it loads properly
+  const hiddenStyle = isLoading
+    ? { opacity: 0, position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }
+    : undefined
+
   return (
     <>
       {video
@@ -67,7 +75,7 @@ const Media = memo(function Media ({
             height={height}
             onError={onError}
             onLoadedMetadata={onLoad}
-            style={innerStyle}
+            style={hiddenStyle}
           />
           )
         : (
@@ -85,7 +93,7 @@ const Media = memo(function Media ({
             onClick={onClick}
             onError={onError}
             onLoad={onLoad}
-            style={innerStyle}
+            style={hiddenStyle}
           />
           )}
     </>
@@ -224,7 +232,7 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
         <>
           {isLoading && <MediaLoading autolink={props.kind === 'unknown'} />}
           <Media
-            {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad} innerStyle={isLoading ? { width: 0, height: 0 } : undefined}
+            {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad} isLoading={isLoading}
           />
         </>
       )

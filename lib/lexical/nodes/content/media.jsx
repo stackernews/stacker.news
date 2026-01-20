@@ -172,7 +172,7 @@ export class MediaNode extends DecoratorNode {
     width && span.style.setProperty('--width', width)
     height && span.style.setProperty('--height', height)
 
-    const loading = document.createElement('div')
+    const loading = document.createElement('span')
     loading.className = 'sn-media__loading'
     span.appendChild(loading)
 

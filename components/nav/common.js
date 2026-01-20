@@ -22,6 +22,7 @@ import { useWalletIndicator } from '@/wallets/client/hooks'
 import SwitchAccountList, { nextAccount, useAccounts, useIsLurker } from '@/components/account'
 import { useShowModal } from '@/components/modal'
 import { numWithUnits } from '@/lib/format'
+import { abortPendingRequests } from '@/lib/apollo'
 
 export function Brand ({ className }) {
   return (
@@ -301,7 +302,8 @@ function LogoutObstacle ({ onClose }) {
               router.reload()
               return
             }
-
+            // Abort all pending GraphQL requests to prevent race condition
+            abortPendingRequests()
             // order is important because we need to be logged in to delete push subscription on server
             const pushSubscription = await swRegistration?.pushManager.getSubscription()
             if (pushSubscription) {

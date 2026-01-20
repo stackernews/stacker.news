@@ -6,6 +6,7 @@ import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback } from 'react'
 import { Form, SubmitButton, MultiInput } from '@/components/form'
 import { emailTokenSchema } from '@/lib/validate'
+import ArrowRightLineIcon from '@/svgs/arrow-right-line.svg'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
@@ -71,7 +72,7 @@ export const MagicCodeForm = ({ onSubmit, disabled, signin }) => {
         hideError // hide error message on every input, allow custom error message
         disabled={disabled} // disable the form if no callback is provided
       />
-      <SubmitButton variant='primary' className='px-4' disabled={disabled}>{signin ? 'login' : 'signup'}</SubmitButton>
+      <SubmitButton variant='primary' className='ps-4 pe-3' disabled={disabled}>enter <ArrowRightLineIcon height={20} width={20} className='ms-2' /></SubmitButton>
     </Form>
   )
 }

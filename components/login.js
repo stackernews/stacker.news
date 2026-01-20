@@ -71,6 +71,8 @@ export function authErrorMessage (error, signin) {
   return message
 }
 
+const multiAuthProviders = ['Lightning', 'Nostr']
+
 export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error, signin))
   const router = useRouter()
@@ -93,8 +95,8 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
     // email first, remove lightning if signing up
     Object.values(providers)
       .sort((a, b) => a.name === 'Email' ? -1 : b.name === 'Email' ? 1 : 0)
-      .filter(provider => signin || provider.name !== 'Lightning'),
-  [providers, signin])
+      .filter(provider => multiAuth ? multiAuthProviders.includes(provider.name) : signin || provider.name !== 'Lightning'),
+  [providers, signin, multiAuth])
 
   if (router.query.type === 'lightning') {
     return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />

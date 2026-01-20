@@ -48,7 +48,7 @@ export default function SwitchAccountList () {
           }}
           className='text-reset fw-bold'
         >
-          <AddIcon height={20} width={20} /> another account
+          <AddIcon height={20} width={20} /> existing account
         </Link>
       </div>
     </>

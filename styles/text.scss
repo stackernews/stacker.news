@@ -169,6 +169,7 @@
 .sn-media {
   --sn-media-max-h: 25vh;
   display: block;
+  position: relative;
   max-width: 100%;
   max-height: var(--sn-media-max-h);
   width: fit-content;
@@ -441,6 +442,7 @@ span + .sn-link {
 // video wrapper and container
 .sn-video-wrapper {
   max-width: 320px;
+  width: 100%;
 }
 
 .sn-video-wrapper:not(:first-child) {
@@ -536,55 +538,55 @@ span + .sn-link {
 // embed dimensions per provider
 // twitter embed
 .sn-embed--twitter {
-  width: 350px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 350px;
 }
 
 .topLevel .sn-embed--twitter {
-  width: 550px;
+  max-width: 550px;
 }
 
 // nostr embed
 .sn-embed--nostr {
-  width: 350px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 350px;
 }
 
 .topLevel .sn-embed--nostr {
-  width: 550px;
+  max-width: 550px;
 }
 
 // youtube embed
 .sn-embed--youtube {
-  width: 320px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 320px;
   aspect-ratio: 16 / 9;
 }
 
 .topLevel .sn-embed--youtube {
-  width: 640px;
+  max-width: 640px;
 }
 
 // rumble embed
 .sn-embed--rumble {
-  width: 320px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 320px;
   aspect-ratio: 16 / 9;
 }
 
 .topLevel .sn-embed--rumble {
-  width: 640px;
+  max-width: 640px;
 }
 
 // peertube embed
 .sn-embed--peertube {
-  width: 320px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 320px;
   aspect-ratio: 16 / 9;
 }
 
 .topLevel .sn-embed--peertube {
-  width: 640px;
+  max-width: 640px;
 }
 
 // wavlake embed

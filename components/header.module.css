@@ -85,6 +85,10 @@
     align-items: center;
 }
 
+.price:first-child {
+    justify-content: flex-start;
+}
+
 .price > div {
     font-size: min(3.5cqw, 0.9rem);
 }

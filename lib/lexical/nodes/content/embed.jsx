@@ -92,28 +92,35 @@ export class EmbedNode extends DecoratorBlockNode {
     }
   }
 
-  exportDOM () {
-    const container = document.createElement('span')
-    container.className = 'sn-embed-placeholder'
+  exportDOM (editor) {
+    const decorator = document.createElement('div')
+    const wrapper = document.createElement('div')
+    wrapper.className = 'sn-embed-wrapper'
+    const container = document.createElement('div')
+
+    // 1:1 styling with placeholder
+    const placeholderClass = editor?._config?.theme?.embeds?.placeholder
+    const providerClasses = editor?._config?.theme?.embeds?.[this.__provider]
+    const classes = [
+      placeholderClass,
+      providerClasses?.container,
+      providerClasses?.embed
+    ]
+    // only twitter and nostr have a contained state
+    if (this.__provider === 'twitter' || this.__provider === 'nostr') {
+      classes.push(providerClasses?.contained)
+    }
+    container.classList.add(...classes.filter(Boolean))
+
     container.setAttribute('data-lexical-embed-provider', this.__provider || '')
     this.__id && container.setAttribute('data-lexical-embed-id', this.__id)
     this.__src && container.setAttribute('data-lexical-embed-src', this.__src)
     this.__meta && container.setAttribute('data-lexical-embed-meta', JSON.stringify(this.__meta))
 
-    if (this.__src) {
-      const link = document.createElement('a')
-      link.href = this.__src
-      link.target = '_blank'
-      link.rel = 'noopener noreferrer'
-      try {
-        link.textContent = 'view on ' + new URL(this.__src).hostname
-      } catch {
-        link.textContent = 'view on ' + this.__provider
-      }
-      container.append(link)
-    }
+    wrapper.append(container)
+    decorator.append(wrapper)
 
-    return { element: container }
+    return { element: decorator }
   }
 
   updateDOM () {

@@ -17,7 +17,7 @@
   }
 }
 
-.sn-text > div >*:not(.sn-heading, .sn-toc, .sn-spoiler, .sn-code-block, .sn-hr) {
+.sn-text > div >*:not(.sn-heading, .sn-toc, .sn-spoiler, .sn-code-block, .sn-hr, hr) {
   padding-top: calc(var(--grid-gap) * 0.5);
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
@@ -58,7 +58,7 @@
   background-color: var(--theme-body) !important;
 }
 
-.sn-text.sn-text--top-level {
+.sn-text.topLevel {
   max-height: 200vh;
   --grid-gap: 0.75rem;
 }
@@ -122,19 +122,19 @@
   position: relative;
 }
 
-.sn-text--top-level h1.sn-heading {
+.topLevel h1.sn-heading {
   font-size: 1.6rem;
 }
 
-.sn-text--top-level h2.sn-heading {
+.topLevel h2.sn-heading {
   font-size: 1.45rem;
 }
 
-.sn-text--top-level h3.sn-heading {
+.topLevel h3.sn-heading {
   font-size: 1.3rem;
 }
 
-.sn-text--top-level h4.sn-heading {
+.topLevel h4.sn-heading {
   font-size: 1.15rem;
 }
 
@@ -166,54 +166,133 @@
   }
 }
 
-.sn-media-container {
-  display: flex;
-  width: 100%;
-  max-width: 100%;
-  max-height: 25vh;
-  height: auto;
-  overflow: hidden;
-  aspect-ratio: var(--width) / var(--height);
-  margin: 0;
-}
-
-.sn-paragraph:has(> .sn-media-container) .sn-media-container {
-  width: min-content;
-}
-
-.sn-paragraph:has(> .sn-media-container) .sn-media-container img,
-.sn-paragraph:has(> .sn-media-container) .sn-media-container video {
-  min-width: 30%;
-  max-width: stretch;
-}
-
-.sn-media-container img,
-.sn-media-container video {
+.sn-media {
+  --sn-media-max-h: 25vh;
   display: block;
+  max-width: 100%;
+  max-height: var(--sn-media-max-h);
+  width: fit-content;
+  width: min(
+    100%,
+    calc(var(--sn-media-max-h) * var(--width) / var(--height)),
+    calc(var(--width) * 1px)
+  );
+  aspect-ratio: var(--width) / var(--height);
+  overflow: hidden;
+}
+
+.sn-media:has(.sn-media__error) {
+  min-width: 50px;
+  min-height: 50px;
+}
+
+.sn-media-autolink__loading {
+  color: var(--theme-link);
+  text-decoration: none;
+  animation: fadeInOut 1s ease-in-out infinite alternate;
+}
+
+@keyframes fadeInOut {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}
+
+.sn-media__img, .sn-media__video {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  width: auto;
+  height: auto;
+}
+
+.sn-media__img--sized, .sn-media__video--sized {
+  // we know the dimensions, let's fill the container
+  width: 100%;
+  height: 100%;
+}
+
+.sn-media__img:not(.sn-media__img--sized),
+.sn-media__video:not(.sn-media__video--sized) {
   object-fit: contain;
   width: auto;
   max-width: 100%;
-  min-width: 30%;
-  height: 100%;
-  max-height: inherit;
+  max-height: var(--sn-media-max-h);
   aspect-ratio: var(--width) / var(--height);
 }
 
-.sn-media-container img {
+.topLevel .sn-media {
+  --sn-media-max-h: 35vh;
+}
+
+.sn-media__img {
   cursor: zoom-in;
   object-position: left top;
 }
 
-.sn-text--top-level .sn-media-container {
-  max-height: 35vh;
+.sn-media__error {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--bs-body-color);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  padding: 0.5rem;
+  background-color: var(--theme-commentBg);
+  border-radius: 0.4rem;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-width: 50px;
+  min-height: 50px;
+
+  // ellipsis
+  p {
+    max-width: 75%;
+    overflow: hidden;
+    @container (max-width: 50px) {
+      display: none;
+    }
+  }
+
+  span {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+.sn-media__loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  background-color: var(--theme-commentBg);
+}
+
+// image can load very fast, fade in to avoid flashing
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* in case media-or-link detects a link */
-.sn-media-container:has(a) {
+.sn-media:has(> .sn-media-autolink__loading) {
   display: inline !important;
 }
 
-.sn-media-container .outlawed {
+.sn-media .outlawed {
   user-select: text;
   cursor: text;
 }
@@ -225,11 +304,6 @@
   gap: var(--grid-gap);
   width: 100%;
   max-width: 100%;
-}
-
-.sn-gallery > span.sn-media-container {
-  display: block;
-  width: auto;
 }
 
 .sn-image {
@@ -268,22 +342,19 @@ span + .sn-link {
   }
 }
 
-.sn-twitter-container,
-.sn-nostr-container,
-.sn-video-wrapper,
-.sn-wavlake-wrapper,
-.sn-spotify-wrapper {
-  background-color: var(--theme-body);
-}
-
+// embed wrapper
 .sn-embed-wrapper {
   user-select: none;
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+  background-color: var(--theme-bg);
 }
 
 [contenteditable="true"] .sn-embed-wrapper--focus {
   outline: 2px solid rgb(60, 132, 244);
 }
 
+// work in progress loading state
 .sn-embed-wrapper__loading {
   display: flex;
   flex-flow: row wrap;
@@ -308,6 +379,226 @@ span + .sn-link {
   height: 24px;
   margin-bottom: 1rem;
   margin-left: -0.15rem;
+}
+
+.sn-embed-placeholder,
+.sn-embed {
+  max-width: 100%;
+}
+
+// embed containers
+.sn-twitter-container,
+.sn-nostr-container,
+.sn-video-wrapper,
+.sn-wavlake-wrapper,
+.sn-spotify-wrapper {
+  margin-top: calc(var(--grid-gap) * 0.5);
+  margin-bottom: calc(var(--grid-gap) * 0.5);
+  background-color: var(--theme-bg);
+}
+
+// twitter and nostr
+.sn-twitter-container,
+.sn-nostr-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.sn-twitter-container iframe,
+.sn-nostr-container iframe {
+  border-radius: 13px;
+}
+
+.sn-nostr-container {
+  margin-right: 15px;
+}
+
+/* Contained state (collapsed) */
+.sn-embed-contained {
+  overflow: hidden;
+}
+
+.sn-embed-contained.sn-embed--twitter,
+.sn-embed-contained.sn-embed--nostr {
+  height: 150px;
+}
+
+.topLevel .sn-embed-contained.sn-embed--twitter,
+.topLevel .sn-embed-contained.sn-embed--nostr {
+  height: 200px;
+}
+
+// overflow 'show full' button
+.sn-embed-show-full {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  border-radius: 0;
+  line-height: 1.2;
+  padding: .75rem 1rem;
+}
+
+// video wrapper and container
+.sn-video-wrapper {
+  max-width: 320px;
+}
+
+.sn-video-wrapper:not(:first-child) {
+  margin-top: .75rem;
+}
+
+.topLevel .sn-video-wrapper {
+  max-width: 640px;
+  margin: 0.75rem 0;
+}
+
+.sn-video-container {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  overflow: hidden;
+}
+
+.sn-video-container iframe {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+// wavlake wrapper
+.sn-wavlake-wrapper {
+  width: 100%;
+  height: 380px;
+  max-width: 480px;
+  border-radius: 1.65rem;
+  overflow: hidden;
+}
+
+// spotify wrapper
+.sn-spotify-wrapper {
+  width: 100%;
+  height: 152px;
+  max-width: 480px;
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+// tweet skeleton
+.sn-tweets-skeleton {
+  display: flex;
+  flex-flow: row wrap;
+  max-width: 350px;
+  width: 100%;
+  padding-right: 12px;
+}
+
+.topLevel .sn-tweets-skeleton {
+  max-width: 550px;
+}
+
+.sn-tweet-skeleton {
+  width: 100%;
+  border: 0.05rem solid var(--theme-borderColor);
+  border-radius: 12px;
+  height: 150px;
+  padding: 1.5rem;
+}
+
+.topLevel .sn-tweet-skeleton {
+  height: 200px;
+}
+
+.sn-tweet-skeleton__img {
+  height: 48px;
+  width: 48px;
+  border-radius: 50%;
+}
+
+.sn-tweet-skeleton__content {
+  height: 50%;
+  margin-top: 1rem;
+}
+
+.sn-tweet-skeleton__line {
+  height: 25%;
+  margin: 0.5rem 0;
+  width: 100%;
+  border-radius: .4rem;
+}
+
+.sn-tweet-skeleton__line:last-child {
+  width: 75%;
+}
+
+// embed dimensions per provider
+// twitter embed
+.sn-embed--twitter {
+  width: 350px;
+  max-width: 100%;
+}
+
+.topLevel .sn-embed--twitter {
+  width: 550px;
+}
+
+// nostr embed
+.sn-embed--nostr {
+  width: 350px;
+  max-width: 100%;
+}
+
+.topLevel .sn-embed--nostr {
+  width: 550px;
+}
+
+// youtube embed
+.sn-embed--youtube {
+  width: 320px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.topLevel .sn-embed--youtube {
+  width: 640px;
+}
+
+// rumble embed
+.sn-embed--rumble {
+  width: 320px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.topLevel .sn-embed--rumble {
+  width: 640px;
+}
+
+// peertube embed
+.sn-embed--peertube {
+  width: 320px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.topLevel .sn-embed--peertube {
+  width: 640px;
+}
+
+// wavlake embed
+.sn-embed--wavlake {
+  width: 100%;
+  max-width: 480px;
+  height: 380px;
+}
+
+// spotify embed
+.sn-embed--spotify {
+  width: 100%;
+  max-width: 480px;
+  height: 152px;
 }
 
 .sn-list-ol, .sn-list-ul {

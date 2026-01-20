@@ -1,7 +1,7 @@
 import { signIn } from 'next-auth/react'
 import styles from './login.module.css'
 import { Form, Input, SubmitButton } from '@/components/form'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer } from './lightning-auth'
@@ -89,6 +89,13 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
     document.cookie = cookie.serialize('signin', signin, options)
   }, [signin])
 
+  const sortedProviders = useMemo(() =>
+    // email first, remove lightning if signing up
+    Object.values(providers)
+      .sort((a, b) => a.name === 'Email' ? -1 : b.name === 'Email' ? 1 : 0)
+      .filter(provider => signin || provider.name !== 'Lightning'),
+  [providers, signin])
+
   if (router.query.type === 'lightning') {
     return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
   }
@@ -107,7 +114,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
           dismissible
         >{errorMessage}
         </Alert>}
-      {providers && Object.values(providers).map(provider => {
+      {providers && sortedProviders.map(provider => {
         switch (provider.name) {
           case 'Email':
             return (
@@ -118,8 +125,8 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
                 trigger={['hover', 'focus']}
               >
                 <div className='w-100' key={provider.id}>
-                  <div className='mt-2 text-center text-muted fw-bold'>or</div>
                   <EmailLoginForm text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
+                  <div className='my-3 mt-4 text-center text-muted fw-bold'>or</div>
                 </div>
               </OverlayTrigger>
             )

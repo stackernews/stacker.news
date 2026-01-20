@@ -69,9 +69,9 @@ function LoginHeader () {
   return (
     <>
       <h3 className='w-100 pb-2'>
-        Login
+        Log in
       </h3>
-      <div className='fw-bold text-muted w-100 text-start pb-4'>Ain't you a sight for sore eyes.</div>
+      <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>Well ain't you a sight for sore eyes. Another round?</div>
     </>
   )
 }
@@ -82,6 +82,7 @@ export default function LoginPage (props) {
       <Login
         Footer={() => <LoginFooter callbackUrl={props.callbackUrl} />}
         Header={() => <LoginHeader />}
+        text='Log in'
         signin
         {...props}
       />

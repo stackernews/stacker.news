@@ -105,7 +105,6 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
   position: relative;
   top: -4px;
   transition: opacity 0.1s ease-in-out, visibility 0.1s ease-in-out;
@@ -156,12 +155,6 @@
   opacity: 0.6;
   -webkit-touch-callout: none;
   touch-action: manipulation;
-}
-
-/* spacing between adjacent toolbar items and dropdowns */
-.toolbarItem + .toolbarItem,
-:global(.dropdown):has(.toolbarItem) + :global(.dropdown):has(.toolbarItem) {
-  margin-left: 0.25rem;
 }
 
 .toolbarItem:hover {

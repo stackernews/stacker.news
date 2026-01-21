@@ -11,7 +11,7 @@ import ArrowLeftIcon from '@/svgs/editor/toolbar/arrow-left.svg'
 import MenuIcon from '@/svgs/editor/toolbar/menu.svg'
 import BoldIcon from '@/svgs/editor/toolbar/inline/bold.svg'
 import ItalicIcon from '@/svgs/editor/toolbar/inline/italic.svg'
-import { MD_INSERT_BOLD_COMMAND, MD_INSERT_ITALIC_COMMAND, MD_INSERT_LINK_COMMAND, MD_INSERT_QUOTE_COMMAND, MD_INSERT_CODE_COMMAND, MD_INSERT_SUPERSCRIPT_COMMAND, MD_INSERT_SUBSCRIPT_COMMAND, MD_INSERT_STRIKETHROUGH_COMMAND } from '@/lib/lexical/exts/md-commands'
+import { MD_INSERT_BOLD_COMMAND, MD_INSERT_ITALIC_COMMAND, MD_INSERT_LINK_COMMAND, MD_INSERT_QUOTE_COMMAND, MD_INSERT_CODE_COMMAND, MD_INSERT_SUPERSCRIPT_COMMAND, MD_INSERT_SUBSCRIPT_COMMAND, MD_INSERT_STRIKETHROUGH_COMMAND, MD_INSERT_HEADING_COMMAND, MD_INSERT_LIST_COMMAND, MD_INSERT_CODEBLOCK_COMMAND } from '@/lib/lexical/exts/md-commands'
 import LinkIcon from '@/svgs/editor/toolbar/inline/link.svg'
 import QuoteIcon from '@/svgs/editor/toolbar/block/quote-text.svg'
 import CodeIcon from '@/svgs/editor/toolbar/inline/code.svg'
@@ -23,6 +23,14 @@ import SuperscriptIcon from '@/svgs/editor/toolbar/inline/superscript.svg'
 import SubscriptIcon from '@/svgs/editor/toolbar/inline/subscript.svg'
 import StrikethroughIcon from '@/svgs/editor/toolbar/inline/strikethrough.svg'
 import { SHORTCUTS } from '@/lib/lexical/exts/shortcuts'
+import BlocksIcon from '@/svgs/editor/toolbar/block/blocks.svg'
+import H1Icon from '@/svgs/editor/toolbar/block/h-1.svg'
+import H2Icon from '@/svgs/editor/toolbar/block/h-2.svg'
+import H3Icon from '@/svgs/editor/toolbar/block/h-3.svg'
+import NumberedListIcon from '@/svgs/editor/toolbar/block/number-list.svg'
+import BulletListIcon from '@/svgs/editor/toolbar/block/bullet-list.svg'
+import CheckListIcon from '@/svgs/editor/toolbar/block/check-list.svg'
+import CodeBlockIcon from '@/svgs/editor/toolbar/block/code-block.svg'
 
 /**
  * portal component that renders dropdown menus outside the toolbar to escape overflow rules
@@ -109,7 +117,7 @@ export function ToolbarDropdown ({ editor, icon, tooltip, options, activeOptionI
               key={option.id}
               option={option}
               isActive={getIsActive ? getIsActive(option.lookup || option.id) : activeOptionId === option.id}
-              onClick={() => editor.dispatchCommand(option.command, editor)}
+              onClick={() => editor.dispatchCommand(option.command, option.payload || editor)}
               icon={option.icon}
             />
           ))}
@@ -174,6 +182,21 @@ export function ToolbarPlugin ({ name, topLevel }) {
       {/* this was FormattingToolbar component, we don't have that many options now */}
       <div className={classNames(styles.innerToolbar, toolbarState.previewMode && styles.hidden)}>
         <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !showFormattingToolbar && styles.hidden, hasOverflow && styles.hasOverflow)}>
+          <ToolbarDropdown
+            icon={<BlocksIcon />}
+            tooltip='blocks'
+            options={[
+              { id: 'h1', name: 'heading 1', icon: <H1Icon />, command: MD_INSERT_HEADING_COMMAND, payload: 1 },
+              { id: 'h2', name: 'heading 2', icon: <H2Icon />, command: MD_INSERT_HEADING_COMMAND, payload: 2 },
+              { id: 'h3', name: 'heading 3', icon: <H3Icon />, command: MD_INSERT_HEADING_COMMAND, payload: 3 },
+              { id: 'numberedList', name: 'numbered list', icon: <NumberedListIcon />, command: MD_INSERT_LIST_COMMAND, payload: 'number' },
+              { id: 'bulletList', name: 'bullet list', icon: <BulletListIcon />, command: MD_INSERT_LIST_COMMAND, payload: 'bullet' },
+              { id: 'check', name: 'check list', icon: <CheckListIcon />, command: MD_INSERT_LIST_COMMAND, payload: 'check' },
+              { id: 'codeblock', name: 'code block', icon: <CodeBlockIcon />, command: MD_INSERT_CODEBLOCK_COMMAND }
+            ]}
+            getIsActive={(lookup) => toolbarState[lookup]}
+            editor={editor}
+          />
           <ToolbarButton id='bold' onClick={() => triggerCommand('bold')} tooltip='bold'>
             <BoldIcon />
           </ToolbarButton>

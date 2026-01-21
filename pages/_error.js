@@ -1,6 +1,6 @@
-import Image from 'react-bootstrap/Image'
 import { StaticLayout } from '@/components/layout'
 import styles from '@/styles/error.module.css'
+import LoopVideo from '@/components/loop-video'
 
 const statusDescribe = {
   200: 'OK',
@@ -48,18 +48,18 @@ const statusDescribe = {
 
 function ErrorImage ({ statusCode }) {
   if (statusCode === 404) {
-    return <Image className='rounded-1 shadow-sm' width='500' height='376' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/maze.webp`} fluid />
+    return <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/tumbleweed.mp4`} width='640' height='640' />
   }
   if (statusCode >= 500) {
-    return <Image className='rounded-1 shadow-sm' width='300' height='225' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/falling.webp`} fluid />
+    return <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/ladygun.mp4`} width='540' height='400' />
   }
   if (statusCode >= 400) {
-    return <Image className='rounded-1 shadow-sm' width='500' height='381' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/forbidden.webp`} fluid />
+    return <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/blink-look.mp4`} width='640' height='288' />
   }
   if (statusCode >= 300) {
-    return <Image className='rounded-1 shadow-sm' width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/double.webp`} fluid />
+    return <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/blink-look.mp4`} width='640' height='288' />
   }
-  return <Image className='rounded-1 shadow-sm' width='500' height='376' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/falling.webp`} fluid />
+  return <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/ladygun.mp4`} width='540' height='400' />
 }
 
 export default function Error ({ statusCode }) {

@@ -1,11 +1,11 @@
 import { Component } from 'react'
 import { StaticLayout } from './layout'
 import styles from '@/styles/error.module.css'
-import Image from 'react-bootstrap/Image'
 import copy from 'clipboard-copy'
 import Button from 'react-bootstrap/Button'
 import { useToast } from './toast'
 import { decodeMinifiedStackTrace } from '@/lib/stacktrace'
+import LoopVideo from './loop-video'
 class ErrorBoundary extends Component {
   constructor (props) {
     super(props)
@@ -44,7 +44,7 @@ class ErrorBoundary extends Component {
       const errorDetails = this.getErrorDetails()
       return (
         <StaticLayout footer={false}>
-          <Image width='500' height='375' className='rounded-1 shadow-sm' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/floating.webp`} fluid />
+          <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/robot-glitch.mp4`} width='480' height='270' />
           <h1 className={styles.status} style={{ fontSize: '48px' }}>something went wrong</h1>
           {this.state.error && <CopyErrorButton errorDetails={errorDetails} />}
         </StaticLayout>

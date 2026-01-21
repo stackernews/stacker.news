@@ -225,8 +225,7 @@ module.exports = withPlausibleProxy()({
               { from: 'public/icons', to: '../icons' },
               { from: 'public/maskable', to: '../maskable' },
               { from: 'public/splash', to: '../splash' },
-              { from: 'public/waiting.webp', to: '../waiting.webp' },
-              { from: 'public/Lightningvolt-xoqm.ttf', to: '../Lightningvolt-xoqm.ttf' },
+              { from: 'public/sleeping.mp4', to: '../sleeping.mp4' },
               { from: 'public/Lightningvolt-xoqm.woff', to: '../Lightningvolt-xoqm.woff' },
               { from: 'public/Lightningvolt-xoqm.woff2', to: '../Lightningvolt-xoqm.woff2' }
             ]

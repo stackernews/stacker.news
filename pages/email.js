@@ -1,4 +1,3 @@
-import Image from 'react-bootstrap/Image'
 import * as cookie from 'cookie'
 import { StaticLayout } from '@/components/layout'
 import { getGetServerSideProps } from '@/api/ssrApollo'
@@ -7,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Form, SubmitButton, MultiInput } from '@/components/form'
 import { emailTokenSchema } from '@/lib/validate'
 import ArrowRightLineIcon from '@/svgs/arrow-right-line.svg'
+import LoopVideo from '@/components/loop-video'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
@@ -41,7 +41,13 @@ export default function Email () {
   return (
     <StaticLayout>
       <div className='p-4 text-center'>
-        <Image className='rounded-1 shadow-sm' width='640' height='302' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/cowboy-saloon.webp`} fluid />
+        {signin
+          ? (
+            <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/coming-home.mp4`} width='480' height='270' />
+            )
+          : (
+            <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/signup-email.mp4`} width='640' height='302' />
+            )}
         <h2 className='pt-4'>Check your email</h2>
         <h4 className='text-muted pt-2 pb-4'>{buildMessage()}</h4>
         <MagicCodeForm onSubmit={(token) => pushCallback(token)} disabled={!callback} signin={signin} />

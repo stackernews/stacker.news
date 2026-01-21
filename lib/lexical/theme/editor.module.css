@@ -135,7 +135,7 @@
 }
 
 .toolbarFormatting.hasOverflow {
-  mask: linear-gradient(to right, black 0%, black calc(100% - 0.2rem), transparent 100%);
+  mask: linear-gradient(to left, black 0%, black calc(100% - 0.2rem), transparent 100%);
 }
 
 .hidden {

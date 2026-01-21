@@ -192,7 +192,8 @@ export function ToolbarPlugin ({ name, topLevel }) {
               { id: 'numberedList', name: 'numbered list', icon: <NumberedListIcon />, command: MD_INSERT_LIST_COMMAND, payload: 'number' },
               { id: 'bulletList', name: 'bullet list', icon: <BulletListIcon />, command: MD_INSERT_LIST_COMMAND, payload: 'bullet' },
               { id: 'check', name: 'check list', icon: <CheckListIcon />, command: MD_INSERT_LIST_COMMAND, payload: 'check' },
-              { id: 'codeblock', name: 'code block', icon: <CodeBlockIcon />, command: MD_INSERT_CODEBLOCK_COMMAND }
+              // implement language selection for code block
+              { id: 'codeblock', name: 'code block', icon: <CodeBlockIcon />, command: MD_INSERT_CODEBLOCK_COMMAND, payload: { language: 'text' } }
             ]}
             getIsActive={(lookup) => toolbarState[lookup]}
             editor={editor}

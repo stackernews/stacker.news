@@ -71,7 +71,7 @@ function LoginHeader () {
       <h3 className='w-100 pb-2'>
         Log in
       </h3>
-      <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>Well ain't you a sight for sore eyes. Another round?</div>
+      <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>Nothing wrestles up a smile like a familiar face.</div>
     </>
   )
 }

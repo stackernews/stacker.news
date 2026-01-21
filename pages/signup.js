@@ -9,7 +9,7 @@ function SignUpHeader () {
       <h3 className='w-100 pb-2'>
         Sign up
       </h3>
-      <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>We saved you a seat, pardner. First round’s on us.</div>
+      <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>We saved you a seat, pardner.</div>
     </>
   )
 }

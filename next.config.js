@@ -109,7 +109,7 @@ module.exports = withPlausibleProxy()({
           noCacheHeader
         ]
       },
-      ...['ttf', 'woff', 'woff2'].map(ext => ({
+      ...['woff', 'woff2'].map(ext => ({
         source: `/Lightningvolt-xoqm.${ext}`,
         headers: [
           ...corsHeaders,

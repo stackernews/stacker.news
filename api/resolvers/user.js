@@ -190,6 +190,51 @@ export default {
         users
       }
     },
+    userMutedUsers: async (parent, { name, cursor }, { models, me }) => {
+      const user = await models.user.findUnique({ where: { name } })
+      if (!user) {
+        throw new GqlInputError('no such user')
+      }
+      if (!user.showMutedUsers && (!me || me.id !== user.id)) {
+        return null
+      }
+      const decodedCursor = decodeCursor(cursor)
+      const users = await models.$queryRaw`
+        SELECT users.*
+        FROM "Mute"
+        JOIN users ON "Mute"."mutedId" = users.id
+        WHERE "Mute"."muterId" = ${user.id}
+        OFFSET ${decodedCursor.offset}
+        LIMIT ${LIMIT}
+      `
+      return {
+        cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        users
+      }
+    },
+    userSubscribedUsers: async (parent, { name, cursor }, { models, me }) => {
+      const user = await models.user.findUnique({ where: { name } })
+      if (!user) {
+        throw new GqlInputError('no such user')
+      }
+      if (!user.showSubscribedUsers && (!me || me.id !== user.id)) {
+        return null
+      }
+      const decodedCursor = decodeCursor(cursor)
+      const users = await models.$queryRaw`
+        SELECT users.*
+        FROM "UserSubscription"
+        JOIN users ON "UserSubscription"."followeeId" = users.id
+        WHERE "UserSubscription"."followerId" = ${user.id}
+        AND ("UserSubscription"."postsSubscribedAt" IS NOT NULL OR "UserSubscription"."commentsSubscribedAt" IS NOT NULL)
+        OFFSET ${decodedCursor.offset}
+        LIMIT ${LIMIT}
+      `
+      return {
+        cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        users
+      }
+    },
     topCowboys: async (parent, { cursor }, { models, me }) => {
       const { users, cursor: topCowboysCursor } = await topUsers(parent, { cursor, when: 'forever', by: 'streak', limit: LIMIT }, { models, me })
       const cowboys = users.map(u => (u?.hideCowboyHat && (!me || me.id !== u.id)) ? null : u).filter(u => u?.streak !== null)
@@ -866,6 +911,26 @@ export default {
       if (typeof user.meMute !== 'undefined') return user.meMute
 
       return await isMuted({ models, muterId: me.id, mutedId: user.id })
+    },
+    showSubscribedUsers: user => user.showSubscribedUsers ?? false,
+    showMutedUsers: user => user.showMutedUsers ?? false,
+    nsubscribed: async (user, args, { models }) => {
+      if (typeof user.nsubscribed !== 'undefined') return user.nsubscribed
+      return await models.userSubscription.count({
+        where: {
+          followerId: user.id,
+          OR: [
+            { postsSubscribedAt: { not: null } },
+            { commentsSubscribedAt: { not: null } }
+          ]
+        }
+      })
+    },
+    nmuted: async (user, args, { models }) => {
+      if (typeof user.nmuted !== 'undefined') return user.nmuted
+      return await models.mute.count({
+        where: { muterId: user.id }
+      })
     },
     since: async (user, args, { models }) => {
       // get the user's first item

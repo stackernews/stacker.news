@@ -110,6 +110,8 @@ model User {
   muteds                    Mute[]                 @relation("muted")
   Sub                       Sub[]
   MuteSub                   MuteSub[]
+  showMutedUsers            Boolean                @default(false)
+  showSubscribedUsers       Boolean                @default(false)
   wallets                   Wallet[]
   TerritoryTransfers        TerritoryTransfer[]    @relation("TerritoryTransfer_oldUser")
   TerritoryReceives         TerritoryTransfer[]    @relation("TerritoryTransfer_newUser")

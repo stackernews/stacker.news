@@ -56,7 +56,7 @@ export default function Email () {
   )
 }
 
-export const MagicCodeForm = ({ onSubmit, disabled, signin }) => {
+export const MagicCodeForm = ({ onSubmit, disabled }) => {
   return (
     <Form
       initial={{

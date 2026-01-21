@@ -214,7 +214,7 @@ module.exports = withPlausibleProxy()({
   webpack: (config, { isServer, dev, defaultLoaders }) => {
     if (isServer) {
       const workboxPlugin = new InjectManifest({
-        include: [/\/(icons|maskable|splash)\//, /\.(webp|ttf|woff|woff2)$/],
+        include: [/\/(icons|maskable|splash)\//, /\.(webp|mp4|woff|woff2)$/],
         swDest: '../../public/sw.js',
         swSrc: './sw/index.js',
         webpackCompilationPlugins: [

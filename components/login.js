@@ -93,7 +93,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
 
   const sortedProviders = useMemo(() =>
     // email first, remove lightning if signing up
-    Object.values(providers)
+    Object.values(providers || {})
       .sort((a, b) => a.name === 'Email' ? -1 : b.name === 'Email' ? 1 : 0)
       .filter(provider => multiAuth ? multiAuthProviders.includes(provider.name) : signin || provider.name !== 'Lightning'),
   [providers, signin, multiAuth])
@@ -116,7 +116,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
           dismissible
         >{errorMessage}
         </Alert>}
-      {providers && sortedProviders.map(provider => {
+      {sortedProviders.map(provider => {
         switch (provider.name) {
           case 'Email':
             return (

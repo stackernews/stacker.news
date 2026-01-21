@@ -88,11 +88,12 @@ function MultiAuthHeader () {
 }
 
 export default function LoginPage ({ multiAuth, ...props }) {
+  const multiAuthBool = multiAuth === 'true'
   return (
     <StaticLayout footerLinks={false}>
       <Login
-        Footer={multiAuth ? undefined : () => <LoginFooter callbackUrl={props.callbackUrl} />}
-        Header={multiAuth ? () => <MultiAuthHeader /> : () => <LoginHeader />}
+        Footer={multiAuthBool ? undefined : () => <LoginFooter callbackUrl={props.callbackUrl} />}
+        Header={multiAuthBool ? () => <MultiAuthHeader /> : () => <LoginHeader />}
         text='Log in'
         signin
         multiAuth={multiAuth}

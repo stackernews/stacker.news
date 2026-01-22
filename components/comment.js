@@ -30,14 +30,17 @@ import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
 import useCallbackRef from './use-callback-ref'
 
-function Parent ({ item, rootText }) {
+function Parent ({ item, rootText, emphasize = false }) {
   const root = useRoot()
 
   const ParentFrag = () => (
     <>
       <span> \ </span>
-      <Link href={`/items/${item.parentId}`} className='text-reset'>
-        parent
+      <Link
+        href={`/items/${item.parentId}`}
+        className={emphasize ? 'fw-bold text-primary' : 'text-reset'}
+      >
+        parent{item.parent?.user?.name && ` by @${item.parent.user.name}`}
       </Link>
     </>
   )
@@ -100,7 +103,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth, pin,
+  rootText, noComments, noReply, truncate, depth, pin, pinnedNested,
   navigator, ...props
 }) {
   const [edit, setEdit] = useState()
@@ -116,7 +119,7 @@ export default function Comment ({
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
-
+  const isNestedPin = pin && item.path.split('.').length > 2
   const { cache } = useApolloClient()
 
   const unsetOutline = () => {
@@ -213,6 +216,11 @@ export default function Comment ({
       onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
+        {isNestedPin && !includeParent && (
+          <div className={styles.pinnedContext}>
+            <Parent item={item} rootText={rootText} emphasize />
+          </div>
+        )}
         {item.outlawed && !me?.privates?.wildWestMode
           ? <Skull className={styles.dontLike} width={18} height={18} />
           : pin

@@ -761,10 +761,6 @@ export default {
 
       if (item.parentId) {
         // OPs can only pin top level replies
-        if (item.parentId !== item.rootId) {
-          throw new GqlInputError('can only pin root replies')
-        }
-
         if (item.root.userId !== Number(me.id)) {
           throw new GqlInputError('not your post')
         }

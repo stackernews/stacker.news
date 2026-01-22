@@ -130,9 +130,9 @@ export function ToolbarDropdown ({ editor, icon, tooltip, options, activeOptionI
 export function ToolbarPlugin ({ name, topLevel }) {
   const [editor] = useLexicalComposerContext()
   const { toolbarState } = useToolbarState()
+  const toolbarRef = useRef(null)
   const [showFormattingToolbar, setShowFormattingToolbar] = useState(topLevel)
   const [hasOverflow, setHasOverflow] = useState(false)
-  const toolbarRef = useRef(null)
 
   const triggerCommand = useCallback((command) => {
     switch (command) {
@@ -161,10 +161,13 @@ export function ToolbarPlugin ({ name, topLevel }) {
     if (!toolbarRef.current) return
 
     const checkOverflow = () => {
-      if (toolbarRef.current) {
-        const hasScrollableContent = toolbarRef.current.scrollWidth > toolbarRef.current.clientWidth
-        setHasOverflow(hasScrollableContent)
-      }
+      if (!toolbarRef.current) return
+
+      const { scrollWidth, clientWidth } = toolbarRef.current
+      // rounding for cases in which browser zoom is not 100%
+      const hasScrollableContent = scrollWidth - clientWidth > 1
+
+      setHasOverflow(hasScrollableContent)
     }
 
     checkOverflow()

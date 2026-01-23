@@ -134,6 +134,7 @@
   overflow: auto;
   scrollbar-width: none;
   transition: opacity 0.1s ease-in-out, visibility 0.1s ease-in-out;
+  margin-right: 0.25rem;
 }
 
 .toolbarFormatting.hasOverflow {

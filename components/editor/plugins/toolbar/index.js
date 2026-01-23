@@ -7,7 +7,6 @@ import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
 import UploadIcon from '@/svgs/editor/toolbar/inserts/upload-paperclip.svg'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
 import { useEffect, useRef, useState, forwardRef, useCallback } from 'react'
-import MenuIcon from '@/svgs/editor/toolbar/menu.svg'
 import BoldIcon from '@/svgs/editor/toolbar/inline/bold.svg'
 import ItalicIcon from '@/svgs/editor/toolbar/inline/italic.svg'
 import {
@@ -20,7 +19,6 @@ import CodeIcon from '@/svgs/editor/toolbar/inline/code.svg'
 import Dropdown from 'react-bootstrap/Dropdown'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
 import { createPortal } from 'react-dom'
-import FontStyleIcon from '@/svgs/editor/toolbar/font-style.svg'
 import SuperscriptIcon from '@/svgs/editor/toolbar/inline/superscript.svg'
 import SubscriptIcon from '@/svgs/editor/toolbar/inline/subscript.svg'
 import StrikethroughIcon from '@/svgs/editor/toolbar/inline/strikethrough.svg'
@@ -33,6 +31,8 @@ import NumberedListIcon from '@/svgs/editor/toolbar/block/number-list.svg'
 import BulletListIcon from '@/svgs/editor/toolbar/block/bullet-list.svg'
 import CheckListIcon from '@/svgs/editor/toolbar/block/check-list.svg'
 import CodeBlockIcon from '@/svgs/editor/toolbar/block/code-block.svg'
+import MoreIcon from '@/svgs/editor/toolbar/more-line.svg'
+import FontStyleIcon from '@/svgs/editor/toolbar/font-style.svg'
 
 const BLOCK_OPTIONS = [
   { id: 'h1', name: 'heading 1', icon: <H1Icon />, type: 'heading', payload: 1 },
@@ -59,7 +59,7 @@ const MenuAlternateDimension = forwardRef(({ children, style, className }, ref) 
   )
 })
 
-function ToolbarDropdown ({ icon, tooltip, options, onAction, showDelay = 500 }) {
+function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, showDelay = 500 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
@@ -71,7 +71,7 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, showDelay = 500 })
           className={classNames(styles.toolbarItem, dropdownOpen && styles.active)}
         >
           {icon}
-          <ArrowDownIcon />
+          {arrow && <ArrowDownIcon />}
         </Dropdown.Toggle>
         <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
           {options.map(option => (
@@ -188,15 +188,16 @@ export function ToolbarPlugin ({ name, topLevel }) {
           </ToolbarButton>
           <span className={styles.divider} />
           <ToolbarDropdown
-            icon={<FontStyleIcon />}
+            icon={<MoreIcon />}
             tooltip='additional formatting options'
             options={FORMAT_OPTIONS}
             onAction={({ type }) => handleFormat(type)}
+            arrow={false}
           />
         </div>
         <ActionTooltip notForm overlayText={showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
           <span className={classNames(styles.toolbarItem, showFormattingToolbar && styles.active)} onClick={() => setShowFormattingToolbar(!showFormattingToolbar)}>
-            <MenuIcon />
+            <FontStyleIcon />
           </span>
         </ActionTooltip>
         <ToolbarButton id='upload' onClick={() => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)} tooltip='upload files'>

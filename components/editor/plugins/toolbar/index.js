@@ -180,7 +180,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           <ToolbarButton id='quote' onClick={() => handleFormat('quote')} tooltip='quote'>
             <QuoteIcon />
           </ToolbarButton>
-          <ToolbarButton id='inlineCode' onClick={() => handleFormat('code')} tooltip='code'>
+          <ToolbarButton id='inlineCode' onClick={() => handleFormat('code')} tooltip='inline code'>
             <CodeIcon />
           </ToolbarButton>
           <ToolbarButton id='link' onClick={() => handleFormat('link')} tooltip='link'>

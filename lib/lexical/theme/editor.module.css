@@ -52,6 +52,7 @@
   padding: 8px;
   resize: vertical;
   overflow: auto;
+  max-height: 80svh;
   background-color: transparent;
 }
 

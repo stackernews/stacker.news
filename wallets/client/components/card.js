@@ -7,14 +7,21 @@ import Link from 'next/link'
 import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import DragIcon from '@/svgs/draggable.svg'
-import { useWalletImage, useWalletSupport, useWalletStatus, WalletStatus } from '@/wallets/client/hooks'
+import { useWalletImage, useWalletSupport, useWalletStatus, WalletStatus, useWalletDelete } from '@/wallets/client/hooks'
 import { isWallet, urlify, walletDisplayName } from '@/wallets/lib/util'
 import { Draggable } from '@/wallets/client/components'
+import TrashIcon from '@/svgs/delete-bin-line.svg'
+import { useShowModal } from '@/components/modal'
+import { ObstacleButtons } from '@/components/obstacle'
+import { useToast } from '@/components/toast'
+import { useRouter } from 'next/router'
 
 export function WalletCard ({ wallet, draggable = false, index, ...props }) {
   const image = useWalletImage(wallet.name)
   const status = useWalletStatus(wallet)
   const support = useWalletSupport(wallet)
+  const showModal = useShowModal()
+  const router = useRouter()
 
   const card = (
     <Card
@@ -23,8 +30,8 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
     >
       <div className={styles.indicators}>
         {draggable && <DragIcon className={classNames(styles.indicator, styles.drag, 'me-auto')} />}
-        {support.receive && <RecvIcon className={`${styles.indicator} ${statusToClass(status.receive)}`} />}
         {support.send && <SendIcon className={`${styles.indicator} ${statusToClass(status.send)}`} />}
+        {support.receive && <RecvIcon className={`${styles.indicator} ${statusToClass(status.receive)}`} />}
       </div>
       <Card.Body>
         <div className='d-flex text-center align-items-center h-100'>
@@ -33,13 +40,21 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
             : <Card.Title className={styles.walletLogo}>{walletDisplayName(wallet.name)}</Card.Title>}
         </div>
       </Card.Body>
-      <WalletLink wallet={wallet}>
-        <Card.Footer className={styles.attach}>
-          {isWallet(wallet)
-            ? <>configure<Gear width={14} height={14} /></>
-            : <>attach<Plug width={14} height={14} /></>}
-        </Card.Footer>
-      </WalletLink>
+      <Card.Footer className={styles.attach}>
+        {isWallet(wallet)
+          ? (
+            <div className='d-flex align-items-center'>
+              <WalletLink wallet={wallet} className='flex-grow-1 justify-content-center d-flex align-items-center text-reset'>
+                <Gear width={14} height={14} className='me-2' />modify
+              </WalletLink>
+              <div className='text-center flex-shrink-1 border-start ps-3 d-flex align-items-center' onClick={() => showModal(onClose => <WalletDeleteObstacle wallet={wallet} onClose={onClose} onSuccess={() => router.push('/wallets')} />)}><TrashIcon width={18} height={18} /></div>
+            </div>
+            )
+          : (
+            <WalletLink wallet={wallet} className='justify-content-center d-flex align-items-center text-reset'>
+              <Plug width={14} height={14} className='me-2' />attach
+            </WalletLink>)}
+      </Card.Footer>
     </Card>
   )
 
@@ -54,9 +69,9 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
   return card
 }
 
-function WalletLink ({ wallet, children }) {
+function WalletLink ({ wallet, children, className }) {
   const href = '/wallets' + (isWallet(wallet) ? `/${wallet.id}` : `/${urlify(wallet.name)}`)
-  return <Link href={href}>{children}</Link>
+  return <Link href={href} className={className}>{children}</Link>
 }
 
 function statusToClass (status) {
@@ -66,4 +81,30 @@ function statusToClass (status) {
     case WalletStatus.WARNING: return styles.warning
     case WalletStatus.DISABLED: return styles.disabled
   }
+}
+
+function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {
+  const deleteWallet = useWalletDelete(wallet)
+  const toaster = useToast()
+
+  const handleConfirm = async () => {
+    try {
+      await deleteWallet()
+      onClose()
+      onSuccess?.()
+    } catch (err) {
+      console.error('failed to delete wallet:', err)
+      toaster.danger('failed to delete wallet')
+    }
+  }
+
+  return (
+    <div className='text-center'>
+      <h4 className='mb-3'>Delete wallet</h4>
+      <p className='fw-bold'>
+        Are you sure you want to delete this wallet?
+      </p>
+      <ObstacleButtons onClose={onClose} onConfirm={handleConfirm} confirmText='delete' />
+    </div>
+  )
 }

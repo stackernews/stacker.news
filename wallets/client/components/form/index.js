@@ -14,7 +14,6 @@ import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreat
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import { useFormikContext } from 'formik'
 import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
-import { Settings } from './settings'
 import { BackButton, SkipButton } from './button'
 
 export function WalletMultiStepForm ({ wallet }) {
@@ -32,8 +31,7 @@ export function WalletMultiStepForm ({ wallet }) {
   const steps = useMemo(() =>
     [
       support.send && Step.SEND,
-      support.receive && Step.RECEIVE,
-      Step.SETTINGS
+      support.receive && Step.RECEIVE
     ].filter(Boolean),
   [support])
 
@@ -49,8 +47,7 @@ export function WalletMultiStepForm ({ wallet }) {
             // WalletForm is aware of the current step via hooks
             // and can thus render a different form for send vs. receive
             if (step === Step.SEND) return <WalletForm key={step} />
-            if (step === Step.RECEIVE) return <WalletForm key={step} />
-            return <Settings key={step} />
+            return <WalletForm key={step} />
           })}
         </WalletMultiStepFormContextProvider>
       </div>
@@ -160,7 +157,7 @@ function WalletProtocolFormNavigator () {
   const configExists = (isWallet(wallet) && wallet.protocols.length > 0) || Object.keys(formState).length > 0
 
   // don't allow going to settings as last step with nothing configured
-  const hideSkip = stepIndex === maxSteps - 2 && !configExists
+  const hideSkip = stepIndex === maxSteps - 1 && !configExists
 
   return (
     <div className='d-flex justify-content-end align-items-center'>

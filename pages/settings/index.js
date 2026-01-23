@@ -21,6 +21,7 @@ import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '@/lib/valida
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
+import { ObstacleButtons } from '@/components/obstacle'
 import { authErrorMessage } from '@/components/login'
 import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
@@ -67,13 +68,23 @@ export function SettingsHeader () {
           </Link>
         </Nav.Item>
         <Nav.Item>
+          <Link href='/settings/logins' passHref legacyBehavior>
+            <Nav.Link eventKey='logins'>logins</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/settings/wallets' passHref legacyBehavior>
+            <Nav.Link eventKey='wallets'>wallets</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
           <Link href='/settings/subscriptions/stackers' passHref legacyBehavior>
             <Nav.Link eventKey='subscriptions'>subscriptions</Nav.Link>
           </Link>
         </Nav.Item>
         <Nav.Item>
           <Link href='/settings/mutes' passHref legacyBehavior>
-            <Nav.Link eventKey='mutes'>muted stackers</Nav.Link>
+            <Nav.Link eventKey='mutes'>mutes</Nav.Link>
           </Link>
         </Nav.Item>
       </Nav>
@@ -609,9 +620,11 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
   const toaster = useToast()
 
   return (
-    <div>
-      You are removing your last auth method. It is recommended you link another auth method before removing
-      your last auth method. If you'd like to proceed anyway, type the following below
+    <div className='text-center'>
+      <p>
+        You are removing your last auth method. It is recommended you link another auth method before removing
+        your last auth method. If you'd like to proceed anyway, type the following below
+      </p>
       <div className='text-danger fw-bold my-2'>
         If I logout, even accidentally, I will never be able to access my account again
       </div>
@@ -637,7 +650,7 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
           name='warning'
           required
         />
-        <SubmitButton className='d-flex ms-auto' variant='danger'>do it</SubmitButton>
+        <ObstacleButtons onClose={onClose} confirmText='do it' type='submit' />
       </Form>
     </div>
   )
@@ -684,7 +697,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
     // if there's only one auth method left
     const links = providers.reduce((t, p) => t + (methods[p] ? 1 : 0), 0)
     if (links === 1) {
-      showModal(onClose => (<UnlinkObstacle onClose={onClose} type={type} unlinkAuth={unlinkAuth} />))
+      showModal(onClose => <UnlinkObstacle onClose={onClose} type={type} unlinkAuth={unlinkAuth} />)
     } else {
       try {
         await unlinkAuth({ variables: { authType: type } })
@@ -867,7 +880,7 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
               variant={apiKey ? 'danger' : 'secondary'}
               onClick={async () => {
                 if (apiKey) {
-                  showModal((onClose) => <ApiKeyDeleteObstacle onClose={onClose} />)
+                  showModal(onClose => <ApiKeyDeleteObstacle onClose={onClose} />)
                   return
                 }
 
@@ -928,6 +941,7 @@ function ApiKeyModal ({ apiKey }) {
 
 function ApiKeyDeleteObstacle ({ onClose }) {
   const { me } = useMe()
+  const toaster = useToast()
   const [deleteApiKey] = useMutation(
     gql`
       mutation deleteApiKey($id: ID!) {
@@ -954,27 +968,23 @@ function ApiKeyDeleteObstacle ({ onClose }) {
       }
     }
   )
-  const toaster = useToast()
+
+  const handleConfirm = async () => {
+    try {
+      await deleteApiKey({ variables: { id: me.id } })
+      onClose()
+    } catch (err) {
+      console.error(err)
+      toaster.danger('error deleting api key')
+    }
+  }
 
   return (
-    <div className='m-auto' style={{ maxWidth: 'fit-content' }}>
+    <div className='text-center'>
       <p className='fw-bold'>
         Do you really want to delete your API key?
       </p>
-      <div className='d-flex flex-row justify-content-end'>
-        <Button
-          variant='danger' onClick={async () => {
-            try {
-              await deleteApiKey({ variables: { id: me.id } })
-              onClose()
-            } catch (err) {
-              console.error(err)
-              toaster.danger('error deleting api key')
-            }
-          }}
-        >do it
-        </Button>
-      </div>
+      <ObstacleButtons onClose={onClose} onConfirm={handleConfirm} confirmText='do it' />
     </div>
   )
 }

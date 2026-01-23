@@ -85,12 +85,10 @@
 
 .attach {
   color: var(--bs-body-color) !important;
-  text-align: center;
 }
 
 .attach svg {
   fill: var(--bs-body-color) !important;
-  margin-left: 0.5rem;
 }
 
 .form {

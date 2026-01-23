@@ -1,8 +1,8 @@
 import { useMutation, useLazyQuery } from '@apollo/client'
 import { ADD_WALLET_LOG, WALLET_LOGS, DELETE_WALLET_LOGS } from '@/wallets/client/fragments'
 import { createContext, useCallback, useContext, useMemo, useState, useEffect } from 'react'
-import { Button } from 'react-bootstrap'
-import { ModalClosedError, useShowModal } from '@/components/modal'
+import { useShowModal } from '@/components/modal'
+import { ObstacleButtons } from '@/components/obstacle'
 import { useToast } from '@/components/toast'
 import { FAST_POLL_INTERVAL_MS } from '@/lib/constants'
 import { isTemplate } from '@/wallets/lib/util'
@@ -162,60 +162,31 @@ function mapLevelToConsole (level) {
 export function useDeleteWalletLogs (protocol, debug) {
   const showModal = useShowModal()
 
-  return useCallback(async () => {
-    return await new Promise((resolve, reject) => {
-      const onClose = () => {
-        reject(new ModalClosedError())
-      }
-
-      showModal(close => {
-        const onDelete = () => {
-          resolve()
-          close()
-        }
-
-        const onClose = () => {
-          reject(new ModalClosedError())
-          close()
-        }
-
-        return (
-          <DeleteWalletLogsObstacle
-            protocol={protocol}
-            onClose={onClose}
-            onDelete={onDelete}
-            debug={debug}
-          />
-        )
-      }, { onClose })
-    })
-  }, [showModal])
+  return useCallback((callbacks = {}) => {
+    showModal(onClose => <DeleteWalletLogsObstacle protocol={protocol} debug={debug} onClose={onClose} {...callbacks} />)
+  }, [showModal, protocol, debug])
 }
 
-function DeleteWalletLogsObstacle ({ protocol, onClose, onDelete, debug }) {
+function DeleteWalletLogsObstacle ({ protocol, onClose, onSuccess, debug }) {
   const toaster = useToast()
   const [deleteWalletLogs] = useMutation(DELETE_WALLET_LOGS)
 
-  const deleteLogs = useCallback(async () => {
-    // there are no logs to delete on the server if protocol is a template
-    if (protocol && isTemplate(protocol)) return
-
-    await deleteWalletLogs({
-      variables: { protocolId: protocol ? Number(protocol.id) : undefined, debug }
-    })
-  }, [protocol, deleteWalletLogs, debug])
-
-  const onClick = useCallback(async () => {
+  const handleConfirm = useCallback(async () => {
     try {
-      await deleteLogs()
-      onDelete()
+      // there are no logs to delete on the server if protocol is a template
+      if (protocol && !isTemplate(protocol)) {
+        await deleteWalletLogs({
+          variables: { protocolId: protocol ? Number(protocol.id) : undefined, debug }
+        })
+      }
       onClose()
+      onSuccess?.()
       toaster.success('deleted wallet logs')
     } catch (err) {
       console.error('failed to delete wallet logs:', err)
       toaster.danger('failed to delete wallet logs')
     }
-  }, [onClose, deleteLogs, toaster])
+  }, [protocol, deleteWalletLogs, debug, onClose, onSuccess, toaster])
 
   let prompt = debug ? 'Do you really want to delete all debug logs?' : 'Do you really want to delete all logs?'
   if (protocol) {
@@ -225,14 +196,7 @@ function DeleteWalletLogsObstacle ({ protocol, onClose, onDelete, debug }) {
   return (
     <div className='text-center'>
       {prompt}
-      <div className='d-flex align-items-center mt-3 mx-auto'>
-        <span style={{ cursor: 'pointer' }} className='d-flex ms-auto text-muted fw-bold nav-link mx-3' onClick={onClose}>cancel</span>
-        <Button
-          className='d-flex me-auto mx-3' variant='danger'
-          onClick={onClick}
-        >delete
-        </Button>
-      </div>
+      <ObstacleButtons onClose={onClose} onConfirm={handleConfirm} confirmText='delete' />
     </div>
   )
 }

@@ -21,6 +21,7 @@ import { useHasNewNotes } from '../use-has-new-notes'
 import { useWalletIndicator } from '@/wallets/client/hooks'
 import SwitchAccountList, { nextAccount, useAccounts, useIsLurker } from '@/components/account'
 import { useShowModal } from '@/components/modal'
+import { ObstacleButtons } from '@/components/obstacle'
 import { numWithUnits } from '@/lib/format'
 
 export function Brand ({ className }) {
@@ -280,40 +281,34 @@ function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const router = useRouter()
 
+  const handleLogout = async () => {
+    const next = await nextAccount()
+    // only signout if we did not find a next account
+    if (next) {
+      onClose()
+      // reload whatever page we're on to avoid any bugs
+      router.reload()
+      return
+    }
+
+    // order is important because we need to be logged in to delete push subscription on server
+    const pushSubscription = await swRegistration?.pushManager.getSubscription()
+    if (pushSubscription) {
+      await togglePushSubscription().catch(console.error)
+    }
+
+    await signOut({ callbackUrl: '/' })
+  }
+
   return (
-    <div className='d-flex m-auto flex-column w-fit-content'>
+    <div className='text-center'>
       <h4 className='mb-3'>I reckon you want to logout?</h4>
-      <div className='mt-2 d-flex justify-content-between'>
-        <Button
-          className='me-2'
-          variant='grey-medium'
-          onClick={onClose}
-        >
-          cancel
-        </Button>
-        <Button
-          onClick={async () => {
-            const next = await nextAccount()
-            // only signout if we did not find a next account
-            if (next) {
-              onClose()
-              // reload whatever page we're on to avoid any bugs
-              router.reload()
-              return
-            }
-
-            // order is important because we need to be logged in to delete push subscription on server
-            const pushSubscription = await swRegistration?.pushManager.getSubscription()
-            if (pushSubscription) {
-              await togglePushSubscription().catch(console.error)
-            }
-
-            await signOut({ callbackUrl: '/' })
-          }}
-        >
-          logout
-        </Button>
-      </div>
+      <ObstacleButtons
+        onClose={onClose}
+        onConfirm={handleLogout}
+        confirmText='logout'
+        confirmVariant='primary'
+      />
     </div>
   )
 }
@@ -332,7 +327,7 @@ export function LogoutDropdownItem ({ handleClose }) {
       <Dropdown.Item
         onClick={async () => {
           handleClose?.()
-          showModal(onClose => (<LogoutObstacle onClose={onClose} />))
+          showModal(onClose => <LogoutObstacle onClose={onClose} />)
         }}
       >logout
       </Dropdown.Item>

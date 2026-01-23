@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { useField } from 'formik'
 import classNames from 'classnames'
@@ -12,16 +11,12 @@ import AccordianItem from '@/components/accordian-item'
 import { isNumber } from '@/lib/format'
 import { walletSettingsSchema } from '@/lib/validate'
 import styles from '@/styles/wallet.module.css'
-import { useShowModal } from '@/components/modal'
 import { SET_WALLET_SETTINGS, WALLET_SETTINGS } from '@/wallets/client/fragments'
-import { useWalletDelete } from '@/wallets/client/hooks'
 
-import { useSaveWallet, useWallet } from './hooks'
+import { useSaveWallet } from './hooks'
 import { BackButton } from './button'
-import { isWallet } from '@/wallets/lib/util'
 
 export function Settings () {
-  const wallet = useWallet()
   const { data } = useQuery(WALLET_SETTINGS)
   const [setSettings] = useMutation(SET_WALLET_SETTINGS)
   const toaster = useToast()
@@ -71,7 +66,6 @@ export function Settings () {
         <GlobalSettings />
         <div className='d-flex mt-5 justify-content-end align-items-center'>
           <BackButton className='me-auto' />
-          {isWallet(wallet) && <WalletDeleteButton className='me-2' />}
           <SubmitButton variant='primary'>save</SubmitButton>
         </div>
       </Form>
@@ -82,56 +76,6 @@ export function Settings () {
 function Separator ({ children, className }) {
   return (
     <div className={classNames(styles.separator, 'fw-bold', className)}>{children}</div>
-  )
-}
-
-function WalletDeleteButton ({ className }) {
-  const showModal = useShowModal()
-  const wallet = useWallet()
-
-  return (
-    <Button
-      variant='danger'
-      className={className}
-      onClick={() => {
-        showModal(onClose => {
-          // need to pass wallet as prop because the modal can't use the hooks
-          // since it's not rendered as a children of the form
-          return <WalletDeleteObstacle wallet={wallet} onClose={onClose} />
-        })
-      }}
-    >delete
-    </Button>
-  )
-}
-
-function WalletDeleteObstacle ({ wallet, onClose }) {
-  const deleteWallet = useWalletDelete(wallet)
-  const toaster = useToast()
-  const router = useRouter()
-
-  const onClick = useCallback(async () => {
-    try {
-      await deleteWallet()
-      onClose()
-      router.push('/wallets')
-    } catch (err) {
-      console.error('failed to delete wallet:', err)
-      toaster.danger('failed to delete wallet')
-    }
-  }, [deleteWallet, onClose, toaster, router])
-
-  return (
-    <div>
-      <h4>Delete wallet</h4>
-      <p className='line-height-md fw-bold mt-3'>
-        Are you sure you want to delete this wallet?
-      </p>
-      <div className='mt-3 d-flex justify-content-end align-items-center'>
-        <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={onClose}>cancel</Button>
-        <Button variant='danger' onClick={onClick}>delete </Button>
-      </div>
-    </div>
   )
 }
 

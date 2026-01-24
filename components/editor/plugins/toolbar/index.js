@@ -91,7 +91,7 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
 
 function DropdownMenuItem ({ option, onAction }) {
   const shortcut = SHORTCUTS[option.id]
-  const tooltipText = shortcut ? `${option.name} ${shortcut.key}` : option.name
+  const tooltipText = shortcut ? `${option.name} (${shortcut.key})` : option.name
 
   return (
     <Dropdown.Item
@@ -113,7 +113,7 @@ function DropdownMenuItem ({ option, onAction }) {
 
 function ToolbarButton ({ id, onClick, tooltip, children, showDelay = 500 }) {
   const shortcut = SHORTCUTS[id]
-  const tooltipText = shortcut ? `${tooltip} ${shortcut.key}` : tooltip
+  const tooltipText = shortcut ? `${tooltip} (${shortcut.key})` : tooltip
   return (
     <ActionTooltip notForm overlayText={tooltipText} placement='top' noWrapper showDelay={showDelay} transition>
       <span

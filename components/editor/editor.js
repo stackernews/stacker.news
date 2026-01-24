@@ -7,7 +7,7 @@ import { ReactExtension } from '@lexical/react/ReactExtension'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
 import { AutoFocusExtension } from '@lexical/extension'
-import { ShortcutsExtension } from '@/lib/lexical/exts/shortcuts'
+import ShortcutsPlugin from '@/components/editor/plugins/core/shortcuts'
 import { MDCommandsExtension } from '@/lib/lexical/exts/md-commands'
 import { ToolbarContextProvider } from '@/components/editor/contexts/toolbar'
 import { ToolbarPlugin } from '@/components/editor/plugins/toolbar'
@@ -53,7 +53,6 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         MarkdownTextExtension,
         ApplePatchExtension,
         HistoryExtension,
-        ShortcutsExtension,
         MDCommandsExtension,
         configExtension(ReactExtension, { contentEditable: null }),
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
@@ -116,6 +115,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       )}
       <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
+      <ShortcutsPlugin />
       <AppendValuePlugin value={appendValue} />
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />

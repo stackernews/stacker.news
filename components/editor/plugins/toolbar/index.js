@@ -22,7 +22,7 @@ import { createPortal } from 'react-dom'
 import SuperscriptIcon from '@/svgs/editor/toolbar/inline/superscript.svg'
 import SubscriptIcon from '@/svgs/editor/toolbar/inline/subscript.svg'
 import StrikethroughIcon from '@/svgs/editor/toolbar/inline/strikethrough.svg'
-import { SHORTCUTS } from '@/lib/lexical/exts/shortcuts'
+import { SHORTCUTS, useFormattedShortcut } from '@/components/editor/plugins/core/shortcuts'
 import BlocksIcon from '@/svgs/editor/toolbar/block/blocks.svg'
 import H1Icon from '@/svgs/editor/toolbar/block/h-1.svg'
 import H2Icon from '@/svgs/editor/toolbar/block/h-2.svg'
@@ -34,6 +34,7 @@ import CodeBlockIcon from '@/svgs/editor/toolbar/block/code-block.svg'
 import MoreIcon from '@/svgs/editor/toolbar/more-line.svg'
 import FontStyleIcon from '@/svgs/editor/toolbar/font-style.svg'
 import ImageIcon from '@/svgs/image-fill.svg'
+import { useIsClient } from '@/components/use-client'
 
 const BLOCK_OPTIONS = [
   { id: 'h1', name: 'heading 1', icon: <H1Icon />, type: 'heading', payload: 1 },
@@ -52,7 +53,11 @@ const FORMAT_OPTIONS = [
   { id: 'strikethrough', name: 'strikethrough', icon: <StrikethroughIcon />, type: 'strikethrough' }
 ]
 
-const MenuAlternateDimension = forwardRef(({ children, style, className }, ref) => {
+const MenuAlternateDimension = forwardRef(function MenuAlternateDimension ({ children, style, className }, ref) {
+  // document doesn't exist on SSR, this forces the component to render on the client
+  const isClient = useIsClient()
+  if (!isClient) return null
+
   return createPortal(
     <div ref={ref} style={style} className={className}>
       {children}
@@ -91,7 +96,8 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
 
 function DropdownMenuItem ({ option, onAction }) {
   const shortcut = SHORTCUTS[option.id]
-  const tooltipText = shortcut ? `${option.name} (${shortcut.key})` : option.name
+  const shortcutDisplay = shortcut ? useFormattedShortcut(shortcut.key) : null
+  const tooltipText = shortcutDisplay ? `${option.name} (${shortcutDisplay})` : option.name
 
   return (
     <Dropdown.Item
@@ -105,7 +111,7 @@ function DropdownMenuItem ({ option, onAction }) {
         <span className={styles.dropdownExtraItemText}>{option.name}</span>
       </span>
       <span className={styles.dropdownExtraItemShortcut}>
-        {shortcut?.key}
+        {shortcutDisplay}
       </span>
     </Dropdown.Item>
   )
@@ -113,7 +119,8 @@ function DropdownMenuItem ({ option, onAction }) {
 
 function ToolbarButton ({ id, onClick, tooltip, children, showDelay = 500 }) {
   const shortcut = SHORTCUTS[id]
-  const tooltipText = shortcut ? `${tooltip} (${shortcut.key})` : tooltip
+  const shortcutDisplay = shortcut ? useFormattedShortcut(shortcut.key) : null
+  const tooltipText = shortcutDisplay ? `${tooltip} (${shortcutDisplay})` : tooltip
   return (
     <ActionTooltip notForm overlayText={tooltipText} placement='top' noWrapper showDelay={showDelay} transition>
       <span
@@ -140,12 +147,13 @@ export function ToolbarPlugin ({ name, topLevel }) {
 
   // overflow detection for mobile devices
   useEffect(() => {
-    if (!toolbarRef.current) return
+    const element = toolbarRef.current
+    if (!element) return
 
     const checkOverflow = () => {
-      if (!toolbarRef.current) return
+      if (!element) return
 
-      const { scrollWidth, clientWidth } = toolbarRef.current
+      const { scrollWidth, clientWidth } = element
       // rounding for cases in which browser zoom is not 100%
       const hasScrollableContent = scrollWidth - clientWidth > 1
 
@@ -155,7 +163,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
     checkOverflow()
     if ('ResizeObserver' in window) {
       const resizeObserver = new window.ResizeObserver(checkOverflow)
-      resizeObserver.observe(toolbarRef.current)
+      resizeObserver.observe(element)
 
       return () => resizeObserver.disconnect()
     }
@@ -164,8 +172,8 @@ export function ToolbarPlugin ({ name, topLevel }) {
   return (
     <div className={styles.toolbar}>
       <ModeSwitchPlugin name={name} />
-      <div className={classNames(styles.innerToolbar, toolbarState.previewMode && styles.hidden)}>
-        <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !showFormattingToolbar && styles.hidden, hasOverflow && styles.hasOverflow)}>
+      <div className={classNames(styles.innerToolbar, toolbarState.previewMode && styles.toolbarHidden)}>
+        <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !showFormattingToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
           <ToolbarDropdown
             icon={<BlocksIcon />}
             tooltip='blocks'

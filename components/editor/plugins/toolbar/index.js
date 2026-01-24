@@ -33,6 +33,7 @@ import CheckListIcon from '@/svgs/editor/toolbar/block/check-list.svg'
 import CodeBlockIcon from '@/svgs/editor/toolbar/block/code-block.svg'
 import MoreIcon from '@/svgs/editor/toolbar/more-line.svg'
 import FontStyleIcon from '@/svgs/editor/toolbar/font-style.svg'
+import ImageIcon from '@/svgs/image-fill.svg'
 
 const BLOCK_OPTIONS = [
   { id: 'h1', name: 'heading 1', icon: <H1Icon />, type: 'heading', payload: 1 },
@@ -41,7 +42,8 @@ const BLOCK_OPTIONS = [
   { id: 'numberedList', name: 'numbered list', icon: <NumberedListIcon />, type: 'list', payload: 'number' },
   { id: 'bulletList', name: 'bullet list', icon: <BulletListIcon />, type: 'list', payload: 'bullet' },
   { id: 'check', name: 'check list', icon: <CheckListIcon />, type: 'list', payload: 'check' },
-  { id: 'codeblock', name: 'code block', icon: <CodeBlockIcon />, type: 'codeblock', payload: 'text' }
+  { id: 'codeblock', name: 'code block', icon: <CodeBlockIcon />, type: 'codeblock', payload: 'text' },
+  { id: 'externalImage', name: 'external image', icon: <ImageIcon />, type: 'externalImage' }
 ]
 
 const FORMAT_OPTIONS = [

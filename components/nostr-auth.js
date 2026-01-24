@@ -193,6 +193,21 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
           )
         : (
           <>
+            <Button
+              variant='nostr'
+              className='w-100 line-height-md'
+              type='submit'
+              onClick={async () => {
+                try {
+                  await auth()
+                } catch (e) {
+                  setError(e)
+                }
+              }}
+            >
+              {text || 'Login'} with browser extension
+            </Button>
+            <div className='text-center text-muted fw-bold my-3'>or</div>
             <Form
               initial={{ token: '' }}
               onSubmit={values => {
@@ -216,21 +231,6 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
                 </SubmitButton>
               </div>
             </Form>
-            <div className='text-center text-muted fw-bold my-2'>or</div>
-            <Button
-              variant='nostr'
-              className='w-100'
-              type='submit'
-              onClick={async () => {
-                try {
-                  await auth()
-                } catch (e) {
-                  setError(e)
-                }
-              }}
-            >
-              {text || 'Login'} with extension
-            </Button>
           </>
           )}
     </>
@@ -248,31 +248,6 @@ function NostrExplainer ({ text, children }) {
         </h3>
         <Row className='w-100 text-muted'>
           <Col className='ps-0 mb-4' md>
-            <AccordianItem
-              header='Which NIP-46 signers can I use?'
-              body={
-                <>
-                  <Row>
-                    <Col xs>
-                      <ul>
-                        <li>
-                          <a href='https://nsec.app/'>Nsec.app</a>
-                          <ul>
-                            <li>available for: chrome, firefox, and safari</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://app.nsecbunker.com/'>nsecBunker</a>
-                          <ul>
-                            <li>available as: SaaS or self-hosted</li>
-                          </ul>
-                        </li>
-                      </ul>
-                    </Col>
-                  </Row>
-                </>
-          }
-            />
             <AccordianItem
               header='Which extensions can I use?'
               body={
@@ -309,6 +284,31 @@ function NostrExplainer ({ text, children }) {
                           <ul>
                             <li>available for: chrome</li>
                             <li>supports hardware signing</li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </Col>
+                  </Row>
+                </>
+          }
+            />
+            <AccordianItem
+              header='Which NIP-46 signers can I use?'
+              body={
+                <>
+                  <Row>
+                    <Col xs>
+                      <ul>
+                        <li>
+                          <a href='https://nsec.app/'>Nsec.app</a>
+                          <ul>
+                            <li>available for: chrome, firefox, and safari</li>
+                          </ul>
+                        </li>
+                        <li>
+                          <a href='https://app.nsecbunker.com/'>nsecBunker</a>
+                          <ul>
+                            <li>available as: SaaS or self-hosted</li>
                           </ul>
                         </li>
                       </ul>

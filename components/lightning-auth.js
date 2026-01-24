@@ -58,11 +58,11 @@ function LightningExplainer ({ text, children, backButton, md = 12, lg = 6 }) {
         <Row className='w-100 text-muted'>
           <Col className='ps-0 mb-4' md={md} lg={lg}>
             <AccordianItem
-              header={`Which wallets can I use to ${(text || 'Login').toLowerCase()}?`}
+              header='Which wallets support lnurl-auth?'
               body={
                 <>
                   <Row className='mb-3 no-gutters'>
-                    You can use any wallet that supports lnurl-auth. These are some wallets you can use:
+                    You can use any wallet that supports lnurl-auth. These are some wallets that claim to support it:
                   </Row>
                   <Row>
                     <Col xs>
@@ -71,19 +71,14 @@ function LightningExplainer ({ text, children, backButton, md = 12, lg = 6 }) {
                         <li>Balance of Satoshis</li>
                         <li>Blixt</li>
                         <li>Breez</li>
-                        <li>Blue Wallet</li>
                         <li>Coinos</li>
                         <li>LNBits</li>
-                        <li>LNtxtbot</li>
                       </ul>
                     </Col>
                     <Col xs>
                       <ul>
                         <li>Phoenix</li>
-                        <li>Simple Bitcoin Wallet</li>
-                        <li>Sparrow Wallet</li>
                         <li>ThunderHub</li>
-                        <li>Zap Desktop</li>
                         <li>Zeus</li>
                       </ul>
                     </Col>

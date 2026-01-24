@@ -20,9 +20,9 @@ export const SHORTCUTS = {
     key: 'meta+KeyI',
     handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'italic')
   },
-  quote: {
+  blockquote: {
     key: 'meta+shift+Period',
-    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'quote')
+    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'blockquote')
   },
   inlineCode: {
     key: 'meta+KeyE',
@@ -128,8 +128,7 @@ export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
 // modifier key display mapping
 const MODIFIER_DISPLAY = {
   meta: IS_APPLE ? '⌘' : 'ctrl',
-  alt: IS_APPLE ? '⌥' : 'alt',
-  ctrl: IS_APPLE ? '⌃' : 'ctrl'
+  alt: IS_APPLE ? '⌥' : 'alt'
 }
 
 // convert e.code values to display characters
@@ -148,11 +147,12 @@ export function formatShortcut (key) {
 }
 
 // force shortcuts to render on the client (IS_APPLE comparison)
+// client-side
 export function useFormattedShortcut (key) {
-  const [formatted, setFormatted] = useState('...')
+  const [formatted, setFormatted] = useState('')
 
   useEffect(() => {
-    setFormatted(formatShortcut(key))
+    setFormatted(key ? formatShortcut(key) : '')
   }, [key])
 
   return formatted

@@ -1,14 +1,7 @@
 import { createContext, useContext, useMemo, useState, useCallback } from 'react'
 
 const INITIAL_STATE = {
-  previewMode: false,
-  mode: 'markdown',
-  isBold: false,
-  isItalic: false,
-  isLink: false,
-  isCode: false,
-  isQuote: false,
-  isStrikethrough: false
+  previewMode: false
 }
 
 const ToolbarContext = createContext()

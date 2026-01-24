@@ -96,7 +96,7 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
 
 function DropdownMenuItem ({ option, onAction }) {
   const shortcut = SHORTCUTS[option.id]
-  const shortcutDisplay = shortcut ? useFormattedShortcut(shortcut.key) : null
+  const shortcutDisplay = useFormattedShortcut(shortcut.key)
   const tooltipText = shortcutDisplay ? `${option.name} (${shortcutDisplay})` : option.name
 
   return (
@@ -119,7 +119,7 @@ function DropdownMenuItem ({ option, onAction }) {
 
 function ToolbarButton ({ id, onClick, tooltip, children, showDelay = 500 }) {
   const shortcut = SHORTCUTS[id]
-  const shortcutDisplay = shortcut ? useFormattedShortcut(shortcut.key) : null
+  const shortcutDisplay = useFormattedShortcut(shortcut.key)
   const tooltipText = shortcutDisplay ? `${tooltip} (${shortcutDisplay})` : tooltip
   return (
     <ActionTooltip notForm overlayText={tooltipText} placement='top' noWrapper showDelay={showDelay} transition>
@@ -187,7 +187,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
             <ItalicIcon />
           </ToolbarButton>
           <span className={styles.divider} />
-          <ToolbarButton id='quote' onClick={() => handleFormat('quote')} tooltip='quote'>
+          <ToolbarButton id='blockquote' onClick={() => handleFormat('blockquote')} tooltip='blockquote'>
             <QuoteIcon />
           </ToolbarButton>
           <ToolbarButton id='inlineCode' onClick={() => handleFormat('code')} tooltip='inline code'>

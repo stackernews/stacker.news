@@ -206,7 +206,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           />
         </div>
         <ActionTooltip notForm overlayText={showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
-          <span className={classNames(styles.toolbarItem, showFormattingToolbar && styles.active)} onClick={() => setShowFormattingToolbar(!showFormattingToolbar)}>
+          <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, showFormattingToolbar && styles.active)} onClick={() => setShowFormattingToolbar(!showFormattingToolbar)}>
             <FontStyleIcon />
           </span>
         </ActionTooltip>

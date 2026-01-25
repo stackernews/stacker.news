@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef, useEffect } from 'react'
 import { InputGroup, Nav } from 'react-bootstrap'
 import classNames from 'classnames'
 import styles from '@/styles/wallet.module.css'
@@ -7,14 +7,19 @@ import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components
 import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
 import Info from '@/components/info'
-import { useFormState, useMaxSteps, useNext, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, isWallet, protocolDisplayName, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
+import { useFormState, useNext, useStep, useStepIndex } from '@/components/multi-step-form'
+import { isTemplate, protocolDisplayName, protocolFields, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
+import ArrowUpRight from '@/svgs/arrow-right-up-line.svg'
+import ArrowDownLeft from '@/svgs/arrow-left-down-line.svg'
+import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
 import { useFormikContext } from 'formik'
-import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm } from './hooks'
+import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm, useSaveWallet, useSaveCurrentForm, hasProtocolConfig } from './hooks'
 import { BackButton, SkipButton } from './button'
+import { useToast } from '@/components/toast'
+import { useRouter } from 'next/router'
 
 export function WalletMultiStepForm ({ wallet }) {
   const initial = useMemo(() => wallet.protocols
@@ -31,7 +36,8 @@ export function WalletMultiStepForm ({ wallet }) {
   const steps = useMemo(() =>
     [
       support.send && Step.SEND,
-      support.receive && Step.RECEIVE
+      support.receive && Step.RECEIVE,
+      Step.CONFIRM
     ].filter(Boolean),
   [support])
 
@@ -46,7 +52,7 @@ export function WalletMultiStepForm ({ wallet }) {
           {steps.map(step => {
             // WalletForm is aware of the current step via hooks
             // and can thus render a different form for send vs. receive
-            if (step === Step.SEND) return <WalletForm key={step} />
+            if (step === Step.CONFIRM) return <WalletConfirmStep key={step} />
             return <WalletForm key={step} />
           })}
         </WalletMultiStepFormContextProvider>
@@ -67,21 +73,48 @@ function WalletForm () {
 function WalletProtocolSelector () {
   const protocols = useWalletProtocols()
   const [protocol, selectProtocol] = useProtocol()
+  const [saveCurrentForm] = useSaveCurrentForm()
+  const step = useStep()
+  const isSend = step === Step.SEND
+
+  // don't show selector if there's only one protocol option
+  if (protocols.length <= 1) return null
+
+  const handleTabClick = useCallback(async (p) => {
+    // don't do anything if clicking the already selected protocol
+    if (p.name === protocol?.name) return
+
+    // if there's a current form, save/validate it first
+    if (saveCurrentForm) {
+      try {
+        await saveCurrentForm()
+      } catch (err) {
+        // validation failed, don't switch tabs
+        return
+      }
+    }
+    selectProtocol(p)
+  }, [protocol, saveCurrentForm, selectProtocol])
 
   return (
-    <Nav className={classNames(navStyles.nav, 'mt-0')} activeKey={protocol?.name}>
-      {
-        protocols.map(p => {
-          return (
-            <Nav.Item key={p.id} onClick={() => selectProtocol(p)}>
-              <Nav.Link eventKey={p.name}>
-                {protocolDisplayName(p)}
-              </Nav.Link>
-            </Nav.Item>
-          )
-        })
-      }
-    </Nav>
+    <div className={styles.protocolSelector}>
+      <div className={styles.protocolSelectorHeader}>
+        {isSend ? 'Send protocol' : 'Receive protocol'}
+      </div>
+      <Nav className={classNames(navStyles.nav, 'mt-0')} activeKey={protocol?.name}>
+        {
+          protocols.map(p => {
+            return (
+              <Nav.Item key={p.id} onClick={() => handleTabClick(p)}>
+                <Nav.Link eventKey={p.name}>
+                  {protocolDisplayName(p)}
+                </Nav.Link>
+              </Nav.Item>
+            )
+          })
+        }
+      </Nav>
+    </div>
   )
 }
 
@@ -94,8 +127,8 @@ function WalletProtocolForm () {
   const logger = useWalletLogger(protocol)
   const [{ fields, initial, schema }, setFormState] = useProtocolForm(protocol)
 
-  // create a copy of values to avoid mutating the original
-  const onSubmit = useCallback(async ({ ...values }) => {
+  // validate and save form values (used by both submit and tab switch)
+  const validateAndSave = useCallback(async (values) => {
     const lud16Domain = walletLud16Domain(wallet.name)
     if (values.address && lud16Domain) {
       values.address = `${values.address}@${lud16Domain}`
@@ -108,26 +141,32 @@ function WalletProtocolForm () {
     }
 
     if (values.enabled) {
-      try {
-        if (protocol.send) {
-          logger.info(`testing ${name} send ...`)
-          const additionalValues = await testSendPayment(values)
-          values = { ...values, ...additionalValues }
-          logger.ok(`${name} send ok`)
-        } else {
-          logger.info(`testing ${name} receive ...`)
-          await testCreateInvoice(values)
-          logger.ok(`${name} receive ok`)
-        }
-      } catch (err) {
-        logger.error(err.message)
-        throw err
+      if (protocol.send) {
+        logger.info(`testing ${name} send ...`)
+        const additionalValues = await testSendPayment(values)
+        values = { ...values, ...additionalValues }
+        logger.ok(`${name} send ok`)
+      } else {
+        logger.info(`testing ${name} receive ...`)
+        await testCreateInvoice(values)
+        logger.ok(`${name} receive ok`)
       }
     }
 
     setFormState(values)
-    next()
-  }, [protocol, wallet, setFormState, testSendPayment, logger, next])
+    return values
+  }, [protocol, wallet, setFormState, testSendPayment, testCreateInvoice, logger])
+
+  // form submit handler - validates, saves, and navigates to next step
+  const onSubmit = useCallback(async ({ ...values }) => {
+    try {
+      await validateAndSave(values)
+      next()
+    } catch (err) {
+      logger.error(err.message)
+      throw err
+    }
+  }, [validateAndSave, next, logger])
 
   return (
     <>
@@ -138,6 +177,12 @@ function WalletProtocolForm () {
         schema={schema}
         onSubmit={onSubmit}
       >
+        <FormTabSwitchHandler validateAndSave={validateAndSave} setFormState={setFormState} />
+        {fields.length === 0 && (
+          <p className='text-muted'>
+            No configuration needed for {protocolDisplayName(protocol)}.
+          </p>
+        )}
         {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
         {!isTemplate(protocol) && <Checkbox name='enabled' label='enabled' />}
         <WalletProtocolFormNavigator />
@@ -147,22 +192,58 @@ function WalletProtocolForm () {
   )
 }
 
+// check if form values have meaningful content worth validating
+function hasFormValues (values) {
+  if (!values) return false
+  if (values.enabled) return true
+  // check if any non-enabled fields have values
+  return Object.entries(values).some(
+    ([key, value]) => key !== 'enabled' && value !== '' && value !== false && value !== undefined && value !== null
+  )
+}
+
+// registers a save function for tab switching (validates before switch)
+function FormTabSwitchHandler ({ validateAndSave, setFormState }) {
+  const { values } = useFormikContext()
+  const [, setSaveCurrentForm] = useSaveCurrentForm()
+  const valuesRef = useRef(values)
+
+  // keep ref updated with latest values
+  useEffect(() => {
+    valuesRef.current = values
+  }, [values])
+
+  // register save function on mount, clear on unmount
+  useEffect(() => {
+    // create a save function that uses current form values
+    const saveFunction = async () => {
+      const currentValues = { ...valuesRef.current }
+      // skip validation for empty forms, just save the state
+      if (!hasFormValues(currentValues)) {
+        setFormState(currentValues)
+        return
+      }
+      await validateAndSave(currentValues)
+    }
+    setSaveCurrentForm(() => saveFunction)
+
+    return () => {
+      setSaveCurrentForm(null)
+    }
+  }, [validateAndSave, setFormState, setSaveCurrentForm])
+
+  return null
+}
+
 function WalletProtocolFormNavigator () {
-  const wallet = useWallet()
   const stepIndex = useStepIndex()
-  const maxSteps = useMaxSteps()
-  const [formState] = useFormState()
-
-  // was something already configured or was something configured just now?
-  const configExists = (isWallet(wallet) && wallet.protocols.length > 0) || Object.keys(formState).length > 0
-
-  // don't allow going to settings as last step with nothing configured
-  const hideSkip = stepIndex === maxSteps - 1 && !configExists
 
   return (
     <div className='d-flex justify-content-end align-items-center'>
-      {stepIndex === 0 ? <CancelButton>cancel</CancelButton> : <BackButton />}
-      {!hideSkip ? <SkipButton /> : <div className='ms-auto' />}
+      <div className='me-auto'>
+        {stepIndex === 0 ? <CancelButton>cancel</CancelButton> : <BackButton />}
+      </div>
+      <SkipButton />
       <SubmitButton variant='primary' className='ps-3 pe-2 d-flex align-items-center'>
         next
         <ArrowRight width={24} height={24} />
@@ -238,4 +319,138 @@ function WalletProtocolFormField ({ type, ...props }) {
     default:
       return null
   }
+}
+
+function WalletConfirmStep () {
+  const [formState] = useFormState()
+  const saveWallet = useSaveWallet()
+  const toaster = useToast()
+  const router = useRouter()
+
+  const onSubmit = useCallback(async () => {
+    try {
+      await saveWallet()
+      toaster.success('wallet saved')
+      router.push('/wallets')
+    } catch (err) {
+      console.error(err)
+      toaster.danger('failed to save wallet')
+    }
+  }, [saveWallet, toaster, router])
+
+  // group configured protocols by type (send vs receive), filtering out empty ones
+  const sendProtocols = Object.values(formState).filter(p => p?.send && hasProtocolConfig(p))
+  const receiveProtocols = Object.values(formState).filter(p => p && !p.send && hasProtocolConfig(p))
+
+  const hasConfig = sendProtocols.length > 0 || receiveProtocols.length > 0
+
+  return (
+    <div className={styles.confirmStep}>
+      {!hasConfig
+        ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyStateIcon}>?</div>
+            <p>No protocols configured</p>
+            <small className='text-muted'>Go back to configure send or receive protocols</small>
+          </div>
+          )
+        : (
+          <div className={styles.reviewSections}>
+            {sendProtocols.length > 0 && (
+              <div className={styles.reviewSection}>
+                <div className={styles.sectionHeader}>
+                  <div className={classNames(styles.sectionIcon, styles.sendIcon)}>
+                    <ArrowUpRight width={16} height={16} />
+                  </div>
+                  <span>Send</span>
+                </div>
+                <div className={styles.protocolList}>
+                  {sendProtocols.map(protocol => (
+                    <ProtocolReviewCard key={protocol.id || protocol.name} protocol={protocol} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {receiveProtocols.length > 0 && (
+              <div className={styles.reviewSection}>
+                <div className={styles.sectionHeader}>
+                  <div className={classNames(styles.sectionIcon, styles.receiveIcon)}>
+                    <ArrowDownLeft width={16} height={16} />
+                  </div>
+                  <span>Receive</span>
+                </div>
+                <div className={styles.protocolList}>
+                  {receiveProtocols.map(protocol => (
+                    <ProtocolReviewCard key={protocol.id || protocol.name} protocol={protocol} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          )}
+      <div className='d-flex justify-content-end align-items-center mt-4'>
+        <div className='me-auto'>
+          <BackButton />
+        </div>
+        <button
+          type='button'
+          className='btn btn-primary d-flex align-items-center'
+          onClick={onSubmit}
+          disabled={!hasConfig}
+        >
+          <CheckCircle width={16} height={16} className='me-2' />
+          save wallet
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ProtocolReviewCard ({ protocol }) {
+  const displayName = protocolDisplayName(protocol)
+  const isEnabled = protocol.enabled
+  // only show fields that are defined in the protocol schema (not internal values)
+  const fields = protocolFields(protocol)
+  const fieldNames = new Set(fields.map(f => f.name))
+  const configEntries = Object.entries(protocol.config || {})
+    .filter(([key, value]) => value && fieldNames.has(key))
+
+  // get field label or fallback to key name
+  const getFieldLabel = (key) => {
+    const field = fields.find(f => f.name === key)
+    return field?.label || key
+  }
+
+  // mask sensitive values
+  const maskValue = (key, value) => {
+    const field = fields.find(f => f.name === key)
+    if (field?.encrypt) {
+      return '••••••••'
+    }
+    if (typeof value === 'string' && value.length > 40) {
+      return `${value.slice(0, 20)}...${value.slice(-8)}`
+    }
+    return String(value)
+  }
+
+  return (
+    <div className={classNames(styles.reviewCard, !isEnabled && styles.reviewCardDisabled)}>
+      <div className={styles.reviewCardHeader}>
+        <span className={styles.protocolName}>{displayName}</span>
+        {isEnabled
+          ? <CheckCircle width={14} height={14} className={styles.checkIcon} />
+          : <span className={styles.disabledBadge}>disabled</span>}
+      </div>
+      {configEntries.length > 0 && (
+        <div className={styles.configList}>
+          {configEntries.map(([key, value]) => (
+            <div key={key} className={styles.configItem}>
+              <span className={styles.configKey}>{getFieldLabel(key)}</span>
+              <span className={styles.configValue}>{maskValue(key, value)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }

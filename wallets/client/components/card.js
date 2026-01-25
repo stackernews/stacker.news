@@ -47,7 +47,7 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
               <WalletLink wallet={wallet} className='flex-grow-1 justify-content-center d-flex align-items-center text-reset'>
                 <Gear width={14} height={14} className='me-2' />modify
               </WalletLink>
-              <div className='text-center flex-shrink-1 border-start ps-3 d-flex align-items-center' onClick={() => showModal(onClose => <WalletDeleteObstacle wallet={wallet} onClose={onClose} onSuccess={() => router.push('/wallets')} />)}><TrashIcon width={18} height={18} /></div>
+              <div className='pointer text-center flex-shrink-1 border-start ps-3 d-flex align-items-center' onClick={() => showModal(onClose => <WalletDeleteObstacle wallet={wallet} onClose={onClose} onSuccess={() => router.push('/wallets')} />)}><TrashIcon width={18} height={18} /></div>
             </div>
             )
           : (

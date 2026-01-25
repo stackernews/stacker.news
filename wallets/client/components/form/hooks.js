@@ -7,7 +7,7 @@ import { parseNwcUrl } from '@/wallets/lib/validate'
 export const Step = {
   SEND: 'send',
   RECEIVE: 'receive',
-  SETTINGS: 'settings'
+  CONFIRM: 'confirm'
 }
 
 const WalletMultiStepFormContext = createContext()
@@ -15,7 +15,12 @@ const WalletMultiStepFormContext = createContext()
 export function WalletMultiStepFormContextProvider ({ wallet, initial, steps, children }) {
   // save selected protocol, but useProtocol will always return the first protocol if no protocol is selected
   const [protocol, setProtocol] = useState(null)
-  const value = useMemo(() => ({ wallet, protocol, setProtocol }), [wallet, protocol, setProtocol])
+  // ref to hold the current form's save function (for validating before tab switch)
+  const [saveCurrentForm, setSaveCurrentForm] = useState(null)
+
+  const value = useMemo(() => ({
+    wallet, protocol, setProtocol, saveCurrentForm, setSaveCurrentForm
+  }), [wallet, protocol, setProtocol, saveCurrentForm, setSaveCurrentForm])
   return (
     <WalletMultiStepFormContext.Provider value={value}>
       <MultiStepForm initial={initial} steps={steps}>
@@ -23,6 +28,11 @@ export function WalletMultiStepFormContextProvider ({ wallet, initial, steps, ch
       </MultiStepForm>
     </WalletMultiStepFormContext.Provider>
   )
+}
+
+export function useSaveCurrentForm () {
+  const { saveCurrentForm, setSaveCurrentForm } = useContext(WalletMultiStepFormContext)
+  return [saveCurrentForm, setSaveCurrentForm]
 }
 
 export function useWallet () {
@@ -129,6 +139,18 @@ export function useProtocolForm (protocol) {
   return useMemo(() => [{ fields, initial, schema }, setFormState], [fields, initial, schema, setFormState])
 }
 
+// check if a protocol has meaningful configuration
+export function hasProtocolConfig (protocol) {
+  if (!protocol) return false
+  if (protocol.enabled) return true
+  const config = protocol.config || {}
+  const configKeys = Object.keys(config)
+  // protocols with no fields (like WebLN) are considered configured if they exist
+  if (configKeys.length === 0) return true
+  // for protocols with fields, check if any have values
+  return Object.values(config).some(v => v !== '' && v !== false && v !== undefined && v !== null)
+}
+
 export function useSaveWallet () {
   const wallet = useWallet()
   const [formState] = useFormState()
@@ -136,7 +158,9 @@ export function useSaveWallet () {
 
   const save = useCallback(async () => {
     let walletId = isWallet(wallet) ? wallet.id : undefined
-    for (const protocol of Object.values(formState)) {
+    // filter out empty protocols before saving
+    const protocolsToSave = Object.values(formState).filter(hasProtocolConfig)
+    for (const protocol of protocolsToSave) {
       const { id } = await upsert(
         {
           ...wallet,

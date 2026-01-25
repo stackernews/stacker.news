@@ -195,7 +195,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
           <>
             <Button
               variant='nostr'
-              className='w-100 line-height-md'
+              className='line-height-md'
               type='submit'
               onClick={async () => {
                 try {

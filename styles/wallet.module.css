@@ -43,6 +43,25 @@
 
 .indicator.drag {
   background-color: transparent !important;
+  opacity: 0.35;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  cursor: grab;
+}
+
+.card:hover .indicator.drag {
+  opacity: 0.7;
+}
+
+.card:hover .indicator.drag:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* On touch devices, show drag handle more prominently since no hover */
+@media (hover: none) {
+  .indicator.drag {
+    opacity: 0.6;
+  }
 }
 
 .indicator.success {

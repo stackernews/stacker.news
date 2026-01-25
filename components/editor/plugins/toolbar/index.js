@@ -9,10 +9,6 @@ import { useToolbarState } from '@/components/editor/contexts/toolbar'
 import { useEffect, useRef, useState, forwardRef, useCallback } from 'react'
 import BoldIcon from '@/svgs/editor/toolbar/inline/bold.svg'
 import ItalicIcon from '@/svgs/editor/toolbar/inline/italic.svg'
-import {
-  MD_INSERT_BLOCK_COMMAND,
-  MD_FORMAT_COMMAND
-} from '@/lib/lexical/exts/md-commands'
 import LinkIcon from '@/svgs/editor/toolbar/inline/link.svg'
 import QuoteIcon from '@/svgs/editor/toolbar/block/quote-text.svg'
 import CodeIcon from '@/svgs/editor/toolbar/inline/code.svg'
@@ -35,16 +31,19 @@ import MoreIcon from '@/svgs/editor/toolbar/more-line.svg'
 import FontStyleIcon from '@/svgs/editor/toolbar/font-style.svg'
 import ImageIcon from '@/svgs/image-fill.svg'
 import { useIsClient } from '@/components/use-client'
+import { SN_FORMAT_BLOCK_COMMAND } from '@/lib/lexical/commands/formatting/blocks'
+import { SN_FORMAT_COMMAND } from '@/lib/lexical/commands/formatting/format'
 
 const BLOCK_OPTIONS = [
-  { id: 'h1', name: 'heading 1', icon: <H1Icon />, type: 'heading', payload: 1 },
-  { id: 'h2', name: 'heading 2', icon: <H2Icon />, type: 'heading', payload: 2 },
-  { id: 'h3', name: 'heading 3', icon: <H3Icon />, type: 'heading', payload: 3 },
-  { id: 'numberedList', name: 'numbered list', icon: <NumberedListIcon />, type: 'list', payload: 'number' },
-  { id: 'bulletList', name: 'bullet list', icon: <BulletListIcon />, type: 'list', payload: 'bullet' },
-  { id: 'check', name: 'check list', icon: <CheckListIcon />, type: 'list', payload: 'check' },
-  { id: 'codeblock', name: 'code block', icon: <CodeBlockIcon />, type: 'codeblock', payload: 'text' },
-  { id: 'externalImage', name: 'external image', icon: <ImageIcon />, type: 'externalImage' }
+  { id: 'paragraph', name: 'paragraph', icon: <BlocksIcon />, block: 'paragraph' },
+  { id: 'h1', name: 'heading 1', icon: <H1Icon />, block: 'h1' },
+  { id: 'h2', name: 'heading 2', icon: <H2Icon />, block: 'h2' },
+  { id: 'h3', name: 'heading 3', icon: <H3Icon />, block: 'h3' },
+  { id: 'numberedList', name: 'numbered list', icon: <NumberedListIcon />, block: 'number' },
+  { id: 'bulletList', name: 'bullet list', icon: <BulletListIcon />, block: 'bullet' },
+  { id: 'check', name: 'check list', icon: <CheckListIcon />, block: 'check' },
+  { id: 'codeblock', name: 'code block', icon: <CodeBlockIcon />, block: 'code' },
+  { id: 'externalImage', name: 'external image', icon: <ImageIcon />, block: 'externalImage' }
 ]
 
 const FORMAT_OPTIONS = [
@@ -142,8 +141,8 @@ export function ToolbarPlugin ({ name, topLevel }) {
   const [showFormattingToolbar, setShowFormattingToolbar] = useState(topLevel)
   const [hasOverflow, setHasOverflow] = useState(false)
 
-  const handleFormat = useCallback((type) => editor.dispatchCommand(MD_FORMAT_COMMAND, type), [editor])
-  const handleInsertBlock = useCallback((type, payload) => editor.dispatchCommand(MD_INSERT_BLOCK_COMMAND, { type, payload }), [editor])
+  const handleFormat = useCallback((type) => editor.dispatchCommand(SN_FORMAT_COMMAND, type), [editor])
+  const handleFormatBlock = useCallback((block) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, block), [editor])
 
   // overflow detection for mobile devices
   useEffect(() => {
@@ -178,7 +177,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
             icon={<BlocksIcon />}
             tooltip='blocks'
             options={BLOCK_OPTIONS}
-            onAction={({ type, payload }) => handleInsertBlock(type, payload)}
+            onAction={({ block }) => handleFormatBlock(block)}
           />
           <ToolbarButton id='bold' onClick={() => handleFormat('bold')} tooltip='bold'>
             <BoldIcon />
@@ -187,7 +186,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
             <ItalicIcon />
           </ToolbarButton>
           <span className={styles.divider} />
-          <ToolbarButton id='blockquote' onClick={() => handleFormat('blockquote')} tooltip='blockquote'>
+          <ToolbarButton id='blockquote' onClick={() => handleFormatBlock('quote')} tooltip='blockquote'>
             <QuoteIcon />
           </ToolbarButton>
           <ToolbarButton id='inlineCode' onClick={() => handleFormat('code')} tooltip='inline code'>

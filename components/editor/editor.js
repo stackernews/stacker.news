@@ -28,6 +28,7 @@ import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey
 import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softkey-emptyguard'
 import { MarkdownTextExtension } from '@/lib/lexical/exts/markdown'
 import AppendValuePlugin from '@/components/editor/plugins/core/append-value'
+import TransformerBridgePlugin from '@/components/editor/plugins/core/transformer-bridge'
 
 /**
  * main lexical editor component with formik integration
@@ -122,6 +123,7 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       <MaxLengthPlugin lengthOptions={lengthOptions} />
       <SoftkeyUnborkerPlugin />
       <SoftkeyEmptyGuardPlugin />
+      <TransformerBridgePlugin />
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

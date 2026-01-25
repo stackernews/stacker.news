@@ -235,7 +235,6 @@ services:
       - '-server=1'
       - '-regtest=1'
       - '-rpcauth=${RPC_USER}:${RPC_AUTH}'
-      - '-debug=1'
       - '-zmqpubrawblock=tcp://0.0.0.0:${ZMQ_BLOCK_PORT}'
       - '-zmqpubrawtx=tcp://0.0.0.0:${ZMQ_TX_PORT}'
       - '-zmqpubhashblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}'

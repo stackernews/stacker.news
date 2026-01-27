@@ -243,7 +243,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
   )
 }
 
-export function EmailLinkForm ({ callbackUrl }) {
+function EmailLinkForm ({ callbackUrl }) {
   const [linkUnverifiedEmail] = useMutation(
     gql`
       mutation linkUnverifiedEmail($email: String!) {

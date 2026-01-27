@@ -167,7 +167,7 @@ export function useSaveWallet () {
           id: walletId,
           __typename: walletId ? 'Wallet' : 'WalletTemplate'
         },
-        protocol, { ...protocol.config, enabled: protocol.enabled }
+        protocol, { ...protocol.config, enabled: protocol.enabled ?? false }
       )
       walletId ??= id
     }

@@ -10,7 +10,7 @@ import Info from '@/components/info'
 import { useFormState, useNext, useStep, useStepIndex } from '@/components/multi-step-form'
 import { isTemplate, protocolDisplayName, protocolFields, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
-import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport } from '@/wallets/client/hooks'
+import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport, useSingleFlight } from '@/wallets/client/hooks'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowUpRight from '@/svgs/arrow-right-up-line.svg'
 import ArrowDownLeft from '@/svgs/arrow-left-down-line.svg'
@@ -329,7 +329,7 @@ function WalletConfirmStep () {
   const toaster = useToast()
   const router = useRouter()
 
-  const onSubmit = useCallback(async () => {
+  const onSaveWalletSubmit = useCallback(async () => {
     try {
       await saveWallet()
       toaster.success('wallet saved')
@@ -339,6 +339,8 @@ function WalletConfirmStep () {
       toaster.danger('failed to save wallet')
     }
   }, [saveWallet, toaster, router])
+
+  const [onSubmit, inFlight] = useSingleFlight(onSaveWalletSubmit)
 
   // group configured protocols by type (send vs receive), filtering out empty ones
   const sendProtocols = Object.values(formState).filter(p => p?.send && hasProtocolConfig(p))
@@ -396,12 +398,12 @@ function WalletConfirmStep () {
         </div>
         <button
           type='button'
-          className='btn btn-primary d-flex align-items-center'
+          className={classNames('btn btn-primary d-flex align-items-center', inFlight && 'pulse')}
+          disabled={!hasConfig || inFlight}
           onClick={onSubmit}
-          disabled={!hasConfig}
         >
           <CheckCircle width={16} height={16} className='me-2' />
-          save wallet
+          {inFlight ? 'saving wallet...' : 'save wallet'}
         </button>
       </div>
     </div>

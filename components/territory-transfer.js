@@ -1,7 +1,8 @@
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useShowModal } from './modal'
+import { ObstacleButtons } from './obstacle'
 import { useToast } from './toast'
-import { Button, Dropdown, InputGroup } from 'react-bootstrap'
+import { Dropdown, InputGroup } from 'react-bootstrap'
 import { Form, InputUserSuggest, SubmitButton } from './form'
 import { territoryTransferSchema } from '@/lib/validate'
 import { useCallback } from 'react'
@@ -23,33 +24,26 @@ function TransferObstacle ({ sub, onClose, userName }) {
     `
   )
 
+  const handleConfirm = async () => {
+    try {
+      await transfer({ variables: { subName: sub.name, userName } })
+      onClose()
+      toaster.success('transfer successful')
+    } catch (err) {
+      console.error(err)
+      toaster.danger('failed to transfer')
+    }
+  }
+
   return (
     <div className='text-center'>
-      Do you really want to transfer your territory
+      <p>Do you really want to transfer your territory</p>
       <div>
         <Link href={`/~${sub.name}`}>~{sub.name}</Link>
         {' '}to{' '}
         <Link href={`/${userName}`}>@{userName}</Link>?
       </div>
-      <div className='d-flex justify-center align-items-center mt-3 mx-auto'>
-        <Button className='d-flex ms-auto mx-3' variant='danger' onClick={onClose}>cancel</Button>
-        <Button
-          className='d-flex me-auto mx-3' variant='success'
-          onClick={
-            async () => {
-              try {
-                await transfer({ variables: { subName: sub.name, userName } })
-                onClose()
-                toaster.success('transfer successful')
-              } catch (err) {
-                console.error(err)
-                toaster.danger('failed to transfer')
-              }
-            }
-          }
-        >confirm
-        </Button>
-      </div>
+      <ObstacleButtons onClose={onClose} onConfirm={handleConfirm} confirmText='confirm' confirmVariant='success' />
     </div>
   )
 }
@@ -62,7 +56,7 @@ function TerritoryTransferForm ({ sub, onClose }) {
 
   const onSubmit = useCallback(async (values) => {
     showModal(onClose => <TransferObstacle sub={sub} onClose={onClose} {...values} />)
-  }, [])
+  }, [showModal, sub])
 
   return (
     <Form

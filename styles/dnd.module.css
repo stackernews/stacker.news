@@ -1,18 +1,35 @@
 .draggable {
   cursor: grab;
-  transition: all 0.2s ease-out;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+              opacity 0.2s ease,
+              box-shadow 0.2s ease,
+              outline 0.15s ease;
   position: relative;
 }
 
 .dragging {
   cursor: grabbing;
-  opacity: 0.3;
+  opacity: 0.75;
+  transform: scale(1.05) rotate(1.5deg);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2),
+              0 4px 10px rgba(0, 0, 0, 0.15);
   z-index: 1000;
 }
 
 .dragOver {
-  transform: scale(1.03);
-  box-shadow: 0 0 10px var(--bs-info);
+  transform: scale(1.02);
+  outline: 2px dashed var(--bs-primary);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 4px rgba(250, 218, 94, 0.15);
+}
+
+.dragOver::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(250, 218, 94, 0.08);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {
@@ -27,5 +44,14 @@
 
   .dragging {
     touch-action: none;
+    /* Simpler transform on mobile - no rotation since finger covers card */
+    transform: scale(1.03);
+    /* Lighter shadow on mobile */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .dragOver {
+    /* Smaller outline offset to stay within viewport */
+    outline-offset: 2px;
   }
 }

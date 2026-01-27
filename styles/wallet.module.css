@@ -43,24 +43,43 @@
 
 .indicator.drag {
   background-color: transparent !important;
+  opacity: 0.35;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  cursor: grab;
+}
+
+.card:hover .indicator.drag {
+  opacity: 0.7;
+}
+
+.card:hover .indicator.drag:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* On touch devices, show drag handle more prominently since no hover */
+@media (hover: none) {
+  .indicator.drag {
+    opacity: 0.6;
+  }
 }
 
 .indicator.success {
-  color: var(--bs-green) !important;
-  background-color: var(--bs-green) !important;
-  border: 1px solid var(--bs-success);
+  color: #fff !important;
+  background-color: #28a745 !important;
+  border: 1px solid #28a745;
 }
 
 .indicator.error {
-  color: var(--bs-red) !important;
-  background-color: var(--bs-red) !important;
-  border: 1px solid var(--bs-danger);
+  color: #fff !important;
+  background-color: #dc3545 !important;
+  border: 1px solid #dc3545;
 }
 
 .indicator.warning {
-  color: var(--bs-orange) !important;
-  background-color: var(--bs-orange) !important;
-  border: 1px solid var(--bs-secondary);
+  color: #fff !important;
+  background-color: #fd7e14 !important;
+  border: 1px solid #fd7e14;
 }
 
 .indicator.disabled {
@@ -85,12 +104,10 @@
 
 .attach {
   color: var(--bs-body-color) !important;
-  text-align: center;
 }
 
 .attach svg {
   fill: var(--bs-body-color) !important;
-  margin-left: 0.5rem;
 }
 
 .form {
@@ -142,4 +159,155 @@
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   container-type: inline-size;
   margin: 2rem 0;
+}
+
+.protocolSelector {
+  margin-bottom: 1rem;
+}
+
+.protocolSelectorHeader {
+  font-size: 0.8rem;
+  color: var(--theme-grey);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.confirmStep {
+  width: 100%;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--theme-grey);
+}
+
+.emptyStateIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--theme-toolbarHover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--theme-grey);
+}
+
+.reviewSections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.reviewSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--theme-grey);
+}
+
+.sectionIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sectionIcon.sendIcon {
+  background-color: rgba(var(--bs-warning-rgb), 0.15);
+  color: var(--bs-warning);
+}
+
+.sectionIcon.receiveIcon {
+  background-color: rgba(var(--bs-success-rgb), 0.15);
+  color: var(--bs-success);
+}
+
+.protocolList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reviewCard {
+  background-color: var(--theme-toolbarHover);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+}
+
+.reviewCardDisabled {
+  opacity: 0.6;
+}
+
+.reviewCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.protocolName {
+  font-weight: 600;
+  color: var(--bs-body-color);
+}
+
+.checkIcon {
+  color: var(--bs-success);
+}
+
+.disabledBadge {
+  font-size: 0.7rem;
+  color: var(--theme-grey);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.configList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.configItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.configKey {
+  color: var(--theme-grey);
+  flex-shrink: 0;
+}
+
+.configKey::after {
+  content: ':';
+}
+
+.configValue {
+  color: var(--bs-body-color);
+  opacity: 0.8;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.75rem;
+  word-break: break-all;
 }

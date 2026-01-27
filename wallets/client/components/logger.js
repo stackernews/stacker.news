@@ -4,7 +4,6 @@ import { useWalletLogs, useDeleteWalletLogs } from '@/wallets/client/hooks'
 import { useCallback, useEffect, useState, Fragment } from 'react'
 import { timeSince } from '@/lib/time'
 import classNames from 'classnames'
-import { ModalClosedError } from '@/components/modal'
 import { isTemplate } from '@/wallets/lib/util'
 
 // TODO(wallet-v2):
@@ -15,16 +14,8 @@ export function WalletLogs ({ protocol, className, debug }) {
   const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol, debug)
   const deleteLogs = useDeleteWalletLogs(protocol, debug)
 
-  const onDelete = useCallback(async () => {
-    try {
-      await deleteLogs()
-      clearLogs()
-    } catch (err) {
-      if (err instanceof ModalClosedError) {
-        return
-      }
-      console.error('error deleting logs:', err)
-    }
+  const onDelete = useCallback(() => {
+    deleteLogs({ onSuccess: clearLogs })
   }, [deleteLogs, clearLogs])
 
   const embedded = !!protocol

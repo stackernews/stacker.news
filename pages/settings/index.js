@@ -1,15 +1,11 @@
-import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, CopyInput } from '@/components/form'
-import Alert from 'react-bootstrap/Alert'
+import { Checkbox, Form, Input, SubmitButton, Select, VariableInput } from '@/components/form'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import Nav from 'react-bootstrap/Nav'
 import Layout from '@/components/layout'
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import LoginButton from '@/components/login-button'
-import { signIn } from 'next-auth/react'
-import { LightningAuthWithExplainer } from '@/components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '@/fragments/users'
 import { useRouter } from 'next/router'
 import Info from '@/components/info'
@@ -17,16 +13,13 @@ import Link from 'next/link'
 import AccordianItem from '@/components/accordian-item'
 import { bech32 } from 'bech32'
 import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32, DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
-import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '@/lib/validate'
+import { settingsSchema } from '@/lib/validate'
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
-import { authErrorMessage } from '@/components/login'
-import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
-import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { useField } from 'formik'
 import styles from '@/styles/nav.module.css'
 import { AuthBanner } from '@/components/banners'
@@ -37,17 +30,11 @@ function bech32encode (hexString) {
   return bech32.encode('npub', bech32.toWords(Buffer.from(hexString, 'hex')))
 }
 
-// sort to prevent hydration mismatch
-const getProviders = (authMethods) =>
-  Object.keys(authMethods).filter(k => k !== '__typename' && k !== 'apiKey').sort()
-
 // Show alert message if user only has one auth method activated
-// as users are losing access to their accounts
-const hasOnlyOneAuthMethod = (authMethods) => {
-  const activatedAuths = getProviders(authMethods)
-    .filter(provider => !!authMethods[provider])
-
-  return activatedAuths.length === 1
+export const hasOnlyOneAuthMethod = (authMethods) => {
+  const providers = Object.keys(authMethods).filter(k => k !== '__typename' && k !== 'apiKey')
+  const activatedAuths = providers.filter(provider => !!authMethods[provider])
+  return activatedAuths.length <= 1
 }
 
 export function SettingsHeader () {
@@ -67,13 +54,23 @@ export function SettingsHeader () {
           </Link>
         </Nav.Item>
         <Nav.Item>
+          <Link href='/settings/logins' passHref legacyBehavior>
+            <Nav.Link eventKey='logins'>logins</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/settings/wallets' passHref legacyBehavior>
+            <Nav.Link eventKey='wallets'>wallets</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
           <Link href='/settings/subscriptions/stackers' passHref legacyBehavior>
             <Nav.Link eventKey='subscriptions'>subscriptions</Nav.Link>
           </Link>
         </Nav.Item>
         <Nav.Item>
           <Link href='/settings/mutes' passHref legacyBehavior>
-            <Nav.Link eventKey='mutes'>muted stackers</Nav.Link>
+            <Nav.Link eventKey='mutes'>mutes</Nav.Link>
           </Link>
         </Nav.Item>
       </Nav>
@@ -531,7 +528,6 @@ export default function Settings ({ ssrData }) {
             <SubmitButton variant='info' className='ms-auto mt-1 px-4'>save</SubmitButton>
           </div>
         </Form>
-        {settings?.authMethods && <AuthMethods methods={settings.authMethods} apiKeyEnabled={settings.apiKeyEnabled} />}
       </div>
     </Layout>
   )
@@ -566,416 +562,6 @@ const DropBolt11sCheckbox = ({ ssrData, ...props }) => {
       }}
       {...props}
     />
-  )
-}
-
-function QRLinkButton ({ provider, unlink, status }) {
-  const showModal = useShowModal()
-  const text = status ? 'Unlink' : 'Link'
-  const onClick = status
-    ? unlink
-    : () => showModal(onClose =>
-      <div className='d-flex flex-column align-items-center'>
-        <LightningAuthWithExplainer backButton={false} md={12} lg={12} />
-      </div>)
-
-  return (
-    <LoginButton
-      key={provider}
-      className='d-block mt-2' type={provider} text={text} onClick={onClick}
-    />
-  )
-}
-
-function NostrLinkButton ({ unlink, status }) {
-  const showModal = useShowModal()
-  const text = status ? 'Unlink' : 'Link'
-  const onClick = status
-    ? unlink
-    : () => showModal(onClose =>
-      <div className='d-flex flex-column align-items-center'>
-        <NostrAuth text='Link' />
-      </div>)
-
-  return (
-    <LoginButton
-      className='d-block mt-2' type='nostr' text={text} onClick={onClick}
-    />
-  )
-}
-
-function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
-  const router = useRouter()
-  const toaster = useToast()
-
-  return (
-    <div>
-      You are removing your last auth method. It is recommended you link another auth method before removing
-      your last auth method. If you'd like to proceed anyway, type the following below
-      <div className='text-danger fw-bold my-2'>
-        If I logout, even accidentally, I will never be able to access my account again
-      </div>
-      <Form
-        className='mt-3'
-        initial={{
-          warning: ''
-        }}
-        schema={lastAuthRemovalSchema}
-        onSubmit={async () => {
-          try {
-            await unlinkAuth({ variables: { authType: type } })
-            router.push('/settings')
-            onClose()
-            toaster.success('unlinked auth method')
-          } catch (err) {
-            console.error(err)
-            toaster.danger('failed to unlink auth method')
-          }
-        }}
-      >
-        <Input
-          name='warning'
-          required
-        />
-        <SubmitButton className='d-flex ms-auto' variant='danger'>do it</SubmitButton>
-      </Form>
-    </div>
-  )
-}
-
-function AuthMethods ({ methods, apiKeyEnabled }) {
-  const showModal = useShowModal()
-  const router = useRouter()
-  const toaster = useToast()
-  const [err, setErr] = useState(authErrorMessage(router.query.error))
-  const [unlinkAuth] = useMutation(
-    gql`
-      mutation unlinkAuth($authType: String!) {
-        unlinkAuth(authType: $authType) {
-          lightning
-          email
-          twitter
-          github
-          nostr
-        }
-      }`, {
-      update (cache, { data: { unlinkAuth } }) {
-        cache.modify({
-          id: 'ROOT_QUERY',
-          fields: {
-            settings (existing) {
-              return {
-                ...existing,
-                privates: {
-                  ...existing.privates,
-                  authMethods: { ...unlinkAuth }
-                }
-              }
-            }
-          }
-        })
-      }
-    }
-  )
-
-  const providers = getProviders(methods)
-
-  const unlink = async type => {
-    // if there's only one auth method left
-    const links = providers.reduce((t, p) => t + (methods[p] ? 1 : 0), 0)
-    if (links === 1) {
-      showModal(onClose => (<UnlinkObstacle onClose={onClose} type={type} unlinkAuth={unlinkAuth} />))
-    } else {
-      try {
-        await unlinkAuth({ variables: { authType: type } })
-        toaster.success('unlinked auth method')
-      } catch (err) {
-        console.error(err)
-        toaster.danger('failed to unlink auth method')
-      }
-    }
-  }
-
-  return (
-    <>
-      <h4 className='mt-5'>auth</h4>
-      <div className='form-label mt-3'>linked auth methods</div>
-      {err && (
-        <Alert
-          variant='danger' onClose={() => {
-            const { pathname, query: { error, nodata, ...rest } } = router
-            router.replace({
-              pathname,
-              query: { nodata, ...rest }
-            }, { pathname, query: { ...rest } }, { shallow: true })
-            setErr(undefined)
-          }} dismissible
-        >{err}
-        </Alert>
-      )}
-
-      {providers?.map(provider => {
-        if (provider === 'email') {
-          return methods.email
-            ? (
-              <div key={provider} className='mt-2 d-flex align-items-center'>
-                <Button
-                  variant='secondary' onClick={
-                    async () => {
-                      await unlink('email')
-                    }
-                  }
-                >Unlink Email
-                </Button>
-              </div>
-              )
-            : <div key={provider} className='mt-2'><EmailLinkForm callbackUrl='/settings' /></div>
-        } else if (provider === 'lightning') {
-          return (
-            <QRLinkButton
-              key={provider} provider={provider}
-              status={methods[provider]} unlink={async () => await unlink(provider)}
-            />
-          )
-        } else if (provider === 'nostr') {
-          return <NostrLinkButton key='nostr' status={methods[provider]} unlink={async () => await unlink(provider)} />
-        } else {
-          return (
-            <LoginButton
-              className='mt-2 d-block'
-              key={provider}
-              type={provider.toLowerCase()}
-              onClick={async () => {
-                if (methods[provider]) {
-                  await unlink(provider)
-                } else {
-                  signIn(provider)
-                }
-              }}
-              text={methods[provider] ? 'Unlink' : 'Link'}
-            />
-          )
-        }
-      })}
-      <ApiKey apiKey={methods.apiKey} enabled={apiKeyEnabled} />
-    </>
-  )
-}
-
-export function EmailLinkForm ({ callbackUrl }) {
-  const [linkUnverifiedEmail] = useMutation(
-    gql`
-      mutation linkUnverifiedEmail($email: String!) {
-        linkUnverifiedEmail(email: $email)
-      }`
-  )
-
-  return (
-    <Form
-      initial={{
-        email: ''
-      }}
-      schema={emailSchema}
-      onSubmit={async ({ email }) => {
-        // add email to user's account
-        // then call signIn
-        const { data } = await linkUnverifiedEmail({ variables: { email } })
-        if (data.linkUnverifiedEmail) {
-          window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
-          signIn('email', { email, callbackUrl })
-        }
-      }}
-    >
-      <div className='d-flex align-items-center'>
-        <Input
-          name='email'
-          placeholder='email@example.com'
-          required
-          groupClassName='mb-0'
-        />
-        <SubmitButton className='ms-2' variant='secondary'>Link Email</SubmitButton>
-      </div>
-    </Form>
-  )
-}
-
-function ApiKey ({ enabled, apiKey }) {
-  const showModal = useShowModal()
-  const { me } = useMe()
-  const [generateApiKey] = useMutation(
-    gql`
-      mutation generateApiKey($id: ID!) {
-        generateApiKey(id: $id)
-      }`,
-    {
-      update (cache, { data: { generateApiKey } }) {
-        cache.modify({
-          id: 'ROOT_QUERY',
-          fields: {
-            settings (existing) {
-              return {
-                ...existing,
-                privates: {
-                  ...existing.privates,
-                  apiKey: generateApiKey,
-                  authMethods: { ...existing.privates.authMethods, apiKey: true }
-                }
-              }
-            }
-          }
-        })
-      }
-    }
-  )
-  const toaster = useToast()
-
-  const subject = '[API Key Request] <your title here>'
-  const body =
-  encodeURI(`**[API Key Request]**
-
-Hi, I would like to use API keys with the [Stacker News GraphQL API](/api/graphql) for the following reasons:
-
-...
-
-I expect to call the following GraphQL queries or mutations:
-
-... (you can leave empty if unknown)
-
-I estimate that I will call the GraphQL API this many times (rough estimate is fine):
-
-... (you can leave empty if unknown)
-`)
-  const metaLink = encodeURI(`/~meta/post?type=discussion&title=${subject}&text=${body}`)
-  const mailto = `mailto:hello@stacker.news?subject=${subject}&body=${body}`
-  // link to DM with k00b on Telegram
-  const telegramLink = 'https://t.me/k00bideh'
-  // link to DM with ek on SimpleX
-  const simplexLink = 'https://simplex.chat/contact#/?v=1-2&smp=smp%3A%2F%2F6iIcWT_dF2zN_w5xzZEY7HI2Prbh3ldP07YTyDexPjE%3D%40smp10.simplex.im%2FxNnPk9DkTbQJ6NckWom9mi5vheo_VPLm%23%2F%3Fv%3D1-2%26dh%3DMCowBQYDK2VuAyEAnFUiU0M8jS1JY34LxUoPr7mdJlFZwf3pFkjRrhprdQs%253D%26srv%3Drb2pbttocvnbrngnwziclp2f4ckjq65kebafws6g4hy22cdaiv5dwjqd.onion'
-
-  return (
-    <>
-      <div className='form-label mt-3'>api key</div>
-      <div className='mt-2 d-flex align-items-center'>
-        <OverlayTrigger
-          placement='bottom'
-          overlay={!enabled ? <Tooltip>{apiKey ? 'you can have only one API key at a time' : 'request access to API keys in ~meta'}</Tooltip> : <></>}
-          trigger={['hover', 'focus']}
-        >
-          <div>
-            <Button
-              disabled={!enabled}
-              variant={apiKey ? 'danger' : 'secondary'}
-              onClick={async () => {
-                if (apiKey) {
-                  showModal((onClose) => <ApiKeyDeleteObstacle onClose={onClose} />)
-                  return
-                }
-
-                try {
-                  const { data } = await generateApiKey({ variables: { id: me.id } })
-                  const { generateApiKey: apiKey } = data
-                  showModal(() => <ApiKeyModal apiKey={apiKey} />, { keepOpen: true })
-                } catch (err) {
-                  console.error(err)
-                  toaster.danger('error generating api key')
-                }
-              }}
-            >{apiKey ? 'Delete' : 'Generate'} API key
-            </Button>
-          </div>
-        </OverlayTrigger>
-        <Info>
-          <ul>
-            <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
-            <li>you need to add the API key to the <span className='text-monospace'>X-API-Key</span> header of your requests</li>
-            <li>you can currently only generate API keys if we enabled it for your account</li>
-            <li>
-              you can{' '}
-              <Link target='_blank' href={metaLink} rel='noreferrer'>create a post in ~meta</Link> to request access
-              or reach out to us via
-              <ul>
-                <li><Link target='_blank' href={mailto} rel='noreferrer'>email</Link></li>
-                <li><Link target='_blank' href={telegramLink} rel='noreferrer'>Telegram</Link></li>
-                <li><Link target='_blank' href={simplexLink} rel='noreferrer'>SimpleX</Link></li>
-              </ul>
-            </li>
-            <li>please include following information in your request:
-              <ul>
-                <li>your nym on SN</li>
-                <li>what you want to achieve with authenticated API access</li>
-                <li>which GraphQL queries or mutations you expect to call</li>
-                <li>your (rough) estimate how often you will call the GraphQL API</li>
-              </ul>
-            </li>
-          </ul>
-        </Info>
-      </div>
-    </>
-  )
-}
-
-function ApiKeyModal ({ apiKey }) {
-  return (
-    <>
-      <p className='fw-bold'>
-        Make sure to copy your API key now.<br />
-        This is the only time we will show it to you.
-      </p>
-      <CopyInput readOnly noForm placeholder={apiKey} hint={<>use the <span className='text-monospace'>X-API-Key</span> header to include this key in your requests</>} />
-    </>
-  )
-}
-
-function ApiKeyDeleteObstacle ({ onClose }) {
-  const { me } = useMe()
-  const [deleteApiKey] = useMutation(
-    gql`
-      mutation deleteApiKey($id: ID!) {
-        deleteApiKey(id: $id) {
-          id
-        }
-      }`,
-    {
-      update (cache, { data: { deleteApiKey } }) {
-        cache.modify({
-          id: 'ROOT_QUERY',
-          fields: {
-            settings (existing) {
-              return {
-                ...existing,
-                privates: {
-                  ...existing.privates,
-                  authMethods: { ...existing.privates.authMethods, apiKey: false }
-                }
-              }
-            }
-          }
-        })
-      }
-    }
-  )
-  const toaster = useToast()
-
-  return (
-    <div className='m-auto' style={{ maxWidth: 'fit-content' }}>
-      <p className='fw-bold'>
-        Do you really want to delete your API key?
-      </p>
-      <div className='d-flex flex-row justify-content-end'>
-        <Button
-          variant='danger' onClick={async () => {
-            try {
-              await deleteApiKey({ variables: { id: me.id } })
-              onClose()
-            } catch (err) {
-              console.error(err)
-              toaster.danger('error deleting api key')
-            }
-          }}
-        >do it
-        </Button>
-      </div>
-    </div>
   )
 }
 

@@ -76,6 +76,7 @@ function WalletProtocolSelector () {
   const [saveCurrentForm] = useSaveCurrentForm()
   const step = useStep()
   const isSend = step === Step.SEND
+  const logger = useWalletLogger(protocol)
 
   const handleTabClick = useCallback(async (p) => {
     // don't do anything if clicking the already selected protocol
@@ -87,6 +88,7 @@ function WalletProtocolSelector () {
         await saveCurrentForm()
       } catch (err) {
         // validation failed, don't switch tabs
+        logger.error(err.message)
         return
       }
     }

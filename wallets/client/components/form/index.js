@@ -77,9 +77,6 @@ function WalletProtocolSelector () {
   const step = useStep()
   const isSend = step === Step.SEND
 
-  // don't show selector if there's only one protocol option
-  if (protocols.length <= 1) return null
-
   const handleTabClick = useCallback(async (p) => {
     // don't do anything if clicking the already selected protocol
     if (p.name === protocol?.name) return
@@ -95,6 +92,9 @@ function WalletProtocolSelector () {
     }
     selectProtocol(p)
   }, [protocol, saveCurrentForm, selectProtocol])
+
+  // don't show selector if there's only one protocol option
+  if (protocols.length <= 1) return null
 
   return (
     <div className={styles.protocolSelector}>

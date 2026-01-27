@@ -285,9 +285,6 @@ function ApiKey ({ enabled, apiKey }) {
   const { me } = useMe()
   const toaster = useToast()
 
-  // don't show if not enabled and no existing key
-  if (!enabled && !apiKey) return null
-
   const [generateApiKey] = useMutation(
     gql`
       mutation generateApiKey($id: ID!) {
@@ -313,6 +310,9 @@ function ApiKey ({ enabled, apiKey }) {
       }
     }
   )
+
+  // don't show if not enabled and no existing key
+  if (!enabled && !apiKey) return null
 
   const subject = '[API Key Request] <your title here>'
   const body =

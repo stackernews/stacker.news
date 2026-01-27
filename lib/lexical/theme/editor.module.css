@@ -52,6 +52,7 @@
   padding: 8px;
   resize: vertical;
   overflow: auto;
+  max-height: 80svh;
   background-color: transparent;
 }
 
@@ -105,9 +106,10 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
   position: relative;
   top: -4px;
+  transition: opacity 0.1s ease-in-out, visibility 0.1s ease-in-out;
+  overflow: hidden;
 }
 
 .divider {
@@ -132,13 +134,14 @@
   overflow: auto;
   scrollbar-width: none;
   transition: opacity 0.1s ease-in-out, visibility 0.1s ease-in-out;
+  margin-right: 0.25rem;
 }
 
 .toolbarFormatting.hasOverflow {
   mask: linear-gradient(to right, black 0%, black calc(100% - 0.2rem), transparent 100%);
 }
 
-.toolbarFormatting.hidden {
+.toolbarHidden {
   visibility: hidden;
   opacity: 0;
 }
@@ -155,12 +158,6 @@
   opacity: 0.6;
   -webkit-touch-callout: none;
   touch-action: manipulation;
-}
-
-/* spacing between adjacent toolbar items and dropdowns */
-.toolbarItem + .toolbarItem,
-:global(.dropdown):has(.toolbarItem) + :global(.dropdown):has(.toolbarItem) {
-  margin-left: 0.25rem;
 }
 
 .toolbarItem:hover {
@@ -345,8 +342,12 @@
   }
 }
 
+.toolbar :global(.nav-tabs) {
+  flex-wrap: nowrap;
+}
+
 /* editor mode tabs */
-.modeTabs {
+.modeTab {
   --tab-border-color: var(--theme-borderColor);
   --tab-bg: var(--theme-inputBg);
   --tab-shadow: none;
@@ -357,7 +358,7 @@
   position: relative;
 }
 
-.modeTabs:global(.nav-link.active) {
+.modeTab:global(.nav-link.active) {
   border: 1px solid var(--tab-border-color);
   border-bottom: 0;
   background-color: var(--tab-bg);
@@ -366,13 +367,13 @@
 }
 
 /* non-top-level editor tabs (comments, etc.) */
-.editorContainer:not([data-top-level='true']) .modeTabs {
+.editorContainer:not([data-top-level='true']) .modeTab {
   --tab-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
   --tab-bg: var(--theme-forceCommentBg);
 }
 
 /* focus state for tabs */
-.toolbar:has(~ .editor .editorContent:focus-within) .modeTabs {
+.toolbar:has(~ .editor .editorContent:focus-within) .modeTab {
   --tab-border-color: var(--bs-primary);
   --tab-shadow: 0 0 4px var(--bs-primary);
   --tab-clip: inset(-0.2rem -0.2rem -0.1rem -0.2rem);

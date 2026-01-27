@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $getRoot } from 'lexical'
-import { $findTopLevelElement } from '@/lib/lexical/commands/utils'
 import { $formatBlock } from '@/lib/lexical/commands/formatting/blocks'
 import { CodeHighlighterShikiExtension } from '@lexical/code-shiki'
 import useHeadlessBridge from './use-headless-bridge'
@@ -36,21 +35,14 @@ export default function TransformerBridgePlugin () {
       // new markdown to be inserted in the original editor
       let newMarkdown = ''
 
-      console.log('bridgeRef', bridgeRef.current)
-
       // update the bridge editor with single update cycle
       bridgeRef.current.update(() => {
         // make sure we're working with a clean bridge
         $getRoot().clear()
-        console.log('cleared root')
 
-        console.log('markdown', markdown)
         $markdownToLexical(markdown, true)
-        console.log('converted markdown to lexical')
-        console.log('lexical', bridgeRef.current.getEditorState().toJSON())
         $selectAll()
 
-        console.log('selected all')
         const innerSelection = $getSelection()
 
         switch (formatType) {
@@ -59,21 +51,10 @@ export default function TransformerBridgePlugin () {
             break
           case 'block':
             $formatBlock(bridgeRef.current, transformation)
-            console.log('formatted block')
-            break
-          case 'elementFormat':
-            innerSelection.getNodes()?.forEach(node => {
-              const element = $findTopLevelElement(node)
-              if (element && element.setFormat) {
-                element.setFormat(transformation || 'left')
-              }
-            })
             break
         }
 
         newMarkdown = $lexicalToMarkdown()
-        console.log('converted lexical to markdown')
-        console.log('new markdown', newMarkdown)
         // we're done, clear the bridge
         $getRoot().clear()
       })

@@ -2,7 +2,9 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useEffect, useState } from 'react'
 import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_HIGH } from 'lexical'
 import { IS_APPLE } from '@lexical/utils'
-import { MD_FORMAT_COMMAND, MD_INSERT_BLOCK_COMMAND } from '@/lib/lexical/exts/md-commands'
+import { SN_FORMAT_COMMAND } from '@/lib/lexical/commands/formatting/format'
+import { SN_FORMAT_BLOCK_COMMAND } from '@/lib/lexical/commands/formatting/blocks'
+import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import { TOGGLE_PREVIEW_COMMAND } from '@/components/editor/plugins/preview'
 import { SUBMIT_FORMIK_COMMAND } from '@/components/editor/plugins/core/formik'
@@ -10,67 +12,67 @@ import { SUBMIT_FORMIK_COMMAND } from '@/components/editor/plugins/core/formik'
 export const SHORTCUTS = {
   link: {
     key: 'meta+KeyK',
-    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'link')
+    handler: (editor) => editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, 'link')
   },
   bold: {
     key: 'meta+KeyB',
-    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'bold')
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'bold')
   },
   italic: {
     key: 'meta+KeyI',
-    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'italic')
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'italic')
   },
-  blockquote: {
+  quote: {
     key: 'meta+shift+Period',
-    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'blockquote')
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'quote')
   },
   inlineCode: {
     key: 'meta+KeyE',
-    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'code')
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'code')
   },
   superscript: {
     key: 'meta+Period',
-    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'superscript')
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'superscript')
   },
   subscript: {
     key: 'meta+Comma',
-    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'subscript')
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'subscript')
   },
   strikethrough: {
     key: 'meta+shift+KeyX',
-    handler: (editor) => editor.dispatchCommand(MD_FORMAT_COMMAND, 'strikethrough')
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'strikethrough')
   },
   h1: {
     key: 'meta+shift+Digit1',
-    handler: (editor) => editor.dispatchCommand(MD_INSERT_BLOCK_COMMAND, { type: 'heading', payload: 1 })
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'h1')
   },
   h2: {
     key: 'meta+shift+Digit2',
-    handler: (editor) => editor.dispatchCommand(MD_INSERT_BLOCK_COMMAND, { type: 'heading', payload: 2 })
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'h2')
   },
   h3: {
     key: 'meta+shift+Digit3',
-    handler: (editor) => editor.dispatchCommand(MD_INSERT_BLOCK_COMMAND, { type: 'heading', payload: 3 })
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'h3')
   },
   numberedList: {
     key: 'meta+shift+Digit7',
-    handler: (editor) => editor.dispatchCommand(MD_INSERT_BLOCK_COMMAND, { type: 'list', payload: 'number' })
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'number')
   },
   bulletList: {
     key: 'meta+shift+Digit8',
-    handler: (editor) => editor.dispatchCommand(MD_INSERT_BLOCK_COMMAND, { type: 'list', payload: 'bullet' })
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'bullet')
   },
   check: {
     key: 'meta+shift+Digit9',
-    handler: (editor) => editor.dispatchCommand(MD_INSERT_BLOCK_COMMAND, { type: 'list', payload: 'check' })
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'check')
   },
   codeblock: {
     key: 'meta+shift+KeyC',
-    handler: (editor) => editor.dispatchCommand(MD_INSERT_BLOCK_COMMAND, { type: 'codeblock', payload: 'text' })
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'code')
   },
   externalImage: {
     key: 'meta+shift+KeyI',
-    handler: (editor) => editor.dispatchCommand(MD_INSERT_BLOCK_COMMAND, { type: 'externalImage' })
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'externalImage')
   },
   upload: {
     key: 'meta+KeyU',

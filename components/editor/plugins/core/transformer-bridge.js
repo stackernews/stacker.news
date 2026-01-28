@@ -56,7 +56,7 @@ export default function TransformerBridgePlugin () {
               $formatBlock(bridgeRef.current, transformation)
               break
             case 'link':
-              $toggleLink(bridgeRef.current, transformation)
+              $toggleLink(bridgeRef.current)
               break
           }
 

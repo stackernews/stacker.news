@@ -188,7 +188,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
             <ItalicIcon />
           </ToolbarButton>
           <span className={styles.divider} />
-          <ToolbarButton id='blockquote' onClick={() => handleFormatBlock('quote')} tooltip='blockquote'>
+          <ToolbarButton id='quote' onClick={() => handleFormatBlock('quote')} tooltip='quote'>
             <QuoteIcon />
           </ToolbarButton>
           <ToolbarButton id='inlineCode' onClick={() => handleFormat('code')} tooltip='inline code'>

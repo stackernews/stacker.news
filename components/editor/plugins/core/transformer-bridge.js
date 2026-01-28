@@ -68,6 +68,9 @@ export default function TransformerBridgePlugin () {
         $getRoot().clear()
       })
 
+      // if we don't have new markdown, bail
+      if (!newMarkdown) return false
+
       // insert the new markdown into the original editor
       $insertMarkdown(newMarkdown)
       return true

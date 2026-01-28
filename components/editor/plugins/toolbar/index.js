@@ -33,6 +33,7 @@ import ImageIcon from '@/svgs/image-fill.svg'
 import { useIsClient } from '@/components/use-client'
 import { SN_FORMAT_BLOCK_COMMAND } from '@/lib/lexical/commands/formatting/blocks'
 import { SN_FORMAT_COMMAND } from '@/lib/lexical/commands/formatting/format'
+import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
 
 const BLOCK_OPTIONS = [
   { id: 'paragraph', name: 'paragraph', icon: <BlocksIcon />, block: 'paragraph' },
@@ -143,6 +144,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
 
   const handleFormat = useCallback((type) => editor.dispatchCommand(SN_FORMAT_COMMAND, type), [editor])
   const handleFormatBlock = useCallback((block) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, block), [editor])
+  const handleToggleLink = useCallback(() => editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND), [editor])
 
   // overflow detection for mobile devices
   useEffect(() => {
@@ -192,7 +194,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           <ToolbarButton id='inlineCode' onClick={() => handleFormat('code')} tooltip='inline code'>
             <CodeIcon />
           </ToolbarButton>
-          <ToolbarButton id='link' onClick={() => handleFormat('link')} tooltip='link'>
+          <ToolbarButton id='link' onClick={() => handleToggleLink()} tooltip='link'>
             <LinkIcon />
           </ToolbarButton>
           <span className={styles.divider} />

@@ -31,38 +31,44 @@ export default function TransformerBridgePlugin () {
 
       // get the markdown from the selection
       const markdown = selection.getTextContent()
-
       // new markdown to be inserted in the original editor
       let newMarkdown = ''
 
-      // update the bridge editor with single update cycle
+      // bridge editor update cycle
       bridgeRef.current.update(() => {
         // make sure we're working with a clean bridge
         $getRoot().clear()
 
+        // transform markdown to lexical nodes
         $markdownToLexical(markdown, true)
-        $selectAll()
 
+        // bridge editor selection
+        $selectAll()
         const innerSelection = $getSelection()
 
-        switch (formatType) {
-          case 'format':
-            innerSelection.formatText(transformation)
-            break
-          case 'block':
-            $formatBlock(bridgeRef.current, transformation)
-            break
-          case 'link':
-            $toggleLink(bridgeRef.current, transformation)
-            break
+        // if we have a selection, apply the transformation
+        if (innerSelection) {
+          switch (formatType) {
+            case 'format':
+              innerSelection.formatText(transformation)
+              break
+            case 'block':
+              $formatBlock(bridgeRef.current, transformation)
+              break
+            case 'link':
+              $toggleLink(bridgeRef.current, transformation)
+              break
+          }
+
+          // get the new markdown from the bridge editor
+          newMarkdown = $lexicalToMarkdown()
         }
 
-        newMarkdown = $lexicalToMarkdown()
         // we're done, clear the bridge
         $getRoot().clear()
       })
 
-      // insert the new markdown in the original editor
+      // insert the new markdown into the original editor
       $insertMarkdown(newMarkdown)
       return true
     }, COMMAND_PRIORITY_EDITOR)

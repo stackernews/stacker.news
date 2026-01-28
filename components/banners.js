@@ -1,6 +1,7 @@
 import Alert from 'react-bootstrap/Alert'
 import styles from './banners.module.css'
 import { useMe } from '@/components/me'
+import Link from 'next/link'
 
 export function MadnessBanner ({ handleClose }) {
   const { me } = useMe()
@@ -37,7 +38,7 @@ export function MadnessBanner ({ handleClose }) {
 export function AuthBanner () {
   return (
     <Alert className={`${styles.banner} mt-0`} key='info' variant='danger'>
-      Please add a second auth method to avoid losing access to your account.
+      Please add more than one <Link className='text-reset fw-bold text-decoration-underline' href='/settings/logins'>login method</Link> to avoid losing access to your account.
     </Alert>
   )
 }

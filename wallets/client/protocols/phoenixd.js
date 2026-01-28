@@ -1,12 +1,10 @@
-import { fetchWithTimeout } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 export const name = 'PHOENIXD'
 
 export async function sendPayment (bolt11, { url, apiKey }, { signal }) {
   // https://phoenix.acinq.co/server/api#pay-bolt11-invoice
-  const path = '/payinvoice'
-
   const headers = new Headers()
   headers.set('Authorization', 'Basic ' + Buffer.from(':' + apiKey).toString('base64'))
   headers.set('Content-type', 'application/x-www-form-urlencoded')
@@ -15,7 +13,8 @@ export async function sendPayment (bolt11, { url, apiKey }, { signal }) {
   body.append('invoice', bolt11)
 
   const method = 'POST'
-  const res = await fetchWithTimeout(url + path, {
+  const res = await snFetch(url, {
+    path: '/payinvoice',
     method,
     headers,
     body,

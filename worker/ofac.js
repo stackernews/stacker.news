@@ -3,6 +3,7 @@ import unzipper from 'unzipper'
 import csvParser from 'csv-parser'
 import stream from 'stream'
 import { SANCTIONED_COUNTRY_CODES } from '@/lib/constants'
+import { snFetch } from '@/lib/fetch'
 
 const IPV4_URL = 'https://ipapi.is/data/geolocationDatabaseIPv4.csv.zip'
 const IPV6_URL = 'https://ipapi.is/data/geolocationDatabaseIPv6.csv.zip'
@@ -52,7 +53,7 @@ export async function ofac ({ models }) {
 }
 
 async function downloadAndUnzipCSV (url, outputFilePath) {
-  const response = await fetch(url)
+  const response = await snFetch(url, { timeout: 60000 })
   if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`)
 
   return new Promise((resolve, reject) => {

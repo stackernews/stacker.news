@@ -1,5 +1,5 @@
 import { string } from 'yup'
-import { fetchWithTimeout } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 // Blink
@@ -106,7 +106,7 @@ export async function getWallet ({ apiKey, currency }, { signal }) {
 
 export async function request ({ apiKey, query, variables = {} }, { signal }) {
   const method = 'POST'
-  const res = await fetchWithTimeout(galoyBlinkUrl, {
+  const res = await snFetch(galoyBlinkUrl, {
     method,
     headers: {
       'Content-Type': 'application/json',

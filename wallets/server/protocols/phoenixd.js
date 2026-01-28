@@ -1,6 +1,5 @@
-import { fetchWithTimeout } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 import { msatsToSats } from '@/lib/format'
-import { getAgent } from '@/lib/proxy'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 export const name = 'PHOENIXD'
@@ -11,8 +10,6 @@ export async function createInvoice (
   { signal }
 ) {
   // https://phoenix.acinq.co/server/api#create-bolt11-invoice
-  const path = '/createinvoice'
-
   const headers = new Headers()
   headers.set('Authorization', 'Basic ' + Buffer.from(':' + apiKey).toString('base64'))
   headers.set('Content-type', 'application/x-www-form-urlencoded')
@@ -22,14 +19,11 @@ export async function createInvoice (
   body.append('amountSat', msatsToSats(msats))
   body.append('expirySeconds', Math.ceil(expiry / 1000))
 
-  const hostname = url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-  const agent = getAgent({ hostname })
-
   const method = 'POST'
-  const res = await fetchWithTimeout(`${agent.protocol}//${hostname}${path}`, {
+  const res = await snFetch(url, {
+    path: '/createinvoice',
     method,
     headers,
-    agent,
     body,
     signal
   })

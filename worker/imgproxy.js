@@ -3,7 +3,7 @@ import { extractUrls } from '@/lib/md'
 import { isJob } from '@/lib/item'
 import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
-import { fetchWithTimeout } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
@@ -165,7 +165,7 @@ const isMediaURL = async (url, { forceFetch }) => {
   // fallback: first run HEAD with small timeout
   try {
     // https://stackoverflow.com/a/68118683
-    const res = await fetchWithTimeout(url, { timeout: 1000, method: 'HEAD' })
+    const res = await snFetch(url, { timeout: 1000, method: 'HEAD' })
     const buf = await res.blob()
     isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
   } catch (err) {
@@ -181,7 +181,7 @@ const isMediaURL = async (url, { forceFetch }) => {
 
   // if not known yet, run GET request with longer timeout
   try {
-    const res = await fetchWithTimeout(url, { timeout: 10000 })
+    const res = await snFetch(url, { timeout: 10000 })
     const buf = await res.blob()
     isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
   } catch (err) {

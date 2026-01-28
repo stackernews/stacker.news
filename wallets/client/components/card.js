@@ -40,15 +40,15 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
             : <Card.Title className={styles.walletLogo}>{walletDisplayName(wallet.name)}</Card.Title>}
         </div>
       </Card.Body>
-      <Card.Footer className={styles.attach}>
+      <Card.Footer className={classNames(styles.attach, 'd-flex justify-content-around px-2 px-sm-3')}>
         {isWallet(wallet)
           ? (
-            <div className='d-flex align-items-center'>
-              <WalletLink wallet={wallet} className='flex-grow-1 justify-content-center d-flex align-items-center text-reset'>
+            <>
+              <WalletLink wallet={wallet} className='pe-1 pe-sm-2 justify-content-center d-flex align-items-center text-reset'>
                 <Gear width={14} height={14} className='me-2' />modify
               </WalletLink>
-              <div className='pointer text-center flex-shrink-1 border-start ps-3 d-flex align-items-center' onClick={() => showModal(onClose => <WalletDeleteObstacle wallet={wallet} onClose={onClose} onSuccess={() => router.push('/wallets')} />)}><TrashIcon width={18} height={18} /></div>
-            </div>
+              <div className='pointer text-center border-start ps-2 ps-sm-3 d-flex align-items-center' onClick={() => showModal(onClose => <WalletDeleteObstacle wallet={wallet} onClose={onClose} onSuccess={() => router.push('/wallets')} />)}><TrashIcon width={18} height={18} /></div>
+            </>
             )
           : (
             <WalletLink wallet={wallet} className='justify-content-center d-flex align-items-center text-reset'>

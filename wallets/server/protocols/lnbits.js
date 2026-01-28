@@ -26,18 +26,22 @@ export async function createInvoice (
   })
 
   let baseUrl = url
+  let protocol
   if (process.env.NODE_ENV !== 'production') {
     // to make it possible to attach LNbits for receives during local dev
     const hostname = baseUrl.replace(/^https?:\/\//, '').split(/[:/]/)[0]
     if (hostname === 'localhost') {
       const port = baseUrl.match(/:(\d+)/)?.[1]
       baseUrl = port === process.env.LNBITS_WEB_PORT ? 'lnbits:5000' : 'lnbits-v1:5000'
+      // Docker LNbits containers run HTTP on port 5000
+      protocol = 'http'
     }
   }
 
   const method = 'POST'
   const res = await snFetch(baseUrl, {
     path: '/api/v1/payments',
+    protocol,
     method,
     headers,
     body,

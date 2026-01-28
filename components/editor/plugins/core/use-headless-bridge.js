@@ -1,9 +1,13 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 import { buildEditorFromExtensions, defineExtension } from '@lexical/extension'
 import { RichTextExtension } from '@lexical/rich-text'
 import { ListExtension, CheckListExtension } from '@lexical/list'
 import DefaultNodes from '@/lib/lexical/nodes'
 import DefaultTheme from '@/lib/lexical/theme'
+import { LinkExtension } from '@lexical/link'
+
+const DEFAULT_EXTENSIONS = []
+const DEFAULT_NAME = 'sn-headless-bridge'
 
 /**
  * shared hook that creates and manages a headless bridge editor
@@ -18,41 +22,37 @@ export default function useHeadlessBridge (opts = {}) {
   const {
     nodes = DefaultNodes,
     theme = DefaultTheme,
-    extensions = [],
-    name = 'sn-headless-bridge'
+    extensions = DEFAULT_EXTENSIONS,
+    name = DEFAULT_NAME
   } = opts
   const bridge = useRef(null)
 
-  // creates or returns existing headless bridge editor
-  const createBridge = useCallback(() => {
-    if (bridge.current) return bridge.current
-    bridge.current = buildEditorFromExtensions(
-      defineExtension({
-        onError: (error) => console.error('editor bridge has encountered an error:', error),
-        name,
-        dependencies: [
-          RichTextExtension,
-          ListExtension,
-          CheckListExtension,
-          ...extensions
-        ],
-        nodes,
-        theme
-      })
-    )
-    return bridge.current
-  }, [nodes, theme, extensions])
-
-  // create the bridge if it doesn't exist and dispose of it when we're done
+  // create the bridge once on mount and dispose of it on unmount
   useEffect(() => {
-    createBridge()
+    if (!bridge.current) {
+      bridge.current = buildEditorFromExtensions(
+        defineExtension({
+          onError: (error) => console.error('editor bridge has encountered an error:', error),
+          name,
+          dependencies: [
+            RichTextExtension,
+            ListExtension,
+            CheckListExtension,
+            LinkExtension,
+            ...extensions
+          ],
+          nodes,
+          theme
+        })
+      )
+    }
     return () => {
       if (bridge.current) {
         bridge.current.dispose()
         bridge.current = null
       }
     }
-  }, [createBridge])
+  }, [])
 
   return bridge
 }

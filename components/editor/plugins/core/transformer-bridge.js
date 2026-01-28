@@ -1,13 +1,11 @@
 import { useEffect } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $getRoot } from 'lexical'
+import { createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $isRangeSelection, $getRoot } from 'lexical'
 import { $formatBlock } from '@/lib/lexical/commands/formatting/blocks'
-import { CodeHighlighterShikiExtension } from '@lexical/code-shiki'
 import useHeadlessBridge from './use-headless-bridge'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 import { $insertMarkdown } from '@/lib/lexical/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
-import { LinkExtension } from '@lexical/link'
 
 /** command to transform markdown selections using a headless lexical editor
  * @param {Object} params.selection - selection to transform
@@ -22,15 +20,14 @@ export const USE_TRANSFORMER_BRIDGE = createCommand('USE_TRANSFORMER_BRIDGE')
  */
 export default function TransformerBridgePlugin () {
   const [editor] = useLexicalComposerContext()
-  const bridgeRef = useHeadlessBridge({ extensions: [LinkExtension, CodeHighlighterShikiExtension] })
+  const bridgeRef = useHeadlessBridge()
 
   // Markdown Transformer Bridge
   // uses markdown transformers to apply transformations to a markdown selection
   useEffect(() => {
     return editor.registerCommand(USE_TRANSFORMER_BRIDGE, ({ selection, formatType, transformation }) => {
-      console.log('use transformer bridge', selection, formatType, transformation)
       selection = selection || $getSelection()
-      if (!selection) return false
+      if (!selection || !$isRangeSelection(selection) || selection.isCollapsed()) return false
 
       // get the markdown from the selection
       const markdown = selection.getTextContent()

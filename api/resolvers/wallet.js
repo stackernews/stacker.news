@@ -6,6 +6,7 @@ import { validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { lnAddrOptions } from '@/lib/lnurl'
+import { snFetch } from '@/lib/fetch'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { getNodeSockets } from '../lnd'
 import pay from '../payIn'
@@ -168,7 +169,7 @@ async function fetchLnAddrInvoice (
   }
 
   // call callback with amount and conditionally comment
-  const res = await (await fetch(callback.toString())).json()
+  const res = await (await snFetch(callback.toString())).json()
   if (res.status === 'ERROR') {
     throw new Error(res.reason)
   }

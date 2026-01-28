@@ -1,9 +1,7 @@
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
-import { FetchTimeoutError } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 import { msatsToSats } from '@/lib/format'
-import { getAgent } from '@/lib/proxy'
 import { assertContentTypeJson } from '@/lib/url'
-import fetch from 'cross-fetch'
 
 export const name = 'LNBITS'
 
@@ -11,8 +9,6 @@ export async function createInvoice (
   { msats, description, descriptionHash, expiry },
   { url, apiKey },
   { signal }) {
-  const path = '/api/v1/payments'
-
   const headers = new Headers()
   headers.append('Accept', 'application/json')
   headers.append('Content-Type', 'application/json')
@@ -29,32 +25,25 @@ export async function createInvoice (
     out: false
   })
 
-  let hostname = url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-  const agent = getAgent({ hostname })
-
-  if (process.env.NODE_ENV !== 'production' && hostname.startsWith('localhost:')) {
+  let baseUrl = url
+  if (process.env.NODE_ENV !== 'production') {
     // to make it possible to attach LNbits for receives during local dev
-    hostname = hostname === `localhost:${process.env.LNBITS_WEB_PORT}` ? 'lnbits:5000' : 'lnbits-v1:5000'
+    const hostname = baseUrl.replace(/^https?:\/\//, '').split(/[:/]/)[0]
+    if (hostname === 'localhost') {
+      const port = baseUrl.match(/:(\d+)/)?.[1]
+      baseUrl = port === process.env.LNBITS_WEB_PORT ? 'lnbits:5000' : 'lnbits-v1:5000'
+    }
   }
 
-  let res
   const method = 'POST'
-  try {
-    res = await fetch(`${agent.protocol}//${hostname}${path}`, {
-      method,
-      headers,
-      agent,
-      body,
-      signal
-    })
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      // XXX node-fetch doesn't throw our custom TimeoutError but throws a generic error so we have to handle that manually.
-      // see https://github.com/node-fetch/node-fetch/issues/1462
-      throw new FetchTimeoutError(method, url, WALLET_CREATE_INVOICE_TIMEOUT_MS)
-    }
-    throw err
-  }
+  const res = await snFetch(baseUrl, {
+    path: '/api/v1/payments',
+    method,
+    headers,
+    body,
+    signal,
+    timeout: WALLET_CREATE_INVOICE_TIMEOUT_MS
+  })
 
   assertContentTypeJson(res, { method })
   if (!res.ok) {

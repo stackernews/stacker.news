@@ -12,7 +12,7 @@ import { SUBMIT_FORMIK_COMMAND } from '@/components/editor/plugins/core/formik'
 export const SHORTCUTS = {
   link: {
     key: 'meta+KeyK',
-    handler: (editor) => editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, 'link')
+    handler: (editor) => editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND)
   },
   bold: {
     key: 'meta+KeyB',

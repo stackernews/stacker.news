@@ -29,7 +29,6 @@ import CheckListIcon from '@/svgs/editor/toolbar/block/check-list.svg'
 import CodeBlockIcon from '@/svgs/editor/toolbar/block/code-block.svg'
 import MoreIcon from '@/svgs/editor/toolbar/more-line.svg'
 import FontStyleIcon from '@/svgs/editor/toolbar/font-style.svg'
-import ImageIcon from '@/svgs/image-fill.svg'
 import { useIsClient } from '@/components/use-client'
 import { SN_FORMAT_BLOCK_COMMAND } from '@/lib/lexical/commands/formatting/blocks'
 import { SN_FORMAT_COMMAND } from '@/lib/lexical/commands/formatting/format'
@@ -43,8 +42,7 @@ const BLOCK_OPTIONS = [
   { id: 'numberedList', name: 'numbered list', icon: <NumberedListIcon />, block: 'number' },
   { id: 'bulletList', name: 'bullet list', icon: <BulletListIcon />, block: 'bullet' },
   { id: 'check', name: 'check list', icon: <CheckListIcon />, block: 'check' },
-  { id: 'codeblock', name: 'code block', icon: <CodeBlockIcon />, block: 'code' },
-  { id: 'externalImage', name: 'external image', icon: <ImageIcon />, block: 'externalImage' }
+  { id: 'codeblock', name: 'code block', icon: <CodeBlockIcon />, block: 'code' }
 ]
 
 const FORMAT_OPTIONS = [

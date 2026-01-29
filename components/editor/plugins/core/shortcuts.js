@@ -70,10 +70,6 @@ export const SHORTCUTS = {
     key: 'meta+alt+KeyC',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'code')
   },
-  externalImage: {
-    key: 'meta+shift+KeyI',
-    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'externalImage')
-  },
   upload: {
     key: 'meta+KeyU',
     handler: (editor) => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)

@@ -261,6 +261,10 @@ export class MediaNode extends DecoratorNode {
     return false
   }
 
+  getTextContent () {
+    return this.__src
+  }
+
   decorate () {
     const MediaComponent = require('@/components/editor/nodes/media').default
     return (

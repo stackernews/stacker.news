@@ -23,8 +23,8 @@ export const SHORTCUTS = {
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'italic')
   },
   quote: {
-    key: 'meta+shift+Period',
-    handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'quote')
+    key: 'control+shift+KeyQ',
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'quote')
   },
   inlineCode: {
     key: 'meta+KeyE',
@@ -43,15 +43,15 @@ export const SHORTCUTS = {
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'strikethrough')
   },
   h1: {
-    key: 'meta+shift+Digit1',
+    key: 'meta+alt+Digit1',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'h1')
   },
   h2: {
-    key: 'meta+shift+Digit2',
+    key: 'meta+alt+Digit2',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'h2')
   },
   h3: {
-    key: 'meta+shift+Digit3',
+    key: 'meta+alt+Digit3',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'h3')
   },
   numberedList: {
@@ -67,7 +67,7 @@ export const SHORTCUTS = {
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'check')
   },
   codeblock: {
-    key: 'meta+shift+KeyC',
+    key: 'meta+alt+KeyC',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'code')
   },
   externalImage: {
@@ -100,18 +100,27 @@ export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
           if (!key) continue
 
           const parts = key.toLowerCase().split('+')
-          const needsMeta = parts.includes('meta')
+          const needsMeta = parts.includes('meta') || parts.includes('control')
           const needsShift = parts.includes('shift')
+          const needsAlt = parts.includes('alt')
           const targetCode = parts[parts.length - 1]
 
           const metaOrCtrl = e.metaKey || e.ctrlKey
+          console.log('metaOrCtrl', metaOrCtrl)
+          console.log('e.metaKey', e.metaKey)
+          console.log('e.ctrlKey', e.ctrlKey)
           const hasShift = e.shiftKey
+          console.log('hasShift', hasShift)
+          console.log('e.shiftKey', e.shiftKey)
+          const hasAlt = e.altKey
 
           if (needsMeta && !metaOrCtrl) continue
           if (needsShift !== hasShift) continue
+          if (needsAlt !== hasAlt) continue
 
           // match against e.code (physical key) instead of e.key (character)
           if (e.code.toLowerCase() === targetCode) {
+            console.log('matched', e.code.toLowerCase(), targetCode)
             const handled = handler(editor)
             // only prevent default behavior if the handler returned true
             if (handled) e.preventDefault()
@@ -130,6 +139,7 @@ export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
 // modifier key display mapping
 const MODIFIER_DISPLAY = {
   meta: IS_APPLE ? '⌘' : 'ctrl',
+  control: IS_APPLE ? '⌃' : 'ctrl',
   alt: IS_APPLE ? '⌥' : 'alt'
 }
 

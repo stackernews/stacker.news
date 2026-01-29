@@ -106,12 +106,7 @@ export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
           const targetCode = parts[parts.length - 1]
 
           const metaOrCtrl = e.metaKey || e.ctrlKey
-          console.log('metaOrCtrl', metaOrCtrl)
-          console.log('e.metaKey', e.metaKey)
-          console.log('e.ctrlKey', e.ctrlKey)
           const hasShift = e.shiftKey
-          console.log('hasShift', hasShift)
-          console.log('e.shiftKey', e.shiftKey)
           const hasAlt = e.altKey
 
           if (needsMeta && !metaOrCtrl) continue
@@ -120,7 +115,6 @@ export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
 
           // match against e.code (physical key) instead of e.key (character)
           if (e.code.toLowerCase() === targetCode) {
-            console.log('matched', e.code.toLowerCase(), targetCode)
             const handled = handler(editor)
             // only prevent default behavior if the handler returned true
             if (handled) e.preventDefault()

@@ -7,6 +7,9 @@ import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdas
 import { $insertMarkdown } from '@/lib/lexical/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
 
+// blocks that we should keep as single block (not split in paragraphs)
+const KEEP_AS_SINGLE_BLOCK = new Set(['quote'])
+
 /** command to transform markdown selections using a headless lexical editor
  * @param {Object} params.selection - selection to transform
  * @param {string} params.formatType - format type to transform
@@ -43,7 +46,7 @@ export default function TransformerBridgePlugin () {
         $getRoot().clear()
 
         // transform markdown to lexical nodes
-        $markdownToLexical(markdown, true)
+        $markdownToLexical(markdown, !KEEP_AS_SINGLE_BLOCK.has(transformation))
 
         // bridge editor selection
         $selectAll()

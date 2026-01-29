@@ -31,7 +31,7 @@ export default function TransformerBridgePlugin () {
     return editor.registerCommand(USE_TRANSFORMER_BRIDGE, ({ selection, formatType, transformation }) => {
       selection = selection || $getSelection()
       // if we don't have a selection or it's not a range selection, bail
-      if (!selection || !$isRangeSelection(selection) || selection.isCollapsed()) return false
+      if (!$isRangeSelection(selection) || selection.isCollapsed()) return false
 
       // get the markdown from the selection
       const markdown = selection.getTextContent()

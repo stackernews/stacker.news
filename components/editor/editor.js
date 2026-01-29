@@ -8,7 +8,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
 import { AutoFocusExtension } from '@lexical/extension'
 import ShortcutsPlugin from '@/components/editor/plugins/core/shortcuts'
-import { MDCommandsExtension } from '@/lib/lexical/exts/md-commands'
+import { FormattingCommandsExtension } from '@/lib/lexical/exts/formatting'
 import { ToolbarContextProvider } from '@/components/editor/contexts/toolbar'
 import { ToolbarPlugin } from '@/components/editor/plugins/toolbar'
 import FormikBridgePlugin from '@/components/editor/plugins/core/formik'
@@ -54,7 +54,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         MarkdownTextExtension,
         ApplePatchExtension,
         HistoryExtension,
-        MDCommandsExtension,
+        FormattingCommandsExtension,
         configExtension(ReactExtension, { contentEditable: null }),
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
       ],

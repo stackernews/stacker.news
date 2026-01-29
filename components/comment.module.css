@@ -16,6 +16,21 @@
     flex-shrink: 0;
 }
 
+.pinnedContext {
+    background: var(--bs-light);
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    border-left: 3px solid var(--bs-primary);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: var(--theme-grey);
+}
+
+.pinnedContext a {
+    font-weight: 500;
+    text-decoration: underline;
+}
+
 .dontLike {
     fill: #a5a5a5;
     margin-right: 8px;

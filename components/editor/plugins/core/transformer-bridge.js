@@ -22,11 +22,14 @@ export default function TransformerBridgePlugin () {
   const [editor] = useLexicalComposerContext()
   const bridgeRef = useHeadlessBridge()
 
+  // TODO: DON'T FINALIZE WITHOUT FIXING EXTERNAL IMAGE URL ENCODING
+
   // Markdown Transformer Bridge
   // uses markdown transformers to apply transformations to a markdown selection
   useEffect(() => {
     return editor.registerCommand(USE_TRANSFORMER_BRIDGE, ({ selection, formatType, transformation }) => {
       selection = selection || $getSelection()
+      // if we don't have a selection or it's not a range selection, bail
       if (!selection || !$isRangeSelection(selection) || selection.isCollapsed()) return false
 
       // get the markdown from the selection
@@ -70,6 +73,7 @@ export default function TransformerBridgePlugin () {
 
       // if we don't have new markdown, bail
       if (!newMarkdown) return false
+      console.log('newMarkdown', newMarkdown)
 
       // insert the new markdown into the original editor
       $insertMarkdown(newMarkdown)

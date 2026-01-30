@@ -1,11 +1,9 @@
-import { fetchWithTimeout } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 import { assertContentTypeJson } from '@/lib/url'
 
 export const name = 'LNBITS'
 
 export async function sendPayment (bolt11, { url, apiKey }, { signal }) {
-  url = url.replace(/\/+$/, '')
-
   const response = await postPayment(bolt11, { url, apiKey }, { signal })
 
   const checkResponse = await getPayment(response.payment_hash, { url, apiKey }, { signal })
@@ -17,20 +15,17 @@ export async function sendPayment (bolt11, { url, apiKey }, { signal }) {
 }
 
 export async function testSendPayment ({ url, apiKey }, { signal }) {
-  url = url.replace(/\/+$/, '')
   await getWallet({ url, apiKey }, { signal })
 }
 
 async function getWallet ({ url, apiKey }, { signal }) {
-  const path = '/api/v1/wallet'
-
   const headers = new Headers()
   headers.append('Accept', 'application/json')
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', apiKey)
 
   const method = 'GET'
-  const res = await fetchWithTimeout(url + path, { method, headers, signal })
+  const res = await snFetch(url, { path: '/api/v1/wallet', method, headers, signal })
 
   assertContentTypeJson(res, { method })
   if (!res.ok) {
@@ -43,8 +38,6 @@ async function getWallet ({ url, apiKey }, { signal }) {
 }
 
 async function postPayment (bolt11, { url, apiKey }, { signal }) {
-  const path = '/api/v1/payments'
-
   const headers = new Headers()
   headers.append('Accept', 'application/json')
   headers.append('Content-Type', 'application/json')
@@ -53,7 +46,7 @@ async function postPayment (bolt11, { url, apiKey }, { signal }) {
   const body = JSON.stringify({ bolt11, out: true })
 
   const method = 'POST'
-  const res = await fetchWithTimeout(url + path, { method, headers, body, signal })
+  const res = await snFetch(url, { path: '/api/v1/payments', method, headers, body, signal })
 
   assertContentTypeJson(res, { method })
   if (!res.ok) {
@@ -66,15 +59,13 @@ async function postPayment (bolt11, { url, apiKey }, { signal }) {
 }
 
 async function getPayment (paymentHash, { url, apiKey }, { signal }) {
-  const path = `/api/v1/payments/${paymentHash}`
-
   const headers = new Headers()
   headers.append('Accept', 'application/json')
   headers.append('Content-Type', 'application/json')
   headers.append('X-Api-Key', apiKey)
 
   const method = 'GET'
-  const res = await fetchWithTimeout(url + path, { method, headers, signal })
+  const res = await snFetch(url, { path: `/api/v1/payments/${paymentHash}`, method, headers, signal })
 
   assertContentTypeJson(res, { method })
   if (!res.ok) {

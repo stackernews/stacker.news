@@ -294,7 +294,7 @@ function InfoDropdownItem ({ item }) {
 export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry }) {
   const { me } = useMe()
   const toaster = useToast()
-  const retryPayIn = useRetryPayIn(item.payIn.id, { update: updatePayIn })
+  const retryPayIn = useRetryPayIn(item.payIn.id, { update: updatePayIn, onRetry: updatePayIn, protocolLimit: 1 })
   const waitForQrPayIn = useQrPayIn()
   const [disableInfoRetry, setDisableInfoRetry] = useState(disableRetry)
   if (item.deletedAt) return null

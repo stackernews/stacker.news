@@ -1,4 +1,5 @@
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
+import { snFetch } from '@/lib/fetch'
 import { decodeCursor, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
@@ -647,7 +648,7 @@ export default {
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {
       const res = {}
       try {
-        const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
+        const response = await snFetch(url, { protocol: 'http', redirect: 'follow' })
         const html = await response.text()
         const doc = domino.createWindow(html).document
         const titleRuleSet = {

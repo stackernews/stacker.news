@@ -2,13 +2,14 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useContext, useCallback, useEffect } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
 import { $isMarkdownEmpty, $setMarkdown, $getMarkdown } from '@/lib/lexical/utils'
+import { lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 
 /**
  * plugin that auto-saves and restores editor drafts to/from local storage
 
  * @param {string} props.name - storage key suffix for the draft
  */
-export default function LocalDraftPlugin ({ name }) {
+export default function LocalDraftPlugin ({ name, editorMode }) {
   const [editor] = useLexicalComposerContext()
 
   // local storage keys, e.g. 'reply-123456-text'
@@ -36,21 +37,29 @@ export default function LocalDraftPlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
-          $setMarkdown(value, false)
+          if (editorMode === 'markdown') {
+            $setMarkdown(value, false)
+          } else {
+            markdownToLexical(editor, value)
+          }
         })
       }
     }
-  }, [editor, storageKey])
+  }, [editor, storageKey, editorMode])
 
   // save the draft to local storage
   useEffect(() => {
     // whenever the editor state changes, save the markdown draft
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        upsertDraft($getMarkdown(false))
+        if (editorMode === 'markdown') {
+          upsertDraft($getMarkdown(false))
+        } else {
+          upsertDraft(lexicalToMarkdown(editor))
+        }
       })
     })
-  }, [editor, upsertDraft])
+  }, [editor, upsertDraft, editorMode])
 
   return null
 }

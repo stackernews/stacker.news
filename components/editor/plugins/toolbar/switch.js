@@ -16,13 +16,13 @@ export default function ModeSwitchPlugin ({ name }) {
   return (
     <Nav variant='tabs' activeKey={toolbarState.previewMode ? 'preview' : 'write'} onSelect={handleTabSelect}>
       <Nav.Item>
-        <Nav.Link className={styles.modeTabs} eventKey='write' title='write'>
+        <Nav.Link className={styles.modeTab} eventKey='write' title='write'>
           write
         </Nav.Link>
       </Nav.Item>
       <Nav.Item>
         <Nav.Link
-          className={styles.modeTabs}
+          className={styles.modeTab}
           eventKey='preview'
           title='preview'
           disabled={!text.value}

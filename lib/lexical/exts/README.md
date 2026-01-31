@@ -87,47 +87,6 @@ happens: **after** the editor state has been applied
 
 This ensures that multiple consecutive images/videos are automatically grouped into a gallery, while single media items remain as standalone paragraphs.
 
-## `MDCommandsExtension`
-
-used by: **Editor**
-
-It's a very simple extension that registers the commands for inserting markdown markers around a selection via `wrapMarkdownSelection`.
-
-Commands:
-- `MD_INSERT_LINK_COMMAND`: `[]()`
-- `MD_INSERT_BOLD_COMMAND`: `** **`
-- `MD_INSERT_ITALIC_COMMAND` `* *`
-
-### `wrapMarkdownSelection`
-
-1. gets the current selection from the editor
-2. extracts the selected text content
-3. wraps it with the provided prefix and suffix (e.g., `**text**` for bold)
-4. inserts the wrapped text back into the editor
-5. repositions the cursor using the specified `cursorOffset`:
-   - for bold/italic: cursor is placed after the closing marker
-   - for links: cursor is placed inside the `()` parentheses (offset of 1 from the end)
-
-
-## `ShortcutsExtension`
-
-used by: **Editor**
-
-Also a very simple extension, it listens to `KEY_DOWN_COMMAND` (Lexical's equivalent to the `onkeydown` event) and matches the pressed keys against a brief `SHORTCUTS` registry.  
-For `Stage 1` purposes, only meta/ctrl+key combinations are supported.
-
-Example:
-
-```javascript
-  { // upload files
-    key: 'u',
-    handler: (editor) => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)
-  }
-```
-
-When the user presses `meta/ctrl+u` we call the handler that will then trigger the command `SN_UPLOAD_FILES_COMMAND`, executing whatever the command wants to do (in this case, it will open the file upload dialog).
-
-
 ## `CodeShikiSNExtension`
 
 used by: **Reader**

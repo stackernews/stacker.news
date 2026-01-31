@@ -4,11 +4,11 @@ import { createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $isR
 import { $formatBlock } from '@/lib/lexical/commands/formatting/blocks'
 import useHeadlessBridge from '@/components/editor/hooks/use-headless-bridge'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
-import { $insertMarkdown } from '@/lib/lexical/utils'
+import { $insertMarkdown, $debugNodeToJSON } from '@/lib/lexical/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
 
-// blocks that we should keep as single block (not split in paragraphs)
-const KEEP_AS_SINGLE_BLOCK = new Set(['quote'])
+// blocks that we should split in paragraphs
+const SPLIT_IN_PARAGRAPHS = ['bullet', 'number', 'check']
 
 /** command to transform markdown selections using a headless lexical editor
  * @param {Object} params.selection - selection to transform
@@ -44,7 +44,12 @@ export default function TransformerBridgePlugin () {
         $getRoot().clear()
 
         // transform markdown to lexical nodes
-        $markdownToLexical(markdown, !KEEP_AS_SINGLE_BLOCK.has(transformation))
+        $markdownToLexical(markdown, SPLIT_IN_PARAGRAPHS.includes(transformation))
+
+        // DEBUG: what are we transforming?
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[Transformer Bridge] BEFORE TRANSFORMATION root with children', $debugNodeToJSON($getRoot()))
+        }
 
         // bridge editor selection
         $selectAll()

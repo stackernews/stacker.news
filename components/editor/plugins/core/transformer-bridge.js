@@ -7,9 +7,6 @@ import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdas
 import { $insertMarkdown, $debugNodeToJSON } from '@/lib/lexical/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
 
-// blocks that we should split in paragraphs
-const SPLIT_IN_PARAGRAPHS = ['bullet', 'number', 'check']
-
 /** command to transform markdown selections using a headless lexical editor
  * @param {Object} params.selection - selection to transform
  * @param {string} params.formatType - format type to transform
@@ -44,7 +41,7 @@ export default function TransformerBridgePlugin () {
         $getRoot().clear()
 
         // transform markdown to lexical nodes
-        $markdownToLexical(markdown, SPLIT_IN_PARAGRAPHS.includes(transformation))
+        $markdownToLexical(markdown)
 
         // DEBUG: what are we transforming?
         if (process.env.NODE_ENV !== 'production') {

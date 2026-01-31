@@ -11,15 +11,15 @@ import { SUBMIT_FORMIK_COMMAND } from '@/components/editor/plugins/core/formik'
 
 export const SHORTCUTS = {
   link: {
-    key: 'meta+KeyK',
+    key: 'mod+KeyK',
     handler: (editor) => editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND)
   },
   bold: {
-    key: 'meta+KeyB',
+    key: 'mod+KeyB',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'bold')
   },
   italic: {
-    key: 'meta+KeyI',
+    key: 'mod+KeyI',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'italic')
   },
   quote: {
@@ -27,59 +27,59 @@ export const SHORTCUTS = {
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'quote')
   },
   inlineCode: {
-    key: 'meta+KeyE',
+    key: 'mod+KeyE',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'code')
   },
   superscript: {
-    key: 'meta+Period',
+    key: 'mod+Period',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'superscript')
   },
   subscript: {
-    key: 'meta+Comma',
+    key: 'mod+Comma',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'subscript')
   },
   strikethrough: {
-    key: 'meta+shift+KeyX',
+    key: 'mod+shift+KeyX',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'strikethrough')
   },
   h1: {
-    key: 'meta+alt+Digit1',
+    key: 'mod+alt+Digit1',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'h1')
   },
   h2: {
-    key: 'meta+alt+Digit2',
+    key: 'mod+alt+Digit2',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'h2')
   },
   h3: {
-    key: 'meta+alt+Digit3',
+    key: 'mod+alt+Digit3',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'h3')
   },
   numberedList: {
-    key: 'meta+shift+Digit7',
+    key: 'mod+shift+Digit7',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'number')
   },
   bulletList: {
-    key: 'meta+shift+Digit8',
+    key: 'mod+shift+Digit8',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'bullet')
   },
   check: {
-    key: 'meta+shift+Digit9',
+    key: 'mod+shift+Digit9',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'check')
   },
   codeblock: {
-    key: 'meta+alt+KeyC',
+    key: 'mod+alt+KeyC',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'code')
   },
   upload: {
-    key: 'meta+KeyU',
+    key: 'mod+KeyU',
     handler: (editor) => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)
   },
   preview: {
-    key: 'meta+KeyP',
+    key: 'mod+KeyP',
     handler: (editor) => editor.dispatchCommand(TOGGLE_PREVIEW_COMMAND, editor)
   },
   submit: {
-    key: 'meta+Enter',
+    key: 'mod+Enter',
     handler: (editor) => editor.dispatchCommand(SUBMIT_FORMIK_COMMAND)
   }
 }
@@ -96,16 +96,19 @@ export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
           if (!key) continue
 
           const parts = key.toLowerCase().split('+')
-          const needsMeta = parts.includes('meta') || parts.includes('control')
+          const needsMod = parts.includes('mod')
+          const needsControl = parts.includes('control')
           const needsShift = parts.includes('shift')
           const needsAlt = parts.includes('alt')
           const targetCode = parts[parts.length - 1]
 
-          const metaOrCtrl = e.metaKey || e.ctrlKey
+          const hasMod = e.metaKey || e.ctrlKey
+          const hasControl = e.ctrlKey
           const hasShift = e.shiftKey
           const hasAlt = e.altKey
 
-          if (needsMeta && !metaOrCtrl) continue
+          if (needsMod && !hasMod) continue
+          if (needsControl && !hasControl) continue
           if (needsShift !== hasShift) continue
           if (needsAlt !== hasAlt) continue
 
@@ -128,7 +131,7 @@ export default function ShortcutsPlugin ({ shortcuts = SHORTCUTS }) {
 
 // modifier key display mapping
 const MODIFIER_DISPLAY = {
-  meta: IS_APPLE ? '⌘' : 'ctrl',
+  mod: IS_APPLE ? '⌘' : 'ctrl',
   control: IS_APPLE ? '⌃' : 'ctrl',
   alt: IS_APPLE ? '⌥' : 'alt'
 }
@@ -141,7 +144,7 @@ function codeToDisplay (code) {
   return special[code] || code
 }
 
-// format a shortcut key string for display (e.g., 'meta+shift+Digit1' -> '⌘+shift+1')
+// format a shortcut key string for display (e.g., 'mod+shift+Digit1' -> '⌘+shift+1')
 export function formatShortcut (key) {
   if (!key) return ''
   const parts = key.split('+')

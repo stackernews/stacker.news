@@ -6,7 +6,6 @@ import useHeadlessBridge from '@/components/editor/hooks/use-headless-bridge'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 import { $insertMarkdown, $debugNodeToJSON } from '@/lib/lexical/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
-import { hasMarkdownLink } from '@/lib/md'
 
 /** command to transform markdown selections using a headless lexical editor
  * @param {Object} params.selection - selection to transform
@@ -63,13 +62,7 @@ export default function TransformerBridgePlugin () {
               $formatBlock(bridgeRef.current, transformation)
               break
             case 'link':
-              // link off if selection already contains a markdown link
-              if (hasMarkdownLink(markdown)) {
-                $toggleLink(bridgeRef.current, null)
-              // link on if selection isn't already a link
-              } else {
-                $toggleLink(bridgeRef.current, transformation)
-              }
+              $toggleLink(bridgeRef.current, transformation)
               break
           }
 

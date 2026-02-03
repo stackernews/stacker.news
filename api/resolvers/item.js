@@ -91,6 +91,26 @@ async function comments (me, models, item, sort, cursor) {
       comments = fullComments
     }
   }
+  // Fetch pinned nested comments that aren't direct children of the item
+  const nestedPins = await itemQueryWithMeta({
+    me,
+    models,
+    query: `
+      ${SELECT}
+      FROM "Item"
+      ${payInJoinFilter(me)}
+      WHERE "Item".path <@ (SELECT path FROM "Item" WHERE id = ${Number(item.id)})
+        AND "Item"."pinId" IS NOT NULL
+        AND "Item"."parentId" <> ${Number(item.id)}
+        AND "Item".id <> ${Number(item.id)}
+    `
+  })
+  // Add nested pins to comments array if they're not already there
+  if (nestedPins.length > 0) {
+    const commentIds = new Set(comments.map(c => c.id))
+    const newPins = nestedPins.filter(pin => !commentIds.has(pin.id))
+    comments = [...newPins, ...comments]
+  }
 
   return {
     comments,
@@ -788,8 +808,8 @@ export default {
               SELECT "pinId" FROM "Item" i
               ${whereClause(
                 '"pinId" IS NOT NULL',
-                item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]')}
-            )`, item.parentId ?? item.subNames[0], item.pin.position)
+                item.parentId ? 'i."rootId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]')}
+            )`, item.parentId ? item.rootId : item.subNames[0], item.pin.position)
         ])
 
         pinId = null
@@ -800,8 +820,8 @@ export default {
           FROM "Pin" p
           JOIN "Item" i ON i."pinId" = p.id
           ${whereClause(
-            item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
-          )}`, item.parentId ?? item.subNames[0])
+            item.parentId ? 'i."rootId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
+          )}`, item.parentId ? item.rootId : item.subNames[0])
 
         if (npins >= 3) {
           throw new GqlInputError('max 3 pins allowed')
@@ -814,7 +834,7 @@ export default {
             FROM "Pin" p
             JOIN "Item" i ON i."pinId" = p.id
             ${whereClause(
-              item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
+              item.parentId ? 'i."rootId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
             )}
             RETURNING id
           )
@@ -822,7 +842,7 @@ export default {
           SET "pinId" = pin.id
           FROM pin
           WHERE "Item".id = $2
-          RETURNING "pinId"`, item.parentId ?? item.subNames[0], item.id)
+          RETURNING "pinId"`, item.parentId ? item.rootId : item.subNames[0], item.id)
 
         pinId = newPinId
       }

@@ -171,6 +171,7 @@ export default function ItemInfo ({
           </Link>
         )}
       {extraBadges}
+      {extraInfo}
       {
         showActionDropdown &&
           <>
@@ -236,7 +237,6 @@ export default function ItemInfo ({
             </ActionDropdown>
           </>
       }
-      {extraInfo}
     </div>
   )
 }

@@ -38,6 +38,12 @@ export const COMMENT_FIELDS = gql`
         retryCount
       }
     }
+    parent {
+      id
+      user {
+        name
+      }
+    }
     sats
     credits
     meAnonSats @client
@@ -93,6 +99,12 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
       payerPrivates {
         payInFailureReason
         retryCount
+      }
+    }
+    parent {
+      id
+      user {
+        name
       }
     }
     sats

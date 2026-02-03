@@ -30,14 +30,18 @@ import { gql, useApolloClient } from '@apollo/client'
 import classNames from 'classnames'
 import useCallbackRef from './use-callback-ref'
 
-function Parent ({ item, rootText }) {
+function Parent ({ item, rootText, emphasize = false }) {
   const root = useRoot()
+  const parentUser = item.parent?.user?.name ? `@${item.parent.user.name}` : 'a comment'
 
   const ParentFrag = () => (
     <>
       <span> \ </span>
-      <Link href={`/items/${item.parentId}`} className='text-reset'>
-        parent
+      <Link
+        href={`/items/${item.parentId}`}
+        className={emphasize ? 'text-primary' : 'text-reset'}
+      >
+        {emphasize ? <>replying to {parentUser}</> : <>parent{item.parent?.user?.name && ` by ${parentUser}`}</>}
       </Link>
     </>
   )
@@ -116,7 +120,7 @@ export default function Comment ({
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
-
+  const isNestedPin = pin && item.path.split('.').length > 2
   const { cache } = useApolloClient()
 
   const unsetOutline = () => {
@@ -150,6 +154,7 @@ export default function Comment ({
     if (Number(router.query.commentId) === Number(item.id)) {
       // HACK wait for other comments to uncollapse if they're collapsed
       setTimeout(() => {
+        if (!ref.current) return
         ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
         // make sure we can outline a comment again if it was already outlined before
         ref.current.addEventListener('animationend', () => {
@@ -245,6 +250,14 @@ export default function Comment ({
                   {...props}
                   extraInfo={
                     <>
+                      {isNestedPin && !includeParent && (
+                        <>
+                          <span> \ </span>
+                          <Link href={`/items/${item.parentId}`} className='text-reset'>
+                            reply to {item.parent?.user?.name ? `@${item.parent.user.name}` : 'parent'}
+                          </Link>
+                        </>
+                      )}
                       {includeParent && <Parent item={item} rootText={rootText} />}
                       {bountyPaid &&
                         <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
@@ -300,36 +313,45 @@ export default function Comment ({
         </div>
       </div>
       {collapse !== 'yep' && (
-        bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} threadContext /></div></div>
-          : (
+        isNestedPin
+          ? (
             <div className={styles.children}>
-              {item.outlawed && !me?.privates?.wildWestMode
-                ? <div className='py-2' />
-                : !noReply &&
-                  <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
-                    {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                  </Reply>}
-              {children}
-              <div className={styles.comments}>
-                {!noComments && item.comments?.comments
-                  ? (
-                    <>
-                      {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} />
-                      ))}
-                      {item.comments.comments.length < item.nDirectComments && (
-                        <div className={`d-block ${styles.comment} pb-2 ps-3`}>
-                          <ViewMoreReplies item={item} />
-                        </div>
-                      )}
-                    </>
-                    )
-                  : null}
-                {/* TODO: add link to more comments if they're limited */}
-              </div>
+              {!noReply &&
+                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
+                  {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                </Reply>}
             </div>
             )
+          : bottomedOut
+            ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} threadContext /></div></div>
+            : (
+              <div className={styles.children}>
+                {item.outlawed && !me?.privates?.wildWestMode
+                  ? <div className='py-2' />
+                  : !noReply &&
+                    <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
+                      {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                    </Reply>}
+                {children}
+                <div className={styles.comments}>
+                  {!noComments && item.comments?.comments
+                    ? (
+                      <>
+                        {item.comments.comments.map((item) => (
+                          <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} />
+                        ))}
+                        {item.comments.comments.length < item.nDirectComments && (
+                          <div className={`d-block ${styles.comment} pb-2 ps-3`}>
+                            <ViewMoreReplies item={item} />
+                          </div>
+                        )}
+                      </>
+                      )
+                    : null}
+                  {/* TODO: add link to more comments if they're limited */}
+                </div>
+              </div>
+              )
       )}
     </div>
   )

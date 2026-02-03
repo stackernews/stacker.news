@@ -47,8 +47,10 @@ model User {
   noteForwardedSats         Boolean                @default(true)
   photoId                   Int?
   hideInvoiceDesc           Boolean                @default(false)
-  wildWestMode              Boolean                @default(false)
-  satsFilter                Int                    @default(10)
+  postsSatsFilter           Int                    @default(10)
+  commentsSatsFilter        Int                    @default(1)
+  freeCommentCount          Int                    @default(0)
+  freeCommentResetAt        DateTime?
   nsfwMode                  Boolean                @default(false)
   fiatCurrency              String                 @default("USD")
   autoDropBolt11s           Boolean                @default(false)
@@ -444,7 +446,7 @@ model Item {
   itemForwards         ItemForward[]
   itemUploads          ItemUpload[]
   uploadId             Int?
-  outlawed             Boolean               @default(false)
+  netInvestment        Int                   @default(dbgenerated())
   apiKey               Boolean               @default(false)
   pollExpiresAt        DateTime?
   Ancestors            Reply[]               @relation("AncestorReplyItem")
@@ -458,7 +460,6 @@ model Item {
   ranktop              Float                 @default(dbgenerated())
   rankhot              Float                 @default(dbgenerated())
   rankboost            Float                 @default(dbgenerated())
-  genoutlawed          Boolean               @default(dbgenerated())
   subs                 ItemSub[]
   // Note: we leave this because there's an expensive exclusion constraint
   // that depends on this column unnecessarily ... remove during next maintenance window
@@ -491,7 +492,7 @@ model Item {
   @@index([ranktop])
   @@index([rankhot])
   @@index([rankboost])
-  @@index([genoutlawed])
+  @@index([netInvestment])
 }
 
 enum NotificationIconType {
@@ -658,23 +659,23 @@ model Sub {
   parentName String?               @db.Citext
   path       Unsupported("ltree")?
 
-  postTypes        PostType[]
-  rankingType      RankingType
-  allowFreebies    Boolean     @default(true)
-  baseCost         Int         @default(1)
-  replyCost        Int         @default(1)
-  rewardsPct       Int         @default(30)
-  desc             String?
-  status           Status      @default(ACTIVE)
-  statusUpdatedAt  DateTime?
-  billingType      BillingType
-  billingCost      Int
-  billingAutoRenew Boolean     @default(false)
-  billedLastAt     DateTime    @default(now())
-  billPaidUntil    DateTime?
-  moderated        Boolean     @default(false)
-  moderatedCount   Int         @default(0)
-  nsfw             Boolean     @default(false)
+  postTypes          PostType[]
+  rankingType        RankingType
+  allowFreebies      Boolean     @default(true)
+  baseCost           Int         @default(1)
+  replyCost          Int         @default(1)
+  rewardsPct         Int         @default(30)
+  desc               String?
+  status             Status      @default(ACTIVE)
+  statusUpdatedAt    DateTime?
+  billingType        BillingType
+  billingCost        Int
+  billingAutoRenew   Boolean     @default(false)
+  billedLastAt       DateTime    @default(now())
+  billPaidUntil      DateTime?
+  postsSatsFilter    Int         @default(1)
+  commentsSatsFilter Int         @default(1)
+  nsfw               Boolean     @default(false)
 
   parent                  Sub?                      @relation("ParentChildren", fields: [parentName], references: [name])
   children                Sub[]                     @relation("ParentChildren")

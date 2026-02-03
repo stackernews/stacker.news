@@ -21,17 +21,19 @@ export default gql`
   extend type Mutation {
     upsertSub(oldName: String, name: String!, desc: String, baseCost: Int!,
       replyCost: Int!,
+      postsSatsFilter: Int, commentsSatsFilter: Int,
       postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, nsfw: Boolean!): PayIn!
+      nsfw: Boolean!): PayIn!
     paySub(name: String!): PayIn!
     toggleMuteSub(name: String!): Boolean!
     toggleSubSubscription(name: String!): Boolean!
     transferTerritory(subName: String!, userName: String!): Sub
     unarchiveTerritory(name: String!, desc: String, baseCost: Int!,
-      replyCost: Int!, postTypes: [String!]!,
+      replyCost: Int!, postsSatsFilter: Int, commentsSatsFilter: Int,
+      postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, nsfw: Boolean!): PayIn!
+      nsfw: Boolean!): PayIn!
   }
 
   type Sub {
@@ -53,9 +55,9 @@ export default gql`
     billPaidUntil: Date
     baseCost: Int!
     replyCost: Int!
+    postsSatsFilter: Int!
+    commentsSatsFilter: Int!
     status: String!
-    moderated: Boolean!
-    moderatedCount: Int!
     meMuteSub: Boolean!
     nsfw: Boolean!
     nitems(when: String, from: String, to: String): Int!

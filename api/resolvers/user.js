@@ -4,7 +4,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
@@ -964,6 +964,20 @@ export default {
         return false
       }
       return !!user.tipRandomMin && !!user.tipRandomMax
+    },
+    freeCommentCount: (user) => {
+      // Reset counter if past reset date
+      if (user.freeCommentResetAt && new Date() >= new Date(user.freeCommentResetAt)) {
+        return 0
+      }
+      return user.freeCommentCount || 0
+    },
+    freeCommentsLeft: (user) => {
+      // Reset counter if past reset date
+      if (user.freeCommentResetAt && new Date() >= new Date(user.freeCommentResetAt)) {
+        return FREE_COMMENTS_PER_MONTH
+      }
+      return Math.max(0, FREE_COMMENTS_PER_MONTH - (user.freeCommentCount || 0))
     }
   },
 

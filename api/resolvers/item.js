@@ -14,7 +14,10 @@ import {
   COMMENTS_OF_COMMENT_LIMIT,
   FULL_COMMENTS_THRESHOLD,
   WALLET_RETRY_BEFORE_MS,
-  WALLET_MAX_RETRIES
+  WALLET_MAX_RETRIES,
+  DEFAULT_POSTS_SATS_FILTER,
+  DEFAULT_COMMENTS_SATS_FILTER,
+  HOMEPAGE_POSTS_SATS_FILTER
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
@@ -31,15 +34,21 @@ import { shuffleArray } from '@/lib/rand'
 import pay from '../payIn'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
-function commentsOrderByClause (me, models, sort) {
+function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER) {
   const sharedSortsArray = []
   sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
   sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
+
+  // Push comments with investment below the threshold to the bottom of threads
+  // This applies to all comments (including freebies) with netInvestment below the filter
+  if (commentsSatsFilter > 0) {
+    sharedSortsArray.push(`(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`)
+  }
+
   const sharedSorts = sharedSortsArray.join(', ')
 
   if (sort === 'recent') {
     return `ORDER BY ${sharedSorts},
-      ("Item".genoutlawed = FALSE) DESC,
       "Item".created_at DESC, "Item".id DESC`
   }
 
@@ -52,7 +61,14 @@ function commentsOrderByClause (me, models, sort) {
 }
 
 async function comments (me, models, item, sort, cursor) {
-  const orderBy = commentsOrderByClause(me, models, sort)
+  // Get user's commentsSatsFilter to push filtered freebies to bottom
+  let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id }, select: { commentsSatsFilter: true } })
+    commentsSatsFilter = user?.commentsSatsFilter ?? DEFAULT_COMMENTS_SATS_FILTER
+  }
+
+  const orderBy = commentsOrderByClause(sort, commentsSatsFilter)
 
   // if we're logged in, there might be pending comments from us we want to show but weren't counted
   if (!me && item.nDirectComments === 0) {
@@ -130,7 +146,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         '"Item"."parentId" IS NULL',
         '"Item".bio = false',
         '"Item".boost > 0',
-        await filterClause(me, models),
+        await filterClause(me, models, null, sub),
         activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
@@ -259,8 +275,6 @@ const relationClause = (type) => {
       clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
       break
     case 'comments':
-    case 'outlawed':
-    case 'borderland':
     case 'freebies':
     case 'all':
       clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
@@ -330,48 +344,40 @@ const subClause = (sub, num, table = 'Item', me, showNsfw) => {
   return [excludeMuted, hideNsfwClause].filter(Boolean).join(' AND ')
 }
 
-function investmentClause (sats) {
+// Uses the indexed netInvestment column for efficient filtering
+function investmentClause (postsSatsFilter, commentsSatsFilter, meId) {
+  const ownerClause = meId ? ` OR "Item"."userId" = ${meId}` : ''
   return `(
     CASE WHEN "Item"."parentId" IS NULL
-      THEN ("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${sats}
-      ELSE ("Item".cost + "Item".boost + ("Item".msats / 1000)) >= ${Math.min(sats, 1)}
+      THEN "Item"."netInvestment" >= ${postsSatsFilter}${ownerClause}
+      ELSE "Item"."netInvestment" >= ${commentsSatsFilter}${ownerClause}
     END
   )`
 }
 
-export async function filterClause (me, models, type) {
-  // if you are explicitly asking for marginal content, don't filter them
-  if (['outlawed', 'borderland', 'freebies'].includes(type)) {
-    if (me && ['outlawed', 'borderland'].includes(type)) {
-      // unless the item is mine
-      return `"Item"."userId" <> ${me.id}`
-    }
-
+export async function filterClause (me, models, type, sub) {
+  // if you are explicitly asking for freebies, don't filter them
+  if (type === 'freebies') {
     return ''
   }
 
-  // handle freebies
-  // by default don't include freebies unless they have upvotes
-  let satsFilter = investmentClause(10)
+  // Default filter values for logged out users
+  let postsSatsFilter = DEFAULT_POSTS_SATS_FILTER
+  let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
+
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
-
-    satsFilter = `(${investmentClause(user.satsFilter)} OR "Item"."userId" = ${me.id})`
-
-    if (user.wildWestMode) {
-      return satsFilter
-    }
+    postsSatsFilter = user.postsSatsFilter
+    commentsSatsFilter = user.commentsSatsFilter
   }
 
-  // handle outlawed
-  // if the item is above the threshold or is mine
-  const outlawClauses = ['"Item".genoutlawed = FALSE']
-  if (me) {
-    outlawClauses.push(`"Item"."userId" = ${me.id}`)
+  // For homepage (null sub) hot/top feeds, use higher filter threshold for posts
+  // This ensures homepage quality by requiring more investment
+  if (sub === undefined || sub === null) {
+    postsSatsFilter = Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
   }
-  const outlawClause = '(' + outlawClauses.join(' OR ') + ')'
 
-  return [satsFilter, outlawClause]
+  return investmentClause(postsSatsFilter, commentsSatsFilter, me?.id)
 }
 
 function typeClause (type) {
@@ -391,11 +397,7 @@ function typeClause (type) {
     case 'comments':
       return '"Item"."parentId" IS NOT NULL'
     case 'freebies':
-      return '"Item".cost = 0'
-    case 'outlawed':
-      return '"Item".genoutlawed = TRUE'
-    case 'borderland':
-      return '"Item"."weightedVotes" - "Item"."weightedDownVotes" < 0'
+      return '"Item".freebie = true'
     case 'all':
     case 'bookmarks':
       return ''
@@ -489,7 +491,7 @@ export default {
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
-                await filterClause(me, models, type),
+                await filterClause(me, models, type, sub),
                 typeClause(type),
                 muteClause(me)
               )}
@@ -514,7 +516,7 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 activeOrMine(me),
-                await filterClause(me, models, type),
+                await filterClause(me, models, type, sub),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
               ${orderByClause(by || 'zaprank', me, models, type, sub)}
@@ -539,7 +541,7 @@ export default {
                 type === 'posts' && '"Item"."subNames" IS NOT NULL',
                 subClause(sub, 3, subClauseTable(type), me, showNsfw),
                 typeClause(type),
-                await filterClause(me, models, type),
+                await filterClause(me, models, type, sub),
                 activeOrMine(me),
                 muteClause(me))}
               ${orderByClause('random', me, models, type)}
@@ -621,11 +623,10 @@ export default {
                       sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)',
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
-                      '"Item".outlawed = false',
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
-                      await filterClause(me, models, type),
+                      await filterClause(me, models, type, sub),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rankhot DESC, "Item".id DESC
@@ -1004,64 +1005,6 @@ export default {
         throw new GqlInputError('unknown act')
       }
     },
-    toggleOutlaw: async (parent, { id }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      const item = await models.item.findUnique({
-        where: { id: Number(id) },
-        include: {
-          subs: { include: { sub: true } },
-          root: {
-            include: {
-              subs: { include: { sub: true } }
-            }
-          }
-        }
-      })
-
-      const subs = item.subs.map(subItem => subItem.sub)
-      const rootSubs = item.root?.subs.map(subItem => subItem.sub)
-
-      if (subs.length > 1 || rootSubs.length > 1) {
-        throw new GqlInputError('item has multiple subs')
-      }
-
-      const sub = subs[0] || rootSubs[0]
-
-      if (Number(sub.userId) !== Number(me.id)) {
-        throw new GqlInputError('you cant do this broh')
-      }
-
-      if (item.outlawed) {
-        return item
-      }
-
-      const [result] = await models.$transaction(
-        [
-          models.item.update({
-            where: {
-              id: Number(id)
-            },
-            data: {
-              outlawed: true
-            }
-          }),
-          models.sub.update({
-            where: {
-              name: sub.name
-            },
-            data: {
-              moderatedCount: {
-                increment: 1
-              }
-            }
-          })
-        ])
-
-      return result
-    },
     updateCommentsViewAt: async (parent, { id, meCommentsViewedAt }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -1271,6 +1214,10 @@ export default {
     freebie: async (item) => {
       return item.cost === 0 && item.boost === 0
     },
+    netInvestment: async (item) => {
+      // This is a generated column in the database, so we can just return it
+      return item.netInvestment ?? 0
+    },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
       if (typeof item.meMsats !== 'undefined' && typeof item.meMcredits !== 'undefined') {
@@ -1376,17 +1323,10 @@ export default {
 
       return !!subscription
     },
-    outlawed: async (item, args, { me, models }) => {
-      if (me && Number(item.userId) === Number(me.id)) {
-        return false
-      }
-      return item.genoutlawed
-    },
     rel: async (item, args, { me, models }) => {
-      const sats = item.msats ? msatsToSats(item.msats) : 0
-      const boost = (item.boost ?? 0) + (item.oldBoost ?? 0)
-      const cost = (item.cost ?? 0)
-      return (sats + boost + cost < NOFOLLOW_LIMIT || item.genoutlawed) ? UNKNOWN_LINK_REL : 'noopener noreferrer'
+      // Use netInvestment for nofollow decision (items with low investment get nofollow)
+      const netInvestment = item.netInvestment ?? 0
+      return netInvestment < NOFOLLOW_LIMIT ? UNKNOWN_LINK_REL : 'noopener noreferrer'
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
@@ -1456,12 +1396,12 @@ export default {
     },
     lexicalState: async (item, args, { lexicalStateLoader }) => {
       if (!item.text) return null
-      return lexicalStateLoader.load({ text: item.text, context: { outlawed: item.outlawed, imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
+      return lexicalStateLoader.load({ text: item.text, context: { imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
     },
     html: async (item, args, { lexicalStateLoader }) => {
       if (!item.text) return null
       try {
-        const lexicalState = await lexicalStateLoader.load({ text: item.text, context: { outlawed: item.outlawed, imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
+        const lexicalState = await lexicalStateLoader.load({ text: item.text, context: { imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
         if (!lexicalState) return null
         return lexicalHTMLGenerator(lexicalState)
       } catch (error) {

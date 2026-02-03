@@ -10,7 +10,7 @@ import { timeSince } from '@/lib/time'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
-import DontLikeThisDropdownItem, { OutlawDropdownItem } from './dont-link-this'
+import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
@@ -74,7 +74,7 @@ export default function ItemInfo ({
   const router = useRouter()
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
-  // XXX sub controls pinning and outlawing options for territory founders
+  // XXX sub controls pinning options for territory founders
   // so we only expose it if there's only one sub
   const subs = item?.subs || root?.subs
   const sub = subs?.length === 1 ? subs[0] : undefined
@@ -162,15 +162,10 @@ export default function ItemInfo ({
       ))}
       {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
-      {(item.outlawed && !item.mine &&
-        <Link href='/recent/outlawed'>
-          {' '}<Badge className={styles.newComment} bg={null}>outlawed</Badge>
-        </Link>) ||
-        (item.freebie && !item.position &&
-          <Link href='/recent/freebies'>
-            {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
-          </Link>
-        )}
+      {item.freebie && !item.position &&
+        <Link href='/recent/freebies'>
+          {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
+        </Link>}
       {extraBadges}
       {
         showActionDropdown &&
@@ -202,11 +197,6 @@ export default function ItemInfo ({
             (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
-              {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
-                <>
-                  <hr className='dropdown-divider' />
-                  <OutlawDropdownItem item={item} />
-                </>}
               {item.mine && item.payIn?.id &&
                 <>
                   <hr className='dropdown-divider' />

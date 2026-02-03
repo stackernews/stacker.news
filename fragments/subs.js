@@ -26,13 +26,13 @@ export const SUB_FIELDS = gql`
     billPaidUntil
     baseCost
     replyCost
+    postsSatsFilter
+    commentsSatsFilter
     userId
     desc
     lexicalState
     html
     status
-    moderated
-    moderatedCount
     meMuteSub
     meSubscription
     nsfw

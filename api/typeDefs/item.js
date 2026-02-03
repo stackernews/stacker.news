@@ -42,7 +42,6 @@ export default gql`
     upsertComment(id: ID, text: String!, parentId: ID, boost: Int, hash: String, hmac: String): PayIn!
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): PayIn!
     pollVote(id: ID!): PayIn!
-    toggleOutlaw(id: ID!): Item!
     updateCommentsViewAt(id: ID!, meCommentsViewedAt: Date!): Date
   }
 
@@ -123,8 +122,8 @@ export default gql`
     meBookmark: Boolean!
     meSubscription: Boolean!
     meForward: Boolean
-    outlawed: Boolean!
     freebie: Boolean!
+    netInvestment: Int!
     freedFreebie: Boolean!
     bio: Boolean!
     ncomments: Int!

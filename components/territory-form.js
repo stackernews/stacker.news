@@ -1,6 +1,7 @@
 import AccordianItem from './accordian-item'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
-import { Checkbox, CheckboxGroup, Form, Input, SNInput } from './form'
+import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
+import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
@@ -14,6 +15,51 @@ import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
+
+function SatFilterRanges () {
+  const { values } = useFormikContext()
+  const baseCost = values.baseCost || 1
+  const replyCost = values.replyCost || 1
+
+  return (
+    <>
+      <Range
+        label={
+          <div className='d-flex align-items-center'>posts sat filter
+            <Info>
+              <ul>
+                <li>minimum net investment (cost + zaps + boost - downzaps) for posts to appear in hot/top</li>
+                <li>must be at least the post cost ({baseCost} sats)</li>
+              </ul>
+            </Info>
+          </div>
+        }
+        name='postsSatsFilter'
+        min={baseCost}
+        max={1000}
+        step={1}
+        suffix=' sats'
+      />
+      <Range
+        label={
+          <div className='d-flex align-items-center'>comments sat filter
+            <Info>
+              <ul>
+                <li>minimum net investment for comments to appear in hot/top</li>
+                <li>must be at least the reply cost ({replyCost} sats)</li>
+              </ul>
+            </Info>
+          </div>
+        }
+        name='commentsSatsFilter'
+        min={replyCost}
+        max={1000}
+        step={1}
+        suffix=' sats'
+      />
+    </>
+  )
+}
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -92,10 +138,12 @@ export default function TerritoryForm ({ sub }) {
           desc: sub?.desc || '',
           baseCost: sub?.baseCost || 10,
           replyCost: sub?.replyCost || 1,
+          // Default sat filters to match the post/reply costs
+          postsSatsFilter: sub?.postsSatsFilter ?? sub?.baseCost ?? 10,
+          commentsSatsFilter: sub?.commentsSatsFilter ?? sub?.replyCost ?? 1,
           postTypes: sub?.postTypes || POST_TYPES,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
-          moderated: sub?.moderated || false,
           nsfw: sub?.nsfw || false
         }}
         schema={schema}
@@ -243,22 +291,7 @@ export default function TerritoryForm ({ sub }) {
                 required
                 append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
               />
-              <BootstrapForm.Label>moderation</BootstrapForm.Label>
-              <Checkbox
-                inline
-                label={
-                  <div className='d-flex align-items-center'>enable moderation
-                    <Info>
-                      <ol>
-                        <li>Outlaw posts and comments with a click</li>
-                        <li>Your territory will get a <Badge bg='secondary'>moderated</Badge> badge</li>
-                      </ol>
-                    </Info>
-                  </div>
-          }
-                name='moderated'
-                groupClassName='ms-1'
-              />
+              <SatFilterRanges />
               <BootstrapForm.Label>nsfw</BootstrapForm.Label>
               <Checkbox
                 inline

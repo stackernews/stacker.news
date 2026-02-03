@@ -71,7 +71,8 @@ export default function TransformerBridgePlugin () {
                 // check if selection is a URL
                 const text = innerSelection.getTextContent()
                 const isURL = URL_REGEXP.test(text)
-                $toggleLink(bridgeRef.current, isURL ? text : 'https://')
+                const linkURL = isURL ? text : 'https://'
+                $toggleLink(bridgeRef.current, linkURL)
               }
               break
           }

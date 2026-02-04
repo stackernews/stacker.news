@@ -38,7 +38,9 @@ function itemTitle (item) {
     unitSingular: 'zapper',
     unitPlural: 'zappers'
   })
-  if (item.sats) {
+  if (item.sats === 0 && item.downSats > 0) {
+    title += ` \\ ${numWithUnits(-item.downSats, { abbreviate: false })}`
+  } else if (item.sats) {
     title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
   }
   if (item.credits) {
@@ -103,7 +105,9 @@ export default function ItemInfo ({
       {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
         <>
           <span title={itemTitle(item)}>
-            {numWithUnits(item.sats)}
+            {item.sats === 0 && item.downSats > 0
+              ? numWithUnits(-item.downSats)
+              : numWithUnits(item.sats)}
           </span>
           <span> \ </span>
         </>}

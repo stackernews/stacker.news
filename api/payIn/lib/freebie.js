@@ -20,6 +20,7 @@ export function canCreateFreeComment (user) {
  * Check if the item qualifies as a freebie
  * @param {Object} models - Prisma models
  * @param {Object} params - { cost, baseCost, parentId, bio, boost }
+ *   - cost and baseCost are in millisatoshis (msats)
  * @param {Object} context - { me } with me.id
  * @returns {Promise<boolean>} - true if item should be free
  */
@@ -42,7 +43,7 @@ export async function checkFreebieEligibility (models, { cost, baseCost, parentI
     select: { msats: true, mcredits: true, hasSendWallet: true, freeCommentCount: true, freeCommentResetAt: true }
   })
 
-  // Must not be able to afford the cost
+  // Must not be able to afford the cost (all values are in millisatoshis)
   const cantAfford = user.msats < cost && user.mcredits < cost
   if (!cantAfford) return false
 

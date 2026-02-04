@@ -6,7 +6,6 @@ import useHeadlessBridge from '@/components/editor/hooks/use-headless-bridge'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 import { $insertMarkdown, $debugNodeToJSON } from '@/lib/lexical/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
-import { URL_REGEXP } from '@/lib/url'
 
 /** command to transform markdown selections using a headless lexical editor
  * @param {Object} params.selection - selection to transform
@@ -55,8 +54,6 @@ export default function TransformerBridgePlugin () {
 
         // if we have a selection, apply the transformation
         if (innerSelection) {
-          const hasExplicitLink = /\[.*\]\(.*\)/.test(markdown)
-
           switch (formatType) {
             case 'format':
               innerSelection.formatText(transformation)
@@ -65,14 +62,7 @@ export default function TransformerBridgePlugin () {
               $formatBlock(bridgeRef.current, transformation)
               break
             case 'link':
-              if (hasExplicitLink) {
-                $toggleLink(bridgeRef.current, null)
-              } else {
-                // check if selection is a URL
-                const text = innerSelection.getTextContent()
-                const isURL = URL_REGEXP.test(text)
-                $toggleLink(bridgeRef.current, isURL ? text : 'https://')
-              }
+              $toggleLink(bridgeRef.current, transformation)
               break
           }
 

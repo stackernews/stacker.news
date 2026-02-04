@@ -145,7 +145,7 @@ export default forwardRef(function Reply ({
       {reply &&
         <div className={styles.reply}>
           <FeeButtonProvider
-            baseLineItems={subs.length ? postCommentBaseLineItems({ subs, comment: true, me: !!me }) : undefined}
+            baseLineItems={postCommentBaseLineItems({ subs, comment: true, me: !!me })}
             useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, me: !!me })}
           >
             <Form

@@ -4,7 +4,7 @@ import { getItemMentions, getMentions, getSubs, performBotBehavior } from '../li
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
-import { satsToMsats } from '@/lib/format'
+import { satsToMsats, msatsToSats } from '@/lib/format'
 import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
 import { getItem } from '@/api/resolvers/item'
@@ -94,6 +94,7 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNa
 
 export async function onBegin (tx, payInId, args) {
   const { id, boost: _, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], subNames = [], ...data } = args
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
   const old = await tx.item.findUnique({
     where: { id: parseInt(id) },
@@ -122,10 +123,13 @@ export async function onBegin (tx, payInId, args) {
 
   // we put boost in the where clause because we don't want to update the boost
   // if it has changed concurrently
+  // update cost if the update has a cost (e.g., moving to new territory)
+  const additionalCost = msatsToSats(payIn.mcost)
   await tx.item.update({
     where: { id: parseInt(id) },
     data: {
       ...data,
+      ...(additionalCost > 0 && { cost: old.cost + additionalCost }),
       imgproxyUrls,
       pollOptions: {
         createMany: {

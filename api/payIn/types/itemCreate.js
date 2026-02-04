@@ -1,4 +1,4 @@
-import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
+import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior, getSubs } from '../lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
@@ -9,22 +9,7 @@ import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
 import { getItem } from '@/api/resolvers/item'
 import { getTempImgproxyUrls } from '../lib/upload'
-
-// Get the first day of next month at midnight UTC
-function getNextMonthStart () {
-  const now = new Date()
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0, 0))
-}
-
-// Check if user can create a free comment (has remaining monthly allowance)
-function canCreateFreeComment (me) {
-  // Reset counter if past reset date
-  if (me.freeCommentResetAt && new Date() >= new Date(me.freeCommentResetAt)) {
-    // Counter will be reset, user can create free comment
-    return true
-  }
-  return (me.freeCommentCount || 0) < (FREE_COMMENTS_PER_MONTH || 5)
-}
+import { checkFreebieEligibility, incrementFreeCommentCount } from '../lib/freebie'
 
 export const anonable = true
 
@@ -76,14 +61,8 @@ async function getCost (models, { subNames, parentId, uploadIds, boost = 0, bio 
           ${me.id !== USER_ID.anon && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
       * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER  as cost`
 
-  // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon,
-  // cost must be greater than user's balance, user has no send wallet attached, and boost is 0
-  // For comments (parentId exists), also check free comment monthly limit
-  const canFreebie = (parentId || bio) && cost <= baseCost && me.id !== USER_ID.anon &&
-    me.msats < cost && me.mcredits < cost && !me.hasSendWallet && boost <= 0
-  const freebie = canFreebie && (bio || canCreateFreeComment(me))
-
-  return freebie ? BigInt(0) : BigInt(cost)
+  const isFreebie = await checkFreebieEligibility(models, { cost, baseCost, parentId, bio, boost }, { me })
+  return isFreebie ? BigInt(0) : BigInt(cost)
 }
 
 export async function getInitial (models, args, { me }) {
@@ -140,7 +119,7 @@ export async function onBegin (tx, payInId, args) {
   const imgproxyUrls = await getTempImgproxyUrls(tx, uploadIds)
 
   // freebie is true when cost is 0 and it's a comment or bio
-  const isFreebie = payIn.mcost === 0n && (parentId || data.bio)
+  const isFreebie = payIn.mcost === 0n && !!(parentId || data.bio)
 
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
@@ -229,20 +208,8 @@ export async function onPaid (tx, payInId) {
     throw new Error('Item not found')
   }
 
-  // If this is a freebie comment (not bio), increment the free comment counter
-  if (item.freebie && item.parentId && payIn.userId !== USER_ID.anon) {
-    const user = await tx.user.findUnique({ where: { id: payIn.userId } })
-    const now = new Date()
-    const needsReset = user.freeCommentResetAt && now >= new Date(user.freeCommentResetAt)
-
-    await tx.user.update({
-      where: { id: payIn.userId },
-      data: {
-        freeCommentCount: needsReset ? 1 : { increment: 1 },
-        freeCommentResetAt: needsReset || !user.freeCommentResetAt ? getNextMonthStart() : undefined
-      }
-    })
-  }
+  // If this is a freebie comment, increment the free comment counter
+  await incrementFreeCommentCount(tx, { item, userId: payIn.userId })
 
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
     VALUES ('timestampItem', jsonb_build_object('id', ${item.id}::INTEGER), now() + interval '10 minutes', -2)`

@@ -71,9 +71,8 @@ ALTER TABLE "Item" ADD COLUMN "netInvestment" INT GENERATED ALWAYS AS (
   net_investment("cost", "boost", "msats", "downMsats")
 ) STORED NOT NULL;
 
--- Create indexes for efficient filtering/sorting
+-- Create index for efficient filtering/sorting by net investment
 CREATE INDEX "Item_netInvestment_idx" ON "Item"("netInvestment");
-CREATE INDEX "Item_freebie_netInvestment_idx" ON "Item"("netInvestment") WHERE freebie = true;
 
 -- =====================
 -- UPDATE COMMENT FUNCTIONS

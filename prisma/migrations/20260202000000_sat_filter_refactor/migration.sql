@@ -3,7 +3,7 @@
 -- 1. Adds postsSatsFilter and commentsSatsFilter to User (replacing satsFilter)
 -- 2. Adds freeCommentCount and freeCommentResetAt to User for monthly limits
 -- 3. Removes wildWestMode from User
--- 4. Adds postsSatsFilter and commentsSatsFilter to Sub (territory)
+-- 4. Adds postsSatsFilter to Sub (territory)
 -- 5. Removes moderated and moderatedCount from Sub
 -- 6. Adds netInvestment generated column to Item
 -- 7. Removes outlawed and genoutlawed from Item
@@ -29,9 +29,8 @@ ALTER TABLE "users" DROP COLUMN "wildWestMode";
 -- SUB (TERRITORY) MODEL CHANGES
 -- =====================
 
--- Add filter columns to Sub (default to at least the base post/reply costs)
+-- Add filter column to Sub (default to at least the base post cost)
 ALTER TABLE "Sub" ADD COLUMN "postsSatsFilter" INT NOT NULL DEFAULT 1;
-ALTER TABLE "Sub" ADD COLUMN "commentsSatsFilter" INT NOT NULL DEFAULT 1;
 
 -- Drop moderation columns from Sub
 ALTER TABLE "Sub" DROP COLUMN "moderated";

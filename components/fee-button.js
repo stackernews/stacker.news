@@ -181,7 +181,7 @@ function FreebieDialog ({ freeCommentsLeft }) {
     <>
       <div className='fw-bold'>you don't have enough sats, so this one is on us</div>
       <ul className='mt-2'>
-        <li>Free items have limited visibility and can only earn cowboy credits until other stackers zap them.</li>
+        <li>Free items have limited visibility and can only earn cowboy credits.</li>
         {freeCommentsLeft !== null && (
           <li>You have {freeCommentsLeft} free comment{freeCommentsLeft !== 1 ? 's' : ''} left this month.</li>
         )}

@@ -777,9 +777,25 @@ export function Range ({
           }}
         />
         <small className='text-muted text-monospace'>{max}</small>
-        <span className='text-monospace fw-bold text-nowrap' style={{ minWidth: '6rem', textAlign: 'right' }}>
-          {field.value}{suffix}
-        </span>
+        <InputGroup className='flex-nowrap' style={{ width: 'auto' }}>
+          <BootstrapForm.Control
+            type='number'
+            min={min}
+            max={max}
+            step={step}
+            value={field.value}
+            className='text-end hide-spinners px-2'
+            style={{ width: '4.5rem' }}
+            onChange={(e) => {
+              const val = Number(e.target.value)
+              if (!isNaN(val)) {
+                helpers.setValue(Math.min(max, Math.max(min, val)))
+              }
+              onChange && onChange(e)
+            }}
+          />
+          {suffix && <InputGroup.Text>{suffix.trim()}</InputGroup.Text>}
+        </InputGroup>
       </div>
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       <BootstrapForm.Control.Feedback className='d-block' type='invalid'>

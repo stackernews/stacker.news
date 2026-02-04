@@ -435,7 +435,6 @@ export default function Settings ({ ssrData }) {
             name='postsSatsFilter'
             min={-1000}
             max={1000}
-            step={10}
             suffix=' sats'
           />
           <Range
@@ -452,7 +451,6 @@ export default function Settings ({ ssrData }) {
             name='commentsSatsFilter'
             min={-1000}
             max={1000}
-            step={1}
             suffix=' sats'
           />
           <Checkbox

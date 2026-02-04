@@ -19,45 +19,24 @@ import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
 function SatFilterRanges () {
   const { values } = useFormikContext()
   const baseCost = values.baseCost || 1
-  const replyCost = values.replyCost || 1
 
   return (
-    <>
-      <Range
-        label={
-          <div className='d-flex align-items-center'>posts sat filter
-            <Info>
-              <ul>
-                <li>minimum net investment (cost + zaps + boost - downzaps) for posts to appear in hot/top</li>
-                <li>must be at least the post cost ({baseCost} sats)</li>
-              </ul>
-            </Info>
-          </div>
-        }
-        name='postsSatsFilter'
-        min={baseCost}
-        max={1000}
-        step={1}
-        suffix=' sats'
-      />
-      <Range
-        label={
-          <div className='d-flex align-items-center'>comments sat filter
-            <Info>
-              <ul>
-                <li>minimum net investment for comments to appear in hot/top</li>
-                <li>must be at least the reply cost ({replyCost} sats)</li>
-              </ul>
-            </Info>
-          </div>
-        }
-        name='commentsSatsFilter'
-        min={replyCost}
-        max={1000}
-        step={1}
-        suffix=' sats'
-      />
-    </>
+    <Range
+      label={
+        <div className='d-flex align-items-center'>posts sat filter
+          <Info>
+            <ul>
+              <li>minimum net investment (cost + zaps + boost - downzaps) for posts to appear in hot/top</li>
+              <li>must be at least the post cost ({baseCost} sats)</li>
+            </ul>
+          </Info>
+        </div>
+      }
+      name='postsSatsFilter'
+      min={baseCost}
+      max={1000}
+      suffix=' sats'
+    />
   )
 }
 
@@ -138,9 +117,8 @@ export default function TerritoryForm ({ sub }) {
           desc: sub?.desc || '',
           baseCost: sub?.baseCost || 10,
           replyCost: sub?.replyCost || 1,
-          // Default sat filters to match the post/reply costs
+          // Default sat filter to match the post cost
           postsSatsFilter: sub?.postsSatsFilter ?? sub?.baseCost ?? 10,
-          commentsSatsFilter: sub?.commentsSatsFilter ?? sub?.replyCost ?? 1,
           postTypes: sub?.postTypes || POST_TYPES,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,

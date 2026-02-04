@@ -146,7 +146,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         '"Item"."parentId" IS NULL',
         '"Item".bio = false',
         '"Item".boost > 0',
-        await filterClause(me, models, null, sub),
+        await filterClause(me, models, null, sub, 'hot'),
         activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
@@ -355,7 +355,7 @@ function investmentClause (postsSatsFilter, commentsSatsFilter, meId) {
   )`
 }
 
-export async function filterClause (me, models, type, sub) {
+export async function filterClause (me, models, type, sub, sort) {
   // if you are explicitly asking for freebies, don't filter them
   if (type === 'freebies') {
     return ''
@@ -371,10 +371,19 @@ export async function filterClause (me, models, type, sub) {
     commentsSatsFilter = user.commentsSatsFilter
   }
 
-  // For homepage (null sub) hot/top feeds, use higher filter threshold for posts
-  // This ensures homepage quality by requiring more investment
-  if (sub === undefined || sub === null) {
-    postsSatsFilter = Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
+  // For hot/top/random feeds, apply territory or homepage filter
+  // For recent or undefined sort (e.g. notifications), only use user's filter
+  if (sort === 'hot' || sort === 'top' || sort === 'random') {
+    if (sub) {
+      // In a territory: max of user filter and territory filter
+      const territory = await models.sub.findUnique({ where: { name: sub } })
+      if (territory) {
+        postsSatsFilter = Math.max(postsSatsFilter, territory.postsSatsFilter)
+      }
+    } else {
+      // On homepage (null sub): max of user filter and homepage threshold
+      postsSatsFilter = Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
+    }
   }
 
   return investmentClause(postsSatsFilter, commentsSatsFilter, me?.id)
@@ -491,7 +500,7 @@ export default {
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
-                await filterClause(me, models, type, sub),
+                await filterClause(me, models, type, sub, 'recent'),
                 typeClause(type),
                 muteClause(me)
               )}
@@ -516,7 +525,7 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 activeOrMine(me),
-                await filterClause(me, models, type, sub),
+                await filterClause(me, models, type, sub, 'top'),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
               ${orderByClause(by || 'zaprank', me, models, type, sub)}
@@ -541,7 +550,7 @@ export default {
                 type === 'posts' && '"Item"."subNames" IS NOT NULL',
                 subClause(sub, 3, subClauseTable(type), me, showNsfw),
                 typeClause(type),
-                await filterClause(me, models, type, sub),
+                await filterClause(me, models, type, sub, 'random'),
                 activeOrMine(me),
                 muteClause(me))}
               ${orderByClause('random', me, models, type)}
@@ -626,7 +635,7 @@ export default {
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
-                      await filterClause(me, models, type, sub),
+                      await filterClause(me, models, type, sub, 'hot'),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rankhot DESC, "Item".id DESC

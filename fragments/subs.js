@@ -27,7 +27,6 @@ export const SUB_FIELDS = gql`
     baseCost
     replyCost
     postsSatsFilter
-    commentsSatsFilter
     userId
     desc
     lexicalState

@@ -674,7 +674,6 @@ model Sub {
   billedLastAt       DateTime    @default(now())
   billPaidUntil      DateTime?
   postsSatsFilter    Int         @default(1)
-  commentsSatsFilter Int         @default(1)
   nsfw               Boolean     @default(false)
 
   parent                  Sub?                      @relation("ParentChildren", fields: [parentName], references: [name])

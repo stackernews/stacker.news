@@ -21,7 +21,7 @@ export default gql`
   extend type Mutation {
     upsertSub(oldName: String, name: String!, desc: String, baseCost: Int!,
       replyCost: Int!,
-      postsSatsFilter: Int, commentsSatsFilter: Int,
+      postsSatsFilter: Int,
       postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
       nsfw: Boolean!): PayIn!
@@ -30,7 +30,7 @@ export default gql`
     toggleSubSubscription(name: String!): Boolean!
     transferTerritory(subName: String!, userName: String!): Sub
     unarchiveTerritory(name: String!, desc: String, baseCost: Int!,
-      replyCost: Int!, postsSatsFilter: Int, commentsSatsFilter: Int,
+      replyCost: Int!, postsSatsFilter: Int,
       postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
       nsfw: Boolean!): PayIn!
@@ -56,7 +56,6 @@ export default gql`
     baseCost: Int!
     replyCost: Int!
     postsSatsFilter: Int!
-    commentsSatsFilter: Int!
     status: String!
     meMuteSub: Boolean!
     nsfw: Boolean!

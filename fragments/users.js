@@ -35,6 +35,7 @@ ${STREAK_FIELDS}
       sats
       credits
       freeCommentsLeft
+      hasSendWallet
       tipDefault
       tipRandom
       tipRandomMin

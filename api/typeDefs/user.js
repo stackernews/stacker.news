@@ -131,6 +131,7 @@ export default gql`
     authMethods: AuthMethods!
     freeCommentCount: Int!
     freeCommentsLeft: Int!
+    hasSendWallet: Boolean!
 
     """
     only relevant to user

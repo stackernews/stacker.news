@@ -978,6 +978,10 @@ export default {
         return FREE_COMMENTS_PER_MONTH
       }
       return Math.max(0, FREE_COMMENTS_PER_MONTH - (user.freeCommentCount || 0))
+    },
+    hasSendWallet: (user) => {
+      // Return actual value for freebie eligibility (not hidden like UserOptional.hasSendWallet)
+      return user.hasSendWallet
     }
   },
 

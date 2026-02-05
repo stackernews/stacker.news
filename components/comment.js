@@ -105,9 +105,8 @@ export default function Comment ({
   const [edit, setEdit] = useState()
   const { me } = useMe()
   // Collapse comments that don't meet the viewer's commentsSatsFilter threshold
-  // Always collapse negative netInvestment comments (unless it's your own)
   const commentsSatsFilter = me?.privates?.commentsSatsFilter ?? DEFAULT_COMMENTS_SATS_FILTER
-  const isBelowFilter = !item.mine && (item.netInvestment < 0 || (commentsSatsFilter > 0 && item.netInvestment < commentsSatsFilter))
+  const isBelowFilter = !item.mine && item.netInvestment < commentsSatsFilter
   const isDeletedChildless = item?.ncomments === 0 && item?.deletedAt
   const [collapse, setCollapse] = useState(
     (isBelowFilter || isDeletedChildless || item?.user?.meMute) && !includeParent

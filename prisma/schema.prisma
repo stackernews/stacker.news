@@ -659,22 +659,22 @@ model Sub {
   parentName String?               @db.Citext
   path       Unsupported("ltree")?
 
-  postTypes          PostType[]
-  rankingType        RankingType
-  allowFreebies      Boolean     @default(true)
-  baseCost           Int         @default(1)
-  replyCost          Int         @default(1)
-  rewardsPct         Int         @default(30)
-  desc               String?
-  status             Status      @default(ACTIVE)
-  statusUpdatedAt    DateTime?
-  billingType        BillingType
-  billingCost        Int
-  billingAutoRenew   Boolean     @default(false)
-  billedLastAt       DateTime    @default(now())
-  billPaidUntil      DateTime?
-  postsSatsFilter    Int         @default(1)
-  nsfw               Boolean     @default(false)
+  postTypes        PostType[]
+  rankingType      RankingType
+  allowFreebies    Boolean     @default(true)
+  baseCost         Int         @default(1)
+  replyCost        Int         @default(1)
+  rewardsPct       Int         @default(30)
+  desc             String?
+  status           Status      @default(ACTIVE)
+  statusUpdatedAt  DateTime?
+  billingType      BillingType
+  billingCost      Int
+  billingAutoRenew Boolean     @default(false)
+  billedLastAt     DateTime    @default(now())
+  billPaidUntil    DateTime?
+  postsSatsFilter  Int         @default(10)
+  nsfw             Boolean     @default(false)
 
   parent                  Sub?                      @relation("ParentChildren", fields: [parentName], references: [name])
   children                Sub[]                     @relation("ParentChildren")

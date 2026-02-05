@@ -360,34 +360,29 @@ export async function filterClause (me, models, type, sub, sort) {
     return ''
   }
 
-  // Default filter values for logged out users
   let postsSatsFilter = DEFAULT_POSTS_SATS_FILTER
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
+  const isCurated = sort === 'hot' || sort === 'top' || sort === 'random'
 
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
-    postsSatsFilter = user.postsSatsFilter
     commentsSatsFilter = user.commentsSatsFilter
+    postsSatsFilter = user.postsSatsFilter
   }
 
-  // For hot/top/random feeds, apply territory or homepage filter
-  // For recent or undefined sort (e.g. notifications), only use user's filter
-  const isCurated = sort === 'hot' || sort === 'top' || sort === 'random'
-  if (isCurated) {
-    if (sub) {
-      // In a territory: use the territory founder's filter (overrides user's filter)
-      const territory = await models.sub.findUnique({ where: { name: sub } })
-      if (territory) {
-        postsSatsFilter = territory.postsSatsFilter
-      }
-    } else {
-      // On homepage (null sub): max of user filter and homepage threshold
-      postsSatsFilter = Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
+  if (sub) {
+    // In a territory: the founder's postsSatsFilter is authoritative
+    const territory = await models.sub.findUnique({ where: { name: sub } })
+    if (territory) {
+      postsSatsFilter = territory.postsSatsFilter
     }
+  } else if (isCurated) {
+    // On homepage hot/top/random: max of user filter and homepage threshold
+    postsSatsFilter = Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
   }
 
   // On curated feeds (hot/top/random), your own items are filtered like everyone else's.
-  // On personal feeds (recent, notifications), your own items always pass the filter.
+  // On recent/notifications, your own items always pass the filter.
   return investmentClause(postsSatsFilter, commentsSatsFilter, me?.id, !isCurated)
 }
 

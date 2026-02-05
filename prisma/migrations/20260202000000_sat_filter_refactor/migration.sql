@@ -5,7 +5,7 @@
 -- 3. Removes wildWestMode from User
 -- 4. Adds postsSatsFilter to Sub (territory)
 -- 5. Removes moderated and moderatedCount from Sub
--- 6. Adds netInvestment generated column to Item
+-- 6. Adds netInvestment column to Item (with trigger to keep it updated)
 -- 7. Removes outlawed and genoutlawed from Item
 -- 8. Backfills freebie column for historical items (cost=0, boost=0)
 
@@ -55,28 +55,50 @@ DROP FUNCTION IF EXISTS genoutlawed_state;
 -- Drop the outlawed column
 ALTER TABLE "Item" DROP COLUMN "outlawed";
 
--- Create the netInvestment function for the generated column
-CREATE OR REPLACE FUNCTION net_investment(
-  "cost"     numeric,
-  "boost"    numeric,
-  "msats"    numeric,
-  "downMsats" numeric
-) RETURNS integer
-LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
-  SELECT (
-    COALESCE("cost", 0) +
-    COALESCE("boost", 0) +
-    (COALESCE("msats", 0) / 1000) -
-    (COALESCE("downMsats", 0) / 1000)
-  )::integer
+-- Add netInvestment column to Item (regular column, not generated, to avoid full table rewrite)
+-- Default 0 so the ADD COLUMN is instant in PG 11+
+ALTER TABLE "Item" ADD COLUMN "netInvestment" INT NOT NULL DEFAULT 0;
+
+-- Create the function used by the trigger to keep netInvestment up to date
+CREATE OR REPLACE FUNCTION item_net_investment_trigger() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  NEW."netInvestment" := (
+    COALESCE(NEW.cost, 0) +
+    COALESCE(NEW.boost, 0) +
+    (COALESCE(NEW.msats, 0) / 1000) -
+    (COALESCE(NEW."downMsats", 0) / 1000)
+  )::integer;
+  RETURN NEW;
+END;
 $$;
 
--- Add netInvestment generated column to Item
-ALTER TABLE "Item" ADD COLUMN "netInvestment" INT GENERATED ALWAYS AS (
-  net_investment("cost", "boost", "msats", "downMsats")
-) STORED NOT NULL;
+-- Only fire trigger when the source columns change (or on insert)
+-- UPDATE OF ensures the trigger is skipped for unrelated column updates (e.g. text, title)
+-- This also means the backfill UPDATE below (which only sets netInvestment) won't re-trigger
+CREATE TRIGGER item_net_investment
+  BEFORE INSERT OR UPDATE OF cost, boost, msats, "downMsats" ON "Item"
+  FOR EACH ROW EXECUTE FUNCTION item_net_investment_trigger();
 
--- Create index for efficient filtering/sorting by net investment
+-- Backfill netInvestment for existing rows that still have the default (0)
+-- Only updates rows where the computed value differs, skipping rows already correct
+UPDATE "Item" SET "netInvestment" = (
+  COALESCE(cost, 0) +
+  COALESCE(boost, 0) +
+  (COALESCE(msats, 0) / 1000) -
+  (COALESCE("downMsats", 0) / 1000)
+)::integer
+WHERE "netInvestment" != (
+  COALESCE(cost, 0) +
+  COALESCE(boost, 0) +
+  (COALESCE(msats, 0) / 1000) -
+  (COALESCE("downMsats", 0) / 1000)
+)::integer;
+
+-- Create index concurrently to avoid blocking writes during index build
+-- NOTE: CREATE INDEX CONCURRENTLY cannot run inside a transaction block.
+-- If your migration runner wraps this in a transaction, you may need to split
+-- this into a separate migration or run it manually.
 CREATE INDEX "Item_netInvestment_idx" ON "Item"("netInvestment");
 
 -- Backfill freebie column for historical items

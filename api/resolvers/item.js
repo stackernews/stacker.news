@@ -1224,7 +1224,7 @@ export default {
       return item.cost === 0 && item.boost === 0
     },
     netInvestment: async (item) => {
-      // This is a generated column in the database, so we can just return it
+      // Maintained by the item_net_investment trigger
       return item.netInvestment ?? 0
     },
     meSats: async (item, args, { me, models }) => {

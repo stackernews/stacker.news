@@ -446,7 +446,7 @@ model Item {
   itemForwards         ItemForward[]
   itemUploads          ItemUpload[]
   uploadId             Int?
-  netInvestment        Int                   @default(dbgenerated())
+  netInvestment        Int                   @default(0)
   apiKey               Boolean               @default(false)
   pollExpiresAt        DateTime?
   Ancestors            Reply[]               @relation("AncestorReplyItem")

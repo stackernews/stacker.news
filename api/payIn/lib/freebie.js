@@ -1,5 +1,4 @@
 import { FREE_COMMENTS_PER_MONTH, USER_ID } from '@/lib/constants'
-import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
 
 // Get the first day of next month at midnight UTC

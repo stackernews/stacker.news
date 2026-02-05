@@ -343,8 +343,9 @@ const subClause = (sub, num, table = 'Item', me, showNsfw) => {
 }
 
 // Uses the indexed netInvestment column for efficient filtering
-function investmentClause (postsSatsFilter, commentsSatsFilter, meId) {
-  const ownerClause = meId ? ` OR "Item"."userId" = ${meId}` : ''
+// ownerBypass: if true, always show the user's own items regardless of filter
+function investmentClause (postsSatsFilter, commentsSatsFilter, meId, ownerBypass) {
+  const ownerClause = ownerBypass && meId ? ` OR "Item"."userId" = ${meId}` : ''
   return `(
     CASE WHEN "Item"."parentId" IS NULL
       THEN "Item"."netInvestment" >= ${postsSatsFilter}${ownerClause}
@@ -371,7 +372,8 @@ export async function filterClause (me, models, type, sub, sort) {
 
   // For hot/top/random feeds, apply territory or homepage filter
   // For recent or undefined sort (e.g. notifications), only use user's filter
-  if (sort === 'hot' || sort === 'top' || sort === 'random') {
+  const isCurated = sort === 'hot' || sort === 'top' || sort === 'random'
+  if (isCurated) {
     if (sub) {
       // In a territory: max of user filter and territory filter
       const territory = await models.sub.findUnique({ where: { name: sub } })
@@ -384,7 +386,9 @@ export async function filterClause (me, models, type, sub, sort) {
     }
   }
 
-  return investmentClause(postsSatsFilter, commentsSatsFilter, me?.id)
+  // On curated feeds (hot/top/random), your own items are filtered like everyone else's.
+  // On personal feeds (recent, notifications), your own items always pass the filter.
+  return investmentClause(postsSatsFilter, commentsSatsFilter, me?.id, !isCurated)
 }
 
 function typeClause (type) {

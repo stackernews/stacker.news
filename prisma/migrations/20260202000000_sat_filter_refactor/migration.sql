@@ -30,8 +30,13 @@ ALTER TABLE "users" DROP COLUMN "wildWestMode";
 -- SUB (TERRITORY) MODEL CHANGES
 -- =====================
 
--- Add filter column to Sub (default to at least the base post cost)
-ALTER TABLE "Sub" ADD COLUMN "postsSatsFilter" INT NOT NULL DEFAULT 1;
+-- Add filter column to Sub
+-- First add the column with a temporary default, then backfill with baseCost
+ALTER TABLE "Sub" ADD COLUMN "postsSatsFilter" INT NOT NULL DEFAULT 10;
+
+-- Backfill postsSatsFilter = baseCost for existing territories
+-- This ensures the validation constraint (postsSatsFilter >= baseCost) is satisfied
+UPDATE "Sub" SET "postsSatsFilter" = "baseCost";
 
 -- Drop moderation columns from Sub
 ALTER TABLE "Sub" DROP COLUMN "moderated";

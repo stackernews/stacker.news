@@ -356,8 +356,8 @@ function investmentClause (postsSatsFilter, commentsSatsFilter, meId) {
 }
 
 export async function filterClause (me, models, type, sub, sort) {
-  // if you are explicitly asking for freebies, don't filter them
-  if (type === 'freebies') {
+  // if you are explicitly asking for freebies or bios, don't filter them
+  if (type === 'freebies' || type === 'bios') {
     return ''
   }
 

@@ -7,6 +7,7 @@
 -- 5. Removes moderated and moderatedCount from Sub
 -- 6. Adds netInvestment generated column to Item
 -- 7. Removes outlawed and genoutlawed from Item
+-- 8. Backfills freebie column for historical items (cost=0, boost=0)
 
 -- =====================
 -- USER MODEL CHANGES
@@ -72,6 +73,10 @@ ALTER TABLE "Item" ADD COLUMN "netInvestment" INT GENERATED ALWAYS AS (
 
 -- Create index for efficient filtering/sorting by net investment
 CREATE INDEX "Item_netInvestment_idx" ON "Item"("netInvestment");
+
+-- Backfill freebie column for historical items
+-- Previously /recent/freebies used "cost = 0", now it uses "freebie = true"
+UPDATE "Item" SET freebie = true WHERE cost = 0 AND boost = 0;
 
 -- =====================
 -- UPDATE COMMENT FUNCTIONS

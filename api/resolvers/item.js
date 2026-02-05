@@ -375,10 +375,10 @@ export async function filterClause (me, models, type, sub, sort) {
   const isCurated = sort === 'hot' || sort === 'top' || sort === 'random'
   if (isCurated) {
     if (sub) {
-      // In a territory: max of user filter and territory filter
+      // In a territory: use the territory founder's filter (overrides user's filter)
       const territory = await models.sub.findUnique({ where: { name: sub } })
       if (territory) {
-        postsSatsFilter = Math.max(postsSatsFilter, territory.postsSatsFilter)
+        postsSatsFilter = territory.postsSatsFilter
       }
     } else {
       // On homepage (null sub): max of user filter and homepage threshold

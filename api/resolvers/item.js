@@ -40,10 +40,8 @@ function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS
   sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
 
   // Push comments with investment below the threshold to the bottom of threads
-  // This applies to all comments (including freebies) with netInvestment below the filter
-  if (commentsSatsFilter > 0) {
-    sharedSortsArray.push(`(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`)
-  }
+  // Always push negative netInvestment to bottom; also push below-filter if filter > 0
+  sharedSortsArray.push(`(CASE WHEN "Item"."netInvestment" < 0${commentsSatsFilter > 0 ? ` OR "Item"."netInvestment" < ${commentsSatsFilter}` : ''} THEN 1 ELSE 0 END) ASC`)
 
   const sharedSorts = sharedSortsArray.join(', ')
 

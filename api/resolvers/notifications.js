@@ -5,7 +5,7 @@ import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { getPayIn } from './payIn'
-import { WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
+import { WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 export default {
@@ -76,9 +76,6 @@ export default {
 
       const itemDrivenQueries = []
 
-      // Get user's commentsSatsFilter for notification filtering
-      const commentsSatsFilter = meFull.commentsSatsFilter ?? DEFAULT_COMMENTS_SATS_FILTER
-
       // Thread subscriptions
       itemDrivenQueries.push(
         `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
@@ -90,16 +87,11 @@ export default {
             'r.created_at >= "ThreadSubscription".created_at',
             'r.created_at < $2',
             'r."userId" <> $1',
-            // Apply sat filter - always show content above the filter threshold
-            `"Item"."netInvestment" >= ${commentsSatsFilter}`,
             ...(meFull.noteAllDescendants ? [] : ['r.level = 1'])
           )}
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT}`
       )
-
-      // Get user's postsSatsFilter for notification filtering
-      const postsSatsFilter = meFull.postsSatsFilter ?? DEFAULT_POSTS_SATS_FILTER
 
       // User subscriptions
       // Only include posts or comments created after the corresponding subscription was enabled, not _all_ from history
@@ -113,11 +105,6 @@ export default {
             `(
               ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
-            )`,
-            // Apply sat filter based on whether it's a post or comment
-            `(
-              ("Item"."parentId" IS NULL AND "Item"."netInvestment" >= ${postsSatsFilter})
-              OR ("Item"."parentId" IS NOT NULL AND "Item"."netInvestment" >= ${commentsSatsFilter})
             )`
           )}
           ORDER BY "sortTime" DESC
@@ -134,9 +121,7 @@ export default {
             '"SubSubscription"."userId" = $1',
             '"Item"."userId" <> $1',
             '"Item"."parentId" IS NULL',
-            '"Item".created_at >= "SubSubscription".created_at',
-            // Apply sat filter for territory posts
-            `"Item"."netInvestment" >= ${postsSatsFilter}`
+            '"Item".created_at >= "SubSubscription".created_at'
           )}
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT}`
@@ -151,9 +136,7 @@ export default {
             ${whereClause(
               '"Item".created_at < $2',
               '"Mention"."userId" = $1',
-              '"Item"."userId" <> $1',
-              // Apply sat filter for mentions
-              `"Item"."netInvestment" >= ${commentsSatsFilter}`
+              '"Item"."userId" <> $1'
             )}
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}`
@@ -169,9 +152,7 @@ export default {
             ${whereClause(
               '"ItemMention".created_at < $2',
               '"Referrer"."userId" <> $1',
-              '"Referee"."userId" = $1',
-              // Apply sat filter for item mentions
-              `"Referrer"."netInvestment" >= ${commentsSatsFilter}`
+              '"Referee"."userId" = $1'
             )}
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}`

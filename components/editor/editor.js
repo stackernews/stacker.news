@@ -15,7 +15,6 @@ import LocalDraftPlugin from '@/components/editor/plugins/core/local-draft'
 import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
 import MentionsPlugin from '@/components/editor/plugins/mentions'
 import FileUploadPlugin from '@/components/editor/plugins/upload'
-import PreviewPlugin from '@/components/editor/plugins/preview'
 import { $setMarkdown } from '@/lib/lexical/utils'
 import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
@@ -124,13 +123,7 @@ function EditorContent ({
           aria-required={required}
         />
       </div>
-      {containerRef && (
-        <PreviewPlugin
-          editorRef={containerRef}
-          topLevel={topLevel}
-          name={name}
-        />
-      )}
+      {/* TODO: file upload and mentions only work in markdown mode */}
       <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
       <ShortcutsPlugin />
@@ -140,7 +133,8 @@ function EditorContent ({
       <MaxLengthPlugin lengthOptions={lengthOptions} />
       <SoftkeyUnborkerPlugin />
       <SoftkeyEmptyGuardPlugin />
-      <TransformerBridgePlugin />
+      {/* only enable transformer bridge for markdown mode */}
+      {editorMode === 'markdown' && <TransformerBridgePlugin />}
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

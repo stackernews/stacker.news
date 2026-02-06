@@ -18,7 +18,7 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function getCost (models, { id, boost = 0, uploadIds, bio, newSubs, parentId }, { me }) {
+async function getMcost (models, { id, boost = 0, uploadIds, bio, newSubs, parentId }, { me }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
   const old = await models.item.findUnique({
@@ -39,7 +39,7 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSubs, parent
 
   const { totalFeesMsats } = await uploadFees(uploadIds, { models, me })
 
-  let cost = 0n
+  let mcost = 0n
   const addedSubs = subsDiff(newSubs, old.subNames)
   if (!parentId && addedSubs.length > 0) {
     if (old.boost > 0) {
@@ -47,21 +47,21 @@ async function getCost (models, { id, boost = 0, uploadIds, bio, newSubs, parent
     }
     for (const subName of addedSubs) {
       const sub = newSubs.find(sub => sub.name === subName)
-      cost += satsToMsats(sub.baseCost)
+      mcost += satsToMsats(sub.baseCost)
     }
   }
 
-  if ((cost > 0 || totalFeesMsats > 0 || (boost - old.boost) > 0) && old.itemPayIns.length === 0) {
+  if ((mcost > 0 || totalFeesMsats > 0 || (boost - old.boost) > 0) && old.itemPayIns.length === 0) {
     throw new Error('cannot increase item cost with unpaid invoice')
   }
 
-  return cost
+  return mcost
 }
 
 export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNames }, { me }) {
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const subs = await getSubs(models, { subNames, parentId: old.parentId })
-  const mcost = await getCost(models, { id, boost, uploadIds, bio, newSubs: subs, parentId: old.parentId }, { me })
+  const mcost = await getMcost(models, { id, boost, uploadIds, bio, newSubs: subs, parentId: old.parentId }, { me })
 
   // for post updates, when a sub is added, it contributes to the cost
   // we populate the mcost so that the new sub gets their proportional share of the revenue

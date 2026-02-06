@@ -20,17 +20,16 @@ export function canCreateFreeComment (user) {
 /**
  * Check if the item qualifies as a freebie
  * @param {Object} models - Prisma models
- * @param {Object} params - { cost, baseCost, parentId, bio, boost }
- *   - cost and baseCost are in millisatoshis (msats)
+ * @param {Object} params - { mcost, baseMcost, parentId, bio, boost }
  * @param {Object} context - { me } with me.id
  * @returns {Promise<boolean>} - true if item should be free
  */
-export async function checkFreebieEligibility (models, { cost, baseCost, parentId, bio, boost = 0 }, { me }) {
+export async function checkFreebieEligibility (models, { mcost, baseMcost, parentId, bio, boost = 0 }, { me }) {
   // Only comments and bios can be freebies
   if (!parentId && !bio) return false
 
   // Cost must not exceed base cost (no spam multiplier)
-  if (cost > baseCost) return false
+  if (mcost > baseMcost) return false
 
   // Anon users can't get freebies
   if (me.id === USER_ID.anon) return false
@@ -44,8 +43,8 @@ export async function checkFreebieEligibility (models, { cost, baseCost, parentI
     select: { msats: true, mcredits: true, hasSendWallet: true, freeCommentCount: true, freeCommentResetAt: true }
   })
 
-  // Must not be able to afford the cost (all values are in millisatoshis)
-  const cantAfford = user.msats < cost && user.mcredits < cost
+  // Must not be able to afford the cost
+  const cantAfford = user.msats < mcost && user.mcredits < mcost
   if (!cantAfford) return false
 
   // Can't have a send wallet attached

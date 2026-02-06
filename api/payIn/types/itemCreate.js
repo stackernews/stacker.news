@@ -20,53 +20,53 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-const DEFAULT_ITEM_COST = 1000n
+const DEFAULT_ITEM_MCOST = 1000n
 
-async function getBaseCost (models, { bio, parentId, subNames }) {
-  if (bio) return DEFAULT_ITEM_COST
+async function getBaseMcost (models, { bio, parentId, subNames }) {
+  if (bio) return DEFAULT_ITEM_MCOST
 
   const subs = await getSubs(models, { subNames, parentId })
 
   if (parentId) {
-    let replyCost = 0n
+    let replyMcost = 0n
     for (const sub of subs) {
       if (sub.replyCost) {
-        replyCost += satsToMsats(sub.replyCost)
+        replyMcost += satsToMsats(sub.replyCost)
       } else {
-        replyCost += DEFAULT_ITEM_COST
+        replyMcost += DEFAULT_ITEM_MCOST
       }
     }
-    return replyCost > 0n ? replyCost : DEFAULT_ITEM_COST
+    return replyMcost > 0n ? replyMcost : DEFAULT_ITEM_MCOST
   }
 
-  let baseCost = 0n
+  let baseMcost = 0n
   for (const sub of subs) {
     if (sub.baseCost) {
-      baseCost += satsToMsats(sub.baseCost)
+      baseMcost += satsToMsats(sub.baseCost)
     } else {
-      baseCost += DEFAULT_ITEM_COST
+      baseMcost += DEFAULT_ITEM_MCOST
     }
   }
 
-  return baseCost > 0n ? baseCost : DEFAULT_ITEM_COST
+  return baseMcost > 0n ? baseMcost : DEFAULT_ITEM_MCOST
 }
 
-async function getCost (models, { subNames, parentId, uploadIds, boost = 0, bio }, { me }) {
-  const baseCost = await getBaseCost(models, { bio, parentId, subNames })
+async function getMcost (models, { subNames, parentId, uploadIds, boost = 0, bio }, { me }) {
+  const baseMcost = await getBaseMcost(models, { bio, parentId, subNames })
 
-  // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
-  const [{ cost }] = await models.$queryRaw`
-    SELECT ${baseCost}::INTEGER
+  // mcost = baseMcost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
+  const [{ mcost }] = await models.$queryRaw`
+    SELECT ${baseMcost}::INTEGER
       * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${me.id}::INTEGER,
           ${me.id !== USER_ID.anon && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
-      * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER  as cost`
+      * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER  as mcost`
 
-  const isFreebie = await checkFreebieEligibility(models, { cost, baseCost, parentId, bio, boost }, { me })
-  return isFreebie ? BigInt(0) : BigInt(cost)
+  const isFreebie = await checkFreebieEligibility(models, { mcost, baseMcost, parentId, bio, boost }, { me })
+  return isFreebie ? BigInt(0) : BigInt(mcost)
 }
 
 export async function getInitial (models, args, { me }) {
-  const mcost = await getCost(models, args, { me })
+  const mcost = await getMcost(models, args, { me })
   const subs = await getSubs(models, args)
 
   // for item creation, each sub can have a different cost

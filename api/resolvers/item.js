@@ -1226,7 +1226,7 @@ export default {
       return item.weightedVotes - item.weightedDownVotes > 0
     },
     freebie: async (item) => {
-      return item.cost === 0 && item.boost === 0
+      return item.cost === 0
     },
     netInvestment: async (item) => {
       // Maintained by the item_net_investment trigger

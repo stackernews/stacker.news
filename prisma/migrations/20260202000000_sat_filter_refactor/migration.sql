@@ -103,7 +103,7 @@ CREATE INDEX "Item_netInvestment_idx" ON "Item"("netInvestment");
 
 -- Backfill freebie column for historical items
 -- Previously /recent/freebies used "cost = 0", now it uses "freebie = true"
-UPDATE "Item" SET freebie = true WHERE cost = 0 AND boost = 0;
+UPDATE "Item" SET freebie = true WHERE cost = 0;
 
 -- =====================
 -- UPDATE COMMENT FUNCTIONS

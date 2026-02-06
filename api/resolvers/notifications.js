@@ -189,7 +189,7 @@ export default {
           ${whereClause(
             '"Item".created_at < $2',
             '"Item"."deletedAt" IS NULL',
-            await filterClause(me, models),
+            await filterClause(me, models, null, null, null),
             muteClause(me),
             activeOrMine(me))}
           ORDER BY id ASC, CASE

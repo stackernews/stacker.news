@@ -294,7 +294,7 @@ export default {
             'r."userId" <> $1',
             '"Item"."deletedAt" IS NULL',
             activeOrMine(me),
-            await filterClause(me, models),
+            await filterClause(me, models, null, null, null),
             muteClause(me),
             ...(user.noteAllDescendants ? [] : ['r.level = 1'])
           )})`, me.id, lastChecked)
@@ -316,7 +316,7 @@ export default {
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
             )`,
             activeOrMine(me),
-            await filterClause(me, models),
+            await filterClause(me, models, null, null, null),
             muteClause(me))})`, me.id, lastChecked)
       if (newUserSubs.exists) {
         foundNotes()
@@ -334,7 +334,7 @@ export default {
             '"Item"."parentId" IS NULL',
             '"Item"."userId" <> $1',
             activeOrMine(me),
-            await filterClause(me, models),
+            await filterClause(me, models, null, null, null),
             muteClause(me))})`, me.id, lastChecked)
       if (newSubPost.exists) {
         foundNotes()
@@ -353,7 +353,7 @@ export default {
             '"Mention".created_at > $2',
             '"Item"."userId" <> $1',
             activeOrMine(me),
-            await filterClause(me, models),
+            await filterClause(me, models, null, null, null),
             muteClause(me)
           )})`, me.id, lastChecked)
         if (newMentions.exists) {
@@ -374,7 +374,7 @@ export default {
             '"Item"."userId" <> $1',
             '"Referee"."userId" = $1',
             activeOrMine(me),
-            await filterClause(me, models),
+            await filterClause(me, models, null, null, null),
             muteClause(me)
           )})`, me.id, lastChecked)
         if (newMentions.exists) {
@@ -395,7 +395,7 @@ export default {
             '"Item"."lastZapAt" > $2',
             '"Item"."userId" <> $1',
             activeOrMine(me),
-            await filterClause(me, models),
+            await filterClause(me, models, null, null, null),
             muteClause(me)
           )})`, me.id, lastChecked)
         if (newFwdSats.exists) {

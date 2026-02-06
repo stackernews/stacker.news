@@ -370,10 +370,19 @@ export async function filterClause (me, models, type, sub, sort) {
   }
 
   if (sub) {
-    // In a territory: the founder's postsSatsFilter is authoritative
     const territory = await models.sub.findUnique({ where: { name: sub } })
     if (territory) {
-      postsSatsFilter = territory.postsSatsFilter
+      if (isCurated) {
+        // On curated feeds: territory's filter is authoritative
+        postsSatsFilter = territory.postsSatsFilter
+      } else {
+        // On recent: use the lower of user's and territory's filter so either
+        // party can relax the threshold. For logged-out users, use only
+        // the territory's filter (ignoring the logged-out default).
+        postsSatsFilter = me
+          ? Math.min(postsSatsFilter, territory.postsSatsFilter)
+          : territory.postsSatsFilter
+      }
     }
   } else if (isCurated) {
     // On homepage hot/top/random: max of user filter and homepage threshold

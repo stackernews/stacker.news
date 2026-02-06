@@ -2,9 +2,14 @@ import { createContext, useContext } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
 import Editor from './editor'
+import { ToolbarContextProvider } from './contexts/toolbar'
 
 export function SNEditor ({ ...props }) {
-  return <Editor {...props} />
+  return (
+    <ToolbarContextProvider>
+      <Editor {...props} />
+    </ToolbarContextProvider>
+  )
 }
 
 const HTMLContext = createContext('')

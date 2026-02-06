@@ -1,33 +1,30 @@
 import { useCallback } from 'react'
-import { useField } from 'formik'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import Nav from 'react-bootstrap/Nav'
 import { useToolbarState } from '@/components/editor/contexts/toolbar'
 
 /** displays and toggles between write and preview modes */
-export default function ModeSwitchPlugin ({ name }) {
-  const [text] = useField({ name })
+export default function ModeSwitchPlugin () {
   const { toolbarState, updateToolbarState } = useToolbarState()
 
   const handleTabSelect = useCallback((eventKey) => {
-    updateToolbarState('previewMode', (eventKey === 'preview'))
+    updateToolbarState('editorMode', eventKey)
   }, [updateToolbarState])
 
   return (
-    <Nav variant='tabs' activeKey={toolbarState.previewMode ? 'preview' : 'write'} onSelect={handleTabSelect}>
+    <Nav variant='tabs' activeKey={toolbarState.editorMode} onSelect={handleTabSelect}>
       <Nav.Item>
-        <Nav.Link className={styles.modeTab} eventKey='write' title='write'>
-          write
+        <Nav.Link className={styles.modeTab} eventKey='markdown' title='markdown'>
+          md
         </Nav.Link>
       </Nav.Item>
       <Nav.Item>
         <Nav.Link
           className={styles.modeTab}
-          eventKey='preview'
-          title='preview'
-          disabled={!text.value}
+          eventKey='rich'
+          title='rich'
         >
-          preview
+          rich
         </Nav.Link>
       </Nav.Item>
     </Nav>

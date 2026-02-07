@@ -850,6 +850,18 @@ export default {
       }
       return { id }
     },
+    unsubscribeThread: async (parent, { id }, { me, models }) => {
+      // Delete all ThreadSubscription records where the subscribed item
+      // is an ancestor of (or equal to) the given item
+      await models.$executeRaw`
+        DELETE FROM "ThreadSubscription" ts
+        USING "Item" i
+        WHERE ts."userId" = ${me.id}
+        AND ts."itemId" = i.id
+        AND i.path @> (SELECT path FROM "Item" WHERE id = ${Number(id)})
+      `
+      return { id }
+    },
     deleteItem: async (parent, { id }, { me, models }) => {
       const old = await models.item.findUnique({ where: { id: Number(id) } })
       if (Number(old.userId) !== Number(me?.id)) {

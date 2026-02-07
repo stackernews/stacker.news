@@ -3,6 +3,56 @@ import { gql } from 'graphql-tag'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useToast } from './toast'
 
+export function UnsubscribeThreadDropdownItem ({ item: { id, path } }) {
+  const toaster = useToast()
+  const [unsubscribeThread] = useMutation(
+    gql`
+      mutation unsubscribeThread($id: ID!) {
+        unsubscribeThread(id: $id) {
+          meSubscription
+        }
+      }`, {
+      update (cache) {
+        // Clear meSubscription on all ancestor items in the cache
+        const cacheState = cache.extract()
+        Object.keys(cacheState)
+          .filter(key => key.startsWith('Item:'))
+          .forEach(key => {
+            cache.modify({
+              id: key,
+              fields: {
+                meSubscription: (existing, { readField }) => {
+                  if (!existing) return existing
+                  const itemPath = readField('path')
+                  // If this item's path is a prefix of (or equal to) our item's path,
+                  // it's an ancestor — mark as unsubscribed
+                  // Use dot-delimited prefix check to avoid partial segment matches
+                  return itemPath && path && (path === itemPath || path.startsWith(itemPath + '.')) ? false : existing
+                }
+              },
+              optimistic: true
+            })
+          })
+      }
+    }
+  )
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        try {
+          await unsubscribeThread({ variables: { id } })
+          toaster.success('unsubscribed from thread')
+        } catch (err) {
+          console.error(err)
+          toaster.danger('failed to unsubscribe from thread')
+        }
+      }}
+    >
+      unsubscribe from thread
+    </Dropdown.Item>
+  )
+}
+
 export default function SubscribeDropdownItem ({ item: { id, meSubscription } }) {
   const toaster = useToast()
   const [subscribeItem] = useMutation(

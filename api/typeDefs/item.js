@@ -22,6 +22,7 @@ export default gql`
     bookmarkItem(id: ID): Item
     pinItem(id: ID): Item
     subscribeItem(id: ID): Item
+    unsubscribeThread(id: ID!): Item
     deleteItem(id: ID): Item
     upsertLink(
       id: ID, subNames: [String!], title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput],

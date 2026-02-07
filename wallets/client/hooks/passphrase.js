@@ -29,7 +29,7 @@ export function useShowPassphrase () {
       return
     }
     showModal(
-      close => <Passphrase passphrase={passphrase} />,
+      close => <Passphrase passphrase={passphrase} username={me?.name} />,
       { replaceModal: true, keepOpen: true }
     )
   }, [showModal, generateRandomKey, updateWalletEncryption, toaster])
@@ -134,6 +134,7 @@ export function usePassphrasePrompt () {
   const salt = useKeySalt()
   const showPassphrase = useShowPassphrase()
   const resetPassphrase = useResetPassphrase()
+  const { me } = useMe()
 
   const onSubmit = useCallback(async ({ passphrase }) => {
     await savePassphrase({ passphrase })
@@ -197,6 +198,8 @@ export function usePassphrasePrompt () {
         initial={{ passphrase: '' }}
         onSubmit={onSubmit}
       >
+        {/* hidden username field for password manager credential association */}
+        <input type='hidden' name='username' autoComplete='username' value={me?.name || ''} readOnly />
         <PasswordInput
           label='passphrase'
           name='passphrase'
@@ -213,7 +216,7 @@ export function usePassphrasePrompt () {
         </div>
       </Form>
     </div>
-  ), [showPassphrase, resetPassphrase, togglePassphrasePrompt, onSubmit, hash, salt])
+  ), [showPassphrase, resetPassphrase, togglePassphrasePrompt, onSubmit, hash, salt, me?.name])
 
   return useMemo(
     () => [showPassphrasePrompt, togglePassphrasePrompt, Prompt],

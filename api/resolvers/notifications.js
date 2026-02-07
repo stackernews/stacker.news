@@ -215,6 +215,7 @@ export default {
             JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
             WHERE "Item"."userId" <> $1
             AND "Item"."lastZapAt" < $2
+            AND "Item".msats > 0
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )

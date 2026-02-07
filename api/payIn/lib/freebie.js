@@ -14,7 +14,7 @@ export function canCreateFreeComment (user) {
     // Counter will be reset, user can create free comment
     return true
   }
-  return (user.freeCommentCount || 0) < (FREE_COMMENTS_PER_MONTH || 5)
+  return (user.freeCommentCount || 0) < FREE_COMMENTS_PER_MONTH
 }
 
 /**

@@ -7,7 +7,7 @@
 -- 5. Removes moderated and moderatedCount from Sub
 -- 6. Adds netInvestment column to Item (with trigger to keep it updated)
 -- 7. Removes outlawed and genoutlawed from Item
--- 8. Backfills freebie column for historical items (cost=0, boost=0)
+-- 8. Backfills freebie column for historical items (cost=0)
 
 -- =====================
 -- USER MODEL CHANGES

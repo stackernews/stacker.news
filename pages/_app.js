@@ -87,6 +87,34 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     }
   }, [router.asPath, props?.apollo, shouldShowProgressBar])
 
+  // PWA session restore: save current URL so the app can resume after iOS kills it
+  useEffect(() => {
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+    if (!isPWA) return
+
+    const saveUrl = (url) => {
+      try { window.localStorage.setItem('pwa:lastUrl', url || window.location.pathname + window.location.search) } catch {}
+    }
+
+    // Save on every route change
+    router.events.on('routeChangeComplete', saveUrl)
+    // Also save the initial URL
+    saveUrl(window.location.pathname + window.location.search)
+
+    return () => router.events.off('routeChangeComplete', saveUrl)
+  }, [])
+
+  // PWA session restore: on cold start, redirect to the last viewed URL
+  useEffect(() => {
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+    if (!isPWA) return
+
+    const lastUrl = window.localStorage.getItem('pwa:lastUrl')
+    if (lastUrl && lastUrl !== '/' && lastUrl !== window.location.pathname + window.location.search) {
+      router.replace(lastUrl)
+    }
+  }, [])
+
   useEffect(() => {
     // hack to disable ios pwa prompt for https://github.com/stackernews/stacker.news/issues/953
     // see https://github.com/chrisdancee/react-ios-pwa-prompt/blob/66e91c4f033b740cff42c3220cf13ebdf39e3078/src/index.js#L30

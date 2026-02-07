@@ -44,7 +44,7 @@ export async function checkFreebieEligibility (models, { mcost, baseMcost, paren
   })
 
   // Must not be able to afford the cost
-  const cantAfford = user.msats < mcost && user.mcredits < mcost
+  const cantAfford = user.msats + user.mcredits < mcost
   if (!cantAfford) return false
 
   // Can't have a send wallet attached

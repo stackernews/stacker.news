@@ -121,19 +121,19 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
 
 export default {
   Query: {
-    me: async (parent, args, { models, me }) => {
+    me: async (parent, args, { models, me, userLoader }) => {
       if (!me?.id) {
         return null
       }
 
-      return await models.user.findUnique({ where: { id: me.id } })
+      return await userLoader.load(me.id)
     },
-    settings: async (parent, args, { models, me }) => {
+    settings: async (parent, args, { models, me, userLoader }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      return await models.user.findUnique({ where: { id: me.id } })
+      return await userLoader.load(me.id)
     },
     user: async (parent, { id, name }, { models }) => {
       if (id) id = Number(id)
@@ -142,10 +142,10 @@ export default {
       }
       return await models.user.findUnique({ where: { id, name } })
     },
-    nameAvailable: async (parent, { name }, { models, me }) => {
+    nameAvailable: async (parent, { name }, { models, me, userLoader }) => {
       let user
       if (me) {
-        user = await models.user.findUnique({ where: { id: me.id } })
+        user = await userLoader.load(me.id)
       }
       return user?.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
     },
@@ -231,11 +231,12 @@ export default {
       return users
     },
     topUsers,
-    hasNewNotes: async (parent, args, { me, models }) => {
+    hasNewNotes: async (parent, args, ctx) => {
+      const { me, models, userLoader } = ctx
       if (!me) {
         return false
       }
-      const user = await models.user.findUnique({ where: { id: me.id } })
+      const user = await userLoader.load(me.id)
       const lastChecked = user.checkedNotesAt || new Date(0)
 
       // if we've already recorded finding notes after they last checked, return true
@@ -294,7 +295,7 @@ export default {
             'r."userId" <> $1',
             '"Item"."deletedAt" IS NULL',
             activeOrMine(me),
-            await filterClause(me, models, null, null, null),
+            await filterClause(null, null, null, ctx),
             muteClause(me),
             ...(user.noteAllDescendants ? [] : ['r.level = 1'])
           )})`, me.id, lastChecked)
@@ -316,7 +317,7 @@ export default {
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
             )`,
             activeOrMine(me),
-            await filterClause(me, models, null, null, null),
+            await filterClause(null, null, null, ctx),
             muteClause(me))})`, me.id, lastChecked)
       if (newUserSubs.exists) {
         foundNotes()
@@ -334,7 +335,7 @@ export default {
             '"Item"."parentId" IS NULL',
             '"Item"."userId" <> $1',
             activeOrMine(me),
-            await filterClause(me, models, null, null, null),
+            await filterClause(null, null, null, ctx),
             muteClause(me))})`, me.id, lastChecked)
       if (newSubPost.exists) {
         foundNotes()
@@ -353,7 +354,7 @@ export default {
             '"Mention".created_at > $2',
             '"Item"."userId" <> $1',
             activeOrMine(me),
-            await filterClause(me, models, null, null, null),
+            await filterClause(null, null, null, ctx),
             muteClause(me)
           )})`, me.id, lastChecked)
         if (newMentions.exists) {
@@ -374,7 +375,7 @@ export default {
             '"Item"."userId" <> $1',
             '"Referee"."userId" = $1',
             activeOrMine(me),
-            await filterClause(me, models, null, null, null),
+            await filterClause(null, null, null, ctx),
             muteClause(me)
           )})`, me.id, lastChecked)
         if (newMentions.exists) {
@@ -395,7 +396,7 @@ export default {
             '"Item"."lastZapAt" > $2',
             '"Item"."userId" <> $1',
             activeOrMine(me),
-            await filterClause(me, models, null, null, null),
+            await filterClause(null, null, null, ctx),
             muteClause(me)
           )})`, me.id, lastChecked)
         if (newFwdSats.exists) {
@@ -660,14 +661,14 @@ export default {
 
       return Number(photoId)
     },
-    upsertBio: async (parent, { text }, { me, models, lnd }) => {
+    upsertBio: async (parent, { text }, { me, models, lnd, userLoader }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
       await validateSchema(bioSchema, { text })
 
-      const user = await models.user.findUnique({ where: { id: me.id } })
+      const user = await userLoader.load(me.id)
 
       if (user.bioId) {
         return await updateItem(parent, { id: user.bioId, bio: true, text, title: `@${user.name}'s bio` }, { me, models, lnd })
@@ -675,12 +676,12 @@ export default {
         return await createItem(parent, { bio: true, text, title: `@${user.name}'s bio` }, { me, models, lnd })
       }
     },
-    generateApiKey: async (parent, { id }, { models, me }) => {
+    generateApiKey: async (parent, { id }, { models, me, userLoader }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      const user = await models.user.findUnique({ where: { id: me.id } })
+      const user = await userLoader.load(me.id)
       if (!user.apiKeyEnabled) {
         throw new GqlAuthorizationError('you are not allowed to generate api keys')
       }
@@ -702,7 +703,7 @@ export default {
 
       return await models.user.update({ where: { id: me.id }, data: { apiKeyHash: null } })
     },
-    unlinkAuth: async (parent, { authType }, { models, me }) => {
+    unlinkAuth: async (parent, { authType }, { models, me, userLoader }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -710,7 +711,7 @@ export default {
 
       let user
       if (authType === 'twitter' || authType === 'github') {
-        user = await models.user.findUnique({ where: { id: me.id } })
+        user = await userLoader.load(me.id)
         const account = await models.account.findFirst({ where: { userId: me.id, provider: authType } })
         if (!account) {
           throw new GqlInputError('no such account')

@@ -64,20 +64,21 @@ function stackerPayOutsExcluded (sub, me) {
 
 const ALL_SUB = 'all'
 
-const findSub = async (subName, models) => {
+const findSub = async (subName, { subLoader }) => {
   if (subName) {
-    return subName === 'all' ? ALL_SUB : await models.sub.findUnique({ where: { name: subName } })
+    return subName === 'all' ? ALL_SUB : await subLoader.load(subName)
   }
   return null
 }
 
 export default {
   Query: {
-    growthTotals: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
+    growthTotals: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
       // Use same timeHelper and grid pattern as time series queries so totals match
       const { granularity, series } = timeHelper(when, from, to)
 
-      const sub = await findSub(subName, models)
+      const sub = await findSub(subName, ctx)
 
       // Get spending totals using same grid pattern as spendingGrowth
       const payInResult = await models.$queryRaw`
@@ -151,10 +152,11 @@ export default {
         GROUP BY series."timeBucket"
         ORDER BY series."timeBucket" ASC`
     },
-    spenderGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
+    spenderGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
       const { granularity, series } = timeHelper(when, from, to)
 
-      const sub = await findSub(subName, models)
+      const sub = await findSub(subName, ctx)
 
       const result = await models.$queryRaw`
         WITH series AS (
@@ -185,10 +187,11 @@ export default {
 
       return result
     },
-    spendingGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
+    spendingGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
       const { granularity, series } = timeHelper(when, from, to)
 
-      const sub = await findSub(subName, models)
+      const sub = await findSub(subName, ctx)
 
       return await models.$queryRaw`
          WITH series AS (
@@ -208,10 +211,11 @@ export default {
         GROUP BY grid."timeBucket"
         ORDER BY grid."timeBucket" ASC`
     },
-    itemGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
+    itemGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
       const { granularity, series } = timeHelper(when, from, to)
 
-      const sub = await findSub(subName, models)
+      const sub = await findSub(subName, ctx)
 
       const result = await models.$queryRaw`
         WITH series AS (
@@ -233,10 +237,11 @@ export default {
 
       return result
     },
-    stackerGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
+    stackerGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
       const { granularity, series } = timeHelper(when, from, to)
 
-      const sub = await findSub(subName, models)
+      const sub = await findSub(subName, ctx)
 
       return await models.$queryRaw`
         WITH series AS (
@@ -267,10 +272,11 @@ export default {
         GROUP BY grid."timeBucket", totals.total
         ORDER BY grid."timeBucket" ASC`
     },
-    stackingGrowth: async (parent, { when, to, from, sub: subName, mine }, { me, models }) => {
+    stackingGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
       const { granularity, series } = timeHelper(when, from, to)
 
-      const sub = await findSub(subName, models)
+      const sub = await findSub(subName, ctx)
 
       return await models.$queryRaw`
         WITH series AS (

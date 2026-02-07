@@ -10,13 +10,14 @@ import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 export default {
   Query: {
-    notifications: async (parent, { cursor, inc }, { me, models }) => {
+    notifications: async (parent, { cursor, inc }, ctx) => {
+      const { me, models, userLoader } = ctx
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      const meFull = await models.user.findUnique({ where: { id: me.id } })
+      const meFull = await userLoader.load(me.id)
 
       /*
         So that we can cursor over results, we union notifications together ...
@@ -170,7 +171,7 @@ export default {
           ${whereClause(
             '"Item".created_at < $2',
             '"Item"."deletedAt" IS NULL',
-            await filterClause(me, models, null, null, null),
+            await filterClause(null, null, null, ctx),
             muteClause(me),
             activeOrMine(me))}
           ORDER BY id ASC, CASE

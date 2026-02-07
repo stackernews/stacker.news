@@ -57,11 +57,11 @@ function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS
   }
 }
 
-async function comments (me, models, item, sort, cursor) {
+async function comments (item, sort, cursor, { me, models, userLoader }) {
   // Get user's commentsSatsFilter to push filtered freebies to bottom
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
   if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id }, select: { commentsSatsFilter: true } })
+    const user = await userLoader.load(me.id)
     commentsSatsFilter = user?.commentsSatsFilter ?? DEFAULT_COMMENTS_SATS_FILTER
   }
 
@@ -128,7 +128,8 @@ export async function getItem (parent, { id }, { me, models }) {
   return item
 }
 
-export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { me, models }) {
+export async function getAd (parent, { sub, subArr = [], showNsfw = false }, ctx) {
+  const { me, models } = ctx
   return (await itemQueryWithMeta({
     me,
     models,
@@ -143,7 +144,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, { m
         '"Item"."parentId" IS NULL',
         '"Item".bio = false',
         '"Item".boost > 0',
-        await filterClause(me, models, null, sub, 'hot'),
+        await filterClause(null, sub, 'hot', ctx),
         activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
@@ -353,7 +354,7 @@ function investmentClause (postsSatsFilter, commentsSatsFilter, meId, ownerBypas
   )`
 }
 
-export async function filterClause (me, models, type, sub, sort) {
+export async function filterClause (type, sub, sort, { me, userLoader, subLoader }) {
   // if you are explicitly asking for freebies or bios, don't filter them
   if (type === 'freebies' || type === 'bios') {
     return ''
@@ -364,13 +365,13 @@ export async function filterClause (me, models, type, sub, sort) {
   const isCurated = sort === 'hot' || sort === 'top' || sort === 'random'
 
   if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
+    const user = await userLoader.load(me.id)
     commentsSatsFilter = user.commentsSatsFilter
     postsSatsFilter = user.postsSatsFilter
   }
 
   if (sub) {
-    const territory = await models.sub.findUnique({ where: { name: sub } })
+    const territory = await subLoader.load(sub)
     if (territory) {
       if (isCurated) {
         // On curated feeds: territory's filter is authoritative
@@ -432,7 +433,8 @@ export default {
 
       return count
     },
-    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit }, { me, models }) => {
+    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit }, ctx) => {
+      const { me, models, userLoader, subLoader } = ctx
       const decodedCursor = decodeCursor(cursor)
       let items, user, pins, subFull, table, ad
 
@@ -458,7 +460,7 @@ export default {
       // but the query planner doesn't like unused parameters
       const subArr = sub ? [sub] : []
 
-      const currentUser = me ? await models.user.findUnique({ where: { id: me.id } }) : null
+      const currentUser = me ? await userLoader.load(me.id) : null
       const showNsfw = currentUser ? currentUser.nsfwMode : false
 
       switch (sort) {
@@ -505,7 +507,7 @@ export default {
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
-                await filterClause(me, models, type, sub, 'recent'),
+                await filterClause(type, sub, 'recent', ctx),
                 typeClause(type),
                 muteClause(me)
               )}
@@ -530,7 +532,7 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 activeOrMine(me),
-                await filterClause(me, models, type, sub, 'top'),
+                await filterClause(type, sub, 'top', ctx),
                 by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
               ${orderByClause(by || 'zaprank', me, models, type, sub)}
@@ -555,7 +557,7 @@ export default {
                 type === 'posts' && '"Item"."subNames" IS NOT NULL',
                 subClause(sub, 3, subClauseTable(type), me, showNsfw),
                 typeClause(type),
-                await filterClause(me, models, type, sub, 'random'),
+                await filterClause(type, sub, 'random', ctx),
                 activeOrMine(me),
                 muteClause(me))}
               ${orderByClause('random', me, models, type)}
@@ -567,7 +569,7 @@ export default {
         default:
           // sub so we know the default ranking
           if (sub) {
-            subFull = await models.sub.findUnique({ where: { name: sub } })
+            subFull = await subLoader.load(sub)
           }
 
           switch (subFull?.rankingType) {
@@ -640,7 +642,7 @@ export default {
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
-                      await filterClause(me, models, type, sub, 'hot'),
+                      await filterClause(type, sub, 'hot', ctx),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rankhot DESC, "Item".id DESC
@@ -1091,12 +1093,12 @@ export default {
     isJob: async (item, args, { models }) => {
       return item.subNames?.includes('jobs') ?? false
     },
-    sub: async (item, args, { models }) => {
+    sub: async (item, args, { models, subLoader }) => {
       if (!item.subNames?.length && !item.root?.subNames?.length) {
         return null
       }
       return item.subs?.[0] || item.root?.subs?.[0] ||
-        await models.sub.findUnique({ where: { name: item.subNames?.[0] ?? item.root?.subNames?.[0] } })
+        await subLoader.load(item.subNames?.[0] ?? item.root?.subNames?.[0])
     },
     subName: async (item, args, { models }) => {
       return item.subNames?.[0]
@@ -1201,7 +1203,8 @@ export default {
         }
       })
     },
-    comments: async (item, { sort, cursor }, { me, models }) => {
+    comments: async (item, { sort, cursor }, ctx) => {
+      const { me } = ctx
       if (typeof item.comments !== 'undefined') {
         if (Array.isArray(item.comments)) {
           return {
@@ -1220,7 +1223,7 @@ export default {
         }
       }
 
-      return comments(me, models, item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor)
+      return comments(item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor, ctx)
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0
@@ -1410,12 +1413,30 @@ export default {
     },
     lexicalState: async (item, args, { lexicalStateLoader }) => {
       if (!item.text) return null
-      return lexicalStateLoader.load({ text: item.text, context: { imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
+      return lexicalStateLoader.load({
+        text: item.text,
+        context: {
+          imgproxyUrls: item.imgproxyUrls,
+          rel: item.rel,
+          userId: item.userId,
+          parentId: item.parentId,
+          netInvestment: item.netInvestment
+        }
+      })
     },
     html: async (item, args, { lexicalStateLoader }) => {
       if (!item.text) return null
       try {
-        const lexicalState = await lexicalStateLoader.load({ text: item.text, context: { imgproxyUrls: item.imgproxyUrls, rel: item.rel } })
+        const lexicalState = await lexicalStateLoader.load({
+          text: item.text,
+          context: {
+            imgproxyUrls: item.imgproxyUrls,
+            rel: item.rel,
+            userId: item.userId,
+            parentId: item.parentId,
+            netInvestment: item.netInvestment
+          }
+        })
         if (!lexicalState) return null
         return lexicalHTMLGenerator(lexicalState)
       } catch (error) {

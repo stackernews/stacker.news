@@ -119,7 +119,7 @@ export default {
 
         osQuery = {
           hybrid: {
-            pagination_depth: LIMIT * 2,
+            pagination_depth: decodedCursor.offset + LIMIT * 2,
             queries: [
               {
                 bool: {
@@ -449,7 +449,7 @@ export default {
         if (process.env.OPENSEARCH_MODEL_ID) {
           osQuery = {
             hybrid: {
-              pagination_depth: LIMIT * 2,
+              pagination_depth: decodedCursor.offset + LIMIT * 2,
               queries: [
                 {
                   bool: {

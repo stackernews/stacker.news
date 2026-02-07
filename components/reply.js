@@ -104,7 +104,7 @@ export default forwardRef(function Reply ({
   return (
     <div>
       {replyOpen
-        ? <div className='p-3' />
+        ? <div className='d-flex align-items-center p-3'>{children}</div>
         : (
           <div className={styles.replyButtons}>
             <div

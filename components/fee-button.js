@@ -26,6 +26,9 @@ export function postCommentBaseLineItems ({ subs, comment = false, bio = false, 
         }
       }
 
+  // Comments and bios are eligible for freebies (posts are not)
+  const allowFreebies = comment || bio
+
   if (subs.length === 0) {
     return {
       baseCost: {
@@ -33,7 +36,8 @@ export function postCommentBaseLineItems ({ subs, comment = false, bio = false, 
         label: comment ? 'comment' : 'post',
         op: '_',
         modifier: (cost) => cost + 1,
-        allowFreebies: bio
+        allowFreebies,
+        isComment: comment
       },
       ...anonCharge
     }
@@ -48,7 +52,8 @@ export function postCommentBaseLineItems ({ subs, comment = false, bio = false, 
           label: `~${s.name} ${comment ? 'comment' : 'post'}`,
           op: '_',
           modifier: (cost) => cost + (comment ? s.replyCost : s.baseCost),
-          allowFreebies: s.allowFreebies
+          allowFreebies,
+          isComment: comment
         }
       }
     }), {}),
@@ -132,17 +137,32 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
   const value = useMemo(() => {
     const lines = { ...baseLineItems, ...lineItems, ...remoteLineItems }
     const total = Object.values(lines).sort(sortHelper).reduce((acc, { modifier }) => modifier(acc), 0)
-    // freebies: there's only a base cost and we don't have enough sats
-    const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total && me?.privates?.credits < total
+
+    // Find base cost line item (could be 'baseCost' or '*-baseCost' for territories)
+    const baseCostLine = Object.values(lines).find(line => line.op === '_' && line.allowFreebies !== undefined)
+
+    // freebies: there's only a base cost, we don't have enough sats/credits,
+    // no send wallet attached, and have free comments left (for comments only)
+    const cantAfford = (me?.privates?.sats ?? 0) + (me?.privates?.credits ?? 0) < total
+    const hasSendWallet = me?.privates?.hasSendWallet
+    const freeCommentsLeft = me?.privates?.freeCommentsLeft ?? 0
+    const isComment = baseCostLine?.isComment
+    const free = me &&
+      total === baseCostLine?.modifier(0) &&
+      baseCostLine?.allowFreebies &&
+      cantAfford &&
+      !hasSendWallet &&
+      (!isComment || freeCommentsLeft > 0)
     return {
       lines,
       merge: mergeLineItems,
       total,
       disabled,
       setDisabled,
-      free
+      free,
+      freeCommentsLeft: isComment ? freeCommentsLeft : null
     }
-  }, [me?.privates?.sats, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
+  }, [me, me?.privates?.sats, me?.privates?.credits, me?.privates?.freeCommentsLeft, me?.privates?.hasSendWallet, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
 
   return (
     <FeeButtonContext.Provider value={value}>
@@ -156,12 +176,15 @@ export function useFeeButton () {
   return context
 }
 
-function FreebieDialog () {
+function FreebieDialog ({ freeCommentsLeft }) {
   return (
     <>
       <div className='fw-bold'>you don't have enough sats, so this one is on us</div>
       <ul className='mt-2'>
-        <li>Free items have limited visibility until other stackers zap them.</li>
+        <li>Free items have limited visibility and can only earn cowboy credits.</li>
+        {freeCommentsLeft !== null && (
+          <li>You have {freeCommentsLeft} free comment{freeCommentsLeft !== 1 ? 's' : ''} left this month.</li>
+        )}
         <li>To get fully visible right away, fund your account with a few sats or earn some on Stacker News.</li>
       </ul>
     </>
@@ -170,7 +193,7 @@ function FreebieDialog () {
 
 export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
   const { me } = useMe()
-  const { lines, total, disabled: ctxDisabled, free } = useFeeButton()
+  const { lines, total, disabled: ctxDisabled, free, freeCommentsLeft } = useFeeButton()
   const feeText = free
     ? 'free'
     : total > 1
@@ -189,7 +212,7 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
         </ChildButton>
       </ActionTooltip>
       {!me && <AnonInfo />}
-      {(free && <Info><FreebieDialog /></Info>) ||
+      {(free && <Info><FreebieDialog freeCommentsLeft={freeCommentsLeft} /></Info>) ||
        (total > 1 && <Info><Receipt lines={lines} total={total} /></Info>)}
     </div>
   )

@@ -21,7 +21,7 @@ import { RootProvider } from './root'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { UNKNOWN_LINK_REL, DEFAULT_POSTS_SATS_FILTER } from '@/lib/constants'
 import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
@@ -92,9 +92,12 @@ function FwdUsers ({ forwards }) {
 }
 
 function TopLevelItem ({ item, noReply, ...props }) {
+  const { me } = useMe()
   const ItemComponent = item.isJob ? ItemJob : Item
   const { ref: readerRef, onRef: onReaderRef } = useCallbackRef()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
+  const postsSatsFilter = me?.privates?.postsSatsFilter ?? DEFAULT_POSTS_SATS_FILTER
+  const isBelowFilter = !item.mine && (item.netInvestment ?? 0) < postsSatsFilter
 
   return (
     <ItemComponent
@@ -113,7 +116,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
         {item.text && <ItemText item={item} readerRef={onReaderRef} />}
-        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
+        {item.url && !isBelowFilter && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
           <div className='fw-bold mt-2'>
@@ -160,7 +163,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
 function ItemText ({ item, readerRef }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} readerRef={readerRef} />
+    : <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} imgproxyUrls={item.imgproxyUrls} readerRef={readerRef} />
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {

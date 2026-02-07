@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MultiSelect, Select } from './form'
 import { EXTRA_LONG_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
-import { ACTIVE_SUBS, SUB } from '@/fragments/subs'
+import { ACTIVE_SUBS, SUB_FULL } from '@/fragments/subs'
 import { useLazyQuery, useQuery } from '@apollo/client'
 import styles from './sub-select.module.css'
 import { useMe } from './me'
@@ -150,7 +150,7 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
       }
 
   const showModal = useShowModal()
-  const [getSub] = useLazyQuery(SUB)
+  const [getSub] = useLazyQuery(SUB_FULL)
 
   const handleTerritoryClick = async (subName) => {
     const { data } = await getSub({ variables: { sub: subName } })

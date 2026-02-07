@@ -13,6 +13,7 @@ import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled'
 import PgBoss from 'pg-boss'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
+import { createUserLoader, createSubLoader } from '@/api/loaders'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -80,16 +81,21 @@ export default startServerAndCreateNextHandler(apolloServer, {
       req = await multiAuthMiddleware(req, res)
       session = await getServerSession(req, res, getAuthOptions(req))
     }
+    const me = session
+      ? session.user
+      : null
+    const userLoader = createUserLoader(models)
+    const subLoader = createSubLoader(models)
     return {
       models,
       headers: req.headers,
       lnd,
-      me: session
-        ? session.user
-        : null,
+      me,
       search,
       boss,
-      lexicalStateLoader: lexicalStateLoader()
+      userLoader,
+      subLoader,
+      lexicalStateLoader: lexicalStateLoader({ me, userLoader })
     }
   }
 })

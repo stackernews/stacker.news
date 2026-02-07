@@ -33,7 +33,6 @@ export function TerritoryDetails ({ sub, children, className, show, truncated })
         <small className='text-muted fw-bold align-items-center d-flex'>
           {sub.name}
           {sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}
-          {(sub.moderated || sub.moderatedCount > 0) && <Badge className='ms-2' bg='secondary'>moderated{sub.moderatedCount > 0 && ` ${sub.moderatedCount}`}</Badge>}
           {(sub.nsfw) && <Badge className='ms-2' bg='secondary'>nsfw</Badge>}
         </small>
       }

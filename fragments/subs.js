@@ -26,13 +26,10 @@ export const SUB_FIELDS = gql`
     billPaidUntil
     baseCost
     replyCost
+    postsSatsFilter
     userId
     desc
-    lexicalState
-    html
     status
-    moderated
-    moderatedCount
     meMuteSub
     meSubscription
     nsfw
@@ -43,6 +40,8 @@ export const SUB_FULL_FIELDS = gql`
   ${STREAK_FIELDS}
   fragment SubFullFields on Sub {
     ...SubFields
+    lexicalState
+    html
     user {
       name
       id

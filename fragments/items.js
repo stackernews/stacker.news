@@ -30,7 +30,6 @@ export const ITEM_FIELDS = gql`
     subs {
       name
       userId
-      moderated
       meMuteSub
       meSubscription
       nsfw
@@ -65,8 +64,8 @@ export const ITEM_FIELDS = gql`
     meBookmark
     meSubscription
     meForward
-    outlawed
     freebie
+    netInvestment
     bio
     ncomments
     nDirectComments
@@ -117,7 +116,6 @@ export const ITEM_FULL_FIELDS = gql`
       subs {
         name
         userId
-        moderated
         meMuteSub
         meSubscription
         replyCost

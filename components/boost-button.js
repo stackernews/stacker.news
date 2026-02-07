@@ -54,7 +54,6 @@ export function BoostHelp () {
       <li>The top 5 highest boosted posts across all territories are shared in the newsletter</li>
       <li>100% of boost goes to the territory founder and top stackers as rewards</li>
       <li>Boosted items can be downzapped to reduce their rank</li>
-      <li>Boosted items can be outlawed and become only visible to stackers in wild west mode if they receive enough downzaps</li>
     </ol>
   )
 }

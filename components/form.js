@@ -849,7 +849,11 @@ export function Form ({
       }
     } catch (err) {
       console.log(err.message, err)
-      toaster.danger(err.message ?? err.toString?.())
+      // don't toast transient network errors from background queries
+      // these surface as ApolloErrors with networkError or browser "Failed to fetch"
+      if (!err.networkError && !(err.message || '').match(/^(failed to fetch|response not successful: received status code 5\d{2})$/i)) {
+        toaster.danger(err.message ?? err.toString?.())
+      }
       return
     }
 

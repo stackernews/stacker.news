@@ -27,7 +27,7 @@ const Tips = ({ setOValue }) => {
     <Button
       size='sm'
       key={num}
-      onClick={() => { setOValue(num) }}
+      onClick={() => { setOValue(prev => ({ value: num, nonce: ((prev?.nonce) || 0) + 1 })) }}
     >
       <UpBolt
         className='me-1'
@@ -129,7 +129,8 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         name='amount'
         type='number'
         innerRef={inputRef}
-        overrideValue={oValue}
+        overrideValue={oValue?.value}
+        overrideNonce={oValue?.nonce}
         step={step}
         required
         autoFocus

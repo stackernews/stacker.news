@@ -143,7 +143,7 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
 
     // freebies: there's only a base cost, we don't have enough sats/credits,
     // no send wallet attached, and have free comments left (for comments only)
-    const cantAfford = me?.privates?.sats < total && me?.privates?.credits < total
+    const cantAfford = (me?.privates?.sats ?? 0) + (me?.privates?.credits ?? 0) < total
     const hasSendWallet = me?.privates?.hasSendWallet
     const freeCommentsLeft = me?.privates?.freeCommentsLeft ?? 0
     const isComment = baseCostLine?.isComment

@@ -169,8 +169,12 @@ export class MediaNode extends DecoratorNode {
     }
 
     const { width, height } = this.getWidthAndHeight() || {}
-    width && span.style.setProperty('--width', width)
-    height && span.style.setProperty('--height', height)
+    if (width && height) {
+      span.style.setProperty('--width', width)
+      span.style.setProperty('--height', height)
+    } else {
+      span.classList.add('sn-media--unsized')
+    }
 
     const loading = document.createElement('span')
     loading.className = 'sn-media__loading'
@@ -185,8 +189,12 @@ export class MediaNode extends DecoratorNode {
     span.setAttribute('data-sn-media-kind', this.getKind())
     span.setAttribute('data-sn-media-src', this.__src)
     const { width, height } = this.getWidthAndHeight() || {}
-    width && span.style.setProperty('--width', width)
-    height && span.style.setProperty('--height', height)
+    if (width && height) {
+      span.style.setProperty('--width', width)
+      span.style.setProperty('--height', height)
+    } else {
+      span.classList.add('sn-media--unsized')
+    }
     return span
   }
 

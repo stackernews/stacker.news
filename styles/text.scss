@@ -182,6 +182,13 @@
   overflow: hidden;
 }
 
+.sn-media--unsized {
+  // reserve placeholder space for images without known dimensions (unproxied)
+  // to reduce layout shift when they load, especially during scroll-to-comment
+  width: 200px;
+  aspect-ratio: 4 / 3;
+}
+
 .sn-media:has(.sn-media__error) {
   min-width: 50px;
   min-height: 50px;

@@ -248,8 +248,9 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
   const showMedia = useMemo(() => preview || me?.privates?.showImagesAndVideos !== false, [me?.privates?.showImagesAndVideos, preview])
 
   useEffect(() => {
-    // don't load the video at all if user doesn't want these
-    if (!showMedia) {
+    // don't load media if user has disabled them
+    // or if the user has disabled non-proxied media and media is not proxied or a video (can't proxy videos)
+    if (!showMedia || (me?.privates?.imgproxyOnly && (!trusted || isVideo))) {
       setKind?.('disabled')
       return
     }

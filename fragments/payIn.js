@@ -249,6 +249,14 @@ export const FAILED_PAY_INS = gql`
   }
 `
 
+export const DISMISS_PAY_IN = gql`
+  ${PAY_IN_FIELDS}
+  mutation dismissPayIn($payInId: Int!) {
+    dismissPayIn(payInId: $payInId) {
+      ...PayInFields
+    }
+  }`
+
 export const CANCEL_PAY_IN_BOLT11 = gql`
   ${PAY_IN_FIELDS}
   mutation cancelPayInBolt11($hash: String!, $hmac: String, $userCancel: Boolean) {

@@ -11,6 +11,7 @@ extend type Query {
 extend type Mutation {
   retryPayIn(payInId: Int!): PayIn!
   cancelPayInBolt11(hash: String!, hmac: String, userCancel: Boolean): PayIn
+  dismissPayIn(payInId: Int!): PayIn!
 }
 
 type Satistics {

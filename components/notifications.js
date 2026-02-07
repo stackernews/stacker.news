@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { gql, useQuery } from '@apollo/client'
+import { gql, useMutation, useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
@@ -41,6 +41,7 @@ import CCInfo from './info/cc'
 import { useMe } from './me'
 import { useRetryPayIn, useRetryBountyPayIn, useRetryItemActPayIn } from './payIn/hooks/use-retry-pay-in'
 import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
+import { DISMISS_PAY_IN } from '@/fragments/payIn'
 import MapIcon from '@/svgs/map.svg'
 
 function Notification ({ n, fresh }) {
@@ -441,6 +442,28 @@ function PayInFailed ({ n }) {
     })
   }, [n.id])
 
+  const [dismissMutation] = useMutation(DISMISS_PAY_IN, {
+    update (cache, { data: { dismissPayIn } }) {
+      cache.writeFragment({
+        id: `PayInification:${n.id}`,
+        fragment: gql`
+          fragment _ on PayInification {
+            payIn {
+              id
+              payInState
+              payerPrivates {
+                payInFailureReason
+              }
+            }
+          }
+        `,
+        data: {
+          payIn: dismissPayIn
+        }
+      })
+    }
+  })
+
   // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
   const mutationOptions = { update: updatePayIn, onRetry: updatePayIn, protocolLimit: 1 }
   const retryPayIn = useRetryPayIn(payIn.id, mutationOptions)
@@ -448,6 +471,8 @@ function PayInFailed ({ n }) {
   const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
   const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
   const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
+
+  const isDismissed = payIn.payerPrivates?.payInFailureReason === 'USER_CANCELLED'
 
   const [actionString, colorClass, retry] = useMemo(() => {
     let retry
@@ -481,20 +506,23 @@ function PayInFailed ({ n }) {
       default:
         if (willAutoRetryPayIn(payIn) || payIn.payInState !== 'FAILED') {
           actionString += 'pending'
+        } else if (isDismissed) {
+          actionString += 'cancelled'
+          colorClass = 'muted'
         } else {
           actionString += 'failed'
           colorClass = 'warning'
         }
     }
     return [actionString, colorClass, retry]
-  }, [payIn, item, retryPayIn, retryBountyPayIn, retryItemActPayIn])
+  }, [payIn, item, isDismissed, retryPayIn, retryBountyPayIn, retryItemActPayIn])
 
   return (
     <div>
       <NoteHeader color={colorClass}>
         {actionString}
         <span className='ms-1 text-muted fw-light'> {numWithUnits(msatsToSats(payIn.mcost))}</span>
-        <span className={['FAILED'].includes(payIn.payInState) && !willAutoRetryPayIn(payIn) ? 'visible' : 'invisible'}>
+        <span className={['FAILED'].includes(payIn.payInState) && !willAutoRetryPayIn(payIn) && !isDismissed ? 'visible' : 'invisible'}>
           <Button
             size='sm' variant={classNames('outline-warning ms-2 border-1 rounded py-0', disableRetry && 'pulse')}
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
@@ -513,6 +541,19 @@ function PayInFailed ({ n }) {
             }}
           >
             retry
+          </Button>
+          <Button
+            size='sm' variant='outline-secondary ms-2 border-1 rounded py-0'
+            onClick={async () => {
+              try {
+                const { error } = await dismissMutation({ variables: { payInId: payIn.id } })
+                if (error) throw error
+              } catch (error) {
+                toaster.danger(error?.message || error?.toString?.())
+              }
+            }}
+          >
+            cancel
           </Button>
           <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(payIn.payInStateChangedAt))}</span>
         </span>

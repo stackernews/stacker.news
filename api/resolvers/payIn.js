@@ -172,6 +172,17 @@ export default {
         lnd
       })
     },
+    dismissPayIn: async (parent, { payInId }, { models, me }) => {
+      if (!me) throw new GqlAuthenticationError()
+      const payIn = await models.payIn.findUnique({ where: { id: payInId } })
+      if (!payIn) throw new GqlInputError('pay in not found')
+      if (payIn.userId !== me.id) throw new GqlInputError('not your pay in')
+      if (payIn.payInState !== 'FAILED') throw new GqlInputError('pay in is not failed')
+      return await models.payIn.update({
+        where: { id: payInId },
+        data: { payInFailureReason: 'USER_CANCELLED' }
+      })
+    },
     retryPayIn: async (parent, { payInId }, { models, me }) => {
       return await retry(payInId, { models, me })
     }

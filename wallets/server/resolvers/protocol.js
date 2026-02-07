@@ -10,6 +10,34 @@ import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { walletLogger } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/client/errors'
+import { createInvoice as lndCreateInvoice } from 'ln-service'
+
+/**
+ * Extract the network prefix from a BOLT11 invoice string.
+ * BOLT11 format: "ln" + network + amount + "1" + data
+ * Network prefixes: "bcrt" (regtest), "tb" (testnet), "bc" (mainnet)
+ * We match longest first to avoid "bc" matching "bcrt".
+ */
+function bolt11Network (bolt11) {
+  const match = bolt11.match(/^ln(bcrt|tbs|tb|bc)/)
+  return match ? match[1] : null
+}
+
+const NETWORK_NAMES = { bc: 'mainnet', tb: 'testnet', bcrt: 'regtest', tbs: 'signet' }
+
+// cache the SN node's network so we only create one test invoice at startup
+let snNetworkCache = null
+
+async function getSnNetwork (lnd) {
+  if (snNetworkCache) return snNetworkCache
+  const { request } = await lndCreateInvoice({
+    lnd,
+    mtokens: '1000',
+    expires_at: new Date(Date.now() + 1000)
+  })
+  snNetworkCache = bolt11Network(request)
+  return snNetworkCache
+}
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -46,7 +74,7 @@ export const resolvers = {
 }
 
 export function testWalletProtocol (protocol) {
-  return async (parent, args, { me, models, tx }) => {
+  return async (parent, args, { me, models, tx, lnd }) => {
     if (!me) {
       throw new GqlAuthenticationError()
     }
@@ -72,8 +100,28 @@ export function testWalletProtocol (protocol) {
       throw new GqlInputError('failed to create invoice: ' + e.message)
     }
 
-    if (!invoice || !invoice.startsWith('lnbc')) {
+    if (!invoice) {
       throw new GqlInputError('wallet returned invalid invoice')
+    }
+
+    const walletNetwork = bolt11Network(invoice)
+    if (!walletNetwork) {
+      throw new GqlInputError('wallet returned an invoice with unrecognized network')
+    }
+
+    // compare the wallet's network with the SN node's network
+    try {
+      const snNetwork = await getSnNetwork(lnd)
+      if (walletNetwork !== snNetwork) {
+        throw new GqlInputError(
+          `wallet is on ${NETWORK_NAMES[walletNetwork] || walletNetwork} but SN node is on ${NETWORK_NAMES[snNetwork] || snNetwork}`
+        )
+      }
+    } catch (e) {
+      // re-throw GqlInputError (network mismatch) as-is
+      if (e instanceof GqlInputError) throw e
+      // if we can't determine the SN node's network, log but don't block
+      console.error('failed to determine SN node network for comparison:', e)
     }
 
     return true

@@ -173,6 +173,15 @@ async function deleteWallet (parent, { id }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   await models.$transaction(async tx => {
+    // delete wallet logs first to avoid cascade timeout on old wallets
+    // with many log entries (see #2629)
+    await tx.walletLog.deleteMany({
+      where: {
+        protocol: {
+          walletId: Number(id)
+        }
+      }
+    })
     await tx.wallet.delete({ where: { id: Number(id), userId: me.id } })
     await updateWalletBadges({ userId: me.id, tx })
   })

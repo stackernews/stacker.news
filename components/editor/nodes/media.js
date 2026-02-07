@@ -286,7 +286,7 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
       // abort the fetch
       try { controller.abort() } catch {}
     }
-  }, [src, setIsImage, setIsVideo, showMedia, setKind])
+  }, [src, setIsImage, setIsVideo, showMedia, setKind, trusted, isVideo])
 
   let style = null
   if (legacySrcSet?.srcSet) {

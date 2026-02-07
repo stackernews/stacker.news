@@ -38,6 +38,7 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
       pageTitleAndUnshorted(url: $url) {
         title
         unshorted
+        redirected
       }
     }`)
   const [getDupes, { data: dupesData, loading: dupesLoading }] = useLazyQuery(gql`
@@ -93,6 +94,14 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
       })
     }
   }, [data?.pageTitleAndUnshorted?.unshorted, getDupesDebounce])
+
+  useEffect(() => {
+    if (data?.pageTitleAndUnshorted?.redirected) {
+      getDupesDebounce({
+        variables: { url: data?.pageTitleAndUnshorted?.redirected }
+      })
+    }
+  }, [data?.pageTitleAndUnshorted?.redirected, getDupesDebounce])
 
   const [postDisabled, setPostDisabled] = useState(false)
   const [titleOverride, setTitleOverride] = useState()

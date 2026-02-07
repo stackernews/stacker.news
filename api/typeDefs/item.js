@@ -16,6 +16,7 @@ export default gql`
   type TitleUnshorted {
     title: String
     unshorted: String
+    redirected: String
   }
 
   extend type Mutation {

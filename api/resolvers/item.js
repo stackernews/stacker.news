@@ -649,6 +649,10 @@ export default {
       const res = {}
       try {
         const response = await snFetch(url, { protocol: 'http', redirect: 'follow' })
+        // capture the final URL after following redirects
+        if (response.url && response.url !== url) {
+          res.redirected = response.url
+        }
         const html = await response.text()
         const doc = domino.createWindow(html).document
         const titleRuleSet = {

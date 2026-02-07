@@ -1,14 +1,14 @@
-import { IMGPROXY_URL_REGEXP, decodeProxyUrl, getLinkAttributes, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useState, useEffect, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $createLinkNode } from '@lexical/link'
-import { $getNodeByKey, $createTextNode, $createParagraphNode } from 'lexical'
+import { $getNodeByKey } from 'lexical'
 import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
 import { useCarousel } from '@/components/carousel'
 import { useMe } from '@/components/me'
 import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
 import preserveScroll from '@/components/preserve-scroll'
+import { $replaceNodeWithLink } from '@/lib/lexical/nodes/utils'
 
 function LinkRaw ({ className, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -125,31 +125,8 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
   // if the media turned out to be a link, replace the media node with a link node
   const $replaceWithLink = useCallback(() => {
     const node = $getNodeByKey(nodeKey)
-    if (!node) return
-
-    const parent = node.getParent()
-    if (!parent) return
-
-    const { target, rel } = getLinkAttributes(url)
-    const linkNode = $createLinkNode(url, {
-      title: url,
-      target,
-      rel
-    }).append($createTextNode(url))
-
-    // If parent is a paragraph, directly replace the media node with the link
-    if (parent.getType() === 'paragraph') {
-      node.replace(linkNode)
-      return
-    }
-
-    // Otherwise, insert a new paragraph with the link after the parent and remove the media node
-    parent.insertAfter($createParagraphNode().append(linkNode))
-    node.remove()
-
-    // Clean up empty parent nodes
-    if (parent.getChildrenSize() === 0) {
-      parent.remove()
+    if (node) {
+      $replaceNodeWithLink(node, url)
     }
   }, [url, nodeKey])
 
@@ -165,7 +142,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
 
   useEffect(() => {
     editor.update(() => {
-      if (kind === 'unknown') {
+      if (kind === 'unknown' || kind === 'disabled') {
         $replaceWithLink()
       }
       if (kind === 'image' || kind === 'video') {
@@ -265,7 +242,11 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
 
   useEffect(() => {
     // don't load the video at all if user doesn't want these
-    if (!showMedia || isVideo || isImage) return
+    if (!showMedia) {
+      setKind?.('disabled')
+      return
+    }
+    if (isVideo || isImage) return
 
     const controller = new AbortController()
 

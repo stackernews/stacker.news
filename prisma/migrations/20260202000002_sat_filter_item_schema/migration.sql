@@ -1,50 +1,7 @@
--- Sat Filter Refactoring Migration
--- This migration:
--- 1. Adds postsSatsFilter and commentsSatsFilter to User (replacing satsFilter)
--- 2. Adds freeCommentCount and freeCommentResetAt to User for monthly limits
--- 3. Removes wildWestMode from User
--- 4. Adds postsSatsFilter to Sub (territory)
--- 5. Removes moderated and moderatedCount from Sub
--- 6. Adds netInvestment column to Item (with trigger to keep it updated)
--- 7. Removes outlawed and genoutlawed from Item
--- 8. Backfills freebie column for historical items (cost=0)
-
--- =====================
--- USER MODEL CHANGES
--- =====================
-
--- Add new filter columns to users
-ALTER TABLE "users" ADD COLUMN "postsSatsFilter" INT NOT NULL DEFAULT 10;
-ALTER TABLE "users" ADD COLUMN "commentsSatsFilter" INT NOT NULL DEFAULT 1;
-ALTER TABLE "users" ADD COLUMN "freeCommentCount" INT NOT NULL DEFAULT 0;
-ALTER TABLE "users" ADD COLUMN "freeCommentResetAt" TIMESTAMP(3);
-
--- Migrate existing satsFilter to postsSatsFilter
-UPDATE "users" SET "postsSatsFilter" = "satsFilter" WHERE "satsFilter" IS NOT NULL;
-
--- Drop old columns from users
-ALTER TABLE "users" DROP COLUMN "satsFilter";
-ALTER TABLE "users" DROP COLUMN "wildWestMode";
-
--- =====================
--- SUB (TERRITORY) MODEL CHANGES
--- =====================
-
--- Add filter column to Sub
--- First add the column with a temporary default, then backfill with baseCost
-ALTER TABLE "Sub" ADD COLUMN "postsSatsFilter" INT NOT NULL DEFAULT 10;
-
--- Backfill postsSatsFilter = baseCost for existing territories
--- This ensures the validation constraint (postsSatsFilter >= baseCost) is satisfied
-UPDATE "Sub" SET "postsSatsFilter" = "baseCost";
-
--- Drop moderation columns from Sub
-ALTER TABLE "Sub" DROP COLUMN "moderated";
-ALTER TABLE "Sub" DROP COLUMN "moderatedCount";
-
--- =====================
--- ITEM MODEL CHANGES
--- =====================
+-- Sat Filter Refactoring: Item Schema Changes
+-- Removes genoutlawed/outlawed columns
+-- Adds netInvestment column with trigger
+-- Updates comment functions to remove genoutlawed references
 
 -- Drop the genoutlawed generated column first (depends on genoutlawed_state function)
 ALTER TABLE "Item" DROP COLUMN "genoutlawed";
@@ -75,35 +32,9 @@ $$;
 
 -- Only fire trigger when the source columns change (or on insert)
 -- UPDATE OF ensures the trigger is skipped for unrelated column updates (e.g. text, title)
--- This also means the backfill UPDATE below (which only sets netInvestment) won't re-trigger
 CREATE TRIGGER item_net_investment
   BEFORE INSERT OR UPDATE OF cost, boost, msats, "downMsats" ON "Item"
   FOR EACH ROW EXECUTE FUNCTION item_net_investment_trigger();
-
--- Backfill netInvestment for existing rows that still have the default (0)
--- Only updates rows where the computed value differs, skipping rows already correct
-UPDATE "Item" SET "netInvestment" = (
-  COALESCE(cost, 0) +
-  COALESCE(boost, 0) +
-  (COALESCE(msats, 0) / 1000) -
-  (COALESCE("downMsats", 0) / 1000)
-)::integer
-WHERE "netInvestment" != (
-  COALESCE(cost, 0) +
-  COALESCE(boost, 0) +
-  (COALESCE(msats, 0) / 1000) -
-  (COALESCE("downMsats", 0) / 1000)
-)::integer;
-
--- Create index concurrently to avoid blocking writes during index build
--- NOTE: CREATE INDEX CONCURRENTLY cannot run inside a transaction block.
--- If your migration runner wraps this in a transaction, you may need to split
--- this into a separate migration or run it manually.
-CREATE INDEX "Item_netInvestment_idx" ON "Item"("netInvestment");
-
--- Backfill freebie column for historical items
--- Previously /recent/freebies used "cost = 0", now it uses "freebie = true"
-UPDATE "Item" SET freebie = true WHERE cost = 0;
 
 -- =====================
 -- UPDATE COMMENT FUNCTIONS

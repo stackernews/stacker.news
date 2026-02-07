@@ -60,6 +60,7 @@ export const COMMENT_FIELDS = gql`
     otsHash
     ncomments
     nDirectComments
+    lastCommentAt
     live @client
     imgproxyUrls
     rel

@@ -337,6 +337,8 @@ export default function Comment ({
 
 export function ViewMoreReplies ({ item, threadContext = false }) {
   const root = useRoot()
+  const { me } = useMe()
+  const router = useRouter()
   const id = threadContext ? commentSubTreeRootId(item, root) : item.id
 
   // if threadContext is true, we travel to some comments before the current comment, focusing on the comment itself
@@ -347,13 +349,23 @@ export function ViewMoreReplies ({ item, threadContext = false }) {
     ? 'reply on another page'
     : `view all ${item.ncomments} replies`
 
+  // check if hidden replies contain new comments
+  const hasNewComments = useMemo(() => {
+    if (!item.lastCommentAt) return false
+    const meViewedAt = new Date(root.meCommentsViewedAt).getTime()
+    const viewedAt = me?.id ? meViewedAt : router.query.commentsViewedAt
+    if (!viewedAt) return false
+    return new Date(item.lastCommentAt).getTime() > viewedAt
+  }, [item.lastCommentAt, root.meCommentsViewedAt, me?.id, router.query.commentsViewedAt])
+
   return (
     <Link
       href={href}
       as={`/items/${id}`}
-      className='fw-bold d-flex align-items-center gap-2 text-muted'
+      className={classNames('fw-bold d-flex align-items-center gap-2', hasNewComments ? 'text-info' : 'text-muted')}
     >
       {text}
+      {hasNewComments && <span className={styles.newCommentDot} />}
     </Link>
   )
 }

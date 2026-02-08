@@ -117,8 +117,8 @@ export default {
       }
       return parent.total
     },
-    ad: async (parent, args, { me, models }) => {
-      return await getAd(parent, { }, { me, models })
+    ad: async (parent, args, ctx) => {
+      return await getAd(parent, { }, ctx)
     }
   },
   Mutation: {

@@ -789,9 +789,16 @@ export function Range ({
             onChange={(e) => {
               const val = Number(e.target.value)
               if (!isNaN(val)) {
-                helpers.setValue(Math.min(max, Math.max(min, val)))
+                helpers.setValue(val)
               }
               onChange && onChange(e)
+            }}
+            onBlur={(e) => {
+              const val = Number(e.target.value)
+              if (!isNaN(val)) {
+                helpers.setValue(Math.min(max, Math.max(min, val)))
+              }
+              field.onBlur(e)
             }}
           />
           {suffix && <InputGroup.Text>{suffix.trim()}</InputGroup.Text>}

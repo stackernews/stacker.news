@@ -345,11 +345,23 @@ const subClause = (sub, num, table = 'Item', me, showNsfw) => {
 // Uses the indexed netInvestment column for efficient filtering
 // ownerBypass: if true, always show the user's own items regardless of filter
 function investmentClause (postsSatsFilter, commentsSatsFilter, meId, ownerBypass) {
+  // null means "show all" — no filter for that dimension
+  if (postsSatsFilter == null && commentsSatsFilter == null) {
+    return ''
+  }
+
   const ownerClause = ownerBypass && meId ? ` OR "Item"."userId" = ${meId}` : ''
+  const postsExpr = postsSatsFilter == null
+    ? 'TRUE'
+    : `"Item"."netInvestment" >= ${postsSatsFilter}${ownerClause}`
+  const commentsExpr = commentsSatsFilter == null
+    ? 'TRUE'
+    : `"Item"."netInvestment" >= ${commentsSatsFilter}${ownerClause}`
+
   return `(
     CASE WHEN "Item"."parentId" IS NULL
-      THEN "Item"."netInvestment" >= ${postsSatsFilter}${ownerClause}
-      ELSE "Item"."netInvestment" >= ${commentsSatsFilter}${ownerClause}
+      THEN ${postsExpr}
+      ELSE ${commentsExpr}
     END
   )`
 }
@@ -380,14 +392,18 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
         // On recent: use the lower of user's and territory's filter so either
         // party can relax the threshold. For logged-out users, use only
         // the territory's filter (ignoring the logged-out default).
+        // null (show all) beats any number since it's conceptually -infinity.
         postsSatsFilter = me
-          ? Math.min(postsSatsFilter, territory.postsSatsFilter)
+          ? (postsSatsFilter == null ? null : Math.min(postsSatsFilter, territory.postsSatsFilter))
           : territory.postsSatsFilter
       }
     }
   } else if (isCurated) {
     // On homepage hot/top/random: max of user filter and homepage threshold
-    postsSatsFilter = Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
+    // null (show all) defers to the homepage threshold on curated feeds
+    postsSatsFilter = postsSatsFilter == null
+      ? HOMEPAGE_POSTS_SATS_FILTER
+      : Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
   }
 
   // On curated feeds (hot/top/random), your own items are filtered like everyone else's.

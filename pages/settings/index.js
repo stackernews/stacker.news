@@ -170,8 +170,8 @@ export default function Settings ({ ssrData }) {
                     tipDefault: Number(tipDefault),
                     tipRandomMin: tipRandom ? Number(tipRandomMin) : null,
                     tipRandomMax: tipRandom ? Number(tipRandomMax) : null,
-                    postsSatsFilter: Number(postsSatsFilter),
-                    commentsSatsFilter: Number(commentsSatsFilter),
+                    postsSatsFilter: postsSatsFilter == null ? null : Number(postsSatsFilter),
+                    commentsSatsFilter: commentsSatsFilter == null ? null : Number(commentsSatsFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
@@ -436,6 +436,7 @@ export default function Settings ({ ssrData }) {
             min={-1000}
             max={1000}
             suffix=' sats'
+            allOption
           />
           <Range
             label={
@@ -452,6 +453,7 @@ export default function Settings ({ ssrData }) {
             min={-1000}
             max={1000}
             suffix=' sats'
+            allOption
           />
           <Checkbox
             label={

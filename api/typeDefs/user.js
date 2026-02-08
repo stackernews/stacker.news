@@ -81,8 +81,8 @@ export default gql`
     autoDropBolt11s: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
-    postsSatsFilter: Int!
-    commentsSatsFilter: Int!
+    postsSatsFilter: Int
+    commentsSatsFilter: Int
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -149,8 +149,8 @@ export default gql`
     autoDropBolt11s: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
-    postsSatsFilter: Int!
-    commentsSatsFilter: Int!
+    postsSatsFilter: Int
+    commentsSatsFilter: Int
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!

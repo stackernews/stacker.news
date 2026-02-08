@@ -38,10 +38,11 @@ function itemTitle (item) {
     unitSingular: 'zapper',
     unitPlural: 'zappers'
   })
-  if (!item.mine && item.sats === 0 && item.downSats > 0) {
-    title += ` \\ ${numWithUnits(-item.downSats, { abbreviate: false })}`
-  } else if (item.sats) {
+  if (item.sats - item.credits) {
     title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+  }
+  if (item.downSats) {
+    title += ` \\ ${numWithUnits(item.downSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
   }
   if (item.credits) {
     title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
@@ -105,9 +106,7 @@ export default function ItemInfo ({
       {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
         <>
           <span title={itemTitle(item)}>
-            {!item.mine && item.sats === 0 && item.downSats > 0
-              ? numWithUnits(-item.downSats)
-              : numWithUnits(item.sats)}
+            {numWithUnits(item.sats - item.downSats)}
           </span>
           <span> \ </span>
         </>}

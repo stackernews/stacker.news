@@ -40,7 +40,10 @@ function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS
   sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
 
   // Push comments with investment below the threshold to the bottom of threads
-  sharedSortsArray.push(`(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`)
+  // null means "show all" — don't push any comments to the bottom
+  if (commentsSatsFilter != null) {
+    sharedSortsArray.push(`(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`)
+  }
 
   const sharedSorts = sharedSortsArray.join(', ')
 
@@ -59,10 +62,11 @@ function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS
 
 async function comments (item, sort, cursor, { me, models, userLoader }) {
   // Get user's commentsSatsFilter to push filtered freebies to bottom
+  // null means "show all" — don't push any comments to the bottom
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
   if (me) {
     const user = await userLoader.load(me.id)
-    commentsSatsFilter = user?.commentsSatsFilter ?? DEFAULT_COMMENTS_SATS_FILTER
+    if (user) commentsSatsFilter = user.commentsSatsFilter
   }
 
   const orderBy = commentsOrderByClause(sort, commentsSatsFilter)

@@ -7,6 +7,7 @@ export default function CCInfo (props) {
       <h6>Why am I getting cowboy credits?</h6>
       <ul>
         <li>to receive sats, you must attach an <Link href='/wallets'>external receiving wallet</Link></li>
+        <li>bios and free comments can only receive CCs</li>
         <li>zappers may have chosen to send you CCs instead of sats</li>
         <li>if the zaps are split on a post, recipients will receive CCs regardless of their configured receiving wallet</li>
         <li>there could be an issue paying your receiving wallet
@@ -18,7 +19,7 @@ export default function CCInfo (props) {
         </li>
         <li>some zaps might be smaller than your configured receiving dust limit
           <ul>
-            <li>you can configure your dust limit in your <Link href='/wallets/settings'>wallet settings</Link></li>
+            <li>you can configure your dust limit in your <Link href='/settings/wallets'>wallet settings</Link></li>
           </ul>
         </li>
       </ul>

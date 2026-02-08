@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useField, useFormikContext } from 'formik'
 import { $isMarkdownEmpty, $getMarkdown } from '@/lib/lexical/utils'
 import { COMMAND_PRIORITY_HIGH, createCommand } from 'lexical'
+import { useFeeButton } from '@/components/fee-button'
 
 export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
 
@@ -11,6 +12,7 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
   const [editor] = useLexicalComposerContext()
   const [,, textHelpers] = useField({ name })
   const formik = useFormikContext()
+  const { disabled = false } = useFeeButton() ?? {}
 
   // keep formik in sync
   useEffect(() => {
@@ -33,12 +35,13 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
     return editor.registerCommand(
       SUBMIT_FORMIK_COMMAND,
       () => {
+        if (disabled) return false
         formik?.submitForm()
         return true
       },
       COMMAND_PRIORITY_HIGH
     )
-  }, [editor, formik])
+  }, [editor, formik, disabled])
 
   return null
 }

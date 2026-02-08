@@ -274,6 +274,7 @@ const relationClause = (type) => {
       break
     case 'comments':
     case 'freebies':
+    case 'desperados':
     case 'all':
       clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
       break
@@ -342,6 +343,28 @@ const subClause = (sub, num, table = 'Item', me, showNsfw) => {
   return [excludeMuted, hideNsfwClause].filter(Boolean).join(' AND ')
 }
 
+// Inverted filter: show items BELOW the threshold (for desperados)
+function invertedInvestmentClause (postsSatsFilter, commentsSatsFilter) {
+  // null means "show all" — nothing is below -infinity, so return no results
+  if (postsSatsFilter == null && commentsSatsFilter == null) {
+    return 'FALSE'
+  }
+
+  const postsExpr = postsSatsFilter == null
+    ? 'FALSE'
+    : `"Item"."netInvestment" < ${postsSatsFilter}`
+  const commentsExpr = commentsSatsFilter == null
+    ? 'FALSE'
+    : `"Item"."netInvestment" < ${commentsSatsFilter}`
+
+  return `(
+    CASE WHEN "Item"."parentId" IS NULL
+      THEN ${postsExpr}
+      ELSE ${commentsExpr}
+    END
+  )`
+}
+
 // Uses the indexed netInvestment column for efficient filtering
 // ownerBypass: if true, always show the user's own items regardless of filter
 function investmentClause (postsSatsFilter, commentsSatsFilter, meId, ownerBypass) {
@@ -371,6 +394,8 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
   if (type === 'freebies' || type === 'bios') {
     return ''
   }
+
+  const isDesperados = type === 'desperados'
 
   let postsSatsFilter = DEFAULT_POSTS_SATS_FILTER
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
@@ -408,6 +433,9 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
 
   // On curated feeds (hot/top/random), your own items are filtered like everyone else's.
   // On recent/notifications, your own items always pass the filter.
+  if (isDesperados) {
+    return invertedInvestmentClause(postsSatsFilter, commentsSatsFilter)
+  }
   return investmentClause(postsSatsFilter, commentsSatsFilter, me?.id, !isCurated)
 }
 
@@ -429,6 +457,7 @@ function typeClause (type) {
       return '"Item"."parentId" IS NOT NULL'
     case 'freebies':
       return '"Item".freebie = true'
+    case 'desperados':
     case 'all':
     case 'bookmarks':
       return ''

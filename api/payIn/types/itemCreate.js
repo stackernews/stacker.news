@@ -9,6 +9,7 @@ import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
 import { getItem } from '@/api/resolvers/item'
 import { getTempImgproxyUrls } from '../lib/upload'
+import { checkFreebieEligibility, incrementFreeCommentCount } from '../lib/freebie'
 
 export const anonable = true
 
@@ -19,57 +20,53 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-const DEFAULT_ITEM_COST = 1000n
+const DEFAULT_ITEM_MCOST = 1000n
 
-async function getBaseCost (models, { bio, parentId, subNames }) {
-  if (bio) return DEFAULT_ITEM_COST
+async function getBaseMcost (models, { bio, parentId, subNames }) {
+  if (bio) return DEFAULT_ITEM_MCOST
 
   const subs = await getSubs(models, { subNames, parentId })
 
   if (parentId) {
-    let replyCost = 0n
+    let replyMcost = 0n
     for (const sub of subs) {
       if (sub.replyCost) {
-        replyCost += satsToMsats(sub.replyCost)
+        replyMcost += satsToMsats(sub.replyCost)
       } else {
-        replyCost += DEFAULT_ITEM_COST
+        replyMcost += DEFAULT_ITEM_MCOST
       }
     }
-    return replyCost > 0n ? replyCost : DEFAULT_ITEM_COST
+    return replyMcost > 0n ? replyMcost : DEFAULT_ITEM_MCOST
   }
 
-  let baseCost = 0n
+  let baseMcost = 0n
   for (const sub of subs) {
     if (sub.baseCost) {
-      baseCost += satsToMsats(sub.baseCost)
+      baseMcost += satsToMsats(sub.baseCost)
     } else {
-      baseCost += DEFAULT_ITEM_COST
+      baseMcost += DEFAULT_ITEM_MCOST
     }
   }
 
-  return baseCost > 0n ? baseCost : DEFAULT_ITEM_COST
+  return baseMcost > 0n ? baseMcost : DEFAULT_ITEM_MCOST
 }
 
-async function getCost (models, { subNames, parentId, uploadIds, boost = 0, bio }, { me }) {
-  const baseCost = await getBaseCost(models, { bio, parentId, subNames })
+async function getMcost (models, { subNames, parentId, uploadIds, boost = 0, bio }, { me }) {
+  const baseMcost = await getBaseMcost(models, { bio, parentId, subNames })
 
-  // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
-  const [{ cost }] = await models.$queryRaw`
-    SELECT ${baseCost}::INTEGER
+  // mcost = baseMcost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
+  const [{ mcost }] = await models.$queryRaw`
+    SELECT ${baseMcost}::INTEGER
       * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${me.id}::INTEGER,
           ${me.id !== USER_ID.anon && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
-      * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER  as cost`
+      * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER  as mcost`
 
-  // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon,
-  // cost must be greater than user's balance, and user has not disabled freebies
-  const freebie = (parentId || bio) && cost <= baseCost && me.id !== USER_ID.anon &&
-    me.msats < cost && me.mcredits < cost && boost <= 0
-
-  return freebie ? BigInt(0) : BigInt(cost)
+  const isFreebie = await checkFreebieEligibility(models, { mcost, baseMcost, parentId, bio, boost }, { me })
+  return isFreebie ? BigInt(0) : BigInt(mcost)
 }
 
 export async function getInitial (models, args, { me }) {
-  const mcost = await getCost(models, args, { me })
+  const mcost = await getMcost(models, args, { me })
   const subs = await getSubs(models, args)
 
   // for item creation, each sub can have a different cost
@@ -121,10 +118,14 @@ export async function onBegin (tx, payInId, args) {
 
   const imgproxyUrls = await getTempImgproxyUrls(tx, uploadIds)
 
+  // freebie is true when cost is 0 and it's a comment or bio
+  const isFreebie = payIn.mcost === 0n && !!(parentId || data.bio)
+
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
     ...data,
     cost: msatsToSats(payIn.mcost),
+    freebie: isFreebie,
     imgproxyUrls,
     itemPayIns: {
       create: [{ payInId }]
@@ -199,10 +200,16 @@ export async function onRetry (tx, oldPayInId, newPayInId) {
 }
 
 export async function onPaid (tx, payInId) {
-  const { item } = await tx.itemPayIn.findUnique({ where: { payInId }, include: { item: true } })
+  const { item, payIn } = await tx.itemPayIn.findUnique({
+    where: { payInId },
+    include: { item: true, payIn: true }
+  })
   if (!item) {
     throw new Error('Item not found')
   }
+
+  // If this is a freebie comment, increment the free comment counter
+  await incrementFreeCommentCount(tx, { item, userId: payIn.userId })
 
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
     VALUES ('timestampItem', jsonb_build_object('id', ${item.id}::INTEGER), now() + interval '10 minutes', -2)`

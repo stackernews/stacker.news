@@ -51,8 +51,8 @@ export const COMMENT_FIELDS = gql`
     meDontLikeSats
     meBookmark
     meSubscription
-    outlawed
     freebie
+    netInvestment
     path
     commentSats
     commentCredits
@@ -108,8 +108,8 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     meDontLikeSats
     meBookmark
     meSubscription
-    outlawed
     freebie
+    netInvestment
     path
     commentSats
     commentCredits
@@ -139,7 +139,6 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       subs {
         name
         userId
-        moderated
         meMuteSub
       }
       user {

@@ -25,7 +25,8 @@ ${STREAK_FIELDS}
       autoDropBolt11s
       noReferralLinks
       fiatCurrency
-      satsFilter
+      postsSatsFilter
+      commentsSatsFilter
       hideFromTopUsers
       imgproxyOnly
       showImagesAndVideos
@@ -33,6 +34,8 @@ ${STREAK_FIELDS}
       nsfwMode
       sats
       credits
+      freeCommentsLeft
+      hasSendWallet
       tipDefault
       tipRandom
       tipRandomMin
@@ -41,7 +44,6 @@ ${STREAK_FIELDS}
       turboTipping
       zapUndos
       upvotePopover
-      wildWestMode
       vaultKeyHash
       vaultKeyHashUpdatedAt
       walletsUpdatedAt
@@ -90,8 +92,8 @@ export const SETTINGS_FIELDS = gql`
       nostrPubkey
       nostrCrossposting
       nostrRelays
-      wildWestMode
-      satsFilter
+      postsSatsFilter
+      commentsSatsFilter
       nsfwMode
       authMethods {
         lightning

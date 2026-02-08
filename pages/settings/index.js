@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, SubmitButton, Select, VariableInput } from '@/components/form'
+import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, Range } from '@/components/form'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import Nav from 'react-bootstrap/Nav'
@@ -135,8 +135,8 @@ export default function Settings ({ ssrData }) {
             hideTwitter: settings?.hideTwitter,
             imgproxyOnly: settings?.imgproxyOnly,
             showImagesAndVideos: settings?.showImagesAndVideos,
-            wildWestMode: settings?.wildWestMode,
-            satsFilter: settings?.satsFilter,
+            postsSatsFilter: settings?.postsSatsFilter,
+            commentsSatsFilter: settings?.commentsSatsFilter,
             nsfwMode: settings?.nsfwMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrCrossposting: settings?.nostrCrossposting,
@@ -147,7 +147,7 @@ export default function Settings ({ ssrData }) {
           schema={settingsSchema}
           onSubmit={async ({
             tipDefault, tipRandom, tipRandomMin, tipRandomMax,
-            zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, satsFilter,
+            zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, postsSatsFilter, commentsSatsFilter,
             ...values
           }) => {
             if (nostrPubkey.length === 0) {
@@ -170,7 +170,8 @@ export default function Settings ({ ssrData }) {
                     tipDefault: Number(tipDefault),
                     tipRandomMin: tipRandom ? Number(tipRandomMin) : null,
                     tipRandomMax: tipRandom ? Number(tipRandomMax) : null,
-                    satsFilter: Number(satsFilter),
+                    postsSatsFilter: Number(postsSatsFilter),
+                    commentsSatsFilter: Number(commentsSatsFilter),
                     zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
@@ -420,25 +421,37 @@ export default function Settings ({ ssrData }) {
             name='noReferralLinks'
           />
           <h4 className='mt-5'>content</h4>
-          <Input
+          <Range
             label={
-              <div className='d-flex align-items-center'>filter by sats
+              <div className='d-flex align-items-center'>posts sat filter
                 <Info>
                   <ul>
-                    <li>hide the post if the sum of these is less than your setting:</li>
-                    <ul>
-                      <li>posting cost</li>
-                      <li>total sats from zaps</li>
-                      <li>boost</li>
-                    </ul>
-                    <li>set to zero to be a greeter, with the tradeoff of seeing more spam</li>
+                    <li>hide posts if net investment (cost + zaps + boost - downzaps) is less than this</li>
+                    <li>set to zero or negative to see more content, including heavily downzapped posts</li>
                   </ul>
                 </Info>
               </div>
             }
-            name='satsFilter'
-            required
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            name='postsSatsFilter'
+            min={-1000}
+            max={1000}
+            suffix=' sats'
+          />
+          <Range
+            label={
+              <div className='d-flex align-items-center'>comments sat filter
+                <Info>
+                  <ul>
+                    <li>collapse comments and rank at bottom if net investment is less than this</li>
+                    <li>set to zero or negative to see all comments normally, including heavily downzapped ones</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='commentsSatsFilter'
+            min={-1000}
+            max={1000}
+            suffix=' sats'
           />
           <Checkbox
             label={
@@ -462,19 +475,6 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='showImagesAndVideos'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>wild west mode
-                <Info>
-                  <ul>
-                    <li>don't hide flagged content</li>
-                  </ul>
-                </Info>
-              </div>
-            }
-            name='wildWestMode'
             groupClassName='mb-0'
           />
           <Checkbox

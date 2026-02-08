@@ -126,9 +126,9 @@ export default {
         }
       })
     },
-    activeSubs: async (parent, args, { models, me }) => {
+    activeSubs: async (parent, args, { models, me, userLoader }) => {
       if (me) {
-        const currentUser = await models.user.findUnique({ where: { id: me.id } })
+        const currentUser = await userLoader.load(me.id)
         const showNsfw = currentUser ? currentUser.nsfwMode : false
 
         return await models.$queryRaw`

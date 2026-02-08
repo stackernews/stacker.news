@@ -1,10 +1,7 @@
 import models from '@/api/models'
 
-export default async (_, res) => {
+export async function getServerSideProps () {
   // get the latest daily discussion thread
-  // this should probably be made more generic
-  // eg if the title changes this will break
-  // ... but this will need to change when we have more subs anyway
   const items = await models.$queryRaw`
     SELECT "Item".id as id
     FROM "Item"
@@ -16,10 +13,8 @@ export default async (_, res) => {
     ORDER BY "Item"."created_at" DESC
     LIMIT 1`
 
-  if (items.length === 0) {
-    res.redirect('/')
-    return
-  }
-
-  res.redirect(`/items/${items[0].id}`)
+  const destination = items.length > 0 ? `/items/${items[0].id}` : '/'
+  return { redirect: { destination, permanent: false } }
 }
+
+export default () => null

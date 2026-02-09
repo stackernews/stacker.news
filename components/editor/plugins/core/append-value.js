@@ -15,7 +15,7 @@ export default function AppendValuePlugin ({ value }) {
     if (value && value !== prevValueRef.current) {
       prevValueRef.current = value
       editor.update(() => {
-        $appendMarkdown(value, 2)
+        $appendMarkdown(value, false, 2)
       })
     } else if (!value) {
       // clear on cancel quote

@@ -79,7 +79,8 @@ export default function TransformerBridgePlugin () {
       if (!newMarkdown) return false
 
       // insert the new markdown into the original editor
-      $insertMarkdown(newMarkdown)
+      // trim whitespaces to avoid extra newlines
+      $insertMarkdown(newMarkdown, true)
       return true
     }, COMMAND_PRIORITY_EDITOR)
   }, [editor, bridgeRef])

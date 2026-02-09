@@ -15,7 +15,7 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Badges from './badge'
-import { USER_ID } from '@/lib/constants'
+import { USER_ID, DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
@@ -75,6 +75,7 @@ export default function ItemInfo ({
 }) {
   const { me } = useMe()
   const router = useRouter()
+  const showModal = useShowModal()
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
   // XXX sub controls pinning options for territory founders
@@ -100,13 +101,18 @@ export default function ItemInfo ({
   const isPinnedSubReply = !isPost && item.position && !item.subNames
   const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
+  const satsFilter = isPost
+    ? (me?.privates?.postsSatsFilter ?? DEFAULT_POSTS_SATS_FILTER)
+    : (me?.privates?.commentsSatsFilter ?? DEFAULT_COMMENTS_SATS_FILTER)
+  const isDesperado = !item.mine && item.downSats > 0 &&
+    satsFilter != null && (item.netInvestment ?? 0) < satsFilter
 
   return (
     <div className={className || `${styles.other}`}>
       {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
         <>
           <span title={itemTitle(item)}>
-            {numWithUnits(item.sats - item.downSats)}
+            {numWithUnits(item.sats)}
           </span>
           <span> \ </span>
         </>}
@@ -169,6 +175,12 @@ export default function ItemInfo ({
         <Link href='/recent/freebies'>
           {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
         </Link>}
+      {isDesperado &&
+        <span
+          role='button' onClick={() => showModal((onClose) => <ItemDetails item={item} me={me} />)}
+        >
+          {' '}<Badge className={styles.newComment} bg={null}>-{abbrNum(item.downSats)} sats</Badge>
+        </span>}
       {extraBadges}
       {
         showActionDropdown &&
@@ -235,50 +247,48 @@ export default function ItemInfo ({
   )
 }
 
+function ItemDetails ({ item, me }) {
+  return (
+    <div className={styles.details}>
+      <div>id</div>
+      <div>{item.id}</div>
+      <div>created at</div>
+      <div>{item.createdAt}</div>
+      {item.payIn?.payInState === 'PAID' &&
+        <>
+          <div>paid at</div>
+          <div>{item.payIn?.payInStateChangedAt}</div>
+        </>}
+      <div>cost</div>
+      <div>{item.cost}</div>
+      <div>stacked</div>
+      <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
+      <div>stacked (comments)</div>
+      <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
+      <div>downsats</div>
+      <div>{item.downSats}</div>
+      <div>downsats (comments)</div>
+      <div>{item.commentDownSats}</div>
+      {me && (
+        <>
+          <div>from me</div>
+          <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
+          <div>downsats from me</div>
+          <div>{item.meDontLikeSats}</div>
+        </>
+      )}
+      <div>zappers</div>
+      <div>{item.upvotes}</div>
+    </div>
+  )
+}
+
 function InfoDropdownItem ({ item }) {
   const { me } = useMe()
   const showModal = useShowModal()
 
-  const onClick = () => {
-    showModal((onClose) => {
-      return (
-        <div className={styles.details}>
-          <div>id</div>
-          <div>{item.id}</div>
-          <div>created at</div>
-          <div>{item.createdAt}</div>
-          {item.payIn?.payInState === 'PAID' &&
-            <>
-              <div>paid at</div>
-              <div>{item.payIn?.payInStateChangedAt}</div>
-            </>}
-          <div>cost</div>
-          <div>{item.cost}</div>
-          <div>stacked</div>
-          <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
-          <div>stacked (comments)</div>
-          <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
-          <div>downsats</div>
-          <div>{item.downSats}</div>
-          <div>downsats (comments)</div>
-          <div>{item.commentDownSats}</div>
-          {me && (
-            <>
-              <div>from me</div>
-              <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
-              <div>downsats from me</div>
-              <div>{item.meDontLikeSats}</div>
-            </>
-          )}
-          <div>zappers</div>
-          <div>{item.upvotes}</div>
-        </div>
-      )
-    })
-  }
-
   return (
-    <Dropdown.Item onClick={onClick}>
+    <Dropdown.Item onClick={() => showModal(() => <ItemDetails item={item} me={me} />)}>
       details
     </Dropdown.Item>
   )

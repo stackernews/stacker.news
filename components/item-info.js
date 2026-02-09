@@ -101,9 +101,9 @@ export default function ItemInfo ({
   const isPinnedSubReply = !isPost && item.position && !item.subNames
   const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
-  const satsFilter = isPost
-    ? (me?.privates?.postsSatsFilter ?? DEFAULT_POSTS_SATS_FILTER)
-    : (me?.privates?.commentsSatsFilter ?? DEFAULT_COMMENTS_SATS_FILTER)
+  const satsFilter = me
+    ? (isPost ? me.privates?.postsSatsFilter : me.privates?.commentsSatsFilter)
+    : (isPost ? DEFAULT_POSTS_SATS_FILTER : DEFAULT_COMMENTS_SATS_FILTER)
   const isDesperado = !item.mine && item.downSats > 0 &&
     satsFilter != null && (item.netInvestment ?? 0) < satsFilter
 

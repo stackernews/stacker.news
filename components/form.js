@@ -790,7 +790,7 @@ export function Range ({
         <small className='text-muted text-monospace'>{max}</small>
         <InputGroup className='flex-nowrap' style={{ width: 'auto' }}>
           {isAll
-            ? <span className='form-control text-end px-2' style={{ width: '4.5rem', whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
+            ? <span className='form-control px-2' style={{ width: '4.5rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25em' }}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
             : <BootstrapForm.Control
                 type='number'
                 min={min}

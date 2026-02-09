@@ -40,7 +40,10 @@ function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS
   sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
 
   // Push comments with investment below the threshold to the bottom of threads
-  sharedSortsArray.push(`(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`)
+  // null means "show all" — don't push any comments to the bottom
+  if (commentsSatsFilter != null) {
+    sharedSortsArray.push(`(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`)
+  }
 
   const sharedSorts = sharedSortsArray.join(', ')
 
@@ -59,10 +62,11 @@ function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS
 
 async function comments (item, sort, cursor, { me, models, userLoader }) {
   // Get user's commentsSatsFilter to push filtered freebies to bottom
+  // null means "show all" — don't push any comments to the bottom
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
   if (me) {
     const user = await userLoader.load(me.id)
-    commentsSatsFilter = user?.commentsSatsFilter ?? DEFAULT_COMMENTS_SATS_FILTER
+    if (user) commentsSatsFilter = user.commentsSatsFilter
   }
 
   const orderBy = commentsOrderByClause(sort, commentsSatsFilter)
@@ -274,6 +278,7 @@ const relationClause = (type) => {
       break
     case 'comments':
     case 'freebies':
+    case 'desperados':
     case 'all':
       clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
       break
@@ -342,14 +347,48 @@ const subClause = (sub, num, table = 'Item', me, showNsfw) => {
   return [excludeMuted, hideNsfwClause].filter(Boolean).join(' AND ')
 }
 
+// Inverted filter: show items BELOW the threshold (for desperados)
+function invertedInvestmentClause (postsSatsFilter, commentsSatsFilter) {
+  // null means "show all" — nothing is below -infinity, so return no results
+  if (postsSatsFilter == null && commentsSatsFilter == null) {
+    return 'FALSE'
+  }
+
+  const postsExpr = postsSatsFilter == null
+    ? 'FALSE'
+    : `"Item"."netInvestment" < ${postsSatsFilter}`
+  const commentsExpr = commentsSatsFilter == null
+    ? 'FALSE'
+    : `"Item"."netInvestment" < ${commentsSatsFilter}`
+
+  return `(
+    CASE WHEN "Item"."parentId" IS NULL
+      THEN ${postsExpr}
+      ELSE ${commentsExpr}
+    END
+  )`
+}
+
 // Uses the indexed netInvestment column for efficient filtering
 // ownerBypass: if true, always show the user's own items regardless of filter
 function investmentClause (postsSatsFilter, commentsSatsFilter, meId, ownerBypass) {
+  // null means "show all" — no filter for that dimension
+  if (postsSatsFilter == null && commentsSatsFilter == null) {
+    return ''
+  }
+
   const ownerClause = ownerBypass && meId ? ` OR "Item"."userId" = ${meId}` : ''
+  const postsExpr = postsSatsFilter == null
+    ? 'TRUE'
+    : `"Item"."netInvestment" >= ${postsSatsFilter}${ownerClause}`
+  const commentsExpr = commentsSatsFilter == null
+    ? 'TRUE'
+    : `"Item"."netInvestment" >= ${commentsSatsFilter}${ownerClause}`
+
   return `(
     CASE WHEN "Item"."parentId" IS NULL
-      THEN "Item"."netInvestment" >= ${postsSatsFilter}${ownerClause}
-      ELSE "Item"."netInvestment" >= ${commentsSatsFilter}${ownerClause}
+      THEN ${postsExpr}
+      ELSE ${commentsExpr}
     END
   )`
 }
@@ -359,6 +398,8 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
   if (type === 'freebies' || type === 'bios') {
     return ''
   }
+
+  const isDesperados = type === 'desperados'
 
   let postsSatsFilter = DEFAULT_POSTS_SATS_FILTER
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
@@ -380,18 +421,25 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
         // On recent: use the lower of user's and territory's filter so either
         // party can relax the threshold. For logged-out users, use only
         // the territory's filter (ignoring the logged-out default).
+        // null (show all) beats any number since it's conceptually -infinity.
         postsSatsFilter = me
-          ? Math.min(postsSatsFilter, territory.postsSatsFilter)
+          ? (postsSatsFilter == null ? null : Math.min(postsSatsFilter, territory.postsSatsFilter))
           : territory.postsSatsFilter
       }
     }
   } else if (isCurated) {
     // On homepage hot/top/random: max of user filter and homepage threshold
-    postsSatsFilter = Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
+    // null (show all) defers to the homepage threshold on curated feeds
+    postsSatsFilter = postsSatsFilter == null
+      ? HOMEPAGE_POSTS_SATS_FILTER
+      : Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
   }
 
   // On curated feeds (hot/top/random), your own items are filtered like everyone else's.
   // On recent/notifications, your own items always pass the filter.
+  if (isDesperados) {
+    return invertedInvestmentClause(postsSatsFilter, commentsSatsFilter)
+  }
   return investmentClause(postsSatsFilter, commentsSatsFilter, me?.id, !isCurated)
 }
 
@@ -413,6 +461,7 @@ function typeClause (type) {
       return '"Item"."parentId" IS NOT NULL'
     case 'freebies':
       return '"Item".freebie = true'
+    case 'desperados':
     case 'all':
     case 'bookmarks':
       return ''

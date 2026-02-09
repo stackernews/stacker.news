@@ -62,12 +62,12 @@ async function assertSettings () {
 
   console.log(`> logged in as @${me.name}`)
 
-  if (me.privates.postsSatsFilter > 0) {
-    throw new Error('posts sat filter must be 0 or lower to see all content')
+  if (me.privates.postsSatsFilter != null && me.privates.postsSatsFilter > 0) {
+    throw new Error('posts sat filter must be null (show all) or 0 or lower to see all content')
   }
 
-  if (me.privates.commentsSatsFilter > 0) {
-    throw new Error('comments sat filter must be 0 or lower to see all content')
+  if (me.privates.commentsSatsFilter != null && me.privates.commentsSatsFilter > 0) {
+    throw new Error('comments sat filter must be null (show all) or 0 or lower to see all content')
   }
 }
 

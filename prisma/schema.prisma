@@ -47,8 +47,8 @@ model User {
   noteForwardedSats         Boolean                @default(true)
   photoId                   Int?
   hideInvoiceDesc           Boolean                @default(false)
-  postsSatsFilter           Int                    @default(10)
-  commentsSatsFilter        Int                    @default(1)
+  postsSatsFilter           Int?                   @default(10)
+  commentsSatsFilter        Int?                   @default(1)
   freeCommentCount          Int                    @default(0)
   freeCommentResetAt        DateTime?
   nsfwMode                  Boolean                @default(false)

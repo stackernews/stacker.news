@@ -36,8 +36,8 @@ async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
     }
   })
 
-  // bios, forwards, or dust don't get sats
-  if (item.bio || item.itemForwards.length > 0 || sats < item.user.receiveCreditsBelowSats) {
+  // bios, forwards, freebies, or dust don't get sats - only credits
+  if (item.bio || item.freebie || item.itemForwards.length > 0 || sats < item.user.receiveCreditsBelowSats) {
     return false
   }
 

@@ -14,7 +14,7 @@ import { useCallback, useState } from 'react'
 import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import Delete from './delete'
 import CancelButton from './cancel-button'
-import { subNames, subsPostPrefix, subsAllSupport, subsAnyModerated } from '@/lib/subs'
+import { subNames, subsPostPrefix, subsAllSupport } from '@/lib/subs'
 
 export function PostForm ({ type, subs, children }) {
   const { me } = useMe()
@@ -110,7 +110,6 @@ export function PostForm ({ type, subs, children }) {
           noForm
           size='medium'
           subs={subNames(subs)}
-          hint={subsAnyModerated(subs) && 'some of the territories are moderated'}
         />
         <div>
           {postButtons}
@@ -148,7 +147,7 @@ export function PostForm ({ type, subs, children }) {
 
   return (
     <FeeButtonProvider
-      baseLineItems={subs.length ? postCommentBaseLineItems({ subs, me: !!me }) : undefined}
+      baseLineItems={postCommentBaseLineItems({ subs, me: !!me })}
       useRemoteLineItems={postCommentUseRemoteLineItems()}
     >
       <FormType subs={subs}>{children}</FormType>
@@ -174,7 +173,6 @@ export default function Post ({ subs }) {
           className='d-flex'
           size='medium'
           label='territory'
-          hint={subsAnyModerated(subs) && 'some of the territories are moderated'}
         />
       </PostForm>
     </>

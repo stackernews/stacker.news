@@ -10,12 +10,12 @@ import { timeSince } from '@/lib/time'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
-import DontLikeThisDropdownItem, { OutlawDropdownItem } from './dont-link-this'
+import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Badges from './badge'
-import { USER_ID } from '@/lib/constants'
+import { USER_ID, DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
@@ -38,8 +38,11 @@ function itemTitle (item) {
     unitSingular: 'zapper',
     unitPlural: 'zappers'
   })
-  if (item.sats) {
+  if (item.sats - item.credits) {
     title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+  }
+  if (item.downSats) {
+    title += ` \\ ${numWithUnits(item.downSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
   }
   if (item.credits) {
     title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
@@ -72,9 +75,10 @@ export default function ItemInfo ({
 }) {
   const { me } = useMe()
   const router = useRouter()
+  const showModal = useShowModal()
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
-  // XXX sub controls pinning and outlawing options for territory founders
+  // XXX sub controls pinning options for territory founders
   // so we only expose it if there's only one sub
   const subs = item?.subs || root?.subs
   const sub = subs?.length === 1 ? subs[0] : undefined
@@ -97,6 +101,11 @@ export default function ItemInfo ({
   const isPinnedSubReply = !isPost && item.position && !item.subNames
   const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
+  const satsFilter = me
+    ? (isPost ? me.privates?.postsSatsFilter : me.privates?.commentsSatsFilter)
+    : (isPost ? DEFAULT_POSTS_SATS_FILTER : DEFAULT_COMMENTS_SATS_FILTER)
+  const isDesperado = !item.mine && item.downSats > 0 &&
+    satsFilter != null && (item.netInvestment ?? 0) < satsFilter
 
   return (
     <div className={className || `${styles.other}`}>
@@ -162,15 +171,16 @@ export default function ItemInfo ({
       ))}
       {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
-      {(item.outlawed && !item.mine &&
-        <Link href='/recent/outlawed'>
-          {' '}<Badge className={styles.newComment} bg={null}>outlawed</Badge>
-        </Link>) ||
-        (item.freebie && !item.position &&
-          <Link href='/recent/freebies'>
-            {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
-          </Link>
-        )}
+      {item.freebie && !item.position &&
+        <Link href='/recent/freebies'>
+          {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
+        </Link>}
+      {isDesperado &&
+        <span
+          role='button' onClick={() => showModal((onClose) => <ItemDetails item={item} me={me} />)}
+        >
+          {' '}<Badge className={styles.newComment} bg={null}>-{abbrNum(item.downSats)} sats</Badge>
+        </span>}
       {extraBadges}
       {
         showActionDropdown &&
@@ -202,11 +212,6 @@ export default function ItemInfo ({
             (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
-              {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
-                <>
-                  <hr className='dropdown-divider' />
-                  <OutlawDropdownItem item={item} />
-                </>}
               {item.mine && item.payIn?.id &&
                 <>
                   <hr className='dropdown-divider' />
@@ -242,50 +247,48 @@ export default function ItemInfo ({
   )
 }
 
+function ItemDetails ({ item, me }) {
+  return (
+    <div className={styles.details}>
+      <div>id</div>
+      <div>{item.id}</div>
+      <div>created at</div>
+      <div>{item.createdAt}</div>
+      {item.payIn?.payInState === 'PAID' &&
+        <>
+          <div>paid at</div>
+          <div>{item.payIn?.payInStateChangedAt}</div>
+        </>}
+      <div>cost</div>
+      <div>{item.cost}</div>
+      <div>stacked</div>
+      <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
+      <div>stacked (comments)</div>
+      <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
+      <div>downsats</div>
+      <div>{item.downSats}</div>
+      <div>downsats (comments)</div>
+      <div>{item.commentDownSats}</div>
+      {me && (
+        <>
+          <div>from me</div>
+          <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
+          <div>downsats from me</div>
+          <div>{item.meDontLikeSats}</div>
+        </>
+      )}
+      <div>zappers</div>
+      <div>{item.upvotes}</div>
+    </div>
+  )
+}
+
 function InfoDropdownItem ({ item }) {
   const { me } = useMe()
   const showModal = useShowModal()
 
-  const onClick = () => {
-    showModal((onClose) => {
-      return (
-        <div className={styles.details}>
-          <div>id</div>
-          <div>{item.id}</div>
-          <div>created at</div>
-          <div>{item.createdAt}</div>
-          {item.payIn?.payInState === 'PAID' &&
-            <>
-              <div>paid at</div>
-              <div>{item.payIn?.payInStateChangedAt}</div>
-            </>}
-          <div>cost</div>
-          <div>{item.cost}</div>
-          <div>stacked</div>
-          <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
-          <div>stacked (comments)</div>
-          <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
-          <div>downsats</div>
-          <div>{item.downSats}</div>
-          <div>downsats (comments)</div>
-          <div>{item.commentDownSats}</div>
-          {me && (
-            <>
-              <div>from me</div>
-              <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
-              <div>downsats from me</div>
-              <div>{item.meDontLikeSats}</div>
-            </>
-          )}
-          <div>zappers</div>
-          <div>{item.upvotes}</div>
-        </div>
-      )
-    })
-  }
-
   return (
-    <Dropdown.Item onClick={onClick}>
+    <Dropdown.Item onClick={() => showModal(() => <ItemDetails item={item} me={me} />)}>
       details
     </Dropdown.Item>
   )

@@ -81,7 +81,8 @@ export default gql`
     autoDropBolt11s: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
-    satsFilter: Int!
+    postsSatsFilter: Int
+    commentsSatsFilter: Int
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -110,7 +111,6 @@ export default gql`
     tipRandomMax: Int
     turboTipping: Boolean!
     zapUndos: Int
-    wildWestMode: Boolean!
   }
 
   type AuthMethods {
@@ -129,6 +129,9 @@ export default gql`
     sats: Int!
     credits: Int!
     authMethods: AuthMethods!
+    freeCommentCount: Int!
+    freeCommentsLeft: Int!
+    hasSendWallet: Boolean!
 
     """
     only relevant to user
@@ -146,7 +149,8 @@ export default gql`
     autoDropBolt11s: Boolean!
     noReferralLinks: Boolean!
     fiatCurrency: String!
-    satsFilter: Int!
+    postsSatsFilter: Int
+    commentsSatsFilter: Int
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
     hideGithub: Boolean!
@@ -176,7 +180,6 @@ export default gql`
     tipRandomMax: Int
     turboTipping: Boolean!
     zapUndos: Int
-    wildWestMode: Boolean!
     autoWithdrawThreshold: Int
     vaultKeyHash: String
     vaultKeyHashUpdatedAt: Date

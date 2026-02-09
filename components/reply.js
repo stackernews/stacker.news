@@ -16,7 +16,6 @@ import useCommentsView from './use-comments-view'
 import { MAX_COMMENT_TEXT_LENGTH } from '@/lib/constants'
 import { $setMarkdown } from '@/lib/lexical/utils'
 import useCallbackRef from './use-callback-ref'
-import { subsAnyModerated } from '@/lib/subs'
 
 export default forwardRef(function Reply ({
   item,
@@ -145,7 +144,7 @@ export default forwardRef(function Reply ({
       {reply &&
         <div className={styles.reply}>
           <FeeButtonProvider
-            baseLineItems={subs.length ? postCommentBaseLineItems({ subs, comment: true, me: !!me }) : undefined}
+            baseLineItems={postCommentBaseLineItems({ subs, comment: true, me: !!me })}
             useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, me: !!me })}
           >
             <Form
@@ -164,7 +163,6 @@ export default forwardRef(function Reply ({
                 appendValue={quote}
                 lengthOptions={{ maxLength: MAX_COMMENT_TEXT_LENGTH }}
                 placeholder={placeholder}
-                hint={subsAnyModerated(subs) ? 'some territories are moderated' : undefined}
                 editorRef={onReplyEditorRef}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />

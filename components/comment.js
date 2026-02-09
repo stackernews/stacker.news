@@ -9,7 +9,7 @@ import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
-import { USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
 import PayBounty from './pay-bounty'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
@@ -21,7 +21,6 @@ import { RootProvider, useRoot } from './root'
 import { useMe } from './me'
 import { useQuoteReply } from './use-quote-reply'
 import { DownZap } from './dont-link-this'
-import Skull from '@/svgs/death-skull.svg'
 import { commentSubTreeRootId } from '@/lib/item'
 import Pin from '@/svgs/pushpin-fill.svg'
 import LinkToContext from './link-to-context'
@@ -105,10 +104,12 @@ export default function Comment ({
 }) {
   const [edit, setEdit] = useState()
   const { me } = useMe()
-  const isHiddenFreebie = me?.privates?.satsFilter !== 0 && !item.mine && item.freebie && !item.freedFreebie
+  // Collapse comments that don't meet the viewer's commentsSatsFilter threshold
+  const commentsSatsFilter = me ? me.privates?.commentsSatsFilter : DEFAULT_COMMENTS_SATS_FILTER
+  const isBelowFilter = !item.mine && commentsSatsFilter != null && item.netInvestment < commentsSatsFilter
   const isDeletedChildless = item?.ncomments === 0 && item?.deletedAt
   const [collapse, setCollapse] = useState(
-    (isHiddenFreebie || isDeletedChildless || item?.user?.meMute || (item?.outlawed && !me?.privates?.wildWestMode)) && !includeParent
+    (isBelowFilter || isDeletedChildless || item?.user?.meMute) && !includeParent
       ? 'yep'
       : 'nope')
   const ref = useRef(null)
@@ -213,15 +214,13 @@ export default function Comment ({
       onTouchStart={unsetOutline}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
-        {item.outlawed && !me?.privates?.wildWestMode
-          ? <Skull className={styles.dontLike} width={18} height={18} />
-          : pin
-            ? <Pin width={22} height={22} className={styles.pin} />
-            : item.mine
-              ? <Boost item={item} className={styles.upvote} />
-              : item.meDontLikeSats > item.meSats
-                ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-                : <UpVote item={item} className={styles.upvote} collapsed={collapse === 'yep'} />}
+        {pin
+          ? <Pin width={22} height={22} className={styles.pin} />
+          : item.mine
+            ? <Boost item={item} className={styles.upvote} />
+            : item.meDontLikeSats > item.meSats
+              ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+              : <UpVote item={item} className={styles.upvote} collapsed={collapse === 'yep'} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'
@@ -290,10 +289,8 @@ export default function Comment ({
                 {item.searchText
                   ? <SearchText text={item.searchText} />
                   : (
-                    <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls} readerRef={onReaderRef}>
-                      {item.outlawed && !me?.privates?.wildWestMode
-                        ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
-                        : truncate ? truncateString(item.text) : undefined}
+                    <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} imgproxyUrls={item.imgproxyUrls} readerRef={onReaderRef}>
+                      {truncate ? truncateString(item.text) : undefined}
                     </Text>)}
               </div>
               )}
@@ -304,12 +301,10 @@ export default function Comment ({
           ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} threadContext /></div></div>
           : (
             <div className={styles.children}>
-              {item.outlawed && !me?.privates?.wildWestMode
-                ? <div className='py-2' />
-                : !noReply &&
-                  <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
-                    {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                  </Reply>}
+              {!noReply &&
+                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
+                  {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                </Reply>}
               {children}
               <div className={styles.comments}>
                 {!noComments && item.comments?.comments

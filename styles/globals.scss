@@ -1143,3 +1143,14 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
     background: none !important;
   }
 }
+
+/* Hide number input spinners */
+.hide-spinners::-webkit-outer-spin-button,
+.hide-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.hide-spinners {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

@@ -1,14 +1,15 @@
-import { IMGPROXY_URL_REGEXP, decodeProxyUrl, getLinkAttributes, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useState, useEffect, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $createLinkNode } from '@lexical/link'
-import { $getNodeByKey, $createTextNode, $createParagraphNode } from 'lexical'
+import { $getNodeByKey } from 'lexical'
 import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
 import { useCarousel } from '@/components/carousel'
 import { useMe } from '@/components/me'
 import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
 import preserveScroll from '@/components/preserve-scroll'
+import { $replaceNodeWithLink } from '@/lib/lexical/nodes/utils'
+import { useToolbarState } from '@/components/editor/contexts/toolbar'
 
 function LinkRaw ({ className, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -117,39 +118,21 @@ const Media = memo(function Media ({
  */
 export default function MediaComponent ({ src, srcSet, bestResSrc, width, height, alt, title, kind: initialKind, linkFallback = true, nodeKey }) {
   const [editor] = useLexicalComposerContext()
+  const toolbarContext = useToolbarState()
   const [kind, setKind] = useState()
+
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
+  // we'll check if we're in an editor, and thus preview mode,
+  // by checking if the toolbar context is defined
+  const preview = useMemo(() => !!toolbarContext, [toolbarContext])
 
   // TODO: basically an hack, Lexical could handle this via MediaCheckExtension
   // we're profiting from the fact that MediaOrLink actually does a media check
   // if the media turned out to be a link, replace the media node with a link node
   const $replaceWithLink = useCallback(() => {
     const node = $getNodeByKey(nodeKey)
-    if (!node) return
-
-    const parent = node.getParent()
-    if (!parent) return
-
-    const { target, rel } = getLinkAttributes(url)
-    const linkNode = $createLinkNode(url, {
-      title: url,
-      target,
-      rel
-    }).append($createTextNode(url))
-
-    // If parent is a paragraph, directly replace the media node with the link
-    if (parent.getType() === 'paragraph') {
-      node.replace(linkNode)
-      return
-    }
-
-    // Otherwise, insert a new paragraph with the link after the parent and remove the media node
-    parent.insertAfter($createParagraphNode().append(linkNode))
-    node.remove()
-
-    // Clean up empty parent nodes
-    if (parent.getChildrenSize() === 0) {
-      parent.remove()
+    if (node) {
+      $replaceNodeWithLink(node, url)
     }
   }, [url, nodeKey])
 
@@ -165,7 +148,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
 
   useEffect(() => {
     editor.update(() => {
-      if (kind === 'unknown') {
+      if (kind === 'unknown' || kind === 'disabled') {
         $replaceWithLink()
       }
       if (kind === 'image' || kind === 'video') {
@@ -186,6 +169,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       kind={initialKind}
       linkFallback={linkFallback}
       setKind={setKind}
+      preview={preview}
     />
   )
 }
@@ -254,18 +238,23 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setKind, tab }) => {
+export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setKind, preview }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!(srcSet || srcSetIntital) || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [srcSet, srcSetIntital, src])
   // backwards compatibility: legacy srcSet handling
   const legacySrcSet = useMemo(() => processSrcSetInitial(srcSetIntital, src), [srcSetIntital, src])
   const [isImage, setIsImage] = useState((kind === 'image' || legacySrcSet?.video === false) && trusted)
   const [isVideo, setIsVideo] = useState(kind === 'video' || legacySrcSet?.video)
-  const showMedia = useMemo(() => tab === 'preview' || me?.privates?.showImagesAndVideos !== false, [me?.privates?.showImagesAndVideos, tab])
+  const showMedia = useMemo(() => preview || me?.privates?.showImagesAndVideos !== false, [me?.privates?.showImagesAndVideos, preview])
 
   useEffect(() => {
-    // don't load the video at all if user doesn't want these
-    if (!showMedia || isVideo || isImage) return
+    // don't load media if user has disabled them
+    // or if the user has disabled non-proxied media and media is not proxied or a video (can't proxy videos)
+    if (!showMedia || (me?.privates?.imgproxyOnly && (!trusted || isVideo))) {
+      setKind?.('disabled')
+      return
+    }
+    if (isVideo || isImage) return
 
     const controller = new AbortController()
 
@@ -297,7 +286,7 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
       // abort the fetch
       try { controller.abort() } catch {}
     }
-  }, [src, setIsImage, setIsVideo, showMedia, setKind])
+  }, [src, setIsImage, setIsVideo, showMedia, setKind, trusted, isVideo])
 
   let style = null
   if (legacySrcSet?.srcSet) {

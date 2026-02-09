@@ -4,7 +4,8 @@ import { createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $isR
 import { $formatBlock } from '@/lib/lexical/commands/formatting/blocks'
 import useHeadlessBridge from '@/components/editor/hooks/use-headless-bridge'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
-import { $insertMarkdown, $debugNodeToJSON } from '@/lib/lexical/utils'
+import { $insertMarkdown } from '@/lib/lexical/utils'
+import { $debugNodeToJSON } from '@/lib/lexical/nodes/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
 
 /** command to transform markdown selections using a headless lexical editor

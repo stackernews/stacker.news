@@ -53,8 +53,8 @@ async function assertSettings () {
         id
         name
         privates {
-          wildWestMode
-          satsFilter
+          postsSatsFilter
+          commentsSatsFilter
         }
       }
     }
@@ -62,12 +62,12 @@ async function assertSettings () {
 
   console.log(`> logged in as @${me.name}`)
 
-  if (!me.privates.wildWestMode) {
-    throw new Error('wild west mode must be enabled')
+  if (me.privates.postsSatsFilter != null && me.privates.postsSatsFilter > 0) {
+    throw new Error('posts sat filter must be null (show all) or 0 or lower to see all content')
   }
 
-  if (me.privates.satsFilter !== 0) {
-    throw new Error('sats filter must be set to 0')
+  if (me.privates.commentsSatsFilter != null && me.privates.commentsSatsFilter > 0) {
+    throw new Error('comments sat filter must be null (show all) or 0 or lower to see all content')
   }
 }
 

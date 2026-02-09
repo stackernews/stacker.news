@@ -17,6 +17,7 @@ import { NOFOLLOW_LIMIT } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
+import { createUserLoader, createSubLoader } from '@/api/loaders'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   // switch session cookie before getting session on SSR
@@ -31,15 +32,22 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
         typeDefs,
         resolvers
       }),
-      context: {
-        models,
-        me: session
+      context: (() => {
+        const viewer = session
           ? session.user
-          : me,
-        lnd,
-        search,
-        lexicalStateLoader: lexicalStateLoader()
-      }
+          : me
+        const userLoader = createUserLoader(models)
+        const subLoader = createSubLoader(models)
+        return {
+          models,
+          me: viewer,
+          lnd,
+          search,
+          userLoader,
+          subLoader,
+          lexicalStateLoader: lexicalStateLoader({ me: viewer, userLoader })
+        }
+      })()
     }),
     cache: new InMemoryCache({
       freezeResults: true

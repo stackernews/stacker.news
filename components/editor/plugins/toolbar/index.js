@@ -60,7 +60,7 @@ const FORMAT_OPTIONS = [
 ]
 
 const MenuAlternateDimension = forwardRef(function MenuAlternateDimension ({ children, style, className }, ref) {
-  // document doesn't exist on SSR, this forces the component to render on the client
+  // document doesn't exist on SSR
   const isClient = useIsClient()
   if (!isClient) return null
 
@@ -147,9 +147,8 @@ function ToolbarButton ({ id, isActive, onClick, tooltip, children, showDelay = 
 
 export function ToolbarPlugin ({ name, topLevel }) {
   const [editor] = useLexicalComposerContext()
-  const { batchUpdateToolbarState, toolbarState } = useToolbarState()
+  const { batchUpdateToolbarState, toolbarState, updateToolbarState } = useToolbarState()
   const toolbarRef = useRef(null)
-  const [showFormattingToolbar, setShowFormattingToolbar] = useState(topLevel)
   const [hasOverflow, setHasOverflow] = useState(false)
 
   const handleFormat = useCallback((type) => editor.dispatchCommand(SN_FORMAT_COMMAND, type), [editor])
@@ -157,9 +156,6 @@ export function ToolbarPlugin ({ name, topLevel }) {
   const handleToggleLink = useCallback(() => editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND), [editor])
 
   const $updateToolbar = useCallback(() => {
-    // markdown mode doesn't support toolbar updates
-    if (toolbarState.editorMode === 'markdown') return
-
     const updates = {}
     const selection = $getSelection()
     if ($isRangeSelection(selection)) {
@@ -202,6 +198,9 @@ export function ToolbarPlugin ({ name, topLevel }) {
   }, [])
 
   useEffect(() => {
+    // markdown mode doesn't support toolbar updates
+    if (toolbarState.editorMode === 'markdown') return
+
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
         editorState.read(() => { $updateToolbar() }, { editor })
@@ -214,7 +213,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
         COMMAND_PRIORITY_CRITICAL
       )
     )
-  }, [editor, $updateToolbar])
+  }, [editor, $updateToolbar, toolbarState.editorMode])
 
   // overflow detection for mobile devices
   useEffect(() => {
@@ -244,7 +243,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
     <div className={styles.toolbar}>
       <ModeSwitchPlugin name={name} />
       <div className={classNames(styles.innerToolbar, toolbarState.previewMode && styles.toolbarHidden)}>
-        <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !showFormattingToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
+        <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !toolbarState.showFormattingToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
           <ToolbarDropdown
             icon={<BlocksIcon />}
             tooltip='blocks'
@@ -276,8 +275,8 @@ export function ToolbarPlugin ({ name, topLevel }) {
             arrow={false}
           />
         </div>
-        <ActionTooltip notForm overlayText={showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
-          <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, showFormattingToolbar && styles.active)} onClick={() => setShowFormattingToolbar(!showFormattingToolbar)}>
+        <ActionTooltip notForm overlayText={toolbarState.showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
+          <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, toolbarState.showFormattingToolbar && styles.active)} onClick={() => updateToolbarState('showFormattingToolbar', !toolbarState.showFormattingToolbar)}>
             <FontStyleIcon />
           </span>
         </ActionTooltip>

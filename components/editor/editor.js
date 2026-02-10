@@ -32,6 +32,28 @@ import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
 import { RichTextExtension } from '@lexical/rich-text'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { CheckListExtension, ListExtension } from '@lexical/list'
+import { LinkExtension } from '@lexical/link'
+import { TableExtension } from '@lexical/table'
+import { GalleryExtension } from '@/lib/lexical/exts/gallery'
+
+const MARKDOWN_MODE = {
+  name: 'editor-markdown',
+  extensions: [MarkdownTextExtension],
+  nodes: []
+}
+
+const RICH_MODE = {
+  name: 'editor-rich',
+  extensions: [
+    RichTextExtension,
+    ListExtension,
+    CheckListExtension,
+    LinkExtension,
+    TableExtension,
+    GalleryExtension
+  ],
+  nodes: DefaultNodes
+}
 
 /**
  * main lexical editor component with formik integration
@@ -56,23 +78,17 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
           }
         }
       },
-      name: 'editor',
       namespace: 'sn',
       dependencies: [
-        toolbarState.editorMode === 'markdown'
-          ? MarkdownTextExtension
-          : RichTextExtension,
         ApplePatchExtension,
         HistoryExtension,
         FormattingCommandsExtension,
-        toolbarState.editorMode === 'rich' && ListExtension,
-        toolbarState.editorMode === 'rich' && CheckListExtension,
         configExtension(ReactExtension, { contentEditable: null }),
         configExtension(AutoFocusExtension, { disabled: !autoFocus })
-      ].filter(Boolean),
-      nodes: toolbarState.editorMode === 'rich' ? DefaultNodes : [],
+      ],
       theme: { ...theme, topLevel: topLevel ? 'topLevel' : '' },
-      onError: (error) => console.error('editor has encountered an error:', error)
+      onError: (error) => console.error('editor has encountered an error:', error),
+      ...(toolbarState.editorMode === 'markdown' ? MARKDOWN_MODE : RICH_MODE)
     // only depend on stable values to avoid unnecessary re-renders
     // text.value is, for example, not stable because it is updated by the formik context
     }), [autoFocus, topLevel, toolbarState.editorMode])

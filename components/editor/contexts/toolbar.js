@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState, useCallback } from 'react'
 
 const INITIAL_STATE = {
+  showToolbar: false,
   previewMode: false,
   editorMode: 'markdown',
   blockType: 'paragraph',

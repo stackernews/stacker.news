@@ -396,12 +396,12 @@ export function Sorts ({ sub, prefix, className }) {
     <>
       <Nav.Item className={className}>
         <Link href={prefix + '/'} passHref legacyBehavior>
-          <Nav.Link eventKey='' className={styles.navLink}>lit</Nav.Link>
+          <Nav.Link eventKey='' className={`${styles.navLink} ${styles.navSort}`}>lit</Nav.Link>
         </Link>
       </Nav.Item>
       <Nav.Item className={className}>
         <Link href={prefix + '/new'} passHref legacyBehavior>
-          <Nav.Link eventKey='new' className={styles.navLink}>new</Nav.Link>
+          <Nav.Link eventKey='new' className={`${styles.navLink} ${styles.navSort}`}>new</Nav.Link>
         </Link>
       </Nav.Item>
       {sub !== 'jobs' &&
@@ -413,7 +413,7 @@ export function Sorts ({ sub, prefix, className }) {
                 query: { type: 'posts', when: 'day', sub }
               }} as={prefix + '/top/posts/day'} passHref legacyBehavior
             >
-              <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
+              <Nav.Link eventKey='top' className={`${styles.navLink} ${styles.navSort}`}>top</Nav.Link>
             </Link>
           </Nav.Item>
         </>}

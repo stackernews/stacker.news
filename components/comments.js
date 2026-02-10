@@ -34,7 +34,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
           <Nav.Item>
             <Nav.Link
               eventKey='lit'
-              className={styles.navLink}
+              className={`${styles.navLink} ${styles.navSort}`}
               onClick={getHandleClick('lit')}
             >
               lit
@@ -43,7 +43,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
           <Nav.Item>
             <Nav.Link
               eventKey='new'
-              className={styles.navLink}
+              className={`${styles.navLink} ${styles.navSort}`}
               onClick={getHandleClick('new')}
             >
               new
@@ -52,7 +52,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
           <Nav.Item>
             <Nav.Link
               eventKey='top'
-              className={styles.navLink}
+              className={`${styles.navLink} ${styles.navSort}`}
               onClick={getHandleClick('top')}
             >
               top

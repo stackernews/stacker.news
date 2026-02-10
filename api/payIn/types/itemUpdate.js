@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, RANK_HOT_SIGMA } from '@/lib/constants'
 import { uploadFees } from '../../resolvers/upload'
 import { getItemMentions, getMentions, getSubs, performBotBehavior } from '../lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
@@ -195,6 +195,15 @@ export async function onBegin (tx, payInId, args) {
       }
     }
   })
+
+  // accumulate rankhot for the additional cost (excluding boost, which is handled by BOOST beneficiary)
+  const costIncrease = additionalCost - (boost - old.boost)
+  if (costIncrease > 0) {
+    await tx.$executeRaw`
+      UPDATE "Item"
+      SET rankhot = rankhot + EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${costIncrease}::DOUBLE PRECISION
+      WHERE id = ${parseInt(id)}::INTEGER`
+  }
 
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)

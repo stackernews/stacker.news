@@ -101,7 +101,7 @@ export default function Search ({ sub }) {
                         name='sort'
                         size='sm'
                         overrideValue={sort}
-                        items={['relevance', 'zaprank', 'new', 'comments', 'sats']}
+                        items={['relevance', 'sats', 'new', 'comments']}
                       />
                       for
                       <Select

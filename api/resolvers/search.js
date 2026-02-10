@@ -3,6 +3,7 @@ import { whenToFrom } from '@/lib/time'
 import { getItem, itemQueryWithMeta, SELECT } from './item'
 import { parse } from 'tldts'
 import { searchSchema, validateSchema } from '@/lib/validate'
+import { DEFAULT_POSTS_SATS_FILTER } from '@/lib/constants'
 
 function queryParts (q) {
   const regex = /"([^"]*)"/gm
@@ -25,7 +26,7 @@ function queryParts (q) {
 
 export default {
   Query: {
-    related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search }) => {
+    related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search, userLoader }) => {
       const decodedCursor = decodeCursor(cursor)
 
       if (!id && (!title || title.trim().split(/\s+/).length < 1)) {
@@ -33,6 +34,12 @@ export default {
           items: [],
           cursor: null
         }
+      }
+
+      let satsFilter = DEFAULT_POSTS_SATS_FILTER
+      if (me) {
+        const user = await userLoader.load(me.id)
+        if (user?.postsSatsFilter != null) satsFilter = user.postsSatsFilter
       }
 
       const like = []
@@ -61,7 +68,7 @@ export default {
           }
         },
         {
-          range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
+          range: { ranktop: { gte: minMatch ? 0 : satsFilter * 1000 } }
         }
       ]
 
@@ -95,9 +102,9 @@ export default {
           },
           functions: [{
             field_value_factor: {
-              field: 'wvotes',
+              field: 'ranktop',
               modifier: 'log1p',
-              factor: 0.1,
+              factor: 0.0001,
               missing: 0
             }
           }],
@@ -196,7 +203,7 @@ export default {
         items
       }
     },
-    search: async (parent, { q, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
+    search: async (parent, { q, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search, userLoader }) => {
       await validateSchema(searchSchema, { q })
       const decodedCursor = decodeCursor(cursor)
       let sitems = null
@@ -270,8 +277,13 @@ export default {
           }
       filters.push({ range: { createdAt: whenRange } })
 
-      // filter for non negative wvotes
-      filters.push({ range: { wvotes: { gte: 0 } } })
+      // filter by sat investment threshold
+      let satsFilter = DEFAULT_POSTS_SATS_FILTER
+      if (me) {
+        const user = await userLoader.load(me.id)
+        if (user?.postsSatsFilter != null) satsFilter = user.postsSatsFilter
+      }
+      filters.push({ range: { ranktop: { gte: satsFilter * 1000 } } })
 
       // decompose the search terms
       const { query: _query, quotes, nym, url, territory } = queryParts(q)
@@ -339,7 +351,7 @@ export default {
         case 'sats':
           functions.push({
             field_value_factor: {
-              field: 'sats',
+              field: 'ranktop',
               modifier: 'log1p'
             }
           })
@@ -360,14 +372,6 @@ export default {
               }
             ]
           }
-          break
-        case 'zaprank':
-          functions.push({
-            field_value_factor: {
-              field: 'wvotes',
-              modifier: 'log1p'
-            }
-          })
           break
         default:
           break

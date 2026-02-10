@@ -137,8 +137,6 @@ const orderByClause = (by, me, models, type, sub) => {
     case 'comments':
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
-      return 'ORDER BY "Item".msats DESC'
-    case 'zaprank':
       return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
     case 'random':
       return 'ORDER BY RANDOM()'
@@ -555,10 +553,10 @@ export default {
                 activeOrMine(me),
                 await filterClause(type, sub, 'top', ctx),
                 muteClause(me))}
-              ${orderByClause(by || 'zaprank', me, models, type, sub)}
+              ${orderByClause(by || 'sats', me, models, type, sub)}
               OFFSET $3
               LIMIT $4`,
-            orderBy: orderByClause(by || 'zaprank', me, models, type, sub)
+            orderBy: orderByClause(by || 'sats', me, models, type, sub)
           }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           break
         case 'random':

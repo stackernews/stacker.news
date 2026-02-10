@@ -396,12 +396,12 @@ export function Sorts ({ sub, prefix, className }) {
     <>
       <Nav.Item className={className}>
         <Link href={prefix + '/'} passHref legacyBehavior>
-          <Nav.Link eventKey='' className={styles.navLink}>hot</Nav.Link>
+          <Nav.Link eventKey='' className={styles.navLink}>lit</Nav.Link>
         </Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Link href={prefix + '/recent'} passHref legacyBehavior>
-          <Nav.Link eventKey='recent' className={styles.navLink}>recent</Nav.Link>
+        <Link href={prefix + '/new'} passHref legacyBehavior>
+          <Nav.Link eventKey='new' className={styles.navLink}>new</Nav.Link>
         </Link>
       </Nav.Item>
       {sub !== 'jobs' &&

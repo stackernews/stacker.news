@@ -88,7 +88,7 @@ export default function useItemSubmit (mutation,
         if (item) {
           await router.push(`/items/${item.id}`)
         } else {
-          await router.push(subNames.length === 1 ? `/~${subNames[0]}/recent` : '/recent')
+          await router.push(subNames.length === 1 ? `/~${subNames[0]}/new` : '/new')
         }
       }
     }, [me, upsertItem, router, crossposter, item, onSuccessfulSubmit,

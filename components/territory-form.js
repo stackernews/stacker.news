@@ -26,7 +26,7 @@ function SatFilterRanges () {
         <div className='d-flex align-items-center'>posts sat filter
           <Info>
             <ul>
-              <li>minimum net investment (cost + zaps + boost - downzaps) for posts to appear in hot/top</li>
+              <li>minimum net investment (cost + zaps + boost - downzaps) for posts to appear in lit/top</li>
               <li>must be at least the post cost ({baseCost} sats)</li>
             </ul>
           </Info>

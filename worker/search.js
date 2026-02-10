@@ -138,7 +138,7 @@ export async function indexAllItems ({ apollo, models }) {
       query: gql`
           ${ITEM_SEARCH_FIELDS}
           query AllItems($cursor: String) {
-            items(cursor: $cursor, sort: "recent", limit: 1000, type: "all") {
+            items(cursor: $cursor, sort: "new", limit: 1000, type: "all") {
               items {
                 ...ItemSearchFields
               }

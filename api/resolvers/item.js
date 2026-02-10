@@ -47,12 +47,12 @@ function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS
 
   const sharedSorts = sharedSortsArray.join(', ')
 
-  if (sort === 'recent') {
+  if (sort === 'new') {
     return `ORDER BY ${sharedSorts},
       "Item".created_at DESC, "Item".id DESC`
   }
 
-  if (sort === 'hot') {
+  if (sort === 'lit') {
     return `ORDER BY ${sharedSorts},
       "Item"."rankhot" DESC, "Item".id DESC`
   } else {
@@ -148,7 +148,7 @@ export async function getAd (parent, { sub, subArr = [], showNsfw = false }, ctx
         '"Item"."parentId" IS NULL',
         '"Item".bio = false',
         '"Item".boost > 0',
-        await filterClause(null, sub, 'hot', ctx),
+        await filterClause(null, sub, 'lit', ctx),
         activeOrMine(),
         subClause(sub, 1, 'Item', me, showNsfw),
         muteClause(me))}
@@ -403,7 +403,7 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
 
   let postsSatsFilter = DEFAULT_POSTS_SATS_FILTER
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
-  const isCurated = sort === 'hot' || sort === 'top' || sort === 'random'
+  const isCurated = sort === 'lit' || sort === 'top' || sort === 'random'
 
   if (me) {
     const user = await userLoader.load(me.id)
@@ -418,7 +418,7 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
         // On curated feeds: territory's filter is authoritative
         postsSatsFilter = territory.postsSatsFilter
       } else {
-        // On recent: use the lower of user's and territory's filter so either
+        // On new: use the lower of user's and territory's filter so either
         // party can relax the threshold. For logged-out users, use only
         // the territory's filter (ignoring the logged-out default).
         // null (show all) beats any number since it's conceptually -infinity.
@@ -428,15 +428,15 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
       }
     }
   } else if (isCurated) {
-    // On homepage hot/top/random: max of user filter and homepage threshold
+    // On homepage lit/top/random: max of user filter and homepage threshold
     // null (show all) defers to the homepage threshold on curated feeds
     postsSatsFilter = postsSatsFilter == null
       ? HOMEPAGE_POSTS_SATS_FILTER
       : Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
   }
 
-  // On curated feeds (hot/top/random), your own items are filtered like everyone else's.
-  // On recent/notifications, your own items always pass the filter.
+  // On curated feeds (lit/top/random), your own items are filtered like everyone else's.
+  // On new/notifications, your own items always pass the filter.
   if (isDesperados) {
     return invertedInvestmentClause(postsSatsFilter, commentsSatsFilter)
   }
@@ -543,7 +543,7 @@ export default {
             orderBy: orderByClause(by, me, models, type)
           }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
-        case 'recent':
+        case 'new':
           items = await itemQueryWithMeta({
             me,
             models,
@@ -556,7 +556,7 @@ export default {
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
-                await filterClause(type, sub, 'recent', ctx),
+                await filterClause(type, sub, 'new', ctx),
                 typeClause(type),
                 muteClause(me)
               )}
@@ -691,7 +691,7 @@ export default {
                       '"Item".bio = false',
                       ad ? `"Item".id <> ${ad.id}` : '',
                       activeOrMine(me),
-                      await filterClause(type, sub, 'hot', ctx),
+                      await filterClause(type, sub, 'lit', ctx),
                       subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rankhot DESC, "Item".id DESC

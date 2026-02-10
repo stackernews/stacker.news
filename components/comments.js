@@ -33,20 +33,20 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         <div className='ms-auto d-flex'>
           <Nav.Item>
             <Nav.Link
-              eventKey='hot'
+              eventKey='lit'
               className={styles.navLink}
-              onClick={getHandleClick('hot')}
+              onClick={getHandleClick('lit')}
             >
-              hot
+              lit
             </Nav.Link>
           </Nav.Item>
           <Nav.Item>
             <Nav.Link
-              eventKey='recent'
+              eventKey='new'
               className={styles.navLink}
-              onClick={getHandleClick('recent')}
+              onClick={getHandleClick('new')}
             >
-              recent
+              new
             </Nav.Link>
           </Nav.Item>
           <Nav.Item>

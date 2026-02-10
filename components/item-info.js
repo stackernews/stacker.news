@@ -173,7 +173,7 @@ export default function ItemInfo ({
       {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
       {item.freebie && !item.position &&
-        <Link href='/recent/freebies'>
+        <Link href='/new/freebies'>
           {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
         </Link>}
       {isDesperado &&

@@ -344,7 +344,7 @@ export default {
             }
           })
           break
-        case 'recent':
+        case 'new':
           addMembers = {
             min_score: 500,
             sort: [

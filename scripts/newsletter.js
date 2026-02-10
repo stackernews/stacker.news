@@ -100,7 +100,7 @@ async function bountyWinner (q) {
 
   const bounty = await client.query({
     query: SEARCH,
-    variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'custom', from, to }
+    variables: { q: `${q} @sn`, sort: 'new', what: 'posts', when: 'custom', from, to }
   })
 
   const items = bounty.data.search.items.filter(i => i.bountyPaidTo?.length > 0)
@@ -139,7 +139,7 @@ async function topComment (q) {
 
   const items = await client.query({
     query: SEARCH,
-    variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'custom', from, to }
+    variables: { q: `${q} @sn`, sort: 'new', what: 'posts', when: 'custom', from, to }
   })
 
   const post = items?.data.search.items?.length > 0 ? items.data.search.items[0] : null

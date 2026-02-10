@@ -10,7 +10,6 @@ import EmailIcon from '@/svgs/mail-open-line.svg'
 import Share from './share'
 import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
-import { abbrNum } from '@/lib/format'
 import { Badge } from 'react-bootstrap'
 import SubPopover from './sub-popover'
 import { PayInInfo } from './item-info'
@@ -53,7 +52,6 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
               </>}
             <wbr />
             <span> \ </span>
-            {item.boost > 0 && <span>{abbrNum(item.boost)} boost \ </span>}
             <span>
               <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
                 @{item.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={item.user} />

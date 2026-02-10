@@ -457,9 +457,9 @@ model Item {
   randPollOptions      Boolean               @default(false)
   itemPayIns           ItemPayIn[]
   CommentsViewAt       CommentsViewAt[]
-  ranktop              Float                 @default(dbgenerated())
-  rankhot              Float                 @default(dbgenerated())
-  rankboost            Float                 @default(dbgenerated())
+  ranktop              Float                 @default(0)
+  rankhot              Float                 @default(0)
+  rankboost            Float                 @default(0)
   subs                 ItemSub[]
   // Note: we leave this because there's an expensive exclusion constraint
   // that depends on this column unnecessarily ... remove during next maintenance window

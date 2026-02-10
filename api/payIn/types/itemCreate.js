@@ -1,4 +1,4 @@
-import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID, RANK_HOT_SIGMA } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior, getSubs } from '../lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
@@ -216,6 +216,15 @@ export async function onPaid (tx, payInId) {
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`
+
+  // seed rankhot with item cost contribution: exp(t / sigma) * cost
+  const costSats = msatsToSats(payIn.mcost)
+  if (costSats > 0) {
+    await tx.$executeRaw`
+      UPDATE "Item"
+      SET rankhot = rankhot + EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${costSats}::DOUBLE PRECISION
+      WHERE id = ${item.id}::INTEGER`
+  }
 
   if (item.parentId) {
     // denormalize ncomments, lastCommentAt for ancestors, and insert into reply table

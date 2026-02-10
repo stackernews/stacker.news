@@ -39,7 +39,13 @@ function itemTitle (item) {
     unitPlural: 'zappers'
   })
   if (item.sats - item.credits) {
-    title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+    title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })} stacked`
+  }
+  if (item.boost) {
+    title += ` \\ ${numWithUnits(item.boost, { abbreviate: false })} boost`
+  }
+  if (item.cost) {
+    title += ` \\ ${numWithUnits(item.cost, { abbreviate: false })} cost`
   }
   if (item.downSats) {
     title += ` \\ ${numWithUnits(item.downSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
@@ -112,13 +118,8 @@ export default function ItemInfo ({
       {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
         <>
           <span title={itemTitle(item)}>
-            {numWithUnits(item.sats)}
+            {numWithUnits(item.sats + item.boost + item.cost)}
           </span>
-          <span> \ </span>
-        </>}
-      {item.boost > 0 &&
-        <>
-          <span>{abbrNum(item.boost)} boost</span>
           <span> \ </span>
         </>}
       <Link
@@ -259,10 +260,14 @@ function ItemDetails ({ item, me }) {
           <div>paid at</div>
           <div>{item.payIn?.payInStateChangedAt}</div>
         </>}
+      <div>invested</div>
+      <div>{item.sats + item.boost + item.cost} sats</div>
       <div>cost</div>
       <div>{item.cost}</div>
       <div>stacked</div>
       <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
+      <div>boost</div>
+      <div>{item.boost}</div>
       <div>stacked (comments)</div>
       <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
       <div>downsats</div>

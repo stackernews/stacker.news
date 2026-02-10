@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, RANK_HOT_SIGMA } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { getItemResult, getSubs } from '../lib/item'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
@@ -52,13 +52,21 @@ export async function onBegin (tx, payInId, { sats, id }, benefactorResult) {
 export async function onPaid (tx, payInId) {
   const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: true } })
 
+  const boostSats = msatsToSats(payIn.mcost)
+
   // increment boost on item
   await tx.item.update({
     where: { id: payIn.itemPayIn.itemId },
     data: {
-      boost: { increment: msatsToSats(payIn.mcost) }
+      boost: { increment: boostSats }
     }
   })
+
+  // accumulate rankhot: exp(t / sigma) * boost_sats
+  await tx.$executeRaw`
+    UPDATE "Item"
+    SET rankhot = rankhot + EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${boostSats}::DOUBLE PRECISION
+    WHERE id = ${payIn.itemPayIn.itemId}::INTEGER`
 
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)

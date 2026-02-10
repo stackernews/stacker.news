@@ -62,7 +62,6 @@ export default gql`
     cursor: String
     items: [Item!]!
     pins: [Item!]
-    ad: Item
   }
 
   type Comments {

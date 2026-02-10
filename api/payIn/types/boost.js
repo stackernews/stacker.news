@@ -67,11 +67,6 @@ export async function onPaid (tx, payInId) {
     UPDATE "Item"
     SET rankhot = rankhot + EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${boostSats}::DOUBLE PRECISION
     WHERE id = ${payIn.itemPayIn.itemId}::INTEGER`
-
-  await tx.$executeRaw`
-    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
-    VALUES ('expireBoost', jsonb_build_object('id', ${payIn.itemPayIn.itemId}::INTEGER), 21, true,
-              now() + interval '7 days', now() + interval '10 days')`
 }
 
 export async function describe (models, payInId) {

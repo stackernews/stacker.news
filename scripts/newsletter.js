@@ -207,11 +207,6 @@ async function main () {
     variables: { sort: 'top', when: 'custom', from, to, sub: 'ama' }
   })
 
-  const boosts = await client.query({
-    query: ITEMS,
-    variables: { sort: 'top', when: 'week', by: 'boost' }
-  })
-
   const topMeme = await topComment('meme monday ~memes')
 
   const topCowboys = await getTopUsers({ cowboys: true, when: 'custom', from, to })
@@ -226,12 +221,12 @@ Have a great weekend!
 ##### Top Posts
 ${top.data.items.items.map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
-    - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
+    - ${abbrNum(item.sats)} sats \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
 ##### Top AMAs
 ${ama.data.items.items.slice(0, 10).map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
-    - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
+    - ${abbrNum(item.sats)} sats \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
 [**all of this week's AMAs**](https://stacker.news/~ama/top/posts/week)
 
@@ -276,17 +271,6 @@ ${topSpenders.map((user, i) =>
 ${topCowboys.map((user, i) =>
   `${i + 1}. [@${user.name}](https://stacker.news/${user.name}): ${user.optional.streak} days`
 ).join('\n')}
-
-------
-
-##### Top Boosts
-${boosts.data.items.items.map((item, i) =>
-  item.subName === 'jobs'
-  ? `${i + 1}. [${item.title.trim()} \\ ${item.company} \\ ${item.location}${item.remote ? ' or Remote' : ''}](https://stacker.news/items/${item.id})\n`
-  : `${i + 1}. [${item.title.trim()}](https://stacker.news/items/${item.id})\n`
-  ).join('')}
-
-[**all active boosts**](https://stacker.news/top/boosts/month?by=boost)
 
 ------
 

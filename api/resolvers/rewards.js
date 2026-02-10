@@ -1,5 +1,5 @@
 import { amountSchema, validateSchema } from '@/lib/validate'
-import { getAd, getItem } from './item'
+import { getItem } from './item'
 import { GqlInputError } from '@/lib/error'
 import pay from '../payIn'
 
@@ -116,9 +116,6 @@ export default {
         return 0
       }
       return parent.total
-    },
-    ad: async (parent, args, ctx) => {
-      return await getAd(parent, { }, ctx)
     }
   },
   Mutation: {

@@ -1,10 +1,12 @@
 -- Evergreen Ranking Refactor
 -- 1. Drop STORED generated columns (rankhot, ranktop, rankboost)
 -- 2. Drop old SQL functions (rankhot_sort_key, ranktop_sort_key)
--- 3. Re-add as regular columns
--- 4. Create BEFORE triggers for ranktop and rankboost
--- 5. Backfill ranktop, rankboost, and rankhot
--- 6. Recreate indexes
+-- 3. Re-add ranktop and rankhot as regular columns (rankboost removed entirely)
+-- 4. Create BEFORE trigger for ranktop
+-- 5. Merge oldBoost into boost, drop oldBoost
+-- 6. Backfill ranktop and rankhot
+-- 7. Remove AUCTION ranking type
+-- 8. Recreate indexes
 
 -- =====================
 -- DROP INDEXES (must drop before dropping columns)
@@ -15,6 +17,7 @@ DROP INDEX IF EXISTS "Item_rankboost_idx";
 DROP INDEX IF EXISTS "Item_subNames_ranktop_idx";
 DROP INDEX IF EXISTS "Item_subNames_rankhot_idx";
 DROP INDEX IF EXISTS "Item_subNames_rankboost_idx";
+DROP INDEX IF EXISTS "Item_total_boost_idx";
 
 -- =====================
 -- DROP GENERATED COLUMNS
@@ -30,11 +33,16 @@ DROP FUNCTION IF EXISTS rankhot_sort_key;
 DROP FUNCTION IF EXISTS ranktop_sort_key;
 
 -- =====================
--- RE-ADD AS REGULAR COLUMNS
+-- RE-ADD AS REGULAR COLUMNS (rankboost removed entirely)
 -- =====================
 ALTER TABLE "Item" ADD COLUMN "ranktop" DOUBLE PRECISION NOT NULL DEFAULT 0;
 ALTER TABLE "Item" ADD COLUMN "rankhot" DOUBLE PRECISION NOT NULL DEFAULT 0;
-ALTER TABLE "Item" ADD COLUMN "rankboost" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- =====================
+-- MERGE oldBoost INTO boost, THEN DROP oldBoost
+-- =====================
+UPDATE "Item" SET boost = boost + "oldBoost" WHERE "oldBoost" > 0;
+ALTER TABLE "Item" DROP COLUMN "oldBoost";
 
 -- =====================
 -- CREATE TRIGGER FOR ranktop
@@ -43,10 +51,10 @@ CREATE OR REPLACE FUNCTION item_ranktop_trigger() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
   NEW.ranktop := (
-    (COALESCE(NEW.msats, 0)::double precision
-      + (COALESCE(NEW.boost, 0)::double precision + COALESCE(NEW."oldBoost", 0)::double precision) * 1000.0
-      + COALESCE(NEW."commentMsats", 0)::double precision * 0.25
-    ) * 0.3
+    COALESCE(NEW.cost, 0)::double precision * 1000.0
+    + COALESCE(NEW.msats, 0)::double precision
+    + COALESCE(NEW.boost, 0)::double precision * 1000.0
+    + COALESCE(NEW."commentMsats", 0)::double precision * 0.25
     - COALESCE(NEW."downMsats", 0)::double precision
     - COALESCE(NEW."commentDownMsats", 0)::double precision * 0.1
   );
@@ -55,41 +63,23 @@ END;
 $$;
 
 CREATE TRIGGER item_ranktop
-  BEFORE INSERT OR UPDATE OF msats, boost, "oldBoost", "commentMsats", "downMsats", "commentDownMsats" ON "Item"
+  BEFORE INSERT OR UPDATE OF cost, msats, boost, "commentMsats", "downMsats", "commentDownMsats" ON "Item"
   FOR EACH ROW EXECUTE FUNCTION item_ranktop_trigger();
 
 -- =====================
--- CREATE TRIGGER FOR rankboost
--- =====================
-CREATE OR REPLACE FUNCTION item_rankboost_trigger() RETURNS trigger
-LANGUAGE plpgsql AS $$
-BEGIN
-  NEW.rankboost := COALESCE(NEW.boost, 0)::double precision * 1000.0 * 0.3
-    - COALESCE(NEW."downMsats", 0)::double precision;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER item_rankboost
-  BEFORE INSERT OR UPDATE OF boost, "downMsats" ON "Item"
-  FOR EACH ROW EXECUTE FUNCTION item_rankboost_trigger();
-
--- =====================
--- BACKFILL ranktop and rankboost
+-- BACKFILL ranktop
 -- (triggers don't fire for UPDATE ... SET col = col, so we compute directly)
 -- =====================
 UPDATE "Item"
 SET
   "ranktop" = (
-    (COALESCE(msats, 0)::double precision
-      + (COALESCE(boost, 0)::double precision + COALESCE("oldBoost", 0)::double precision) * 1000.0
-      + COALESCE("commentMsats", 0)::double precision * 0.25
-    ) * 0.3
+    COALESCE(cost, 0)::double precision * 1000.0
+    + COALESCE(msats, 0)::double precision
+    + COALESCE(boost, 0)::double precision * 1000.0
+    + COALESCE("commentMsats", 0)::double precision * 0.25
     - COALESCE("downMsats", 0)::double precision
     - COALESCE("commentDownMsats", 0)::double precision * 0.1
-  ),
-  "rankboost" = COALESCE(boost, 0)::double precision * 1000.0 * 0.3
-    - COALESCE("downMsats", 0)::double precision;
+  );
 
 -- =====================
 -- BACKFILL rankhot
@@ -151,11 +141,20 @@ FROM (
 WHERE "Item".id = sub.ancestor_id;
 
 -- =====================
+-- REMOVE AUCTION RANKING TYPE
+-- PG doesn't support DROP VALUE from enum, so we recreate it
+-- =====================
+UPDATE "Sub" SET "rankingType" = 'WOT' WHERE "rankingType" = 'AUCTION';
+
+ALTER TYPE "RankingType" RENAME TO "RankingType_old";
+CREATE TYPE "RankingType" AS ENUM ('WOT', 'RECENT');
+ALTER TABLE "Sub" ALTER COLUMN "rankingType" TYPE "RankingType" USING "rankingType"::text::"RankingType";
+DROP TYPE "RankingType_old";
+
+-- =====================
 -- RECREATE INDEXES
 -- =====================
 CREATE INDEX "Item_ranktop_idx" ON "Item"("ranktop");
 CREATE INDEX "Item_rankhot_idx" ON "Item"("rankhot");
-CREATE INDEX "Item_rankboost_idx" ON "Item"("rankboost");
 CREATE INDEX "Item_subNames_ranktop_idx" ON "Item" USING GIN ("subNames", "ranktop" float8_ops);
 CREATE INDEX "Item_subNames_rankhot_idx" ON "Item" USING GIN ("subNames", "rankhot" float8_ops);
-CREATE INDEX "Item_subNames_rankboost_idx" ON "Item" USING GIN ("subNames", "rankboost" float8_ops);

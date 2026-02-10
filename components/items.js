@@ -18,7 +18,7 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
   const Foooter = Footer || MoreFooter
   const dat = useData(data, ssrData)
 
-  const { items, pins, ad, cursor } = useMemo(() => {
+  const { items, pins, cursor } = useMemo(() => {
     if (!dat) return {}
     if (destructureData) {
       return destructureData(dat)
@@ -53,7 +53,6 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
   return (
     <>
       <div className={styles.grid}>
-        {ad && <ListItem item={ad} ad />}
         {itemsWithPins.filter(filter).map((item, i) => (
           <ListItem key={`${item.id}-${i + 1}`} item={item} rank={rank && i + 1} itemClassName={variables.includeComments ? 'py-2' : ''} pinnable={isHome ? false : pins?.length > 0} />
         ))}

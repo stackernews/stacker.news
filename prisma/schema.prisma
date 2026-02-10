@@ -402,7 +402,6 @@ model Item {
   weightedVotes        Float                 @default(0)
   subWeightedVotes     Float                 @default(0)
   boost                Int                   @default(0)
-  oldBoost             Int                   @default(0)
   pollCost             Int?
   commentMsats         BigInt                @default(0)
   commentDownMsats     BigInt                @default(0)
@@ -459,7 +458,6 @@ model Item {
   CommentsViewAt       CommentsViewAt[]
   ranktop              Float                 @default(0)
   rankhot              Float                 @default(0)
-  rankboost            Float                 @default(0)
   subs                 ItemSub[]
   // Note: we leave this because there's an expensive exclusion constraint
   // that depends on this column unnecessarily ... remove during next maintenance window
@@ -481,7 +479,6 @@ model Item {
   @@index([subNames, createdAt(ops: raw("timestamp_ops"))], type: Gin)
   @@index([subNames, ranktop(ops: raw("float8_ops"))], type: Gin)
   @@index([subNames, rankhot(ops: raw("float8_ops"))], type: Gin)
-  @@index([subNames, rankboost(ops: raw("float8_ops"))], type: Gin)
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
@@ -491,7 +488,6 @@ model Item {
   @@index([userId, createdAt])
   @@index([ranktop])
   @@index([rankhot])
-  @@index([rankboost])
   @@index([netInvestment])
 }
 
@@ -647,7 +643,6 @@ enum BillingType {
 enum RankingType {
   WOT
   RECENT
-  AUCTION
 }
 
 model Sub {

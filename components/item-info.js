@@ -15,7 +15,7 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Badges from './badge'
-import { USER_ID, DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
+import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
@@ -105,7 +105,6 @@ export default function ItemInfo ({
   const canPin = (isPost && mySub) || (myPost && rootReply)
   const isPinnedPost = isPost && item.position && (pinnable || !item.subNames)
   const isPinnedSubReply = !isPost && item.position && !item.subNames
-  const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
   const satsFilter = me
     ? (isPost ? me.privates?.postsSatsFilter : me.privates?.commentsSatsFilter)
@@ -115,7 +114,7 @@ export default function ItemInfo ({
 
   return (
     <div className={className || `${styles.other}`}>
-      {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
+      {!isPinnedPost && !(isPinnedSubReply && !full) &&
         <>
           <span title={itemTitle(item)}>
             {numWithUnits(item.sats + item.boost + item.cost)}

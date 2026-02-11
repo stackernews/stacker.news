@@ -10,7 +10,6 @@ import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { markdownToLexical } from '@/lib/lexical/utils/mdast'
-import PreviewSyncPlugin from './plugins/core/previewsync'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
 import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
@@ -36,7 +35,7 @@ const initiateLexical = (editor, state, text) => {
   }
 }
 
-export default function Reader ({ topLevel, state, text, preview, name, readerRef, innerClassName }) {
+export default function Reader ({ topLevel, state, text, readerRef, innerClassName }) {
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -49,7 +48,7 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
         CodeShikiSNExtension,
         AutoLinkExtension,
         GalleryExtension,
-        configExtension(MuteLexicalExtension, { disabled: preview }),
+        MuteLexicalExtension,
         configExtension(ReactExtension, { contentEditable: null })
       ],
       theme: {
@@ -58,7 +57,7 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
       },
       $initialEditorState: (editor) => initiateLexical(editor, state, text),
       onError: (error) => console.error('reader has encountered an error:', error)
-    }), [topLevel, state, text, preview])
+    }), [topLevel, state, text])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={null}>
@@ -67,7 +66,6 @@ export default function Reader ({ topLevel, state, text, preview, name, readerRe
         data-sn-reader='true'
         className={innerClassName}
       />
-      {preview && <PreviewSyncPlugin name={name} />}
       <CodeThemePlugin />
       <NextLinkPlugin />
     </LexicalExtensionComposer>

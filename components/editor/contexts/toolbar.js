@@ -2,8 +2,7 @@ import { createContext, useContext, useMemo, useState, useCallback } from 'react
 
 const INITIAL_STATE = {
   showToolbar: false,
-  previewMode: false,
-  editorMode: 'markdown',
+  markdownMode: true,
   blockType: 'paragraph',
   elementFormat: 'left',
   isLink: false,

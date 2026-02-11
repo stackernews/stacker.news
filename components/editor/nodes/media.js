@@ -9,7 +9,7 @@ import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
 import preserveScroll from '@/components/preserve-scroll'
 import { $replaceNodeWithLink } from '@/lib/lexical/nodes/utils'
-import { useToolbarState } from '@/components/editor/contexts/toolbar'
+import { useLexicalEditable } from '@lexical/react/useLexicalEditable'
 
 function LinkRaw ({ className, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -118,13 +118,10 @@ const Media = memo(function Media ({
  */
 export default function MediaComponent ({ src, srcSet, bestResSrc, width, height, alt, title, kind: initialKind, linkFallback = true, nodeKey }) {
   const [editor] = useLexicalComposerContext()
-  const toolbarContext = useToolbarState()
+  const editable = useLexicalEditable()
   const [kind, setKind] = useState()
 
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
-  // we'll check if we're in an editor, and thus preview mode,
-  // by checking if the toolbar context is defined
-  const preview = useMemo(() => !!toolbarContext, [toolbarContext])
 
   // TODO: basically an hack, Lexical could handle this via MediaCheckExtension
   // we're profiting from the fact that MediaOrLink actually does a media check
@@ -169,7 +166,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       kind={initialKind}
       linkFallback={linkFallback}
       setKind={setKind}
-      preview={preview}
+      editable={editable}
     />
   )
 }
@@ -238,14 +235,14 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setKind, preview }) => {
+export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setKind, editable }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!(srcSet || srcSetIntital) || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [srcSet, srcSetIntital, src])
   // backwards compatibility: legacy srcSet handling
   const legacySrcSet = useMemo(() => processSrcSetInitial(srcSetIntital, src), [srcSetIntital, src])
   const [isImage, setIsImage] = useState((kind === 'image' || legacySrcSet?.video === false) && trusted)
   const [isVideo, setIsVideo] = useState(kind === 'video' || legacySrcSet?.video)
-  const showMedia = useMemo(() => preview || me?.privates?.showImagesAndVideos !== false, [me?.privates?.showImagesAndVideos, preview])
+  const showMedia = useMemo(() => editable || me?.privates?.showImagesAndVideos !== false, [me?.privates?.showImagesAndVideos, editable])
 
   useEffect(() => {
     // don't load media if user has disabled them

@@ -199,7 +199,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
 
   useEffect(() => {
     // markdown mode doesn't support toolbar updates
-    if (toolbarState.editorMode === 'markdown') return
+    if (toolbarState.markdownMode) return
 
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
@@ -213,7 +213,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
         COMMAND_PRIORITY_CRITICAL
       )
     )
-  }, [editor, $updateToolbar, toolbarState.editorMode])
+  }, [editor, $updateToolbar, toolbarState.markdownMode])
 
   // overflow detection for mobile devices
   useEffect(() => {
@@ -242,7 +242,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
   return (
     <div className={styles.toolbar}>
       <ModeSwitchPlugin name={name} />
-      <div className={classNames(styles.innerToolbar, toolbarState.previewMode && styles.toolbarHidden)}>
+      <div className={styles.innerToolbar}>
         <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !toolbarState.showFormattingToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
           <ToolbarDropdown
             icon={<BlocksIcon />}

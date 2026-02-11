@@ -27,12 +27,12 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
           return
         }
 
-        const text = toolbarState.editorMode === 'markdown' ? $getMarkdown() : $lexicalToMarkdown()
+        const text = toolbarState.markdownMode ? $getMarkdown() : $lexicalToMarkdown()
 
         textHelpers.setValue(text)
       })
     })
-  }, [editor, textHelpers, toolbarState.editorMode])
+  }, [editor, textHelpers, toolbarState.markdownMode])
 
   useEffect(() => {
     return editor.registerCommand(

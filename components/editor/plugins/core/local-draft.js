@@ -39,7 +39,7 @@ export default function LocalDraftPlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
-          if (toolbarState.editorMode === 'markdown') {
+          if (toolbarState.markdownMode) {
             $setMarkdown(value)
           } else {
             $markdownToLexical(value)
@@ -47,20 +47,20 @@ export default function LocalDraftPlugin ({ name }) {
         })
       }
     }
-  }, [editor, storageKey, toolbarState.editorMode])
+  }, [editor, storageKey, toolbarState.markdownMode])
 
   // save the draft to local storage
   useEffect(() => {
     // whenever the editor state changes, save the markdown draft
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        const text = toolbarState.editorMode === 'markdown'
+        const text = toolbarState.markdownMode
           ? $getMarkdown(false)
           : $lexicalToMarkdown()
         upsertDraft(text)
       })
     })
-  }, [editor, upsertDraft, toolbarState.editorMode])
+  }, [editor, upsertDraft, toolbarState.markdownMode])
 
   return null
 }

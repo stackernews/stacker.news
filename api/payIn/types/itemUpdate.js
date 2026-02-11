@@ -2,7 +2,6 @@ import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { uploadFees } from '../../resolvers/upload'
 import { getItemMentions, getMentions, getSubs, performBotBehavior } from '../lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
-import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import { satsToMsats, msatsToSats } from '@/lib/format'
 import * as MEDIA_UPLOAD from './mediaUpload'
@@ -18,9 +17,8 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function getMcost (models, { id, boost = 0, uploadIds, bio, newSubs, parentId }, { me }) {
+async function getMcost (models, { id, uploadIds, bio, newSubs, parentId }, { me }) {
   // the only reason updating items costs anything is when it has new uploads
-  // or more boost
   const old = await models.item.findUnique({
     where: {
       id: parseInt(id)
@@ -51,17 +49,17 @@ async function getMcost (models, { id, boost = 0, uploadIds, bio, newSubs, paren
     }
   }
 
-  if ((mcost > 0 || totalFeesMsats > 0 || (boost - old.boost) > 0) && old.itemPayIns.length === 0) {
+  if ((mcost > 0 || totalFeesMsats > 0) && old.itemPayIns.length === 0) {
     throw new Error('cannot increase item cost with unpaid invoice')
   }
 
   return mcost
 }
 
-export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNames }, { me }) {
+export async function getInitial (models, { id, uploadIds, bio, subNames }, { me }) {
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const subs = await getSubs(models, { subNames, parentId: old.parentId })
-  const mcost = await getMcost(models, { id, boost, uploadIds, bio, newSubs: subs, parentId: old.parentId }, { me })
+  const mcost = await getMcost(models, { id, uploadIds, bio, newSubs: subs, parentId: old.parentId }, { me })
 
   // for post updates, when a sub is added, it contributes to the cost
   // we populate the mcost so that the new sub gets their proportional share of the revenue
@@ -75,9 +73,6 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNa
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
 
   const beneficiaries = []
-  if (boost - old.boost > 0) {
-    beneficiaries.push(await BOOST.getInitial(models, { sats: boost - old.boost, id }, { me, subs }))
-  }
   if (uploadIds.length > 0) {
     beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds }, { me, subs }))
   }
@@ -93,7 +88,7 @@ export async function getInitial (models, { id, boost = 0, uploadIds, bio, subNa
 }
 
 export async function onBegin (tx, payInId, args) {
-  const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], subNames = [], ...data } = args
+  const { id, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], subNames = [], ...data } = args
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
   const old = await tx.item.findUnique({
@@ -128,7 +123,7 @@ export async function onBegin (tx, payInId, args) {
     where: { id: parseInt(id) },
     data: {
       ...data,
-      ...(additionalCost > 0 && { cost: { increment: additionalCost - (boost - old.boost) } }),
+      ...(additionalCost > 0 && { cost: { increment: additionalCost } }),
       imgproxyUrls,
       pollOptions: {
         createMany: {
@@ -197,11 +192,10 @@ export async function onBegin (tx, payInId, args) {
   })
 
   // accumulate rankhot for the additional cost (excluding boost, which is handled by BOOST beneficiary)
-  const costIncrease = additionalCost - (boost - old.boost)
-  if (costIncrease > 0) {
+  if (additionalCost > 0) {
     await tx.$executeRaw`
       UPDATE "Item"
-      SET "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${costIncrease}::DOUBLE PRECISION),
+      SET "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${additionalCost}::DOUBLE PRECISION),
           "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
       WHERE id = ${parseInt(id)}::INTEGER`
   }

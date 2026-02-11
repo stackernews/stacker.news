@@ -132,6 +132,16 @@ a.link:visited {
     margin-left: 0.3rem;
 }
 
+.item .jobBoostGroup {
+    display: flex;
+    align-items: center;
+    align-self: center;
+}
+
+.item .jobBoostGroup .companyImage {
+    margin-left: 0;
+}
+
 .itemDead {
     pointer-events: none;
     opacity: .5;

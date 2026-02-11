@@ -3,7 +3,6 @@ import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySub
 import { getItemMentions, getMentions, performBotBehavior, getSubs } from '../lib/item'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
-import * as BOOST from './boost'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import * as MEDIA_UPLOAD from './mediaUpload'
 import { getBeneficiariesMcost } from '../lib/beneficiaries'
@@ -51,17 +50,17 @@ async function getBaseMcost (models, { bio, parentId, subNames }) {
   return baseMcost > 0n ? baseMcost : DEFAULT_ITEM_MCOST
 }
 
-async function getMcost (models, { subNames, parentId, uploadIds, boost = 0, bio }, { me }) {
+async function getMcost (models, { subNames, parentId, uploadIds, bio }, { me }) {
   const baseMcost = await getBaseMcost(models, { bio, parentId, subNames })
 
-  // mcost = baseMcost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees + boost
+  // mcost = baseMcost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees
   const [{ mcost }] = await models.$queryRaw`
     SELECT ${baseMcost}::INTEGER
       * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${me.id}::INTEGER,
           ${me.id !== USER_ID.anon && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
       * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER  as mcost`
 
-  const isFreebie = await checkFreebieEligibility(models, { mcost, baseMcost, parentId, bio, boost }, { me })
+  const isFreebie = await checkFreebieEligibility(models, { mcost, baseMcost, parentId, bio }, { me })
   return isFreebie ? BigInt(0) : BigInt(mcost)
 }
 
@@ -79,11 +78,6 @@ export async function getInitial (models, args, { me }) {
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
 
   const beneficiaries = []
-  if (args.boost > 0) {
-    beneficiaries.push(
-      await BOOST.getInitial(models, { sats: args.boost }, { me, subs })
-    )
-  }
   if (args.uploadIds?.length > 0) {
     beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds: args.uploadIds }, { me, subs }))
   }
@@ -98,8 +92,7 @@ export async function getInitial (models, args, { me }) {
 }
 
 export async function onBegin (tx, payInId, args) {
-  // don't want to double count boost ... it should be a beneficiary
-  const { parentId, uploadIds = [], boost: _, forwardUsers = [], options: pollOptions = [], subNames = [], ...data } = args
+  const { parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], subNames = [], ...data } = args
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
   const mentions = await getMentions(tx, { ...args, userId: payIn.userId })

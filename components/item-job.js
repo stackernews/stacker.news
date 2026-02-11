@@ -13,6 +13,7 @@ import { MEDIA_URL } from '@/lib/constants'
 import { Badge } from 'react-bootstrap'
 import SubPopover from './sub-popover'
 import { PayInInfo } from './item-info'
+import Boost from './boost-button'
 
 export default function ItemJob ({ item, toc, rank, children, ...props }) {
   const isEmail = string().email().isValidSync(item.url)
@@ -26,11 +27,22 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
           </div>)
         : <div />}
       <div className={styles.item}>
-        <Link href={`/items/${item.id}`}>
-          <Image
-            src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
-          />
-        </Link>
+        {item.mine
+          ? (
+            <div className={styles.jobBoostGroup}>
+              <Boost item={item} />
+              <Link href={`/items/${item.id}`}>
+                <Image
+                  src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
+                />
+              </Link>
+            </div>)
+          : (
+            <Link href={`/items/${item.id}`}>
+              <Image
+                src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
+              />
+            </Link>)}
         <div className={`${styles.hunk} align-self-center mb-0`}>
           <div className={`${styles.main} flex-wrap d-inline`}>
             <Link href={`/items/${item.id}`} className={`${styles.title} text-reset me-2`}>

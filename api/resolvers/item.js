@@ -21,7 +21,7 @@ import {
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
-import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
+import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { uploadIdsFromText } from './upload'
@@ -1473,9 +1473,6 @@ export const updateItem = async (parent, { forward, hash, hmac, ...item }, { me,
     throw new GqlInputError('item does not belong to you')
   }
 
-  // in case they lied about their existing boost
-  await validateSchema(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
-
   const user = await models.user.findUnique({ where: { id: meId } })
 
   // edits are only allowed for own items within 10 minutes
@@ -1497,7 +1494,7 @@ export const updateItem = async (parent, { forward, hash, hmac, ...item }, { me,
     item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio` }
   } else if (old.parentId) {
     // prevent editing a comment like a post
-    item = { id: Number(item.id), text: item.text, boost: item.boost }
+    item = { id: Number(item.id), text: item.text }
   } else {
     item.forwardUsers = await getForwardUsers(models, forward)
   }

@@ -8,10 +8,6 @@ import BoostIcon from '@/svgs/arrow-up-double-line.svg'
 import styles from './upvote.module.css'
 import { BOOST_MIN } from '@/lib/constants'
 import classNames from 'classnames'
-import { useFeeButton } from './fee-button'
-import { Input } from './form'
-import Info from './info'
-import { InputGroup } from 'react-bootstrap'
 export default function Boost ({ item, className, ...props }) {
   const { boost } = item
   const [color, nextColor] = useMemo(() => [getColor(boost), getColor(boost + BOOST_MIN)], [boost])
@@ -51,40 +47,6 @@ export function BoostHelp () {
       <li>100% of boost goes to the territory founder and top stackers as rewards</li>
       <li>Boosted items can be downzapped to reduce their rank</li>
     </ol>
-  )
-}
-
-export function BoostInput ({ onChange, ...props }) {
-  const feeButton = useFeeButton()
-  let merge
-  if (feeButton) {
-    ({ merge } = feeButton)
-  }
-  return (
-    <Input
-      label={
-        <div className='d-flex align-items-center'>boost
-          <Info>
-            <BoostHelp />
-          </Info>
-        </div>
-    }
-      name='boost'
-      onChange={(_, e) => {
-        merge?.({
-          boost: {
-            term: `+ ${e.target.value}`,
-            label: 'boost',
-            op: '+',
-            modifier: cost => cost + Number(e.target.value)
-          }
-        })
-        onChange && onChange(_, e)
-      }}
-      hint={<span className='text-muted'>ranks items higher based on the amount</span>}
-      append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-      {...props}
-    />
   )
 }
 

@@ -27,14 +27,14 @@ export function usePostFormShared ({ item, subs, mutation, schemaFn, storageKeyP
   const { me } = useMe()
   const client = useApolloClient()
   const onSubmit = useItemSubmit(mutation, { item })
-  const schema = schemaFn?.({ client, me, existingBoost: item?.boost })
+  const schema = schemaFn?.({ client, me })
   const storageKeyPrefix = item ? undefined : prefix
 
   const initial = {
     title: item?.title || shareTitle || '',
     text: item?.text || shareText || '',
     crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-    ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
+    ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
     ...SubSelectInitial({ item, subs }),
     ...extraInitialValues
   }

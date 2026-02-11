@@ -30,16 +30,7 @@ export default function PostEdit ({ ssrData }) {
 
   const { item } = data || ssrData
   const [subs, setSubs] = useState(item.subNames)
-  const [baseLineItems, setBaseLineItems] = useState(item.boost
-    ? {
-        existingBoost: {
-          label: 'old boost',
-          term: `- ${item.boost}`,
-          op: '-',
-          modifier: cost => cost - item.boost
-        }
-      }
-    : {})
+  const [baseLineItems, setBaseLineItems] = useState({})
 
   useEffect(() => {
     const territoryAddPrefix = 'territory-add-'

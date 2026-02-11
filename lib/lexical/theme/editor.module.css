@@ -13,7 +13,7 @@
   padding: 2px;
 }
 
-.editor[data-lexical-preview='true'] {
+.editor[data-lexical-mode='rich'] {
   border-radius: 0.4rem;
 }
 
@@ -54,10 +54,6 @@
   overflow: auto;
   max-height: 80svh;
   background-color: transparent;
-}
-
-[data-lexical-preview='true'] .editorContent {
-  min-height: var(--editor-height, auto);
 }
 
 .editorContentInput {

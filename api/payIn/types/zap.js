@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS, USER_ID, RANK_HOT_SIGMA } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
@@ -174,7 +174,8 @@ export async function onPaid (tx, payInId) {
         msats = "Item".msats + ${msats}::BIGINT,
         mcredits = "Item".mcredits + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT,
         "lastZapAt" = now(),
-        rankhot = "Item".rankhot + EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${sats}::DOUBLE PRECISION
+        "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${sats}::DOUBLE PRECISION),
+        "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
       FROM zap, zapper
       WHERE "Item".id = ${item.id}::INTEGER
       RETURNING "Item".*, zapper."zapTrust" * zap.log_sats as "weightedVote"
@@ -188,7 +189,8 @@ export async function onPaid (tx, payInId) {
     SET "weightedComments" = "Item"."weightedComments" + item_zapped."weightedVote",
       "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
       "commentMcredits" = "Item"."commentMcredits" + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT,
-      rankhot = "Item".rankhot + EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${sats}::DOUBLE PRECISION * 0.25
+      "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${sats}::DOUBLE PRECISION * 0.25),
+      "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
     FROM item_zapped, ancestors
     WHERE "Item".id = ancestors.id`
 

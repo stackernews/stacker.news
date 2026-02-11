@@ -457,6 +457,8 @@ model Item {
   itemPayIns           ItemPayIn[]
   CommentsViewAt       CommentsViewAt[]
   ranktop              Float                 @default(0)
+  hotCenteredSum       Float                 @default(0)
+  hotCenteredAt        Float                 @default(0)
   rankhot              Float                 @default(0)
   subs                 ItemSub[]
   // Note: we leave this because there's an expensive exclusion constraint

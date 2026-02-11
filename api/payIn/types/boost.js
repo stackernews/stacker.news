@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS, RANK_HOT_SIGMA } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { getItemResult, getSubs } from '../lib/item'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
@@ -62,10 +62,11 @@ export async function onPaid (tx, payInId) {
     }
   })
 
-  // accumulate rankhot: exp(t / sigma) * boost_sats
+  // accumulate rankhot via centered-sum helper functions
   await tx.$executeRaw`
     UPDATE "Item"
-    SET rankhot = rankhot + EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${boostSats}::DOUBLE PRECISION
+    SET "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${boostSats}::DOUBLE PRECISION),
+        "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
     WHERE id = ${payIn.itemPayIn.itemId}::INTEGER`
 }
 

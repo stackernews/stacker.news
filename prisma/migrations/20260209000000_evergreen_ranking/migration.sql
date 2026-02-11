@@ -1,12 +1,14 @@
 -- Evergreen Ranking Refactor
 -- 1. Drop STORED generated columns (rankhot, ranktop, rankboost)
 -- 2. Drop old SQL functions (rankhot_sort_key, ranktop_sort_key)
--- 3. Re-add ranktop and rankhot as regular columns (rankboost removed entirely)
+-- 3. Re-add ranktop, hotCenteredSum, hotCenteredAt, rankhot as regular columns
 -- 4. Create BEFORE trigger for ranktop
--- 5. Merge oldBoost into boost, drop oldBoost
--- 6. Backfill ranktop and rankhot
--- 7. Remove AUCTION ranking type
--- 8. Recreate indexes
+-- 5. Create SQL helper functions for hot centered sum updates
+-- 6. Create BEFORE trigger for rankhot (from hotCenteredSum + hotCenteredAt)
+-- 7. Merge oldBoost into boost, drop oldBoost
+-- 8. Backfill ranktop, hotCenteredSum, hotCenteredAt (trigger computes rankhot)
+-- 9. Remove AUCTION ranking type
+-- 10. Recreate indexes
 
 -- =====================
 -- DROP INDEXES (must drop before dropping columns)
@@ -36,6 +38,8 @@ DROP FUNCTION IF EXISTS ranktop_sort_key;
 -- RE-ADD AS REGULAR COLUMNS (rankboost removed entirely)
 -- =====================
 ALTER TABLE "Item" ADD COLUMN "ranktop" DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE "Item" ADD COLUMN "hotCenteredSum" DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE "Item" ADD COLUMN "hotCenteredAt" DOUBLE PRECISION NOT NULL DEFAULT 0;
 ALTER TABLE "Item" ADD COLUMN "rankhot" DOUBLE PRECISION NOT NULL DEFAULT 0;
 
 -- =====================
@@ -67,6 +71,52 @@ CREATE TRIGGER item_ranktop
   FOR EACH ROW EXECUTE FUNCTION item_ranktop_trigger();
 
 -- =====================
+-- CREATE SQL HELPER FUNCTIONS FOR HOT CENTERED SUM UPDATES
+-- (half-life = 14400 seconds = 4 hours, lambda = ln(2) / 14400)
+-- =====================
+
+-- Returns the updated centered sum after adding contribution w at now()
+-- All EXP() arguments are <= 0 by construction, so no overflow is possible
+CREATE FUNCTION hot_centered_sum_update(old_sum DOUBLE PRECISION, old_at DOUBLE PRECISION, w DOUBLE PRECISION)
+RETURNS DOUBLE PRECISION LANGUAGE sql STABLE PARALLEL SAFE AS $$
+  SELECT CASE
+    WHEN EXTRACT(EPOCH FROM now())::DOUBLE PRECISION >= old_at
+    THEN old_sum * EXP(LN(2) * (old_at - EXTRACT(EPOCH FROM now())::DOUBLE PRECISION) / 14400.0) + w
+    ELSE old_sum + w * EXP(LN(2) * (EXTRACT(EPOCH FROM now())::DOUBLE PRECISION - old_at) / 14400.0)
+  END
+$$;
+
+-- Returns the updated centering time (always the latest of old and now)
+CREATE FUNCTION hot_centered_at_update(old_at DOUBLE PRECISION)
+RETURNS DOUBLE PRECISION LANGUAGE sql STABLE PARALLEL SAFE AS $$
+  SELECT GREATEST(old_at, EXTRACT(EPOCH FROM now())::DOUBLE PRECISION)
+$$;
+
+-- =====================
+-- CREATE TRIGGER FOR rankhot (sort key from hotCenteredSum + hotCenteredAt)
+-- Positive items: ln(sum) + lambda * t  (large positive ~83,000+)
+-- Negative items: -(ln(|sum|) + lambda * t)  (large negative)
+-- Zero items: 0  (ranks between positive and negative)
+-- =====================
+CREATE OR REPLACE FUNCTION item_rankhot_trigger() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.rankhot := CASE
+    WHEN NEW."hotCenteredSum" > 0
+      THEN LN(NEW."hotCenteredSum") + LN(2) / 14400.0 * NEW."hotCenteredAt"
+    WHEN NEW."hotCenteredSum" < 0
+      THEN -(LN(-NEW."hotCenteredSum") + LN(2) / 14400.0 * NEW."hotCenteredAt")
+    ELSE 0
+    END;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER item_rankhot
+  BEFORE INSERT OR UPDATE OF "hotCenteredSum", "hotCenteredAt" ON "Item"
+  FOR EACH ROW EXECUTE FUNCTION item_rankhot_trigger();
+
+-- =====================
 -- BACKFILL ranktop
 -- (triggers don't fire for UPDATE ... SET col = col, so we compute directly)
 -- =====================
@@ -82,63 +132,17 @@ SET
   );
 
 -- =====================
--- BACKFILL rankhot
--- sigma = 14400 seconds (4 hours), matching the old ln(2)/4 hour doubling time
--- rankhot_i = sum_j exp(t_j / sigma) * a_j
--- We accumulate from: ITEM_CREATE (cost), ZAP (sats), DOWN_ZAP (-sats), BOOST (sats)
--- For ancestors, comment ZAPs contribute at 0.25 weight, comment DOWN_ZAPs at 0.1 weight
--- (matching ranktop coefficients for commentMsats and commentDownMsats)
+-- BACKFILL hotCenteredSum and hotCenteredAt
+-- Approximates all historical contributions as happening at created_at.
+-- This produces the same ranking as the old rankhot_sort_key formula:
+--   ln(ranktop/1000) + ln(2)/14400 * created_at_epoch
+-- Per-contribution time-weighting kicks in for all new activity after migration.
+-- The rankhot trigger auto-computes the sort key.
 -- =====================
-
--- Step 1: All direct contributions in a single UPDATE
--- Combines item cost + ZAP + DOWN_ZAP + BOOST, only touching items that have contributions
 UPDATE "Item"
-SET rankhot = sub.contribution
-FROM (
-  SELECT item_id, SUM(contribution) AS contribution
-  FROM (
-    -- Item cost (seeded at creation time)
-    SELECT id AS item_id,
-      EXP(EXTRACT(EPOCH FROM created_at) / 14400.0) * cost AS contribution
-    FROM "Item"
-    WHERE cost > 0
-
-    UNION ALL
-
-    -- ZAP, DOWN_ZAP, BOOST from PayIn records (single scan of PayIn)
-    SELECT ipi."itemId" AS item_id,
-      CASE WHEN pi."payInType" = 'DOWN_ZAP' THEN -1.0 ELSE 1.0 END
-        * EXP(EXTRACT(EPOCH FROM pi."payInStateChangedAt") / 14400.0)
-        * (pi.mcost::double precision / 1000.0) AS contribution
-    FROM "PayIn" pi
-    JOIN "ItemPayIn" ipi ON ipi."payInId" = pi.id
-    WHERE pi."payInType" IN ('ZAP', 'DOWN_ZAP', 'BOOST')
-      AND pi."payInState" = 'PAID'
-  ) all_direct
-  GROUP BY item_id
-) sub
-WHERE "Item".id = sub.item_id;
-
--- Step 2: All ancestor contributions in a single UPDATE
--- Comment ZAPs at 0.25 weight, comment DOWN_ZAPs at 0.1 weight (single scan of PayIn + path join)
-UPDATE "Item"
-SET rankhot = "Item".rankhot + sub.contribution
-FROM (
-  SELECT ancestor.id AS ancestor_id,
-    SUM(
-      CASE WHEN pi."payInType" = 'DOWN_ZAP' THEN -0.1 ELSE 0.25 END
-        * EXP(EXTRACT(EPOCH FROM pi."payInStateChangedAt") / 14400.0)
-        * (pi.mcost::double precision / 1000.0)
-    ) AS contribution
-  FROM "PayIn" pi
-  JOIN "ItemPayIn" ipi ON ipi."payInId" = pi.id
-  JOIN "Item" comment ON comment.id = ipi."itemId" AND comment."parentId" IS NOT NULL
-  JOIN "Item" ancestor ON ancestor.path @> comment.path AND ancestor.id <> comment.id
-  WHERE pi."payInType" IN ('ZAP', 'DOWN_ZAP')
-    AND pi."payInState" = 'PAID'
-  GROUP BY ancestor.id
-) sub
-WHERE "Item".id = sub.ancestor_id;
+SET "hotCenteredSum" = ranktop / 1000.0,
+    "hotCenteredAt" = EXTRACT(EPOCH FROM created_at)::DOUBLE PRECISION
+WHERE ranktop <> 0;
 
 -- =====================
 -- REMOVE AUCTION RANKING TYPE

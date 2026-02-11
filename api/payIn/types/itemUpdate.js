@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS, RANK_HOT_SIGMA } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { uploadFees } from '../../resolvers/upload'
 import { getItemMentions, getMentions, getSubs, performBotBehavior } from '../lib/item'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
@@ -201,7 +201,8 @@ export async function onBegin (tx, payInId, args) {
   if (costIncrease > 0) {
     await tx.$executeRaw`
       UPDATE "Item"
-      SET rankhot = rankhot + EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${costIncrease}::DOUBLE PRECISION
+      SET "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${costIncrease}::DOUBLE PRECISION),
+          "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
       WHERE id = ${parseInt(id)}::INTEGER`
   }
 

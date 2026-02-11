@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS, RANK_HOT_SIGMA } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { msatsToSats, satsToMsats, numWithUnits } from '@/lib/format'
 import { Prisma } from '@prisma/client'
 import { getItemResult, getSubs } from '../lib/item'
@@ -88,14 +88,16 @@ export async function onPaid (tx, payInId) {
       SET "weightedDownVotes" = "weightedDownVotes" + zapper."zapTrust" * zap.log_sats,
           "subWeightedDownVotes" = "subWeightedDownVotes" + zapper."subZapTrust" * zap.log_sats,
           "downMsats" = "downMsats" + ${msats}::BIGINT,
-          rankhot = "Item".rankhot - EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${sats}::DOUBLE PRECISION
+          "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", -${sats}::DOUBLE PRECISION),
+          "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
       FROM zap, zapper
       WHERE "Item".id = ${item.id}::INTEGER
       RETURNING "Item".*
     )
     UPDATE "Item"
     SET "commentDownMsats" = "commentDownMsats" + ${msats}::BIGINT,
-        rankhot = "Item".rankhot - EXP(EXTRACT(EPOCH FROM now()) / ${RANK_HOT_SIGMA}::DOUBLE PRECISION) * ${sats}::DOUBLE PRECISION * 0.1
+        "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", -${sats}::DOUBLE PRECISION * 0.1),
+        "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
     FROM (
       SELECT "Item".id
       FROM "Item", item_downzapped

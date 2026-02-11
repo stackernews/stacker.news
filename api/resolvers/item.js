@@ -35,29 +35,22 @@ import pay from '../payIn'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER) {
-  const sharedSortsArray = []
-  sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
-  sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
-
   // Push comments with investment below the threshold to the bottom of threads
   // null means "show all" — don't push any comments to the bottom
-  if (commentsSatsFilter != null) {
-    sharedSortsArray.push(`(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`)
-  }
+  const sharedSorts = [
+    '("Item"."pinId" IS NOT NULL) DESC',
+    '("Item"."deletedAt" IS NULL) DESC',
+    commentsSatsFilter != null &&
+      `(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`
+  ].filter(Boolean).join(', ')
 
-  const sharedSorts = sharedSortsArray.join(', ')
+  const sortExpr = sort === 'new'
+    ? '"Item".created_at DESC'
+    : sort === 'lit'
+      ? '"Item"."rankhot" DESC'
+      : '"Item"."ranktop" DESC'
 
-  if (sort === 'new') {
-    return `ORDER BY ${sharedSorts},
-      "Item".created_at DESC, "Item".id DESC`
-  }
-
-  if (sort === 'lit') {
-    return `ORDER BY ${sharedSorts},
-      "Item"."rankhot" DESC, "Item".id DESC`
-  } else {
-    return `ORDER BY ${sharedSorts}, "Item"."ranktop" DESC, "Item".id DESC`
-  }
+  return `ORDER BY ${sharedSorts}, ${sortExpr}, "Item".id DESC`
 }
 
 async function comments (item, sort, cursor, { me, models, userLoader }) {

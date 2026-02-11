@@ -173,9 +173,7 @@ export async function onPaid (tx, payInId) {
         upvotes = upvotes + zap.first_vote,
         msats = "Item".msats + ${msats}::BIGINT,
         mcredits = "Item".mcredits + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT,
-        "lastZapAt" = now(),
-        "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${sats}::DOUBLE PRECISION),
-        "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
+        "lastZapAt" = now()
       FROM zap, zapper
       WHERE "Item".id = ${item.id}::INTEGER
       RETURNING "Item".*, zapper."zapTrust" * zap.log_sats as "weightedVote"
@@ -188,9 +186,7 @@ export async function onPaid (tx, payInId) {
     UPDATE "Item"
     SET "weightedComments" = "Item"."weightedComments" + item_zapped."weightedVote",
       "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
-      "commentMcredits" = "Item"."commentMcredits" + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT,
-      "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${sats}::DOUBLE PRECISION * 0.25),
-      "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
+      "commentMcredits" = "Item"."commentMcredits" + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT
     FROM item_zapped, ancestors
     WHERE "Item".id = ancestors.id`
 

@@ -87,17 +87,13 @@ export async function onPaid (tx, payInId) {
       UPDATE "Item"
       SET "weightedDownVotes" = "weightedDownVotes" + zapper."zapTrust" * zap.log_sats,
           "subWeightedDownVotes" = "subWeightedDownVotes" + zapper."subZapTrust" * zap.log_sats,
-          "downMsats" = "downMsats" + ${msats}::BIGINT,
-          "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", -${sats}::DOUBLE PRECISION),
-          "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
+          "downMsats" = "downMsats" + ${msats}::BIGINT
       FROM zap, zapper
       WHERE "Item".id = ${item.id}::INTEGER
       RETURNING "Item".*
     )
     UPDATE "Item"
-    SET "commentDownMsats" = "commentDownMsats" + ${msats}::BIGINT,
-        "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", -${sats}::DOUBLE PRECISION * 0.1),
-        "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
+    SET "commentDownMsats" = "commentDownMsats" + ${msats}::BIGINT
     FROM (
       SELECT "Item".id
       FROM "Item", item_downzapped

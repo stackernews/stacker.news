@@ -191,15 +191,6 @@ export async function onBegin (tx, payInId, args) {
     }
   })
 
-  // accumulate rankhot for the additional cost (excluding boost, which is handled by BOOST beneficiary)
-  if (additionalCost > 0) {
-    await tx.$executeRaw`
-      UPDATE "Item"
-      SET "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${additionalCost}::DOUBLE PRECISION),
-          "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
-      WHERE id = ${parseInt(id)}::INTEGER`
-  }
-
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,

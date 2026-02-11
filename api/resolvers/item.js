@@ -47,7 +47,7 @@ function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS
   const sortExpr = sort === 'new'
     ? '"Item".created_at DESC'
     : sort === 'lit'
-      ? '"Item"."rankhot" DESC'
+      ? '"Item"."ranklit" DESC'
       : '"Item"."ranktop" DESC'
 
   return `ORDER BY ${sharedSorts}, ${sortExpr}, "Item".id DESC`
@@ -595,10 +595,10 @@ export default {
                   await filterClause(type, sub, 'lit', ctx),
                   subClause(sub, 3, 'Item', me, showNsfw),
                   muteClause(me))}
-                ORDER BY rankhot DESC, "Item".id DESC
+                ORDER BY ranklit DESC, "Item".id DESC
                 OFFSET $1
                 LIMIT $2`,
-            orderBy: 'ORDER BY rankhot DESC, "Item".id DESC'
+            orderBy: 'ORDER BY ranklit DESC, "Item".id DESC'
           }, decodedCursor.offset, limit, ...subArr)
           break
       }

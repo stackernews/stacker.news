@@ -210,16 +210,6 @@ export async function onPaid (tx, payInId) {
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`
 
-  // seed rankhot with item cost contribution via centered-sum helper functions
-  const costSats = msatsToSats(payIn.mcost)
-  if (costSats > 0) {
-    await tx.$executeRaw`
-      UPDATE "Item"
-      SET "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${costSats}::DOUBLE PRECISION),
-          "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
-      WHERE id = ${item.id}::INTEGER`
-  }
-
   if (item.parentId) {
     // denormalize ncomments, lastCommentAt for ancestors, and insert into reply table
     await tx.$executeRaw`

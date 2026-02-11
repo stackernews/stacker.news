@@ -43,20 +43,13 @@ export async function onPaid (tx, payInId) {
 
   const boostSats = msatsToSats(payIn.mcost)
 
-  // increment boost on item
+  // increment boost on item (trigger computes litCenteredSum/ranklit)
   await tx.item.update({
     where: { id: payIn.itemPayIn.itemId },
     data: {
       boost: { increment: boostSats }
     }
   })
-
-  // accumulate rankhot via centered-sum helper functions
-  await tx.$executeRaw`
-    UPDATE "Item"
-    SET "hotCenteredSum" = hot_centered_sum_update("Item"."hotCenteredSum", "Item"."hotCenteredAt", ${boostSats}::DOUBLE PRECISION),
-        "hotCenteredAt" = hot_centered_at_update("Item"."hotCenteredAt")
-    WHERE id = ${payIn.itemPayIn.itemId}::INTEGER`
 }
 
 export async function describe (models, payInId) {

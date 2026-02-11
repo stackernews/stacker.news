@@ -7,15 +7,22 @@ import styles from './item.module.css'
 import Link from 'next/link'
 import { timeSince } from '@/lib/time'
 import EmailIcon from '@/svgs/mail-open-line.svg'
-import Share from './share'
+import Share, { CopyLinkDropdownItem } from './share'
 import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
 import { Badge } from 'react-bootstrap'
 import SubPopover from './sub-popover'
 import { PayInInfo } from './item-info'
 import Boost from './boost-button'
+import ActionDropdown from './action-dropdown'
+import DontLikeThisDropdownItem from './dont-link-this'
+import BookmarkDropdownItem from './bookmark'
+import SubscribeDropdownItem from './subscribe'
+import MuteDropdownItem from './mute'
+import { useMe } from './me'
 
 export default function ItemJob ({ item, toc, rank, children, ...props }) {
+  const { me } = useMe()
   const isEmail = string().email().isValidSync(item.url)
 
   return (
@@ -92,6 +99,18 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
                   </Link>
                   <PayInInfo item={item} {...props} />
                 </>)}
+            <ActionDropdown>
+              <CopyLinkDropdownItem item={item} />
+              {me && <BookmarkDropdownItem item={item} />}
+              {me && <SubscribeDropdownItem item={item} />}
+              {me && !item.mine && !item.deletedAt &&
+                <DontLikeThisDropdownItem item={item} />}
+              {me && !item.mine &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <MuteDropdownItem user={item.user} />
+                </>}
+            </ActionDropdown>
           </div>
         </div>
         {toc &&

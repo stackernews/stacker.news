@@ -131,8 +131,6 @@ const orderByClause = (by, me, models, type, sub) => {
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
       return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
-    case 'random':
-      return 'ORDER BY RANDOM()'
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
@@ -367,7 +365,7 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
 
   let postsSatsFilter = DEFAULT_POSTS_SATS_FILTER
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
-  const isCurated = sort === 'lit' || sort === 'top' || sort === 'random'
+  const isCurated = sort === 'lit' || sort === 'top'
 
   if (me) {
     const user = await userLoader.load(me.id)
@@ -392,14 +390,14 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
       }
     }
   } else if (isCurated) {
-    // On homepage lit/top/random: max of user filter and homepage threshold
+    // On homepage lit/top: max of user filter and homepage threshold
     // null (show all) defers to the homepage threshold on curated feeds
     postsSatsFilter = postsSatsFilter == null
       ? HOMEPAGE_POSTS_SATS_FILTER
       : Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
   }
 
-  // On curated feeds (lit/top/random), your own items are filtered like everyone else's.
+  // On curated feeds (lit/top), your own items are filtered like everyone else's.
   // On new/notifications, your own items always pass the filter.
   if (isDesperados) {
     return invertedInvestmentClause(postsSatsFilter, commentsSatsFilter)
@@ -551,31 +549,6 @@ export default {
               LIMIT $4`,
             orderBy: orderByClause(by || 'sats', me, models, type, sub)
           }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
-          break
-        case 'random':
-          items = await itemQueryWithMeta({
-            me,
-            models,
-            query: `
-              ${selectClause(type)}
-              ${relationClause(type)}
-              ${whereClause(
-                '"Item"."deletedAt" IS NULL',
-                '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
-                '"Item"."ncomments" > 0',
-                '"Item"."parentId" IS NULL',
-                '"Item".bio = false',
-                type === 'posts' && '"Item"."subNames" IS NOT NULL',
-                subClause(sub, 3, subClauseTable(type), me, showNsfw),
-                typeClause(type),
-                await filterClause(type, sub, 'random', ctx),
-                activeOrMine(me),
-                muteClause(me))}
-              ${orderByClause('random', me, models, type)}
-              OFFSET $1
-              LIMIT $2`,
-            orderBy: orderByClause('random', me, models, type)
-          }, decodedCursor.offset, limit, ...subArr)
           break
         default:
           if (decodedCursor.offset === 0) {

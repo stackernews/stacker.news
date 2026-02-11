@@ -171,7 +171,7 @@ module.exports = withPlausibleProxy()({
         source: '/~:sub/:slug*',
         destination: '/~/:slug*?sub=:sub'
       },
-      ...['/', '/post', '/rss', '/random', '/new/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
+      ...['/', '/post', '/rss', '/new/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
     ]
   },
   async redirects () {

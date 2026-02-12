@@ -176,11 +176,19 @@ SET
 -- This produces the same ranking as the old rankhot_sort_key formula:
 --   ln(ranktop/1000) + ln(2)/14400 * created_at_epoch
 -- Per-contribution time-weighting kicks in for all new activity after migration.
--- The ranklit trigger auto-computes the sort key.
+-- ranklit must be computed inline because the trigger only fires on
+-- cost/zap/boost column updates, not on litCenteredSum/litCenteredAt.
 -- =====================
 UPDATE "Item"
 SET "litCenteredSum" = ranktop / 1000.0,
-    "litCenteredAt" = EXTRACT(EPOCH FROM created_at)::DOUBLE PRECISION
+    "litCenteredAt" = EXTRACT(EPOCH FROM created_at)::DOUBLE PRECISION,
+    "ranklit" = CASE
+      WHEN ranktop > 0
+        THEN LN(ranktop / 1000.0) + LN(2) / 14400.0 * EXTRACT(EPOCH FROM created_at)::DOUBLE PRECISION
+      WHEN ranktop < 0
+        THEN -(LN(-ranktop / 1000.0) + LN(2) / 14400.0 * EXTRACT(EPOCH FROM created_at)::DOUBLE PRECISION)
+      ELSE 0
+    END
 WHERE ranktop <> 0;
 
 -- =====================

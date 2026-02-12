@@ -858,6 +858,9 @@ span + .sn-link {
 .sn-math {
   cursor: default;
   user-select: none;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
 }
 
 .sn-math.focused {

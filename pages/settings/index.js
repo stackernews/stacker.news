@@ -19,7 +19,7 @@ import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
+import { DEFAULT_COMMENTS_SATS_FILTER, DEFAULT_POSTS_SATS_FILTER, INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { useField } from 'formik'
 import styles from '@/styles/nav.module.css'
 import { AuthBanner } from '@/components/banners'
@@ -437,6 +437,11 @@ export default function Settings ({ ssrData }) {
             max={1000}
             suffix=' sats'
             allOption
+            labels={[
+              { value: -1060, label: 'wild west' },
+              { value: DEFAULT_POSTS_SATS_FILTER, label: DEFAULT_POSTS_SATS_FILTER },
+              { value: 1060, label: 'tea & crumpets' }
+            ]}
           />
           <Range
             label={
@@ -450,10 +455,15 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='commentsSatsFilter'
-            min={-1000}
-            max={1000}
+            min={-100}
+            max={100}
             suffix=' sats'
             allOption
+            labels={[
+              { value: -106, label: 'wild west' },
+              { value: DEFAULT_COMMENTS_SATS_FILTER, label: DEFAULT_COMMENTS_SATS_FILTER },
+              { value: 106, label: 'tea & crumpets' }
+            ]}
           />
           <Checkbox
             label={

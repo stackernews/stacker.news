@@ -747,7 +747,7 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
 
 export function Range ({
   label, groupClassName, hint, min, max, step = 1, onChange,
-  suffix, allOption, ...props
+  suffix, allOption, labels, ...props
 }) {
   const [field, meta, helpers] = useField(props)
   const isAll = allOption && field.value == null
@@ -765,7 +765,7 @@ export function Range ({
 
   return (
     <FormGroup label={label} className={groupClassName}>
-      <div className='d-flex align-items-center gap-3'>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', columnGap: '1rem', alignItems: 'center' }}>
         {allOption
           ? <span className='text-muted' style={{ whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
           : <small className='text-muted text-monospace'>{min}</small>}
@@ -776,7 +776,6 @@ export function Range ({
           max={max}
           step={step}
           value={isAll ? sliderMin : field.value}
-          className='flex-grow-1'
           onChange={(e) => {
             const val = Number(e.target.value)
             if (allOption && val <= sliderMin) {
@@ -790,7 +789,7 @@ export function Range ({
         <small className='text-muted text-monospace'>{max}</small>
         <InputGroup className='flex-nowrap' style={{ width: 'auto' }}>
           {isAll
-            ? <span className='form-control px-2' style={{ width: '4.5rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25em' }}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
+            ? <span className='form-control px-2' style={{ width: '4rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25em' }}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
             : <BootstrapForm.Control
                 type='number'
                 min={min}
@@ -798,7 +797,7 @@ export function Range ({
                 step={step}
                 value={field.value}
                 className='text-end hide-spinners px-2'
-                style={{ width: '4.5rem' }}
+                style={{ width: '4rem' }}
                 onChange={(e) => {
                   const val = Number(e.target.value)
                   if (!isNaN(val)) {
@@ -816,6 +815,28 @@ export function Range ({
               />}
           {suffix && <InputGroup.Text>{suffix.trim()}</InputGroup.Text>}
         </InputGroup>
+        {labels?.length > 0 && (
+          <div className='position-relative' style={{ gridColumn: 2, height: '1.2em' }}>
+            {labels.map(({ value, label: tickLabel }) => {
+              const pct = ((value - sliderMin) / (max - sliderMin)) * 100
+              return (
+                <span
+                  key={value}
+                  className='text-muted'
+                  style={{
+                    position: 'absolute',
+                    left: `${pct}%`,
+                    transform: 'translateX(-50%)',
+                    fontSize: '80%',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {tickLabel}
+                </span>
+              )
+            })}
+          </div>
+        )}
       </div>
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       <BootstrapForm.Control.Feedback className='d-block' type='invalid'>

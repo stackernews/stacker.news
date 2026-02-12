@@ -106,14 +106,16 @@ BEGIN
   END IF;
 
   -- 3. update litCenteredSum via exponential decay centered at litCenteredAt
-  --    all EXP() arguments are <= 0 by construction, so no overflow is possible
+  --    EXP() arguments are <= 0 by construction (no overflow), but can underflow
+  --    when the time gap exceeds ~168 days. GREATEST(..., -700) clamps the exponent
+  --    to a safe range (IEEE 754 min ≈ -708); the decayed term is effectively 0.
   IF w <> 0 THEN
     IF now_epoch >= old_at THEN
       -- decay old sum to now, then add w
-      NEW."litCenteredSum" := old_sum * EXP(LN(2) * (old_at - now_epoch) / 14400.0) + w;
+      NEW."litCenteredSum" := old_sum * EXP(GREATEST(LN(2) * (old_at - now_epoch) / 14400.0, -700.0)) + w;
     ELSE
       -- old_at is in the future: add w scaled by decay from old_at to now
-      NEW."litCenteredSum" := old_sum + w * EXP(LN(2) * (now_epoch - old_at) / 14400.0);
+      NEW."litCenteredSum" := old_sum + w * EXP(GREATEST(LN(2) * (now_epoch - old_at) / 14400.0, -700.0));
     END IF;
     NEW."litCenteredAt" := GREATEST(old_at, now_epoch);
   END IF;

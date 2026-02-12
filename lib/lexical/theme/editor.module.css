@@ -83,6 +83,10 @@
   pointer-events: none;
 }
 
+.editor[data-lexical-mode='rich'] .editorPlaceholder {
+  top: 0.525rem;
+}
+
 /* toolbar */
 
 .toolbar {

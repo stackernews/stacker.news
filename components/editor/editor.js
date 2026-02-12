@@ -154,8 +154,8 @@ function EditorContent ({
           aria-required={required}
         />
       </div>
-      {/* TODO: file upload and mentions only work in markdown mode */}
       <FileUploadPlugin editorRef={containerRef} />
+      {/* TODO: mentions only work in markdown mode */}
       <MentionsPlugin />
       <ShortcutsPlugin />
       <AppendValuePlugin value={appendValue} />

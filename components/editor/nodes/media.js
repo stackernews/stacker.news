@@ -171,33 +171,33 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
   )
 }
 
-export function MediaOrLink ({ linkFallback = true, ...props }) {
-  const media = useMediaHelper(props)
+export function MediaOrLink ({ linkFallback = true, editable, ...props }) {
+  const media = useMediaHelper({ ...props, editable })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
-  const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel()
+  const { showCarousel, addMedia, confirmMedia, removeMedia } = editable ? {} : (useCarousel() || {})
 
   // register placeholder immediately on mount if we have a src
   useEffect(() => {
     if (!media.bestResSrc) return
-    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
-  }, [addMedia, media.bestResSrc, media.originalSrc])
+    !editable && addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
+  }, [addMedia, media.bestResSrc, media.originalSrc, editable])
 
   // confirm media for carousel based on image detection
   useEffect(() => {
     if (!media.image) return
-    confirmMedia(media.bestResSrc)
-  }, [confirmMedia, media.image, media.bestResSrc])
+    !editable && confirmMedia(media.bestResSrc)
+  }, [confirmMedia, media.image, media.bestResSrc, editable])
 
-  const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),
-    [showCarousel, media.bestResSrc])
+  const handleClick = useCallback(() =>
+    !editable && showCarousel({ src: media.bestResSrc }), [showCarousel, media.bestResSrc, editable])
 
   const handleError = useCallback((err) => {
     console.error('Error loading media', err)
-    removeMedia(media.bestResSrc)
+    !editable && removeMedia(media.bestResSrc)
     setError(true)
     setIsLoading(false)
-  }, [setError, removeMedia, media.bestResSrc])
+  }, [setError, removeMedia, media.bestResSrc, editable])
 
   const handleLoad = useCallback(() => {
     setIsLoading(false)

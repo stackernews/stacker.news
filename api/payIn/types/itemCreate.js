@@ -211,7 +211,8 @@ export async function onPaid (tx, payInId) {
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`
 
   if (item.parentId) {
-    // denormalize ncomments, lastCommentAt for ancestors, and insert into reply table
+    // denormalize ncomments, lastCommentAt, commentCost for ancestors, and insert into reply table
+    // NOTE: ancestors are ORDER BY id for consistent lock ordering to prevent deadlocks
     await tx.$executeRaw`
       WITH comment AS (
         SELECT "Item".*
@@ -228,7 +229,8 @@ export async function onPaid (tx, payInId) {
         SET ncomments = "Item".ncomments + 1,
           "lastCommentAt" = GREATEST("Item"."lastCommentAt", comment.created_at),
           "nDirectComments" = "Item"."nDirectComments" +
-            CASE WHEN comment."parentId" = "Item".id THEN 1 ELSE 0 END
+            CASE WHEN comment."parentId" = "Item".id THEN 1 ELSE 0 END,
+          "commentCost" = "Item"."commentCost" + comment.cost
         FROM comment, ancestors
         WHERE "Item".id = ancestors.id
         RETURNING "Item".*

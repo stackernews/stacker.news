@@ -406,6 +406,8 @@ model Item {
   commentMsats         BigInt                @default(0)
   commentDownMsats     BigInt                @default(0)
   commentMcredits      BigInt                @default(0)
+  commentCost          Int                   @default(0)
+  commentBoost         Int                   @default(0)
   weightedComments     Float                 @default(0)
   lastCommentAt        DateTime?
   lastZapAt            DateTime?

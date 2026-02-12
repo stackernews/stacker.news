@@ -130,7 +130,7 @@ export default function ItemInfo ({
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
+        }} title={`${numWithUnits(item.commentSats + item.commentCost + item.commentBoost)} (${item.commentSats} stacked \\ ${item.commentCost} cost \\ ${item.commentBoost} boost)`} className='text-reset position-relative'
       >
         {numWithUnits(item.ncomments, {
           abbreviate: false,
@@ -250,6 +250,7 @@ export default function ItemInfo ({
 function ItemDetails ({ item, me }) {
   return (
     <div className={styles.details}>
+      <div className={styles.detailsSection}>item</div>
       <div>id</div>
       <div>{item.id}</div>
       <div>created at</div>
@@ -259,28 +260,38 @@ function ItemDetails ({ item, me }) {
           <div>paid at</div>
           <div>{item.payIn?.payInStateChangedAt}</div>
         </>}
-      <div>invested</div>
-      <div>{item.sats + item.boost + item.cost} sats</div>
+      <div className={styles.detailsSection}>this item</div>
       <div>cost</div>
       <div>{item.cost}</div>
-      <div>stacked</div>
-      <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
       <div>boost</div>
       <div>{item.boost}</div>
-      <div>stacked (comments)</div>
-      <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
+      <div>stacked</div>
+      <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
       <div>downsats</div>
       <div>{item.downSats}</div>
-      <div>downsats (comments)</div>
+      <div>invested</div>
+      <div>{item.sats + item.boost + item.cost} sats</div>
+      <div className={styles.detailsSection}>comments</div>
+      <div>cost</div>
+      <div>{item.commentCost}</div>
+      <div>boost</div>
+      <div>{item.commentBoost}</div>
+      <div>stacked</div>
+      <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
+      <div>downsats</div>
       <div>{item.commentDownSats}</div>
+      <div>invested</div>
+      <div>{item.commentSats + item.commentCost + item.commentBoost} sats</div>
       {me && (
         <>
-          <div>from me</div>
+          <div className={styles.detailsSection}>from me</div>
+          <div>zapped</div>
           <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
-          <div>downsats from me</div>
+          <div>downzapped</div>
           <div>{item.meDontLikeSats}</div>
         </>
       )}
+      <div className={styles.detailsSection}>stats</div>
       <div>zappers</div>
       <div>{item.upvotes}</div>
     </div>

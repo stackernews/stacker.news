@@ -1037,6 +1037,8 @@ export default {
     commentCredits: async (item, args, { models }) => {
       return msatsToSats(item.commentMcredits)
     },
+    commentCost: async (item) => item.commentCost || 0,
+    commentBoost: async (item) => item.commentBoost || 0,
     isJob: async (item, args, { models }) => {
       return item.subNames?.includes('jobs') ?? false
     },

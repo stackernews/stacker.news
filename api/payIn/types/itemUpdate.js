@@ -191,6 +191,21 @@ export async function onBegin (tx, payInId, args) {
     }
   })
 
+  // propagate additional cost to ancestors if this is a comment with increased cost
+  // NOTE: ancestors are ORDER BY id for consistent lock ordering to prevent deadlocks
+  if (additionalCost > 0 && old.parentId) {
+    await tx.$executeRaw`
+      UPDATE "Item"
+      SET "commentCost" = "Item"."commentCost" + ${additionalCost}::INTEGER
+      FROM (
+        SELECT id FROM "Item"
+        WHERE path @> (SELECT path FROM "Item" WHERE id = ${parseInt(id)}::INTEGER)
+          AND id <> ${parseInt(id)}::INTEGER
+        ORDER BY id
+      ) AS ancestors
+      WHERE "Item".id = ancestors.id`
+  }
+
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true,

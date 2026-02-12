@@ -57,6 +57,7 @@ export async function onPaid (tx, payInId) {
   const item = payIn.itemPayIn.item
 
   // denormalize downzaps
+  // NOTE: ancestors are ORDER BY id for consistent lock ordering to prevent deadlocks
   // XXX we base the zap weight on the first sub in the subNames array
   // this is mostly a placeholder becasue we are running a no trust experiment
   // if we use trust again, we'll need an approach to this for multiple territories

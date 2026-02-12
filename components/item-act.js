@@ -249,6 +249,21 @@ function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
       })
     })
   }
+  if (act === 'BOOST') {
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      cache.modify({
+        id: `Item:${aId}`,
+        fields: {
+          commentBoost (existingCommentBoost = 0) {
+            return existingCommentBoost + sats
+          }
+        },
+        optimistic: true
+      })
+    })
+  }
 }
 
 export function useAct ({ query = ACT_MUTATION, ...options } = {}) {

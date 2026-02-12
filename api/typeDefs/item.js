@@ -112,6 +112,8 @@ export default gql`
     credits: Int!
     commentSats: Int!
     commentCredits: Int!
+    commentCost: Int!
+    commentBoost: Int!
     commentDownSats: Int!
     lastCommentAt: Date
     upvotes: Int!

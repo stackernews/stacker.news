@@ -39,17 +39,39 @@ export async function onBegin (tx, payInId, { sats, id }) {
 }
 
 export async function onPaid (tx, payInId) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: true } })
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: { include: { item: true } } } })
 
   const boostSats = msatsToSats(payIn.mcost)
+  const item = payIn.itemPayIn.item
 
-  // increment boost on item (trigger computes litCenteredSum/ranklit)
-  await tx.item.update({
-    where: { id: payIn.itemPayIn.itemId },
-    data: {
-      boost: { increment: boostSats }
-    }
-  })
+  if (item.parentId) {
+    // increment boost on item and propagate commentBoost to ancestors in a single statement
+    // NOTE: ancestors are ORDER BY id for consistent lock ordering to prevent deadlocks
+    await tx.$executeRaw`
+      WITH item_boosted AS (
+        UPDATE "Item"
+        SET boost = boost + ${boostSats}::INTEGER
+        WHERE id = ${item.id}::INTEGER
+        RETURNING *
+      )
+      UPDATE "Item"
+      SET "commentBoost" = "Item"."commentBoost" + ${boostSats}::INTEGER
+      FROM (
+        SELECT "Item".id
+        FROM "Item", item_boosted
+        WHERE "Item".path @> item_boosted.path AND "Item".id <> item_boosted.id
+        ORDER BY "Item".id
+      ) AS ancestors
+      WHERE "Item".id = ancestors.id`
+  } else {
+    // for top-level posts, just increment boost (trigger computes litCenteredSum/ranklit)
+    await tx.item.update({
+      where: { id: item.id },
+      data: {
+        boost: { increment: boostSats }
+      }
+    })
+  }
 }
 
 export async function describe (models, payInId) {

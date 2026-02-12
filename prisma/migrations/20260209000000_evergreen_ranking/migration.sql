@@ -1,14 +1,15 @@
--- Evergreen Ranking Refactor
--- 1. Drop STORED generated columns (rankhot, ranktop, rankboost)
--- 2. Drop old SQL functions (rankhot_sort_key, ranktop_sort_key)
--- 3. Re-add ranktop, hotCenteredSum, hotCenteredAt, rankhot as regular columns
--- 4. Create BEFORE trigger for ranktop
--- 5. Create SQL helper functions for hot centered sum updates
--- 6. Create BEFORE trigger for rankhot (from hotCenteredSum + hotCenteredAt)
--- 7. Merge oldBoost into boost, drop oldBoost
--- 8. Backfill ranktop, hotCenteredSum, hotCenteredAt (trigger computes rankhot)
--- 9. Remove AUCTION ranking type
--- 10. Recreate indexes
+-- Evergreen Ranking Refactor (combined migration)
+-- 1. Drop indexes for columns being dropped/changed
+-- 2. Drop generated columns (ranktop, rankhot, rankboost)
+-- 3. Drop old SQL functions
+-- 4. Add new columns with final names
+-- 5. Merge oldBoost into boost, drop oldBoost
+-- 6. Create final combined ranking trigger
+-- 7. Backfill commentCost, commentBoost
+-- 8. Backfill ranktop (includes commentCost/commentBoost)
+-- 9. Backfill litCenteredSum, litCenteredAt (trigger computes ranklit)
+-- 10. Remove AUCTION ranking type
+-- 11. Recreate indexes
 
 -- =====================
 -- DROP INDEXES (must drop before dropping columns)
@@ -35,12 +36,14 @@ DROP FUNCTION IF EXISTS rankhot_sort_key;
 DROP FUNCTION IF EXISTS ranktop_sort_key;
 
 -- =====================
--- RE-ADD AS REGULAR COLUMNS (rankboost removed entirely)
+-- ADD NEW COLUMNS WITH FINAL NAMES
 -- =====================
 ALTER TABLE "Item" ADD COLUMN "ranktop" DOUBLE PRECISION NOT NULL DEFAULT 0;
-ALTER TABLE "Item" ADD COLUMN "hotCenteredSum" DOUBLE PRECISION NOT NULL DEFAULT 0;
-ALTER TABLE "Item" ADD COLUMN "hotCenteredAt" DOUBLE PRECISION NOT NULL DEFAULT 0;
-ALTER TABLE "Item" ADD COLUMN "rankhot" DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE "Item" ADD COLUMN "litCenteredSum" DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE "Item" ADD COLUMN "litCenteredAt" DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE "Item" ADD COLUMN "ranklit" DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE "Item" ADD COLUMN "commentCost" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Item" ADD COLUMN "commentBoost" INTEGER NOT NULL DEFAULT 0;
 
 -- =====================
 -- MERGE oldBoost INTO boost, THEN DROP oldBoost
@@ -49,72 +52,106 @@ UPDATE "Item" SET boost = boost + "oldBoost" WHERE "oldBoost" > 0;
 ALTER TABLE "Item" DROP COLUMN "oldBoost";
 
 -- =====================
--- CREATE TRIGGER FOR ranktop
+-- CREATE FINAL COMBINED RANKING TRIGGER
+-- (half-life = 14400 seconds = 4 hours, lambda = ln(2) / 14400)
+-- Includes commentCost and commentBoost at 0.25x weight
 -- =====================
-CREATE OR REPLACE FUNCTION item_ranktop_trigger() RETURNS trigger
+CREATE OR REPLACE FUNCTION item_ranking_trigger() RETURNS trigger
 LANGUAGE plpgsql AS $$
+DECLARE
+  w DOUBLE PRECISION;
+  old_sum DOUBLE PRECISION;
+  old_at DOUBLE PRECISION;
+  now_epoch DOUBLE PRECISION := EXTRACT(EPOCH FROM now())::DOUBLE PRECISION;
 BEGIN
+  -- 1. compute ranktop
   NEW.ranktop := (
     COALESCE(NEW.cost, 0)::double precision * 1000.0
     + COALESCE(NEW.msats, 0)::double precision
     + COALESCE(NEW.boost, 0)::double precision * 1000.0
     + COALESCE(NEW."commentMsats", 0)::double precision * 0.25
+    + COALESCE(NEW."commentCost", 0)::double precision * 250.0
+    + COALESCE(NEW."commentBoost", 0)::double precision * 250.0
     - COALESCE(NEW."downMsats", 0)::double precision
     - COALESCE(NEW."commentDownMsats", 0)::double precision * 0.1
   );
-  RETURN NEW;
-END;
-$$;
 
-CREATE TRIGGER item_ranktop
-  BEFORE INSERT OR UPDATE OF cost, msats, boost, "commentMsats", "downMsats", "commentDownMsats" ON "Item"
-  FOR EACH ROW EXECUTE FUNCTION item_ranktop_trigger();
+  -- 2. compute lit centered sum weight from field deltas
+  IF TG_OP = 'INSERT' THEN
+    w := (
+      COALESCE(NEW.cost, 0)::double precision
+      + COALESCE(NEW.msats, 0)::double precision / 1000.0
+      + COALESCE(NEW.boost, 0)::double precision
+      + COALESCE(NEW."commentMsats", 0)::double precision * 0.25 / 1000.0
+      + COALESCE(NEW."commentCost", 0)::double precision * 0.25
+      + COALESCE(NEW."commentBoost", 0)::double precision * 0.25
+      - COALESCE(NEW."downMsats", 0)::double precision / 1000.0
+      - COALESCE(NEW."commentDownMsats", 0)::double precision * 0.1 / 1000.0
+    );
+    old_sum := 0;
+    old_at := 0;
+  ELSE
+    w := (
+      (COALESCE(NEW.cost, 0) - COALESCE(OLD.cost, 0))::double precision
+      + (COALESCE(NEW.msats, 0) - COALESCE(OLD.msats, 0))::double precision / 1000.0
+      + (COALESCE(NEW.boost, 0) - COALESCE(OLD.boost, 0))::double precision
+      + (COALESCE(NEW."commentMsats", 0) - COALESCE(OLD."commentMsats", 0))::double precision * 0.25 / 1000.0
+      + (COALESCE(NEW."commentCost", 0) - COALESCE(OLD."commentCost", 0))::double precision * 0.25
+      + (COALESCE(NEW."commentBoost", 0) - COALESCE(OLD."commentBoost", 0))::double precision * 0.25
+      - (COALESCE(NEW."downMsats", 0) - COALESCE(OLD."downMsats", 0))::double precision / 1000.0
+      - (COALESCE(NEW."commentDownMsats", 0) - COALESCE(OLD."commentDownMsats", 0))::double precision * 0.1 / 1000.0
+    );
+    old_sum := OLD."litCenteredSum";
+    old_at := OLD."litCenteredAt";
+  END IF;
 
--- =====================
--- CREATE SQL HELPER FUNCTIONS FOR HOT CENTERED SUM UPDATES
--- (half-life = 14400 seconds = 4 hours, lambda = ln(2) / 14400)
--- =====================
+  -- 3. update litCenteredSum via exponential decay centered at litCenteredAt
+  --    all EXP() arguments are <= 0 by construction, so no overflow is possible
+  IF w <> 0 THEN
+    IF now_epoch >= old_at THEN
+      -- decay old sum to now, then add w
+      NEW."litCenteredSum" := old_sum * EXP(LN(2) * (old_at - now_epoch) / 14400.0) + w;
+    ELSE
+      -- old_at is in the future: add w scaled by decay from old_at to now
+      NEW."litCenteredSum" := old_sum + w * EXP(LN(2) * (now_epoch - old_at) / 14400.0);
+    END IF;
+    NEW."litCenteredAt" := GREATEST(old_at, now_epoch);
+  END IF;
 
--- Returns the updated centered sum after adding contribution w at now()
--- All EXP() arguments are <= 0 by construction, so no overflow is possible
-CREATE FUNCTION hot_centered_sum_update(old_sum DOUBLE PRECISION, old_at DOUBLE PRECISION, w DOUBLE PRECISION)
-RETURNS DOUBLE PRECISION LANGUAGE sql STABLE PARALLEL SAFE AS $$
-  SELECT CASE
-    WHEN EXTRACT(EPOCH FROM now())::DOUBLE PRECISION >= old_at
-    THEN old_sum * EXP(LN(2) * (old_at - EXTRACT(EPOCH FROM now())::DOUBLE PRECISION) / 14400.0) + w
-    ELSE old_sum + w * EXP(LN(2) * (EXTRACT(EPOCH FROM now())::DOUBLE PRECISION - old_at) / 14400.0)
-  END
-$$;
-
--- Returns the updated centering time (always the latest of old and now)
-CREATE FUNCTION hot_centered_at_update(old_at DOUBLE PRECISION)
-RETURNS DOUBLE PRECISION LANGUAGE sql STABLE PARALLEL SAFE AS $$
-  SELECT GREATEST(old_at, EXTRACT(EPOCH FROM now())::DOUBLE PRECISION)
-$$;
-
--- =====================
--- CREATE TRIGGER FOR rankhot (sort key from hotCenteredSum + hotCenteredAt)
--- Positive items: ln(sum) + lambda * t  (large positive ~83,000+)
--- Negative items: -(ln(|sum|) + lambda * t)  (large negative)
--- Zero items: 0  (ranks between positive and negative)
--- =====================
-CREATE OR REPLACE FUNCTION item_rankhot_trigger() RETURNS trigger
-LANGUAGE plpgsql AS $$
-BEGIN
-  NEW.rankhot := CASE
-    WHEN NEW."hotCenteredSum" > 0
-      THEN LN(NEW."hotCenteredSum") + LN(2) / 14400.0 * NEW."hotCenteredAt"
-    WHEN NEW."hotCenteredSum" < 0
-      THEN -(LN(-NEW."hotCenteredSum") + LN(2) / 14400.0 * NEW."hotCenteredAt")
+  -- 4. compute ranklit sort key
+  NEW.ranklit := CASE
+    WHEN NEW."litCenteredSum" > 0
+      THEN LN(NEW."litCenteredSum") + LN(2) / 14400.0 * NEW."litCenteredAt"
+    WHEN NEW."litCenteredSum" < 0
+      THEN -(LN(-NEW."litCenteredSum") + LN(2) / 14400.0 * NEW."litCenteredAt")
     ELSE 0
-    END;
+  END;
+
   RETURN NEW;
 END;
 $$;
 
-CREATE TRIGGER item_rankhot
-  BEFORE INSERT OR UPDATE OF "hotCenteredSum", "hotCenteredAt" ON "Item"
-  FOR EACH ROW EXECUTE FUNCTION item_rankhot_trigger();
+CREATE TRIGGER item_ranking
+  BEFORE INSERT OR UPDATE OF cost, msats, boost, "commentMsats", "commentCost", "commentBoost", "downMsats", "commentDownMsats"
+  ON "Item"
+  FOR EACH ROW EXECUTE FUNCTION item_ranking_trigger();
+
+-- =====================
+-- BACKFILL commentCost and commentBoost
+-- (must happen before ranktop backfill since ranktop depends on them)
+-- =====================
+UPDATE "Item" AS parent
+SET "commentCost" = COALESCE(sub.total_cost, 0),
+    "commentBoost" = COALESCE(sub.total_boost, 0)
+FROM (
+  SELECT a.id,
+    SUM(d.cost) AS total_cost,
+    SUM(d.boost) AS total_boost
+  FROM "Item" a
+  JOIN "Item" d ON d.path <@ a.path AND d.id <> a.id AND d."parentId" IS NOT NULL
+  GROUP BY a.id
+) sub
+WHERE parent.id = sub.id;
 
 -- =====================
 -- BACKFILL ranktop
@@ -127,21 +164,23 @@ SET
     + COALESCE(msats, 0)::double precision
     + COALESCE(boost, 0)::double precision * 1000.0
     + COALESCE("commentMsats", 0)::double precision * 0.25
+    + COALESCE("commentCost", 0)::double precision * 250.0
+    + COALESCE("commentBoost", 0)::double precision * 250.0
     - COALESCE("downMsats", 0)::double precision
     - COALESCE("commentDownMsats", 0)::double precision * 0.1
   );
 
 -- =====================
--- BACKFILL hotCenteredSum and hotCenteredAt
+-- BACKFILL litCenteredSum and litCenteredAt
 -- Approximates all historical contributions as happening at created_at.
 -- This produces the same ranking as the old rankhot_sort_key formula:
 --   ln(ranktop/1000) + ln(2)/14400 * created_at_epoch
 -- Per-contribution time-weighting kicks in for all new activity after migration.
--- The rankhot trigger auto-computes the sort key.
+-- The ranklit trigger auto-computes the sort key.
 -- =====================
 UPDATE "Item"
-SET "hotCenteredSum" = ranktop / 1000.0,
-    "hotCenteredAt" = EXTRACT(EPOCH FROM created_at)::DOUBLE PRECISION
+SET "litCenteredSum" = ranktop / 1000.0,
+    "litCenteredAt" = EXTRACT(EPOCH FROM created_at)::DOUBLE PRECISION
 WHERE ranktop <> 0;
 
 -- =====================
@@ -159,6 +198,6 @@ DROP TYPE "RankingType_old";
 -- RECREATE INDEXES
 -- =====================
 CREATE INDEX "Item_ranktop_idx" ON "Item"("ranktop");
-CREATE INDEX "Item_rankhot_idx" ON "Item"("rankhot");
+CREATE INDEX "Item_ranklit_idx" ON "Item"("ranklit");
 CREATE INDEX "Item_subNames_ranktop_idx" ON "Item" USING GIN ("subNames", "ranktop" float8_ops);
-CREATE INDEX "Item_subNames_rankhot_idx" ON "Item" USING GIN ("subNames", "rankhot" float8_ops);
+CREATE INDEX "Item_subNames_ranklit_idx" ON "Item" USING GIN ("subNames", "ranklit" float8_ops);

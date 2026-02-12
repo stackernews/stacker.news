@@ -301,6 +301,11 @@
   cursor: text;
 }
 
+.sn-media--focused {
+  outline-offset: -2px;
+  outline: 2px solid var(--bs-info);
+}
+
 .sn-gallery {
   display: flex;
   flex-direction: row;

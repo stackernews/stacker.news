@@ -1,7 +1,7 @@
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
-import { useState, useEffect, memo, useCallback, useMemo } from 'react'
+import { useState, useEffect, memo, useCallback, useMemo, useRef } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getNodeByKey } from 'lexical'
+import { $getNodeByKey, CLICK_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical'
 import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
 import { useCarousel } from '@/components/carousel'
 import { useMe } from '@/components/me'
@@ -10,6 +10,8 @@ import FileError from '@/svgs/editor/file-error.svg'
 import preserveScroll from '@/components/preserve-scroll'
 import { $replaceNodeWithLink } from '@/lib/lexical/nodes/utils'
 import { useLexicalEditable } from '@lexical/react/useLexicalEditable'
+import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection'
+import { mergeRegister } from '@lexical/utils'
 
 function LinkRaw ({ className, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -51,7 +53,7 @@ function MediaError ({ className, width, height, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width, alt, title,
-  height, onClick, onError, video, onLoad, isLoading
+  height, onClick, onError, video, onLoad, isLoading, className = '', mediaRef
 }) {
   const sized = !!(width && height && width > 0 && height > 0)
 
@@ -67,7 +69,7 @@ const Media = memo(function Media ({
       {video
         ? (
           <video
-            className={`sn-media__video${sized ? ' sn-media__video--sized' : ''}`}
+            className={`sn-media__video${sized ? ' sn-media__video--sized' : ''} ${className}`}
             src={src}
             preload={bestResSrc !== src ? 'metadata' : undefined}
             controls
@@ -77,11 +79,12 @@ const Media = memo(function Media ({
             onError={onError}
             onLoadedMetadata={onLoad}
             style={hiddenStyle}
+            ref={mediaRef}
           />
           )
         : (
           <img
-            className={`sn-media__img${sized ? ' sn-media__img--sized' : ''}`}
+            className={`sn-media__img${sized ? ' sn-media__img--sized' : ''} ${className}`}
             src={src}
             alt={alt}
             title={title}
@@ -95,6 +98,7 @@ const Media = memo(function Media ({
             onError={onError}
             onLoad={onLoad}
             style={hiddenStyle}
+            ref={mediaRef}
           />
           )}
     </>
@@ -119,7 +123,26 @@ const Media = memo(function Media ({
 export default function MediaComponent ({ src, srcSet, bestResSrc, width, height, alt, title, kind: initialKind, linkFallback = true, nodeKey }) {
   const [editor] = useLexicalComposerContext()
   const editable = useLexicalEditable()
+  const [isSelected, setSelected, clearSelection] =
+  useLexicalNodeSelection(nodeKey)
   const [kind, setKind] = useState()
+  const mediaRef = useRef(null)
+
+  const onClick = useCallback((payload) => {
+    const event = payload
+    if (event.target === mediaRef.current) {
+      if (event.shiftKey) {
+        setSelected(!isSelected)
+      } else {
+        clearSelection()
+        setSelected(true)
+      }
+      return true
+    }
+    return false
+  }, [isSelected, clearSelection, setSelected])
+
+  const isFocused = editable && isSelected
 
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
 
@@ -154,6 +177,16 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
     })
   }, [kind, $replaceWithLink, $confirmMedia, editor])
 
+  useEffect(() => {
+    return mergeRegister(
+      editor.registerCommand(
+        CLICK_COMMAND,
+        onClick,
+        COMMAND_PRIORITY_LOW
+      )
+    )
+  }, [editor, onClick])
+
   return (
     <MediaOrLink
       src={src}
@@ -167,11 +200,13 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       linkFallback={linkFallback}
       setKind={setKind}
       editable={editable}
+      innerClassName={isFocused ? 'sn-media--focused' : ''}
+      mediaRef={mediaRef}
     />
   )
 }
 
-export function MediaOrLink ({ linkFallback = true, editable, ...props }) {
+export function MediaOrLink ({ linkFallback = true, editable, innerClassName, mediaRef, ...props }) {
   const media = useMediaHelper({ ...props, editable })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -213,7 +248,8 @@ export function MediaOrLink ({ linkFallback = true, editable, ...props }) {
         <>
           {isLoading && <MediaLoading autolink={props.kind === 'unknown'} />}
           <Media
-            {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad} isLoading={isLoading}
+            {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad} isLoading={isLoading} className={innerClassName}
+            mediaRef={mediaRef}
           />
         </>
       )

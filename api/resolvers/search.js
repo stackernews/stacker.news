@@ -39,7 +39,7 @@ export default {
       let satsFilter = DEFAULT_POSTS_SATS_FILTER
       if (me) {
         const user = await userLoader.load(me.id)
-        if (user?.postsSatsFilter != null) satsFilter = user.postsSatsFilter
+        satsFilter = user.postsSatsFilter
       }
 
       const like = []
@@ -66,11 +66,12 @@ export default {
             ],
             must_not: mustNot
           }
-        },
-        {
-          range: { ranktop: { gte: minMatch ? 0 : satsFilter * 1000 } }
         }
       ]
+      // null means "show all" — skip the ranktop filter entirely
+      if (satsFilter != null) {
+        filters.push({ range: { ranktop: { gte: minMatch ? 0 : satsFilter * 1000 } } })
+      }
 
       // Build the more_like_this query for traditional similarity search
       const moreLikeThisQuery = {
@@ -281,9 +282,12 @@ export default {
       let satsFilter = DEFAULT_POSTS_SATS_FILTER
       if (me) {
         const user = await userLoader.load(me.id)
-        if (user?.postsSatsFilter != null) satsFilter = user.postsSatsFilter
+        satsFilter = user.postsSatsFilter
       }
-      filters.push({ range: { ranktop: { gte: satsFilter * 1000 } } })
+      // null means "show all" — skip the ranktop filter entirely
+      if (satsFilter != null) {
+        filters.push({ range: { ranktop: { gte: satsFilter * 1000 } } })
+      }
 
       // decompose the search terms
       const { query: _query, quotes, nym, url, territory } = queryParts(q)

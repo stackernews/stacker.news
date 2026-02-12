@@ -177,7 +177,7 @@ a.link:visited {
     grid-template-columns: auto auto;
     column-gap: 1rem;
     line-height: 1.25;
-    row-gap: 0.75rem;
+    row-gap: 0.25rem;
 }
 
 .detailsSection {
@@ -185,8 +185,21 @@ a.link:visited {
     font-weight: bold;
     font-size: 0.9rem;
     border-bottom: 1px solid var(--theme-borderColor);
-    padding-bottom: 0.25rem;
-    margin-top: 0.25rem;
+    padding-bottom: 0.35rem;
+    margin-top: 0.75rem;
+}
+
+.detailsSection:first-child {
+    margin-top: 0;
+}
+
+.detailsLabel {
+    color: var(--theme-grey);
+}
+
+.detailsValue {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 /* .itemJob .hunk {

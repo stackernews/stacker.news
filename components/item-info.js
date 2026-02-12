@@ -251,49 +251,48 @@ function ItemDetails ({ item, me }) {
   return (
     <div className={styles.details}>
       <div className={styles.detailsSection}>item</div>
-      <div>id</div>
-      <div>{item.id}</div>
-      <div>created at</div>
-      <div>{item.createdAt}</div>
+      <div className={styles.detailsLabel}>id</div>
+      <div className={styles.detailsValue}>{item.id}</div>
+      <div className={styles.detailsLabel}>created at</div>
+      <div className={styles.detailsValue}>{item.createdAt}</div>
       {item.payIn?.payInState === 'PAID' &&
         <>
-          <div>paid at</div>
-          <div>{item.payIn?.payInStateChangedAt}</div>
+          <div className={styles.detailsLabel}>paid at</div>
+          <div className={styles.detailsValue}>{item.payIn?.payInStateChangedAt}</div>
         </>}
       <div className={styles.detailsSection}>this item</div>
-      <div>cost</div>
-      <div>{item.cost}</div>
-      <div>boost</div>
-      <div>{item.boost}</div>
-      <div>stacked</div>
-      <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
-      <div>downsats</div>
-      <div>{item.downSats}</div>
-      <div>invested</div>
-      <div>{item.sats + item.boost + item.cost} sats</div>
+      <div className={styles.detailsLabel}>zappers</div>
+      <div className={styles.detailsValue}>{item.upvotes}</div>
+      <div className={styles.detailsLabel}>cost</div>
+      <div className={styles.detailsValue}>{item.cost} sats</div>
+      <div className={styles.detailsLabel}>boost</div>
+      <div className={styles.detailsValue}>{item.boost} sats</div>
+      <div className={styles.detailsLabel}>stacked</div>
+      <div className={styles.detailsValue}>{item.sats - item.credits} sats / {item.credits} ccs</div>
+      <div className={styles.detailsLabel}>downsats</div>
+      <div className={styles.detailsValue}>{item.downSats} sats</div>
+      <div className={styles.detailsLabel}>invested</div>
+      <div className={styles.detailsValue}>{item.sats + item.boost + item.cost} sats</div>
       <div className={styles.detailsSection}>comments</div>
-      <div>cost</div>
-      <div>{item.commentCost}</div>
-      <div>boost</div>
-      <div>{item.commentBoost}</div>
-      <div>stacked</div>
-      <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
-      <div>downsats</div>
-      <div>{item.commentDownSats}</div>
-      <div>invested</div>
-      <div>{item.commentSats + item.commentCost + item.commentBoost} sats</div>
+      <div className={styles.detailsLabel}>cost</div>
+      <div className={styles.detailsValue}>{item.commentCost} sats</div>
+      <div className={styles.detailsLabel}>boost</div>
+      <div className={styles.detailsValue}>{item.commentBoost} sats</div>
+      <div className={styles.detailsLabel}>stacked</div>
+      <div className={styles.detailsValue}>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
+      <div className={styles.detailsLabel}>downsats</div>
+      <div className={styles.detailsValue}>{item.commentDownSats} sats</div>
+      <div className={styles.detailsLabel}>invested</div>
+      <div className={styles.detailsValue}>{item.commentSats + item.commentCost + item.commentBoost} sats</div>
       {me && (
         <>
           <div className={styles.detailsSection}>from me</div>
-          <div>zapped</div>
-          <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
-          <div>downzapped</div>
-          <div>{item.meDontLikeSats}</div>
+          <div className={styles.detailsLabel}>zapped</div>
+          <div className={styles.detailsValue}>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
+          <div className={styles.detailsLabel}>downzapped</div>
+          <div className={styles.detailsValue}>{item.meDontLikeSats} sats</div>
         </>
       )}
-      <div className={styles.detailsSection}>stats</div>
-      <div>zappers</div>
-      <div>{item.upvotes}</div>
     </div>
   )
 }

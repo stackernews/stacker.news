@@ -10,7 +10,8 @@ import {
   $createTextNode,
   $createRangeSelection,
   $setSelection,
-  COMMAND_PRIORITY_HIGH
+  COMMAND_PRIORITY_HIGH,
+  $nodesOfType
 } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -23,6 +24,8 @@ import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { getDragSelection } from '@/lib/lexical/utils/dom'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { $insertTextAtSelection } from '@/lib/lexical/utils'
+import { isMarkdownMode } from '@/lib/lexical/commands/utils'
+import { $createMediaNode, MediaNode } from '@/lib/lexical/nodes/content/media'
 
 export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
 
@@ -47,16 +50,20 @@ export default function FileUploadPlugin ({ editorRef }) {
   const { $refreshUploadFees } = useLexicalUploadFees(editor)
 
   // replace placeholder text in editor
-  const replacePlaceholder = useCallback((newText) => {
-    editor.update(() => {
-      const placeholderNode = $getNodeByKey(placeholderKey.current)
-      if (placeholderNode) {
-        placeholderNode.setTextContent(newText)
-        // move selection to end of the replaced node to avoid stale offset errors
-        // (the old selection offset may exceed the new text length)
-        placeholderNode.selectEnd()
-      }
-    }, { tag: 'history-merge' })
+  const $replacePlaceholder = useCallback((newContent) => {
+    const placeholderNode = $getNodeByKey(placeholderKey.current)
+    if (!placeholderNode) return
+    // if newContent is a string, set the text content of the placeholder node
+    // otherwise, replace the placeholder node with the new content
+    if (typeof newContent === 'string') {
+      placeholderNode.setTextContent(newContent)
+      // move selection to end of the replaced node to avoid stale offset errors
+      // (the old selection offset may exceed the new text length)
+      placeholderNode.selectEnd()
+    } else {
+      placeholderNode.replace(newContent)
+      $getRoot().selectEnd()
+    }
   }, [editor, placeholderKey])
 
   // upload event handler
@@ -77,17 +84,27 @@ export default function FileUploadPlugin ({ editorRef }) {
   // success event handler
   // replaces the placeholder with the image url
   const onSuccess = useCallback(({ url, name, file }) => {
-    replacePlaceholder(`![](${url})`)
+    editor.update(() => {
+      const markdownMode = isMarkdownMode()
+      if (markdownMode) {
+        $replacePlaceholder(`![](${url})`)
+      } else {
+        const mediaNode = $createMediaNode({ src: url, alt: name, title: name, kind: 'image', status: 'done' })
+        $replacePlaceholder(mediaNode)
+      }
+    }, { tag: 'history-merge' })
 
     // refresh upload fees
     editor.read(() => $refreshUploadFees())
     setSubmitDisabled?.(false)
-  }, [editor, replacePlaceholder, $refreshUploadFees, setSubmitDisabled])
+  }, [editor, $replacePlaceholder, $refreshUploadFees, setSubmitDisabled])
 
   const onError = useCallback(({ file }) => {
-    replacePlaceholder('')
+    editor.update(() => {
+      $replacePlaceholder('')
+    }, { tag: 'history-merge' })
     setSubmitDisabled?.(false)
-  }, [replacePlaceholder, setSubmitDisabled])
+  }, [editor, $replacePlaceholder, setSubmitDisabled])
 
   // drop event handler
   // sets lexical selection to the drag selection
@@ -260,9 +277,22 @@ function useLexicalUploadFees (editor) {
 
   // extracts S3 keys from text and updates upload fees
   const $refreshUploadFees = useCallback(() => {
-    const text = $getRoot().getTextContent() || ''
-    const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
-    updateUploadFees({ variables: { s3Keys } })
+    const markdownMode = isMarkdownMode(editor)
+    if (markdownMode) {
+      const text = $getRoot().getTextContent() || ''
+      const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
+      updateUploadFees({ variables: { s3Keys } })
+    } else {
+      // TODO: EXPERIMENTAL please cleanup
+      const mediaNodes = $nodesOfType(MediaNode)
+      const s3Keys = mediaNodes
+        .map(node => {
+          const match = AWS_S3_URL_REGEXP.exec(node.getSrc())
+          return match ? Number(match[1]) : null
+        })
+        .filter(key => key !== null)
+      updateUploadFees({ variables: { s3Keys } })
+    }
   }, [updateUploadFees])
 
   // debounced version for update listener

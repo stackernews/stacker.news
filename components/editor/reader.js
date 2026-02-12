@@ -39,7 +39,7 @@ export default function Reader ({ topLevel, state, text, readerRef, innerClassNa
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
-      namespace: 'sn',
+      namespace: 'sn-rich',
       editable: false,
       nodes: DefaultNodes,
       dependencies: [

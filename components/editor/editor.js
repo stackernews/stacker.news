@@ -40,12 +40,14 @@ import { CodeThemePlugin } from './plugins/core/code-theme'
 
 const MARKDOWN_MODE = {
   name: 'editor-markdown',
+  namespace: 'sn-markdown',
   dependencies: [MarkdownTextExtension],
   nodes: []
 }
 
 const RICH_MODE = {
   name: 'editor-rich',
+  namespace: 'sn-rich', // namespace is used for copy/paste between identical editors
   dependencies: [
     RichTextExtension,
     CodeShikiSNExtension,
@@ -86,7 +88,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         }
       },
       name: modeConfig.name,
-      namespace: 'sn',
+      namespace: modeConfig.namespace,
       dependencies: [
         ApplePatchExtension,
         HistoryExtension,
@@ -102,7 +104,6 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
     // text.value is, for example, not stable because it is updated by the formik context
     }), [autoFocus, topLevel, modeConfig])
 
-  console.log('editor', editor)
   return (
     <LexicalExtensionComposer key={modeConfig.name} extension={editor} contentEditable={null}>
       <EditorContent topLevel={topLevel} markdownMode={toolbarState.markdownMode} name={name} {...props} />

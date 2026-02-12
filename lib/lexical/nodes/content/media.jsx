@@ -286,7 +286,7 @@ export class MediaNode extends DecoratorNode {
   }
 }
 
-export function $createMediaNode ({ src, title, alt, width, height, maxWidth, autolink, key, srcSet, bestResSrc }) {
+export function $createMediaNode ({ src, title, alt, width, height, maxWidth, autolink, key, srcSet, bestResSrc, kind, status }) {
   const node = new MediaNode(
     src,
     title,
@@ -295,6 +295,12 @@ export function $createMediaNode ({ src, title, alt, width, height, maxWidth, au
     autolink,
     key
   )
+  if (kind) {
+    node.setKind(kind)
+  }
+  if (status) {
+    node.setStatus(status)
+  }
   if (width && height) {
     node.setWidthAndHeight(width, height)
   }

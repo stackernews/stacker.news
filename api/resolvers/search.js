@@ -459,12 +459,18 @@ async function hitsToItems (hits, { me, models, orderBy }) {
 }
 
 function attachHighlights (items, hits) {
-  return items.map((item, i) => {
-    const hit = hits[i]
+  // Build a lookup by item id so we pair each DB item with its correct
+  // OpenSearch hit. hitsToItems can return fewer rows than hits when items
+  // have been deleted from the DB (the SQL JOIN drops missing rows), so
+  // matching by array index would attach the wrong highlights.
+  const hitById = new Map(hits.map(h => [Number(h._source.id), h]))
+
+  return items.map(item => {
+    const hit = hitById.get(item.id)
     // prefer the fuzzier highlight for title
-    item.searchTitle = hit.highlight?.title?.[0] || hit.highlight?.['title.exact']?.[0] || item.title
+    item.searchTitle = hit?.highlight?.title?.[0] || hit?.highlight?.['title.exact']?.[0] || item.title
     // prefer the exact highlight for text
-    const textHighlight = hit.highlight?.['text.exact'] || hit.highlight?.text || []
+    const textHighlight = hit?.highlight?.['text.exact'] || hit?.highlight?.text || []
     item.searchText = textHighlight?.join(' ... ')
     return item
   })

@@ -37,6 +37,7 @@ import { TableExtension } from '@lexical/table'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
 import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/core/code-theme'
+import LinkEditorPlugin from './plugins/link'
 
 const MARKDOWN_MODE = {
   name: 'editor-markdown',
@@ -165,6 +166,7 @@ function EditorContent ({
       <SoftkeyUnborkerPlugin />
       <SoftkeyEmptyGuardPlugin />
       {!markdownMode && <CodeThemePlugin />}
+      {!markdownMode && <LinkEditorPlugin anchorElem={containerRef} />}
       {/* only enable transformer bridge for markdown mode */}
       {markdownMode && <TransformerBridgePlugin />}
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}

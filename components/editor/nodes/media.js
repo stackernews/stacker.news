@@ -1,5 +1,5 @@
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
-import { useState, useEffect, memo, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getNodeByKey } from 'lexical'
 import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
@@ -174,11 +174,89 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
   )
 }
 
+const PROXY_TIMEOUT_MS = 5000
+
+/**
+ * When the imgproxy fails (e.g. on GIFs or flaky responses), try loading the
+ * original URL directly instead of showing the error placeholder.
+ *
+ * Also times out slow proxy loads — if the proxy hasn't responded within
+ * PROXY_TIMEOUT_MS, the fallback is triggered automatically.
+ *
+ * Returns overridden src/srcSet/sizes/bestResSrc with the fallback applied,
+ * an `onProxyError` callback that returns true if a fallback was triggered,
+ * and a `cancelTimeout` to clear the proxy timer on successful load.
+ */
+function useProxyFallback (media) {
+  const { me } = useMe()
+  const [fallbackSrc, setFallbackSrc] = useState(null)
+  const { addMedia, confirmMedia, removeMedia } = useCarousel()
+  const timeoutRef = useRef(null)
+
+  const canFallback = useMemo(() => {
+    if (fallbackSrc) return false // already falling back
+    // only relevant when we're loading through the proxy
+    const isProxied = media.srcSet || media.originalSrc !== media.src
+    if (!isProxied) return false
+    // self-hosted images can always fall back safely
+    if (MEDIA_DOMAIN_REGEXP.test(media.originalSrc)) return true
+    // external images: respect imgproxyOnly preference
+    return !me?.privates?.imgproxyOnly
+  }, [fallbackSrc, media.srcSet, media.originalSrc, media.src, me?.privates?.imgproxyOnly])
+
+  // time out slow proxy loads and trigger fallback automatically
+  useEffect(() => {
+    clearTimeout(timeoutRef.current)
+    const isProxied = media.srcSet || media.originalSrc !== media.src
+    if (!isProxied || fallbackSrc) return
+
+    timeoutRef.current = setTimeout(() => {
+      if (canFallback) {
+        setFallbackSrc(media.originalSrc)
+      }
+    }, PROXY_TIMEOUT_MS)
+
+    return () => clearTimeout(timeoutRef.current)
+  }, [media.src, media.srcSet, media.originalSrc, fallbackSrc, canFallback])
+
+  // when falling back, update carousel to use the original URL
+  useEffect(() => {
+    if (!fallbackSrc) return
+    removeMedia(media.bestResSrc)
+    addMedia({ src: fallbackSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
+    confirmMedia(fallbackSrc)
+  }, [fallbackSrc, media.bestResSrc, media.originalSrc, addMedia, confirmMedia, removeMedia])
+
+  // returns true if fallback was triggered, false if caller should handle the error
+  const onProxyError = useCallback(() => {
+    clearTimeout(timeoutRef.current)
+    if (canFallback) {
+      setFallbackSrc(media.originalSrc)
+      return true
+    }
+    return false
+  }, [canFallback, media.originalSrc])
+
+  const cancelTimeout = useCallback(() => {
+    clearTimeout(timeoutRef.current)
+  }, [])
+
+  return {
+    src: fallbackSrc || media.src,
+    srcSet: fallbackSrc ? undefined : media.srcSet,
+    sizes: fallbackSrc ? undefined : media.sizes,
+    bestResSrc: fallbackSrc || media.bestResSrc,
+    onProxyError,
+    cancelTimeout
+  }
+}
+
 export function MediaOrLink ({ linkFallback = true, ...props }) {
   const media = useMediaHelper(props)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
   const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel()
+  const { src, srcSet, sizes, bestResSrc, onProxyError, cancelTimeout } = useProxyFallback(media)
 
   // register placeholder immediately on mount if we have a src
   useEffect(() => {
@@ -192,19 +270,21 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
     confirmMedia(media.bestResSrc)
   }, [confirmMedia, media.image, media.bestResSrc])
 
-  const handleClick = useCallback(() => showCarousel({ src: media.bestResSrc }),
-    [showCarousel, media.bestResSrc])
+  const handleClick = useCallback(() => showCarousel({ src: bestResSrc }),
+    [showCarousel, bestResSrc])
 
   const handleError = useCallback((err) => {
     console.error('Error loading media', err)
-    removeMedia(media.bestResSrc)
+    if (onProxyError()) return
+    removeMedia(bestResSrc)
     setError(true)
     setIsLoading(false)
-  }, [setError, removeMedia, media.bestResSrc])
+  }, [onProxyError, removeMedia, bestResSrc])
 
   const handleLoad = useCallback(() => {
+    cancelTimeout()
     setIsLoading(false)
-  }, [setIsLoading])
+  }, [cancelTimeout])
 
   if (!media.src) return null
 
@@ -216,7 +296,15 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
         <>
           {isLoading && <MediaLoading autolink={props.kind === 'unknown'} />}
           <Media
-            {...media} onClick={handleClick} onError={handleError} onLoad={handleLoad} isLoading={isLoading}
+            {...media}
+            src={src}
+            srcSet={srcSet}
+            sizes={sizes}
+            bestResSrc={bestResSrc}
+            onClick={handleClick}
+            onError={handleError}
+            onLoad={handleLoad}
+            isLoading={isLoading}
           />
         </>
       )

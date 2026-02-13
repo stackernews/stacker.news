@@ -216,13 +216,16 @@ const SORT_FIELDS = {
   new: 'createdAt'
 }
 
-function sortFunctions (sort) {
+function sortFunctions (sort, query) {
   const field = SORT_FIELDS[sort]
   if (field) {
     return {
       functions: [],
       addMembers: {
-        min_score: 500,
+        // only apply min_score when there's a text query that produces
+        // high relevance scores; filter-only searches (e.g. @nym or
+        // ~territory) produce scores ~1.0 and would return zero items
+        ...(query?.length ? { min_score: 500 } : {}),
         sort: [
           { [field]: { order: 'desc' } },
           { _id: { order: 'desc' } }
@@ -553,7 +556,7 @@ export default {
         ...quoteParts.queries
       ]
 
-      const { functions, addMembers } = sortFunctions(sort)
+      const { functions, addMembers } = sortFunctions(sort, query)
       const osQuery = buildSearchQuery({ filters, termQueries, query, functions, offset: decodedCursor.offset })
 
       let sitems

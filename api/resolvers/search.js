@@ -42,15 +42,10 @@ function typeFilter (what, meId) {
   }
 }
 
-function statusFilter (meId, mustNot) {
-  const should = [
-    { match: { status: 'ACTIVE' } },
-    { match: { status: 'NOSATS' } }
-  ]
-  if (meId) should.push({ match: { userId: meId } })
+function statusFilter (mustNot) {
   return {
     bool: {
-      should,
+      should: [{ match: { status: 'ACTIVE' } }],
       ...(mustNot?.length ? { must_not: mustNot } : {})
     }
   }
@@ -492,7 +487,7 @@ export default {
       const mustNot = [{ exists: { field: 'parentId' } }]
       if (id) mustNot.push({ term: { id } })
 
-      const filters = [statusFilter(null, mustNot)]
+      const filters = [statusFilter(mustNot)]
       if (postsSatsFilter != null) {
         filters.push({ range: { ranktop: { gte: minMatch ? 0 : postsSatsFilter * 1000 } } })
       }
@@ -540,7 +535,7 @@ export default {
       // filters determine the universe of potential search candidates
       const filters = [
         typeFilter(what, me?.id),
-        statusFilter(me?.id),
+        statusFilter(),
         timeRangeFilter(when, whenFrom, whenTo, decodedCursor.time),
         satsInvestmentFilter({ what, nym, postsSatsFilter, commentsSatsFilter, meId: me?.id }),
         ...nymParts.filters,

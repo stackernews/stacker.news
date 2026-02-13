@@ -542,6 +542,7 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 activeOrMine(me),
+                '"Item".status = \'ACTIVE\'',
                 await filterClause(type, sub, 'top', ctx),
                 muteClause(me))}
               ${orderByClause(by || 'sats', me, models, type, sub)}
@@ -592,6 +593,7 @@ export default {
                   '"Item"."parentId" IS NULL',
                   '"Item".bio = false',
                   activeOrMine(me),
+                  '"Item".status = \'ACTIVE\'',
                   await filterClause(type, sub, 'lit', ctx),
                   subClause(sub, 3, 'Item', me, showNsfw),
                   muteClause(me))}

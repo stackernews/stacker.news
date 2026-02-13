@@ -90,26 +90,30 @@ export default function JobForm ({ item, subs }) {
           required
           clear
         />
-        <JobButtonBar itemId={item?.id} />
+        <JobButtonBar itemId={item?.id} status={item?.status} />
       </Form>
     </>
   )
 }
 
 export function JobButtonBar ({
-  itemId, disable, className, children, handleStop, onCancel, hasCancel = true,
-  createText = 'post', editText = 'save', stopText = 'remove'
+  itemId, status, disable, className, children, handleStop, onCancel, hasCancel = true,
+  createText = 'post', editText, stopText
 }) {
+  const isStopped = status === 'STOPPED'
+  const resolvedEditText = editText ?? (isStopped ? 'resume job' : 'save')
+  const resolvedStopText = stopText ?? 'stop job'
+
   return (
     <div className={`mt-3 ${className}`}>
       <div className='d-flex justify-content-between'>
-        {itemId &&
-          <SubmitButton valueName='status' value='STOPPED' variant='grey-medium'>{stopText}</SubmitButton>}
+        {itemId && !isStopped &&
+          <SubmitButton valueName='status' value='STOPPED' variant='grey-medium'>{resolvedStopText}</SubmitButton>}
         {children}
         <div className='d-flex align-items-center ms-auto'>
           {hasCancel && <CancelButton onClick={onCancel} />}
           <FeeButton
-            text={itemId ? editText : createText}
+            text={itemId ? resolvedEditText : createText}
             variant='secondary'
             disabled={disable}
           />

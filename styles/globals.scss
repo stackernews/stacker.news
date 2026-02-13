@@ -218,8 +218,13 @@ $zindex-sticky: 900;
   --bs-gradient: none;
 }
 
-* {
-  scroll-margin-top: 60px;
+html {
+  scroll-padding-top: 60px;
+
+  /* editor needs more padding to keep its toolbar visible when focused */
+  &:has([data-sn-editor]:focus) {
+    scroll-padding-top: 90px;
+  }
 }
 
 .ms-xs {

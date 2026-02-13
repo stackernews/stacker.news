@@ -8,6 +8,8 @@ import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { BLUR_COMMAND, COMMAND_PRIORITY_HIGH } from 'lexical'
+import { isMarkdownMode } from '@/lib/lexical/commands/utils'
+import { $createUserMentionNode } from '@/lib/lexical/nodes/decorative/mentions/user'
 
 /** regex to match \@user or \~sub mentions */
 const MENTION_PATTERN = /(^|\s|\()([@~]\w{0,75})$/
@@ -91,10 +93,16 @@ export default function MentionsPlugin () {
   const onSelect = useCallback((selectedOption, nodeToReplace, closeMenu) => {
     editor.update(() => {
       if (nodeToReplace) {
-        const trigger = query?.[0] || '@'
-        const mention = `${trigger}${selectedOption.key} `
-        nodeToReplace.setTextContent(mention)
-        nodeToReplace.select()
+        const markdownMode = isMarkdownMode()
+        if (markdownMode) {
+          const trigger = query?.[0] || '@'
+          const mention = `${trigger}${selectedOption.key} `
+          nodeToReplace.setTextContent(mention)
+          nodeToReplace.select()
+        } else {
+          const mention = $createUserMentionNode({ name: selectedOption.key })
+          nodeToReplace.replace(mention)
+        }
       }
       closeMenu()
     })

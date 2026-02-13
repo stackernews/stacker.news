@@ -40,7 +40,7 @@ export class UserMentionNode extends DecoratorNode {
   constructor (userMentionName, path, key) {
     super(key)
     this.__userMentionName = userMentionName
-    this.__path = path
+    this.__path = path || ''
   }
 
   exportJSON () {
@@ -111,7 +111,7 @@ export class UserMentionNode extends DecoratorNode {
     const Link = require('next/link').default
     const name = this.__userMentionName
     const path = this.__path
-    const href = '/' + encodeURIComponent(name.toString()) + path.toString()
+    const href = '/' + encodeURIComponent(name.toString()) + path?.toString()
     const text = '@' + name + path
     return (
       <UserPopover name={name}>

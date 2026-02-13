@@ -1,15 +1,20 @@
 -- Evergreen Ranking Refactor (combined migration)
+-- IMPORTANT: run during full maintenance window (app + workers paused).
+-- This migration takes long-lived locks on "Item" and later updates "Sub".
 -- 1. Drop indexes for columns being dropped/changed
 -- 2. Drop generated columns (ranktop, rankhot, rankboost)
 -- 3. Drop old SQL functions
 -- 4. Add new columns with final names
--- 5. Merge oldBoost into boost, drop oldBoost
--- 6. Create final combined ranking trigger
--- 7. Backfill commentCost, commentBoost
--- 8. Backfill ranktop (includes commentCost/commentBoost)
--- 9. Backfill litCenteredSum, litCenteredAt (trigger computes ranklit)
--- 10. Remove AUCTION ranking type
--- 11. Recreate indexes
+-- 5. Disable index_item trigger during bulk Item backfills
+-- 6. Merge oldBoost into boost, drop oldBoost
+-- 7. Define final ranking function
+-- 8. Backfill commentCost, commentBoost
+-- 9. Backfill ranktop (includes commentCost/commentBoost)
+-- 10. Backfill litCenteredSum, litCenteredAt
+-- 11. Create final combined ranking trigger
+-- 12. Re-enable index_item trigger
+-- 13. Remove AUCTION ranking type
+-- 14. Recreate indexes
 
 -- =====================
 -- DROP INDEXES (must drop before dropping columns)
@@ -46,13 +51,19 @@ ALTER TABLE "Item" ADD COLUMN "commentCost" INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE "Item" ADD COLUMN "commentBoost" INTEGER NOT NULL DEFAULT 0;
 
 -- =====================
+-- DISABLE ITEM INDEXING TRIGGER DURING BACKFILLS
+-- (avoids per-row pgboss job writes while we bulk update Item)
+-- =====================
+ALTER TABLE "Item" DISABLE TRIGGER index_item;
+
+-- =====================
 -- MERGE oldBoost INTO boost, THEN DROP oldBoost
 -- =====================
 UPDATE "Item" SET boost = boost + "oldBoost" WHERE "oldBoost" > 0;
 ALTER TABLE "Item" DROP COLUMN "oldBoost";
 
 -- =====================
--- CREATE FINAL COMBINED RANKING TRIGGER
+-- CREATE FINAL COMBINED RANKING FUNCTION
 -- (half-life = 14400 seconds = 4 hours, lambda = ln(2) / 14400)
 -- Includes commentCost and commentBoost at 0.25x weight
 -- =====================
@@ -133,11 +144,6 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER item_ranking
-  BEFORE INSERT OR UPDATE OF cost, msats, boost, "commentMsats", "commentCost", "commentBoost", "downMsats", "commentDownMsats"
-  ON "Item"
-  FOR EACH ROW EXECUTE FUNCTION item_ranking_trigger();
-
 -- =====================
 -- BACKFILL commentCost and commentBoost
 -- (must happen before ranktop backfill since ranktop depends on them)
@@ -157,7 +163,7 @@ WHERE parent.id = sub.id;
 
 -- =====================
 -- BACKFILL ranktop
--- (triggers don't fire for UPDATE ... SET col = col, so we compute directly)
+-- (computed directly so values are correct before enabling item_ranking)
 -- =====================
 UPDATE "Item"
 SET
@@ -192,6 +198,20 @@ SET "litCenteredSum" = ranktop / 1000.0,
       ELSE 0
     END
 WHERE ranktop <> 0;
+
+-- =====================
+-- CREATE FINAL COMBINED RANKING TRIGGER
+-- (after backfills to avoid per-row trigger work during migration)
+-- =====================
+CREATE TRIGGER item_ranking
+  BEFORE INSERT OR UPDATE OF cost, msats, boost, "commentMsats", "commentCost", "commentBoost", "downMsats", "commentDownMsats"
+  ON "Item"
+  FOR EACH ROW EXECUTE FUNCTION item_ranking_trigger();
+
+-- =====================
+-- RE-ENABLE ITEM INDEXING TRIGGER
+-- =====================
+ALTER TABLE "Item" ENABLE TRIGGER index_item;
 
 -- =====================
 -- REMOVE AUCTION RANKING TYPE

@@ -12,7 +12,8 @@ import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
 import { Badge } from 'react-bootstrap'
 import SubPopover from './sub-popover'
-import { PayInInfo } from './item-info'
+import { numWithUnits } from '@/lib/format'
+import { PayInInfo, InfoDropdownItem } from './item-info'
 import Boost from './boost-button'
 import ActionDropdown from './action-dropdown'
 import DontLikeThisDropdownItem from './dont-link-this'
@@ -60,6 +61,10 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
             </Link>
           </div>
           <div className={styles.other}>
+            <span>
+              {numWithUnits(item.sats + item.boost + item.cost)}
+            </span>
+            <span> \ </span>
             {item.company &&
               <>
                 {item.company}
@@ -101,9 +106,10 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
                 </>)}
             <ActionDropdown>
               <CopyLinkDropdownItem item={item} />
+              <InfoDropdownItem item={item} />
               {me && <BookmarkDropdownItem item={item} />}
               {me && <SubscribeDropdownItem item={item} />}
-              {me && !item.mine && !item.deletedAt &&
+              {me && !item.mine &&
                 <DontLikeThisDropdownItem item={item} />}
               {me && !item.mine &&
                 <>

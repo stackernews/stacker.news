@@ -297,7 +297,7 @@ function ItemDetails ({ item, me }) {
   )
 }
 
-function InfoDropdownItem ({ item }) {
+export function InfoDropdownItem ({ item }) {
   const { me } = useMe()
   const showModal = useShowModal()
 

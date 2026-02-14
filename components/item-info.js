@@ -41,21 +41,19 @@ function itemTitle (item) {
   if (item.sats - item.credits) {
     title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })} stacked`
   }
+  if (item.credits) {
+    title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })} stacked`
+  }
   if (item.boost) {
-    title += ` \\ ${numWithUnits(item.boost, { abbreviate: false })} boost`
+    title += ` \\ ${numWithUnits(item.boost, { abbreviate: false, unitSingular: 'boost', unitPlural: 'boost' })}`
   }
   if (item.cost) {
-    title += ` \\ ${numWithUnits(item.cost, { abbreviate: false })} cost`
+    title += ` \\ ${numWithUnits(item.cost, { abbreviate: false, unitSingular: 'cost', unitPlural: 'cost' })}`
   }
   if (item.downSats) {
     title += ` \\ ${numWithUnits(item.downSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
   }
-  if (item.credits) {
-    title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
-  }
-  if (item.mine) {
-    title += ` (${numWithUnits(item.meSats, { abbreviate: false })} to post)`
-  } else if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
+  if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
     const satSources = []
     if (item.meAnonSats || (item.meSats || 0) - (item.meCredits || 0) > 0) {
       satSources.push(`${numWithUnits((item.meSats || 0) + (item.meAnonSats || 0) - (item.meCredits || 0), { abbreviate: false })}`)

@@ -1,24 +1,31 @@
-## Automated setup
+## Automated setup (default)
 
-To enable semantic search that uses text embeddings, run `./scripts/nlp-setup`.
+Semantic search now bootstraps automatically in dev when the `search` profile is enabled.
 
-Before running `./scripts/nlp-setup`, ensure the following are true:
-
-- search is enabled in `COMPOSE_PROFILES`:
+1. Ensure `search` is enabled in `COMPOSE_PROFILES`:
 
     ```.env
     COMPOSE_PROFILES=...,search,...
     ```
-- The default opensearch index (default name=`item`) is created and done indexing. This should happen the first time you run `./sndev start`, but it may take a few minutes for indexing to complete.
+2. Start your dev environment:
 
-After `nlp-setup` is done, restart your containers to enable semantic search:
+    ```bash
+    ./sndev start
+    ```
+3. On first boot, wait for OpenSearch neural bootstrap to finish (model download/deploy can take a couple minutes).
 
-```
-> ./sndev restart
-```
+No manual script run or container restart is required for the default `OPENSEARCH_INDEX` flow.
+
+### Troubleshooting automatic bootstrap
+
+- If neural queries are not active yet, check OpenSearch logs and wait until model deployment completes.
+- If you are reusing an older OpenSearch volume that predates neural bootstrapping, reset the dev stack (`./sndev delete`) and start fresh.
+- If you need custom or forced index/model configuration, follow the manual setup steps below.
 
 
 ## Manual setup
+
+Most developers should not need these steps unless they are debugging or manually reconfiguring OpenSearch.
 
 You can also set up and configure semantic search manually. To do so, enter the following commands into OpenSearch's REST API. You can do this in Dev Tools in the OpenSearch Dashboard (after starting your SN dev environment, point your browser to localhost:5601). You can also use CURL to send these commands to localhost:9200.
 
@@ -328,13 +335,17 @@ GET /item-nlp/_search
 }
 ```
 
-### step 12: configure the development environment to use the nlp pipeline
+### step 12: optionally pin your development environment to a dedicated nlp index/model
 
 Add the following lines to `.env.local`:
 
 ```
-OPENSEARCH_INDEX=item-nlp
+OPENSEARCH_INDEX=<your nlp index, e.g. item-nlp>
 OPENSEARCH_MODEL_ID=<model id>
 ```
 
-Note that you won't have to re-do the above steps each time you restart your dev instance. The OpenSearch configuration is saved to a local volume.
+Then restart your containers:
+
+```
+./sndev restart
+```

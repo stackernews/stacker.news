@@ -164,22 +164,19 @@ You can read more about [docker compose override files](https://docs.docker.com/
 
 #### Enabling semantic search
 
-To enable semantic search that uses text embeddings, run `./scripts/nlp-setup`.
+Semantic search is now enabled automatically in dev when the `search` profile is active.
 
-Before running `./scripts/nlp-setup`, ensure the following are true:
-
-- search is enabled in `COMPOSE_PROFILES`:
+- Ensure `search` is in `COMPOSE_PROFILES`:
 
     ```.env
     COMPOSE_PROFILES=...,search,...
     ```
-- The default opensearch index (default name=`item`) is created and done indexing. This should happen the first time you run `./sndev start`, but it may take a few minutes for indexing to complete.
+- Start your environment with `./sndev start`.
+- On first boot, OpenSearch downloads and deploys the embedding model, then creates a neural-ready index. This can take a couple minutes.
 
-After `nlp-setup` is done, restart your containers to enable semantic search:
+No manual script run or container restart is required for the default setup.
 
-```
-> ./sndev restart
-```
+If you need to manually repair or recreate semantic search resources, restart from a fresh dev volume with `./sndev delete` and then run `./sndev start`.
 
 #### Local DNS via dnsmasq
 

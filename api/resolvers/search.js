@@ -296,33 +296,52 @@ function textMatchQueries (query) {
   ]
 }
 
+// ---- Scoring helpers ----
+
+function ranktopFunction () {
+  return {
+    field_value_factor: {
+      field: 'ranktop',
+      modifier: 'ln2p',
+      factor: 0.0001,
+      missing: 0
+    }
+  }
+}
+
 // ---- Neural / hybrid wrappers ----
 
 function neuralBoolQuery ({ titleQuery, textQuery, filters, k, modelId }) {
   return {
-    bool: {
-      should: [
-        {
-          neural: {
-            title_embedding: {
-              query_text: titleQuery,
-              model_id: modelId,
-              k
+    function_score: {
+      query: {
+        bool: {
+          should: [
+            {
+              neural: {
+                title_embedding: {
+                  query_text: titleQuery,
+                  model_id: modelId,
+                  k
+                }
+              }
+            },
+            {
+              neural: {
+                text_embedding: {
+                  query_text: textQuery,
+                  model_id: modelId,
+                  k
+                }
+              }
             }
-          }
-        },
-        {
-          neural: {
-            text_embedding: {
-              query_text: textQuery,
-              model_id: modelId,
-              k
-            }
-          }
+          ],
+          filter: filters,
+          minimum_should_match: 1
         }
-      ],
-      filter: filters,
-      minimum_should_match: 1
+      },
+      functions: [ranktopFunction()],
+      boost_mode: 'multiply'
     }
   }
 }
@@ -347,19 +366,27 @@ function moreLikeThisScoreQuery (like, minMatch, filters) {
           should: [
             {
               more_like_this: {
-                fields: ['title', 'text'],
+                fields: ['title^2', 'text'],
                 like,
+                min_term_freq: 1,
+                min_doc_freq: 1,
+                min_word_length: 2,
                 max_doc_freq: 10000,
-                minimum_should_match: minMatch || '20%',
+                max_query_terms: 50,
+                minimum_should_match: minMatch || '30%',
                 boost_terms: 10
               }
             },
             {
               more_like_this: {
-                fields: ['title', 'text'],
+                fields: ['title^2', 'text'],
                 like,
+                min_term_freq: 1,
+                min_doc_freq: 1,
+                min_word_length: 2,
                 max_doc_freq: 1000,
-                minimum_should_match: minMatch || '20%',
+                max_query_terms: 50,
+                minimum_should_match: minMatch || '30%',
                 boost_terms: 100
               }
             }
@@ -367,14 +394,7 @@ function moreLikeThisScoreQuery (like, minMatch, filters) {
           filter: filters
         }
       },
-      functions: [{
-        field_value_factor: {
-          field: 'ranktop',
-          modifier: 'log1p',
-          factor: 0.0001,
-          missing: 0
-        }
-      }],
+      functions: [ranktopFunction()],
       boost_mode: 'multiply'
     }
   }
@@ -386,7 +406,7 @@ function buildRelatedQuery ({ like, minMatch, filters, titleQuery, textQuery, of
   if (modelId) {
     const k = offset + LIMIT
     return hybridQuery(
-      neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 100), filters, k, modelId }),
+      neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 512), filters, k, modelId }),
       keywordQuery,
       LIMIT * 2
     )

@@ -1,0 +1,76 @@
+---
+description: Local development environment, Docker services, and sndev CLI
+alwaysApply: true
+---
+
+# Local Dev Environment
+
+## sndev CLI
+
+The `./sndev` script is the primary dev CLI. Key commands:
+- `./sndev start` — start all services (or select profiles)
+- `./sndev stop` — stop services
+- `./sndev restart [SERVICE]` — restart a service
+- `./sndev status` — show container status and ports
+- `./sndev logs [SERVICE]` — tail logs
+- `./sndev psql` — open psql shell on the db
+- `./sndev prisma [COMMAND]` — run prisma commands inside the app container
+- `./sndev cli [SERVICE] [COMMAND]` — run CLI commands against LN nodes (lnd, cln, etc.)
+- `./sndev set_balance NYM MSATS` — set a user's balance
+- `./sndev fund BOLT11` — pay a bolt11 from the stacker lnd node
+- `./sndev withdraw SATS` — create a bolt11 invoice for withdrawal
+
+## Docker Services & Ports
+
+The agent can interact with containers via `docker exec` or `./sndev` commands.
+Use `required_permissions: ["all"]` for shell commands that need Docker access.
+
+| Service | Container | Host Port | Notes |
+|---------|-----------|-----------|-------|
+| Next.js app | app | 3000 | main web app |
+| PostgreSQL | db | 5431 | user: `sn`, pass: `password`, db: `stackernews` |
+| Worker | worker | — | background job processor |
+| OpenSearch | opensearch | 9200 | search index, security disabled |
+| OS Dashboards | os-dashboard | 5601 | OpenSearch Dashboards UI |
+| imgproxy | imgproxy | 3001 | image proxy |
+| LocalStack S3 | s3 | 4566 | local S3 for uploads |
+| Capture | capture | 5678 | screenshot service |
+| MailHog | mailhog | 8025 (web), 1025 (smtp) | email testing |
+| Bitcoin (regtest) | bitcoin | — | bitcoind regtest node |
+| SN LND | sn_lnd | 8080 (REST), 10009 (gRPC) | site's LND node |
+| Stacker LND | lnd | 8081 (REST), 10010 (gRPC) | stacker's LND node |
+| Router LND | router_lnd | 8082 (REST), 10011 (gRPC) | routing node |
+| CLN | cln | 9092 (REST) | Core Lightning node |
+
+## Compose Profiles
+
+Services are grouped into profiles: `minimal`, `payments`, `wallets`, `email`, `search`, `images`, `capture`, `domains`.
+Not all services run by default — only those in the active `COMPOSE_PROFILES`.
+
+## Database Access
+
+```sh
+# from host
+docker exec -i db psql -U sn -d stackernews -c "SELECT ..."
+# or use sndev
+./sndev psql
+```
+
+Connection string: `postgresql://sn:password@db:5432/stackernews` (inside Docker network)
+Host access: `postgresql://sn:password@localhost:5431/stackernews`
+
+## OpenSearch Access
+
+```sh
+# from host — security is disabled, no auth needed
+curl http://localhost:9200/_cat/indices
+curl http://localhost:9200/item/_search -H 'Content-Type: application/json' -d '{"query":{"match_all":{}}}'
+# from inside Docker network
+curl http://opensearch:9200/...
+```
+
+## Environment
+
+- `.env.development` — main env vars (committed)
+- `.env.local` — local overrides and secrets (not committed)
+- Containers reference each other by container name on the Docker network (e.g. `db`, `opensearch`, `app`)

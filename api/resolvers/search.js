@@ -157,9 +157,19 @@ function nymClauses (nym) {
 function territoryClauses (territory) {
   if (!territory) return { filters: [], queries: [] }
   const name = territory.slice(1)
+  const currentField = { match: { subNames: name } }
+  const legacyField = { match: { 'sub.name': name } }
   return {
-    filters: [{ match: { 'sub.name': name } }],
-    queries: [{ match: { 'sub.name': name } }]
+    filters: [{
+      bool: {
+        should: [currentField, legacyField],
+        minimum_should_match: 1
+      }
+    }],
+    queries: [
+      { match: { subNames: { query: name, boost: 100 } } },
+      { match: { 'sub.name': { query: name, boost: 100 } } }
+    ]
   }
 }
 

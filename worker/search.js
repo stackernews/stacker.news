@@ -12,6 +12,7 @@ const ITEM_SEARCH_FIELDS = gql`
     text
     url
     userId
+    subNames
     user {
       name
     }
@@ -19,6 +20,7 @@ const ITEM_SEARCH_FIELDS = gql`
       name
     }
     root {
+      subNames
       subs {
         name
       }
@@ -53,8 +55,9 @@ async function _indexItem (item, { models, updatedAt }) {
     itemcp.text = removeMd(item.text)
   }
 
-  // array of { name: string }
-  itemcp.sub = item.subs?.length > 0 ? item.subs : item.root?.subs
+  // Keep territory metadata in a flat array because ingest processing can
+  // strip nested object fields (like sub.name) from _source.
+  itemcp.subNames = item.subNames?.length > 0 ? item.subNames : (item.root?.subNames || [])
 
   const itemdb = await models.item.findUnique({
     where: { id: Number(item.id) },

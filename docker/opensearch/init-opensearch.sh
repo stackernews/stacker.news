@@ -404,10 +404,7 @@ ensure_search_pipeline () {
       ],
       \"phase_results_processors\": [
         {
-          \"normalization-processor\": {
-            \"normalization\": {
-              \"technique\": \"min_max\"
-            },
+          \"score-ranker-processor\": {
             \"combination\": {
               \"technique\": \"rrf\",
               \"parameters\": {

@@ -216,10 +216,6 @@ function sortFunctions (sort, query) {
     return {
       functions: [],
       addMembers: {
-        // only apply min_score when there's a text query that produces
-        // high relevance scores; filter-only searches (e.g. @nym or
-        // ~territory) produce scores ~1.0 and would return zero items
-        ...(query?.length ? { min_score: 500 } : {}),
         sort: [
           { [field]: { order: 'desc' } },
           { _id: { order: 'desc' } }
@@ -243,9 +239,11 @@ function sortFunctions (sort, query) {
   }
 }
 
-// Returns the 5-tier text match subquery array: fuzzy, full match, phrase,
-// exact, exact phrase — each with progressively higher boost.
-function textMatchQueries (query) {
+// Returns base text queries for broad retrieval.
+// Fuzzy best_fields provides recall (at least one term matches).
+// cross_fields with operator 'and' boosts documents where all terms
+// appear across any combination of title/text fields.
+function baseTextQueries (query) {
   return [
     {
       multi_match: {
@@ -255,45 +253,29 @@ function textMatchQueries (query) {
         fuzziness: 'AUTO',
         minimum_should_match: 1
       }
-    },
-    // all terms match — boosted
-    {
-      multi_match: {
-        query,
-        type: 'best_fields',
-        fields: ['title^10', 'text'],
-        minimum_should_match: '100%',
-        boost: 1000
-      }
-    },
-    // phrase match — boosted higher
-    {
-      multi_match: {
-        query,
-        type: 'phrase',
-        fields: ['title^10', 'text'],
-        boost: 1000
-      }
-    },
-    // exact field match — boosted
-    {
-      multi_match: {
-        query,
-        type: 'best_fields',
-        fields: ['title.exact^10', 'text.exact'],
-        boost: 100
-      }
-    },
-    // exact phrase match — boosted highest
-    {
-      multi_match: {
-        query,
-        fields: ['title.exact^10', 'text.exact'],
-        type: 'phrase',
-        boost: 10000
-      }
     }
   ]
+}
+
+// Returns tiers 2-5 wrapped in dis_max for use in a rescore window.
+// Best tier wins (no additive stacking); tie_breaker gives minor credit
+// for secondary matches.
+function rescoreQuery (query) {
+  return {
+    dis_max: {
+      tie_breaker: 0.1,
+      queries: [
+        // all terms match
+        { multi_match: { query, type: 'cross_fields', fields: ['title^10', 'text'], operator: 'and', boost: 10 } },
+        // phrase match
+        { multi_match: { query, type: 'phrase', fields: ['title^10', 'text'], boost: 50 } },
+        // exact field match
+        { multi_match: { query, type: 'cross_fields', fields: ['title.exact^10', 'text.exact'], operator: 'and', boost: 10 } },
+        // exact phrase match — highest
+        { multi_match: { query, fields: ['title.exact^10', 'text.exact'], type: 'phrase', boost: 100 } }
+      ]
+    }
+  }
 }
 
 // ---- Scoring helpers ----
@@ -311,30 +293,33 @@ function ranktopFunction () {
 
 // ---- Neural / hybrid wrappers ----
 
-function neuralBoolQuery ({ titleQuery, textQuery, filters, k, modelId, functions }) {
+function neuralBoolQuery ({
+  titleQuery, textQuery, filters, k, modelId, functions,
+  efSearch = 200, oversampleFactor = 2.0
+}) {
+  const neuralFilter = filters?.length
+    ? { bool: { filter: filters } }
+    : undefined
+
+  const neuralClause = (queryText, field) => ({
+    neural: {
+      [field]: {
+        query_text: queryText,
+        model_id: modelId,
+        k,
+        method_parameters: { ef_search: efSearch },
+        rescore: { oversample_factor: oversampleFactor },
+        ...(neuralFilter && { filter: neuralFilter })
+      }
+    }
+  })
+
   const boolQuery = {
     bool: {
       should: [
-        {
-          neural: {
-            title_embedding: {
-              query_text: titleQuery,
-              model_id: modelId,
-              k
-            }
-          }
-        },
-        {
-          neural: {
-            text_embedding: {
-              query_text: textQuery,
-              model_id: modelId,
-              k
-            }
-          }
-        }
+        neuralClause(titleQuery, 'title_embedding'),
+        neuralClause(textQuery, 'text_embedding')
       ],
-      filter: filters,
       minimum_should_match: 1
     }
   }
@@ -350,6 +335,12 @@ function neuralBoolQuery ({ titleQuery, textQuery, filters, k, modelId, function
   }
 
   return boolQuery
+}
+
+function hybridPagination (offset) {
+  const paginationDepth = offset + LIMIT * 2
+  const k = offset + LIMIT * 5
+  return { paginationDepth, k }
 }
 
 function hybridQuery (neuralQuery, keywordQuery, paginationDepth) {
@@ -410,47 +401,75 @@ function buildRelatedQuery ({ like, minMatch, filters, titleQuery, textQuery, of
   const keywordQuery = moreLikeThisScoreQuery(like, minMatch, filters)
 
   if (modelId) {
-    const k = offset + LIMIT * 5
+    const { paginationDepth, k } = hybridPagination(offset)
     return hybridQuery(
       neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 512), filters, k, modelId, functions: [ranktopFunction()] }),
       keywordQuery,
-      LIMIT * 2
+      paginationDepth
     )
   }
 
   return keywordQuery
 }
 
-function buildSearchQuery ({ filters, termQueries, query, functions, offset, modelId }) {
+function buildSearchQuery ({ filters, termQueries, query, neuralText, functions, offset, modelId }) {
   const should = query.length
-    ? [...termQueries, ...textMatchQueries(query)]
+    ? [...termQueries, ...baseTextQueries(query)]
     : termQueries
 
-  const keywordQuery = {
-    function_score: {
-      query: {
+  // when functions is empty we're sorting by a field (new/sats/comments),
+  // not by relevance — scores are ignored so skip function_score wrapping
+  const keywordQuery = functions.length
+    ? {
+        function_score: {
+          query: {
+            bool: {
+              filter: filters,
+              should,
+              minimum_should_match: should.length > 0 ? 1 : 0
+            }
+          },
+          functions,
+          score_mode: 'multiply',
+          boost_mode: 'multiply'
+        }
+      }
+    : {
         bool: {
           filter: filters,
           should,
           minimum_should_match: should.length > 0 ? 1 : 0
         }
-      },
-      functions,
-      score_mode: 'multiply',
-      boost_mode: 'multiply'
+      }
+
+  // rescore adjusts scores — skip when sorting by a field (scores ignored)
+  const rescore = query.length && functions.length
+    ? {
+        window_size: Math.max(LIMIT * 5, 100),
+        query: {
+          rescore_query: rescoreQuery(query),
+          query_weight: 1,
+          rescore_query_weight: 1.2
+        }
+      }
+    : null
+
+  // hybrid/neural only helps when scoring matters (relevance sort);
+  // for field-based sorts the keyword query provides matching and
+  // the sort field determines order
+  if (neuralText.length && modelId && functions.length) {
+    const { paginationDepth, k } = hybridPagination(offset)
+    return {
+      query: hybridQuery(
+        neuralBoolQuery({ titleQuery: neuralText, textQuery: neuralText, filters, k, modelId, functions }),
+        keywordQuery,
+        paginationDepth
+      ),
+      rescore
     }
   }
 
-  if (query.length && modelId) {
-    const k = offset + LIMIT
-    return hybridQuery(
-      neuralBoolQuery({ titleQuery: query, textQuery: query, filters, k, modelId }),
-      keywordQuery,
-      LIMIT * 2
-    )
-  }
-
-  return keywordQuery
+  return { query: keywordQuery, rescore }
 }
 
 // ---- Result processing ----
@@ -562,6 +581,7 @@ export default {
 
       // parse query and load user preferences
       const { query, quotes, nym, url, territory } = queryParts(q)
+      const neuralText = [query, ...quotes].filter(Boolean).join(' ').trim()
       const { postsSatsFilter, commentsSatsFilter } = await loadSatsFilters(me, userLoader)
       const nymParts = nymClauses(nym)
       const territoryParts = territoryClauses(territory)
@@ -588,7 +608,7 @@ export default {
 
       const { functions, addMembers } = sortFunctions(sort, query)
       const modelId = await resolveOpensearchModelId(search)
-      const osQuery = buildSearchQuery({ filters, termQueries, query, functions, offset: decodedCursor.offset, modelId })
+      const { query: osQuery, rescore } = buildSearchQuery({ filters, termQueries, query, neuralText, functions, offset: decodedCursor.offset, modelId })
 
       let sitems
       try {
@@ -597,7 +617,12 @@ export default {
           size: LIMIT,
           _source: { excludes: OS_SOURCE_EXCLUDES },
           from: decodedCursor.offset,
-          body: { query: osQuery, ...addMembers, highlight: SEARCH_HIGHLIGHT }
+          body: {
+            query: osQuery,
+            ...addMembers,
+            ...(rescore ? { rescore } : {}),
+            highlight: SEARCH_HIGHLIGHT
+          }
         })
       } catch (e) {
         console.log(e)

@@ -4,8 +4,7 @@ import { getItem, itemQueryWithMeta, SELECT } from './item'
 import { parse } from 'tldts'
 import { searchSchema, validateSchema } from '@/lib/validate'
 import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
-
-// ---- Query parsing ----
+import { resolveOpensearchModelId } from '../search/model-id'
 
 function queryParts (q) {
   const regex = /"([^"]*)"/gm
@@ -299,7 +298,7 @@ function textMatchQueries (query) {
 
 // ---- Neural / hybrid wrappers ----
 
-function neuralBoolQuery ({ titleQuery, textQuery, filters, k }) {
+function neuralBoolQuery ({ titleQuery, textQuery, filters, k, modelId }) {
   return {
     bool: {
       should: [
@@ -307,7 +306,7 @@ function neuralBoolQuery ({ titleQuery, textQuery, filters, k }) {
           neural: {
             title_embedding: {
               query_text: titleQuery,
-              model_id: process.env.OPENSEARCH_MODEL_ID,
+              model_id: modelId,
               k
             }
           }
@@ -316,7 +315,7 @@ function neuralBoolQuery ({ titleQuery, textQuery, filters, k }) {
           neural: {
             text_embedding: {
               query_text: textQuery,
-              model_id: process.env.OPENSEARCH_MODEL_ID,
+              model_id: modelId,
               k
             }
           }
@@ -381,13 +380,13 @@ function moreLikeThisScoreQuery (like, minMatch, filters) {
   }
 }
 
-function buildRelatedQuery ({ like, minMatch, filters, titleQuery, textQuery, offset }) {
+function buildRelatedQuery ({ like, minMatch, filters, titleQuery, textQuery, offset, modelId }) {
   const keywordQuery = moreLikeThisScoreQuery(like, minMatch, filters)
 
-  if (process.env.OPENSEARCH_MODEL_ID) {
+  if (modelId) {
     const k = offset + LIMIT
     return hybridQuery(
-      neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 100), filters, k }),
+      neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 100), filters, k, modelId }),
       keywordQuery,
       LIMIT * 2
     )
@@ -396,7 +395,7 @@ function buildRelatedQuery ({ like, minMatch, filters, titleQuery, textQuery, of
   return keywordQuery
 }
 
-function buildSearchQuery ({ filters, termQueries, query, functions, offset }) {
+function buildSearchQuery ({ filters, termQueries, query, functions, offset, modelId }) {
   const should = query.length
     ? [...termQueries, ...textMatchQueries(query)]
     : termQueries
@@ -416,10 +415,10 @@ function buildSearchQuery ({ filters, termQueries, query, functions, offset }) {
     }
   }
 
-  if (query.length && process.env.OPENSEARCH_MODEL_ID) {
+  if (query.length && modelId) {
     const k = offset + LIMIT
     return hybridQuery(
-      neuralBoolQuery({ titleQuery: query, textQuery: query, filters, k }),
+      neuralBoolQuery({ titleQuery: query, textQuery: query, filters, k, modelId }),
       keywordQuery,
       LIMIT * 2
     )
@@ -499,15 +498,16 @@ export default {
       }
 
       // resolve query text for neural search (only fetches item when needed)
+      const modelId = await resolveOpensearchModelId(search)
       let titleQuery = title
       let textQuery = title
-      if (id && process.env.OPENSEARCH_MODEL_ID) {
+      if (id && modelId) {
         const item = await getItem(parent, { id }, { me, models })
         titleQuery = item.title || item.text
         textQuery = item.text || item.title
       }
 
-      const osQuery = buildRelatedQuery({ like, minMatch, filters, titleQuery, textQuery, offset: decodedCursor.offset })
+      const osQuery = buildRelatedQuery({ like, minMatch, filters, titleQuery, textQuery, offset: decodedCursor.offset, modelId })
       const results = await search.search({
         index: process.env.OPENSEARCH_INDEX,
         size: limit,
@@ -558,7 +558,8 @@ export default {
       ]
 
       const { functions, addMembers } = sortFunctions(sort, query)
-      const osQuery = buildSearchQuery({ filters, termQueries, query, functions, offset: decodedCursor.offset })
+      const modelId = await resolveOpensearchModelId(search)
+      const osQuery = buildSearchQuery({ filters, termQueries, query, functions, offset: decodedCursor.offset, modelId })
 
       let sitems
       try {

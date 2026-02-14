@@ -55,12 +55,42 @@ module.exports = withPlausibleProxy()({
     // so we need to resolve the relative path to the lightning module
     LIGHTNING_MODULE_PATH: require('path').relative(process.cwd(), require.resolve('lightning'))
   },
-  compress: false,
+  // Enable compression for better performance
+  compress: true,
+  // Enable SWC minification for faster builds and smaller bundles
+  swcMinify: true,
+  // Enable experimental features for better performance
   experimental: {
     scrollRestoration: true,
-    serverSourceMaps: true
+    serverSourceMaps: true,
+    // Optimize package imports
+    optimizePackageImports: [
+      '@apollo/client',
+      '@lexical/react',
+      'lexical',
+      'react-bootstrap',
+      'bootstrap',
+      '@nostr-dev-kit/ndk',
+      'nostr-tools',
+      'react-icons',
+      'recharts',
+      '@nivo/core',
+      '@nivo/sankey'
+    ]
   },
   reactStrictMode: true,
+  // Modularize imports for better tree-shaking
+  modularizeImports: {
+    'react-bootstrap': {
+      transform: 'react-bootstrap/lib/{{member}}'
+    }
+  },
+  // Image optimization settings
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [480, 768, 1024, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384]
+  },
   productionBrowserSourceMaps: true,
   generateBuildId: commitHash ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.

@@ -22,6 +22,16 @@ import SubscribeDropdownItem from './subscribe'
 import MuteDropdownItem from './mute'
 import { useMe } from './me'
 
+function CompanyImage ({ item }) {
+  return (
+    <Link href={`/items/${item.id}`}>
+      <Image
+        src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
+      />
+    </Link>
+  )
+}
+
 export default function ItemJob ({ item, toc, rank, children, ...props }) {
   const { me } = useMe()
   const isEmail = string().email().isValidSync(item.url)
@@ -39,18 +49,9 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
           ? (
             <div className={styles.jobBoostGroup}>
               <Boost item={item} />
-              <Link href={`/items/${item.id}`}>
-                <Image
-                  src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
-                />
-              </Link>
+              <CompanyImage item={item} />
             </div>)
-          : (
-            <Link href={`/items/${item.id}`}>
-              <Image
-                src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
-              />
-            </Link>)}
+          : <CompanyImage item={item} />}
         <div className={`${styles.hunk} align-self-center mb-0`}>
           <div className={`${styles.main} flex-wrap d-inline`}>
             <Link href={`/items/${item.id}`} className={`${styles.title} text-reset me-2`}>

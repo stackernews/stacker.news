@@ -13,7 +13,7 @@ import { markdownToLexical } from '@/lib/lexical/utils/mdast'
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
 import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
-import NextLinkPlugin from './plugins/links'
+import NextLinkPlugin from './plugins/patch/next-link'
 import { MuteLexicalExtension } from '@/lib/lexical/exts/mute-lexical'
 
 const initiateLexical = (editor, state, text) => {

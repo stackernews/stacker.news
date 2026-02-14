@@ -337,10 +337,14 @@ function neuralBoolQuery ({
   return boolQuery
 }
 
-function hybridPagination (offset) {
-  const paginationDepth = offset + LIMIT * 2
-  const k = offset + LIMIT * 5
-  return { paginationDepth, k }
+// pagination_depth must stay constant across pages for consistent hybrid
+// ordering (changing it alters the candidate set before normalization).
+// LIMIT * 10 covers ~10 pages of results; k >= paginationDepth.
+const HYBRID_PAGINATION_DEPTH = LIMIT * 10
+const HYBRID_K = LIMIT * 10
+
+function hybridPagination () {
+  return { paginationDepth: HYBRID_PAGINATION_DEPTH, k: HYBRID_K }
 }
 
 function hybridQuery (neuralQuery, keywordQuery, paginationDepth) {
@@ -401,7 +405,7 @@ function buildRelatedQuery ({ like, minMatch, filters, titleQuery, textQuery, of
   const keywordQuery = moreLikeThisScoreQuery(like, minMatch, filters)
 
   if (modelId) {
-    const { paginationDepth, k } = hybridPagination(offset)
+    const { paginationDepth, k } = hybridPagination()
     return hybridQuery(
       neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 512), filters, k, modelId, functions: [ranktopFunction()] }),
       keywordQuery,
@@ -458,7 +462,7 @@ function buildSearchQuery ({ filters, termQueries, query, neuralText, functions,
   // for field-based sorts the keyword query provides matching and
   // the sort field determines order
   if (neuralText.length && modelId && functions.length) {
-    const { paginationDepth, k } = hybridPagination(offset)
+    const { paginationDepth, k } = hybridPagination()
     return {
       query: hybridQuery(
         neuralBoolQuery({ titleQuery: neuralText, textQuery: neuralText, filters, k, modelId, functions }),

@@ -263,7 +263,7 @@ function textMatchQueries (query) {
         type: 'best_fields',
         fields: ['title^10', 'text'],
         minimum_should_match: '100%',
-        boost: 100
+        boost: 1000
       }
     },
     // phrase match — boosted higher
@@ -311,39 +311,45 @@ function ranktopFunction () {
 
 // ---- Neural / hybrid wrappers ----
 
-function neuralBoolQuery ({ titleQuery, textQuery, filters, k, modelId }) {
-  return {
-    function_score: {
-      query: {
-        bool: {
-          should: [
-            {
-              neural: {
-                title_embedding: {
-                  query_text: titleQuery,
-                  model_id: modelId,
-                  k
-                }
-              }
-            },
-            {
-              neural: {
-                text_embedding: {
-                  query_text: textQuery,
-                  model_id: modelId,
-                  k
-                }
-              }
+function neuralBoolQuery ({ titleQuery, textQuery, filters, k, modelId, functions }) {
+  const boolQuery = {
+    bool: {
+      should: [
+        {
+          neural: {
+            title_embedding: {
+              query_text: titleQuery,
+              model_id: modelId,
+              k
             }
-          ],
-          filter: filters,
-          minimum_should_match: 1
+          }
+        },
+        {
+          neural: {
+            text_embedding: {
+              query_text: textQuery,
+              model_id: modelId,
+              k
+            }
+          }
         }
-      },
-      functions: [ranktopFunction()],
-      boost_mode: 'multiply'
+      ],
+      filter: filters,
+      minimum_should_match: 1
     }
   }
+
+  if (functions?.length) {
+    return {
+      function_score: {
+        query: boolQuery,
+        functions,
+        boost_mode: 'multiply'
+      }
+    }
+  }
+
+  return boolQuery
 }
 
 function hybridQuery (neuralQuery, keywordQuery, paginationDepth) {
@@ -406,7 +412,7 @@ function buildRelatedQuery ({ like, minMatch, filters, titleQuery, textQuery, of
   if (modelId) {
     const k = offset + LIMIT
     return hybridQuery(
-      neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 512), filters, k, modelId }),
+      neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 512), filters, k, modelId, functions: [ranktopFunction()] }),
       keywordQuery,
       LIMIT * 2
     )

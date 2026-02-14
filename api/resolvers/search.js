@@ -3,6 +3,7 @@ import { whenToFrom } from '@/lib/time'
 import { getItem, itemQueryWithMeta, SELECT } from './item'
 import { parse } from 'tldts'
 import { searchSchema, validateSchema } from '@/lib/validate'
+import { resolveOpensearchModelId } from '../search/model-id'
 
 function queryParts (q) {
   const regex = /"([^"]*)"/gm
@@ -108,7 +109,8 @@ export default {
       let osQuery = moreLikeThisQuery
 
       // Use hybrid query combining neural and more_like_this if model is available
-      if (process.env.OPENSEARCH_MODEL_ID) {
+      const modelId = await resolveOpensearchModelId(search)
+      if (modelId) {
         let qtitle = title
         let qtext = title
         if (id) {
@@ -128,7 +130,7 @@ export default {
                       neural: {
                         title_embedding: {
                           query_text: qtitle,
-                          model_id: process.env.OPENSEARCH_MODEL_ID,
+                          model_id: modelId,
                           k: decodedCursor.offset + LIMIT
                         }
                       }
@@ -137,7 +139,7 @@ export default {
                       neural: {
                         text_embedding: {
                           query_text: qtext.slice(0, 100),
-                          model_id: process.env.OPENSEARCH_MODEL_ID,
+                          model_id: modelId,
                           k: decodedCursor.offset + LIMIT
                         }
                       }
@@ -446,7 +448,8 @@ export default {
 
         // use hybrid neural search if model id is available, otherwise use only
         // keyword search
-        if (process.env.OPENSEARCH_MODEL_ID) {
+        const modelId = await resolveOpensearchModelId(search)
+        if (modelId) {
           osQuery = {
             hybrid: {
               pagination_depth: LIMIT * 2,
@@ -458,7 +461,7 @@ export default {
                         neural: {
                           title_embedding: {
                             query_text: query,
-                            model_id: process.env.OPENSEARCH_MODEL_ID,
+                            model_id: modelId,
                             k: decodedCursor.offset + LIMIT
                           }
                         }
@@ -467,7 +470,7 @@ export default {
                         neural: {
                           text_embedding: {
                             query_text: query,
-                            model_id: process.env.OPENSEARCH_MODEL_ID,
+                            model_id: modelId,
                             k: decodedCursor.offset + LIMIT
                           }
                         }

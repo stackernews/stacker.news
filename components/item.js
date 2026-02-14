@@ -23,6 +23,7 @@ import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/u
 import ItemPopover from './item-popover'
 import { useMe } from './me'
 import Boost from './boost-button'
+import { SearchText } from './text'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item.id)
@@ -137,6 +138,11 @@ export default function Item ({
             {...props}
           />
           {belowTitle}
+          {item.searchText && (
+            <div className={styles.searchSnippet}>
+              <SearchText text={item.searchText} />
+            </div>
+          )}
         </div>
         {right}
       </div>

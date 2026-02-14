@@ -7,7 +7,7 @@ import { Fragment, useCallback, useMemo } from 'react'
 import { CommentFlat } from './comment'
 import { SUB_ITEMS } from '@/fragments/subs'
 import { LIMIT } from '@/lib/cursor'
-import ItemFull from './item-full'
+
 import { useData } from './use-data'
 
 const DEFAULT_FILTER = () => true
@@ -69,12 +69,10 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
 export function ListItem ({ item, ...props }) {
   return (
     item.parentId
-      ? <CommentFlat item={item} noReply includeParent {...props} />
+      ? <CommentFlat item={item} noReply includeParent search {...props} />
       : (item.isJob
           ? <ItemJob item={item} />
-          : (item.searchText
-              ? <ItemFull item={item} noReply {...props} />
-              : <Item item={item} {...props} />))
+          : <Item item={item} {...props} />)
   )
 }
 

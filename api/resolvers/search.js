@@ -461,8 +461,8 @@ const SEARCH_HIGHLIGHT = {
   fields: {
     title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
     'title.exact': { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
-    text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
-    'text.exact': { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
+    text: { number_of_fragments: 3, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
+    'text.exact': { number_of_fragments: 3, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
   }
 }
 
@@ -496,7 +496,10 @@ function attachHighlights (items, hits) {
     item.searchTitle = hit?.highlight?.title?.[0] || hit?.highlight?.['title.exact']?.[0] || item.title
     // prefer the exact highlight for text
     const textHighlight = hit?.highlight?.['text.exact'] || hit?.highlight?.text || []
-    item.searchText = textHighlight?.join(' ... ')
+    item.searchText = textHighlight
+      .map(f => f.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .join(' ... ')
     return item
   })
 }

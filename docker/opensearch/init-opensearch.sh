@@ -409,12 +409,9 @@ ensure_search_pipeline () {
               \"technique\": \"min_max\"
             },
             \"combination\": {
-              \"technique\": \"arithmetic_mean\",
+              \"technique\": \"rrf\",
               \"parameters\": {
-                \"weights\": [
-                  0.7,
-                  0.3
-                ]
+                \"rank_constant\": 60
               }
             }
           }

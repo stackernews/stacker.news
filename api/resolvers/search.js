@@ -410,7 +410,7 @@ function buildRelatedQuery ({ like, minMatch, filters, titleQuery, textQuery, of
   const keywordQuery = moreLikeThisScoreQuery(like, minMatch, filters)
 
   if (modelId) {
-    const k = offset + LIMIT
+    const k = offset + LIMIT * 5
     return hybridQuery(
       neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 512), filters, k, modelId, functions: [ranktopFunction()] }),
       keywordQuery,

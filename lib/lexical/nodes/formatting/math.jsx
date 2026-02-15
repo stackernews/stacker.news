@@ -104,6 +104,10 @@ export class MathNode extends DecoratorNode {
     }
   }
 
+  isInline () {
+    return this.__inline
+  }
+
   updateDOM (prevNode) {
     return this.__inline !== prevNode.__inline
   }
@@ -131,6 +135,7 @@ export class MathNode extends DecoratorNode {
       <MathComponent
         math={this.__math}
         inline={this.__inline}
+        nodeKey={this.getKey()}
       />
     )
   }

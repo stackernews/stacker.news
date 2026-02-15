@@ -7,6 +7,7 @@ import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdas
 import { $insertMarkdown } from '@/lib/lexical/utils'
 import { $debugNodeToJSON } from '@/lib/lexical/nodes/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
+import { $insertMath } from '@/lib/lexical/commands/math'
 
 /** command to transform markdown selections using a headless lexical editor
  * @param {Object} params.selection - selection to transform
@@ -64,6 +65,9 @@ export default function TransformerBridgePlugin () {
               break
             case 'link':
               $toggleLink(bridgeRef.current, transformation)
+              break
+            case 'math':
+              $insertMath(bridgeRef.current, transformation)
               break
           }
 

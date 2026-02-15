@@ -41,6 +41,8 @@ import { $findTopLevelElement } from '@/lib/lexical/commands/utils'
 import { $isCodeNode } from '@lexical/code'
 import { normalizeCodeLanguage } from '@lexical/code-shiki'
 import { ListNode } from '@lexical/list'
+import { SN_INSERT_MATH_COMMAND } from '@/lib/lexical/commands/math'
+import MathIcon from '@/svgs/editor/toolbar/inserts/formula.svg'
 
 const BLOCK_OPTIONS = [
   { id: 'paragraph', name: 'paragraph', icon: <BlocksIcon />, block: 'paragraph' },
@@ -72,7 +74,7 @@ const MenuAlternateDimension = forwardRef(function MenuAlternateDimension ({ chi
   )
 })
 
-function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, showDelay = 500 }) {
+function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, showDelay = 500, children }) {
   const { toolbarState } = useToolbarState()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
@@ -96,6 +98,7 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
               isActive={option.active ? toolbarState[option.active] : option.block === toolbarState.blockType}
             />
           ))}
+          {children}
         </Dropdown.Menu>
       </Dropdown>
     </ActionTooltip>
@@ -154,6 +157,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
   const handleFormat = useCallback((type) => editor.dispatchCommand(SN_FORMAT_COMMAND, type), [editor])
   const handleFormatBlock = useCallback((block) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, block), [editor])
   const handleToggleLink = useCallback(() => editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND), [editor])
+  const handleInsertMath = useCallback((type) => editor.dispatchCommand(SN_INSERT_MATH_COMMAND, type), [editor])
 
   const $updateToolbar = useCallback(() => {
     const updates = {}
@@ -273,7 +277,10 @@ export function ToolbarPlugin ({ name, topLevel }) {
             options={FORMAT_OPTIONS}
             onAction={({ type }) => handleFormat(type)}
             arrow={false}
-          />
+          >
+            {/* TODO: clean this, do this right, add inline math option */}
+            <DropdownMenuItem option={{ id: 'math', name: 'math', icon: <MathIcon />, type: 'math' }} onAction={() => handleInsertMath()} />
+          </ToolbarDropdown>
         </div>
         <ActionTooltip notForm overlayText={toolbarState.showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
           <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, toolbarState.showFormattingToolbar && styles.active)} onClick={() => updateToolbarState('showFormattingToolbar', !toolbarState.showFormattingToolbar)}>

@@ -22,13 +22,25 @@ export default function LinkEditorPlugin ({ anchorElem }) {
     let linkNodeKey = null
 
     // handle selection change
-    if ($isRangeSelection(selection) && selection.isCollapsed()) {
+    if ($isRangeSelection(selection)) {
       const focusNode = getSelectedNode(selection)
       const focusLinkNode = $findMatchingParent(focusNode, $isLinkNode)
       const focusAutoLinkNode = $findMatchingParent(focusNode, $isAutoLinkNode)
+
+      // check anchor node
       const linkNode = focusLinkNode || focusAutoLinkNode
 
-      if (linkNode) {
+      if (!selection.isCollapsed()) {
+        const anchorNode = selection.anchor.getNode()
+        const anchorLinkNode = $findMatchingParent(anchorNode, $isLinkNode)
+        const anchorAutoLinkNode = $findMatchingParent(anchorNode, $isAutoLinkNode)
+
+        // show editor if both anchor and focus are in the same link
+        if (linkNode && (linkNode === anchorLinkNode || linkNode === anchorAutoLinkNode)) {
+          isLink = true
+          linkNodeKey = linkNode.getKey()
+        }
+      } else if (linkNode) {
         isLink = true
         linkNodeKey = linkNode.getKey()
       }

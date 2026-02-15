@@ -158,7 +158,6 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
         SELECTION_CHANGE_COMMAND,
         () => {
           $updateLink()
-          return true
         }, COMMAND_PRIORITY_LOW),
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,

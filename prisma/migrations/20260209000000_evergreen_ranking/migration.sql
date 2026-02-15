@@ -148,18 +148,29 @@ $$;
 -- BACKFILL commentCost and commentBoost
 -- (must happen before ranktop backfill since ranktop depends on them)
 -- =====================
+WITH paid_comment_items AS (
+  -- Dedupe by item id so retries/duplicate pay-ins cannot double count.
+  SELECT ip."itemId", i.cost, i.boost
+  FROM "ItemPayIn" ip
+  JOIN "PayIn" p ON p.id = ip."payInId"
+  JOIN "Item" i ON i.id = ip."itemId"
+  WHERE i."parentId" IS NOT NULL
+    AND p."payInType" = 'ITEM_CREATE'
+    AND p."payInState" = 'PAID'
+  GROUP BY ip."itemId", i.cost, i.boost
+), ancestor_totals AS (
+  SELECT r."ancestorId" AS id,
+    SUM(pci.cost) AS total_cost,
+    SUM(pci.boost) AS total_boost
+  FROM paid_comment_items pci
+  JOIN "Reply" r ON r."itemId" = pci."itemId"
+  GROUP BY r."ancestorId"
+)
 UPDATE "Item" AS parent
-SET "commentCost" = COALESCE(sub.total_cost, 0),
-    "commentBoost" = COALESCE(sub.total_boost, 0)
-FROM (
-  SELECT a.id,
-    SUM(d.cost) AS total_cost,
-    SUM(d.boost) AS total_boost
-  FROM "Item" a
-  JOIN "Item" d ON d.path <@ a.path AND d.id <> a.id AND d."parentId" IS NOT NULL
-  GROUP BY a.id
-) sub
-WHERE parent.id = sub.id;
+SET "commentCost" = COALESCE(ancestor_totals.total_cost, 0),
+    "commentBoost" = COALESCE(ancestor_totals.total_boost, 0)
+FROM ancestor_totals
+WHERE parent.id = ancestor_totals.id;
 
 -- =====================
 -- BACKFILL ranktop

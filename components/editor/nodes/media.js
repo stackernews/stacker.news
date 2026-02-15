@@ -1,7 +1,7 @@
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getNodeByKey } from 'lexical'
+import { $getNodeByKey, CLICK_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical'
 import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
 import { useCarousel } from '@/components/carousel'
 import { useMe } from '@/components/me'
@@ -9,7 +9,9 @@ import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
 import preserveScroll from '@/components/preserve-scroll'
 import { $replaceNodeWithLink } from '@/lib/lexical/nodes/utils'
-import { useToolbarState } from '@/components/editor/contexts/toolbar'
+import { useLexicalEditable } from '@lexical/react/useLexicalEditable'
+import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection'
+import { mergeRegister } from '@lexical/utils'
 
 function LinkRaw ({ className, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -51,7 +53,7 @@ function MediaError ({ className, width, height, src, rel }) {
 
 const Media = memo(function Media ({
   src, bestResSrc, srcSet, sizes, width, alt, title,
-  height, onClick, onError, video, onLoad, isLoading
+  height, onClick, onError, video, onLoad, isLoading, className = '', mediaRef
 }) {
   const sized = !!(width && height && width > 0 && height > 0)
 
@@ -67,7 +69,7 @@ const Media = memo(function Media ({
       {video
         ? (
           <video
-            className={`sn-media__video${sized ? ' sn-media__video--sized' : ''}`}
+            className={`sn-media__video${sized ? ' sn-media__video--sized' : ''} ${className}`}
             src={src}
             preload={bestResSrc !== src ? 'metadata' : undefined}
             controls
@@ -77,11 +79,12 @@ const Media = memo(function Media ({
             onError={onError}
             onLoadedMetadata={onLoad}
             style={hiddenStyle}
+            ref={mediaRef}
           />
           )
         : (
           <img
-            className={`sn-media__img${sized ? ' sn-media__img--sized' : ''}`}
+            className={`sn-media__img${sized ? ' sn-media__img--sized' : ''} ${className}`}
             src={src}
             alt={alt}
             title={title}
@@ -95,6 +98,7 @@ const Media = memo(function Media ({
             onError={onError}
             onLoad={onLoad}
             style={hiddenStyle}
+            ref={mediaRef}
           />
           )}
     </>
@@ -118,13 +122,29 @@ const Media = memo(function Media ({
  */
 export default function MediaComponent ({ src, srcSet, bestResSrc, width, height, alt, title, kind: initialKind, linkFallback = true, nodeKey }) {
   const [editor] = useLexicalComposerContext()
-  const toolbarContext = useToolbarState()
+  const editable = useLexicalEditable()
+  const [isSelected, setSelected, clearSelection] =
+  useLexicalNodeSelection(nodeKey)
   const [kind, setKind] = useState()
+  const mediaRef = useRef(null)
+
+  const onClick = useCallback((payload) => {
+    const event = payload
+    if (event.target === mediaRef.current) {
+      if (event.shiftKey) {
+        setSelected(!isSelected)
+      } else {
+        clearSelection()
+        setSelected(true)
+      }
+      return true
+    }
+    return false
+  }, [isSelected, clearSelection, setSelected])
+
+  const isFocused = editable && isSelected
 
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
-  // we'll check if we're in an editor, and thus preview mode,
-  // by checking if the toolbar context is defined
-  const preview = useMemo(() => !!toolbarContext, [toolbarContext])
 
   // TODO: basically an hack, Lexical could handle this via MediaCheckExtension
   // we're profiting from the fact that MediaOrLink actually does a media check
@@ -157,6 +177,16 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
     })
   }, [kind, $replaceWithLink, $confirmMedia, editor])
 
+  useEffect(() => {
+    return mergeRegister(
+      editor.registerCommand(
+        CLICK_COMMAND,
+        onClick,
+        COMMAND_PRIORITY_LOW
+      )
+    )
+  }, [editor, onClick])
+
   return (
     <MediaOrLink
       src={src}
@@ -169,7 +199,9 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       kind={initialKind}
       linkFallback={linkFallback}
       setKind={setKind}
-      preview={preview}
+      editable={editable}
+      innerClassName={isFocused ? 'sn-media--focused' : ''}
+      mediaRef={mediaRef}
     />
   )
 }
@@ -251,35 +283,35 @@ function useProxyFallback (media) {
   }
 }
 
-export function MediaOrLink ({ linkFallback = true, ...props }) {
-  const media = useMediaHelper(props)
+export function MediaOrLink ({ linkFallback = true, editable, innerClassName, mediaRef, ...props }) {
+  const media = useMediaHelper({ ...props, editable })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
-  const { showCarousel, addMedia, confirmMedia, removeMedia } = useCarousel()
+  const { showCarousel, addMedia, confirmMedia, removeMedia } = editable ? {} : (useCarousel() || {})
   const { src, srcSet, sizes, bestResSrc, onProxyError, cancelTimeout } = useProxyFallback(media)
 
   // register placeholder immediately on mount if we have a src
   useEffect(() => {
     if (!media.bestResSrc) return
-    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
-  }, [addMedia, media.bestResSrc, media.originalSrc])
+    !editable && addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
+  }, [addMedia, media.bestResSrc, media.originalSrc, editable])
 
   // confirm media for carousel based on image detection
   useEffect(() => {
     if (!media.image) return
-    confirmMedia(media.bestResSrc)
-  }, [confirmMedia, media.image, media.bestResSrc])
+    !editable && confirmMedia(media.bestResSrc)
+  }, [confirmMedia, media.image, media.bestResSrc, editable])
 
-  const handleClick = useCallback(() => showCarousel({ src: bestResSrc }),
-    [showCarousel, bestResSrc])
+  const handleClick = useCallback(() => !editable && showCarousel({ src: bestResSrc }),
+    [showCarousel, bestResSrc, editable])
 
   const handleError = useCallback((err) => {
     console.error('Error loading media', err)
     if (onProxyError()) return
-    removeMedia(bestResSrc)
+    !editable && removeMedia(bestResSrc)
     setError(true)
     setIsLoading(false)
-  }, [onProxyError, removeMedia, bestResSrc])
+  }, [onProxyError, removeMedia, bestResSrc, editable])
 
   const handleLoad = useCallback(() => {
     cancelTimeout()
@@ -305,6 +337,8 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
             onError={handleError}
             onLoad={handleLoad}
             isLoading={isLoading}
+            className={innerClassName}
+            mediaRef={mediaRef}
           />
         </>
       )
@@ -326,14 +360,14 @@ export function MediaOrLink ({ linkFallback = true, ...props }) {
 }
 
 // determines how the media should be displayed given the params, me settings, and editor tab
-export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setKind, preview }) => {
+export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, height, kind, alt, title, topLevel, setKind, editable }) => {
   const { me } = useMe()
   const trusted = useMemo(() => !!(srcSet || srcSetIntital) || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src), [srcSet, srcSetIntital, src])
   // backwards compatibility: legacy srcSet handling
   const legacySrcSet = useMemo(() => processSrcSetInitial(srcSetIntital, src), [srcSetIntital, src])
   const [isImage, setIsImage] = useState((kind === 'image' || legacySrcSet?.video === false) && trusted)
   const [isVideo, setIsVideo] = useState(kind === 'video' || legacySrcSet?.video)
-  const showMedia = useMemo(() => preview || me?.privates?.showImagesAndVideos !== false, [me?.privates?.showImagesAndVideos, preview])
+  const showMedia = useMemo(() => editable || me?.privates?.showImagesAndVideos !== false, [me?.privates?.showImagesAndVideos, editable])
 
   useEffect(() => {
     // don't load media if user has disabled them

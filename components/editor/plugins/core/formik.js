@@ -3,6 +3,8 @@ import { useEffect } from 'react'
 import { useField, useFormikContext } from 'formik'
 import { $isMarkdownEmpty, $getMarkdown } from '@/lib/lexical/utils'
 import { COMMAND_PRIORITY_HIGH, createCommand } from 'lexical'
+import { useToolbarState } from '@/components/editor/contexts/toolbar'
+import { $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 import { useFeeButton } from '@/components/fee-button'
 
 export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
@@ -12,6 +14,7 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
   const [editor] = useLexicalComposerContext()
   const [,, textHelpers] = useField({ name })
   const formik = useFormikContext()
+  const { toolbarState } = useToolbarState()
   const { disabled = false } = useFeeButton() ?? {}
 
   // keep formik in sync
@@ -24,12 +27,12 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
           return
         }
 
-        const text = $getMarkdown()
+        const text = toolbarState.markdownMode ? $getMarkdown() : $lexicalToMarkdown()
 
         textHelpers.setValue(text)
       })
     })
-  }, [editor, textHelpers])
+  }, [editor, textHelpers, toolbarState.markdownMode])
 
   useEffect(() => {
     return editor.registerCommand(

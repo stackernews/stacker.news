@@ -13,7 +13,7 @@
   padding: 2px;
 }
 
-.editor[data-lexical-preview='true'] {
+.editor[data-lexical-mode='rich'] {
   border-radius: 0.4rem;
 }
 
@@ -56,10 +56,6 @@
   background-color: transparent;
 }
 
-[data-lexical-preview='true'] .editorContent {
-  min-height: var(--editor-height, auto);
-}
-
 .editorContentInput {
   caret-color: var(--theme-color);
   font-size: 94%;
@@ -85,6 +81,10 @@
   white-space: nowrap;
   display: inline-block;
   pointer-events: none;
+}
+
+.editor[data-lexical-mode='rich'] .editorPlaceholder {
+  top: 0.525rem;
 }
 
 /* toolbar */

@@ -33,6 +33,14 @@ import { useIsClient } from '@/components/use-client'
 import { SN_FORMAT_BLOCK_COMMAND } from '@/lib/lexical/commands/formatting/blocks'
 import { SN_FORMAT_COMMAND } from '@/lib/lexical/commands/formatting/format'
 import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
+import { COMMAND_PRIORITY_CRITICAL, $getSelection, $isRangeSelection, $isNodeSelection, $isElementNode } from 'lexical'
+import { mergeRegister, $getNearestNodeOfType } from '@lexical/utils'
+import { SELECTION_CHANGE_COMMAND } from '@lexical/selection'
+import { $snGetBlockType, $snGetElementFormat, $snHasLink } from '@/lib/lexical/commands/formatting/utils'
+import { $findTopLevelElement } from '@/lib/lexical/commands/utils'
+import { $isCodeNode } from '@lexical/code'
+import { normalizeCodeLanguage } from '@lexical/code-shiki'
+import { ListNode } from '@lexical/list'
 
 const BLOCK_OPTIONS = [
   { id: 'paragraph', name: 'paragraph', icon: <BlocksIcon />, block: 'paragraph' },
@@ -46,13 +54,13 @@ const BLOCK_OPTIONS = [
 ]
 
 const FORMAT_OPTIONS = [
-  { id: 'superscript', name: 'superscript', icon: <SuperscriptIcon />, type: 'superscript' },
-  { id: 'subscript', name: 'subscript', icon: <SubscriptIcon />, type: 'subscript' },
-  { id: 'strikethrough', name: 'strikethrough', icon: <StrikethroughIcon />, type: 'strikethrough' }
+  { id: 'superscript', active: 'isSuperscript', name: 'superscript', icon: <SuperscriptIcon />, type: 'superscript' },
+  { id: 'subscript', active: 'isSubscript', name: 'subscript', icon: <SubscriptIcon />, type: 'subscript' },
+  { id: 'strikethrough', active: 'isStrikethrough', name: 'strikethrough', icon: <StrikethroughIcon />, type: 'strikethrough' }
 ]
 
 const MenuAlternateDimension = forwardRef(function MenuAlternateDimension ({ children, style, className }, ref) {
-  // document doesn't exist on SSR, this forces the component to render on the client
+  // document doesn't exist on SSR
   const isClient = useIsClient()
   if (!isClient) return null
 
@@ -65,6 +73,7 @@ const MenuAlternateDimension = forwardRef(function MenuAlternateDimension ({ chi
 })
 
 function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, showDelay = 500 }) {
+  const { toolbarState } = useToolbarState()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
@@ -84,6 +93,7 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
               key={option.id}
               option={option}
               onAction={onAction}
+              isActive={option.active ? toolbarState[option.active] : option.block === toolbarState.blockType}
             />
           ))}
         </Dropdown.Menu>
@@ -92,7 +102,8 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
   )
 }
 
-function DropdownMenuItem ({ option, onAction }) {
+// TODO: isActive should not work in markdown mode
+function DropdownMenuItem ({ option, onAction, isActive }) {
   const shortcut = SHORTCUTS[option.id]
   const shortcutDisplay = useFormattedShortcut(shortcut?.key)
   const tooltipText = shortcutDisplay ? `${option.name} (${shortcutDisplay})` : option.name
@@ -101,7 +112,7 @@ function DropdownMenuItem ({ option, onAction }) {
     <Dropdown.Item
       title={tooltipText}
       onClick={() => onAction(option)}
-      className={styles.dropdownExtraItem}
+      className={classNames(styles.dropdownExtraItem, isActive && styles.active)}
       onPointerDown={e => e.preventDefault()}
     >
       <span className={styles.dropdownExtraItemLabel}>
@@ -115,7 +126,8 @@ function DropdownMenuItem ({ option, onAction }) {
   )
 }
 
-function ToolbarButton ({ id, onClick, tooltip, children, showDelay = 500 }) {
+// TODO: isActive should not work in markdown mode
+function ToolbarButton ({ id, isActive, onClick, tooltip, children, showDelay = 500 }) {
   const shortcut = SHORTCUTS[id]
   const shortcutDisplay = useFormattedShortcut(shortcut?.key)
   const tooltipText = shortcutDisplay ? `${tooltip} (${shortcutDisplay})` : tooltip
@@ -123,7 +135,7 @@ function ToolbarButton ({ id, onClick, tooltip, children, showDelay = 500 }) {
     <ActionTooltip notForm overlayText={tooltipText} placement='top' noWrapper showDelay={showDelay} transition>
       <span
         title={tooltipText}
-        className={styles.toolbarItem}
+        className={classNames(styles.toolbarItem, isActive && styles.active)}
         onPointerDown={e => e.preventDefault()}
         onClick={onClick}
       >
@@ -135,14 +147,73 @@ function ToolbarButton ({ id, onClick, tooltip, children, showDelay = 500 }) {
 
 export function ToolbarPlugin ({ name, topLevel }) {
   const [editor] = useLexicalComposerContext()
-  const { toolbarState } = useToolbarState()
+  const { batchUpdateToolbarState, toolbarState, updateToolbarState } = useToolbarState()
   const toolbarRef = useRef(null)
-  const [showFormattingToolbar, setShowFormattingToolbar] = useState(topLevel)
   const [hasOverflow, setHasOverflow] = useState(false)
 
   const handleFormat = useCallback((type) => editor.dispatchCommand(SN_FORMAT_COMMAND, type), [editor])
   const handleFormatBlock = useCallback((block) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, block), [editor])
   const handleToggleLink = useCallback(() => editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND), [editor])
+
+  const $updateToolbar = useCallback(() => {
+    const updates = {}
+    const selection = $getSelection()
+    if ($isRangeSelection(selection)) {
+      updates.elementFormat = $snGetElementFormat(selection)
+      updates.isLink = $snHasLink(selection)
+      updates.isBold = selection.hasFormat('bold')
+      updates.isItalic = selection.hasFormat('italic')
+      updates.isUnderline = selection.hasFormat('underline')
+      updates.isStrikethrough = selection.hasFormat('strikethrough')
+      updates.isCode = selection.hasFormat('code')
+      updates.isHighlight = selection.hasFormat('highlight')
+      updates.isSubscript = selection.hasFormat('subscript')
+      updates.isSuperscript = selection.hasFormat('superscript')
+      updates.isLowercase = selection.hasFormat('lowercase')
+      updates.isUppercase = selection.hasFormat('uppercase')
+      updates.isCapitalize = selection.hasFormat('capitalize')
+    }
+
+    // handles range and node selections
+    updates.blockType = $snGetBlockType(selection)
+
+    if ($isNodeSelection(selection)) {
+      const nodes = selection.getNodes()
+      for (const selectedNode of nodes) {
+        const parentList = $getNearestNodeOfType(selectedNode, ListNode)
+        if (!parentList) {
+          const selectedElement = $findTopLevelElement(selectedNode)
+          if ($isCodeNode(selectedElement)) {
+            const language = selectedElement.getLanguage()
+            updates.codeLanguage = language ? normalizeCodeLanguage(language) || language : ''
+          }
+          if ($isElementNode(selectedElement)) {
+            updates.elementFormat = selectedElement.getFormatType()
+          }
+        }
+      }
+    }
+
+    batchUpdateToolbarState(updates)
+  }, [])
+
+  useEffect(() => {
+    // markdown mode doesn't support toolbar updates
+    if (toolbarState.markdownMode) return
+
+    return mergeRegister(
+      editor.registerUpdateListener(({ editorState }) => {
+        editorState.read(() => { $updateToolbar() }, { editor })
+      }),
+      editor.registerCommand(SELECTION_CHANGE_COMMAND,
+        (_payload, _newEditor) => {
+          $updateToolbar()
+          return false
+        },
+        COMMAND_PRIORITY_CRITICAL
+      )
+    )
+  }, [editor, $updateToolbar, toolbarState.markdownMode])
 
   // overflow detection for mobile devices
   useEffect(() => {
@@ -171,28 +242,28 @@ export function ToolbarPlugin ({ name, topLevel }) {
   return (
     <div className={styles.toolbar}>
       <ModeSwitchPlugin name={name} />
-      <div className={classNames(styles.innerToolbar, toolbarState.previewMode && styles.toolbarHidden)}>
-        <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !showFormattingToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
+      <div className={styles.innerToolbar}>
+        <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !toolbarState.showFormattingToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
           <ToolbarDropdown
             icon={<BlocksIcon />}
             tooltip='blocks'
             options={BLOCK_OPTIONS}
             onAction={({ block }) => handleFormatBlock(block)}
           />
-          <ToolbarButton id='bold' onClick={() => handleFormat('bold')} tooltip='bold'>
+          <ToolbarButton id='bold' isActive={toolbarState.isBold} onClick={() => handleFormat('bold')} tooltip='bold'>
             <BoldIcon />
           </ToolbarButton>
-          <ToolbarButton id='italic' onClick={() => handleFormat('italic')} tooltip='italic'>
+          <ToolbarButton id='italic' isActive={toolbarState.isItalic} onClick={() => handleFormat('italic')} tooltip='italic'>
             <ItalicIcon />
           </ToolbarButton>
           <span className={styles.divider} />
-          <ToolbarButton id='quote' onClick={() => handleFormatBlock('quote')} tooltip='quote'>
+          <ToolbarButton id='quote' isActive={toolbarState.blockType === 'quote'} onClick={() => handleFormatBlock('quote')} tooltip='quote'>
             <QuoteIcon />
           </ToolbarButton>
-          <ToolbarButton id='inlineCode' onClick={() => handleFormat('code')} tooltip='inline code'>
+          <ToolbarButton id='inlineCode' isActive={toolbarState.isCode} onClick={() => handleFormat('code')} tooltip='inline code'>
             <CodeIcon />
           </ToolbarButton>
-          <ToolbarButton id='link' onClick={() => handleToggleLink()} tooltip='link'>
+          <ToolbarButton id='link' isActive={toolbarState.isLink} onClick={() => handleToggleLink()} tooltip='link'>
             <LinkIcon />
           </ToolbarButton>
           <span className={styles.divider} />
@@ -204,8 +275,8 @@ export function ToolbarPlugin ({ name, topLevel }) {
             arrow={false}
           />
         </div>
-        <ActionTooltip notForm overlayText={showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
-          <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, showFormattingToolbar && styles.active)} onClick={() => setShowFormattingToolbar(!showFormattingToolbar)}>
+        <ActionTooltip notForm overlayText={toolbarState.showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
+          <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, toolbarState.showFormattingToolbar && styles.active)} onClick={() => updateToolbarState('showFormattingToolbar', !toolbarState.showFormattingToolbar)}>
             <FontStyleIcon />
           </span>
         </ActionTooltip>

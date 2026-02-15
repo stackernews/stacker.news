@@ -292,6 +292,17 @@ function rescoreQuery (query) {
 
 function ranktopFunction () {
   return {
+    // Downvoted items can have negative ranktop; guard ln2p from invalid inputs.
+    // Keep missing-field behavior by still allowing docs without ranktop.
+    filter: {
+      bool: {
+        should: [
+          { range: { ranktop: { gte: 0 } } },
+          { bool: { must_not: { exists: { field: 'ranktop' } } } }
+        ],
+        minimum_should_match: 1
+      }
+    },
     field_value_factor: {
       field: 'ranktop',
       modifier: 'ln2p',

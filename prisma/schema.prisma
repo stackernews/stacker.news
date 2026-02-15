@@ -402,11 +402,12 @@ model Item {
   weightedVotes        Float                 @default(0)
   subWeightedVotes     Float                 @default(0)
   boost                Int                   @default(0)
-  oldBoost             Int                   @default(0)
   pollCost             Int?
   commentMsats         BigInt                @default(0)
   commentDownMsats     BigInt                @default(0)
   commentMcredits      BigInt                @default(0)
+  commentCost          Int                   @default(0)
+  commentBoost         Int                   @default(0)
   weightedComments     Float                 @default(0)
   lastCommentAt        DateTime?
   lastZapAt            DateTime?
@@ -457,9 +458,10 @@ model Item {
   randPollOptions      Boolean               @default(false)
   itemPayIns           ItemPayIn[]
   CommentsViewAt       CommentsViewAt[]
-  ranktop              Float                 @default(dbgenerated())
-  rankhot              Float                 @default(dbgenerated())
-  rankboost            Float                 @default(dbgenerated())
+  ranktop              Float                 @default(0)
+  litCenteredSum       Float                 @default(0)
+  litCenteredAt        Float                 @default(0)
+  ranklit              Float                 @default(0)
   subs                 ItemSub[]
   // Note: we leave this because there's an expensive exclusion constraint
   // that depends on this column unnecessarily ... remove during next maintenance window
@@ -480,8 +482,7 @@ model Item {
   @@index([subNames], type: Gin)
   @@index([subNames, createdAt(ops: raw("timestamp_ops"))], type: Gin)
   @@index([subNames, ranktop(ops: raw("float8_ops"))], type: Gin)
-  @@index([subNames, rankhot(ops: raw("float8_ops"))], type: Gin)
-  @@index([subNames, rankboost(ops: raw("float8_ops"))], type: Gin)
+  @@index([subNames, ranklit(ops: raw("float8_ops"))], type: Gin)
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
@@ -490,8 +491,7 @@ model Item {
   @@index([boost])
   @@index([userId, createdAt])
   @@index([ranktop])
-  @@index([rankhot])
-  @@index([rankboost])
+  @@index([ranklit])
   @@index([netInvestment])
 }
 
@@ -647,7 +647,6 @@ enum BillingType {
 enum RankingType {
   WOT
   RECENT
-  AUCTION
 }
 
 model Sub {

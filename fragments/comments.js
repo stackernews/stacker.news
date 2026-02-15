@@ -56,6 +56,8 @@ export const COMMENT_FIELDS = gql`
     path
     commentSats
     commentCredits
+    commentCost
+    commentBoost
     mine
     otsHash
     ncomments
@@ -113,6 +115,8 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     path
     commentSats
     commentCredits
+    commentCost
+    commentBoost
     mine
     otsHash
     live @client

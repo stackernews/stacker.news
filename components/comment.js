@@ -62,7 +62,7 @@ const truncateString = (string = '', maxLength = 140) =>
     ? `${string.substring(0, maxLength)} […]`
     : string
 
-export function CommentFlat ({ item, rank, siblingComments, ...props }) {
+export function CommentFlat ({ item, rank, siblingComments, search, ...props }) {
   const router = useRouter()
   const [href, as] = useMemo(() => {
     const rootId = commentSubTreeRootId(item)
@@ -81,7 +81,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
           </div>)
         : <div />}
       <LinkToContext
-        className='py-2 clickToContext'
+        className={`py-2 clickToContext ${search ? styles.searchComment : ''}`}
         onClick={e => {
           e.preventDefault()
           router.push(href, as)

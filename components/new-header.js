@@ -8,9 +8,9 @@ function ActiveBountiesCheckbox ({ prefix }) {
 
   const onChange = (e) => {
     if (e.target.checked) {
-      router.push(prefix + '/recent/bounties?' + new URLSearchParams({ active: true }).toString())
+      router.push(prefix + '/new/bounties?' + new URLSearchParams({ active: true }).toString())
     } else {
-      router.push(prefix + '/recent/bounties')
+      router.push(prefix + '/new/bounties')
     }
   }
 
@@ -26,7 +26,7 @@ function ActiveBountiesCheckbox ({ prefix }) {
   )
 }
 
-export default function RecentHeader ({ type, sub }) {
+export default function NewHeader ({ type, sub }) {
   const router = useRouter()
   const prefix = sub ? `/~${sub.name}` : ''
 
@@ -49,7 +49,7 @@ export default function RecentHeader ({ type, sub }) {
           value={type}
           items={items}
           noForm
-          onChange={(_, e) => router.push(prefix + (e.target.value === 'posts' ? '/recent' : `/recent/${e.target.value}`))}
+          onChange={(_, e) => router.push(prefix + (e.target.value === 'posts' ? '/new' : `/new/${e.target.value}`))}
         />
         {type === 'bounties' && <ActiveBountiesCheckbox prefix={prefix} />}
       </div>

@@ -11,7 +11,7 @@ import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
 
 export default function Badges ({ user, badge, bot, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
-  if (!user || Number(user.id) === USER_ID.ad) return null
+  if (!user) return null
   if (Number(user.id) === USER_ID.anon) {
     return (
       <BadgeTooltip overlayText='anonymous'>

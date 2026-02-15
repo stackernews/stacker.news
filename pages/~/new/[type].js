@@ -1,14 +1,14 @@
 import Layout from '@/components/layout'
 import Items from '@/components/items'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import RecentHeader from '@/components/recent-header'
+import NewHeader from '@/components/new-header'
 import { useRouter } from 'next/router'
 import { SUB_FULL, SUB_ITEMS } from '@/fragments/subs'
 import { COMMENT_TYPE_QUERY } from '@/lib/constants'
 import { useQuery } from '@apollo/client'
 import PageLoading from '@/components/page-loading'
 
-const staticVariables = { sort: 'recent' }
+const staticVariables = { sort: 'new' }
 
 function variablesFunc (vars) {
   let type = vars?.type || ''
@@ -41,7 +41,7 @@ export default function Index ({ ssrData }) {
 
   return (
     <Layout sub={sub?.name}>
-      <RecentHeader sub={sub} />
+      <NewHeader sub={sub} />
       <Items
         ssrData={ssrData}
         query={SUB_ITEMS}

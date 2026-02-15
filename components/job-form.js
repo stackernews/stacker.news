@@ -3,14 +3,12 @@ import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Image from 'react-bootstrap/Image'
 import { useState } from 'react'
-import Info from './info'
 import styles from '@/styles/post.module.css'
 import Avatar from './avatar'
 import { jobSchema } from '@/lib/validate'
 import { MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
 import { UPSERT_JOB } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
-import { BoostInput } from './boost-button'
 import FeeButton from './fee-button'
 import CancelButton from './cancel-button'
 
@@ -31,13 +29,12 @@ export default function JobForm ({ item, subs }) {
           company: item?.company || '',
           location: item?.location || '',
           remote: item?.remote || false,
-          boost: item?.boost || '',
           text: item?.text || '',
           url: item?.url || '',
           stop: false,
           start: false
         }}
-        schema={jobSchema({ existingBoost: item?.boost })}
+        schema={jobSchema({})}
         storageKeyPrefix={storageKeyPrefix}
         requireSession
         onSubmit={onSubmit}
@@ -93,39 +90,30 @@ export default function JobForm ({ item, subs }) {
           required
           clear
         />
-        <BoostInput
-          label={
-            <div className='d-flex align-items-center'>boost
-              <Info>
-                <ol>
-                  <li>Boost ranks jobs higher based on the amount</li>
-                  <li>100% of boost goes to the territory founder and top stackers as rewards</li>
-                </ol>
-              </Info>
-            </div>
-          }
-          hint={<span className='text-muted'>higher boost ranks your job higher</span>}
-        />
-        <JobButtonBar itemId={item?.id} />
+        <JobButtonBar itemId={item?.id} status={item?.status} />
       </Form>
     </>
   )
 }
 
 export function JobButtonBar ({
-  itemId, disable, className, children, handleStop, onCancel, hasCancel = true,
-  createText = 'post', editText = 'save', stopText = 'remove'
+  itemId, status, disable, className, children, handleStop, onCancel, hasCancel = true,
+  createText = 'post', editText, stopText
 }) {
+  const isStopped = status === 'STOPPED'
+  const resolvedEditText = editText ?? (isStopped ? 'resume job' : 'save')
+  const resolvedStopText = stopText ?? 'stop job'
+
   return (
     <div className={`mt-3 ${className}`}>
       <div className='d-flex justify-content-between'>
-        {itemId &&
-          <SubmitButton valueName='status' value='STOPPED' variant='grey-medium'>{stopText}</SubmitButton>}
+        {itemId && !isStopped &&
+          <SubmitButton valueName='status' value='STOPPED' variant='grey-medium'>{resolvedStopText}</SubmitButton>}
         {children}
         <div className='d-flex align-items-center ms-auto'>
           {hasCancel && <CancelButton onClick={onCancel} />}
           <FeeButton
-            text={itemId ? editText : createText}
+            text={itemId ? resolvedEditText : createText}
             variant='secondary'
             disabled={disable}
           />

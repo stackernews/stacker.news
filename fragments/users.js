@@ -148,8 +148,6 @@ ${STREAK_FIELDS}
       id
       name
       photoId
-      ncomments
-      nposts
 
       optional {
         stacked

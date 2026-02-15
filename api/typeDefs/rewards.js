@@ -18,7 +18,6 @@ export default gql`
     total: Int!
     time: Date!
     sources: [NameValue!]!
-    ad: Item
   }
 
   type Reward {

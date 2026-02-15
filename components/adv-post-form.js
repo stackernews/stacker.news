@@ -12,9 +12,8 @@ import { useFormikContext } from 'formik'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
-export function AdvPostInitial ({ forward, boost }) {
+export function AdvPostInitial ({ forward }) {
   return {
-    boost: boost || '',
     forward: forward?.length ? forward : [EMPTY_FORWARD]
   }
 }

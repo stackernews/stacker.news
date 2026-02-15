@@ -20,8 +20,6 @@ import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
 import { CompactLongCountdown } from '@/components/countdown'
 import { DONATE } from '@/fragments/payIn'
-import { ITEM_FULL_FIELDS } from '@/fragments/items'
-import { ListItem } from '@/components/items'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { payTypeShortName } from '@/lib/pay-in'
 
@@ -30,7 +28,6 @@ const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => m
 })
 
 const REWARDS_FULL = gql`
-${ITEM_FULL_FIELDS}
 {
   rewards {
     total
@@ -38,9 +35,6 @@ ${ITEM_FULL_FIELDS}
     sources {
       name
       value
-    }
-    ad {
-      ...ItemFullFields
     }
   }
 }
@@ -72,14 +66,13 @@ export default function Rewards ({ ssrData }) {
     SSR ? {} : { pollInterval: FAST_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
   const dat = useData(data, ssrData)
 
-  const { rewards: [{ total, sources, time, ad }] } = useMemo(() => {
-    if (!dat || !dat.rewards[0]) return { rewards: [{ total: 0, sources: [], time: '0', ad: null }] }
+  const { rewards: [{ total, sources, time }] } = useMemo(() => {
+    if (!dat || !dat.rewards[0]) return { rewards: [{ total: 0, sources: [], time: '0' }] }
     return {
       rewards: [{
         total: dat.rewards[0].total,
         sources: dat.rewards[0].sources.map(source => ({ name: payTypeShortName(source.name), value: msatsToSats(source.value) })),
-        time: dat.rewards[0].time,
-        ad: dat.rewards[0].ad
+        time: dat.rewards[0].time
       }]
     }
   }, [dat])
@@ -88,13 +81,6 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      {ad &&
-        <div className='pt-3 align-self-center' style={{ maxWidth: '500px', width: '100%' }}>
-          <div className='fw-bold text-muted pb-2'>
-            top boost this month
-          </div>
-          <ListItem item={ad} ad />
-        </div>}
       <Row className='pb-3'>
         <Col>
           <div

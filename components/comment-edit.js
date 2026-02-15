@@ -22,6 +22,23 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           },
           optimistic: true
         })
+
+        // propagate additional cost to ancestors if cost increased
+        const costDelta = (result.cost || 0) - (comment.cost || 0)
+        if (costDelta > 0 && comment.parentId && result.path) {
+          const ancestors = result.path.split('.').slice(0, -1)
+          ancestors.forEach(id => {
+            cache.modify({
+              id: `Item:${id}`,
+              fields: {
+                commentCost (existingCommentCost = 0) {
+                  return existingCommentCost + costDelta
+                }
+              },
+              optimistic: true
+            })
+          })
+        }
       }
     },
     item: comment,

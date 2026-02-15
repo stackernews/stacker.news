@@ -106,9 +106,6 @@ export const SUB_ITEMS = gql`
         ...CommentItemExtFields @include(if: $includeComments)
         position
       }
-      ad {
-        ...ItemFields
-      }
     }
   }
 `

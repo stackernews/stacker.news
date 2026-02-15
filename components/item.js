@@ -2,7 +2,7 @@ import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
 import { useRef } from 'react'
-import { USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import Pin from '@/svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import PollIcon from '@/svgs/bar-chart-horizontal-fill.svg'
@@ -15,8 +15,6 @@ import ItemInfo from './item-info'
 import Prism from '@/svgs/prism.svg'
 import { commentsViewedAt } from '@/lib/new-comments'
 import { useRouter } from 'next/router'
-import { Badge } from 'react-bootstrap'
-import AdIcon from '@/svgs/advertisement-fill.svg'
 import { DownZap } from './dont-link-this'
 import { timeLeft } from '@/lib/time'
 import classNames from 'classnames'
@@ -24,8 +22,8 @@ import removeMd from 'remove-markdown'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
 import ItemPopover from './item-popover'
 import { useMe } from './me'
-import Boost, { BoostHelp } from './boost-button'
-import { useShowModal } from './modal'
+import Boost from './boost-button'
+import { SearchText } from './text'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item.id)
@@ -88,11 +86,10 @@ function ItemLink ({ url, rel }) {
 
 export default function Item ({
   item, rank, belowTitle, right, full, children, itemClassName,
-  onQuoteReply, pinnable, ad, ...props
+  onQuoteReply, pinnable, ...props
 }) {
   const titleRef = useRef()
   const router = useRouter()
-  const showModal = useShowModal()
 
   const media = mediaType({ url: item.url, imgproxyUrls: item.imgproxyUrls })
   const MediaIcon = media === 'video' ? VideoIcon : ImageIcon
@@ -112,9 +109,7 @@ export default function Item ({
             ? <Boost item={item} className={classNames(styles.upvote, item.bio && 'invisible')} />
             : item.meDontLikeSats > item.meSats
               ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-              : Number(item.user?.id) === USER_ID.ad
-                ? <AdIcon width={24} height={24} className={styles.ad} />
-                : <UpVote item={item} className={styles.upvote} />}
+              : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link
@@ -140,18 +135,14 @@ export default function Item ({
             full={full} item={item}
             onQuoteReply={onQuoteReply}
             pinnable={pinnable}
-            extraBadges={ad &&
-              <>{' '}
-                <Badge
-                  className={classNames(styles.newComment, 'pointer')}
-                  bg={null} onClick={() => showModal(() => <BoostHelp />)}
-                >
-                  top boost
-                </Badge>
-              </>}
             {...props}
           />
           {belowTitle}
+          {item.searchText && (
+            <div className={styles.searchSnippet}>
+              <SearchText text={item.searchText} />
+            </div>
+          )}
         </div>
         {right}
       </div>
@@ -180,7 +171,6 @@ export function ItemSummary ({ item }) {
       item={item}
       showUser={false}
       showActionDropdown={false}
-      extraBadges={item.title && Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
     />
   )
 

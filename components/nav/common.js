@@ -396,27 +396,24 @@ export function Sorts ({ sub, prefix, className }) {
     <>
       <Nav.Item className={className}>
         <Link href={prefix + '/'} passHref legacyBehavior>
-          <Nav.Link eventKey='' className={styles.navLink}>hot</Nav.Link>
+          <Nav.Link eventKey='' className={`${styles.navLink} ${styles.navSort}`}>lit</Nav.Link>
         </Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Link href={prefix + '/recent'} passHref legacyBehavior>
-          <Nav.Link eventKey='recent' className={styles.navLink}>recent</Nav.Link>
+        <Link href={prefix + '/new'} passHref legacyBehavior>
+          <Nav.Link eventKey='new' className={`${styles.navLink} ${styles.navSort}`}>new</Nav.Link>
         </Link>
       </Nav.Item>
-      {sub !== 'jobs' &&
-        <>
-          <Nav.Item className={className}>
-            <Link
-              href={{
-                pathname: '/~/top/[type]/[when]',
-                query: { type: 'posts', when: 'day', sub }
-              }} as={prefix + '/top/posts/day'} passHref legacyBehavior
-            >
-              <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
-            </Link>
-          </Nav.Item>
-        </>}
+      <Nav.Item className={className}>
+        <Link
+          href={{
+            pathname: '/~/top/[type]/[when]',
+            query: { type: 'posts', when: 'day', sub }
+          }} as={prefix + '/top/posts/day'} passHref legacyBehavior
+        >
+          <Nav.Link eventKey='top' className={`${styles.navLink} ${styles.navSort}`}>top</Nav.Link>
+        </Link>
+      </Nav.Item>
     </>
   )
 }

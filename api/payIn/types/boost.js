@@ -11,21 +11,18 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
-export async function getInitial (models, { sats, id }, { me, subs }) {
-  if (id && !subs) {
-    const { subNames, parentId } = await models.item.findUnique({ where: { id: parseInt(id) } })
-    subs = await getSubs(models, { subNames, parentId })
-  }
+export async function getInitial (models, { sats, id }, { me }) {
+  const { subNames, parentId } = await models.item.findUnique({ where: { id: parseInt(id) } })
+  const subs = await getSubs(models, { subNames, parentId })
 
   const mcost = satsToMsats(sats)
   const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs, mcost })
 
-  // if we have a benefactor, we might not know the itemId until after the payIn is created
-  // so we create the itemPayIn in onBegin
   return {
     payInType: 'BOOST',
     userId: me?.id,
     mcost,
+    itemPayIn: { itemId: parseInt(id) },
     payOutCustodialTokens
   }
 }
@@ -36,34 +33,45 @@ export async function onRetry (tx, oldPayInId, newPayInId) {
   return { id: item.id, path: item.path, sats: msatsToSats(payIn.mcost), act: 'BOOST' }
 }
 
-export async function onBegin (tx, payInId, { sats, id }, benefactorResult) {
-  id ??= benefactorResult.id
-
-  if (!id) {
-    throw new Error('item id is required')
-  }
-
+export async function onBegin (tx, payInId, { sats, id }) {
   const item = await getItemResult(tx, { id })
-  await tx.payIn.update({ where: { id: payInId }, data: { itemPayIn: { create: { itemId: item.id } } } })
-
   return { id: item.id, path: item.path, sats, act: 'BOOST' }
 }
 
 export async function onPaid (tx, payInId) {
-  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: true } })
+  const payIn = await tx.payIn.findUnique({ where: { id: payInId }, include: { itemPayIn: { include: { item: true } } } })
 
-  // increment boost on item
-  await tx.item.update({
-    where: { id: payIn.itemPayIn.itemId },
-    data: {
-      boost: { increment: msatsToSats(payIn.mcost) }
-    }
-  })
+  const boostSats = msatsToSats(payIn.mcost)
+  const item = payIn.itemPayIn.item
 
-  await tx.$executeRaw`
-    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, keepuntil)
-    VALUES ('expireBoost', jsonb_build_object('id', ${payIn.itemPayIn.itemId}::INTEGER), 21, true,
-              now() + interval '7 days', now() + interval '10 days')`
+  if (item.parentId) {
+    // increment boost on item and propagate commentBoost to ancestors in a single statement
+    // NOTE: ancestors are ORDER BY id for consistent lock ordering to prevent deadlocks
+    await tx.$executeRaw`
+      WITH item_boosted AS (
+        UPDATE "Item"
+        SET boost = boost + ${boostSats}::INTEGER
+        WHERE id = ${item.id}::INTEGER
+        RETURNING *
+      )
+      UPDATE "Item"
+      SET "commentBoost" = "Item"."commentBoost" + ${boostSats}::INTEGER
+      FROM (
+        SELECT "Item".id
+        FROM "Item", item_boosted
+        WHERE "Item".path @> item_boosted.path AND "Item".id <> item_boosted.id
+        ORDER BY "Item".id
+      ) AS ancestors
+      WHERE "Item".id = ancestors.id`
+  } else {
+    // for top-level posts, just increment boost (trigger computes litCenteredSum/ranklit)
+    await tx.item.update({
+      where: { id: item.id },
+      data: {
+        boost: { increment: boostSats }
+      }
+    })
+  }
 }
 
 export async function describe (models, payInId) {

@@ -138,6 +138,7 @@ export async function onPaid (tx, payInId) {
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
+  // NOTE: ancestors are ORDER BY id for consistent lock ordering to prevent deadlocks
   // XXX we base the zap weight on the first sub in the subNames array
   // this is mostly a placeholder becasue we are running a no trust experiment
   // if we use trust again, we'll need an approach to this for multiple territories

@@ -41,15 +41,23 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
     }
     const { data, ...rest } = await mutate({ ...options, ...innerOptions })
 
-    // use the most inner callbacks/options if they exist
+    const mergedOptions = { ...options, ...innerOptions }
     const {
-      onPaid, onRetry, onPayError, forceWaitForPayment, persistOnNavigate,
-      update, waitFor = payIn => payIn?.payInState === 'PAID', protocolLimit
-    } = { ...options, ...innerOptions }
+      forceWaitForPayment, persistOnNavigate,
+      waitFor = payIn => payIn?.payInState === 'PAID', protocolLimit
+    } = mergedOptions
+
+    // compose callbacks so hook-level behavior (e.g. cache updates)
+    // is not lost when a call-site passes its own handlers.
+    const update = composeCallbacks(options?.update, innerOptions?.update)
+    const onRetry = composeCallbacks(options?.onRetry, innerOptions?.onRetry)
+    const onPayError = composeCallbacks(options?.onPayError, innerOptions?.onPayError)
+    const onPaid = composeCallbacks(options?.onPaid, innerOptions?.onPaid)
     // onCompleted needs to run after the payIn is paid for pessimistic updates, so we give it special treatment
     const ourOnCompleted = innerOnCompleted || onCompleted
 
     const payIn = data[mutationName]
+    const fallbackResult = payIn?.payerPrivates?.result
 
     // if the mutation returns in a pending state, it has an invoice we need to pay
     let payError
@@ -74,8 +82,17 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
         ourOnCompleted?.(data)
         // don't wait to pay the invoice
         payPayIn(payIn, { persistOnNavigate, waitFor, onRetry, protocolLimit }).then((paidPayIn) => {
+          const mergedPayIn = !paidPayIn?.payerPrivates?.result && fallbackResult
+            ? {
+                ...paidPayIn,
+                payerPrivates: {
+                  ...(paidPayIn?.payerPrivates || {}),
+                  result: fallbackResult
+                }
+              }
+            : paidPayIn
           // invoice might have been retried during payment
-          onPaid?.(client.cache, { data: { [mutationName]: paidPayIn } })
+          onPaid?.(client.cache, { data: { [mutationName]: mergedPayIn } })
         }).catch(e => {
           console.error('usePayInMutation: failed to pay for optimistic mutation', mutationName, e)
           // onPayError is called after the invoice fails to pay, but only if we're not automatically retrying
@@ -107,6 +124,17 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
   }, [mutate, options, payPayIn, client.cache, setInnerResult, !!me])
 
   return [innerMutate, innerResult]
+}
+
+function composeCallbacks (...callbacks) {
+  const validFns = callbacks.filter(Boolean)
+  if (validFns.length === 0) return undefined
+
+  return (...args) => {
+    for (const fn of validFns) {
+      fn(...args)
+    }
+  }
 }
 
 // all paid actions need these fields and they're easy to forget

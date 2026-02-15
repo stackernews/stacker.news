@@ -404,17 +404,11 @@ ensure_search_pipeline () {
       ],
       \"phase_results_processors\": [
         {
-          \"normalization-processor\": {
-            \"normalization\": {
-              \"technique\": \"min_max\"
-            },
+          \"score-ranker-processor\": {
             \"combination\": {
-              \"technique\": \"arithmetic_mean\",
+              \"technique\": \"rrf\",
               \"parameters\": {
-                \"weights\": [
-                  0.7,
-                  0.3
-                ]
+                \"rank_constant\": 60
               }
             }
           }

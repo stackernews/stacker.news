@@ -20,11 +20,11 @@ export function canCreateFreeComment (user) {
 /**
  * Check if the item qualifies as a freebie
  * @param {Object} models - Prisma models
- * @param {Object} params - { mcost, baseMcost, parentId, bio, boost }
+ * @param {Object} params - { mcost, baseMcost, parentId, bio }
  * @param {Object} context - { me } with me.id
  * @returns {Promise<boolean>} - true if item should be free
  */
-export async function checkFreebieEligibility (models, { mcost, baseMcost, parentId, bio, boost = 0 }, { me }) {
+export async function checkFreebieEligibility (models, { mcost, baseMcost, parentId, bio }, { me }) {
   // Only comments and bios can be freebies
   if (!parentId && !bio) return false
 
@@ -33,9 +33,6 @@ export async function checkFreebieEligibility (models, { mcost, baseMcost, paren
 
   // Anon users can't get freebies
   if (me.id === USER_ID.anon) return false
-
-  // Can't have boost
-  if (boost > 0) return false
 
   // Fetch user data since me only has { id }
   const user = await models.user.findUnique({

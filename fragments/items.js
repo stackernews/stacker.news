@@ -71,6 +71,8 @@ export const ITEM_FIELDS = gql`
     nDirectComments
     commentSats
     commentCredits
+    commentCost
+    commentBoost
     lastCommentAt
     isJob
     status

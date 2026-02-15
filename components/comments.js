@@ -11,7 +11,7 @@ import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { useCommentsNavigatorContext } from './use-comments-navigator'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
+export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, commentCost, commentBoost }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -27,32 +27,32 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         className={styles.navbarNav}
         activeKey={sort}
       >
-        <Nav.Item className='text-muted'>
-          {numWithUnits(commentSats)}
+        <Nav.Item className='text-muted' title={`${numWithUnits(commentSats + commentCost + commentBoost)} (${commentSats} stacked \\ ${commentCost} cost \\ ${commentBoost} boost)`}>
+          {numWithUnits(commentSats + commentCost + commentBoost)}
         </Nav.Item>
         <div className='ms-auto d-flex'>
           <Nav.Item>
             <Nav.Link
-              eventKey='hot'
-              className={styles.navLink}
-              onClick={getHandleClick('hot')}
+              eventKey='lit'
+              className={`${styles.navLink} ${styles.navSort}`}
+              onClick={getHandleClick('lit')}
             >
-              hot
+              lit
             </Nav.Link>
           </Nav.Item>
           <Nav.Item>
             <Nav.Link
-              eventKey='recent'
-              className={styles.navLink}
-              onClick={getHandleClick('recent')}
+              eventKey='new'
+              className={`${styles.navLink} ${styles.navSort}`}
+              onClick={getHandleClick('new')}
             >
-              recent
+              new
             </Nav.Link>
           </Nav.Item>
           <Nav.Item>
             <Nav.Link
               eventKey='top'
-              className={styles.navLink}
+              className={`${styles.navLink} ${styles.navSort}`}
               onClick={getHandleClick('top')}
             >
               top
@@ -66,7 +66,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
+  commentSats, commentCost, commentBoost, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
 
@@ -82,7 +82,7 @@ export default function Comments ({
     <>
       {comments?.length > 0
         ? <CommentsHeader
-            commentSats={commentSats} parentCreatedAt={parentCreatedAt}
+            commentSats={commentSats} commentCost={commentCost} commentBoost={commentBoost} parentCreatedAt={parentCreatedAt}
             pinned={pinned} bio={bio} handleSort={sort => {
               const { commentsViewedAt, commentId, ...query } = router.query
               delete query.nodata

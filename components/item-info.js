@@ -15,7 +15,7 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Badges from './badge'
-import { USER_ID, DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
+import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
@@ -39,17 +39,21 @@ function itemTitle (item) {
     unitPlural: 'zappers'
   })
   if (item.sats - item.credits) {
-    title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+    title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })} stacked`
+  }
+  if (item.credits) {
+    title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })} stacked`
+  }
+  if (item.boost) {
+    title += ` \\ ${numWithUnits(item.boost, { abbreviate: false, unitSingular: 'boost', unitPlural: 'boost' })}`
+  }
+  if (item.cost) {
+    title += ` \\ ${numWithUnits(item.cost, { abbreviate: false, unitSingular: 'cost', unitPlural: 'cost' })}`
   }
   if (item.downSats) {
     title += ` \\ ${numWithUnits(item.downSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
   }
-  if (item.credits) {
-    title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
-  }
-  if (item.mine) {
-    title += ` (${numWithUnits(item.meSats, { abbreviate: false })} to post)`
-  } else if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
+  if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
     const satSources = []
     if (item.meAnonSats || (item.meSats || 0) - (item.meCredits || 0) > 0) {
       satSources.push(`${numWithUnits((item.meSats || 0) + (item.meAnonSats || 0) - (item.meCredits || 0), { abbreviate: false })}`)
@@ -99,7 +103,6 @@ export default function ItemInfo ({
   const canPin = (isPost && mySub) || (myPost && rootReply)
   const isPinnedPost = isPost && item.position && (pinnable || !item.subNames)
   const isPinnedSubReply = !isPost && item.position && !item.subNames
-  const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
   const satsFilter = me
     ? (isPost ? me.privates?.postsSatsFilter : me.privates?.commentsSatsFilter)
@@ -109,16 +112,11 @@ export default function ItemInfo ({
 
   return (
     <div className={className || `${styles.other}`}>
-      {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
+      {!isPinnedPost && !(isPinnedSubReply && !full) &&
         <>
           <span title={itemTitle(item)}>
-            {numWithUnits(item.sats)}
+            {numWithUnits(item.sats + item.boost + item.cost)}
           </span>
-          <span> \ </span>
-        </>}
-      {item.boost > 0 &&
-        <>
-          <span>{abbrNum(item.boost)} boost</span>
           <span> \ </span>
         </>}
       <Link
@@ -130,7 +128,7 @@ export default function ItemInfo ({
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
+        }} title={`${numWithUnits(item.commentSats + item.commentCost + item.commentBoost)} (${item.commentSats} stacked \\ ${item.commentCost} cost \\ ${item.commentBoost} boost)`} className='text-reset position-relative'
       >
         {numWithUnits(item.ncomments, {
           abbreviate: false,
@@ -172,7 +170,7 @@ export default function ItemInfo ({
       {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
       {item.freebie && !item.position &&
-        <Link href='/recent/freebies'>
+        <Link href='/new/freebies'>
           {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
         </Link>}
       {isDesperado &&
@@ -250,40 +248,54 @@ export default function ItemInfo ({
 function ItemDetails ({ item, me }) {
   return (
     <div className={styles.details}>
-      <div>id</div>
-      <div>{item.id}</div>
-      <div>created at</div>
-      <div>{item.createdAt}</div>
+      <div className={styles.detailsSection}>item</div>
+      <div className={styles.detailsLabel}>id</div>
+      <div className={styles.detailsValue}>{item.id}</div>
+      <div className={styles.detailsLabel}>created at</div>
+      <div className={styles.detailsValue}>{item.createdAt}</div>
       {item.payIn?.payInState === 'PAID' &&
         <>
-          <div>paid at</div>
-          <div>{item.payIn?.payInStateChangedAt}</div>
+          <div className={styles.detailsLabel}>paid at</div>
+          <div className={styles.detailsValue}>{item.payIn?.payInStateChangedAt}</div>
         </>}
-      <div>cost</div>
-      <div>{item.cost}</div>
-      <div>stacked</div>
-      <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
-      <div>stacked (comments)</div>
-      <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
-      <div>downsats</div>
-      <div>{item.downSats}</div>
-      <div>downsats (comments)</div>
-      <div>{item.commentDownSats}</div>
+      <div className={styles.detailsSection}>this item</div>
+      <div className={styles.detailsLabel}>zappers</div>
+      <div className={styles.detailsValue}>{item.upvotes}</div>
+      <div className={styles.detailsLabel}>cost</div>
+      <div className={styles.detailsValue}>{item.cost} sats</div>
+      <div className={styles.detailsLabel}>boost</div>
+      <div className={styles.detailsValue}>{item.boost} sats</div>
+      <div className={styles.detailsLabel}>stacked</div>
+      <div className={styles.detailsValue}>{item.sats - item.credits} sats / {item.credits} ccs</div>
+      <div className={styles.detailsLabel}>downsats</div>
+      <div className={styles.detailsValue}>{item.downSats} sats</div>
+      <div className={styles.detailsLabel}>invested</div>
+      <div className={styles.detailsValue}>{item.sats + item.boost + item.cost} sats</div>
+      <div className={styles.detailsSection}>comments</div>
+      <div className={styles.detailsLabel}>cost</div>
+      <div className={styles.detailsValue}>{item.commentCost} sats</div>
+      <div className={styles.detailsLabel}>boost</div>
+      <div className={styles.detailsValue}>{item.commentBoost} sats</div>
+      <div className={styles.detailsLabel}>stacked</div>
+      <div className={styles.detailsValue}>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
+      <div className={styles.detailsLabel}>downsats</div>
+      <div className={styles.detailsValue}>{item.commentDownSats} sats</div>
+      <div className={styles.detailsLabel}>invested</div>
+      <div className={styles.detailsValue}>{item.commentSats + item.commentCost + item.commentBoost} sats</div>
       {me && (
         <>
-          <div>from me</div>
-          <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
-          <div>downsats from me</div>
-          <div>{item.meDontLikeSats}</div>
+          <div className={styles.detailsSection}>from me</div>
+          <div className={styles.detailsLabel}>zapped</div>
+          <div className={styles.detailsValue}>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
+          <div className={styles.detailsLabel}>downzapped</div>
+          <div className={styles.detailsValue}>{item.meDontLikeSats} sats</div>
         </>
       )}
-      <div>zappers</div>
-      <div>{item.upvotes}</div>
     </div>
   )
 }
 
-function InfoDropdownItem ({ item }) {
+export function InfoDropdownItem ({ item }) {
   const { me } = useMe()
   const showModal = useShowModal()
 

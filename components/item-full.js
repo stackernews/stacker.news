@@ -195,7 +195,8 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
             <div className={styles.comments}>
               <Comments
                 parentId={item.id} parentCreatedAt={item.createdAt}
-                pinned={item.position} bio={bio} commentSats={item.commentSats}
+                pinned={item.position} bio={bio}
+                commentSats={item.commentSats} commentCost={item.commentCost} commentBoost={item.commentBoost}
                 ncomments={item.ncomments}
                 comments={item.comments.comments}
                 commentsCursor={item.comments.cursor}

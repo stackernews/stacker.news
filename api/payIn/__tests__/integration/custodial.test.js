@@ -324,34 +324,4 @@ describe('PayIn Custodial Flows', () => {
       ).rejects.toThrow('You must be logged in')
     })
   })
-
-  describe('Beneficiaries', () => {
-    it('should handle item creation with boost as beneficiary', async () => {
-      const poster = await createTestUser(models, {
-        msats: satsToMsats(1000)
-      })
-      testUsers.push(poster)
-
-      const result = await pay('ITEM_CREATE', {
-        title: 'Boosted Post',
-        text: 'Test content',
-        uploadIds: [],
-        boost: 10,
-        userId: poster.id
-      }, {
-        models,
-        me: poster
-      })
-
-      expect(result.payInState).toBe('PAID')
-
-      // Assert beneficiary was created for boost
-      const beneficiaries = await models.payIn.findMany({
-        where: { benefactorId: result.id }
-      })
-
-      expect(beneficiaries.length).toBeGreaterThan(0)
-      expect(beneficiaries.some(b => b.payInType === 'BOOST')).toBe(true)
-    })
-  })
 })

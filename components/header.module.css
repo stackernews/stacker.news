@@ -34,6 +34,12 @@
     padding: 0.25rem 1rem;
 }
 
+.navSort {
+    text-transform: uppercase;
+    font-weight: normal;
+    letter-spacing: 0.05em;
+}
+
 .navbar {
     padding: .5rem 0;
     background-color: transparent !important;

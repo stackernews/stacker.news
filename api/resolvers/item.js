@@ -21,7 +21,7 @@ import {
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
-import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
+import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { uploadIdsFromText } from './upload'
@@ -35,29 +35,22 @@ import pay from '../payIn'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER) {
-  const sharedSortsArray = []
-  sharedSortsArray.push('("Item"."pinId" IS NOT NULL) DESC')
-  sharedSortsArray.push('("Item"."deletedAt" IS NULL) DESC')
-
   // Push comments with investment below the threshold to the bottom of threads
   // null means "show all" — don't push any comments to the bottom
-  if (commentsSatsFilter != null) {
-    sharedSortsArray.push(`(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`)
-  }
+  const sharedSorts = [
+    '("Item"."pinId" IS NOT NULL) DESC',
+    '("Item"."deletedAt" IS NULL) DESC',
+    commentsSatsFilter != null &&
+      `(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`
+  ].filter(Boolean).join(', ')
 
-  const sharedSorts = sharedSortsArray.join(', ')
+  const sortExpr = sort === 'new'
+    ? '"Item".created_at DESC'
+    : sort === 'lit'
+      ? '"Item"."ranklit" DESC'
+      : '"Item"."ranktop" DESC'
 
-  if (sort === 'recent') {
-    return `ORDER BY ${sharedSorts},
-      "Item".created_at DESC, "Item".id DESC`
-  }
-
-  if (sort === 'hot') {
-    return `ORDER BY ${sharedSorts},
-      "Item"."rankhot" DESC, "Item".id DESC`
-  } else {
-    return `ORDER BY ${sharedSorts}, "Item"."ranktop" DESC, "Item".id DESC`
-  }
+  return `ORDER BY ${sharedSorts}, ${sortExpr}, "Item".id DESC`
 }
 
 async function comments (item, sort, cursor, { me, models, userLoader }) {
@@ -132,43 +125,12 @@ export async function getItem (parent, { id }, { me, models }) {
   return item
 }
 
-export async function getAd (parent, { sub, subArr = [], showNsfw = false }, ctx) {
-  const { me, models } = ctx
-  return (await itemQueryWithMeta({
-    me,
-    models,
-    query: `
-      ${SELECT}
-      FROM "Item"
-      ${payInJoinFilter(me)}
-      ${whereClause(
-        '"parentId" IS NULL',
-        '"Item"."pinId" IS NULL',
-        '"Item"."deletedAt" IS NULL',
-        '"Item"."parentId" IS NULL',
-        '"Item".bio = false',
-        '"Item".boost > 0',
-        await filterClause(null, sub, 'hot', ctx),
-        activeOrMine(),
-        subClause(sub, 1, 'Item', me, showNsfw),
-        muteClause(me))}
-      ORDER BY rankboost DESC, "Item".created_at ASC
-      LIMIT 1`
-  }, ...subArr))?.[0] || null
-}
-
 const orderByClause = (by, me, models, type, sub) => {
   switch (by) {
     case 'comments':
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
-      return 'ORDER BY "Item".msats DESC'
-    case 'zaprank':
       return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
-    case 'boost':
-      return 'ORDER BY "Item".boost + "Item"."oldBoost" DESC'
-    case 'random':
-      return 'ORDER BY RANDOM()'
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
@@ -403,7 +365,7 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
 
   let postsSatsFilter = DEFAULT_POSTS_SATS_FILTER
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
-  const isCurated = sort === 'hot' || sort === 'top' || sort === 'random'
+  const isCurated = sort === 'lit' || sort === 'top'
 
   if (me) {
     const user = await userLoader.load(me.id)
@@ -418,7 +380,7 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
         // On curated feeds: territory's filter is authoritative
         postsSatsFilter = territory.postsSatsFilter
       } else {
-        // On recent: use the lower of user's and territory's filter so either
+        // On new: use the lower of user's and territory's filter so either
         // party can relax the threshold. For logged-out users, use only
         // the territory's filter (ignoring the logged-out default).
         // null (show all) beats any number since it's conceptually -infinity.
@@ -428,15 +390,15 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
       }
     }
   } else if (isCurated) {
-    // On homepage hot/top/random: max of user filter and homepage threshold
+    // On homepage lit/top: max of user filter and homepage threshold
     // null (show all) defers to the homepage threshold on curated feeds
     postsSatsFilter = postsSatsFilter == null
       ? HOMEPAGE_POSTS_SATS_FILTER
       : Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
   }
 
-  // On curated feeds (hot/top/random), your own items are filtered like everyone else's.
-  // On recent/notifications, your own items always pass the filter.
+  // On curated feeds (lit/top), your own items are filtered like everyone else's.
+  // On new/notifications, your own items always pass the filter.
   if (isDesperados) {
     return invertedInvestmentClause(postsSatsFilter, commentsSatsFilter)
   }
@@ -483,9 +445,9 @@ export default {
       return count
     },
     items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit }, ctx) => {
-      const { me, models, userLoader, subLoader } = ctx
+      const { me, models, userLoader } = ctx
       const decodedCursor = decodeCursor(cursor)
-      let items, user, pins, subFull, table, ad
+      let items, user, pins, table
 
       // special authorization for bookmarks depending on owning users' privacy settings
       if (type === 'bookmarks' && name && me?.name !== name) {
@@ -535,7 +497,6 @@ export default {
                 `"${table}"."userId" = $3`,
                 activeOrMine(me),
                 typeClause(type),
-                by === 'boost' && '"Item".boost > 0',
                 whenClause(when || 'forever', table))}
               ${orderByClause(by, me, models, type)}
               OFFSET $4
@@ -543,7 +504,7 @@ export default {
             orderBy: orderByClause(by, me, models, type)
           }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
-        case 'recent':
+        case 'new':
           items = await itemQueryWithMeta({
             me,
             models,
@@ -556,7 +517,7 @@ export default {
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
-                await filterClause(type, sub, 'recent', ctx),
+                await filterClause(type, sub, 'new', ctx),
                 typeClause(type),
                 muteClause(me)
               )}
@@ -581,133 +542,72 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 activeOrMine(me),
+                '"Item".status = \'ACTIVE\'',
                 await filterClause(type, sub, 'top', ctx),
-                by === 'boost' && '"Item".boost > 0',
                 muteClause(me))}
-              ${orderByClause(by || 'zaprank', me, models, type, sub)}
+              ${orderByClause(by || 'sats', me, models, type, sub)}
               OFFSET $3
               LIMIT $4`,
-            orderBy: orderByClause(by || 'zaprank', me, models, type, sub)
+            orderBy: orderByClause(by || 'sats', me, models, type, sub)
           }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           break
-        case 'random':
+        default:
+          if (decodedCursor.offset === 0) {
+            // get pins for the page and return those separately
+            pins = await itemQueryWithMeta({
+              me,
+              models,
+              query: `
+              SELECT rank_filter.*
+                FROM (
+                  ${SELECT}, position,
+                  rank() OVER (
+                      PARTITION BY "pinId"
+                      ORDER BY "Item".created_at DESC
+                  )
+                  FROM "Item"
+                  JOIN "Pin" ON "Item"."pinId" = "Pin".id
+                  ${payInJoinFilter(me)}
+                  ${whereClause(
+                    '"pinId" IS NOT NULL',
+                    '"parentId" IS NULL',
+                    sub ? '"Item"."subNames" @> ARRAY[$1]::CITEXT[]' : '"Item"."subNames" IS NULL',
+                    muteClause(me))}
+              ) rank_filter WHERE RANK = 1
+              ORDER BY position ASC`,
+              orderBy: 'ORDER BY position ASC'
+            }, ...subArr)
+          }
+
           items = await itemQueryWithMeta({
             me,
             models,
             query: `
-              ${selectClause(type)}
-              ${relationClause(type)}
-              ${whereClause(
-                '"Item"."deletedAt" IS NULL',
-                '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 2',
-                '"Item"."ncomments" > 0',
-                '"Item"."parentId" IS NULL',
-                '"Item".bio = false',
-                type === 'posts' && '"Item"."subNames" IS NOT NULL',
-                subClause(sub, 3, subClauseTable(type), me, showNsfw),
-                typeClause(type),
-                await filterClause(type, sub, 'random', ctx),
-                activeOrMine(me),
-                muteClause(me))}
-              ${orderByClause('random', me, models, type)}
-              OFFSET $1
-              LIMIT $2`,
-            orderBy: orderByClause('random', me, models, type)
+                ${SELECT}
+                FROM "Item"
+                ${payInJoinFilter(me)}
+                ${whereClause(
+                  // in home (sub undefined), filter out global pinned items since we inject them later
+                  sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)',
+                  '"Item"."deletedAt" IS NULL',
+                  '"Item"."parentId" IS NULL',
+                  '"Item".bio = false',
+                  activeOrMine(me),
+                  '"Item".status = \'ACTIVE\'',
+                  await filterClause(type, sub, 'lit', ctx),
+                  subClause(sub, 3, 'Item', me, showNsfw),
+                  muteClause(me))}
+                ORDER BY ranklit DESC, "Item".id DESC
+                OFFSET $1
+                LIMIT $2`,
+            orderBy: 'ORDER BY ranklit DESC, "Item".id DESC'
           }, decodedCursor.offset, limit, ...subArr)
-          break
-        default:
-          // sub so we know the default ranking
-          if (sub) {
-            subFull = await subLoader.load(sub)
-          }
-
-          switch (subFull?.rankingType) {
-            case 'AUCTION':
-              items = await itemQueryWithMeta({
-                me,
-                models,
-                query: `
-                  ${SELECT},
-                    (boost IS NOT NULL AND boost > 0)::INT AS group_rank,
-                    CASE WHEN boost IS NOT NULL AND boost > 0
-                         THEN rank() OVER (ORDER BY rankboost DESC, "Item".created_at ASC)
-                         ELSE rank() OVER (ORDER BY "Item".created_at DESC) END AS rank
-                    FROM "Item"
-                    ${payInJoinFilter(me)}
-                    ${whereClause(
-                      '"parentId" IS NULL',
-                      '"Item"."deletedAt" IS NULL',
-                      activeOrMine(me),
-                      '"Item".created_at <= $1',
-                      '"pinId" IS NULL',
-                      subClause(sub, 4)
-                    )}
-                    ORDER BY group_rank DESC, rank
-                  OFFSET $2
-                  LIMIT $3`,
-                orderBy: 'ORDER BY group_rank DESC, rank'
-              }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
-              break
-            default:
-              if (decodedCursor.offset === 0) {
-                // get pins for the page and return those separately
-                pins = await itemQueryWithMeta({
-                  me,
-                  models,
-                  query: `
-                  SELECT rank_filter.*
-                    FROM (
-                      ${SELECT}, position,
-                      rank() OVER (
-                          PARTITION BY "pinId"
-                          ORDER BY "Item".created_at DESC
-                      )
-                      FROM "Item"
-                      JOIN "Pin" ON "Item"."pinId" = "Pin".id
-                      ${payInJoinFilter(me)}
-                      ${whereClause(
-                        '"pinId" IS NOT NULL',
-                        '"parentId" IS NULL',
-                        sub ? '"Item"."subNames" @> ARRAY[$1]::CITEXT[]' : '"Item"."subNames" IS NULL',
-                        muteClause(me))}
-                  ) rank_filter WHERE RANK = 1
-                  ORDER BY position ASC`,
-                  orderBy: 'ORDER BY position ASC'
-                }, ...subArr)
-              }
-
-              items = await itemQueryWithMeta({
-                me,
-                models,
-                query: `
-                    ${SELECT}
-                    FROM "Item"
-                    ${payInJoinFilter(me)}
-                    ${whereClause(
-                      // in home (sub undefined), filter out global pinned items since we inject them later
-                      sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)',
-                      '"Item"."deletedAt" IS NULL',
-                      '"Item"."parentId" IS NULL',
-                      '"Item".bio = false',
-                      ad ? `"Item".id <> ${ad.id}` : '',
-                      activeOrMine(me),
-                      await filterClause(type, sub, 'hot', ctx),
-                      subClause(sub, 3, 'Item', me, showNsfw),
-                      muteClause(me))}
-                    ORDER BY rankhot DESC, "Item".id DESC
-                    OFFSET $1
-                    LIMIT $2`,
-                orderBy: 'ORDER BY rankhot DESC, "Item".id DESC'
-              }, decodedCursor.offset, limit, ...subArr)
-              break
-          }
           break
       }
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items,
-        pins,
-        ad
+        pins
       }
     },
     item: getItem,
@@ -1123,9 +1023,9 @@ export default {
     },
     boost: async (item, args, { models, me }) => {
       if (me?.id !== item.userId) {
-        return item.boost + item.oldBoost
+        return item.boost
       }
-      return (item.boost + item.oldBoost) + msatsToSats(BigInt(item.mePendingBoostMsats || 0))
+      return item.boost + msatsToSats(BigInt(item.mePendingBoostMsats || 0))
     },
     credits: async (item, args, { models, me }) => {
       if (me?.id === item.userId) {
@@ -1139,6 +1039,8 @@ export default {
     commentCredits: async (item, args, { models }) => {
       return msatsToSats(item.commentMcredits)
     },
+    commentCost: async (item) => item.commentCost || 0,
+    commentBoost: async (item) => item.commentBoost || 0,
     isJob: async (item, args, { models }) => {
       return item.subNames?.includes('jobs') ?? false
     },
@@ -1541,9 +1443,6 @@ export const updateItem = async (parent, { forward, hash, hmac, ...item }, { me,
     throw new GqlInputError('item does not belong to you')
   }
 
-  // in case they lied about their existing boost
-  await validateSchema(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
-
   const user = await models.user.findUnique({ where: { id: meId } })
 
   // edits are only allowed for own items within 10 minutes
@@ -1565,7 +1464,7 @@ export const updateItem = async (parent, { forward, hash, hmac, ...item }, { me,
     item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio` }
   } else if (old.parentId) {
     // prevent editing a comment like a post
-    item = { id: Number(item.id), text: item.text, boost: item.boost }
+    item = { id: Number(item.id), text: item.text }
   } else {
     item.forwardUsers = await getForwardUsers(models, forward)
   }

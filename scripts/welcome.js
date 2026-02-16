@@ -100,7 +100,7 @@ async function fetchRecentBios () {
   // since the last bio we already included in a post as defined by FETCH_AFTER.
   const { items: { items: bios } } = await gql(
     `query NewBios($limit: Limit!) {
-      items(sort: "recent", type: "bios", limit: $limit) {
+      items(sort: "new", type: "bios", limit: $limit) {
         items {
           id
           title

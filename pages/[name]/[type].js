@@ -46,7 +46,7 @@ function UserItemsHeader ({ type, name }) {
   async function select (values) {
     let { type, ...query } = values
     if (!type || type === 'all' || !ITEM_TYPES_USER.includes(type)) type = 'all'
-    if (!query.by || query.by === 'recent' || !ITEM_SORTS.includes(query.by)) delete query.by
+    if (!query.by || query.by === 'new' || !ITEM_SORTS.includes(query.by)) delete query.by
     if (!query.when || query.when === 'forever' || !WHENS.includes(query.when) || query.when === 'forever') delete query.when
     if (query.when !== 'custom') { delete query.from; delete query.to }
     if (query.from && !query.to) return
@@ -58,7 +58,7 @@ function UserItemsHeader ({ type, name }) {
   }
 
   type ||= router.query.type || 'all'
-  const by = router.query.by || 'recent'
+  const by = router.query.by || 'new'
   const when = router.query.when || 'forever'
 
   return (
@@ -82,7 +82,7 @@ function UserItemsHeader ({ type, name }) {
             name='by'
             size='sm'
             overrideValue={by}
-            items={['recent', ...ITEM_SORTS]}
+            items={['new', ...ITEM_SORTS]}
             onChange={(formik, e) => select({ ...formik?.values, by: e.target.value })}
           />
           for

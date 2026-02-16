@@ -385,39 +385,4 @@ describe('PayIn Edge Cases', () => {
       expect(cost2).toBeGreaterThan(cost1)
     })
   })
-
-  describe('Beneficiary chains', () => {
-    it('should handle nested beneficiaries correctly', async () => {
-      const user = await createTestUser(models, {
-        msats: satsToMsats(1000)
-      })
-      testUsers.push(user)
-
-      // Create post with boost (boost is a beneficiary)
-      const result = await pay('ITEM_CREATE', {
-        title: 'Boosted Post',
-        text: 'Content',
-        uploadIds: [],
-        boost: 10, // This creates a beneficiary
-        userId: user.id
-      }, {
-        models,
-        me: user
-      })
-
-      expect(result.payInState).toBe('PAID')
-
-      // Verify beneficiary was created
-      const beneficiaries = await models.payIn.findMany({
-        where: { benefactorId: result.id }
-      })
-
-      expect(beneficiaries.length).toBeGreaterThan(0)
-
-      // Verify both main payIn and beneficiary are PAID
-      for (const beneficiary of beneficiaries) {
-        expect(beneficiary.payInState).toBe('PAID')
-      }
-    })
-  })
 })

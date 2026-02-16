@@ -76,7 +76,7 @@ async function getHottestItem ({ models }) {
     AND "Item"."weightedVotes" - "Item"."weightedDownVotes" > ${WEIGHTED_VOTE_THRESHOLD}
     AND NOT "Item".bio
     AND "Item"."deletedAt" IS NULL
-    ORDER BY "Item"."rankhot" DESC
+    ORDER BY "Item"."ranklit" DESC
     LIMIT 1`
 
   if (item.length === 0) {

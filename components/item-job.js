@@ -7,15 +7,33 @@ import styles from './item.module.css'
 import Link from 'next/link'
 import { timeSince } from '@/lib/time'
 import EmailIcon from '@/svgs/mail-open-line.svg'
-import Share from './share'
+import Share, { CopyLinkDropdownItem } from './share'
 import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
-import { abbrNum } from '@/lib/format'
 import { Badge } from 'react-bootstrap'
 import SubPopover from './sub-popover'
-import { PayInInfo } from './item-info'
+import { numWithUnits } from '@/lib/format'
+import { PayInInfo, InfoDropdownItem } from './item-info'
+import Boost from './boost-button'
+import ActionDropdown from './action-dropdown'
+import DontLikeThisDropdownItem from './dont-link-this'
+import BookmarkDropdownItem from './bookmark'
+import SubscribeDropdownItem from './subscribe'
+import MuteDropdownItem from './mute'
+import { useMe } from './me'
+
+function CompanyImage ({ item }) {
+  return (
+    <Link href={`/items/${item.id}`}>
+      <Image
+        src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
+      />
+    </Link>
+  )
+}
 
 export default function ItemJob ({ item, toc, rank, children, ...props }) {
+  const { me } = useMe()
   const isEmail = string().email().isValidSync(item.url)
 
   return (
@@ -27,11 +45,13 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
           </div>)
         : <div />}
       <div className={styles.item}>
-        <Link href={`/items/${item.id}`}>
-          <Image
-            src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
-          />
-        </Link>
+        {item.mine
+          ? (
+            <div className={styles.jobBoostGroup}>
+              <Boost item={item} />
+              <CompanyImage item={item} />
+            </div>)
+          : <CompanyImage item={item} />}
         <div className={`${styles.hunk} align-self-center mb-0`}>
           <div className={`${styles.main} flex-wrap d-inline`}>
             <Link href={`/items/${item.id}`} className={`${styles.title} text-reset me-2`}>
@@ -42,6 +62,10 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
             </Link>
           </div>
           <div className={styles.other}>
+            <span>
+              {numWithUnits(item.sats + item.boost + item.cost)}
+            </span>
+            <span> \ </span>
             {item.company &&
               <>
                 {item.company}
@@ -53,7 +77,6 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
               </>}
             <wbr />
             <span> \ </span>
-            {item.boost > 0 && <span>{abbrNum(item.boost)} boost \ </span>}
             <span>
               <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
                 @{item.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={item.user} />
@@ -82,6 +105,19 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
                   </Link>
                   <PayInInfo item={item} {...props} />
                 </>)}
+            <ActionDropdown>
+              <CopyLinkDropdownItem item={item} />
+              <InfoDropdownItem item={item} />
+              {me && <BookmarkDropdownItem item={item} />}
+              {me && <SubscribeDropdownItem item={item} />}
+              {me && !item.mine &&
+                <DontLikeThisDropdownItem item={item} />}
+              {me && !item.mine &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <MuteDropdownItem user={item.user} />
+                </>}
+            </ActionDropdown>
           </div>
         </div>
         {toc &&

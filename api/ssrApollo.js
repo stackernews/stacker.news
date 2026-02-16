@@ -104,7 +104,7 @@ function oneDayReferral (request, { me }) {
       if (['api', 'auth', 'day', 'invites', 'invoices', 'referrals', 'rewards',
         'satistics', 'settings', 'stackers', 'wallet', 'withdrawals', '404', '500',
         'email', 'live', 'login', 'notifications', 'offline', 'search', 'share',
-        'signup', 'territory', 'recent', 'top', 'edit', 'post', 'rss', 'saloon',
+        'signup', 'territory', 'new', 'top', 'edit', 'post', 'rss', 'saloon',
         'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily',
         'anon', 'ad'].includes(name)) continue
 

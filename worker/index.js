@@ -37,7 +37,6 @@ import {
 import { thisDay } from './thisDay'
 import { isServiceEnabled } from '@/lib/sndev'
 import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts'
-import { expireBoost } from './expireBoost'
 import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
 import { untrackOldItems } from './untrackOldItems'
@@ -129,7 +128,6 @@ async function work () {
     await boss.work('imgproxy', jobWrapper(imgproxy))
     await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   }
-  await boss.work('expireBoost', jobWrapper(expireBoost))
   await boss.work('weeklyPost-*', jobWrapper(weeklyPost))
   await boss.work('payWeeklyPostBounty', jobWrapper(payWeeklyPostBounty))
   await boss.work('repin-*', jobWrapper(repin))

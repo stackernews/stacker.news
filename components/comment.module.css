@@ -4,6 +4,11 @@
     padding-top: 0 !important;
 }
 
+.searchComment {
+    border: 1px solid var(--theme-note-reply);
+    margin-bottom: 0.5rem;
+}
+
 .upvote {
     margin-top: 9px;
     padding-right: 0.2rem;

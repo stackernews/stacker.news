@@ -284,8 +284,8 @@ export const ACT_MUTATION = gql`
 export const UPSERT_DISCUSSION = gql`
   ${PAY_IN_FIELDS}
   mutation upsertDiscussion($subNames: [String!]!, $id: ID, $title: String!, $text: String,
-    $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
-    upsertDiscussion(subNames: $subNames, id: $id, title: $title, text: $text, boost: $boost,
+    $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
+    upsertDiscussion(subNames: $subNames, id: $id, title: $title, text: $text,
       forward: $forward, ${HASH_HMAC_INPUT_2}) {
       ...PayInFields
     }
@@ -294,11 +294,11 @@ export const UPSERT_DISCUSSION = gql`
 export const UPSERT_JOB = gql`
   ${PAY_IN_FIELDS}
   mutation upsertJob($subNames: [String!]!, $id: ID, $title: String!, $company: String!,
-    $location: String, $remote: Boolean, $text: String!, $url: String!, $boost: Int,
+    $location: String, $remote: Boolean, $text: String!, $url: String!,
     $status: String, $logo: Int) {
     upsertJob(subNames: $subNames, id: $id, title: $title, company: $company,
       location: $location, remote: $remote, text: $text,
-      url: $url, boost: $boost, status: $status, logo: $logo) {
+      url: $url, status: $status, logo: $logo) {
       ...PayInFields
     }
   }`
@@ -306,9 +306,9 @@ export const UPSERT_JOB = gql`
 export const UPSERT_LINK = gql`
   ${PAY_IN_FIELDS}
   mutation upsertLink($subNames: [String!]!, $id: ID, $title: String!, $url: String!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
+    $text: String, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
     upsertLink(subNames: $subNames, id: $id, title: $title, url: $url, text: $text,
-      boost: $boost, forward: $forward, ${HASH_HMAC_INPUT_2}) {
+      forward: $forward, ${HASH_HMAC_INPUT_2}) {
       ...PayInFields
     }
   }`
@@ -316,10 +316,10 @@ export const UPSERT_LINK = gql`
 export const UPSERT_POLL = gql`
   ${PAY_IN_FIELDS}
   mutation upsertPoll($subNames: [String!]!, $id: ID, $title: String!, $text: String,
-    $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $pollExpiresAt: Date,
+    $options: [String!]!, $forward: [ItemForwardInput], $pollExpiresAt: Date,
     $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}) {
     upsertPoll(subNames: $subNames, id: $id, title: $title, text: $text,
-      options: $options, boost: $boost, forward: $forward, pollExpiresAt: $pollExpiresAt,
+      options: $options, forward: $forward, pollExpiresAt: $pollExpiresAt,
       randPollOptions: $randPollOptions, ${HASH_HMAC_INPUT_2}) {
       ...PayInFields
     }
@@ -328,9 +328,9 @@ export const UPSERT_POLL = gql`
 export const UPSERT_BOUNTY = gql`
   ${PAY_IN_FIELDS}
   mutation upsertBounty($subNames: [String!]!, $id: ID, $title: String!, $bounty: Int!,
-    $text: String, $boost: Int, $forward: [ItemForwardInput]) {
+    $text: String, $forward: [ItemForwardInput]) {
     upsertBounty(subNames: $subNames, id: $id, title: $title, bounty: $bounty, text: $text,
-      boost: $boost, forward: $forward) {
+      forward: $forward) {
       ...PayInFields
     }
   }`
@@ -361,8 +361,8 @@ export const CREATE_COMMENT = gql`
 
 export const UPDATE_COMMENT = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertComment($id: ID!, $text: String!, $boost: Int, ${HASH_HMAC_INPUT_1}) {
-    upsertComment(id: $id, text: $text, boost: $boost, ${HASH_HMAC_INPUT_2}) {
+  mutation upsertComment($id: ID!, $text: String!, ${HASH_HMAC_INPUT_1}) {
+    upsertComment(id: $id, text: $text, ${HASH_HMAC_INPUT_2}) {
       ...PayInFields
     }
   }`

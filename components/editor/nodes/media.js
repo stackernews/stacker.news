@@ -222,7 +222,7 @@ const PROXY_TIMEOUT_MS = 5000
 function useProxyFallback (media) {
   const { me } = useMe()
   const [fallbackSrc, setFallbackSrc] = useState(null)
-  const { addMedia, confirmMedia, removeMedia } = useCarousel()
+  const { addMedia, confirmMedia, removeMedia } = media.editable ? {} : (useCarousel() || {})
   const timeoutRef = useRef(null)
 
   const canFallback = useMemo(() => {
@@ -254,10 +254,10 @@ function useProxyFallback (media) {
   // when falling back, update carousel to use the original URL
   useEffect(() => {
     if (!fallbackSrc) return
-    removeMedia(media.bestResSrc)
-    addMedia({ src: fallbackSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
-    confirmMedia(fallbackSrc)
-  }, [fallbackSrc, media.bestResSrc, media.originalSrc, addMedia, confirmMedia, removeMedia])
+    !editable && removeMedia(media.bestResSrc)
+    !editable && addMedia({ src: fallbackSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
+    !editable && confirmMedia(fallbackSrc)
+  }, [fallbackSrc, media.bestResSrc, media.originalSrc, addMedia, confirmMedia, removeMedia, editable])
 
   // returns true if fallback was triggered, false if caller should handle the error
   const onProxyError = useCallback(() => {
@@ -288,7 +288,7 @@ export function MediaOrLink ({ linkFallback = true, editable, innerClassName, me
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
   const { showCarousel, addMedia, confirmMedia, removeMedia } = editable ? {} : (useCarousel() || {})
-  const { src, srcSet, sizes, bestResSrc, onProxyError, cancelTimeout } = useProxyFallback(media)
+  const { src, srcSet, sizes, bestResSrc, onProxyError, cancelTimeout } = useProxyFallback({ ...media, editable })
 
   // register placeholder immediately on mount if we have a src
   useEffect(() => {

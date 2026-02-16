@@ -208,6 +208,7 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
 
 const PROXY_TIMEOUT_MS = 5000
 
+// TODO: handle the editable/nocarousel case properly
 /**
  * When the imgproxy fails (e.g. on GIFs or flaky responses), try loading the
  * original URL directly instead of showing the error placeholder.
@@ -254,10 +255,10 @@ function useProxyFallback (media) {
   // when falling back, update carousel to use the original URL
   useEffect(() => {
     if (!fallbackSrc) return
-    !editable && removeMedia(media.bestResSrc)
-    !editable && addMedia({ src: fallbackSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
-    !editable && confirmMedia(fallbackSrc)
-  }, [fallbackSrc, media.bestResSrc, media.originalSrc, addMedia, confirmMedia, removeMedia, editable])
+    !media.editable && removeMedia(media.bestResSrc)
+    !media.editable && addMedia({ src: fallbackSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
+    !media.editable && confirmMedia(fallbackSrc)
+  }, [fallbackSrc, media.bestResSrc, media.originalSrc, addMedia, confirmMedia, removeMedia, media.editable])
 
   // returns true if fallback was triggered, false if caller should handle the error
   const onProxyError = useCallback(() => {
@@ -283,6 +284,7 @@ function useProxyFallback (media) {
   }
 }
 
+// TODO: handle the editable/nocarousel case properly
 export function MediaOrLink ({ linkFallback = true, editable, innerClassName, mediaRef, ...props }) {
   const media = useMediaHelper({ ...props, editable })
   const [isLoading, setIsLoading] = useState(true)

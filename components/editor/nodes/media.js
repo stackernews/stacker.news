@@ -1,7 +1,7 @@
 import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $getNodeByKey, CLICK_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical'
+import { $getNodeByKey } from 'lexical'
 import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
 import { useCarousel } from '@/components/carousel'
 import { useMe } from '@/components/me'
@@ -10,8 +10,7 @@ import FileError from '@/svgs/editor/file-error.svg'
 import preserveScroll from '@/components/preserve-scroll'
 import { $replaceNodeWithLink } from '@/lib/lexical/nodes/utils'
 import { useLexicalEditable } from '@lexical/react/useLexicalEditable'
-import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection'
-import { mergeRegister } from '@lexical/utils'
+import useDecoratorNodeSelection from '@/components/editor/hooks/use-decorator-selection'
 
 function LinkRaw ({ className, children, src, rel }) {
   const isRawURL = /^https?:\/\//.test(children?.[0])
@@ -123,26 +122,13 @@ const Media = memo(function Media ({
 export default function MediaComponent ({ src, srcSet, bestResSrc, width, height, alt, title, kind: initialKind, linkFallback = true, nodeKey }) {
   const [editor] = useLexicalComposerContext()
   const editable = useLexicalEditable()
-  const [isSelected, setSelected, clearSelection] =
-  useLexicalNodeSelection(nodeKey)
-  const [kind, setKind] = useState()
   const mediaRef = useRef(null)
+  const [kind, setKind] = useState()
 
-  const onClick = useCallback((payload) => {
-    const event = payload
-    if (event.target === mediaRef.current) {
-      if (event.shiftKey) {
-        setSelected(!isSelected)
-      } else {
-        clearSelection()
-        setSelected(true)
-      }
-      return true
-    }
-    return false
-  }, [isSelected, clearSelection, setSelected])
-
-  const isFocused = editable && isSelected
+  const { isFocused } = useDecoratorNodeSelection(nodeKey, {
+    ref: mediaRef,
+    deletable: false
+  })
 
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
 
@@ -176,16 +162,6 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       }
     })
   }, [kind, $replaceWithLink, $confirmMedia, editor])
-
-  useEffect(() => {
-    return mergeRegister(
-      editor.registerCommand(
-        CLICK_COMMAND,
-        onClick,
-        COMMAND_PRIORITY_LOW
-      )
-    )
-  }, [editor, onClick])
 
   return (
     <MediaOrLink

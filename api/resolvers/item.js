@@ -373,25 +373,22 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
     postsSatsFilter = user.postsSatsFilter
   }
 
-  if (sub) {
-    const territory = await subLoader.load(sub)
-    if (territory) {
-      if (isCurated) {
-        // On curated feeds: territory's filter is authoritative
-        postsSatsFilter = territory.postsSatsFilter
-      } else {
-        // On new: use the lower of user's and territory's filter so either
-        // party can relax the threshold. For logged-out users, use only
-        // the territory's filter (ignoring the logged-out default).
-        // null (show all) beats any number since it's conceptually -infinity.
-        postsSatsFilter = me
-          ? (postsSatsFilter == null ? null : Math.min(postsSatsFilter, territory.postsSatsFilter))
-          : territory.postsSatsFilter
-      }
-    }
+  const territory = sub ? await subLoader.load(sub) : null
+
+  if (sort === 'top' && me) {
+    // top sort, logged in: user's own filter, no overrides
+  } else if (territory && isCurated) {
+    // lit (or top logged-out) in territory: territory is authoritative
+    postsSatsFilter = territory.postsSatsFilter
+  } else if (territory) {
+    // non-curated in territory: most permissive of user/territory
+    // null (show all) beats any number since it's conceptually -infinity
+    postsSatsFilter = me
+      ? (postsSatsFilter == null ? null : Math.min(postsSatsFilter, territory.postsSatsFilter))
+      : territory.postsSatsFilter
   } else if (isCurated) {
-    // On homepage lit/top: max of user filter and homepage threshold
-    // null (show all) defers to the homepage threshold on curated feeds
+    // homepage curated: enforce homepage minimum
+    // null (show all) defers to the homepage threshold
     postsSatsFilter = postsSatsFilter == null
       ? HOMEPAGE_POSTS_SATS_FILTER
       : Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)

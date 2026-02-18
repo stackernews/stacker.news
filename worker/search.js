@@ -1,6 +1,7 @@
 import { gql } from 'graphql-tag'
 import search from '@/api/search/index'
 import removeMd from 'remove-markdown'
+import { msatsToSats } from '@/lib/format'
 
 const ITEM_SEARCH_FIELDS = gql`
   fragment ItemSearchFields on Item {
@@ -132,30 +133,173 @@ export async function indexItem ({ data: { id, updatedAt }, apollo, models }) {
   await _indexItem(item, { models, updatedAt })
 }
 
-export async function indexAllItems ({ apollo, models }) {
-  // cursor over all items in the Item table
-  let items = []; let cursor = null
-  do {
-    // query for items
-    ({ data: { items: { items, cursor } } } = await apollo.query({
-      query: gql`
-          ${ITEM_SEARCH_FIELDS}
-          query AllItems($cursor: String) {
-            items(cursor: $cursor, sort: "new", limit: 1000, type: "all") {
-              items {
-                ...ItemSearchFields
-              }
-              cursor
-            }
-          }`,
-      variables: { cursor }
-    }))
+export async function indexAllItems ({ models, boss }) {
+  const BATCH_SIZE = 1000
+  let lastId = 0
+  let total = 0
 
-    // for all items, index them
-    try {
-      items.forEach(i => _indexItem(i, { models }))
-    } catch (e) {
-      // ignore errors
+  const osIndex = process.env.OPENSEARCH_INDEX
+  const exists = await search.indices.exists({ index: osIndex })
+  if (!exists.body) {
+    console.log(`indexAllItems: index '${osIndex}' does not exist yet, retrying in 30s`)
+    await boss.send('indexAllItems', {}, { startAfter: 30 })
+    return
+  }
+
+  const itemCount = await models.item.count()
+  const idxSettings = await search.indices.getSettings({ index: osIndex })
+  const pipeline = idxSettings.body[osIndex]?.settings?.index?.default_pipeline
+  console.log(`indexAllItems: starting, ${itemCount} items to index`)
+
+  await search.indices.putSettings({
+    index: osIndex,
+    body: { index: { refresh_interval: '-1' } }
+  })
+
+  try {
+    while (true) {
+      console.log(`indexAllItems: fetching batch (after id ${lastId})`)
+      const items = await models.item.findMany({
+        where: { id: { gt: lastId } },
+        orderBy: { id: 'asc' },
+        take: BATCH_SIZE,
+        select: {
+          id: true,
+          parentId: true,
+          createdAt: true,
+          updatedAt: true,
+          title: true,
+          text: true,
+          url: true,
+          userId: true,
+          subNames: true,
+          status: true,
+          company: true,
+          location: true,
+          remote: true,
+          upvotes: true,
+          boost: true,
+          lastCommentAt: true,
+          ncomments: true,
+          rootId: true,
+          msats: true,
+          mcredits: true,
+          commentMsats: true,
+          commentMcredits: true,
+          cost: true,
+          commentCost: true,
+          commentBoost: true,
+          weightedVotes: true,
+          weightedDownVotes: true,
+          ranktop: true,
+          user: { select: { name: true } },
+          root: { select: { subNames: true } },
+          Bookmark: { select: { userId: true } }
+        }
+      })
+
+      if (items.length === 0) break
+      lastId = items[items.length - 1].id
+
+      const body = items.flatMap(item => {
+        const doc = {
+          ...item,
+          sats: msatsToSats(item.msats),
+          credits: msatsToSats(item.mcredits),
+          commentSats: msatsToSats(item.commentMsats),
+          commentCredits: msatsToSats(item.commentMcredits),
+          wvotes: item.weightedVotes - item.weightedDownVotes,
+          subNames: item.subNames?.length > 0
+            ? item.subNames
+            : (item.root?.subNames || []),
+          bookmarkedBy: item.Bookmark.map(b => b.userId)
+        }
+
+        // job title hack: append company/location so they're searchable
+        if (item.company) doc.title = `${doc.title} \\ ${item.company}`
+        if (item.location || item.remote) {
+          doc.title = `${doc.title} \\ ${item.location || ''}${item.location && item.remote ? ' or ' : ''}${item.remote ? 'Remote' : ''}`
+        }
+        if (item.text) doc.text = removeMd(item.text)
+
+        // clean up relation/raw fields not needed in the index
+        delete doc.Bookmark
+        delete doc.root
+        delete doc.msats
+        delete doc.mcredits
+        delete doc.commentMsats
+        delete doc.commentMcredits
+
+        return [
+          { index: { _index: osIndex, _id: item.id } },
+          doc
+        ]
+      })
+
+      console.log(`indexAllItems: sending ${items.length} items to opensearch`)
+      const result = await search.bulk({ body, pipeline: '_none' })
+      if (result.body.errors) {
+        const errors = result.body.items.filter(i => i.index?.error)
+        console.error(`indexAllItems: ${errors.length} bulk errors`, errors.slice(0, 3))
+      }
+
+      total += items.length
+      const pct = Math.round((total / itemCount) * 100)
+      console.log(`indexAllItems: ${total}/${itemCount} items indexed (${pct}%, last id: ${lastId})`)
+
+      if (items.length < BATCH_SIZE) break
     }
-  } while (cursor)
+
+    console.log(`indexAllItems complete: ${total} items indexed`)
+
+    if (!pipeline) {
+      console.log('indexAllItems: no default pipeline configured, skipping embedding backfill')
+      return
+    }
+
+    await search.indices.refresh({ index: osIndex })
+    console.log('indexAllItems: refreshed index before embedding backfill')
+
+    console.log(`indexAllItems: backfilling embeddings via pipeline '${pipeline}'`)
+    const task = await search.updateByQuery({
+      index: osIndex,
+      pipeline,
+      wait_for_completion: false,
+      scroll_size: 200,
+      requests_per_second: 200,
+      body: { query: { match_all: {} } }
+    })
+
+    const taskId = task.body.task
+    console.log(`indexAllItems: embedding backfill started (task: ${taskId})`)
+
+    const POLL_INTERVAL_MS = 10_000
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
+
+      const status = await search.tasks.get({ task_id: taskId })
+      const t = status.body.task.status
+      const pct = t.total ? Math.round((t.updated / t.total) * 100) : 0
+      console.log(`indexAllItems: embeddings ${t.updated}/${t.total} (${pct}%), ` +
+        `created: ${t.created}, deleted: ${t.deleted}, conflicts: ${t.version_conflicts}`)
+
+      if (status.body.completed) {
+        const failures = status.body.response?.failures || []
+        if (failures.length > 0) {
+          console.error(`indexAllItems: embedding backfill completed with ${failures.length} failures`,
+            failures.slice(0, 5))
+        } else {
+          console.log(`indexAllItems: embedding backfill complete — ${t.updated} documents processed`)
+        }
+        break
+      }
+    }
+  } finally {
+    await search.indices.putSettings({
+      index: osIndex,
+      body: { index: { refresh_interval: null } }
+    })
+    await search.indices.refresh({ index: osIndex })
+    console.log('indexAllItems: refresh interval restored and index refreshed')
+  }
 }

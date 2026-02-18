@@ -144,7 +144,7 @@ PUT /item-nlp
         "dimension": 768,
         "method": {
           "engine": "lucene",
-          "space_type": "l2",
+          "space_type": "cosinesimil",
           "name": "hnsw",
           "parameters": {}
         }
@@ -154,7 +154,7 @@ PUT /item-nlp
         "dimension": 768,
         "method": {
           "engine": "lucene",
-          "space_type": "l2",
+          "space_type": "cosinesimil",
           "name": "hnsw",
           "parameters": {}
         }

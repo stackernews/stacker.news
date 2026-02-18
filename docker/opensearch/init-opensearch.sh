@@ -462,7 +462,7 @@ create_neural_index () {
             \"dimension\": 768,
             \"method\": {
               \"engine\": \"lucene\",
-              \"space_type\": \"l2\",
+              \"space_type\": \"cosinesimil\",
               \"name\": \"hnsw\",
               \"parameters\": {}
             }
@@ -472,7 +472,7 @@ create_neural_index () {
             \"dimension\": 768,
             \"method\": {
               \"engine\": \"lucene\",
-              \"space_type\": \"l2\",
+              \"space_type\": \"cosinesimil\",
               \"name\": \"hnsw\",
               \"parameters\": {}
             }
@@ -507,7 +507,7 @@ ensure_neural_index () {
             \"dimension\": 768,
             \"method\": {
               \"engine\": \"lucene\",
-              \"space_type\": \"l2\",
+              \"space_type\": \"cosinesimil\",
               \"name\": \"hnsw\",
               \"parameters\": {}
             }
@@ -517,7 +517,7 @@ ensure_neural_index () {
             \"dimension\": 768,
             \"method\": {
               \"engine\": \"lucene\",
-              \"space_type\": \"l2\",
+              \"space_type\": \"cosinesimil\",
               \"name\": \"hnsw\",
               \"parameters\": {}
             }

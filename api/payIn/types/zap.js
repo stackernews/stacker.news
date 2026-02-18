@@ -17,27 +17,16 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
+async function tryP2P (models, { sats, hasSendWallet }, { me }, item) {
   if (me.id !== USER_ID.anon) {
     const zapper = await models.user.findUnique({ where: { id: me.id } })
-    // if the zap is dust, or if me doesn't have a send wallet but has enough sats/credits to pay for it
-    // then we don't invoice the peer
     if (sats < zapper?.sendCreditsBelowSats ||
       (!hasSendWallet && (zapper.mcredits + zapper.msats >= satsToMsats(sats)))) {
       return false
     }
   }
 
-  const item = await models.item.findUnique({
-    where: { id: parseInt(id) },
-    include: {
-      itemForwards: true,
-      user: true
-    }
-  })
-
-  // bios, forwards, freebies, or dust don't get sats - only credits
-  if (item.bio || item.freebie || item.itemForwards.length > 0 || sats < item.user.receiveCreditsBelowSats) {
+  if (item.bio || item.freebie) {
     return false
   }
 
@@ -52,50 +41,52 @@ async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
 //    if p2p, 27% to rewards pool, 3% to routing fee
 //    if not p2p, all 30% to rewards pool
 export async function getInitial (models, payInArgs, { me }) {
-  const { subNames, parentId, itemForwards, userId } = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { itemForwards: true, user: true } })
+  const item = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { itemForwards: { include: { user: true } }, user: true } })
+  const { subNames, parentId, itemForwards, userId, user } = item
   const subs = await getSubs(models, { subNames, parentId })
   const mcost = satsToMsats(payInArgs.sats)
   let payOutBolt11
 
-  let zapMtokens = mcost * 70n / 100n
+  const zapMtokens = mcost * 70n / 100n
   const payOutCustodialTokensProspects = []
 
-  const p2p = await tryP2P(models, payInArgs, { me })
+  // build unified candidate list: explicit forwards + author's implicit remaining share
+  const authorPct = 100 - itemForwards.reduce((acc, f) => acc + f.pct, 0)
+  const isEligibleAuthor = userId !== USER_ID.anon && userId !== USER_ID.rewards && userId !== USER_ID.saloon
+  const candidates = [
+    ...itemForwards.map(f => ({ userId: f.userId, pct: f.pct, receiveCreditsBelowSats: f.user.receiveCreditsBelowSats })),
+    ...(isEligibleAuthor && authorPct > 0 ? [{ userId, pct: authorPct, receiveCreditsBelowSats: user.receiveCreditsBelowSats }] : [])
+  ].sort((a, b) => b.pct - a.pct)
+
+  let p2pCandidateUserId = null
+  const p2p = await tryP2P(models, payInArgs, { me }, item)
   if (p2p) {
-    try {
-      // 3% to routing fee
-      const routingFeeMtokens = mcost * 3n / 100n
+    const routingFeeMtokens = mcost * 3n / 100n
 
-      // if the user is anon or doesn't have a send wallet, we need to make sure the invoice can be wrapped
-      // because we are forced to display a QR code in these cases
-      let testBolt11Func
-      if (me.id === USER_ID.anon || !payInArgs.hasSendWallet) {
-        testBolt11Func = async (bolt11) => await canWrapBolt11({ msats: zapMtokens, bolt11, maxRoutingFeeMsats: routingFeeMtokens })
+    for (const c of candidates) {
+      const candidateMtokens = zapMtokens * BigInt(c.pct) / 100n
+      if (msatsToSats(candidateMtokens) < c.receiveCreditsBelowSats) continue
+
+      try {
+        let testBolt11Func
+        if (me.id === USER_ID.anon || !payInArgs.hasSendWallet) {
+          testBolt11Func = async (bolt11) => await canWrapBolt11({ msats: candidateMtokens, bolt11, maxRoutingFeeMsats: routingFeeMtokens })
+        }
+
+        payOutBolt11 = await payOutBolt11Prospect(models, { msats: candidateMtokens, description: 'SN: zap to item #' + parseInt(payInArgs.id) }, { userId: c.userId, payOutType: 'ZAP' }, testBolt11Func)
+        p2pCandidateUserId = c.userId
+        payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
+        break
+      } catch (err) {
+        console.error('failed to create invoice for candidate:', err)
       }
-
-      // TODO: description, expiry?
-      payOutBolt11 = await payOutBolt11Prospect(models, { msats: zapMtokens, description: 'SN: zap to item #' + parseInt(payInArgs.id) }, { userId, payOutType: 'ZAP' }, testBolt11Func)
-      // some wallets truncate msats, so we need to update zapMtokens to the actual amount received
-      zapMtokens = payOutBolt11.msats
-      payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
-    } catch (err) {
-      console.error('failed to create user invoice:', err)
     }
   }
 
-  if (!payOutBolt11) {
-    if (itemForwards.length > 0) {
-      for (const f of itemForwards) {
-        payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId: f.userId, mtokens: zapMtokens * BigInt(f.pct) / 100n, custodialTokenType: 'CREDITS' })
-      }
-    }
-    const remainingZapMtokens = zapMtokens - payOutCustodialTokensProspects.filter(t => t.payOutType === 'ZAP').reduce((acc, t) => acc + t.mtokens, 0n)
-    if (remainingZapMtokens > 0n) {
-      // if the user is anon, rewards, or saloon, we send the zap to the rewards pool via getRedistributedPayOutCustodialTokens
-      if (userId !== USER_ID.anon && userId !== USER_ID.rewards && userId !== USER_ID.saloon) {
-        payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
-      }
-    }
+  // distribute CCs to all candidates who didn't get P2P
+  for (const c of candidates) {
+    if (c.userId === p2pCandidateUserId) continue
+    payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId: c.userId, mtokens: zapMtokens * BigInt(c.pct) / 100n, custodialTokenType: 'CREDITS' })
   }
 
   // what's left goes to the rewards pool

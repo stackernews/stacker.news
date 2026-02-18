@@ -157,7 +157,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
   const handleFormat = useCallback((type) => editor.dispatchCommand(SN_FORMAT_COMMAND, type), [editor])
   const handleFormatBlock = useCallback((block) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, block), [editor])
   const handleToggleLink = useCallback(() => editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND), [editor])
-  const handleInsertMath = useCallback((type) => editor.dispatchCommand(SN_INSERT_MATH_COMMAND, type), [editor])
+  const handleInsertMath = useCallback((inline) => editor.dispatchCommand(SN_INSERT_MATH_COMMAND, { inline }), [editor])
 
   const $updateToolbar = useCallback(() => {
     const updates = {}
@@ -280,6 +280,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           >
             {/* TODO: clean this, do this right, add inline math option */}
             <DropdownMenuItem option={{ id: 'math', name: 'math', icon: <MathIcon />, type: 'math' }} onAction={() => handleInsertMath()} />
+            <DropdownMenuItem option={{ id: 'inlineMath', name: 'inline math', icon: <MathIcon />, type: 'inlineMath' }} onAction={() => handleInsertMath(true)} />
           </ToolbarDropdown>
         </div>
         <ActionTooltip notForm overlayText={toolbarState.showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>

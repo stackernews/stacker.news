@@ -31,7 +31,7 @@ export default function ModeSwitchPlugin () {
     <Nav variant='tabs' activeKey={toolbarState.markdownMode ? 'markdown' : 'rich'} onSelect={handleTabSelect}>
       <Nav.Item>
         <Nav.Link className={styles.modeTab} eventKey='markdown' title='markdown'>
-          markdown
+          md
         </Nav.Link>
       </Nav.Item>
       <Nav.Item>
@@ -40,7 +40,7 @@ export default function ModeSwitchPlugin () {
           eventKey='rich'
           title='rich text'
         >
-          rich text
+          rich
         </Nav.Link>
       </Nav.Item>
     </Nav>

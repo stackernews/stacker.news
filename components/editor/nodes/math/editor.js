@@ -1,20 +1,16 @@
 import { forwardRef } from 'react'
-import { isHTMLElement } from '@lexical/utils'
+import classNames from 'classnames'
+import styles from '@/lib/lexical/theme/editor.module.css'
 
 export default forwardRef(function MathEditor ({ math, setMath, inline }, ref) {
-  const onChange = (e) => {
-    setMath(e.target.value)
-  }
-
-  return inline && isHTMLElement(ref)
-    ? (
-      <div>
-        <textarea ref={ref} value={math} onChange={(e) => setMath(e.target.value)} />
-      </div>
-      )
-    : (
-      <div>
-        <textarea ref={ref} value={math} onChange={onChange} />
-      </div>
-      )
+  return (
+    <div style={{ display: inline ? 'inline-block' : 'block' }}>
+      <textarea
+        ref={ref}
+        value={math}
+        onChange={(e) => setMath(e.target.value)}
+        className={classNames(styles.mathEditor, inline && styles.inlineMathEditor)}
+      />
+    </div>
+  )
 })

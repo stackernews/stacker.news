@@ -230,8 +230,11 @@
 }
 
 .sn-media__img {
-  cursor: zoom-in;
   object-position: left top;
+}
+
+[data-sn-reader="true"] .sn-media__img {
+  cursor: zoom-in;
 }
 
 .sn-media__error {

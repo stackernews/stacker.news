@@ -33,6 +33,7 @@ import { RichTextExtension } from '@lexical/rich-text'
 import DefaultNodes from '@/lib/lexical/nodes'
 import { CheckListExtension, ListExtension } from '@lexical/list'
 import { LinkExtension } from '@lexical/link'
+import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
 import { TableExtension } from '@lexical/table'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
 import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
@@ -56,7 +57,8 @@ const RICH_MODE = {
     CheckListExtension,
     LinkExtension,
     TableExtension,
-    GalleryExtension
+    GalleryExtension,
+    AutoLinkExtension
   ],
   nodes: DefaultNodes
 }

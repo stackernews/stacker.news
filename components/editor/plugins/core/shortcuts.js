@@ -8,6 +8,7 @@ import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import { TOGGLE_MODE_COMMAND } from '@/components/editor/plugins/toolbar/switch'
 import { SUBMIT_FORMIK_COMMAND } from '@/components/editor/plugins/core/formik'
+import { SN_INSERT_MATH_COMMAND } from '@/lib/lexical/commands/math'
 
 export const SHORTCUTS = {
   link: {
@@ -69,6 +70,14 @@ export const SHORTCUTS = {
   codeblock: {
     key: 'mod+alt+KeyC',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_BLOCK_COMMAND, 'code')
+  },
+  inlineMath: {
+    key: 'mod+shift+KeyM',
+    handler: (editor) => editor.dispatchCommand(SN_INSERT_MATH_COMMAND, { inline: true })
+  },
+  math: {
+    key: 'mod+alt+KeyM',
+    handler: (editor) => editor.dispatchCommand(SN_INSERT_MATH_COMMAND)
   },
   upload: {
     key: 'mod+KeyU',

@@ -19,7 +19,10 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
 
   // keep formik in sync
   useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
+    return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
+      // skip non-content updates
+      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return
+
       editorState.read(() => {
         // if editor is empty, set empty string for formik validation
         if ($isMarkdownEmpty()) {
@@ -28,7 +31,6 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
         }
 
         const text = toolbarState.markdownMode ? $getMarkdown() : $lexicalToMarkdown()
-
         textHelpers.setValue(text)
       })
     })

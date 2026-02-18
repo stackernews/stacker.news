@@ -126,6 +126,7 @@ export async function onPaid (tx, payInId) {
   const sats = msatsToSats(msats)
   const userId = payIn.userId
   const item = payIn.itemPayIn.item
+  const creditMsats = payIn.payOutBolt11 ? msats - payIn.payOutBolt11.msats : msats
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
@@ -164,7 +165,7 @@ export async function onPaid (tx, payInId) {
         "subWeightedVotes" = "subWeightedVotes" + zapper."subZapTrust" * zap.log_sats,
         upvotes = upvotes + zap.first_vote,
         msats = "Item".msats + ${msats}::BIGINT,
-        mcredits = "Item".mcredits + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT,
+        mcredits = "Item".mcredits + ${creditMsats}::BIGINT,
         "lastZapAt" = now()
       FROM zap, zapper
       WHERE "Item".id = ${item.id}::INTEGER
@@ -178,7 +179,7 @@ export async function onPaid (tx, payInId) {
     UPDATE "Item"
     SET "weightedComments" = "Item"."weightedComments" + item_zapped."weightedVote",
       "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
-      "commentMcredits" = "Item"."commentMcredits" + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT
+      "commentMcredits" = "Item"."commentMcredits" + ${creditMsats}::BIGINT
     FROM item_zapped, ancestors
     WHERE "Item".id = ancestors.id`
 

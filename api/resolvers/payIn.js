@@ -16,6 +16,7 @@ function payInResultType (payInType) {
     case 'ZAP':
     case 'DOWN_ZAP':
     case 'BOOST':
+    case 'BOUNTY_PAYMENT':
       return 'ItemAct'
     case 'POLL_VOTE':
       return 'PollVote'
@@ -133,7 +134,7 @@ export default {
           SELECT "PayIn".*
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'BOUNTY_PAYMENT')
           AND "PayIn"."userId" = ${me.id}
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."benefactorId" IS NULL

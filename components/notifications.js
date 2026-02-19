@@ -445,9 +445,10 @@ function PayInFailed ({ n }) {
   const mutationOptions = { update: updatePayIn, onRetry: updatePayIn, protocolLimit: 1 }
   const retryPayIn = useRetryPayIn(payIn.id, mutationOptions)
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
-  const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
-  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
-  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
+  const actOptimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
+  const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: item.root?.bounty ?? msatsToSats(payIn.mcost), act: 'TIP', path: item.path, __typename: 'ItemAct', payIn } } }
+  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { ...mutationOptions, optimisticResponse: bountyOptimisticResponse })
+  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { ...mutationOptions, optimisticResponse: actOptimisticResponse })
 
   const [actionString, colorClass, retry] = useMemo(() => {
     let retry
@@ -456,20 +457,18 @@ function PayInFailed ({ n }) {
     if (payIn.payInType === 'ITEM_CREATE') {
       actionString = `${itemType} create `
       retry = retryPayIn
+    } else if (payIn.payInType === 'BOUNTY_PAYMENT') {
+      actionString = `bounty payment on ${itemType} `
+      retry = retryBountyPayIn
     } else {
-      if (payIn.payInType === 'ZAP' && item.root?.bounty === msatsToSats(payIn.mcost) && item.root?.mine) {
-        actionString = 'bounty payment'
-        retry = retryBountyPayIn
-      } else {
-        if (payIn.payInType === 'ZAP') {
-          actionString = 'zap'
-        } else if (payIn.payInType === 'DOWN_ZAP') {
-          actionString = 'downzap'
-        } else if (payIn.payInType === 'BOOST') {
-          actionString = 'boost'
-        }
-        retry = retryItemActPayIn
+      if (payIn.payInType === 'ZAP') {
+        actionString = 'zap'
+      } else if (payIn.payInType === 'DOWN_ZAP') {
+        actionString = 'downzap'
+      } else if (payIn.payInType === 'BOOST') {
+        actionString = 'boost'
       }
+      retry = retryItemActPayIn
       actionString = `${actionString} on ${itemType} `
     }
     let colorClass = 'info'

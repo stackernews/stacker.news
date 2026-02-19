@@ -44,6 +44,10 @@ export function isProxyPayment (payIn) {
   return payIn.payInType === 'PROXY_PAYMENT'
 }
 
+export function isBountyPayment (payIn) {
+  return payIn.payInType === 'BOUNTY_PAYMENT'
+}
+
 export function isWithdrawal (payIn) {
   return payIn.payInType === 'WITHDRAWAL' || payIn.payInType === 'AUTO_WITHDRAWAL'
 }

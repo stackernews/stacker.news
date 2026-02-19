@@ -190,25 +190,6 @@ export async function onPaid (tx, payInId) {
       "commentMcredits" = "Item"."commentMcredits" + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT
     FROM item_zapped, ancestors
     WHERE "Item".id = ancestors.id`
-
-  // record potential bounty payment
-  // NOTE: we are at least guaranteed that we see the update "ItemUserAgg" from our tx so we can trust
-  // we won't miss a zap that aggregates into a bounty payment, regardless of the order of updates
-  await tx.$executeRaw`
-    WITH bounty AS (
-      SELECT root.id, "ItemUserAgg"."zapSats" >= root.bounty AS paid, "ItemUserAgg"."itemId" AS target
-      FROM "ItemUserAgg"
-      JOIN "Item" ON "Item".id = "ItemUserAgg"."itemId"
-      LEFT JOIN "Item" root ON root.id = "Item"."rootId"
-      WHERE "ItemUserAgg"."userId" = ${userId}::INTEGER
-      AND "ItemUserAgg"."itemId" = ${item.id}::INTEGER
-      AND root."userId" = ${userId}::INTEGER
-      AND root.bounty IS NOT NULL
-    )
-    UPDATE "Item"
-    SET "bountyPaidTo" = array_remove(array_append(array_remove("bountyPaidTo", bounty.target), bounty.target), NULL)
-    FROM bounty
-    WHERE "Item".id = bounty.id AND bounty.paid`
 }
 
 export async function onPaidSideEffects (models, payInId) {

@@ -538,7 +538,7 @@ export default {
           SELECT *
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'BOUNTY_PAYMENT')
           AND "PayIn"."userId" = ${me.id}
           AND "PayIn"."successorId" IS NULL
           -- help the query planner by narrowing the range of the timestamp

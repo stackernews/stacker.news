@@ -184,7 +184,6 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
 
 const PROXY_TIMEOUT_MS = 5000
 
-// TODO: handle the editable/nocarousel case properly
 /**
  * When the imgproxy fails (e.g. on GIFs or flaky responses), try loading the
  * original URL directly instead of showing the error placeholder.
@@ -196,10 +195,12 @@ const PROXY_TIMEOUT_MS = 5000
  * an `onProxyError` callback that returns true if a fallback was triggered,
  * and a `cancelTimeout` to clear the proxy timer on successful load.
  */
-function useProxyFallback (media) {
+function useProxyFallback (media, editable) {
   const { me } = useMe()
   const [fallbackSrc, setFallbackSrc] = useState(null)
-  const { addMedia, confirmMedia, removeMedia } = media.editable ? {} : (useCarousel() || {})
+  const rawCarousel = useCarousel()
+  const carousel = editable ? {} : (rawCarousel || {})
+  const { addMedia, confirmMedia, removeMedia } = carousel
   const timeoutRef = useRef(null)
 
   const canFallback = useMemo(() => {
@@ -231,12 +232,11 @@ function useProxyFallback (media) {
   // when falling back, update carousel to use the original URL
   useEffect(() => {
     if (!fallbackSrc) return
-    !media.editable && removeMedia(media.bestResSrc)
-    !media.editable && addMedia({ src: fallbackSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
-    !media.editable && confirmMedia(fallbackSrc)
-  }, [fallbackSrc, media.bestResSrc, media.originalSrc, addMedia, confirmMedia, removeMedia, media.editable])
+    removeMedia?.(media.bestResSrc)
+    addMedia?.({ src: fallbackSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
+    confirmMedia?.(fallbackSrc)
+  }, [fallbackSrc, media.bestResSrc, media.originalSrc, addMedia, confirmMedia, removeMedia])
 
-  // returns true if fallback was triggered, false if caller should handle the error
   const onProxyError = useCallback(() => {
     clearTimeout(timeoutRef.current)
     if (canFallback) {
@@ -260,36 +260,35 @@ function useProxyFallback (media) {
   }
 }
 
-// TODO: handle the editable/nocarousel case properly
 export function MediaOrLink ({ linkFallback = true, editable, innerClassName, mediaRef, ...props }) {
   const media = useMediaHelper({ ...props, editable })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
-  const { showCarousel, addMedia, confirmMedia, removeMedia } = editable ? {} : (useCarousel() || {})
-  const { src, srcSet, sizes, bestResSrc, onProxyError, cancelTimeout } = useProxyFallback({ ...media, editable })
+  const rawCarousel = useCarousel()
+  const carousel = editable ? {} : (rawCarousel || {})
+  const { showCarousel, addMedia, confirmMedia, removeMedia } = carousel
+  const { src, srcSet, sizes, bestResSrc, onProxyError, cancelTimeout } = useProxyFallback(media, editable)
 
-  // register placeholder immediately on mount if we have a src
   useEffect(() => {
     if (!media.bestResSrc) return
-    !editable && addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
-  }, [addMedia, media.bestResSrc, media.originalSrc, editable])
+    addMedia?.({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
+  }, [addMedia, media.bestResSrc, media.originalSrc])
 
-  // confirm media for carousel based on image detection
   useEffect(() => {
     if (!media.image) return
-    !editable && confirmMedia(media.bestResSrc)
-  }, [confirmMedia, media.image, media.bestResSrc, editable])
+    confirmMedia?.(media.bestResSrc)
+  }, [confirmMedia, media.image, media.bestResSrc])
 
-  const handleClick = useCallback(() => !editable && showCarousel({ src: bestResSrc }),
-    [showCarousel, bestResSrc, editable])
+  const handleClick = useCallback(() => showCarousel?.({ src: bestResSrc }),
+    [showCarousel, bestResSrc])
 
   const handleError = useCallback((err) => {
     console.error('Error loading media', err)
     if (onProxyError()) return
-    !editable && removeMedia(bestResSrc)
+    removeMedia?.(bestResSrc)
     setError(true)
     setIsLoading(false)
-  }, [onProxyError, removeMedia, bestResSrc, editable])
+  }, [onProxyError, removeMedia, bestResSrc])
 
   const handleLoad = useCallback(() => {
     cancelTimeout()

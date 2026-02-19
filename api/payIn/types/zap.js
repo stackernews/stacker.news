@@ -61,12 +61,11 @@ export async function getInitial (models, payInArgs, { me }) {
   let p2pCandidateUserId = null
   const p2p = await tryP2P(models, payInArgs, { me }, item)
   if (p2p) {
-    const routingFeeMtokens = mcost * 3n / 100n
-
     for (const c of candidates) {
       const candidateMtokens = zapMtokens * BigInt(c.pct) / 100n
       if (msatsToSats(candidateMtokens) < c.receiveCreditsBelowSats) continue
 
+      const routingFeeMtokens = candidateMtokens * 3n / 70n
       try {
         let testBolt11Func
         if (me.id === USER_ID.anon || !payInArgs.hasSendWallet) {
@@ -126,7 +125,9 @@ export async function onPaid (tx, payInId) {
   const sats = msatsToSats(msats)
   const userId = payIn.userId
   const item = payIn.itemPayIn.item
-  const creditMsats = payIn.payOutBolt11 ? msats - payIn.payOutBolt11.msats : msats
+  const p2pMsats = payIn.payOutBolt11?.msats ?? 0n
+  const recipientMsats = msats * 70n / 100n
+  const creditMsats = recipientMsats > 0n ? msats - msats * p2pMsats / recipientMsats : msats
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking

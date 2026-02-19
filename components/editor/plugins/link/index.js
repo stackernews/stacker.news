@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { $findMatchingParent, mergeRegister } from '@lexical/utils'
-import { $isAutoLinkNode, $isLinkNode } from '@lexical/link'
+import { $createAutoLinkNode, $isAutoLinkNode, $isLinkNode } from '@lexical/link'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
   PASTE_COMMAND,
@@ -77,7 +77,7 @@ export default function LinkEditorPlugin ({ anchorElem }) {
         PASTE_COMMAND,
         (event) => {
           const selection = $getSelection()
-          if (!$isRangeSelection(selection) || selection.isCollapsed()) return false
+          if (!$isRangeSelection(selection)) return false
 
           const text = event.clipboardData?.getData('text/plain')?.trim()
           if (!text || !URL_REGEXP.test(text)) return false
@@ -87,8 +87,14 @@ export default function LinkEditorPlugin ({ anchorElem }) {
           const href = ensureProtocol(removeTracking(text))
           if (!href) return false
 
-          editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, href)
-          return true
+          if (!selection.isCollapsed()) {
+            editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, href)
+            return true
+          } else {
+            const autolink = $createAutoLinkNode(href)
+            selection.insertNodes([autolink])
+            return true
+          }
         }, COMMAND_PRIORITY_HIGH
       ))
   }, [editor, nodeKey, anchorElem, handleSelectionChange])

@@ -43,6 +43,7 @@ import { normalizeCodeLanguage } from '@lexical/code-shiki'
 import { ListNode } from '@lexical/list'
 import { SN_INSERT_MATH_COMMAND } from '@/lib/lexical/commands/math'
 import MathIcon from '@/svgs/editor/toolbar/inserts/formula.svg'
+import MathOperationsIcon from '@/svgs/editor/toolbar/inserts/math-operations.svg'
 
 const BLOCK_OPTIONS = [
   { id: 'paragraph', name: 'paragraph', icon: <BlocksIcon />, block: 'paragraph' },
@@ -278,9 +279,12 @@ export function ToolbarPlugin ({ name, topLevel }) {
             onAction={({ type }) => handleFormat(type)}
             arrow={false}
           >
-            {/* TODO: clean this, do this right, add inline math option */}
+            <div className={styles.separator}>
+              <span className='text-muted small fw-bold text-uppercase ps-1 pe-1'>inserts</span>
+            </div>
+            {/* TODO: clean this, do this right */}
             <DropdownMenuItem option={{ id: 'math', name: 'math', icon: <MathIcon />, type: 'math' }} onAction={() => handleInsertMath()} />
-            <DropdownMenuItem option={{ id: 'inlineMath', name: 'inline math', icon: <MathIcon />, type: 'inlineMath' }} onAction={() => handleInsertMath(true)} />
+            <DropdownMenuItem option={{ id: 'inlineMath', name: 'inline math', icon: <MathOperationsIcon />, type: 'inlineMath' }} onAction={() => handleInsertMath(true)} />
           </ToolbarDropdown>
         </div>
         <ActionTooltip notForm overlayText={toolbarState.showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>

@@ -664,3 +664,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--theme-grey);
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 2px solid var(--theme-grey);
+}
+
+.separator:not(:empty)::after {
+  margin-left: .25em;
+}

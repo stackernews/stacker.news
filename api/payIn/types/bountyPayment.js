@@ -71,15 +71,17 @@ export async function getInitial (models, { id }, { me }) {
 
 export async function onBegin (tx, payInId, payInArgs) {
   const item = await getItemResult(tx, { id: payInArgs.id })
-  const root = await tx.item.findUnique({ where: { id: item.rootId }, select: { bounty: true } })
-  return { id: item.id, path: item.path, sats: root.bounty, act: 'TIP' }
+  const { payOutBolt11 } = await tx.payIn.findUnique({ where: { id: payInId }, include: { payOutBolt11: true } })
+  return { id: item.id, path: item.path, sats: msatsToSats(payOutBolt11.msats), act: 'TIP' }
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  const { itemId } = await tx.itemPayIn.findUnique({ where: { payInId: oldPayInId } })
+  const { itemId, payIn } = await tx.itemPayIn.findUnique({
+    where: { payInId: oldPayInId },
+    include: { payIn: { include: { payOutBolt11: true } } }
+  })
   const item = await getItemResult(tx, { id: itemId })
-  const root = await tx.item.findUnique({ where: { id: item.rootId }, select: { bounty: true } })
-  return { id: item.id, path: item.path, sats: root.bounty, act: 'TIP' }
+  return { id: item.id, path: item.path, sats: msatsToSats(payIn.payOutBolt11.msats), act: 'TIP' }
 }
 
 export async function onPaid (tx, payInId) {
@@ -113,9 +115,9 @@ export async function onPaidSideEffects (models, payInId) {
 export async function describe (models, payInId) {
   const payIn = await models.payIn.findUnique({
     where: { id: payInId },
-    include: { itemPayIn: { include: { item: { include: { root: true } } } } }
+    include: { payOutBolt11: true, itemPayIn: true }
   })
-  const bounty = payIn.itemPayIn.item.root?.bounty ?? msatsToSats(payIn.mcost)
+  const bounty = msatsToSats(payIn.payOutBolt11.msats)
   const fee = Math.ceil(bounty * 3 / 100)
   return `SN: bounty ${numWithUnits(bounty, { abbreviate: false })} + ${numWithUnits(fee, { abbreviate: false })} proxy fee #${payIn.itemPayIn.itemId}`
 }

@@ -200,7 +200,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
     }
 
     batchUpdateToolbarState(updates)
-  }, [])
+  }, [batchUpdateToolbarState])
 
   useEffect(() => {
     // markdown mode doesn't support toolbar updates
@@ -248,7 +248,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
     <div className={styles.toolbar}>
       <ModeSwitchPlugin name={name} />
       <div className={styles.innerToolbar}>
-        <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !toolbarState.showFormattingToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
+        <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !toolbarState.showToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
           <ToolbarDropdown
             icon={<BlocksIcon />}
             tooltip='blocks'
@@ -288,7 +288,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           </ToolbarDropdown>
         </div>
         <ActionTooltip notForm overlayText={toolbarState.showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
-          <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, toolbarState.showFormattingToolbar && styles.active)} onClick={() => updateToolbarState('showFormattingToolbar', !toolbarState.showFormattingToolbar)}>
+          <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, toolbarState.showToolbar && styles.active)} onClick={() => updateToolbarState('showToolbar', !toolbarState.showToolbar)}>
             <FontStyleIcon />
           </span>
         </ActionTooltip>

@@ -178,13 +178,18 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     })
   }, [editor, $updateLink])
 
-  // update position
+  // throttled update of position
   useEffect(() => {
     const scrollerElem = anchorElem?.parentElement
+    let rafId = null
 
     const update = () => {
-      editor.getEditorState().read(() => {
-        $updateLink()
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null
+        editor.getEditorState().read(() => {
+          $updateLink()
+        })
       })
     }
 
@@ -193,6 +198,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     update()
 
     return () => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
       window.removeEventListener('resize', update)
       scrollerElem?.removeEventListener('scroll', update)
     }

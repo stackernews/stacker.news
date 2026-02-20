@@ -47,12 +47,15 @@ export default function LocalDraftPlugin ({ name }) {
         })
       }
     }
-  }, [editor, storageKey, toolbarState.markdownMode])
+  }, [editor, storageKey])
 
   // save the draft to local storage
   useEffect(() => {
     // whenever the editor state changes, save the markdown draft
-    return editor.registerUpdateListener(({ editorState }) => {
+    return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
+      // skip non-content updates
+      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return
+
       editorState.read(() => {
         const text = toolbarState.markdownMode
           ? $getMarkdown(false)

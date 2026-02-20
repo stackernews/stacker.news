@@ -51,7 +51,10 @@ export default function LinkEditorPlugin ({ anchorElem }) {
         const node = nodes[0]
         const parent = node.getParent()
 
-        if ($isLinkNode(parent) || $isLinkNode(node)) {
+        if ($isLinkNode(parent)) {
+          isLink = true
+          linkNodeKey = parent.getKey()
+        } else if ($isLinkNode(node)) {
           isLink = true
           linkNodeKey = node.getKey()
         }

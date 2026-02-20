@@ -282,15 +282,13 @@ function useLexicalUploadFees (editor) {
       const text = $getRoot().getTextContent() || ''
       const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
       updateUploadFees({ variables: { s3Keys } })
+      console.log('s3Keys markdown', s3Keys)
     } else {
-      // TODO: EXPERIMENTAL please cleanup
       const mediaNodes = $nodesOfType(MediaNode)
       const s3Keys = mediaNodes
-        .map(node => {
-          const match = AWS_S3_URL_REGEXP.exec(node.getSrc())
-          return match ? Number(match[1]) : null
-        })
-        .filter(key => key !== null)
+        .flatMap(node => [...node.getSrc().matchAll(AWS_S3_URL_REGEXP)])
+        .map(m => Number(m[1]))
+      console.log('s3Keys', s3Keys)
       updateUploadFees({ variables: { s3Keys } })
     }
   }, [updateUploadFees])

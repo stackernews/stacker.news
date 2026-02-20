@@ -286,7 +286,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
             <DropdownMenuItem option={{ id: 'inlineMath', name: 'inline math', icon: <MathOperationsIcon />, type: 'inlineMath' }} onAction={() => handleInsertMath(true)} />
           </ToolbarDropdown>
         </div>
-        <ActionTooltip notForm overlayText={toolbarState.showFormattingToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
+        <ActionTooltip notForm overlayText={toolbarState.showToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
           <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, toolbarState.showToolbar && styles.active)} onClick={() => updateToolbarState('showToolbar', !toolbarState.showToolbar)}>
             <FontStyleIcon />
           </span>

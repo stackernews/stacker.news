@@ -365,7 +365,7 @@ export default {
           "PayIn"."payInStateChangedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'PayInification' AS type
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'BOUNTY_PAYMENT')
           AND "PayIn"."userId" = $1
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."benefactorId" IS NULL

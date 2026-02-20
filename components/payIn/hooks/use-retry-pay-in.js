@@ -30,6 +30,6 @@ export function useRetryBountyPayIn (payInId, mutationOptions = {}) {
       mutationOptions.onPaid?.(cache, { data })
     }
   }
-  const retryPayIn = useAct({ query: RETRY_PAY_IN, ...options, variables: { payInId } })
+  const [retryPayIn] = usePayInMutation(RETRY_PAY_IN, { ...options, variables: { payInId } })
   return retryPayIn
 }

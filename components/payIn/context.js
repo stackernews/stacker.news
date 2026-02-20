@@ -14,6 +14,7 @@ export function PayInContext ({ payIn }) {
     case 'ZAP':
     case 'BOOST':
     case 'POLL_VOTE':
+    case 'BOUNTY_PAYMENT':
       return (
         <>
           {(!payIn.item.title && <CommentFlat item={payIn.item} includeParent noReply truncate />) ||

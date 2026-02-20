@@ -441,13 +441,39 @@ function PayInFailed ({ n }) {
     })
   }, [n.id])
 
+  const revertPayIn = useCallback((_error, cache, { data }) => {
+    const retryResult = Object.values(data)[0]
+    if (!retryResult?.id) return
+    cache.writeFragment({
+      id: `PayInification:${n.id}`,
+      fragment: gql`
+        fragment __ on PayInification {
+          payIn {
+            id
+            payInState
+            payInStateChangedAt
+          }
+        }
+      `,
+      data: {
+        payIn: {
+          __typename: 'PayIn',
+          id: retryResult.id,
+          payInState: 'FAILED',
+          payInStateChangedAt: new Date().toISOString()
+        }
+      }
+    })
+  }, [n.id])
+
   // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
-  const mutationOptions = { update: updatePayIn, onRetry: updatePayIn, protocolLimit: 1 }
+  const mutationOptions = { update: updatePayIn, onRetry: updatePayIn, onPayError: revertPayIn, protocolLimit: 1 }
   const retryPayIn = useRetryPayIn(payIn.id, mutationOptions)
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
-  const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
-  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
-  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
+  const actOptimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
+  const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: item.root?.bounty ?? msatsToSats(payIn.mcost), act: 'TIP', path: item.path, __typename: 'ItemAct', payIn } } }
+  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { ...mutationOptions, optimisticResponse: bountyOptimisticResponse })
+  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { ...mutationOptions, optimisticResponse: actOptimisticResponse })
 
   const [actionString, colorClass, retry] = useMemo(() => {
     let retry
@@ -456,20 +482,18 @@ function PayInFailed ({ n }) {
     if (payIn.payInType === 'ITEM_CREATE') {
       actionString = `${itemType} create `
       retry = retryPayIn
+    } else if (payIn.payInType === 'BOUNTY_PAYMENT') {
+      actionString = `bounty payment on ${itemType} `
+      retry = retryBountyPayIn
     } else {
-      if (payIn.payInType === 'ZAP' && item.root?.bounty === msatsToSats(payIn.mcost) && item.root?.mine) {
-        actionString = 'bounty payment'
-        retry = retryBountyPayIn
-      } else {
-        if (payIn.payInType === 'ZAP') {
-          actionString = 'zap'
-        } else if (payIn.payInType === 'DOWN_ZAP') {
-          actionString = 'downzap'
-        } else if (payIn.payInType === 'BOOST') {
-          actionString = 'boost'
-        }
-        retry = retryItemActPayIn
+      if (payIn.payInType === 'ZAP') {
+        actionString = 'zap'
+      } else if (payIn.payInType === 'DOWN_ZAP') {
+        actionString = 'downzap'
+      } else if (payIn.payInType === 'BOOST') {
+        actionString = 'boost'
       }
+      retry = retryItemActPayIn
       actionString = `${actionString} on ${itemType} `
     }
     let colorClass = 'info'
@@ -583,11 +607,14 @@ function stackedText (item) {
 }
 
 function Votification ({ n }) {
+  const bountyPaid = n.item.root?.bountyPaidTo?.includes(Number(n.item.id))
+  const hasStacked = n.earnedSats > 0
+
   let forwardedSats = 0
   let ForwardedUsers = null
   let stackedTextString
   let forwardedTextString
-  if (n.item.forwards?.length) {
+  if (hasStacked && n.item.forwards?.length) {
     forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
     ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
       <span key={fwd.user.name}>
@@ -598,22 +625,31 @@ function Votification ({ n }) {
       </span>)
     stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
     forwardedTextString = numWithUnits(forwardedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
-  } else {
+  } else if (hasStacked) {
     stackedTextString = stackedText(n.item)
   }
+
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
           <span>
-            your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
-            {n.item.forwards?.length > 0 &&
+            {bountyPaid &&
               <>
-                {' '}and forwarded {forwardedTextString} to{' '}
-                <ForwardedUsers />
+                you received a {numWithUnits(n.item.root.bounty, { abbreviate: false })} bounty
+                {hasStacked && ' and '}
+              </>}
+            {hasStacked &&
+              <>
+                {bountyPaid ? 'stacked' : `your ${n.item.title ? 'post' : 'reply'} stacked`} {stackedTextString}
+                {n.item.forwards?.length > 0 &&
+                  <>
+                    {' '}and forwarded {forwardedTextString} to{' '}
+                    <ForwardedUsers />
+                  </>}
               </>}
           </span>
-          {n.item.credits > 0 && <CCInfo size={16} />}
+          {hasStacked && n.item.credits > 0 && <CCInfo size={16} />}
         </span>
       </NoteHeader>
       <NoteItem item={n.item} />

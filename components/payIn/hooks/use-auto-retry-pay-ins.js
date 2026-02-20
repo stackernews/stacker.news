@@ -11,7 +11,7 @@ export function willAutoRetryPayIn (payIn) {
   if (!payIn || !payIn.payerPrivates) return false
   const { payInState, payInType, payInStateChangedAt, payerPrivates: { payInFailureReason, retryCount } } = payIn
   return payInState !== 'PAID' &&
-    ['ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST'].includes(payInType) &&
+    ['ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'BOUNTY_PAYMENT'].includes(payInType) &&
     retryCount < WALLET_MAX_RETRIES &&
     new Date(payInStateChangedAt) > new Date(Date.now() - WALLET_RETRY_BEFORE_MS) &&
     payInFailureReason !== 'USER_CANCELLED'

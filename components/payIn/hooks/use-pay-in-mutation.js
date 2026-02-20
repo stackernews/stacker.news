@@ -62,7 +62,7 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
     // if the mutation returns in a pending state, it has an invoice we need to pay
     let payError
     if (payIn.payInState === 'PENDING' || payIn.payInState === 'PENDING_HELD') {
-      if (forceWaitForPayment || !me || (payIn.payInState === 'PENDING_HELD' && payIn.payInType !== 'ZAP')) {
+      if (forceWaitForPayment || !me || (payIn.payInState === 'PENDING_HELD' && payIn.payInType !== 'ZAP' && payIn.payInType !== 'BOUNTY_PAYMENT')) {
         // the action is pessimistic
         try {
           // wait for the invoice to be paid

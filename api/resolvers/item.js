@@ -967,6 +967,44 @@ export default {
         throw new GqlInputError('unknown act')
       }
     },
+    payBounty: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      assertApiKeyNotPermitted({ me })
+
+      const item = await models.item.findUnique({
+        where: { id: Number(id) },
+        include: {
+          itemPayIns: {
+            where: {
+              payIn: {
+                payInType: 'ITEM_CREATE',
+                payInState: 'PAID'
+              }
+            }
+          }
+        }
+      })
+
+      if (!item) {
+        throw new GqlInputError('item not found')
+      }
+
+      if (item.itemPayIns.length === 0) {
+        throw new GqlInputError('cannot pay bounty on unpaid item')
+      }
+
+      if (item.deletedAt) {
+        throw new GqlInputError('item is deleted')
+      }
+
+      if (Number(item.userId) === Number(me.id)) {
+        throw new GqlInputError('cannot pay bounty to yourself')
+      }
+
+      return await pay('BOUNTY_PAYMENT', { id }, { me, models })
+    },
     updateCommentsViewAt: async (parent, { id, meCommentsViewedAt }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()

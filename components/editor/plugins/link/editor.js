@@ -30,7 +30,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     setFloatingElemPosition({ targetRect: null, floatingElem: floatingRef.current, anchorElem, fade: false })
   }, [anchorElem])
 
-  const $handleCancel = () => {
+  const handleCancel = () => {
     hideFloatingElem()
     setIsLinkEditMode(false)
     if (linkUrl === '') {
@@ -119,12 +119,12 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     if (!event || !floatingElem.contains(event.relatedTarget)) {
       // if there is no change, or the edited link url is empty, exit edit mode
       if (editedLinkUrl === linkUrl || editedLinkUrl === '') {
-        $handleCancel()
+        handleCancel()
       }
     }
   }, [editedLinkUrl, anchorElem, floatingRef, editor, linkUrl])
 
-  const $linkConfirm = () => {
+  const handleLinkConfirm = () => {
     const value = editedLinkUrl.trim()
     if (value !== '') {
       editor.update(() => {
@@ -224,18 +224,18 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    $linkConfirm()
+                    handleLinkConfirm()
                   } else if (e.key === 'Escape') {
                     e.preventDefault()
-                    $handleCancel()
+                    handleCancel()
                   }
                 }}
               />
               <div className={styles.linkConfirmIcons}>
-                <span className={styles.linkCancelIcon} onMouseDown={(e) => e.preventDefault()} onClick={$handleCancel}>
+                <span className={styles.linkCancelIcon} onMouseDown={(e) => e.preventDefault()} onClick={handleCancel}>
                   X
                 </span>
-                <span className={styles.linkConfirmIcon} onMouseDown={(e) => e.preventDefault()} onClick={$linkConfirm}>
+                <span className={styles.linkConfirmIcon} onMouseDown={(e) => e.preventDefault()} onClick={handleLinkConfirm}>
                   <Check />
                 </span>
               </div>

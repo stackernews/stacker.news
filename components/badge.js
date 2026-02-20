@@ -10,7 +10,7 @@ import { numWithUnits } from '@/lib/format'
 import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
 
-export default function Badges ({ user, badge, bot, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
+export default function Badges ({ user, badge, bot, showWalletBadges, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
   if (!user) return null
   if (Number(user.id) === USER_ID.anon) {
     return (
@@ -32,14 +32,14 @@ export default function Badges ({ user, badge, bot, className = 'ms-1', badgeCla
     })
   }
 
-  if (user.optional.hasRecvWallet) {
+  if (showWalletBadges && user.optional.hasRecvWallet) {
     badges.push({
       icon: HorseIcon,
       overlayText: 'can receive sats'
     })
   }
 
-  if (user.optional.hasSendWallet) {
+  if (showWalletBadges && user.optional.hasSendWallet) {
     badges.push({
       icon: GunIcon,
       sizeDelta: 2,

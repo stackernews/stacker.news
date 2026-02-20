@@ -181,7 +181,7 @@ function NymView ({ user, isMe, setEditting }) {
   const { me } = useMe()
   return (
     <div className='d-flex align-items-center mb-2'>
-      <div className={styles.username}>@{user.name}<Badges className='ms-2' user={user} badgeClassName='fill-grey' /></div>
+      <div className={styles.username}>@{user.name}<Badges showWalletBadges className='ms-2' user={user} badgeClassName='fill-grey' /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
       {!isMe && me && <NymActionDropdown user={user} />}

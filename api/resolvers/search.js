@@ -250,9 +250,9 @@ function sortFunctions (sort, query) {
 }
 
 // Returns base text queries for broad retrieval.
-// Fuzzy best_fields provides recall (at least one term matches).
-// cross_fields with operator 'and' boosts documents where all terms
-// appear across any combination of title/text fields.
+// Fuzzy best_fields provides recall with typo tolerance.
+// Stemmed cross_fields rewards complete matches across title+text.
+// Exact cross_fields rewards unstemmed complete matches.
 function baseTextQueries (query) {
   return [
     {
@@ -260,8 +260,27 @@ function baseTextQueries (query) {
         query,
         type: 'best_fields',
         fields: ['title^10', 'text'],
-        fuzziness: 'AUTO',
-        minimum_should_match: 1
+        fuzziness: 'AUTO:4,7',
+        prefix_length: 2,
+        minimum_should_match: '50%'
+      }
+    },
+    {
+      multi_match: {
+        query,
+        type: 'cross_fields',
+        fields: ['title^10', 'text'],
+        operator: 'and',
+        boost: 2
+      }
+    },
+    {
+      multi_match: {
+        query,
+        type: 'cross_fields',
+        fields: ['title.exact^10', 'text.exact'],
+        operator: 'and',
+        boost: 2
       }
     }
   ]
@@ -280,9 +299,9 @@ function rescoreQuery (query) {
         // phrase match
         { multi_match: { query, type: 'phrase', fields: ['title^10', 'text'], boost: 50 } },
         // exact field match
-        { multi_match: { query, type: 'cross_fields', fields: ['title.exact^10', 'text.exact'], operator: 'and', boost: 10 } },
+        { multi_match: { query, type: 'cross_fields', fields: ['title.exact^10', 'text.exact'], operator: 'and', boost: 40 } },
         // exact phrase match — highest
-        { multi_match: { query, fields: ['title.exact^10', 'text.exact'], type: 'phrase', boost: 100 } }
+        { multi_match: { query, fields: ['title.exact^10', 'text.exact'], type: 'phrase', boost: 400 } }
       ]
     }
   }
@@ -350,7 +369,7 @@ function neuralBoolQuery ({
       function_score: {
         query: boolQuery,
         functions,
-        boost_mode: 'multiply'
+        boost_mode: 'sum'
       }
     }
   }
@@ -456,7 +475,7 @@ function buildSearchQuery ({ filters, termQueries, query, neuralText, functions,
           },
           functions,
           score_mode: 'multiply',
-          boost_mode: 'multiply'
+          boost_mode: 'sum'
         }
       }
     : {
@@ -470,11 +489,11 @@ function buildSearchQuery ({ filters, termQueries, query, neuralText, functions,
   // rescore adjusts scores — skip when sorting by a field (scores ignored)
   const rescore = query.length && functions.length
     ? {
-        window_size: Math.max(LIMIT * 5, 100),
+        window_size: Math.max(LIMIT * 10, 200),
         query: {
           rescore_query: rescoreQuery(query),
           query_weight: 1,
-          rescore_query_weight: 1.2
+          rescore_query_weight: 1.6
         }
       }
     : null

@@ -104,13 +104,15 @@ export function PostForm ({ type, subs, children }) {
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        <SubMultiSelect
-          placeholder='pick territories'
-          className='d-flex'
-          noForm
-          size='medium'
-          subs={subNames(subs)}
-        />
+        {subs.length > 0 && (
+          <SubMultiSelect
+            placeholder='pick territories'
+            className='d-flex'
+            noForm
+            size='medium'
+            subs={subNames(subs)}
+          />
+        )}
         <div>
           {postButtons}
         </div>

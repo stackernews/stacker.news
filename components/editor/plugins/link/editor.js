@@ -30,7 +30,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     setFloatingElemPosition({ targetRect: null, floatingElem: floatingRef.current, anchorElem, fade: false })
   }, [anchorElem])
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     hideFloatingElem()
     setIsLinkEditMode(false)
     if (linkUrl === '') {
@@ -38,7 +38,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
         editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
       })
     }
-  }
+  }, [hideFloatingElem, editor, linkUrl])
 
   useEffect(() => {
     if (isLinkEditMode) {
@@ -110,7 +110,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     const pos = el.getBoundingClientRect()
     pos.y += 26
     setFloatingElemPosition({ targetRect: pos, floatingElem, anchorElem, verticalGap: 8, horizontalOffset: 0, fade: false })
-  }, [anchorElem, editor, setIsLinkEditMode, isLinkEditMode, linkUrl, nodeKey, hideFloatingElem])
+  }, [anchorElem, editor, isLinkEditMode, nodeKey, hideFloatingElem])
 
   const handleBlur = useCallback((event) => {
     const floatingElem = floatingRef.current
@@ -122,7 +122,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
         handleCancel()
       }
     }
-  }, [editedLinkUrl, anchorElem, floatingRef, editor, linkUrl])
+  }, [editedLinkUrl, linkUrl, handleCancel])
 
   const handleLinkConfirm = () => {
     const value = editedLinkUrl.trim()
@@ -158,15 +158,19 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
         SELECTION_CHANGE_COMMAND,
         () => {
           $updateLink()
-        }, COMMAND_PRIORITY_LOW),
-      editor.registerCommand(
-        KEY_ESCAPE_COMMAND,
-        () => {
-          handleBlur()
-          return true
-        }, COMMAND_PRIORITY_HIGH)
+        }, COMMAND_PRIORITY_LOW)
     )
-  }, [editor, nodeKey, $updateLink])
+  }, [editor, $updateLink])
+
+  // escape key
+  useEffect(() => {
+    return editor.registerCommand(
+      KEY_ESCAPE_COMMAND,
+      () => {
+        handleBlur()
+        return true
+      }, COMMAND_PRIORITY_HIGH)
+  }, [editor, handleBlur])
 
   useEffect(() => {
     editor.getEditorState().read(() => {
@@ -192,7 +196,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
       window.removeEventListener('resize', update)
       scrollerElem?.removeEventListener('scroll', update)
     }
-  }, [editor, nodeKey, anchorElem])
+  }, [editor, anchorElem, $updateLink])
 
   // blur from input or anchor element
   useEffect(() => {

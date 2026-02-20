@@ -83,32 +83,38 @@ export default function PayBounty ({ children, item }) {
     return null
   }
 
-  return (
-    <ActionTooltip
-      notForm
-      overlayText={`${numWithUnits(bounty)} + ${numWithUnits(proxyFee)} proxy fee`}
-    >
-      <div
-        className={styles.pay} onClick={() => {
-          showModal(onClose => (
-            <>
-              <div className='text-center fw-bold text-muted'>
-                Pay this bounty to {item.user.name}?
-              </div>
-              <div className='text-center text-muted mt-2'>
-                {numWithUnits(bounty)} + {numWithUnits(proxyFee)} proxy fee
-              </div>
-              <Form className='text-center' onSubmit={() => handlePayBounty(onClose)} initial={{ id: item.id }}>
-                <SubmitButton className='mt-4' variant='primary' submittingText='paying...' appendText={numWithUnits(totalCost)}>
-                  pay
-                </SubmitButton>
-              </Form>
-            </>
-          ))
-        }}
+  if (!item.user.optional?.hasRecvWallet) {
+    return (
+      <ActionTooltip
+        notForm
+        overlayText={`${item.user.name} doesn't have a receive wallet to pay to`}
       >
-        pay bounty
-      </div>
-    </ActionTooltip>
+        <div className={styles.noWallet}>no receive wallet</div>
+      </ActionTooltip>
+    )
+  }
+
+  return (
+    <div
+      className={styles.pay} onClick={() => {
+        showModal(onClose => (
+          <>
+            <div className='text-center fw-bold text-muted'>
+              Pay this bounty to {item.user.name}?
+            </div>
+            <div className='text-center text-muted mt-2'>
+              {numWithUnits(bounty)} + {numWithUnits(proxyFee)} proxy fee
+            </div>
+            <Form className='text-center' onSubmit={() => handlePayBounty(onClose)} initial={{ id: item.id }}>
+              <SubmitButton className='mt-4' variant='primary' submittingText='paying...' appendText={numWithUnits(totalCost)}>
+                pay
+              </SubmitButton>
+            </Form>
+          </>
+        ))
+      }}
+    >
+      pay bounty
+    </div>
   )
 }

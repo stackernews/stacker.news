@@ -102,6 +102,12 @@ export async function onPaid (tx, payInId) {
       ${item.id}::INTEGER
     )
     WHERE id = ${item.rootId}::INTEGER`
+
+  // update lastZapAt so the receiver gets a Votification
+  await tx.$executeRaw`
+    UPDATE "Item"
+    SET "lastZapAt" = now()
+    WHERE id = ${item.id}::INTEGER`
 }
 
 export async function onPaidSideEffects (models, payInId) {

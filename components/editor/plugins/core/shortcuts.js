@@ -85,7 +85,7 @@ export const SHORTCUTS = {
   },
   toggleMode: {
     key: 'mod+KeyM',
-    handler: (editor) => editor.dispatchCommand(TOGGLE_MODE_COMMAND, editor)
+    handler: (editor) => editor.dispatchCommand(TOGGLE_MODE_COMMAND)
   },
   submit: {
     key: 'mod+Enter',

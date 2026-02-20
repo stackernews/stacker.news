@@ -1,6 +1,6 @@
 import classNames from 'classnames'
 import { useField } from 'formik'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
 import { ReactExtension } from '@lexical/react/ReactExtension'
@@ -74,6 +74,15 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
   const { toolbarState } = useToolbarState()
   const [text] = useField({ name })
 
+  // autofocus if requested, and always auto-focus the editor after a mode switch
+  const hasSwitchedRef = useRef(false)
+  const prevModeRef = useRef(toolbarState.markdownMode)
+  if (prevModeRef.current !== toolbarState.markdownMode) {
+    hasSwitchedRef.current = true
+    prevModeRef.current = toolbarState.markdownMode
+  }
+  const shouldAutoFocus = autoFocus || hasSwitchedRef.current
+
   const modeConfig = useMemo(() =>
     toolbarState.markdownMode ? MARKDOWN_MODE : RICH_MODE
   , [toolbarState.markdownMode])
@@ -97,7 +106,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         HistoryExtension,
         FormattingCommandsExtension,
         configExtension(ReactExtension, { contentEditable: null }),
-        configExtension(AutoFocusExtension, { disabled: !autoFocus }),
+        configExtension(AutoFocusExtension, { disabled: !shouldAutoFocus }),
         ...modeConfig.dependencies
       ],
       nodes: modeConfig.nodes,
@@ -105,7 +114,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
       onError: (error) => console.error('editor has encountered an error:', error)
     // only depend on stable values to avoid unnecessary re-renders
     // text.value is, for example, not stable because it is updated by the formik context
-    }), [autoFocus, topLevel, modeConfig])
+    }), [shouldAutoFocus, topLevel, modeConfig])
 
   return (
     <LexicalExtensionComposer key={modeConfig.name} extension={editor} contentEditable={null}>

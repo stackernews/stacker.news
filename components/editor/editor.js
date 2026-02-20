@@ -74,6 +74,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
   const { toolbarState } = useToolbarState()
   const [text] = useField({ name })
 
+  // TODO: re-review this
   // autofocus if requested, and always auto-focus the editor after a mode switch
   const hasSwitchedRef = useRef(false)
   const prevModeRef = useRef(toolbarState.markdownMode)
@@ -167,7 +168,6 @@ function EditorContent ({
         />
       </div>
       <FileUploadPlugin editorRef={containerRef} />
-      {/* TODO: mentions only work in markdown mode */}
       <MentionsPlugin />
       <ShortcutsPlugin />
       <AppendValuePlugin value={appendValue} />

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getNodeByKey } from 'lexical'
 import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
-import { useCarousel } from '@/components/carousel'
+import { useCarousel, NOOP_CAROUSEL } from '@/components/carousel'
 import { useMe } from '@/components/me'
 import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
@@ -199,7 +199,7 @@ function useProxyFallback (media, editable) {
   const { me } = useMe()
   const [fallbackSrc, setFallbackSrc] = useState(null)
   const rawCarousel = useCarousel()
-  const carousel = editable ? {} : (rawCarousel || {})
+  const carousel = (!editable && rawCarousel) || NOOP_CAROUSEL
   const { addMedia, confirmMedia, removeMedia } = carousel
   const timeoutRef = useRef(null)
 
@@ -232,9 +232,9 @@ function useProxyFallback (media, editable) {
   // when falling back, update carousel to use the original URL
   useEffect(() => {
     if (!fallbackSrc) return
-    removeMedia?.(media.bestResSrc)
-    addMedia?.({ src: fallbackSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
-    confirmMedia?.(fallbackSrc)
+    removeMedia(media.bestResSrc)
+    addMedia({ src: fallbackSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
+    confirmMedia(fallbackSrc)
   }, [fallbackSrc, media.bestResSrc, media.originalSrc, addMedia, confirmMedia, removeMedia])
 
   const onProxyError = useCallback(() => {
@@ -265,27 +265,27 @@ export function MediaOrLink ({ linkFallback = true, editable, innerClassName, me
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
   const rawCarousel = useCarousel()
-  const carousel = editable ? {} : (rawCarousel || {})
+  const carousel = (!editable && rawCarousel) || NOOP_CAROUSEL
   const { showCarousel, addMedia, confirmMedia, removeMedia } = carousel
   const { src, srcSet, sizes, bestResSrc, onProxyError, cancelTimeout } = useProxyFallback(media, editable)
 
   useEffect(() => {
     if (!media.bestResSrc) return
-    addMedia?.({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
+    addMedia({ src: media.bestResSrc, originalSrc: media.originalSrc, rel: UNKNOWN_LINK_REL })
   }, [addMedia, media.bestResSrc, media.originalSrc])
 
   useEffect(() => {
     if (!media.image) return
-    confirmMedia?.(media.bestResSrc)
+    confirmMedia(media.bestResSrc)
   }, [confirmMedia, media.image, media.bestResSrc])
 
-  const handleClick = useCallback(() => showCarousel?.({ src: bestResSrc }),
+  const handleClick = useCallback(() => showCarousel({ src: bestResSrc }),
     [showCarousel, bestResSrc])
 
   const handleError = useCallback((err) => {
     console.error('Error loading media', err)
     if (onProxyError()) return
-    removeMedia?.(bestResSrc)
+    removeMedia(bestResSrc)
     setError(true)
     setIsLoading(false)
   }, [onProxyError, removeMedia, bestResSrc])

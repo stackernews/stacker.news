@@ -13,7 +13,7 @@
   padding: 2px;
 }
 
-.editor[data-lexical-preview='true'] {
+.editor[data-lexical-mode='rich'] {
   border-radius: 0.4rem;
 }
 
@@ -56,10 +56,6 @@
   background-color: transparent;
 }
 
-[data-lexical-preview='true'] .editorContent {
-  min-height: var(--editor-height, auto);
-}
-
 .editorContentInput {
   caret-color: var(--theme-color);
   font-size: 94%;
@@ -85,6 +81,10 @@
   white-space: nowrap;
   display: inline-block;
   pointer-events: none;
+}
+
+.editor[data-lexical-mode='rich'] .editorPlaceholder {
+  top: 0.525rem;
 }
 
 /* toolbar */
@@ -633,4 +633,55 @@
 .suggestionsMenu {
   opacity: 1 !important;
   pointer-events: unset !important;
+}
+
+.mathEditor {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 0.4rem;
+  margin-top: 0 !important;
+  padding: 0.25rem;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: none;
+  overflow: auto;
+  background-color: var(--theme-inputBg);
+  color: var(--theme-color);
+}
+
+.inlineMathEditor {
+  display: inline-block;
+  height: 2em;
+  vertical-align: middle;
+  text-align: center;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--theme-grey);
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 2px solid var(--theme-grey);
+}
+
+.separator:not(:empty)::after {
+  margin-left: .25em;
 }

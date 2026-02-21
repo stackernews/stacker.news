@@ -1,6 +1,6 @@
 import classNames from 'classnames'
 import { useField } from 'formik'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
 import { ReactExtension } from '@lexical/react/ReactExtension'
@@ -9,14 +9,12 @@ import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionCompose
 import { AutoFocusExtension } from '@lexical/extension'
 import ShortcutsPlugin from '@/components/editor/plugins/core/shortcuts'
 import { FormattingCommandsExtension } from '@/lib/lexical/exts/formatting'
-import { ToolbarContextProvider } from '@/components/editor/contexts/toolbar'
 import { ToolbarPlugin } from '@/components/editor/plugins/toolbar'
 import FormikBridgePlugin from '@/components/editor/plugins/core/formik'
 import LocalDraftPlugin from '@/components/editor/plugins/core/local-draft'
 import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
 import MentionsPlugin from '@/components/editor/plugins/mentions'
 import FileUploadPlugin from '@/components/editor/plugins/upload'
-import PreviewPlugin from '@/components/editor/plugins/preview'
 import { $setMarkdown } from '@/lib/lexical/utils'
 import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
@@ -29,6 +27,41 @@ import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softk
 import { MarkdownTextExtension } from '@/lib/lexical/exts/markdown'
 import AppendValuePlugin from '@/components/editor/plugins/core/append-value'
 import TransformerBridgePlugin from '@/components/editor/plugins/core/transformer-bridge'
+import { useToolbarState } from './contexts/toolbar'
+import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
+import { RichTextExtension } from '@lexical/rich-text'
+import DefaultNodes from '@/lib/lexical/nodes'
+import { CheckListExtension, ListExtension } from '@lexical/list'
+import { LinkExtension } from '@lexical/link'
+import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
+import { TableExtension } from '@lexical/table'
+import { GalleryExtension } from '@/lib/lexical/exts/gallery'
+import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
+import { CodeThemePlugin } from './plugins/core/code-theme'
+import LinkEditorPlugin from './plugins/link'
+
+const MARKDOWN_MODE = {
+  name: 'editor-markdown',
+  namespace: 'sn-markdown',
+  dependencies: [MarkdownTextExtension],
+  nodes: []
+}
+
+const RICH_MODE = {
+  name: 'editor-rich',
+  namespace: 'sn-rich', // namespace is used for copy/paste between identical editors
+  dependencies: [
+    RichTextExtension,
+    CodeShikiSNExtension,
+    ListExtension,
+    CheckListExtension,
+    LinkExtension,
+    TableExtension,
+    GalleryExtension,
+    AutoLinkExtension
+  ],
+  nodes: DefaultNodes
+}
 
 /**
  * main lexical editor component with formik integration
@@ -38,37 +71,55 @@ import TransformerBridgePlugin from '@/components/editor/plugins/core/transforme
  * @returns {JSX.Element} lexical editor component
  */
 export default function Editor ({ name, autoFocus, topLevel, ...props }) {
+  const { toolbarState } = useToolbarState()
   const [text] = useField({ name })
+
+  // TODO: re-review this
+  // autofocus if requested, and always auto-focus the editor after a mode switch
+  const hasSwitchedRef = useRef(false)
+  const prevModeRef = useRef(toolbarState.markdownMode)
+  if (prevModeRef.current !== toolbarState.markdownMode) {
+    hasSwitchedRef.current = true
+    prevModeRef.current = toolbarState.markdownMode
+  }
+  const shouldAutoFocus = autoFocus || hasSwitchedRef.current
+
+  const modeConfig = useMemo(() =>
+    toolbarState.markdownMode ? MARKDOWN_MODE : RICH_MODE
+  , [toolbarState.markdownMode])
 
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: () => {
         // initialize editor state with existing formik text
         if (text.value) {
-          $setMarkdown(text.value)
+          if (toolbarState.markdownMode) {
+            $setMarkdown(text.value, true)
+          } else {
+            $markdownToLexical(text.value)
+          }
         }
       },
-      name: 'editor',
-      namespace: 'sn',
+      name: modeConfig.name,
+      namespace: modeConfig.namespace,
       dependencies: [
-        MarkdownTextExtension,
         ApplePatchExtension,
         HistoryExtension,
         FormattingCommandsExtension,
         configExtension(ReactExtension, { contentEditable: null }),
-        configExtension(AutoFocusExtension, { disabled: !autoFocus })
+        configExtension(AutoFocusExtension, { disabled: !shouldAutoFocus }),
+        ...modeConfig.dependencies
       ],
+      nodes: modeConfig.nodes,
       theme: { ...theme, topLevel: topLevel ? 'topLevel' : '' },
       onError: (error) => console.error('editor has encountered an error:', error)
     // only depend on stable values to avoid unnecessary re-renders
     // text.value is, for example, not stable because it is updated by the formik context
-    }), [autoFocus, topLevel])
+    }), [shouldAutoFocus, topLevel, modeConfig])
 
   return (
-    <LexicalExtensionComposer extension={editor} contentEditable={null}>
-      <ToolbarContextProvider>
-        <EditorContent topLevel={topLevel} name={name} {...props} />
-      </ToolbarContextProvider>
+    <LexicalExtensionComposer key={modeConfig.name} extension={editor} contentEditable={null}>
+      <EditorContent topLevel={topLevel} markdownMode={toolbarState.markdownMode} name={name} {...props} />
     </LexicalExtensionComposer>
   )
 }
@@ -79,6 +130,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
  * @param {string} props.placeholder - placeholder text for empty editor
  * @param {Object} props.lengthOptions - max length configuration
  * @param {boolean} props.topLevel - whether this is a top-level editor
+ * @param {boolean} props.markdownMode - whether the editor is in markdown mode
  * @param {boolean} [props.required] - whether the field is required
  * @param {number} [props.minRows] - minimum number of rows for the editor
  * @param {React.ReactNode} [props.label] - label for the editor
@@ -86,7 +138,11 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
  * @param {React.ReactNode} [props.warn] - warning text for the editor
  * @returns {JSX.Element} editor content with all plugins
  */
-function EditorContent ({ name, placeholder, lengthOptions, topLevel, required = false, minRows, hint, warn, editorRef, appendValue }) {
+function EditorContent ({
+  name, placeholder, lengthOptions,
+  topLevel, markdownMode, required = false,
+  minRows, hint, warn, editorRef, appendValue
+}) {
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
   return (
@@ -94,11 +150,15 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       <EditorRefPlugin editorRef={editorRef} />
       <ToolbarPlugin topLevel={topLevel} name={name} />
       {/* we only need a plain text editor for markdown */}
-      <div className={styles.editor} ref={onContainerRef}>
+      <div
+        className={classNames(styles.editor, !markdownMode && 'sn-text')}
+        data-lexical-mode={markdownMode ? 'markdown' : 'rich'}
+        ref={onContainerRef}
+      >
         <ContentEditable
           translate='no'
           data-sn-editor='true'
-          className={classNames(styles.editorContent, styles.editorContentInput, 'sn-text')}
+          className={classNames(styles.editorContent, styles.editorContentInput, markdownMode && 'sn-text')}
           /* lh is a css unit that is equal to the line height of the element
               probably the worst thing is that we have to add 1 to the minRows to get the correct height
           */
@@ -107,13 +167,6 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
           aria-required={required}
         />
       </div>
-      {containerRef && (
-        <PreviewPlugin
-          editorRef={containerRef}
-          topLevel={topLevel}
-          name={name}
-        />
-      )}
       <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
       <ShortcutsPlugin />
@@ -123,7 +176,10 @@ function EditorContent ({ name, placeholder, lengthOptions, topLevel, required =
       <MaxLengthPlugin lengthOptions={lengthOptions} />
       <SoftkeyUnborkerPlugin />
       <SoftkeyEmptyGuardPlugin />
-      <TransformerBridgePlugin />
+      {!markdownMode && <CodeThemePlugin />}
+      {!markdownMode && <LinkEditorPlugin anchorElem={containerRef} />}
+      {/* only enable transformer bridge for markdown mode */}
+      {markdownMode && <TransformerBridgePlugin />}
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

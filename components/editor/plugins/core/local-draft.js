@@ -2,6 +2,8 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useContext, useCallback, useEffect } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
 import { $isMarkdownEmpty, $setMarkdown, $getMarkdown } from '@/lib/lexical/utils'
+import { useToolbarState } from '@/components/editor/contexts/toolbar'
+import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 
 /**
  * plugin that auto-saves and restores editor drafts to/from local storage
@@ -10,6 +12,7 @@ import { $isMarkdownEmpty, $setMarkdown, $getMarkdown } from '@/lib/lexical/util
  */
 export default function LocalDraftPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
+  const { toolbarState } = useToolbarState()
 
   // local storage keys, e.g. 'reply-123456-text'
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
@@ -36,7 +39,11 @@ export default function LocalDraftPlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
-          $setMarkdown(value, false)
+          if (toolbarState.markdownMode) {
+            $setMarkdown(value)
+          } else {
+            $markdownToLexical(value)
+          }
         })
       }
     }
@@ -45,12 +52,18 @@ export default function LocalDraftPlugin ({ name }) {
   // save the draft to local storage
   useEffect(() => {
     // whenever the editor state changes, save the markdown draft
-    return editor.registerUpdateListener(({ editorState }) => {
+    return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
+      // skip non-content updates
+      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return
+
       editorState.read(() => {
-        upsertDraft($getMarkdown(false))
+        const text = toolbarState.markdownMode
+          ? $getMarkdown(false)
+          : $lexicalToMarkdown()
+        upsertDraft(text)
       })
     })
-  }, [editor, upsertDraft])
+  }, [editor, upsertDraft, toolbarState.markdownMode])
 
   return null
 }

@@ -151,6 +151,15 @@ export function CarouselProvider ({ children }) {
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>
 }
 
+const noop = () => {}
+
+export const NOOP_CAROUSEL = {
+  showCarousel: noop,
+  addMedia: noop,
+  confirmMedia: noop,
+  removeMedia: noop
+}
+
 export function useCarousel () {
   return useContext(CarouselContext)
 }

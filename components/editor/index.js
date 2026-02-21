@@ -6,7 +6,7 @@ import { ToolbarContextProvider } from './contexts/toolbar'
 
 export function SNEditor ({ ...props }) {
   return (
-    <ToolbarContextProvider>
+    <ToolbarContextProvider topLevel={props.topLevel}>
       <Editor {...props} />
     </ToolbarContextProvider>
   )

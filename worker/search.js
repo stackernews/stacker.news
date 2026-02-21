@@ -68,6 +68,10 @@ async function _indexItem (item, { models, updatedAt }) {
   itemcp.wvotes = itemdb.weightedVotes - itemdb.weightedDownVotes
   itemcp.ranktop = itemdb.ranktop
 
+  // metadata: docType for filtering, textLength for scoring
+  itemcp.docType = item.parentId ? 'comment' : 'post'
+  itemcp.textLength = itemcp.text ? itemcp.text.length : 0
+
   const bookmarkedBy = await models.bookmark.findMany({
     where: { itemId: Number(item.id) },
     select: { userId: true, createdAt: true },
@@ -212,7 +216,9 @@ export async function indexAllItems ({ models, boss }) {
           subNames: item.subNames?.length > 0
             ? item.subNames
             : (item.root?.subNames || []),
-          bookmarkedBy: item.Bookmark.map(b => b.userId)
+          bookmarkedBy: item.Bookmark.map(b => b.userId),
+          docType: item.parentId ? 'comment' : 'post',
+          textLength: 0 // set below after text processing
         }
 
         // job title hack: append company/location so they're searchable
@@ -221,6 +227,7 @@ export async function indexAllItems ({ models, boss }) {
           doc.title = `${doc.title} \\ ${item.location || ''}${item.location && item.remote ? ' or ' : ''}${item.remote ? 'Remote' : ''}`
         }
         if (item.text) doc.text = removeMd(item.text)
+        doc.textLength = doc.text ? doc.text.length : 0
 
         // clean up relation/raw fields not needed in the index
         delete doc.Bookmark

@@ -13,12 +13,12 @@ import { useData } from './use-data'
 const DEFAULT_FILTER = () => true
 const DEFAULT_VARIABLES = {}
 
-export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, destructureData, rank, noMoreText, Footer, filter = DEFAULT_FILTER }) {
+export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, destructureData, rank, noMoreText, Footer, Header, filter = DEFAULT_FILTER }) {
   const { data, fetchMore } = useQuery(query || SUB_ITEMS, { variables })
   const Foooter = Footer || MoreFooter
   const dat = useData(data, ssrData)
 
-  const { items, pins, cursor } = useMemo(() => {
+  const destructured = useMemo(() => {
     if (!dat) return {}
     if (destructureData) {
       return destructureData(dat)
@@ -26,6 +26,8 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
       return dat?.items
     }
   }, [dat])
+
+  const { items, pins, cursor } = destructured
 
   const itemsWithPins = useMemo(() => {
     if (!pins) return items
@@ -52,6 +54,7 @@ export default function Items ({ ssrData, variables = DEFAULT_VARIABLES, query, 
 
   return (
     <>
+      {Header && <Header data={destructured} />}
       <div className={styles.grid}>
         {itemsWithPins.filter(filter).map((item, i) => (
           <ListItem key={`${item.id}-${i + 1}`} item={item} rank={rank && i + 1} itemClassName={variables.includeComments ? 'py-2' : ''} pinnable={isHome ? false : pins?.length > 0} />

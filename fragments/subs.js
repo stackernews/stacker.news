@@ -119,6 +119,7 @@ export const SUB_SEARCH = gql`
     }
     search(sub: $sub, q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
       cursor
+      searchSuggestion
       items {
         ...ItemFullFields
         searchTitle

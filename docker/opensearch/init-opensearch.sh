@@ -524,9 +524,7 @@ ensure_search_pipeline () {
   # - N-leg equal-weight RRF: lexical + dense-semantic(chunked) + sparse
   # - Title neural leg removed: structurally biases against comments (no title → 0 contribution)
   # - No neural_query_enricher (conflicts with sparse analyzer; model_id set explicitly in queries)
-  # - No explicit weights: RRF defaults to equal weighting for however many legs are
-  #   present. This handles 2-leg fallback (when SEARCH_DISABLE_SEMANTIC or
-  #   SEARCH_DISABLE_SPARSE is set) without a weight/leg count mismatch.
+  # - No explicit weights: RRF defaults to equal weighting for all 3 legs.
   os_api -s -o /dev/null \
     -X PUT "${OS_URL}/_search/pipeline/${SEARCH_PIPELINE}" \
     -H "Content-Type: application/json" \

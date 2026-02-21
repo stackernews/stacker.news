@@ -351,11 +351,6 @@ function ranktopFunction () {
 }
 
 // ---- Neural / hybrid wrappers ----
-// Feature flags (env vars):
-//   SEARCH_DISABLE_NEURAL — disable all neural legs (lexical-only fallback)
-//   SEARCH_DISABLE_SEMANTIC — disable semantic leg only
-//   SEARCH_DISABLE_SPARSE — disable sparse leg only
-//   SEARCH_DISABLE_SPELL_CORRECT — disable spell correction
 
 // Term-level spell correction: corrects each misspelled word independently.
 // Uses suggest_mode=missing (only fires for words not in the index),
@@ -396,7 +391,7 @@ function applyTermCorrections (termEntries) {
 // BM25 already has fuzziness (AUTO:4,7), but neural models can't do fuzzy
 // matching — "bitconi" embeds/tokenizes completely differently from "bitcoin".
 async function spellCheckQuery (search, query) {
-  if (process.env.SEARCH_DISABLE_SPELL_CORRECT || !query?.trim()) return null
+  if (!query?.trim()) return null
   try {
     const result = await search.search({
       index: process.env.OPENSEARCH_INDEX,
@@ -416,61 +411,6 @@ async function spellCheckQuery (search, query) {
     console.error('[SEARCH SPELL-CHECK ERROR]', e?.message || e)
   }
   return null
-}
-
-// Detect rare terms in a query by checking document frequency.
-// Returns rare terms that appear in significantly fewer docs than common ones.
-// Used to add a discriminative boost at the hybrid filter level so all 3 legs
-// favor docs containing the rare term. Without this, queries like
-// "africa lightning network" return mostly "lightning network" docs because
-// all legs agree the common terms are more relevant.
-const RARE_TERM_RATIO = 0.1 // term is "rare" if its DF < 10% of the most common term's DF
-const MIN_RARE_TERM_DF = 3 // skip terms that appear in <3 docs (probably typos)
-
-async function detectRareTerms (search, query) {
-  if (!query?.trim()) return []
-  const terms = query.toLowerCase().split(/\s+/).filter(t => t.length >= 2)
-  if (terms.length < 2) return [] // single-term queries don't have a rare/common split
-
-  try {
-    // Get document frequency for each term via filter aggregations (single request)
-    const aggs = {}
-    for (const term of terms) {
-      aggs[`df_${term}`] = { filter: { match: { title_text: term } } }
-    }
-
-    const result = await search.search({
-      index: process.env.OPENSEARCH_INDEX,
-      size: 0,
-      body: { aggs }
-    })
-
-    const dfs = terms.map(term => ({
-      term,
-      freq: result.body.aggregations?.[`df_${term}`]?.doc_count || 0
-    }))
-
-    const maxFreq = Math.max(...dfs.map(d => d.freq))
-    if (maxFreq === 0) return []
-
-    // Rare terms: significantly lower DF than the most common term
-    // Returns objects with { term, freq, repeats } for IDF-weighted repetition
-    const rare = dfs
-      .filter(d => d.freq >= MIN_RARE_TERM_DF && d.freq < maxFreq * RARE_TERM_RATIO)
-      .map(d => ({
-        term: d.term,
-        freq: d.freq,
-        repeats: Math.min(3, Math.ceil(Math.log2(maxFreq / d.freq)))
-      }))
-
-    if (rare.length > 0) {
-      console.log(`[SEARCH RARE-TERMS] query="${query}" dfs=${JSON.stringify(dfs.map(d => `${d.term}:${d.freq}`))} rare=${JSON.stringify(rare)}`)
-    }
-    return rare
-  } catch (e) {
-    console.error('[SEARCH RARE-TERM DETECTION ERROR]', e?.message || e)
-    return []
-  }
 }
 
 function buildSemanticTextLeg ({ queryText, modelId, k }) {
@@ -506,10 +446,10 @@ function buildSparseLeg ({ queryText }) {
 // ordering (changing it alters the candidate set before normalization).
 const HYBRID_DEPTH = LIMIT * 10
 
-function hybridQuery (queries, filters, depth) {
+function hybridQuery (queries, filters) {
   return {
     hybrid: {
-      pagination_depth: depth || HYBRID_DEPTH,
+      pagination_depth: HYBRID_DEPTH,
       queries,
       ...(filters?.length ? { filter: { bool: { filter: filters } } } : {})
     }
@@ -563,132 +503,61 @@ function moreLikeThisScoreQuery (like, minMatch, filters) {
 
 const MAX_NEURAL_TEXT_LENGTH = 512
 
-// ---- Rare-term handling (Tier 1) ----
-
-// Strategy 1: Repeat rare terms in neural text to shift embeddings.
-// "africa lightning network" → "africa africa africa lightning network"
-// Uses IDF-weighted repeats: rarer terms get more repetitions.
-// RARE_TERM_REPEAT_MODE controls which legs get the repeated text:
-//   'none'   — both legs use plain text (default)
-//   'both'   — same repeated text for semantic + sparse
-//   'dense'  — only semantic leg gets repeats, sparse gets plain text
-//   'sparse' — only sparse leg gets repeats, semantic gets plain text
-
-function buildNeuralText ({ neuralQuery, quotes, rareTerms }) {
-  const base = [neuralQuery, ...quotes].filter(Boolean).join(' ').trim()
-  if (!rareTerms?.length) {
-    const plain = base.slice(0, MAX_NEURAL_TEXT_LENGTH)
-    return { plain, withRepeats: plain }
-  }
-  // Append repeated rare terms after the base query text
-  const allRepeats = rareTerms.flatMap(r => Array(r.repeats).fill(r.term))
-  const withRepeats = [base, ...allRepeats].join(' ').trim().slice(0, MAX_NEURAL_TEXT_LENGTH)
-  const plain = base.slice(0, MAX_NEURAL_TEXT_LENGTH)
-  return { plain, withRepeats }
-}
-
 function buildRelatedQuery ({ like, minMatch, filters, textQuery, modelId }) {
-  const hasText = textQuery?.trim()
-  const enableSemantic = hasText && modelId && !process.env.SEARCH_DISABLE_NEURAL && !process.env.SEARCH_DISABLE_SEMANTIC
-  const enableSparse = hasText && modelId && !process.env.SEARCH_DISABLE_NEURAL && !process.env.SEARCH_DISABLE_SPARSE
-
-  if (enableSemantic || enableSparse) {
+  if (textQuery?.trim() && modelId) {
     const neuralText = textQuery.slice(0, MAX_NEURAL_TEXT_LENGTH)
-    const legs = [moreLikeThisScoreQuery(like, minMatch, [])]
-    if (enableSemantic) {
-      legs.push(buildSemanticTextLeg({ queryText: neuralText, modelId, k: HYBRID_DEPTH }))
-    }
-    if (enableSparse) {
-      legs.push(buildSparseLeg({ queryText: neuralText }))
-    }
+    const legs = [
+      moreLikeThisScoreQuery(like, minMatch, []),
+      buildSemanticTextLeg({ queryText: neuralText, modelId, k: HYBRID_DEPTH }),
+      buildSparseLeg({ queryText: neuralText })
+    ]
     return hybridQuery(legs, filters)
   }
 
   return moreLikeThisScoreQuery(like, minMatch, filters)
 }
 
-// Neural legs help when there's free text to embed. Structured-only queries
-// (@nym, ~territory, url:, "quotes") don't benefit — lexical handles those.
-function shouldUseNeuralLegs ({ neuralText }) {
-  if (process.env.SEARCH_DISABLE_NEURAL) return false
-  return !!neuralText?.trim()
-}
-
-function buildSearchQuery ({ filters, termQueries, query, neuralTextPlain, neuralTextRepeated, functions, modelId }) {
-  // Strategy 2: Expand hybrid depth for rare-term queries.
-  // More candidates = better chance rare-term docs survive RRF fusion.
-  // Dynamic depth for rare-term queries tested: -0.0006 NDCG. Disabled.
-  const depth = HYBRID_DEPTH
+function buildSearchQuery ({ filters, termQueries, query, neuralText, functions, modelId }) {
   const should = query.length
     ? [...termQueries, ...baseTextQueries(query)]
     : termQueries
 
   const isRelevanceSort = functions.length > 0
+  const minMatch = should.length > 0 ? 1 : 0
 
-  // BM25 query with filters — used for lexical-only fallback
   const bm25WithFilters = {
-    bool: {
-      filter: filters,
-      should,
-      minimum_should_match: should.length > 0 ? 1 : 0
-    }
+    bool: { filter: filters, should, minimum_should_match: minMatch }
   }
-
-  // Pure BM25 for hybrid lexical leg — filters applied at hybrid.filter level
-  const bm25HybridLeg = {
-    bool: {
-      should,
-      minimum_should_match: should.length > 0 ? 1 : 0
-    }
-  }
-
-  // Lexical-only fallback (no neural available): wrap BM25 with function_score
-  // so business signals (recency, ranktop) contribute to relevance ranking.
-  const lexicalOnlyQuery = isRelevanceSort && functions.length
-    ? {
-        function_score: {
-          query: bm25WithFilters,
-          functions,
-          score_mode: 'multiply',
-          boost_mode: 'sum'
-        }
-      }
-    : bm25WithFilters
-
-  // Leg-specific neural text: RARE_TERM_REPEAT_MODE controls which legs
-  // get the IDF-weighted repeated text vs plain text.
-  const repeatMode = process.env.RARE_TERM_REPEAT_MODE || 'none'
-  const semanticText = (repeatMode === 'both' || repeatMode === 'dense') ? neuralTextRepeated : neuralTextPlain
-  const sparseText = (repeatMode === 'both' || repeatMode === 'sparse') ? neuralTextRepeated : neuralTextPlain
 
   // hybrid/neural only helps when scoring matters (relevance sort);
   // for field-based sorts the keyword query provides matching and
   // the sort field determines order.
-  const neuralText = neuralTextPlain
-  const useNeural = neuralText.length && modelId && isRelevanceSort &&
-    shouldUseNeuralLegs({ neuralText })
-  if (useNeural) {
-    // 3-leg hybrid — lexical (pure BM25) + semantic (chunked) + sparse
-    // Individual leg feature flags: disable semantic or sparse independently.
-    // When a leg is disabled, fall back to 2-leg hybrid or lexical-only.
-    const enableSemantic = !process.env.SEARCH_DISABLE_SEMANTIC
-    const enableSparse = !process.env.SEARCH_DISABLE_SPARSE
-
-    const legs = [bm25HybridLeg]
-    if (enableSemantic) {
-      legs.push(buildSemanticTextLeg({ queryText: semanticText, modelId, k: depth }))
+  if (neuralText?.trim() && modelId && isRelevanceSort) {
+    const bm25HybridLeg = {
+      bool: { should, minimum_should_match: minMatch }
     }
-    if (enableSparse) {
-      legs.push(buildSparseLeg({ queryText: sparseText }))
-    }
-    if (legs.length > 1) {
-      return { query: hybridQuery(legs, filters, depth) }
-    }
-    // Both neural legs disabled — fall through to lexical-only below
+    const legs = [
+      bm25HybridLeg,
+      buildSemanticTextLeg({ queryText: neuralText, modelId, k: HYBRID_DEPTH }),
+      buildSparseLeg({ queryText: neuralText })
+    ]
+    return hybridQuery(legs, filters)
   }
 
-  // Lexical-only fallback: use function_score for relevance, plain BM25 for field sorts
-  return { query: lexicalOnlyQuery }
+  // Lexical-only fallback: wrap with function_score for relevance sort
+  // so business signals (recency, ranktop) contribute to ranking.
+  if (isRelevanceSort) {
+    return {
+      function_score: {
+        query: bm25WithFilters,
+        functions,
+        score_mode: 'multiply',
+        boost_mode: 'sum'
+      }
+    }
+  }
+
+  return bm25WithFilters
 }
 
 // ---- Result processing ----
@@ -831,15 +700,7 @@ export default {
       // BM25 has fuzziness, but semantic/sparse models can't fuzzy-match —
       // "bitconi" embeds as garbage while "bitcoin" embeds correctly.
       const spellCorrected = await spellCheckQuery(search, query)
-      const neuralQuery = spellCorrected || query
-
-      // Detect on every page so pagination keeps identical ranking semantics.
-      const rareTerms = query.length
-        ? await detectRareTerms(search, query)
-        : []
-
-      // Strategy 1: Repeat rare terms in neural text to bias embeddings
-      const { plain: neuralTextPlain, withRepeats: neuralTextRepeated } = buildNeuralText({ neuralQuery, quotes, rareTerms })
+      const neuralText = [(spellCorrected || query), ...quotes].filter(Boolean).join(' ').trim().slice(0, MAX_NEURAL_TEXT_LENGTH)
 
       const { postsSatsFilter, commentsSatsFilter } = await loadSatsFilters(me, userLoader)
       const nymParts = nymClauses(nym)
@@ -868,7 +729,7 @@ export default {
       const { functions, addMembers } = sortFunctions(sort, query)
       const modelId = await resolveOpensearchModelId(search)
 
-      const { query: osQuery } = buildSearchQuery({ filters, termQueries, query, neuralTextPlain, neuralTextRepeated, functions, modelId })
+      const osQuery = buildSearchQuery({ filters, termQueries, query, neuralText, functions, modelId })
 
       let sitems
       try {
@@ -885,7 +746,7 @@ export default {
             // + phrase suggest (full-phrase fallback for words that exist but are wrong,
             // e.g. "lightening" → "lightning"). Term suggest is preferred; phrase is
             // fallback when term has no correction.
-            ...(!process.env.SEARCH_DISABLE_SPELL_CORRECT && query.length
+            ...(query.length
               ? {
                   suggest: {
                     text: query,
@@ -921,7 +782,7 @@ export default {
       // 1. Pre-query correction (if any) — already used for neural legs
       // 2. Term suggest from main query — precise per-word corrections
       // 3. Phrase suggest fallback — catches existing-but-wrong words (e.g. "lightening")
-      if (!process.env.SEARCH_DISABLE_SPELL_CORRECT && query.length && decodedCursor.offset === 0) {
+      if (query.length && decodedCursor.offset === 0) {
         if (spellCorrected) {
           // Pre-query already found a correction — use it directly
           searchSuggestion = spellCorrected
@@ -944,6 +805,19 @@ export default {
               phraseSuggestion.text.toLowerCase() !== query.toLowerCase()) {
             searchSuggestion = phraseSuggestion.text
           }
+        }
+
+        // searchSuggestion so far is only the corrected free-text portion.
+        // Rebuild the full query string so "Did you mean?" preserves
+        // @nym, ~territory, url:, and "quoted phrase" filters.
+        if (searchSuggestion) {
+          const parts = []
+          if (nym) parts.push(nym)
+          if (territory) parts.push(territory)
+          if (url) parts.push(url)
+          for (const phrase of quotes) parts.push(`"${phrase}"`)
+          parts.push(searchSuggestion)
+          searchSuggestion = parts.join(' ')
         }
       }
       const items = attachHighlights(

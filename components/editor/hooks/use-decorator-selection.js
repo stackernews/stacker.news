@@ -15,7 +15,7 @@ import {
  * Shared click-to-select, focused-class, and delete behavior for decorator nodes.
  * Pass { ref } to narrow the click target, { focusedClass } to auto-toggle a CSS
  * class, { deletable: false } to skip delete/backspace, { active: false } to
- * suspend commands (e.g. while an inline editor is open).
+ * suspend commands (e.g. while an inline editor is open, such as the math editor).
  */
 export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
   const {
@@ -32,13 +32,25 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
 
   const isFocused = isEditable && isSelected && active
 
-  // toggle focused class on the Lexical-managed DOM element
+  // toggle focused class on the Lexical DOM element
   useEffect(() => {
     if (!focusedClass) return
     const element = editor.getElementByKey(nodeKey)
     if (!element) return
     element.classList.toggle(focusedClass, isFocused)
   }, [editor, nodeKey, isFocused, focusedClass])
+
+  // when the node loses Lexical focus, its contenteditable="false" DOM wrapper
+  // can retain browser focus (Chrome for example shows :focus-visible).
+  // keyboard input goes to the non-editable element instead of the editor root, so typing breaks.
+  useEffect(() => {
+    if (isFocused) return
+    const element = editor.getElementByKey(nodeKey)
+    if (!element) return
+    if (element === document.activeElement || element.contains(document.activeElement)) {
+      editor.getRootElement()?.focus({ preventScroll: true })
+    }
+  }, [editor, nodeKey, isFocused])
 
   const onDelete = useCallback((event) => {
     if (!isSelected) return false

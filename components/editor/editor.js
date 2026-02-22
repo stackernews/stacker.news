@@ -36,6 +36,7 @@ import { LinkExtension } from '@lexical/link'
 import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
 import { TableExtension } from '@lexical/table'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
+import { DecoratorPaddingExtension } from '@/lib/lexical/exts/decorator-padding'
 import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import LinkEditorPlugin from './plugins/link'
@@ -58,7 +59,8 @@ const RICH_MODE = {
     LinkExtension,
     TableExtension,
     GalleryExtension,
-    AutoLinkExtension
+    AutoLinkExtension,
+    DecoratorPaddingExtension
   ],
   nodes: DefaultNodes
 }

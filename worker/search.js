@@ -95,6 +95,15 @@ async function _indexItem (item, { models, updatedAt }) {
   )
 
   try {
+    const { body } = await search.getSource({
+      id: item.id,
+      index: process.env.OPENSEARCH_INDEX,
+      _source_includes: ['contentHash', 'text_sparse', 'text_semantic', 'text_semantic_semantic_info']
+    })
+    if (body) Object.assign(itemcp, body)
+  } catch (e) { /* doc doesn't exist yet */ }
+
+  try {
     await search.index({
       id: item.id,
       index: process.env.OPENSEARCH_INDEX,
@@ -103,7 +112,6 @@ async function _indexItem (item, { models, updatedAt }) {
       body: itemcp
     })
   } catch (e) {
-    // ignore version conflict ...
     if (e?.meta?.statusCode === 409) {
       console.log('version conflict ignoring', item.id)
       return
@@ -150,9 +158,17 @@ export async function indexAllItems ({ models, boss }) {
     return
   }
 
-  const itemCount = await models.item.count()
   const idxSettings = await search.indices.getSettings({ index: osIndex })
   const pipeline = idxSettings.body[osIndex]?.settings?.index?.default_pipeline
+  if (!pipeline) {
+    // The init script sets default_pipeline AFTER seed import completes,
+    // so its absence means bootstrap is still in progress.
+    console.log('indexAllItems: pipeline not configured yet (bootstrap in progress), retrying in 30s')
+    await boss.send('indexAllItems', {}, { startAfter: 30 })
+    return
+  }
+
+  const itemCount = await models.item.count()
   console.log(`indexAllItems: starting, ${itemCount} items to index`)
 
   await search.indices.putSettings({
@@ -205,7 +221,7 @@ export async function indexAllItems ({ models, boss }) {
       if (items.length === 0) break
       lastId = items[items.length - 1].id
 
-      const body = items.flatMap(item => {
+      const docs = items.map(item => {
         const doc = {
           ...item,
           sats: msatsToSats(item.msats),
@@ -237,17 +253,45 @@ export async function indexAllItems ({ models, boss }) {
         delete doc.commentMsats
         delete doc.commentMcredits
 
-        return [
-          { index: { _index: osIndex, _id: item.id } },
-          doc
-        ]
+        return { id: item.id, doc }
       })
 
+      // Use update (NOT doc_as_upsert) to preserve seeded embedding fields.
+      // doc_as_upsert triggers the default ingest pipeline even with pipeline=_none.
+      const updateBody = docs.flatMap(({ id, doc }) => [
+        { update: { _index: osIndex, _id: id } },
+        { doc }
+      ])
+
       console.log(`indexAllItems: sending ${items.length} items to opensearch`)
-      const result = await search.bulk({ body, pipeline: '_none' })
+      const result = await search.bulk({ body: updateBody, pipeline: '_none' })
+
       if (result.body.errors) {
-        const errors = result.body.items.filter(i => i.index?.error)
-        console.error(`indexAllItems: ${errors.length} bulk errors`, errors.slice(0, 3))
+        // Collect 404s (new items not yet in the index) for fallback indexing
+        const missingBody = []
+        const otherErrors = []
+        result.body.items.forEach((ri, idx) => {
+          if (ri.update?.status === 404) {
+            missingBody.push({ index: { _index: osIndex, _id: docs[idx].id } }, docs[idx].doc)
+          } else if (ri.update?.error) {
+            otherErrors.push(ri)
+          }
+        })
+
+        if (missingBody.length > 0) {
+          console.log(`indexAllItems: ${missingBody.length / 2} new items, indexing...`)
+          const indexResult = await search.bulk({ body: missingBody, pipeline: '_none' })
+          if (indexResult.body.errors) {
+            const indexErrors = indexResult.body.items.filter(i => i.index?.error)
+            if (indexErrors.length > 0) {
+              console.error(`indexAllItems: ${indexErrors.length} index errors`, indexErrors.slice(0, 3))
+            }
+          }
+        }
+
+        if (otherErrors.length > 0) {
+          console.error(`indexAllItems: ${otherErrors.length} bulk errors`, otherErrors.slice(0, 3))
+        }
       }
 
       total += items.length
@@ -265,30 +309,35 @@ export async function indexAllItems ({ models, boss }) {
     }
 
     await search.indices.refresh({ index: osIndex })
-    console.log('indexAllItems: refreshed index before embedding backfill')
-
     console.log(`indexAllItems: backfilling embeddings via pipeline '${pipeline}'`)
+
     const task = await search.updateByQuery({
       index: osIndex,
       pipeline,
       wait_for_completion: false,
       scroll_size: 200,
-      requests_per_second: 200,
-      body: { query: { match_all: {} } }
+      body: {
+        query: { match_all: {} },
+        script: {
+          source: "if (ctx._source.text_sparse != null && ctx._source.text_sparse.size() > 0) { ctx.op = 'noop'; }",
+          lang: 'painless'
+        }
+      }
     })
 
     const taskId = task.body.task
     console.log(`indexAllItems: embedding backfill started (task: ${taskId})`)
 
-    const POLL_INTERVAL_MS = 10_000
+    let pollMs = 1_000
     while (true) {
-      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
+      await new Promise(resolve => setTimeout(resolve, pollMs))
+      pollMs = Math.min(pollMs * 2, 10_000)
 
       const status = await search.tasks.get({ task_id: taskId })
       const t = status.body.task.status
-      const pct = t.total ? Math.round((t.updated / t.total) * 100) : 0
-      console.log(`indexAllItems: embeddings ${t.updated}/${t.total} (${pct}%), ` +
-        `created: ${t.created}, deleted: ${t.deleted}, conflicts: ${t.version_conflicts}`)
+      const done = (t.updated || 0) + (t.noops || 0)
+      const pct = t.total ? Math.round((done / t.total) * 100) : 0
+      console.log(`indexAllItems: embeddings ${t.updated} updated, ${t.noops} skipped / ${t.total} (${pct}%)`)
 
       if (status.body.completed) {
         const failures = status.body.response?.failures || []

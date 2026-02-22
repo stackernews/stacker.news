@@ -194,6 +194,7 @@ services:
     volumes:
       - os:/usr/share/opensearch/data
       - ./docker/opensearch/init-opensearch.sh:/usr/share/opensearch/init-opensearch.sh
+      - ./docker/opensearch/seed-embeddings.gz:/usr/share/opensearch/seed-embeddings.gz:ro
     labels:
       CONNECT: "localhost:9200"
     command: ["bash", "/usr/share/opensearch/init-opensearch.sh"]

@@ -298,18 +298,24 @@ ensure_model_deployed () {
   local model_id="$1"
   local response
   local model_state
+  local deploy_attempt=0
+  local max_deploy_attempts=90  # 3 minutes at 2s intervals
+  local deploy_retries=0
+  local max_deploy_retries=2
 
   response=$(os_api -X GET "${OS_URL}/_plugins/_ml/models/${model_id}?filter_path=model_state")
   model_state="$(json_string "model_state" "$response")"
-  if [ "$model_state" != "DEPLOYED" ]; then
-    os_api \
-      -X POST "${OS_URL}/_plugins/_ml/models/${model_id}/_deploy" \
-      -H "Content-Type: application/json" \
-      -d "{}" >/dev/null
-  fi
+  case "$model_state" in
+    DEPLOYED) return 0 ;;
+    DEPLOYING) ;;  # already in progress — just poll
+    *)
+      os_api \
+        -X POST "${OS_URL}/_plugins/_ml/models/${model_id}/_deploy" \
+        -H "Content-Type: application/json" \
+        -d "{}" >/dev/null
+      ;;
+  esac
 
-  local deploy_attempt=0
-  local max_deploy_attempts=90  # 3 minutes at 2s intervals
   while true; do
     response=$(os_api -X GET "${OS_URL}/_plugins/_ml/models/${model_id}?filter_path=model_state")
     model_state="$(json_string "model_state" "$response")"
@@ -318,8 +324,17 @@ ensure_model_deployed () {
         return 0
         ;;
       DEPLOY_FAILED)
-        echo "Model deployment failed for ${model_id}" >&2
-        exit 1
+        deploy_retries=$((deploy_retries + 1))
+        if [ "$deploy_retries" -gt "$max_deploy_retries" ]; then
+          echo "Model deployment failed for ${model_id} after ${deploy_retries} attempts" >&2
+          exit 1
+        fi
+        echo "Model ${model_id} in DEPLOY_FAILED state; retrying deploy (${deploy_retries}/${max_deploy_retries})..." >&2
+        os_api \
+          -X POST "${OS_URL}/_plugins/_ml/models/${model_id}/_deploy" \
+          -H "Content-Type: application/json" \
+          -d "{}" >/dev/null 2>&1 || true
+        sleep 2
         ;;
       *)
         deploy_attempt=$((deploy_attempt + 1))
@@ -463,8 +478,11 @@ ensure_ingest_pipeline () {
 
   # Ingest pipeline:
   # - Strips empty text/title fields
-  # - Computes docType and textLength metadata
-  # - Concatenates title+text into title_text (mapped field for lexical, semantic, sparse)
+  # - Computes docType, textLength metadata, and title_text concat
+  # - Content-hash gating: hashes title_text + sparse model_id, compares with stored
+  #   contentHash. Embedding processors only fire when content actually changed.
+  # - Clears old dense embeddings (text_semantic_semantic_info) on content change so
+  #   the semantic field (skip_existing_embedding: true) knows to re-embed
   # - Copies title_text into text_semantic (semantic field handles its own embedding + chunking)
   # - Sparse-encodes title_text into text_sparse (rank_features, learned term expansion)
   # - Sanitizes sparse token keys (replaces dots, which rank_features rejects)
@@ -488,14 +506,28 @@ ensure_ingest_pipeline () {
         },
         {
           \"script\": {
-            \"source\": \"ctx.docType = (ctx.containsKey('parentId') && ctx.parentId != null) ? 'comment' : 'post'; ctx.textLength = ctx.containsKey('text') && ctx.text != null ? ctx.text.length() : 0; def t = ctx.containsKey('title') && ctx.title != null ? ctx.title : ''; def b = ctx.containsKey('text') && ctx.text != null ? ctx.text : ''; def sep = String.valueOf((char)10) + String.valueOf((char)10); ctx.title_text = t.length() > 0 && b.length() > 0 ? t + sep + b : (t.length() > 0 ? t : b);\"
+            \"source\": \"ctx.docType = (ctx.containsKey('parentId') && ctx.parentId != null) ? 'comment' : 'post'; ctx.textLength = ctx.containsKey('text') && ctx.text != null ? ctx.text.length() : 0; def t = ctx.containsKey('title') && ctx.title != null ? ctx.title : ''; def b = ctx.containsKey('text') && ctx.text != null ? ctx.text : ''; def sep = String.valueOf((char)10) + String.valueOf((char)10); ctx.title_text = t.length() > 0 && b.length() > 0 ? t + sep + b : (t.length() > 0 ? t : b); def hashInput = ctx.title_text + '|${sparse_model_id}'; def newHash = String.valueOf(hashInput.hashCode()); ctx.contentChanged = !newHash.equals(ctx.containsKey('contentHash') ? ctx.contentHash : ''); ctx.contentHash = newHash;\"
+          }
+        },
+        {
+          \"remove\": {
+            \"field\": \"text_semantic_semantic_info\",
+            \"if\": \"ctx.contentChanged == true\",
+            \"ignore_missing\": true
+          }
+        },
+        {
+          \"remove\": {
+            \"field\": [\"text_semantic\", \"text_sparse\"],
+            \"if\": \"ctx.contentChanged == true && (ctx.title_text == null || ctx.title_text.length() == 0)\",
+            \"ignore_missing\": true
           }
         },
         {
           \"set\": {
             \"field\": \"text_semantic\",
             \"value\": \"{{title_text}}\",
-            \"if\": \"ctx?.title_text != null && ctx.title_text.length() > 0\"
+            \"if\": \"ctx.contentChanged == true && ctx?.title_text != null && ctx.title_text.length() > 0\"
           }
         },
         {
@@ -506,13 +538,19 @@ ensure_ingest_pipeline () {
             },
             \"prune_type\": \"max_ratio\",
             \"prune_ratio\": 0.1,
-            \"if\": \"ctx?.title_text != null && ctx.title_text.length() > 0\",
+            \"if\": \"ctx.contentChanged == true && ctx?.title_text != null && ctx.title_text.length() > 0\",
             \"ignore_failure\": true
           }
         },
         {
           \"script\": {
             \"source\": \"if (ctx.text_sparse != null) { def clean = new HashMap(); for (entry in ctx.text_sparse.entrySet()) { def k = entry.getKey().replace('.', '_'); if (k.length() > 0) { clean.put(k, entry.getValue()); } } ctx.text_sparse = clean; }\"
+          }
+        },
+        {
+          \"remove\": {
+            \"field\": \"contentChanged\",
+            \"ignore_missing\": true
           }
         }
       ]
@@ -553,7 +591,6 @@ create_neural_index () {
       \"settings\": {
         \"index.knn\": true,
         \"index.analyze.max_token_count\": 50000,
-        \"default_pipeline\": \"${INGEST_PIPELINE}\",
         \"index.search.default_pipeline\": \"${SEARCH_PIPELINE}\",
         \"similarity\": {
           \"default\": {
@@ -762,7 +799,9 @@ create_neural_index () {
           \"company\": { \"type\": \"text\" },
           \"location\": { \"type\": \"text\" },
           \"remote\": { \"type\": \"boolean\" },
-          \"lastCommentAt\": { \"type\": \"date\" }
+          \"lastCommentAt\": { \"type\": \"date\" },
+
+          \"contentHash\": { \"type\": \"keyword\", \"index\": false, \"doc_values\": false }
         }
       }
     }")
@@ -824,14 +863,14 @@ ensure_neural_index () {
     exit 1
   fi
 
-  # Ensure pipelines are attached to existing index
+  # Ensure search pipeline is attached (default_pipeline is set at the end
+  # of the bootstrap, after seed import, as a readiness signal for the worker).
   os_api -s -o /dev/null \
     -X PUT "${OS_URL}/${INDEX_NAME}/_settings" \
     -H "Content-Type: application/json" \
     -d "{
-      \"index.default_pipeline\": \"${INGEST_PIPELINE}\",
       \"index.search.default_pipeline\": \"${SEARCH_PIPELINE}\"
-    }" || echo "Warning: could not update pipeline settings on existing index." >&2
+    }" || echo "Warning: could not update search pipeline setting on existing index." >&2
 }
 
 /usr/share/opensearch/opensearch-docker-entrypoint.sh &
@@ -857,17 +896,158 @@ echo "Ensuring local model group exists."
 model_group_id="$(ensure_model_group)"
 echo "Ensuring dense embedding model is registered."
 dense_model_id="$(ensure_model "$model_group_id")"
-echo "Ensuring dense embedding model is deployed."
-ensure_model_deployed "$dense_model_id"
-echo "Ensuring sparse encoding model is registered and deployed."
+echo "Ensuring sparse encoding model is registered."
 sparse_model_id="$(ensure_sparse_model "$model_group_id")"
 echo "Sparse model ID: ${sparse_model_id}"
-ensure_model_deployed "$sparse_model_id"
 echo "Ensuring NLP pipelines exist."
 ensure_ingest_pipeline "$sparse_model_id"
 ensure_search_pipeline
 echo "Ensuring index ${INDEX_NAME} is neural-ready."
 ensure_neural_index "$dense_model_id"
+
+# --- Seed data import (dev convenience) ---
+# Seed file format: gzipped two-section file
+#   Section 1: _bulk NDJSON (all fields + sparse vectors, no dense)
+#   ---DENSE_EMBEDDINGS_FLOAT16_BASE64---
+#   Section 2: NDJSON with float16 base64-encoded dense embeddings
+#
+# Both sections are merged in Python and bulk-indexed in one pass so that
+# text_semantic_semantic_info persists (the semantic field type silently
+# drops it on update operations; only index operations preserve it).
+SEED_FILE="/usr/share/opensearch/seed-embeddings.gz"
+DENSE_MARKER="---DENSE_EMBEDDINGS_FLOAT16_BASE64---"
+
+if [ -f "$SEED_FILE" ]; then
+  doc_count=$(curl -sS -ku "${OS_USER}:${OS_PASS}" \
+    "${OS_URL}/${INDEX_NAME}/_count" 2>/dev/null \
+    | sed -nE 's/.*"count"[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p')
+  doc_count="${doc_count:-0}"
+
+  if [ "$doc_count" -eq 0 ]; then
+    echo "Loading seed data from ${SEED_FILE}..."
+    seed_start=$(date +%s)
+
+    # Extract both sections to temp files
+    gunzip -c "$SEED_FILE" | sed "/${DENSE_MARKER}/,\$d" > /tmp/sparse_bulk.ndjson
+    gunzip -c "$SEED_FILE" | sed -n "/${DENSE_MARKER}/,\$p" | tail -n +2 > /tmp/dense_seed.ndjson
+
+    # Merge sparse + dense in Python then bulk-index (not update).
+    # The semantic field type silently drops text_semantic_semantic_info
+    # on update operations, so we must use index with the full document.
+    python3 -u - "$OS_URL" "$OS_USER" "$OS_PASS" "$INDEX_NAME" "$sparse_model_id" \
+      /tmp/sparse_bulk.ndjson /tmp/dense_seed.ndjson <<'PYEOF'
+import sys, json, struct, base64, urllib.request, ssl, hashlib
+
+OS_URL, OS_USER, OS_PASS, INDEX, SPARSE_MODEL_ID, SPARSE_FILE, DENSE_FILE = sys.argv[1:8]
+BATCH = 200
+ctx = ssl._create_unverified_context()
+auth = base64.b64encode(f"{OS_USER}:{OS_PASS}".encode()).decode()
+
+def decode_f16(b64, dim):
+    buf = base64.b64decode(b64)
+    return [struct.unpack_from('<e', buf, i*2)[0] for i in range(dim)]
+
+def java_hash(s):
+    h = 0
+    for c in s:
+        h = (31 * h + ord(c)) & 0xFFFFFFFF
+    return h if h < 0x80000000 else h - 0x100000000
+
+def content_hash(doc):
+    t = doc.get('title') or ''
+    b = doc.get('text') or ''
+    sep = '\n\n'
+    tt = (t + sep + b) if t and b else (t or b)
+    return str(java_hash(tt + '|' + SPARSE_MODEL_ID))
+
+def bulk_send(lines):
+    body = '\n'.join(lines) + '\n'
+    req = urllib.request.Request(
+        f"{OS_URL}/{INDEX}/_bulk?pipeline=_none",
+        data=body.encode(),
+        headers={'Content-Type':'application/x-ndjson','Authorization':f'Basic {auth}'},
+        method='POST')
+    with urllib.request.urlopen(req, context=ctx) as r:
+        resp = json.loads(r.read())
+    return sum(1 for it in resp.get('items',[]) if 'error' in it.get('index',it.get('create',{})))
+
+# Phase 1: read sparse docs into memory
+docs = {}
+with open(SPARSE_FILE) as f:
+    lines = f.readlines()
+for i in range(0, len(lines)-1, 2):
+    action = json.loads(lines[i])
+    doc = json.loads(lines[i+1])
+    _id = str(action.get('index',action.get('create',{})).get('_id',''))
+    if _id:
+        docs[_id] = doc
+print(f"seed: loaded {len(docs)} sparse docs into memory", file=sys.stderr, flush=True)
+
+# Phase 2: merge dense embeddings
+dense_merged = 0
+with open(DENSE_FILE) as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        rec = json.loads(line)
+        _id = str(rec['_id'])
+        if _id not in docs:
+            continue
+        chunks = []
+        for c in rec.get('chunks', []):
+            emb = decode_f16(c['embedding_b64'], c['dim'])
+            chunks.append({'text': c['text'], 'embedding': emb})
+        docs[_id]['text_semantic_semantic_info'] = {
+            'chunks': chunks, 'model': rec.get('model', {})
+        }
+        dense_merged += 1
+print(f"seed: merged {dense_merged} dense embeddings", file=sys.stderr, flush=True)
+
+# Phase 3: compute contentHash and bulk-index all docs
+total = errs = 0
+batch = []
+for _id, doc in docs.items():
+    doc['contentHash'] = content_hash(doc)
+    batch.append(json.dumps({"index":{"_index":INDEX,"_id":_id}},separators=(',',':')))
+    batch.append(json.dumps(doc,separators=(',',':')))
+    if len(batch) >= BATCH * 2:
+        errs += bulk_send(batch)
+        total += len(batch) // 2
+        print(f"seed: {total} docs indexed ({errs} errors)", file=sys.stderr, flush=True)
+        batch = []
+if batch:
+    errs += bulk_send(batch)
+    total += len(batch) // 2
+print(f"seed: complete — {total} docs indexed, {dense_merged} with dense embeddings, {errs} errors",
+      file=sys.stderr, flush=True)
+PYEOF
+    rm -f /tmp/dense_seed.ndjson /tmp/sparse_bulk.ndjson
+
+    seed_end=$(date +%s)
+    echo "Seed import complete in $((seed_end - seed_start))s."
+  else
+    echo "Index already has ${doc_count} docs; skipping seed import."
+  fi
+else
+  echo "No seed file found at ${SEED_FILE}; skipping seed import."
+fi
+
+# Deploy models now — registration was done earlier so IDs were available
+# for pipeline/index creation and seed import, but inference isn't needed
+# until the default_pipeline is activated below.
+echo "Deploying dense embedding model..."
+ensure_model_deployed "$dense_model_id"
+echo "Deploying sparse encoding model..."
+ensure_model_deployed "$sparse_model_id"
+
+# Set the default ingest pipeline LAST — the worker uses its presence as a
+# "bootstrap complete" signal, so nothing should write to the index before
+# seeds are loaded and the pipeline is ready.
+os_api -s -o /dev/null \
+  -X PUT "${OS_URL}/${INDEX_NAME}/_settings" \
+  -H "Content-Type: application/json" \
+  -d "{\"index.default_pipeline\": \"${INGEST_PIPELINE}\"}"
 
 echo "OpenSearch neural bootstrap complete (3-leg hybrid: title_text lexical + semantic + sparse)."
 wait "$opensearch_pid"

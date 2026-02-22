@@ -68,6 +68,7 @@ export async function getInitial (models, payInArgs, { me }) {
       const routingFeeMtokens = candidateMtokens * 3n / 70n
       try {
         let testBolt11Func
+        // anon and users without a send wallet can't auto-retry, so we test the invoice before proceeding with p2p
         if (me.id === USER_ID.anon || !payInArgs.hasSendWallet) {
           testBolt11Func = async (bolt11) => await canWrapBolt11({ msats: candidateMtokens, bolt11, maxRoutingFeeMsats: routingFeeMtokens })
         }
@@ -117,7 +118,8 @@ export async function onPaid (tx, payInId) {
     where: { id: payInId },
     include: {
       itemPayIn: { include: { item: true } },
-      payOutBolt11: true
+      payOutBolt11: true,
+      payOutCustodialTokens: true
     }
   })
 
@@ -126,7 +128,12 @@ export async function onPaid (tx, payInId) {
   const userId = payIn.userId
   const item = payIn.itemPayIn.item
   const p2pMsats = payIn.payOutBolt11?.msats ?? 0n
-  const recipientMsats = msats * 70n / 100n
+  // actual recipient msats = p2p bolt11 + custodial ZAP payouts
+  // (ineligible authors have their share redistributed, so this can be less than 70%)
+  const recipientMsats = p2pMsats + payIn.payOutCustodialTokens
+    .filter(t => t.payOutType === 'ZAP')
+    .reduce((acc, t) => acc + t.mtokens, 0n)
+  // scale mcost by the recipient's p2p share to determine how much of the zap is credits vs sats
   const creditMsats = recipientMsats > 0n ? msats - msats * p2pMsats / recipientMsats : msats
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt

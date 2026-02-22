@@ -75,7 +75,8 @@ export async function getInitial (models, payInArgs, { me }) {
 
         payOutBolt11 = await payOutBolt11Prospect(models, { msats: candidateMtokens, description: 'SN: zap to item #' + parseInt(payInArgs.id) }, { userId: c.userId, payOutType: 'ZAP' }, testBolt11Func)
         p2pCandidateUserId = c.userId
-        payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
+        // some wallets truncate msats to sats, so base the routing fee on the actual bolt11 amount
+        payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: payOutBolt11.msats * 3n / 70n, custodialTokenType: 'SATS' })
         break
       } catch (err) {
         console.error('failed to create invoice for candidate:', err)

@@ -52,11 +52,11 @@ export async function getInitial (models, payInArgs, { me }) {
 
   // build unified candidate list: explicit forwards + author's implicit remaining share
   const authorPct = 100 - itemForwards.reduce((acc, f) => acc + f.pct, 0)
-  const isEligibleAuthor = userId !== USER_ID.anon && userId !== USER_ID.rewards && userId !== USER_ID.saloon
   const candidates = [
     ...itemForwards.map(f => ({ userId: f.userId, pct: f.pct, receiveCreditsBelowSats: f.user.receiveCreditsBelowSats })),
-    ...(isEligibleAuthor && authorPct > 0 ? [{ userId, pct: authorPct, receiveCreditsBelowSats: user.receiveCreditsBelowSats }] : [])
-  ].sort((a, b) => b.pct - a.pct)
+    ...(authorPct > 0 ? [{ userId, pct: authorPct, receiveCreditsBelowSats: user.receiveCreditsBelowSats }] : [])
+  ].filter(c => c.userId !== USER_ID.anon && c.userId !== USER_ID.rewards && c.userId !== USER_ID.saloon)
+    .sort((a, b) => b.pct - a.pct)
 
   let p2pCandidateUserId = null
   const p2p = await tryP2P(models, payInArgs, { me }, item)

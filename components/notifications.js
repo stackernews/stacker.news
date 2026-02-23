@@ -583,27 +583,15 @@ function stackedText (item, total) {
 }
 
 function Votification ({ n }) {
-  let ForwardedUsers = null
-  if (n.item.forwards?.length) {
-    ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
-      <span key={fwd.user.name}>
-        <Link className='text-success' href={`/${fwd.user.name}`}>
-          @{fwd.user.name}
-        </Link>
-        {i !== n.item.forwards.length - 1 && ' '}
-      </span>)
-  }
+  const forwardedPct = n.item.forwards?.reduce((acc, f) => acc + f.pct, 0) ?? 0
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
           <span>
             your {n.item.title ? 'post' : 'reply'} stacked {stackedText(n.item)}
-            {n.item.forwards?.length > 0 &&
-              <>
-                {' '}(forwarding to{' '}
-                <ForwardedUsers />)
-              </>}
+            {forwardedPct > 0 &&
+              <small className='text-muted fw-light ms-2 me-1'>{forwardedPct}% forwarded</small>}
           </span>
           {n.item.credits > 0 && <CCInfo size={16} />}
         </span>

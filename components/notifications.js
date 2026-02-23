@@ -602,11 +602,16 @@ function Votification ({ n }) {
 }
 
 function ForwardedVotification ({ n }) {
+  const { me } = useMe()
+  const myPct = n.item.forwards?.find(f => Number(f.userId) === Number(me?.id))?.pct
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
-          you were forwarded {stackedText(n.item, n.earnedSats)}
+          <span>
+            {n.item.title ? 'post' : 'reply'} stacked {stackedText(n.item)}
+            {myPct && <small className='text-muted fw-light ms-1'>{myPct}% forwarded to you</small>}
+          </span>
           {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
       </NoteHeader>

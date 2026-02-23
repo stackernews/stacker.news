@@ -9,7 +9,7 @@ export default function CCInfo (props) {
         <li>to receive sats, you must attach an <Link href='/wallets'>external receiving wallet</Link></li>
         <li>bios and free comments can only receive CCs</li>
         <li>zappers may have chosen to send you CCs instead of sats</li>
-        <li>if the zaps are split on a post, recipients will receive CCs regardless of their configured receiving wallet</li>
+        <li>if the zaps are split on a post, we send the recipient with the largest share capable of receiving sats sats - others will receive CCs</li>
         <li>there could be an issue paying your receiving wallet
           <ul>
             <li>if the zap is small and you don't have a direct channel to SN, the routing fee may exceed SN's 3% max fee</li>

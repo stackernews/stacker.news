@@ -17,27 +17,16 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
+async function tryP2P (models, { sats, hasSendWallet }, { me }, item) {
   if (me.id !== USER_ID.anon) {
     const zapper = await models.user.findUnique({ where: { id: me.id } })
-    // if the zap is dust, or if me doesn't have a send wallet but has enough sats/credits to pay for it
-    // then we don't invoice the peer
     if (sats < zapper?.sendCreditsBelowSats ||
       (!hasSendWallet && (zapper.mcredits + zapper.msats >= satsToMsats(sats)))) {
       return false
     }
   }
 
-  const item = await models.item.findUnique({
-    where: { id: parseInt(id) },
-    include: {
-      itemForwards: true,
-      user: true
-    }
-  })
-
-  // bios, forwards, freebies, or dust don't get sats - only credits
-  if (item.bio || item.freebie || item.itemForwards.length > 0 || sats < item.user.receiveCreditsBelowSats) {
+  if (item.bio || item.freebie) {
     return false
   }
 
@@ -52,50 +41,53 @@ async function tryP2P (models, { id, sats, hasSendWallet }, { me }) {
 //    if p2p, 27% to rewards pool, 3% to routing fee
 //    if not p2p, all 30% to rewards pool
 export async function getInitial (models, payInArgs, { me }) {
-  const { subNames, parentId, itemForwards, userId } = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { itemForwards: true, user: true } })
+  const item = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { itemForwards: { include: { user: true } }, user: true } })
+  const { subNames, parentId, itemForwards, userId, user } = item
   const subs = await getSubs(models, { subNames, parentId })
   const mcost = satsToMsats(payInArgs.sats)
   let payOutBolt11
 
-  let zapMtokens = mcost * 70n / 100n
+  const zapMtokens = mcost * 70n / 100n
   const payOutCustodialTokensProspects = []
 
-  const p2p = await tryP2P(models, payInArgs, { me })
+  // build unified candidate list: explicit forwards + author's implicit remaining share
+  const authorPct = 100 - itemForwards.reduce((acc, f) => acc + f.pct, 0)
+  const candidates = [
+    ...itemForwards.map(f => ({ userId: f.userId, pct: f.pct, receiveCreditsBelowSats: f.user.receiveCreditsBelowSats })),
+    ...(authorPct > 0 ? [{ userId, pct: authorPct, receiveCreditsBelowSats: user.receiveCreditsBelowSats }] : [])
+  ].filter(c => c.userId !== USER_ID.anon && c.userId !== USER_ID.rewards && c.userId !== USER_ID.saloon)
+    .sort((a, b) => b.pct - a.pct)
+
+  let p2pCandidateUserId = null
+  const p2p = await tryP2P(models, payInArgs, { me }, item)
   if (p2p) {
-    try {
-      // 3% to routing fee
-      const routingFeeMtokens = mcost * 3n / 100n
+    for (const c of candidates) {
+      const candidateMtokens = zapMtokens * BigInt(c.pct) / 100n
+      if (msatsToSats(candidateMtokens) < c.receiveCreditsBelowSats) continue
 
-      // if the user is anon or doesn't have a send wallet, we need to make sure the invoice can be wrapped
-      // because we are forced to display a QR code in these cases
-      let testBolt11Func
-      if (me.id === USER_ID.anon || !payInArgs.hasSendWallet) {
-        testBolt11Func = async (bolt11) => await canWrapBolt11({ msats: zapMtokens, bolt11, maxRoutingFeeMsats: routingFeeMtokens })
+      const routingFeeMtokens = candidateMtokens * 3n / 70n
+      try {
+        let testBolt11Func
+        // anon and users without a send wallet can't auto-retry, so we test the invoice before proceeding with p2p
+        if (me.id === USER_ID.anon || !payInArgs.hasSendWallet) {
+          testBolt11Func = async (bolt11) => await canWrapBolt11({ msats: candidateMtokens, bolt11, maxRoutingFeeMsats: routingFeeMtokens })
+        }
+
+        payOutBolt11 = await payOutBolt11Prospect(models, { msats: candidateMtokens, description: 'SN: zap to item #' + parseInt(payInArgs.id) }, { userId: c.userId, payOutType: 'ZAP' }, testBolt11Func)
+        p2pCandidateUserId = c.userId
+        // some wallets truncate msats to sats, so base the routing fee on the actual bolt11 amount
+        payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: payOutBolt11.msats * 3n / 70n, custodialTokenType: 'SATS' })
+        break
+      } catch (err) {
+        console.error('failed to create invoice for candidate:', err)
       }
-
-      // TODO: description, expiry?
-      payOutBolt11 = await payOutBolt11Prospect(models, { msats: zapMtokens, description: 'SN: zap to item #' + parseInt(payInArgs.id) }, { userId, payOutType: 'ZAP' }, testBolt11Func)
-      // some wallets truncate msats, so we need to update zapMtokens to the actual amount received
-      zapMtokens = payOutBolt11.msats
-      payOutCustodialTokensProspects.push({ payOutType: 'ROUTING_FEE', userId: null, mtokens: routingFeeMtokens, custodialTokenType: 'SATS' })
-    } catch (err) {
-      console.error('failed to create user invoice:', err)
     }
   }
 
-  if (!payOutBolt11) {
-    if (itemForwards.length > 0) {
-      for (const f of itemForwards) {
-        payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId: f.userId, mtokens: zapMtokens * BigInt(f.pct) / 100n, custodialTokenType: 'CREDITS' })
-      }
-    }
-    const remainingZapMtokens = zapMtokens - payOutCustodialTokensProspects.filter(t => t.payOutType === 'ZAP').reduce((acc, t) => acc + t.mtokens, 0n)
-    if (remainingZapMtokens > 0n) {
-      // if the user is anon, rewards, or saloon, we send the zap to the rewards pool via getRedistributedPayOutCustodialTokens
-      if (userId !== USER_ID.anon && userId !== USER_ID.rewards && userId !== USER_ID.saloon) {
-        payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId, mtokens: remainingZapMtokens, custodialTokenType: 'CREDITS' })
-      }
-    }
+  // distribute CCs to all candidates who didn't get P2P
+  for (const c of candidates) {
+    if (c.userId === p2pCandidateUserId) continue
+    payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId: c.userId, mtokens: zapMtokens * BigInt(c.pct) / 100n, custodialTokenType: 'CREDITS' })
   }
 
   // what's left goes to the rewards pool
@@ -127,7 +119,8 @@ export async function onPaid (tx, payInId) {
     where: { id: payInId },
     include: {
       itemPayIn: { include: { item: true } },
-      payOutBolt11: true
+      payOutBolt11: true,
+      payOutCustodialTokens: true
     }
   })
 
@@ -135,6 +128,14 @@ export async function onPaid (tx, payInId) {
   const sats = msatsToSats(msats)
   const userId = payIn.userId
   const item = payIn.itemPayIn.item
+  const p2pMsats = payIn.payOutBolt11?.msats ?? 0n
+  // actual recipient msats = p2p bolt11 + custodial ZAP payouts
+  // (ineligible authors have their share redistributed, so this can be less than 70%)
+  const recipientMsats = p2pMsats + payIn.payOutCustodialTokens
+    .filter(t => t.payOutType === 'ZAP')
+    .reduce((acc, t) => acc + t.mtokens, 0n)
+  // scale mcost by the recipient's p2p share to determine how much of the zap is credits vs sats
+  const creditMsats = recipientMsats > 0n ? msats - msats * p2pMsats / recipientMsats : msats
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
@@ -173,7 +174,7 @@ export async function onPaid (tx, payInId) {
         "subWeightedVotes" = "subWeightedVotes" + zapper."subZapTrust" * zap.log_sats,
         upvotes = upvotes + zap.first_vote,
         msats = "Item".msats + ${msats}::BIGINT,
-        mcredits = "Item".mcredits + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT,
+        mcredits = "Item".mcredits + ${creditMsats}::BIGINT,
         "lastZapAt" = now()
       FROM zap, zapper
       WHERE "Item".id = ${item.id}::INTEGER
@@ -187,7 +188,7 @@ export async function onPaid (tx, payInId) {
     UPDATE "Item"
     SET "weightedComments" = "Item"."weightedComments" + item_zapped."weightedVote",
       "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
-      "commentMcredits" = "Item"."commentMcredits" + ${payIn.payOutBolt11 ? 0n : msats}::BIGINT
+      "commentMcredits" = "Item"."commentMcredits" + ${creditMsats}::BIGINT
     FROM item_zapped, ancestors
     WHERE "Item".id = ancestors.id`
 }

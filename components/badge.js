@@ -77,7 +77,7 @@ export default function Badges ({ user, badge, bot, showWalletBadges, className 
   )
 }
 
-function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0, style = {} }) {
+function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0, style }) {
   let Wrapper = Fragment
 
   if (overlayText) {

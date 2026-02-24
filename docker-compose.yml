@@ -52,7 +52,8 @@ services:
       context: ./docker/tor
     container_name: tor
     profiles:
-      - payments
+      - tor
+      - wallets
     restart: unless-stopped
     volumes:
       - tordata:/tordata/
@@ -362,6 +363,7 @@ services:
       ofelia.job-exec.sn_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.sn_channel_cron.command: >
         su lnd -c bash -c "
+          lncli connect $ROUTER_LND_PUBKEY@router_lnd:9735 2>/dev/null || true
           if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 6 ]; then
             exit 0
           elif [ $$(lncli listchannels --peer=$ROUTER_LND_PUBKEY | jq '.channels | length') -ge 3 ]; then
@@ -379,6 +381,7 @@ services:
     container_name: sn_lndk
     restart: unless-stopped
     profiles:
+      - lndk
       - wallets
     depends_on:
       sn_lnd:
@@ -415,6 +418,7 @@ services:
     depends_on:
       tor:
         condition: service_healthy
+        required: false
         restart: true
       <<: *depends_on_bitcoin
     env_file: *env_file
@@ -464,6 +468,7 @@ services:
       ofelia.job-exec.lnd_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.lnd_channel_cron.command: >
         su lnd -c bash -c "
+          lncli connect $ROUTER_LND_PUBKEY@router_lnd:9735 2>/dev/null || true
           if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
@@ -477,6 +482,7 @@ services:
     build:
       context: ./docker/litd
     profiles:
+      - litd
       - wallets
     restart: unless-stopped
     healthcheck:
@@ -515,6 +521,7 @@ services:
     container_name: cln
     restart: unless-stopped
     profiles:
+      - cln
       - wallets
     healthcheck:
       <<: *healthcheck
@@ -522,6 +529,7 @@ services:
     depends_on:
       tor:
         condition: service_healthy
+        required: false
         restart: true
       <<: *depends_on_bitcoin
     env_file: *env_file
@@ -571,6 +579,7 @@ services:
         - LN_NODE_FOR=stacker
     container_name: eclair
     profiles:
+      - eclair
       - wallets
     restart: unless-stopped
     depends_on:
@@ -693,11 +702,19 @@ services:
     image: mcuadros/ofelia:latest
     container_name: walletscron
     profiles:
+      - cln
+      - eclair
       - wallets
     depends_on:
-      - router_lnd
-      - eclair
-      - cln
+      router_lnd:
+        condition: service_healthy
+        restart: true
+      eclair:
+        condition: service_started
+        required: false
+      cln:
+        condition: service_started
+        required: false
     restart: unless-stopped
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME} -f label=ofelia.group=wallets
     volumes:
@@ -724,6 +741,7 @@ services:
     image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
     container_name: nwc_send
     profiles:
+      - nwc
       - wallets
     restart: unless-stopped
     depends_on:
@@ -758,6 +776,7 @@ services:
     image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
     container_name: nwc_recv
     profiles:
+      - nwc
       - wallets
     restart: unless-stopped
     depends_on:
@@ -793,6 +812,7 @@ services:
       context: ./docker/lnbits
     container_name: lnbits
     profiles:
+      - lnbits
       - wallets
     restart: unless-stopped
     ports:
@@ -800,6 +820,7 @@ services:
     depends_on:
       tor:
         condition: service_healthy
+        required: false
         restart: true
       lnd:
         condition: service_healthy
@@ -823,6 +844,7 @@ services:
       context: ./docker/lnbits-v1
     container_name: lnbits-v1
     profiles:
+      - lnbits
       - wallets
     restart: unless-stopped
     ports:
@@ -830,6 +852,7 @@ services:
     depends_on:
       tor:
         condition: service_healthy
+        required: false
         restart: true
       lnd:
         condition: service_healthy
@@ -852,6 +875,7 @@ services:
     image: ghcr.io/shocknet/lightning-pub@sha256:cd7bb9298d09a2cdaf1b6456ef6154e3ba24f7b902ad29cda2c08c2a4fa2af6e
     container_name: lnpub
     profiles:
+      - lnpub
       - wallets
     restart: unless-stopped
     volumes:

@@ -1077,6 +1077,36 @@ export default {
     commentCredits: async (item, args, { models }) => {
       return msatsToSats(item.commentMcredits)
     },
+    bountyPaidTo: async (item, args, { models, me }) => {
+      if (!me || !item.bounty || item.userId !== me.id) return item.bountyPaidTo
+
+      const pendingPayments = await models.$queryRawUnsafe(`
+        SELECT "ItemPayIn"."itemId"
+        FROM "ItemPayIn"
+        JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId"
+        JOIN "Item" ON "Item".id = "ItemPayIn"."itemId"
+        WHERE "PayIn"."payInType" = 'BOUNTY_PAYMENT'
+        AND "PayIn"."userId" = $1
+        AND "Item"."rootId" = $2
+        AND (
+          "PayIn"."payInState" <> 'FAILED'
+          OR (
+            "PayIn"."payInState" = 'FAILED'
+            AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
+            AND "PayIn"."payInStateChangedAt" > now() - '${WALLET_RETRY_BEFORE_MS} milliseconds'::interval
+            AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}::integer
+            AND "PayIn"."successorId" IS NULL
+          )
+        )
+        AND "PayIn"."payInState" <> 'PAID'
+      `, me.id, item.id)
+
+      if (!pendingPayments.length) return item.bountyPaidTo
+
+      const pendingIds = pendingPayments.map(p => p.itemId)
+      const merged = [...new Set([...(item.bountyPaidTo || []), ...pendingIds])]
+      return merged.length ? merged : null
+    },
     commentCost: async (item) => item.commentCost || 0,
     commentBoost: async (item) => item.commentBoost || 0,
     isJob: async (item, args, { models }) => {

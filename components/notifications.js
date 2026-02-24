@@ -613,7 +613,7 @@ function Votification ({ n }) {
 
   let stackedTextString
   if (hasStacked && n.item.forwards?.length) {
-    stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+    stackedTextString = stackedText(n.item, n.earnedSats)
   } else if (hasStacked) {
     stackedTextString = stackedText(n.item)
   }

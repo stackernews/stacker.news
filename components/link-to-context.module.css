@@ -36,7 +36,8 @@
 .linkBoxParent video,
 .linkBoxParent pre,
 .linkBoxParent img,
-.linkBoxParent .accordion {
+.linkBoxParent .accordion,
+.linkBoxParent [title] {
     pointer-events: auto !important;
 }
 

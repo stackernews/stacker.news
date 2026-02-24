@@ -566,52 +566,32 @@ function Referral ({ n }) {
   )
 }
 
-function stackedText (item) {
+function stackedText (item, total) {
+  if (total === undefined) total = item.sats
   let text = ''
-  if (item.sats - item.credits > 0) {
-    text += `${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
-
-    if (item.credits > 0) {
-      text += ' and '
-    }
+  const credits = item.sats > 0 ? Math.floor(total * item.credits / item.sats) : total
+  const sats = total - credits
+  if (sats > 0) {
+    text += `${numWithUnits(sats, { abbreviate: false })}`
+    if (credits > 0) text += ' and '
   }
-  if (item.credits > 0) {
-    text += `${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+  if (credits > 0) {
+    text += `${numWithUnits(credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
   }
 
   return text
 }
 
 function Votification ({ n }) {
-  let forwardedSats = 0
-  let ForwardedUsers = null
-  let stackedTextString
-  let forwardedTextString
-  if (n.item.forwards?.length) {
-    forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
-    ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
-      <span key={fwd.user.name}>
-        <Link className='text-success' href={`/${fwd.user.name}`}>
-          @{fwd.user.name}
-        </Link>
-        {i !== n.item.forwards.length - 1 && ' '}
-      </span>)
-    stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
-    forwardedTextString = numWithUnits(forwardedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
-  } else {
-    stackedTextString = stackedText(n.item)
-  }
+  const forwardedPct = n.item.forwards?.reduce((acc, f) => acc + f.pct, 0) ?? 0
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
           <span>
-            your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
-            {n.item.forwards?.length > 0 &&
-              <>
-                {' '}and forwarded {forwardedTextString} to{' '}
-                <ForwardedUsers />
-              </>}
+            your {n.item.title ? 'post' : 'reply'} stacked {stackedText(n.item)}
+            {forwardedPct > 0 &&
+              <small className='text-muted fw-light ms-2 me-1'>{forwardedPct}% forwarded</small>}
           </span>
           {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
@@ -622,12 +602,17 @@ function Votification ({ n }) {
 }
 
 function ForwardedVotification ({ n }) {
+  const { me } = useMe()
+  const myPct = n.item.forwards?.find(f => Number(f.userId) === Number(me?.id))?.pct
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
-          you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}
-          <CCInfo size={16} />
+          <span>
+            {n.item.title ? 'post' : 'reply'} stacked {stackedText(n.item)}
+            {myPct && <small className='text-muted fw-light ms-1'>{myPct}% forwarded to you</small>}
+          </span>
+          {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
       </NoteHeader>
       <NoteItem item={n.item} />

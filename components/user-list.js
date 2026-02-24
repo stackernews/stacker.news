@@ -73,7 +73,7 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
       </Link>
       <div className={styles.hunk}>
         <div className='d-flex'>
-          <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
+          <Link href={`/${user.name}`} className={`${styles.title} mb-0 d-inline-flex align-items-center justify-content-center text-reset`}>
             @{user.name}<Badges badgeClassName='fill-grey' height={14} width={14} user={user} />
           </Link>
           {nymActionDropdown && <NymActionDropdown user={user} className='' />}

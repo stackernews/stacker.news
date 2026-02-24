@@ -131,6 +131,8 @@ const orderByClause = (by, me, models, type, sub) => {
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
       return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
+    case 'downsats':
+      return 'ORDER BY "Item"."downMsats" DESC'
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
@@ -355,9 +357,8 @@ function investmentClause (postsSatsFilter, commentsSatsFilter, meId, ownerBypas
   )`
 }
 
-export async function filterClause (type, sub, sort, { me, userLoader, subLoader }) {
-  // if you are explicitly asking for freebies or bios, don't filter them
-  if (type === 'freebies' || type === 'bios') {
+export async function filterClause (type, sub, sort, { me, userLoader, subLoader }, by) {
+  if (type === 'freebies' || type === 'bios' || by === 'downsats') {
     return ''
   }
 
@@ -540,7 +541,8 @@ export default {
                 whenClause(when, 'Item'),
                 activeOrMine(me),
                 '"Item".status = \'ACTIVE\'',
-                await filterClause(type, sub, 'top', ctx),
+                by === 'downsats' && '"Item"."downMsats" > 0',
+                await filterClause(type, sub, 'top', ctx, by),
                 muteClause(me))}
               ${orderByClause(by || 'sats', me, models, type, sub)}
               OFFSET $3

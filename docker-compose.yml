@@ -364,11 +364,13 @@ services:
       ofelia.job-exec.sn_channel_cron.command: >
         su lnd -c bash -c "
           lncli connect $ROUTER_LND_PUBKEY@router_lnd:9735 2>/dev/null || true
-          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 6 ]; then
-            exit 0
-          elif [ $$(lncli listchannels --peer=$ROUTER_LND_PUBKEY | jq '.channels | length') -ge 3 ]; then
-            exit 0
-          else
+          channels=$$(lncli listchannels --peer=$ROUTER_LND_PUBKEY)
+          private=$$(echo $$channels | jq '[.channels[] | select(.private == true)] | length')
+          total=$$(echo $$channels | jq '.channels | length')
+          if [ $$private -lt 1 ]; then
+            lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
+              --min_confs 0 --local_amt=1000000000 --push_amt=500000000 --private
+          elif [ $$total -lt 3 ]; then
             lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
@@ -469,9 +471,13 @@ services:
       ofelia.job-exec.lnd_channel_cron.command: >
         su lnd -c bash -c "
           lncli connect $ROUTER_LND_PUBKEY@router_lnd:9735 2>/dev/null || true
-          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
-            exit 0
-          else
+          channels=$$(lncli listchannels --peer=$ROUTER_LND_PUBKEY)
+          private=$$(echo $$channels | jq '[.channels[] | select(.private == true)] | length')
+          total=$$(echo $$channels | jq '.channels | length')
+          if [ $$private -lt 1 ]; then
+            lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
+              --min_confs 0 --local_amt=1000000000 --push_amt=500000000 --private
+          elif [ $$total -lt 3 ]; then
             lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi

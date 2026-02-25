@@ -36,10 +36,10 @@ import { LinkExtension } from '@lexical/link'
 import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
 import { TableExtension } from '@lexical/table'
 import { GalleryExtension } from '@/lib/lexical/exts/gallery'
-import { DecoratorPaddingExtension } from '@/lib/lexical/exts/decorator-padding'
 import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import LinkEditorPlugin from './plugins/link'
+import { DecoratorClickZonesExtension } from '@/lib/lexical/exts/decorator-click-zones'
 
 const MARKDOWN_MODE = {
   name: 'editor-markdown',
@@ -60,7 +60,7 @@ const RICH_MODE = {
     TableExtension,
     GalleryExtension,
     AutoLinkExtension,
-    DecoratorPaddingExtension
+    DecoratorClickZonesExtension
   ],
   nodes: DefaultNodes
 }

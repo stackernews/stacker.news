@@ -71,9 +71,10 @@ export default function FileUploadPlugin ({ editorRef }) {
   // inserts it into the editor at the selection or the root if there is no selection
   const onUpload = useCallback((file) => {
     editor.update(() => {
+      const markdownMode = isMarkdownMode()
       // placeholderKey is the nodekey of the TextNode that contains the placeholder text
       const placeholderNode = $createTextNode(`![Uploading ${file.name}…]()`)
-      $insertTextAtSelection(placeholderNode, 2)
+      $insertTextAtSelection(placeholderNode, markdownMode ? 2 : 1)
       // update the placeholder key
       placeholderKey.current = placeholderNode.getKey()
     }, { tag: 'history-merge' })

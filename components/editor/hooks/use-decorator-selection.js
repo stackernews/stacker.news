@@ -6,9 +6,12 @@ import { mergeRegister } from '@lexical/utils'
 import {
   CLICK_COMMAND,
   COMMAND_PRIORITY_LOW,
+  COMMAND_PRIORITY_EDITOR,
   KEY_DELETE_COMMAND,
   KEY_BACKSPACE_COMMAND,
-  $getNodeByKey
+  KEY_ENTER_COMMAND,
+  $getNodeByKey,
+  $createParagraphNode
 } from 'lexical'
 
 /**
@@ -65,6 +68,22 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
     return true
   }, [editor, nodeKey, isSelected])
 
+  // fallback Enter handler at EDITOR (lowest) priority so decorator-specific
+  // handlers (e.g. MathNode opening its editor at LOW priority) run first
+  const onEnter = useCallback((event) => {
+    if (!isSelected) return false
+    event?.preventDefault()
+    editor.update(() => {
+      const node = $getNodeByKey(nodeKey)
+      if (!node) return
+      const block = node.getTopLevelElement() || node
+      const paragraph = $createParagraphNode()
+      block.insertAfter(paragraph)
+      paragraph.select()
+    })
+    return true
+  }, [editor, nodeKey, isSelected])
+
   useEffect(() => {
     if (!isEditable || !active) return
 
@@ -93,6 +112,7 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
 
     return mergeRegister(
       editor.registerCommand(CLICK_COMMAND, onClick, COMMAND_PRIORITY_LOW),
+      editor.registerCommand(KEY_ENTER_COMMAND, onEnter, COMMAND_PRIORITY_EDITOR),
       ...(deletable
         ? [
             editor.registerCommand(KEY_DELETE_COMMAND, onDelete, COMMAND_PRIORITY_LOW),
@@ -100,7 +120,7 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
           ]
         : [])
     )
-  }, [editor, nodeKey, isEditable, isSelected, setSelected, clearSelection, ref, deletable, active, onDelete])
+  }, [editor, nodeKey, isEditable, isSelected, setSelected, clearSelection, ref, deletable, active, onDelete, onEnter])
 
   return { isSelected, setSelected, clearSelection, isFocused }
 }

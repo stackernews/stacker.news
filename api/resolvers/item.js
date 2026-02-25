@@ -31,7 +31,8 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
-import pay from '../payIn'
+import pay, { retry as retryPayIn } from '../payIn'
+import { BOUNTY_ALREADY_PAID_ERROR, BOUNTY_IN_PROGRESS_ERROR, getBountyPaymentTail } from '../payIn/lib/bountyPayment'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER) {
@@ -1006,7 +1007,17 @@ export default {
         throw new GqlInputError('cannot pay bounty to yourself')
       }
 
-      return await pay('BOUNTY_PAYMENT', { id }, { me, models })
+      const tail = await getBountyPaymentTail(models, Number(id))
+      if (!tail) {
+        return await pay('BOUNTY_PAYMENT', { id }, { me, models })
+      }
+      if (tail.payInState === 'FAILED') {
+        return await retryPayIn(tail.id, { me })
+      }
+      if (tail.payInState === 'PAID') {
+        throw new GqlInputError(BOUNTY_ALREADY_PAID_ERROR)
+      }
+      throw new GqlInputError(BOUNTY_IN_PROGRESS_ERROR)
     },
     updateCommentsViewAt: async (parent, { id, meCommentsViewedAt }, { me, models }) => {
       if (!me) {

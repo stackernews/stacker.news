@@ -1,6 +1,13 @@
-import { PAID_ACTION_PAYMENT_METHODS, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
-import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
+import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { numWithUnits, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import { notifyBountyPaid } from '@/lib/webPush'
+import {
+  BOUNTY_ALREADY_PAID_ERROR,
+  BOUNTY_IN_PROGRESS_ERROR,
+  BOUNTY_STALE_RETRY_ERROR,
+  getBountyPaymentTail,
+  getBountyTailBlockError
+} from '../lib/bountyPayment'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
 import { getItemResult } from '../lib/item'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
@@ -15,8 +22,10 @@ export const paymentMethods = [
 // 100% of bounty to receiver via bolt11, +3% routing fee paid by payer
 // no territory revenue, no rewards pool, no sybil fee
 export async function getInitial (models, { id }, { me }) {
+  const itemId = parseInt(id)
+
   const item = await models.item.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: itemId },
     include: { user: true }
   })
 
@@ -37,31 +46,13 @@ export async function getInitial (models, { id }, { me }) {
   }
 
   if (root.bountyPaidTo?.includes(item.id)) {
-    throw new Error('bounty already paid to this item')
+    throw new Error(BOUNTY_ALREADY_PAID_ERROR)
   }
 
-  const existingPayment = await models.$queryRawUnsafe(`
-    SELECT 1
-    FROM "ItemPayIn"
-    JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId"
-    WHERE "ItemPayIn"."itemId" = $1
-    AND "PayIn"."payInType" = 'BOUNTY_PAYMENT'
-    AND "PayIn"."successorId" IS NULL
-    AND "PayIn"."benefactorId" IS NULL
-    AND (
-      "PayIn"."payInState" <> 'FAILED'
-      OR (
-        "PayIn"."payInState" = 'FAILED'
-        AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
-        AND "PayIn"."payInStateChangedAt" > now() - '${WALLET_RETRY_BEFORE_MS} milliseconds'::interval
-        AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}::integer
-      )
-    )
-    LIMIT 1
-  `, parseInt(id))
-
-  if (existingPayment.length > 0) {
-    throw new Error('bounty payment already in progress for this item')
+  const tail = await getBountyPaymentTail(models, itemId)
+  const tailError = getBountyTailBlockError(tail)
+  if (tailError) {
+    throw new Error(tailError)
   }
 
   const bountyMsats = satsToMsats(root.bounty)
@@ -86,9 +77,41 @@ export async function getInitial (models, { id }, { me }) {
     payInType: 'BOUNTY_PAYMENT',
     userId: me.id,
     mcost,
-    itemPayIn: { itemId: parseInt(id) },
+    itemPayIn: { itemId },
     payOutCustodialTokens,
     payOutBolt11
+  }
+}
+
+export async function validateBeforeCreate (tx, payInProspect) {
+  const itemId = payInProspect.itemPayIn?.itemId
+  if (!itemId || payInProspect.genesisId) {
+    return
+  }
+  const tail = await getBountyPaymentTail(tx, itemId)
+  const tailError = getBountyTailBlockError(tail)
+  if (tailError) {
+    throw new Error(tailError)
+  }
+}
+
+export async function validateRetry (models, payInFailedInitial) {
+  const itemId = payInFailedInitial.itemPayIn?.itemId
+  if (!itemId) {
+    return
+  }
+  const tail = await getBountyPaymentTail(models, itemId)
+  if (!tail) {
+    throw new Error(BOUNTY_STALE_RETRY_ERROR)
+  }
+  if (tail.payInState === 'PAID') {
+    throw new Error(BOUNTY_ALREADY_PAID_ERROR)
+  }
+  if (tail.payInState !== 'FAILED') {
+    throw new Error(BOUNTY_IN_PROGRESS_ERROR)
+  }
+  if (tail.id !== payInFailedInitial.id) {
+    throw new Error(BOUNTY_STALE_RETRY_ERROR)
   }
 }
 
@@ -125,12 +148,6 @@ export async function onPaid (tx, payInId) {
       ${item.id}::INTEGER
     )
     WHERE id = ${item.rootId}::INTEGER`
-
-  // update lastZapAt so the receiver gets a Votification
-  await tx.$executeRaw`
-    UPDATE "Item"
-    SET "lastZapAt" = now()
-    WHERE id = ${item.id}::INTEGER`
 }
 
 export async function onPaidSideEffects (models, payInId) {
@@ -144,9 +161,14 @@ export async function onPaidSideEffects (models, payInId) {
 export async function describe (models, payInId) {
   const payIn = await models.payIn.findUnique({
     where: { id: payInId },
-    include: { payOutBolt11: true, itemPayIn: true }
+    include: { payOutBolt11: true, itemPayIn: true, payOutCustodialTokens: true }
   })
   const bounty = msatsToSats(payIn.payOutBolt11.msats)
-  const fee = Math.ceil(bounty * 3 / 100)
-  return `SN: bounty ${numWithUnits(bounty, { abbreviate: false })} + ${numWithUnits(fee, { abbreviate: false })} proxy fee #${payIn.itemPayIn.itemId}`
+  const routingFeeMsats = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')?.mtokens ??
+    (payIn.mcost - payIn.payOutBolt11.msats)
+  const fee = routingFeeMsats % 1000n === 0n
+    ? numWithUnits(msatsToSats(routingFeeMsats), { abbreviate: false })
+    : `${msatsToSatsDecimal(routingFeeMsats)} sats`
+
+  return `SN: bounty ${numWithUnits(bounty, { abbreviate: false })} + ${fee} proxy fee #${payIn.itemPayIn.itemId}`
 }

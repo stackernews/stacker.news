@@ -83,6 +83,7 @@ async function queuePayInFailed (tx, payInId, payInFailureReason) {
 async function begin (models, payInInitial, payInArgs, { me, custodialOnly }) {
   const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
     await obtainRowLevelLocks(tx, payInInitial)
+    await payInTypeModules[payInInitial.payInType].validateBeforeCreate?.(tx, payInInitial, payInArgs, { me })
     const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, payInArgs, { me })
 
     if (mCostRemaining > 0n && custodialOnly) {
@@ -387,6 +388,7 @@ export async function retry (payInId, { me }) {
       // pessimistic payIns are fully re-executed without tracking
       return await pay(payInFailedInitial.payInType, payInFailedInitial.pessimisticEnv.args, { me })
     }
+    await payInTypeModules[payInFailedInitial.payInType].validateRetry?.(models, payInFailedInitial, { me })
     shouldConsumeRetryAttempt = true
 
     const payInFailed = await payInReplacePayOuts(models, payInFailedInitial)

@@ -48,6 +48,10 @@ export function isBountyPayment (payIn) {
   return payIn.payInType === 'BOUNTY_PAYMENT'
 }
 
+export function isP2POnly (payIn) {
+  return isP2P(payIn) && !isPayableWithCredits(payIn)
+}
+
 export function isWithdrawal (payIn) {
   return payIn.payInType === 'WITHDRAWAL' || payIn.payInType === 'AUTO_WITHDRAWAL'
 }

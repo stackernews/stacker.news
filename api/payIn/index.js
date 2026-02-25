@@ -427,6 +427,10 @@ export async function retry (payInId, { me }) {
     return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
   } catch (e) {
     console.error('retry failed', e)
+    await models.payIn.update({
+      where: { id: payInId },
+      data: { retryCount: { increment: 1 } }
+    }).catch(() => {})
     throw e
   }
 }

@@ -9,8 +9,7 @@ export const anonable = false
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.P2P,
-  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC,
-  PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
+  PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC
 ]
 
 // 100% of bounty to receiver via bolt11, +3% routing fee paid by payer

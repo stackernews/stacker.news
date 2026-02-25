@@ -1,7 +1,7 @@
 import { USER_ID } from '@/lib/constants'
 import { NoReceiveWalletError, payOutBolt11Replacement } from './payOutBolt11'
 import { payOutCustodialTokenFromBolt11 } from './payOutCustodialTokens'
-import { isBountyPayment } from './is'
+import { isP2POnly } from './is'
 
 export async function payInReplacePayOuts (models, payInFailedInitial) {
   if (!payInFailedInitial.payOutBolt11) {
@@ -31,8 +31,8 @@ export async function payInReplacePayOuts (models, payInFailedInitial) {
     if (!(e instanceof NoReceiveWalletError)) {
       throw e
     }
-    // bounty payments never fall back to custodial credits
-    if (isBountyPayment(payInFailedInitial)) {
+    // p2p-only payments (bounty, proxy) never fall back to custodial credits
+    if (isP2POnly(payInFailedInitial)) {
       throw e
     }
     // if we can no longer produce a payOutBolt11, we fallback to custodial tokens

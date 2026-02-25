@@ -279,6 +279,20 @@ export default {
           foundNotes()
           return true
         }
+
+        const [newBounty] = await models.$queryRawUnsafe(`
+          SELECT EXISTS(
+            SELECT *
+            FROM "PayIn"
+            JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
+            WHERE "PayIn"."payInType" = 'BOUNTY_PAYMENT'
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayOutBolt11"."userId" = $1
+            AND "PayIn"."payInStateChangedAt" > $2)`, me.id, lastChecked)
+        if (newBounty.exists) {
+          foundNotes()
+          return true
+        }
       }
 
       // break out thread subscription to decrease the search space of the already expensive reply query

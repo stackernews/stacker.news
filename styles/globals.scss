@@ -992,8 +992,9 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 }
 
 .tooltip-inner {
-  padding: 0.1rem 0.3rem;
+  padding: 0.2rem 0.45rem;
   color: #fff;
+  line-height: 1;
 }
 
 .spin.fade-in {

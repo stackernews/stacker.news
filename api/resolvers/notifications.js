@@ -205,6 +205,20 @@ export default {
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
+        queries.push(
+          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+            COALESCE(FLOOR("PayOutBolt11"."msats" / 1000), 0)::INTEGER as "earnedSats",
+            'BountyPayment' AS type
+            FROM "PayIn"
+            JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn".id
+            JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
+            WHERE "PayIn"."payInType" = 'BOUNTY_PAYMENT'
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayOutBolt11"."userId" = $1
+            AND "PayIn"."payInStateChangedAt" < $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+        )
       }
 
       if (meFull.noteForwardedSats) {
@@ -451,6 +465,12 @@ export default {
   },
   Votification: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  BountyPayment: {
+    item: async (n, args, { models, me }) => {
+      const itemPayIn = await models.itemPayIn.findUnique({ where: { payInId: Number(n.id) } })
+      return await getItem(n, { id: itemPayIn.itemId }, { models, me })
+    }
   },
   ForwardedVotification: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })

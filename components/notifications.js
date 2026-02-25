@@ -57,6 +57,7 @@ function Notification ({ n, fresh }) {
         (['NewHorse', 'LostHorse'].includes(type) && <Horse n={n} />) ||
         (['NewGun', 'LostGun'].includes(type) && <Gun n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
+        (type === 'BountyPayment' && <BountyPayment n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
         (type === 'ItemMention' && <ItemMention n={n} />) ||
@@ -620,14 +621,12 @@ function stackedText (item, total) {
 }
 
 function Votification ({ n }) {
-  const bountyPaid = n.item.root?.bountyPaidTo?.includes(Number(n.item.id))
-  const hasStacked = n.earnedSats > 0
   const forwardedPct = n.item.forwards?.reduce((acc, f) => acc + f.pct, 0) ?? 0
 
   let stackedTextString
-  if (hasStacked && n.item.forwards?.length) {
+  if (n.item.forwards?.length) {
     stackedTextString = stackedText(n.item, n.earnedSats)
-  } else if (hasStacked) {
+  } else {
     stackedTextString = stackedText(n.item)
   }
 
@@ -636,20 +635,23 @@ function Votification ({ n }) {
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
           <span>
-            {bountyPaid &&
-              <>
-                you received a {numWithUnits(n.item.root.bounty, { abbreviate: false })} bounty
-                {hasStacked && ' and '}
-              </>}
-            {hasStacked &&
-              <>
-                {bountyPaid ? 'stacked' : `your ${n.item.title ? 'post' : 'reply'} stacked`} {stackedTextString}
-                {forwardedPct > 0 &&
-                  <small className='text-muted fw-light ms-1'>{forwardedPct}% forwarded</small>}
-              </>}
+            your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
+            {forwardedPct > 0 &&
+              <small className='text-muted fw-light ms-1'>{forwardedPct}% forwarded</small>}
           </span>
-          {hasStacked && n.item.credits > 0 && <CCInfo size={16} />}
+          {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
+      </NoteHeader>
+      <NoteItem item={n.item} />
+    </>
+  )
+}
+
+function BountyPayment ({ n }) {
+  return (
+    <>
+      <NoteHeader color='success'>
+        you received a {numWithUnits(n.earnedSats, { abbreviate: false })} bounty payment
       </NoteHeader>
       <NoteItem item={n.item} />
     </>

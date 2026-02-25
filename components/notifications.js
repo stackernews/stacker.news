@@ -39,7 +39,7 @@ import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
-import { useRetryPayIn, useRetryBountyPayIn, useRetryItemActPayIn } from './payIn/hooks/use-retry-pay-in'
+import { getPayInFailureData, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
 import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import MapIcon from '@/svgs/map.svg'
 
@@ -441,9 +441,10 @@ function PayInFailed ({ n }) {
     })
   }, [n.id])
 
-  const revertPayIn = useCallback((_error, cache, { data }) => {
+  const revertPayIn = useCallback((error, cache, { data }) => {
     const retryResult = Object.values(data)[0]
     if (!retryResult?.id) return
+    const failureData = getPayInFailureData(error)
     cache.writeFragment({
       id: `PayInification:${n.id}`,
       fragment: gql`
@@ -452,6 +453,9 @@ function PayInFailed ({ n }) {
             id
             payInState
             payInStateChangedAt
+            payerPrivates {
+              payInFailureReason
+            }
           }
         }
       `,
@@ -459,32 +463,42 @@ function PayInFailed ({ n }) {
         payIn: {
           __typename: 'PayIn',
           id: retryResult.id,
-          payInState: 'FAILED',
-          payInStateChangedAt: new Date().toISOString()
+          ...failureData
         }
       }
     })
   }, [n.id])
 
   // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
-  const mutationOptions = { update: updatePayIn, onRetry: updatePayIn, onPayError: revertPayIn, protocolLimit: 1 }
-  const retryPayIn = useRetryPayIn(payIn.id, mutationOptions)
+  const optimisticPayInTypes = ['ZAP', 'DOWN_ZAP', 'BOOST']
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
   const actOptimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
   const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: item.root?.bounty ?? msatsToSats(payIn.mcost), act: 'TIP', path: item.path, __typename: 'ItemAct', payIn } } }
-  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { ...mutationOptions, optimisticResponse: bountyOptimisticResponse })
-  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { ...mutationOptions, optimisticResponse: actOptimisticResponse })
+  const optimisticResponse = payIn.payInType === 'BOUNTY_PAYMENT'
+    ? bountyOptimisticResponse
+    : optimisticPayInTypes.includes(payIn.payInType)
+      ? actOptimisticResponse
+      : undefined
+  const mutationOptions = {
+    onRetry: updatePayIn,
+    cachePhases: {
+      onMutationResult: updatePayIn,
+      onPaid: updatePayIn,
+      onPayError: revertPayIn
+    },
+    protocolLimit: 1,
+    ...(optimisticResponse ? { optimisticResponse } : {})
+  }
+  const retryPayIn = useRetryPayInByType(payIn.id, payIn.payInType, mutationOptions)
 
   const [actionString, colorClass, retry] = useMemo(() => {
-    let retry
+    const retry = retryPayIn
     let actionString = ''
     const itemType = item.title ? 'post' : 'comment'
     if (payIn.payInType === 'ITEM_CREATE') {
       actionString = `${itemType} create `
-      retry = retryPayIn
     } else if (payIn.payInType === 'BOUNTY_PAYMENT') {
       actionString = `bounty payment on ${itemType} `
-      retry = retryBountyPayIn
     } else {
       if (payIn.payInType === 'ZAP') {
         actionString = 'zap'
@@ -493,7 +507,6 @@ function PayInFailed ({ n }) {
       } else if (payIn.payInType === 'BOOST') {
         actionString = 'boost'
       }
-      retry = retryItemActPayIn
       actionString = `${actionString} on ${itemType} `
     }
     let colorClass = 'info'
@@ -511,7 +524,7 @@ function PayInFailed ({ n }) {
         }
     }
     return [actionString, colorClass, retry]
-  }, [payIn, item, retryPayIn, retryBountyPayIn, retryItemActPayIn])
+  }, [payIn, item, retryPayIn])
 
   return (
     <div>

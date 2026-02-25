@@ -40,6 +40,20 @@ export default function useItemSubmit (mutation,
       }
 
       const subNames = submittedSubNames || item?.subNames || (sub?.name ? [sub.name] : [])
+      const {
+        cachePhases: payInCachePhases = {},
+        onCompleted: payInOnCompleted,
+        ...restPayInMutationOptions
+      } = payInMutationOptions
+      const mergedCachePhases = {
+        ...payInCachePhases,
+        // Preserve previous wrapper behavior: if the initial mutation result is missing,
+        // rerun mutation-phase cache work in paid-phase.
+        onPaidMissingResult: composeCallbacks(
+          payInCachePhases.onPaidMissingResult,
+          payInCachePhases.onMutationResult
+        )
+      }
 
       const { data, error, payError } = await upsertItem({
         variables: {
@@ -55,16 +69,11 @@ export default function useItemSubmit (mutation,
         },
         // if not a comment, we want the qr to persist on navigation
         persistOnNavigate: navigateOnSubmit,
-        ...payInMutationOptions,
-        onPayError: (e, cache, { data }) => {
-          payInMutationOptions?.onPayError?.(e, cache, { data })
-        },
-        onPaid: (cache, { data }) => {
-          payInMutationOptions?.onPaid?.(cache, { data })
-        },
+        ...restPayInMutationOptions,
+        cachePhases: mergedCachePhases,
         onCompleted: (data) => {
           onSuccessfulSubmit?.(data, { resetForm })
-          payInMutationOptions?.onCompleted?.(data)
+          payInOnCompleted?.(data)
           saveItemInvoiceHmac(data)
         }
       })
@@ -106,5 +115,16 @@ function saveItemInvoiceHmac (mutationData) {
 
   if (id && hash && hmac) {
     window.localStorage.setItem(`item:${id}:hash:hmac`, `${hash}:${hmac}`)
+  }
+}
+
+function composeCallbacks (...callbacks) {
+  const validFns = callbacks.filter(Boolean)
+  if (validFns.length === 0) return undefined
+
+  return (...args) => {
+    for (const fn of validFns) {
+      fn(...args)
+    }
   }
 }

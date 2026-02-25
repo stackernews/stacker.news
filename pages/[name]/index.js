@@ -26,17 +26,19 @@ export function BioForm ({ handleDone, bio, me }) {
   const onSubmit = useItemSubmit(UPSERT_BIO, {
     navigateOnSubmit: false,
     payInMutationOptions: {
-      update (cache, { data: { upsertBio: { payerPrivates: { result } } } }) {
-        if (!result) return
+      cachePhases: {
+        onMutationResult (cache, { data: { upsertBio: { payerPrivates: { result } } } }) {
+          if (!result) return
 
-        cache.modify({
-          id: `User:${me.id}`,
-          fields: {
-            bio () {
-              return result.text
+          cache.modify({
+            id: `User:${me.id}`,
+            fields: {
+              bio () {
+                return result.text
+              }
             }
-          }
-        })
+          })
+        }
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {

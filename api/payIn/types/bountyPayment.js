@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
+import { PAID_ACTION_PAYMENT_METHODS, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyBountyPaid } from '@/lib/webPush'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
@@ -38,6 +38,30 @@ export async function getInitial (models, { id }, { me }) {
 
   if (root.bountyPaidTo?.includes(item.id)) {
     throw new Error('bounty already paid to this item')
+  }
+
+  const existingPayment = await models.$queryRawUnsafe(`
+    SELECT 1
+    FROM "ItemPayIn"
+    JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId"
+    WHERE "ItemPayIn"."itemId" = $1
+    AND "PayIn"."payInType" = 'BOUNTY_PAYMENT'
+    AND "PayIn"."successorId" IS NULL
+    AND "PayIn"."benefactorId" IS NULL
+    AND (
+      "PayIn"."payInState" <> 'FAILED'
+      OR (
+        "PayIn"."payInState" = 'FAILED'
+        AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
+        AND "PayIn"."payInStateChangedAt" > now() - '${WALLET_RETRY_BEFORE_MS} milliseconds'::interval
+        AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}::integer
+      )
+    )
+    LIMIT 1
+  `, parseInt(id))
+
+  if (existingPayment.length > 0) {
+    throw new Error('bounty payment already in progress for this item')
   }
 
   const bountyMsats = satsToMsats(root.bounty)

@@ -10,9 +10,10 @@ import { useToast } from './toast'
 import { Form, SubmitButton } from './form'
 import { PAY_BOUNTY_MUTATION } from '@/fragments/payIn'
 import usePayInMutation from './payIn/hooks/use-pay-in-mutation'
+import { useHasSendWallet } from '@/wallets/client/hooks'
 
-export const payBountyCacheMods = {
-  update: (cache, { data }) => {
+export const payBountyCachePhases = {
+  onMutationResult: (cache, { data }) => {
     const response = Object.values(data)[0]
     if (!response?.payerPrivates.result) return
     const { id, path } = response.payerPrivates.result
@@ -27,7 +28,22 @@ export const payBountyCacheMods = {
       optimistic: true
     })
   },
-  onPayError: (e, cache, { data }) => {
+  onPaidMissingResult: (cache, { data }) => {
+    const response = Object.values(data)[0]
+    if (!response?.payerPrivates.result) return
+    const { id, path } = response.payerPrivates.result
+    const root = path.split('.')[0]
+    cache.modify({
+      id: `Item:${root}`,
+      fields: {
+        bountyPaidTo (existingPaidTo = []) {
+          return [...(existingPaidTo || []), Number(id)]
+        }
+      },
+      optimistic: true
+    })
+  },
+  onPayError: (_e, cache, { data }) => {
     const response = Object.values(data)[0]
     if (!response?.payerPrivates.result) return
     const { id, path } = response.payerPrivates.result
@@ -50,6 +66,7 @@ export default function PayBounty ({ children, item }) {
   const root = useRoot()
   const animate = useAnimation()
   const toaster = useToast()
+  const hasSendWallet = useHasSendWallet()
 
   const bounty = root.bounty
   const proxyFee = Math.ceil(bounty * 3 / 100)
@@ -65,13 +82,24 @@ export default function PayBounty ({ children, item }) {
   const [payBounty] = usePayInMutation(PAY_BOUNTY_MUTATION, {
     variables,
     optimisticResponse,
-    ...payBountyCacheMods
+    cachePhases: payBountyCachePhases
   })
 
-  const handlePayBounty = async onCompleted => {
-    try {
+  const handlePayBounty = async onClose => {
+    const onPaid = () => {
       animate()
-      const { error } = await payBounty({ onCompleted })
+      onClose?.()
+    }
+
+    const options = {}
+    if (hasSendWallet) {
+      onPaid()
+    } else {
+      options.cachePhases = { onPaid }
+    }
+
+    try {
+      const { error } = await payBounty(options)
       if (error) throw error
     } catch (error) {
       const reason = error?.message || error?.toString?.()

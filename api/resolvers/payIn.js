@@ -12,11 +12,11 @@ function payInResultType (payInType) {
   switch (payInType) {
     case 'ITEM_CREATE':
     case 'ITEM_UPDATE':
+    case 'BOUNTY_PAYMENT':
       return 'Item'
     case 'ZAP':
     case 'DOWN_ZAP':
     case 'BOOST':
-    case 'BOUNTY_PAYMENT':
       return 'ItemAct'
     case 'POLL_VOTE':
       return 'PollVote'

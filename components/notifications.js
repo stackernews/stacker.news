@@ -39,7 +39,7 @@ import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
-import { getPayInFailureData, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
+import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
 import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import MapIcon from '@/svgs/map.svg'
 
@@ -443,9 +443,9 @@ function PayInFailed ({ n }) {
   }, [n.id])
 
   const revertPayIn = useCallback((error, cache, { data }) => {
-    const retryResult = Object.values(data)[0]
-    if (!retryResult?.id) return
-    const failureData = getPayInFailureData(error)
+    const retryFailureUpdate = getRetryPayInFailureUpdate(error, data)
+    if (!retryFailureUpdate) return
+    const { retryPayInId, failureData } = retryFailureUpdate
     cache.writeFragment({
       id: `PayInification:${n.id}`,
       fragment: gql`
@@ -463,7 +463,7 @@ function PayInFailed ({ n }) {
       data: {
         payIn: {
           __typename: 'PayIn',
-          id: retryResult.id,
+          id: retryPayInId,
           ...failureData
         }
       }
@@ -474,7 +474,7 @@ function PayInFailed ({ n }) {
   const optimisticPayInTypes = ['ZAP', 'DOWN_ZAP', 'BOOST']
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
   const actOptimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
-  const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: item.root?.bounty ?? msatsToSats(payIn.mcost), act: 'TIP', path: item.path, __typename: 'ItemAct', payIn } } }
+  const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, path: item.path, __typename: 'Item' } } }
   const optimisticResponse = payIn.payInType === 'BOUNTY_PAYMENT'
     ? bountyOptimisticResponse
     : optimisticPayInTypes.includes(payIn.payInType)

@@ -44,10 +44,6 @@ export function isProxyPayment (payIn) {
   return payIn.payInType === 'PROXY_PAYMENT'
 }
 
-export function isBountyPayment (payIn) {
-  return payIn.payInType === 'BOUNTY_PAYMENT'
-}
-
 export function isP2POnly (payIn) {
   return isP2P(payIn) && !isPayableWithCredits(payIn)
 }

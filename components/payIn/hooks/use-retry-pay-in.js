@@ -5,6 +5,7 @@ import { payBountyCachePhases } from '@/components/pay-bounty'
 import { useMe } from '@/components/me'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { InvoiceCanceledError } from '@/wallets/client/errors'
+import { composeCallbacks } from '@/lib/compose-callbacks'
 
 export function useRetryPayIn (payInId, mutationOptions = {}) {
   const { restOptions, cachePhases } = splitMutationOptions(mutationOptions)
@@ -51,6 +52,16 @@ export function getPayInFailureData (error) {
   }
 }
 
+export function getRetryPayInFailureUpdate (error, data) {
+  const retryResult = Object.values(data ?? {})[0]
+  if (!retryResult?.id) return null
+
+  return {
+    retryPayInId: retryResult.id,
+    failureData: getPayInFailureData(error)
+  }
+}
+
 function splitMutationOptions (mutationOptions = {}) {
   const { cachePhases = {}, ...restOptions } = mutationOptions
   return {
@@ -74,16 +85,5 @@ function withActCachePhases (actCachePhases, userCachePhases) {
     onPaidMissingResult: composeCallbacks(actCachePhases.onMutationResult, userCachePhases.onPaidMissingResult),
     onPaid: composeCallbacks(actCachePhases.onPaid, userCachePhases.onPaid),
     onPayError: composeCallbacks(actCachePhases.onPayError, userCachePhases.onPayError)
-  }
-}
-
-function composeCallbacks (...callbacks) {
-  const validFns = callbacks.filter(Boolean)
-  if (validFns.length === 0) return undefined
-
-  return (...args) => {
-    for (const fn of validFns) {
-      fn(...args)
-    }
   }
 }

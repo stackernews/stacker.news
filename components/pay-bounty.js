@@ -12,37 +12,25 @@ import { PAY_BOUNTY_MUTATION } from '@/fragments/payIn'
 import usePayInMutation from './payIn/hooks/use-pay-in-mutation'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 
+const addBountyPaidToCache = (cache, { data }) => {
+  const response = Object.values(data)[0]
+  if (!response?.payerPrivates.result) return
+  const { id, path } = response.payerPrivates.result
+  const root = path.split('.')[0]
+  cache.modify({
+    id: `Item:${root}`,
+    fields: {
+      bountyPaidTo (existingPaidTo = []) {
+        return [...(existingPaidTo || []), Number(id)]
+      }
+    },
+    optimistic: true
+  })
+}
+
 export const payBountyCachePhases = {
-  onMutationResult: (cache, { data }) => {
-    const response = Object.values(data)[0]
-    if (!response?.payerPrivates.result) return
-    const { id, path } = response.payerPrivates.result
-    const root = path.split('.')[0]
-    cache.modify({
-      id: `Item:${root}`,
-      fields: {
-        bountyPaidTo (existingPaidTo = []) {
-          return [...(existingPaidTo || []), Number(id)]
-        }
-      },
-      optimistic: true
-    })
-  },
-  onPaidMissingResult: (cache, { data }) => {
-    const response = Object.values(data)[0]
-    if (!response?.payerPrivates.result) return
-    const { id, path } = response.payerPrivates.result
-    const root = path.split('.')[0]
-    cache.modify({
-      id: `Item:${root}`,
-      fields: {
-        bountyPaidTo (existingPaidTo = []) {
-          return [...(existingPaidTo || []), Number(id)]
-        }
-      },
-      optimistic: true
-    })
-  },
+  onMutationResult: addBountyPaidToCache,
+  onPaidMissingResult: addBountyPaidToCache,
   onPayError: (_e, cache, { data }) => {
     const response = Object.values(data)[0]
     if (!response?.payerPrivates.result) return
@@ -76,7 +64,7 @@ export default function PayBounty ({ children, item }) {
   const optimisticResponse = {
     payInType: 'BOUNTY_PAYMENT',
     mcost: satsToMsats(totalCost),
-    payerPrivates: { result: { path: item.path, id: item.id, sats: bounty, act: 'TIP', __typename: 'ItemAct' } }
+    payerPrivates: { result: { path: item.path, id: item.id, __typename: 'Item' } }
   }
 
   const [payBounty] = usePayInMutation(PAY_BOUNTY_MUTATION, {

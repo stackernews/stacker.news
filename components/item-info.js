@@ -28,7 +28,7 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
-import { getPayInFailureData, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
+import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
 import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { gql } from '@apollo/client'
 
@@ -312,11 +312,11 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
   const toaster = useToast()
 
   const revertPayIn = useCallback((error, cache, { data }) => {
-    const retryResult = Object.values(data)[0]
-    if (!retryResult?.id) return
-    const failureData = getPayInFailureData(error)
+    const retryFailureUpdate = getRetryPayInFailureUpdate(error, data)
+    if (!retryFailureUpdate) return
+    const { retryPayInId, failureData } = retryFailureUpdate
     cache.writeFragment({
-      id: `PayIn:${retryResult.id}`,
+      id: `PayIn:${retryPayInId}`,
       fragment: gql`
         fragment PayInInfoRevert on PayIn {
           payInState

@@ -14,6 +14,7 @@ import { useHasSendWallet } from '@/wallets/client/hooks'
 import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { satsToMsats } from '@/lib/format'
+import { composeCallbacks } from '@/lib/compose-callbacks'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -312,17 +313,6 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
     }
   })
   return act
-}
-
-function composeCallbacks (...callbacks) {
-  const validFns = callbacks.filter(Boolean)
-  if (validFns.length === 0) return undefined
-
-  return (...args) => {
-    for (const fn of validFns) {
-      fn(...args)
-    }
-  }
 }
 
 export function useZap () {

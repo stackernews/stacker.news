@@ -1,5 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
-import { numWithUnits, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
+import { ceilBigInt, numWithUnits, msatsToSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import { notifyBountyPaid } from '@/lib/webPush'
 import {
   BOUNTY_ALREADY_PAID_ERROR,
@@ -56,7 +56,8 @@ export async function getInitial (models, { id }, { me }) {
   }
 
   const bountyMsats = satsToMsats(root.bounty)
-  const routingFeeMtokens = bountyMsats * 3n / 100n
+  // Round up to whole sats so P2P-only mcost stays 1000-msat aligned.
+  const routingFeeMtokens = satsToMsats(ceilBigInt(BigInt(root.bounty) * 3n, 100n))
   const mcost = bountyMsats + routingFeeMtokens
 
   // let this throw NoReceiveWalletError if receiver has no wallet -- no CC fallback
@@ -116,18 +117,14 @@ export async function validateRetry (models, payInFailedInitial) {
 }
 
 export async function onBegin (tx, payInId, payInArgs) {
-  const item = await getItemResult(tx, { id: payInArgs.id })
-  const { payOutBolt11 } = await tx.payIn.findUnique({ where: { id: payInId }, include: { payOutBolt11: true } })
-  return { id: item.id, path: item.path, sats: msatsToSats(payOutBolt11.msats), act: 'TIP' }
+  return await getItemResult(tx, { id: payInArgs.id })
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  const { itemId, payIn } = await tx.itemPayIn.findUnique({
-    where: { payInId: oldPayInId },
-    include: { payIn: { include: { payOutBolt11: true } } }
+  const { itemId } = await tx.itemPayIn.findUnique({
+    where: { payInId: oldPayInId }
   })
-  const item = await getItemResult(tx, { id: itemId })
-  return { id: item.id, path: item.path, sats: msatsToSats(payIn.payOutBolt11.msats), act: 'TIP' }
+  return await getItemResult(tx, { id: itemId })
 }
 
 export async function onPaid (tx, payInId) {

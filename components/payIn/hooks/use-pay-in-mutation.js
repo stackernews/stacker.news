@@ -9,6 +9,7 @@ import { getOperationName } from '@apollo/client/utilities'
 import { useMe } from '@/components/me'
 import { USER_ID } from '@/lib/constants'
 import { willAutoRetryPayIn } from './use-auto-retry-pay-ins'
+import { composeCallbacks } from '@/lib/compose-callbacks'
 
 /*
 this is just like useMutation with a few changes:
@@ -126,17 +127,6 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
   }, [mutate, options, payPayIn, client.cache, setInnerResult, !!me])
 
   return [innerMutate, innerResult]
-}
-
-function composeCallbacks (...callbacks) {
-  const validFns = callbacks.filter(Boolean)
-  if (validFns.length === 0) return undefined
-
-  return (...args) => {
-    for (const fn of validFns) {
-      fn(...args)
-    }
-  }
 }
 
 function isClientPessimisticPayIn (payIn, me, forceWaitForPayment) {

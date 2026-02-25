@@ -5,6 +5,7 @@ import useCrossposter from './use-crossposter'
 import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { USER_ID } from '@/lib/constants'
+import { composeCallbacks } from '@/lib/compose-callbacks'
 import { useMe } from './me'
 
 // this is intented to be compatible with upsert item mutations
@@ -115,16 +116,5 @@ function saveItemInvoiceHmac (mutationData) {
 
   if (id && hash && hmac) {
     window.localStorage.setItem(`item:${id}:hash:hmac`, `${hash}:${hmac}`)
-  }
-}
-
-function composeCallbacks (...callbacks) {
-  const validFns = callbacks.filter(Boolean)
-  if (validFns.length === 0) return undefined
-
-  return (...args) => {
-    for (const fn of validFns) {
-      fn(...args)
-    }
   }
 }

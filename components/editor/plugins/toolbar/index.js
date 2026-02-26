@@ -271,7 +271,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           <span className={styles.divider} />
           <ToolbarDropdown
             icon={<MoreIcon />}
-            tooltip='additional formatting options'
+            tooltip='additional formats'
             options={FORMAT_OPTIONS}
             onAction={({ type }) => handleFormat(type)}
             arrow={false}
@@ -279,7 +279,6 @@ export function ToolbarPlugin ({ name, topLevel }) {
             <div className={styles.separator}>
               <span className='text-muted small fw-bold text-uppercase ps-1 pe-1'>inserts</span>
             </div>
-            {/* TODO: clean this, do this right */}
             <DropdownMenuItem option={{ id: 'math', name: 'math', icon: <MathIcon />, type: 'math' }} onAction={() => handleInsertMath()} />
             <DropdownMenuItem option={{ id: 'inlineMath', name: 'inline math', icon: <MathOperationsIcon />, type: 'inlineMath' }} onAction={() => handleInsertMath(true)} />
           </ToolbarDropdown>

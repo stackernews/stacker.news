@@ -76,15 +76,13 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
   const { toolbarState } = useToolbarState()
   const [text] = useField({ name })
 
-  // TODO: re-review this
-  // autofocus if requested, and always auto-focus the editor after a mode switch
-  const hasSwitchedRef = useRef(false)
+  // autofocus when the prop requests it, or immediately after a mode switch.
+  // as modeSwitched is a transient value based on modeConfig, the latter will be the dependency.
   const prevModeRef = useRef(toolbarState.markdownMode)
-  if (prevModeRef.current !== toolbarState.markdownMode) {
-    hasSwitchedRef.current = true
+  const modeSwitched = prevModeRef.current !== toolbarState.markdownMode
+  if (modeSwitched) {
     prevModeRef.current = toolbarState.markdownMode
   }
-  const shouldAutoFocus = autoFocus || hasSwitchedRef.current
 
   const modeConfig = useMemo(() =>
     toolbarState.markdownMode ? MARKDOWN_MODE : RICH_MODE
@@ -109,7 +107,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         HistoryExtension,
         FormattingCommandsExtension,
         configExtension(ReactExtension, { contentEditable: null }),
-        configExtension(AutoFocusExtension, { disabled: !shouldAutoFocus }),
+        configExtension(AutoFocusExtension, { disabled: !(autoFocus || modeSwitched) }),
         ...modeConfig.dependencies
       ],
       nodes: modeConfig.nodes,
@@ -117,7 +115,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
       onError: (error) => console.error('editor has encountered an error:', error)
     // only depend on stable values to avoid unnecessary re-renders
     // text.value is, for example, not stable because it is updated by the formik context
-    }), [shouldAutoFocus, topLevel, modeConfig])
+    }), [autoFocus, topLevel, modeConfig])
 
   return (
     <LexicalExtensionComposer key={modeConfig.name} extension={editor} contentEditable={null}>

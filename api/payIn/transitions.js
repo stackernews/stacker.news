@@ -563,7 +563,7 @@ export async function payInCancel ({ data, models, lnd, boss, ...args }) {
 
 export async function payInFailed ({ data, models, lnd, boss, ...args }) {
   const { payInId, payInFailureReason } = data
-  return await transitionPayIn('payInFailed', data, {
+  const transitionedPayIn = await transitionPayIn('payInFailed', data, {
     payInId,
     // any of these states can transition to FAILED
     fromStates: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD', 'CANCELLED', 'PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'],
@@ -589,6 +589,26 @@ export async function payInFailed ({ data, models, lnd, boss, ...args }) {
       }
     }
   }, { models, lnd, boss, ...args })
+
+  if (transitionedPayIn?.payOutBolt11 && (transitionedPayIn.payInFailureReason?.startsWith('INVOICE_CREATION') || transitionedPayIn.payInFailureReason?.startsWith('INVOICE_WRAPPING'))) {
+    const { userId: receiverId } = transitionedPayIn.payOutBolt11
+    const receiver = await models.user.findUnique({ where: { id: receiverId }, select: { name: true } })
+    const senderProtocol = await models.walletProtocol.findFirst({
+      where: {
+        userId: transitionedPayIn.userId,
+        walletType: 'send',
+        enabled: true
+      },
+      orderBy: { priority: 'desc' }
+    })
+    if (senderProtocol) {
+      const logger = walletLogger({ protocolId: senderProtocol.id, userId: transitionedPayIn.userId, payInId, models })
+      const reasonText = transitionedPayIn.payInFailureReason.replace(/_/g, ' ').toLowerCase()
+      const receiverName = receiver?.name || `id:${receiverId}`
+      logger.error(`payment failed: receiver @${receiverName}'s wallet ${reasonText}`)
+    }
+  }
+  return transitionedPayIn
 }
 
 function deducePayInFailureReason ({ payInFailureReason, payIn, lndPayInBolt11 }) {

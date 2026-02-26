@@ -279,6 +279,7 @@ function useLexicalUploadFees (editor) {
 
   // extracts S3 keys from text and updates upload fees
   const $refreshUploadFees = useCallback(() => {
+    // we're inside a read transaction, but since it can be debounced, $getEditor won't be available
     const markdownMode = isMarkdownMode(editor)
     if (markdownMode) {
       const text = $getRoot().getTextContent() || ''

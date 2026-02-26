@@ -34,9 +34,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     hideFloatingElem()
     setIsLinkEditMode(false)
     if (linkUrl === '') {
-      editor.update(() => {
-        editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
-      })
+      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
     }
   }, [hideFloatingElem, editor, linkUrl])
 

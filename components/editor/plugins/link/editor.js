@@ -147,7 +147,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
     setIsLinkEditMode(false)
   }
 
-  // update link editor on lexical updates
+  // editor updates, selection changes, escape key
   useEffect(() => {
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
@@ -159,25 +159,15 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
         SELECTION_CHANGE_COMMAND,
         () => {
           $updateLink()
-        }, COMMAND_PRIORITY_LOW)
+        }, COMMAND_PRIORITY_LOW),
+      editor.registerCommand(
+        KEY_ESCAPE_COMMAND,
+        () => {
+          handleBlur()
+          return true
+        }, COMMAND_PRIORITY_HIGH)
     )
-  }, [editor, $updateLink])
-
-  // escape key
-  useEffect(() => {
-    return editor.registerCommand(
-      KEY_ESCAPE_COMMAND,
-      () => {
-        handleBlur()
-        return true
-      }, COMMAND_PRIORITY_HIGH)
-  }, [editor, handleBlur])
-
-  useEffect(() => {
-    editor.getEditorState().read(() => {
-      $updateLink()
-    })
-  }, [editor, $updateLink])
+  }, [editor, $updateLink, handleBlur])
 
   // throttled update of position
   useEffect(() => {
@@ -194,9 +184,11 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
       })
     }
 
+    // synchronous initial read so the position is correct on the same frame
+    editor.getEditorState().read(() => { $updateLink() })
+
     window.addEventListener('resize', update)
     scrollerElem?.addEventListener('scroll', update)
-    update()
 
     return () => {
       if (rafId !== null) window.cancelAnimationFrame(rafId)

@@ -1,4 +1,4 @@
-import { USER_ID, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { payInCancel, payInFailed } from '../payIn/transitions'
@@ -134,7 +134,7 @@ export default {
           SELECT "PayIn".*
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'BOUNTY_PAYMENT')
+          AND "PayIn"."payInType" IN (${Prisma.join(PAY_IN_NOTIFICATION_TYPES)})
           AND "PayIn"."userId" = ${me.id}
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."benefactorId" IS NULL

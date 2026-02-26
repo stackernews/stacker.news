@@ -4,7 +4,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
@@ -552,7 +552,7 @@ export default {
           SELECT *
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'BOUNTY_PAYMENT')
+          AND "PayIn"."payInType" IN (${Prisma.join(PAY_IN_NOTIFICATION_TYPES)})
           AND "PayIn"."userId" = ${me.id}
           AND "PayIn"."successorId" IS NULL
           -- help the query planner by narrowing the range of the timestamp

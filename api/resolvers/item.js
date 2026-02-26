@@ -1007,7 +1007,7 @@ export default {
         throw new GqlInputError('cannot pay bounty to yourself')
       }
 
-      const tail = await getBountyPaymentTail(models, Number(id))
+      const tail = await getBountyPaymentTail(models, Number(id), { userId: Number(me.id) })
       if (!tail) {
         return await pay('BOUNTY_PAYMENT', { id }, { me, models })
       }

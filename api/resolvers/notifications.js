@@ -5,8 +5,10 @@ import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { getPayIn } from './payIn'
-import { WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
+import { PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
+
+const PAY_IN_NOTIFICATION_TYPES_SQL = PAY_IN_NOTIFICATION_TYPES.map(type => `'${type}'`).join(', ')
 
 export default {
   Query: {
@@ -379,7 +381,7 @@ export default {
           "PayIn"."payInStateChangedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'PayInification' AS type
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'BOUNTY_PAYMENT')
+          AND "PayIn"."payInType" IN (${PAY_IN_NOTIFICATION_TYPES_SQL})
           AND "PayIn"."userId" = $1
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."benefactorId" IS NULL

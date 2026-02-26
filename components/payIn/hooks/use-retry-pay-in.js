@@ -6,6 +6,7 @@ import { useMe } from '@/components/me'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { composeCallbacks } from '@/lib/compose-callbacks'
+import { PAY_IN_ACT_TYPES } from '@/lib/constants'
 
 export function useRetryPayIn (payInId, mutationOptions = {}) {
   const { restOptions, cachePhases } = splitMutationOptions(mutationOptions)
@@ -13,14 +14,12 @@ export function useRetryPayIn (payInId, mutationOptions = {}) {
   return retryPayIn
 }
 
-const ACT_PAY_IN_TYPES = ['ZAP', 'DOWN_ZAP', 'BOOST']
-
 export function useRetryPayInByType (payInId, payInType, mutationOptions = {}) {
   const { me } = useMe()
   const hasSendWallet = useHasSendWallet()
   const { restOptions, cachePhases: userCachePhases } = splitMutationOptions(mutationOptions)
 
-  const isAct = ACT_PAY_IN_TYPES.includes(payInType)
+  const isAct = PAY_IN_ACT_TYPES.includes(payInType)
   const isBounty = payInType === 'BOUNTY_PAYMENT'
   const cachePhases = isBounty
     ? withBountyCachePhases(userCachePhases)
@@ -71,19 +70,23 @@ function splitMutationOptions (mutationOptions = {}) {
 }
 
 function withBountyCachePhases (userCachePhases) {
-  return {
-    onMutationResult: composeCallbacks(payBountyCachePhases.onMutationResult, userCachePhases.onMutationResult),
-    onPaidMissingResult: composeCallbacks(payBountyCachePhases.onPaidMissingResult, userCachePhases.onPaidMissingResult),
-    onPaid: composeCallbacks(payBountyCachePhases.onPaid, userCachePhases.onPaid),
-    onPayError: composeCallbacks(payBountyCachePhases.onPayError, userCachePhases.onPayError)
-  }
+  return withComposedCachePhases(payBountyCachePhases, userCachePhases, {
+    onPaidMissingResult: payBountyCachePhases.onPaidMissingResult
+  })
 }
 
 function withActCachePhases (actCachePhases, userCachePhases) {
+  return withComposedCachePhases(actCachePhases, userCachePhases, {
+    // Keep existing semantics: if paid payload has no result, reuse mutation-phase cache update.
+    onPaidMissingResult: actCachePhases.onMutationResult
+  })
+}
+
+function withComposedCachePhases (baseCachePhases, userCachePhases, { onPaidMissingResult } = {}) {
   return {
-    onMutationResult: composeCallbacks(actCachePhases.onMutationResult, userCachePhases.onMutationResult),
-    onPaidMissingResult: composeCallbacks(actCachePhases.onMutationResult, userCachePhases.onPaidMissingResult),
-    onPaid: composeCallbacks(actCachePhases.onPaid, userCachePhases.onPaid),
-    onPayError: composeCallbacks(actCachePhases.onPayError, userCachePhases.onPayError)
+    onMutationResult: composeCallbacks(baseCachePhases.onMutationResult, userCachePhases.onMutationResult),
+    onPaidMissingResult: composeCallbacks(onPaidMissingResult, userCachePhases.onPaidMissingResult),
+    onPaid: composeCallbacks(baseCachePhases.onPaid, userCachePhases.onPaid),
+    onPayError: composeCallbacks(baseCachePhases.onPayError, userCachePhases.onPayError)
   }
 }

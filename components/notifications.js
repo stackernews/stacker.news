@@ -11,7 +11,7 @@ import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
 import UserAdd from '@/svgs/user-add-fill.svg'
-import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { LOST_BLURBS, FOUND_BLURBS, PAY_IN_ACT_TYPES, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
 import GunIcon from '@/svgs/revolver.svg'
@@ -471,7 +471,7 @@ function PayInFailed ({ n }) {
   }, [n.id])
 
   // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
-  const optimisticPayInTypes = ['ZAP', 'DOWN_ZAP', 'BOOST']
+  const optimisticPayInTypes = PAY_IN_ACT_TYPES
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
   const actOptimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
   const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, path: item.path, __typename: 'Item' } } }

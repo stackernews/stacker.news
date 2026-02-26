@@ -354,7 +354,13 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
 
   let Component
   let onClick
-  if (me && item.payIn?.payInState !== 'PAID' && item.payIn?.payerPrivates) {
+  const canManagePayIn = me &&
+    item.mine &&
+    item.payIn?.payInType === 'ITEM_CREATE' &&
+    item.payIn?.payInState !== 'PAID' &&
+    item.payIn?.payerPrivates
+
+  if (canManagePayIn) {
     // are we automatically retrying?
     if (willAutoRetryPayIn(item.payIn)) {
       Component = () => <span className={classNames('text-info')}>pending</span>

@@ -326,7 +326,12 @@ export default {
       // if the payIn was paid pessimistically, the result is permanently in the pessimisticEnv
       const result = payIn.result || payIn.pessimisticEnv?.result
       if (result) {
-        return { ...result, __typename: payInResultType(payIn.payInType) }
+        const __typename = payInResultType(payIn.payInType)
+        if (payIn.payInType === 'BOUNTY_PAYMENT' && __typename === 'Item') {
+          // Bounty result items should not carry item-creation payIn metadata.
+          return { ...result, payIn: null, __typename }
+        }
+        return { ...result, __typename }
       }
       return null
     },

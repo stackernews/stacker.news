@@ -1,4 +1,4 @@
-import { USER_ID, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { payInCancel, payInFailed } from '../payIn/transitions'
@@ -12,6 +12,7 @@ function payInResultType (payInType) {
   switch (payInType) {
     case 'ITEM_CREATE':
     case 'ITEM_UPDATE':
+    case 'BOUNTY_PAYMENT':
       return 'Item'
     case 'ZAP':
     case 'DOWN_ZAP':
@@ -133,7 +134,7 @@ export default {
           SELECT "PayIn".*
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."payInType" IN (${Prisma.join(PAY_IN_NOTIFICATION_TYPES)})
           AND "PayIn"."userId" = ${me.id}
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."benefactorId" IS NULL
@@ -325,7 +326,12 @@ export default {
       // if the payIn was paid pessimistically, the result is permanently in the pessimisticEnv
       const result = payIn.result || payIn.pessimisticEnv?.result
       if (result) {
-        return { ...result, __typename: payInResultType(payIn.payInType) }
+        const __typename = payInResultType(payIn.payInType)
+        if (payIn.payInType === 'BOUNTY_PAYMENT' && __typename === 'Item') {
+          // Bounty result items should not carry item-creation payIn metadata.
+          return { ...result, payIn: null, __typename }
+        }
+        return { ...result, __typename }
       }
       return null
     },

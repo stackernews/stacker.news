@@ -65,6 +65,15 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on BountyPayment {
+          id
+          sortTime
+          earnedSats
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
         ... on Revenue {
           id
           sortTime

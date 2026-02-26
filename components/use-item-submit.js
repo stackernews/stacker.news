@@ -5,6 +5,7 @@ import useCrossposter from './use-crossposter'
 import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { USER_ID } from '@/lib/constants'
+import { composeCallbacks } from '@/lib/compose-callbacks'
 import { useMe } from './me'
 
 // this is intented to be compatible with upsert item mutations
@@ -40,6 +41,20 @@ export default function useItemSubmit (mutation,
       }
 
       const subNames = submittedSubNames || item?.subNames || (sub?.name ? [sub.name] : [])
+      const {
+        cachePhases: payInCachePhases = {},
+        onCompleted: payInOnCompleted,
+        ...restPayInMutationOptions
+      } = payInMutationOptions
+      const mergedCachePhases = {
+        ...payInCachePhases,
+        // Preserve previous wrapper behavior: if the initial mutation result is missing,
+        // rerun mutation-phase cache work in paid-phase.
+        onPaidMissingResult: composeCallbacks(
+          payInCachePhases.onPaidMissingResult,
+          payInCachePhases.onMutationResult
+        )
+      }
 
       const { data, error, payError } = await upsertItem({
         variables: {
@@ -55,16 +70,11 @@ export default function useItemSubmit (mutation,
         },
         // if not a comment, we want the qr to persist on navigation
         persistOnNavigate: navigateOnSubmit,
-        ...payInMutationOptions,
-        onPayError: (e, cache, { data }) => {
-          payInMutationOptions?.onPayError?.(e, cache, { data })
-        },
-        onPaid: (cache, { data }) => {
-          payInMutationOptions?.onPaid?.(cache, { data })
-        },
+        ...restPayInMutationOptions,
+        cachePhases: mergedCachePhases,
         onCompleted: (data) => {
           onSuccessfulSubmit?.(data, { resetForm })
-          payInMutationOptions?.onCompleted?.(data)
+          payInOnCompleted?.(data)
           saveItemInvoiceHmac(data)
         }
       })

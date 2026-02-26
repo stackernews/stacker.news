@@ -16,6 +16,7 @@ import * as WITHDRAWAL from './withdrawal'
 import * as AUTO_WITHDRAWAL from './autoWithdrawal'
 import * as REWARDS from './rewards'
 import * as MEDIA_UPLOAD from './mediaUpload'
+import * as BOUNTY_PAYMENT from './bountyPayment'
 
 export default {
   BUY_CREDITS,
@@ -35,5 +36,6 @@ export default {
   WITHDRAWAL,
   AUTO_WITHDRAWAL,
   MEDIA_UPLOAD,
+  BOUNTY_PAYMENT,
   REWARDS
 }

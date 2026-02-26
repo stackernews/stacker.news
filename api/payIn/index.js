@@ -83,6 +83,7 @@ async function queuePayInFailed (tx, payInId, payInFailureReason) {
 async function begin (models, payInInitial, payInArgs, { me, custodialOnly }) {
   const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
     await obtainRowLevelLocks(tx, payInInitial)
+    await payInTypeModules[payInInitial.payInType].validateBeforeCreate?.(tx, payInInitial, payInArgs, { me })
     const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, payInArgs, { me })
 
     if (mCostRemaining > 0n && custodialOnly) {
@@ -360,6 +361,8 @@ export async function onPaidSideEffects (models, payInId) {
 }
 
 export async function retry (payInId, { me }) {
+  let payInFailedInitial
+  let shouldConsumeRetryAttempt = false
   try {
     const include = {
       payOutCustodialTokens: { include: { subPayOutCustodialToken: true } },
@@ -371,7 +374,7 @@ export async function retry (payInId, { me }) {
     }
     const where = { id: payInId, userId: me.id, payInState: 'FAILED', successorId: null, benefactorId: null }
 
-    const payInFailedInitial = await models.payIn.findFirst({
+    payInFailedInitial = await models.payIn.findFirst({
       where,
       include: { ...include, beneficiaries: { include } }
     })
@@ -385,6 +388,8 @@ export async function retry (payInId, { me }) {
       // pessimistic payIns are fully re-executed without tracking
       return await pay(payInFailedInitial.payInType, payInFailedInitial.pessimisticEnv.args, { me })
     }
+    await payInTypeModules[payInFailedInitial.payInType].validateRetry?.(models, payInFailedInitial, { me })
+    shouldConsumeRetryAttempt = true
 
     const payInFailed = await payInReplacePayOuts(models, payInFailedInitial)
 
@@ -427,6 +432,20 @@ export async function retry (payInId, { me }) {
     return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
   } catch (e) {
     console.error('retry failed', e)
+    if (shouldConsumeRetryAttempt && payInFailedInitial) {
+      // consume an attempt only for the owned FAILED payIn lineage we are retrying
+      // (e.g. replace payOuts/invoice setup failures) and never for unrelated ids.
+      await models.payIn.updateMany({
+        where: {
+          id: payInFailedInitial.id,
+          userId: me.id,
+          payInState: 'FAILED',
+          successorId: null,
+          benefactorId: null
+        },
+        data: { retryCount: { increment: 1 } }
+      }).catch(() => {})
+    }
     throw e
   }
 }

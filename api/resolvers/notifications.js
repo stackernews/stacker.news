@@ -5,8 +5,10 @@ import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { getPayIn } from './payIn'
-import { WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
+import { PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
+
+const PAY_IN_NOTIFICATION_TYPES_SQL = PAY_IN_NOTIFICATION_TYPES.map(type => `'${type}'`).join(', ')
 
 export default {
   Query: {
@@ -205,6 +207,20 @@ export default {
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
+        queries.push(
+          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+            COALESCE(FLOOR("PayOutBolt11"."msats" / 1000), 0)::INTEGER as "earnedSats",
+            'BountyPayment' AS type
+            FROM "PayIn"
+            JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn".id
+            JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
+            WHERE "PayIn"."payInType" = 'BOUNTY_PAYMENT'
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayOutBolt11"."userId" = $1
+            AND "PayIn"."payInStateChangedAt" < $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+        )
       }
 
       if (meFull.noteForwardedSats) {
@@ -365,7 +381,7 @@ export default {
           "PayIn"."payInStateChangedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'PayInification' AS type
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN ('ITEM_CREATE', 'ZAP', 'DOWN_ZAP', 'BOOST')
+          AND "PayIn"."payInType" IN (${PAY_IN_NOTIFICATION_TYPES_SQL})
           AND "PayIn"."userId" = $1
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."benefactorId" IS NULL
@@ -451,6 +467,12 @@ export default {
   },
   Votification: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  BountyPayment: {
+    item: async (n, args, { models, me }) => {
+      const itemPayIn = await models.itemPayIn.findUnique({ where: { payInId: Number(n.id) } })
+      return await getItem(n, { id: itemPayIn.itemId }, { models, me })
+    }
   },
   ForwardedVotification: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })

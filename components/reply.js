@@ -52,24 +52,26 @@ export default forwardRef(function Reply ({
   const onSubmit = useItemSubmit(CREATE_COMMENT, {
     extraValues: { parentId },
     payInMutationOptions: {
-      update (cache, { data: { upsertComment: { payerPrivates: { result } } } }) {
-        if (!result) return
+      cachePhases: {
+        onMutationResult (cache, { data: { upsertComment: { payerPrivates: { result } } } }) {
+          if (!result) return
 
-        // inject the new comment into the cache
-        const injected = injectComment(cache, result)
-        if (injected) {
-          markCommentViewedAt(result.createdAt, { ncomments: 1 })
-        }
+          // inject the new comment into the cache
+          const injected = injectComment(cache, result)
+          if (injected) {
+            markCommentViewedAt(result.createdAt, { ncomments: 1 })
+          }
 
-        // no lag for itemRepetition
-        if (!item.mine && me) {
-          cache.updateQuery({
-            query: gql`{ itemRepetition(parentId: "${parentId}") }`
-          }, data => {
-            return {
-              itemRepetition: (data?.itemRepetition || 0) + 1
-            }
-          })
+          // no lag for itemRepetition
+          if (!item.mine && me) {
+            cache.updateQuery({
+              query: gql`{ itemRepetition(parentId: "${parentId}") }`
+            }, data => {
+              return {
+                itemRepetition: (data?.itemRepetition || 0) + 1
+              }
+            })
+          }
         }
       }
     },

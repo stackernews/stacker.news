@@ -495,6 +495,7 @@ export default {
                 `"${table}"."userId" = $3`,
                 activeOrMine(me),
                 typeClause(type),
+                by === 'downsats' && '"Item"."downMsats" > 0',
                 whenClause(when || 'forever', table))}
               ${orderByClause(by, me, models, type)}
               OFFSET $4

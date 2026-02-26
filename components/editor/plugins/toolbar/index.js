@@ -105,7 +105,6 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
   )
 }
 
-// TODO: isActive should not work in markdown mode
 function DropdownMenuItem ({ option, onAction, isActive }) {
   const shortcut = SHORTCUTS[option.id]
   const shortcutDisplay = useFormattedShortcut(shortcut?.key)
@@ -129,7 +128,6 @@ function DropdownMenuItem ({ option, onAction, isActive }) {
   )
 }
 
-// TODO: isActive should not work in markdown mode
 function ToolbarButton ({ id, isActive, onClick, tooltip, children, showDelay = 500 }) {
   const shortcut = SHORTCUTS[id]
   const shortcutDisplay = useFormattedShortcut(shortcut?.key)

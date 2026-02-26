@@ -1,8 +1,6 @@
 import { createContext, useContext, useMemo, useState, useCallback } from 'react'
 
-const INITIAL_STATE = {
-  showToolbar: false,
-  markdownMode: true,
+export const INITIAL_FORMAT_STATE = {
   blockType: 'paragraph',
   elementFormat: 'left',
   isLink: false,
@@ -18,6 +16,12 @@ const INITIAL_STATE = {
   isUppercase: false,
   isCapitalize: false,
   codeLanguage: null
+}
+
+const INITIAL_STATE = {
+  showToolbar: false,
+  markdownMode: true,
+  ...INITIAL_FORMAT_STATE
 }
 
 const ToolbarContext = createContext()

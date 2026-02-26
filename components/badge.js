@@ -43,6 +43,7 @@ export default function Badges ({ user, badge, bot, showWalletBadges, className 
     badges.push({
       icon: GunIcon,
       sizeDelta: 2,
+      style: { marginBottom: '-2px' },
       overlayText: 'can send sats'
     })
   }
@@ -57,8 +58,8 @@ export default function Badges ({ user, badge, bot, showWalletBadges, className 
   if (badges.length === 0) return null
 
   return (
-    <span className={className}>
-      {badges.map(({ icon, overlayText, sizeDelta }, i) => (
+    <span className={classNames(className, 'd-inline-flex align-items-center justify-content-center')}>
+      {badges.map(({ icon, overlayText, sizeDelta, style }, i) => (
         <SNBadge
           key={i}
           user={user}
@@ -69,13 +70,14 @@ export default function Badges ({ user, badge, bot, showWalletBadges, className 
           height={height}
           width={width}
           sizeDelta={sizeDelta}
+          style={style}
         />
       ))}
     </span>
   )
 }
 
-function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0 }) {
+function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0, style }) {
   let Wrapper = Fragment
 
   if (overlayText) {
@@ -86,7 +88,7 @@ function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, heig
 
   return (
     <Wrapper>
-      <span><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
+      <span className='d-inline-flex align-items-center justify-content-center' style={style}><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
     </Wrapper>
   )
 }

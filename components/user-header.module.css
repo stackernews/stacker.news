@@ -12,6 +12,7 @@
     font-weight: bold;
     font-size: 150%;
     line-height: 1.25rem;
+    display: flex;
 }
 
 .social {

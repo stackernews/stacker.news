@@ -11,7 +11,7 @@ import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
 import UserAdd from '@/svgs/user-add-fill.svg'
-import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { LOST_BLURBS, FOUND_BLURBS, PAY_IN_ACT_TYPES, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
 import GunIcon from '@/svgs/revolver.svg'
@@ -39,7 +39,7 @@ import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
-import { useRetryPayIn, useRetryBountyPayIn, useRetryItemActPayIn } from './payIn/hooks/use-retry-pay-in'
+import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
 import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import MapIcon from '@/svgs/map.svg'
 
@@ -57,6 +57,7 @@ function Notification ({ n, fresh }) {
         (['NewHorse', 'LostHorse'].includes(type) && <Horse n={n} />) ||
         (['NewGun', 'LostGun'].includes(type) && <Gun n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
+        (type === 'BountyPayment' && <BountyPayment n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
         (type === 'ItemMention' && <ItemMention n={n} />) ||
@@ -441,34 +442,71 @@ function PayInFailed ({ n }) {
     })
   }, [n.id])
 
+  const revertPayIn = useCallback((error, cache, { data }) => {
+    const retryFailureUpdate = getRetryPayInFailureUpdate(error, data)
+    if (!retryFailureUpdate) return
+    const { retryPayInId, failureData } = retryFailureUpdate
+    cache.writeFragment({
+      id: `PayInification:${n.id}`,
+      fragment: gql`
+        fragment __ on PayInification {
+          payIn {
+            id
+            payInState
+            payInStateChangedAt
+            payerPrivates {
+              payInFailureReason
+            }
+          }
+        }
+      `,
+      data: {
+        payIn: {
+          __typename: 'PayIn',
+          id: retryPayInId,
+          ...failureData
+        }
+      }
+    })
+  }, [n.id])
+
   // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
-  const mutationOptions = { update: updatePayIn, onRetry: updatePayIn, protocolLimit: 1 }
-  const retryPayIn = useRetryPayIn(payIn.id, mutationOptions)
+  const optimisticPayInTypes = PAY_IN_ACT_TYPES
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
-  const optimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
-  const retryBountyPayIn = useRetryBountyPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
-  const retryItemActPayIn = useRetryItemActPayIn(payIn.id, { ...mutationOptions, optimisticResponse })
+  const actOptimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
+  const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, path: item.path, __typename: 'Item' } } }
+  const optimisticResponse = payIn.payInType === 'BOUNTY_PAYMENT'
+    ? bountyOptimisticResponse
+    : optimisticPayInTypes.includes(payIn.payInType)
+      ? actOptimisticResponse
+      : undefined
+  const mutationOptions = {
+    onRetry: updatePayIn,
+    cachePhases: {
+      onMutationResult: updatePayIn,
+      onPaid: updatePayIn,
+      onPayError: revertPayIn
+    },
+    protocolLimit: 1,
+    ...(optimisticResponse ? { optimisticResponse } : {})
+  }
+  const retryPayIn = useRetryPayInByType(payIn.id, payIn.payInType, mutationOptions)
 
   const [actionString, colorClass, retry] = useMemo(() => {
-    let retry
+    const retry = retryPayIn
     let actionString = ''
     const itemType = item.title ? 'post' : 'comment'
     if (payIn.payInType === 'ITEM_CREATE') {
       actionString = `${itemType} create `
-      retry = retryPayIn
+    } else if (payIn.payInType === 'BOUNTY_PAYMENT') {
+      actionString = `bounty payment on ${itemType} `
     } else {
-      if (payIn.payInType === 'ZAP' && item.root?.bounty === msatsToSats(payIn.mcost) && item.root?.mine) {
-        actionString = 'bounty payment'
-        retry = retryBountyPayIn
-      } else {
-        if (payIn.payInType === 'ZAP') {
-          actionString = 'zap'
-        } else if (payIn.payInType === 'DOWN_ZAP') {
-          actionString = 'downzap'
-        } else if (payIn.payInType === 'BOOST') {
-          actionString = 'boost'
-        }
-        retry = retryItemActPayIn
+      if (payIn.payInType === 'ZAP') {
+        actionString = 'zap'
+      } else if (payIn.payInType === 'DOWN_ZAP') {
+        actionString = 'downzap'
+      } else if (payIn.payInType === 'BOOST') {
+        actionString = 'boost'
       }
       actionString = `${actionString} on ${itemType} `
     }
@@ -487,7 +525,7 @@ function PayInFailed ({ n }) {
         }
     }
     return [actionString, colorClass, retry]
-  }, [payIn, item, retryPayIn, retryBountyPayIn, retryItemActPayIn])
+  }, [payIn, item, retryPayIn])
 
   return (
     <div>
@@ -566,52 +604,40 @@ function Referral ({ n }) {
   )
 }
 
-function stackedText (item) {
+function stackedText (item, total) {
+  if (total === undefined) total = item.sats
   let text = ''
-  if (item.sats - item.credits > 0) {
-    text += `${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
-
-    if (item.credits > 0) {
-      text += ' and '
-    }
+  const credits = item.sats > 0 ? Math.floor(total * item.credits / item.sats) : total
+  const sats = total - credits
+  if (sats > 0) {
+    text += `${numWithUnits(sats, { abbreviate: false })}`
+    if (credits > 0) text += ' and '
   }
-  if (item.credits > 0) {
-    text += `${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+  if (credits > 0) {
+    text += `${numWithUnits(credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
   }
 
   return text
 }
 
 function Votification ({ n }) {
-  let forwardedSats = 0
-  let ForwardedUsers = null
+  const forwardedPct = n.item.forwards?.reduce((acc, f) => acc + f.pct, 0) ?? 0
+
   let stackedTextString
-  let forwardedTextString
   if (n.item.forwards?.length) {
-    forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
-    ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
-      <span key={fwd.user.name}>
-        <Link className='text-success' href={`/${fwd.user.name}`}>
-          @{fwd.user.name}
-        </Link>
-        {i !== n.item.forwards.length - 1 && ' '}
-      </span>)
-    stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
-    forwardedTextString = numWithUnits(forwardedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+    stackedTextString = stackedText(n.item, n.earnedSats)
   } else {
     stackedTextString = stackedText(n.item)
   }
+
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
           <span>
             your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
-            {n.item.forwards?.length > 0 &&
-              <>
-                {' '}and forwarded {forwardedTextString} to{' '}
-                <ForwardedUsers />
-              </>}
+            {forwardedPct > 0 &&
+              <small className='text-muted fw-light ms-1'>{forwardedPct}% forwarded</small>}
           </span>
           {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
@@ -621,13 +647,29 @@ function Votification ({ n }) {
   )
 }
 
+function BountyPayment ({ n }) {
+  return (
+    <>
+      <NoteHeader color='success'>
+        you received a {numWithUnits(n.earnedSats, { abbreviate: false })} bounty payment
+      </NoteHeader>
+      <NoteItem item={n.item} />
+    </>
+  )
+}
+
 function ForwardedVotification ({ n }) {
+  const { me } = useMe()
+  const myPct = n.item.forwards?.find(f => Number(f.userId) === Number(me?.id))?.pct
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
-          you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}
-          <CCInfo size={16} />
+          <span>
+            {n.item.title ? 'post' : 'reply'} stacked {stackedText(n.item)}
+            {myPct && <small className='text-muted fw-light ms-1'>{myPct}% forwarded to you</small>}
+          </span>
+          {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
       </NoteHeader>
       <NoteItem item={n.item} />

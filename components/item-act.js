@@ -13,8 +13,8 @@ import { meAnonSats } from '@/lib/apollo'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
-import { getOperationName } from '@apollo/client/utilities'
 import { satsToMsats } from '@/lib/format'
+import { composeCallbacks } from '@/lib/compose-callbacks'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -90,7 +90,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       onPaid()
     } else {
       // we want to close the modal only after paid so the modal can stack
-      options.onPaid = onPaid
+      options.cachePhases = { onPaid }
     }
 
     const { error } = await actor({
@@ -266,12 +266,33 @@ function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
   }
 }
 
+export function getActCachePhases (me) {
+  return {
+    onMutationResult: (cache, { data }) => {
+      const response = Object.values(data)[0]
+      if (!response) return
+      modifyActCache(cache, response, me)
+    },
+    onPayError: (e, cache, { data }) => {
+      const response = Object.values(data)[0]
+      if (!response?.payerPrivates?.result) return
+      const { payerPrivates: { result: { sats } } } = response
+      const negate = { ...response, payerPrivates: { ...response.payerPrivates, result: { ...response.payerPrivates.result, sats: -1 * sats } } }
+      modifyActCache(cache, negate, me)
+    },
+    onPaid: (cache, { data }) => {
+      const response = Object.values(data)[0]
+      if (!response) return
+      updateAncestors(cache, response)
+    }
+  }
+}
+
 export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const { me } = useMe()
-  // because the mutation name we use varies,
-  // we need to extract the result/invoice from the response
-  const getPayInResult = data => data[getOperationName(query)]
   const hasSendWallet = useHasSendWallet()
+  const phases = getActCachePhases(me)
+  const { cachePhases: callerCachePhases = {}, ...restOptions } = options
 
   const [act] = usePayInMutation(query, {
     waitFor: payIn =>
@@ -280,26 +301,15 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       hasSendWallet
         ? payIn?.payInState === 'PAID'
         : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
-    ...options,
-    update: (cache, { data }) => {
-      const response = getPayInResult(data)
-      if (!response) return
-      modifyActCache(cache, response, me)
-      options?.update?.(cache, { data })
-    },
-    onPayError: (e, cache, { data }) => {
-      const response = getPayInResult(data)
-      if (!response || !response.payerPrivates.result) return
-      const { payerPrivates: { result: { sats } } } = response
-      const negate = { ...response, payerPrivates: { ...response.payerPrivates, result: { ...response.payerPrivates.result, sats: -1 * sats } } }
-      modifyActCache(cache, negate, me)
-      options?.onPayError?.(e, cache, { data })
-    },
-    onPaid: (cache, { data }) => {
-      const response = getPayInResult(data)
-      if (!response) return
-      updateAncestors(cache, response)
-      options?.onPaid?.(cache, { data })
+    ...restOptions,
+    cachePhases: {
+      ...callerCachePhases,
+      onMutationResult: composeCallbacks(phases.onMutationResult, callerCachePhases.onMutationResult),
+      // If the initial mutation response had no result payload, run the direct-item
+      // cache modification now so optimistic and pessimistic paths converge.
+      onPaidMissingResult: composeCallbacks(phases.onMutationResult, callerCachePhases.onPaidMissingResult),
+      onPayError: composeCallbacks(phases.onPayError, callerCachePhases.onPayError),
+      onPaid: composeCallbacks(phases.onPaid, callerCachePhases.onPaid)
     }
   })
   return act

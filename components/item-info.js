@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
@@ -28,8 +28,9 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
-import { useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
+import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
 import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
+import { gql } from '@apollo/client'
 
 function itemTitle (item) {
   let title = ''
@@ -309,7 +310,38 @@ export function InfoDropdownItem ({ item }) {
 export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry }) {
   const { me } = useMe()
   const toaster = useToast()
-  const retryPayIn = useRetryPayIn(item.payIn.id, { update: updatePayIn, onRetry: updatePayIn, protocolLimit: 1 })
+
+  const revertPayIn = useCallback((error, cache, { data }) => {
+    const retryFailureUpdate = getRetryPayInFailureUpdate(error, data)
+    if (!retryFailureUpdate) return
+    const { retryPayInId, failureData } = retryFailureUpdate
+    cache.writeFragment({
+      id: `PayIn:${retryPayInId}`,
+      fragment: gql`
+        fragment PayInInfoRevert on PayIn {
+          payInState
+          payInStateChangedAt
+          payerPrivates {
+            payInFailureReason
+          }
+        }
+      `,
+      data: {
+        __typename: 'PayIn',
+        ...failureData
+      }
+    })
+  }, [])
+
+  const retryPayIn = useRetryPayInByType(item.payIn.id, item.payIn.payInType, {
+    onRetry: updatePayIn,
+    cachePhases: {
+      onMutationResult: updatePayIn,
+      onPaid: updatePayIn,
+      onPayError: revertPayIn
+    },
+    protocolLimit: 1
+  })
   const waitForQrPayIn = useQrPayIn()
   const [disableInfoRetry, setDisableInfoRetry] = useState(disableRetry)
   if (item.deletedAt) return null
@@ -322,7 +354,13 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
 
   let Component
   let onClick
-  if (me && item.payIn?.payInState !== 'PAID' && item.payIn?.payerPrivates) {
+  const canManagePayIn = me &&
+    item.mine &&
+    item.payIn?.payInType === 'ITEM_CREATE' &&
+    item.payIn?.payInState !== 'PAID' &&
+    item.payIn?.payerPrivates
+
+  if (canManagePayIn) {
     // are we automatically retrying?
     if (willAutoRetryPayIn(item.payIn)) {
       Component = () => <span className={classNames('text-info')}>pending</span>

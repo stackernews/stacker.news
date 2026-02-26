@@ -483,16 +483,23 @@ model Item {
   @@index([subNames, createdAt(ops: raw("timestamp_ops"))], type: Gin)
   @@index([subNames, ranktop(ops: raw("float8_ops"))], type: Gin)
   @@index([subNames, ranklit(ops: raw("float8_ops"))], type: Gin)
+  @@index([subNames, downMsats(ops: raw("int8_ops"))], type: Gin)
+  @@index([subNames, ncomments(ops: raw("int4_ops"))], type: Gin)
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
   @@index([cost])
   @@index([url])
   @@index([boost])
-  @@index([userId, createdAt])
   @@index([ranktop])
   @@index([ranklit])
   @@index([netInvestment])
+  @@index([downMsats])
+  @@index([ncomments])
+  @@index([userId, createdAt])
+  @@index([userId, ranktop])
+  @@index([userId, downMsats])
+  @@index([userId, ncomments])
 }
 
 enum NotificationIconType {
@@ -1266,6 +1273,7 @@ enum PayInType {
   WITHDRAWAL
   AUTO_WITHDRAWAL
   MEDIA_UPLOAD
+  BOUNTY_PAYMENT
   DEFUNCT_TERRITORY_DAILY_PAYOUT
 }
 
@@ -1415,6 +1423,7 @@ enum PayOutType {
   ROUTING_FEE_REFUND
   PROXY_PAYMENT
   ZAP
+  BOUNTY_PAYMENT
   REWARD
   INVITE_GIFT
   WITHDRAWAL

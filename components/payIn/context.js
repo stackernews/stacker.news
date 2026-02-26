@@ -14,6 +14,7 @@ export function PayInContext ({ payIn }) {
     case 'ZAP':
     case 'BOOST':
     case 'POLL_VOTE':
+    case 'BOUNTY_PAYMENT':
       return (
         <>
           {(!payIn.item.title && <CommentFlat item={payIn.item} includeParent noReply truncate />) ||
@@ -41,7 +42,7 @@ export function PayInContext ({ payIn }) {
     case 'PROXY_PAYMENT':
       return <div className='w-100'><PayInMetadata payInBolt11={payIn.payerPrivates.payInBolt11} /></div>
     case 'WITHDRAWAL':
-    case 'AUTOWITHDRAWAL':
+    case 'AUTO_WITHDRAWAL':
       return <Bolt11Info bolt11={payIn.payeePrivates.payOutBolt11.bolt11} preimage={payIn.payeePrivates.payOutBolt11.preimage} />
     case 'DONATE':
       return <small className='text-muted d-flex justify-content-center w-100'>Praise be, you donated to the rewards pool.</small>

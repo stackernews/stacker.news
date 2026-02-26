@@ -18,6 +18,9 @@ import { ensureProtocol } from '@/lib/url'
 import styles from './linkeditor.module.css'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 
+/** how distant the link editor should appear from the link element */
+const LINK_ELEMENT_VERTICAL_OFFSET = 26
+
 export default function LinkEditor ({ nodeKey, anchorElem }) {
   const [isLinkEditMode, setIsLinkEditMode] = useState(false)
   const [editor] = useLexicalComposerContext()
@@ -106,7 +109,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
       return
     }
     const pos = el.getBoundingClientRect()
-    pos.y += 26
+    pos.y += LINK_ELEMENT_VERTICAL_OFFSET
     setFloatingElemPosition({ targetRect: pos, floatingElem, anchorElem, verticalGap: 8, horizontalOffset: 0, fade: false })
   }, [anchorElem, editor, isLinkEditMode, nodeKey, hideFloatingElem])
 

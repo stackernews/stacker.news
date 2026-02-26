@@ -163,3 +163,15 @@ export const NOOP_CAROUSEL = {
 export function useCarousel () {
   return useContext(CarouselContext)
 }
+
+/**
+ * returns the carousel context if the rich editor is editable, otherwise returns NOOP_CAROUSEL
+ *
+ * @param {boolean} editable - whether the rich editor is editable
+ * @returns {Object} carousel context
+ */
+export function useEditableCarousel (editable) {
+  const carousel = useCarousel()
+  if (editable || !carousel) return NOOP_CAROUSEL
+  return carousel
+}

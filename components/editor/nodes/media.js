@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getNodeByKey } from 'lexical'
 import { UNKNOWN_LINK_REL, PUBLIC_MEDIA_CHECK_URL } from '@/lib/constants'
-import { useCarousel, NOOP_CAROUSEL } from '@/components/carousel'
+import { useEditableCarousel } from '@/components/carousel'
 import { useMe } from '@/components/me'
 import { processSrcSetInitial } from '@/lib/lexical/exts/item-context'
 import FileError from '@/svgs/editor/file-error.svg'
@@ -198,9 +198,7 @@ const PROXY_TIMEOUT_MS = 5000
 function useProxyFallback (media, editable) {
   const { me } = useMe()
   const [fallbackSrc, setFallbackSrc] = useState(null)
-  const rawCarousel = useCarousel()
-  const carousel = (!editable && rawCarousel) || NOOP_CAROUSEL
-  const { addMedia, confirmMedia, removeMedia } = carousel
+  const { addMedia, confirmMedia, removeMedia } = useEditableCarousel(editable)
   const timeoutRef = useRef(null)
 
   const canFallback = useMemo(() => {
@@ -264,9 +262,7 @@ export function MediaOrLink ({ linkFallback = true, editable, innerClassName, me
   const media = useMediaHelper({ ...props, editable })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
-  const rawCarousel = useCarousel()
-  const carousel = (!editable && rawCarousel) || NOOP_CAROUSEL
-  const { showCarousel, addMedia, confirmMedia, removeMedia } = carousel
+  const { showCarousel, addMedia, confirmMedia, removeMedia } = useEditableCarousel(editable)
   const { src, srcSet, sizes, bestResSrc, onProxyError, cancelTimeout } = useProxyFallback(media, editable)
 
   useEffect(() => {

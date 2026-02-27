@@ -91,9 +91,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
 
     setLinkUrl(newUrl)
 
-    if (isLinkEditMode) {
-      setEditedLinkUrl(newUrl || '')
-    } else if ((newUrl || '').trim() === '') {
+    if (!isLinkEditMode && (newUrl || '').trim() === '') {
       setEditedLinkUrl('')
       setIsLinkEditMode(true)
     }

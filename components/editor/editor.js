@@ -77,7 +77,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
   const [text] = useField({ name })
   const hasMountedRef = useRef(false)
 
-  const modeConfig = useMemo(() => (isMarkdown ? EDITOR_MARKDOWN_MODE : EDITOR_RICH_MODE), [isMarkdown])
+  const modeConfig = isMarkdown ? EDITOR_MARKDOWN_MODE : EDITOR_RICH_MODE
 
   const editor = useMemo(() =>
     defineExtension({

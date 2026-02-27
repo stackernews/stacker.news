@@ -303,11 +303,6 @@ export async function indexAllItems ({ models, boss }) {
 
     console.log(`indexAllItems complete: ${total} items indexed`)
 
-    if (!pipeline) {
-      console.log('indexAllItems: no default pipeline configured, skipping embedding backfill')
-      return
-    }
-
     await search.indices.refresh({ index: osIndex })
     console.log(`indexAllItems: backfilling embeddings via pipeline '${pipeline}'`)
 

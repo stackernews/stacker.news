@@ -22,6 +22,10 @@
   background-color: var(--theme-commentBg);
 }
 
+[data-bs-theme="light"] .linkEditor {
+  border: 1px solid var(--theme-borderColor);
+}
+
 .linkInput,
 .linkView {
   display: block;
@@ -43,6 +47,10 @@
 
 .linkInput {
   max-width: 300px;
+}
+
+[data-bs-theme="light"] .linkInput {
+  border-right: 1px solid var(--theme-borderColor);
 }
 
 .linkView {

@@ -11,6 +11,7 @@ import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { processCrop } from '@/worker/imgproxy'
+import { payInTypesSql } from '../payIn/lib/sql'
 import { Prisma } from '@prisma/client'
 
 const contributors = new Set()
@@ -552,7 +553,7 @@ export default {
           SELECT *
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN (${Prisma.join(PAY_IN_NOTIFICATION_TYPES)})
+          AND "PayIn"."payInType" IN (${payInTypesSql(PAY_IN_NOTIFICATION_TYPES)})
           AND "PayIn"."userId" = ${me.id}
           AND "PayIn"."successorId" IS NULL
           -- help the query planner by narrowing the range of the timestamp

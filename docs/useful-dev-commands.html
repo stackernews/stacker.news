@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOSS Webpage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+    <style>
+        :root {
+            --primary: #FADA5E;
+            --secondary: #F6911D;
+            --info: #007cbe;
+            --success: #5c8001;
+            --danger: #c03221;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        #navbar {
+            overflow: hidden;
+            background-color: var(--secondary);
+        }
+
+        #navbar a {
+            float: left;
+            display: block;
+            color: var(--light);
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        #navbar a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        .content {
+            display: none;
+            padding: 20px;
+            border-radius: 0.4rem;
+            margin: 10px;
+            background: var(--light);
+            border: 1px solid var(--dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid var(--dark);
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--info);
+        }
+
+        #docLinks a {
+            display: block;
+            margin-top: 5px;
+            color: var(--dark);
+            background-color: var(--success);
+            padding: 10px;
+            border-radius: 0.4rem;
+            text-decoration: none;
+        }
+
+        #docLinks a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        /* Code block styling */
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        /* Inline code styling */
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            color: #d63384;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+<h1 id="usefuldevcommands">Useful dev commands</h1>
+<h3 id="nvmuse18"><code>nvm use 18</code></h3>
+<p>Switch to use nodejs version 18 in your current shell</p>
+<h3 id="dockercomposeupbuildd"><code>docker-compose up --build -d</code></h3>
+<p>Bring up stacker news app via local docker services</p>
+<h3 id="dockercomposedown"><code>docker-compose down</code></h3>
+<p>Take down stacker news app via local docker services</p>
+<h3 id="database_urlpostgresqlsnpasswordlocalhost5431stackernewsschemapublicnpxprismamigratedevcreateonly"><code>DATABASE_URL=postgresql://sn:password@localhost:5431/stackernews?schema=public npx prisma migrate dev --create-only</code></h3>
+<p>Create a new prisma migration based on comparing <a href="../prisma/schema.prisma" rel="noopener noreferrer" target="_blank"><code>schema.prisma</code></a> against your local database</p>
+<h3 id="database_urlpostgresqlsnpasswordlocalhost5431stackernewsschemapublicnpxprismamigratedev"><code>DATABASE_URL=postgresql://sn:password@localhost:5431/stackernews?schema=public npx prisma migrate dev</code></h3>
+<p>Create and apply a new prisma migration based on comparing <a href="../prisma/schema.prisma" rel="noopener noreferrer" target="_blank"><code>schema.prisma</code></a> against your local database</p>
+<h3 id="npxprismagenerate"><code>npx prisma generate</code></h3>
+<p>Generate the local copy of the prisma ORM client in <code>node_modules</code>. This should only be needed to get Intellisense in your editor locally.</p>
+<h3 id="database_urlpostgresqlsnpasswordlocalhost5431stackernewsschemapublicnodeprismaseedjs"><code>DATABASE_URL=postgresql://sn:password@localhost:5431/stackernews?schema=public node prisma/seed.js</code></h3>
+<p>Seed your local database</p>
+<h3 id="psqlpostgresqlsnpasswordlocalhost5431stackernews"><code>psql "postgresql://sn:password@localhost:5431/stackernews"</code></h3>
+<p>Connect to your local database via <code>psql</code></p>
+<h3 id="dockernetworkconnectstackernews_defaultpolarn1alice"><code>docker network connect stackernews_default polar-n1-alice</code></h3>
+<p>Connect your local polar lnd node to the shared docker network (container name may vary)</p>
+<h3 id="dockernetworkinspectstackernews_default"><code>docker network inspect stackernews_default</code></h3>
+<p>Review local docker network</p>
+</body>

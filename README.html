@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOSS Webpage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+    <style>
+        :root {
+            --primary: #FADA5E;
+            --secondary: #F6911D;
+            --info: #007cbe;
+            --success: #5c8001;
+            --danger: #c03221;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        #navbar {
+            overflow: hidden;
+            background-color: var(--secondary);
+        }
+
+        #navbar a {
+            float: left;
+            display: block;
+            color: var(--light);
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        #navbar a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        .content {
+            display: none;
+            padding: 20px;
+            border-radius: 0.4rem;
+            margin: 10px;
+            background: var(--light);
+            border: 1px solid var(--dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid var(--dark);
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--info);
+        }
+
+        #docLinks a {
+            display: block;
+            margin-top: 5px;
+            color: var(--dark);
+            background-color: var(--success);
+            padding: 10px;
+            border-radius: 0.4rem;
+            text-decoration: none;
+        }
+
+        #docLinks a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        /* Code block styling */
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        /* Inline code styling */
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            color: #d63384;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+<p align="center">
+<a href="https://stacker.news">
+<img height="50" alt="Internet Communities with Bitcoin Economies" src="https://github.com/stackernews/stacker.news/assets/34140557/a8ccc5dc-c453-46dc-be74-60dd0a42ce09">
+</a>
+</p>
+<ul>
+<li>Stacker News makes internet communities that pay you Bitcoin</li>
+<li>What You See is What We Ship (look ma, I invented an initialism)</li>
+<li>100% FOSS</li>
+<li>We pay bitcoin for PRs, issues, documentation, code reviews and more</li>
+<li>Next.js, postgres, graphql, and lnd</li>
+</ul>
+<p><br></p>
+<h1 id="gettingstarted">Getting started</h1>
+<p>Launch a fully featured SN development environment in a single command.</p>
+<pre><code class="sh language-sh">$ ./sndev start
+</code></pre>
+<p>Go to <a href="http://localhost:3000" rel="noopener noreferrer" target="_blank">localhost:3000</a>.</p>
+<p><br></p>
+<h2 id="installation">Installation</h2>
+<ul>
+<li>Clone the repo</li>
+<li>ssh: <code>git clone git@github.com:stackernews/stacker.news.git</code></li>
+<li>https: <code>git clone https://github.com/stackernews/stacker.news.git</code></li>
+<li>Install <a href="https://docs.docker.com/get-docker/" rel="noopener noreferrer" target="_blank">docker</a></li>
+</ul>
+<p><br></p>
+<h2 id="usage">Usage</h2>
+<p>Start the development environment</p>
+<pre><code class="sh language-sh">$ ./sndev start
+</code></pre>
+<p>View all available commands</p>
+<pre><code class="sh language-sh">$ ./sndev help
+
+                            888
+                            888
+                            888
+      .d8888b  88888b.  .d88888  .d88b.  888  888
+     88K      888 '88b d88' 888 d8P  Y8b 888  888
+     'Y8888b. 888  888 888  888 88888888 Y88  88P
+          X88 888  888 Y88b 888 Y8b.      Y8bd8P
+      88888P' 888  888  'Y88888  'Y8888    Y88P
+
+manages a docker based stacker news development environment
+
+USAGE
+  $ sndev [COMMAND]
+  $ sndev help [COMMAND]
+
+COMMANDS
+  help            show help
+
+  env:
+    start         start env
+    stop          stop env
+    restart       restart env
+    status        status of env
+    delete        delete env
+
+  sn:
+    login         login as a nym
+
+  lnd:
+    fund          pay a bolt11 for funding
+    withdraw      create a bolt11 for withdrawal
+
+  db:
+    psql          open psql on db
+    prisma        run prisma commands
+
+  dev:
+    pr            fetch and checkout a pr
+    lint          run linters
+
+  other:
+    compose       docker compose passthrough
+    sn_lncli      lncli passthrough on sn_lnd
+    stacker_lncli lncli passthrough on stacker_lnd
+</code></pre>
+<h3 id="modifyingservices">Modifying services</h3>
+<h4 id="runningspecificservices">Running specific services</h4>
+<p>By default all services will be run. If you want to exclude specific services from running, set <code>COMPOSE_PROFILES</code> to use one or more of <code>minimal|images|search|payments|email</code>. To only run mininal services without images, search, or payments:</p>
+<pre><code class="sh language-sh">$ COMPOSE_PROFILES=minimal ./sndev start
+</code></pre>
+<p>Or, as I would recommend:</p>
+<pre><code class="sh language-sh">$ export COMPOSE_PROFILES=minimal
+$ ./sndev start
+</code></pre>
+<p>To run with images and payments services:</p>
+<pre><code class="sh language-sh">$ COMPOSE_PROFILES=images,payments ./sndev start
+</code></pre>
+<h4 id="mergingcomposefiles">Merging compose files</h4>
+<p>By default <code>sndev start</code> will merge <code>docker-compose.yml</code> with <code>docker-compose.override.yml</code>. Specify any overrides you want to merge with <code>docker-compose.override.yml</code>.</p>
+<p>For example, if you want to replace the db seed with a custom seed file located in <code>docker/db/another.sql</code>, you'd create a <code>docker-compose.override.yml</code> file with the following:</p>
+<pre><code class="yml language-yml">version: "3"
+services:
+  db:
+    volumes:
+      - ./docker/db/another.sql:/docker-entrypoint-initdb.d/seed.sql
+</code></pre>
+<p>You can read more about <a href="https://docs.docker.com/compose/multiple-compose-files/merge/" rel="noopener noreferrer" target="_blank">docker compose override files</a>.</p>
+<p><br></p>
+<h1 id="tableofcontents">Table of Contents</h1>
+<ul>
+<li><a href="#getting-started">Getting started</a><ul>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#usage">Usage</a><ul>
+<li><a href="#modifying-services">Modifying services</a><ul>
+<li><a href="#running-specific-services">Running specific services</a></li>
+<li><a href="#merging-compose-files">Merging compose files</a></li></ul></li></ul></li></ul></li>
+<li><a href="#contributing">Contributing</a><ul>
+<li><a href="#we-pay-bitcoin-for-contributions">We pay bitcoin for contributions</a></li>
+<li><a href="#pull-request-awards">Pull request awards</a></li>
+<li><a href="#code-review-awards">Code review awards</a></li>
+<li><a href="#issue-specification-awards">Issue specification awards</a></li>
+<li><a href="#responsible-disclosure-of-security-or-privacy-vulnerability-awards">Responsible disclosure of security or privacy vulnerability awards</a></li>
+<li><a href="#development-documentation-awards">Development documentation awards</a></li>
+<li><a href="#helpfulness-awards">Helpfulness awards</a></li></ul></li>
+<li><a href="#development-tips">Development Tips</a><ul>
+<li><a href="#linting">Linting</a></li>
+<li><a href="#database-migrations">Database migrations</a></li>
+<li><a href="#connecting-to-the-local-database">Connecting to the local database</a></li>
+<li><a href="#running-lncli-on-the-local-lnd-nodes">Running lncli on the local lnd nodes</a></li>
+<li><a href="#testing-local-auth">Testing local auth</a><ul>
+<li><a href="#login-with-email">Login with Email</a></li>
+<li><a href="#login-with-github">Login with Github</a></li>
+<li><a href="#login-with-lightning">Login with Lightning</a></li></ul></li>
+<li><a href="#enabling-web-push-notifications">Enabling web push notifications</a></li></ul></li>
+<li><a href="#internals">Internals</a><ul>
+<li><a href="#stack">Stack</a></li>
+<li><a href="#services">Services</a></li>
+<li><a href="#wallet-transaction-safety">Wallet transaction safety</a></li></ul></li>
+<li><a href="#need-help">Need help?</a></li>
+<li><a href="#responsible-disclosure">Responsible Disclosure</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<p><br></p>
+<h1 id="contributing">Contributing</h1>
+<p>We want your help.</p>
+<p><br></p>
+<h2 id="wepaybitcoinforcontributions">We pay bitcoin for contributions</h2>
+<ul>
+<li>pull requests closing existing issues</li>
+<li>code review</li>
+<li>issue specification whether for bugs, features, or enhancements</li>
+<li>discovery of security vulnerabilities</li>
+<li>discovery of privacy vulnerabilities</li>
+<li>improvements to development documentation</li>
+<li>helpfulness</li>
+</ul>
+<p><a href="awards.csv" rel="noopener noreferrer" target="_blank">View a current list of granted awards</a></p>
+<p><br></p>
+<h2 id="justincase">Just in case</h2>
+<p><em>This document in no way legally entitles you to payments for contributions, entitles you to being a contributor, or entitles you to the attention of other contributors. This document lays out the system we <strong>can</strong> use to determine contribution awards which we generally intend to abide by but importantly we reserve the right to refuse payments or contributions, modify rules and award amounts, make exceptions to rules or reward amounts, and withhold awards for any reason at anytime, even just for the heck of it, at our sole discretion. If you need more certainty than what I've just described, don't participate. We provide awards as an experiment to make FOSS less sucky.</em></p>
+<p><br></p>
+<h2 id="pullrequestawards">Pull request awards</h2>
+<h3 id="rules">Rules</h3>
+<ol>
+<li>PRs closing an issue will be awarded according to the <code>difficulty</code> tag on an issue,  e.g. <code>difficulty:easy</code> pays 100k sats.</li>
+<li>Issues are occasionally marked with a <code>priority</code> tag which multiplies the award of a PR closing an issue, e.g. an issue marked with <code>priority:high</code> and <code>difficulty:hard</code> awards 2m sats.</li>
+<li>An award is reduced by 10% of the award amount for each substantial change requested to the PR on code review, e.g. if two changes are requested on a PR closing an issue tagged with <code>difficulty:hard</code>, 800k sats will be awarded.<ul>
+<li>Reductions are applied before <code>priority</code> multipliers, e.g. a PR closing a <code>priority:high</code> and <code>difficulty:hard</code> issue that's approved after two changes are requested awards 1.6m sats.</li>
+<li>You are responsible for understanding the issue and requirements <strong>before requesting review on a PR</strong>.</li>
+<li>There is no award reduction for asking specific questions on the issue itself or on the PR <strong>before requesting review</strong></li>
+<li>There is no award reduction for asking more general questions in a discussion</li></ul></li>
+<li>A PR must be merged by an SN engineer before a PR receives an award</li>
+</ol>
+<p><em>Due to Rule 3, make sure that you mark your PR as a draft when you create it and it's not ready for review yet.</em></p>
+<h3 id="difficultyawardamounts">Difficulty award amounts</h3>
+<table>
+<thead>
+<tr>
+<th>tag</th>
+<th>description</th>
+<th>award</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>difficulty:good-first-issue</code></td>
+<td>at most a couple lines of code in a couple files and does not require much familiarity with the codebase</td>
+<td><code>20k sats</code></td>
+</tr>
+<tr>
+<td><code>difficulty:easy</code></td>
+<td>at most a couple lines of code in a couple files but does require familiarity with the code base</td>
+<td><code>100k sats</code></td>
+</tr>
+<tr>
+<td><code>difficulty:medium</code></td>
+<td>more code, more places and could require adding columns in the db and some modification chunky db queries</td>
+<td><code>250k sats</code></td>
+</tr>
+<tr>
+<td><code>difficulty:medium-hard</code></td>
+<td>even more code, even more places and requires either more sophisticated logic, more significant db modeling eg adding a table, and/or a deeper study of a something</td>
+<td><code>500k sats</code></td>
+</tr>
+<tr>
+<td><code>difficulty:hard</code></td>
+<td>either a bigger lift than the what's required of medium-hard or very tricky in a particular way that might not require a lot of code but does require a lot of context/troubleshooting/expertise</td>
+<td><code>1m sats</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="prioritymultipliers">Priority multipliers</h3>
+<table>
+<thead>
+<tr>
+<th>tag</th>
+<th>multiplier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>priority:medium</code></td>
+<td>1.5</td>
+</tr>
+<tr>
+<td><code>priority:high</code></td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>priority:urgent</code></td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<p><br></p>
+<h2 id="codereviewawards">Code review awards</h2>
+<p>Code reviewers will be awarded the amount their code review reduced from the PR author's reward, e.g. two substantial problems/areas of improvement identified in a PR closing a <code>priority:high</code> and <code>difficulty:hard</code> issue awards 400k sats.</p>
+<h3 id="rules-1">Rules</h3>
+<ol>
+<li>The problem or improvement must be acknowledged as such by SN engineers explicitly</li>
+<li>A PR must be merged by an SN engineer before a PR's code reviewers receive an award</li>
+</ol>
+<p>Code review approvals are more than welcome, but we can't guarantee awards for them because the work performed to approve a PR is unverifiable.</p>
+<p><br></p>
+<h2 id="issuespecificationawards">Issue specification awards</h2>
+<p>Issue specifiers will be awarded up to 10% of a PR award for issues resulting in a PR being merged by an SN engineer that closes the issue. In addition to being subject to PR award amounts and reductions, specification amounts are awarded on the basis of how much additional help and specification is required by other contributors.</p>
+<h3 id="rules-2">Rules</h3>
+<ol>
+<li>The issue must directly result in PR being merged by an SN engineer that closes the issue</li>
+<li>Issue specification award amounts are based on the final PR award amounts<ul>
+<li>that is, they are subject to PR award code review reductions and priority multipliers</li></ul></li>
+<li>Award amounts will be reduced on the basis of how much additional help and specification is required by other contributors</li>
+<li>Issue specifiers who can close their own issues with their own PRs are also eligible for this 10%<ul>
+<li>e.g an issue tagged as <code>difficulty:hard</code> that is both specified and closed by a PR from the same contributor without changes requested awards 1.1m sats</li></ul></li>
+</ol>
+<h3 id="relativeawards">Relative awards</h3>
+<table>
+<thead>
+<tr>
+<th>circumstances</th>
+<th>award</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>issue doesn't require further help and/or specification from other contributors</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>issue requires little help and/or specification from other contributors</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>issue requires more help and/or specification from other contributors than the issue specifier contributed</td>
+<td>1%</td>
+</tr>
+<tr>
+<td>issue is vague and/or incomplete and must mostly be entirely specified by someone else</td>
+<td>0%</td>
+</tr>
+</tbody>
+</table>
+<p>For example: a specified issue that's tagged as <code>difficulty:hard</code>, doesn't require additional specification and disambiguation by other contributors, and results in PR being merged without changes requested awards the issue specifier 100k sats.</p>
+<p><br></p>
+<h2 id="responsibledisclosureofsecurityorprivacyvulnerabilityawards">Responsible disclosure of security or privacy vulnerability awards</h2>
+<p>Awards for responsible disclosures are assessed on the basis of:</p>
+<ol>
+<li>the potential loss resulting from an exploit of the vulnerability</li>
+<li>the trivialness of exploiting the vulnerability</li>
+<li>the disclosure's detail</li>
+</ol>
+<p>Award amounts will be easiest to assess on a case by case basis. Upon confirmation of a vulnerability, we agree to award responsible disclosures at minimum 100k sats and as high as the total potential loss that would result from exploiting the vulnerability.</p>
+<h3 id="rules-3">Rules</h3>
+<ol>
+<li>Disclosure is responsible and does not increase the likelihood of an exploit.</li>
+<li>Disclosure includes steps to reproduce.</li>
+<li>Disclosure includes a realistic attack scenario with prerequisites for an attack and expected gains after the exploitation. Disclosures without such scenario, with unrealistic assumptions or without meaningful outcomes will not be eligible for awards.</li>
+<li>You must be the first person to responsibly disclose the issue to be eligible for awards.</li>
+</ol>
+<p><br></p>
+<h2 id="developmentdocumentationawards">Development documentation awards</h2>
+<p>For significant changes to documentation, create an issue before making said changes. In such cases we will award documentation improvements in accordance with issue specification and PR awards.</p>
+<p>For changes on the order of something like a typo, we'll award a nominal amount at our discretion.</p>
+<p><br></p>
+<h2 id="helpfulnessawards">Helpfulness awards</h2>
+<p>Like issue specification awards, helping fellow contributors substantially in a well documented manner such that the helped fellow contributes a merged PR is eligible for a one-time relative reward.</p>
+<table>
+<thead>
+<tr>
+<th>circumstances</th>
+<th>award</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>substantial and singular source of help</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>substantial but nonsingular source of help</td>
+<td>1-5%</td>
+</tr>
+<tr>
+<td>source of relatively trivial help</td>
+<td>1%</td>
+</tr>
+</tbody>
+</table>
+<p><br></p>
+<h1 id="developmenttips">Development Tips</h1>
+<p><br></p>
+<h2 id="linting">Linting</h2>
+<p>We use <a href="https://standardjs.com/" rel="noopener noreferrer" target="_blank">JavaScript Standard Style</a> to enforce code style and correctness. You should run <code>sndev lint</code> before submitting a PR.</p>
+<p>If you're using VSCode, you can install the <a href="https://marketplace.visualstudio.com/items?itemName=standard.vscode-standard" rel="noopener noreferrer" target="_blank">StandardJS VSCode Extension</a> extension to get linting in your editor. We also recommend installing <a href="https://marketplace.visualstudio.com/items?itemName=capaj.vscode-standardjs-snippets" rel="noopener noreferrer" target="_blank">StandardJS code snippets</a> and <a href="https://marketplace.visualstudio.com/items?itemName=TimonVS.ReactSnippetsStandard" rel="noopener noreferrer" target="_blank">StandardJS react code snippets</a> for code snippets.</p>
+<p><br></p>
+<h2 id="databasemigrations">Database migrations</h2>
+<p>We use <a href="https://www.prisma.io/" rel="noopener noreferrer" target="_blank">prisma</a> for our database migrations. To create a new migration, modify <code>prisma/schema.prisma</code> according to <a href="https://www.prisma.io/docs/orm/reference/prisma-schema-reference" rel="noopener noreferrer" target="_blank">prisma schema reference</a> and apply it with:</p>
+<p><code>./sndev prisma migrate dev</code></p>
+<p>If you want to create a migration without applying it, eg to create a trigger or modify the generated sql before applying, use the <code>--create-only</code> option:</p>
+<p><code>./sndev prisma migrate dev --create-only</code></p>
+<p>Generate the local copy of the prisma ORM client in <code>node_modules</code> after changes. This should only be needed to get Intellisense in your editor locally.</p>
+<p><code>./sndev prisma generate</code></p>
+<p><br></p>
+<h2 id="connectingtothelocaldatabase">Connecting to the local database</h2>
+<p>You can connect to the local database via <code>./sndev psql</code>. <a href="https://www.postgresql.org/docs/13/app-psql.html" rel="noopener noreferrer" target="_blank">psql</a> is an interactive terminal for working with PostgreSQL.</p>
+<p><br></p>
+<h2 id="runninglnclionthelocallndnodes">Running lncli on the local lnd nodes</h2>
+<p>You can run <code>lncli</code> on the local lnd nodes via <code>./sndev sn_lncli</code> and <code>./sndev stacker_lncli</code>. The node for your local SN instance is <code>sn_lnd</code> and the node serving as any external node, like a stacker's node or external wallet, is <code>stacker_lnd</code>.</p>
+<p><br></p>
+<h2 id="testinglocalauth">Testing local auth</h2>
+<p>You can login to test features like posting, replying, tipping, etc with <code>./sndev login &lt;nym&gt;</code> which will provide a link to login as an existing nym or a new account for a nonexistent nym. But, it you want to test auth specifically you'll need to configure them in your <code>.env</code> file.</p>
+<h3 id="loginwithemail">Login with Email</h3>
+<h4 id="mailhog">MailHog</h4>
+<ul>
+<li>The app is already prepared to send emails through <a href="https://github.com/mailhog/MailHog" rel="noopener noreferrer" target="_blank">MailHog</a> so no extra configuration is needed</li>
+<li>Click "sign up" and enter any email address (remember, it's not going anywhere beyond your workstation)</li>
+<li>Access MailHog's web UI on http://localhost:8025</li>
+<li>Click the link (looks like this):</li>
+</ul>
+<pre><code>http://localhost:3000/api/auth/callback/email?email=satoshi%40gmail.com&amp;token=110e30a954ce7ca643379d90eb511640733de405f34a31b38eeda8e254d48cd7
+</code></pre>
+<h4 id="sendgrid">Sendgrid</h4>
+<ul>
+<li>Create a Sendgrid account (or other smtp service)</li>
+</ul>
+<pre><code>LOGIN_EMAIL_SERVER=smtp://apikey:&lt;sendgrid_api_key&gt;@smtp.sendgrid.net:587
+LOGIN_EMAIL_FROM=&lt;sendgrid_email_from&gt;
+</code></pre>
+<ul>
+<li>Click "sign up" and enter your email address</li>
+<li>Check your email</li>
+<li>Click the link (looks like this):</li>
+</ul>
+<pre><code>http://localhost:3000/api/auth/callback/email?email=satoshi%40gmail.com&amp;token=110e30a954ce7ca643379d90eb511640733de405f34a31b38eeda8e254d48cd7
+</code></pre>
+<h3 id="loginwithgithub">Login with Github</h3>
+<ul>
+<li><a href="https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app" rel="noopener noreferrer" target="_blank">Create a new OAuth app</a> in your Github account</li>
+<li>Set the callback URL to: <code>http://localhost:3000/api/auth/callback/github</code></li>
+<li>Update your <code>.env</code> file</li>
+</ul>
+<pre><code>GITHUB_ID=&lt;Client ID&gt;
+GITHUB_SECRET=&lt;Client secret&gt;
+</code></pre>
+<ul>
+<li>Signup and login as above</li>
+</ul>
+<h3 id="loginwithlightning">Login with Lightning</h3>
+<ul>
+<li>Use <a href="https://ngrok.com/" rel="noopener noreferrer" target="_blank">ngrok</a> to create a HTTPS tunnel to localhost:3000</li>
+<li>Update <code>LNAUTH_URL</code> in <code>.env</code> with the URL provided by <code>ngrok</code> and add /api/lnauth to it</li>
+</ul>
+<p><br></p>
+<h2 id="enablingwebpushnotifications">Enabling web push notifications</h2>
+<p>To enable Web Push locally, you will need to set the <code>VAPID_*</code> env vars. <code>VAPID_MAILTO</code> needs to be an email address using the <code>mailto:</code> scheme. For <code>NEXT_PUBLIC_VAPID_KEY</code> and <code>VAPID_PRIVKEY</code>, you can run <code>npx web-push generate-vapid-keys</code>.</p>
+<p><br></p>
+<h1 id="internals">Internals</h1>
+<p><br></p>
+<h2 id="stack">Stack</h2>
+<p>The site is written in javascript (not typescript 😱) using <a href="https://nextjs.org/" rel="noopener noreferrer" target="_blank">Next.js</a>, a <a href="https://react.dev/" rel="noopener noreferrer" target="_blank">React</a> framework. The backend API is provided via <a href="https://graphql.org/" rel="noopener noreferrer" target="_blank">GraphQL</a>. The database is <a href="https://www.postgresql.org/" rel="noopener noreferrer" target="_blank">PostgreSQL</a> modeled with <a href="https://www.prisma.io/" rel="noopener noreferrer" target="_blank">Prisma</a>. The <a href="https://github.com/timgit/pg-boss" rel="noopener noreferrer" target="_blank">job queue</a> is also maintained in PostgreSQL. We use <a href="https://github.com/lightningnetwork/lnd" rel="noopener noreferrer" target="_blank">lnd</a> for our lightning node. A customized <a href="https://react-bootstrap.netlify.app/" rel="noopener noreferrer" target="_blank">Bootstrap</a> theme is used for styling.</p>
+<p><br></p>
+<h2 id="services">Services</h2>
+<p>Currently, SN runs and maintains two significant services and one microservice:</p>
+<ol>
+<li>the nextjs web app, found in <code>./</code></li>
+<li>the worker service, found in <code>./worker</code>, which runs periodic jobs and jobs sent to it by the web app</li>
+<li>a screenshot microservice, found in <code>./capture</code>, which takes screenshots of SN for social previews</li>
+</ol>
+<p>In addition, we run other critical services the above services interact with like <code>lnd</code>, <code>postgres</code>, <code>opensearch</code>, <code>tor</code>, and <code>s3</code>.</p>
+<p><br></p>
+<h2 id="wallettransactionsafety">Wallet transaction safety</h2>
+<p>To ensure stackers balances are kept sane, all wallet updates are run in <a href="https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE" rel="noopener noreferrer" target="_blank">serializable transactions</a> at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in <a href="https://www.postgresql.org/docs/current/plpgsql.html" rel="noopener noreferrer" target="_blank">plpgsql</a> stored procedures and can be found in the <code>prisma/migrations</code> folder.</p>
+<p><br></p>
+<h1 id="needhelp">Need help?</h1>
+<p>Open a <a href="http://github.com/stackernews/stacker.news/discussions" rel="noopener noreferrer" target="_blank">discussion</a> or <a href="http://github.com/stackernews/stacker.news/issues/new" rel="noopener noreferrer" target="_blank">issue</a> or <a href="mailto:kk@stacker.news" rel="noopener noreferrer" target="_blank">email us</a> or <a href="https://t.me/stackernews" rel="noopener noreferrer" target="_blank">chat with us on telegram</a>.</p>
+<p><br></p>
+<h1 id="responsibledisclosure">Responsible disclosure</h1>
+<p>If you found a vulnerability, we would greatly appreciate it if you contact us via <a href="mailto:security@stacker.news" rel="noopener noreferrer" target="_blank">security@stacker.news</a> or open a <a href="https://github.com/stackernews/stacker.news/security/advisories/new" rel="noopener noreferrer" target="_blank">security advisory</a>. Our PGP key can be found <a href="https://stacker.news/pgp.txt" rel="noopener noreferrer" target="_blank">here</a> (EBAF 75DA 7279 CB48).</p>
+<p><br></p>
+<h1 id="license">License</h1>
+<p><a href="https://choosealicense.com/licenses/mit/" rel="noopener noreferrer" target="_blank">MIT</a></p>
+</body>

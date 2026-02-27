@@ -11,12 +11,13 @@ import {
 } from 'lexical'
 import Check from '@/svgs/check-line.svg'
 import Pencil from '@/svgs/edit-line.svg'
-import Remove from '@/svgs/delete-bin-line.svg'
 import { setFloatingElemPosition } from '@/lib/lexical/utils/position'
 import { getSelectedNode } from '@/lib/lexical/commands/utils'
 import { ensureProtocol } from '@/lib/url'
 import styles from './linkeditor.module.css'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import CloseIcon from '@/svgs/close-line.svg'
+import UnlinkIcon from '@/svgs/editor/toolbar/inline/link-unlink.svg'
 
 /** how distant the link editor should appear from the link element */
 const LINK_ELEMENT_VERTICAL_OFFSET = 26
@@ -219,6 +220,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
           ? (
             <>
               <input
+                id='link-url-input'
                 ref={inputRef}
                 className={styles.linkInput}
                 value={editedLinkUrl}
@@ -236,7 +238,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
               />
               <div className={styles.linkConfirmIcons}>
                 <span className={styles.linkCancelIcon} onMouseDown={(e) => e.preventDefault()} onClick={handleCancel}>
-                  X
+                  <CloseIcon />
                 </span>
                 <span className={styles.linkConfirmIcon} onMouseDown={(e) => e.preventDefault()} onClick={handleLinkConfirm}>
                   <Check />
@@ -259,7 +261,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
                   <Pencil />
                 </span>
                 <span className={styles.linkRemoveIcon} onMouseDown={(e) => e.preventDefault()} onClick={() => editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)}>
-                  <Remove />
+                  <UnlinkIcon />
                 </span>
               </div>
             </>

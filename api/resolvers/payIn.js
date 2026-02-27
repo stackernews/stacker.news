@@ -3,6 +3,7 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { payInCancel, payInFailed } from '../payIn/transitions'
 import { retry } from '../payIn'
+import { payInTypesSql } from '../payIn/lib/sql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getItem } from './item'
 import { getSub } from './sub'
@@ -134,7 +135,7 @@ export default {
           SELECT "PayIn".*
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
-          AND "PayIn"."payInType" IN (${Prisma.join(PAY_IN_NOTIFICATION_TYPES)})
+          AND "PayIn"."payInType" IN (${payInTypesSql(PAY_IN_NOTIFICATION_TYPES)})
           AND "PayIn"."userId" = ${me.id}
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."benefactorId" IS NULL

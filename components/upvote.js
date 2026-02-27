@@ -2,7 +2,8 @@ import UpBolt from '@/svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'
-import ItemAct, { ZapUndoController, useZap } from './item-act'
+import ItemAct, { ZapUndoController } from './item-act'
+import { useZap } from './use-zap'
 import { useMe } from './me'
 import getColor from '@/lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -145,7 +146,7 @@ export default function UpVote ({ item, className, collapsed }) {
   }, [me, tipShow, setWalkthrough])
 
   // debounced zap hook — zapPending is non-zero during undo window
-  const { zap, pending: zapPending, cancel: zapCancel } = useZap()
+  const { zap, pending: zapPending, cancel: zapCancel } = useZap({ nextTip })
   // separate state for long-press custom amount undo (ItemAct modal has its own undo flow)
   const [longPressPending, setLongPressPending] = useState(0)
   const [longPressController, setLongPressController] = useState(null)

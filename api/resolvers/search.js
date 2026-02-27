@@ -64,12 +64,8 @@ function timeRangeFilter (when, whenFrom, whenTo, cursorTime) {
 }
 
 // Returns a sat-investment filter clause, or null to skip.
-// Handles nym bypass, owner bypass, and type-aware thresholds.
-function satsInvestmentFilter ({ what, nym, postsSatsFilter, commentsSatsFilter, meId }) {
-  // skip when searching a specific nym — the user explicitly
-  // wants that person's items regardless of investment
-  if (nym) return null
-
+// Handles owner bypass and type-aware thresholds.
+function satsInvestmentFilter ({ what, postsSatsFilter, commentsSatsFilter, meId }) {
   // owner bypass: always show the logged-in user's own items
   const ownerBypass = meId ? [{ match: { userId: meId } }] : []
 
@@ -150,35 +146,11 @@ function nymClauses (nym) {
   const name = nym.slice(1).toLowerCase()
   if (!name) return { filters: [], queries: [] } // guard: bare "@" with no name
   const pattern = `*${name}*`
-  // Filter: author match OR text/title mention (so docs *about* the nym are found
-  // even when the user has few/no indexed items)
-  // Scoring: heavily boost author matches so "by @user" ranks above "mentions @user"
+  // Strict author-only filter for @nym searches.
   // case_insensitive: keyword field stores original case; queries are lowercased
-  // NOTE: satsInvestmentFilter bypasses thresholds when nym is present, so mention-only
-  // items aren't sats-filtered. This is intentional: explicit @nym search = show everything.
-  //
-  // Short names (<3 chars) skip text/title phrase matching — too many false positives
-  // from common words. Author wildcard match still works for short names.
-  const includeTextMention = name.length >= 3
-
   return {
-    filters: [{
-      bool: {
-        should: [
-          { wildcard: { 'user.name': { value: pattern, case_insensitive: true } } },
-          ...(includeTextMention
-            ? [{ match_phrase: { title_text: name } }]
-            : [])
-        ],
-        minimum_should_match: 1
-      }
-    }],
-    queries: [
-      { wildcard: { 'user.name': { value: pattern, boost: 100, case_insensitive: true } } },
-      ...(includeTextMention
-        ? [{ match_phrase: { title_text: { query: name, boost: 5 } } }]
-        : [])
-    ]
+    filters: [{ wildcard: { 'user.name': { value: pattern, case_insensitive: true } } }],
+    queries: []
   }
 }
 
@@ -712,7 +684,7 @@ export default {
         typeFilter(what, me?.id),
         statusFilter(),
         timeRangeFilter(when, whenFrom, whenTo, decodedCursor.time),
-        satsInvestmentFilter({ what, nym, postsSatsFilter, commentsSatsFilter, meId: me?.id }),
+        satsInvestmentFilter({ what, postsSatsFilter, commentsSatsFilter, meId: me?.id }),
         ...nymParts.filters,
         ...territoryParts.filters,
         ...quoteParts.filters

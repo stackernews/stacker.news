@@ -62,7 +62,7 @@ export default function Index ({ ssrData }) {
               </div>
               <div className={styles.body}>
                 <ul className={styles.inner}>
-                  <li><b>@</b>&#8203;<em>nym</em> - limit to results authored by nym</li>
+                  <li><b>@</b>&#8203;<em>nym</em> - show only results authored by nym</li>
                   <li><b>~</b>&#8203;<em>territory</em> - limit to results from territory</li>
                   <li><b>url:</b>&#8203;<em>stacker&#8203;.news</em> - limit to link posts from a specific url</li>
                   <li><b>"</b><em>exact phrase</em><b>"</b> - limit to results that contain an exact phrase</li>

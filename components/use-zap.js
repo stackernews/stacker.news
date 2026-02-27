@@ -24,12 +24,8 @@ export function useZap ({ nextTip }) {
   const mountedRef = useRef(true)
 
   // direct mutation — bypasses useAct to avoid double cache writes from getActCachePhases
-  const [sendZap] = usePayInMutation(ACT_MUTATION, {
-    waitFor: payIn =>
-      hasSendWallet
-        ? payIn?.payInState === 'PAID'
-        : ['FORWARDING', 'PAID'].includes(payIn?.payInState)
-  })
+  // waitFor is passed per-call in fireZap so debounce timer always uses latest hasSendWallet
+  const [sendZap] = usePayInMutation(ACT_MUTATION)
 
   // fire the accumulated zap mutation for a buffer entry
   const fireZap = useCallback(async (entry) => {
@@ -37,6 +33,11 @@ export function useZap ({ nextTip }) {
     try {
       const { error } = await sendZap({
         variables: { id: item.id, sats: totalSats, act: 'TIP', hasSendWallet },
+        // pass waitFor per-call so debounce timer always uses latest hasSendWallet
+        waitFor: payIn =>
+          hasSendWallet
+            ? payIn?.payInState === 'PAID'
+            : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
         // no optimisticResponse — cache is already updated via modifyActCache
         cachePhases: {
           // sats/meSats already correct from per-click modifyActCache.

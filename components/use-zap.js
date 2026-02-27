@@ -39,7 +39,21 @@ export function useZap ({ nextTip }) {
         variables: { id: item.id, sats: totalSats, act: 'TIP', hasSendWallet },
         // no optimisticResponse — cache is already updated via modifyActCache
         cachePhases: {
-          // onMutationResult: omitted — cache is already correct from per-click modifyActCache
+          // sats/meSats already correct from per-click modifyActCache.
+          // Pre-mutation write assumed P2P (skipped credits). If actually non-P2P, add credits now.
+          onMutationResult: (cache, { data }) => {
+            const response = Object.values(data)[0]
+            if (response?.payOutBolt11Public) return // actually P2P — credits correctly skipped
+            // non-P2P — add the credit increment
+            cache.modify({
+              id: `Item:${item.id}`,
+              fields: {
+                credits: (existing = 0) => existing + totalSats,
+                meCredits: (existing = 0) => existing + totalSats
+              },
+              optimistic: true // inside update() context
+            })
+          },
           onPaid: (cache, { data }) => {
             const response = Object.values(data)[0]
             if (!response) return
@@ -52,21 +66,37 @@ export function useZap ({ nextTip }) {
               }
             }, { optimistic: false })
           },
-          onPayError: (e, cache) => {
-            // revert the entire accumulated amount — use entryMe (click-time identity)
+          onPayError: (e, cache, { data }) => {
+            // revert using real payOutBolt11Public so credit rollback is symmetric:
+            // if non-P2P, onMutationResult added credits → need to subtract them
+            // if P2P, credits were never added → skip credit subtraction
+            const response = Object.values(data)[0]
             modifyActCache(cache, {
-              payerPrivates: { result: { id: item.id, sats: -totalSats, act: 'TIP' } }
+              payerPrivates: { result: { id: item.id, sats: -totalSats, act: 'TIP' } },
+              payOutBolt11Public: response?.payOutBolt11Public
             }, entryMe, { optimistic: false })
           }
         }
       })
       if (error) {
+        // mutation returned an error (GraphQL-level) — revert cache
+        // mirror initial P2P assumption (credits were never added)
         console.error('debounced zap error:', error)
+        modifyActCache(client.cache, {
+          payerPrivates: { result: { id: item.id, sats: -totalSats, act: 'TIP', path: item.path } },
+          payOutBolt11Public: true
+        }, entryMe, { optimistic: false })
       }
     } catch (error) {
+      // mutation threw (network error, etc.) — revert cache
+      // mirror initial P2P assumption (credits were never added)
       console.error('debounced zap failed:', error)
+      modifyActCache(client.cache, {
+        payerPrivates: { result: { id: item.id, sats: -totalSats, act: 'TIP', path: item.path } },
+        payOutBolt11Public: true
+      }, entryMe, { optimistic: false })
     }
-  }, [sendZap, hasSendWallet])
+  }, [client, sendZap, hasSendWallet])
 
   // flush all pending debounced zaps (used on unmount)
   // stored in a ref so the cleanup effect has stable deps (only runs on unmount)
@@ -102,8 +132,10 @@ export function useZap ({ nextTip }) {
     const sats = nextTip(meSats, { ...meProp?.privates })
 
     // instant visual feedback — write directly to root cache (not an optimistic layer)
+    // pass payOutBolt11Public truthy to assume P2P (skip credits) — reconciled in onMutationResult
     modifyActCache(client.cache, {
-      payerPrivates: { result: { id: item.id, sats, act: 'TIP', path: item.path } }
+      payerPrivates: { result: { id: item.id, sats, act: 'TIP', path: item.path } },
+      payOutBolt11Public: true
     }, meProp, { optimistic: false })
 
     animate()
@@ -135,8 +167,10 @@ export function useZap ({ nextTip }) {
         } catch (error) {
           if (error instanceof ActCanceledError) {
             // user canceled — revert all accumulated cache changes
+            // mirror initial P2P assumption (credits were never added)
             modifyActCache(client.cache, {
-              payerPrivates: { result: { id: savedItem.id, sats: -totalSats, act: 'TIP', path: savedItem.path } }
+              payerPrivates: { result: { id: savedItem.id, sats: -totalSats, act: 'TIP', path: savedItem.path } },
+              payOutBolt11Public: true
             }, meProp, { optimistic: false })
             if (mountedRef.current) setUndoPending(0)
             undoControllerRef.current = null
@@ -162,10 +196,12 @@ export function useZap ({ nextTip }) {
     }
 
     // clear all debounce timers and revert cache — use entry.me (click-time identity)
+    // mirror initial P2P assumption (credits were never added)
     for (const [, entry] of bufferRef.current) {
       clearTimeout(entry.timer)
       modifyActCache(client.cache, {
-        payerPrivates: { result: { id: entry.item.id, sats: -entry.totalSats, act: 'TIP', path: entry.item.path } }
+        payerPrivates: { result: { id: entry.item.id, sats: -entry.totalSats, act: 'TIP', path: entry.item.path } },
+        payOutBolt11Public: true
       }, entry.me, { optimistic: false })
     }
     bufferRef.current.clear()

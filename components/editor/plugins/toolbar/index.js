@@ -5,7 +5,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
 import UploadIcon from '@/svgs/editor/toolbar/inserts/upload-paperclip.svg'
-import { useToolbarState } from '@/components/editor/contexts/toolbar'
+import { useToolbarState, INITIAL_FORMAT_STATE } from '@/components/editor/contexts/toolbar'
 import { useEffect, useRef, useState, forwardRef, useCallback } from 'react'
 import BoldIcon from '@/svgs/editor/toolbar/inline/bold.svg'
 import ItalicIcon from '@/svgs/editor/toolbar/inline/italic.svg'
@@ -218,6 +218,12 @@ export function ToolbarPlugin ({ name, topLevel }) {
       )
     )
   }, [editor, $updateToolbar, isMarkdown])
+
+  useEffect(() => {
+    if (!isMarkdown) return
+    // ensure rich mode toolbar state is reset when switching to markdown mode
+    batchUpdateToolbarState(INITIAL_FORMAT_STATE)
+  }, [isMarkdown, batchUpdateToolbarState])
 
   // overflow detection for mobile devices
   useEffect(() => {

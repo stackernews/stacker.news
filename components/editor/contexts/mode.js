@@ -20,7 +20,7 @@ export function EditorModeProvider ({ children }) {
     changeMode,
     isMarkdown: mode === MARKDOWN_MODE,
     isRich: mode === RICH_MODE,
-    toggleMode: () => changeMode((currentMode) => currentMode === MARKDOWN_MODE ? RICH_MODE : MARKDOWN_MODE)
+    toggleMode: () => changeMode(mode === MARKDOWN_MODE ? RICH_MODE : MARKDOWN_MODE)
   }), [mode, changeMode])
 
   return (

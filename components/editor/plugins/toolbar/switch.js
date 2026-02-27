@@ -1,7 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import Nav from 'react-bootstrap/Nav'
-import { useToolbarState, INITIAL_FORMAT_STATE } from '@/components/editor/contexts/toolbar'
 import { useEditorMode, MARKDOWN_MODE, RICH_MODE } from '@/components/editor/contexts/mode'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_CRITICAL } from 'lexical'
@@ -17,7 +16,6 @@ export const TOGGLE_MODE_COMMAND = createCommand('TOGGLE_MODE_COMMAND')
 /** displays and toggles between markdown and rich mode */
 export default function ModeSwitchPlugin () {
   const [editor] = useLexicalComposerContext()
-  const { batchUpdateToolbarState } = useToolbarState()
   const { changeMode, toggleMode, isMarkdown } = useEditorMode()
 
   useEffect(() => {
@@ -29,13 +27,11 @@ export default function ModeSwitchPlugin () {
         } else {
           toggleMode()
         }
-        // reset rich-format state when switching mode
-        batchUpdateToolbarState(INITIAL_FORMAT_STATE)
         return true
       },
       COMMAND_PRIORITY_CRITICAL
     )
-  }, [editor, batchUpdateToolbarState, changeMode, toggleMode])
+  }, [editor, changeMode, toggleMode])
 
   const handleTabSelect = useCallback((eventKey) => {
     editor.dispatchCommand(TOGGLE_MODE_COMMAND, eventKey)

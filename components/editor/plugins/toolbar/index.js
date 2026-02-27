@@ -160,7 +160,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
   const handleInsertMath = useCallback((inline) => editor.dispatchCommand(SN_INSERT_MATH_COMMAND, { inline }), [editor])
 
   const $updateToolbar = useCallback(() => {
-    const updates = {}
+    const updates = { ...INITIAL_FORMAT_STATE }
     const selection = $getSelection()
     if ($isRangeSelection(selection)) {
       updates.elementFormat = $snGetElementFormat(selection)

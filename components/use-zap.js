@@ -50,13 +50,13 @@ export function useZap ({ nextTip }) {
                 ...response.payerPrivates,
                 result: { id: item.id, sats: totalSats, act: 'TIP', path: item.path, __typename: 'ItemAct' }
               }
-            })
+            }, { optimistic: false })
           },
           onPayError: (e, cache) => {
             // revert the entire accumulated amount — use entryMe (click-time identity)
             modifyActCache(cache, {
               payerPrivates: { result: { id: item.id, sats: -totalSats, act: 'TIP' } }
-            }, entryMe)
+            }, entryMe, { optimistic: false })
           }
         }
       })
@@ -104,7 +104,7 @@ export function useZap ({ nextTip }) {
     // instant visual feedback — write directly to root cache (not an optimistic layer)
     modifyActCache(client.cache, {
       payerPrivates: { result: { id: item.id, sats, act: 'TIP', path: item.path } }
-    }, meProp)
+    }, meProp, { optimistic: false })
 
     animate()
 
@@ -137,7 +137,7 @@ export function useZap ({ nextTip }) {
             // user canceled — revert all accumulated cache changes
             modifyActCache(client.cache, {
               payerPrivates: { result: { id: savedItem.id, sats: -totalSats, act: 'TIP', path: savedItem.path } }
-            }, meProp)
+            }, meProp, { optimistic: false })
             if (mountedRef.current) setUndoPending(0)
             undoControllerRef.current = null
             return
@@ -166,7 +166,7 @@ export function useZap ({ nextTip }) {
       clearTimeout(entry.timer)
       modifyActCache(client.cache, {
         payerPrivates: { result: { id: entry.item.id, sats: -entry.totalSats, act: 'TIP', path: entry.item.path } }
-      }, entry.me)
+      }, entry.me, { optimistic: false })
     }
     bufferRef.current.clear()
 

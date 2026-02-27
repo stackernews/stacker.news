@@ -148,7 +148,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   )
 }
 
-export function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
+export function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me, { optimistic = true } = {}) {
   const result = payerPrivates?.result
   if (!result) return
   const { id, sats, act } = result
@@ -200,13 +200,13 @@ export function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me
         return existingBoost
       }
     },
-    optimistic: true
+    optimistic
   })
 }
 
 // doing this onPaid fixes issue #1695 because optimistically updating all ancestors
 // conflicts with the writeQuery on navigation from SSR
-export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
+export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }, { optimistic = true } = {}) {
   const result = payerPrivates?.result
   if (!result) return
   const { id, sats, act, path } = result
@@ -229,7 +229,7 @@ export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
             return existingCommentSats + sats
           }
         },
-        optimistic: true
+        optimistic
       })
     })
   }
@@ -244,7 +244,7 @@ export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
             return existingCommentDownSats + sats
           }
         },
-        optimistic: true
+        optimistic
       })
     })
   }
@@ -259,7 +259,7 @@ export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
             return existingCommentBoost + sats
           }
         },
-        optimistic: true
+        optimistic
       })
     })
   }
@@ -267,22 +267,29 @@ export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
 
 export function getActCachePhases (me) {
   return {
+    // runs as Apollo update() callback — optimistic: true (default) is correct
     onMutationResult: (cache, { data }) => {
       const response = Object.values(data)[0]
       if (!response) return
       modifyActCache(cache, response, me)
+    },
+    // runs outside update() context — write to root cache
+    onPaidMissingResult: (cache, { data }) => {
+      const response = Object.values(data)[0]
+      if (!response) return
+      modifyActCache(cache, response, me, { optimistic: false })
     },
     onPayError: (e, cache, { data }) => {
       const response = Object.values(data)[0]
       if (!response?.payerPrivates?.result) return
       const { payerPrivates: { result: { sats } } } = response
       const negate = { ...response, payerPrivates: { ...response.payerPrivates, result: { ...response.payerPrivates.result, sats: -1 * sats } } }
-      modifyActCache(cache, negate, me)
+      modifyActCache(cache, negate, me, { optimistic: false })
     },
     onPaid: (cache, { data }) => {
       const response = Object.values(data)[0]
       if (!response) return
-      updateAncestors(cache, response)
+      updateAncestors(cache, response, { optimistic: false })
     }
   }
 }
@@ -306,7 +313,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
       onMutationResult: composeCallbacks(phases.onMutationResult, callerCachePhases.onMutationResult),
       // If the initial mutation response had no result payload, run the direct-item
       // cache modification now so optimistic and pessimistic paths converge.
-      onPaidMissingResult: composeCallbacks(phases.onMutationResult, callerCachePhases.onPaidMissingResult),
+      onPaidMissingResult: composeCallbacks(phases.onPaidMissingResult, callerCachePhases.onPaidMissingResult),
       onPayError: composeCallbacks(phases.onPayError, callerCachePhases.onPayError),
       onPaid: composeCallbacks(phases.onPaid, callerCachePhases.onPaid)
     }

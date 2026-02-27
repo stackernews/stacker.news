@@ -2,8 +2,8 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useContext, useCallback, useEffect } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
 import { $isMarkdownEmpty, $setMarkdown, $getMarkdown } from '@/lib/lexical/utils'
-import { useToolbarState } from '@/components/editor/contexts/toolbar'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
+import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 
 /**
  * plugin that auto-saves and restores editor drafts to/from local storage
@@ -12,7 +12,6 @@ import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdas
  */
 export default function LocalDraftPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
-  const { toolbarState } = useToolbarState()
 
   // local storage keys, e.g. 'reply-123456-text'
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
@@ -39,7 +38,8 @@ export default function LocalDraftPlugin ({ name }) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
         editor.update(() => {
-          if (toolbarState.markdownMode) {
+          const isMarkdown = isMarkdownMode(editor)
+          if (isMarkdown) {
             $setMarkdown(value)
           } else {
             $markdownToLexical(value)
@@ -53,17 +53,18 @@ export default function LocalDraftPlugin ({ name }) {
   useEffect(() => {
     // whenever the editor state changes, save the markdown draft
     return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
+      const isMarkdown = isMarkdownMode(editor)
       // skip non-content updates
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return
 
       editorState.read(() => {
-        const text = toolbarState.markdownMode
+        const text = isMarkdown
           ? $getMarkdown(false)
           : $lexicalToMarkdown()
         upsertDraft(text)
       })
     })
-  }, [editor, upsertDraft, toolbarState.markdownMode])
+  }, [editor, upsertDraft])
 
   return null
 }

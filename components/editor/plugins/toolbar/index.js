@@ -43,6 +43,7 @@ import { ListNode } from '@lexical/list'
 import { SN_INSERT_MATH_COMMAND } from '@/lib/lexical/commands/math'
 import MathIcon from '@/svgs/editor/toolbar/inserts/formula.svg'
 import MathOperationsIcon from '@/svgs/editor/toolbar/inserts/math-operations.svg'
+import { useEditorMode } from '@/components/editor/contexts/mode'
 
 const BLOCK_OPTIONS = [
   { id: 'paragraph', name: 'paragraph', icon: <BlocksIcon />, block: 'paragraph' },
@@ -149,6 +150,7 @@ function ToolbarButton ({ id, isActive, onClick, tooltip, children, showDelay = 
 export function ToolbarPlugin ({ name, topLevel }) {
   const [editor] = useLexicalComposerContext()
   const { batchUpdateToolbarState, toolbarState, updateToolbarState } = useToolbarState()
+  const { isMarkdown } = useEditorMode()
   const toolbarRef = useRef(null)
   const [hasOverflow, setHasOverflow] = useState(false)
 
@@ -201,7 +203,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
 
   useEffect(() => {
     // markdown mode doesn't support toolbar updates
-    if (toolbarState.markdownMode) return
+    if (isMarkdown) return
 
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
@@ -215,7 +217,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
         COMMAND_PRIORITY_CRITICAL
       )
     )
-  }, [editor, $updateToolbar, toolbarState.markdownMode])
+  }, [editor, $updateToolbar, isMarkdown])
 
   // overflow detection for mobile devices
   useEffect(() => {

@@ -24,7 +24,7 @@ import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { getDragSelection } from '@/lib/lexical/utils/dom'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { $insertTextAtSelection } from '@/lib/lexical/utils'
-import { isMarkdownMode, $isMarkdownMode } from '@/lib/lexical/commands/utils'
+import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import { $createMediaNode, MediaNode } from '@/lib/lexical/nodes/content/media'
 
 export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
@@ -71,10 +71,10 @@ export default function FileUploadPlugin ({ editorRef }) {
   // inserts it into the editor at the selection or the root if there is no selection
   const onUpload = useCallback((file) => {
     editor.update(() => {
-      const markdownMode = $isMarkdownMode()
+      const isMarkdown = isMarkdownMode(editor)
       // placeholderKey is the nodekey of the TextNode that contains the placeholder text
       const placeholderNode = $createTextNode(`![Uploading ${file.name}…]()`)
-      $insertTextAtSelection(placeholderNode, markdownMode ? 2 : 1)
+      $insertTextAtSelection(placeholderNode, isMarkdown ? 2 : 1)
       // update the placeholder key
       placeholderKey.current = placeholderNode.getKey()
     }, { tag: 'history-merge' })
@@ -87,8 +87,8 @@ export default function FileUploadPlugin ({ editorRef }) {
   const onSuccess = useCallback(({ url, name, file }) => {
     const kind = file.type.split('/')[0]
     editor.update(() => {
-      const markdownMode = $isMarkdownMode()
-      if (markdownMode) {
+      const isMarkdown = isMarkdownMode(editor)
+      if (isMarkdown) {
         $replacePlaceholder(`![](${url})`)
       } else {
         const mediaNode = $createMediaNode({ src: url, alt: name, title: name, kind, status: 'done' })
@@ -279,9 +279,8 @@ function useLexicalUploadFees (editor) {
 
   // extracts S3 keys from text and updates upload fees
   const $refreshUploadFees = useCallback(() => {
-    // we're inside a read transaction, but since it can be debounced, $getEditor won't be available
-    const markdownMode = isMarkdownMode(editor)
-    if (markdownMode) {
+    const isMarkdown = isMarkdownMode(editor)
+    if (isMarkdown) {
       const text = $getRoot().getTextContent() || ''
       const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
       updateUploadFees({ variables: { s3Keys } })

@@ -1,6 +1,6 @@
 import classNames from 'classnames'
 import { useField } from 'formik'
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
 import { ReactExtension } from '@lexical/react/ReactExtension'
@@ -27,7 +27,7 @@ import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softk
 import { MarkdownTextExtension } from '@/lib/lexical/exts/markdown'
 import AppendValuePlugin from '@/components/editor/plugins/core/append-value'
 import TransformerBridgePlugin from '@/components/editor/plugins/core/transformer-bridge'
-import { useToolbarState } from './contexts/toolbar'
+import { useEditorMode } from './contexts/mode'
 import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
 import { RichTextExtension } from '@lexical/rich-text'
 import DefaultNodes from '@/lib/lexical/nodes'
@@ -41,14 +41,14 @@ import { CodeThemePlugin } from './plugins/core/code-theme'
 import LinkEditorPlugin from './plugins/link'
 import { DecoratorClickZonesExtension } from '@/lib/lexical/exts/decorator-click-zones'
 
-const MARKDOWN_MODE = {
+const EDITOR_MARKDOWN_MODE = {
   name: 'editor-markdown',
   namespace: 'sn-markdown',
   dependencies: [MarkdownTextExtension],
   nodes: []
 }
 
-const RICH_MODE = {
+const EDITOR_RICH_MODE = {
   name: 'editor-rich',
   namespace: 'sn-rich', // namespace is used for copy/paste between identical editors
   dependencies: [
@@ -73,27 +73,17 @@ const RICH_MODE = {
  * @returns {JSX.Element} lexical editor component
  */
 export default function Editor ({ name, autoFocus, topLevel, ...props }) {
-  const { toolbarState } = useToolbarState()
+  const { isMarkdown } = useEditorMode()
   const [text] = useField({ name })
 
-  // autofocus when the prop requests it, or immediately after a mode switch.
-  // as modeSwitched is a transient value based on modeConfig, the latter will be the dependency.
-  const prevModeRef = useRef(toolbarState.markdownMode)
-  const modeSwitched = prevModeRef.current !== toolbarState.markdownMode
-  if (modeSwitched) {
-    prevModeRef.current = toolbarState.markdownMode
-  }
-
-  const modeConfig = useMemo(() =>
-    toolbarState.markdownMode ? MARKDOWN_MODE : RICH_MODE
-  , [toolbarState.markdownMode])
+  const modeConfig = useMemo(() => (isMarkdown ? EDITOR_MARKDOWN_MODE : EDITOR_RICH_MODE), [isMarkdown])
 
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: () => {
         // initialize editor state with existing formik text
         if (text.value) {
-          if (toolbarState.markdownMode) {
+          if (isMarkdown) {
             $setMarkdown(text.value, true)
           } else {
             $markdownToLexical(text.value)
@@ -107,7 +97,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         HistoryExtension,
         FormattingCommandsExtension,
         configExtension(ReactExtension, { contentEditable: null }),
-        configExtension(AutoFocusExtension, { disabled: !(autoFocus || modeSwitched) }),
+        configExtension(AutoFocusExtension, { disabled: !autoFocus }),
         ...modeConfig.dependencies
       ],
       nodes: modeConfig.nodes,
@@ -119,7 +109,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
 
   return (
     <LexicalExtensionComposer key={modeConfig.name} extension={editor} contentEditable={null}>
-      <EditorContent topLevel={topLevel} markdownMode={toolbarState.markdownMode} name={name} {...props} />
+      <EditorContent topLevel={topLevel} isMarkdown={isMarkdown} name={name} {...props} />
     </LexicalExtensionComposer>
   )
 }
@@ -130,7 +120,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
  * @param {string} props.placeholder - placeholder text for empty editor
  * @param {Object} props.lengthOptions - max length configuration
  * @param {boolean} props.topLevel - whether this is a top-level editor
- * @param {boolean} props.markdownMode - whether the editor is in markdown mode
+ * @param {boolean} props.isMarkdown - whether the editor is in markdown mode
  * @param {boolean} [props.required] - whether the field is required
  * @param {number} [props.minRows] - minimum number of rows for the editor
  * @param {React.ReactNode} [props.label] - label for the editor
@@ -140,7 +130,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
  */
 function EditorContent ({
   name, placeholder, lengthOptions,
-  topLevel, markdownMode, required = false,
+  topLevel, isMarkdown, required = false,
   minRows, hint, warn, editorRef, appendValue
 }) {
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
@@ -151,14 +141,14 @@ function EditorContent ({
       <ToolbarPlugin topLevel={topLevel} name={name} />
       {/* we only need a plain text editor for markdown */}
       <div
-        className={classNames(styles.editor, !markdownMode && 'sn-text')}
-        data-lexical-mode={markdownMode ? 'markdown' : 'rich'}
+        className={classNames(styles.editor, !isMarkdown && 'sn-text')}
+        data-lexical-mode={isMarkdown ? 'markdown' : 'rich'}
         ref={onContainerRef}
       >
         <ContentEditable
           translate='no'
           data-sn-editor='true'
-          className={classNames(styles.editorContent, styles.editorContentInput, markdownMode && 'sn-text')}
+          className={classNames(styles.editorContent, styles.editorContentInput, isMarkdown && 'sn-text')}
           /* lh is a css unit that is equal to the line height of the element
               probably the worst thing is that we have to add 1 to the minRows to get the correct height
           */
@@ -176,10 +166,13 @@ function EditorContent ({
       <MaxLengthPlugin lengthOptions={lengthOptions} />
       <SoftkeyUnborkerPlugin />
       <SoftkeyEmptyGuardPlugin />
-      {!markdownMode && <CodeThemePlugin />}
-      {!markdownMode && <LinkEditorPlugin anchorElem={containerRef} />}
-      {/* only enable transformer bridge for markdown mode */}
-      {markdownMode && <TransformerBridgePlugin />}
+      {!isMarkdown && (
+        <>
+          <CodeThemePlugin />
+          <LinkEditorPlugin anchorElem={containerRef} />
+        </>
+      )}
+      {isMarkdown && <TransformerBridgePlugin />}
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

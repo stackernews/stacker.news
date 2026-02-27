@@ -20,7 +20,6 @@ export const INITIAL_FORMAT_STATE = {
 
 const INITIAL_STATE = {
   showToolbar: false,
-  markdownMode: true,
   ...INITIAL_FORMAT_STATE
 }
 

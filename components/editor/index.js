@@ -3,12 +3,15 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
 import Editor from './editor'
 import { ToolbarContextProvider } from './contexts/toolbar'
+import { EditorModeProvider } from './contexts/mode'
 
 export function SNEditor ({ ...props }) {
   return (
-    <ToolbarContextProvider topLevel={props.topLevel}>
-      <Editor {...props} />
-    </ToolbarContextProvider>
+    <EditorModeProvider>
+      <ToolbarContextProvider topLevel={props.topLevel}>
+        <Editor {...props} />
+      </ToolbarContextProvider>
+    </EditorModeProvider>
   )
 }
 

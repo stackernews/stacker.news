@@ -282,7 +282,7 @@ export const whereClause = (...clauses) => {
 }
 
 function whenClause (when, table) {
-  return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
+  return `COALESCE("${table}"."invoicePaidAt", "${table}".created_at) <= $2 and COALESCE("${table}"."invoicePaidAt", "${table}".created_at) >= $1`
 }
 
 export const activeOrMine = (me) => {
@@ -513,7 +513,7 @@ export default {
               ${relationClause(type)}
               ${payInJoinFilter(me)}
               ${whereClause(
-                '"Item".created_at <= $1',
+                'COALESCE("Item"."invoicePaidAt", "Item".created_at) <= $1',
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),

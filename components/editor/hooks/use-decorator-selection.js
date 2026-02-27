@@ -47,13 +47,13 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
   // can retain browser focus (Chrome for example shows :focus-visible).
   // keyboard input goes to the non-editable element instead of the editor root, so typing breaks.
   useEffect(() => {
-    if (isFocused) return
+    if (isFocused || !active) return
     const element = editor.getElementByKey(nodeKey)
     if (!element) return
     if (element === document.activeElement || element.contains(document.activeElement)) {
       editor.getRootElement()?.focus({ preventScroll: true })
     }
-  }, [editor, nodeKey, isFocused])
+  }, [editor, nodeKey, isFocused, active])
 
   const onDelete = useCallback((event) => {
     if (!isSelected) return false

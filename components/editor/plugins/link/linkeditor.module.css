@@ -5,6 +5,8 @@
   z-index: 600;
   opacity: 0;
   will-change: transform;
+  max-width: 100%;
+  box-sizing: border-box;
   box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--theme-floating-toolbar-shadow-opacity));
 }
 
@@ -17,13 +19,14 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  max-width: 400px;
+  max-width: min(400px, 100%);
 }
 
 .linkEditor .linkInput,
 .linkEditor .linkView {
   display: block;
-  max-width: 300px;
+  min-width: 0;
+  flex: 1;
   box-sizing: border-box;
   padding: 0.5rem;
   line-height: 1.2;
@@ -41,7 +44,8 @@
 }
 
 .linkInput {
-  min-width: 300px;
+  width: 100%;
+  max-width: 300px;
 }
 
 .linkEditor .linkView {

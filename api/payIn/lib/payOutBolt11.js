@@ -1,7 +1,7 @@
 import { parsePaymentRequest } from 'ln-service'
 import { PAY_IN_RECEIVER_FAILURE_REASONS } from './is'
 import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
-import { Prisma } from '@prisma/client'
+import { payInFailureReasonsSql } from './sql'
 
 // returns the least failed, highest priority wallet protocols
 async function getLeastFailedWalletProtocols (models, { genesisId, userId }) {
@@ -11,7 +11,7 @@ async function getLeastFailedWalletProtocols (models, { genesisId, userId }) {
       FROM "PayIn"
       JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
       WHERE "PayIn"."payInFailureReason" IS NOT NULL AND "PayIn"."genesisId" = ${genesisId}
-      AND "PayIn"."payInFailureReason" IN (${Prisma.join(PAY_IN_RECEIVER_FAILURE_REASONS.map(r => Prisma.sql`${r}::"PayInFailureReason"`))})
+      AND "PayIn"."payInFailureReason" IN (${payInFailureReasonsSql(PAY_IN_RECEIVER_FAILURE_REASONS)})
       GROUP BY "PayOutBolt11"."protocolId"
     )
     SELECT "WalletProtocol".*, "Wallet"."userId" as "userId",

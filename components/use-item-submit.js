@@ -5,7 +5,6 @@ import useCrossposter from './use-crossposter'
 import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { USER_ID } from '@/lib/constants'
-import { composeCallbacks } from '@/lib/compose-callbacks'
 import { useMe } from './me'
 
 // this is intented to be compatible with upsert item mutations
@@ -47,13 +46,12 @@ export default function useItemSubmit (mutation,
         ...restPayInMutationOptions
       } = payInMutationOptions
       const mergedCachePhases = {
-        ...payInCachePhases,
-        // Preserve previous wrapper behavior: if the initial mutation result is missing,
-        // rerun mutation-phase cache work in paid-phase.
-        onPaidMissingResult: composeCallbacks(
-          payInCachePhases.onPaidMissingResult,
-          payInCachePhases.onMutationResult
-        )
+        ...payInCachePhases
+        // NOTE: we intentionally do NOT fallback onPaidMissingResult to onMutationResult.
+        // onMutationResult runs as Apollo's update() callback (optimistic layer context),
+        // but onPaidMissingResult runs outside update() — reusing the same function would
+        // put optimistic:true cache writes in the wrong layer. Callers that need
+        // onPaidMissingResult should provide it explicitly with optimistic:false.
       }
 
       const { data, error, payError } = await upsertItem({

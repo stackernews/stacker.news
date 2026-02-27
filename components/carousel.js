@@ -153,7 +153,7 @@ export function CarouselProvider ({ children }) {
 
 const noop = () => {}
 
-export const NOOP_CAROUSEL = {
+const NOOP_CAROUSEL = {
   showCarousel: noop,
   addMedia: noop,
   confirmMedia: noop,

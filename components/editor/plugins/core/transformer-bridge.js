@@ -73,7 +73,7 @@ export default function TransformerBridgePlugin () {
           }
 
           // get the new markdown from the bridge editor
-          newMarkdown = $lexicalToMarkdown()
+          newMarkdown = $lexicalToMarkdown(true)
         }
 
         // we're done, clear the bridge

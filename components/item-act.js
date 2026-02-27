@@ -320,7 +320,6 @@ const ZAP_ME_SATS_FRAGMENT = gql`
 `
 
 export function useZap () {
-  const { me } = useMe()
   const hasSendWallet = useHasSendWallet()
   const client = useApolloClient()
   const animate = useAnimation()
@@ -381,7 +380,7 @@ export function useZap () {
   // stored in a ref so the cleanup effect has stable deps (only runs on unmount)
   const flushAllRef = useRef(null)
   flushAllRef.current = () => {
-    for (const [itemId, entry] of bufferRef.current) {
+    for (const [, entry] of bufferRef.current) {
       clearTimeout(entry.timer)
       fireZap(entry)
     }
@@ -479,7 +478,7 @@ export function useZap () {
     }
 
     // clear all debounce timers and revert cache — use entry.me (click-time identity)
-    for (const [itemId, entry] of bufferRef.current) {
+    for (const [, entry] of bufferRef.current) {
       clearTimeout(entry.timer)
       modifyActCache(client.cache, {
         payerPrivates: { result: { id: entry.item.id, sats: -entry.totalSats, act: 'TIP', path: entry.item.path } }

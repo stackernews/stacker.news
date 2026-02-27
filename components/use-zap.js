@@ -43,8 +43,9 @@ export function useZap ({ nextTip }) {
           // sats/meSats already correct from per-click modifyActCache.
           // Pre-mutation write assumed P2P (skipped credits). If actually non-P2P, add credits now.
           onMutationResult: (cache, { data }) => {
-            const response = Object.values(data)[0]
-            if (response?.payOutBolt11Public) return // actually P2P — credits correctly skipped
+            const response = data && Object.values(data)[0]
+            if (!response) return
+            if (response.payOutBolt11Public) return // actually P2P — credits correctly skipped
             // non-P2P — add the credit increment
             cache.modify({
               id: `Item:${item.id}`,
@@ -71,10 +72,11 @@ export function useZap ({ nextTip }) {
             // revert using real payOutBolt11Public so credit rollback is symmetric:
             // if non-P2P, onMutationResult added credits → need to subtract them
             // if P2P, credits were never added → skip credit subtraction
-            const response = Object.values(data)[0]
+            const response = data && Object.values(data)[0]
+            const payOutBolt11Public = response ? response.payOutBolt11Public : true
             modifyActCache(cache, {
               payerPrivates: { result: { id: item.id, sats: -totalSats, act: 'TIP' } },
-              payOutBolt11Public: response?.payOutBolt11Public
+              payOutBolt11Public
             }, entryMe, { optimistic: false })
           }
         }

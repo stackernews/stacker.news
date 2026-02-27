@@ -1,6 +1,6 @@
 import classNames from 'classnames'
 import { useField } from 'formik'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
 import { configExtension, defineExtension } from 'lexical'
 import { ReactExtension } from '@lexical/react/ReactExtension'
@@ -75,12 +75,14 @@ const EDITOR_RICH_MODE = {
 export default function Editor ({ name, autoFocus, topLevel, ...props }) {
   const { isMarkdown } = useEditorMode()
   const [text] = useField({ name })
+  const hasMountedRef = useRef(false)
 
   const modeConfig = useMemo(() => (isMarkdown ? EDITOR_MARKDOWN_MODE : EDITOR_RICH_MODE), [isMarkdown])
 
   const editor = useMemo(() =>
     defineExtension({
       $initialEditorState: () => {
+        hasMountedRef.current = true
         // initialize editor state with existing formik text
         if (text.value) {
           if (isMarkdown) {
@@ -97,7 +99,8 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         HistoryExtension,
         FormattingCommandsExtension,
         configExtension(ReactExtension, { contentEditable: null }),
-        configExtension(AutoFocusExtension, { disabled: !autoFocus }),
+        // autofocus is always enabled after the editor has mounted to prevent the editor from losing focus when toggling mode
+        configExtension(AutoFocusExtension, { disabled: !(autoFocus || hasMountedRef.current) }),
         ...modeConfig.dependencies
       ],
       nodes: modeConfig.nodes,

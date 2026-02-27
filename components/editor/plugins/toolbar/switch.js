@@ -38,7 +38,7 @@ export default function ModeSwitchPlugin () {
   }, [editor])
 
   return (
-    <Nav variant='tabs' activeKey={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onSelect={handleTabSelect}>
+    <Nav variant='tabs' activeKey={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onSelect={handleTabSelect} onMouseDown={(e) => e.preventDefault()}>
       <Nav.Item>
         <Nav.Link className={styles.modeTab} eventKey={MARKDOWN_MODE} title='markdown'>
           md

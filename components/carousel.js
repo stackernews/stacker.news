@@ -165,7 +165,8 @@ export function useCarousel () {
 }
 
 /**
- * returns the carousel context if the rich editor is editable, otherwise returns NOOP_CAROUSEL
+ * returns the carousel context if we're not in an editable context,
+ * otherwise returns NOOP_CAROUSEL
  *
  * @param {boolean} editable - whether the rich editor is editable
  * @returns {Object} carousel context

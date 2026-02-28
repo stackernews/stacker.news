@@ -48,11 +48,21 @@ export default function useItemSubmit (mutation,
       } = payInMutationOptions
       const mergedCachePhases = {
         ...payInCachePhases,
-        // Preserve previous wrapper behavior: if the initial mutation result is missing,
-        // rerun mutation-phase cache work in paid-phase.
+        // If the initial mutation response had no result payload, rerun mutation-phase
+        // cache work in paid-phase so the UI still updates. We wrap the cache to force
+        // optimistic:false since onPaidMissingResult runs outside Apollo's update() context.
         onPaidMissingResult: composeCallbacks(
           payInCachePhases.onPaidMissingResult,
           payInCachePhases.onMutationResult
+            ? (cache, ...args) => {
+                const nonOptimisticCache = Object.create(cache, {
+                  modify: {
+                    value: (options) => cache.modify({ ...options, optimistic: false })
+                  }
+                })
+                payInCachePhases.onMutationResult(nonOptimisticCache, ...args)
+              }
+            : undefined
         )
       }
 

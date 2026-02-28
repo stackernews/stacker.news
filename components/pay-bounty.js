@@ -12,7 +12,7 @@ import { PAY_BOUNTY_MUTATION } from '@/fragments/payIn'
 import usePayInMutation from './payIn/hooks/use-pay-in-mutation'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 
-const addBountyPaidToCache = (cache, { data }) => {
+const addBountyPaidToCache = (cache, { data }, { optimistic = true } = {}) => {
   const response = Object.values(data)[0]
   if (!response?.payerPrivates.result) return
   const { id, path } = response.payerPrivates.result
@@ -24,18 +24,21 @@ const addBountyPaidToCache = (cache, { data }) => {
         return [...(existingPaidTo || []), Number(id)]
       }
     },
-    optimistic: true
+    optimistic
   })
 }
 
 export const payBountyCachePhases = {
+  // runs as Apollo update() callback — optimistic: true (default) is correct
   onMutationResult: addBountyPaidToCache,
-  onPaidMissingResult: addBountyPaidToCache,
+  // runs outside update() context — write to root cache
+  onPaidMissingResult: (cache, args) => addBountyPaidToCache(cache, args, { optimistic: false }),
   onPayError: (_e, cache, { data }) => {
     const response = Object.values(data)[0]
     if (!response?.payerPrivates.result) return
     const { id, path } = response.payerPrivates.result
     const root = path.split('.')[0]
+    // runs outside update() context — write to root cache
     cache.modify({
       id: `Item:${root}`,
       fields: {
@@ -43,7 +46,7 @@ export const payBountyCachePhases = {
           return (existingPaidTo || []).filter(i => i !== Number(id))
         }
       },
-      optimistic: true
+      optimistic: false
     })
   }
 }

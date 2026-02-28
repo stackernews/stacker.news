@@ -77,8 +77,8 @@ function withBountyCachePhases (userCachePhases) {
 
 function withActCachePhases (actCachePhases, userCachePhases) {
   return withComposedCachePhases(actCachePhases, userCachePhases, {
-    // Keep existing semantics: if paid payload has no result, reuse mutation-phase cache update.
-    onPaidMissingResult: actCachePhases.onMutationResult
+    // runs outside update() context — use the dedicated onPaidMissingResult (optimistic:false)
+    onPaidMissingResult: actCachePhases.onPaidMissingResult
   })
 }
 

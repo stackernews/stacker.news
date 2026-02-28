@@ -39,6 +39,10 @@ export const SHORTCUTS = {
     key: 'mod+Comma',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'subscript')
   },
+  underline: {
+    key: 'mod+shift+KeyU',
+    handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'underline')
+  },
   strikethrough: {
     key: 'mod+shift+KeyX',
     handler: (editor) => editor.dispatchCommand(SN_FORMAT_COMMAND, 'strikethrough')

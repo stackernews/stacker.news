@@ -64,12 +64,8 @@ function timeRangeFilter (when, whenFrom, whenTo, cursorTime) {
 }
 
 // Returns a sat-investment filter clause, or null to skip.
-// Handles nym bypass, owner bypass, and type-aware thresholds.
-function satsInvestmentFilter ({ what, nym, postsSatsFilter, commentsSatsFilter, meId }) {
-  // skip when searching a specific nym — the user explicitly
-  // wants that person's items regardless of investment
-  if (nym) return null
-
+// Handles owner bypass and type-aware thresholds.
+function satsInvestmentFilter ({ what, postsSatsFilter, commentsSatsFilter, meId }) {
   // owner bypass: always show the logged-in user's own items
   const ownerBypass = meId ? [{ match: { userId: meId } }] : []
 
@@ -147,10 +143,14 @@ async function loadSatsFilters (me, userLoader) {
 
 function nymClauses (nym) {
   if (!nym) return { filters: [], queries: [] }
-  const pattern = `*${nym.slice(1).toLowerCase()}*`
+  const name = nym.slice(1).toLowerCase()
+  if (!name) return { filters: [], queries: [] } // guard: bare "@" with no name
+  const pattern = `*${name}*`
+  // Strict author-only filter for @nym searches.
+  // case_insensitive: keyword field stores original case; queries are lowercased
   return {
-    filters: [{ wildcard: { 'user.name': pattern } }],
-    queries: [{ wildcard: { 'user.name': pattern } }]
+    filters: [{ wildcard: { 'user.name': { value: pattern, case_insensitive: true } } }],
+    queries: []
   }
 }
 
@@ -178,20 +178,16 @@ function quoteClauses (quotes) {
   const filters = []
   const queries = []
   for (const quote of quotes) {
+    // Filter on stemmed field: "bitcoin mining" also matches "bitcoin mined" etc.
     filters.push({
-      multi_match: {
-        query: quote,
-        fields: ['title.exact', 'text.exact'],
-        type: 'phrase'
-      }
+      match_phrase: { title_text: quote }
+    })
+    // Score: exact unstemmed phrase gets highest boost
+    queries.push({
+      match_phrase: { 'title_text.exact': { query: quote, boost: 1000 } }
     })
     queries.push({
-      multi_match: {
-        query: quote,
-        fields: ['title.exact^10', 'text.exact'],
-        type: 'phrase',
-        boost: 1000
-      }
+      match_phrase: { title_text: { query: quote, boost: 500 } }
     })
   }
   return { filters, queries }
@@ -234,77 +230,72 @@ function sortFunctions (sort, query) {
     }
   }
 
-  // default: relevance with gentle recency decay
+  // default: relevance with gentle recency + investment decay
+  // Only affects the lexical leg; neural legs stay pure relevance via RRF
   return {
-    functions: [{
-      gauss: {
-        createdAt: {
-          origin: 'now',
-          scale: '90d',
-          decay: 0.5
+    functions: [
+      {
+        gauss: {
+          createdAt: {
+            origin: 'now',
+            scale: '90d',
+            decay: 0.5
+          }
         }
-      }
-    }],
+      },
+      ranktopFunction()
+    ],
     addMembers: {}
   }
 }
 
-// Returns base text queries for broad retrieval.
-// Fuzzy best_fields provides recall with typo tolerance.
-// Stemmed cross_fields rewards complete matches across title+text.
-// Exact cross_fields rewards unstemmed complete matches.
+// Returns base text queries for broad retrieval on the title_text concat field.
+// Title+text are concatenated at ingest (title first), matching how semantic
+// and sparse legs already work. Single-field BM25 avoids cross_fields quirks.
 function baseTextQueries (query) {
+  // Broad recall (50% of terms, fuzzy) + precision lanes (all terms, high boost).
+  // The high AND-match boost ensures docs matching ALL query terms always make
+  // it into the hybrid candidate set, even when common terms like "lightning network"
+  // produce thousands of partial matches that would otherwise flood the pool.
   return [
     {
-      multi_match: {
-        query,
-        type: 'best_fields',
-        fields: ['title^10', 'text'],
-        fuzziness: 'AUTO:4,7',
-        prefix_length: 2,
-        minimum_should_match: '50%'
+      match: {
+        title_text: {
+          query,
+          fuzziness: 'AUTO:4,7',
+          prefix_length: 2,
+          minimum_should_match: '50%'
+        }
       }
     },
     {
-      multi_match: {
-        query,
-        type: 'cross_fields',
-        fields: ['title^10', 'text'],
-        operator: 'and',
-        boost: 2
+      match: {
+        title_text: {
+          query,
+          operator: 'and',
+          boost: 10
+        }
       }
     },
     {
-      multi_match: {
-        query,
-        type: 'cross_fields',
-        fields: ['title.exact^10', 'text.exact'],
-        operator: 'and',
-        boost: 2
+      match: {
+        'title_text.exact': {
+          query,
+          operator: 'and',
+          boost: 10
+        }
+      }
+    },
+    {
+      match: {
+        title: {
+          query,
+          minimum_should_match: '50%',
+          boost: 3
+        }
       }
     }
   ]
-}
-
-// Returns tiers 2-5 wrapped in dis_max for use in a rescore window.
-// Best tier wins (no additive stacking); tie_breaker gives minor credit
-// for secondary matches.
-function rescoreQuery (query) {
-  return {
-    dis_max: {
-      tie_breaker: 0.1,
-      queries: [
-        // all terms match
-        { multi_match: { query, type: 'cross_fields', fields: ['title^10', 'text'], operator: 'and', boost: 10 } },
-        // phrase match
-        { multi_match: { query, type: 'phrase', fields: ['title^10', 'text'], boost: 50 } },
-        // exact field match
-        { multi_match: { query, type: 'cross_fields', fields: ['title.exact^10', 'text.exact'], operator: 'and', boost: 40 } },
-        // exact phrase match — highest
-        { multi_match: { query, fields: ['title.exact^10', 'text.exact'], type: 'phrase', boost: 400 } }
-      ]
-    }
-  }
 }
 
 // ---- Scoring helpers ----
@@ -333,65 +324,106 @@ function ranktopFunction () {
 
 // ---- Neural / hybrid wrappers ----
 
-function neuralBoolQuery ({
-  titleQuery, textQuery, filters, k, modelId, functions,
-  efSearch = 200, oversampleFactor = 2.0
-}) {
-  const neuralFilter = filters?.length
-    ? { bool: { filter: filters } }
-    : undefined
+// Term-level spell correction: corrects each misspelled word independently.
+// Uses suggest_mode=missing (only fires for words not in the index),
+// sort=score (edit distance first, not raw frequency), on text.exact
+// (larger vocabulary than titles). Much more precise than phrase suggest
+// for per-word typos: corrects 7/11 test typos with 0 false positives
+// vs phrase suggest's 2/11.
+const TERM_SUGGEST_PARAMS = {
+  field: 'text.exact',
+  suggest_mode: 'missing',
+  sort: 'score',
+  min_word_length: 4,
+  prefix_length: 2,
+  string_distance: 'damerau_levenshtein',
+  max_edits: 2
+}
+const MIN_TERM_FREQ = 3 // suggestion must appear in at least 3 docs
 
-  const neuralClause = (queryText, field) => ({
+function applyTermCorrections (termEntries) {
+  if (!termEntries?.length) return null
+  const words = []
+  let changed = false
+  for (const entry of termEntries) {
+    const opts = entry.options || []
+    if (opts.length > 0 && opts[0].freq >= MIN_TERM_FREQ) {
+      words.push(opts[0].text)
+      changed = true
+    } else {
+      words.push(entry.text)
+    }
+  }
+  return changed ? words.join(' ') : null
+}
+
+// Pre-query spell check: run a cheap suggest-only query to get the corrected
+// spelling BEFORE building the hybrid query. This lets neural legs (semantic +
+// sparse) receive the corrected text instead of the raw typo.
+// BM25 already has fuzziness (AUTO:4,7), but neural models can't do fuzzy
+// matching — "bitconi" embeds/tokenizes completely differently from "bitcoin".
+async function spellCheckQuery (search, query) {
+  if (!query?.trim()) return null
+  try {
+    const result = await search.search({
+      index: process.env.OPENSEARCH_INDEX,
+      size: 0,
+      body: {
+        suggest: {
+          text: query,
+          term_suggest: { term: TERM_SUGGEST_PARAMS }
+        }
+      }
+    })
+    const corrected = applyTermCorrections(result.body.suggest?.term_suggest)
+    if (corrected && corrected.toLowerCase() !== query.toLowerCase()) {
+      return corrected
+    }
+  } catch (e) {
+    console.error('[SEARCH SPELL-CHECK ERROR]', e?.message || e)
+  }
+  return null
+}
+
+function buildSemanticTextLeg ({ queryText, modelId, k }) {
+  // text_semantic is a semantic field (OS 3.1+) — uses `neural` query type
+  // Filters are applied at the hybrid.filter level, not per-leg
+  return {
     neural: {
-      [field]: {
+      text_semantic: {
         query_text: queryText,
         model_id: modelId,
-        k,
-        method_parameters: { ef_search: efSearch },
-        rescore: { oversample_factor: oversampleFactor },
-        ...(neuralFilter && { filter: neuralFilter })
-      }
-    }
-  })
-
-  const boolQuery = {
-    bool: {
-      should: [
-        neuralClause(titleQuery, 'title_embedding'),
-        neuralClause(textQuery, 'text_embedding')
-      ],
-      minimum_should_match: 1
-    }
-  }
-
-  if (functions?.length) {
-    return {
-      function_score: {
-        query: boolQuery,
-        functions,
-        boost_mode: 'sum'
+        k
       }
     }
   }
+}
 
-  return boolQuery
+function buildSparseLeg ({ queryText }) {
+  // neural_sparse on text_sparse (rank_features field)
+  // doc-only mode: uses bert-uncased analyzer at search time (no model inference)
+  // learned term expansion captures domain semantics beyond exact keyword match
+  // Filters are applied at the hybrid.filter level, not per-leg
+  return {
+    neural_sparse: {
+      text_sparse: {
+        query_text: queryText,
+        analyzer: 'bert-uncased'
+      }
+    }
+  }
 }
 
 // pagination_depth must stay constant across pages for consistent hybrid
 // ordering (changing it alters the candidate set before normalization).
-// LIMIT * 10 covers ~10 pages of results; k >= paginationDepth.
-const HYBRID_PAGINATION_DEPTH = LIMIT * 10
-const HYBRID_K = LIMIT * 10
+const HYBRID_DEPTH = LIMIT * 10
 
-function hybridPagination () {
-  return { paginationDepth: HYBRID_PAGINATION_DEPTH, k: HYBRID_K }
-}
-
-function hybridQuery (neuralQuery, keywordQuery, paginationDepth) {
+function hybridQuery (queries, filters) {
   return {
     hybrid: {
-      pagination_depth: paginationDepth,
-      queries: [neuralQuery, keywordQuery]
+      pagination_depth: HYBRID_DEPTH,
+      queries,
+      ...(filters?.length ? { filter: { bool: { filter: filters } } } : {})
     }
   }
 }
@@ -407,7 +439,7 @@ function moreLikeThisScoreQuery (like, minMatch, filters) {
           should: [
             {
               more_like_this: {
-                fields: ['title^2', 'text'],
+                fields: ['title_text'],
                 like,
                 min_term_freq: 1,
                 min_doc_freq: 1,
@@ -420,7 +452,7 @@ function moreLikeThisScoreQuery (like, minMatch, filters) {
             },
             {
               more_like_this: {
-                fields: ['title^2', 'text'],
+                fields: ['title_text'],
                 like,
                 min_term_freq: 1,
                 min_doc_freq: 1,
@@ -441,91 +473,77 @@ function moreLikeThisScoreQuery (like, minMatch, filters) {
   }
 }
 
-function buildRelatedQuery ({ like, minMatch, filters, titleQuery, textQuery, offset, modelId }) {
-  const keywordQuery = moreLikeThisScoreQuery(like, minMatch, filters)
+const MAX_NEURAL_TEXT_LENGTH = 512
 
-  if (modelId) {
-    const { paginationDepth, k } = hybridPagination()
-    return hybridQuery(
-      neuralBoolQuery({ titleQuery, textQuery: textQuery.slice(0, 512), filters, k, modelId, functions: [ranktopFunction()] }),
-      keywordQuery,
-      paginationDepth
-    )
+function buildRelatedQuery ({ like, minMatch, filters, textQuery, modelId }) {
+  if (textQuery?.trim() && modelId) {
+    const neuralText = textQuery.slice(0, MAX_NEURAL_TEXT_LENGTH)
+    const legs = [
+      moreLikeThisScoreQuery(like, minMatch, []),
+      buildSemanticTextLeg({ queryText: neuralText, modelId, k: HYBRID_DEPTH }),
+      buildSparseLeg({ queryText: neuralText })
+    ]
+    return hybridQuery(legs, filters)
   }
 
-  return keywordQuery
+  return moreLikeThisScoreQuery(like, minMatch, filters)
 }
 
-function buildSearchQuery ({ filters, termQueries, query, neuralText, functions, offset, modelId }) {
+function buildSearchQuery ({ filters, termQueries, query, neuralText, functions, modelId }) {
   const should = query.length
     ? [...termQueries, ...baseTextQueries(query)]
     : termQueries
 
-  // when functions is empty we're sorting by a field (new/sats/comments),
-  // not by relevance — scores are ignored so skip function_score wrapping
-  const keywordQuery = functions.length
-    ? {
-        function_score: {
-          query: {
-            bool: {
-              filter: filters,
-              should,
-              minimum_should_match: should.length > 0 ? 1 : 0
-            }
-          },
-          functions,
-          score_mode: 'multiply',
-          boost_mode: 'sum'
-        }
-      }
-    : {
-        bool: {
-          filter: filters,
-          should,
-          minimum_should_match: should.length > 0 ? 1 : 0
-        }
-      }
+  const isRelevanceSort = functions.length > 0
+  const minMatch = should.length > 0 ? 1 : 0
 
-  // rescore adjusts scores — skip when sorting by a field (scores ignored)
-  const rescore = query.length && functions.length
-    ? {
-        window_size: Math.max(LIMIT * 10, 200),
-        query: {
-          rescore_query: rescoreQuery(query),
-          query_weight: 1,
-          rescore_query_weight: 1.6
-        }
-      }
-    : null
+  const bm25WithFilters = {
+    bool: { filter: filters, should, minimum_should_match: minMatch }
+  }
 
   // hybrid/neural only helps when scoring matters (relevance sort);
   // for field-based sorts the keyword query provides matching and
-  // the sort field determines order
-  if (neuralText.length && modelId && functions.length) {
-    const { paginationDepth, k } = hybridPagination()
+  // the sort field determines order.
+  if (neuralText?.trim() && modelId && isRelevanceSort) {
+    const bm25HybridLeg = {
+      bool: { should, minimum_should_match: minMatch }
+    }
+    const legs = [
+      bm25HybridLeg,
+      buildSemanticTextLeg({ queryText: neuralText, modelId, k: HYBRID_DEPTH }),
+      buildSparseLeg({ queryText: neuralText })
+    ]
+    return hybridQuery(legs, filters)
+  }
+
+  // Lexical-only fallback: wrap with function_score for relevance sort
+  // so business signals (recency, ranktop) contribute to ranking.
+  if (isRelevanceSort) {
     return {
-      query: hybridQuery(
-        neuralBoolQuery({ titleQuery: neuralText, textQuery: neuralText, filters, k, modelId, functions }),
-        keywordQuery,
-        paginationDepth
-      ),
-      rescore
+      function_score: {
+        query: bm25WithFilters,
+        functions,
+        score_mode: 'multiply',
+        boost_mode: 'sum'
+      }
     }
   }
 
-  return { query: keywordQuery, rescore }
+  return bm25WithFilters
 }
 
 // ---- Result processing ----
 
-const OS_SOURCE_EXCLUDES = ['text', 'text_embedding', 'title_embedding']
+const OS_SOURCE_EXCLUDES = ['text', 'title_text', 'text_semantic', 'text_semantic_semantic_info', 'text_sparse']
 
 const SEARCH_HIGHLIGHT = {
   fields: {
     title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
     'title.exact': { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
     text: { number_of_fragments: 3, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
-    'text.exact': { number_of_fragments: 3, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
+    'text.exact': { number_of_fragments: 3, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
+    title_text: { number_of_fragments: 3, order: 'score', pre_tags: ['***'], post_tags: ['***'] },
+    'title_text.exact': { number_of_fragments: 3, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
   }
 }
 
@@ -557,11 +575,29 @@ function attachHighlights (items, hits) {
     const hit = hitById.get(item.id)
     // prefer the fuzzier highlight for title
     item.searchTitle = hit?.highlight?.title?.[0] || hit?.highlight?.['title.exact']?.[0] || item.title
-    // prefer the exact highlight for text
-    const textHighlight = hit?.highlight?.['text.exact'] || hit?.highlight?.text || []
-    item.searchText = textHighlight
-      .map(f => f.replace(/\s+/g, ' ').trim())
+    // prefer exact text highlights; fall back to title_text and strip duplicated
+    // title prefix for posts ("title\\n\\ntext").
+    const textHighlights = hit?.highlight?.['text.exact'] || hit?.highlight?.text
+    const titleTextHighlights = hit?.highlight?.['title_text.exact'] || hit?.highlight?.title_text
+    const usingTitleTextFallback = !textHighlights && !!titleTextHighlights
+    const plainTitle = (item.searchTitle || item.title || '').replace(/\*\*\*/g, '').replace(/\s+/g, ' ').trim()
+
+    item.searchText = (textHighlights || titleTextHighlights || [])
+      .map(fragment => {
+        if (usingTitleTextFallback && !item.parentId) {
+          const parts = fragment.split(/\n{2,}/)
+          if (parts.length > 1) {
+            fragment = parts.slice(1).join(' ')
+          }
+        }
+        return fragment.replace(/\s+/g, ' ').trim()
+      })
       .filter(Boolean)
+      .filter(fragment => !(
+        usingTitleTextFallback &&
+        !item.parentId &&
+        fragment.replace(/\*\*\*/g, '').replace(/\s+/g, ' ').trim() === plainTitle
+      ))
       .join(' ... ')
     return item
   })
@@ -591,22 +627,28 @@ export default {
 
       // resolve query text for neural search (only fetches item when needed)
       const modelId = await resolveOpensearchModelId(search)
-      let titleQuery = title
       let textQuery = title
       if (id && modelId) {
         const item = await getItem(parent, { id }, { me, models })
-        titleQuery = item.title || item.text
-        textQuery = item.text || item.title
+        if (item) {
+          textQuery = item.text || item.title
+        }
       }
 
-      const osQuery = buildRelatedQuery({ like, minMatch, filters, titleQuery, textQuery, offset: decodedCursor.offset, modelId })
-      const results = await search.search({
-        index: process.env.OPENSEARCH_INDEX,
-        size: limit,
-        from: decodedCursor.offset,
-        _source: { excludes: OS_SOURCE_EXCLUDES },
-        body: { query: osQuery }
-      })
+      const osQuery = buildRelatedQuery({ like, minMatch, filters, textQuery, modelId })
+      let results
+      try {
+        results = await search.search({
+          index: process.env.OPENSEARCH_INDEX,
+          size: limit,
+          from: decodedCursor.offset,
+          _source: { excludes: OS_SOURCE_EXCLUDES },
+          body: { query: osQuery }
+        })
+      } catch (e) {
+        console.error('[RELATED SEARCH ERROR]', e?.meta?.body ? JSON.stringify(e.meta.body, null, 2) : (e?.message || e))
+        return { cursor: null, items: [] }
+      }
 
       const items = await hitsToItems(results.body.hits.hits, { me, models, orderBy: 'ORDER BY rank ASC' })
       return {
@@ -625,7 +667,13 @@ export default {
 
       // parse query and load user preferences
       const { query, quotes, nym, url, territory } = queryParts(q)
-      const neuralText = [query, ...quotes].filter(Boolean).join(' ').trim()
+
+      // Pre-query spell check: correct typos for neural legs.
+      // BM25 has fuzziness, but semantic/sparse models can't fuzzy-match —
+      // "bitconi" embeds as garbage while "bitcoin" embeds correctly.
+      const spellCorrected = await spellCheckQuery(search, query)
+      const neuralText = [(spellCorrected || query), ...quotes].filter(Boolean).join(' ').trim().slice(0, MAX_NEURAL_TEXT_LENGTH)
+
       const { postsSatsFilter, commentsSatsFilter } = await loadSatsFilters(me, userLoader)
       const nymParts = nymClauses(nym)
       const territoryParts = territoryClauses(territory)
@@ -636,7 +684,7 @@ export default {
         typeFilter(what, me?.id),
         statusFilter(),
         timeRangeFilter(when, whenFrom, whenTo, decodedCursor.time),
-        satsInvestmentFilter({ what, nym, postsSatsFilter, commentsSatsFilter, meId: me?.id }),
+        satsInvestmentFilter({ what, postsSatsFilter, commentsSatsFilter, meId: me?.id }),
         ...nymParts.filters,
         ...territoryParts.filters,
         ...quoteParts.filters
@@ -652,7 +700,8 @@ export default {
 
       const { functions, addMembers } = sortFunctions(sort, query)
       const modelId = await resolveOpensearchModelId(search)
-      const { query: osQuery, rescore } = buildSearchQuery({ filters, termQueries, query, neuralText, functions, offset: decodedCursor.offset, modelId })
+
+      const osQuery = buildSearchQuery({ filters, termQueries, query, neuralText, functions, modelId })
 
       let sitems
       try {
@@ -664,16 +713,85 @@ export default {
           body: {
             query: osQuery,
             ...addMembers,
-            ...(rescore ? { rescore } : {}),
-            highlight: SEARCH_HIGHLIGHT
+            highlight: SEARCH_HIGHLIGHT,
+            // Combined suggest for "did you mean?": term suggest (per-word, precise)
+            // + phrase suggest (full-phrase fallback for words that exist but are wrong,
+            // e.g. "lightening" → "lightning"). Term suggest is preferred; phrase is
+            // fallback when term has no correction.
+            ...(query.length
+              ? {
+                  suggest: {
+                    text: query,
+                    term_suggest: { term: TERM_SUGGEST_PARAMS },
+                    phrase_suggest: {
+                      phrase: {
+                        field: 'title.exact',
+                        size: 1,
+                        gram_size: 3,
+                        confidence: 1.0,
+                        collate: {
+                          query: { source: { match: { title: '{{suggestion}}' } } },
+                          prune: true
+                        }
+                      }
+                    }
+                  }
+                }
+              : {})
           }
         })
       } catch (e) {
-        console.log(e)
+        const errorDetail = e?.meta?.body ? JSON.stringify(e.meta.body, null, 2) : (e?.message || e)
+        console.error('[SEARCH ERROR]', errorDetail)
         return { cursor: null, items: [] }
       }
 
       const hits = sitems.body.hits.hits
+
+      let searchSuggestion = null
+
+      // "Did you mean?" UI suggestion: combined term + phrase suggest.
+      // 1. Pre-query correction (if any) — already used for neural legs
+      // 2. Term suggest from main query — precise per-word corrections
+      // 3. Phrase suggest fallback — catches existing-but-wrong words (e.g. "lightening")
+      if (query.length && decodedCursor.offset === 0) {
+        if (spellCorrected) {
+          // Pre-query already found a correction — use it directly
+          searchSuggestion = spellCorrected
+        }
+
+        if (!searchSuggestion) {
+          // Try term suggest (per-word, precise)
+          const termCorrected = applyTermCorrections(sitems.body.suggest?.term_suggest)
+          if (termCorrected && termCorrected.toLowerCase() !== query.toLowerCase()) {
+            searchSuggestion = termCorrected
+          }
+        }
+
+        if (!searchSuggestion) {
+          // Fall back to phrase suggest (catches words that exist but are likely wrong)
+          const phraseSuggestion = sitems.body.suggest?.phrase_suggest?.[0]?.options?.[0]
+          const MIN_PHRASE_SCORE = 0.001
+          if (phraseSuggestion?.text && phraseSuggestion.collate_match &&
+              phraseSuggestion.score >= MIN_PHRASE_SCORE &&
+              phraseSuggestion.text.toLowerCase() !== query.toLowerCase()) {
+            searchSuggestion = phraseSuggestion.text
+          }
+        }
+
+        // searchSuggestion so far is only the corrected free-text portion.
+        // Rebuild the full query string so "Did you mean?" preserves
+        // @nym, ~territory, url:, and "quoted phrase" filters.
+        if (searchSuggestion) {
+          const parts = []
+          if (nym) parts.push(nym)
+          if (territory) parts.push(territory)
+          if (url) parts.push(url)
+          for (const phrase of quotes) parts.push(`"${phrase}"`)
+          parts.push(searchSuggestion)
+          searchSuggestion = parts.join(' ')
+        }
+      }
       const items = attachHighlights(
         await hitsToItems(hits, { me, models, orderBy: 'ORDER BY rank ASC, msats DESC' }),
         hits
@@ -681,7 +799,8 @@ export default {
 
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
-        items
+        items,
+        searchSuggestion
       }
     }
   }

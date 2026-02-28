@@ -534,7 +534,7 @@ function buildSearchQuery ({ filters, termQueries, query, neuralText, functions,
 
 // ---- Result processing ----
 
-const OS_SOURCE_EXCLUDES = ['text', 'title_text', 'text_semantic', 'text_semantic_semantic_info', 'text_sparse']
+const OS_SOURCE_EXCLUDES = ['text', 'title_text', 'title_embedding', 'text_embedding', 'text_semantic', 'text_semantic_semantic_info', 'text_sparse']
 
 const SEARCH_HIGHLIGHT = {
   fields: {

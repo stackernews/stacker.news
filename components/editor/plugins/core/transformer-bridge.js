@@ -7,6 +7,8 @@ import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdas
 import { $insertMarkdown } from '@/lib/lexical/utils'
 import { $debugNodeToJSON } from '@/lib/lexical/nodes/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
+import { $insertMath } from '@/lib/lexical/commands/math'
+import { MDAST_DEBUG } from '@/lib/constants'
 
 /** command to transform markdown selections using a headless lexical editor
  * @param {Object} params.selection - selection to transform
@@ -45,7 +47,7 @@ export default function TransformerBridgePlugin () {
         $markdownToLexical(markdown)
 
         // DEBUG: what are we transforming?
-        if (process.env.NODE_ENV !== 'production') {
+        if (MDAST_DEBUG) {
           console.log('[Transformer Bridge] BEFORE TRANSFORMATION root with children', $debugNodeToJSON($getRoot()))
         }
 
@@ -65,10 +67,13 @@ export default function TransformerBridgePlugin () {
             case 'link':
               $toggleLink(bridgeRef.current, transformation)
               break
+            case 'math':
+              $insertMath(bridgeRef.current, transformation)
+              break
           }
 
           // get the new markdown from the bridge editor
-          newMarkdown = $lexicalToMarkdown()
+          newMarkdown = $lexicalToMarkdown(true)
         }
 
         // we're done, clear the bridge

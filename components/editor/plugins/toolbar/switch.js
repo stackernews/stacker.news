@@ -1,33 +1,56 @@
-import { useCallback } from 'react'
-import { useField } from 'formik'
+import { useCallback, useEffect } from 'react'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import Nav from 'react-bootstrap/Nav'
-import { useToolbarState } from '@/components/editor/contexts/toolbar'
+import { useEditorMode, MARKDOWN_MODE, RICH_MODE } from '@/components/editor/contexts/mode'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import { createCommand, COMMAND_PRIORITY_CRITICAL } from 'lexical'
 
-/** displays and toggles between write and preview modes */
-export default function ModeSwitchPlugin ({ name }) {
-  const [text] = useField({ name })
-  const { toolbarState, updateToolbarState } = useToolbarState()
+/** command to toggle between markdown and rich mode
+ * @param {string} [newMode] - the new mode to switch to, if not provided, the current mode will be toggled
+ * @example
+ * editor.dispatchCommand(TOGGLE_MODE_COMMAND, 'markdown')
+ * editor.dispatchCommand(TOGGLE_MODE_COMMAND)
+ */
+export const TOGGLE_MODE_COMMAND = createCommand('TOGGLE_MODE_COMMAND')
+
+/** displays and toggles between markdown and rich mode */
+export default function ModeSwitchPlugin () {
+  const [editor] = useLexicalComposerContext()
+  const { changeMode, toggleMode, isMarkdown, isRich } = useEditorMode()
+
+  useEffect(() => {
+    return editor.registerCommand(
+      TOGGLE_MODE_COMMAND,
+      (newMode) => {
+        if (newMode) {
+          changeMode(newMode)
+        } else {
+          toggleMode()
+        }
+        return true
+      },
+      COMMAND_PRIORITY_CRITICAL
+    )
+  }, [editor, changeMode, toggleMode])
 
   const handleTabSelect = useCallback((eventKey) => {
-    updateToolbarState('previewMode', (eventKey === 'preview'))
-  }, [updateToolbarState])
+    editor.dispatchCommand(TOGGLE_MODE_COMMAND, eventKey)
+  }, [editor])
 
   return (
-    <Nav variant='tabs' activeKey={toolbarState.previewMode ? 'preview' : 'write'} onSelect={handleTabSelect}>
+    <Nav variant='tabs' activeKey={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onSelect={handleTabSelect} onMouseDown={(e) => e.preventDefault()}>
       <Nav.Item>
-        <Nav.Link className={styles.modeTab} eventKey='write' title='write'>
-          write
+        <Nav.Link className={styles.modeTab} eventKey={MARKDOWN_MODE} title='markdown'>
+          {isMarkdown ? 'markdown' : 'md'}
         </Nav.Link>
       </Nav.Item>
       <Nav.Item>
         <Nav.Link
           className={styles.modeTab}
-          eventKey='preview'
-          title='preview'
-          disabled={!text.value}
+          eventKey={RICH_MODE}
+          title='rich text'
         >
-          preview
+          {isRich ? 'rich text' : 'rich'}
         </Nav.Link>
       </Nav.Item>
     </Nav>

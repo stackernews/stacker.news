@@ -7,6 +7,7 @@ import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { USER_ID } from '@/lib/constants'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { useMe } from './me'
+import { resolveMarkdown } from '@/lib/lexical/utils'
 
 // this is intented to be compatible with upsert item mutations
 // so that it can be reused for all post types and comments and we don't have
@@ -65,6 +66,9 @@ export default function useItemSubmit (mutation,
             : undefined
         )
       }
+
+      // lexical state ?-> markdown
+      resolveMarkdown(values)
 
       const { data, error, payError } = await upsertItem({
         variables: {

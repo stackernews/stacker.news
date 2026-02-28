@@ -1,0 +1,119 @@
+.linkEditorContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 600;
+  max-width: 100%;
+  opacity: 0;
+  box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--theme-floating-toolbar-shadow-opacity));
+  will-change: transform;
+}
+
+.linkEditorContainer:hover {
+  opacity: 1;
+}
+
+.linkEditor {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(400px, 100%);
+  border-radius: 0.4rem;
+  background-color: var(--theme-commentBg);
+}
+
+[data-bs-theme="light"] .linkEditor {
+  border: 1px solid var(--theme-borderColor);
+}
+
+.linkInput,
+.linkView {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: 0.4rem 0 0 0.4rem;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--bs-body-color);
+  outline: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.linkInput {
+  max-width: 300px;
+}
+
+[data-bs-theme="light"] .linkInput {
+  border-right: 1px solid var(--theme-borderColor);
+}
+
+.linkView {
+  color: var(--theme-link);
+}
+
+.linkConfirmIcons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-left: 0;
+  padding-right: 0.2rem;
+}
+
+.linkCancelIcon,
+.linkConfirmIcon,
+.linkEditIcon,
+.linkRemoveIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.linkCancelIcon:hover,
+.linkConfirmIcon:hover,
+.linkEditIcon:hover,
+.linkRemoveIcon:hover {
+  opacity: 0.85;
+  background-color: var(--theme-toolbarHoverBg, rgba(128, 128, 128, 0.1));
+}
+
+.linkConfirmIcon:hover {
+  background-color: rgba(39, 215, 133, 0.213);
+}
+
+.linkRemoveIcon:hover {
+  background-color: rgba(220, 53, 69, 0.213);
+}
+
+.linkCancelIcon svg,
+.linkConfirmIcon svg,
+.linkEditIcon svg,
+.linkRemoveIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media screen and (max-width: 767px) {
+  .linkCancelIcon,
+  .linkConfirmIcon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .linkCancelIcon svg,
+  .linkConfirmIcon svg {
+    width: 20px;
+    height: 20px;
+  }
+}

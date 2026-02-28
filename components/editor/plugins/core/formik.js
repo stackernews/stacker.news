@@ -2,8 +2,9 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useEffect } from 'react'
 import { useField, useFormikContext } from 'formik'
 import { $isMarkdownEmpty, $getMarkdown } from '@/lib/lexical/utils'
-import { COMMAND_PRIORITY_HIGH, createCommand } from 'lexical'
+import { COMMAND_PRIORITY_HIGH, createCommand, $getRoot } from 'lexical'
 import { useFeeButton } from '@/components/fee-button'
+import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 
 export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
 
@@ -16,7 +17,11 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
 
   // keep formik in sync
   useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
+    return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
+      const isMarkdown = isMarkdownMode(editor)
+      // skip non-content updates
+      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return
+
       editorState.read(() => {
         // if editor is empty, set empty string for formik validation
         if ($isMarkdownEmpty()) {
@@ -24,9 +29,15 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
           return
         }
 
-        const text = $getMarkdown()
-
-        textHelpers.setValue(text)
+        if (isMarkdown) {
+          const text = $getMarkdown()
+          textHelpers.setValue(text)
+        } else {
+          // use plain text for validation
+          textHelpers.setValue($getRoot().getTextContent())
+          // save lexical state as submission will convert it to markdown
+          formik.setFieldValue('lexicalState', editor.getEditorState())
+        }
       })
     })
   }, [editor, textHelpers])

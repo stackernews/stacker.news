@@ -8,6 +8,9 @@ import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { BLUR_COMMAND, COMMAND_PRIORITY_HIGH } from 'lexical'
+import { isMarkdownMode } from '@/lib/lexical/commands/utils'
+import { $createUserMentionNode } from '@/lib/lexical/nodes/decorative/mentions/user'
+import { $createTerritoryMentionNode } from '@/lib/lexical/nodes/decorative/mentions/territory'
 
 /** regex to match \@user or \~sub mentions */
 const MENTION_PATTERN = /(^|\s|\()([@~]\w{0,75})$/
@@ -92,9 +95,17 @@ export default function MentionsPlugin () {
     editor.update(() => {
       if (nodeToReplace) {
         const trigger = query?.[0] || '@'
-        const mention = `${trigger}${selectedOption.key} `
-        nodeToReplace.setTextContent(mention)
-        nodeToReplace.select()
+        const isMarkdown = isMarkdownMode(editor)
+        if (isMarkdown) {
+          const mention = `${trigger}${selectedOption.key} `
+          nodeToReplace.setTextContent(mention)
+          nodeToReplace.select()
+        } else {
+          const mention = trigger === '@'
+            ? $createUserMentionNode({ name: selectedOption.key })
+            : $createTerritoryMentionNode({ name: selectedOption.key })
+          nodeToReplace.replace(mention)
+        }
       }
       closeMenu()
     })

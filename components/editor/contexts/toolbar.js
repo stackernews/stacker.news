@@ -1,13 +1,32 @@
 import { createContext, useContext, useMemo, useState, useCallback } from 'react'
 
+export const INITIAL_FORMAT_STATE = {
+  blockType: 'paragraph',
+  elementFormat: 'left',
+  isLink: false,
+  isBold: false,
+  isItalic: false,
+  isUnderline: false,
+  isStrikethrough: false,
+  isCode: false,
+  isHighlight: false,
+  isSubscript: false,
+  isSuperscript: false,
+  isLowercase: false,
+  isUppercase: false,
+  isCapitalize: false,
+  codeLanguage: null
+}
+
 const INITIAL_STATE = {
-  previewMode: false
+  showToolbar: false,
+  ...INITIAL_FORMAT_STATE
 }
 
 const ToolbarContext = createContext()
 
-export const ToolbarContextProvider = ({ children }) => {
-  const [toolbarState, setToolbarState] = useState(INITIAL_STATE)
+export const ToolbarContextProvider = ({ topLevel, children }) => {
+  const [toolbarState, setToolbarState] = useState({ ...INITIAL_STATE, showToolbar: !!topLevel })
 
   const batchUpdateToolbarState = useCallback((updates) => {
     setToolbarState((prev) => ({ ...prev, ...updates }))

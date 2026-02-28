@@ -7,6 +7,7 @@ import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { resolveMarkdown } from '@/lib/lexical/utils'
 import { territorySchema } from '@/lib/validate'
 import { useMe } from './me'
 import Info from './info'
@@ -61,6 +62,8 @@ export default function TerritoryForm ({ sub }) {
 
   const onSubmit = useCallback(
     async ({ ...variables }) => {
+      resolveMarkdown(variables, 'desc')
+
       const { error, payError } = archived
         ? await unarchiveTerritory({ variables })
         : await upsertSub({ variables: { oldName: sub?.name, ...variables } })

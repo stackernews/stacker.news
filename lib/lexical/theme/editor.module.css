@@ -13,13 +13,13 @@
   padding: 2px;
 }
 
-.editor[data-lexical-preview='true'] {
+.editor[data-lexical-mode='rich'] {
   border-radius: 0.4rem;
 }
 
 /* non-top-level editor for things such as comments */
 .editorContainer:not([data-top-level='true']) .editor {
-  --editor-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --editor-border-color: color-mix(in srgb, var(--theme-borderColor) 25%, transparent);
   --editor-bg: var(--theme-forceCommentBg);
 }
 
@@ -56,10 +56,6 @@
   background-color: transparent;
 }
 
-[data-lexical-preview='true'] .editorContent {
-  min-height: var(--editor-height, auto);
-}
-
 .editorContentInput {
   caret-color: var(--theme-color);
   font-size: 94%;
@@ -85,6 +81,10 @@
   white-space: nowrap;
   display: inline-block;
   pointer-events: none;
+}
+
+.editor[data-lexical-mode='rich'] .editorPlaceholder {
+  top: 0.525rem;
 }
 
 /* toolbar */
@@ -353,8 +353,7 @@
   --tab-shadow: none;
   --tab-clip: none;
 
-  padding-top: .2rem;
-  padding-bottom: .3rem;
+  padding: 0.25rem 0.5rem;
   position: relative;
 }
 
@@ -368,7 +367,7 @@
 
 /* non-top-level editor tabs (comments, etc.) */
 .editorContainer:not([data-top-level='true']) .modeTab {
-  --tab-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --tab-border-color: color-mix(in srgb, var(--theme-borderColor) 25%, transparent);
   --tab-bg: var(--theme-forceCommentBg);
 }
 
@@ -633,4 +632,26 @@
 .suggestionsMenu {
   opacity: 1 !important;
   pointer-events: unset !important;
+}
+
+
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--theme-grey);
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 2px solid var(--theme-grey);
+}
+
+.separator:not(:empty)::after {
+  margin-left: .25em;
 }

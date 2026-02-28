@@ -44,6 +44,7 @@ import { SN_INSERT_MATH_COMMAND } from '@/lib/lexical/commands/math'
 import MathIcon from '@/svgs/editor/toolbar/inserts/formula.svg'
 import MathOperationsIcon from '@/svgs/editor/toolbar/inserts/math-operations.svg'
 import { useEditorMode } from '@/components/editor/contexts/mode'
+import UnderlineIcon from '@/svgs/editor/toolbar/inline/underline.svg'
 
 const BLOCK_OPTIONS = [
   { id: 'paragraph', name: 'paragraph', icon: <BlocksIcon />, block: 'paragraph' },
@@ -59,7 +60,8 @@ const BLOCK_OPTIONS = [
 const FORMAT_OPTIONS = [
   { id: 'superscript', active: 'isSuperscript', name: 'superscript', icon: <SuperscriptIcon />, type: 'superscript' },
   { id: 'subscript', active: 'isSubscript', name: 'subscript', icon: <SubscriptIcon />, type: 'subscript' },
-  { id: 'strikethrough', active: 'isStrikethrough', name: 'strikethrough', icon: <StrikethroughIcon />, type: 'strikethrough' }
+  { id: 'strikethrough', active: 'isStrikethrough', name: 'strikethrough', icon: <StrikethroughIcon />, type: 'strikethrough' },
+  { id: 'underline', active: 'isUnderline', name: 'underline', icon: <UnderlineIcon />, type: 'underline' }
 ]
 
 const MenuAlternateDimension = forwardRef(function MenuAlternateDimension ({ children, style, className }, ref) {

@@ -71,5 +71,5 @@ export async function getNwc (nostr, url, { signal }) {
 
 export async function supportedMethods (url, { signal }) {
   const result = await nwcTryRun(nwc => nwc.getInfo(), { url }, { signal })
-  return result.methods
+  return result.methods || []
 }

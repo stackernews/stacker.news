@@ -16,7 +16,7 @@ export const TOGGLE_MODE_COMMAND = createCommand('TOGGLE_MODE_COMMAND')
 /** displays and toggles between markdown and rich mode */
 export default function ModeSwitchPlugin () {
   const [editor] = useLexicalComposerContext()
-  const { changeMode, toggleMode, isMarkdown } = useEditorMode()
+  const { changeMode, toggleMode, isMarkdown, isRich } = useEditorMode()
 
   useEffect(() => {
     return editor.registerCommand(
@@ -41,7 +41,7 @@ export default function ModeSwitchPlugin () {
     <Nav variant='tabs' activeKey={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onSelect={handleTabSelect} onMouseDown={(e) => e.preventDefault()}>
       <Nav.Item>
         <Nav.Link className={styles.modeTab} eventKey={MARKDOWN_MODE} title='markdown'>
-          md
+          {isMarkdown ? 'markdown' : 'md'}
         </Nav.Link>
       </Nav.Item>
       <Nav.Item>
@@ -50,7 +50,7 @@ export default function ModeSwitchPlugin () {
           eventKey={RICH_MODE}
           title='rich text'
         >
-          rich
+          {isRich ? 'rich text' : 'rich'}
         </Nav.Link>
       </Nav.Item>
     </Nav>

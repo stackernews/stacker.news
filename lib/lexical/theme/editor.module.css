@@ -19,7 +19,7 @@
 
 /* non-top-level editor for things such as comments */
 .editorContainer:not([data-top-level='true']) .editor {
-  --editor-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --editor-border-color: color-mix(in srgb, var(--theme-borderColor) 25%, transparent);
   --editor-bg: var(--theme-forceCommentBg);
 }
 
@@ -353,8 +353,7 @@
   --tab-shadow: none;
   --tab-clip: none;
 
-  padding-top: .2rem;
-  padding-bottom: .3rem;
+  padding: 0.25rem 0.5rem;
   position: relative;
 }
 
@@ -368,7 +367,7 @@
 
 /* non-top-level editor tabs (comments, etc.) */
 .editorContainer:not([data-top-level='true']) .modeTab {
-  --tab-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
+  --tab-border-color: color-mix(in srgb, var(--theme-borderColor) 25%, transparent);
   --tab-bg: var(--theme-forceCommentBg);
 }
 

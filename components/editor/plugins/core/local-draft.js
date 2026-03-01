@@ -4,6 +4,7 @@ import { StorageKeyPrefixContext } from '@/components/form'
 import { $isMarkdownEmpty, $setMarkdown, $getMarkdown } from '@/lib/lexical/utils'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
+import useDebounceCallback from '@/components/use-debounce-callback'
 
 /**
  * plugin that auto-saves and restores editor drafts to/from local storage
@@ -49,22 +50,30 @@ export default function LocalDraftPlugin ({ name }) {
     }
   }, [editor, storageKey])
 
+  // debounces draft saving in rich mode to prevent frequent conversions to MDAST
+  // XXX: ideally we would save the draft as a Lexical EditorState, as it would
+  // tell us the a) last editor mode, b) let the user resume exactly where they left off
+  const debouncedRichSave = useDebounceCallback(() => {
+    editor.getEditorState().read(() => {
+      upsertDraft($lexicalToMarkdown())
+    })
+  }, 500, [editor, upsertDraft])
+
   // save the draft to local storage
   useEffect(() => {
-    // whenever the editor state changes, save the markdown draft
     return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
-      const isMarkdown = isMarkdownMode(editor)
       // skip non-content updates
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return
 
-      editorState.read(() => {
-        const text = isMarkdown
-          ? $getMarkdown(false)
-          : $lexicalToMarkdown()
-        upsertDraft(text)
-      })
+      if (isMarkdownMode(editor)) {
+        editorState.read(() => {
+          upsertDraft($getMarkdown(false))
+        })
+      } else {
+        debouncedRichSave()
+      }
     })
-  }, [editor, upsertDraft])
+  }, [editor, upsertDraft, debouncedRichSave])
 
   return null
 }

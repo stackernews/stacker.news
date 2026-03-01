@@ -32,6 +32,8 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
         if (isMarkdown) {
           const text = $getMarkdown()
           textHelpers.setValue(text)
+          // clear stale lexicalState from any prior rich mode edit
+          formik.setFieldValue('lexicalState', undefined)
         } else {
           // use plain text for validation
           textHelpers.setValue($getRoot().getTextContent())

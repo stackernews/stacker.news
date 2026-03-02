@@ -5,6 +5,7 @@ import { $isMarkdownEmpty, $setMarkdown, $getMarkdown } from '@/lib/lexical/util
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import useDebounceCallback from '@/components/use-debounce-callback'
+import { useField } from 'formik'
 
 /**
  * plugin that auto-saves and restores editor drafts to/from local storage
@@ -13,6 +14,7 @@ import useDebounceCallback from '@/components/use-debounce-callback'
  */
 export default function LocalDraftPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
+  const [text] = useField({ name })
 
   // local storage keys, e.g. 'reply-123456-text'
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
@@ -35,6 +37,8 @@ export default function LocalDraftPlugin ({ name }) {
 
   // load the draft from local storage
   useEffect(() => {
+    // prefer Formik value over local storage
+    if (text?.value) return
     if (storageKey) {
       const value = window.localStorage.getItem(storageKey)
       if (value) {
@@ -48,12 +52,13 @@ export default function LocalDraftPlugin ({ name }) {
         })
       }
     }
-  }, [editor, storageKey])
+  }, [editor, storageKey, text?.value])
 
   // debounces draft saving in rich mode to prevent frequent conversions to MDAST
   // XXX: ideally we would save the draft as a Lexical EditorState, as it would
   // tell us the a) last editor mode, b) let the user resume exactly where they left off
   const debouncedRichSave = useDebounceCallback(() => {
+    if (isMarkdownMode(editor)) return
     editor.getEditorState().read(() => {
       upsertDraft($lexicalToMarkdown())
     })

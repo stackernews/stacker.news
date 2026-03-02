@@ -42,7 +42,7 @@ export default function ModeSwitchPlugin ({ name }) {
       },
       COMMAND_PRIORITY_HIGH
     )
-  }, [editor, changeMode, toggleMode])
+  }, [editor, changeMode, toggleMode, textHelpers])
 
   const handleTabSelect = useCallback((eventKey) => {
     editor.dispatchCommand(TOGGLE_MODE_COMMAND, eventKey)

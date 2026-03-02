@@ -12,6 +12,7 @@ export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
 export default function FormikBridgePlugin ({ name = 'text' }) {
   const [editor] = useLexicalComposerContext()
   const [,, textHelpers] = useField({ name })
+  const [,, lexicalStateHelpers] = useField({ name: 'lexicalState' })
   const formik = useFormikContext()
   const { disabled = false } = useFeeButton() ?? {}
 
@@ -26,7 +27,7 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
         // if editor is empty, set empty string for formik validation
         if ($isMarkdownEmpty()) {
           textHelpers.setValue('')
-          formik.setFieldValue('lexicalState', undefined)
+          lexicalStateHelpers.setValue(undefined)
           return
         }
 
@@ -34,16 +35,16 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
           const text = $getMarkdown()
           textHelpers.setValue(text)
           // clear stale lexicalState from any prior rich mode edit
-          formik.setFieldValue('lexicalState', undefined)
+          lexicalStateHelpers.setValue(undefined)
         } else {
           // use plain text for validation
           textHelpers.setValue($getRoot().getTextContent())
           // save lexical state as submission will convert it to markdown
-          formik.setFieldValue('lexicalState', editor.getEditorState())
+          lexicalStateHelpers.setValue(editor.getEditorState())
         }
       })
     })
-  }, [editor, textHelpers])
+  }, [editor, textHelpers, lexicalStateHelpers])
 
   useEffect(() => {
     return editor.registerCommand(

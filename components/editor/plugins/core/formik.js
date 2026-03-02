@@ -26,6 +26,7 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
         // if editor is empty, set empty string for formik validation
         if ($isMarkdownEmpty()) {
           textHelpers.setValue('')
+          formik.setFieldValue('lexicalState', undefined)
           return
         }
 

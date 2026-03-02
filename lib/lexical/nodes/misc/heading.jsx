@@ -30,7 +30,7 @@ function createHeadingAnchorLink (domElement, headingId, textContent) {
   const link = doc.createElement('a')
   link.className = 'sn-heading__link'
   link.setAttribute('href', `#${headingId}`)
-  link.textContent = textContent
+  link.setAttribute('aria-label', textContent)
   return link
 }
 
@@ -43,7 +43,7 @@ function tryUpdateHeadingAnchorLink (domElement, headingId, textContent) {
   const first = domElement.firstChild
   if (first && first.nodeName === 'A' && first.classList?.contains('sn-heading__link')) {
     first.setAttribute('href', `#${headingId}`)
-    first.textContent = textContent
+    first.setAttribute('aria-label', textContent)
     return true
   }
   return false

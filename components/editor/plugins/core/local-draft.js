@@ -52,7 +52,7 @@ export default function LocalDraftPlugin ({ name }) {
         })
       }
     }
-  }, [editor, storageKey, text?.value])
+  }, [editor, storageKey])
 
   // debounces draft saving in rich mode to prevent frequent conversions to MDAST
   // XXX: ideally we would save the draft as a Lexical EditorState, as it would

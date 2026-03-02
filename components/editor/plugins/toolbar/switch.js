@@ -28,7 +28,8 @@ export default function ModeSwitchPlugin ({ name }) {
       (newMode) => {
         if (!isMarkdownMode(editor)) {
           editor.getEditorState().read(() => {
-            textHelpers.setValue($lexicalToMarkdown())
+            const markdown = $lexicalToMarkdown()
+            textHelpers.setValue(markdown)
           })
         }
         // toggle mode

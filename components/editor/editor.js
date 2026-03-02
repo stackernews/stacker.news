@@ -76,6 +76,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
   const { isMarkdown } = useEditorMode()
   const [text] = useField({ name })
   const hasMountedRef = useRef(false)
+  const appendedValueRef = useRef()
 
   const modeConfig = isMarkdown ? EDITOR_MARKDOWN_MODE : EDITOR_RICH_MODE
 
@@ -112,7 +113,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
 
   return (
     <LexicalExtensionComposer key={modeConfig.name} extension={editor} contentEditable={null}>
-      <EditorContent topLevel={topLevel} isMarkdown={isMarkdown} name={name} {...props} />
+      <EditorContent topLevel={topLevel} isMarkdown={isMarkdown} name={name} appendedValueRef={appendedValueRef} {...props} />
     </LexicalExtensionComposer>
   )
 }
@@ -129,12 +130,15 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
  * @param {React.ReactNode} [props.label] - label for the editor
  * @param {React.ReactNode} [props.hint] - hint text for the editor
  * @param {React.ReactNode} [props.warn] - warning text for the editor
+ * @param {React.RefObject} [props.editorRef] - ref to the editor instance
+ * @param {string} [props.appendValue] - value to append to the editor
+ * @param {React.RefObject} [props.appendedValueRef] - ref to the last appended value
  * @returns {JSX.Element} editor content with all plugins
  */
 function EditorContent ({
   name, placeholder, lengthOptions,
   topLevel, isMarkdown, required = false,
-  minRows, hint, warn, editorRef, appendValue
+  minRows, hint, warn, editorRef, appendValue, appendedValueRef
 }) {
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
@@ -163,7 +167,7 @@ function EditorContent ({
       <FileUploadPlugin editorRef={containerRef} />
       <MentionsPlugin />
       <ShortcutsPlugin />
-      <AppendValuePlugin value={appendValue} />
+      <AppendValuePlugin value={appendValue} appendedValueRef={appendedValueRef} />
       <LocalDraftPlugin name={name} />
       <FormikBridgePlugin name={name} />
       <MaxLengthPlugin lengthOptions={lengthOptions} />

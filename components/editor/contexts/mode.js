@@ -15,13 +15,17 @@ export function EditorModeProvider ({ children }) {
     setMode(newMode)
   }, [])
 
+  const toggleMode = useCallback(() => {
+    setMode(mode === MARKDOWN_MODE ? RICH_MODE : MARKDOWN_MODE)
+  }, [mode])
+
   const value = useMemo(() => ({
     mode,
     changeMode,
     isMarkdown: mode === MARKDOWN_MODE,
     isRich: mode === RICH_MODE,
-    toggleMode: () => changeMode(mode === MARKDOWN_MODE ? RICH_MODE : MARKDOWN_MODE)
-  }), [mode, changeMode])
+    toggleMode
+  }), [mode, changeMode, toggleMode])
 
   return (
     <EditorModeContext.Provider value={value}>

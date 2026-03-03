@@ -5,8 +5,7 @@ import { useEditorMode, MARKDOWN_MODE, RICH_MODE } from '@/components/editor/con
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_HIGH } from 'lexical'
 import { useField } from 'formik'
-import { isMarkdownMode } from '@/lib/lexical/commands/utils'
-import { $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
+import { $getMarkdown } from '@/lib/lexical/utils'
 
 /** command to toggle between markdown and rich mode
  * @param {string} [newMode] - the new mode to switch to, if not provided, the current mode will be toggled
@@ -20,18 +19,14 @@ export const TOGGLE_MODE_COMMAND = createCommand('TOGGLE_MODE_COMMAND')
 export default function ModeSwitchPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
   const [,, textHelpers] = useField({ name })
-  const { changeMode, toggleMode, isMarkdown, isRich } = useEditorMode()
+  const { changeMode, toggleMode, isMarkdown } = useEditorMode()
 
   useEffect(() => {
     return editor.registerCommand(
       TOGGLE_MODE_COMMAND,
       (newMode) => {
-        if (!isMarkdownMode(editor)) {
-          editor.getEditorState().read(() => {
-            const markdown = $lexicalToMarkdown()
-            textHelpers.setValue(markdown)
-          })
-        }
+        // update formik value with the final markdown content
+        textHelpers.setValue($getMarkdown())
         // toggle mode
         if (newMode) {
           changeMode(newMode)
@@ -52,7 +47,7 @@ export default function ModeSwitchPlugin ({ name }) {
     <Nav variant='tabs' activeKey={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onSelect={handleTabSelect} onMouseDown={(e) => e.preventDefault()}>
       <Nav.Item>
         <Nav.Link className={styles.modeTab} eventKey={MARKDOWN_MODE} title='markdown'>
-          {isMarkdown ? 'markdown' : 'md'}
+          write
         </Nav.Link>
       </Nav.Item>
       <Nav.Item>
@@ -61,7 +56,7 @@ export default function ModeSwitchPlugin ({ name }) {
           eventKey={RICH_MODE}
           title='rich text'
         >
-          {isRich ? 'rich text' : 'rich'}
+          compose
         </Nav.Link>
       </Nav.Item>
     </Nav>

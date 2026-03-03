@@ -19,7 +19,7 @@ const HTMLContext = createContext('')
 
 function HTMLFallback () {
   const html = useContext(HTMLContext)
-  return <div dangerouslySetInnerHTML={{ __html: html }} />
+  return <div data-sn-reader dangerouslySetInnerHTML={{ __html: html }} />
 }
 
 const Reader = dynamic(() => import('./reader'), {
@@ -31,7 +31,7 @@ export function SNReader ({ html, ...props }) {
   const router = useRouter()
   const debug = router.isReady && router.query.html
 
-  if (debug) return <div dangerouslySetInnerHTML={{ __html: html }} />
+  if (debug) return <div data-sn-reader dangerouslySetInnerHTML={{ __html: html }} />
 
   return (
     <HTMLContext.Provider value={html}>

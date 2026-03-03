@@ -16,8 +16,8 @@ export function EditorModeProvider ({ children }) {
   }, [])
 
   const toggleMode = useCallback(() => {
-    setMode(mode === MARKDOWN_MODE ? RICH_MODE : MARKDOWN_MODE)
-  }, [mode])
+    setMode(prev => prev === MARKDOWN_MODE ? RICH_MODE : MARKDOWN_MODE)
+  }, [])
 
   const value = useMemo(() => ({
     mode,

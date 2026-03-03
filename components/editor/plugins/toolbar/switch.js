@@ -40,13 +40,19 @@ export default function ModeSwitchPlugin ({ name }) {
   }, [editor, changeMode, toggleMode, textHelpers])
 
   const handleTabSelect = useCallback((eventKey) => {
+    if (eventKey === (isMarkdown ? MARKDOWN_MODE : RICH_MODE)) return
     editor.dispatchCommand(TOGGLE_MODE_COMMAND, eventKey)
-  }, [editor])
+  }, [editor, isMarkdown])
 
   return (
     <Nav variant='tabs' activeKey={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onSelect={handleTabSelect} onMouseDown={(e) => e.preventDefault()}>
       <Nav.Item>
-        <Nav.Link className={styles.modeTab} eventKey={MARKDOWN_MODE} title='markdown'>
+        <Nav.Link
+          className={styles.modeTab}
+          eventKey={MARKDOWN_MODE}
+          title='markdown'
+          disabled={isMarkdown}
+        >
           write
         </Nav.Link>
       </Nav.Item>
@@ -55,6 +61,7 @@ export default function ModeSwitchPlugin ({ name }) {
           className={styles.modeTab}
           eventKey={RICH_MODE}
           title='rich text'
+          disabled={!isMarkdown}
         >
           compose
         </Nav.Link>

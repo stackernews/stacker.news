@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useEffect } from 'react'
 import { useField, useFormikContext } from 'formik'
-import { $isMarkdownEmpty, $getMarkdown } from '@/lib/lexical/utils'
+import { $isTextEmpty, $getTextContent } from '@/lib/lexical/utils'
 import { COMMAND_PRIORITY_HIGH, createCommand, $getRoot } from 'lexical'
 import { useFeeButton } from '@/components/fee-button'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
@@ -25,14 +25,14 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
 
       editorState.read(() => {
         // if editor is empty, set empty string for formik validation
-        if ($isMarkdownEmpty()) {
+        if ($isTextEmpty()) {
           textHelpers.setValue('')
           lexicalStateHelpers.setValue(undefined)
           return
         }
 
         if (isMarkdown) {
-          const text = $getMarkdown()
+          const text = $getTextContent()
           textHelpers.setValue(text)
           // clear stale lexicalState from any prior rich mode edit
           lexicalStateHelpers.setValue(undefined)

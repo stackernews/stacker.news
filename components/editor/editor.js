@@ -15,7 +15,7 @@ import LocalDraftPlugin from '@/components/editor/plugins/core/local-draft'
 import { MaxLengthPlugin } from '@/components/editor/plugins/core/max-length'
 import MentionsPlugin from '@/components/editor/plugins/mentions'
 import FileUploadPlugin from '@/components/editor/plugins/upload'
-import { $setMarkdown } from '@/lib/lexical/utils'
+import { $setText } from '@/lib/lexical/utils'
 import theme from '@/lib/lexical/theme'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import { HistoryExtension } from '@lexical/history'
@@ -87,7 +87,7 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
         // initialize editor state with existing formik text
         if (text.value) {
           if (isMarkdown) {
-            $setMarkdown(text.value, true)
+            $setText(text.value, true)
           } else {
             $markdownToLexical(text.value)
           }

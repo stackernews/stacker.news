@@ -4,7 +4,7 @@ import { createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $isR
 import { $formatBlock } from '@/lib/lexical/commands/formatting/blocks'
 import useHeadlessBridge from '@/components/editor/hooks/use-headless-bridge'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
-import { $insertMarkdown } from '@/lib/lexical/utils'
+import { $insertText } from '@/lib/lexical/utils'
 import { $debugNodeToJSON } from '@/lib/lexical/nodes/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
 import { $insertMath } from '@/lib/lexical/commands/math'
@@ -85,7 +85,7 @@ export default function TransformerBridgePlugin () {
 
       // insert the new markdown into the original editor
       // trim whitespaces to avoid extra newlines
-      $insertMarkdown(newMarkdown, true)
+      $insertText(newMarkdown, true)
       return true
     }, COMMAND_PRIORITY_EDITOR)
   }, [editor, bridgeRef])

@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useContext, useCallback, useEffect } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
-import { $isMarkdownEmpty, $setMarkdown, $getMarkdown } from '@/lib/lexical/utils'
+import { $isTextEmpty, $setText, $getTextContent } from '@/lib/lexical/utils'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import useDebounceCallback from '@/components/use-debounce-callback'
@@ -28,7 +28,7 @@ export default function LocalDraftPlugin ({ name }) {
     if (!storageKey) return
 
     // if the editor is empty, remove the draft
-    if ($isMarkdownEmpty()) {
+    if ($isTextEmpty()) {
       window.localStorage.removeItem(storageKey)
     } else {
       window.localStorage.setItem(storageKey, text)
@@ -45,7 +45,7 @@ export default function LocalDraftPlugin ({ name }) {
         editor.update(() => {
           const isMarkdown = isMarkdownMode(editor)
           if (isMarkdown) {
-            $setMarkdown(value)
+            $setText(value)
           } else {
             $markdownToLexical(value)
           }
@@ -72,7 +72,7 @@ export default function LocalDraftPlugin ({ name }) {
 
       if (isMarkdownMode(editor)) {
         editorState.read(() => {
-          upsertDraft($getMarkdown(false))
+          upsertDraft($getTextContent(false))
         })
       } else {
         debouncedRichSave()

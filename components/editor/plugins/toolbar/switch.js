@@ -6,6 +6,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { createCommand, COMMAND_PRIORITY_HIGH } from 'lexical'
 import { useField } from 'formik'
 import { $getMarkdown } from '@/lib/lexical/utils'
+import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 
 /** command to toggle between markdown and rich mode
  * @param {string} [newMode] - the new mode to switch to, if not provided, the current mode will be toggled
@@ -25,6 +26,7 @@ export default function ModeSwitchPlugin ({ name }) {
     return editor.registerCommand(
       TOGGLE_MODE_COMMAND,
       (newMode) => {
+        if (newMode === (isMarkdownMode(editor) ? MARKDOWN_MODE : RICH_MODE)) return
         // update formik value with the final markdown content
         textHelpers.setValue($getMarkdown())
         // toggle mode
@@ -40,7 +42,6 @@ export default function ModeSwitchPlugin ({ name }) {
   }, [editor, changeMode, toggleMode, textHelpers])
 
   const handleTabSelect = useCallback((eventKey) => {
-    if (eventKey === (isMarkdown ? MARKDOWN_MODE : RICH_MODE)) return
     editor.dispatchCommand(TOGGLE_MODE_COMMAND, eventKey)
   }, [editor, isMarkdown])
 

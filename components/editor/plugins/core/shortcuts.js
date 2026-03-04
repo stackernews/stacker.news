@@ -88,7 +88,7 @@ export const SHORTCUTS = {
     handler: (editor) => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)
   },
   toggleMode: {
-    key: 'mod+KeyM',
+    key: 'control+KeyM',
     handler: (editor) => editor.dispatchCommand(TOGGLE_MODE_COMMAND)
   },
   submit: {

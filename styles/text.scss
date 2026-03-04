@@ -294,6 +294,14 @@
   }
 }
 
+.focused {
+  outline: 2px solid var(--bs-info);
+}
+
+.sn-media.focused {
+  width: fit-content;
+}
+
 /* in case media-or-link detects a link */
 .sn-media:has(> .sn-media-autolink__loading) {
   display: inline !important;
@@ -302,11 +310,6 @@
 .sn-media .outlawed {
   user-select: text;
   cursor: text;
-}
-
-.sn-media--focused {
-  outline-offset: -2px;
-  outline: 2px solid var(--bs-info);
 }
 
 .sn-gallery {
@@ -867,7 +870,7 @@ span + .sn-link {
 }
 
 .sn-math.focused {
-  outline: 2px solid rgb(60, 132, 244);
+  border-radius: 0.3rem;
 }
 
 .sn-table {

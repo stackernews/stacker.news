@@ -125,9 +125,10 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
   const mediaRef = useRef(null)
   const [kind, setKind] = useState()
 
-  const { isFocused } = useDecoratorNodeSelection(nodeKey, {
+  useDecoratorNodeSelection(nodeKey, {
     ref: mediaRef,
-    deletable: false
+    deletable: false,
+    focusedClass: 'focused'
   })
 
   const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
@@ -176,7 +177,6 @@ export default function MediaComponent ({ src, srcSet, bestResSrc, width, height
       linkFallback={linkFallback}
       setKind={setKind}
       editable={editable}
-      innerClassName={isFocused ? 'sn-media--focused' : ''}
       mediaRef={mediaRef}
     />
   )
@@ -258,7 +258,7 @@ function useProxyFallback (media, editable) {
   }
 }
 
-export function MediaOrLink ({ linkFallback = true, editable, innerClassName, mediaRef, ...props }) {
+export function MediaOrLink ({ linkFallback = true, editable, mediaRef, ...props }) {
   const media = useMediaHelper({ ...props, editable })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -310,7 +310,6 @@ export function MediaOrLink ({ linkFallback = true, editable, innerClassName, me
             onError={handleError}
             onLoad={handleLoad}
             isLoading={isLoading}
-            className={innerClassName}
             mediaRef={mediaRef}
           />
         </>

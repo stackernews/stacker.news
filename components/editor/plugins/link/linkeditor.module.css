@@ -7,6 +7,8 @@
   opacity: 0;
   box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--theme-floating-toolbar-shadow-opacity));
   will-change: transform;
+  border-radius: 0.4rem;
+  background-color: var(--theme-forceCommentBg);
 }
 
 .linkEditorContainer:hover {
@@ -20,9 +22,6 @@
   max-width: min(400px, 100%);
   border-radius: 0.4rem;
   background-color: var(--theme-commentBg);
-}
-
-[data-bs-theme="light"] .linkEditor {
   border: 1px solid var(--theme-borderColor);
 }
 

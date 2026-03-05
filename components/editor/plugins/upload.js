@@ -84,14 +84,14 @@ export default function FileUploadPlugin ({ editorRef }) {
 
   // success event handler
   // replaces the placeholder with the image url
-  const onSuccess = useCallback(({ url, name, file }) => {
+  const onSuccess = useCallback(({ url, file }) => {
     const kind = file.type.split('/')[0]
     editor.update(() => {
       const isMarkdown = isMarkdownMode(editor)
       if (isMarkdown) {
         $replacePlaceholder(`![](${url})`)
       } else {
-        const mediaNode = $createMediaNode({ src: url, alt: name, title: name, kind, status: 'done' })
+        const mediaNode = $createMediaNode({ src: url, kind, status: 'done' })
         $replacePlaceholder(mediaNode)
       }
     }, { tag: 'history-merge' })

@@ -2,8 +2,8 @@ const { ApolloClient, InMemoryCache, HttpLink, gql } = require('@apollo/client')
 const { datePivot } = require('../lib/time.js')
 
 const ITEMS = gql`
-  query items ($sort: String, $when: String, $sub: String, $by: String, $from: String, $to: String) {
-    items (sort: $sort, when: $when, sub: $sub, by: $by, from: $from, to: $to) {
+  query items ($sort: String, $when: String, $sub: String, $by: String, $from: String, $to: String, $limit: Limit) {
+    items (sort: $sort, when: $when, sub: $sub, by: $by, from: $from, to: $to, limit: $limit) {
       cursor
       items {
         id
@@ -194,7 +194,7 @@ async function getTopUsers ({ by, cowboys = false, includeHidden = false, count 
 async function main () {
   const top = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'custom', from, to }
+    variables: { sort: 'top', when: 'custom', from, to, limit: 30 }
   })
 
   const meta = await client.query({

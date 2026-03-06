@@ -6,7 +6,6 @@ import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { USER_ID } from '@/lib/constants'
 import { useMe } from './me'
-import { resolveMarkdown } from '@/lib/lexical/utils/markdown'
 
 // this is intented to be compatible with upsert item mutations
 // so that it can be reused for all post types and comments and we don't have
@@ -41,9 +40,6 @@ export default function useItemSubmit (mutation,
       }
 
       const subNames = submittedSubNames || item?.subNames || (sub?.name ? [sub.name] : [])
-
-      // lexical state ?-> markdown
-      resolveMarkdown(values)
 
       const { data, error, payError } = await upsertItem({
         variables: {

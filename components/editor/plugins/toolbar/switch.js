@@ -4,9 +4,8 @@ import Nav from 'react-bootstrap/Nav'
 import { useEditorMode, MARKDOWN_MODE, RICH_MODE } from '@/components/editor/contexts/mode'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_HIGH } from 'lexical'
-import { useField } from 'formik'
-import { $getMarkdown } from '@/lib/lexical/utils'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
+import { SYNC_FORMIK_COMMAND } from '@/components/editor/plugins/core/formik'
 
 /** command to toggle between markdown and rich mode
  * @param {string} [newMode] - the new mode to switch to, if not provided, the current mode will be toggled
@@ -19,7 +18,6 @@ export const TOGGLE_MODE_COMMAND = createCommand('TOGGLE_MODE_COMMAND')
 /** displays and toggles between markdown and rich mode */
 export default function ModeSwitchPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
-  const [,, textHelpers] = useField({ name })
   const { changeMode, toggleMode, isMarkdown } = useEditorMode()
 
   useEffect(() => {
@@ -27,8 +25,7 @@ export default function ModeSwitchPlugin ({ name }) {
       TOGGLE_MODE_COMMAND,
       (newMode) => {
         if (newMode === (isMarkdownMode(editor) ? MARKDOWN_MODE : RICH_MODE)) return
-        // update formik value with the final markdown content
-        textHelpers.setValue($getMarkdown())
+        editor.dispatchCommand(SYNC_FORMIK_COMMAND)
         // toggle mode
         if (newMode) {
           changeMode(newMode)
@@ -39,7 +36,7 @@ export default function ModeSwitchPlugin ({ name }) {
       },
       COMMAND_PRIORITY_HIGH
     )
-  }, [editor, changeMode, toggleMode, textHelpers])
+  }, [editor, changeMode, toggleMode])
 
   const handleTabSelect = useCallback((eventKey) => {
     editor.dispatchCommand(TOGGLE_MODE_COMMAND, eventKey)

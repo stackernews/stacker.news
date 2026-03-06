@@ -1,62 +1,99 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useField, useFormikContext } from 'formik'
-import { $isTextEmpty, $getTextContent } from '@/lib/lexical/utils'
-import { COMMAND_PRIORITY_HIGH, createCommand, $getRoot } from 'lexical'
+import { $isTextEmpty, $getMarkdown } from '@/lib/lexical/utils'
+import { COMMAND_PRIORITY_HIGH, createCommand, BLUR_COMMAND } from 'lexical'
 import { useFeeButton } from '@/components/fee-button'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
+import useDebounceCallback from '@/components/use-debounce-callback'
+import { mergeRegister } from '@lexical/utils'
+import { useToast } from '@/components/toast'
 
+/** instantly syncs Formik with the latest markdown resulting from the editor */
+export const SYNC_FORMIK_COMMAND = createCommand('SYNC_FORMIK_COMMAND')
 export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
 
 /** syncs lexical with formik values */
 export default function FormikBridgePlugin ({ name = 'text' }) {
   const [editor] = useLexicalComposerContext()
   const [,, textHelpers] = useField({ name })
-  const [,, lexicalStateHelpers] = useField({ name: 'lexicalState' })
   const formik = useFormikContext()
-  const { disabled = false } = useFeeButton() ?? {}
+  const toaster = useToast()
+  const { setDisabled, disabled = false } = useFeeButton() ?? {}
+
+  const debouncedRichSave = useDebounceCallback(() => {
+    if (isMarkdownMode(editor)) return
+    editor.getEditorState().read(() => {
+      textHelpers.setValue($getMarkdown(editor))
+      // enable submission again
+      setDisabled(false)
+    })
+  }, 500, [editor, textHelpers])
+
+  const syncFormik = useCallback((flush = false) => {
+    editor.getEditorState().read(() => {
+      if ($isTextEmpty()) {
+        textHelpers.setValue('')
+        setDisabled?.(false)
+        return
+      }
+
+      if (isMarkdownMode(editor) || !setDisabled || flush) {
+        textHelpers.setValue($getMarkdown(editor))
+      } else {
+        setDisabled(true)
+        debouncedRichSave()
+      }
+    })
+  }, [editor, textHelpers, debouncedRichSave, setDisabled])
 
   // keep formik in sync
+  // markdown mode: instant
+  // rich mode: debounced
   useEffect(() => {
-    return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
-      const isMarkdown = isMarkdownMode(editor)
+    return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
       // skip non-content updates
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return
-
-      editorState.read(() => {
-        // if editor is empty, set empty string for formik validation
-        if ($isTextEmpty()) {
-          textHelpers.setValue('')
-          lexicalStateHelpers.setValue(undefined)
-          return
-        }
-
-        if (isMarkdown) {
-          const text = $getTextContent()
-          textHelpers.setValue(text)
-          // clear stale lexicalState from any prior rich mode edit
-          lexicalStateHelpers.setValue(undefined)
-        } else {
-          // use plain text for validation
-          textHelpers.setValue($getRoot().getTextContent())
-          // save lexical state as submission will convert it to markdown
-          lexicalStateHelpers.setValue(editor.getEditorState())
-        }
-      })
+      syncFormik()
     })
-  }, [editor, textHelpers, lexicalStateHelpers])
+  }, [editor, syncFormik])
 
+  // instant sync on blur
   useEffect(() => {
     return editor.registerCommand(
-      SUBMIT_FORMIK_COMMAND,
+      BLUR_COMMAND,
       () => {
-        if (disabled) return false
-        formik?.submitForm()
-        return true
+        syncFormik(true)
+        return false
       },
       COMMAND_PRIORITY_HIGH
     )
-  }, [editor, formik, disabled])
+  }, [editor, syncFormik])
+
+  useEffect(() => {
+    return mergeRegister(
+      editor.registerCommand(
+        SYNC_FORMIK_COMMAND,
+        (flush = true) => {
+          syncFormik(flush)
+          return true
+        },
+        COMMAND_PRIORITY_HIGH
+      ),
+      editor.registerCommand(
+        SUBMIT_FORMIK_COMMAND,
+        () => {
+          if (disabled) {
+            toaster?.warning('content is still being processed, please wait')
+            return false
+          }
+          formik?.submitForm()
+          return true
+        },
+        COMMAND_PRIORITY_HIGH
+      )
+    )
+  }, [editor, formik, disabled, syncFormik, toaster])
 
   return null
 }

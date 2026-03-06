@@ -24,7 +24,7 @@ export default function ModeSwitchPlugin ({ name }) {
     return editor.registerCommand(
       TOGGLE_MODE_COMMAND,
       (newMode) => {
-        if (newMode === (isMarkdownMode(editor) ? MARKDOWN_MODE : RICH_MODE)) return
+        if (newMode === (isMarkdownMode(editor) ? MARKDOWN_MODE : RICH_MODE)) return false
         editor.dispatchCommand(SYNC_FORMIK_COMMAND)
         // toggle mode
         if (newMode) {
@@ -40,7 +40,7 @@ export default function ModeSwitchPlugin ({ name }) {
 
   const handleTabSelect = useCallback((eventKey) => {
     editor.dispatchCommand(TOGGLE_MODE_COMMAND, eventKey)
-  }, [editor, isMarkdown])
+  }, [editor])
 
   return (
     <Nav variant='tabs' activeKey={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onSelect={handleTabSelect} onMouseDown={(e) => e.preventDefault()}>

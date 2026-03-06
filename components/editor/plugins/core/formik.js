@@ -17,7 +17,7 @@ export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
 export default function FormikBridgePlugin ({ name = 'text' }) {
   const [editor] = useLexicalComposerContext()
   const [,, textHelpers] = useField({ name })
-  const formik = useFormikContext()
+  const { submitForm } = useFormikContext() ?? {}
   const toaster = useToast()
   const { setDisabled, disabled = false } = useFeeButton() ?? {}
 
@@ -28,7 +28,7 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
       // enable submission again
       setDisabled(false)
     })
-  }, 500, [editor, textHelpers])
+  }, 500, [editor, textHelpers, setDisabled])
 
   const syncFormik = useCallback((flush = false) => {
     editor.getEditorState().read(() => {
@@ -87,13 +87,13 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
             toaster?.warning('content is still being processed, please wait')
             return false
           }
-          formik?.submitForm()
+          submitForm?.()
           return true
         },
         COMMAND_PRIORITY_HIGH
       )
     )
-  }, [editor, formik, disabled, syncFormik, toaster])
+  }, [editor, disabled, syncFormik, toaster, submitForm])
 
   return null
 }

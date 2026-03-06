@@ -51,6 +51,7 @@ export default function LocalDraftPlugin ({ name }) {
         })
       }
     }
+  // we're not depending on text.value here because we need to load the draft on mount, not on change
   }, [editor, storageKey])
 
   // save the draft to local storage
@@ -58,7 +59,7 @@ export default function LocalDraftPlugin ({ name }) {
     editor.getEditorState().read(() => {
       $upsertDraft(text.value)
     })
-  }, [text.value])
+  }, [editor, $upsertDraft, text.value])
 
   return null
 }

@@ -30,11 +30,36 @@ export function BioForm ({ handleDone, bio, me }) {
         onMutationResult (cache, { data: { upsertBio: { payerPrivates: { result } } } }) {
           if (!result) return
 
+          const itemCacheId = cache.identify({ __typename: 'Item', id: result.id })
+          if (itemCacheId) {
+            cache.modify({
+              id: itemCacheId,
+              fields: {
+                text (existingText) {
+                  return result.text ?? existingText
+                },
+                html (existingHtml) {
+                  return result.html ?? existingHtml
+                },
+                lexicalState (existingLexicalState) {
+                  return result.lexicalState ?? existingLexicalState
+                }
+              }
+            })
+          }
+
           cache.modify({
             id: `User:${me.id}`,
             fields: {
-              bio () {
-                return result.text
+              bio (existingBio, { toReference }) {
+                const bioRef = toReference({
+                  __typename: 'Item',
+                  id: result.id
+                })
+                return bioRef || existingBio
+              },
+              bioId () {
+                return Number(result.id)
               }
             }
           })

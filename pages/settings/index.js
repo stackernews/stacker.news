@@ -548,7 +548,7 @@ export default function Settings ({ ssrData }) {
 const DropBolt11sCheckbox = ({ ssrData, ...props }) => {
   const showModal = useShowModal()
   const { data } = useQuery(gql`{ numBolt11s }`)
-  const { numBolt11s } = data || ssrData
+  const numBolt11s = data?.numBolt11s ?? ssrData?.numBolt11s ?? 0
 
   return (
     <Checkbox

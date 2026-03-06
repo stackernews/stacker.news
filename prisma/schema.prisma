@@ -489,7 +489,7 @@ model Item {
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
   @@index([cost])
-  @@index([url])
+  @@index([url(ops: raw("gin_trgm_ops"))], map: "Item_url_trgm_idx", type: Gin)
   @@index([boost])
   @@index([ranktop])
   @@index([ranklit])

@@ -221,6 +221,7 @@ function sortFunctions (sort, query) {
   if (field) {
     return {
       functions: [],
+      isRelevanceSort: false,
       addMembers: {
         sort: [
           { [field]: { order: 'desc' } },
@@ -233,18 +234,8 @@ function sortFunctions (sort, query) {
   // default: relevance with gentle recency + investment decay
   // Only affects the lexical leg; neural legs stay pure relevance via RRF
   return {
-    functions: [
-      {
-        gauss: {
-          createdAt: {
-            origin: 'now',
-            scale: '90d',
-            decay: 0.5
-          }
-        }
-      },
-      ranktopFunction()
-    ],
+    functions: [],
+    isRelevanceSort: true,
     addMembers: {}
   }
 }
@@ -298,6 +289,41 @@ function baseTextQueries (query) {
   ]
 }
 
+const EXACT_INTENT_MIN_QUERY_LENGTH = 5
+const EXACT_INTENT_MAX_TOKENS = 2
+
+function freeTextTokenCount (query = '') {
+  const trimmed = query.trim()
+  return trimmed ? trimmed.split(/\s+/).length : 0
+}
+
+function shouldUseExactIntentLeg ({ query, quotes, isRelevanceSort }) {
+  if (!isRelevanceSort) return false
+  if (quotes?.length) return false
+
+  const trimmed = query.trim()
+  if (!trimmed || trimmed.length < EXACT_INTENT_MIN_QUERY_LENGTH) return false
+
+  return freeTextTokenCount(trimmed) <= EXACT_INTENT_MAX_TOKENS
+}
+
+function exactTextLeg (query) {
+  const trimmed = query.trim()
+  return {
+    bool: {
+      should: [
+        // Strict exact phrase match in normalized title+text field.
+        { match_phrase: { 'title_text.exact': { query: trimmed, boost: 1000 } } },
+        // Title-only exact phrase lane.
+        { match_phrase: { 'title.exact': { query: trimmed, boost: 800 } } },
+        // Exact analyzer all-terms lane for short multi-token intent.
+        { match: { 'title_text.exact': { query: trimmed, operator: 'and', boost: 200 } } }
+      ],
+      minimum_should_match: 1
+    }
+  }
+}
+
 // ---- Scoring helpers ----
 
 function ranktopFunction () {
@@ -317,6 +343,28 @@ function ranktopFunction () {
       field: 'ranktop',
       modifier: 'ln2p',
       factor: 0.0001,
+      missing: 0
+    }
+  }
+}
+
+function ranktopRescoreFunction () {
+  return {
+    // Rescore uses multiplicative blending, so keep this signal small and
+    // bounded-ish (via ln1p with tiny factor) to nudge, not overwrite, _score.
+    filter: {
+      bool: {
+        should: [
+          { range: { ranktop: { gte: 0 } } },
+          { bool: { must_not: { exists: { field: 'ranktop' } } } }
+        ],
+        minimum_should_match: 1
+      }
+    },
+    field_value_factor: {
+      field: 'ranktop',
+      modifier: 'ln1p',
+      factor: 1e-10,
       missing: 0
     }
   }
@@ -418,6 +466,46 @@ function buildSparseLeg ({ queryText }) {
 // ordering (changing it alters the candidate set before normalization).
 const HYBRID_DEPTH = LIMIT * 10
 
+const RESCORE_WINDOW_SIZE = HYBRID_DEPTH
+const RESCORE_QUERY_WEIGHT = 1
+const SEARCH_RESCORE_QUERY_WEIGHT = 1
+const RELATED_RESCORE_QUERY_WEIGHT = 1
+const RELATED_RECENCY_WEIGHT = 0.08
+
+function buildRanktopRescore ({ includeRecency = false } = {}) {
+  return {
+    window_size: RESCORE_WINDOW_SIZE,
+    query: {
+      query_weight: RESCORE_QUERY_WEIGHT,
+      rescore_query_weight: includeRecency ? RELATED_RESCORE_QUERY_WEIGHT : SEARCH_RESCORE_QUERY_WEIGHT,
+      // Multiplicative blending makes the rerank relative to base _score.
+      score_mode: 'multiply',
+      rescore_query: {
+        function_score: {
+          query: { match_all: {} },
+          functions: [
+            ranktopRescoreFunction(),
+            ...(includeRecency
+              ? [{
+                  weight: RELATED_RECENCY_WEIGHT,
+                  gauss: {
+                    createdAt: {
+                      origin: 'now',
+                      scale: '45d',
+                      decay: 0.6
+                    }
+                  }
+                }]
+              : [])
+          ],
+          score_mode: 'sum',
+          boost_mode: 'sum'
+        }
+      }
+    }
+  }
+}
+
 function hybridQuery (queries, filters) {
   return {
     hybrid: {
@@ -489,12 +577,20 @@ function buildRelatedQuery ({ like, minMatch, filters, textQuery, modelId }) {
   return moreLikeThisScoreQuery(like, minMatch, filters)
 }
 
-function buildSearchQuery ({ filters, termQueries, query, neuralText, functions, modelId }) {
+function buildSearchQuery ({
+  filters,
+  termQueries,
+  query,
+  neuralText,
+  functions,
+  modelId,
+  isRelevanceSort,
+  exactIntentLeg = false
+}) {
   const should = query.length
     ? [...termQueries, ...baseTextQueries(query)]
     : termQueries
 
-  const isRelevanceSort = functions.length > 0
   const minMatch = should.length > 0 ? 1 : 0
 
   const bm25WithFilters = {
@@ -510,6 +606,7 @@ function buildSearchQuery ({ filters, termQueries, query, neuralText, functions,
     }
     const legs = [
       bm25HybridLeg,
+      ...(exactIntentLeg ? [exactTextLeg(query)] : []),
       buildSemanticTextLeg({ queryText: neuralText, modelId, k: HYBRID_DEPTH }),
       buildSparseLeg({ queryText: neuralText })
     ]
@@ -518,7 +615,7 @@ function buildSearchQuery ({ filters, termQueries, query, neuralText, functions,
 
   // Lexical-only fallback: wrap with function_score for relevance sort
   // so business signals (recency, ranktop) contribute to ranking.
-  if (isRelevanceSort) {
+  if (isRelevanceSort && functions.length > 0) {
     return {
       function_score: {
         query: bm25WithFilters,
@@ -607,14 +704,14 @@ function attachHighlights (items, hits) {
 
 export default {
   Query: {
-    related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search, userLoader }) => {
+    related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
 
       if (!id && (!title || title.trim().split(/\s+/).length < 1)) {
         return { items: [], cursor: null }
       }
 
-      const { postsSatsFilter } = await loadSatsFilters(me, userLoader)
+      const postsSatsFilter = DEFAULT_POSTS_SATS_FILTER
       const like = id ? [{ _index: process.env.OPENSEARCH_INDEX, _id: id }] : [title]
 
       const mustNot = [{ exists: { field: 'parentId' } }]
@@ -643,7 +740,10 @@ export default {
           size: limit,
           from: decodedCursor.offset,
           _source: { excludes: OS_SOURCE_EXCLUDES },
-          body: { query: osQuery }
+          body: {
+            query: osQuery,
+            rescore: buildRanktopRescore({ includeRecency: true })
+          }
         })
       } catch (e) {
         console.error('[RELATED SEARCH ERROR]', e?.meta?.body ? JSON.stringify(e.meta.body, null, 2) : (e?.message || e))
@@ -698,10 +798,20 @@ export default {
         ...quoteParts.queries
       ]
 
-      const { functions, addMembers } = sortFunctions(sort, query)
+      const { functions, addMembers, isRelevanceSort } = sortFunctions(sort, query)
+      const exactIntentLeg = shouldUseExactIntentLeg({ query, quotes, isRelevanceSort })
       const modelId = await resolveOpensearchModelId(search)
 
-      const osQuery = buildSearchQuery({ filters, termQueries, query, neuralText, functions, modelId })
+      const osQuery = buildSearchQuery({
+        filters,
+        termQueries,
+        query,
+        neuralText,
+        functions,
+        modelId,
+        isRelevanceSort,
+        exactIntentLeg
+      })
 
       let sitems
       try {
@@ -713,6 +823,7 @@ export default {
           body: {
             query: osQuery,
             ...addMembers,
+            ...(isRelevanceSort ? { rescore: buildRanktopRescore() } : {}),
             highlight: SEARCH_HIGHLIGHT,
             // Combined suggest for "did you mean?": term suggest (per-word, precise)
             // + phrase suggest (full-phrase fallback for words that exist but are wrong,

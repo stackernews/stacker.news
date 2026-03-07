@@ -166,7 +166,7 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
           return false
         }, COMMAND_PRIORITY_HIGH)
     )
-  }, [editor, $updateLink, handleBlur])
+  }, [editor, $updateLink, handleCancel])
 
   // throttled update of position
   useEffect(() => {

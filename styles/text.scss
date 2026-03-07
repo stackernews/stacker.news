@@ -365,10 +365,6 @@ span + .sn-link {
   background-color: var(--theme-bg);
 }
 
-[contenteditable="true"] .sn-embed-wrapper--focus {
-  outline: 2px solid rgb(60, 132, 244);
-}
-
 // work in progress loading state
 .sn-embed-wrapper__loading {
   display: flex;
@@ -761,6 +757,11 @@ span + .sn-link {
   padding: 0;
 }
 
+.sn-toc.focused {
+  width: fit-content;
+  border-radius: 0.4rem;
+}
+
 .sn-toc > summary {
   font-weight: bold;
   font-size: 0.875rem;
@@ -792,12 +793,6 @@ span + .sn-link {
 .sn-toc li {
   margin-top: 0.25rem;
   margin-bottom: 0.25rem;
-}
-
-/* can select the entire ToC node if we're inside an editor */
-[contenteditable="true"] [data-lexical-toc].selected .sn-toc {
-  background-color: var(--theme-clickToContextColor);
-  outline: 1px solid var(--bs-primary);
 }
 
 /* spoiler specific */

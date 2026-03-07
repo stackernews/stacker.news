@@ -130,10 +130,12 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
   // sets a submit disabled reason
   const setDisabled = useCallback((key, value) => {
     setDisabledReasons(prev => {
-      if (value ? prev.has(key) : !prev.has(key)) return prev
+      const hasKey = prev.has(key)
+      // avoid re-renders if the value is the same
+      if (value === hasKey) return prev
+
       const next = new Set(prev)
-      if (value) next.add(key)
-      else next.delete(key)
+      value ? next.add(key) : next.delete(key)
       return next
     })
   }, [])

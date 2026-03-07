@@ -27,6 +27,9 @@ import { $insertTextAtSelection } from '@/lib/lexical/utils'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import { $createMediaNode, MediaNode } from '@/lib/lexical/nodes/content/media'
 
+// submit disabled reason for upload
+const UPLOAD_SUBMIT_DISABLED_REASON = 'upload'
+
 export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
 
 const UPLOAD_FEES_QUERY = gql`
@@ -79,7 +82,7 @@ export default function FileUploadPlugin ({ editorRef }) {
       placeholderKey.current = placeholderNode.getKey()
     }, { tag: 'history-merge' })
 
-    setSubmitDisabled?.(true)
+    setSubmitDisabled?.(UPLOAD_SUBMIT_DISABLED_REASON, true)
   }, [editor, setSubmitDisabled])
 
   // success event handler
@@ -98,14 +101,14 @@ export default function FileUploadPlugin ({ editorRef }) {
 
     // refresh upload fees
     editor.read(() => $refreshUploadFees())
-    setSubmitDisabled?.(false)
+    setSubmitDisabled?.(UPLOAD_SUBMIT_DISABLED_REASON, false)
   }, [editor, $replacePlaceholder, $refreshUploadFees, setSubmitDisabled])
 
   const onError = useCallback(({ file }) => {
     editor.update(() => {
       $replacePlaceholder('')
     }, { tag: 'history-merge' })
-    setSubmitDisabled?.(false)
+    setSubmitDisabled?.(UPLOAD_SUBMIT_DISABLED_REASON, false)
   }, [editor, $replacePlaceholder, setSubmitDisabled])
 
   // drop event handler

@@ -13,6 +13,9 @@ import { useToast } from '@/components/toast'
 export const SYNC_FORMIK_COMMAND = createCommand('SYNC_FORMIK_COMMAND')
 export const SUBMIT_FORMIK_COMMAND = createCommand('SUBMIT_FORMIK_COMMAND')
 
+// submit disabled reason for debounced formik
+const DEBOUNCED_SUBMIT_DISABLED_REASON = 'debouncedFormik'
+
 /** syncs lexical with formik values */
 export default function FormikBridgePlugin ({ name = 'text' }) {
   const [editor] = useLexicalComposerContext()
@@ -25,8 +28,7 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
     if (isMarkdownMode(editor)) return
     editor.getEditorState().read(() => {
       textHelpers.setValue($getMarkdown(editor))
-      // enable submission again
-      setDisabled(false)
+      setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, false)
     })
   }, 500, [editor, textHelpers, setDisabled])
 
@@ -34,14 +36,15 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
     editor.getEditorState().read(() => {
       if ($isTextEmpty()) {
         textHelpers.setValue('')
-        setDisabled?.(false)
+        setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, false)
         return
       }
 
       if (isMarkdownMode(editor) || !setDisabled || flush) {
         textHelpers.setValue($getMarkdown(editor))
+        setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, false)
       } else {
-        setDisabled(true)
+        setDisabled(DEBOUNCED_SUBMIT_DISABLED_REASON, true)
         debouncedRichSave()
       }
     })

@@ -1,7 +1,7 @@
 import Container from 'react-bootstrap/Container'
 import styles from './search.module.css'
 import SearchIcon from '@/svgs/search-line.svg'
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useMemo, useRef, useCallback } from 'react'
 import {
   Form,
   Input,
@@ -19,8 +19,13 @@ import { searchSchema } from '@/lib/validate'
 
 export default function Search ({ sub }) {
   const router = useRouter()
-  const [q, setQ] = useState(router.query.q || '')
   const { me } = useMe()
+  const q = typeof router.query.q === 'string' ? router.query.q : ''
+  const from = typeof router.query.from === 'string' ? router.query.from : ''
+  const to = typeof router.query.to === 'string' ? router.query.to : ''
+  const queryWhat = typeof router.query.what === 'string' ? router.query.what : ''
+  const querySort = typeof router.query.sort === 'string' ? router.query.sort : ''
+  const queryWhen = typeof router.query.when === 'string' ? router.query.when : ''
 
   const search = async values => {
     let prefix = ''
@@ -28,35 +33,38 @@ export default function Search ({ sub }) {
       prefix = `/~${sub}`
     }
 
-    if (values.q?.trim() !== '') {
-      if (values.what === 'stackers') {
+    const query = values.q?.trim()
+    if (query) {
+      const nextValues = { ...values, q: query }
+
+      if (nextValues.what === 'stackers') {
         await router.push({
           pathname: '/stackers/search',
-          query: { q, what: 'stackers' }
+          query: { q: query, what: 'stackers' }
         }, {
           pathname: '/stackers/search',
-          query: { q }
+          query: { q: query }
         })
         return
       }
 
-      if (values.what === '' || values.what === 'all') delete values.what
-      if (values.sort === '' || values.sort === 'relevance') delete values.sort
-      if (values.when === '' || values.when === 'forever') delete values.when
-      if (values.when !== 'custom') { delete values.from; delete values.to }
-      if (values.from && !values.to) return
+      if (nextValues.what === '' || nextValues.what === 'all') delete nextValues.what
+      if (nextValues.sort === '' || nextValues.sort === 'relevance') delete nextValues.sort
+      if (nextValues.when === '' || nextValues.when === 'forever') delete nextValues.when
+      if (nextValues.when !== 'custom') { delete nextValues.from; delete nextValues.to }
+      if (nextValues.from && !nextValues.to) return
 
       await router.push({
         pathname: prefix + '/search',
-        query: values
+        query: nextValues
       })
     }
   }
 
   const filter = sub !== 'jobs'
-  const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
-  const sort = router.query.sort || 'relevance'
-  const when = router.query.when || 'forever'
+  const what = router.pathname.startsWith('/stackers') ? 'stackers' : queryWhat || 'all'
+  const sort = querySort || 'relevance'
+  const when = queryWhen || 'forever'
   const whatItemOptions = useMemo(() => (['all', 'posts', 'comments', me ? 'bookmarks' : undefined, 'stackers'].filter(item => !!item)), [me])
 
   return (
@@ -64,9 +72,10 @@ export default function Search ({ sub }) {
       <div className={styles.searchSection}>
         <Container className={`px-0 ${styles.searchContainer}`}>
           <Form
-            initial={{ q, what, sort, when, from: '', to: '' }}
+            initial={{ q, what, sort, when, from, to }}
             onSubmit={values => search({ ...values })}
             schema={searchSchema}
+            enableReinitialize
           >
             <div className={`${styles.active} mb-3`}>
               <SearchInput
@@ -75,7 +84,6 @@ export default function Search ({ sub }) {
                 autoFocus
                 groupClassName='me-3 mb-0 flex-grow-1'
                 className='flex-grow-1'
-                setOuterQ={setQ}
               />
               <SubmitButton variant='primary' className={styles.search}>
                 <SearchIcon width={22} height={22} />
@@ -125,8 +133,8 @@ export default function Search ({ sub }) {
                     onChange={(formik, [from, to], e) => {
                       search({ ...formik?.values, from: from.getTime(), to: to.getTime() })
                     }}
-                    from={router.query.from}
-                    to={router.query.to}
+                    from={from}
+                    to={to}
                     when={when}
                   />}
               </div>}
@@ -137,13 +145,9 @@ export default function Search ({ sub }) {
   )
 }
 
-function SearchInput ({ name, setOuterQ, ...props }) {
+function SearchInput ({ name, ...props }) {
   const [, meta, helpers] = useField(name)
   const inputRef = useRef(null)
-
-  useEffect(() => {
-    if (meta.value !== undefined) setOuterQ(meta.value.trim())
-  }, [meta.value, setOuterQ])
 
   const setCaret = useCallback(({ start, end }) => {
     inputRef.current?.setSelectionRange(start, end)
@@ -156,10 +160,9 @@ function SearchInput ({ name, setOuterQ, ...props }) {
     setSelectionRange: setCaret
   })
 
-  const handleChangeWithOuter = useCallback((formik, e) => {
-    setOuterQ(e.target.value.trim())
+  const handleInputChange = useCallback((_formik, e) => {
     handleTextChange(e)
-  }, [setOuterQ, handleTextChange])
+  }, [handleTextChange])
 
   return (
     <div className='position-relative flex-grow-1'>
@@ -173,7 +176,7 @@ function SearchInput ({ name, setOuterQ, ...props }) {
             innerRef={inputRef}
             clear
             autoComplete='off'
-            onChange={handleChangeWithOuter}
+            onChange={handleInputChange}
             onKeyDown={(e) => {
               handleKeyDown(e, userSuggestOnKeyDown, territorySuggestOnKeyDown)
             }}

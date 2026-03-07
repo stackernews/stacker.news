@@ -2,7 +2,8 @@ import UpBolt from '@/svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'
-import ItemAct, { ZapUndoController, useZap } from './item-act'
+import ItemAct, { ZapUndoController } from './item-act'
+import { useZap } from './use-zap'
 import { useMe } from './me'
 import getColor from '@/lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -116,9 +117,6 @@ export default function UpVote ({ item, className, collapsed }) {
       }`
   )
 
-  const [controller, setController] = useState(null)
-  const [pending, setPending] = useState(0)
-
   const setVoteShow = useCallback((yes) => {
     if (!me) return
 
@@ -147,7 +145,13 @@ export default function UpVote ({ item, className, collapsed }) {
     }
   }, [me, tipShow, setWalkthrough])
 
-  const zap = useZap()
+  // debounced zap hook — zapPending is non-zero during undo window
+  const { zap, pending: zapPending, cancel: zapCancel } = useZap({ nextTip })
+  // separate state for long-press custom amount undo (ItemAct modal has its own undo flow)
+  const [longPressPending, setLongPressPending] = useState(0)
+  const [longPressController, setLongPressController] = useState(null)
+  // combined pending for bolt UI — either debounced undo or long-press undo
+  const pending = zapPending || longPressPending
 
   const disabled = useMemo(() => collapsed || item?.mine || item?.meForward || item?.deletedAt,
     [collapsed, item?.mine, item?.meForward, item?.deletedAt])
@@ -171,6 +175,15 @@ export default function UpVote ({ item, className, collapsed }) {
     me, item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
     me?.privates?.tipRandom, me?.privates?.tipRandomMin, me?.privates?.tipRandomMax, pending])
 
+  // cancel any active undo (debounced or long-press)
+  const cancelAnyUndo = useCallback(() => {
+    if (zapPending) zapCancel()
+    if (longPressController) {
+      longPressController.abort()
+      setLongPressController(null)
+    }
+  }, [zapPending, zapCancel, longPressController])
+
   const handleLongPress = (e) => {
     if (!item) return
 
@@ -181,19 +194,21 @@ export default function UpVote ({ item, className, collapsed }) {
 
     setTipShow(false)
 
+    // if any undo is active, cancel it and return
     if (pending) {
-      controller.abort()
-      setController(null)
+      cancelAnyUndo()
       return
     }
-    const c = new ZapUndoController({ onStart: (sats) => setPending(sats), onDone: () => setPending(0) })
-    setController(c)
+
+    // long-press opens custom amount modal with its own undo flow
+    const c = new ZapUndoController({ onStart: (sats) => setLongPressPending(sats), onDone: () => setLongPressPending(0) })
+    setLongPressController(c)
 
     showModal(onClose =>
       <ItemAct onClose={onClose} item={item} abortSignal={c.signal} />)
   }
 
-  const handleShortPress = async () => {
+  const handleShortPress = () => {
     if (me) {
       if (!item) return
 
@@ -208,15 +223,14 @@ export default function UpVote ({ item, className, collapsed }) {
         setTipShow(true)
       }
 
+      // if any undo is active, cancel it
       if (pending) {
-        controller.abort()
-        setController(null)
+        cancelAnyUndo()
         return
       }
-      const c = new ZapUndoController({ onStart: (sats) => setPending(sats), onDone: () => setPending(0) })
-      setController(c)
 
-      await zap({ item, me, abortSignal: c.signal })
+      // synchronous — updates cache immediately, starts debounce timer
+      zap({ item, me })
     } else {
       showModal(onClose => <ItemAct onClose={onClose} item={item} />)
     }

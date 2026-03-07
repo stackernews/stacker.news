@@ -117,8 +117,9 @@ export const SUB_SEARCH = gql`
     sub(name: $sub) {
       ...SubFields
     }
-    search(sub: $sub, q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
+    search(q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
       cursor
+      searchSuggestion
       items {
         ...ItemFullFields
         searchTitle

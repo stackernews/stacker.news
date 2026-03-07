@@ -8,7 +8,7 @@ export default gql`
     pageTitleAndUnshorted(url: String!): TitleUnshorted
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit! = ${LIMIT}): Items
-    search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
+    search(q: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
     itemRepetition(parentId: ID): Int!
     newComments(itemId: ID, after: Date): Comments!
   }
@@ -41,6 +41,7 @@ export default gql`
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id: ID, text: String!, parentId: ID, hash: String, hmac: String): PayIn!
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean): PayIn!
+    payBounty(id: ID!): PayIn!
     pollVote(id: ID!): PayIn!
     updateCommentsViewAt(id: ID!, meCommentsViewedAt: Date!): Date
   }
@@ -62,6 +63,7 @@ export default gql`
     cursor: String
     items: [Item!]!
     pins: [Item!]
+    searchSuggestion: String
   }
 
   type Comments {

@@ -31,7 +31,8 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { parse } from 'tldts'
 import { shuffleArray } from '@/lib/rand'
-import pay from '../payIn'
+import pay, { retry as retryPayIn } from '../payIn'
+import { BOUNTY_ALREADY_PAID_ERROR, BOUNTY_IN_PROGRESS_ERROR, getBountyPaymentTail } from '../payIn/lib/bountyPayment'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 
 function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER) {
@@ -970,6 +971,54 @@ export default {
         throw new GqlInputError('unknown act')
       }
     },
+    payBounty: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      assertApiKeyNotPermitted({ me })
+
+      const item = await models.item.findUnique({
+        where: { id: Number(id) },
+        include: {
+          itemPayIns: {
+            where: {
+              payIn: {
+                payInType: 'ITEM_CREATE',
+                payInState: 'PAID'
+              }
+            }
+          }
+        }
+      })
+
+      if (!item) {
+        throw new GqlInputError('item not found')
+      }
+
+      if (item.itemPayIns.length === 0) {
+        throw new GqlInputError('cannot pay bounty on unpaid item')
+      }
+
+      if (item.deletedAt) {
+        throw new GqlInputError('item is deleted')
+      }
+
+      if (Number(item.userId) === Number(me.id)) {
+        throw new GqlInputError('cannot pay bounty to yourself')
+      }
+
+      const tail = await getBountyPaymentTail(models, Number(id), { userId: Number(me.id) })
+      if (!tail) {
+        return await pay('BOUNTY_PAYMENT', { id }, { me, models })
+      }
+      if (tail.payInState === 'FAILED') {
+        return await retryPayIn(tail.id, { me })
+      }
+      if (tail.payInState === 'PAID') {
+        throw new GqlInputError(BOUNTY_ALREADY_PAID_ERROR)
+      }
+      throw new GqlInputError(BOUNTY_IN_PROGRESS_ERROR)
+    },
     updateCommentsViewAt: async (parent, { id, meCommentsViewedAt }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
@@ -1038,6 +1087,36 @@ export default {
     },
     commentCredits: async (item, args, { models }) => {
       return msatsToSats(item.commentMcredits)
+    },
+    bountyPaidTo: async (item, args, { models, me }) => {
+      if (!me || !item.bounty || item.userId !== me.id) return item.bountyPaidTo
+
+      const pendingPayments = await models.$queryRawUnsafe(`
+        SELECT "ItemPayIn"."itemId"
+        FROM "ItemPayIn"
+        JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId"
+        JOIN "Item" ON "Item".id = "ItemPayIn"."itemId"
+        WHERE "PayIn"."payInType" = 'BOUNTY_PAYMENT'
+        AND "PayIn"."userId" = $1
+        AND "Item"."rootId" = $2
+        AND (
+          "PayIn"."payInState" <> 'FAILED'
+          OR (
+            "PayIn"."payInState" = 'FAILED'
+            AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
+            AND "PayIn"."payInStateChangedAt" > now() - '${WALLET_RETRY_BEFORE_MS} milliseconds'::interval
+            AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}::integer
+            AND "PayIn"."successorId" IS NULL
+          )
+        )
+        AND "PayIn"."payInState" <> 'PAID'
+      `, me.id, item.id)
+
+      if (!pendingPayments.length) return item.bountyPaidTo
+
+      const pendingIds = pendingPayments.map(p => p.itemId)
+      const merged = [...new Set([...(item.bountyPaidTo || []), ...pendingIds])]
+      return merged.length ? merged : null
     },
     commentCost: async (item) => item.commentCost || 0,
     commentBoost: async (item) => item.commentBoost || 0,

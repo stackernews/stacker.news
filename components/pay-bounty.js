@@ -5,35 +5,40 @@ import { useMe } from './me'
 import { numWithUnits, satsToMsats } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { ActCanceledError, useAct } from './item-act'
 import { useAnimation } from '@/components/animation'
 import { useToast } from './toast'
-import { useHasSendWallet } from '@/wallets/client/hooks'
 import { Form, SubmitButton } from './form'
+import { PAY_BOUNTY_MUTATION } from '@/fragments/payIn'
+import usePayInMutation from './payIn/hooks/use-pay-in-mutation'
+import { useHasSendWallet } from '@/wallets/client/hooks'
 
-export const payBountyCacheMods = {
-  update: (cache, { data }) => {
+const addBountyPaidToCache = (cache, { data }, { optimistic = true } = {}) => {
+  const response = Object.values(data)[0]
+  if (!response?.payerPrivates.result) return
+  const { id, path } = response.payerPrivates.result
+  const root = path.split('.')[0]
+  cache.modify({
+    id: `Item:${root}`,
+    fields: {
+      bountyPaidTo (existingPaidTo = []) {
+        return [...(existingPaidTo || []), Number(id)]
+      }
+    },
+    optimistic
+  })
+}
+
+export const payBountyCachePhases = {
+  // runs as Apollo update() callback — optimistic: true (default) is correct
+  onMutationResult: addBountyPaidToCache,
+  // runs outside update() context — write to root cache
+  onPaidMissingResult: (cache, args) => addBountyPaidToCache(cache, args, { optimistic: false }),
+  onPayError: (_e, cache, { data }) => {
     const response = Object.values(data)[0]
     if (!response?.payerPrivates.result) return
-    console.log('payBounty: update', response)
     const { id, path } = response.payerPrivates.result
     const root = path.split('.')[0]
-    cache.modify({
-      id: `Item:${root}`,
-      fields: {
-        bountyPaidTo (existingPaidTo = []) {
-          return [...(existingPaidTo || []), Number(id)]
-        }
-      },
-      optimistic: true
-    })
-  },
-  onPayError: (e, cache, { data }) => {
-    const response = Object.values(data)[0]
-    if (!response?.payerPrivates.result) return
-    console.log('payBounty: onPayError', response)
-    const { id, path } = response.payerPrivates.result
-    const root = path.split('.')[0]
+    // runs outside update() context — write to root cache
     cache.modify({
       id: `Item:${root}`,
       fields: {
@@ -41,7 +46,7 @@ export const payBountyCacheMods = {
           return (existingPaidTo || []).filter(i => i !== Number(id))
         }
       },
-      optimistic: true
+      optimistic: false
     })
   }
 }
@@ -54,23 +59,40 @@ export default function PayBounty ({ children, item }) {
   const toaster = useToast()
   const hasSendWallet = useHasSendWallet()
 
-  const variables = { id: item.id, sats: root.bounty, act: 'TIP', hasSendWallet }
-  const act = useAct({
+  const bounty = root.bounty
+  const proxyFee = Math.ceil(bounty * 3 / 100)
+  const totalCost = bounty + proxyFee
+
+  const variables = { id: item.id }
+  const optimisticResponse = {
+    payInType: 'BOUNTY_PAYMENT',
+    mcost: satsToMsats(totalCost),
+    payerPrivates: { result: { path: item.path, id: item.id, __typename: 'Item' } }
+  }
+
+  const [payBounty] = usePayInMutation(PAY_BOUNTY_MUTATION, {
     variables,
-    optimisticResponse: { payInType: 'ZAP', mcost: satsToMsats(root.bounty), payerPrivates: { result: { path: item.path, id: item.id, sats: root.bounty, act: 'TIP', __typename: 'ItemAct' } } },
-    ...payBountyCacheMods
+    optimisticResponse,
+    cachePhases: payBountyCachePhases
   })
 
-  const handlePayBounty = async onCompleted => {
-    try {
+  const handlePayBounty = async onClose => {
+    const onPaid = () => {
       animate()
-      const { error } = await act({ onCompleted })
+      onClose?.()
+    }
+
+    const options = {}
+    if (hasSendWallet) {
+      onPaid()
+    } else {
+      options.cachePhases = { onPaid }
+    }
+
+    try {
+      const { error } = await payBounty(options)
       if (error) throw error
     } catch (error) {
-      if (error instanceof ActCanceledError) {
-        return
-      }
-
       const reason = error?.message || error?.toString?.()
       toaster.danger(reason)
     }
@@ -80,30 +102,38 @@ export default function PayBounty ({ children, item }) {
     return null
   }
 
-  return (
-    <ActionTooltip
-      notForm
-      overlayText={numWithUnits(root.bounty)}
-    >
-      <div
-        className={styles.pay} onClick={() => {
-          showModal(onClose => (
-            <>
-              <div className='text-center fw-bold text-muted'>
-                Pay this bounty to {item.user.name}?
-              </div>
-              {/* initial={{ id: item.id }} is a hack to allow SubmitButton to be used as a button */}
-              <Form className='text-center' onSubmit={() => handlePayBounty(onClose)} initial={{ id: item.id }}>
-                <SubmitButton className='mt-4' variant='primary' submittingText='paying...' appendText={numWithUnits(root.bounty)}>
-                  pay
-                </SubmitButton>
-              </Form>
-            </>
-          ))
-        }}
+  if (!item.user.optional?.hasRecvWallet) {
+    return (
+      <ActionTooltip
+        notForm
+        overlayText={`${item.user.name} doesn't have a receive wallet to pay to`}
       >
-        pay bounty
-      </div>
-    </ActionTooltip>
+        <div className={styles.noWallet}>no receive wallet</div>
+      </ActionTooltip>
+    )
+  }
+
+  return (
+    <div
+      className={styles.pay} onClick={() => {
+        showModal(onClose => (
+          <>
+            <div className='text-center fw-bold text-muted'>
+              Pay this bounty to {item.user.name}?
+            </div>
+            <div className='text-center text-muted mt-2'>
+              {numWithUnits(bounty)} + {numWithUnits(proxyFee)} proxy fee
+            </div>
+            <Form className='text-center' onSubmit={() => handlePayBounty(onClose)} initial={{ id: item.id }}>
+              <SubmitButton className='mt-4' variant='primary' submittingText='paying...' appendText={numWithUnits(totalCost)}>
+                pay
+              </SubmitButton>
+            </Form>
+          </>
+        ))
+      }}
+    >
+      pay bounty
+    </div>
   )
 }

@@ -1,5 +1,5 @@
 import { ceilBigInt } from '@/lib/format'
-import { isP2P, isPayableWithCredits, isProxyPayment, isSystemOnly, isWithdrawal } from './is'
+import { isP2P, isP2POnly, isPayableWithCredits, isSystemOnly, isWithdrawal } from './is'
 import { USER_ID } from '@/lib/constants'
 
 export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }) {
@@ -81,8 +81,7 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
 }
 
 function getP2PCost (payIn) {
-  // proxy payments are only ever paid for with sats
-  if (isProxyPayment(payIn)) {
+  if (isP2POnly(payIn)) {
     return payIn.mcost
   }
   // round this up to the nearest 1000msats

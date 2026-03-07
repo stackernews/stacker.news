@@ -9,35 +9,37 @@ import useItemSubmit from './use-item-submit'
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
     payInMutationOptions: {
-      update (cache, { data: { upsertComment: { payerPrivates } } }) {
-        const result = payerPrivates.result
-        if (!result) return
+      cachePhases: {
+        onMutationResult (cache, { data: { upsertComment: { payerPrivates } } }) {
+          const result = payerPrivates.result
+          if (!result) return
 
-        cache.modify({
-          id: `Item:${comment.id}`,
-          fields: {
-            text () {
-              return result.text
-            }
-          },
-          optimistic: true
-        })
-
-        // propagate additional cost to ancestors if cost increased
-        const costDelta = (result.cost || 0) - (comment.cost || 0)
-        if (costDelta > 0 && comment.parentId && result.path) {
-          const ancestors = result.path.split('.').slice(0, -1)
-          ancestors.forEach(id => {
-            cache.modify({
-              id: `Item:${id}`,
-              fields: {
-                commentCost (existingCommentCost = 0) {
-                  return existingCommentCost + costDelta
-                }
-              },
-              optimistic: true
-            })
+          cache.modify({
+            id: `Item:${comment.id}`,
+            fields: {
+              text () {
+                return result.text
+              }
+            },
+            optimistic: true
           })
+
+          // propagate additional cost to ancestors if cost increased
+          const costDelta = (result.cost || 0) - (comment.cost || 0)
+          if (costDelta > 0 && comment.parentId && result.path) {
+            const ancestors = result.path.split('.').slice(0, -1)
+            ancestors.forEach(id => {
+              cache.modify({
+                id: `Item:${id}`,
+                fields: {
+                  commentCost (existingCommentCost = 0) {
+                    return existingCommentCost + costDelta
+                  }
+                },
+                optimistic: true
+              })
+            })
+          }
         }
       }
     },

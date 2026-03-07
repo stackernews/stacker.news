@@ -84,7 +84,8 @@ function PollResult ({ v, progress }) {
 }
 
 export function usePollVote ({ query = POLL_VOTE, itemId }) {
-  const update = (cache, { data: { pollVote } }) => {
+  // Poll vote mutations are pessimistic, so apply vote counts on paid-phase only.
+  const onPaid = (cache, { data: { pollVote } }) => {
     if (!pollVote?.payerPrivates.result) return
     const { payerPrivates: { result } } = pollVote
     const { id } = result
@@ -109,6 +110,8 @@ export function usePollVote ({ query = POLL_VOTE, itemId }) {
     })
   }
 
-  const [pollVote] = usePayInMutation(query, { update })
+  const [pollVote] = usePayInMutation(query, {
+    cachePhases: { onPaid }
+  })
   return pollVote
 }

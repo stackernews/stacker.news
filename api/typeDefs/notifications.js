@@ -17,6 +17,13 @@ export default gql`
     sortTime: Date!
   }
 
+  type BountyPayment {
+    id: ID!
+    earnedSats: Int!
+    item: Item!
+    sortTime: Date!
+  }
+
   enum BulletinIconType {
     MAP
   }
@@ -181,7 +188,7 @@ export default gql`
     sortTime: Date!
   }
 
-  union Notification = Reply | Votification | Mention
+  union Notification = Reply | Votification | BountyPayment | Mention
     | Invitification | Earn | JobChanged | Referral
     | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | PayInification

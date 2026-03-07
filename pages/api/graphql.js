@@ -19,7 +19,6 @@ const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
   introspection: true,
-  allowBatchedHttpRequests: true,
   validationRules: [depthLimit({
     revealDetails: true,
     maxListDepth: COMMENT_DEPTH_LIMIT,

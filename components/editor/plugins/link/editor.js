@@ -162,8 +162,8 @@ export default function LinkEditor ({ nodeKey, anchorElem }) {
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
         () => {
-          handleBlur()
-          return true
+          handleCancel()
+          return false
         }, COMMAND_PRIORITY_HIGH)
     )
   }, [editor, $updateLink, handleBlur])

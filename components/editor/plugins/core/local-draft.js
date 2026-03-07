@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useContext, useCallback, useEffect } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
-import { $isTextEmpty, $setText } from '@/lib/lexical/utils'
+import { $setText } from '@/lib/lexical/utils'
 import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import { useField } from 'formik'
@@ -23,16 +23,21 @@ export default function LocalDraftPlugin ({ name }) {
    * saves or removes draft from local storage based on editor emptiness
    * @param {string} text - markdown text content
    */
-  const $upsertDraft = useCallback((text) => {
+  const upsertDraft = useCallback((text) => {
     if (!storageKey) return
 
-    // if the editor is empty, remove the draft
-    if ($isTextEmpty()) {
+    // remove the draft if text is empty
+    if (!text || text.trim() === '') {
       window.localStorage.removeItem(storageKey)
     } else {
       window.localStorage.setItem(storageKey, text)
     }
   }, [storageKey])
+
+  // save the draft to local storage
+  useEffect(() => {
+    upsertDraft(text.value)
+  }, [upsertDraft, text.value])
 
   // load the draft from local storage
   useEffect(() => {
@@ -53,13 +58,6 @@ export default function LocalDraftPlugin ({ name }) {
     }
   // we're not depending on text.value here because we need to load the draft on mount, not on change
   }, [editor, storageKey])
-
-  // save the draft to local storage
-  useEffect(() => {
-    editor.getEditorState().read(() => {
-      $upsertDraft(text.value)
-    })
-  }, [editor, $upsertDraft, text.value])
 
   return null
 }

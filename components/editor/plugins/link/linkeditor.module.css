@@ -54,6 +54,7 @@
 
 .linkView {
   color: var(--theme-link);
+  min-height: calc(1em * 1.2 + 1rem);
 }
 
 .linkConfirmIcons {

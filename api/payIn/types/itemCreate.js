@@ -91,6 +91,35 @@ export async function getInitial (models, args, { me }) {
   }
 }
 
+export async function validateBeforeCreate (tx, payInProspect, payInArgs, { me }) {
+  if (me.id === USER_ID.anon || payInArgs.bio || (payInArgs.parentId && payInProspect.mcost === 0n)) {
+    return
+  }
+
+  const recentItems = await tx.item.findMany({
+    where: { userId: me.id },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+    select: {
+      id: true,
+      itemPayIns: {
+        where: {
+          payIn: {
+            payInType: 'ITEM_CREATE',
+            payInState: 'PAID'
+          }
+        },
+        select: { payInId: true },
+        take: 1
+      }
+    }
+  })
+
+  if (recentItems.length >= 3 && recentItems.every(item => item.itemPayIns.length === 0)) {
+    throw new GqlInputError('you have too many unpaid items')
+  }
+}
+
 export async function onBegin (tx, payInId, args) {
   const { parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], subNames = [], ...data } = args
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })

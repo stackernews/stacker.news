@@ -111,19 +111,29 @@ async function comments (item, sort, cursor, { me, models, userLoader }) {
 }
 
 export async function getItem (parent, { id }, { me, models }) {
-  const [item] = await itemQueryWithMeta({
+  const [item] = await getItemsById([id], { me, models })
+  return item
+}
+
+export async function getItemsById (ids, { me, models }) {
+  const uniqueIds = [...new Set(ids.map(id => Number(id)).filter(Number.isInteger))]
+  if (uniqueIds.length === 0) return []
+
+  const values = uniqueIds.map((id, index) => `(${id}, ${index})`).join(',')
+  const items = await itemQueryWithMeta({
     me,
     models,
     query: `
-      ${SELECT}
+      WITH requested(id, rank) AS (VALUES ${values})
+      ${SELECT}, rank
       FROM "Item"
+      JOIN requested ON "Item".id = requested.id
       ${payInJoinFilter(me)}
-      ${whereClause(
-        '"Item".id = $1',
-        activeOrMine(me)
-      )}`
-  }, Number(id))
-  return item
+      ${whereClause(activeOrMine(me))}`,
+    orderBy: 'ORDER BY rank ASC'
+  })
+
+  return items.map(({ rank, ...item }) => item)
 }
 
 const orderByClause = (by, me, models, type, sub) => {

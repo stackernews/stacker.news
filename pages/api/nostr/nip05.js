@@ -13,7 +13,7 @@ export default async function Nip05 ({ query: { name } }, res) {
   })
 
   for (const user of users) {
-    names[user.name] = user.nostrPubkey
+    names[user.name.toLowerCase()] = user.nostrPubkey
     if (user.nostrRelays.length) {
       // append relays with key pubkey
       relays[user.nostrPubkey] = []

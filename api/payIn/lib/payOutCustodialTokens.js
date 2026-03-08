@@ -25,6 +25,7 @@ export function getRedistributedPayOutCustodialTokens ({ subs = [], payOutCustod
       payOutCustodialTokensCopy.push({
         payOutType: 'TERRITORY_REVENUE',
         userId: sub.userId,
+        subId: sub.id,
         mtokens: revenueMtokens,
         custodialTokenType: 'SATS',
         subPayOutCustodialToken: {

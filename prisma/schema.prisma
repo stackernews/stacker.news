@@ -691,7 +691,8 @@ model Sub {
   TerritoryTransfer       TerritoryTransfer[]
   UserSubTrust            UserSubTrust[]
   subPayIn                SubPayIn[]
-  SubPayOutCustodialToken SubPayOutCustodialToken[]
+  payOutCustodialTokens   PayOutCustodialToken[]
+  subPayOutCustodialToken SubPayOutCustodialToken[]
   AggPayIn                AggPayIn[]
   AggPayOut               AggPayOut[]
   itemSubs                ItemSub[]
@@ -1456,6 +1457,8 @@ model PayOutCustodialToken {
   user    User? @relation(fields: [userId], references: [id], onDelete: Cascade)
   payInId Int
   payIn   PayIn @relation(fields: [payInId], references: [id], onDelete: Cascade)
+  subId   Int?
+  sub     Sub?  @relation(fields: [subId], references: [id], onDelete: Cascade)
 
   mtokens            BigInt
   mtokensAfter       BigInt?
@@ -1464,8 +1467,12 @@ model PayOutCustodialToken {
   subPayOutCustodialToken SubPayOutCustodialToken?
   earns                   Earn[]
 
+  // One territory-split payout row per payIn/sub keeps payout aggregation simple
+  // now that territory attribution is denormalized onto PayOutCustodialToken.
+  @@unique([payInId, subId], map: "PayOutCustodialToken_payInId_subId_key")
   @@index([createdAt])
   @@index([payInId])
+  @@index([subId])
   @@index([userId])
   @@index([payOutType])
 }
@@ -1616,6 +1623,9 @@ model AggPayIn {
 
   @@unique([granularity, timeBucket, payInType, subId, userId, slice], map: "AggPayIn_unique_key")
   @@index([granularity, slice, timeBucket])
+  // Match the mine/sub growth resolver join path so those reads stay selective.
+  @@index([granularity, slice, userId, timeBucket, payInType], map: "AggPayIn_growth_user_idx")
+  @@index([granularity, slice, subId, timeBucket, payInType], map: "AggPayIn_growth_sub_idx")
   @@index([granularity, timeBucket])
   @@index([granularity, payInType])
   @@index([granularity, subId])

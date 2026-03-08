@@ -283,11 +283,17 @@ export default {
       }
       return payOutCustodialToken
     },
-    sub: (payOutCustodialToken, args, { models, me }) => {
-      if (!payOutCustodialToken.subPayOutCustodialToken) {
+    sub: async (payOutCustodialToken, args, { models }) => {
+      if (payOutCustodialToken.sub) {
+        return payOutCustodialToken.sub
+      }
+      if (payOutCustodialToken.subPayOutCustodialToken) {
+        return payOutCustodialToken.subPayOutCustodialToken.sub
+      }
+      if (payOutCustodialToken.subId == null) {
         return null
       }
-      return payOutCustodialToken.subPayOutCustodialToken.sub
+      return await models.sub.findUnique({ where: { id: payOutCustodialToken.subId } })
     }
   },
   PayerPrivates: {

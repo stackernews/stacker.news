@@ -116,7 +116,7 @@ export async function getItem (parent, { id }, { me, models }) {
 }
 
 export async function getItemsById (ids, { me, models }) {
-  const uniqueIds = [...new Set(ids.map(id => Number(id)).filter(Number.isInteger))]
+  const uniqueIds = [...new Set(ids.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0))]
   if (uniqueIds.length === 0) return []
 
   const values = uniqueIds.map((id, index) => `(${id}, ${index})`).join(',')

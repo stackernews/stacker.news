@@ -250,7 +250,14 @@ export default function UpVote ({ item, className, collapsed }) {
         onShortPress={handleShortPress}
       >
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
-          <div className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}>
+          <div
+            className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}
+            role='button'
+            tabIndex={0}
+            aria-label={meSats ? 'zapped' : 'zap'}
+            aria-pressed={meSats ? 'true' : 'false'}
+            data-testid='btn-zap'
+          >
             <UpBolt
               width={26}
               height={26}

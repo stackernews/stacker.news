@@ -4,7 +4,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
+import { USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
@@ -26,6 +26,17 @@ const loadContributors = async (set) => {
   } catch (err) {
     console.error('Error loading contributors', err)
   }
+}
+
+const DEFAULT_NAME_SIMILARITY = 0.1
+
+function clampNameSimilarity (similarity = DEFAULT_NAME_SIMILARITY) {
+  const threshold = Number(similarity)
+  if (!Number.isFinite(threshold)) {
+    return DEFAULT_NAME_SIMILARITY
+  }
+
+  return Math.max(0, Math.min(threshold, 1))
 }
 
 async function authMethods (user, args, { models, me }) {
@@ -204,13 +215,7 @@ export default {
       if (q) {
         users = await models.$queryRaw`
           SELECT name
-          FROM users
-          WHERE (
-            id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete})
-          )
-          AND SIMILARITY(name, ${q}) > 0.1
-          ORDER BY SIMILARITY(name, ${q}) DESC
-          LIMIT ${limit}`
+          FROM search_users_by_name(${q}::text, ${DEFAULT_NAME_SIMILARITY}::real, ${Number(limit)}::integer)`
       } else {
         users = await models.$queryRaw`
           SELECT name
@@ -593,9 +598,7 @@ export default {
     searchUsers: async (parent, { q, limit, similarity }, { models }) => {
       return await models.$queryRaw`
         SELECT *
-        FROM users
-        WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete}))
-        AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit)}`
+        FROM search_users_by_name(${q}::text, ${clampNameSimilarity(similarity)}::real, ${Number(limit)}::integer)`
     }
   },
 

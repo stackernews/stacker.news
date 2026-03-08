@@ -140,6 +140,7 @@ model User {
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "users_name_trgm_idx", type: Gin)
   @@index([streak])
   @@index([gunStreak])
   @@index([horseStreak])

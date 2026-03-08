@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useLazyQuery } from '@apollo/client'
 import { LexicalTypeaheadMenuPlugin, MenuOption } from '@lexical/react/LexicalTypeaheadMenuPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import useDebounceCallback from '@/components/use-debounce-callback'
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import styles from '@/lib/lexical/theme/editor.module.css'
@@ -12,31 +13,64 @@ import { BLUR_COMMAND, COMMAND_PRIORITY_HIGH } from 'lexical'
 /** regex to match \@user or \~sub mentions */
 const MENTION_PATTERN = /(^|\s|\()([@~]\w{0,75})$/
 const MAX_SUGGESTIONS = 5
+const SUGGESTION_DEBOUNCE_MS = 150
+
+function getSuggestionLookup (trigger, getUserSuggestions, getSubSuggestions) {
+  switch (trigger) {
+    case '@':
+      return { getSuggestions: getUserSuggestions, itemsField: 'userSuggestions' }
+    case '~':
+      return { getSuggestions: getSubSuggestions, itemsField: 'subSuggestions' }
+    default:
+      return null
+  }
+}
 
 /** takes the full \@user or \~sub and fetches the suggestions */
 function useSuggestions ({ query }) {
   const [suggestions, setSuggestions] = useState([])
+  const requestIdRef = useRef(0)
 
-  const [getUserSuggestions] = useLazyQuery(USER_SUGGESTIONS, {
-    onCompleted: data => query && data && setSuggestions(data.userSuggestions)
-  })
-  const [getSubSuggestions] = useLazyQuery(SUB_SUGGESTIONS, {
-    onCompleted: data => query && data && setSuggestions(data.subSuggestions)
-  })
+  const [getUserSuggestions] = useLazyQuery(USER_SUGGESTIONS)
+  const [getSubSuggestions] = useLazyQuery(SUB_SUGGESTIONS)
+  const setCurrentSuggestions = useCallback((requestId, nextSuggestions = []) => {
+    if (requestId === requestIdRef.current) {
+      setSuggestions(nextSuggestions)
+    }
+  }, [])
+
+  const fetchSuggestions = useDebounceCallback(async (nextQuery, requestId) => {
+    const lookup = getSuggestionLookup(nextQuery[0], getUserSuggestions, getSubSuggestions)
+
+    if (!lookup) {
+      setCurrentSuggestions(requestId)
+      return
+    }
+
+    try {
+      const { data } = await lookup.getSuggestions({
+        variables: { q: nextQuery.slice(1), limit: MAX_SUGGESTIONS }
+      })
+      setCurrentSuggestions(requestId, data?.[lookup.itemsField] || [])
+    } catch {
+      setCurrentSuggestions(requestId)
+    }
+  }, SUGGESTION_DEBOUNCE_MS, [getUserSuggestions, getSubSuggestions, setCurrentSuggestions])
 
   useEffect(() => {
     if (!query) {
+      requestIdRef.current += 1
+      fetchSuggestions.cancel()
       setSuggestions([])
       return
     }
 
-    const q = query.slice(1)
-    if (query.startsWith('@')) {
-      getUserSuggestions({ variables: { q, limit: MAX_SUGGESTIONS } })
-    } else if (query.startsWith('~')) {
-      getSubSuggestions({ variables: { q, limit: MAX_SUGGESTIONS } })
-    }
-  }, [query, getUserSuggestions, getSubSuggestions])
+    const requestId = requestIdRef.current + 1
+    requestIdRef.current = requestId
+    fetchSuggestions(query, requestId)
+
+    return () => fetchSuggestions.cancel()
+  }, [query, fetchSuggestions])
 
   return suggestions
 }

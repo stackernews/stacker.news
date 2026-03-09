@@ -2,7 +2,7 @@ import classNames from 'classnames'
 import { useField } from 'formik'
 import { useMemo, useRef } from 'react'
 import BootstrapForm from 'react-bootstrap/Form'
-import { configExtension, defineExtension } from 'lexical'
+import { configExtension, defineExtension, $getRoot, $createParagraphNode } from 'lexical'
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
@@ -93,6 +93,9 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
           } else {
             $markdownToLexical(text.value)
           }
+        } else {
+          // start with a paragraph
+          $getRoot().append($createParagraphNode())
         }
       },
       name: modeConfig.name,

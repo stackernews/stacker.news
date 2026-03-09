@@ -5,7 +5,6 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { TableExtension } from '@lexical/table'
-import theme from '../../lib/lexical/theme'
 import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import DefaultNodes from '@/lib/lexical/nodes'
@@ -15,6 +14,7 @@ import { GalleryExtension } from '@/lib/lexical/exts/gallery'
 import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
 import NextLinkPlugin from './plugins/patch/next-link'
 import { MuteLexicalExtension } from '@/lib/lexical/exts/mute-lexical'
+import theme from '@/lib/lexical/theme'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {

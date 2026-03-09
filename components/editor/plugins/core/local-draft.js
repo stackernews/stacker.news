@@ -23,14 +23,14 @@ export default function LocalDraftPlugin ({ name }) {
    * saves or removes draft from local storage based on editor emptiness
    * @param {string} text - markdown text content
    */
-  const upsertDraft = useCallback((text) => {
+  const upsertDraft = useCallback((value) => {
     if (!storageKey) return
 
     // remove the draft if text is empty
-    if (!text || text.trim() === '') {
+    if (!value || value.trim() === '') {
       window.localStorage.removeItem(storageKey)
     } else {
-      window.localStorage.setItem(storageKey, text)
+      window.localStorage.setItem(storageKey, value)
     }
   }, [storageKey])
 

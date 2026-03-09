@@ -122,7 +122,7 @@ export default function FileUploadPlugin ({ editorRef }) {
 
     // set lexical selection to the drag selection
     const range = getDragSelection(e)
-    const rangeSelection = $createRangeSelection(range)
+    const rangeSelection = $createRangeSelection()
     if (range) {
       rangeSelection.applyDOMRange(range)
     }
@@ -135,17 +135,15 @@ export default function FileUploadPlugin ({ editorRef }) {
 
   // command that opens the file upload dialog
   useEffect(() => {
-    return mergeRegister(
-      editor.registerCommand(
-        SN_UPLOAD_FILES_COMMAND,
-        () => {
-          if (!editor.isEditable()) return false
+    editor.registerCommand(
+      SN_UPLOAD_FILES_COMMAND,
+      () => {
+        if (!editor.isEditable()) return false
 
-          fileInputRef.current?.click()
-          return true
-        },
-        COMMAND_PRIORITY_EDITOR
-      )
+        fileInputRef.current?.click()
+        return true
+      },
+      COMMAND_PRIORITY_EDITOR
     )
   }, [editor])
 

@@ -25,7 +25,7 @@ const INITIAL_STATE = {
 
 const ToolbarContext = createContext()
 
-export const ToolbarContextProvider = ({ topLevel, children }) => {
+export function ToolbarContextProvider ({ topLevel, children }) {
   const [toolbarState, setToolbarState] = useState({ ...INITIAL_STATE, showToolbar: !!topLevel })
 
   const batchUpdateToolbarState = useCallback((updates) => {
@@ -50,6 +50,6 @@ export const ToolbarContextProvider = ({ topLevel, children }) => {
   )
 }
 
-export const useToolbarState = () => {
+export function useToolbarState () {
   return useContext(ToolbarContext)
 }

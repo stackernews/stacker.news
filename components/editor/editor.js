@@ -129,7 +129,6 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
  * @param {boolean} props.isMarkdown - whether the editor is in markdown mode
  * @param {boolean} [props.required] - whether the field is required
  * @param {number} [props.minRows] - minimum number of rows for the editor
- * @param {React.ReactNode} [props.label] - label for the editor
  * @param {React.ReactNode} [props.hint] - hint text for the editor
  * @param {React.ReactNode} [props.warn] - warning text for the editor
  * @param {React.RefObject} [props.editorRef] - ref to the editor instance

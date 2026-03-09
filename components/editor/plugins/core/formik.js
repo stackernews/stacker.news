@@ -6,7 +6,6 @@ import { COMMAND_PRIORITY_HIGH, createCommand, BLUR_COMMAND } from 'lexical'
 import { useFeeButton } from '@/components/fee-button'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import useDebounceCallback from '@/components/use-debounce-callback'
-import { mergeRegister } from '@lexical/utils'
 import { useToast } from '@/components/toast'
 
 /** instantly syncs Formik with the latest markdown resulting from the editor */
@@ -74,29 +73,30 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
   }, [editor, syncFormik])
 
   useEffect(() => {
-    return mergeRegister(
-      editor.registerCommand(
-        SYNC_FORMIK_COMMAND,
-        (flush = true) => {
-          syncFormik(flush)
-          return true
-        },
-        COMMAND_PRIORITY_HIGH
-      ),
-      editor.registerCommand(
-        SUBMIT_FORMIK_COMMAND,
-        () => {
-          if (disabled) {
-            toaster?.warning('content is still being processed, please wait')
-            return false
-          }
-          submitForm?.()
-          return true
-        },
-        COMMAND_PRIORITY_HIGH
-      )
+    return editor.registerCommand(
+      SYNC_FORMIK_COMMAND,
+      (flush = true) => {
+        syncFormik(flush)
+        return true
+      },
+      COMMAND_PRIORITY_HIGH
     )
-  }, [editor, disabled, syncFormik, toaster, submitForm])
+  }, [editor, syncFormik])
+
+  useEffect(() => {
+    return editor.registerCommand(
+      SUBMIT_FORMIK_COMMAND,
+      () => {
+        if (disabled) {
+          toaster?.warning('content is still being processed, please wait')
+          return false
+        }
+        submitForm?.()
+        return true
+      },
+      COMMAND_PRIORITY_HIGH
+    )
+  }, [editor, disabled, toaster, submitForm])
 
   return null
 }

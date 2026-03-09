@@ -3,9 +3,9 @@ import { $findMatchingParent, mergeRegister } from '@lexical/utils'
 import { $createAutoLinkNode, $isAutoLinkNode, $isLinkNode } from '@lexical/link'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
-  PASTE_COMMAND,
+  PASTE_COMMAND, SELECTION_CHANGE_COMMAND,
   $getSelection, $isNodeSelection, $isRangeSelection,
-  COMMAND_PRIORITY_HIGH
+  COMMAND_PRIORITY_HIGH, COMMAND_PRIORITY_LOW
 } from 'lexical'
 import LinkEditor from './editor'
 import { getSelectedNode } from '@/lib/lexical/commands/utils'
@@ -15,7 +15,10 @@ import { ensureProtocol, removeTracking, URL_REGEXP } from '@/lib/url'
 export default function LinkEditorPlugin ({ anchorElem }) {
   const [isLinkEditable, setIsLinkEditable] = useState(false)
   const [nodeKey, setNodeKey] = useState(null)
+  const [dismissed, setDismissed] = useState(false)
   const [editor] = useLexicalComposerContext()
+
+  const handleDismiss = useCallback(() => setDismissed(true), [])
 
   const handleSelectionChange = useCallback((selection) => {
     let isLink = false
@@ -77,6 +80,12 @@ export default function LinkEditorPlugin ({ anchorElem }) {
         })
       }),
       editor.registerCommand(
+        SELECTION_CHANGE_COMMAND,
+        () => {
+          setDismissed(false)
+          return false
+        }, COMMAND_PRIORITY_LOW),
+      editor.registerCommand(
         PASTE_COMMAND,
         (event) => {
           const selection = $getSelection()
@@ -100,7 +109,7 @@ export default function LinkEditorPlugin ({ anchorElem }) {
           }
         }, COMMAND_PRIORITY_HIGH
       ))
-  }, [editor, nodeKey, anchorElem, handleSelectionChange])
+  }, [editor, handleSelectionChange])
 
-  return isLinkEditable && <LinkEditor nodeKey={nodeKey} anchorElem={anchorElem} />
+  return isLinkEditable && !dismissed && <LinkEditor nodeKey={nodeKey} anchorElem={anchorElem} onDismiss={handleDismiss} />
 }

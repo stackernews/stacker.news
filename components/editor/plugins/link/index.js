@@ -102,11 +102,11 @@ export default function LinkEditorPlugin ({ anchorElem }) {
           if (!selection.isCollapsed()) {
             editor.dispatchCommand(SN_TOGGLE_LINK_COMMAND, href)
             return true
-          } else {
-            const autolink = $createAutoLinkNode(href)
-            selection.insertNodes([autolink])
-            return true
           }
+
+          const autolink = $createAutoLinkNode(href)
+          selection.insertNodes([autolink])
+          return true
         }, COMMAND_PRIORITY_HIGH
       ))
   }, [editor, handleSelectionChange])

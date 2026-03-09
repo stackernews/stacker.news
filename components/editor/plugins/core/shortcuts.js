@@ -170,7 +170,7 @@ export function useFormattedShortcut (key) {
   const [formatted, setFormatted] = useState('')
 
   useEffect(() => {
-    setFormatted(key ? formatShortcut(key) : '')
+    setFormatted(formatShortcut(key))
   }, [key])
 
   return formatted

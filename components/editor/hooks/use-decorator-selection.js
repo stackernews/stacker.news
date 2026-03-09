@@ -98,16 +98,15 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
         ? event.target === target
         : event.target === element || element.contains(event.target)
 
-      if (hit) {
-        if (event.shiftKey) {
-          setSelected(!isSelected)
-        } else {
-          clearSelection()
-          setSelected(true)
-        }
-        return true
+      if (!hit) return false
+
+      if (event.shiftKey) {
+        setSelected(!isSelected)
+      } else {
+        clearSelection()
+        setSelected(true)
       }
-      return false
+      return true
     }
 
     return mergeRegister(

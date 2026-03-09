@@ -34,11 +34,6 @@ export default function LocalDraftPlugin ({ name }) {
     }
   }, [storageKey])
 
-  // save the draft to local storage
-  useEffect(() => {
-    upsertDraft(text.value)
-  }, [upsertDraft, text.value])
-
   // load the draft from local storage
   useEffect(() => {
     // prefer Formik value over local storage
@@ -58,6 +53,11 @@ export default function LocalDraftPlugin ({ name }) {
     }
   // we're not depending on text.value here because we need to load the draft on mount, not on change
   }, [editor, storageKey])
+
+  // save the draft to local storage
+  useEffect(() => {
+    upsertDraft(text.value)
+  }, [upsertDraft, text.value])
 
   return null
 }

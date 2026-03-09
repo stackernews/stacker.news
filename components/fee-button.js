@@ -171,6 +171,7 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
       merge: mergeLineItems,
       total,
       disabled: disabledReasons.size > 0,
+      disabledReasons,
       setDisabled,
       free,
       freeCommentsLeft: isComment ? freeCommentsLeft : null

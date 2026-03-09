@@ -28,7 +28,7 @@ import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import { $createMediaNode, MediaNode } from '@/lib/lexical/nodes/content/media'
 
 // submit disabled reason for upload
-const UPLOAD_SUBMIT_DISABLED_REASON = 'upload'
+export const UPLOAD_SUBMIT_DISABLED_REASON = 'upload'
 
 export const SN_UPLOAD_FILES_COMMAND = createCommand('SN_UPLOAD_FILES_COMMAND')
 

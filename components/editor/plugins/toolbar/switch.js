@@ -22,14 +22,14 @@ export const TOGGLE_MODE_COMMAND = createCommand('TOGGLE_MODE_COMMAND')
 export default function ModeSwitchPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
   const toaster = useToast()
-  const { disabledReasons } = useFeeButton()
+  const { disabledReasons } = useFeeButton() ?? {}
   const { changeMode, toggleMode, isMarkdown } = useEditorMode()
 
   useEffect(() => {
     return editor.registerCommand(
       TOGGLE_MODE_COMMAND,
       (newMode) => {
-        const isDisabledByUpload = disabledReasons.has(UPLOAD_SUBMIT_DISABLED_REASON)
+        const isDisabledByUpload = disabledReasons?.has(UPLOAD_SUBMIT_DISABLED_REASON)
         if (isDisabledByUpload) {
           toaster?.warning('upload in progress, please wait')
           return false

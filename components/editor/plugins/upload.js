@@ -135,7 +135,7 @@ export default function FileUploadPlugin ({ editorRef }) {
 
   // command that opens the file upload dialog
   useEffect(() => {
-    editor.registerCommand(
+    return editor.registerCommand(
       SN_UPLOAD_FILES_COMMAND,
       () => {
         if (!editor.isEditable()) return false

@@ -5,7 +5,7 @@ import { payInCancel, payInFailed } from '../payIn/transitions'
 import { retry } from '../payIn'
 import { payInTypesSql } from '../payIn/lib/sql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import { getItem } from './item'
+import { getItem, getItemsById } from './item'
 import { getSub } from './sub'
 import { Prisma } from '@prisma/client'
 
@@ -32,6 +32,22 @@ function payInResultType (payInType) {
 function isMine (payIn, { me }) {
   const meId = me?.id ?? USER_ID.anon
   return Number(meId) === Number(payIn.userId)
+}
+
+async function hydratePayInItems (payIns, { me, models }) {
+  const visibleItemPayIns = payIns.filter(payIn =>
+    payIn.itemPayIn && !(!isMine(payIn, { me }) && payIn.payInType === 'DOWN_ZAP'))
+  if (visibleItemPayIns.length === 0) return
+
+  const items = await getItemsById(
+    visibleItemPayIns.map(payIn => payIn.itemPayIn.itemId),
+    { me, models }
+  )
+  const itemMap = new Map(items.map(item => [Number(item.id), item]))
+
+  for (const payIn of visibleItemPayIns) {
+    payIn.item = itemMap.get(Number(payIn.itemPayIn.itemId)) || null
+  }
 }
 
 export async function getPayIn (parent, { id }, { me, models }) {
@@ -119,6 +135,7 @@ export default {
           LIMIT ${limit}`,
         orderBy: Prisma.sql`ORDER BY "sortTime" DESC, "isSend" ASC`
       })
+      await hydratePayInItems(payIns, { me, models })
 
       return {
         payIns,
@@ -209,7 +226,10 @@ export default {
       if (!payIn.itemPayIn || (!isMine(payIn, { me }) && payIn.payInType === 'DOWN_ZAP')) {
         return null
       }
-      return await getItem(payIn, { id: payIn.itemPayIn.itemId }, { models, me })
+      if (typeof payIn.item !== 'undefined') {
+        return payIn.item
+      }
+      return await getItem(payIn, { id: payIn.itemPayIn.itemId }, { me, models })
     },
     payOutCustodialTokens: async (payIn, args, { models, me }) => {
       let payOutCustodialTokens = []
@@ -229,18 +249,22 @@ export default {
 
       // obscure rewards if they are not mine
       if (payIn.payInType === 'REWARDS') {
-        const myReward = payOutCustodialTokens.find(t => t.payOutType === 'REWARD' && t.userId === me.id)
-        const remainingOtherReward = payOutCustodialTokens.filter(t => t.payOutType === 'REWARD' && t.userId !== me.id)[0]
+        const meId = Number(me.id)
+        const myReward = payOutCustodialTokens.find(t => t.payOutType === 'REWARD' && Number(t.userId) === Number(meId))
+        const remainingOtherReward = payOutCustodialTokens.find(t => t.payOutType === 'REWARD' && Number(t.userId) !== Number(meId))
+        const visibleRewards = myReward ? [myReward] : []
         if (remainingOtherReward) {
-          const restRewards = {
-            id: remainingOtherReward.id,
-            payOutType: 'REWARD',
-            mtokens: BigInt(payIn.mcost) - BigInt(myReward.mtokens),
-            custodialTokenType: 'SATS'
+          const remainingRewardMtokens = BigInt(payIn.mcost) - BigInt(myReward?.mtokens ?? 0)
+          if (remainingRewardMtokens > 0) {
+            visibleRewards.push({
+              id: remainingOtherReward.id,
+              payOutType: 'REWARD',
+              mtokens: remainingRewardMtokens,
+              custodialTokenType: 'SATS'
+            })
           }
-          return [myReward, restRewards]
         }
-        return [myReward]
+        return visibleRewards
       }
 
       // if this is a zap, we can see the routing fee and rewards pool
@@ -283,11 +307,17 @@ export default {
       }
       return payOutCustodialToken
     },
-    sub: (payOutCustodialToken, args, { models, me }) => {
-      if (!payOutCustodialToken.subPayOutCustodialToken) {
+    sub: async (payOutCustodialToken, args, { models }) => {
+      if (payOutCustodialToken.sub) {
+        return payOutCustodialToken.sub
+      }
+      if (payOutCustodialToken.subPayOutCustodialToken) {
+        return payOutCustodialToken.subPayOutCustodialToken.sub
+      }
+      if (payOutCustodialToken.subId == null) {
         return null
       }
-      return payOutCustodialToken.subPayOutCustodialToken.sub
+      return await models.sub.findUnique({ where: { id: payOutCustodialToken.subId } })
     }
   },
   PayerPrivates: {

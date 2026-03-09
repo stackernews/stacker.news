@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "audit:blast-radius": "node scripts/audit-blast-radius.js",
     "dev": "NODE_OPTIONS='--trace-warnings --enable-source-maps' next dev",
     "build": "next build",
     "migrate": "prisma migrate deploy",

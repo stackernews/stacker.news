@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Form, Input, SNInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useLazyQuery } from '@apollo/client'
@@ -13,6 +13,20 @@ import { ItemButtonBar } from './post'
 import { UPSERT_LINK } from '@/fragments/payIn'
 import { usePostFormShared } from './use-post-form-shared'
 import useDebounceCallback from './use-debounce-callback'
+import { ensureProtocol } from '@/lib/url'
+
+const LOOKUP_DEBOUNCE_MS = 500
+const DUPES_DEBOUNCE_MS = 500
+
+function getMeaningfulUrl (value) {
+  try {
+    const normalized = ensureProtocol(value)
+    const url = new URL(normalized)
+    return url.hostname.includes('.') || url.hostname === 'localhost' ? normalized : null
+  } catch {
+    return null
+  }
+}
 
 export function LinkForm ({ item, subs, EditInfo, children }) {
   const router = useRouter()
@@ -30,10 +44,14 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
     }
   })
 
+  const isEditing = !!item
+  const [currentTitle, setCurrentTitle] = useState(initial.title || '')
+
   // allows finer control over dupe accordian layout shift
   const [dupes, setDupes] = useState()
+  const [titleOverride, setTitleOverride] = useState()
 
-  const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
+  const [getPageTitleAndUnshorted, { data, loading: pageTitleLoading }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
       pageTitleAndUnshorted(url: $url) {
         title
@@ -47,55 +65,34 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
         ...ItemFields
       }
     }`)
-  const [getRelated, { data: relatedData }] = useLazyQuery(gql`
-    ${ITEM_FIELDS}
-    query related($title: String!) {
-      related(title: $title, minMatch: "75%", limit: 3) {
-        items {
-          ...ItemFields
-        }
-      }
-    }`)
-
-  const related = []
-  for (const item of relatedData?.related?.items || []) {
-    let found = false
-    for (const ditem of dupesData?.dupes || []) {
-      if (ditem.id === item.id) {
-        found = true
-        break
-      }
-    }
-
-    if (!found) {
-      related.push(item)
-    }
-  }
-
-  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), 1000, [getDupes])
-
-  useEffect(() => {
-    if (data?.pageTitleAndUnshorted?.title) {
-      setTitleOverride(data.pageTitleAndUnshorted.title)
-    }
-  }, [data?.pageTitleAndUnshorted?.title])
+  const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
+  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), DUPES_DEBOUNCE_MS, [getDupes])
 
   useEffect(() => {
     if (!dupesLoading) {
       setDupes(dupesData?.dupes)
     }
-  }, [dupesLoading, dupesData, setDupes])
+  }, [dupesLoading, dupesData])
 
   useEffect(() => {
-    if (data?.pageTitleAndUnshorted?.unshorted) {
+    const canOverrideTitle = !currentTitle.trim() || currentTitle === titleOverride
+
+    if (!isEditing && data?.pageTitleAndUnshorted?.title && canOverrideTitle) {
+      setTitleOverride(data.pageTitleAndUnshorted.title)
+    }
+  }, [data?.pageTitleAndUnshorted?.title, currentTitle, titleOverride, isEditing])
+
+  useEffect(() => {
+    const unshorted = getMeaningfulUrl(data?.pageTitleAndUnshorted?.unshorted)
+
+    if (unshorted) {
       getDupesDebounce({
-        variables: { url: data?.pageTitleAndUnshorted?.unshorted }
+        variables: { url: unshorted }
       })
     }
   }, [data?.pageTitleAndUnshorted?.unshorted, getDupesDebounce])
 
-  const [postDisabled, setPostDisabled] = useState(false)
-  const [titleOverride, setTitleOverride] = useState()
+  const postDisabled = !item && (pageTitleLoading || dupesLoading)
 
   return (
     <Form
@@ -112,10 +109,14 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
         required
         clear
         onChange={async (formik, e) => {
-          if (e.target.value) {
-            getRelated({
-              variables: { title: e.target.value }
-            })
+          setCurrentTitle(e.target.value)
+
+          if (isEditing) {
+            return
+          }
+
+          if (titleOverride && e.target.value !== titleOverride) {
+            setTitleOverride(undefined)
           }
         }}
         maxLength={MAX_TITLE_LENGTH}
@@ -130,11 +131,33 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
         overrideValue={data?.pageTitleAndUnshorted?.unshorted}
         hint={EditInfo}
         onChange={async (formik, e) => {
-          const hasTitle = !!(formik?.values.title.trim().length > 0)
-          const hasDraftTitle = !!(window.localStorage.getItem('link-title')?.trim()?.length > 0)
-          if (!hasTitle && !hasDraftTitle) {
-            getPageTitleAndUnshorted({
-              variables: { url: e.target.value }
+          const value = e.target.value
+
+          if (isEditing) {
+            return
+          }
+
+          const meaningfulUrl = getMeaningfulUrl(value)
+
+          if (!meaningfulUrl) {
+            setDupes(undefined)
+            client.cache.modify({
+              fields: {
+                pageTitleAndUnshorted () {
+                  return null
+                }
+              }
+            })
+            return
+          }
+
+          const hasTitle = !!formik?.values.title.trim().length && formik?.values.title.trim() !== titleOverride
+          const hasDraftTitle = !!window.localStorage.getItem('link-title')?.trim()?.length
+          const isUnshortedOverride = !!data?.pageTitleAndUnshorted?.unshorted && value === data.pageTitleAndUnshorted.unshorted
+
+          if (!hasTitle && !hasDraftTitle && !isUnshortedOverride) {
+            getPageTitleAndUnshortedDebounce({
+              variables: { url: meaningfulUrl }
             })
           } else {
             client.cache.modify({
@@ -145,13 +168,10 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
               }
             })
           }
-          if (e.target.value) {
-            setPostDisabled(true)
-            setTimeout(() => setPostDisabled(false), 2000)
-            getDupesDebounce({
-              variables: { url: e.target.value }
-            })
-          }
+
+          getDupesDebounce({
+            variables: { url: meaningfulUrl }
+          })
         }}
       />
       <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item}>
@@ -185,18 +205,6 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
               }
               />
             </div>}
-          <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
-            <AccordianItem
-              header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>similar</div>}
-              body={
-                <div>
-                  {related.map((item, i) => (
-                    <Item item={item} key={item.id} />
-                  ))}
-                </div>
-              }
-            />
-          </div>
         </>}
     </Form>
   )

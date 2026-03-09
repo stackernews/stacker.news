@@ -341,6 +341,7 @@ describe('PayIn Edge Cases', () => {
         const territoryRevenue = payOuts[0]
         // Territory gets (100 - rewardsPct)% of remaining after zap payOut
         const expectedRevenue = satsToMsats(100) * (100n - BigInt(bitcoinSub.rewardsPct)) * 30n / 10000n
+        expect(territoryRevenue.subId).toBe(bitcoinSub.id)
         expect(territoryRevenue.mtokens).toBe(expectedRevenue)
       }
     })

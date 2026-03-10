@@ -6,13 +6,10 @@ import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL,
-  COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  USER_ID, POLL_COST, ADMIN_ITEMS, GLOBAL_SEED,
+  COMMENT_TYPE_QUERY,
+  USER_ID, POLL_COST, ADMIN_ITEMS,
   NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_ADMIN_IDS,
   ITEM_EDIT_SECONDS,
-  COMMENTS_LIMIT,
-  COMMENTS_OF_COMMENT_LIMIT,
-  FULL_COMMENTS_THRESHOLD,
   WALLET_RETRY_BEFORE_MS,
   WALLET_MAX_RETRIES,
   DEFAULT_POSTS_SATS_FILTER,
@@ -34,81 +31,7 @@ import { shuffleArray } from '@/lib/rand'
 import pay, { retry as retryPayIn } from '../payIn'
 import { BOUNTY_ALREADY_PAID_ERROR, BOUNTY_IN_PROGRESS_ERROR, getBountyPaymentTail } from '../payIn/lib/bountyPayment'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
-
-function commentsOrderByClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER) {
-  // Push comments with investment below the threshold to the bottom of threads
-  // null means "show all" — don't push any comments to the bottom
-  const sharedSorts = [
-    '("Item"."pinId" IS NOT NULL) DESC',
-    '("Item"."deletedAt" IS NULL) DESC',
-    commentsSatsFilter != null &&
-      `(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`
-  ].filter(Boolean).join(', ')
-
-  const sortExpr = sort === 'new'
-    ? '"Item".created_at DESC'
-    : sort === 'lit'
-      ? '"Item"."ranklit" DESC'
-      : '"Item"."ranktop" DESC'
-
-  return `ORDER BY ${sharedSorts}, ${sortExpr}, "Item".id DESC`
-}
-
-async function comments (item, sort, cursor, { me, models, userLoader }) {
-  // Get user's commentsSatsFilter to push filtered freebies to bottom
-  // null means "show all" — don't push any comments to the bottom
-  let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
-  if (me) {
-    const user = await userLoader.load(me.id)
-    if (user) commentsSatsFilter = user.commentsSatsFilter
-  }
-
-  const orderBy = commentsOrderByClause(sort, commentsSatsFilter)
-
-  // if we're logged in, there might be pending comments from us we want to show but weren't counted
-  if (!me && item.nDirectComments === 0) {
-    return {
-      comments: [],
-      cursor: null
-    }
-  }
-
-  const decodedCursor = decodeCursor(cursor)
-  const offset = decodedCursor.offset
-  const filter = ` AND ("Item"."parentId" <> $1 OR "Item".created_at <= '${decodedCursor.time.toISOString()}'::TIMESTAMP(3)) `
-
-  // XXX what a mess
-  let comments
-  if (me) {
-    if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
-      const [{ item_comments_zaprank_with_me_limited: limitedComments }] = await models.$queryRawUnsafe(
-        'SELECT item_comments_zaprank_with_me_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8, $9)',
-        Number(item.id), GLOBAL_SEED, Number(me.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
-      comments = limitedComments
-    } else {
-      const [{ item_comments_zaprank_with_me: fullComments }] = await models.$queryRawUnsafe(
-        'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
-        Number(item.id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
-      comments = fullComments
-    }
-  } else {
-    if (item.ncomments > FULL_COMMENTS_THRESHOLD) {
-      const [{ item_comments_limited: limitedComments }] = await models.$queryRawUnsafe(
-        'SELECT item_comments_limited($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5::INTEGER, $6, $7)',
-        Number(item.id), COMMENTS_LIMIT, offset, COMMENTS_OF_COMMENT_LIMIT, COMMENT_DEPTH_LIMIT, filter, orderBy)
-      comments = limitedComments
-    } else {
-      const [{ item_comments: fullComments }] = await models.$queryRawUnsafe(
-        'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(item.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
-      comments = fullComments
-    }
-  }
-
-  return {
-    comments,
-    cursor: comments.length + offset < item.nDirectComments ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT) : null
-  }
-}
+import { resolveItemComments } from './comment-tree'
 
 export async function getItem (parent, { id }, { me, models }) {
   const [item] = await getItemsById([id], { me, models })
@@ -1263,7 +1186,7 @@ export default {
         }
       }
 
-      return comments(item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor, ctx)
+      return await resolveItemComments(item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor, { ...ctx, itemQueryWithMeta, payInJoinFilter, select: SELECT })
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0

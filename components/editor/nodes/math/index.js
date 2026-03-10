@@ -33,7 +33,9 @@ export default function MathComponent ({ math, inline, nodeKey }) {
 
   // auto-open editor on new nodes
   useEffect(() => {
-    if (!math && isEditable) {
+    if (!math.trim() && isEditable) {
+      // start from scratch
+      setMathValue('')
       setShowMathEditor(true)
     }
   }, [])

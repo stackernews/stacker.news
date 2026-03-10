@@ -127,13 +127,9 @@ export default function LinkEditor ({ nodeKey, anchorElem, onDismiss }) {
     if (!floatingElem) return
 
     if (!event || !floatingElem.contains(event.relatedTarget)) {
-      if (editedLinkUrl !== '' && editedLinkUrl !== linkUrl) {
-        handleLinkConfirm()
-      } else {
-        handleCancel()
-      }
+      handleCancel()
     }
-  }, [editedLinkUrl, linkUrl, handleCancel, handleLinkConfirm, isLinkEditMode])
+  }, [handleCancel])
 
   // editor updates, selection changes, escape key
   useEffect(() => {

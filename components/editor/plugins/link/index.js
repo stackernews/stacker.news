@@ -73,16 +73,12 @@ export default function LinkEditorPlugin ({ anchorElem }) {
   // paste link into selection
   useEffect(() => {
     return mergeRegister(
-      editor.registerUpdateListener(({ editorState }) => {
-        editorState.read(() => {
-          const selection = $getSelection()
-          handleSelectionChange(selection)
-        })
-      }),
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         () => {
           setDismissed(false)
+          const selection = $getSelection()
+          handleSelectionChange(selection)
           return false
         }, COMMAND_PRIORITY_LOW),
       editor.registerCommand(

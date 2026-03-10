@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import Link from 'next/link'
 import { $findMatchingParent, mergeRegister } from '@lexical/utils'
 import { $createLinkNode, $isAutoLinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
-  COMMAND_PRIORITY_HIGH, COMMAND_PRIORITY_LOW,
-  KEY_ESCAPE_COMMAND, SELECTION_CHANGE_COMMAND,
-  $getSelection, $isNodeSelection, $isRangeSelection
+  COMMAND_PRIORITY_HIGH,
+  KEY_ESCAPE_COMMAND,
+  $getSelection, $isNodeSelection, $isRangeSelection, isCurrentlyReadOnlyMode
 } from 'lexical'
 import Check from '@/svgs/check-line.svg'
 import Pencil from '@/svgs/edit-line.svg'
@@ -31,14 +30,17 @@ export default function LinkEditor ({ nodeKey, anchorElem, onDismiss }) {
   const [linkUrl, setLinkUrl] = useState('')
   const [editedLinkUrl, setEditedLinkUrl] = useState('')
 
-  const hideFloatingElem = useCallback(() => {
+  const hideFloatingElem = useCallback((dismiss = true) => {
     if (!floatingRef.current) return
     setFloatingElemPosition({ targetRect: null, floatingElem: floatingRef.current, anchorElem, fade: false })
-    onDismiss()
+    if (dismiss) onDismiss()
   }, [anchorElem, onDismiss])
 
   const handleCancel = useCallback(() => {
     hideFloatingElem()
+    // don't toggle link if the editor is currently read-only
+    // e.g. lexical reconciliation during a markdown-to-rich mode switch
+    if (isCurrentlyReadOnlyMode()) return
     if (linkUrl === '' || linkUrl === DEFAULT_URL) {
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
     }
@@ -66,14 +68,14 @@ export default function LinkEditor ({ nodeKey, anchorElem, onDismiss }) {
       setLinkUrl('')
       setEditedLinkUrl('')
       if (isLinkEditMode) setIsLinkEditMode(false)
-      hideFloatingElem()
+      hideFloatingElem(false)
       return
     }
 
     const newUrl = linkNode.getURL()
     setLinkUrl(newUrl)
 
-    if (!isLinkEditMode && (newUrl.trim() === '' || newUrl === DEFAULT_URL)) {
+    if (!isLinkEditMode && (newUrl.trim() === '')) {
       setEditedLinkUrl('')
       setIsLinkEditMode(true)
     }
@@ -86,9 +88,15 @@ export default function LinkEditor ({ nodeKey, anchorElem, onDismiss }) {
       hideFloatingElem()
       return
     }
-    const pos = el.getBoundingClientRect()
-    pos.y += LINK_ELEMENT_VERTICAL_OFFSET
-    setFloatingElemPosition({ targetRect: pos, floatingElem, anchorElem, verticalGap: 8, horizontalOffset: 0, fade: false })
+    const { top, left, width, height } = el.getBoundingClientRect()
+    setFloatingElemPosition({
+      targetRect: { top: top + LINK_ELEMENT_VERTICAL_OFFSET, left, width, height },
+      floatingElem,
+      anchorElem,
+      verticalGap: 8,
+      horizontalOffset: 0,
+      fade: false
+    })
   }, [anchorElem, editor, isLinkEditMode, nodeKey, hideFloatingElem])
 
   const handleLinkConfirm = useCallback(() => {
@@ -125,7 +133,7 @@ export default function LinkEditor ({ nodeKey, anchorElem, onDismiss }) {
         handleCancel()
       }
     }
-  }, [editedLinkUrl, linkUrl, handleCancel, handleLinkConfirm])
+  }, [editedLinkUrl, linkUrl, handleCancel, handleLinkConfirm, isLinkEditMode])
 
   // editor updates, selection changes, escape key
   useEffect(() => {
@@ -135,12 +143,6 @@ export default function LinkEditor ({ nodeKey, anchorElem, onDismiss }) {
           $updateLink()
         })
       }),
-      editor.registerCommand(
-        SELECTION_CHANGE_COMMAND,
-        () => {
-          $updateLink()
-          return false
-        }, COMMAND_PRIORITY_LOW),
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
         () => {
@@ -178,7 +180,6 @@ export default function LinkEditor ({ nodeKey, anchorElem, onDismiss }) {
     }
   }, [editor, anchorElem, $updateLink])
 
-  // blur from input or anchor element
   useEffect(() => {
     const editorElem = floatingRef.current
     if (!editorElem || !anchorElem) return
@@ -227,14 +228,14 @@ export default function LinkEditor ({ nodeKey, anchorElem, onDismiss }) {
             )
           : (
             <>
-              <Link
+              <a
                 className={styles.linkView}
                 href={ensureProtocol(linkUrl)}
                 target='_blank'
                 rel='noreferrer nofollow noopener'
               >
                 {linkUrl}
-              </Link>
+              </a>
               <div className={styles.linkConfirmIcons}>
                 <span className={styles.linkEditIcon} onMouseDown={(e) => e.preventDefault()} onClick={() => { setEditedLinkUrl(linkUrl); setIsLinkEditMode(true) }}>
                   <Pencil />

@@ -20,6 +20,7 @@ export class GalleryNode extends ElementNode {
   createDOM (config) {
     const div = document.createElement('div')
     div.setAttribute('class', 'sn-gallery')
+    div.contentEditable = 'false'
     return div
   }
 

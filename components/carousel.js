@@ -151,6 +151,28 @@ export function CarouselProvider ({ children }) {
   return <CarouselContext.Provider value={value}>{children}</CarouselContext.Provider>
 }
 
+const noop = () => {}
+
+const NOOP_CAROUSEL = {
+  showCarousel: noop,
+  addMedia: noop,
+  confirmMedia: noop,
+  removeMedia: noop
+}
+
 export function useCarousel () {
   return useContext(CarouselContext)
+}
+
+/**
+ * returns the carousel context if we're not in an editable context,
+ * otherwise returns NOOP_CAROUSEL
+ *
+ * @param {boolean} editable - whether the rich editor is editable
+ * @returns {Object} carousel context
+ */
+export function useEditableCarousel (editable) {
+  const carousel = useCarousel()
+  if (editable || !carousel) return NOOP_CAROUSEL
+  return carousel
 }

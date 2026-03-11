@@ -122,10 +122,23 @@ const DEFAULT_USE_REMOTE_LINE_ITEMS = () => null
 
 export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, useRemoteLineItems = DEFAULT_USE_REMOTE_LINE_ITEMS, children }) {
   const [lineItems, setLineItems] = useState({})
-  const [disabled, setDisabled] = useState(false)
+  const [disabledReasons, setDisabledReasons] = useState(() => new Set())
   const { me } = useMe()
 
   const remoteLineItems = useRemoteLineItems()
+
+  // sets a submit disabled reason
+  const setDisabled = useCallback((key, value) => {
+    setDisabledReasons(prev => {
+      const hasKey = prev.has(key)
+      // avoid re-renders if the value is the same
+      if (value === hasKey) return prev
+
+      const next = new Set(prev)
+      value ? next.add(key) : next.delete(key)
+      return next
+    })
+  }, [])
 
   const mergeLineItems = useCallback((newLineItems) => {
     setLineItems(lineItems => ({
@@ -157,12 +170,13 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
       lines,
       merge: mergeLineItems,
       total,
-      disabled,
+      disabled: disabledReasons.size > 0,
+      disabledReasons,
       setDisabled,
       free,
       freeCommentsLeft: isComment ? freeCommentsLeft : null
     }
-  }, [me, me?.privates?.sats, me?.privates?.credits, me?.privates?.freeCommentsLeft, me?.privates?.hasSendWallet, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
+  }, [me, me?.privates?.sats, me?.privates?.credits, me?.privates?.freeCommentsLeft, me?.privates?.hasSendWallet, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabledReasons, setDisabled])
 
   return (
     <FeeButtonContext.Provider value={value}>

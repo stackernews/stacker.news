@@ -149,10 +149,10 @@ export class EmbedNode extends DecoratorBlockNode {
 
   decorate (_editor, config) {
     const Embed = require('@/components/embed').default
-    const embedBlockTheme = config.theme.embeds || {}
+
     const className = {
-      base: embedBlockTheme.base || '',
-      focus: embedBlockTheme.focus || ''
+      base: config.theme?.embeds?.base || '',
+      focus: 'focused'
     }
 
     return (

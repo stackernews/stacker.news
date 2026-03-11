@@ -4,9 +4,11 @@ import { createCommand, $selectAll, $getSelection, COMMAND_PRIORITY_EDITOR, $isR
 import { $formatBlock } from '@/lib/lexical/commands/formatting/blocks'
 import useHeadlessBridge from '@/components/editor/hooks/use-headless-bridge'
 import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
-import { $insertMarkdown } from '@/lib/lexical/utils'
+import { $insertText } from '@/lib/lexical/utils'
 import { $debugNodeToJSON } from '@/lib/lexical/nodes/utils'
 import { $toggleLink } from '@/lib/lexical/commands/links'
+import { $insertMath } from '@/lib/lexical/commands/math'
+import { MDAST_DEBUG } from '@/lib/constants'
 
 /** command to transform markdown selections using a headless lexical editor
  * @param {Object} params.selection - selection to transform
@@ -45,7 +47,7 @@ export default function TransformerBridgePlugin () {
         $markdownToLexical(markdown)
 
         // DEBUG: what are we transforming?
-        if (process.env.NODE_ENV !== 'production') {
+        if (MDAST_DEBUG) {
           console.log('[Transformer Bridge] BEFORE TRANSFORMATION root with children', $debugNodeToJSON($getRoot()))
         }
 
@@ -65,10 +67,13 @@ export default function TransformerBridgePlugin () {
             case 'link':
               $toggleLink(bridgeRef.current, transformation)
               break
+            case 'math':
+              $insertMath(bridgeRef.current, transformation)
+              break
           }
 
           // get the new markdown from the bridge editor
-          newMarkdown = $lexicalToMarkdown()
+          newMarkdown = $lexicalToMarkdown(true)
         }
 
         // we're done, clear the bridge
@@ -80,7 +85,7 @@ export default function TransformerBridgePlugin () {
 
       // insert the new markdown into the original editor
       // trim whitespaces to avoid extra newlines
-      $insertMarkdown(newMarkdown, true)
+      $insertText(newMarkdown, true)
       return true
     }, COMMAND_PRIORITY_EDITOR)
   }, [editor, bridgeRef])

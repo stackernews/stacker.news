@@ -1,6 +1,7 @@
 import { $applyNodeReplacement } from 'lexical'
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { $extractHeadingsFromRoot, buildNestedTocStructure, buildHtmlFromStructure } from '@/lib/lexical/utils/toc'
+import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents'
 
 function $convertTableOfContentsElement (domNode) {
   if (domNode.hasAttribute('data-lexical-toc')) {
@@ -99,10 +100,24 @@ export class TableOfContentsNode extends DecoratorBlockNode {
     return true
   }
 
-  decorate (editor) {
+  decorate (_editor, config) {
     const { TableOfContents } = require('@/components/editor/nodes/toc')
     const headings = $extractHeadingsFromRoot()
-    return <TableOfContents headings={headings} />
+
+    const className = {
+      base: config.theme?.toc || '',
+      focus: 'focused'
+    }
+
+    return (
+      <BlockWithAlignableContents
+        nodeKey={this.getKey()}
+        className={className}
+        format={this.__format}
+      >
+        <TableOfContents headings={headings} />
+      </BlockWithAlignableContents>
+    )
   }
 }
 

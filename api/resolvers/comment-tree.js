@@ -88,7 +88,7 @@ async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decode
         SELECT
           "Item".id,
           1 AS depth,
-          0 AS rn
+          0::BIGINT AS rn
         FROM "Item"
         ${payInJoinFilter(me)}
         WHERE "Item"."parentId" = $1

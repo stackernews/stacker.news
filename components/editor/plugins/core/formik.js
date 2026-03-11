@@ -39,13 +39,13 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
         return
       }
 
-      if (isMarkdownMode(editor) || !setDisabled || flush) {
-        textHelpers.setValue($getMarkdown(editor))
-        setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, false)
-      } else {
-        setDisabled(DEBOUNCED_SUBMIT_DISABLED_REASON, true)
+      if (!isMarkdownMode(editor) && !flush) {
+        setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, true)
         debouncedRichSave()
+        return
       }
+
+      textHelpers.setValue($getMarkdown(editor))
     })
   }, [editor, textHelpers, debouncedRichSave, setDisabled])
 
@@ -97,6 +97,14 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
       COMMAND_PRIORITY_HIGH
     )
   }, [editor, disabled, toaster, submitForm])
+
+  // unmount
+  useEffect(() => {
+    return () => {
+      // reset submit disabled reason
+      setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, false)
+    }
+  }, [setDisabled])
 
   return null
 }

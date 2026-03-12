@@ -87,6 +87,7 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
       clearSelection()
       setSelected(true)
     }
+    return true
   }, [isSelected, setSelected, clearSelection, hitTest])
 
   const onDblClick = useCallback((event) => {

@@ -48,6 +48,13 @@ export default function MathComponent ({ math, inline, nodeKey }) {
     })
   }, [editor, showMathEditor, isEditable, inline])
 
+  // sync local value with prop when editor is closed
+  useEffect(() => {
+    if (!showMathEditor && mathValue !== math) {
+      setMathValue(math)
+    }
+  }, [showMathEditor, mathValue, math])
+
   const onHide = useCallback((restoreSelection) => {
     setShowMathEditor(false)
     editor.update(() => {
@@ -64,13 +71,6 @@ export default function MathComponent ({ math, inline, nodeKey }) {
       }
     })
   }, [editor, mathValue, nodeKey])
-
-  // sync local value with prop when editor is closed
-  useEffect(() => {
-    if (!showMathEditor && mathValue !== math) {
-      setMathValue(math)
-    }
-  }, [showMathEditor, mathValue, math])
 
   // close editor when Lexical selection changes or Escape is pressed outside the input
   useEffect(() => {
@@ -115,7 +115,12 @@ export default function MathComponent ({ math, inline, nodeKey }) {
             ref={inputRef}
             onBlur={() => onHide()}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') onHide()
+              // enter hides the editor in inline mode
+              if (e.key === 'Escape' || (inline && e.key === 'Enter')) {
+                e.preventDefault()
+                e.stopPropagation()
+                onHide(true)
+              }
             }}
           />
           )

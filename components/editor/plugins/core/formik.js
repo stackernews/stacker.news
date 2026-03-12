@@ -23,31 +23,35 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
   const toaster = useToast()
   const { setDisabled, disabled = false } = useFeeButton() ?? {}
 
+  const disableSubmit = useCallback((value) => setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, value), [setDisabled])
+
   const debouncedRichSave = useDebounceCallback(() => {
     if (isMarkdownMode(editor)) return
     editor.getEditorState().read(() => {
       textHelpers.setValue($getMarkdown(editor))
-      setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, false)
+      disableSubmit(false)
     })
-  }, 500, [editor, textHelpers, setDisabled])
+  }, 500, [editor, textHelpers, disableSubmit])
 
   const syncFormik = useCallback((flush = false) => {
     editor.getEditorState().read(() => {
       if ($isTextEmpty()) {
         textHelpers.setValue('')
-        setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, false)
+        disableSubmit(false) // always enable submit if text is empty
         return
       }
 
       if (!isMarkdownMode(editor) && !flush) {
-        setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, true)
+        disableSubmit(true) // disable submit during debounced rich save
         debouncedRichSave()
         return
       }
 
+      if (flush) disableSubmit(false) // always enable submit on flush
+
       textHelpers.setValue($getMarkdown(editor))
     })
-  }, [editor, textHelpers, debouncedRichSave, setDisabled])
+  }, [editor, textHelpers, debouncedRichSave, disableSubmit])
 
   // keep formik in sync
   // markdown mode: instant
@@ -100,11 +104,8 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
 
   // unmount
   useEffect(() => {
-    return () => {
-      // reset submit disabled reason
-      setDisabled?.(DEBOUNCED_SUBMIT_DISABLED_REASON, false)
-    }
-  }, [setDisabled])
+    return () => disableSubmit(false)
+  }, [disableSubmit])
 
   return null
 }

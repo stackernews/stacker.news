@@ -128,6 +128,7 @@ export default function MathComponent ({ math, inline, nodeKey }) {
           <ErrorBoundary onError={(e) => editor._onError(e)} fallback={null}>
             <KatexRenderer
               equation={mathValue}
+              titleText='click to copy, double click to edit'
               inline={inline}
               onDoubleClick={() => {
                 if (isEditable) {

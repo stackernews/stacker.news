@@ -662,10 +662,6 @@ export default {
 
       if (item.parentId) {
         // OPs can only pin top level replies
-        if (item.parentId !== item.rootId) {
-          throw new GqlInputError('can only pin root replies')
-        }
-
         if (item.root.userId !== Number(me.id)) {
           throw new GqlInputError('not your post')
         }
@@ -693,8 +689,8 @@ export default {
               SELECT "pinId" FROM "Item" i
               ${whereClause(
                 '"pinId" IS NOT NULL',
-                item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]')}
-            )`, item.parentId ?? item.subNames[0], item.pin.position)
+                item.parentId ? 'i."rootId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]')}
+            )`, item.parentId ? item.rootId : item.subNames[0], item.pin.position)
         ])
 
         pinId = null
@@ -705,8 +701,8 @@ export default {
           FROM "Pin" p
           JOIN "Item" i ON i."pinId" = p.id
           ${whereClause(
-            item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
-          )}`, item.parentId ?? item.subNames[0])
+            item.parentId ? 'i."rootId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
+          )}`, item.parentId ? item.rootId : item.subNames[0])
 
         if (npins >= 3) {
           throw new GqlInputError('max 3 pins allowed')
@@ -719,7 +715,7 @@ export default {
             FROM "Pin" p
             JOIN "Item" i ON i."pinId" = p.id
             ${whereClause(
-              item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
+              item.parentId ? 'i."rootId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
             )}
             RETURNING id
           )
@@ -727,7 +723,7 @@ export default {
           SET "pinId" = pin.id
           FROM pin
           WHERE "Item".id = $2
-          RETURNING "pinId"`, item.parentId ?? item.subNames[0], item.id)
+          RETURNING "pinId"`, item.parentId ? item.rootId : item.subNames[0], item.id)
 
         pinId = newPinId
       }

@@ -16,6 +16,7 @@ export function buildCommentTree (rows, { rootId }) {
   }))
 
   const comments = []
+  const nestedPins = []
 
   for (const row of rows) {
     const comment = byId.get(row.id)
@@ -23,6 +24,10 @@ export function buildCommentTree (rows, { rootId }) {
     if (comment.parentId === rootId) {
       comments.push(comment)
       continue
+    }
+
+    if (comment.pinId != null) {
+      nestedPins.push(comment)
     }
 
     const parent = byId.get(comment.parentId)
@@ -36,7 +41,7 @@ export function buildCommentTree (rows, { rootId }) {
     parent.comments.push(comment)
   }
 
-  return comments
+  return [...nestedPins, ...comments]
 }
 
 function commentsSortClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER) {

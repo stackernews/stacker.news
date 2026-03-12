@@ -208,7 +208,8 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
         }
       }`, {
       // refetch since position of other items might also have changed to fill gaps
-      refetchQueries: ['SubItems', 'Item']
+      refetchQueries: ['SubItems', 'Item'],
+      awaitRefetchQueries: true
     }
   )
   return (

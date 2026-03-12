@@ -100,8 +100,7 @@ export default function ItemInfo ({
   const isPost = !item.parentId
   const mySub = (me && sub && Number(me.id) === sub.userId)
   const myPost = (me && root && Number(me.id) === Number(root.user.id))
-  const rootReply = item.path.split('.').length === 2
-  const canPin = (isPost && mySub) || (myPost && rootReply)
+  const canPin = (isPost && mySub) || myPost
   const isPinnedPost = isPost && item.position && (pinnable || !item.subNames)
   const isPinnedSubReply = !isPost && item.position && !item.subNames
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
@@ -181,6 +180,7 @@ export default function ItemInfo ({
           {' '}<Badge className={styles.newComment} bg={null}>-{abbrNum(item.downSats)} sats</Badge>
         </span>}
       {extraBadges}
+      {extraInfo}
       {
         showActionDropdown &&
           <>
@@ -241,7 +241,6 @@ export default function ItemInfo ({
             </ActionDropdown>
           </>
       }
-      {extraInfo}
     </div>
   )
 }

@@ -13,6 +13,7 @@ export default function MentionsComponent ({ nodeKey, href, text }) {
   const isEditable = useLexicalEditable()
 
   const breakMention = useCallback(() => {
+    if (!isEditable) return
     editor.update(() => {
       const node = $getNodeByKey(nodeKey)
       if (!node) return
@@ -33,16 +34,12 @@ export default function MentionsComponent ({ nodeKey, href, text }) {
       node.replace(newNode)
       newNode.select()
     })
-  }, [editor, nodeKey])
+  }, [editor, nodeKey, isEditable])
 
   useDecoratorNodeSelection(nodeKey, {
     focusedClass: 'focused',
     deletable: false,
-    onDoubleClick: () => {
-      if (isEditable) {
-        breakMention()
-      }
-    }
+    onDoubleClick: breakMention
   })
 
   if (!isEditable) return <Link href={href}>{text}</Link>

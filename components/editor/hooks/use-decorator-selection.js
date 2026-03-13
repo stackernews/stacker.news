@@ -81,6 +81,13 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
   const onClick = useCallback((event) => {
     if (!hitTest(event)) return false
 
+    // are we double clicking?
+    if (event.detail === 2 && onDoubleClick) {
+      event.preventDefault()
+      onDoubleClick(event)
+      return true
+    }
+
     if (event.shiftKey) {
       setSelected(!isSelected)
     } else {
@@ -88,14 +95,7 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
       setSelected(true)
     }
     return true
-  }, [isSelected, setSelected, clearSelection, hitTest])
-
-  const onDblClick = useCallback((event) => {
-    if (!onDoubleClick || !hitTest(event)) return
-
-    event.preventDefault()
-    onDoubleClick(event)
-  }, [onDoubleClick, hitTest])
+  }, [isSelected, setSelected, clearSelection, hitTest, onDoubleClick])
 
   // toggle focused class on the Lexical DOM element
   useEffect(() => {
@@ -132,16 +132,8 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
       )
     }
 
-    const unregisterCommands = mergeRegister(...commands)
-
-    const element = onDoubleClick ? editor.getElementByKey(nodeKey) : null
-    element?.addEventListener('dblclick', onDblClick)
-
-    return () => {
-      unregisterCommands()
-      element?.removeEventListener('dblclick', onDblClick)
-    }
-  }, [editor, nodeKey, isEditable, active, deletable, onClick, onEnter, onDelete, onDblClick, onDoubleClick])
+    return mergeRegister(...commands)
+  }, [editor, nodeKey, isEditable, active, deletable, onClick, onEnter, onDelete])
 
   return { isSelected, setSelected, clearSelection, isFocused }
 }

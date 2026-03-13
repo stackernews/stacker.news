@@ -26,9 +26,14 @@ export default function MathComponent ({ math, inline, nodeKey }) {
   const [showMathEditor, setShowMathEditor] = useState(false)
   const inputRef = useRef(null)
 
+  const openMathEditor = useCallback(() => {
+    setShowMathEditor(true)
+  }, [])
+
   const { isSelected } = useDecoratorNodeSelection(nodeKey, {
     focusedClass: 'focused',
-    active: !showMathEditor
+    active: !showMathEditor,
+    onDoubleClick: openMathEditor
   })
 
   // auto-open editor on new nodes
@@ -130,11 +135,6 @@ export default function MathComponent ({ math, inline, nodeKey }) {
               equation={mathValue}
               titleText={isEditable ? 'double click to edit' : 'click to copy'}
               inline={inline}
-              onDoubleClick={() => {
-                if (isEditable) {
-                  setShowMathEditor(true)
-                }
-              }}
               onClick={() => {
                 if (!isEditable) {
                   try {

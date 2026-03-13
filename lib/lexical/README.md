@@ -1,4 +1,4 @@
-# The Hitchhiker's Guide to Lexical: `integration`
+# The Stacker News Editor: `integration`
 
 Lexical is a web text-editor framework ...
 
@@ -10,15 +10,85 @@ We're using Lexical to build a Markdown and Rich Text editor that supports lossl
 
 ```
 lib/lexical/
+├── headless.js     # createSNHeadlessEditor (shared headless editor factory)
+├── commands/       # formatting, links, math commands
 ├── exts/           # editor extensions
 ├── mdast/          # Markdown AST import/export
 ├── nodes/          # custom Lexical nodes
+│   ├── index.js              # DefaultNodes array (all registered nodes)
+│   ├── utils.js              # node helpers ($replaceNodeWithLink, $isUnwritable)
+│   ├── content/
+│   │   ├── media.jsx         # MediaNode (images/videos)
+│   │   ├── embed.jsx         # EmbedNode (YouTube, Twitter, etc.)
+│   │   ├── gallery.jsx       # GalleryNode (adjacent media grouping)
+│   │   └── toc.jsx           # TableOfContentsNode
+│   ├── decorative/
+│   │   ├── mentions/
+│   │   │   ├── index.js      # mention exports
+│   │   │   ├── user.jsx      # UserMentionNode (@user)
+│   │   │   ├── territory.jsx # TerritoryMentionNode (~territory)
+│   │   │   └── item.jsx      # ItemMentionNode (stacker.news/items/123)
+│   │   └── footnote/
+│   │       ├── index.js      # footnote exports
+│   │       ├── section.jsx   # FootnotesSectionNode
+│   │       ├── definition.jsx# FootnoteDefinitionNode
+│   │       ├── reference.jsx # FootnoteReferenceNode
+│   │       └── backref.jsx   # FootnoteBackrefNode
+│   ├── formatting/
+│   │   └── math.jsx          # MathNode (inline/block equations)
+│   └── misc/
+│       └── heading.jsx       # SNHeadingNode (HeadingNode + slug anchors)
 ├── server/         # SSR utilities
 ├── theme/          # editor theming
 └── utils/          # shared utilities
 ```
 
 This folder contains everything that is not React, for the exception of basic JSX calls to React components in the case of nodes that are React `DecoratorNode`s
+
+---
+
+## Headless Editor (`headless.js`)
+
+Factory for creating a headless Lexical editor with SN defaults. Used by the server pipeline (`interpolator.js`, `html.js`) and the client-side headless bridge (`useHeadlessBridge`).
+
+```javascript
+import { createSNHeadlessEditor } from '@/lib/lexical/headless'
+
+const editor = createSNHeadlessEditor({
+  namespace: 'snSSR',   // default
+  theme: DefaultTheme,  // default
+  nodes: DefaultNodes,  // default
+  onError: console.error
+})
+```
+
+---
+
+## Commands (`commands/`)
+
+Mode-aware formatting commands that work in both markdown and rich mode. Each command detects the current mode via `isMarkdownMode(editor)` (checks `editor._config.namespace === 'sn-markdown'`) and dispatches accordingly.
+
+```
+commands/
+├── utils.js                # isMarkdownMode, $findTopLevelElement, $selectConsecutiveParagraphs, getSelectedNode
+├── links.js                # SN_TOGGLE_LINK_COMMAND
+├── math.js                 # SN_INSERT_MATH_COMMAND
+└── formatting/
+    ├── format.js            # SN_FORMAT_COMMAND (bold, italic, code, etc.)
+    ├── blocks.js            # SN_FORMAT_BLOCK_COMMAND (headings, lists, quotes, code blocks)
+    ├── markdown.js          # MD_FORMAT_COMMAND, MD_INSERT_BLOCK_COMMAND (direct markdown syntax insertion)
+    └── utils.js             # $snHasLink, $snGetElementFormat, $snGetBlockType
+```
+
+### Mode Behavior
+
+| Mode | Text Formatting | Block Formatting |
+|------|-----------------|------------------|
+| **Rich** | `FORMAT_TEXT_COMMAND` / `FORMAT_ELEMENT_COMMAND` | Direct Lexical node manipulation |
+| **Markdown (with selection)** | `USE_TRANSFORMER_BRIDGE` — round-trips through a headless editor | `USE_TRANSFORMER_BRIDGE` via `$selectConsecutiveParagraphs()` |
+| **Markdown (empty selection)** | `MD_FORMAT_COMMAND` — wraps cursor position with syntax markers (`**`, `*`, etc.) | `MD_INSERT_BLOCK_COMMAND` — prefixes lines (`# `, `> `, `- `) |
+
+All commands are registered centrally via `FormattingCommandsExtension` (see extensions).
 
 ---
 
@@ -168,6 +238,45 @@ And it is recommended to provide the helpers:
 - `$createSomeNode`
 - `$isSomeNode`
 
+### Custom SN Nodes
+
+#### Content Nodes
+
+- **`MediaNode`** (`content/media.jsx`) — images and videos. Extends `DecoratorNode`. Managed by `AutoLinkExtension` (creates from URLs) and `ItemContextExtension` (applies imgproxy srcSets, dimensions). Uses extension states (`srcSetState`, `bestResSrcState`, `kindState`, etc.) for server-injected properties.
+- **`EmbedNode`** (`content/embed.jsx`) — third-party embeds (YouTube, Twitter, Nostr, etc.). Extends `DecoratorBlockNode`. Stores `provider`, `src`, `id`, and `meta`. Created by `AutoLinkExtension` when a standalone URL matches an embed provider.
+- **`GalleryNode`** (`content/gallery.jsx`) — groups adjacent media into a gallery. Extends `ElementNode`. Created automatically by `GalleryExtension` when 2+ consecutive media-only paragraphs are detected.
+- **`TableOfContentsNode`** (`content/toc.jsx`) — renders a navigable table of contents from document headings.
+
+#### Decorative Nodes
+
+- **`UserMentionNode`** (`decorative/mentions/user.jsx`) — `@user` mentions. Extends `DecoratorNode`. Renders the user's display name as a link to their profile. Provides `getTextContent()` returning `@name` for copy/paste.
+- **`TerritoryMentionNode`** (`decorative/mentions/territory.jsx`) — `~territory` mentions. Same pattern as `UserMentionNode`.
+- **`ItemMentionNode`** (`decorative/mentions/item.jsx`) — internal item links (e.g. `stacker.news/items/123`). Created by `AutoLinkExtension` when an internal URL is detected. Exports as plain text URL (not markdown link syntax).
+- **`FootnoteReferenceNode`** (`decorative/footnote/reference.jsx`) — inline footnote reference marker (e.g. `[^1]`).
+- **`FootnoteDefinitionNode`** (`decorative/footnote/definition.jsx`) — footnote definition content.
+- **`FootnotesSectionNode`** (`decorative/footnote/section.jsx`) — container that groups all footnote definitions at the end of the document.
+- **`FootnoteBackrefNode`** (`decorative/footnote/backref.jsx`) — back-reference link from a footnote definition to its reference in the text.
+
+#### Formatting Nodes
+
+- **`MathNode`** (`formatting/math.jsx`) — inline and block math equations. Extends `DecoratorNode`. Stores `equation` (LaTeX string) and `inline` (boolean). Rendered via KaTeX in the editor component.
+
+#### Misc Nodes
+
+- **`SNHeadingNode`** (`misc/heading.jsx`) — extends Lexical's `HeadingNode` with slug-based anchor IDs. Replaces the built-in `HeadingNode` via the node replacement API so all headings get slugs. In read-only mode, prepends an anchor link (`<a class="sn-heading__link">`) for shareable heading URLs.
+
+### `nodes/index.js` — DefaultNodes
+
+Pre-assembled array of all registered nodes. Includes built-in Lexical nodes (`ListNode`, `QuoteNode`, `CodeNode`, `TableNode`, etc.) and all custom SN nodes. `SNHeadingNode` replaces `HeadingNode` via `{ replace: HeadingNode, with: ..., withKlass: SNHeadingNode }`.
+
+### `nodes/utils.js` — Node Helpers
+
+| Function | Description |
+|---|---|
+| `$replaceNodeWithLink(node, url)` | Replaces a node with a `LinkNode` wrapping the URL. Handles both paragraph-level and root-level placement. |
+| `$isUnwritable(node)` | Returns `true` if a node is a block-level `DecoratorNode` or an `ElementNode` whose children are all unwritable. Used by `DecoratorClickZonesExtension`. |
+| `$debugNodeToJSON(node, depth?)` | Debug utility: recursively exports a node and its children to a JSON object. |
+
 ---
 
 ## Server (`server/`)
@@ -191,4 +300,76 @@ This being said, CSS modules are still used for the Editor and plugins UI.
 
 ## Utilities (`utils/`)
 
-TODO
+Shared, framework-independent helpers used across both modes and by the server.
+
+### `utils/index.js` — Markdown Text Helpers
+
+Low-level functions for working with the editor as plain markdown text. Used by markdown mode, the local draft plugin, and Formik sync.
+
+| Function | Description |
+|---|---|
+| `$getTextContent(trimWhitespace?)` | Gets the text content of the editor with controlled newlines |
+| `$isTextEmpty()` | Checks if the editor content is empty |
+| `$setText(value)` | Clears the editor and initializes with markdown text |
+| `$insertText(markdown, trim?, cursor?)` | Inserts markdown at the current selection |
+| `$appendMarkdown(markdown, trim?, spacing?)` | Appends markdown to the root |
+| `$getNodesFromText(markdown, trim?)` | Parses plain text to Lexical paragraph nodes |
+| `$insertTextAtSelection(text, spacing?, force?)` | Inserts text or TextNode with optional spacing |
+| `$trimEmptyNodes()` | Removes empty nodes from the start and end of the root |
+| `$moveSelection(selection, anchorDist, focusDist?)` | Moves selection by a given distance |
+| `$getMarkdown(editor, trimWhitespace?)` | Mode-aware markdown extraction: calls `$lexicalToMarkdown()` in rich mode, `$getTextContent()` in markdown mode. Used by `FormikBridgePlugin` to sync with Formik. |
+
+### `utils/mdast.js` — MDAST Bridge
+
+Provides the conversion functions between markdown strings and Lexical nodes via the MDAST pipeline. This is the core of the bi-directional editing system.
+
+```javascript
+import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
+```
+
+**`$markdownToLexical(markdown, { splitInParagraphs?, append? })`**
+
+Converts a markdown string to Lexical nodes. By default, clears the root first; pass `append: true` to append instead. Parses via micromark + mdast, applies transforms (mentions, nostr, links, footnotes, TOC), then visits the tree to create Lexical nodes.
+
+Syntax extensions: GFM (tables, strikethrough, etc.) and math (block `$$` only, `singleDollarTextMath: false`).
+
+**`$lexicalToMarkdown(transformerBridge?)`**
+
+Converts the current Lexical editor state to a markdown string. When `transformerBridge` is `true`, bypasses markdown escaping to preserve raw text for editor round-trips (used by the transformer bridge plugin).
+
+Custom `toMarkdown` handlers prevent autolink syntax (`<url>`) and always output `[text](url)` format.
+
+**`removeZeroWidthSpace(text)`** — strips `U+200B` characters some browsers insert.
+
+### `utils/position.js` — Floating Element Positioning
+
+Used by the link editor (and potentially other floating UI) to position elements relative to a target with viewport collision detection.
+
+```javascript
+import { setFloatingElemPosition } from '@/lib/lexical/utils/position'
+
+setFloatingElemPosition({
+  targetRect,        // DOMRect to position near
+  floatingElem,      // element to position
+  anchorElem,        // anchor for relative offsets
+  verticalGap: 10,   // pixels above target
+  horizontalOffset: 5,
+  fade: false        // fade out before repositioning
+})
+```
+
+Collision detection: if the element would overflow the top of the editor, it flips below the target. If it overflows the right edge, it snaps to the right boundary.
+
+### `utils/dom.js` — DOM Helpers
+
+`getDragSelection(event)` — resolves a drag event to a DOM `Range`, handling both `caretRangeFromPoint` (Chrome) and `rangeParent` (Firefox) APIs.
+
+### `utils/toc.js` — Table of Contents
+
+Extracts headings from the document and builds a nested structure for the TOC node.
+
+| Function | Description |
+|---|---|
+| `$extractHeadingsFromRoot()` | Collects all `SNHeadingNode` instances with text, depth, and slug |
+| `buildNestedTocStructure(headings)` | Converts flat headings array to nested parent-children structure |
+| `buildHtmlFromStructure(items)` | Recursively builds `<ul>/<li>/<a>` DOM elements from the structure |

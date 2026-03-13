@@ -461,27 +461,37 @@ it is, anyway, recommended to map every custom Lexical node to a custom MDAST no
 
 ```
 lib/lexical/mdast/
-  index.js                      # main exports
-  import.js    # mdast → lexical core
-  export.js  # lexical → mdast core
-  format-constants.js            # text format flags (bold, italic, etc.)
+  index.js                       # main exports
+  import.js                      # mdast → lexical core
+  export.js                      # lexical → mdast core
+  shared.js                      # shared helpers (isParent)
+  format-constants.js            # text format bit flags (IS_BOLD, IS_ITALIC, etc.)
   visitors/
-    index.js                    # visitor arrays
-    root.js                     # root visitors
-    paragraph.js                # paragraph visitors
-    text.js                     # text + formatting visitors
-    linebreak.js                # linebreak visitors
-    formatting.js               # bold, italic, strikethrough, etc.
-    heading.js                  # heading visitors
-    link.js                     # link, embed, media, image visitors
-    quote.js                    # blockquote visitors
-    list.js                     # list + list item visitors
-    code.js                     # code block visitors
-    horizontal-rule.js          # horizontal rule visitors
-    mentions.js                 # user, territory, item mention visitors
+    index.js                     # pre-assembled import/export visitor arrays
+    root.js                      # root node visitors
+    paragraph.js                 # paragraph visitors
+    text.js                      # text + inline formatting visitors
+    linebreak.js                 # linebreak/break visitors
+    formatting.js                # emphasis, strong, delete, highlight, code, html
+    heading.js                   # heading + TOC visitors
+    link.js                      # link, autolink, embed visitors
+    media.js                     # image, media, gallery visitors
+    quote.js                     # blockquote visitors
+    list.js                      # list + list item visitors
+    code.js                      # code block visitors
+    horizontal-rule.js           # horizontal rule visitors
+    table.js                     # table, row, cell visitors
+    mentions.js                  # user, territory, item mention visitors
+    nostr.js                     # nostr ID visitors
+    math.js                      # block + inline math visitors
+    footnote.js                  # footnote reference, definition, section, backref visitors
   transforms/
-    index.js                    # transform exports
-    mentions.js                 # @user and ~territory transform
+    index.js                     # transform exports
+    mentions.js                  # @user and ~territory transform
+    nostr.js                     # nostr ID transform
+    links.js                     # misleading link + malformed encoding transforms
+    footnotes.js                 # footnote definition collection + backref insertion
+    toc.js                       # {:toc} paragraph → tableOfContents node
 ```
 
 ## some debugging

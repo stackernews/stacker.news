@@ -4,13 +4,14 @@ Lexical is a web text-editor framework ...
 
 ## Overview
 
-We're using Lexical to build a Markdown and Rich Text editor that supports lossless bi-directional conversions between the two aforementioned modes, via MDAST.
+We're using Lexical to build a Markdown and Rich Text editor that round-trips between the two aforementioned modes via MDAST.
+Most constructs survive the round-trip, but a few transforms are intentionally lossy or normalizing, such as table alignment export, misleading-link normalization, and footnote backref stripping.
 
 ## structure
 
 ```
 lib/lexical/
-├── headless.js     # createSNHeadlessEditor (shared headless editor factory)
+├── headless.js     # createSNHeadlessEditor (SN headless editor factory)
 ├── commands/       # formatting, links, math commands
 ├── exts/           # editor extensions
 ├── mdast/          # Markdown AST import/export
@@ -49,7 +50,8 @@ This folder contains everything that is not React, for the exception of basic JS
 
 ## Headless Editor (`headless.js`)
 
-Factory for creating a headless Lexical editor with SN defaults. Used by the server pipeline (`interpolator.js`, `html.js`) and the client-side headless bridge (`useHeadlessBridge`).
+Factory for creating a headless Lexical editor with SN defaults.
+Used by the server pipeline (`interpolator.js`, `html.js`). The client-side transformer bridge builds its own detached editor in `useHeadlessBridge()` via `buildEditorFromExtensions()`.
 
 ```javascript
 import { createSNHeadlessEditor } from '@/lib/lexical/headless'
@@ -143,7 +145,7 @@ It's a plain JavaScript object based on the LexicalExtension interface, its prop
 ## MDAST (`mdast/`)
 
 Handles conversion between Markdown and Lexical by mapping the Markdown AST structure to the Lexical Editor State structure.  
-Aims to provide lossless bi-directional conversions.
+Targets stable Markdown <-> Lexical round-trips while allowing a few deliberate normalizations and lossy edge cases where the underlying models do not match exactly.
 
 **Informations about MDAST are available in `lib/lexical/mdast/README.md`**
 
@@ -167,13 +169,13 @@ For the purposes of this README, we're very interested in extending **ElementNod
 
 Used as parent for other nodes, can be block level (like a `ParagraphNode`) or inline (`LinkNode`). Has various methods which define its behavior that can be overridden (`isInline` for example)
 
-For example, we used `ElementNode` to create footnotes:
+For example, we use `ElementNode` to model footnotes:
   - `FootnoteSectionNode`
     - parent container that groups footnote definitions
   - `FootnoteDefinitionNode`
-    - parent container for the definition which will be a `TextNode`
+    - parent container for a full footnote body (paragraphs, text, and the injected backref)
   - `FootnoteBackrefNode`
-    - parent container for the backref button which will be a `LinkNode`
+    - inline back-reference anchor appended to the definition during the footnote mdast transform
 
 ### [`DecoratorNode`](https://lexical.dev/docs/concepts/nodes#decoratornode)
 
@@ -244,22 +246,22 @@ And it is recommended to provide the helpers:
 
 - **`MediaNode`** (`content/media.jsx`) — images and videos. Extends `DecoratorNode`. Managed by `AutoLinkExtension` (creates from URLs) and `ItemContextExtension` (applies imgproxy srcSets, dimensions). Uses extension states (`srcSetState`, `bestResSrcState`, `kindState`, etc.) for server-injected properties.
 - **`EmbedNode`** (`content/embed.jsx`) — third-party embeds (YouTube, Twitter, Nostr, etc.). Extends `DecoratorBlockNode`. Stores `provider`, `src`, `id`, and `meta`. Created by `AutoLinkExtension` when a standalone URL matches an embed provider.
-- **`GalleryNode`** (`content/gallery.jsx`) — groups adjacent media into a gallery. Extends `ElementNode`. Created automatically by `GalleryExtension` when 2+ consecutive media-only paragraphs are detected.
+- **`GalleryNode`** (`content/gallery.jsx`) — groups adjacent media into a gallery. Extends `ElementNode`. Created and merged automatically by `GalleryExtension` when adjacent media-only paragraphs and/or galleries are detected, then unwrapped again if the result contains only a single media node.
 - **`TableOfContentsNode`** (`content/toc.jsx`) — renders a navigable table of contents from document headings.
 
 #### Decorative Nodes
 
-- **`UserMentionNode`** (`decorative/mentions/user.jsx`) — `@user` mentions. Extends `DecoratorNode`. Renders the user's display name as a link to their profile. Provides `getTextContent()` returning `@name` for copy/paste.
-- **`TerritoryMentionNode`** (`decorative/mentions/territory.jsx`) — `~territory` mentions. Same pattern as `UserMentionNode`.
-- **`ItemMentionNode`** (`decorative/mentions/item.jsx`) — internal item links (e.g. `stacker.news/items/123`). Created by `AutoLinkExtension` when an internal URL is detected. Exports as plain text URL (not markdown link syntax).
+- **`UserMentionNode`** (`decorative/mentions/user.jsx`) — `@user` mentions, optionally with a `/path`. Extends `DecoratorNode`. Renders the mention text itself (`@name` plus optional path) as a Next.js link/popover and provides `getTextContent()` for copy/paste.
+- **`TerritoryMentionNode`** (`decorative/mentions/territory.jsx`) — `~territory` mentions. Same pattern as `UserMentionNode`, without path support.
+- **`ItemMentionNode`** (`decorative/mentions/item.jsx`) — internal item links (e.g. `stacker.news/items/123`). Created by `AutoLinkExtension` for bare internal URLs and by the mdast import visitors for markdown links. Exports as a markdown link when it carries custom text, otherwise as a plain text URL.
 - **`FootnoteReferenceNode`** (`decorative/footnote/reference.jsx`) — inline footnote reference marker (e.g. `[^1]`).
-- **`FootnoteDefinitionNode`** (`decorative/footnote/definition.jsx`) — footnote definition content.
+- **`FootnoteDefinitionNode`** (`decorative/footnote/definition.jsx`) — footnote definition container for the visited child blocks.
 - **`FootnotesSectionNode`** (`decorative/footnote/section.jsx`) — container that groups all footnote definitions at the end of the document.
-- **`FootnoteBackrefNode`** (`decorative/footnote/backref.jsx`) — back-reference link from a footnote definition to its reference in the text.
+- **`FootnoteBackrefNode`** (`decorative/footnote/backref.jsx`) — display-only back-reference anchor from a footnote definition back to its reference in the text. It is injected during mdast import and intentionally omitted on markdown export.
 
 #### Formatting Nodes
 
-- **`MathNode`** (`formatting/math.jsx`) — inline and block math equations. Extends `DecoratorNode`. Stores `equation` (LaTeX string) and `inline` (boolean). Rendered via KaTeX in the editor component.
+- **`MathNode`** (`formatting/math.jsx`) — inline and block math equations. Extends `DecoratorNode`. Stores `math` (LaTeX string) and `inline` (boolean). Rendered via KaTeX in the editor component.
 
 #### Misc Nodes
 
@@ -274,7 +276,7 @@ Pre-assembled array of all registered nodes. Includes built-in Lexical nodes (`L
 | Function | Description |
 |---|---|
 | `$replaceNodeWithLink(node, url)` | Replaces a node with a `LinkNode` wrapping the URL. Handles both paragraph-level and root-level placement. |
-| `$isUnwritable(node)` | Returns `true` if a node is a block-level `DecoratorNode` or an `ElementNode` whose children are all unwritable. Used by `DecoratorClickZonesExtension`. |
+| `$isUnwritable(node)` | Returns `true` for any `DecoratorNode`, or for an `ElementNode` whose children are all decorator nodes. Used by `DecoratorClickZonesExtension`. |
 | `$debugNodeToJSON(node, depth?)` | Debug utility: recursively exports a node and its children to a JSON object. |
 
 ---
@@ -311,9 +313,9 @@ Low-level functions for working with the editor as plain markdown text. Used by 
 | `$getTextContent(trimWhitespace?)` | Gets the text content of the editor with controlled newlines |
 | `$isTextEmpty()` | Checks if the editor content is empty |
 | `$setText(value)` | Clears the editor and initializes with markdown text |
-| `$insertText(markdown, trim?, cursor?)` | Inserts markdown at the current selection |
+| `$insertText(text, trim?, cursor?)` | Inserts plain text at the current selection |
 | `$appendMarkdown(markdown, trim?, spacing?)` | Appends markdown to the root |
-| `$getNodesFromText(markdown, trim?)` | Parses plain text to Lexical paragraph nodes |
+| `$getNodesFromText(text, trim?)` | Parses plain text to Lexical paragraph nodes |
 | `$insertTextAtSelection(text, spacing?, force?)` | Inserts text or TextNode with optional spacing |
 | `$trimEmptyNodes()` | Removes empty nodes from the start and end of the root |
 | `$moveSelection(selection, anchorDist, focusDist?)` | Moves selection by a given distance |
@@ -331,7 +333,7 @@ import { $markdownToLexical, $lexicalToMarkdown } from '@/lib/lexical/utils/mdas
 
 Converts a markdown string to Lexical nodes. By default, clears the root first; pass `append: true` to append instead. Parses via micromark + mdast, applies transforms (mentions, nostr, links, footnotes, TOC), then visits the tree to create Lexical nodes.
 
-Syntax extensions: GFM (tables, strikethrough, etc.) and math (block `$$` only, `singleDollarTextMath: false`).
+Syntax extensions: GFM (tables, strikethrough, etc.) and math. Block math uses fenced `$$` blocks, and inline math is also supported, but `singleDollarTextMath: false` means inline syntax must use the double-dollar form.
 
 **`$lexicalToMarkdown(transformerBridge?)`**
 

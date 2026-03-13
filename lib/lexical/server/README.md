@@ -12,7 +12,7 @@ lib/lexical/server/
 └── html.js          # Lexical state → HTML generation
 ```
 
-The headless editor factory (`createSNHeadlessEditor`) lives at `lib/lexical/headless.js` and is shared between server and client code.
+The headless editor factory (`createSNHeadlessEditor`) lives at `lib/lexical/headless.js` and is used by the server pipeline. The client-side transformer bridge builds its own detached editor in `components/editor/hooks/use-headless-bridge.js`.
 
 ## Pipeline
 
@@ -54,7 +54,7 @@ Converts markdown text to a serialized Lexical EditorState. Registers `ItemConte
 - Outlawed items have their links/media stripped to plain text
 - Adjacent media nodes are grouped into galleries
 
-The context object comes from the GraphQL resolvers via the DataLoader and includes `imgproxyUrls`, `rel`, `outlawed`, `showImagesAndVideos`, and `imgproxyOnly`.
+The base context object comes from the GraphQL resolvers. `lexicalStateLoader()` then enriches it with viewer-dependent flags such as `outlawed`, `showImagesAndVideos`, and `imgproxyOnly` before calling `prepareLexicalState()`.
 
 ## `loader.js`
 
@@ -68,7 +68,7 @@ Computes `outlawed` status based on the viewer's sat filter settings vs the item
 
 ### `lexicalHTMLGenerator(lexicalState, options?, editorOptions?)`
 
-Generates sanitized HTML from a serialized Lexical EditorState. Used by API routes when submitting items.
+Generates sanitized HTML from a serialized Lexical EditorState. Used by read-side GraphQL resolvers to produce HTML fallbacks and debug output.
 
 - Uses `withDOM()` to create a fake DOM
 - Parses and sets the editor state
@@ -78,11 +78,10 @@ Generates sanitized HTML from a serialized Lexical EditorState. Used by API rout
 
 ## Connection to GraphQL Resolvers
 
-The server pipeline is consumed by `api/resolvers/item.js` through two field resolvers:
+The server pipeline is currently consumed from multiple read-side resolvers:
 
-- **`lexicalState`** — calls `lexicalStateLoader.load({ text, context })` to convert stored markdown into a Lexical JSON state for client hydration (SNReader).
-- **`html`** — same loader call, then passes the result to `lexicalHTMLGenerator()` for SSR fallback and `?html` debug rendering.
-
-Both resolvers pass item context (`imgproxyUrls`, `rel`, `userId`, `parentId`, `netInvestment`) so the server pipeline can apply imgproxy srcSets, outlawed stripping, and rel attributes.
+- **`api/resolvers/item.js`** — `lexicalState` and `html` resolve stored item markdown into Lexical JSON and sanitized HTML. These calls pass item context (`imgproxyUrls`, `rel`, `userId`, `parentId`, `netInvestment`) so the loader can compute outlawed/media behavior.
+- **`api/resolvers/sub.js`** — `lexicalState` and `html` resolve sub descriptions from plain markdown without the extra item context.
+- **`api/resolvers/notifications.js`** — bulletin notifications reuse the same loader + HTML generation path for stored bulletin markdown.
 
 On the **write** path, items store plain markdown in `Item.text`. The `FormikBridgePlugin` converts editor content to markdown in both modes (via `$getMarkdown()`), so the API mutation always receives plain markdown. Upload IDs are extracted from the markdown text via `uploadIdsFromText()`.

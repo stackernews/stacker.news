@@ -6,9 +6,9 @@ This folder contains the React layer of the editor: the entry-point components, 
 
 ```
 components/editor/
-├── editor.js              # main editor component (SNEditor)
-├── reader.js              # read-only renderer (SNReader)
-├── index.js               # public exports
+├── editor.js              # main editable editor component
+├── reader.js              # read-only renderer
+├── index.js               # public exports (SNEditor / SNReader)
 ├── contexts/
 │   ├── mode.js            # EditorMode context (markdown ↔ rich)
 │   └── toolbar.js         # toolbar formatting state context
@@ -16,10 +16,9 @@ components/editor/
 │   ├── use-decorator-selection.js  # shared decorator node selection behavior
 │   └── use-headless-bridge.js      # headless editor for transformer bridge
 ├── nodes/
-│   ├── math/              # math equation component + styles
-│   ├── media.js           # media (image/video) component
-│   ├── mentions.js        # shared mention component (user, territory, item)
-│   └── toc.js             # table of contents component
+│   ├── math/              # MathNode React component + styles
+│   ├── media.js           # MediaNode React component
+│   └── toc.js             # TableOfContentsNode React component
 └── plugins/
     ├── core/              # essential plugins
     ├── link/              # floating link editor
@@ -80,8 +79,7 @@ const { isSelected, setSelected, clearSelection, isFocused } = useDecoratorNodeS
   ref,            // narrow click target to a specific element
   focusedClass,   // CSS class toggled when focused
   deletable,      // enable delete/backspace (default: true)
-  active,         // suspend commands, e.g. while an inline editor is open (default: true)
-  onDoubleClick   // callback on double-click (e.g. break a mention into editable text)
+  active          // suspend commands, e.g. while an inline editor is open (default: true)
 })
 ```
 
@@ -118,24 +116,24 @@ React component rendered by `MathNode.decorate()`. Renders math equations using 
 - Enter key opens editor when the node is selected
 - Block math clears Lexical selection when its editor opens (to avoid visual conflict)
 
-**Styles:** `math.module.css` provides separate styling for inline (`mathInlineContainer`) and block (`mathBlockContainer`) math, with editor and preview panels.
+**Styles:** `math.module.css` provides separate styling for block (`container`) and inline (`inlineContainer`) math, plus shared `input` and `preview` styles.
 
 ### Media (`nodes/media.js`)
 
-Renders images and videos with lazy loading, carousel integration, and upload progress. Uses `useEditableCarousel` (see below) to disable carousel interactions during editing.
+Renders images and videos with selection handling, carousel integration, proxy/original fallback, and media-type detection. Images use `loading='lazy'`; videos use `preload='metadata'` when a distinct poster/proxy source is available.
 
-### Mentions (`nodes/mentions.js`)
+A note un uploaded media: upload placeholders are handled by `plugins/upload.js` and replaced with final markdown/media nodes on completion rather than showing node-local progress UI.
 
-Shared React component rendered by `UserMentionNode`, `TerritoryMentionNode`, and `ItemMentionNode` via `decorate()`. Handles both read-only and editable modes.
+### Mentions
 
-**Behavior:**
-- **Read-only:** renders as a Next.js `<Link>` pointing to the mention's target
-- **Editable:** renders as a `<span>` with double-click-to-edit support via `useDecoratorNodeSelection`'s `onDoubleClick`
-- **Double-click (break mention):** converts the mention node back into editable form — `ItemMentionNode` becomes a `LinkNode` wrapping its URL; user/territory mentions become a `TextNode` with the original text (which re-triggers the mentions autocomplete menu)
+There is no shared `components/editor/nodes/mentions.js` component.
+`UserMentionNode`, `TerritoryMentionNode`, and `ItemMentionNode` each implement their own `decorate()` function under `lib/lexical/nodes/decorative/mentions/` and render `next/link` in both editor and reader contexts.
+
+There is currently no double-click-to-break-mention flow. The one unlink special case is `ItemMentionNode`: `SN_TOGGLE_LINK_COMMAND` replaces it with a plain `TextNode` when toggled off.
 
 ### TOC (`nodes/toc.js`)
 
-Table of contents component that extracts headings from the document.
+Table of contents component that renders a supplied `headings` prop. Heading extraction happens elsewhere, notably in `TableOfContentsNode.decorate()` and `components/table-of-contents.js` via `$extractHeadingsFromRoot()`.
 
 ---
 
@@ -235,20 +233,18 @@ Two-state UI:
 - **View mode:** displays the URL with edit and unlink buttons
 - **Edit mode:** input field with confirm/cancel buttons
 
-Auto-enters edit mode when a link has no URL. Positioned relative to the link element with viewport collision detection and fade animation. Escape key closes the editor.
+Auto-enters edit mode when a link has no URL. Positioned relative to the link element with viewport collision detection. Escape key closes the editor. The current implementation repositions without a fade animation.
 
 ### Toolbar (`plugins/toolbar/`)
 
 #### `index.js` — ToolbarPlugin
 
-Renders the formatting toolbar in rich mode. Updates toolbar state from the current selection. Includes:
+Renders the formatting toolbar above both editor modes. In rich mode it mirrors the current selection state; in markdown mode it still dispatches the same mode-aware formatting commands, but the rich-only selection-state listener is skipped. Includes:
 - Block type dropdown (paragraph, headings, lists, code)
 - Format buttons (bold, italic, quote, code, link)
-- Additional formats dropdown (superscript, subscript, strikethrough)
-- Inserts dropdown (math, inline math)
+- One `More` dropdown that contains underline, superscript, subscript, strikethrough, and math inserts
+- Toolbar show/hide toggle
 - Upload button
-
-The toolbar is conditionally rendered — disabled in markdown mode.
 
 #### `switch.js` — ModeSwitch
 
@@ -270,7 +266,7 @@ Browser-specific fixes:
 
 - **`softkey-unborker.js`** — Android IME fix: suppresses composition events after delete to prevent "resurrected" text from `compositionend` replaying stale data.
 - **`softkey-emptyguard.js`** — Android: keeps text nodes non-empty to prevent IME from losing its composing target, which causes typing to silently fail.
-- **`next-link.js`** — Intercepts link clicks in the Reader for Next.js client-side navigation. Handles hash links (smooth scroll) and internal links (`router.push`) instead of full page reloads.
+- **`next-link.js`** — Intercepts link clicks in the Reader for Next.js client-side navigation. Handles hash links with shallow routing and internal links via `router.push()` instead of full page reloads.
 
 ---
 

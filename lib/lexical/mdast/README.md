@@ -40,6 +40,8 @@ mdast tree
 markdown string
 ```
 
+Most syntax round-trips cleanly through this pipeline, but a few transforms are intentionally normalizing or lossy, such as misleading-link rewriting, table alignment export, and display-only footnote backrefs.
+
 ## how to handle markdown transformations
 
 ```javascript
@@ -196,10 +198,13 @@ export const LexicalParagraphVisitor = {
 export const LexicalEmbedVisitor = {
   testLexicalNode: $isEmbedNode,
   visitLexicalNode ({ lexicalNode, mdastParent, actions }) {
-    // output plain text url
+    // output the embed URL as its own paragraph
     actions.appendToParent(mdastParent, {
-      type: 'text',
-      value: lexicalNode.getSrc()
+      type: 'paragraph',
+      children: [{
+        type: 'text',
+        value: lexicalNode.getSrc()
+      }]
     })
   }
 }
@@ -392,12 +397,15 @@ export function mentionTransform (tree) {
 **2. create import visitor** (`visitors/mentions.js`)
 
 ```javascript
-import { $createUserMentionNode, $isUserMentionNode } from '@/lib/lexical/nodes/mentions'
+import { $createUserMentionNode, $isUserMentionNode } from '@/lib/lexical/nodes/decorative/mentions'
 
 export const MdastUserMentionVisitor = {
   testNode: 'userMention',
   visitNode ({ mdastNode, actions }) {
-    const node = $createUserMentionNode({ name: mdastNode.value.name })
+    const node = $createUserMentionNode({
+      name: mdastNode.value.name,
+      path: mdastNode.value.path || ''
+    })
     actions.addAndStepInto(node)
   }
 }
@@ -413,12 +421,15 @@ export const LexicalUserMentionVisitor = {
   visitLexicalNode ({ lexicalNode, mdastParent, actions }) {
     actions.appendToParent(mdastParent, {
       type: 'userMention',
-      value: { name: lexicalNode.getName() }
+      value: {
+        name: lexicalNode.getUserMentionName(),
+        path: lexicalNode.getPath() || ''
+      }
     })
   },
   mdastType: 'userMention',
   toMarkdown (node) {
-    return `@${node.value.name}`
+    return `@${node.value.name}${node.value.path || ''}`
   }
 }
 ```
@@ -438,19 +449,27 @@ use custom MDAST nodes when:
 - you want semantic information preserved in the MDAST tree
 - you need the same representation in both directions
 
-for simple cases where you just need markdown output, you can skip the custom type and emit a `text` node directly in the export visitor:
+for simple cases where you just need markdown output, you can skip the custom type and emit standard mdast nodes directly in the export visitor.
+`ItemMentionNode` is a mixed example: it exports as a `link` when it carries custom text, otherwise it falls back to a plain text URL.
 
 ```javascript
-// item mentions are created from bare links (see link.js)
-// lexical -> mdast: outputs plain text URL
+// item mentions can come from mdast links or later autolink processing
+// lexical -> mdast: outputs a link for custom text, otherwise a plain text URL
 export const LexicalItemMentionVisitor = {
   testLexicalNode: $isItemMentionNode,
   visitLexicalNode ({ lexicalNode, mdastParent, actions }) {
-    // export as plain text URL, not a link
-    actions.appendToParent(mdastParent, {
-      type: 'text',
-      value: lexicalNode.getURL()
-    })
+    if (isCustomText(lexicalNode.getText(), lexicalNode.getItemMentionId())) {
+      actions.appendToParent(mdastParent, {
+        type: 'link',
+        url: lexicalNode.getURL(),
+        children: [{ type: 'text', value: lexicalNode.getText() }]
+      })
+    } else {
+      actions.appendToParent(mdastParent, {
+        type: 'text',
+        value: lexicalNode.getURL()
+      })
+    }
   }
 }
 ```
@@ -509,7 +528,8 @@ importMarkdownToLexical({
 
 ### handle unknown node types
 
-if you see `UnrecognizedMarkdownConstructError`, add a visitor for that mdast type:
+Unknown constructs no longer throw by default. The current importer logs a warning in development and falls back to inserting the original markdown slice as paragraph text.
+`UnrecognizedMarkdownConstructError` still exists in `import.js`, but the default fallback path does not currently throw it.
 
 ```javascript
 // check what type is failing

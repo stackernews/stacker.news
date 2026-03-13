@@ -122,7 +122,7 @@ React component rendered by `MathNode.decorate()`. Renders math equations using 
 
 Renders images and videos with selection handling, carousel integration, proxy/original fallback, and media-type detection. Images use `loading='lazy'`; videos use `preload='metadata'` when a distinct poster/proxy source is available.
 
-A note un uploaded media: upload placeholders are handled by `plugins/upload.js` and replaced with final markdown/media nodes on completion rather than showing node-local progress UI.
+A note on uploaded media: upload placeholders are handled by `plugins/upload.js` and replaced with final markdown/media nodes on completion rather than showing node-local progress UI.
 
 ### Mentions
 
@@ -133,7 +133,7 @@ There is currently no double-click-to-break-mention flow. The one unlink special
 
 ### TOC (`nodes/toc.js`)
 
-Table of contents component that renders a supplied `headings` prop. Heading extraction happens elsewhere, notably in `TableOfContentsNode.decorate()` and `components/table-of-contents.js` via `$extractHeadingsFromRoot()`.
+Table of contents component that renders a supplied `headings` prop. Heading extraction happens elsewhere, notably in `TableOfContentsNode.decorate()` and `lib/lexical/utils/toc.js` via `$extractHeadingsFromRoot()`.
 
 ---
 
@@ -233,7 +233,7 @@ Two-state UI:
 - **View mode:** displays the URL with edit and unlink buttons
 - **Edit mode:** input field with confirm/cancel buttons
 
-Auto-enters edit mode when a link has no URL. Positioned relative to the link element with viewport collision detection. Escape key closes the editor. The current implementation repositions without a fade animation.
+Auto-enters edit mode when a link has no URL. Positioned relative to the link element with collision detection against the editor scroller bounds. Escape key closes the editor. The current implementation repositions without a fade animation.
 
 ### Toolbar (`plugins/toolbar/`)
 
@@ -254,11 +254,11 @@ Tab interface to switch between markdown and rich mode. Registers `TOGGLE_MODE_C
 
 #### `mentions.js` — MentionsPlugin
 
-Autocomplete for `@user` and `~territory` mentions.
+Autocomplete for `@user` and `~territory` mentions. In rich mode it inserts mention nodes; in markdown mode it inserts plain mention text plus a trailing space.
 
 #### `upload.js` — UploadPlugin
 
-Handles file uploads via `SN_UPLOAD_FILES_COMMAND`. Integrates with the S3 upload pipeline.
+Handles file uploads via `SN_UPLOAD_FILES_COMMAND`, paste, and drag/drop. Inserts temporary placeholders, replaces them with markdown or `MediaNode`s on success, and recalculates upload fees from the current editor content.
 
 ### Patches (`plugins/patch/`)
 

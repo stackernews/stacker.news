@@ -96,49 +96,19 @@ All commands are registered centrally via `FormattingCommandsExtension` (see ext
 
 ## Extensions (`exts/`)
 
-[Lexical Extensions](https://lexical.dev/docs/extensions/defining-extensions) are a novel convention to add configuration and behavior to a Lexical editor in a framework-independent manner.
-It's a plain JavaScript object based on the LexicalExtension interface, its properties are the following:
+[Lexical Extensions](https://lexical.dev/docs/extensions/defining-extensions) are the main composition unit we use to assemble editor behavior in a framework-independent way.
+In this repo we create them with `defineExtension()` and mostly rely on these fields:
 
-**Editor configuration**
+- `name`
+- `nodes` / `theme`
+- `dependencies` (sometimes configured via `configExtension(...)`)
+- `conflictsWith`
+- `config` for extension-local defaults when needed
+- `register` for commands, node transforms, listeners, and other runtime behavior
 
-- `name`: **required**
-- `html`
-  - can override HTML import/export
-- `nodes`
-  - can register or override nodes
-- `theme`
-  - can specify CSS classes to be used for nodes
+Lexical supports additional fields and phases, but the list above covers the pieces this codebase currently depends on.
 
-**Extension dependencies**
-
-- [`dependencies`](https://lexical.dev/docs/extensions/defining-extensions#dependencies)
-  - an array of **required** extensions by reference, there must not be any circular dependency
-    - we can also configure a dependency by calling it via `configExtension`
-- [`peerDependencies`](https://lexical.dev/docs/extensions/peer-dependencies)
-  - an array of **optional** extensions by ***name***, they're not requirements, but specifying them allows the extension to find them at runtime and override configuration for them if they're build with the editor.
-- [`conflictsWith`](https://lexical.dev/docs/extensions/defining-extensions#conflictswith)
-  - an array of extensions by ***name*** that are known to conflict with the extension, useful for helpful errors
-
-**Extension phases (configuration and behavior)**
-
-- [`config`](https://lexical.dev/docs/extensions/defining-extensions#config)
-  - is an object that is the default configuration of the extension, properties of this object can be overridden by other extensions or the editor primarily via `configExtension`
-    - NOTE: the `config` phase happens before the editor is constructed, it is used in later phases to build init and/or output
-- [`mergeConfig`](https://lexical.dev/docs/extensions/defining-extensions#mergeconfig)
-- [`init`](https://lexical.dev/docs/extensions/defining-extensions#init)
-  - this phase happens **before** the editor is constructed, but after **all** extensions are configured; the result of this phase is available in later phases.
-    - it's rarely needed, and considered an advanced use case.
-- [`build`](https://lexical.dev/docs/extensions/defining-extensions#build)
-  - this phase happens **before** the editor is constructed ***but after*** `config` and `init`
-    - specifically useful when using Preact signals so that the behavior of the extension can be modified at runtime (for example, disabling itself). [More infos here](https://lexical.dev/docs/extensions/signals)
-      - returns `output` and is available for later phases, this is how extensions provide functionality to each other and to the nodes we declared.
-- [`register`](https://lexical.dev/docs/extensions/defining-extensions#register)
-  - this phase happens **after** the editor has been constructed, this is where we'll register any commands, listeners, etc. that the extension needs. It can use the result of `init` or `build` via `state.getInit()` and `state.getOutput()`
-    - this is the most common phase, we use it to replace React-based plugins that don't need React at all.
-- [`afterRegistration`](https://lexical.dev/docs/extensions/defining-extensions#afterregistration)
-  - like `register` but this phase happens **after `register` of every extension** has been called and **after** the editor state has been applied to the editor.
-
-**Informations about SN's extensions are available in `lib/lexical/exts/README.md`**
+Information about SN's concrete extensions is available in `lib/lexical/exts/README.md`
 
 ---
 
@@ -147,7 +117,7 @@ It's a plain JavaScript object based on the LexicalExtension interface, its prop
 Handles conversion between Markdown and Lexical by mapping the Markdown AST structure to the Lexical Editor State structure.  
 Targets stable Markdown <-> Lexical round-trips while allowing a few deliberate normalizations and lossy edge cases where the underlying models do not match exactly.
 
-**Informations about MDAST are available in `lib/lexical/mdast/README.md`**
+**Information about MDAST is available in `lib/lexical/mdast/README.md`**
 
 ---
 
@@ -222,21 +192,21 @@ Lexical copy/paste handlers need to know what's the plain text equivalent of a `
 
 ### Requirements
 
-To create a node, we **must** provide a way to:
+For SN custom nodes that need JSON/HTML round-trips, copy/paste, and SSR support, we typically implement:
 
-- export the node to HTML: `exportDOM`
-- import a node from HTML: `importDOM`
-    - with a `$convertSomeNodeElement` function that takes the HTML attributes and creates a Lexical Node with them
-- export the node to JSON: `exportJSON`
-- import the node from JSON: `importJSON`
-- clone the node (e.g. moving): `clone`
-- create the DOM: `createDOM`
-    - or just the container for `DecoratorNode`'s `decorate()`
-- if it's a `DecoratorNode` we also must provide the `decorate()` function.
-    - the node extension has to be `.jsx` since this will feature some JSX, and our worker doesn't handle JSX in `.js` files.
-    - since this will feature React components with `.js` extension, it is imperative to import them inside the decorate function and not top-level.
+- `exportDOM`
+- `importDOM`
+    - usually with a `$convertSomeNodeElement` helper that reconstructs the node from DOM attributes
+- `exportJSON`
+- `importJSON`
+- `clone`
+- `createDOM`
+    - or just the container for a `DecoratorNode`'s `decorate()`
+- `decorate()` for `DecoratorNode`s
 
-And it is recommended to provide the helpers:
+In this repo, nodes whose `decorate()` method returns JSX live in `.jsx` files, and React-heavy component imports are resolved inside `decorate()` so headless/server codepaths do not eagerly load editor UI modules.
+
+It is also recommended to provide the helpers:
 - `$createSomeNode`
 - `$isSomeNode`
 
@@ -244,7 +214,7 @@ And it is recommended to provide the helpers:
 
 #### Content Nodes
 
-- **`MediaNode`** (`content/media.jsx`) — images and videos. Extends `DecoratorNode`. Managed by `AutoLinkExtension` (creates from URLs) and `ItemContextExtension` (applies imgproxy srcSets, dimensions). Uses extension states (`srcSetState`, `bestResSrcState`, `kindState`, etc.) for server-injected properties.
+- **`MediaNode`** (`content/media.jsx`) — images and videos. Extends `DecoratorNode`. `AutoLinkExtension` creates it as a placeholder for standalone bare URLs, and later layers (`ItemContextExtension` on the server, media checks in the client component) fill in `srcSet`, dimensions, and final media kind. Uses extension states (`srcSetState`, `bestResSrcState`, `kindState`, etc.) for those derived properties.
 - **`EmbedNode`** (`content/embed.jsx`) — third-party embeds (YouTube, Twitter, Nostr, etc.). Extends `DecoratorBlockNode`. Stores `provider`, `src`, `id`, and `meta`. Created by `AutoLinkExtension` when a standalone URL matches an embed provider.
 - **`GalleryNode`** (`content/gallery.jsx`) — groups adjacent media into a gallery. Extends `ElementNode`. Created and merged automatically by `GalleryExtension` when adjacent media-only paragraphs and/or galleries are detected, then unwrapped again if the result contains only a single media node.
 - **`TableOfContentsNode`** (`content/toc.jsx`) — renders a navigable table of contents from document headings.
@@ -283,7 +253,7 @@ Pre-assembled array of all registered nodes. Includes built-in Lexical nodes (`L
 
 ## Server (`server/`)
 
-Server-side rendering and processing utilities, more informations can be found in `lib/lexical/server/README.md`
+Server-side rendering and processing utilities; more details live in `lib/lexical/server/README.md`
 
 ---
 
@@ -312,7 +282,7 @@ Low-level functions for working with the editor as plain markdown text. Used by 
 |---|---|
 | `$getTextContent(trimWhitespace?)` | Gets the text content of the editor with controlled newlines |
 | `$isTextEmpty()` | Checks if the editor content is empty |
-| `$setText(value)` | Clears the editor and initializes with markdown text |
+| `$setText(value)` | Clears the editor and initializes with a text/markdown string |
 | `$insertText(text, trim?, cursor?)` | Inserts plain text at the current selection |
 | `$appendMarkdown(markdown, trim?, spacing?)` | Appends markdown to the root |
 | `$getNodesFromText(text, trim?)` | Parses plain text to Lexical paragraph nodes |
@@ -345,7 +315,7 @@ Custom `toMarkdown` handlers prevent autolink syntax (`<url>`) and always output
 
 ### `utils/position.js` — Floating Element Positioning
 
-Used by the link editor (and potentially other floating UI) to position elements relative to a target with viewport collision detection.
+Used by the link editor (and potentially other floating UI) to position elements relative to a target with collision detection against the editor scroller bounds.
 
 ```javascript
 import { setFloatingElemPosition } from '@/lib/lexical/utils/position'

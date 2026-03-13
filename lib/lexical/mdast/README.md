@@ -1,6 +1,6 @@
 # MDAST <-> Lexical
 
-mdast-based markdown transformations for lexical
+mdast-based markdown transformations for Lexical
 
 ## the old [React-Markdown](https://github.com/remarkjs/react-markdown?tab=readme-ov-file#architecture) architecture
 
@@ -121,31 +121,28 @@ testNode: (node) => node.type === 'html' && node.value === tag
 | `actions.visitChildren(mdastNode, lexicalParent)` | manually visit children |
 | `actions.nextVisitor()` | skip this visitor, try the next matching one |
 | `actions.addFormatting(format)` | add text formatting (bold, italic, etc.) |
+| `actions.removeFormatting(format)` | remove inherited formatting from the current mdast scope |
 | `actions.getParentFormatting()` | get inherited formatting from parent |
+| `actions.addStyle(style)` | attach style metadata for downstream visitors |
+| `actions.getParentStyle()` | read inherited style metadata |
 
 #### priority and nextVisitor
 
 when multiple visitors match the same mdast type, we can use priority to control order:
 
 ```javascript
-// high priority: check if link is an embed first
-export const MdastEmbedFromLinkVisitor = {
+// higher priority: internal item links become ItemMentionNode
+export const MdastItemMentionLinkVisitor = {
   testNode: 'link',
-  priority: 15,
+  priority: 20,
   visitNode ({ mdastNode, actions }) {
-    if (!isBareLink(mdastNode)) {
-      actions.nextVisitor()  // not a raw link, try next visitor
+    const parsed = parseInternalLinks(mdastNode.url)
+    if (parsed.itemId || parsed.commentId) {
+      actions.addAndStepInto($createItemMentionNode(...))
       return
     }
 
-    const embed = getEmbed(mdastNode.url)
-    if (embed.provider) {
-      const node = $createEmbedNode(...)
-      actions.addAndStepInto(node)
-      return
-    }
-
-    actions.nextVisitor() // not an embed, try next visitor
+    actions.nextVisitor()
   }
 }
 
@@ -180,6 +177,9 @@ export const LexicalHeadingVisitor = {
 |--------|-------------|
 | `actions.addAndStepInto(type, props)` | create mdast node, append to parent, visit children |
 | `actions.appendToParent(mdastParent, node)` | append mdast node directly (for leaf nodes) |
+| `actions.visitChildren(lexicalNode, mdastParent)` | visit a node's children manually |
+| `actions.visit(lexicalNode, mdastParent)` | visit an arbitrary lexical node manually |
+| `actions.nextVisitor()` | skip this visitor and try the next matching export visitor |
 
 #### export examples
 
@@ -222,8 +222,8 @@ for example, the mentions transform leans on `mdast-util-find-and-replace`, whic
 ```javascript
 import { findAndReplace } from 'mdast-util-find-and-replace'
 
-const USER = /\B@[a-z0-9_]+(?:\/[a-z0-9_/]+)?/gi
-const TERRITORY = /~[a-z][\w_]+/gi
+const USER = /\B@([\w_]+(?:\/[\w_]+)?)/gi
+const TERRITORY = /~([A-Za-z][\w_]+(?:\/[A-Za-z][\w_]+)?)/gi
 
 export function mentionTransform (tree) {
   findAndReplace(
@@ -247,7 +247,7 @@ export function mentionTransform (tree) {
         })
       ]
     ],
-    { ignore: ['code', 'inlineCode'] }
+    { ignore: ['code', 'inlineCode', 'link'] }
   )
 }
 ```

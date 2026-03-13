@@ -7,7 +7,7 @@ These are the Lexical Extensions we currently created and registered.
 used by: **Rich Editor; SSR Editor; Reader**
 
 This extension intercepts the changes of `AutoLinkNode`s via `registerNodeTransform`  
-Its purpose is to replace plain text URLs with Mentions, Embeds or Media.
+Its purpose is to replace plain text URLs with richer SN-specific nodes.
 
 ### Pipeline
 
@@ -22,7 +22,8 @@ When an `AutoLinkNode` is created or modified:
     - check if it's an embed URL
       - replace the **parent paragraph** of `AutoLinkNode` with `EmbedNode`
         - `EmbedNode` is a `DecoratorBlockNode`, and it shouldn't be inserted in a paragraph
-    - create a `MediaNode` signaling that it comes from an `AutoLinkNode`
+    - otherwise replace it with a `MediaNode` placeholder marked as `autolink: true`
+      - actual media validation happens later in the media component and/or `ItemContextExtension`
 3. Nothing applies, replace the node with a full `LinkNode`
 
 
@@ -115,6 +116,7 @@ Each command is mode-aware: in rich mode it directly manipulates Lexical nodes; 
 | `SN_TOGGLE_LINK_COMMAND` | Toggle link on/off |
 | `SN_INSERT_MATH_COMMAND` | Insert inline or block math equation |
 | `MD_FORMAT_COMMAND` | Direct markdown syntax insertion (wraps selection with syntax markers) |
+| `MD_INSERT_BLOCK_COMMAND` | Direct markdown block insertion/prefixing (`#`, `>`, lists, fenced code) |
 
 ## `MarkdownTextExtension`
 

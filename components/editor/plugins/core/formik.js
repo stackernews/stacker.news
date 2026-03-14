@@ -102,8 +102,9 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
     )
   }, [editor, disabled, toaster, submitForm])
 
-  // unmount
+  // toggling mode will unmount and remount the Lexical editor
   useEffect(() => {
+    // on unmount, re-enable submission
     return () => disableSubmit(false)
   }, [disableSubmit])
 

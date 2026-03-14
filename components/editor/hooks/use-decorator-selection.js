@@ -18,14 +18,16 @@ import {
  * Shared click-to-select, focused-class, and delete behavior for decorator nodes.
  * Pass { ref } to narrow the click target, { focusedClass } to auto-toggle a CSS
  * class, { deletable: false } to skip delete/backspace, { active: false } to
- * suspend commands (e.g. while an inline editor is open, such as the math editor).
+ * suspend commands (e.g. while an inline editor is open, such as the math editor),
+ * { onDoubleClick } to handle double-click on the node.
  */
 export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
   const {
     ref = null,
     focusedClass = null,
     deletable = true,
-    active = true
+    active = true,
+    onDoubleClick = null
   } = opts
 
   const [editor] = useLexicalComposerContext()
@@ -34,26 +36,6 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
     useLexicalNodeSelection(nodeKey)
 
   const isFocused = isEditable && isSelected && active
-
-  // toggle focused class on the Lexical DOM element
-  useEffect(() => {
-    if (!focusedClass) return
-    const element = editor.getElementByKey(nodeKey)
-    if (!element) return
-    element.classList.toggle(focusedClass, isFocused)
-  }, [editor, nodeKey, isFocused, focusedClass])
-
-  // when the node loses Lexical focus, its contenteditable="false" DOM wrapper
-  // can retain browser focus (Chrome for example shows :focus-visible).
-  // keyboard input goes to the non-editable element instead of the editor root, so typing breaks.
-  useEffect(() => {
-    if (isFocused || !active) return
-    const element = editor.getElementByKey(nodeKey)
-    if (!element) return
-    if (element === document.activeElement || element.contains(document.activeElement)) {
-      editor.getRootElement()?.focus({ preventScroll: true })
-    }
-  }, [editor, nodeKey, isFocused, active])
 
   const onDelete = useCallback((event) => {
     if (!isSelected) return false
@@ -84,42 +66,74 @@ export default function useDecoratorNodeSelection (nodeKey, opts = {}) {
     return true
   }, [editor, nodeKey, isSelected])
 
-  useEffect(() => {
-    if (!isEditable || !active) return
+  // when a ref is provided, only match clicks directly on that element
+  // otherwise match the decorator container or anything inside it
+  const hitTest = useCallback((event) => {
+    const element = editor.getElementByKey(nodeKey)
+    if (!element) return false
 
-    const onClick = (event) => {
-      const target = ref?.current
-      const element = editor.getElementByKey(nodeKey)
-      if (!element) return false
+    const target = ref?.current
+    return target
+      ? event.target === target
+      : event.target === element || element.contains(event.target)
+  }, [editor, nodeKey, ref])
 
-      // when a ref is provided, only match clicks directly on that element
-      // otherwise match the container or anything inside it
-      const hit = target
-        ? event.target === target
-        : event.target === element || element.contains(event.target)
+  const onClick = useCallback((event) => {
+    if (!hitTest(event)) return false
 
-      if (!hit) return false
-
-      if (event.shiftKey) {
-        setSelected(!isSelected)
-      } else {
-        clearSelection()
-        setSelected(true)
-      }
+    // are we double clicking?
+    if (event.detail === 2 && onDoubleClick) {
+      event.preventDefault()
+      onDoubleClick(event)
       return true
     }
 
-    return mergeRegister(
+    if (event.shiftKey) {
+      setSelected(!isSelected)
+    } else {
+      clearSelection()
+      setSelected(true)
+    }
+    return true
+  }, [isSelected, setSelected, clearSelection, hitTest, onDoubleClick])
+
+  // toggle focused class on the Lexical DOM element
+  useEffect(() => {
+    if (!focusedClass) return
+    const element = editor.getElementByKey(nodeKey)
+    if (!element) return
+    element.classList.toggle(focusedClass, isFocused)
+  }, [editor, nodeKey, isFocused, focusedClass])
+
+  // when the node loses Lexical focus, its contenteditable="false" DOM wrapper
+  // can retain browser focus (Chrome for example shows :focus-visible).
+  // keyboard input goes to the non-editable element instead of the editor root, so typing breaks.
+  useEffect(() => {
+    if (isFocused || !active) return
+    const element = editor.getElementByKey(nodeKey)
+    if (!element) return
+    if (element === document.activeElement || element.contains(document.activeElement)) {
+      editor.getRootElement()?.focus({ preventScroll: true })
+    }
+  }, [editor, nodeKey, isFocused, active])
+
+  useEffect(() => {
+    if (!isEditable || !active) return
+
+    const commands = [
       editor.registerCommand(CLICK_COMMAND, onClick, COMMAND_PRIORITY_LOW),
-      editor.registerCommand(KEY_ENTER_COMMAND, onEnter, COMMAND_PRIORITY_EDITOR),
-      ...(deletable
-        ? [
-            editor.registerCommand(KEY_DELETE_COMMAND, onDelete, COMMAND_PRIORITY_LOW),
-            editor.registerCommand(KEY_BACKSPACE_COMMAND, onDelete, COMMAND_PRIORITY_LOW)
-          ]
-        : [])
-    )
-  }, [editor, nodeKey, isEditable, isSelected, setSelected, clearSelection, ref, deletable, active, onDelete, onEnter])
+      editor.registerCommand(KEY_ENTER_COMMAND, onEnter, COMMAND_PRIORITY_EDITOR)
+    ]
+
+    if (deletable) {
+      commands.push(
+        editor.registerCommand(KEY_DELETE_COMMAND, onDelete, COMMAND_PRIORITY_LOW),
+        editor.registerCommand(KEY_BACKSPACE_COMMAND, onDelete, COMMAND_PRIORITY_LOW)
+      )
+    }
+
+    return mergeRegister(...commands)
+  }, [editor, nodeKey, isEditable, active, deletable, onClick, onEnter, onDelete])
 
   return { isSelected, setSelected, clearSelection, isFocused }
 }

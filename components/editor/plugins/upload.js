@@ -224,8 +224,10 @@ export default function FileUploadPlugin ({ editorRef }) {
   useEffect(() => {
     return () => {
       placeholderKey.current = 0
+      // reset submit disabled reason
+      setSubmitDisabled?.(UPLOAD_SUBMIT_DISABLED_REASON, false)
     }
-  }, [placeholderKey])
+  }, [placeholderKey, setSubmitDisabled])
 
   return (
     <div className='d-none'>

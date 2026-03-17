@@ -10,53 +10,7 @@ import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { useCommentsNavigatorContext } from './use-comments-navigator'
-
-function hoistNestedPins (comments, rootId) {
-  const hoisted = []
-  function walk (nodes) {
-    return (nodes || []).map(node => {
-      const children = node.comments?.comments || []
-      const keptChildren = []
-      let removedPinnedChildren = 0
-      let adoptedChildren = 0
-      for (const child of children) {
-        if (child.position && child.parentId !== rootId) {
-          removedPinnedChildren += 1
-          const adopted = child.comments?.comments || []
-          adoptedChildren += adopted.length
-          hoisted.push({
-            ...child,
-            nDirectComments: 0,
-            comments: {
-              ...(child.comments || {}),
-              comments: []
-            }
-          })
-          keptChildren.push(...adopted)
-          continue
-        }
-        keptChildren.push(child)
-      }
-      const walkedChildren = walk(keptChildren)
-      if (!node.comments) return node
-      const adjustedNDirectComments = typeof node.nDirectComments === 'number'
-        ? Math.max(0, node.nDirectComments - removedPinnedChildren + adoptedChildren)
-        : node.nDirectComments
-      return {
-        ...node,
-        nDirectComments: adjustedNDirectComments,
-        comments: {
-          ...node.comments,
-          comments: walkedChildren
-        }
-      }
-    })
-  }
-  return {
-    comments: walk(comments || []),
-    hoisted
-  }
-}
+import { hoistNestedPins } from './comments-pin'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, commentCost, commentBoost }) {
   const router = useRouter()
@@ -123,9 +77,16 @@ export default function Comments ({
   // new comments navigator, tracks new comments and provides navigation controls
   const { navigator } = useCommentsNavigatorContext()
 
-  const { comments: displayComments, hoisted } = useMemo(() => hoistNestedPins(comments, Number(parentId)), [comments, parentId])
+  const rootId = Number(item?.root?.id || parentId)
+  const isRootThread = Number(parentId) === rootId
+  const { comments: displayComments, hoisted } = useMemo(() => {
+    if (!isRootThread) return { comments: comments || [], hoisted: [] }
+    return hoistNestedPins(comments, rootId)
+  }, [comments, isRootThread, rootId])
   const pins = useMemo(
-    () => [...(displayComments?.filter(({ position }) => !!position) || []), ...hoisted].sort((a, b) => a.position - b.position), [displayComments, hoisted])
+    () => [...displayComments.filter(({ position }) => Boolean(position)), ...hoisted].sort((a, b) => a.position - b.position),
+    [displayComments, hoisted]
+  )
   return (
     <>
       {comments?.length > 0

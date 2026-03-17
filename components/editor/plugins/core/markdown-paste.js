@@ -22,7 +22,7 @@ function getMarkdownFromPaste (bridge, event) {
   // export the resulting nodes as markdown
   let markdown = ''
   bridge.update(() => {
-    markdown = $lexicalToMarkdown(true)
+    markdown = $lexicalToMarkdown()
     $getRoot().clear()
   })
 

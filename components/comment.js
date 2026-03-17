@@ -310,8 +310,8 @@ export default function Comment ({
                 {!noComments && item.comments?.comments
                   ? (
                     <>
-                      {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} />
+                      {item.comments.comments.map((child) => (
+                        <Comment depth={depth + 1} key={child.id} item={child} navigator={navigator} pin={!!child.position} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>

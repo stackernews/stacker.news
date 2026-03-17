@@ -11,6 +11,53 @@ import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { useCommentsNavigatorContext } from './use-comments-navigator'
 
+function hoistNestedPins (comments, rootId) {
+  const hoisted = []
+  function walk (nodes) {
+    return (nodes || []).map(node => {
+      const children = node.comments?.comments || []
+      const keptChildren = []
+      let removedPinnedChildren = 0
+      let adoptedChildren = 0
+      for (const child of children) {
+        if (child.position && child.parentId !== rootId) {
+          removedPinnedChildren += 1
+          const adopted = child.comments?.comments || []
+          adoptedChildren += adopted.length
+          hoisted.push({
+            ...child,
+            nDirectComments: 0,
+            comments: {
+              ...(child.comments || {}),
+              comments: []
+            }
+          })
+          keptChildren.push(...adopted)
+          continue
+        }
+        keptChildren.push(child)
+      }
+      const walkedChildren = walk(keptChildren)
+      if (!node.comments) return node
+      const adjustedNDirectComments = typeof node.nDirectComments === 'number'
+        ? Math.max(0, node.nDirectComments - removedPinnedChildren + adoptedChildren)
+        : node.nDirectComments
+      return {
+        ...node,
+        nDirectComments: adjustedNDirectComments,
+        comments: {
+          ...node.comments,
+          comments: walkedChildren
+        }
+      }
+    })
+  }
+  return {
+    comments: walk(comments || []),
+    hoisted
+  }
+}
+
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, commentCost, commentBoost }) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
@@ -76,8 +123,9 @@ export default function Comments ({
   // new comments navigator, tracks new comments and provides navigation controls
   const { navigator } = useCommentsNavigatorContext()
 
-  const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
-
+  const { comments: displayComments, hoisted } = useMemo(() => hoistNestedPins(comments, Number(parentId)), [comments, parentId])
+  const pins = useMemo(
+    () => [...(displayComments?.filter(({ position }) => !!position) || []), ...hoisted].sort((a, b) => a.position - b.position), [displayComments, hoisted])
   return (
     <>
       {comments?.length > 0
@@ -101,7 +149,7 @@ export default function Comments ({
           <Comment depth={1} item={item} navigator={navigator} {...props} pin />
         </Fragment>
       ))}
-      {comments.filter(({ position }) => !position).map(item => (
+      {displayComments.filter(({ position }) => !position).map(item => (
         <Comment depth={1} key={item.id} item={item} navigator={navigator} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&

@@ -96,12 +96,11 @@ export default function ItemInfo ({
   }, [item])
 
   // territory founders can pin any post in their territory
-  // and OPs can pin any root reply in their post
+  // and OPs can pin replies in their post
   const isPost = !item.parentId
   const mySub = (me && sub && Number(me.id) === sub.userId)
   const myPost = (me && root && Number(me.id) === Number(root.user.id))
-  const rootReply = item.path.split('.').length === 2
-  const canPin = (isPost && mySub) || (myPost && rootReply)
+  const canPin = (isPost && mySub) || (myPost && !isPost)
   const isPinnedPost = isPost && item.position && (pinnable || !item.subNames)
   const isPinnedSubReply = !isPost && item.position && !item.subNames
   const meSats = (me ? item.meSats : item.meAnonSats) || 0

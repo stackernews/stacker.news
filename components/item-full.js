@@ -95,7 +95,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
   const { me } = useMe()
   const ItemComponent = item.isJob ? ItemJob : Item
   const { ref: readerRef, onRef: onReaderRef } = useCallbackRef()
-  const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
+  const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text, readerRef })
   const postsSatsFilter = me ? me.privates?.postsSatsFilter : DEFAULT_POSTS_SATS_FILTER
   const isBelowFilter = !item.mine && postsSatsFilter != null && (item.netInvestment ?? 0) < postsSatsFilter
 

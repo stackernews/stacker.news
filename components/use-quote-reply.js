@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { quote as quoteMd } from '@/lib/md'
+import { copyMarkdownFromSelection } from '@/lib/lexical/utils/selection'
 
-export function useQuoteReply ({ text }) {
+export function useQuoteReply ({ text, readerRef }) {
   const ref = useRef(null)
   const [quote, setQuote] = useState(null)
   const [selection, setSelection] = useState(null)
@@ -9,14 +10,14 @@ export function useQuoteReply ({ text }) {
 
   const onSelectionChange = useCallback(e => {
     clearTimeout(to.current)
-    const selection = window.getSelection()
-    const selectedText = selection.isCollapsed ? undefined : selection.toString()
-    const isSelectedTextInTarget = ref?.current?.contains(selection.anchorNode)
+    const domSelection = window.getSelection()
+    const selectedText = domSelection.isCollapsed ? undefined : domSelection.toString()
+    const isSelectedTextInTarget = ref?.current?.contains(domSelection.anchorNode)
 
-    if ((selection.isCollapsed || !isSelectedTextInTarget || !selectedText)) {
-      // selection is collapsed or not in target or empty
-      // but on button click we don't want to immediately clear selection
-      to.current = setTimeout(() => setSelection(null), 1000)
+    if ((domSelection.isCollapsed || !isSelectedTextInTarget || !selectedText)) {
+      to.current = setTimeout(() => {
+        setSelection(null)
+      }, 1000)
       return
     }
 
@@ -26,13 +27,21 @@ export function useQuoteReply ({ text }) {
   useEffect(() => {
     document.addEventListener('selectionchange', onSelectionChange)
     return () => document.removeEventListener('selectionchange', onSelectionChange)
-  }, [])
+  }, [onSelectionChange])
 
   const quoteReply = useCallback(({ selectionOnly }) => {
     if (selectionOnly && !selection) return
-    const textToQuote = selection || text
+    let textToQuote = selection || text
+
+    if (selection && readerRef) {
+      const markdown = copyMarkdownFromSelection(readerRef)
+      if (markdown) {
+        textToQuote = markdown
+      }
+    }
+
     setQuote(quoteMd(textToQuote))
-  }, [selection, text])
+  }, [selection, text, readerRef])
 
   const cancelQuote = useCallback(() => {
     setQuote(null)

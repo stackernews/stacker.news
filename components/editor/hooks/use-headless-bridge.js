@@ -9,6 +9,32 @@ import { LinkExtension } from '@lexical/link'
 const DEFAULT_EXTENSIONS = []
 const DEFAULT_NAME = 'sn-headless-bridge'
 
+/** creates a headless Lexical editor for use as a processing bridge */
+export function createHeadlessBridge (opts = {}) {
+  const {
+    nodes = DefaultNodes,
+    theme = DefaultTheme,
+    extensions = DEFAULT_EXTENSIONS,
+    name = DEFAULT_NAME
+  } = opts
+
+  return buildEditorFromExtensions(
+    defineExtension({
+      onError: (error) => console.error('editor bridge has encountered an error:', error),
+      name,
+      dependencies: [
+        RichTextExtension,
+        ListExtension,
+        CheckListExtension,
+        LinkExtension,
+        ...extensions
+      ],
+      nodes,
+      theme
+    })
+  )
+}
+
 /**
  * shared hook that creates and manages a headless bridge editor
  * @param {Object} [opts] - optional configuration for the bridge editor
@@ -19,32 +45,11 @@ const DEFAULT_NAME = 'sn-headless-bridge'
  * @returns {React.RefObject} ref to the bridge editor instance
  */
 export default function useHeadlessBridge (opts = {}) {
-  const {
-    nodes = DefaultNodes,
-    theme = DefaultTheme,
-    extensions = DEFAULT_EXTENSIONS,
-    name = DEFAULT_NAME
-  } = opts
   const bridge = useRef(null)
 
-  // create the bridge once on mount and dispose of it on unmount
   useEffect(() => {
     if (!bridge.current) {
-      bridge.current = buildEditorFromExtensions(
-        defineExtension({
-          onError: (error) => console.error('editor bridge has encountered an error:', error),
-          name,
-          dependencies: [
-            RichTextExtension,
-            ListExtension,
-            CheckListExtension,
-            LinkExtension,
-            ...extensions
-          ],
-          nodes,
-          theme
-        })
-      )
+      bridge.current = createHeadlessBridge(opts)
     }
     return () => {
       if (bridge.current) {

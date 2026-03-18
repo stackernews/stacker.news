@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { quote as quoteMd } from '@/lib/md'
-import { copyMarkdownFromSelection } from '@/lib/lexical/utils/selection'
+import { getMarkdownFromSelection } from '@/lib/lexical/utils/selection'
 
 export function useQuoteReply ({ text, readerRef }) {
   const ref = useRef(null)
@@ -34,7 +34,7 @@ export function useQuoteReply ({ text, readerRef }) {
     let textToQuote = selection || text
 
     if (selection && readerRef) {
-      const markdown = copyMarkdownFromSelection(readerRef)
+      const markdown = getMarkdownFromSelection(readerRef)
       if (markdown) {
         textToQuote = markdown
       }

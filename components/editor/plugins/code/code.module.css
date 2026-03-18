@@ -1,0 +1,92 @@
+.codeActionMenuContainer {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  padding-top: 6px;
+  font-size: 10px;
+  color: var(--theme-navLink);
+  user-select: none;
+}
+
+.codeActionLanguage {
+  margin-right: 4px;
+}
+
+.editable {
+  cursor: pointer;
+}
+
+.editable:hover {
+  color: var(--theme-navLinkFocus);
+}
+
+.editable:active {
+  color: var(--theme-navLinkActive);
+}
+
+.codeActionMenuContainer :global(.input-group-text) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.codeActionMenuContainer :global(.input-group-text):hover {
+  color: var(--theme-navLinkFocus);
+}
+
+.codeActionMenuContainer :global(.input-group-text):active {
+  color: var(--theme-navLinkActive);
+}
+
+.codeActionMenuContainer svg {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  fill: currentColor;
+}
+
+.languageInput {
+  width: 100%;
+  font-size: 12px;
+  padding: 0.25rem 0.35rem;
+  margin-bottom: 0.25rem;
+  border: 0;
+  border-radius: 3px;
+  background: var(--theme-inputBg);
+  color: var(--theme-color);
+  outline: none;
+}
+
+.languageInput:focus {
+  outline: 1px solid var(--bs-primary);
+}
+
+.languageDropdown {
+  min-width: 120px;
+  background: var(--theme-inputBg);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+  padding: 4px;
+}
+
+.languageOption {
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  color: var(--theme-color);
+}
+
+.languageOptionHighlighted {
+  background-color: var(--theme-toolbarActive);
+}

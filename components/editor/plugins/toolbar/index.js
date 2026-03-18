@@ -6,7 +6,7 @@ import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
 import UploadIcon from '@/svgs/editor/toolbar/inserts/upload-paperclip.svg'
 import { useToolbarState, INITIAL_FORMAT_STATE } from '@/components/editor/contexts/toolbar'
-import { useEffect, useRef, useState, forwardRef, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import BoldIcon from '@/svgs/editor/toolbar/inline/bold.svg'
 import ItalicIcon from '@/svgs/editor/toolbar/inline/italic.svg'
 import LinkIcon from '@/svgs/editor/toolbar/inline/link.svg'
@@ -14,7 +14,6 @@ import QuoteIcon from '@/svgs/editor/toolbar/block/quote-text.svg'
 import CodeIcon from '@/svgs/editor/toolbar/inline/code.svg'
 import Dropdown from 'react-bootstrap/Dropdown'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
-import { createPortal } from 'react-dom'
 import SuperscriptIcon from '@/svgs/editor/toolbar/inline/superscript.svg'
 import SubscriptIcon from '@/svgs/editor/toolbar/inline/subscript.svg'
 import StrikethroughIcon from '@/svgs/editor/toolbar/inline/strikethrough.svg'
@@ -29,7 +28,6 @@ import CheckListIcon from '@/svgs/editor/toolbar/block/check-list.svg'
 import CodeBlockIcon from '@/svgs/editor/toolbar/block/code-block.svg'
 import MoreIcon from '@/svgs/editor/toolbar/more-line.svg'
 import FontStyleIcon from '@/svgs/editor/toolbar/font-style.svg'
-import { useIsClient } from '@/components/use-client'
 import { SN_FORMAT_BLOCK_COMMAND } from '@/lib/lexical/commands/formatting/blocks'
 import { SN_FORMAT_COMMAND } from '@/lib/lexical/commands/formatting/format'
 import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
@@ -45,6 +43,7 @@ import MathIcon from '@/svgs/editor/toolbar/inserts/formula.svg'
 import MathOperationsIcon from '@/svgs/editor/toolbar/inserts/math-operations.svg'
 import { useEditorMode } from '@/components/editor/contexts/mode'
 import UnderlineIcon from '@/svgs/editor/toolbar/inline/underline.svg'
+import { MenuAlternateDimension } from '@/components/editor/utils'
 
 const BLOCK_OPTIONS = [
   { id: 'paragraph', name: 'paragraph', icon: <BlocksIcon />, block: 'paragraph' },
@@ -63,19 +62,6 @@ const FORMAT_OPTIONS = [
   { id: 'strikethrough', active: 'isStrikethrough', name: 'strikethrough', icon: <StrikethroughIcon />, type: 'strikethrough' },
   { id: 'underline', active: 'isUnderline', name: 'underline', icon: <UnderlineIcon />, type: 'underline' }
 ]
-
-const MenuAlternateDimension = forwardRef(function MenuAlternateDimension ({ children, style, className }, ref) {
-  // document doesn't exist on SSR
-  const isClient = useIsClient()
-  if (!isClient) return null
-
-  return createPortal(
-    <div ref={ref} style={style} className={className}>
-      {children}
-    </div>,
-    document.body
-  )
-})
 
 function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, showDelay = 500, children }) {
   const { toolbarState } = useToolbarState()

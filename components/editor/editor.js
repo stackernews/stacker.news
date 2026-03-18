@@ -40,6 +40,7 @@ import { CodeShikiSNExtension } from '@/lib/lexical/exts/shiki'
 import { CodeThemePlugin } from './plugins/core/code-theme'
 import LinkEditorPlugin from './plugins/link'
 import { DecoratorClickZonesExtension } from '@/lib/lexical/exts/decorator-click-zones'
+import CodeActionMenuPlugin from './plugins/code/actions'
 
 const EDITOR_MARKDOWN_MODE = {
   name: 'editor-markdown',
@@ -181,6 +182,7 @@ function EditorContent ({
         <>
           <CodeThemePlugin />
           <LinkEditorPlugin anchorElem={containerRef} />
+          <CodeActionMenuPlugin anchorElem={containerRef} />
         </>
       )}
       {isMarkdown && <TransformerBridgePlugin />}

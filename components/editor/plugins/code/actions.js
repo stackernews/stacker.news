@@ -39,15 +39,13 @@ function LanguageSelector ({ lang, editor, codeDOMNodeRef, isEditingRef, onLangu
   const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(0)
-  const isEditable = useLexicalEditable()
 
   // random placeholder suggestions until the user types
-  const randomized = useMemo(
-    () => getRandomLanguageSuggestions(),
-    [open]
-  )
+  const randomized = useMemo(() => getRandomLanguageSuggestions(), [open])
 
-  const filtered = useMemo(() => {
+  // show 5 suggestions based on the input
+  // fallback to random suggestions
+  const suggestions = useMemo(() => {
     const q = filter.toLowerCase()
     if (!q) return randomized
     return LANGUAGE_OPTIONS
@@ -55,8 +53,10 @@ function LanguageSelector ({ lang, editor, codeDOMNodeRef, isEditingRef, onLangu
       .slice(0, MAX_SUGGESTIONS)
   }, [filter, randomized])
 
-  useEffect(() => { setHighlightedIndex(0) }, [filter])
+  // reset highlighted index when filter changes
+  useEffect(() => setHighlightedIndex(0), [filter])
 
+  // track language selector state
   useEffect(() => {
     isEditingRef.current = open
     if (!open) setFilter('')
@@ -75,12 +75,12 @@ function LanguageSelector ({ lang, editor, codeDOMNodeRef, isEditingRef, onLangu
 
   const handleKeyDown = useCallback((e) => {
     e.stopPropagation()
-    if (!filtered.length && e.key !== 'Escape') return
+    if (!suggestions.length && e.key !== 'Escape') return
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setHighlightedIndex(i => Math.min(i + 1, filtered.length - 1))
+        setHighlightedIndex(i => Math.min(i + 1, suggestions.length - 1))
         break
       case 'ArrowUp':
         e.preventDefault()
@@ -88,20 +88,20 @@ function LanguageSelector ({ lang, editor, codeDOMNodeRef, isEditingRef, onLangu
         break
       case 'Enter':
         e.preventDefault()
-        if (filtered[highlightedIndex]) selectLanguage(filtered[highlightedIndex][0])
+        if (suggestions[highlightedIndex]) selectLanguage(suggestions[highlightedIndex][0])
         break
       case 'Escape':
         e.preventDefault()
         setOpen(false)
         break
     }
-  }, [filtered, highlightedIndex, selectLanguage])
+  }, [suggestions, highlightedIndex, selectLanguage])
 
   return (
     <Dropdown drop='down' as='span' onToggle={setOpen} show={open}>
       <Dropdown.Toggle
         as='span'
-        className={classNames(codeStyles.codeActionLanguage, isEditable && codeStyles.editable)}
+        className={classNames(codeStyles.codeActionLanguage, codeStyles.editable)}
         onPointerDown={e => e.preventDefault()}
       >
         {getLanguageFriendlyName(lang)}
@@ -116,7 +116,7 @@ function LanguageSelector ({ lang, editor, codeDOMNodeRef, isEditingRef, onLangu
             placeholder='search'
           />
         </div>
-        {filtered.map(([key, name], i) => (
+        {suggestions.map(([key, name], i) => (
           <div
             key={key}
             className={classNames(codeStyles.languageOption, i === highlightedIndex && codeStyles.languageOptionHighlighted)}
@@ -145,6 +145,7 @@ function CodeActionMenuContainer ({ anchorElem }) {
   const rafRef = useRef(null)
   const mouseEventRef = useRef(null)
 
+  // read code node's text content
   const getCodeContent = useCallback(() => {
     const domNode = codeDOMNodeRef.current
     if (!domNode) return ''
@@ -156,6 +157,7 @@ function CodeActionMenuContainer ({ anchorElem }) {
     return content
   }, [editor])
 
+  // show code actions on code block hover
   const handleMouseMove = useCallback((event) => {
     const { codeDOMNode, isOutside } = getMouseInfo(event)
     if (isOutside) {
@@ -185,6 +187,7 @@ function CodeActionMenuContainer ({ anchorElem }) {
     }
   }, [anchorElem, editor])
 
+  // listen to mouse move
   useEffect(() => {
     if (!shouldListenMouseMove) return
 
@@ -251,5 +254,7 @@ function CodeActionMenuContainer ({ anchorElem }) {
 
 export default function CodeActionMenuPlugin ({ anchorElem = document.body }) {
   if (!anchorElem) return null
+
+  // portal outside of the editor to avoid overflow
   return createPortal(<CodeActionMenuContainer anchorElem={anchorElem} />, anchorElem)
 }

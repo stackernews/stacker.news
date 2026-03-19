@@ -99,10 +99,11 @@ export class TerritoryMentionNode extends DecoratorNode {
     const name = this.__name
     const href = '/~' + name
     const SubPopover = require('@/components/sub-popover').default
-    const Link = require('next/link').default
+    const MentionsComponent = require('@/components/editor/nodes/mentions').default
+    const text = '~' + name
     return (
       <SubPopover sub={name}>
-        <Link href={href}>~{name}</Link>
+        <MentionsComponent nodeKey={this.getKey()} href={href} text={text} />
       </SubPopover>
     )
   }

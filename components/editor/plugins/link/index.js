@@ -11,6 +11,7 @@ import LinkEditor from './editor'
 import { getSelectedNode } from '@/lib/lexical/commands/utils'
 import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
 import { ensureProtocol, removeTracking, URL_REGEXP } from '@/lib/url'
+import { $isCodeNode } from '@lexical/code'
 
 export default function LinkEditorPlugin ({ anchorElem }) {
   const [isLinkEditable, setIsLinkEditable] = useState(false)
@@ -86,6 +87,14 @@ export default function LinkEditorPlugin ({ anchorElem }) {
         (event) => {
           const selection = $getSelection()
           if (!$isRangeSelection(selection)) return false
+
+          // check if we're inside a CodeNode
+          const anchorNode = selection.anchor.getNode()
+          const codeNode = $findMatchingParent(anchorNode, $isCodeNode)
+          if (codeNode) {
+            // let default paste behavior handle it (plain text)
+            return false
+          }
 
           const text = event.clipboardData?.getData('text/plain')?.trim()
           if (!text || !URL_REGEXP.test(text)) return false

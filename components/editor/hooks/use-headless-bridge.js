@@ -42,6 +42,7 @@ export function createHeadlessBridge (opts = {}) {
  * @param {Object} [opts.theme] - theme configuration (defaults to DefaultTheme)
  * @param {Array} [opts.extensions] - additional extensions to use (defaults to [])
  * @param {string} [opts.name] - name of the bridge editor (defaults to 'sn-headless-bridge')
+ * @param {string} [opts.namespace] - namespace of the bridge editor (defaults to 'sn-rich')
  * @returns {React.RefObject} ref to the bridge editor instance
  */
 export default function useHeadlessBridge (opts = {}) {

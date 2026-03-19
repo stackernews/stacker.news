@@ -22,9 +22,10 @@ export default function MentionsComponent ({ nodeKey, href, text }) {
       if ($isItemMentionNode(node)) {
         // item mentions become full links
         const url = node.getURL()
+        const displayText = node.getText()
         const { target, rel } = getLinkAttributes(url)
         newNode = $createLinkNode(url, { target, rel })
-          .append($createTextNode(url))
+          .append($createTextNode(displayText || url))
       } else {
         // other mention types become plain text
         // cursor will land on the text node triggering mentions menu

@@ -49,7 +49,7 @@ export class ItemMentionNode extends DecoratorNode {
   constructor (itemMentionId, text, url, key) {
     super(key)
     this.__itemMentionId = itemMentionId
-    this.__text = text || `#${itemMentionId}`
+    this.__text = text
     this.__url = url
   }
 

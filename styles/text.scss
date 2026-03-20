@@ -613,6 +613,19 @@ span + .sn-link {
   height: 152px;
 }
 
+.sn-list-ol2 {
+  list-style-type: upper-alpha;
+}
+.sn-list-ol3 {
+  list-style-type: lower-alpha;
+}
+.sn-list-ol4 {
+  list-style-type: upper-roman;
+}
+.sn-list-ol5 {
+  list-style-type: lower-roman;
+}
+
 .sn-list-ol, .sn-list-ul {
   padding-left: 2rem;
   max-width: calc(100% - 1rem);
@@ -626,6 +639,10 @@ span + .sn-link {
     padding-top: 0;
     padding-bottom: 0;
   }
+}
+
+.sn-list__nested-item {
+  list-style-type: none;
 }
 
 .sn-list__item {

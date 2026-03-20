@@ -854,6 +854,21 @@ span + .sn-link {
   color: var(--bs-body-color);
 }
 
+/* reset Bootstrap superscript and subscript styles for Lexical */
+[data-lexical-editor='true'] sup, [data-lexical-editor='true'] sub {
+  all: unset;
+}
+
+.sn-text__superscript {
+  vertical-align: super !important;
+  font-size: .8em !important;
+}
+
+.sn-text__subscript {
+  vertical-align: sub !important;
+  font-size: .8em !important;
+}
+
 /* inline */
 
 .sn-code-block {

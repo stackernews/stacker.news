@@ -26,9 +26,14 @@ export default function MathComponent ({ math, inline, nodeKey }) {
   const [showMathEditor, setShowMathEditor] = useState(false)
   const inputRef = useRef(null)
 
+  const openMathEditor = useCallback(() => {
+    setShowMathEditor(true)
+  }, [])
+
   const { isSelected } = useDecoratorNodeSelection(nodeKey, {
     focusedClass: 'focused',
-    active: !showMathEditor
+    active: !showMathEditor,
+    onDoubleClick: openMathEditor
   })
 
   // auto-open editor on new nodes
@@ -48,6 +53,13 @@ export default function MathComponent ({ math, inline, nodeKey }) {
     })
   }, [editor, showMathEditor, isEditable, inline])
 
+  // sync local value with prop when editor is closed
+  useEffect(() => {
+    if (!showMathEditor && mathValue !== math) {
+      setMathValue(math)
+    }
+  }, [showMathEditor, mathValue, math])
+
   const onHide = useCallback((restoreSelection) => {
     setShowMathEditor(false)
     editor.update(() => {
@@ -64,13 +76,6 @@ export default function MathComponent ({ math, inline, nodeKey }) {
       }
     })
   }, [editor, mathValue, nodeKey])
-
-  // sync local value with prop when editor is closed
-  useEffect(() => {
-    if (!showMathEditor && mathValue !== math) {
-      setMathValue(math)
-    }
-  }, [showMathEditor, mathValue, math])
 
   // close editor when Lexical selection changes or Escape is pressed outside the input
   useEffect(() => {
@@ -115,7 +120,12 @@ export default function MathComponent ({ math, inline, nodeKey }) {
             ref={inputRef}
             onBlur={() => onHide()}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') onHide()
+              // enter hides the editor in inline mode
+              if (e.key === 'Escape' || (inline && e.key === 'Enter')) {
+                e.preventDefault()
+                e.stopPropagation()
+                onHide(true)
+              }
             }}
           />
           )
@@ -123,12 +133,8 @@ export default function MathComponent ({ math, inline, nodeKey }) {
           <ErrorBoundary onError={(e) => editor._onError(e)} fallback={null}>
             <KatexRenderer
               equation={mathValue}
+              titleText={isEditable ? 'double click to edit' : 'click to copy'}
               inline={inline}
-              onDoubleClick={() => {
-                if (isEditable) {
-                  setShowMathEditor(true)
-                }
-              }}
               onClick={() => {
                 if (!isEditable) {
                   try {

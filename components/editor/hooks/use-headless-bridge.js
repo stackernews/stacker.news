@@ -8,7 +8,7 @@ import { LinkExtension } from '@lexical/link'
 
 const DEFAULT_EXTENSIONS = []
 const DEFAULT_NAME = 'sn-headless-bridge'
-
+const DEFAULT_NAMESPACE = 'sn-rich'
 /**
  * shared hook that creates and manages a headless bridge editor
  * @param {Object} [opts] - optional configuration for the bridge editor
@@ -16,6 +16,7 @@ const DEFAULT_NAME = 'sn-headless-bridge'
  * @param {Object} [opts.theme] - theme configuration (defaults to DefaultTheme)
  * @param {Array} [opts.extensions] - additional extensions to use (defaults to [])
  * @param {string} [opts.name] - name of the bridge editor (defaults to 'sn-headless-bridge')
+ * @param {string} [opts.namespace] - namespace of the bridge editor (defaults to 'sn-rich')
  * @returns {React.RefObject} ref to the bridge editor instance
  */
 export default function useHeadlessBridge (opts = {}) {
@@ -23,7 +24,8 @@ export default function useHeadlessBridge (opts = {}) {
     nodes = DefaultNodes,
     theme = DefaultTheme,
     extensions = DEFAULT_EXTENSIONS,
-    name = DEFAULT_NAME
+    name = DEFAULT_NAME,
+    namespace = DEFAULT_NAMESPACE
   } = opts
   const bridge = useRef(null)
 
@@ -42,7 +44,8 @@ export default function useHeadlessBridge (opts = {}) {
             ...extensions
           ],
           nodes,
-          theme
+          theme,
+          namespace
         })
       )
     }

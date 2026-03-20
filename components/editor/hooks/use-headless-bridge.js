@@ -8,6 +8,7 @@ import { LinkExtension } from '@lexical/link'
 
 const DEFAULT_EXTENSIONS = []
 const DEFAULT_NAME = 'sn-headless-bridge'
+const DEFAULT_NAMESPACE = 'sn-rich'
 
 /** creates a headless Lexical editor for use as a processing bridge */
 export function createHeadlessBridge (opts = {}) {
@@ -15,7 +16,8 @@ export function createHeadlessBridge (opts = {}) {
     nodes = DefaultNodes,
     theme = DefaultTheme,
     extensions = DEFAULT_EXTENSIONS,
-    name = DEFAULT_NAME
+    name = DEFAULT_NAME,
+    namespace = DEFAULT_NAMESPACE
   } = opts
 
   return buildEditorFromExtensions(
@@ -30,7 +32,8 @@ export function createHeadlessBridge (opts = {}) {
         ...extensions
       ],
       nodes,
-      theme
+      theme,
+      namespace
     })
   )
 }

@@ -4,13 +4,11 @@ import { COMMAND_PRIORITY_HIGH, PASTE_COMMAND, PASTE_TAG, $getSelection, $getRoo
 import { $lexicalToMarkdown } from '@/lib/lexical/utils/mdast'
 import { $insertText } from '@/lib/lexical/utils'
 import { objectKlassEquals } from '@lexical/utils'
-import { createHeadlessBridge } from '@/components/editor/hooks/use-headless-bridge'
+import { withDisposableBridge } from '@/components/editor/hooks/use-headless-bridge'
 
 /** redirects a paste event to a disposable rich text bridge,
  *  and exports the resulting EditorState as markdown via MDAST */
-function getMarkdownFromPaste (event) {
-  const bridge = createHeadlessBridge({ name: 'sn-markdown-paste-bridge' })
-
+const getMarkdownFromPaste = withDisposableBridge((bridge, event) => {
   try {
     // prepare the bridge by clearing the root and creating a new selection
     bridge.update(() => {
@@ -31,10 +29,8 @@ function getMarkdownFromPaste (event) {
     return markdown
   } catch {
     return null
-  } finally {
-    bridge.dispose()
   }
-}
+}, { name: 'sn-markdown-paste-bridge' })
 
 /** redirect markdown mode pastes to a disposable rich text bridge,
  *  which will convert the pasted rich content into markdown via MDAST

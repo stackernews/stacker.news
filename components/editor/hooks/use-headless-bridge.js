@@ -38,6 +38,26 @@ export function createHeadlessBridge (opts = {}) {
   )
 }
 
+/** run a function with a disposable headless bridge
+ * @param fn - function to run with the bridge
+ * @param opts - optional configuration for the bridge editor
+ * @see createHeadlessBridge for available options
+ *
+ * @returns result of the function
+ */
+export function withDisposableBridge (fn, opts = {}) {
+  return (...args) => {
+    // create a fresh bridge for this call
+    const bridge = createHeadlessBridge(opts)
+    try {
+      return fn(bridge, ...args)
+    } finally {
+      // always dispose of it after use
+      bridge.dispose()
+    }
+  }
+}
+
 /**
  * shared hook that creates and manages a headless bridge editor
  * @param {Object} [opts] - optional configuration for the bridge editor

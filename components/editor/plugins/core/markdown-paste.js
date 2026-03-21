@@ -29,11 +29,10 @@ function getMarkdownFromPaste (bridge, event) {
   return markdown
 }
 
-/** redirect markdown mode pastes to the bridge's rich text handler,
- *  which will convert the pasted rich content into markdown via MDAST
- *
- *  the resulting markdown is then inserted into the original editor */
-export default function MarkdownPastePlugin () {
+/** redirects rich pastes to the bridge's rich text handler,
+ *  the resulting lexical state is then converted to markdown via MDAST
+ *  and inserted into the original editor */
+export default function MarkdownRichPastePlugin () {
   const [editor] = useLexicalComposerContext()
   const bridgeRef = useHeadlessBridge()
 
@@ -48,6 +47,10 @@ export default function MarkdownPastePlugin () {
           ? event.clipboardData
           : null
         if (!clipboardData) return false
+
+        // skip if clipboard lacks rich data (lexical or HTML)
+        if (!clipboardData.getData('application/x-lexical-editor') &&
+          !clipboardData.getData('text/html')) return false
 
         const markdown = getMarkdownFromPaste(bridgeRef.current, event)
         if (!markdown) return false

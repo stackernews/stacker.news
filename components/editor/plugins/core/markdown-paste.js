@@ -15,7 +15,7 @@ const getMarkdownFromPaste = withDisposableBridge((bridge, event) => {
       const root = $getRoot()
       root.clear()
       root.selectEnd()
-    })
+    }, { discrete: true })
 
     // redirect the original paste event to the bridge
     bridge.dispatchCommand(PASTE_COMMAND, event)
@@ -24,7 +24,7 @@ const getMarkdownFromPaste = withDisposableBridge((bridge, event) => {
     let markdown = null
     bridge.update(() => {
       markdown = $lexicalToMarkdown()
-    })
+    }, { discrete: true })
 
     return markdown
   } catch {

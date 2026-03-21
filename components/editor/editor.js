@@ -6,7 +6,7 @@ import { configExtension, defineExtension, $getRoot, $createParagraphNode } from
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
-import { AutoFocusExtension } from '@lexical/extension'
+import { AutoFocusExtension, TabIndentationExtension } from '@lexical/extension'
 import ShortcutsPlugin from '@/components/editor/plugins/core/shortcuts'
 import { FormattingCommandsExtension } from '@/lib/lexical/exts/formatting'
 import { ToolbarPlugin } from '@/components/editor/plugins/toolbar'
@@ -61,7 +61,8 @@ const EDITOR_RICH_MODE = {
     TableExtension,
     GalleryExtension,
     AutoLinkExtension,
-    DecoratorClickZonesExtension
+    DecoratorClickZonesExtension,
+    TabIndentationExtension
   ],
   nodes: DefaultNodes
 }

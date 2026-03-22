@@ -207,7 +207,8 @@ export default function Comment ({
     }
   }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
 
-  const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
+  const directRepliesCount = item.nDirectComments ?? 0
+  const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && directRepliesCount > 0)
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon
     ? 'OP'
@@ -343,7 +344,7 @@ export default function Comment ({
                       {item.comments.comments.map((child) => (
                         <Comment depth={depth + 1} key={child.id} item={child} navigator={navigator} pin={!!child.position} />
                       ))}
-                      {item.comments.comments.length < item.nDirectComments && (
+                      {item.comments.comments.length < directRepliesCount && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>
                           <ViewMoreReplies item={item} />
                         </div>

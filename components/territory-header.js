@@ -208,7 +208,16 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
         }
       }`, {
       // refetch since position of other items might also have changed to fill gaps
-      refetchQueries: ['SubItems', 'Item']
+      refetchQueries: ['SubItems', 'Item'],
+      update: (cache, { data: { pinItem: result } }) => {
+        // Update the position in cache for all cached references to this item
+        cache.modify({
+          id: `Item:${id}`,
+          fields: {
+            position: () => result.position || null
+          }
+        })
+      }
     }
   )
   return (

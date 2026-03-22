@@ -67,7 +67,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, commentCost, commentBoost, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
+  commentSats, commentCost, commentBoost, comments, commentsPins, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
 
@@ -84,8 +84,20 @@ export default function Comments ({
     return hoistNestedPins(comments, rootId)
   }, [comments, isRootThread, rootId])
   const pins = useMemo(
-    () => [...displayComments.filter(({ position }) => Boolean(position)), ...hoisted].sort((a, b) => a.position - b.position),
-    [displayComments, hoisted]
+    () => {
+      if (!isRootThread) return []
+      const fromApi = commentsPins || []
+      const fallback = [...displayComments.filter(({ position }) => Boolean(position)), ...hoisted]
+      const source = fromApi.length ? fromApi : fallback
+      return source
+        .reduce((acc, pin) => {
+          if (acc.some(({ id }) => Number(id) === Number(pin.id))) return acc
+          acc.push(pin)
+          return acc
+        }, [])
+        .sort((a, b) => (a.position - b.position) || (a.id - b.id))
+    },
+    [commentsPins, displayComments, hoisted, isRootThread]
   )
   return (
     <>

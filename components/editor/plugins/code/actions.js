@@ -35,7 +35,7 @@ function getMouseInfo (event) {
   return { codeDOMNode, isOutside }
 }
 
-function LanguageSelector ({ lang, editor, codeDOMNodeRef, isEditingRef, onLanguageChange }) {
+function LanguageSelector ({ lang, editor, codeDOMNodeRef, isEditingRef, onLanguageChange, onClose }) {
   const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(0)
@@ -59,8 +59,11 @@ function LanguageSelector ({ lang, editor, codeDOMNodeRef, isEditingRef, onLangu
   // track language selector state
   useEffect(() => {
     isEditingRef.current = open
-    if (!open) setFilter('')
-  }, [open, isEditingRef])
+    if (!open) {
+      setFilter('')
+      onClose()
+    }
+  }, [open, isEditingRef, onClose])
 
   const selectLanguage = useCallback((langKey) => {
     editor.update(() => {
@@ -159,6 +162,8 @@ function CodeActionMenuContainer ({ anchorElem }) {
 
   // show code actions on code block hover
   const handleMouseMove = useCallback((event) => {
+    if (isEditingLangRef.current) return
+
     const { codeDOMNode, isOutside } = getMouseInfo(event)
     if (isOutside) {
       if (!isEditingLangRef.current) setShown(false)
@@ -191,7 +196,7 @@ function CodeActionMenuContainer ({ anchorElem }) {
   useEffect(() => {
     if (!shouldListenMouseMove) return
 
-    const onMouseMove = (event) => {
+    const onPointerEvent = (event) => {
       mouseEventRef.current = event
       if (rafRef.current) return
 
@@ -201,7 +206,8 @@ function CodeActionMenuContainer ({ anchorElem }) {
       })
     }
 
-    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mousemove', onPointerEvent)
+    document.addEventListener('mousedown', onPointerEvent)
     return () => {
       setShown(false)
       mouseEventRef.current = null
@@ -209,7 +215,8 @@ function CodeActionMenuContainer ({ anchorElem }) {
         window.cancelAnimationFrame(rafRef.current)
         rafRef.current = null
       }
-      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mousemove', onPointerEvent)
+      document.removeEventListener('mousedown', onPointerEvent)
     }
   }, [shouldListenMouseMove, handleMouseMove])
 
@@ -242,6 +249,9 @@ function CodeActionMenuContainer ({ anchorElem }) {
                 codeDOMNodeRef={codeDOMNodeRef}
                 isEditingRef={isEditingLangRef}
                 onLanguageChange={setLang}
+                onClose={() => {
+                  if (mouseEventRef.current) handleMouseMove(mouseEventRef.current)
+                }}
               />
               )
             : <span className={codeStyles.codeActionLanguage}>{getLanguageFriendlyName(lang)}</span>}

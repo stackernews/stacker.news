@@ -188,6 +188,9 @@ export const ITEM_FULL = gql`
       ...PollFields
       comments(sort: $sort, cursor: $cursor) {
         cursor
+        pins {
+          ...CommentFields
+        }
         comments {
           ...CommentsRecursive
         }

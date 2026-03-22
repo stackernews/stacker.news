@@ -54,7 +54,7 @@ export default function MarkdownRichPastePlugin () {
         if (!clipboardData.getData('application/x-lexical-editor') &&
           !clipboardData.getData('text/html')) return false
 
-        const markdown = getMarkdownFromPaste(bridgeRef.current, event)
+        const markdown = getMarkdownFromPaste(event)
         if (!markdown) return false
 
         editor.update(() => {

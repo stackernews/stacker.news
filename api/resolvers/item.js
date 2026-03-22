@@ -1167,6 +1167,7 @@ export default {
         if (Array.isArray(item.comments)) {
           return {
             comments: item.comments,
+            pins: [],
             cursor: null
           }
         }
@@ -1177,6 +1178,7 @@ export default {
       if (!me && item.ncomments === 0) {
         return {
           comments: [],
+          pins: [],
           cursor: null
         }
       }

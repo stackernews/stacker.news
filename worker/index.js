@@ -85,6 +85,9 @@ async function work () {
   function jobWrapper (fn) {
     return async function (job) {
       console.log(`running ${job.name} with args`, job.data)
+      if (job.retrycount > 0) {
+        console.log(`  ... retry #${job.retrycount}/${job.retrylimit}`)
+      }
       try {
         await fn({ ...job, ...args })
       } catch (error) {
@@ -132,7 +135,7 @@ async function work () {
   await boss.work('payWeeklyPostBounty', jobWrapper(payWeeklyPostBounty))
   await boss.work('repin-*', jobWrapper(repin))
   await boss.work('trust', jobWrapper(trust))
-  await boss.work('timestampItem', jobWrapper(timestampItem))
+  await boss.work('timestampItem', { includeMetadata: true }, jobWrapper(timestampItem))
   await boss.work('earn', jobWrapper(earn))
   await boss.work('earnRefill', jobWrapper(earnRefill))
   await boss.work('streak', jobWrapper(computeStreaks))

@@ -233,8 +233,14 @@ export async function onPaid (tx, payInId) {
   // If this is a freebie comment, increment the free comment counter
   await incrementFreeCommentCount(tx, { item, userId: payIn.userId })
 
-  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-    VALUES ('timestampItem', jsonb_build_object('id', ${item.id}::INTEGER), now() + interval '10 minutes', -2)`
+  // retry OpenTimestamps stamp up to 12x with 10 minutes spacing
+  //
+  // NOTE: we cannot use pgboss' backoff mechanism as its jitter is up to an entire
+  // `retrydelay` period, and thus would make it possible for a parent to be
+  // consistently processed after a child, making this fragile; we have to maintain
+  // item creation order for this.
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority, retrylimit, retrydelay, retrybackoff)
+    VALUES ('timestampItem', jsonb_build_object('id', ${item.id}::INTEGER), now() + interval '10 minutes', -2, 12, 600, false)`
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`

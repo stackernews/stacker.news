@@ -113,10 +113,10 @@ export default function Comment ({
       ? 'yep'
       : 'nope')
   const ref = useRef(null)
-  const { onRef: onReaderRef } = useCallbackRef()
+  const { ref: readerRef, onRef: onReaderRef } = useCallbackRef()
   const router = useRouter()
   const root = useRoot()
-  const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
+  const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text, readerRef })
 
   const { cache } = useApolloClient()
 

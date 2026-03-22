@@ -9,6 +9,55 @@ import { LinkExtension } from '@lexical/link'
 const DEFAULT_EXTENSIONS = []
 const DEFAULT_NAME = 'sn-headless-bridge'
 const DEFAULT_NAMESPACE = 'sn-rich'
+
+/** creates a headless Lexical editor for use as a processing bridge */
+export function createHeadlessBridge (opts = {}) {
+  const {
+    nodes = DefaultNodes,
+    theme = DefaultTheme,
+    extensions = DEFAULT_EXTENSIONS,
+    name = DEFAULT_NAME,
+    namespace = DEFAULT_NAMESPACE
+  } = opts
+
+  return buildEditorFromExtensions(
+    defineExtension({
+      onError: (error) => console.error('editor bridge has encountered an error:', error),
+      name,
+      dependencies: [
+        RichTextExtension,
+        ListExtension,
+        CheckListExtension,
+        LinkExtension,
+        ...extensions
+      ],
+      nodes,
+      theme,
+      namespace
+    })
+  )
+}
+
+/** run a function with a disposable headless bridge
+ * @param fn - function to run with the bridge
+ * @param opts - optional configuration for the bridge editor
+ * @see createHeadlessBridge for available options
+ *
+ * @returns result of the function
+ */
+export function withDisposableBridge (fn, opts = {}) {
+  return (...args) => {
+    // create a fresh bridge for this call
+    const bridge = createHeadlessBridge(opts)
+    try {
+      return fn(bridge, ...args)
+    } finally {
+      // always dispose of it after use
+      bridge.dispose()
+    }
+  }
+}
+
 /**
  * shared hook that creates and manages a headless bridge editor
  * @param {Object} [opts] - optional configuration for the bridge editor
@@ -20,34 +69,11 @@ const DEFAULT_NAMESPACE = 'sn-rich'
  * @returns {React.RefObject} ref to the bridge editor instance
  */
 export default function useHeadlessBridge (opts = {}) {
-  const {
-    nodes = DefaultNodes,
-    theme = DefaultTheme,
-    extensions = DEFAULT_EXTENSIONS,
-    name = DEFAULT_NAME,
-    namespace = DEFAULT_NAMESPACE
-  } = opts
   const bridge = useRef(null)
 
-  // create the bridge once on mount and dispose of it on unmount
   useEffect(() => {
     if (!bridge.current) {
-      bridge.current = buildEditorFromExtensions(
-        defineExtension({
-          onError: (error) => console.error('editor bridge has encountered an error:', error),
-          name,
-          dependencies: [
-            RichTextExtension,
-            ListExtension,
-            CheckListExtension,
-            LinkExtension,
-            ...extensions
-          ],
-          nodes,
-          theme,
-          namespace
-        })
-      )
+      bridge.current = createHeadlessBridge(opts)
     }
     return () => {
       if (bridge.current) {

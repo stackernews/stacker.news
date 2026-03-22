@@ -131,12 +131,42 @@ async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decode
   )
 }
 
+async function fetchPinnedCommentRows ({ itemId, me, models, itemQueryWithMeta, payInJoinFilter, select }) {
+  const query = `
+    WITH root AS (
+      SELECT path
+      FROM "Item"
+      WHERE id = $1
+    )
+    ${select}
+    FROM "Item"
+    JOIN "Pin" ON "Item"."pinId" = "Pin".id
+    JOIN root ON true
+    ${payInJoinFilter(me)}
+    WHERE "Item".id <> $1
+      AND "Item"."path" <@ root.path
+      AND "Item"."pinId" IS NOT NULL
+    ORDER BY "Item".id DESC
+  `
+
+  return await itemQueryWithMeta(
+    { me, models, query, orderBy: 'ORDER BY "Item".id DESC' },
+    itemId
+  )
+}
+
 async function fetchComments ({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select }) {
   const rows = item.ncomments > FULL_COMMENTS_THRESHOLD
     ? await fetchLimitedCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
     : await fetchFullCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
 
-  return buildCommentTree(rows, { rootId: Number(item.id) })
+  // only fetch pins on root post page, not on thread view (comment view)
+  const pins = !item.parentId ? await fetchPinnedCommentRows({ itemId: Number(item.id), me, models, itemQueryWithMeta, payInJoinFilter, select }) : []
+
+  return {
+    comments: buildCommentTree(rows, { rootId: Number(item.id) }),
+    pins
+  }
 }
 
 export async function resolveItemComments (item, sort, cursor, { me, models, userLoader, itemQueryWithMeta, payInJoinFilter, select }) {
@@ -151,15 +181,17 @@ export async function resolveItemComments (item, sort, cursor, { me, models, use
   if (!me && item.nDirectComments === 0) {
     return {
       comments: [],
+      pins: [],
       cursor: null
     }
   }
 
   const decodedCursor = decodeCursor(cursor)
-  const comments = await fetchComments({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
+  const { comments, pins } = await fetchComments({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
 
   return {
     comments,
+    pins,
     cursor: comments.length + decodedCursor.offset < item.nDirectComments
       ? nextCursorEncoded(decodedCursor, COMMENTS_LIMIT)
       : null

@@ -233,8 +233,9 @@ export async function onPaid (tx, payInId) {
   // If this is a freebie comment, increment the free comment counter
   await incrementFreeCommentCount(tx, { item, userId: payIn.userId })
 
-  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-    VALUES ('timestampItem', jsonb_build_object('id', ${item.id}::INTEGER), now() + interval '10 minutes', -2)`
+  // retry OpenTimestamps stamp up to 5x, after 4,8,16,32,64 minutes - 124 minute retry window
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority, retrylimit, retrydelay, retrybackoff)
+    VALUES ('timestampItem', jsonb_build_object('id', ${item.id}::INTEGER), now() + interval '10 minutes', -2, 5, 240, true)`
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}::INTEGER), 21, true, now() + interval '5 seconds')`

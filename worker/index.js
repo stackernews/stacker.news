@@ -85,6 +85,9 @@ async function work () {
   function jobWrapper (fn) {
     return async function (job) {
       console.log(`running ${job.name} with args`, job.data)
+      if (job.retrycount > 0) {
+        console.log(`  ... retry #${job.retrycount}/${job.retrylimit}`)
+      }
       try {
         await fn({ ...job, ...args })
       } catch (error) {

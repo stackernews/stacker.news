@@ -24,14 +24,21 @@ export async function timestampItem ({ data: { id }, apollo, models }) {
   })
 
   if (parentId && !parentOtsHash) {
-    console.log('no parent hash available ... skipping')
-    return
+    throw new Error('no parent hash available ... retrying later')
   }
 
-  // SHA256 hash item using a canonical serialization format { parentHash, title, text, url }
-  const itemString = stringifyCanon({ parentHash: parentOtsHash, title, text, url })
-  const otsHash = createHash('sha256').update(itemString).digest()
-  const detached = DetachedTimestampFile.fromHash(new OpSHA256(), otsHash)
+  let otsHash
+  let detached
+  try {
+    // SHA256 hash item using a canonical serialization format { parentHash, title, text, url }
+    const itemString = stringifyCanon({ parentHash: parentOtsHash, title, text, url })
+    otsHash = createHash('sha256').update(itemString).digest()
+    detached = DetachedTimestampFile.fromHash(new OpSHA256(), otsHash)
+  } catch (e) {
+    // if any of this errors out, it's non-recoverable: do not retry
+    console.error('Fatal error while generating ots timestamp data:', e)
+    return
+  }
 
   // timestamp it
   await Notary.stamp(detached)

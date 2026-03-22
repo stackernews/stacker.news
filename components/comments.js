@@ -10,6 +10,7 @@ import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { useCommentsNavigatorContext } from './use-comments-navigator'
+import { hoistNestedPins } from './comments-pin'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, commentCost, commentBoost }) {
   const router = useRouter()
@@ -66,7 +67,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
-  commentSats, commentCost, commentBoost, comments, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
+  commentSats, commentCost, commentBoost, comments, commentsPins, commentsCursor, fetchMoreComments, ncomments, lastCommentAt, item, ...props
 }) {
   const router = useRouter()
 
@@ -76,8 +77,28 @@ export default function Comments ({
   // new comments navigator, tracks new comments and provides navigation controls
   const { navigator } = useCommentsNavigatorContext()
 
-  const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
-
+  const rootId = Number(item?.root?.id || parentId)
+  const isRootThread = Number(parentId) === rootId
+  const { comments: displayComments, hoisted } = useMemo(() => {
+    if (!isRootThread) return { comments: comments || [], hoisted: [] }
+    return hoistNestedPins(comments, rootId)
+  }, [comments, isRootThread, rootId])
+  const pins = useMemo(
+    () => {
+      if (!isRootThread) return []
+      const fromApi = commentsPins || []
+      const fallback = [...displayComments.filter(({ position }) => Boolean(position)), ...hoisted]
+      const source = fromApi.length ? fromApi : fallback
+      return source
+        .reduce((acc, pin) => {
+          if (acc.some(({ id }) => Number(id) === Number(pin.id))) return acc
+          acc.push(pin)
+          return acc
+        }, [])
+        .sort((a, b) => (a.position - b.position) || (a.id - b.id))
+    },
+    [commentsPins, displayComments, hoisted, isRootThread]
+  )
   return (
     <>
       {comments?.length > 0
@@ -101,7 +122,7 @@ export default function Comments ({
           <Comment depth={1} item={item} navigator={navigator} {...props} pin />
         </Fragment>
       ))}
-      {comments.filter(({ position }) => !position).map(item => (
+      {displayComments.filter(({ position }) => !position).map(item => (
         <Comment depth={1} key={item.id} item={item} navigator={navigator} {...props} />
       ))}
       {ncomments > FULL_COMMENTS_THRESHOLD &&

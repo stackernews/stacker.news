@@ -137,29 +137,38 @@ export default function Comment ({
   }
 
   useEffect(() => {
-    const comment = cache.readFragment({
-      id: `Item:${router.query.commentId}`,
-      fragment: gql`
-        fragment CommentPath on Item {
-          path
-        }`
-    })
+    const targetCommentId = Number(router.query.commentId)
+    const focusBehavior = router.query.focus === 'smooth' ? 'smooth' : 'instant'
+    const comment = targetCommentId
+      ? cache.readFragment({
+        id: `Item:${targetCommentId}`,
+        fragment: gql`
+          fragment CommentPath on Item {
+            path
+          }`
+      })
+      : null
     if (comment?.path.split('.').includes(item.id)) {
       window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
     }
     setCollapse(window.localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
-    if (Number(router.query.commentId) === Number(item.id)) {
+    if (targetCommentId === Number(item.id)) {
       // HACK wait for other comments to uncollapse if they're collapsed
       setTimeout(() => {
-        ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
+        if (!ref.current) return
+        ref.current.scrollIntoView({ behavior: focusBehavior, block: 'start' })
         // make sure we can outline a comment again if it was already outlined before
         ref.current.addEventListener('animationend', () => {
           ref.current.classList.remove('outline-it')
         }, { once: true })
         ref.current.classList.add('outline-it')
+        const { commentId, focus, ...query } = router.query
+        if (commentId || focus) {
+          router.replace({ pathname: router.pathname, query }, undefined, { shallow: true, scroll: false })
+        }
       }, 100)
     }
-  }, [item.id, cache, router.query.commentId])
+  }, [item.id, cache, router.query.commentId, router.query.focus])
 
   useEffect(() => {
     // checking navigator because outlining should happen only on item pages
@@ -198,7 +207,8 @@ export default function Comment ({
     }
   }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
 
-  const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
+  const directRepliesCount = item.nDirectComments ?? 0
+  const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && directRepliesCount > 0)
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== USER_ID.anon
     ? 'OP'
@@ -206,6 +216,8 @@ export default function Comment ({
       ? 'fwd'
       : null
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
+  const isHoistedPin = Boolean(pin) && Number(item.parentId) !== Number(root.id)
+  const isSameRootPage = Number(router.query.id) === Number(root.id)
 
   return (
     <div
@@ -245,6 +257,25 @@ export default function Comment ({
                   extraInfo={
                     <>
                       {includeParent && <Parent item={item} rootText={rootText} />}
+                      {isHoistedPin && (
+                        <>
+                          <span> \ </span>
+                          <Link
+                            href={`/items/${root.id}?commentId=${item.parentId}`}
+                            as={`/items/${root.id}`}
+                            className='text-reset fw-bold'
+                            onClick={e => {
+                              e.preventDefault()
+                              router.push({
+                                pathname: '/items/[id]',
+                                query: { id: root.id, commentId: item.parentId, focus: 'smooth' }
+                              }, undefined, { scroll: false, shallow: isSameRootPage })
+                            }}
+                          >
+                            original context
+                          </Link>
+                        </>
+                      )}
                       {bountyPaid &&
                         <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
                           <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
@@ -310,10 +341,10 @@ export default function Comment ({
                 {!noComments && item.comments?.comments
                   ? (
                     <>
-                      {item.comments.comments.map((item) => (
-                        <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} />
+                      {item.comments.comments.map((child) => (
+                        <Comment depth={depth + 1} key={child.id} item={child} navigator={navigator} pin={!!child.position} />
                       ))}
-                      {item.comments.comments.length < item.nDirectComments && (
+                      {item.comments.comments.length < directRepliesCount && (
                         <div className={`d-block ${styles.comment} pb-2 ps-3`}>
                           <ViewMoreReplies item={item} />
                         </div>

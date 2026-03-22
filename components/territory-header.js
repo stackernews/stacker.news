@@ -3,13 +3,14 @@ import { Badge, Button, CardFooter, Dropdown } from 'react-bootstrap'
 import { AccordianCard } from './accordian-item'
 import TerritoryPaymentDue, { TerritoryBillingLine } from './territory-payment-due'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import Text from '@/components/text'
 import { numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
 import Badges from './badge'
 import { useMe } from './me'
 import Share from './share'
-import { gql, useMutation } from '@apollo/client'
+import { gql, useMutation, useApolloClient } from '@apollo/client'
 import { useToast } from './toast'
 import ActionDropdown from './action-dropdown'
 import { TerritoryTransferDropdownItem } from './territory-transfer'
@@ -199,7 +200,9 @@ export function MuteSubDropdownItem ({ item, sub }) {
 }
 
 export function PinSubDropdownItem ({ item: { id, position } }) {
+  const router = useRouter()
   const toaster = useToast()
+  const client = useApolloClient()
   const [pinItem] = useMutation(
     gql`
       mutation pinItem($id: ID!) {
@@ -208,7 +211,16 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
         }
       }`, {
       // refetch since position of other items might also have changed to fill gaps
-      refetchQueries: ['SubItems', 'Item']
+      refetchQueries: ['SubItems', 'Item'],
+      update: (cache, { data: { pinItem: result } }) => {
+        // Update the position in cache for all cached references to this item
+        cache.modify({
+          id: `Item:${id}`,
+          fields: {
+            position: () => result.position || null
+          }
+        })
+      }
     }
   )
   return (
@@ -216,6 +228,9 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
       onClick={async () => {
         try {
           await pinItem({ variables: { id } })
+          if (router.query.id) {
+            client.refetchQueries({ include: ['Item'] })
+          }
           toaster.success(position ? 'pin removed' : 'pin added')
         } catch (err) {
           toaster.danger(err.message)

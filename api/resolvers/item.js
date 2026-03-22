@@ -661,11 +661,6 @@ export default {
       })
 
       if (item.parentId) {
-        // OPs can only pin top level replies
-        if (item.parentId !== item.rootId) {
-          throw new GqlInputError('can only pin root replies')
-        }
-
         if (item.root.userId !== Number(me.id)) {
           throw new GqlInputError('not your post')
         }
@@ -1172,6 +1167,7 @@ export default {
         if (Array.isArray(item.comments)) {
           return {
             comments: item.comments,
+            pins: [],
             cursor: null
           }
         }
@@ -1182,6 +1178,7 @@ export default {
       if (!me && item.ncomments === 0) {
         return {
           comments: [],
+          pins: [],
           cursor: null
         }
       }

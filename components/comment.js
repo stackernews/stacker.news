@@ -271,7 +271,7 @@ export default function Comment ({
                               }, undefined, { scroll: false, shallow: isSameRootPage })
                             }}
                           >
-                            contesto originale
+                            original context
                           </Link>
                         </>
                       )}

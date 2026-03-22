@@ -30,9 +30,13 @@ export function hoistNestedPins (comments, rootId) {
       const adjustedNDirectComments = typeof node.nDirectComments === 'number'
         ? Math.max(0, node.nDirectComments - removedPinnedChildren + adoptedChildren)
         : node.nDirectComments
+      const adjustedNComments = typeof node.ncomments === 'number'
+        ? Math.max(0, node.ncomments - removedPinnedChildren)
+        : node.ncomments
       return {
         ...node,
         nDirectComments: adjustedNDirectComments,
+        ncomments: adjustedNComments,
         comments: {
           ...node.comments,
           comments: walkedChildren

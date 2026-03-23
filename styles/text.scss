@@ -891,9 +891,9 @@ span + .sn-link {
 .sn-math {
   cursor: default;
   user-select: none;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
+  overflow-x: hidden;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .sn-math.focused {

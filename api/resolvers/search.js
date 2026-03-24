@@ -5,6 +5,7 @@ import { parse } from 'tldts'
 import { searchSchema, validateSchema } from '@/lib/validate'
 import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
 import { resolveOpensearchModelId } from '../search/model-id'
+import removeMd from 'remove-markdown'
 
 function queryParts (q) {
   const regex = /"([^"]*)"/gm
@@ -324,6 +325,38 @@ function exactTextLeg (query) {
   }
 }
 
+function normalizeSearchText (text = '') {
+  return typeof text === 'string' ? removeMd(text).trim() : ''
+}
+
+function joinTitleAndText (title = '', text = '') {
+  const normalizedTitle = title.trim()
+  const normalizedText = text.trim()
+  if (normalizedTitle && normalizedText) return `${normalizedTitle}\n\n${normalizedText}`
+  return normalizedTitle || normalizedText
+}
+
+function buildRelatedSource ({ title, text }) {
+  const normalizedTitle = title?.trim() || ''
+  const normalizedText = normalizeSearchText(text)
+
+  return {
+    title: normalizedTitle,
+    hasBody: normalizedText.length > 0,
+    textQuery: joinTitleAndText(normalizedTitle, normalizedText)
+  }
+}
+
+function buildRelatedExtraShould (source) {
+  const should = []
+
+  if (!source.hasBody && source.title.length >= EXACT_INTENT_MIN_QUERY_LENGTH) {
+    should.push(exactTextLeg(source.title))
+  }
+
+  return should
+}
+
 // ---- Scoring helpers ----
 
 function ranktopFunction () {
@@ -519,40 +552,44 @@ function hybridQuery (queries, filters) {
 // ---- Query assembly ----
 // Each builds a complete OS query from flat args. No mutation.
 
-function moreLikeThisScoreQuery (like, minMatch, filters) {
+function moreLikeThisScoreQuery ({ like, minMatch, filters, extraShould = [] }) {
+  const should = [
+    {
+      more_like_this: {
+        fields: ['title_text'],
+        like,
+        min_term_freq: 1,
+        min_doc_freq: 1,
+        min_word_length: 2,
+        max_doc_freq: 10000,
+        max_query_terms: 50,
+        minimum_should_match: minMatch || '30%',
+        boost_terms: 10
+      }
+    },
+    {
+      more_like_this: {
+        fields: ['title_text'],
+        like,
+        min_term_freq: 1,
+        min_doc_freq: 1,
+        min_word_length: 2,
+        max_doc_freq: 1000,
+        max_query_terms: 50,
+        minimum_should_match: minMatch || '30%',
+        boost_terms: 100
+      }
+    },
+    ...extraShould
+  ]
+
   return {
     function_score: {
       query: {
         bool: {
-          should: [
-            {
-              more_like_this: {
-                fields: ['title_text'],
-                like,
-                min_term_freq: 1,
-                min_doc_freq: 1,
-                min_word_length: 2,
-                max_doc_freq: 10000,
-                max_query_terms: 50,
-                minimum_should_match: minMatch || '30%',
-                boost_terms: 10
-              }
-            },
-            {
-              more_like_this: {
-                fields: ['title_text'],
-                like,
-                min_term_freq: 1,
-                min_doc_freq: 1,
-                min_word_length: 2,
-                max_doc_freq: 1000,
-                max_query_terms: 50,
-                minimum_should_match: minMatch || '30%',
-                boost_terms: 100
-              }
-            }
-          ],
-          filter: filters
+          should,
+          minimum_should_match: 1,
+          ...(filters?.length ? { filter: filters } : {})
         }
       },
       functions: [ranktopFunction()],
@@ -563,18 +600,20 @@ function moreLikeThisScoreQuery (like, minMatch, filters) {
 
 const MAX_NEURAL_TEXT_LENGTH = 512
 
-function buildRelatedQuery ({ like, minMatch, filters, textQuery, modelId }) {
-  if (textQuery?.trim() && modelId) {
-    const neuralText = textQuery.slice(0, MAX_NEURAL_TEXT_LENGTH)
+function buildRelatedQuery ({ like, minMatch, filters, source, modelId }) {
+  const extraShould = buildRelatedExtraShould(source)
+
+  if (source.textQuery?.trim() && modelId) {
+    const neuralText = source.textQuery.slice(0, MAX_NEURAL_TEXT_LENGTH)
     const legs = [
-      moreLikeThisScoreQuery(like, minMatch, []),
+      moreLikeThisScoreQuery({ like, minMatch, filters: [], extraShould }),
       buildSemanticTextLeg({ queryText: neuralText, modelId, k: HYBRID_DEPTH }),
       buildSparseLeg({ queryText: neuralText })
     ]
     return hybridQuery(legs, filters)
   }
 
-  return moreLikeThisScoreQuery(like, minMatch, filters)
+  return moreLikeThisScoreQuery({ like, minMatch, filters, extraShould })
 }
 
 function buildSearchQuery ({
@@ -722,17 +761,16 @@ export default {
         filters.push({ range: { ranktop: { gte: minMatch ? 0 : postsSatsFilter * 1000 } } })
       }
 
-      // resolve query text for neural search (only fetches item when needed)
       const modelId = await resolveOpensearchModelId(search)
-      let textQuery = title
-      if (id && modelId) {
+      let source = buildRelatedSource({ title })
+      if (id) {
         const item = await getItem(parent, { id }, { me, models })
         if (item) {
-          textQuery = item.text || item.title
+          source = buildRelatedSource(item)
         }
       }
 
-      const osQuery = buildRelatedQuery({ like, minMatch, filters, textQuery, modelId })
+      const osQuery = buildRelatedQuery({ like, minMatch, filters, source, modelId })
       let results
       try {
         results = await search.search({

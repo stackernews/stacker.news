@@ -7,10 +7,42 @@ import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/c
 import { resolveOpensearchModelId } from '../search/model-id'
 import removeMd from 'remove-markdown'
 
-function queryParts (q) {
-  const regex = /"([^"]*)"/gm
+const DOUBLE_QUOTE_VARIANTS = [
+  '\u201C', // left double quotation mark
+  '\u201D', // right double quotation mark
+  '\u201E', // double low-9 quotation mark
+  '\u201F', // double high-reversed-9 quotation mark
+  '\u00AB', // left-pointing double angle quotation mark
+  '\u00BB', // right-pointing double angle quotation mark
+  '\uFF02', // fullwidth quotation mark
+  '\u300C', // left corner bracket
+  '\u300D', // right corner bracket
+  '\u300E', // left white corner bracket
+  '\u300F', // right white corner bracket
+  '\u301D', // reversed double prime quotation mark
+  '\u301E', // double prime quotation mark
+  '\u301F' // low double prime quotation mark
+]
 
-  const queryArr = q.replace(regex, '').trim().split(/\s+/)
+const SMART_DOUBLE_QUOTES_REGEX = new RegExp(`[${DOUBLE_QUOTE_VARIANTS.join('')}]`, 'g')
+
+function phraseRegex () {
+  return /"([^"]*)"/gm
+}
+
+function normalizeSearchQuery (q = '') {
+  if (typeof q !== 'string') return ''
+  // Normalize common Unicode double-quote variants so phrase parsing can
+  // treat them all like ASCII double quotes.
+  return q.replace(SMART_DOUBLE_QUOTES_REGEX, '"')
+}
+
+function queryParts (q = '') {
+  const normalized = normalizeSearchQuery(q)
+  const quotes = [...normalized.matchAll(phraseRegex())]
+    .map(m => m[1])
+    .filter(quote => quote.trim().length > 0)
+  const queryArr = normalized.replace(phraseRegex(), ' ').trim().split(/\s+/).filter(Boolean)
   const url = queryArr.find(word => word.startsWith('url:'))
   const nym = queryArr.find(word => word.startsWith('@'))
   const territory = queryArr.find(word => word.startsWith('~'))
@@ -18,12 +50,25 @@ function queryParts (q) {
   const query = queryArr.filter(word => !exclude.includes(word)).join(' ')
 
   return {
-    quotes: [...q.matchAll(regex)].map(m => m[1]),
+    quotes,
     nym,
     url,
     territory,
     query
   }
+}
+
+function rebuildSearchSuggestion ({ suggestion, quotes = [], nym, territory, url }) {
+  if (!suggestion) return null
+
+  const parts = []
+  if (nym) parts.push(nym)
+  if (territory) parts.push(territory)
+  if (url) parts.push(url)
+  for (const phrase of quotes) parts.push(`"${phrase}"`)
+  parts.push(suggestion)
+
+  return parts.join(' ')
 }
 
 // ---- Filter builders ----
@@ -932,13 +977,13 @@ export default {
         // Rebuild the full query string so "Did you mean?" preserves
         // @nym, ~territory, url:, and "quoted phrase" filters.
         if (searchSuggestion) {
-          const parts = []
-          if (nym) parts.push(nym)
-          if (territory) parts.push(territory)
-          if (url) parts.push(url)
-          for (const phrase of quotes) parts.push(`"${phrase}"`)
-          parts.push(searchSuggestion)
-          searchSuggestion = parts.join(' ')
+          searchSuggestion = rebuildSearchSuggestion({
+            suggestion: searchSuggestion,
+            quotes,
+            nym,
+            territory,
+            url
+          })
         }
       }
       const items = attachHighlights(

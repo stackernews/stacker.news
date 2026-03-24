@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Form, Input, SNInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useLazyQuery } from '@apollo/client'
@@ -50,6 +50,8 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   // allows finer control over dupe accordian layout shift
   const [dupes, setDupes] = useState()
   const [titleOverride, setTitleOverride] = useState()
+  const currentTitleRef = useRef(currentTitle)
+  const titleOverrideRef = useRef(titleOverride)
 
   const [getPageTitleAndUnshorted, { data, loading: pageTitleLoading }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
@@ -75,12 +77,17 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   }, [dupesLoading, dupesData])
 
   useEffect(() => {
-    const canOverrideTitle = !currentTitle.trim() || currentTitle === titleOverride
+    currentTitleRef.current = currentTitle
+    titleOverrideRef.current = titleOverride
+  }, [currentTitle, titleOverride])
+
+  useEffect(() => {
+    const canOverrideTitle = !currentTitleRef.current.trim() || currentTitleRef.current === titleOverrideRef.current
 
     if (!isEditing && data?.pageTitleAndUnshorted?.title && canOverrideTitle) {
       setTitleOverride(data.pageTitleAndUnshorted.title)
     }
-  }, [data?.pageTitleAndUnshorted?.title, currentTitle, titleOverride, isEditing])
+  }, [data?.pageTitleAndUnshorted?.title, isEditing])
 
   useEffect(() => {
     const unshorted = getMeaningfulUrl(data?.pageTitleAndUnshorted?.unshorted)

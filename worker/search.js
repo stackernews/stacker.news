@@ -159,7 +159,8 @@ export async function indexAllItems ({ models, boss }) {
   }
 
   const idxSettings = await search.indices.getSettings({ index: osIndex })
-  const pipeline = idxSettings.body[osIndex]?.settings?.index?.default_pipeline
+  // getSettings keys by concrete index name, not alias, so use the first value
+  const pipeline = Object.values(idxSettings.body)[0]?.settings?.index?.default_pipeline
   if (!pipeline) {
     // The init script sets default_pipeline AFTER seed import completes,
     // so its absence means bootstrap is still in progress.

@@ -641,7 +641,9 @@ span + .sn-link {
   }
 }
 
-.sn-list__nested-item {
+// Lexical applies the nested-item class to the parent <li> that owns a child list.
+// Keep the marker when that parent also has inline content, but hide empty wrappers.
+.sn-list__nested-item:not(:has(> span)) {
   list-style-type: none;
 }
 

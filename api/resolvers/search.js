@@ -3,7 +3,7 @@ import { whenToFrom } from '@/lib/time'
 import { getItem, itemQueryWithMeta, SELECT } from './item'
 import { parse } from 'tldts'
 import { searchSchema, validateSchema } from '@/lib/validate'
-import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
+import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER, HOMEPAGE_POSTS_SATS_FILTER } from '@/lib/constants'
 import { resolveOpensearchModelId } from '../search/model-id'
 import removeMd from 'remove-markdown'
 
@@ -795,7 +795,7 @@ export default {
         return { items: [], cursor: null }
       }
 
-      const postsSatsFilter = DEFAULT_POSTS_SATS_FILTER
+      const postsSatsFilter = HOMEPAGE_POSTS_SATS_FILTER
       const like = id ? [{ _index: process.env.OPENSEARCH_INDEX, _id: id }] : [title]
 
       const mustNot = [{ exists: { field: 'parentId' } }]

@@ -23,7 +23,7 @@ const getMarkdownFromPaste = withDisposableBridge((bridge, event) => {
     // export the resulting state as markdown
     let markdown = null
     bridge.update(() => {
-      markdown = $lexicalToMarkdown()
+      markdown = $lexicalToMarkdown(true)
     }, { discrete: true })
 
     return markdown

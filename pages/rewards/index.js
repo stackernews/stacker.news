@@ -7,45 +7,27 @@ import Layout from '@/components/layout'
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { amountSchema } from '@/lib/validate'
-import { numWithUnits } from '@/lib/format'
+import { msatsToSats, numWithUnits } from '@/lib/format'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
 import dynamic from 'next/dynamic'
-import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { useToast } from '@/components/toast'
-import { useLightning } from '@/components/lightning'
+import { useAnimation } from '@/components/animation'
 import { Col, Row } from 'react-bootstrap'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
 import { CompactLongCountdown } from '@/components/countdown'
-import { usePaidMutation } from '@/components/use-paid-mutation'
-import { DONATE } from '@/fragments/paidAction'
-import { ITEM_FULL_FIELDS } from '@/fragments/items'
-import { ListItem } from '@/components/items'
+import { DONATE } from '@/fragments/payIn'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { payTypeShortName } from '@/lib/pay-in'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
 })
 
 const REWARDS_FULL = gql`
-${ITEM_FULL_FIELDS}
-{
-  rewards {
-    total
-    time
-    sources {
-      name
-      value
-    }
-    ad {
-      ...ItemFullFields
-    }
-  }
-}
-`
-
-const REWARDS = gql`
 {
   rewards {
     total
@@ -79,33 +61,26 @@ export function RewardLine ({ total, time }) {
 
 export default function Rewards ({ ssrData }) {
   // only poll for updates to rewards
-  const { data: rewardsData } = useQuery(
-    REWARDS,
-    SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
-  const { data } = useQuery(REWARDS_FULL)
+  const { data } = useQuery(
+    REWARDS_FULL,
+    SSR ? {} : { pollInterval: FAST_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
   const dat = useData(data, ssrData)
 
-  let { rewards: [{ total, sources, time, ad }] } = useMemo(() => {
-    return dat || { rewards: [{}] }
+  const { rewards: [{ total, sources, time }] } = useMemo(() => {
+    if (!dat || !dat.rewards[0]) return { rewards: [{ total: 0, sources: [], time: '0' }] }
+    return {
+      rewards: [{
+        total: dat.rewards[0].total,
+        sources: dat.rewards[0].sources.map(source => ({ name: payTypeShortName(source.name), value: msatsToSats(source.value) })),
+        time: dat.rewards[0].time
+      }]
+    }
   }, [dat])
-
-  if (rewardsData?.rewards?.length > 0) {
-    total = rewardsData.rewards[0].total
-    sources = rewardsData.rewards[0].sources
-    time = rewardsData.rewards[0].time
-  }
 
   if (!dat) return <PageLoading />
 
   return (
     <Layout footerLinks>
-      {ad &&
-        <div className='pt-3 align-self-center' style={{ maxWidth: '500px', width: '100%' }}>
-          <div className='fw-bold text-muted pb-2'>
-            top boost this month
-          </div>
-          <ListItem item={ad} ad />
-        </div>}
       <Row className='pb-3'>
         <Col>
           <div
@@ -119,9 +94,10 @@ export default function Rewards ({ ssrData }) {
                 <small><small><small>learn about rewards</small></small></small>
               </Link>
             </h3>
-            <div className='my-3 w-100'>
-              <GrowthPieChart data={sources} />
-            </div>
+            {sources?.length > 0 &&
+              <div className='my-3 w-100'>
+                <GrowthPieChart data={sources} />
+              </div>}
             <DonateButton />
           </div>
         </Col>
@@ -133,8 +109,8 @@ export default function Rewards ({ ssrData }) {
 export function DonateButton () {
   const showModal = useShowModal()
   const toaster = useToast()
-  const strike = useLightning()
-  const [donateToRewards] = usePaidMutation(DONATE)
+  const animate = useAnimation()
+  const [donateToRewards] = usePayInMutation(DONATE)
 
   return (
     <>
@@ -151,7 +127,7 @@ export function DonateButton () {
                   sats: Number(amount)
                 },
                 onCompleted: () => {
-                  strike()
+                  animate()
                   toaster.success('donated')
                 }
               })

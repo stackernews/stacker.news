@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
@@ -10,25 +10,27 @@ import { timeSince } from '@/lib/time'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
-import DontLikeThisDropdownItem, { OutlawDropdownItem } from './dont-link-this'
+import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Badges from './badge'
-import { USER_ID } from '@/lib/constants'
+import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER } from '@/lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
-import useQrPayment from './use-qr-payment'
-import { useRetryCreateItem } from './use-item-submit'
+import useQrPayIn from './payIn/hooks/use-qr-pay-in'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
+import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
+import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
+import { gql } from '@apollo/client'
 
 function itemTitle (item) {
   let title = ''
@@ -37,15 +39,22 @@ function itemTitle (item) {
     unitSingular: 'zapper',
     unitPlural: 'zappers'
   })
-  if (item.sats) {
-    title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
+  if (item.sats - item.credits) {
+    title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })} stacked`
   }
   if (item.credits) {
-    title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+    title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })} stacked`
   }
-  if (item.mine) {
-    title += ` (${numWithUnits(item.meSats, { abbreviate: false })} to post)`
-  } else if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
+  if (item.boost) {
+    title += ` \\ ${numWithUnits(item.boost, { abbreviate: false, unitSingular: 'boost', unitPlural: 'boost' })}`
+  }
+  if (item.cost) {
+    title += ` \\ ${numWithUnits(item.cost, { abbreviate: false, unitSingular: 'cost', unitPlural: 'cost' })}`
+  }
+  if (item.downSats) {
+    title += ` \\ ${numWithUnits(item.downSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
+  }
+  if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
     const satSources = []
     if (item.meAnonSats || (item.meSats || 0) - (item.meCredits || 0) > 0) {
       satSources.push(`${numWithUnits((item.meSats || 0) + (item.meAnonSats || 0) - (item.meCredits || 0), { abbreviate: false })}`)
@@ -67,13 +76,17 @@ export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, edit, toggleEdit, editText,
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
-  setDisableRetry, disableRetry
+  setDisableRetry, disableRetry, updatePayIn
 }) {
   const { me } = useMe()
   const router = useRouter()
+  const showModal = useShowModal()
   const [hasNewComments, setHasNewComments] = useState(false)
   const root = useRoot()
-  const sub = item?.sub || root?.sub
+  // XXX sub controls pinning options for territory founders
+  // so we only expose it if there's only one sub
+  const subs = item?.subs || root?.subs
+  const sub = subs?.length === 1 ? subs[0] : undefined
   const [canEdit, setCanEdit, editThreshold] = useCanEdit(item)
 
   useEffect(() => {
@@ -89,35 +102,34 @@ export default function ItemInfo ({
   const myPost = (me && root && Number(me.id) === Number(root.user.id))
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
-  const isPinnedPost = isPost && item.position && (pinnable || !item.subName)
-  const isPinnedSubReply = !isPost && item.position && !item.subName
-  const isAd = !item.parentId && Number(item.user?.id) === USER_ID.ad
+  const isPinnedPost = isPost && item.position && (pinnable || !item.subNames)
+  const isPinnedSubReply = !isPost && item.position && !item.subNames
   const meSats = (me ? item.meSats : item.meAnonSats) || 0
+  const satsFilter = me
+    ? (isPost ? me.privates?.postsSatsFilter : me.privates?.commentsSatsFilter)
+    : (isPost ? DEFAULT_POSTS_SATS_FILTER : DEFAULT_COMMENTS_SATS_FILTER)
+  const isDesperado = !item.mine && item.downSats > 0 &&
+    satsFilter != null && (item.netInvestment ?? 0) < satsFilter
 
   return (
     <div className={className || `${styles.other}`}>
-      {!isPinnedPost && !(isPinnedSubReply && !full) && !isAd &&
+      {!isPinnedPost && !(isPinnedSubReply && !full) &&
         <>
           <span title={itemTitle(item)}>
-            {numWithUnits(item.sats)}
+            {numWithUnits(item.sats + item.boost + item.cost)}
           </span>
-          <span> \ </span>
-        </>}
-      {item.boost > 0 &&
-        <>
-          <span>{abbrNum(item.boost)} boost</span>
           <span> \ </span>
         </>}
       <Link
         href={`/items/${item.id}`} onClick={(e) => {
-          const viewedAt = commentsViewedAt(item)
+          const viewedAt = commentsViewedAt(item.id)
           if (viewedAt) {
             e.preventDefault()
             router.push(
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
+        }} title={`${numWithUnits(item.commentSats + item.commentCost + item.commentBoost)} (${item.commentSats} stacked \\ ${item.commentCost} cost \\ ${item.commentBoost} boost)`} className='text-reset position-relative'
       >
         {numWithUnits(item.ncomments, {
           abbreviate: false,
@@ -134,12 +146,12 @@ export default function ItemInfo ({
         {showUser &&
           <Link href={`/${item.user.name}`}>
             <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
-            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} />
+            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} bot={item.apiKey} />
             {embellishUser}
           </Link>}
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.invoicePaidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.invoicePaidAt || item.createdAt))}
+        <Link href={`/items/${item.id}`} title={item.payIn?.payInStateChangedAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+          {timeSince(new Date(item.payIn?.payInStateChangedAt || item.createdAt))}
         </Link>
         {item.prior &&
           <>
@@ -149,26 +161,25 @@ export default function ItemInfo ({
             </Link>
           </>}
       </span>
-      {item.subName &&
-        <SubPopover sub={item.subName}>
-          <Link href={`/~${item.subName}`}>
-            {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
+      {item.subNames?.map(subName => (
+        <SubPopover key={subName} sub={subName}>
+          <Link href={`/~${subName}`}>
+            {' '}<Badge className={styles.newComment} bg={null}>{subName}</Badge>
           </Link>
-        </SubPopover>}
+        </SubPopover>
+      ))}
       {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
-      {(item.outlawed && !item.mine &&
-        <Link href='/recent/outlawed'>
-          {' '}<Badge className={styles.newComment} bg={null}>outlawed</Badge>
-        </Link>) ||
-        (item.freebie && !item.position &&
-          <Link href='/recent/freebies'>
-            {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
-          </Link>
-        )}
-      {(item.apiKey &&
-        <>{' '}<Badge className={styles.newComment} bg={null}>bot</Badge></>
-        )}
+      {item.freebie && !item.position &&
+        <Link href='/new/freebies'>
+          {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
+        </Link>}
+      {isDesperado &&
+        <span
+          role='button' onClick={() => showModal((onClose) => <ItemDetails item={item} me={me} />)}
+        >
+          {' '}<Badge className={styles.newComment} bg={null}>-{abbrNum(item.downSats)} sats</Badge>
+        </span>}
       {extraBadges}
       {
         showActionDropdown &&
@@ -177,7 +188,7 @@ export default function ItemInfo ({
               item={item} edit={edit} canEdit={canEdit}
               setCanEdit={setCanEdit} toggleEdit={toggleEdit} editText={editText} editThreshold={editThreshold}
             />
-            <PaymentInfo item={item} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />
+            {item.payIn && <PayInInfo item={item} updatePayIn={updatePayIn} disableRetry={disableRetry} setDisableRetry={setDisableRetry} />}
             <ActionDropdown>
               <CopyLinkDropdownItem item={item} />
               <InfoDropdownItem item={item} />
@@ -200,16 +211,11 @@ export default function ItemInfo ({
             (item.meDontLikeSats > meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
-              {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
+              {item.mine && item.payIn?.id &&
                 <>
                   <hr className='dropdown-divider' />
-                  <OutlawDropdownItem item={item} />
-                </>}
-              {item.mine && item.invoice?.id &&
-                <>
-                  <hr className='dropdown-divider' />
-                  <Link href={`/invoices/${item.invoice?.id}`} className='text-reset dropdown-item'>
-                    view invoice
+                  <Link href={`/transactions/${item.payIn?.id}`} className='text-reset dropdown-item'>
+                    view payment
                   </Link>
                 </>}
               {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
@@ -240,56 +246,103 @@ export default function ItemInfo ({
   )
 }
 
-function InfoDropdownItem ({ item }) {
+function ItemDetails ({ item, me }) {
+  return (
+    <div className={styles.details}>
+      <div className={styles.detailsSection}>item</div>
+      <div className={styles.detailsLabel}>id</div>
+      <div className={styles.detailsValue}>{item.id}</div>
+      <div className={styles.detailsLabel}>created at</div>
+      <div className={styles.detailsValue}>{item.createdAt}</div>
+      {item.payIn?.payInState === 'PAID' &&
+        <>
+          <div className={styles.detailsLabel}>paid at</div>
+          <div className={styles.detailsValue}>{item.payIn?.payInStateChangedAt}</div>
+        </>}
+      <div className={styles.detailsSection}>this item</div>
+      <div className={styles.detailsLabel}>zappers</div>
+      <div className={styles.detailsValue}>{item.upvotes}</div>
+      <div className={styles.detailsLabel}>cost</div>
+      <div className={styles.detailsValue}>{item.cost} sats</div>
+      <div className={styles.detailsLabel}>boost</div>
+      <div className={styles.detailsValue}>{item.boost} sats</div>
+      <div className={styles.detailsLabel}>stacked</div>
+      <div className={styles.detailsValue}>{item.sats - item.credits} sats / {item.credits} ccs</div>
+      <div className={styles.detailsLabel}>downsats</div>
+      <div className={styles.detailsValue}>{item.downSats} sats</div>
+      <div className={styles.detailsLabel}>invested</div>
+      <div className={styles.detailsValue}>{item.sats + item.boost + item.cost} sats</div>
+      <div className={styles.detailsSection}>comments</div>
+      <div className={styles.detailsLabel}>cost</div>
+      <div className={styles.detailsValue}>{item.commentCost} sats</div>
+      <div className={styles.detailsLabel}>boost</div>
+      <div className={styles.detailsValue}>{item.commentBoost} sats</div>
+      <div className={styles.detailsLabel}>stacked</div>
+      <div className={styles.detailsValue}>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
+      <div className={styles.detailsLabel}>downsats</div>
+      <div className={styles.detailsValue}>{item.commentDownSats} sats</div>
+      <div className={styles.detailsLabel}>invested</div>
+      <div className={styles.detailsValue}>{item.commentSats + item.commentCost + item.commentBoost} sats</div>
+      {me && (
+        <>
+          <div className={styles.detailsSection}>from me</div>
+          <div className={styles.detailsLabel}>zapped</div>
+          <div className={styles.detailsValue}>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
+          <div className={styles.detailsLabel}>downzapped</div>
+          <div className={styles.detailsValue}>{item.meDontLikeSats} sats</div>
+        </>
+      )}
+    </div>
+  )
+}
+
+export function InfoDropdownItem ({ item }) {
   const { me } = useMe()
   const showModal = useShowModal()
 
-  const onClick = () => {
-    showModal((onClose) => {
-      return (
-        <div className={styles.details}>
-          <div>id</div>
-          <div>{item.id}</div>
-          <div>created at</div>
-          <div>{item.createdAt}</div>
-          {item.invoicePaidAt &&
-            <>
-              <div>paid at</div>
-              <div>{item.invoicePaidAt}</div>
-            </>}
-          <div>cost</div>
-          <div>{item.cost}</div>
-          <div>stacked</div>
-          <div>{item.sats - item.credits} sats / {item.credits} ccs</div>
-          <div>stacked (comments)</div>
-          <div>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
-          {me && (
-            <>
-              <div>from me</div>
-              <div>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
-              <div>downsats from me</div>
-              <div>{item.meDontLikeSats}</div>
-            </>
-          )}
-          <div>zappers</div>
-          <div>{item.upvotes}</div>
-        </div>
-      )
-    })
-  }
-
   return (
-    <Dropdown.Item onClick={onClick}>
+    <Dropdown.Item onClick={() => showModal(() => <ItemDetails item={item} me={me} />)}>
       details
     </Dropdown.Item>
   )
 }
 
-export function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
+export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry }) {
   const { me } = useMe()
   const toaster = useToast()
-  const retryCreateItem = useRetryCreateItem({ id: item.id })
-  const waitForQrPayment = useQrPayment()
+
+  const revertPayIn = useCallback((error, cache, { data }) => {
+    const retryFailureUpdate = getRetryPayInFailureUpdate(error, data)
+    if (!retryFailureUpdate) return
+    const { retryPayInId, failureData } = retryFailureUpdate
+    cache.writeFragment({
+      id: `PayIn:${retryPayInId}`,
+      fragment: gql`
+        fragment PayInInfoRevert on PayIn {
+          payInState
+          payInStateChangedAt
+          payerPrivates {
+            payInFailureReason
+          }
+        }
+      `,
+      data: {
+        __typename: 'PayIn',
+        ...failureData
+      }
+    })
+  }, [])
+
+  const retryPayIn = useRetryPayInByType(item.payIn.id, item.payIn.payInType, {
+    onRetry: updatePayIn,
+    cachePhases: {
+      onMutationResult: updatePayIn,
+      onPaid: updatePayIn,
+      onPayError: revertPayIn
+    },
+    protocolLimit: 1
+  })
+  const waitForQrPayIn = useQrPayIn()
   const [disableInfoRetry, setDisableInfoRetry] = useState(disableRetry)
   if (item.deletedAt) return null
 
@@ -301,14 +354,23 @@ export function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
 
   let Component
   let onClick
-  if (me && item.invoice?.actionState && item.invoice?.actionState !== 'PAID') {
-    if (item.invoice?.actionState === 'FAILED') {
-      Component = () => <span className={classNames('text-warning', disableDualRetry && 'pulse')}>retry payment</span>
+  const canManagePayIn = me &&
+    item.mine &&
+    item.payIn?.payInType === 'ITEM_CREATE' &&
+    item.payIn?.payInState !== 'PAID' &&
+    item.payIn?.payerPrivates
+
+  if (canManagePayIn) {
+    // are we automatically retrying?
+    if (willAutoRetryPayIn(item.payIn)) {
+      Component = () => <span className={classNames('text-info')}>pending</span>
+    } else if (item.payIn.payInState === 'FAILED') {
+      Component = () => <span className={classNames('text-warning', disableDualRetry ? 'pulse' : 'pointer')}>retry payment</span>
       onClick = async () => {
         if (disableDualRetry) return
         setDisableDualRetry(true)
         try {
-          const { error } = await retryCreateItem({ variables: { invoiceId: parseInt(item.invoice?.id) } })
+          const { error } = await retryPayIn()
           if (error) throw error
         } catch (error) {
           toaster.danger(error.message)
@@ -319,11 +381,11 @@ export function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
     } else {
       Component = () => (
         <span
-          className='text-info'
+          className='text-info pointer'
         >pending
         </span>
       )
-      onClick = () => waitForQrPayment({ id: item.invoice?.id }, null, { cancelOnClose: false }).catch(console.error)
+      onClick = () => waitForQrPayIn(item.payIn, null, { cancelOnClose: false }).catch(console.error)
     }
   } else {
     return null
@@ -333,7 +395,7 @@ export function PaymentInfo ({ item, disableRetry, setDisableRetry }) {
     <>
       <span> \ </span>
       <span
-        className='text-reset pointer fw-bold'
+        className='text-reset fw-bold'
         onClick={onClick}
       >
         <Component />
@@ -354,7 +416,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
-          {(!item.invoice?.actionState || item.invoice?.actionState === 'PAID')
+          {(!item.payIn?.payInState || item.payIn?.payInState === 'PAID')
             ? <Countdown
                 date={editThreshold}
                 onComplete={() => { setCanEdit(false) }}

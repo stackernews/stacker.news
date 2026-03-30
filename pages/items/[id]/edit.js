@@ -6,13 +6,16 @@ import { CenterLayout } from '@/components/layout'
 import JobForm from '@/components/job-form'
 import { PollForm } from '@/components/poll-form'
 import { BountyForm } from '@/components/bounty-form'
-import { useState } from 'react'
-import { useQuery } from '@apollo/client'
+import { useEffect, useState } from 'react'
+import { useLazyQuery, useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { FeeButtonProvider } from '@/components/fee-button'
-import SubSelect from '@/components/sub-select'
+import { SubMultiSelect } from '@/components/sub-select'
 import useCanEdit from '@/components/use-can-edit'
+import { SUBS } from '@/fragments/subs'
+import Countdown from '@/components/countdown'
+import { subsDiff } from '@/lib/subs'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
@@ -22,12 +25,54 @@ export const getServerSideProps = getGetServerSideProps({
 export default function PostEdit ({ ssrData }) {
   const router = useRouter()
   const { data } = useQuery(ITEM, { variables: { id: router.query.id } })
+  const [fetchSubs] = useLazyQuery(SUBS)
   if (!data && !ssrData) return <PageLoading />
 
   const { item } = data || ssrData
-  const [sub, setSub] = useState(item.subName)
+  const [subs, setSubs] = useState(item.subNames)
+  const [baseLineItems, setBaseLineItems] = useState({})
+
+  useEffect(() => {
+    const territoryAddPrefix = 'territory-add-'
+    const addedSubs = subsDiff(subs, item.subNames)
+    if (!addedSubs.length) {
+      setBaseLineItems(prev => Object.entries(prev).reduce((acc, [key, value]) => {
+        if (!key.startsWith(territoryAddPrefix)) {
+          acc[key] = value
+        }
+        return acc
+      }, {}))
+      return
+    }
+    fetchSubs({ variables: { subNames: addedSubs } }).then(res => {
+      setBaseLineItems(prev => {
+        const newBaseLineItems = Object.entries(prev).reduce((acc, [key, value]) => {
+          if (!key.startsWith(territoryAddPrefix)) {
+            acc[key] = value
+          }
+          return acc
+        }, {})
+        const territoryAdds = res.data.subs.reduce((acc, sub) => ({
+          ...acc,
+          [`${territoryAddPrefix}${sub.name}`]: {
+            label: `~${sub.name} post`,
+            term: `+ ${sub.baseCost}`,
+            op: '+',
+            modifier: cost => cost + sub.baseCost
+          }
+        }), {})
+        return {
+          ...newBaseLineItems,
+          ...territoryAdds
+        }
+      })
+    })
+  }, [subs])
 
   const [,, editThreshold] = useCanEdit(item)
+  const EditInfo = editThreshold && item.payIn?.payInState === 'PAID'
+    ? <div className='text-muted fw-bold font-monospace mt-1'><Countdown date={editThreshold} /></div>
+    : null
 
   let FormType = DiscussionForm
   let itemType = 'DISCUSSION'
@@ -45,29 +90,19 @@ export default function PostEdit ({ ssrData }) {
     itemType = 'BOUNTY'
   }
 
-  const existingBoostLineItem = item.boost
-    ? {
-        existingBoost: {
-          label: 'old boost',
-          term: `- ${item.boost}`,
-          op: '-',
-          modifier: cost => cost - item.boost
-        }
-      }
-    : undefined
-
   return (
-    <CenterLayout sub={sub}>
-      <FeeButtonProvider baseLineItems={existingBoostLineItem}>
-        <FormType item={item} editThreshold={editThreshold}>
+    <CenterLayout>
+      <FeeButtonProvider baseLineItems={baseLineItems}>
+        <FormType item={item} subs={subs} EditInfo={EditInfo}>
           {!item.isJob &&
-            <SubSelect
+            <SubMultiSelect
+              placeholder='pick territories'
               className='d-flex'
-              size='medium'
+              size='md'
               label='territory'
               filterSubs={s => s.name !== 'jobs' && s.postTypes?.includes(itemType)}
-              onChange={(_, e) => setSub(e.target.value)}
-              sub={sub}
+              onChange={(_, e) => setSubs(e)}
+              subs={subs}
             />}
         </FormType>
       </FeeButtonProvider>

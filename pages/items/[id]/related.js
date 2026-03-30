@@ -31,6 +31,7 @@ export default function Related ({ ssrData }) {
         query={RELATED_ITEMS}
         destructureData={data => data.related}
         variables={{ id: router.query.id }}
+        noMoreText='no more'
       />
     </Layout>
   )

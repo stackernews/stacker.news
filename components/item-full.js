@@ -3,7 +3,7 @@ import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
 import Text, { SearchText } from './text'
-import MediaOrLink from './media-or-link'
+import { MediaOrLink } from '@/components/editor/nodes/media'
 import Comments from './comments'
 import styles from '@/styles/item.module.css'
 import itemStyles from './item.module.css'
@@ -11,7 +11,6 @@ import { useMe } from './me'
 import Button from 'react-bootstrap/Button'
 import { useEffect } from 'react'
 import Poll from './poll'
-import { commentsViewed } from '@/lib/new-comments'
 import Related from './related'
 import PastBounties from './past-bounties'
 import Check from '@/svgs/check-double-line.svg'
@@ -22,20 +21,23 @@ import { RootProvider } from './root'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { UNKNOWN_LINK_REL, DEFAULT_POSTS_SATS_FILTER } from '@/lib/constants'
 import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
+import useCommentsView from './use-comments-view'
+import useCallbackRef from './use-callback-ref'
 
 function BioItem ({ item, handleClick }) {
   const { me } = useMe()
+  const { onRef: onReaderRef } = useCallbackRef()
   if (!item.text) {
     return null
   }
 
   return (
     <>
-      <ItemText item={item} />
+      <ItemText item={item} readerRef={onReaderRef} />
       {me?.name === item.user.name &&
         <div className='d-flex'>
           <Button
@@ -65,7 +67,7 @@ function ItemEmbed ({ url, imgproxyUrls }) {
     const srcSet = imgproxyUrls?.[url]
     return (
       <div className='mt-3'>
-        <MediaOrLink src={src} srcSet={srcSet} topLevel linkFallback={false} />
+        <MediaOrLink src={src} srcSetIntital={srcSet} topLevel linkFallback={false} />
       </div>
     )
   }
@@ -90,8 +92,12 @@ function FwdUsers ({ forwards }) {
 }
 
 function TopLevelItem ({ item, noReply, ...props }) {
+  const { me } = useMe()
   const ItemComponent = item.isJob ? ItemJob : Item
-  const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
+  const { ref: readerRef, onRef: onReaderRef } = useCallbackRef()
+  const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text, readerRef })
+  const postsSatsFilter = me ? me.privates?.postsSatsFilter : DEFAULT_POSTS_SATS_FILTER
+  const isBelowFilter = !item.mine && postsSatsFilter != null && (item.netInvestment ?? 0) < postsSatsFilter
 
   return (
     <ItemComponent
@@ -101,16 +107,16 @@ function TopLevelItem ({ item, noReply, ...props }) {
       right={
         !noReply &&
           <>
+            <Toc text={item.text} readerRef={readerRef} />
             <Share title={item?.title} path={`/items/${item?.id}`} />
-            <Toc text={item.text} />
           </>
       }
       belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
       <article className={classNames(styles.fullItemContainer, 'topLevel')} ref={textRef}>
-        {item.text && <ItemText item={item} />}
-        {item.url && !item.outlawed && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
+        {item.text && <ItemText item={item} readerRef={onReaderRef} />}
+        {item.url && !isBelowFilter && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
           <div className='fw-bold mt-2'>
@@ -137,7 +143,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
           />
           {
           // Don't show related items for Saloon items (position is set but no subName)
-          (!item.position && item.subName) &&
+          (!item.position && item.subNames?.length > 0) &&
           // Don't show related items for jobs
           !item.isJob &&
           // Don't show related items for child items
@@ -154,16 +160,19 @@ function TopLevelItem ({ item, noReply, ...props }) {
   )
 }
 
-function ItemText ({ item }) {
+function ItemText ({ item, readerRef }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
+    : <Text itemId={item.id} state={item.lexicalState} html={item.html} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} imgproxyUrls={item.imgproxyUrls} readerRef={readerRef} />
 }
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
+  // no cache update here because we need to preserve the initial value
+  const { markItemViewed } = useCommentsView(item.id, { updateCache: false })
+
   useEffect(() => {
-    commentsViewed(item)
-  }, [item.lastCommentAt])
+    markItemViewed(item)
+  }, [item.id, markItemViewed])
 
   return (
     <>
@@ -178,7 +187,7 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
           {item.parentId
             ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
             : (
-              <div>{bio
+              <div className='pt-2'>{bio
                 ? <BioItem item={item} {...props} />
                 : <TopLevelItem item={item} {...props} />}
               </div>)}
@@ -186,11 +195,14 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
             <div className={styles.comments}>
               <Comments
                 parentId={item.id} parentCreatedAt={item.createdAt}
-                pinned={item.position} bio={bio} commentSats={item.commentSats}
+                pinned={item.position} bio={bio}
+                commentSats={item.commentSats} commentCost={item.commentCost} commentBoost={item.commentBoost}
                 ncomments={item.ncomments}
                 comments={item.comments.comments}
                 commentsCursor={item.comments.cursor}
                 fetchMoreComments={fetchMoreComments}
+                lastCommentAt={item.lastCommentAt}
+                item={item}
               />
             </div>}
         </CarouselProvider>

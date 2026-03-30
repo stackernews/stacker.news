@@ -18,7 +18,6 @@ export const ITEM_FIELDS = gql`
     id
     parentId
     createdAt
-    invoicePaidAt
     deletedAt
     title
     url
@@ -28,14 +27,23 @@ export const ITEM_FIELDS = gql`
       meMute
       ...StreakFields
     }
-    sub {
+    subs {
       name
       userId
-      moderated
       meMuteSub
       meSubscription
       nsfw
       replyCost
+    }
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
     }
     otsHash
     position
@@ -51,23 +59,27 @@ export const ITEM_FIELDS = gql`
     meSats
     meCredits
     meDontLikeSats
+    downSats
+    commentDownSats
     meBookmark
     meSubscription
     meForward
-    outlawed
     freebie
+    netInvestment
     bio
     ncomments
     nDirectComments
     commentSats
     commentCredits
+    commentCost
+    commentBoost
     lastCommentAt
     isJob
     status
     company
     location
     remote
-    subName
+    subNames
     pollCost
     pollExpiresAt
     uploadId
@@ -75,12 +87,8 @@ export const ITEM_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
-    invoice {
-      id
-      actionState
-      confirmedAt
-    }
     cost
+    meCommentsViewedAt
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -89,23 +97,27 @@ export const ITEM_FULL_FIELDS = gql`
   fragment ItemFullFields on Item {
     ...ItemFields
     text
+    lexicalState
+    html
     root {
       id
+      createdAt
       title
       bounty
       bountyPaidTo
-      subName
+      subNames
       mine
       ncomments
+      lastCommentAt
+      meCommentsViewedAt
       user {
         id
         name
         ...StreakFields
       }
-      sub {
+      subs {
         name
         userId
-        moderated
         meMuteSub
         meSubscription
         replyCost
@@ -144,8 +156,6 @@ export const POLL_FIELDS = gql`
   fragment PollFields on Item {
     poll {
       meVoted
-      meInvoiceId
-      meInvoiceActionState
       count
       options {
         id
@@ -209,5 +219,11 @@ export const RELATED_ITEMS_WITH_ITEM = gql`
         ...ItemFields
       }
     }
+  }
+`
+
+export const UPDATE_ITEM_USER_VIEW = gql`
+  mutation updateCommentsViewAt($id: ID!, $meCommentsViewedAt: Date!) {
+    updateCommentsViewAt(id: $id, meCommentsViewedAt: $meCommentsViewedAt)
   }
 `

@@ -5,7 +5,7 @@ import Button from 'react-bootstrap/Button'
 import styles from '@/styles/user.module.css'
 import { useState } from 'react'
 import ItemFull from '@/components/item-full'
-import { Form, MarkdownInput } from '@/components/form'
+import { Form, SNInput } from '@/components/form'
 import { useMe } from '@/components/me'
 import { USER_FULL } from '@/fragments/users'
 import { getGetServerSideProps } from '@/api/ssrApollo'
@@ -15,7 +15,7 @@ import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { ItemButtonBar } from '@/components/post'
 import useItemSubmit from '@/components/use-item-submit'
-import { UPSERT_BIO } from '@/fragments/paidAction'
+import { UPSERT_BIO } from '@/fragments/payIn'
 
 export const getServerSideProps = getGetServerSideProps({
   query: USER_FULL,
@@ -25,18 +25,45 @@ export const getServerSideProps = getGetServerSideProps({
 export function BioForm ({ handleDone, bio, me }) {
   const onSubmit = useItemSubmit(UPSERT_BIO, {
     navigateOnSubmit: false,
-    paidMutationOptions: {
-      update (cache, { data: { upsertBio: { result, invoice } } }) {
-        if (!result) return
+    payInMutationOptions: {
+      cachePhases: {
+        onMutationResult (cache, { data: { upsertBio: { payerPrivates: { result } } } }) {
+          if (!result) return
 
-        cache.modify({
-          id: `User:${me.id}`,
-          fields: {
-            bio () {
-              return result.text
-            }
+          const itemCacheId = cache.identify({ __typename: 'Item', id: result.id })
+          if (itemCacheId) {
+            cache.modify({
+              id: itemCacheId,
+              fields: {
+                text (existingText) {
+                  return result.text ?? existingText
+                },
+                html (existingHtml) {
+                  return result.html ?? existingHtml
+                },
+                lexicalState (existingLexicalState) {
+                  return result.lexicalState ?? existingLexicalState
+                }
+              }
+            })
           }
-        })
+
+          cache.modify({
+            id: `User:${me.id}`,
+            fields: {
+              bio (existingBio, { toReference }) {
+                const bioRef = toReference({
+                  __typename: 'Item',
+                  id: result.id
+                })
+                return bioRef || existingBio
+              },
+              bioId () {
+                return Number(result.id)
+              }
+            }
+          })
+        }
       }
     },
     onSuccessfulSubmit: (data, { resetForm }) => {
@@ -55,7 +82,7 @@ export function BioForm ({ handleDone, bio, me }) {
           onSubmit={onSubmit}
           storageKeyPrefix={`bio-${me.id}`}
         >
-          <MarkdownInput
+          <SNInput
             topLevel
             name='text'
             minRows={6}

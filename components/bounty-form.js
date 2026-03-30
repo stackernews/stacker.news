@@ -1,45 +1,34 @@
-import { Form, Input, MarkdownInput } from '@/components/form'
-import { useApolloClient } from '@apollo/client'
-import Countdown from './countdown'
-import AdvPostForm, { AdvPostInitial } from './adv-post-form'
+import { Form, Input, SNInput } from '@/components/form'
+import AdvPostForm from './adv-post-form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '@/lib/validate'
-import { SubSelectInitial } from './sub-select'
-import { normalizeForwards } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
-import { useMe } from './me'
 import { ItemButtonBar } from './post'
-import useItemSubmit from './use-item-submit'
-import { UPSERT_BOUNTY } from '@/fragments/paidAction'
+import { UPSERT_BOUNTY } from '@/fragments/payIn'
+import { usePostFormShared } from './use-post-form-shared'
 
 export function BountyForm ({
   item,
-  sub,
-  editThreshold,
+  subs,
+  EditInfo,
   titleLabel = 'title',
   bountyLabel = 'bounty',
   textLabel = 'text',
   handleSubmit,
   children
 }) {
-  const client = useApolloClient()
-  const { me } = useMe()
-  const schema = bountySchema({ client, me, existingBoost: item?.boost })
-
-  const onSubmit = useItemSubmit(UPSERT_BOUNTY, { item, sub })
-
-  const storageKeyPrefix = item ? undefined : 'bounty'
+  const { initial, onSubmit, storageKeyPrefix, schema } = usePostFormShared({
+    item,
+    subs,
+    mutation: UPSERT_BOUNTY,
+    storageKeyPrefix: 'bounty',
+    schemaFn: bountySchema,
+    extraInitialValues: { bounty: item?.bounty || 1000 }
+  })
 
   return (
     <Form
-      initial={{
-        title: item?.title || '',
-        text: item?.text || '',
-        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        bounty: item?.bounty || 1000,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
-      }}
+      initial={initial}
       schema={schema}
       requireSession
       onSubmit={
@@ -61,7 +50,7 @@ export function BountyForm ({
         label={bountyLabel} name='bounty' required
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
       />
-      <MarkdownInput
+      <SNInput
         topLevel
         label={
           <>
@@ -70,17 +59,9 @@ export function BountyForm ({
         }
         name='text'
         minRows={6}
-        hint={
-          editThreshold
-            ? (
-              <div className='text-muted fw-bold font-monospace'>
-                <Countdown date={editThreshold} />
-              </div>
-              )
-            : null
-        }
+        hint={EditInfo}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub} />
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )

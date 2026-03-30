@@ -69,20 +69,34 @@ function LoginHeader () {
   return (
     <>
       <h3 className='w-100 pb-2'>
-        Login
+        Log in
       </h3>
-      <div className='fw-bold text-muted w-100 text-start pb-4'>Ain't you a sight for sore eyes.</div>
+      <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>Nothing wrestles up a smile like a familiar face.</div>
     </>
   )
 }
 
-export default function LoginPage (props) {
+function MultiAuthHeader () {
+  return (
+    <>
+      <h3 className='w-100 pb-2'>
+        Switch to existing account
+      </h3>
+      <div className='text-muted w-100 text-start pb-4 line-height-md'>Hint: go back and switch to @anon to sign up with a new account.</div>
+    </>
+  )
+}
+
+export default function LoginPage ({ multiAuth, ...props }) {
+  const multiAuthBool = multiAuth === 'true'
   return (
     <StaticLayout footerLinks={false}>
       <Login
-        Footer={() => <LoginFooter callbackUrl={props.callbackUrl} />}
-        Header={() => <LoginHeader />}
+        Footer={multiAuthBool ? undefined : () => <LoginFooter callbackUrl={props.callbackUrl} />}
+        Header={multiAuthBool ? () => <MultiAuthHeader /> : () => <LoginHeader />}
+        text='Log in'
         signin
+        multiAuth={multiAuth}
         {...props}
       />
     </StaticLayout>

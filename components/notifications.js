@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { gql, useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
@@ -11,7 +11,7 @@ import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
 import UserAdd from '@/svgs/user-add-fill.svg'
-import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { LOST_BLURBS, FOUND_BLURBS, PAY_IN_ACT_TYPES, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
 import GunIcon from '@/svgs/revolver.svg'
@@ -24,27 +24,24 @@ import { Checkbox, Form } from './form'
 import { useRouter } from 'next/router'
 import { useData } from './use-data'
 import { nostrZapDetails } from '@/lib/nostr'
-import Text from './text'
+import Text from '@/components/text'
 import NostrIcon from '@/svgs/nostr.svg'
-import { numWithUnits } from '@/lib/format'
+import { msatsToSats, numWithUnits } from '@/lib/format'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import { Badge, Button } from 'react-bootstrap'
-import { useAct } from './item-act'
-import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
-import { usePollVote } from './poll'
-import { paidActionCacheMods } from './use-paid-mutation'
-import { useRetryCreateItem } from './use-item-submit'
-import { payBountyCacheMods } from './pay-bounty'
 import { useToast } from './toast'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
+import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
+import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
+import MapIcon from '@/svgs/map.svg'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -55,13 +52,12 @@ function Notification ({ n, fresh }) {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
         (type === 'Invitification' && <Invitification n={n} />) ||
-        (type === 'InvoicePaid' && (n.invoice.nostr ? <NostrZap n={n} /> : <InvoicePaid n={n} />)) ||
-        (type === 'WithdrawlPaid' && <WithdrawlPaid n={n} />) ||
         (type === 'Referral' && <Referral n={n} />) ||
         (type === 'CowboyHat' && <CowboyHat n={n} />) ||
         (['NewHorse', 'LostHorse'].includes(type) && <Horse n={n} />) ||
         (['NewGun', 'LostGun'].includes(type) && <Gun n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
+        (type === 'BountyPayment' && <BountyPayment n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
         (type === 'ItemMention' && <ItemMention n={n} />) ||
@@ -72,8 +68,13 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === 'Reminder' && <Reminder n={n} />) ||
-        (type === 'Invoicification' && <Invoicification n={n} />) ||
-        (type === 'ReferralReward' && <ReferralReward n={n} />)
+        (type === 'PayInification' && (
+          (n.payIn.payInType === 'PROXY_PAYMENT' && <PayInProxyPayment n={n} />) ||
+          ((n.payIn.payInType === 'WITHDRAWAL' || n.payIn.payInType === 'AUTO_WITHDRAWAL') && <PayInWithdrawal n={n} />) ||
+            <PayInFailed n={n} />
+        )) ||
+        (type === 'ReferralReward' && <ReferralReward n={n} />) ||
+        (type === 'Bulletinification' && <Bulletinification n={n} />)
       }
     </NotificationLayout>
   )
@@ -84,7 +85,7 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
   if (!href) return <div className={`py-2 ${fresh ? styles.fresh : ''}`}>{children}</div>
   return (
     <LinkToContext
-      className={`py-2 ${type === 'Reply' ? styles.reply : ''} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
+      className={`py-2 clickToContext ${type === 'Reply' ? styles.reply : ''} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
       onClick={async (e) => {
         e.preventDefault()
         nid && await router.replace({
@@ -97,6 +98,7 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
         router.push(href, as)
       }}
       href={href}
+      pad
     >
       {children}
     </LinkToContext>
@@ -162,11 +164,7 @@ const defaultOnClick = n => {
   if (type === 'Revenue') return { href: `/~${n.subName}` }
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
-  if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
-  if (type === 'Invoicification') return itemLink(n.invoice.item)
-  if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
-  if (type === 'Referral') return { href: '/referrals/month' }
-  if (type === 'ReferralReward') return { href: '/referrals/month' }
+  if (type === 'PayInification') return { href: `/transactions/${n.payIn.id}` }
   if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun'].includes(type)) return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
@@ -183,6 +181,19 @@ function blurb (n) {
   const index = Number(n.id) % Math.min(FOUND_BLURBS[type].length, LOST_BLURBS[type].length)
   const lost = n.days || n.__typename.includes('Lost')
   return lost ? LOST_BLURBS[type][index] : FOUND_BLURBS[type][index]
+}
+
+function Bulletinification ({ n }) {
+  if (!n.bulletin) return null
+  return (
+    <div className='d-flex'>
+      {n.bulletin.iconType === 'MAP' ? <div style={{ fontSize: '2rem', alignSelf: 'center' }}><MapIcon className='align-self-center fill-theme-color mx-1' width={64} height={100} /></div> : null}
+      <div className='ms-3 p-1'>
+        <div className='fw-bold pb-2'>{n.bulletin.title}</div>
+        {n.bulletin.html && n.bulletin.lexicalState && <Text html={n.bulletin.html} state={n.bulletin.lexicalState} />}
+      </div>
+    </div>
+  )
 }
 
 function CowboyHat ({ n }) {
@@ -216,7 +227,7 @@ function Horse ({ n }) {
 
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {found ? 'found a' : 'lost your'} horse</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
@@ -231,7 +242,7 @@ function Gun ({ n }) {
 
   return (
     <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-grey' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='fw-bold'>you {found ? 'found a' : 'lost your'} gun</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
@@ -282,7 +293,6 @@ function ReferralReward ({ n }) {
         <div style={{ lineHeight: '140%' }}>
           SN gives referral rewards to stackers like you for referring the top stackers daily. You refer stackers when they visit your posts, comments, profile, territory, or if they visit SN through your referral links.
         </div>
-        <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
       </div>
     </div>
   )
@@ -342,8 +352,8 @@ function Invitification ({ n }) {
 }
 
 function NostrZap ({ n }) {
-  const { nostr } = n.invoice
-  const { npub, content, note } = nostrZapDetails(nostr)
+  const { nostrNote } = n.payIn.payerPrivates.payInBolt11
+  const { npub, content, note } = nostrZapDetails(nostrNote.note)
 
   return (
     <div className='fw-bold text-nostr'>
@@ -382,137 +392,147 @@ function getPayerSig (lud18Data) {
   return payerSig
 }
 
-function InvoicePaid ({ n }) {
-  const payerSig = getPayerSig(n.invoice.lud18Data)
-  let actionString = 'deposited to your account'
-  let sats = n.earnedSats
-  if (n.invoice.forwardedSats) {
-    actionString = 'sent directly to your attached wallet'
-    sats = n.invoice.forwardedSats
+function PayInProxyPayment ({ n }) {
+  if (n.payIn.payerPrivates.payInBolt11.nostrNote) {
+    return <NostrZap n={n} />
   }
+
+  const payerSig = getPayerSig(n.payIn.payerPrivates.payInBolt11.lud18Data)
+  const sats = n.earnedSats
+  const actionString = 'proxied to your attached wallet'
 
   return (
     <div className='fw-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {n.invoice.forwardedSats && <Badge className={styles.badge} bg={null}>p2p</Badge>}
-      {n.invoice.comment &&
+      {n.payIn.payerPrivates.payInBolt11.comment &&
         <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
-          <Text>{n.invoice.comment}</Text>
+          <Text>{n.payIn.payerPrivates.payInBolt11.comment.comment}</Text>
           {payerSig}
         </small>}
     </div>
   )
 }
 
-function useActRetry ({ invoice }) {
-  const bountyCacheMods =
-    invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine
-      ? payBountyCacheMods
-      : {}
-
-  const update = (cache, { data }) => {
-    const response = Object.values(data)[0]
-    if (!response?.invoice) return
-    cache.modify({
-      id: `ItemAct:${invoice.itemAct?.id}`,
-      fields: {
-        // this is a bit of a hack just to update the reference to the new invoice
-        invoice: () => cache.writeFragment({
-          id: `Invoice:${response.invoice.id}`,
-          fragment: gql`
-            fragment _ on Invoice {
-              bolt11
+function PayInFailed ({ n }) {
+  const [disableRetry, setDisableRetry] = useState(false)
+  const toaster = useToast()
+  const { payIn, payInItem: item } = n
+  const updatePayIn = useCallback((cache, { data }) => {
+    cache.writeFragment({
+      id: `PayInification:${n.id}`,
+      fragment: gql`
+        fragment _ on PayInification {
+          payIn {
+            id
+            mcost
+            payInType
+            payInState
+            payInStateChangedAt
+            payerPrivates {
+              retryCount
+              payInFailureReason
             }
-          `,
-          data: { bolt11: response.invoice.bolt11 }
-        })
+          }
+        }
+      `,
+      data: {
+        payIn: data.retryPayIn
       }
     })
-    paidActionCacheMods?.update?.(cache, { data })
-    bountyCacheMods?.update?.(cache, { data })
-  }
+  }, [n.id])
 
-  return useAct({
-    query: RETRY_PAID_ACTION,
-    onPayError: (e, cache, { data }) => {
-      paidActionCacheMods?.onPayError?.(e, cache, { data })
-      bountyCacheMods?.onPayError?.(e, cache, { data })
-    },
-    onPaid: (cache, { data }) => {
-      paidActionCacheMods?.onPaid?.(cache, { data })
-      bountyCacheMods?.onPaid?.(cache, { data })
-    },
-    update,
-    updateOnFallback: update
-  })
-}
-
-function Invoicification ({ n: { invoice, sortTime } }) {
-  const toaster = useToast()
-  const actRetry = useActRetry({ invoice })
-  const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
-  const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })
-  const [disableRetry, setDisableRetry] = useState(false)
-  // XXX if we navigate to an invoice after it is retried in notifications
-  // the cache will clear invoice.item and will error on window.back
-  // alternatively, we could/should
-  // 1. update the notification cache to include the new invoice
-  // 2. make item has-many invoices
-  if (!invoice.item) return null
-
-  let retry
-  let actionString
-  let invoiceId
-  let invoiceActionState
-  const itemType = invoice.item.title ? 'post' : 'comment'
-
-  if (invoice.actionType === 'ITEM_CREATE') {
-    actionString = `${itemType} create `
-    retry = retryCreateItem;
-    ({ id: invoiceId, actionState: invoiceActionState } = invoice.item.invoice)
-  } else if (invoice.actionType === 'POLL_VOTE') {
-    actionString = 'poll vote '
-    retry = retryPollVote
-    invoiceId = invoice.item.poll?.meInvoiceId
-    invoiceActionState = invoice.item.poll?.meInvoiceActionState
-  } else {
-    if (invoice.actionType === 'ZAP') {
-      if (invoice.item.root?.bounty === invoice.satsRequested && invoice.item.root?.mine) {
-        actionString = 'bounty payment'
-      } else {
-        actionString = 'zap'
+  const revertPayIn = useCallback((error, cache, { data }) => {
+    const retryFailureUpdate = getRetryPayInFailureUpdate(error, data)
+    if (!retryFailureUpdate) return
+    const { retryPayInId, failureData } = retryFailureUpdate
+    cache.writeFragment({
+      id: `PayInification:${n.id}`,
+      fragment: gql`
+        fragment __ on PayInification {
+          payIn {
+            id
+            payInState
+            payInStateChangedAt
+            payerPrivates {
+              payInFailureReason
+            }
+          }
+        }
+      `,
+      data: {
+        payIn: {
+          __typename: 'PayIn',
+          id: retryPayInId,
+          ...failureData
+        }
       }
-    } else if (invoice.actionType === 'DOWN_ZAP') {
-      actionString = 'downzap'
-    } else if (invoice.actionType === 'BOOST') {
-      actionString = 'boost'
-    }
-    actionString = `${actionString} on ${itemType} `
-    retry = actRetry;
-    ({ id: invoiceId, actionState: invoiceActionState } = invoice.itemAct.invoice)
-  }
+    })
+  }, [n.id])
 
-  let colorClass = 'info'
-  switch (invoiceActionState) {
-    case 'FAILED':
-      actionString += 'failed'
-      colorClass = 'warning'
-      break
-    case 'PAID':
-      actionString += 'paid'
-      colorClass = 'success'
-      break
-    default:
-      actionString += 'pending'
+  // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
+  const optimisticPayInTypes = PAY_IN_ACT_TYPES
+  const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
+  const actOptimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
+  const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, path: item.path, __typename: 'Item' } } }
+  const optimisticResponse = payIn.payInType === 'BOUNTY_PAYMENT'
+    ? bountyOptimisticResponse
+    : optimisticPayInTypes.includes(payIn.payInType)
+      ? actOptimisticResponse
+      : undefined
+  const mutationOptions = {
+    onRetry: updatePayIn,
+    cachePhases: {
+      onMutationResult: updatePayIn,
+      onPaid: updatePayIn,
+      onPayError: revertPayIn
+    },
+    protocolLimit: 1,
+    ...(optimisticResponse ? { optimisticResponse } : {})
   }
+  const retryPayIn = useRetryPayInByType(payIn.id, payIn.payInType, mutationOptions)
+
+  const [actionString, colorClass, retry] = useMemo(() => {
+    const retry = retryPayIn
+    let actionString = ''
+    const itemType = item.title ? 'post' : 'comment'
+    if (payIn.payInType === 'ITEM_CREATE') {
+      actionString = `${itemType} create `
+    } else if (payIn.payInType === 'BOUNTY_PAYMENT') {
+      actionString = `bounty payment on ${itemType} `
+    } else {
+      if (payIn.payInType === 'ZAP') {
+        actionString = 'zap'
+      } else if (payIn.payInType === 'DOWN_ZAP') {
+        actionString = 'downzap'
+      } else if (payIn.payInType === 'BOOST') {
+        actionString = 'boost'
+      }
+      actionString = `${actionString} on ${itemType} `
+    }
+    let colorClass = 'info'
+    switch (payIn.payInState) {
+      case 'PAID':
+        actionString += 'paid'
+        colorClass = 'success'
+        break
+      default:
+        if (willAutoRetryPayIn(payIn) || payIn.payInState !== 'FAILED') {
+          actionString += 'pending'
+        } else {
+          actionString += 'failed'
+          colorClass = 'warning'
+        }
+    }
+    return [actionString, colorClass, retry]
+  }, [payIn, item, retryPayIn])
 
   return (
     <div>
       <NoteHeader color={colorClass}>
         {actionString}
-        <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
-        <span className={invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}>
+        <span className='ms-1 text-muted fw-light'> {numWithUnits(msatsToSats(payIn.mcost))}</span>
+        <span className={['FAILED'].includes(payIn.payInState) && !willAutoRetryPayIn(payIn) ? 'visible' : 'invisible'}>
           <Button
             size='sm' variant={classNames('outline-warning ms-2 border-1 rounded py-0', disableRetry && 'pulse')}
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
@@ -521,7 +541,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
               if (disableRetry) return
               setDisableRetry(true)
               try {
-                const { error } = await retry({ variables: { invoiceId: parseInt(invoiceId) } })
+                const { error } = await retry()
                 if (error) throw error
               } catch (error) {
                 toaster.danger(error?.message || error?.toString?.())
@@ -532,26 +552,20 @@ function Invoicification ({ n: { invoice, sortTime } }) {
           >
             retry
           </Button>
-          <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</span>
+          <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(payIn.payInStateChangedAt))}</span>
         </span>
       </NoteHeader>
-      <NoteItem item={invoice.item} setDisableRetry={setDisableRetry} disableRetry={disableRetry} />
+      <NoteItem item={item} setDisableRetry={setDisableRetry} disableRetry={disableRetry} updatePayIn={updatePayIn} />
     </div>
   )
 }
 
-function WithdrawlPaid ({ n }) {
-  let amount = n.earnedSats + n.withdrawl.satsFeePaid
+function PayInWithdrawal ({ n }) {
+  const amount = n.earnedSats
   let actionString = 'withdrawn from your account'
 
-  if (n.withdrawl.autoWithdraw) {
+  if (n.payIn.payInType === 'AUTO_WITHDRAWAL') {
     actionString = 'sent to your attached wallet'
-  }
-
-  if (n.withdrawl.forwardedActionType === 'ZAP') {
-    // don't expose receivers to routing fees they aren't paying
-    amount = n.earnedSats
-    actionString = 'zapped directly to your attached wallet'
   }
 
   return (
@@ -560,8 +574,7 @@ function WithdrawlPaid ({ n }) {
       {numWithUnits(amount, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
       {actionString}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {(n.withdrawl.forwardedActionType === 'ZAP' && <Badge className={styles.badge} bg={null}>p2p</Badge>) ||
-        (n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>)}
+      {n.payIn.payInType === 'AUTO_WITHDRAWAL' && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
     </div>
   )
 }
@@ -591,52 +604,40 @@ function Referral ({ n }) {
   )
 }
 
-function stackedText (item) {
+function stackedText (item, total) {
+  if (total === undefined) total = item.sats
   let text = ''
-  if (item.sats - item.credits > 0) {
-    text += `${numWithUnits(item.sats - item.credits, { abbreviate: false })}`
-
-    if (item.credits > 0) {
-      text += ' and '
-    }
+  const credits = item.sats > 0 ? Math.floor(total * item.credits / item.sats) : total
+  const sats = total - credits
+  if (sats > 0) {
+    text += `${numWithUnits(sats, { abbreviate: false })}`
+    if (credits > 0) text += ' and '
   }
-  if (item.credits > 0) {
-    text += `${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
+  if (credits > 0) {
+    text += `${numWithUnits(credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
   }
 
   return text
 }
 
 function Votification ({ n }) {
-  let forwardedSats = 0
-  let ForwardedUsers = null
+  const forwardedPct = n.item.forwards?.reduce((acc, f) => acc + f.pct, 0) ?? 0
+
   let stackedTextString
-  let forwardedTextString
   if (n.item.forwards?.length) {
-    forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
-    ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
-      <span key={fwd.user.name}>
-        <Link className='text-success' href={`/${fwd.user.name}`}>
-          @{fwd.user.name}
-        </Link>
-        {i !== n.item.forwards.length - 1 && ' '}
-      </span>)
-    stackedTextString = numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
-    forwardedTextString = numWithUnits(forwardedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })
+    stackedTextString = stackedText(n.item, n.earnedSats)
   } else {
     stackedTextString = stackedText(n.item)
   }
+
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
           <span>
             your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
-            {n.item.forwards?.length > 0 &&
-              <>
-                {' '}and forwarded {forwardedTextString} to{' '}
-                <ForwardedUsers />
-              </>}
+            {forwardedPct > 0 &&
+              <small className='text-muted fw-light ms-1'>{forwardedPct}% forwarded</small>}
           </span>
           {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
@@ -646,13 +647,29 @@ function Votification ({ n }) {
   )
 }
 
+function BountyPayment ({ n }) {
+  return (
+    <>
+      <NoteHeader color='success'>
+        you received a {numWithUnits(n.earnedSats, { abbreviate: false })} bounty payment
+      </NoteHeader>
+      <NoteItem item={n.item} />
+    </>
+  )
+}
+
 function ForwardedVotification ({ n }) {
+  const { me } = useMe()
+  const myPct = n.item.forwards?.find(f => Number(f.userId) === Number(me?.id))?.pct
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
-          you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}
-          <CCInfo size={16} />
+          <span>
+            {n.item.title ? 'post' : 'reply'} stacked {stackedText(n.item)}
+            {myPct && <small className='text-muted fw-light ms-1'>{myPct}% forwarded to you</small>}
+          </span>
+          {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
       </NoteHeader>
       <NoteItem item={n.item} />
@@ -716,7 +733,7 @@ function TerritoryPost ({ n }) {
   return (
     <>
       <NoteHeader color='info'>
-        new post in ~{n.item.sub.name}
+        new post in ~{n.item.subs?.length === 1 ? n.item.subs[0].name : 'a territory you follow'}
       </NoteHeader>
       <div>
         <Item item={n.item} itemClassName='pt-0' />

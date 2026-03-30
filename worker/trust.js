@@ -1,13 +1,13 @@
 import * as math from 'mathjs'
 import { USER_ID } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
-import { initialTrust, GLOBAL_SEEDS } from '@/api/paidAction/lib/territory'
+import { initialTrust, GLOBAL_SEEDS } from '@/api/payIn/lib/territory'
 
 const MAX_DEPTH = 40
 const MAX_TRUST = 1
 const MIN_SUCCESS = 0
 // https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
-const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
+const Z_CONFIDENCE = 1.959963984540 // 95% confidence
 const SEED_WEIGHT = 0.83
 const AGAINST_MSAT_MIN = 1000
 const MSAT_MIN = 1001 // 20001 is the minimum for a tip to be counted in trust
@@ -173,25 +173,27 @@ async function getGraph (models, subName, postTrust = true, seeds = GLOBAL_SEEDS
       'trust', CASE WHEN total_trust > 0 THEN trust / total_trust::float ELSE 0 END)) AS hops
     FROM (
       WITH user_votes AS (
-        SELECT "ItemAct"."userId" AS user_id, users.name AS name, "ItemAct"."itemId" AS item_id, max("ItemAct".created_at) AS act_at,
-            users.created_at AS user_at, "ItemAct".act = 'DONT_LIKE_THIS' AS against,
-            count(*) OVER (partition by "ItemAct"."userId") AS user_vote_count,
-            sum("ItemAct".msats) as user_msats
-        FROM "ItemAct"
-        JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS')
-          AND NOT "Item".bio AND "Item"."userId" <> "ItemAct"."userId"
+        SELECT "PayIn"."userId" AS user_id, users.name AS name, "ItemPayIn"."itemId" AS item_id, max("PayIn"."payInStateChangedAt") AS act_at,
+            users.created_at AS user_at, "PayIn"."payInType" = 'DOWN_ZAP' AS against,
+            count(*) OVER (partition by "PayIn"."userId") AS user_vote_count,
+            sum("PayIn"."mcost") as user_msats
+        FROM "PayIn"
+        JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn"."id"
+        JOIN "Item" ON "Item".id = "ItemPayIn"."itemId" AND "PayIn"."payInType" IN ('ZAP', 'DOWN_ZAP')
+          AND "PayIn"."payInState" = 'PAID'
+          AND NOT "Item".bio AND "Item"."userId" <> "PayIn"."userId"
           AND ${postTrust
             ? Prisma.sql`"Item"."parentId" IS NULL AND "Item"."subName" = ${subName}::TEXT`
             : Prisma.sql`
               "Item"."parentId" IS NOT NULL
               JOIN "Item" root ON "Item"."rootId" = root.id AND root."subName" = ${subName}::TEXT`
           }
-        JOIN users ON "ItemAct"."userId" = users.id AND users.id <> ${USER_ID.anon}
-        WHERE ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+          AND "Item".created_at > NOW() - INTERVAL '1 year'
+        JOIN users ON "PayIn"."userId" = users.id AND users.id <> ${USER_ID.anon}
         GROUP BY user_id, users.name, item_id, user_at, against
         HAVING CASE WHEN
-          "ItemAct".act = 'DONT_LIKE_THIS' THEN sum("ItemAct".msats) > ${AGAINST_MSAT_MIN}
-          ELSE sum("ItemAct".msats) > ${MSAT_MIN} END
+          "PayIn"."payInType" = 'DOWN_ZAP' THEN sum("PayIn"."mcost") > ${AGAINST_MSAT_MIN}
+          ELSE sum("PayIn"."mcost") > ${MSAT_MIN} END
       ),
       user_pair AS (
         SELECT a.user_id AS a_id, b.user_id AS b_id,

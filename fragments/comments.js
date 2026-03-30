@@ -18,14 +18,25 @@ export const COMMENT_FIELDS = gql`
     position
     parentId
     createdAt
-    invoicePaidAt
     deletedAt
     text
+    lexicalState
+    html
     user {
       id
       name
       meMute
       ...StreakFields
+    }
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
     }
     sats
     credits
@@ -33,28 +44,85 @@ export const COMMENT_FIELDS = gql`
     upvotes
     freedFreebie
     boost
+    downSats
+    commentDownSats
     meSats
     meCredits
     meDontLikeSats
     meBookmark
     meSubscription
-    outlawed
     freebie
+    netInvestment
     path
     commentSats
     commentCredits
+    commentCost
+    commentBoost
     mine
     otsHash
     ncomments
     nDirectComments
+    live @client
     imgproxyUrls
     rel
     apiKey
-    invoice {
+    cost
+  }
+`
+
+export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
+  ${STREAK_FIELDS}
+  fragment CommentFieldsNoChildComments on Item {
+    id
+    position
+    parentId
+    createdAt
+    deletedAt
+    text
+    lexicalState
+    html
+    user {
       id
-      actionState
-      confirmedAt
+      name
+      meMute
+      ...StreakFields
     }
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
+    }
+    sats
+    credits
+    meAnonSats @client
+    upvotes
+    freedFreebie
+    boost
+    downSats
+    commentDownSats
+    meSats
+    meCredits
+    meDontLikeSats
+    meBookmark
+    meSubscription
+    freebie
+    netInvestment
+    path
+    commentSats
+    commentCredits
+    commentCost
+    commentBoost
+    mine
+    otsHash
+    live @client
+    imgproxyUrls
+    rel
+    apiKey
     cost
   }
 `
@@ -63,17 +131,18 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
   ${STREAK_FIELDS}
   fragment CommentItemExtFields on Item {
     text
+    lexicalState
+    html
     root {
       id
       title
       bounty
       ncomments
       bountyPaidTo
-      subName
-      sub {
+      subNames
+      subs {
         name
         userId
-        moderated
         meMuteSub
       }
       user {
@@ -105,6 +174,16 @@ export const COMMENTS = gql`
                     comments {
                       comments {
                         ...CommentFields
+                        comments {
+                          comments {
+                            ...CommentFields
+                            comments {
+                              comments {
+                                ...CommentFields
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -116,3 +195,21 @@ export const COMMENTS = gql`
       }
     }
   }`
+
+export const HAS_COMMENTS = gql`
+  fragment HasComments on Item {
+    comments
+  }
+`
+
+export const GET_NEW_COMMENTS = gql`
+  ${COMMENT_FIELDS_NO_CHILD_COMMENTS}
+
+  query GetNewComments($itemId: ID, $after: Date) {
+    newComments(itemId: $itemId, after: $after) {
+      comments {
+        ...CommentFieldsNoChildComments
+      }
+    }
+  }
+`

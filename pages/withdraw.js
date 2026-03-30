@@ -3,13 +3,12 @@ import { CenterLayout } from '@/components/layout'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { InputGroup, Nav } from 'react-bootstrap'
-import styles from '@/components/user-header.module.css'
-import { gql, useMutation, useQuery } from '@apollo/client'
-import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/wallet'
+import styles from '@/styles/nav.module.css'
+import { useMutation } from '@apollo/client'
+import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/withdrawal'
 import { requestProvider } from 'webln'
 import { useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
-import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { Checkbox, Form, Input, InputUserSuggest, SubmitButton } from '@/components/form'
 import { lnAddrSchema, withdrawlSchema } from '@/lib/validate'
 import { useShowModal } from '@/components/modal'
@@ -17,8 +16,6 @@ import { useField } from 'formik'
 import { useToast } from '@/components/toast'
 import { decode } from 'bolt11'
 import CameraIcon from '@/svgs/camera-line.svg'
-import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
-import Qr, { QrSkeleton } from '@/components/qr'
 import useDebounceCallback from '@/components/use-debounce-callback'
 import { lnAddrOptions } from '@/lib/lnurl'
 import AccordianItem from '@/components/accordian-item'
@@ -57,11 +54,6 @@ function WithdrawForm () {
           </Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/withdraw?type=lnurl' passHref legacyBehavior>
-            <Nav.Link eventKey='lnurl'>QR code</Nav.Link>
-          </Link>
-        </Nav.Item>
-        <Nav.Item>
           <Link href='/withdraw?type=lnaddr' passHref legacyBehavior>
             <Nav.Link eventKey='lnaddr'>lightning address</Nav.Link>
           </Link>
@@ -76,8 +68,6 @@ export function SelectedWithdrawalForm () {
   const router = useRouter()
 
   switch (router.query.type) {
-    case 'lnurl':
-      return <LnurlWithdrawal />
     case 'lnaddr':
       return <LnAddrWithdrawal />
     default:
@@ -85,13 +75,13 @@ export function SelectedWithdrawalForm () {
   }
 }
 
+const MAX_FEE = 10
+
 export function InvWithdrawal () {
   const router = useRouter()
   const { me } = useMe()
 
-  const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
-
-  const maxFeeDefault = me?.privates?.withdrawMaxFeeDefault
+  const [createWithdrawl] = useMutation(CREATE_WITHDRAWL)
 
   useEffect(() => {
     async function effect () {
@@ -99,10 +89,10 @@ export function InvWithdrawal () {
         const provider = await requestProvider()
         const { paymentRequest: invoice } = await provider.makeInvoice({
           defaultMemo: `Withdrawal for @${me.name} on SN`,
-          maximumAmount: Math.max(me.privates?.sats - maxFeeDefault, 0)
+          maximumAmount: Math.max(me.privates?.sats - MAX_FEE, 0)
         })
-        const { data } = await createWithdrawl({ variables: { invoice, maxFee: maxFeeDefault } })
-        router.push(`/withdrawals/${data.createWithdrawl.id}`)
+        const { data } = await createWithdrawl({ variables: { invoice, maxFee: MAX_FEE } })
+        router.push(`/transactions/${data.createWithdrawl.id}`)
       } catch (e) {
         console.log(e.message)
       }
@@ -110,22 +100,18 @@ export function InvWithdrawal () {
     effect()
   }, [])
 
-  if (called && !error) {
-    return <WithdrawlSkeleton status='sending' />
-  }
-
   return (
     <>
       <Form
         autoComplete='off'
         initial={{
           invoice: '',
-          maxFee: maxFeeDefault
+          maxFee: MAX_FEE
         }}
         schema={withdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
           const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
-          router.push(`/withdrawals/${data.createWithdrawl.id}`)
+          router.push(`/transactions/${data.createWithdrawl.id}`)
         }}
       >
         <Input
@@ -206,50 +192,6 @@ function InvoiceScanner ({ fieldName }) {
   )
 }
 
-function LnQRWith ({ k1, encodedUrl }) {
-  const router = useRouter()
-  const query = gql`
-  {
-    lnWith(k1: "${k1}") {
-      withdrawalId
-      k1
-    }
-  }`
-  const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
-
-  if (data?.lnWith?.withdrawalId) {
-    router.push(`/withdrawals/${data.lnWith.withdrawalId}`)
-  }
-
-  return <Qr value={encodedUrl} status='waiting for you' />
-}
-
-export function LnurlWithdrawal () {
-  // query for challenge
-  const [createWith, { data, error }] = useMutation(gql`
-    mutation createWith {
-      createWith {
-        k1
-        encodedUrl
-      }
-    }`)
-  const toaster = useToast()
-
-  useEffect(() => {
-    createWith().catch(e => {
-      toaster.danger('withdrawal creation: ' + e?.message || e?.toString?.())
-    })
-  }, [createWith, toaster])
-
-  if (error) return <QrSkeleton status='error' />
-
-  if (!data) {
-    return <QrSkeleton status='generating' />
-  }
-
-  return <LnQRWith {...data.createWith} />
-}
-
 export function LnAddrWithdrawal () {
   const { me } = useMe()
   const router = useRouter()
@@ -257,7 +199,6 @@ export function LnAddrWithdrawal () {
   const defaultOptions = { min: 1 }
   const [addrOptions, setAddrOptions] = useState(defaultOptions)
   const [formSchema, setFormSchema] = useState(lnAddrSchema())
-  const maxFeeDefault = me?.privates?.withdrawMaxFeeDefault
 
   const onAddrChange = useDebounceCallback(async (formik, e) => {
     if (!e?.target?.value) {
@@ -280,14 +221,13 @@ export function LnAddrWithdrawal () {
 
   return (
     <>
-      {called && !error && <WithdrawlSkeleton status='sending' />}
       <Form
         // hide/show instead of add/remove from react tree to avoid re-initializing the form state on error
         style={{ display: !(called && !error) ? 'block' : 'none' }}
         initial={{
           addr: '',
           amount: 1,
-          maxFee: maxFeeDefault,
+          maxFee: MAX_FEE,
           comment: '',
           identifier: false,
           name: '',
@@ -302,7 +242,7 @@ export function LnAddrWithdrawal () {
               ...values
             }
           })
-          router.push(`/withdrawals/${data.sendToLnAddr.id}`)
+          router.push(`/transactions/${data.sendToLnAddr.id}`)
         }}
       >
         <InputUserSuggest

@@ -142,6 +142,7 @@ $zindex-sticky: 900;
   --theme-dropdownItemColor: rgba(0, 0, 0, 0.7);
   --theme-dropdownItemColorHover: rgba(0, 0, 0, 0.9);
   --theme-commentBg: rgba(0, 0, 0, 0.03);
+  --theme-forceCommentBg: rgb(244, 244, 247);
   --theme-clickToContextColor: rgba(0, 0, 0, 0.07);
   --theme-brandColor: rgba(0, 0, 0, 0.9);
   --theme-grey: #707070;
@@ -166,6 +167,7 @@ $zindex-sticky: 900;
   --theme-dropdownItemColor: rgba(255, 255, 255, 0.7);
   --theme-dropdownItemColorHover: rgba(255, 255, 255, 0.9);
   --theme-commentBg: rgba(255, 255, 255, 0.025);
+  --theme-forceCommentBg: rgb(24, 24, 26);
   --theme-clickToContextColor: rgba(255, 255, 255, 0.1);
   --theme-brandColor: var(--bs-primary);
   --theme-grey: #969696;
@@ -216,8 +218,13 @@ $zindex-sticky: 900;
   --bs-gradient: none;
 }
 
-* {
-  scroll-margin-top: 60px;
+html {
+  scroll-padding-top: 60px;
+
+  /* editor needs more padding to keep its toolbar visible when focused */
+  &:has([data-sn-editor]:focus) {
+    scroll-padding-top: 90px;
+  }
 }
 
 .ms-xs {
@@ -322,6 +329,10 @@ svg {
   padding: 0;
   background-color: transparent;
 }
+.modal-body li {
+  line-height: 1.25;
+  margin-top: 0.5rem;
+}
 .modal-close.fullscreen {
   padding: 1.25rem;
 }
@@ -369,7 +380,7 @@ dl {
 }
 
 mark {
-  background-color: #fada5e5e;
+  background-color: #fada5e99;
   padding: 0 0.2rem;
   color: var(--bs-body-color);
 }
@@ -444,7 +455,7 @@ a:hover {
 }
 
 select,
-div[contenteditable],
+div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-editor] *, [data-lexical-editor] *),
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -486,7 +497,7 @@ select:focus {
 }
 
 
-div[contenteditable]:focus,
+div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-editor] *, [data-lexical-editor] *):focus,
 .form-control:focus {
   background-color: var(--theme-inputBg);
   color: var(--bs-body-color);
@@ -494,7 +505,7 @@ div[contenteditable]:focus,
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
-div[contenteditable]:disabled,
+div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-editor] *, [data-lexical-editor] *):disabled,
 .form-control:disabled,
 .form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
@@ -622,14 +633,15 @@ footer {
   cursor: pointer;
 }
 
+/* prevent zooming on mobile */
 @media screen and (max-width: 767px) {
 
   input,
   textarea,
   .form-control,
   .form-control:focus,
-  div[contenteditable],
-  div[contenteditable]:focus,
+  div[contenteditable]:not([data-sn-reader]):not([data-sn-reader] *),
+  div[contenteditable]:not([data-sn-reader]):not([data-sn-reader] *):focus,
   .input-group-text {
     font-size: 1rem !important;
   }
@@ -642,7 +654,7 @@ footer {
 }
 
 textarea.form-control,
-div[contenteditable] {
+div[contenteditable]:not([data-sn-reader]):not([data-sn-reader] *) {
   line-height: 1rem;
 }
 
@@ -743,7 +755,7 @@ header .navbar:not(:first-child) {
   text-shadow: 0 0 10px var(--bs-primary);
 }
 
-div[contenteditable]:focus,
+div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-editor] *, [data-lexical-editor] *):focus,
 .form-control:focus {
   border-color: var(--bs-primary);
 }
@@ -782,6 +794,7 @@ div[contenteditable]:focus,
   fill: var(--theme-navLink);
 }
 
+.nav-link:hover svg,
 .nav-link.active svg {
   fill: var(--theme-navLinkActive);
 }
@@ -898,7 +911,15 @@ div[contenteditable]:focus,
   box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
 }
 
+.outline-new-live-comment {
+  box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
+}
+
 .outline-new-comment.outline-new-comment-unset {
+  box-shadow: none;
+}
+
+.outline-new-live-comment.outline-new-comment-unset {
   box-shadow: none;
 }
 
@@ -971,9 +992,30 @@ div[contenteditable]:focus,
 }
 
 .tooltip-inner {
-  padding: 0.1rem 0.3rem;
+  padding: 0.2rem 0.45rem;
   color: #fff;
+  line-height: 1;
 }
+
+.spin.fade-in {
+  animation: spin 2s linear infinite, fadeIn 0.5s ease-in;
+}
+
+.fade.tooltip {
+  opacity: 1;
+  visibility: visible;
+  animation: fadeIn 0.15s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 
 .popover {
   .popover-header {
@@ -1093,4 +1135,28 @@ div[contenteditable]:focus,
 .react-datepicker__quarter-text--in-range,
 .react-datepicker__year-text--in-range) {
   background-color: var(--bs-info) !important;
+}
+
+.react-datepicker__close-icon {
+  padding: 0rem 0.75rem !important;
+  align-items: center !important;
+  height: calc(100% - 3px) !important;
+
+  &::after {
+    content: "×" !important;
+    color: var(--theme-grey) !important;
+    font-size: 20px !important;
+    background: none !important;
+  }
+}
+
+/* Hide number input spinners */
+.hide-spinners::-webkit-outer-spin-button,
+.hide-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.hide-spinners {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

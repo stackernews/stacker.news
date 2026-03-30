@@ -9,7 +9,7 @@ import Qr, { QrSkeleton } from './qr'
 import styles from './lightning-auth.module.css'
 import BackIcon from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
-import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 
 function QrAuth ({ k1, encodedUrl, callbackUrl, multiAuth }) {
   const query = gql`
@@ -19,7 +19,7 @@ function QrAuth ({ k1, encodedUrl, callbackUrl, multiAuth }) {
       k1
     }
   }`
-  const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(query, SSR ? {} : { pollInterval: FAST_POLL_INTERVAL_MS, nextFetchPolicy: 'cache-and-network' })
 
   useEffect(() => {
     if (data?.lnAuth?.pubkey) {
@@ -45,24 +45,24 @@ function QrAuth ({ k1, encodedUrl, callbackUrl, multiAuth }) {
   )
 }
 
-function LightningExplainer ({ text, children }) {
+function LightningExplainer ({ text, children, backButton, md = 12, lg = 6 }) {
   const router = useRouter()
   return (
     <Container>
       <div className={styles.login}>
-        <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
+        {backButton && <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>}
         <h3 className='w-100 pb-2'>
           {text || 'Login'} with Lightning
         </h3>
         <div className='fw-bold text-muted pb-4'>This is the most private way to use Stacker News. Just open your Lightning wallet and scan the QR code.</div>
         <Row className='w-100 text-muted'>
-          <Col className='ps-0 mb-4' md>
+          <Col className='ps-0 mb-4' md={md} lg={lg}>
             <AccordianItem
-              header={`Which wallets can I use to ${(text || 'Login').toLowerCase()}?`}
+              header='Which wallets support lnurl-auth?'
               body={
                 <>
                   <Row className='mb-3 no-gutters'>
-                    You can use any wallet that supports lnurl-auth. These are some wallets you can use:
+                    You can use any wallet that supports lnurl-auth. These are some wallets that claim to support it:
                   </Row>
                   <Row>
                     <Col xs>
@@ -71,19 +71,14 @@ function LightningExplainer ({ text, children }) {
                         <li>Balance of Satoshis</li>
                         <li>Blixt</li>
                         <li>Breez</li>
-                        <li>Blue Wallet</li>
                         <li>Coinos</li>
                         <li>LNBits</li>
-                        <li>LNtxtbot</li>
                       </ul>
                     </Col>
                     <Col xs>
                       <ul>
                         <li>Phoenix</li>
-                        <li>Simple Bitcoin Wallet</li>
-                        <li>Sparrow Wallet</li>
                         <li>ThunderHub</li>
-                        <li>Zap Desktop</li>
                         <li>Zeus</li>
                       </ul>
                     </Col>
@@ -92,7 +87,7 @@ function LightningExplainer ({ text, children }) {
           }
             />
           </Col>
-          <Col md className='mx-auto' style={{ maxWidth: '300px' }}>
+          <Col md={md} lg={lg} className='mx-auto' style={{ maxWidth: '300px' }}>
             {children}
           </Col>
         </Row>
@@ -101,9 +96,9 @@ function LightningExplainer ({ text, children }) {
   )
 }
 
-export function LightningAuthWithExplainer ({ text, callbackUrl, multiAuth }) {
+export function LightningAuthWithExplainer ({ text, callbackUrl, multiAuth, backButton = true, md = 12, lg = 6 }) {
   return (
-    <LightningExplainer text={text}>
+    <LightningExplainer text={text} backButton={backButton} md={md} lg={lg}>
       <LightningAuth callbackUrl={callbackUrl} multiAuth={multiAuth} />
     </LightningExplainer>
   )

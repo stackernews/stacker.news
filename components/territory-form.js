@@ -1,6 +1,7 @@
 import AccordianItem from './accordian-item'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
-import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
+import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
+import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
@@ -12,18 +13,42 @@ import Info from './info'
 import { abbrNum } from '@/lib/format'
 import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
-import { usePaidMutation } from './use-paid-mutation'
-import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
 import TerritoryDomains, { useDomain } from './territory-domains'
 import Link from 'next/link'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
+
+function SatFilterRanges () {
+  const { values } = useFormikContext()
+  const baseCost = values.baseCost || 1
+
+  return (
+    <Range
+      label={
+        <div className='d-flex align-items-center'>posts sat filter
+          <Info>
+            <ul>
+              <li>minimum net investment (cost + zaps + boost - downzaps) for posts to appear in lit/top</li>
+              <li>must be at least the post cost ({baseCost} sats)</li>
+            </ul>
+          </Info>
+        </div>
+      }
+      name='postsSatsFilter'
+      min={baseCost}
+      max={1000}
+      suffix=' sats'
+    />
+  )
+}
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
   const { domain } = useDomain()
-  const [upsertSub] = usePaidMutation(UPSERT_SUB)
-  const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
+  const [upsertSub] = usePayInMutation(UPSERT_SUB)
+  const [unarchiveTerritory] = usePayInMutation(UNARCHIVE_TERRITORY)
 
   const schema = territorySchema({ client, me, sub })
 
@@ -95,10 +120,11 @@ export default function TerritoryForm ({ sub }) {
           desc: sub?.desc || '',
           baseCost: sub?.baseCost || 10,
           replyCost: sub?.replyCost || 1,
+          // Default sat filter to match the post cost
+          postsSatsFilter: sub?.postsSatsFilter ?? sub?.baseCost ?? 10,
           postTypes: sub?.postTypes || POST_TYPES,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
-          moderated: sub?.moderated || false,
           nsfw: sub?.nsfw || false
         }}
         schema={schema}
@@ -126,12 +152,13 @@ export default function TerritoryForm ({ sub }) {
             </div>
           )}
         />
-        <MarkdownInput
+        <SNInput
           label='description'
           name='desc'
-          maxLength={MAX_TERRITORY_DESC_LENGTH}
+          lengthOptions={{ maxLength: MAX_TERRITORY_DESC_LENGTH, show: true }}
           required
           minRows={3}
+          topLevel
         />
         <Input
           label='post cost'
@@ -245,22 +272,7 @@ export default function TerritoryForm ({ sub }) {
                 required
                 append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
               />
-              <BootstrapForm.Label>moderation</BootstrapForm.Label>
-              <Checkbox
-                inline
-                label={
-                  <div className='d-flex align-items-center'>enable moderation
-                    <Info>
-                      <ol>
-                        <li>Outlaw posts and comments with a click</li>
-                        <li>Your territory will get a <Badge bg='secondary'>moderated</Badge> badge</li>
-                      </ol>
-                    </Info>
-                  </div>
-          }
-                name='moderated'
-                groupClassName='ms-1'
-              />
+              <SatFilterRanges />
               <BootstrapForm.Label>nsfw</BootstrapForm.Label>
               <Checkbox
                 inline

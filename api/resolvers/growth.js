@@ -1,159 +1,301 @@
 import { timeUnitForRange, whenRange } from '@/lib/time'
+import { Prisma } from '@prisma/client'
 
-export function viewIntervalClause (range, view) {
-  const unit = timeUnitForRange(range)
-  return `"${view}".t >= date_trunc('${unit}', timezone('America/Chicago', $1)) AND date_trunc('${unit}', "${view}".t) <= date_trunc('${unit}', timezone('America/Chicago', $2)) `
+function sliceClause (sub, me) {
+  return sub === ALL_SUB
+    ? Prisma.sql`"slice" = 'GLOBAL_BY_TYPE'`
+    : sub
+      ? Prisma.sql`"slice" = 'SUB_BY_TYPE' AND "subId" = ${sub.id}`
+      : me
+        ? Prisma.sql`"slice" = 'USER_BY_TYPE' AND "userId" = ${me.id}`
+        : Prisma.sql`"slice" = 'GLOBAL_BY_TYPE'`
 }
 
-export function viewGroup (range, view) {
-  const unit = timeUnitForRange(range)
-  return `(
-    (SELECT *
-      FROM ${view}_days
-      WHERE ${viewIntervalClause(range, `${view}_days`)})
-    UNION ALL
-    (SELECT *
-      FROM ${view}_hours
-      WHERE ${viewIntervalClause(range, `${view}_hours`)}
-      ${unit === 'hour' ? '' : `AND "${view}_hours".t >= date_trunc('day', timezone('America/Chicago', now()))`})
-    UNION ALL
-    (SELECT * FROM
-      ${view}(
-      date_trunc('hour', timezone('America/Chicago', now())),
-      date_trunc('hour', timezone('America/Chicago', now())), '1 hour'::INTERVAL, 'hour')
-      WHERE "${view}".t >= date_trunc('hour', timezone('America/Chicago', $1))
-      AND "${view}".t <= date_trunc('hour', timezone('America/Chicago', $2)))
-  ) u`
+// For total unique counts across all types (not sum of per-type counts)
+function totalSliceClause (sub, me) {
+  return sub === ALL_SUB
+    ? Prisma.sql`"slice" = 'GLOBAL'`
+    : sub
+      ? Prisma.sql`"slice" = 'SUB_TOTAL' AND "subId" = ${sub.id}`
+      : me
+        ? Prisma.sql`"slice" = 'USER_TOTAL' AND "userId" = ${me.id}`
+        : Prisma.sql`"slice" = 'GLOBAL'`
+}
+
+function countClause (sub, me) {
+  return sub
+    ? Prisma.sql`COALESCE("countUsers", 0)`
+    : me
+      ? Prisma.sql`COALESCE("countGroup", 0)`
+      : Prisma.sql`COALESCE("countUsers", 0)`
+}
+
+function timeHelper (when, from, to) {
+  const [fromDate, toDate] = whenRange(when, from, to)
+  const granularity = timeUnitForRange([fromDate, toDate]).toUpperCase()
+  const step = Prisma.sql`${`1 ${granularity}`}::interval`
+  const clamp = granularity === 'HOUR' ? Prisma.empty : Prisma.sql`- ${step}`
+  const series = Prisma.sql`
+    SELECT generate_series(date_trunc(${granularity}, ${fromDate}::timestamptz at time zone 'America/Chicago'),
+      date_trunc(${granularity},
+        ${toDate}::timestamptz at time zone 'America/Chicago' ${clamp}),
+        ${step})::timestamp at time zone 'America/Chicago' as "timeBucket"`
+  return { fromDate, toDate, granularity, step, series }
+}
+
+function spenderPayInsExcluded (sub, me) {
+  return (sub === ALL_SUB || me)
+    ? Prisma.sql`grid."payInType" NOT IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL', 'PROXY_PAYMENT',
+      'DEFUNCT_TERRITORY_DAILY_PAYOUT', 'REWARDS', 'BUY_CREDITS')`
+    : Prisma.sql`grid."payInType" NOT IN ('DONATE', 'INVITE_GIFT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL',
+      'PROXY_PAYMENT', 'DEFUNCT_TERRITORY_DAILY_PAYOUT', 'REWARDS', 'BUY_CREDITS', 'TERRITORY_CREATE',
+      'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE')`
+}
+
+function stackerPayOutsExcluded (sub, me) {
+  return (sub === ALL_SUB || me)
+    ? Prisma.sql`grid."payOutType" NOT IN ('PROXY_PAYMENT', 'DEFUNCT_DELAYED_TERRITORY_REVENUE',
+      'DEFUNCT_REFERRAL_ACT', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'WITHDRAWAL',
+      'SYSTEM_REVENUE', 'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER')`
+    : Prisma.sql`grid."payOutType" NOT IN ('INVITE_GIFT', 'PROXY_PAYMENT', 'DEFUNCT_DELAYED_TERRITORY_REVENUE',
+      'DEFUNCT_REFERRAL_ACT', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'WITHDRAWAL', 'SYSTEM_REVENUE',
+        'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER')`
+}
+
+const ALL_SUB = 'all'
+
+const findSub = async (subName, { subLoader }) => {
+  if (subName) {
+    return subName === 'all' ? ALL_SUB : await subLoader.load(subName)
+  }
+  return null
 }
 
 export default {
   Query: {
+    growthTotals: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
+      // Use same timeHelper and grid pattern as time series queries so totals match
+      const { granularity, series } = timeHelper(when, from, to)
+
+      const sub = await findSub(subName, ctx)
+
+      // Get spending totals using same grid pattern as spendingGrowth
+      const payInResult = await models.$queryRaw`
+        WITH series AS (
+          ${series}
+        ), grid AS (
+          SELECT "timeBucket", "payInType"
+          FROM series, unnest(enum_range(NULL::"PayInType")) domain("payInType")
+        )
+        SELECT
+          COALESCE(SUM("sumMcost"), 0) / 1000 AS spending,
+          COALESCE(SUM("countGroup"), 0)::int AS items
+        FROM grid
+        LEFT JOIN "AggPayIn" ON "AggPayIn"."timeBucket" = grid."timeBucket" AND "AggPayIn"."payInType" = grid."payInType"
+        AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+        AND ${sliceClause(sub, mine ? me : null)}
+        WHERE ${spenderPayInsExcluded(sub, mine ? me : null)}`
+
+      // Get stacking totals using same grid pattern as stackingGrowth
+      const payOutResult = await models.$queryRaw`
+        WITH series AS (
+          ${series}
+        ), grid AS (
+          SELECT "timeBucket", "payOutType"
+          FROM series, unnest(enum_range(NULL::"PayOutType")) domain("payOutType")
+        )
+        SELECT COALESCE(SUM("sumMtokens"), 0) / 1000 AS stacking
+        FROM grid
+        LEFT JOIN "AggPayOut" ON "AggPayOut"."timeBucket" = grid."timeBucket" AND "AggPayOut"."payOutType" = grid."payOutType"
+        AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+        AND ${sliceClause(sub, mine ? me : null)}
+        AND "AggPayOut"."payInType" IS NULL
+        WHERE ${stackerPayOutsExcluded(sub, mine ? me : null)}`
+
+      // Get registration totals (only for global/all view)
+      let registrations = null
+      if (sub === ALL_SUB && !mine) {
+        const regResult = await models.$queryRaw`
+          WITH series AS (
+            ${series}
+          )
+          SELECT COALESCE(SUM("count"), 0)::int AS registrations
+          FROM "AggRegistrations", series
+          WHERE "granularity" = ${granularity}::"AggGranularity"
+          AND "AggRegistrations"."timeBucket" = series."timeBucket"`
+        registrations = regResult[0]?.registrations || 0
+      }
+
+      return {
+        spending: payInResult[0]?.spending || 0,
+        items: payInResult[0]?.items || 0,
+        stacking: payOutResult[0]?.stacking || 0,
+        registrations
+      }
+    },
     registrationGrowth: async (parent, { when, from, to }, { models }) => {
-      const range = whenRange(when, from, to)
+      const { granularity, series } = timeHelper(when, from, to)
 
-      return await models.$queryRawUnsafe(`
-        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
-          json_build_object('name', 'referrals', 'value', sum(referrals)),
-          json_build_object('name', 'organic', 'value', sum(organic))
+      return await models.$queryRaw`
+        WITH series AS (
+          ${series}
+        )
+        SELECT series."timeBucket" as time, json_build_array(
+          json_build_object('name', 'invited', 'value', COALESCE(sum("invitedCount"), 0)),
+          json_build_object('name', 'referrals', 'value', COALESCE(sum("referredCount"), 0) - COALESCE(sum("invitedCount"), 0)),
+          json_build_object('name', 'organic', 'value', COALESCE(sum("count"), 0) - COALESCE(sum("referredCount"), 0))
         ) AS data
-        FROM ${viewGroup(range, 'reg_growth')}
-        GROUP BY time
-        ORDER BY time ASC`, ...range)
+        FROM "AggRegistrations", series
+        WHERE "granularity" = ${granularity}::"AggGranularity"
+        AND "AggRegistrations"."timeBucket" = series."timeBucket"
+        GROUP BY series."timeBucket"
+        ORDER BY series."timeBucket" ASC`
     },
-    spenderGrowth: async (parent, { when, to, from }, { models }) => {
-      const range = whenRange(when, from, to)
+    spenderGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
+      const { granularity, series } = timeHelper(when, from, to)
 
-      return await models.$queryRawUnsafe(`
-        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
-          json_build_object('name', 'any', 'value', COUNT(DISTINCT "userId")),
-          json_build_object('name', 'jobs', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'STREAM')),
-          json_build_object('name', 'boost', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'BOOST')),
-          json_build_object('name', 'fees', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'FEE')),
-          json_build_object('name', 'poll', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'POLL')),
-          json_build_object('name', 'downzaps', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'DONT_LIKE_THIS')),
-          json_build_object('name', 'zaps', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'TIP')),
-          json_build_object('name', 'donation', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'DONATION')),
-          json_build_object('name', 'territories', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'TERRITORY'))
-        ) AS data
-        FROM ${viewGroup(range, 'spender_growth')}
-        GROUP BY time
-        ORDER BY time ASC`, ...range)
+      const sub = await findSub(subName, ctx)
+
+      const result = await models.$queryRaw`
+        WITH series AS (
+          ${series}
+        ), grid AS (
+          SELECT "timeBucket", "payInType"
+          FROM series, unnest(enum_range(NULL::"PayInType")) domain("payInType")
+        ), totals AS (
+          SELECT series."timeBucket", COALESCE("countUsers", 0) as total
+          FROM series
+          LEFT JOIN "AggPayIn" ON "AggPayIn"."timeBucket" = series."timeBucket"
+          AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+          AND ${totalSliceClause(sub, mine ? me : null)}
+          AND "AggPayIn"."payInType" IS NULL
+        )
+        SELECT grid."timeBucket" as time,
+          (jsonb_agg(jsonb_build_object('name', grid."payInType", 'value', ${countClause(sub, mine ? me : null)}))
+          || jsonb_build_array(jsonb_build_object('name', 'total', 'value', totals.total)))::json
+          AS data
+        FROM grid
+        LEFT JOIN "AggPayIn" ON "AggPayIn"."timeBucket" = grid."timeBucket" AND "AggPayIn"."payInType" = grid."payInType"
+        AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+        AND ${sliceClause(sub, mine ? me : null)}
+        JOIN totals ON totals."timeBucket" = grid."timeBucket"
+        WHERE ${spenderPayInsExcluded(sub, mine ? me : null)}
+        GROUP BY grid."timeBucket", totals.total
+        ORDER BY grid."timeBucket" ASC`
+
+      return result
     },
-    itemGrowth: async (parent, { when, to, from }, { models }) => {
-      const range = whenRange(when, from, to)
+    spendingGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
+      const { granularity, series } = timeHelper(when, from, to)
 
-      return await models.$queryRawUnsafe(`
-        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
-          json_build_object('name', 'posts', 'value', sum(posts)),
-          json_build_object('name', 'comments', 'value', sum(comments)),
-          json_build_object('name', 'jobs', 'value', sum(jobs)),
-          json_build_object('name', 'zaps', 'value', sum(zaps)),
-          json_build_object('name', 'territories', 'value', sum(territories)),
-          json_build_object('name', 'comments/posts', 'value', ROUND(sum(comments)/GREATEST(sum(posts), 1), 2))
+      const sub = await findSub(subName, ctx)
+
+      return await models.$queryRaw`
+         WITH series AS (
+          ${series}
+        ), grid AS (
+          SELECT "timeBucket", "payInType"
+          FROM series, unnest(enum_range(NULL::"PayInType")) domain("payInType")
+        )
+        SELECT grid."timeBucket" as time, json_agg(
+          json_build_object('name', grid."payInType", 'value', COALESCE("sumMcost", 0) / 1000)
         ) AS data
-        FROM ${viewGroup(range, 'item_growth')}
-        GROUP BY time
-        ORDER BY time ASC`, ...range)
+        FROM grid
+        LEFT JOIN "AggPayIn" ON "AggPayIn"."timeBucket" = grid."timeBucket" AND "AggPayIn"."payInType" = grid."payInType"
+        AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+        AND ${sliceClause(sub, mine ? me : null)}
+        WHERE ${spenderPayInsExcluded(sub, mine ? me : null)}
+        GROUP BY grid."timeBucket"
+        ORDER BY grid."timeBucket" ASC`
     },
-    spendingGrowth: async (parent, { when, to, from }, { models }) => {
-      const range = whenRange(when, from, to)
+    itemGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
+      const { granularity, series } = timeHelper(when, from, to)
 
-      return await models.$queryRawUnsafe(`
-        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
-          json_build_object('name', 'jobs', 'value', sum(jobs)),
-          json_build_object('name', 'boost', 'value', sum(boost)),
-          json_build_object('name', 'fees', 'value', sum(fees)),
-          json_build_object('name', 'zaps', 'value', sum(tips)),
-          json_build_object('name', 'donations', 'value', sum(donations)),
-          json_build_object('name', 'territories', 'value', sum(territories))
+      const sub = await findSub(subName, ctx)
+
+      const result = await models.$queryRaw`
+        WITH series AS (
+          ${series}
+        ), grid AS (
+          SELECT "timeBucket", "payInType"
+          FROM series, unnest(enum_range(NULL::"PayInType")) domain("payInType")
+        )
+        SELECT grid."timeBucket" as time, json_agg(
+          json_build_object('name', grid."payInType", 'value', COALESCE("countGroup", 0))
         ) AS data
-        FROM ${viewGroup(range, 'spending_growth')}
-        GROUP BY time
-        ORDER BY time ASC`, ...range)
+        FROM grid
+        LEFT JOIN "AggPayIn" ON "AggPayIn"."timeBucket" = grid."timeBucket" AND "AggPayIn"."payInType" = grid."payInType"
+        AND "AggPayIn"."granularity" = ${granularity}::"AggGranularity"
+        AND ${sliceClause(sub, mine ? me : null)}
+        WHERE ${spenderPayInsExcluded(sub, mine ? me : null)}
+        GROUP BY grid."timeBucket"
+        ORDER BY grid."timeBucket" ASC`
+
+      return result
     },
-    stackerGrowth: async (parent, { when, to, from }, { models }) => {
-      const range = whenRange(when, from, to)
+    stackerGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
+      const { granularity, series } = timeHelper(when, from, to)
 
-      return await models.$queryRawUnsafe(`
-        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
-          json_build_object('name', 'any', 'value', COUNT(DISTINCT "userId")),
-          json_build_object('name', 'posts', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'POST')),
-          json_build_object('name', 'comments', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'COMMENT')),
-          json_build_object('name', 'rewards', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'EARN')),
-          json_build_object('name', 'referrals', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'REFERRAL')),
-          json_build_object('name', 'territories', 'value', COUNT(DISTINCT "userId") FILTER (WHERE type = 'REVENUE'))
-        ) AS data
-        FROM ${viewGroup(range, 'stackers_growth')}
-        GROUP BY time
-        ORDER BY time ASC`, ...range)
+      const sub = await findSub(subName, ctx)
+
+      return await models.$queryRaw`
+        WITH series AS (
+          ${series}
+        ), grid AS (
+          SELECT "timeBucket", "payOutType"
+          FROM series, unnest(enum_range(NULL::"PayOutType")) domain("payOutType")
+        ), totals AS (
+          SELECT series."timeBucket", COALESCE("countUsers", 0) as total
+          FROM series
+          LEFT JOIN "AggPayOut" ON "AggPayOut"."timeBucket" = series."timeBucket"
+          AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+          AND ${totalSliceClause(sub, mine ? me : null)}
+          AND "AggPayOut"."payInType" IS NULL
+          AND "AggPayOut"."payOutType" IS NULL
+        )
+        SELECT grid."timeBucket" as time,
+          (jsonb_agg(jsonb_build_object('name', grid."payOutType", 'value', ${countClause(sub, mine ? me : null)}))
+          || jsonb_build_array(jsonb_build_object('name', 'total', 'value', totals.total)))::json
+          AS data
+        FROM grid
+        LEFT JOIN "AggPayOut" ON "AggPayOut"."timeBucket" = grid."timeBucket" AND "AggPayOut"."payOutType" = grid."payOutType"
+        AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+        AND ${sliceClause(sub, mine ? me : null)}
+        AND "AggPayOut"."payInType" IS NULL
+        JOIN totals ON totals."timeBucket" = grid."timeBucket"
+        WHERE ${stackerPayOutsExcluded(sub, mine ? me : null)}
+        GROUP BY grid."timeBucket", totals.total
+        ORDER BY grid."timeBucket" ASC`
     },
-    stackingGrowth: async (parent, { when, to, from }, { models }) => {
-      const range = whenRange(when, from, to)
+    stackingGrowth: async (parent, { when, to, from, sub: subName, mine }, ctx) => {
+      const { me, models } = ctx
+      const { granularity, series } = timeHelper(when, from, to)
 
-      return await models.$queryRawUnsafe(`
-        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
-          json_build_object('name', 'rewards', 'value', sum(rewards)),
-          json_build_object('name', 'posts', 'value', sum(posts)),
-          json_build_object('name', 'comments', 'value', sum(comments)),
-          json_build_object('name', 'referrals', 'value', sum(referrals)),
-          json_build_object('name', 'territories', 'value', sum(territories))
+      const sub = await findSub(subName, ctx)
+
+      return await models.$queryRaw`
+        WITH series AS (
+          ${series}
+        ), grid AS (
+          SELECT "timeBucket", "payOutType"
+          FROM series, unnest(enum_range(NULL::"PayOutType")) domain("payOutType")
+        )
+        SELECT grid."timeBucket" as time, json_agg(
+          json_build_object('name', grid."payOutType", 'value', COALESCE("sumMtokens", 0) / 1000)
         ) AS data
-        FROM ${viewGroup(range, 'stacking_growth')}
-        GROUP BY time
-        ORDER BY time ASC`, ...range)
-    },
-    itemGrowthSubs: async (parent, { when, to, from, sub }, { models }) => {
-      const range = whenRange(when, from, to)
-
-      const subExists = await models.sub.findUnique({ where: { name: sub } })
-      if (!subExists) throw new Error('Sub not found')
-
-      return await models.$queryRawUnsafe(`
-        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
-          json_build_object('name', 'posts', 'value', coalesce(sum(posts),0)),
-          json_build_object('name', 'comments', 'value', coalesce(sum(comments),0))
-        ) AS data
-        FROM ${viewGroup(range, 'sub_stats')}
-        WHERE sub_name = $3
-        GROUP BY time
-        ORDER BY time ASC`, ...range, sub)
-    },
-    revenueGrowthSubs: async (parent, { when, to, from, sub }, { models }) => {
-      const range = whenRange(when, from, to)
-
-      const subExists = await models.sub.findUnique({ where: { name: sub } })
-      if (!subExists) throw new Error('Sub not found')
-
-      return await models.$queryRawUnsafe(`
-        SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time, json_build_array(
-          json_build_object('name', 'revenue', 'value', coalesce(sum(msats_revenue/1000),0)),
-          json_build_object('name', 'stacking', 'value', coalesce(sum(msats_stacked/1000),0)),
-          json_build_object('name', 'spending', 'value', coalesce(sum(msats_spent/1000),0))
-        ) AS data
-        FROM ${viewGroup(range, 'sub_stats')}
-        WHERE sub_name = $3
-        GROUP BY time
-        ORDER BY time ASC`, ...range, sub)
+        FROM grid
+        LEFT JOIN "AggPayOut" ON "AggPayOut"."timeBucket" = grid."timeBucket" AND "AggPayOut"."payOutType" = grid."payOutType"
+        AND "AggPayOut"."granularity" = ${granularity}::"AggGranularity"
+        AND ${sliceClause(sub, mine ? me : null)}
+        AND "payInType" IS NULL
+        WHERE ${stackerPayOutsExcluded(sub, mine ? me : null)}
+        GROUP BY grid."timeBucket"
+        ORDER BY grid."timeBucket" ASC`
     }
   }
 }

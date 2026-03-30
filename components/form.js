@@ -6,27 +6,19 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import copy from 'clipboard-copy'
 import Col from 'react-bootstrap/Col'
 import Dropdown from 'react-bootstrap/Dropdown'
-import Nav from 'react-bootstrap/Nav'
 import Row from 'react-bootstrap/Row'
-import Markdown from '@/svgs/markdown-line.svg'
-import AddFileIcon from '@/svgs/file-upload-line.svg'
 import styles from './form.module.css'
-import Text from '@/components/text'
 import AddIcon from '@/svgs/add-fill.svg'
 import CloseIcon from '@/svgs/close-line.svg'
-import { gql, useLazyQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client'
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
-import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { numWithUnits } from '@/lib/format'
 import textAreaCaret from 'textarea-caret'
 import 'react-datepicker/dist/react-datepicker.css'
-import useDebounceCallback, { debounce } from './use-debounce-callback'
-import { FileUpload } from './file-upload'
-import { AWS_S3_URL_REGEXP } from '@/lib/constants'
+import { debounce } from './use-debounce-callback'
 import { whenRange } from '@/lib/time'
-import { useFeeButton } from './fee-button'
 import Thumb from '@/svgs/thumb-up-fill.svg'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
@@ -34,15 +26,13 @@ import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
 import Clipboard from '@/svgs/clipboard-line.svg'
-import QrIcon from '@/svgs/qr-code-line.svg'
 import QrScanIcon from '@/svgs/qr-scan-line.svg'
 import { useShowModal } from './modal'
-import { QRCodeSVG } from 'qrcode.react'
 import dynamic from 'next/dynamic'
-import { qrImageSettings } from './qr'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
-
+import { SNEditor } from './editor'
+export { MultiSelect } from './multi-select'
 export class SessionRequiredError extends Error {
   constructor () {
     super('session required')
@@ -140,14 +130,6 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-// fix https://github.com/stackernews/stacker.news/issues/1522
-// see https://github.com/facebook/react/issues/11488#issuecomment-558874287
-function setNativeValue (textarea, value) {
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
-  setter?.call(textarea, value)
-  textarea.dispatchEvent(new Event('input', { bubbles: true, value }))
-}
-
 function useEntityAutocomplete ({
   prefix,
   meta,
@@ -236,65 +218,7 @@ function useEntityAutocomplete ({
   }
 }
 
-export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
-  const [tab, setTab] = useState('write')
-  const [, meta, helpers] = useField(props)
-  const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
-  innerRef = innerRef || useRef(null)
-  const imageUploadRef = useRef(null)
-  const previousTab = useRef(tab)
-  const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
-
-  const [updateUploadFees] = useLazyQuery(gql`
-    query uploadFees($s3Keys: [Int]!) {
-      uploadFees(s3Keys: $s3Keys) {
-        totalFees
-        nUnpaid
-        uploadFees
-        bytes24h
-      }
-    }`, {
-    fetchPolicy: 'no-cache',
-    nextFetchPolicy: 'no-cache',
-    onError: (err) => {
-      console.error(err)
-    },
-    onCompleted: ({ uploadFees }) => {
-      merge({
-        uploadFees: {
-          term: `+ ${numWithUnits(uploadFees.totalFees, { abbreviate: false })}`,
-          label: 'upload fee',
-          op: '+',
-          modifier: cost => cost + uploadFees.totalFees,
-          omit: !uploadFees.totalFees
-        }
-      })
-    }
-  })
-
-  props.as ||= TextareaAutosize
-  props.rows ||= props.minRows || 6
-
-  useEffect(() => {
-    !meta.value && setTab('write')
-  }, [meta.value])
-
-  useEffect(() => {
-    // focus on input when switching to write tab from preview tab
-    if (innerRef?.current && tab === 'write' && previousTab?.current !== 'write') {
-      innerRef.current.focus()
-    }
-    previousTab.current = tab
-  }, [tab])
-
-  useEffect(() => {
-    if (selectionRange.start <= selectionRange.end && innerRef?.current) {
-      const { start, end } = selectionRange
-      const input = innerRef.current
-      input.setSelectionRange(start, end)
-    }
-  }, [innerRef, selectionRange.start, selectionRange.end])
-
+export function useDualAutocomplete ({ meta, helpers, innerRef, setSelectionRange }) {
   const userAutocomplete = useEntityAutocomplete({
     prefix: '@',
     meta,
@@ -313,249 +237,74 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     SuggestComponent: TerritorySuggest
   })
 
-  const uploadFeesUpdate = useDebounceCallback(
-    (text) => {
-      const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
-      updateUploadFees({ variables: { s3Keys } })
-    }, 1000, [updateUploadFees])
-
-  const onChangeInner = useCallback((formik, e) => {
-    if (onChange) onChange(formik, e)
-    // check for mentions and territory suggestions
-    uploadFeesUpdate(e.target.value)
-
+  const handleTextChange = useCallback((e) => {
     // Try to match user mentions first, then territories
     if (!userAutocomplete.handleTextChange(e)) {
       territoryAutocomplete.handleTextChange(e)
     }
-  }, [onChange, uploadFeesUpdate, userAutocomplete, territoryAutocomplete])
+  }, [userAutocomplete, territoryAutocomplete])
 
-  const onKeyDownInner = useCallback((userSuggestOnKeyDown, territorySuggestOnKeyDown) => {
-    return (e) => {
-      const metaOrCtrl = e.metaKey || e.ctrlKey
-      if (metaOrCtrl) {
-        if (e.key === 'k') {
-          // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
-          e.preventDefault()
-          insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-        if (e.key === 'b') {
-          // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
-          e.preventDefault()
-          insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-        if (e.key === 'i') {
-          // some browsers might use CTRL+I to do something else so prevent that behavior too
-          e.preventDefault()
-          insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-        if (e.key === 'u') {
-          // some browsers might use CTRL+U to do something else so prevent that behavior too
-          e.preventDefault()
-          imageUploadRef.current?.click()
-        }
-        if (e.key === 'Tab' && e.altKey) {
-          e.preventDefault()
-          insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-      }
-
-      if (!metaOrCtrl) {
-        if (userAutocomplete.entityData) {
-          userSuggestOnKeyDown(e)
-        } else if (territoryAutocomplete.entityData) {
-          territorySuggestOnKeyDown(e)
-        }
-      }
-
-      if (onKeyDown) onKeyDown(e)
-    }
-  }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown, userAutocomplete.entityData, territoryAutocomplete.entityData])
-
-  const onPaste = useCallback((event) => {
-    const items = event.clipboardData.items
-    if (items.length === 0) {
-      return
-    }
-
-    let isImagePasted = false
-    const fileList = new window.DataTransfer()
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      if (item.type.indexOf('image') === 0) {
-        const blob = item.getAsFile()
-        const file = new File([blob], 'image', { type: blob.type })
-        fileList.items.add(file)
-        isImagePasted = true
+  const handleKeyDown = useCallback((e, userOnKeyDown, territoryOnKeyDown) => {
+    const metaOrCtrl = e.metaKey || e.ctrlKey
+    if (!metaOrCtrl) {
+      if (userAutocomplete.entityData) {
+        return userOnKeyDown(e)
+      } else if (territoryAutocomplete.entityData) {
+        return territoryOnKeyDown(e)
       }
     }
+    return false // Didn't handle the event
+  }, [userAutocomplete.entityData, territoryAutocomplete.entityData])
 
-    if (isImagePasted) {
-      event.preventDefault()
-      const changeEvent = new Event('change', { bubbles: true })
-      imageUploadRef.current.files = fileList.files
-      imageUploadRef.current.dispatchEvent(changeEvent)
-    }
-  }, [imageUploadRef])
+  const handleBlur = useCallback((resetUserSuggestions, resetTerritorySuggestions) => {
+    setTimeout(resetUserSuggestions, 500)
+    setTimeout(resetTerritorySuggestions, 500)
+  }, [])
 
-  const onDrop = useCallback((event) => {
-    event.preventDefault()
-    setDragStyle(null)
-    const changeEvent = new Event('change', { bubbles: true })
-    imageUploadRef.current.files = event.dataTransfer.files
-    imageUploadRef.current.dispatchEvent(changeEvent)
-  }, [imageUploadRef])
-
-  const [dragStyle, setDragStyle] = useState(null)
-  const onDragEnter = useCallback((e) => {
-    setDragStyle('over')
-  }, [setDragStyle])
-  const onDragLeave = useCallback((e) => {
-    setDragStyle(null)
-  }, [setDragStyle])
-
-  return (
-    <FormGroup label={label} className={groupClassName}>
-      <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
-        <Nav variant='tabs' defaultActiveKey='write' activeKey={tab} onSelect={tab => setTab(tab)}>
-          <Nav.Item>
-            <Nav.Link className='py-1' eventKey='write'>write</Nav.Link>
-          </Nav.Item>
-          <Nav.Item>
-            <Nav.Link className={styles.previewTab} eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
-          </Nav.Item>
-          <span className='ms-auto text-muted d-flex align-items-center'>
-            <FileUpload
-              multiple
-              ref={imageUploadRef}
-              className='d-flex align-items-center me-1'
-              onUpload={file => {
-                const uploadMarker = `![Uploading ${file.name}…]()`
-                const text = innerRef.current.value
-                const cursorPosition = innerRef.current.selectionStart
-                let preMarker = text.slice(0, cursorPosition)
-                let postMarker = text.slice(cursorPosition)
-                // when uploading multiple files at once, we want to make sure the upload markers are separated by blank lines
-                if (preMarker) {
-                  // Count existing newlines at the end of preMarker
-                  const existingNewlines = preMarker.match(/[\n]+$/)?.[0].length || 0
-                  // Add only the needed newlines to reach 2
-                  preMarker += '\n'.repeat(Math.max(0, 2 - existingNewlines))
-                }
-                // if there's text after the cursor, we want to make sure the upload marker is separated by a blank line
-                if (postMarker) {
-                  // Count existing newlines at the start of postMarker
-                  const existingNewlines = postMarker.match(/^[\n]*/)?.[0].length || 0
-                  // Add only the needed newlines to reach 2
-                  postMarker = '\n'.repeat(Math.max(0, 2 - existingNewlines)) + postMarker
-                }
-                const newText = preMarker + uploadMarker + postMarker
-                helpers.setValue(newText)
-                setSubmitDisabled?.(true)
-              }}
-              onSuccess={({ url, name }) => {
-                let text = innerRef.current.value
-                text = text.replace(`![Uploading ${name}…]()`, `![](${url})`)
-                helpers.setValue(text)
-                setNativeValue(innerRef.current, text)
-                const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
-                updateUploadFees({ variables: { s3Keys } })
-                setSubmitDisabled?.(false)
-              }}
-              onError={({ name }) => {
-                let text = innerRef.current.value
-                text = text.replace(`![Uploading ${name}…]()`, '')
-                helpers.setValue(text)
-                setSubmitDisabled?.(false)
-              }}
-            >
-              <AddFileIcon width={18} height={18} />
-            </FileUpload>
-            <a
-              className='d-flex align-items-center'
-              href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
-            >
-              <Markdown width={18} height={18} />
-            </a>
-          </span>
-        </Nav>
-        <div className={`position-relative ${tab === 'write' ? '' : 'd-none'}`}>
-          <UserSuggest
-            query={userAutocomplete.entityData?.query}
-            onSelect={userAutocomplete.handleSelect}
-            dropdownStyle={userAutocomplete.entityData?.style}
-          >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
-            <TerritorySuggest
-              query={territoryAutocomplete.entityData?.query}
-              onSelect={territoryAutocomplete.handleSelect}
-              dropdownStyle={territoryAutocomplete.entityData?.style}
-            >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) => (
-              <InputInner
-                innerRef={innerRef}
-                {...props}
-                onChange={onChangeInner}
-                onKeyDown={onKeyDownInner(userSuggestOnKeyDown, territorySuggestOnKeyDown)}
-                onBlur={() => {
-                  setTimeout(resetUserSuggestions, 500)
-                  setTimeout(resetTerritorySuggestions, 500)
-                }}
-                onDragEnter={onDragEnter}
-                onDragLeave={onDragLeave}
-                onDrop={onDrop}
-                onPaste={onPaste}
-                className={dragStyle === 'over' ? styles.dragOver : ''}
-              />)}
-            </TerritorySuggest>
-          )}
-          </UserSuggest>
-        </div>
-        {tab !== 'write' &&
-          <div className='form-group'>
-            <div className={`${styles.text} form-control`}>
-              <Text topLevel={topLevel} tab={tab}>{meta.value}</Text>
-            </div>
-          </div>}
-      </div>
-    </FormGroup>
-  )
-}
-
-function insertMarkdownFormatting (replaceFn, selectFn) {
-  return function (input, setValue, setSelectionRange) {
-    const start = input.selectionStart
-    const end = input.selectionEnd
-    const val = input.value
-    const selectedText = val.substring(start, end)
-    const mdFormatted = replaceFn(selectedText)
-    const newVal = val.substring(0, start) + mdFormatted + val.substring(end)
-    setValue(newVal)
-    // required for undo, see https://stackoverflow.com/a/27028258
-    document.execCommand('insertText', false, mdFormatted)
-    // see https://github.com/facebook/react/issues/6483
-    // for why we don't use `input.setSelectionRange` directly (hint: event order)
-    setSelectionRange(selectFn ? selectFn(start, end, mdFormatted) : { start: start + mdFormatted.length, end: start + mdFormatted.length })
+  return {
+    userAutocomplete,
+    territoryAutocomplete,
+    handleTextChange,
+    handleKeyDown,
+    handleBlur
   }
 }
 
-const insertMarkdownTabFormatting = insertMarkdownFormatting(
-  val => `\t${val}`,
-  (start, end, mdFormatted) => ({ start: start + 1, end: end + 1 }) // move inside tab
-)
-const insertMarkdownLinkFormatting = insertMarkdownFormatting(
-  val => `[${val}](url)`,
-  (start, end, mdFormatted) => (
-    start === end
-      ? { start: start + 1, end: end + 1 } // move inside brackets
-      : { start: start + mdFormatted.length - 4, end: start + mdFormatted.length - 1 }) // move to select url part
-)
-const insertMarkdownBoldFormatting = insertMarkdownFormatting(
-  val => `**${val}**`,
-  (start, end, mdFormatted) => ({ start: start + 2, end: end + 2 }) // move inside bold
-)
-const insertMarkdownItalicFormatting = insertMarkdownFormatting(
-  val => `_${val}_`,
-  (start, end, mdFormatted) => ({ start: start + 1, end: end + 1 }) // move inside italic
-)
+export function DualAutocompleteWrapper ({
+  userAutocomplete,
+  territoryAutocomplete,
+  children
+}) {
+  return (
+    <UserSuggest
+      query={userAutocomplete.entityData?.query}
+      onSelect={userAutocomplete.handleSelect}
+      dropdownStyle={userAutocomplete.entityData?.style}
+    >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
+      <TerritorySuggest
+        query={territoryAutocomplete.entityData?.query}
+        onSelect={territoryAutocomplete.handleSelect}
+        dropdownStyle={territoryAutocomplete.entityData?.style}
+      >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) =>
+        children({
+          userSuggestOnKeyDown,
+          territorySuggestOnKeyDown,
+          resetUserSuggestions,
+          resetTerritorySuggestions
+        })}
+      </TerritorySuggest>
+    )}
+    </UserSuggest>
+  )
+}
+
+export function SNInput ({ label, topLevel, groupClassName, onChange, ...props }) {
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <SNEditor name={props.name} topLevel={topLevel} onChange={onChange} {...props} />
+    </FormGroup>
+  )
+}
 
 function FormGroup ({ className, label, children }) {
   return (
@@ -569,7 +318,7 @@ function FormGroup ({ className, label, children }) {
 function InputInner ({
   prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength, hideError,
-  ...props
+  AppendColumn, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -647,38 +396,43 @@ function InputInner ({
 
   return (
     <>
-      <InputGroup hasValidation className={inputGroupClassName}>
-        {prepend}
-        <BootstrapForm.Control
-          ref={innerRef}
-          {...field}
-          {...props}
-          onKeyDown={onKeyDownInner}
-          onChange={onChangeInner}
-          onBlur={onBlurInner}
-          isInvalid={!hideError && invalid} // if hideError is true, handle error showing separately
-          isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
-        />
-        {(isClient && clear && field.value && !props.readOnly) &&
-          <Button
-            variant={null}
-            onClick={(e) => {
-              helpers.setValue('')
-              if (storageKey) {
-                window.localStorage.removeItem(storageKey)
-              }
-              if (onChange) {
-                onChange(formik, { target: { value: '' } })
-              }
-            }}
-            className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
-          ><CloseIcon className='fill-grey' height={20} width={20} />
-          </Button>}
-        {append}
-        <BootstrapForm.Control.Feedback type='invalid'>
-          {meta.touched && meta.error}
-        </BootstrapForm.Control.Feedback>
-      </InputGroup>
+      <Row>
+        <Col>
+          <InputGroup hasValidation className={inputGroupClassName}>
+            {prepend}
+            <BootstrapForm.Control
+              ref={innerRef}
+              {...field}
+              {...props}
+              onKeyDown={onKeyDownInner}
+              onChange={onChangeInner}
+              onBlur={onBlurInner}
+              isInvalid={!hideError && invalid} // if hideError is true, handle error showing separately
+              isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
+            />
+            {(isClient && clear && field.value && !props.readOnly) &&
+              <Button
+                variant={null}
+                onClick={(e) => {
+                  helpers.setValue('')
+                  if (storageKey) {
+                    window.localStorage.removeItem(storageKey)
+                  }
+                  if (onChange) {
+                    onChange(formik, { target: { value: '' } })
+                  }
+                }}
+                className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
+              ><CloseIcon className='fill-grey' height={20} width={20} />
+              </Button>}
+            {append}
+            <BootstrapForm.Control.Feedback type='invalid'>
+              {meta.touched && meta.error}
+            </BootstrapForm.Control.Feedback>
+          </InputGroup>
+        </Col>
+        {AppendColumn && <AppendColumn className={meta.touched && meta.error ? 'invisible' : ''} />}
+      </Row>
       {hint && (
         <BootstrapForm.Text>
           {hint}
@@ -912,31 +666,38 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
       <FieldArray name={name} hasValidation>
         {({ form, ...fieldArrayHelpers }) => {
           const options = form.values[name]
+
           return (
             <>
-              {options?.map((_, i) => (
-                <div key={i}>
-                  <Row className='mb-2'>
-                    <Col>
-                      {children
-                        ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined })
-                        : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />}
-                    </Col>
-                    <Col className='d-flex ps-0' xs='auto'>
-                      {options.length - 1 === i && options.length !== max
-                        ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push(emptyItem)} />
-                        // filler div for col alignment across rows
-                        : <div style={{ width: '24px', height: '24px' }} />}
-                    </Col>
-                    {options.length - 1 === i &&
-                      <>
-                        {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
-                        {form.touched[name] && typeof form.errors[name] === 'string' &&
-                          <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
-                      </>}
-                  </Row>
-                </div>
-              ))}
+              {options?.map((_, i) => {
+                const AppendColumn = ({ className }) => (
+                  <Col className={`d-flex ps-0 ${className}`} xs='auto'>
+                    {options.length - 1 === i && options.length !== max
+                      // onMouseDown is used to prevent the blur event on text inputs from overriding the click event
+                      ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onMouseDown={() => fieldArrayHelpers.push(emptyItem)} />
+                      // filler div for col alignment across rows
+                      : <div style={{ width: '24px', height: '24px' }} />}
+                  </Col>
+                )
+                return (
+                  <div key={i}>
+                    <Row className='mb-2'>
+                      <Col>
+                        {children
+                          ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined, AppendColumn })
+                          : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} AppendColumn={AppendColumn} />}
+                      </Col>
+
+                      {options.length - 1 === i &&
+                        <>
+                          {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+                          {form.touched[name] && typeof form.errors[name] === 'string' &&
+                            <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
+                        </>}
+                    </Row>
+                  </div>
+                )
+              })}
             </>
           )
         }}
@@ -992,7 +753,108 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
   )
 }
 
-const StorageKeyPrefixContext = createContext()
+export function Range ({
+  label, groupClassName, hint, min, max, step = 1, onChange,
+  suffix, allOption, labels, ...props
+}) {
+  const [field, meta, helpers] = useField(props)
+  const isAll = allOption && field.value == null
+  const sliderMin = allOption ? min - step : min
+
+  // Clamp value when min/max changes
+  useEffect(() => {
+    if (field.value == null) return
+    if (field.value < min) {
+      helpers.setValue(min)
+    } else if (field.value > max) {
+      helpers.setValue(max)
+    }
+  }, [min, max])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', columnGap: '1rem', alignItems: 'center' }}>
+        {allOption
+          ? <span className='text-muted' style={{ whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
+          : <small className='text-muted text-monospace'>{min}</small>}
+        <BootstrapForm.Range
+          {...field}
+          {...props}
+          min={sliderMin}
+          max={max}
+          step={step}
+          value={isAll ? sliderMin : field.value}
+          onChange={(e) => {
+            const val = Number(e.target.value)
+            if (allOption && val <= sliderMin) {
+              helpers.setValue(null)
+            } else {
+              helpers.setValue(val)
+            }
+            onChange && onChange(e)
+          }}
+        />
+        <small className='text-muted text-monospace'>{max}</small>
+        <InputGroup className='flex-nowrap' style={{ width: 'auto' }}>
+          {isAll
+            ? <span className='form-control px-2' style={{ width: '4rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25em' }}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
+            : <BootstrapForm.Control
+                type='number'
+                min={min}
+                max={max}
+                step={step}
+                value={field.value}
+                className='text-end hide-spinners px-2'
+                style={{ width: '4rem' }}
+                onChange={(e) => {
+                  const val = Number(e.target.value)
+                  if (!isNaN(val)) {
+                    helpers.setValue(val)
+                  }
+                  onChange && onChange(e)
+                }}
+                onBlur={(e) => {
+                  const val = Number(e.target.value)
+                  if (!isNaN(val)) {
+                    helpers.setValue(Math.min(max, Math.max(min, val)))
+                  }
+                  field.onBlur(e)
+                }}
+              />}
+          {suffix && <InputGroup.Text>{suffix.trim()}</InputGroup.Text>}
+        </InputGroup>
+        {labels?.length > 0 && (
+          <div className='position-relative' style={{ gridColumn: 2, height: '1.2em' }}>
+            {labels.map(({ value, label: tickLabel }) => {
+              const pct = ((value - sliderMin) / (max - sliderMin)) * 100
+              return (
+                <span
+                  key={value}
+                  className='text-muted'
+                  style={{
+                    position: 'absolute',
+                    left: `${pct}%`,
+                    transform: 'translateX(-50%)',
+                    fontSize: '80%',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {tickLabel}
+                </span>
+              )
+            })}
+          </div>
+        )}
+      </div>
+      {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+      <BootstrapForm.Control.Feedback className='d-block' type='invalid'>
+        {meta.touched && meta.error}
+      </BootstrapForm.Control.Feedback>
+    </FormGroup>
+  )
+}
+
+export const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, validate, schema, onSubmit, children, initialError, validateImmediately,
@@ -1025,15 +887,14 @@ export function Form ({
     })
   }, [storageKeyPrefix])
 
-  const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
-    const variables = { amount, ...values }
+  const onSubmitInner = useCallback(async (values, ...args) => {
     if (requireSession && !me) {
       throw new SessionRequiredError()
     }
 
     try {
       if (onSubmit) {
-        await onSubmit(variables, ...args)
+        await onSubmit(values, ...args)
       }
     } catch (err) {
       console.log(err.message, err)
@@ -1291,33 +1152,6 @@ function PasswordHider ({ onClick, showPass }) {
   )
 }
 
-function QrPassword ({ value }) {
-  const showModal = useShowModal()
-  const toaster = useToast()
-
-  const showQr = useCallback(() => {
-    showModal(close => (
-      <div>
-        <p className='line-height-md text-muted'>Import this passphrase into another device by navigating to device sync settings and scanning this QR code</p>
-        <div className='d-block p-3 mx-auto' style={{ background: 'white', maxWidth: '300px' }}>
-          <QRCodeSVG className='h-auto mw-100' value={value} size={300} imageSettings={qrImageSettings} />
-        </div>
-      </div>
-    ))
-  }, [toaster, value, showModal])
-
-  return (
-    <>
-      <InputGroup.Text
-        style={{ cursor: 'pointer' }}
-        onClick={showQr}
-      >
-        <QrIcon height={16} width={16} />
-      </InputGroup.Text>
-    </>
-  )
-}
-
 function PasswordScanner ({ onScan, text }) {
   const showModal = useShowModal()
   const toaster = useToast()
@@ -1338,8 +1172,10 @@ function PasswordScanner ({ onScan, text }) {
                 <Scanner
                   formats={['qr_code']}
                   onScan={([{ rawValue: result }]) => {
-                    onScan(result)
-                    onClose()
+                    if (result) {
+                      onScan(result)
+                      onClose()
+                    }
                   }}
                   styles={{
                     video: {
@@ -1354,6 +1190,7 @@ function PasswordScanner ({ onScan, text }) {
                     }
                     onClose()
                   }}
+                  components={{ audio: false }}
                 />
               )}
             </div>
@@ -1380,12 +1217,12 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: ini
         {copy && (
           <CopyButton icon value={field?.value} />
         )}
-        {qr && (readOnly
-          ? <QrPassword value={field?.value} />
-          : <PasswordScanner
-              text="Where'd you learn to square dance?"
-              onScan={v => helpers.setValue(v)}
-            />)}
+        {qr && (
+          <PasswordScanner
+            text="Where'd you learn to square dance?"
+            onScan={v => helpers.setValue(v)}
+          />
+        )}
         {append}
       </>
     )
@@ -1424,6 +1261,7 @@ export function MultiInput ({
   onChange, autoFocus, hideError, inputType = 'text',
   ...props
 }) {
+  const formik = useFormikContext()
   const [inputs, setInputs] = useState(new Array(length).fill(''))
   const inputRefs = useRef(new Array(length).fill(null))
   const [, meta, helpers] = useField({ name })
@@ -1522,7 +1360,7 @@ export function MultiInput ({
         ))}
       </div>
       <div>
-        {hideError && meta.touched && meta.error && ( // custom error message is showed if hideError is true
+        {hideError && formik.submitCount > 0 && meta.touched && meta.error && ( // custom error message is showed if hideError is true
           <BootstrapForm.Control.Feedback type='invalid' className='d-block'>
             {meta.error}
           </BootstrapForm.Control.Feedback>

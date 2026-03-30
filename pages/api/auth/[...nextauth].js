@@ -327,38 +327,43 @@ export const getAuthOptions = (req, res) => ({
       return user
     },
     useVerificationToken: async ({ identifier, token }) => {
-      // we need to find the most recent verification request for this email/identifier
-      const verificationRequest = await prisma.verificationToken.findFirst({
-        where: {
-          identifier,
-          attempts: {
-            lt: 2 // count starts at 0
-          }
-        },
-        orderBy: {
-          createdAt: 'desc'
+      return await prisma.$transaction(async (tx) => {
+        const [verificationRequest] = await tx.$queryRaw`
+          UPDATE verification_requests
+          SET attempts = attempts + 1
+          FROM (
+            SELECT id FROM verification_requests
+            WHERE identifier = ${identifier}
+            AND created_at > NOW() - INTERVAL '5 minutes'
+            -- we need to find the most recent verification request for this email/identifier
+            ORDER BY created_at DESC
+            LIMIT 1
+            FOR UPDATE
+          ) for_update
+          WHERE verification_requests.id = for_update.id
+          RETURNING *
+        `
+        if (!verificationRequest) throw new Error('No verification request found')
+
+        if (verificationRequest.token === token) {
+          // correct token was entered, delete the verification request because we no longer need it
+          await tx.verificationToken.delete({
+            where: { id: verificationRequest.id }
+          })
+          return verificationRequest
         }
+
+        if (verificationRequest.attempts >= 3) {
+          // too many attempts, delete the verification request and redirect to error page by throwing an error
+          await tx.verificationToken.delete({
+            where: { id: verificationRequest.id }
+          })
+          throw new Error('too many attempts')
+        }
+
+        // wrong code but can try again
+        return null
       })
-
-      if (!verificationRequest) throw new Error('No verification request found')
-
-      if (verificationRequest.token === token) { // if correct delete the token and continue
-        await prisma.verificationToken.delete({
-          where: { id: verificationRequest.id }
-        })
-        return verificationRequest
-      }
-
-      await prisma.verificationToken.update({
-        where: { id: verificationRequest.id },
-        data: { attempts: { increment: 1 } }
-      })
-
-      await prisma.verificationToken.deleteMany({
-        where: { id: verificationRequest.id, attempts: { gte: 2 } }
-      })
-
-      return null
     }
   },
   session: {
@@ -408,7 +413,9 @@ function generateRandomString (length = 6, charset = BECH32_CHARSET) {
   const bytes = randomBytes(length)
   let result = ''
 
-  // Map each byte to a character in the charset
+  // Even though we're creating biased numbers by mapping each byte to a bech32 character,
+  // this is still secure because it provides 30 bits of security (32^6 = 2^30)
+  // and we are limiting the number of attempts.
   for (let i = 0; i < length; i++) {
     result += charset[bytes[i] % charset.length]
   }

@@ -46,15 +46,15 @@ export default function AccordianItem ({ header, body, className, headerColor = 
     <Accordion defaultActiveKey={activeKey} activeKey={activeKey} onSelect={handleOnSelect}>
       <ContextAwareToggle show={show} eventKey={KEY_ID} headerColor={headerColor}><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
       <Accordion.Collapse eventKey={KEY_ID} className={classNames('mt-2', className)}>
-        <div>{body}</div>
+        <div key={activeKey}>{body}</div>
       </Accordion.Collapse>
     </Accordion>
   )
 }
 
-export function AccordianCard ({ header, children, show }) {
+export function AccordianCard ({ header, children, show, className }) {
   return (
-    <Accordion defaultActiveKey={show ? '0' : undefined}>
+    <Accordion defaultActiveKey={show ? '0' : undefined} className={className}>
       <Accordion.Item eventKey='0'>
         <Accordion.Header>{header}</Accordion.Header>
         <Accordion.Body>

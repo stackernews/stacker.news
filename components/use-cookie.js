@@ -1,9 +1,25 @@
-import { useCallback, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import * as cookie from 'cookie'
 import { cookieOptions } from '@/lib/auth'
 
+const CookiesContext = createContext({})
+
+/**
+ * Provides cookies for SSR hydration.
+ * IMPORTANT: Only pass non-httpOnly cookies here. Passing httpOnly cookies
+ * would expose them to JavaScript and defeat their security purpose.
+ */
+export function CookiesProvider ({ ssrPublicCookies = {}, children }) {
+  return (
+    <CookiesContext.Provider value={ssrPublicCookies}>
+      {children}
+    </CookiesContext.Provider>
+  )
+}
+
 export default function useCookie (name) {
-  const [value, setValue] = useState(null)
+  const ssrCookies = useContext(CookiesContext)
+  const [value, setValue] = useState(ssrCookies[name] ?? null)
 
   useEffect(() => {
     const checkCookie = () => {
@@ -17,7 +33,7 @@ export default function useCookie (name) {
     // see https://developer.mozilla.org/en-US/docs/Web/API/Cookie_Store_API
     const interval = setInterval(checkCookie, 1000)
     return () => clearInterval(interval)
-  }, [value])
+  }, [name, value])
 
   const set = useCallback((value, options = {}) => {
     document.cookie = cookie.serialize(name, value, { ...cookieOptions(), ...options })
@@ -25,7 +41,7 @@ export default function useCookie (name) {
   }, [name])
 
   const remove = useCallback(() => {
-    document.cookie = value.serialize(name, '', { expires: 0, maxAge: 0 })
+    document.cookie = cookie.serialize(name, '', { expires: 0, maxAge: 0 })
     setValue(null)
   }, [name])
 

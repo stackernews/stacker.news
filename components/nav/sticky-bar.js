@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react'
 import styles from '@/components/header.module.css'
 import { Container, Nav, Navbar } from 'react-bootstrap'
-import { NavPrice, MeCorner, AnonCorner, SearchItem, Back, NavWalletSummary, Brand, SignUpButton } from './common'
+import { NavPrice, SearchItem, Back, NavWalletSummary, Brand, SignUpButton, RightCorner } from './common'
 import { useMe } from '@/components/me'
 import classNames from 'classnames'
+import { CommentsNavigator, useCommentsNavigatorContext } from '../use-comments-navigator'
 
 export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey }) {
   const ref = useRef()
   const { me } = useMe()
+  const { navigator, commentCount } = useCommentsNavigatorContext()
 
   useEffect(() => {
     const stick = () => {
@@ -37,19 +39,21 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
             <Brand className='me-1' />
             <SearchItem className='me-0 ms-2' />
             <NavPrice />
-            {me ? <MeCorner dropNavKey={dropNavKey} me={me} className='d-flex' /> : <AnonCorner path={path} className='d-flex' />}
+            <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
+            <RightCorner dropNavKey={dropNavKey} path={path} className='d-flex' />
           </Nav>
         </Navbar>
       </Container>
       <Container className='px-sm-0 d-block d-md-none'>
         <Navbar className='py-0'>
           <Nav
-            className={classNames(styles.navbarNav, 'justify-content-between')}
+            className={classNames(styles.navbarNav)}
             activeKey={topNavKey}
           >
             <Back />
-            <NavPrice className='flex-shrink-1 flex-grow-0' />
-            {me ? <NavWalletSummary className='px-2' /> : <SignUpButton width='fit-content' />}
+            <NavPrice className='flex-shrink-1' />
+            <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
+            {me ? <NavWalletSummary className='px-2' /> : <SignUpButton className='ms-auto' width='fit-content' />}
           </Nav>
         </Navbar>
       </Container>

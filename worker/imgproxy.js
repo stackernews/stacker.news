@@ -3,7 +3,7 @@ import { extractUrls } from '@/lib/md'
 import { isJob } from '@/lib/item'
 import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
-import { fetchWithTimeout } from '@/lib/fetch'
+import { snFetch } from '@/lib/fetch'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
@@ -15,6 +15,7 @@ if (!imgProxyEnabled) {
 const IMGPROXY_URL = process.env.IMGPROXY_URL_DOCKER || process.env.NEXT_PUBLIC_IMGPROXY_URL
 const IMGPROXY_SALT = process.env.IMGPROXY_SALT
 const IMGPROXY_KEY = process.env.IMGPROXY_KEY
+const MEDIA_CHECK_URL = process.env.MEDIA_CHECK_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_CHECK_URL
 
 const cache = new Map()
 
@@ -31,9 +32,9 @@ const imageUrlMatchers = [
   u => u.host === 'i.imgur.com'
 ]
 const exclude = [
-  u => u.protocol === 'mailto:',
+  u => process.env.NODE_ENV === 'production' && u.protocol !== 'https:',
   u => u.host.endsWith('.onion') || u.host.endsWith('.b32.ip') || u.host.endsWith('.loki'),
-  u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at'].some(h => h === u.host),
+  u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at', 'xcancel.com'].some(h => h === u.host),
   u => u.host === 'stacker.news',
   u => u.host === 'news.ycombinator.com',
   u => u.host === 'www.youtube.com' || u.host === 'youtu.be',
@@ -144,12 +145,27 @@ const isMediaURL = async (url, { forceFetch }) => {
     return false
   }
 
-  let isMedia
+  let isMedia = false
 
-  // first run HEAD with small timeout
+  // primary: media check service
+  try {
+    console.log('[imgproxy] media check service url:', `${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
+    const res = await fetch(`${MEDIA_CHECK_URL}/${encodeURIComponent(url)}`)
+    if (res.ok) {
+      const data = await res.json()
+      isMedia = data.isImage || data.isVideo
+      cache.set(url, isMedia)
+      console.log('[imgproxy] media check service response:', data)
+      return isMedia
+    }
+  } catch (err) {
+    console.log('[imgproxy] media check service failed, falling back to direct fetch:', url, err)
+  }
+
+  // fallback: first run HEAD with small timeout
   try {
     // https://stackoverflow.com/a/68118683
-    const res = await fetchWithTimeout(url, { timeout: 1000, method: 'HEAD' })
+    const res = await snFetch(url, { timeout: 1000, method: 'HEAD' })
     const buf = await res.blob()
     isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
   } catch (err) {
@@ -165,7 +181,7 @@ const isMediaURL = async (url, { forceFetch }) => {
 
   // if not known yet, run GET request with longer timeout
   try {
-    const res = await fetchWithTimeout(url, { timeout: 10000 })
+    const res = await snFetch(url, { timeout: 10000 })
     const buf = await res.blob()
     isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
   } catch (err) {
@@ -187,12 +203,12 @@ const sign = (target) => {
 }
 
 export async function processCrop ({ photoId, cropData }) {
-  const { x, y, width, height, originalWidth, originalHeight, scale } = cropData
+  const { x, y, width, height, originalWidth, originalHeight } = cropData
   const cropWidth = Math.round(originalWidth * width)
   const cropHeight = Math.round(originalHeight * height)
 
-  const centerX = x + width / scale
-  const centerY = y + height / scale
+  const centerX = x + width / 2
+  const centerY = y + height / 2
 
   const size = 200 // 200px avatar size
 

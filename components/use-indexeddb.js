@@ -1,300 +1,180 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useMe } from '@/components/me'
+import { useCallback, useMemo } from 'react'
 
-export function getDbName (userId, name) {
-  return `app:storage:${userId ?? ''}${name ? `:${name}` : ''}`
-}
+const VERSION = 2
 
-const DEFAULT_OPTIONS = { keyPath: 'id', autoIncrement: true }
-const DEFAULT_INDICES = []
-const DEFAULT_VERSION = 1
+export function useIndexedDB (dbName) {
+  const { me } = useMe()
+  if (!dbName) dbName = me?.id ? `app:storage:${me.id}` : 'app:storage'
 
-function useIndexedDB ({ dbName, storeName, options = DEFAULT_OPTIONS, indices = DEFAULT_INDICES, version = DEFAULT_VERSION }) {
-  const [db, setDb] = useState(null)
-  const [error, setError] = useState(null)
-  const [notSupported, setNotSupported] = useState(false)
-  const operationQueue = useRef([])
-
-  const handleError = useCallback((error) => {
-    console.error('IndexedDB error:', error)
-    setError(error)
-  }, [])
-
-  const processQueue = useCallback((db) => {
-    if (!db) return
+  const set = useCallback(async (storeName, key, value) => {
+    const db = await _open(dbName, VERSION)
 
     try {
-      // try to run a noop to see if the db is ready
-      db.transaction(storeName)
-      while (operationQueue.current.length > 0) {
-        const operation = operationQueue.current.shift()
-        // if the db is the same as the one we're processing, run the operation
-        // else, we'll just clear the operation queue
-        // XXX this is a consquence of using a ref to store the queue and should be fixed
-        if (dbName === db.name) {
-          operation(db)
-        }
-      }
-    } catch (error) {
-      handleError(error)
+      return await _set(db, storeName, key, value)
+    } finally {
+      db.close()
     }
-  }, [dbName, storeName, handleError, operationQueue])
+  }, [dbName])
 
-  useEffect(() => {
-    let isMounted = true
+  const get = useCallback(async (storeName, key) => {
+    const db = await _open(dbName, VERSION)
+
+    try {
+      return await _get(db, storeName, key)
+    } finally {
+      db.close()
+    }
+  }, [dbName])
+
+  const deleteDb = useCallback(async () => {
+    return await _delete(dbName)
+  }, [dbName])
+
+  const open = useCallback(async () => {
+    return await _open(dbName, VERSION)
+  }, [dbName])
+
+  return useMemo(() => ({ set, get, deleteDb, open }), [set, get, deleteDb, open])
+}
+
+async function _open (dbName, version = 1) {
+  return await new Promise((resolve, reject) => {
+    if (typeof window.indexedDB === 'undefined') {
+      return reject(new IndexedDBOpenError('IndexedDB unavailable'))
+    }
+
+    const request = window.indexedDB.open(dbName, version)
+
+    request.onupgradeneeded = (event) => {
+      try {
+        const db = event.target.result
+        if (!db.objectStoreNames.contains('vault')) db.createObjectStore('vault')
+        if (db.objectStoreNames.contains('wallet_logs')) db.deleteObjectStore('wallet_logs')
+      } catch (error) {
+        reject(new IndexedDBOpenError(`upgrade failed: ${error?.message}`))
+      }
+    }
+
+    request.onerror = (event) => {
+      reject(new IndexedDBOpenError(request.error?.message))
+    }
+
+    request.onsuccess = (event) => {
+      const db = request.result
+      resolve(db)
+    }
+  })
+}
+
+async function _set (db, storeName, key, value) {
+  return await new Promise((resolve, reject) => {
     let request
     try {
-      if (!window.indexedDB) {
-        console.log('IndexedDB is not supported')
-        setNotSupported(true)
-        return
-      }
-
-      request = window.indexedDB.open(dbName, version)
-
-      request.onerror = (event) => {
-        handleError(new Error('Error opening database'))
-      }
-
-      request.onsuccess = (event) => {
-        if (isMounted) {
-          const database = event.target.result
-          database.onversionchange = () => {
-            database.close()
-            setDb(null)
-            handleError(new Error('Database is outdated, please reload the page'))
-          }
-          setDb(database)
-          processQueue(database)
-        }
-      }
-
-      request.onupgradeneeded = (event) => {
-        const database = event.target.result
-        try {
-          const store = database.createObjectStore(storeName, options)
-
-          indices.forEach(index => {
-            store.createIndex(index.name, index.keyPath, index.options)
-          })
-        } catch (error) {
-          handleError(new Error('Error upgrading database: ' + error.message))
-        }
-      }
+      request = db
+        .transaction(storeName, 'readwrite')
+        .objectStore(storeName)
+        .put(value, key)
     } catch (error) {
-      handleError(new Error('Error opening database: ' + error.message))
+      return reject(new IndexedDBSetError(error?.message))
     }
 
-    return () => {
-      isMounted = false
-      if (db) {
-        db.close()
-      }
-    }
-  }, [dbName, storeName, version, indices, options, handleError, processQueue])
-
-  const queueOperation = useCallback((operation) => {
-    if (notSupported) {
-      return Promise.reject(new Error('IndexedDB is not supported'))
-    }
-    if (error) {
-      return Promise.reject(new Error('Database error: ' + error.message))
+    request.onerror = (event) => {
+      reject(new IndexedDBSetError(event.target?.error?.message))
     }
 
-    return new Promise((resolve, reject) => {
-      const wrappedOperation = (db) => {
-        try {
-          const result = operation(db)
-          resolve(result)
-        } catch (error) {
-          reject(error)
-        }
-      }
-
-      operationQueue.current.push(wrappedOperation)
-      processQueue(db)
-    })
-  }, [processQueue, db, notSupported, error])
-
-  const add = useCallback((value) => {
-    return queueOperation((db) => {
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readwrite')
-        const store = transaction.objectStore(storeName)
-        const request = store.add(value)
-
-        request.onerror = () => reject(new Error('Error adding data'))
-        request.onsuccess = () => resolve(request.result)
-      })
-    })
-  }, [queueOperation, storeName])
-
-  const get = useCallback((key) => {
-    return queueOperation((db) => {
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readonly')
-        const store = transaction.objectStore(storeName)
-        const request = store.get(key)
-
-        request.onerror = () => reject(new Error('Error getting data'))
-        request.onsuccess = () => resolve(request.result ? request.result : undefined)
-      })
-    })
-  }, [queueOperation, storeName])
-
-  const getAll = useCallback(() => {
-    return queueOperation((db) => {
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readonly')
-        const store = transaction.objectStore(storeName)
-        const request = store.getAll()
-
-        request.onerror = () => reject(new Error('Error getting all data'))
-        request.onsuccess = () => resolve(request.result)
-      })
-    })
-  }, [queueOperation, storeName])
-
-  const set = useCallback((key, value) => {
-    return queueOperation((db) => {
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readwrite')
-        const store = transaction.objectStore(storeName)
-        const request = store.put(value, key)
-
-        request.onerror = () => reject(new Error('Error setting data'))
-        request.onsuccess = () => resolve(request.result)
-      })
-    })
-  }, [queueOperation, storeName])
-
-  const remove = useCallback((key) => {
-    return queueOperation((db) => {
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readwrite')
-        const store = transaction.objectStore(storeName)
-        const request = store.delete(key)
-
-        request.onerror = () => reject(new Error('Error removing data'))
-        request.onsuccess = () => resolve()
-      })
-    })
-  }, [queueOperation, storeName])
-
-  const clear = useCallback((indexName = null, query = null) => {
-    return queueOperation((db) => {
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readwrite')
-        const store = transaction.objectStore(storeName)
-
-        if (!query) {
-          // Clear all data if no query is provided
-          const request = store.clear()
-          request.onerror = () => reject(new Error('Error clearing all data'))
-          request.onsuccess = () => resolve()
-        } else {
-          // Clear data based on the query
-          const index = indexName ? store.index(indexName) : store
-          const request = index.openCursor(query)
-          let deletedCount = 0
-
-          request.onerror = () => reject(new Error('Error clearing data based on query'))
-          request.onsuccess = (event) => {
-            const cursor = event.target.result
-            if (cursor) {
-              const deleteRequest = cursor.delete()
-              deleteRequest.onerror = () => reject(new Error('Error deleting item'))
-              deleteRequest.onsuccess = () => {
-                deletedCount++
-                cursor.continue()
-              }
-            } else {
-              resolve(deletedCount)
-            }
-          }
-        }
-      })
-    })
-  }, [queueOperation, storeName])
-
-  const getByIndex = useCallback((indexName, key) => {
-    return queueOperation((db) => {
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readonly')
-        const store = transaction.objectStore(storeName)
-        const index = store.index(indexName)
-        const request = index.get(key)
-
-        request.onerror = () => reject(new Error('Error getting data by index'))
-        request.onsuccess = () => resolve(request.result)
-      })
-    })
-  }, [queueOperation, storeName])
-
-  const getAllByIndex = useCallback((indexName, query, direction = 'next', limit = Infinity) => {
-    return queueOperation((db) => {
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readonly')
-        const store = transaction.objectStore(storeName)
-        const index = store.index(indexName)
-        const request = index.openCursor(query, direction)
-        const results = []
-
-        request.onerror = () => reject(new Error('Error getting data by index'))
-        request.onsuccess = (event) => {
-          const cursor = event.target.result
-          if (cursor && results.length < limit) {
-            results.push(cursor.value)
-            cursor.continue()
-          } else {
-            resolve(results)
-          }
-        }
-      })
-    })
-  }, [queueOperation, storeName])
-
-  const getPage = useCallback((page = 1, pageSize = 10, indexName = null, query = null, direction = 'next') => {
-    return queueOperation((db) => {
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readonly')
-        const store = transaction.objectStore(storeName)
-        const target = indexName ? store.index(indexName) : store
-        const request = target.openCursor(query, direction)
-        const results = []
-        let skipped = 0
-        let hasMore = false
-
-        request.onerror = () => reject(new Error('Error getting page'))
-        request.onsuccess = (event) => {
-          const cursor = event.target.result
-          if (cursor) {
-            if (skipped < (page - 1) * pageSize) {
-              skipped++
-              cursor.continue()
-            } else if (results.length < pageSize) {
-              results.push(cursor.value)
-              cursor.continue()
-            } else {
-              hasMore = true
-            }
-          }
-          if (hasMore || !cursor) {
-            const countRequest = target.count()
-            countRequest.onsuccess = () => {
-              resolve({
-                data: results,
-                total: countRequest.result,
-                hasMore
-              })
-            }
-            countRequest.onerror = () => reject(new Error('Error counting items'))
-          }
-        }
-      })
-    })
-  }, [queueOperation, storeName])
-
-  return { add, get, getAll, set, remove, clear, getByIndex, getAllByIndex, getPage, error, notSupported }
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+  })
 }
 
-export default useIndexedDB
+async function _get (db, storeName, key) {
+  return await new Promise((resolve, reject) => {
+    let request
+    try {
+      request = db
+        .transaction(storeName)
+        .objectStore(storeName)
+        .get(key)
+    } catch (error) {
+      return reject(new IndexedDBGetError(error?.message))
+    }
+
+    request.onerror = (event) => {
+      reject(new IndexedDBGetError(event.target?.error?.message))
+    }
+
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+  })
+}
+
+async function _delete (dbName) {
+  return await new Promise((resolve, reject) => {
+    if (typeof window.indexedDB === 'undefined') {
+      return reject(new IndexedDBOpenError('IndexedDB unavailable'))
+    }
+
+    const request = window.indexedDB.deleteDatabase(dbName)
+
+    request.onerror = (event) => {
+      reject(new IndexedDBDeleteError(event.target?.error?.message))
+    }
+
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+  })
+}
+
+export async function requestPersistentStorage () {
+  try {
+    if (!('persisted' in navigator.storage) || !('persist' in navigator.storage)) {
+      throw new Error('persistent storage not supported')
+    }
+    const persisted = await navigator.storage.persisted()
+    if (!persisted) {
+      // browser might prompt the user to allow persistent storage
+      return await navigator.storage.persist()
+    }
+  } catch (err) {
+    console.error('failed to request persistent storage:', err)
+  }
+}
+
+class IndexedDBError extends Error {
+  constructor (message) {
+    super(message)
+    this.name = 'IndexedDBError'
+  }
+}
+
+class IndexedDBOpenError extends IndexedDBError {
+  constructor (message) {
+    super(message)
+    this.name = 'IndexedDBOpenError'
+  }
+}
+
+class IndexedDBSetError extends IndexedDBError {
+  constructor (message) {
+    super(message)
+    this.name = 'IndexedDBSetError'
+  }
+}
+
+class IndexedDBGetError extends IndexedDBError {
+  constructor (message) {
+    super(message)
+    this.name = 'IndexedDBGetError'
+  }
+}
+
+class IndexedDBDeleteError extends IndexedDBError {
+  constructor (message) {
+    super(message)
+    this.name = 'IndexedDBDeleteError'
+  }
+}

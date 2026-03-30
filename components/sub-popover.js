@@ -23,7 +23,7 @@ export default function SubPopover ({ sub, children }) {
         ? <TerritoryInfoSkeleton />
         : !data.sub
             ? <h1 className={classNames(errorStyles.status, errorStyles.describe)}>SUB NOT FOUND</h1>
-            : <TerritoryInfo sub={{ ...data.sub, desc: truncateString(data.sub.desc, 280) }} />}
+            : <TerritoryInfo truncated sub={{ ...data.sub, desc: truncateString(data.sub.desc, 280) }} />}
     />
   )
 }

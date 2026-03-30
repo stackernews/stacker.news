@@ -1,13 +1,16 @@
 import { gql } from 'graphql-tag'
+import { LIMIT } from '@/lib/cursor'
 
 export default gql`
   extend type Query {
     sub(name: String): Sub
     subLatestPost(name: String!): String
-    subs: [Sub!]!
-    topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
-    userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
-    subSuggestions(q: String!, limit: Limit): [Sub!]!
+    subs(subNames: [String!]): [Sub!]!
+    activeSubs: [Sub!]!
+    topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
+    userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
+    mySubscribedSubs(cursor: String): Subs
+    subSuggestions(q: String!, limit: Limit! = 5): [Sub!]!
   }
 
   type Subs {
@@ -18,17 +21,19 @@ export default gql`
   extend type Mutation {
     upsertSub(oldName: String, name: String!, desc: String, baseCost: Int!,
       replyCost: Int!,
+      postsSatsFilter: Int,
       postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
-    paySub(name: String!): SubPaidAction!
+      nsfw: Boolean!): PayIn!
+    paySub(name: String!): PayIn!
     toggleMuteSub(name: String!): Boolean!
     toggleSubSubscription(name: String!): Boolean!
     transferTerritory(subName: String!, userName: String!): Sub
     unarchiveTerritory(name: String!, desc: String, baseCost: Int!,
-      replyCost: Int!, postTypes: [String!]!,
+      replyCost: Int!, postsSatsFilter: Int,
+      postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, nsfw: Boolean!): SubPaidAction!
+      nsfw: Boolean!): PayIn!
   }
 
   type Sub {
@@ -37,6 +42,8 @@ export default gql`
     userId: Int!
     user: User!
     desc: String
+    lexicalState: String
+    html: String
     updatedAt: Date!
     postTypes: [String!]!
     allowFreebies: Boolean!
@@ -48,13 +55,11 @@ export default gql`
     billPaidUntil: Date
     baseCost: Int!
     replyCost: Int!
+    postsSatsFilter: Int!
     status: String!
-    moderated: Boolean!
-    moderatedCount: Int!
     meMuteSub: Boolean!
     nsfw: Boolean!
-    nposts(when: String, from: String, to: String): Int!
-    ncomments(when: String, from: String, to: String): Int!
+    nitems(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
     domain: Domain
     optional: SubOptional!

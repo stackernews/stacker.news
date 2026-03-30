@@ -1,11 +1,11 @@
 <p align="center">
 <a href="https://stacker.news">
-<img height="50" alt="Internet Communities with Bitcoin Economies" src="https://github.com/stackernews/stacker.news/assets/34140557/a8ccc5dc-c453-46dc-be74-60dd0a42ce09">
+<img height="50" alt="sn banner" src="https://github.com/stackernews/stacker.news/assets/34140557/a8ccc5dc-c453-46dc-be74-60dd0a42ce09">
 </a>
 </p>
 
 
-- Stacker News is trying to fix online communities with economics
+- Stacker News moderates forums with money
 - What You See is What We Ship (look ma, I invented an initialism)
 - 100% FOSS
 - We pay bitcoin for PRs, issues, documentation, code reviews and more
@@ -34,6 +34,34 @@ Go to [localhost:3000](http://localhost:3000).
     - If you're running MacOS or Windows, I ***highly recommend***  using [OrbStack](https://orbstack.dev/) instead of Docker Desktop
 - Please make sure that at least 10 GB of free space is available, otherwise you may encounter issues while setting up the development environment.
 
+<br>
+
+### GitHub Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stackernews/stacker.news)
+
+You can run Stacker News on Github Codespaces
+
+#### Setup
+
+1. Open the repository on GitHub and click the **"Code"** button
+2. Select the Codespaces tab and create a new codespace.
+   - You can also configure your codespace to run select services based on  `COMPOSE_PROFILES` as well as in a different region and machine type by clicking "..." and selecting "New with options...". Check [Modifying services](#modifying-services) for more information on `COMPOSE_PROFILES`
+3. Wait for the environment to set up (this may take several minutes the first time)
+4. Once ready, you'll see a terminal with the environment initialized
+
+#### Usage
+
+After the codespace is created, the development environment will be automatically set up and services started.
+
+Access your running application at the URL shown in the forwarded ports panel (typically `https://your-codespace-name-3000.app.github.dev`).
+
+#### Port Configuration
+
+⚠️ **Important**: For various internal services and external access to work properly, you must set forwarded ports to **Public** in the Ports tab:
+
+1. In your codespace, look for the "PORTS" tab in the bottom panel
+2. Click the lock icon to change visibility from "Private" to "Public"
 <br>
 
 ## Usage
@@ -136,22 +164,19 @@ You can read more about [docker compose override files](https://docs.docker.com/
 
 #### Enabling semantic search
 
-To enable semantic search that uses text embeddings, run `./scripts/nlp-setup`.
+Semantic search is now enabled automatically in dev when the `search` profile is active.
 
-Before running `./scripts/nlp-setup`, ensure the following are true:
-
-- search is enabled in `COMPOSE_PROFILES`:
+- Ensure `search` is in `COMPOSE_PROFILES`:
 
     ```.env
     COMPOSE_PROFILES=...,search,...
     ```
-- The default opensearch index (default name=`item`) is created and done indexing. This should happen the first time you run `./sndev start`, but it may take a few minutes for indexing to complete.
+- Start your environment with `./sndev start`.
+- On first boot, OpenSearch downloads and deploys the embedding model, then creates a neural-ready index. This can take a couple minutes.
 
-After `nlp-setup` is done, restart your containers to enable semantic search:
+No manual script run or container restart is required for the default setup.
 
-```
-> ./sndev restart
-```
+If you need to manually repair or recreate semantic search resources, restart from a fresh dev volume with `./sndev delete` and then run `./sndev start`.
 
 #### Local DNS via dnsmasq
 
@@ -170,6 +195,7 @@ To add/remove DNS records you can now use `./sndev domains dns`. More on this [h
 # Table of Contents
 - [Getting started](#getting-started)
     - [Installation](#installation)
+        - [GitHub Codespaces](#github-codespaces)
     - [Usage](#usage)
         - [Modifying services](#modifying-services)
             - [Running specific services](#running-specific-services)
@@ -508,7 +534,7 @@ In addition, we run other critical services the above services interact with lik
 
 To ensure stackers balances are kept sane, some wallet updates are run in [serializable transactions](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE) at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in [plpgsql](https://www.postgresql.org/docs/current/plpgsql.html) stored procedures and can be found in the `prisma/migrations` folder.
 
-*UPDATE*: Most wallet updates are now run in [read committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED) transactions. See `api/paidAction/README.md` for more information.
+*UPDATE*: Most wallet updates are now run in [read committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED) transactions. See `api/payIn/README.md` for more information.
 
 <br>
 

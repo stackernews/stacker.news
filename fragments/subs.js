@@ -28,11 +28,10 @@ export const SUB_FIELDS = gql`
     billPaidUntil
     baseCost
     replyCost
+    postsSatsFilter
     userId
     desc
     status
-    moderated
-    moderatedCount
     meMuteSub
     meSubscription
     nsfw
@@ -46,6 +45,8 @@ export const SUB_FULL_FIELDS = gql`
   ${STREAK_FIELDS}
   fragment SubFullFields on Sub {
     ...SubFields
+    lexicalState
+    html
     user {
       name
       id
@@ -73,9 +74,17 @@ export const SUB_FULL = gql`
 
 export const SUBS = gql`
   ${SUB_FIELDS}
+  query Subs($subNames: [String!]) {
+    subs(subNames: $subNames) {
+      ...SubFields
+    }
+  }`
 
-  query Subs {
-    subs {
+export const ACTIVE_SUBS = gql`
+  ${SUB_FIELDS}
+
+  query ActiveSubs {
+    activeSubs {
       ...SubFields
     }
   }`
@@ -102,9 +111,6 @@ export const SUB_ITEMS = gql`
         ...CommentItemExtFields @include(if: $includeComments)
         position
       }
-      ad {
-        ...ItemFields
-      }
     }
   }
 `
@@ -116,8 +122,9 @@ export const SUB_SEARCH = gql`
     sub(name: $sub) {
       ...SubFields
     }
-    search(sub: $sub, q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
+    search(q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
       cursor
+      searchSuggestion
       items {
         ...ItemFullFields
         searchTitle
@@ -141,8 +148,7 @@ export const TOP_SUBS = gql`
     topSubs(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
       subs {
         ...SubFullFields
-        ncomments(when: $when, from: $from, to: $to)
-        nposts(when: $when, from: $from, to: $to)
+        nitems(when: $when, from: $from, to: $to)
 
         optional {
           stacked(when: $when, from: $from, to: $to)

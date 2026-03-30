@@ -169,7 +169,7 @@
     height: auto;
     overflow: hidden;
     max-height: 25vh;
-    aspect-ratio: var(--aspect-ratio);
+    aspect-ratio: var(--width) / var(--height);
     margin: 0;
 }
 
@@ -226,7 +226,7 @@
     max-height: inherit;
     height: 100%;
     max-width: 100%;
-    aspect-ratio: var(--aspect-ratio);
+    aspect-ratio: var(--width) / var(--height);
 }
 
 .mediaContainer img {
@@ -241,6 +241,7 @@
 
 .text table {
     width: auto;
+    white-space: nowrap;
 }
 
 .text blockquote {
@@ -252,11 +253,18 @@
     margin-top: .25rem;
 }
 
+.text li > :is(.twitterContainer, .nostrContainer, .wavlakeWrapper, .spotifyWrapper, .onlyImages) {
+  display: inline-flex;
+  vertical-align: top;
+  width: 100%;
+}
+
 .text ul,
 .text ol {
   margin-top: 0;
   margin-bottom: 0rem;
   padding-left: 2rem;
+  max-width: calc(100% - 1rem);
 }
 
 .text ol ol,
@@ -321,7 +329,9 @@
     max-width: 320px;
 }
 
-.topLevel .videoWrapper, :global(.topLevel) .videoWrapper {
+.topLevel .videoWrapper,
+:global(.topLevel) .videoWrapper,
+:global(.topLevel) .videoWrapper {
     max-width: 640px;
     margin: 0.75rem 0;
 }
@@ -364,7 +374,9 @@
     overflow: hidden;
 }
 
-.topLevel .twitterContained, :global(.topLevel) .twitterContained {
+.topLevel .twitterContained,
+:global(.topLevel) .twitterContained,
+:global(.topLevel) .twitterContained {
     height: 200px;
 }
 
@@ -385,7 +397,9 @@
     padding-right: 12px;
 }
 
-.topLevel .tweetsSkeleton, :global(.topLevel) .tweetsSkeleton {
+.topLevel .tweetsSkeleton,
+:global(.topLevel) .tweetsSkeleton,
+:global(.topLevel) .tweetsSkeleton {
     max-width: 550px;
 }
 
@@ -400,7 +414,9 @@
     padding: 1.5rem;
 }
 
-.topLevel .tweetSkeleton, :global(.topLevel) .tweetSkeleton {
+.topLevel .tweetSkeleton,
+:global(.topLevel) .tweetSkeleton,
+:global(.topLevel) .tweetSkeleton {
     height: 200px;
 }
 

@@ -1,35 +1,59 @@
-import { useState, useEffect } from 'react'
-import { Form, Input, MarkdownInput } from '@/components/form'
+import { useEffect, useRef, useState } from 'react'
+import { Form, Input, SNInput } from '@/components/form'
 import { useRouter } from 'next/router'
-import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
-import Countdown from './countdown'
-import AdvPostForm, { AdvPostInitial } from './adv-post-form'
+import { gql, useLazyQuery } from '@apollo/client'
+import AdvPostForm from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
 import { linkSchema } from '@/lib/validate'
 import Moon from '@/svgs/moon-fill.svg'
-import { normalizeForwards } from '@/lib/form'
-import { SubSelectInitial } from './sub-select'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
-import { useMe } from './me'
 import { ItemButtonBar } from './post'
-import { UPSERT_LINK } from '@/fragments/paidAction'
-import useItemSubmit from './use-item-submit'
+import { UPSERT_LINK } from '@/fragments/payIn'
+import { usePostFormShared } from './use-post-form-shared'
 import useDebounceCallback from './use-debounce-callback'
+import { ensureProtocol } from '@/lib/url'
 
-export function LinkForm ({ item, sub, editThreshold, children }) {
+const LOOKUP_DEBOUNCE_MS = 500
+const DUPES_DEBOUNCE_MS = 500
+
+function getMeaningfulUrl (value) {
+  try {
+    const normalized = ensureProtocol(value)
+    const url = new URL(normalized)
+    return url.hostname.includes('.') || url.hostname === 'localhost' ? normalized : null
+  } catch {
+    return null
+  }
+}
+
+export function LinkForm ({ item, subs, EditInfo, children }) {
   const router = useRouter()
-  const client = useApolloClient()
-  const { me } = useMe()
-  const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareUrl = router.query.url
-  const shareTitle = router.query.title
+
+  const { initial, onSubmit, client, storageKeyPrefix, schema } = usePostFormShared({
+    item,
+    subs,
+    mutation: UPSERT_LINK,
+    schemaFn: linkSchema,
+    storageKeyPrefix: 'link',
+    extraInitialValues: {
+      url: item?.url || shareUrl || ''
+    }
+  })
+
+  const isEditing = !!item
+  const [currentTitle, setCurrentTitle] = useState(initial.title || '')
+
   // allows finer control over dupe accordian layout shift
   const [dupes, setDupes] = useState()
+  const [titleOverride, setTitleOverride] = useState()
+  const currentTitleRef = useRef(currentTitle)
+  const titleOverrideRef = useRef(titleOverride)
 
-  const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
+  const [getPageTitleAndUnshorted, { data, loading: pageTitleLoading }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
       pageTitleAndUnshorted(url: $url) {
         title
@@ -43,70 +67,43 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         ...ItemFields
       }
     }`)
-  const [getRelated, { data: relatedData }] = useLazyQuery(gql`
-    ${ITEM_FIELDS}
-    query related($title: String!) {
-      related(title: $title, minMatch: "75%", limit: 3) {
-        items {
-          ...ItemFields
-        }
-      }
-    }`)
-
-  const related = []
-  for (const item of relatedData?.related?.items || []) {
-    let found = false
-    for (const ditem of dupesData?.dupes || []) {
-      if (ditem.id === item.id) {
-        found = true
-        break
-      }
-    }
-
-    if (!found) {
-      related.push(item)
-    }
-  }
-
-  const onSubmit = useItemSubmit(UPSERT_LINK, { item, sub })
-
-  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), 1000, [getDupes])
-
-  useEffect(() => {
-    if (data?.pageTitleAndUnshorted?.title) {
-      setTitleOverride(data.pageTitleAndUnshorted.title)
-    }
-  }, [data?.pageTitleAndUnshorted?.title])
+  const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
+  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), DUPES_DEBOUNCE_MS, [getDupes])
 
   useEffect(() => {
     if (!dupesLoading) {
       setDupes(dupesData?.dupes)
     }
-  }, [dupesLoading, dupesData, setDupes])
+  }, [dupesLoading, dupesData])
 
   useEffect(() => {
-    if (data?.pageTitleAndUnshorted?.unshorted) {
+    currentTitleRef.current = currentTitle
+    titleOverrideRef.current = titleOverride
+  }, [currentTitle, titleOverride])
+
+  useEffect(() => {
+    const canOverrideTitle = !currentTitleRef.current.trim() || currentTitleRef.current === titleOverrideRef.current
+
+    if (!isEditing && data?.pageTitleAndUnshorted?.title && canOverrideTitle) {
+      setTitleOverride(data.pageTitleAndUnshorted.title)
+    }
+  }, [data?.pageTitleAndUnshorted?.title, isEditing])
+
+  useEffect(() => {
+    const unshorted = getMeaningfulUrl(data?.pageTitleAndUnshorted?.unshorted)
+
+    if (unshorted) {
       getDupesDebounce({
-        variables: { url: data?.pageTitleAndUnshorted?.unshorted }
+        variables: { url: unshorted }
       })
     }
   }, [data?.pageTitleAndUnshorted?.unshorted, getDupesDebounce])
 
-  const [postDisabled, setPostDisabled] = useState(false)
-  const [titleOverride, setTitleOverride] = useState()
-
-  const storageKeyPrefix = item ? undefined : 'link'
+  const postDisabled = !item && (pageTitleLoading || dupesLoading)
 
   return (
     <Form
-      initial={{
-        title: item?.title || shareTitle || '',
-        url: item?.url || shareUrl || '',
-        text: item?.text || '',
-        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
-      }}
+      initial={initial}
       schema={schema}
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
@@ -119,10 +116,14 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         required
         clear
         onChange={async (formik, e) => {
-          if (e.target.value) {
-            getRelated({
-              variables: { title: e.target.value }
-            })
+          setCurrentTitle(e.target.value)
+
+          if (isEditing) {
+            return
+          }
+
+          if (titleOverride && e.target.value !== titleOverride) {
+            setTitleOverride(undefined)
           }
         }}
         maxLength={MAX_TITLE_LENGTH}
@@ -135,15 +136,35 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         clear
         autoComplete='off'
         overrideValue={data?.pageTitleAndUnshorted?.unshorted}
-        hint={editThreshold
-          ? <div className='text-muted fw-bold font-monospace'><Countdown date={editThreshold} /></div>
-          : null}
+        hint={EditInfo}
         onChange={async (formik, e) => {
-          const hasTitle = !!(formik?.values.title.trim().length > 0)
-          const hasDraftTitle = !!(window.localStorage.getItem('link-title')?.trim()?.length > 0)
-          if (!hasTitle && !hasDraftTitle) {
-            getPageTitleAndUnshorted({
-              variables: { url: e.target.value }
+          const value = e.target.value
+
+          if (isEditing) {
+            return
+          }
+
+          const meaningfulUrl = getMeaningfulUrl(value)
+
+          if (!meaningfulUrl) {
+            setDupes(undefined)
+            client.cache.modify({
+              fields: {
+                pageTitleAndUnshorted () {
+                  return null
+                }
+              }
+            })
+            return
+          }
+
+          const hasTitle = !!formik?.values.title.trim().length && formik?.values.title.trim() !== titleOverride
+          const hasDraftTitle = !!window.localStorage.getItem('link-title')?.trim()?.length
+          const isUnshortedOverride = !!data?.pageTitleAndUnshorted?.unshorted && value === data.pageTitleAndUnshorted.unshorted
+
+          if (!hasTitle && !hasDraftTitle && !isUnshortedOverride) {
+            getPageTitleAndUnshortedDebounce({
+              variables: { url: meaningfulUrl }
             })
           } else {
             client.cache.modify({
@@ -154,22 +175,17 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
               }
             })
           }
-          if (e.target.value) {
-            setPostDisabled(true)
-            setTimeout(() => setPostDisabled(false), 2000)
-            getDupesDebounce({
-              variables: { url: e.target.value }
-            })
-          }
+
+          getDupesDebounce({
+            variables: { url: meaningfulUrl }
+          })
         }}
       />
-      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} sub={sub}>
-        <MarkdownInput
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item}>
+        <SNInput
           label='context'
           name='text'
           minRows={2}
-          // https://github.com/Andarist/react-textarea-autosize/pull/371
-          style={{ width: 'auto' }}
         />
       </AdvPostForm>
       <ItemButtonBar itemId={item?.id} disable={postDisabled}>
@@ -196,18 +212,6 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
               }
               />
             </div>}
-          <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
-            <AccordianItem
-              header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>similar</div>}
-              body={
-                <div>
-                  {related.map((item, i) => (
-                    <Item item={item} key={item.id} />
-                  ))}
-                </div>
-              }
-            />
-          </div>
         </>}
     </Form>
   )

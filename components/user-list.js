@@ -17,25 +17,18 @@ import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
 const Spent = ({ user }) => (user.optional.spent !== null && <span>{abbrNum(user.optional.spent)} spent</span>)
-const Posts = ({ user }) => (
-  <Link href={`/${user.name}/posts`} className='text-reset'>
-    {numWithUnits(user.nposts, { unitSingular: 'post', unitPlural: 'posts' })}
+const Items = ({ user }) => (
+  <Link href={`/${user.name}/all`} className='text-reset'>
+    {numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}
   </Link>)
-const Comments = ({ user }) => (
-  <Link href={`/${user.name}/comments`} className='text-reset'>
-    {numWithUnits(user.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })}
-  </Link>)
-const Referrals = ({ user }) => (user.optional.referrals !== null && <span>{numWithUnits(user.optional.referrals, { unitSingular: 'referral', unitPlural: 'referrals' })}</span>)
 const Seperator = () => (<span> \ </span>)
 
 const STAT_POS = {
   stacked: 0,
   spent: 1,
-  posts: 2,
-  comments: 3,
-  referrals: 4
+  items: 2
 }
-const STAT_COMPONENTS = [Stacked, Spent, Posts, Comments, Referrals]
+const STAT_COMPONENTS = [Stacked, Spent, Items]
 
 function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
@@ -80,7 +73,7 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
       </Link>
       <div className={styles.hunk}>
         <div className='d-flex'>
-          <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
+          <Link href={`/${user.name}`} className={`${styles.title} mb-0 d-inline-flex align-items-center justify-content-center text-reset`}>
             @{user.name}<Badges badgeClassName='fill-grey' height={14} width={14} user={user} />
           </Link>
           {nymActionDropdown && <NymActionDropdown user={user} className='' />}

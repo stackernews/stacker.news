@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
-import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { CHAIN_FEE } from '@/fragments/chainFee'
 
 export const ChainFeeContext = createContext({
@@ -14,7 +14,7 @@ export const ChainFeeProvider = ({ chainFee, children }) => {
     ...(SSR
       ? {}
       : {
-          pollInterval: NORMAL_POLL_INTERVAL,
+          pollInterval: NORMAL_POLL_INTERVAL_MS,
           nextFetchPolicy: 'cache-and-network'
         })
   })

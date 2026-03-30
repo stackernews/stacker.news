@@ -30,18 +30,17 @@ class MyDocument extends Document {
       <Html lang='en'>
         <Head nonce={nonce}>
           <link rel='manifest' href='/api/site.webmanifest' />
-          <link href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
-          <link href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
-          <link href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />
+          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
+          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
           <style
             nonce={nonce}
             dangerouslySetInnerHTML={{
               __html:
             ` @font-face {
                 font-family: 'lightning';
-                src: url(${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.ttf) format('truetype'),
-                     url(${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff) format('woff'),
-                     url(${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2) format('woff2');
+                src:
+                  url(${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2) format('woff2'),
+                  url(${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff) format('woff');
                 font-display: swap;
               }`
             }}

@@ -35,17 +35,25 @@ services:
       - "5431:5432"
     env_file: *env_file
     volumes:
-      - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+      # the prefix makes sure the seeds are executed in the correct order instead of alphabetical by default
+      - ./docker/db/000_seed.sql.gz:/docker-entrypoint-initdb.d/000_seed.sql.gz
       - db:/var/lib/postgresql/data
     labels:
       CONNECT: "localhost:5431"
     cpu_shares: "${CPU_SHARES_IMPORTANT}"
+    command:
+      - postgres
+      - -c
+      - log_min_messages=notice
+      - -c
+      - log_error_verbosity=terse
   tor:
     build:
       context: ./docker/tor
     container_name: tor
     profiles:
-      - payments
+      - tor
+      - wallets
     restart: unless-stopped
     volumes:
       - tordata:/tordata/
@@ -85,6 +93,7 @@ services:
     restart: unless-stopped
     depends_on: *depends_on_app
     profiles:
+      - images
       - capture
     healthcheck:
       <<: *healthcheck
@@ -167,7 +176,7 @@ services:
       - "CONNECT=localhost:4566"
     cpu_shares: "${CPU_SHARES_LOW}"
   opensearch:
-    image: opensearchproject/opensearch:2.19.0
+    image: opensearchproject/opensearch:3.3.0
     container_name: opensearch
     profiles:
       - search
@@ -187,12 +196,13 @@ services:
     volumes:
       - os:/usr/share/opensearch/data
       - ./docker/opensearch/init-opensearch.sh:/usr/share/opensearch/init-opensearch.sh
+      - ./docker/opensearch/seed-embeddings.gz:/usr/share/opensearch/seed-embeddings.gz:ro
     labels:
       CONNECT: "localhost:9200"
     command: ["bash", "/usr/share/opensearch/init-opensearch.sh"]
     cpu_shares: "${CPU_SHARES_LOW}"
   os-dashboard:
-    image: opensearchproject/opensearch-dashboards:2.19.0
+    image: opensearchproject/opensearch-dashboards:3.3.0
     container_name: os-dashboard
     restart: unless-stopped
     profiles:
@@ -214,7 +224,7 @@ services:
       CONNECT: "localhost:5601"
     cpu_shares: "${CPU_SHARES_LOW}"
   bitcoin:
-    image: polarlightning/bitcoind:27.0
+    image: polarlightning/bitcoind:30.0
     container_name: bitcoin
     restart: unless-stopped
     profiles:
@@ -227,13 +237,11 @@ services:
       - '-server=1'
       - '-regtest=1'
       - '-rpcauth=${RPC_USER}:${RPC_AUTH}'
-      - '-debug=1'
       - '-zmqpubrawblock=tcp://0.0.0.0:${ZMQ_BLOCK_PORT}'
       - '-zmqpubrawtx=tcp://0.0.0.0:${ZMQ_TX_PORT}'
       - '-zmqpubhashblock=tcp://bitcoin:${ZMQ_HASHBLOCK_PORT}'
       - '-txindex=1'
       - '-dnsseed=0'
-      - '-upnp=0'
       - '-rpcbind=0.0.0.0'
       - '-rpcallowip=0.0.0.0/0'
       - '-whitelist=0.0.0.0/0'
@@ -357,9 +365,14 @@ services:
       ofelia.job-exec.sn_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.sn_channel_cron.command: >
         su lnd -c bash -c "
-          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
-            exit 0
-          else
+          lncli connect $ROUTER_LND_PUBKEY@router_lnd:9735 2>/dev/null || true
+          channels=$$(lncli listchannels --peer=$ROUTER_LND_PUBKEY)
+          private=$$(echo $$channels | jq '[.channels[] | select(.private == true)] | length')
+          total=$$(echo $$channels | jq '.channels | length')
+          if [ $$private -lt 1 ]; then
+            lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
+              --min_confs 0 --local_amt=1000000000 --push_amt=500000000 --private
+          elif [ $$total -lt 3 ]; then
             lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
@@ -372,6 +385,7 @@ services:
     container_name: sn_lndk
     restart: unless-stopped
     profiles:
+      - lndk
       - wallets
     depends_on:
       sn_lnd:
@@ -408,6 +422,7 @@ services:
     depends_on:
       tor:
         condition: service_healthy
+        required: false
         restart: true
       <<: *depends_on_bitcoin
     env_file: *env_file
@@ -457,9 +472,14 @@ services:
       ofelia.job-exec.lnd_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.lnd_channel_cron.command: >
         su lnd -c bash -c "
-          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
-            exit 0
-          else
+          lncli connect $ROUTER_LND_PUBKEY@router_lnd:9735 2>/dev/null || true
+          channels=$$(lncli listchannels --peer=$ROUTER_LND_PUBKEY)
+          private=$$(echo $$channels | jq '[.channels[] | select(.private == true)] | length')
+          total=$$(echo $$channels | jq '.channels | length')
+          if [ $$private -lt 1 ]; then
+            lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
+              --min_confs 0 --local_amt=1000000000 --push_amt=500000000 --private
+          elif [ $$total -lt 3 ]; then
             lncli openchannel --node_key=$ROUTER_LND_PUBKEY --connect router_lnd:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
@@ -470,6 +490,7 @@ services:
     build:
       context: ./docker/litd
     profiles:
+      - litd
       - wallets
     restart: unless-stopped
     healthcheck:
@@ -508,6 +529,7 @@ services:
     container_name: cln
     restart: unless-stopped
     profiles:
+      - cln
       - wallets
     healthcheck:
       <<: *healthcheck
@@ -515,6 +537,7 @@ services:
     depends_on:
       tor:
         condition: service_healthy
+        required: false
         restart: true
       <<: *depends_on_bitcoin
     env_file: *env_file
@@ -528,8 +551,9 @@ services:
       - '--bitcoin-rpcuser=${RPC_USER}'
       - '--bitcoin-rpcpassword=${RPC_PASS}'
       - '--large-channels'
-      - '--rest-port=3010'
-      - '--rest-host=0.0.0.0'
+      - '--clnrest-port=3010'
+      - '--clnrest-host=0.0.0.0'
+      - '--clnrest-protocol=http'
     expose:
       - "9735"
     ports:
@@ -563,6 +587,7 @@ services:
         - LN_NODE_FOR=stacker
     container_name: eclair
     profiles:
+      - eclair
       - wallets
     restart: unless-stopped
     depends_on:
@@ -685,11 +710,19 @@ services:
     image: mcuadros/ofelia:latest
     container_name: walletscron
     profiles:
+      - cln
+      - eclair
       - wallets
     depends_on:
-      - router_lnd
-      - eclair
-      - cln
+      router_lnd:
+        condition: service_healthy
+        restart: true
+      eclair:
+        condition: service_started
+        required: false
+      cln:
+        condition: service_started
+        required: false
     restart: unless-stopped
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME} -f label=ofelia.group=wallets
     volumes:
@@ -716,6 +749,7 @@ services:
     image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
     container_name: nwc_send
     profiles:
+      - nwc
       - wallets
     restart: unless-stopped
     depends_on:
@@ -750,6 +784,7 @@ services:
     image: ghcr.io/benthecarman/nostr-wallet-connect-lnd:master
     container_name: nwc_recv
     profiles:
+      - nwc
       - wallets
     restart: unless-stopped
     depends_on:
@@ -785,6 +820,7 @@ services:
       context: ./docker/lnbits
     container_name: lnbits
     profiles:
+      - lnbits
       - wallets
     restart: unless-stopped
     ports:
@@ -792,6 +828,7 @@ services:
     depends_on:
       tor:
         condition: service_healthy
+        required: false
         restart: true
       lnd:
         condition: service_healthy
@@ -809,6 +846,60 @@ services:
     labels:
       CONNECT: "localhost:${LNBITS_WEB_PORT}"
       TORDIR: "/app/.tor"
+    cpu_shares: "${CPU_SHARES_LOW}"
+  lnbits-v1:
+    build:
+      context: ./docker/lnbits-v1
+    container_name: lnbits-v1
+    profiles:
+      - lnbits
+      - wallets
+    restart: unless-stopped
+    ports:
+      - "${LNBITS_WEB_PORT_V1}:5000"
+    depends_on:
+      tor:
+        condition: service_healthy
+        required: false
+        restart: true
+      lnd:
+        condition: service_healthy
+        restart: true
+    environment:
+      - LNBITS_ADMIN_UI=true
+      - LNBITS_BACKEND_WALLET_CLASS=LndWallet
+      - LND_GRPC_ENDPOINT=lnd
+      - LND_GRPC_PORT=10009
+      - LND_GRPC_CERT=/app/.lnd/tls.cert
+      - LND_GRPC_MACAROON=/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon
+    volumes:
+      - lnd:/app/.lnd
+      - tordata:/app/.tor
+    labels:
+      CONNECT: "localhost:${LNBITS_WEB_PORT_V1}"
+      TORDIR: "/app/.tor"
+    cpu_shares: "${CPU_SHARES_LOW}"
+  lnpub:
+    image: ghcr.io/shocknet/lightning-pub@sha256:cd7bb9298d09a2cdaf1b6456ef6154e3ba24f7b902ad29cda2c08c2a4fa2af6e
+    container_name: lnpub
+    profiles:
+      - lnpub
+      - wallets
+    restart: unless-stopped
+    volumes:
+      - lnpub:/app/data
+      - lnd:/app/.lnd
+    environment:
+      - LND_ADDRESS=lnd:10009
+      - LND_CERT_PATH=/app/.lnd/tls.cert
+      - LND_MACAROON_PATH=/app/.lnd/data/chain/bitcoin/regtest/admin.macaroon
+    ports:
+      - ${LNPUB_PORT_1776:-1776}:1776
+      - ${LNPUB_PORT_1777:-1777}:1777
+    depends_on:
+      lnd:
+        condition: service_healthy
+        restart: true
     cpu_shares: "${CPU_SHARES_LOW}"
   dnsmasq:
     image: 4km3/dnsmasq:2.90-r3
@@ -846,6 +937,7 @@ volumes:
   tordata:
   eclair:
   dnsmasq:
+  lnpub:
 
 networks:
   default: {}

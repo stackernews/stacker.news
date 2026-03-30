@@ -13,3 +13,8 @@
         transform: translateX(0%)
     }
 }
+
+.meimg {
+    clip-path: polygon(0 0, 83% 0, 100% 100%, 17% 100%);
+    cursor: pointer;
+}

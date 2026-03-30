@@ -5,12 +5,13 @@ import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import GunIcon from '@/svgs/revolver.svg'
 import HorseIcon from '@/svgs/horse.svg'
+import BotIcon from '@/svgs/robot-2-fill.svg'
 import { numWithUnits } from '@/lib/format'
 import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
 
-export default function Badges ({ user, badge, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
-  if (!user || Number(user.id) === USER_ID.ad) return null
+export default function Badges ({ user, badge, bot, showWalletBadges, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
+  if (!user) return null
   if (Number(user.id) === USER_ID.anon) {
     return (
       <BadgeTooltip overlayText='anonymous'>
@@ -19,7 +20,7 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
     )
   }
 
-  const badges = []
+  let badges = []
 
   const streak = user.optional.streak
   if (streak !== null) {
@@ -31,24 +32,34 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
     })
   }
 
-  if (user.optional.hasRecvWallet) {
+  if (showWalletBadges && user.optional.hasRecvWallet) {
     badges.push({
       icon: HorseIcon,
       overlayText: 'can receive sats'
     })
   }
 
-  if (user.optional.hasSendWallet) {
+  if (showWalletBadges && user.optional.hasSendWallet) {
     badges.push({
       icon: GunIcon,
       sizeDelta: 2,
+      style: { marginBottom: '-2px' },
       overlayText: 'can send sats'
     })
   }
 
+  if (bot) {
+    badges = [{
+      icon: BotIcon,
+      overlayText: 'posted as bot'
+    }]
+  }
+
+  if (badges.length === 0) return null
+
   return (
-    <span className={className}>
-      {badges.map(({ icon, overlayText, sizeDelta }, i) => (
+    <span className={classNames(className, 'd-inline-flex align-items-center justify-content-center')}>
+      {badges.map(({ icon, overlayText, sizeDelta, style }, i) => (
         <SNBadge
           key={i}
           user={user}
@@ -59,13 +70,14 @@ export default function Badges ({ user, badge, className = 'ms-1', badgeClassNam
           height={height}
           width={width}
           sizeDelta={sizeDelta}
+          style={style}
         />
       ))}
     </span>
   )
 }
 
-function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0 }) {
+function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0, style }) {
   let Wrapper = Fragment
 
   if (overlayText) {
@@ -76,7 +88,7 @@ function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, heig
 
   return (
     <Wrapper>
-      <span><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
+      <span className='d-inline-flex align-items-center justify-content-center' style={style}><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
     </Wrapper>
   )
 }

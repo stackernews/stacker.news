@@ -110,7 +110,7 @@ const defaultManifest = {
       url: 'url'
     }
   },
-  description: 'Stacker News is like Hacker News but it pays you Bitcoin',
+  description: 'moderating forums with money',
   categories: ['news', 'bitcoin', 'lightning', 'zaps', 'community'],
   screenshots: [
     {

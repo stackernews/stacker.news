@@ -1,4 +1,5 @@
 import '@/styles/globals.scss'
+import '@/styles/text.scss'
 import { ApolloProvider, gql } from '@apollo/client'
 import { MeProvider } from '@/components/me'
 import PlausibleProvider from 'next-plausible'
@@ -10,19 +11,19 @@ import { useRouter } from 'next/dist/client/router'
 import { useCallback, useEffect } from 'react'
 import { ShowModalProvider } from '@/components/modal'
 import ErrorBoundary from '@/components/error-boundary'
-import { LightningProvider } from '@/components/lightning'
+import { AnimationProvider } from '@/components/animation'
 import { ToastProvider } from '@/components/toast'
 import { ServiceWorkerProvider } from '@/components/serviceworker'
 import { SSR } from '@/lib/constants'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import { LoggerProvider } from '@/components/logger'
 import { ChainFeeProvider } from '@/components/chain-fee.js'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
-import { WebLnProvider } from '@/wallets/webln/client'
-import { WalletsProvider } from '@/wallets/index'
 import { DomainProvider } from '@/components/territory-domains'
+import { WalletsProvider } from '@/wallets/client/hooks'
+import FaviconProvider from '@/components/favicon'
+import { CookiesProvider } from '@/components/use-cookie'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -99,7 +100,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, blockHeight, chainFee, domain, ...otherProps } = props
+  const { apollo, ssrData, ssrPublicCookies, me, price, blockHeight, chainFee, domain, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -114,13 +115,13 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
           <ApolloProvider client={client}>
             <DomainProvider domain={domain}>
               <MeProvider me={me}>
-                <WalletsProvider>
-                  <HasNewNotesProvider>
-                    <LoggerProvider>
-                      <WebLnProvider>
+                <CookiesProvider ssrPublicCookies={ssrPublicCookies}>
+                  <WalletsProvider>
+                    <HasNewNotesProvider>
+                      <FaviconProvider>
                         <ServiceWorkerProvider>
                           <PriceProvider price={price}>
-                            <LightningProvider>
+                            <AnimationProvider>
                               <ToastProvider>
                                 <ShowModalProvider>
                                   <BlockHeightProvider blockHeight={blockHeight}>
@@ -133,13 +134,13 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                                   </BlockHeightProvider>
                                 </ShowModalProvider>
                               </ToastProvider>
-                            </LightningProvider>
+                            </AnimationProvider>
                           </PriceProvider>
                         </ServiceWorkerProvider>
-                      </WebLnProvider>
-                    </LoggerProvider>
-                  </HasNewNotesProvider>
-                </WalletsProvider>
+                      </FaviconProvider>
+                    </HasNewNotesProvider>
+                  </WalletsProvider>
+                </CookiesProvider>
               </MeProvider>
             </DomainProvider>
           </ApolloProvider>

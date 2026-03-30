@@ -1,21 +1,25 @@
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
-import { getItem, filterClause, whereClause, muteClause, activeOrMine } from './item'
-import { getInvoice, getWithdrawl } from './wallet'
+import { getItem, filterClause, whereClause, muteClause, activeOrMine, payInJoinFilter } from './item'
 import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
-import { replyToSubscription } from '@/lib/webPush'
+import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { getPayIn } from './payIn'
+import { PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
+import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
+
+const PAY_IN_NOTIFICATION_TYPES_SQL = PAY_IN_NOTIFICATION_TYPES.map(type => `'${type}'`).join(', ')
 
 export default {
   Query: {
-    notifications: async (parent, { cursor, inc }, { me, models }) => {
+    notifications: async (parent, { cursor, inc }, ctx) => {
+      const { me, models, userLoader } = ctx
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      const meFull = await models.user.findUnique({ where: { id: me.id } })
+      const meFull = await userLoader.load(me.id)
 
       /*
         So that we can cursor over results, we union notifications together ...
@@ -114,7 +118,7 @@ export default {
       itemDrivenQueries.push(
         `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
           FROM "Item"
-          JOIN "SubSubscription" ON "Item"."subName" = "SubSubscription"."subName"
+          JOIN "SubSubscription" ON "Item"."subNames" @> ARRAY["SubSubscription"."subName"]::CITEXT[]
           ${whereClause(
             '"Item".created_at < $2',
             '"SubSubscription"."userId" = $1',
@@ -161,13 +165,15 @@ export default {
       queries.push(
         // Only record per item ID
         `(
-          SELECT DISTINCT ON (id) "Item".id::TEXT, "Item"."sortTime", NULL::BIGINT AS "earnedSats", "Item".type
+          SELECT DISTINCT ON (id) "Item".id::TEXT, "Item"."sortTime", NULL::INTEGER AS "earnedSats", "Item".type
           FROM (
             ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
           ) as "Item"
+          ${payInJoinFilter(me)}
           ${whereClause(
             '"Item".created_at < $2',
-            await filterClause(me, models),
+            '"Item"."deletedAt" IS NULL',
+            await filterClause(null, null, null, ctx),
             muteClause(me),
             activeOrMine(me))}
           ORDER BY id ASC, CASE
@@ -182,7 +188,7 @@ export default {
 
       // territory transfers
       queries.push(
-        `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
+        `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL::INTEGER as "earnedSats",
           'TerritoryTransfer' AS type
           FROM "TerritoryTransfer"
           WHERE "TerritoryTransfer"."newUserId" = $1
@@ -194,10 +200,24 @@ export default {
       if (meFull.noteItemSats) {
         queries.push(
           `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
-            "Item".msats/1000 as "earnedSats", 'Votification' AS type
+            ("Item".msats/1000)::INTEGER as "earnedSats", 'Votification' AS type
             FROM "Item"
             WHERE "Item"."userId" = $1
             AND "Item"."lastZapAt" < $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+        )
+        queries.push(
+          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+            COALESCE(FLOOR("PayOutBolt11"."msats" / 1000), 0)::INTEGER as "earnedSats",
+            'BountyPayment' AS type
+            FROM "PayIn"
+            JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn".id
+            JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
+            WHERE "PayIn"."payInType" = 'BOUNTY_PAYMENT'
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayOutBolt11"."userId" = $1
+            AND "PayIn"."payInStateChangedAt" < $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -206,7 +226,7 @@ export default {
       if (meFull.noteForwardedSats) {
         queries.push(
           `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
-            ("Item".msats / 1000 * "ItemForward".pct / 100) as "earnedSats", 'ForwardedVotification' AS type
+            ("Item".msats / 1000 * "ItemForward".pct / 100)::INTEGER as "earnedSats", 'ForwardedVotification' AS type
             FROM "Item"
             JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
             WHERE "Item"."userId" <> $1
@@ -217,21 +237,19 @@ export default {
       }
 
       if (meFull.noteDeposits) {
+        // NOTE: for historical reasons we need to join the payInBolt11 table to make sure
+        // the payInBolt11 record exists for the payIn
         queries.push(
-          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime",
-              FLOOR("Invoice"."msatsReceived" / 1000) as "earnedSats",
-            'InvoicePaid' AS type
-            FROM "Invoice"
-            WHERE "Invoice"."userId" = $1
-            AND "Invoice"."confirmedAt" IS NOT NULL
-            AND "Invoice"."created_at" < $2
-            AND (
-              ("Invoice"."isHeld" IS NULL AND "Invoice"."actionType" IS NULL)
-              OR (
-                "Invoice"."actionType" = 'RECEIVE'
-                AND "Invoice"."actionState" = 'PAID'
-              )
-            )
+          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+              COALESCE(FLOOR("PayIn"."mcost" / 1000), 0)::INTEGER as "earnedSats",
+            'PayInification' AS type
+            FROM "PayIn"
+            JOIN "PayInBolt11" ON "PayInBolt11"."payInId" = "PayIn".id
+            WHERE "PayIn"."userId" = $1
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayIn"."mcost" > 1000
+            AND "PayIn"."payInType" = 'PROXY_PAYMENT'
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -239,17 +257,16 @@ export default {
 
       if (meFull.noteWithdrawals) {
         queries.push(
-          `(SELECT "Withdrawl".id::text, MAX(COALESCE("Invoice"."confirmedAt", "Withdrawl".created_at)) AS "sortTime",
-            FLOOR(MAX("Withdrawl"."msatsPaid" / 1000)) as "earnedSats",
-            'WithdrawlPaid' AS type
-            FROM "Withdrawl"
-            LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl".id
-            LEFT JOIN "Invoice" ON "InvoiceForward"."invoiceId" = "Invoice".id
-            WHERE "Withdrawl"."userId" = $1
-            AND "Withdrawl".status = 'CONFIRMED'
-            AND "Withdrawl".created_at < $2
-            AND "InvoiceForward"."id" IS NULL
-            GROUP BY "Withdrawl".id
+          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+            COALESCE(FLOOR("PayOutBolt11"."msats" / 1000), 0)::INTEGER as "earnedSats",
+            'PayInification' AS type
+            FROM "PayIn"
+            JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
+            WHERE "PayIn"."userId" = $1
+            AND "PayIn"."payInState" = 'PAID'
+            AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayOutBolt11"."msats" > 1000
+            AND "PayIn"."payInType" IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL')
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -257,7 +274,7 @@ export default {
 
       if (meFull.noteInvites) {
         queries.push(
-          `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
+          `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL::INTEGER as "earnedSats",
             'Invitification' AS type
             FROM users JOIN "Invite" on users."inviteId" = "Invite".id
             WHERE "Invite"."userId" = $1
@@ -267,7 +284,7 @@ export default {
             LIMIT ${LIMIT})`
         )
         queries.push(
-          `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
+          `(SELECT users.id::text, users.created_at AS "sortTime", NULL::INTEGER as "earnedSats",
             'Referral' AS type
             FROM users
             WHERE "users"."referrerId" = $1
@@ -280,7 +297,7 @@ export default {
 
       if (meFull.noteEarning) {
         queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000)::INTEGER as "earnedSats",
           'Earn' AS type
           FROM "Earn"
           WHERE "userId" = $1
@@ -291,18 +308,7 @@ export default {
           LIMIT ${LIMIT})`
         )
         queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
-          'Revenue' AS type
-          FROM "SubAct"
-          WHERE "userId" = $1
-          AND type = 'REVENUE'
-          AND created_at < $2
-          GROUP BY "userId", "subName", created_at
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
-        )
-        queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000)::INTEGER as "earnedSats",
           'ReferralReward' AS type
           FROM "Earn"
           WHERE "userId" = $1
@@ -316,7 +322,7 @@ export default {
 
       if (meFull.noteCowboyHat) {
         queries.push(
-          `(SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'CowboyHat' AS type
+          `(SELECT id::text, updated_at AS "sortTime", 0::INTEGER as "earnedSats", 'CowboyHat' AS type
           FROM "Streak"
           WHERE "userId" = $1
           AND updated_at < $2
@@ -327,7 +333,7 @@ export default {
         for (const type of ['HORSE', 'GUN']) {
           const gqlType = type.charAt(0) + type.slice(1).toLowerCase()
           queries.push(
-            `(SELECT id::text, "startedAt" AS "sortTime", 0 as "earnedSats", 'New${gqlType}' AS type
+            `(SELECT id::text, "startedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'New${gqlType}' AS type
             FROM "Streak"
             WHERE "userId" = $1
             AND updated_at < $2
@@ -336,7 +342,7 @@ export default {
             LIMIT ${LIMIT})`
           )
           queries.push(
-            `(SELECT id::text AS id, "endedAt" AS "sortTime", 0 as "earnedSats", 'Lost${gqlType}' AS type
+            `(SELECT id::text AS id, "endedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'Lost${gqlType}' AS type
             FROM "Streak"
             WHERE "userId" = $1
             AND updated_at < $2
@@ -349,7 +355,7 @@ export default {
       }
 
       queries.push(
-        `(SELECT "Sub".name::text, "Sub"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
+        `(SELECT "Sub".name::text, "Sub"."statusUpdatedAt" AS "sortTime", NULL::INTEGER as "earnedSats",
           'SubStatus' AS type
           FROM "Sub"
           WHERE "Sub"."userId" = $1
@@ -360,7 +366,7 @@ export default {
       )
 
       queries.push(
-        `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL as "earnedSats", 'Reminder' AS type
+        `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL::INTEGER as "earnedSats", 'Reminder' AS type
         FROM "Reminder"
         WHERE "Reminder"."userId" = $1
         AND "Reminder"."remindAt" < $2
@@ -368,33 +374,31 @@ export default {
         LIMIT ${LIMIT})`
       )
 
+      // payIns whose most recent attempt failed, are retried enough times,
+      // are too old, or were manually cancelled
       queries.push(
-        `(SELECT "Invoice".id::text,
-          CASE
-            WHEN
-              "Invoice"."paymentAttempt" < ${WALLET_MAX_RETRIES}
-              AND "Invoice"."userCancel" = false
-              AND "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-            THEN "Invoice"."cancelledAt" + interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-            ELSE "Invoice"."updated_at"
-          END AS "sortTime", NULL as "earnedSats", 'Invoicification' AS type
-        FROM "Invoice"
-        WHERE "Invoice"."userId" = $1
-        AND "Invoice"."updated_at" < $2
-        AND "Invoice"."actionState" = 'FAILED'
-        AND (
-          -- this is the inverse of the filter for automated retries
-          "Invoice"."paymentAttempt" >= ${WALLET_MAX_RETRIES}
-          OR "Invoice"."userCancel" = true
-          OR "Invoice"."cancelledAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-        )
-        AND (
-          "Invoice"."actionType" = 'ITEM_CREATE' OR
-          "Invoice"."actionType" = 'ZAP' OR
-          "Invoice"."actionType" = 'DOWN_ZAP' OR
-          "Invoice"."actionType" = 'POLL_VOTE' OR
-          "Invoice"."actionType" = 'BOOST'
-        )
+        `(SELECT "PayIn".id::text,
+          "PayIn"."payInStateChangedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'PayInification' AS type
+          FROM "PayIn"
+          WHERE "PayIn"."payInState" = 'FAILED'
+          AND "PayIn"."payInType" IN (${PAY_IN_NOTIFICATION_TYPES_SQL})
+          AND "PayIn"."userId" = $1
+          AND "PayIn"."successorId" IS NULL
+          AND "PayIn"."benefactorId" IS NULL
+          AND "PayIn"."payInStateChangedAt" < $2
+          AND (
+            "PayIn"."payInFailureReason" = 'USER_CANCELLED'
+            OR "PayIn"."payInStateChangedAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
+            OR "PayIn"."retryCount" >= ${WALLET_MAX_RETRIES}::integer
+          )
+        ORDER BY "sortTime" DESC
+        LIMIT ${LIMIT})`
+      )
+
+      queries.push(
+        `(SELECT "NotificationBulletin".id::text, "NotificationBulletin"."created_at" AS "sortTime", NULL::INTEGER as "earnedSats", 'Bulletinification' AS type
+        FROM "NotificationBulletin"
+        WHERE "NotificationBulletin"."created_at" < $2
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`
       )
@@ -408,7 +412,7 @@ export default {
         LIMIT ${LIMIT}`, me.id, decodedCursor.time)
 
       if (decodedCursor.offset === 0) {
-        await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
+        models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } }).catch(console.error)
       }
 
       return {
@@ -439,7 +443,7 @@ export default {
         console.log(`[webPush] created subscription for user ${me.id}: endpoint=${endpoint}`)
       }
 
-      await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications are now active' })
+      await sendPushSubscriptionReply(dbPushSubscription)
 
       return dbPushSubscription
     },
@@ -464,6 +468,12 @@ export default {
   Votification: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
+  BountyPayment: {
+    item: async (n, args, { models, me }) => {
+      const itemPayIn = await models.itemPayIn.findUnique({ where: { payInId: Number(n.id) } })
+      return await getItem(n, { id: itemPayIn.itemId }, { models, me })
+    }
+  },
   ForwardedVotification: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
@@ -484,8 +494,13 @@ export default {
   },
   TerritoryTransfer: {
     sub: async (n, args, { models, me }) => {
-      const transfer = await models.territoryTransfer.findUnique({ where: { id: Number(n.id) }, include: { sub: true } })
-      return transfer.sub
+      const [sub] = await models.$queryRaw`
+        SELECT "Sub".*
+        FROM "TerritoryTransfer"
+        JOIN "Sub" ON "Sub"."name" = "TerritoryTransfer"."subName"
+        WHERE "TerritoryTransfer"."id" = ${Number(n.id)}`
+
+      return sub
     }
   },
   JobChanged: {
@@ -493,17 +508,6 @@ export default {
   },
   SubStatus: {
     sub: async (n, args, { models, me }) => getSub(n, { name: n.id }, { models, me })
-  },
-  Revenue: {
-    subName: async (n, args, { models }) => {
-      const subAct = await models.subAct.findUnique({
-        where: {
-          id: Number(n.id)
-        }
-      })
-
-      return subAct.subName
-    }
   },
   ReferralSource: {
     __resolveType: async (n, args, { models }) => n.type
@@ -514,12 +518,50 @@ export default {
       const referral = await models.oneDayReferral.findFirst({ where: { refereeId: Number(n.id), landing: true } })
       if (!referral) return null // if no landing record, it will return a generic referral
 
+      // HACK this is needed because referral.typeId for territory referrals is the sub name,
+      // but the sub name can change after the referral is created
+      // TODO: make OneDayReferral polymorphism normalized (denormalizing with triggers)
+      async function getSubOrNull (name) {
+        const sub = await getSub(n, { name }, { models, me })
+        return sub ? { ...sub, type: 'Sub' } : null
+      }
+
       switch (referral.type) {
         case 'POST':
         case 'COMMENT': return { ...await getItem(n, { id: referral.typeId }, { models, me }), type: 'Item' }
-        case 'TERRITORY': return { ...await getSub(n, { name: referral.typeId }, { models, me }), type: 'Sub' }
         case 'PROFILE': return { ...await models.user.findUnique({ where: { id: Number(referral.typeId) }, select: { name: true } }), type: 'User' }
+        case 'TERRITORY': return await getSubOrNull(referral.typeId)
         default: return null
+      }
+    }
+  },
+  Bulletinification: {
+    bulletin: async (n, args, { models, lexicalStateLoader }) => {
+      const bulletin = await models.notificationBulletin.findUnique({ where: { id: Number(n.id) } })
+      if (!bulletin) {
+        return null
+      }
+      let lexicalState = null
+      let html = null
+      try {
+        if (bulletin.text) {
+          lexicalState = await lexicalStateLoader.load({ text: bulletin.text })
+          if (lexicalState) {
+            html = await lexicalHTMLGenerator(lexicalState)
+          }
+        }
+      } catch (error) {
+        console.error('error generating HTML from Lexical State:', error)
+        lexicalState = null
+        html = null
+      }
+
+      return {
+        title: bulletin.title,
+        text: bulletin.text,
+        lexicalState,
+        html,
+        iconType: bulletin.iconType
       }
     }
   },
@@ -578,14 +620,15 @@ export default {
   ItemMention: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
-  InvoicePaid: {
-    invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
-  },
-  Invoicification: {
-    invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
-  },
-  WithdrawlPaid: {
-    withdrawl: async (n, args, { me, models }) => getWithdrawl(n, { id: n.id }, { me, models })
+  PayInification: {
+    payIn: async (n, args, { me, models }) => getPayIn(n, { id: Number(n.id) }, { me, models }),
+    payInItem: async (n, args, { models, me }) => {
+      const itemPayIn = await models.itemPayIn.findUnique({ where: { payInId: Number(n.id) } })
+      if (!itemPayIn) {
+        return null
+      }
+      return await getItem(n, { id: itemPayIn.itemId }, { models, me })
+    }
   },
   Invitification: {
     invite: async (n, args, { models }) => {

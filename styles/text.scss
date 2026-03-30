@@ -167,6 +167,9 @@
   > *:last-child {
     margin-bottom: 0;
   }
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
 }
 
 .sn-media {

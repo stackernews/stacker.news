@@ -1,4 +1,4 @@
-import { Badge } from 'react-bootstrap'
+import { Badge, Button } from 'react-bootstrap'
 import { Form, Input, SubmitButton, CopyButton } from './form'
 import { useMutation, useQuery } from '@apollo/client'
 import { customDomainSchema } from '@/lib/validate'
@@ -198,7 +198,17 @@ export default function CustomDomainForm ({ sub }) {
             name='domainName'
             placeholder='www.example.com'
           />
-          <SubmitButton variant='primary' className='mt-3'>save</SubmitButton>
+          {data?.domain
+            ? (
+              <Button
+                variant='danger'
+                className='mt-3'
+                onClick={() => onSubmit({ domainName: '' })}
+              >
+                reset
+              </Button>
+              )
+            : <SubmitButton variant='primary' className='mt-3'>verify</SubmitButton>}
         </div>
       </Form>
       {data?.domain && data?.domain?.status !== 'ACTIVE' && (

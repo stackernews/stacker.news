@@ -10,6 +10,7 @@ import {
   $createTextNode,
   $createRangeSelection,
   $setSelection,
+  COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
   $nodesOfType
 } from 'lexical'
@@ -181,7 +182,7 @@ export default function FileUploadPlugin ({ editorRef }) {
 
           return hasImages
         },
-        COMMAND_PRIORITY_HIGH
+        COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         DRAGOVER_COMMAND,

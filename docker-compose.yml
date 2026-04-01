@@ -150,7 +150,7 @@ services:
     cpu_shares: "${CPU_SHARES_LOW}"
   aws:
     container_name: aws
-    image: localstack/localstack:latest
+    image: localstack/localstack:4.12
     # healthcheck:
     #   test: ["CMD-SHELL", "awslocal", "s3", "ls", "s3://uploads"]
     #   interval: 10s
@@ -164,6 +164,8 @@ services:
     env_file: *env_file
     environment:
       - DEBUG=1
+      # we only need s3 and acm emulation, ELBv2 mocks are not provided by localstack
+      - SERVICES=s3,acm
     ports:
       - "4566:4566"
     expose:

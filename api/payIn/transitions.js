@@ -15,6 +15,32 @@ export const PAY_IN_PENDING_STATES = Object.values(PayInState).filter(state => !
 
 const FINALIZE_OPTIONS = { retryLimit: 2 ** 31 - 1, retryBackoff: false, retryDelay: 5, priority: 1000 }
 
+function formatPayInFailureMessage (payInFailureReason) {
+  switch (payInFailureReason) {
+    case 'USER_CANCELLED':
+      return { level: 'info', message: 'invoice canceled by payer' }
+    case 'SYSTEM_CANCELLED':
+      return { level: 'warn', message: 'invoice canceled by system' }
+    case 'INVOICE_EXPIRED':
+      return { level: 'warn', message: 'invoice expired' }
+    default:
+      return {
+        level: 'error',
+        message: `payment failed: ${(payInFailureReason ?? 'UNKNOWN_FAILURE').toLowerCase().replaceAll('_', ' ')}`
+      }
+  }
+}
+
+function logPayInWalletStatus (payIn, payInId, models, { level, message }) {
+  const protocolId = payIn.payInBolt11?.protocolId
+  if (!protocolId) {
+    return
+  }
+
+  const logger = walletLogger({ protocolId, userId: payIn.userId, payInId, models })
+  logger[level](message).catch(err => console.error('failed to write payIn wallet log:', err))
+}
+
 async function transitionPayIn (jobName, data,
   { payInId, fromStates, toState, transitionFunc, cancelOnError },
   { invoice, withdrawal, models, boss, lnd }) {
@@ -25,6 +51,11 @@ async function transitionPayIn (jobName, data,
     const currentPayIn = await models.payIn.findUnique({ where: { id: payInId }, include })
 
     console.group(`${jobName}: transitioning payIn ${payInId} from ${fromStates} to ${toState}`)
+
+    if (!currentPayIn) {
+      console.log('record not found, skipping transition')
+      return
+    }
 
     if (PAY_IN_TERMINAL_STATES.includes(currentPayIn.payInState)) {
       console.log('payIn is already in a terminal state, skipping transition')
@@ -190,7 +221,8 @@ export async function payInWithdrawalPaid ({ data, models, ...args }) {
     if (payOutBolt11?.protocolId) {
       const { protocolId, userId } = payOutBolt11
       const logger = walletLogger({ protocolId, userId, payInId, models })
-      logger?.ok(`↙ payment received: ${formatSats(msatsToSats(payOutBolt11.msats))}`)
+      logger.ok(`↙ payment received: ${formatSats(msatsToSats(payOutBolt11.msats))}`)
+        .catch(err => console.error('failed to write withdrawal wallet log:', err))
     }
   }
 }
@@ -226,7 +258,8 @@ export async function payInWithdrawalFailed ({ data, models, ...args }) {
     if (payOutBolt11?.protocolId) {
       const { protocolId, userId } = payOutBolt11
       const logger = walletLogger({ protocolId, userId, payInId, models })
-      logger?.error(`incoming payment failed: ${message}`)
+      logger.error(`incoming payment failed: ${message}`)
+        .catch(err => console.error('failed to write failed withdrawal wallet log:', err))
     }
   }
 }
@@ -271,6 +304,12 @@ export async function payInPaid ({ data, models, ...args }) {
   }, { models, ...args })
 
   if (transitionedPayIn) {
+    const settledMtokens = transitionedPayIn.payInBolt11?.msatsReceived ?? transitionedPayIn.payInBolt11?.msatsRequested
+    logPayInWalletStatus(transitionedPayIn, payInId, models, {
+      level: 'ok',
+      message: `↗ payment settled: ${formatSats(msatsToSats(settledMtokens))}`
+    })
+
     // run non critical side effects in the background
     // after the transaction has been committed
     onPaidSideEffects(models, payInId).catch(console.error)
@@ -427,6 +466,7 @@ export async function payInForwarded ({ data, models, lnd, boss, ...args }) {
 
     const logger = walletLogger({ protocolId, userId, payInId, models })
     logger.ok(`↙ payment received: ${formatSats(msatsToSats(Number(msats)))}`)
+      .catch(err => console.error('failed to write forwarded payIn wallet log:', err))
   }
 
   return transitionedPayIn
@@ -470,6 +510,7 @@ export async function payInFailedForward ({ data, models, lnd, boss, ...args }) 
     const { protocolId, userId } = transitionedPayIn.payOutBolt11
     const logger = walletLogger({ protocolId, userId, payInId, models })
     logger.warn(`incoming payment failed: ${message}`)
+      .catch(err => console.error('failed to write failed forward wallet log:', err))
   }
 
   return transitionedPayIn
@@ -553,8 +594,13 @@ export async function payInCancel ({ data, models, lnd, boss, ...args }) {
     if (transitionedPayIn.payOutBolt11) {
       const { protocolId, userId, bolt11 } = transitionedPayIn.payOutBolt11
       const logger = walletLogger({ protocolId, userId, payInId, models })
-      const decoded = await parsePaymentRequest({ request: bolt11 })
-      logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`)
+      try {
+        const decoded = parsePaymentRequest({ request: bolt11 })
+        logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`)
+          .catch(err => console.error('failed to write canceled payIn wallet log:', err))
+      } catch (err) {
+        console.error('failed to decode bolt11 for canceled payIn wallet log:', err)
+      }
     }
   }
 
@@ -563,7 +609,7 @@ export async function payInCancel ({ data, models, lnd, boss, ...args }) {
 
 export async function payInFailed ({ data, models, lnd, boss, ...args }) {
   const { payInId, payInFailureReason } = data
-  return await transitionPayIn('payInFailed', data, {
+  const transitionedPayIn = await transitionPayIn('payInFailed', data, {
     payInId,
     // any of these states can transition to FAILED
     fromStates: ['PENDING', 'PENDING_HELD', 'HELD', 'FAILED_FORWARD', 'CANCELLED', 'PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP'],
@@ -589,6 +635,13 @@ export async function payInFailed ({ data, models, lnd, boss, ...args }) {
       }
     }
   }, { models, lnd, boss, ...args })
+
+  if (transitionedPayIn) {
+    const { level, message } = formatPayInFailureMessage(transitionedPayIn.payInFailureReason)
+    logPayInWalletStatus(transitionedPayIn, payInId, models, { level, message })
+  }
+
+  return transitionedPayIn
 }
 
 function deducePayInFailureReason ({ payInFailureReason, payIn, lndPayInBolt11 }) {

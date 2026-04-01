@@ -4,7 +4,7 @@ import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { ZAP_DEBOUNCE_MS } from '@/lib/constants'
-import { useHasSendWallet } from '@/wallets/client/hooks'
+import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
 import { ActCanceledError, modifyActCache, updateAncestors, zapUndo, zapUndoTrigger } from './item-act'
 
 const ZAP_ME_SATS_FRAGMENT = gql`
@@ -12,7 +12,8 @@ const ZAP_ME_SATS_FRAGMENT = gql`
 `
 
 export function useZap ({ nextTip }) {
-  const hasSendWallet = useHasSendWallet()
+  const sendProtocolId = usePreferredSendProtocolId()
+  const hasSendWallet = sendProtocolId !== undefined
   const client = useApolloClient()
   const animate = useAnimation()
 
@@ -24,7 +25,7 @@ export function useZap ({ nextTip }) {
   const mountedRef = useRef(true)
 
   // direct mutation — bypasses useAct to avoid double cache writes from getActCachePhases
-  // waitFor is passed per-call in fireZap so debounce timer always uses latest hasSendWallet
+  // waitFor is passed per-call in fireZap so debounce timer always uses latest send-wallet availability
   const [sendZap] = usePayInMutation(ACT_MUTATION)
 
   // fire the accumulated zap mutation for a buffer entry
@@ -32,8 +33,8 @@ export function useZap ({ nextTip }) {
     const { totalSats, item, me: entryMe } = entry
     try {
       const { error } = await sendZap({
-        variables: { id: item.id, sats: totalSats, act: 'TIP', hasSendWallet },
-        // pass waitFor per-call so debounce timer always uses latest hasSendWallet
+        variables: { id: item.id, sats: totalSats, act: 'TIP' },
+        // pass waitFor per-call so debounce timer always uses latest send-wallet availability
         waitFor: payIn =>
           hasSendWallet
             ? payIn?.payInState === 'PAID'

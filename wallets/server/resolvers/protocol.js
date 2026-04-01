@@ -245,20 +245,27 @@ export async function removeWalletProtocol (parent, { id }, { me, models, tx }) 
   return await (tx ? transaction(tx) : models.$transaction(transaction))
 }
 
-async function walletLogs (parent, { protocolId, cursor, debug }, { me, models }) {
+async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   const decodedCursor = decodeCursor(cursor)
+  const where = {
+    userId: me.id,
+    createdAt: {
+      lt: decodedCursor.time
+    },
+    level: debug ? 'DEBUG' : { not: 'DEBUG' }
+  }
+
+  if (protocolId !== undefined) {
+    where.protocolId = protocolId
+  }
+  if (payInId !== undefined) {
+    where.payInId = payInId
+  }
 
   const logs = await models.walletLog.findMany({
-    where: {
-      userId: me.id,
-      protocolId,
-      createdAt: {
-        lt: decodedCursor.time
-      },
-      level: debug ? 'DEBUG' : { not: 'DEBUG' }
-    },
+    where,
     orderBy: {
       createdAt: 'desc'
     },

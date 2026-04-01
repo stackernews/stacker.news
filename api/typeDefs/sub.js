@@ -24,8 +24,9 @@ export default gql`
       postsSatsFilter: Int,
       postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
+      sendProtocolId: Int,
       nsfw: Boolean!): PayIn!
-    paySub(name: String!): PayIn!
+    paySub(name: String!, sendProtocolId: Int): PayIn!
     toggleMuteSub(name: String!): Boolean!
     toggleSubSubscription(name: String!): Boolean!
     transferTerritory(subName: String!, userName: String!): Sub
@@ -33,6 +34,7 @@ export default gql`
       replyCost: Int!, postsSatsFilter: Int,
       postTypes: [String!]!,
       billingType: String!, billingAutoRenew: Boolean!,
+      sendProtocolId: Int,
       nsfw: Boolean!): PayIn!
   }
 

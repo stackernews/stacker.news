@@ -845,14 +845,14 @@ export default {
 
       return { id, noteId }
     },
-    pollVote: async (parent, { id }, { me, models, lnd }) => {
+    pollVote: async (parent, { id, sendProtocolId }, { me, models, lnd }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      return await pay('POLL_VOTE', { id }, { me, models })
+      return await pay('POLL_VOTE', { id }, { me, models, sendProtocolId })
     },
-    act: async (parent, { id, sats, act = 'TIP', hasSendWallet }, { me, models, lnd, headers }) => {
+    act: async (parent, { id, sats, act = 'TIP', sendProtocolId }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
       await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
@@ -895,16 +895,16 @@ export default {
       }
 
       if (act === 'TIP') {
-        return await pay('ZAP', { id, sats, hasSendWallet }, { me, models })
+        return await pay('ZAP', { id, sats }, { me, models, sendProtocolId })
       } else if (act === 'DONT_LIKE_THIS') {
-        return await pay('DOWN_ZAP', { id, sats }, { me, models })
+        return await pay('DOWN_ZAP', { id, sats }, { me, models, sendProtocolId })
       } else if (act === 'BOOST') {
-        return await pay('BOOST', { id, sats }, { me, models })
+        return await pay('BOOST', { id, sats }, { me, models, sendProtocolId })
       } else {
         throw new GqlInputError('unknown act')
       }
     },
-    payBounty: async (parent, { id }, { me, models }) => {
+    payBounty: async (parent, { id, sendProtocolId }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
@@ -942,10 +942,10 @@ export default {
 
       const tail = await getBountyPaymentTail(models, Number(id), { userId: Number(me.id) })
       if (!tail) {
-        return await pay('BOUNTY_PAYMENT', { id }, { me, models })
+        return await pay('BOUNTY_PAYMENT', { id }, { me, models, sendProtocolId })
       }
       if (tail.payInState === 'FAILED') {
-        return await retryPayIn(tail.id, { me })
+        return await retryPayIn(tail.id, { me, sendProtocolId })
       }
       if (tail.payInState === 'PAID') {
         throw new GqlInputError(BOUNTY_ALREADY_PAID_ERROR)
@@ -1410,7 +1410,7 @@ export default {
   }
 }
 
-export const updateItem = async (parent, { forward, hash, hmac, ...item }, { me, models, lnd }) => {
+export const updateItem = async (parent, { forward, hash, hmac, sendProtocolId, ...item }, { me, models, lnd }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({
     where: { id: Number(item.id) },
@@ -1486,10 +1486,10 @@ export const updateItem = async (parent, { forward, hash, hmac, ...item }, { me,
   // never change author of item
   item.userId = old.userId
 
-  return await pay('ITEM_UPDATE', item, { models, me, lnd })
+  return await pay('ITEM_UPDATE', item, { models, me, lnd, sendProtocolId })
 }
 
-export const createItem = async (parent, { forward, ...item }, { me, models, lnd }) => {
+export const createItem = async (parent, { forward, sendProtocolId, ...item }, { me, models, lnd }) => {
   item.userId = me ? Number(me.id) : USER_ID.anon
 
   item.forwardUsers = await getForwardUsers(models, forward)
@@ -1510,7 +1510,7 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   // mark item as created with API key
   item.apiKey = me?.apiKey
 
-  return await pay('ITEM_CREATE', item, { models, me, lnd })
+  return await pay('ITEM_CREATE', item, { models, me, lnd, sendProtocolId })
 }
 
 export const getForwardUsers = async (models, forward) => {

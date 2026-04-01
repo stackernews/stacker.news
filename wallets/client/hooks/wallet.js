@@ -31,6 +31,14 @@ export function useHasSendWallet () {
   return useMemo(() => protocols.length > 0, [protocols])
 }
 
+export function usePreferredSendProtocolId () {
+  const protocols = useSendProtocols()
+  return useMemo(() => {
+    if (!protocols[0]?.id) return undefined
+    return Number(protocols[0].id)
+  }, [protocols])
+}
+
 export function useWalletSupport (wallet) {
   const template = isWallet(wallet) ? wallet.template : wallet
   return useMemo(() => ({ receive: template.receive === WalletStatus.OK, send: template.send === WalletStatus.OK }), [template])

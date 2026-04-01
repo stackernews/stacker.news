@@ -3,7 +3,7 @@ import { Form, Input, SubmitButton, CopyButton } from './form'
 import { useMutation, useQuery } from '@apollo/client'
 import { customDomainSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
-import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { GET_DOMAIN, SET_DOMAIN } from '@/fragments/domains'
 import { useEffect, createContext, useContext, useState } from 'react'
 import Moon from '@/svgs/moon-fill.svg'
@@ -150,7 +150,7 @@ export default function CustomDomainForm ({ sub }) {
     ? {}
     : {
         variables: { subName: sub.name },
-        pollInterval: NORMAL_POLL_INTERVAL,
+        pollInterval: NORMAL_POLL_INTERVAL_MS,
         nextFetchPolicy: 'cache-and-network',
         onCompleted: ({ domain }) => {
           if (domain?.status !== 'PENDING') {

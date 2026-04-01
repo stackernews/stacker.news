@@ -56,8 +56,8 @@ export default function usePayInHelper () {
     return data.cancelPayInBolt11
   }, [cancelPayInBolt11])
 
-  const retry = useCallback(async (payIn, { update } = {}) => {
-    const { data, error } = await retryPayIn({ variables: { payInId: payIn.id }, update })
+  const retry = useCallback(async (payIn, { sendProtocolId, update } = {}) => {
+    const { data, error } = await retryPayIn({ variables: { payInId: payIn.id, sendProtocolId }, update })
     if (error) throw error
 
     const newPayIn = data.retryPayIn

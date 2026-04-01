@@ -9,14 +9,14 @@ const typeDefs = gql`
     wallets: [WalletOrTemplate!]!
     wallet(id: ID, name: String): WalletOrTemplate
     walletSettings: WalletSettings!
-    walletLogs(protocolId: Int, cursor: String, debug: Boolean): WalletLogs!
+    walletLogs(protocolId: Int, payInId: Int, cursor: String, debug: Boolean): WalletLogs!
   }
 
   extend type Mutation {
     createWithdrawl(invoice: String!, maxFee: Int!): PayIn!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): PayIn!
     dropBolt11(hash: String!): Boolean
-    buyCredits(credits: Int!): PayIn!
+    buyCredits(credits: Int!, sendProtocolId: Int): PayIn!
 
     # upserts
     upsertWalletSendLNbits(

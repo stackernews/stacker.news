@@ -17,11 +17,9 @@ import { PayInFailureReasonError } from './errors'
 import { payInReplacePayOuts } from './lib/payInFailed'
 const models = createPrisma({ connectionParams: { connection_limit: 2 } })
 
-export default async function pay (payInType, payInArgs, { me, custodialOnly }) {
+export default async function pay (payInType, payInArgs, { me, custodialOnly, sendProtocolId } = {}) {
   try {
     const payInModule = payInTypeModules[payInType]
-
-    console.group('payIn', payInType, payInArgs)
 
     if (!payInModule) {
       throw new Error(`Invalid payIn type ${payInType}`)
@@ -42,8 +40,11 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly }) 
       }
     }
 
-    const payIn = await payInModule.getInitial(models, payInArgs, { me })
-    return await begin(models, payIn, payInArgs, { me, custodialOnly })
+    sendProtocolId = await normalizeSendProtocolId(sendProtocolId, { me })
+    console.group('payIn', payInType, payInArgs)
+
+    const payIn = await payInModule.getInitial(models, payInArgs, { me, sendProtocolId })
+    return await begin(models, payIn, payInArgs, { me, custodialOnly, sendProtocolId })
   } catch (e) {
     console.error('payIn failed', e)
     throw e
@@ -80,10 +81,10 @@ async function queuePayInFailed (tx, payInId, payInFailureReason) {
       now(), 1000)`
 }
 
-async function begin (models, payInInitial, payInArgs, { me, custodialOnly }) {
+async function begin (models, payInInitial, payInArgs, { me, custodialOnly, sendProtocolId }) {
   const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
     await obtainRowLevelLocks(tx, payInInitial)
-    await payInTypeModules[payInInitial.payInType].validateBeforeCreate?.(tx, payInInitial, payInArgs, { me })
+    await payInTypeModules[payInInitial.payInType].validateBeforeCreate?.(tx, payInInitial, payInArgs, { me, sendProtocolId })
     const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, payInArgs, { me })
 
     if (mCostRemaining > 0n && custodialOnly) {
@@ -121,7 +122,7 @@ async function begin (models, payInInitial, payInArgs, { me, custodialOnly }) {
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10000 })
 
-  return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
+  return await afterBegin(models, { payIn, result, mCostRemaining }, { me, sendProtocolId })
 }
 
 export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
@@ -139,7 +140,7 @@ export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
   return result
 }
 
-async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
+async function afterBegin (models, { payIn, result, mCostRemaining }, { me, sendProtocolId }) {
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
     try {
       const inStates = ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP']
@@ -151,7 +152,10 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me }) {
         data: {
           payInState,
           payInBolt11: {
-            create: payInBolt11
+            create: {
+              ...payInBolt11,
+              protocolId: payInBolt11.protocolId ?? sendProtocolId
+            }
           },
           beneficiaries: {
             updateMany: {
@@ -360,11 +364,13 @@ export async function onPaidSideEffects (models, payInId) {
   }
 }
 
-export async function retry (payInId, { me }) {
+export async function retry (payInId, { me, sendProtocolId }) {
   let payInFailedInitial
   let shouldConsumeRetryAttempt = false
   try {
+    sendProtocolId = await normalizeSendProtocolId(sendProtocolId, { me })
     const include = {
+      payInBolt11: true,
       payOutCustodialTokens: { include: { subPayOutCustodialToken: true } },
       payOutBolt11: true,
       subPayIn: true,
@@ -384,9 +390,15 @@ export async function retry (payInId, { me }) {
     if (isWithdrawal(payInFailedInitial)) {
       throw new Error('Withdrawal payIns cannot be retried')
     }
+    const retrySendProtocolId = sendProtocolId ??
+      await normalizeSendProtocolId(payInFailedInitial.payInBolt11?.protocolId, { me })
     if (isPessimistic(payInFailedInitial, { me })) {
       // pessimistic payIns are fully re-executed without tracking
-      return await pay(payInFailedInitial.payInType, payInFailedInitial.pessimisticEnv.args, { me })
+      return await pay(
+        payInFailedInitial.payInType,
+        { ...(payInFailedInitial.pessimisticEnv.args ?? {}) },
+        { me, sendProtocolId: retrySendProtocolId }
+      )
     }
     await payInTypeModules[payInFailedInitial.payInType].validateRetry?.(models, payInFailedInitial, { me })
     shouldConsumeRetryAttempt = true
@@ -429,7 +441,11 @@ export async function retry (payInId, { me }) {
       }
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10000 })
 
-    return await afterBegin(models, { payIn, result, mCostRemaining }, { me })
+    return await afterBegin(models, {
+      payIn,
+      result,
+      mCostRemaining
+    }, { me, sendProtocolId: retrySendProtocolId })
   } catch (e) {
     console.error('retry failed', e)
     if (shouldConsumeRetryAttempt && payInFailedInitial) {
@@ -448,4 +464,27 @@ export async function retry (payInId, { me }) {
     }
     throw e
   }
+}
+
+async function normalizeSendProtocolId (sendProtocolId, { me }) {
+  const protocolId = Number(sendProtocolId)
+  if (!Number.isInteger(protocolId) || protocolId <= 0 || !me || Number(me.id) === USER_ID.anon) {
+    return undefined
+  }
+
+  const protocol = await models.walletProtocol.findFirst({
+    where: {
+      id: protocolId,
+      send: true,
+      enabled: true,
+      wallet: {
+        userId: Number(me.id)
+      }
+    },
+    select: {
+      id: true
+    }
+  })
+
+  return protocol?.id
 }

@@ -17,7 +17,8 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
-async function tryP2P (models, { sats, hasSendWallet }, { me }, item) {
+async function tryP2P (models, { sats }, { me, sendProtocolId }, item) {
+  const hasSendWallet = Boolean(sendProtocolId)
   if (me.id !== USER_ID.anon) {
     const zapper = await models.user.findUnique({ where: { id: me.id } })
     if (sats < zapper?.sendCreditsBelowSats ||
@@ -40,7 +41,7 @@ async function tryP2P (models, { sats, hasSendWallet }, { me }, item) {
 // if not sub
 //    if p2p, 27% to rewards pool, 3% to routing fee
 //    if not p2p, all 30% to rewards pool
-export async function getInitial (models, payInArgs, { me }) {
+export async function getInitial (models, payInArgs, { me, sendProtocolId }) {
   const item = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { itemForwards: { include: { user: true } }, user: true } })
   const { subNames, parentId, itemForwards, userId, user } = item
   const subs = await getSubs(models, { subNames, parentId })
@@ -59,7 +60,7 @@ export async function getInitial (models, payInArgs, { me }) {
     .sort((a, b) => b.pct - a.pct)
 
   let p2pCandidateUserId = null
-  const p2p = await tryP2P(models, payInArgs, { me }, item)
+  const p2p = await tryP2P(models, payInArgs, { me, sendProtocolId }, item)
   if (p2p) {
     for (const c of candidates) {
       const candidateMtokens = zapMtokens * BigInt(c.pct) / 100n
@@ -69,7 +70,7 @@ export async function getInitial (models, payInArgs, { me }) {
       try {
         let testBolt11Func
         // anon and users without a send wallet can't auto-retry, so we test the invoice before proceeding with p2p
-        if (me.id === USER_ID.anon || !payInArgs.hasSendWallet) {
+        if (me.id === USER_ID.anon || !sendProtocolId) {
           testBolt11Func = async (bolt11) => await canWrapBolt11({ msats: candidateMtokens, bolt11, maxRoutingFeeMsats: routingFeeMtokens })
         }
 

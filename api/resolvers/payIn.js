@@ -191,8 +191,8 @@ export default {
         lnd
       })
     },
-    retryPayIn: async (parent, { payInId }, { models, me }) => {
-      return await retry(payInId, { models, me })
+    retryPayIn: async (parent, { payInId, sendProtocolId }, { models, me }) => {
+      return await retry(payInId, { models, me, sendProtocolId })
     }
   },
   PayIn: {
@@ -230,6 +230,49 @@ export default {
         return payIn.item
       }
       return await getItem(payIn, { id: payIn.itemPayIn.itemId }, { me, models })
+    },
+    walletInfo: async (payIn, args, { models, me }) => {
+      if (typeof payIn.walletInfo !== 'undefined') {
+        return payIn.walletInfo
+      }
+      if (!me || Number(me.id) === USER_ID.anon) {
+        return null
+      }
+
+      for (const [protocolId, role] of [
+        [payIn.payInBolt11?.protocolId, 'SEND'],
+        [payIn.payOutBolt11?.protocolId, 'RECEIVE']
+      ]) {
+        if (!protocolId) continue
+
+        const protocol = await models.walletProtocol.findFirst({
+          where: {
+            id: Number(protocolId),
+            wallet: {
+              userId: Number(me.id)
+            }
+          },
+          include: {
+            wallet: {
+              include: {
+                template: true
+              }
+            }
+          }
+        })
+
+        if (protocol) {
+          return {
+            walletId: protocol.wallet.id,
+            walletName: protocol.wallet.template.name,
+            protocolId: protocol.id,
+            protocolName: protocol.name,
+            role
+          }
+        }
+      }
+
+      return null
     },
     payOutCustodialTokens: async (payIn, args, { models, me }) => {
       let payOutCustodialTokens = []

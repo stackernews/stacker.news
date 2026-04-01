@@ -63,7 +63,11 @@ async function wallets (parent, args, { me, models }) {
     },
     include: {
       template: true,
-      protocols: true
+      protocols: {
+        orderBy: {
+          id: 'asc'
+        }
+      }
     },
     orderBy: [
       { priority: 'asc' },
@@ -94,7 +98,11 @@ async function wallet (parent, { id, name }, { me, models }) {
       where: { id: Number(id), userId: me.id },
       include: {
         template: true,
-        protocols: true
+        protocols: {
+          orderBy: {
+            id: 'asc'
+          }
+        }
       }
     })
     if (!wallet) throw new GqlInputError('wallet not found')

@@ -1,4 +1,4 @@
-import { useWalletPayment } from '@/wallets/client/hooks'
+import { usePreferredSendProtocolId, useWalletPayment } from '@/wallets/client/hooks'
 import usePayInHelper from './use-pay-in-helper'
 import { useLazyQuery } from '@apollo/client'
 import { FAILED_PAY_INS } from '@/fragments/payIn'
@@ -19,12 +19,13 @@ export function willAutoRetryPayIn (payIn) {
 
 export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
+  const sendProtocolId = usePreferredSendProtocolId()
   const payInHelper = usePayInHelper()
   const [getFailedPayIns] = useLazyQuery(FAILED_PAY_INS, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
   const { me } = useMe()
 
   const retry = useCallback(async (payIn) => {
-    const newPayIn = await payInHelper.retry(payIn)
+    const newPayIn = await payInHelper.retry(payIn, { sendProtocolId })
     // if the payIn has no bolt11, there's nothing to retry
     if (!newPayIn.payerPrivates.payInBolt11) {
       return
@@ -38,7 +39,7 @@ export function useAutoRetryPayIns () {
       }
       throw err
     }
-  }, [payInHelper, waitForWalletPayment])
+  }, [payInHelper, sendProtocolId, waitForWalletPayment])
 
   useEffect(() => {
     // we always retry failed invoices, even if the user has no wallets on any client

@@ -84,7 +84,7 @@ export function useWalletLogger (protocol) {
   return useMemo(() => loggerFactory(protocol), [loggerFactory, protocol])
 }
 
-export function useWalletLogs (protocol, debug) {
+export function useWalletLogs (protocol, debug, payInId, { poll = true } = {}) {
   const { templateLogs, clearTemplateLogs } = useContext(TemplateLogsContext)
 
   const [cursor, setCursor] = useState(null)
@@ -92,40 +92,63 @@ export function useWalletLogs (protocol, debug) {
 
   // if no protocol was given, we want to fetch all logs
   const protocolId = protocol ? Number(protocol.id) : undefined
+  const logFilters = useMemo(() => ({ protocolId, payInId, debug }), [protocolId, payInId, debug])
 
   // if we're configuring a protocol template, there are no logs to fetch
   const noFetch = protocol && isTemplate(protocol)
   const [fetchLogs, { called, loading, error }] = useLazyQuery(WALLET_LOGS, {
-    variables: { protocolId, debug },
+    variables: logFilters,
     skip: noFetch,
     fetchPolicy: 'network-only'
   })
 
   useEffect(() => {
+    setCursor(null)
+    setLogs([])
+  }, [logFilters])
+
+  useEffect(() => {
     if (noFetch) return
 
-    const interval = setInterval(async () => {
-      const { data, error } = await fetchLogs({ variables: { protocolId, debug } })
+    let active = true
+    const syncLogs = async () => {
+      const { data, error } = await fetchLogs({ variables: logFilters })
+      if (!active) return
       if (error) {
         console.error('failed to fetch wallet logs:', error.message)
         return
       }
-      const { entries: updatedLogs, cursor } = data.walletLogs
-      setLogs(logs => [...updatedLogs.filter(log => !logs.some(l => l.id === log.id)), ...logs])
-      if (!called) {
-        setCursor(cursor)
+      const { entries, cursor } = data.walletLogs
+      setLogs(entries)
+      setCursor(cursor)
+    }
+
+    syncLogs()
+    return () => { active = false }
+  }, [fetchLogs, logFilters, noFetch])
+
+  useEffect(() => {
+    if (noFetch || !poll) return
+
+    const interval = setInterval(async () => {
+      const { data, error } = await fetchLogs({ variables: logFilters })
+      if (error) {
+        console.error('failed to fetch wallet logs:', error.message)
+        return
       }
+      const { entries: updatedLogs } = data.walletLogs
+      setLogs(logs => [...updatedLogs.filter(log => !logs.some(l => l.id === log.id)), ...logs])
     }, FAST_POLL_INTERVAL_MS)
 
     return () => clearInterval(interval)
-  }, [fetchLogs, protocolId, called, noFetch, debug])
+  }, [fetchLogs, logFilters, noFetch, poll])
 
   const loadMore = useCallback(async () => {
-    const { data } = await fetchLogs({ variables: { protocolId, cursor, debug } })
+    const { data } = await fetchLogs({ variables: { ...logFilters, cursor } })
     const { entries: cursorLogs, cursor: newCursor } = data.walletLogs
     setLogs(logs => [...logs, ...cursorLogs.filter(log => !logs.some(l => l.id === log.id))])
     setCursor(newCursor)
-  }, [fetchLogs, cursor, protocolId, debug])
+  }, [fetchLogs, cursor, logFilters])
 
   const clearLogs = useCallback(() => {
     setLogs([])

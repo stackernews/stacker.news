@@ -95,7 +95,7 @@ async function verifyDomain (domain, models) {
   if (datePivot(new Date(), { minutes: VERIFICATION_HOLD_THRESHOLD }) > domain.updatedAt) {
     // delete certificate infos if any, it will trigger a deleteCertificate job
     // an ACM certificate would expire in 72 hours anyway, it's best to delete it
-    await models.domainCertificate.delete({ where: { domainId: domain.id } })
+    await models.domainCertificate.deleteMany({ where: { domainId: domain.id } })
     return { status: 'HOLD', message: `Domain ${domain.domainName} has been put on HOLD because we couldn't verify it in 48 hours` }
   }
 

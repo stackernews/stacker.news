@@ -53,7 +53,6 @@ export const DOMAIN_FULL_FIELDS = gql`
   ${DOMAIN_FIELDS}
   ${DOMAIN_VERIFICATION_RECORD_MAP_FIELDS}
   ${DOMAIN_VERIFICATION_ATTEMPT_FIELDS}
-  ${DOMAIN_CERTIFICATE_FIELDS}
   fragment DomainFullFields on Domain {
     ...DomainFields
     records {
@@ -61,9 +60,6 @@ export const DOMAIN_FULL_FIELDS = gql`
     }
     attempts {
       ...DomainVerificationAttemptFields
-    }
-    certificate {
-      ...DomainCertificateFields
     }
   }
 `

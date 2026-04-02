@@ -1,5 +1,5 @@
 import { validateSchema, customDomainSchema } from '@/lib/validate'
-import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { GqlAuthenticationError, GqlInputError, GqlAuthorizationError } from '@/lib/error'
 import { SN_ADMIN_IDS } from '@/lib/constants'
 
 const VERIFICATION_DELAY = 30000 // 30 seconds
@@ -34,10 +34,23 @@ async function scheduleDomainVerificationJob ({ domainId, startAfter = VERIFICAT
 
 export default {
   Query: {
-    domain: async (parent, { subName }, { models }) => {
+    domain: async (parent, { subName }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (!SN_ADMIN_IDS.includes(Number(me.id))) {
+        throw new GqlAuthorizationError('not an admin')
+      }
+
+      const sub = await models.sub.findUnique({ where: { name: subName } })
+      if (sub.userId !== me.id) {
+        throw new GqlAuthorizationError('you do not own this sub')
+      }
+
       return models.domain.findUnique({
         where: { subName },
-        include: { records: true, attempts: true, certificate: true }
+        include: { records: true, attempts: true }
       })
     }
   },
@@ -48,7 +61,7 @@ export default {
       }
 
       if (!SN_ADMIN_IDS.includes(Number(me.id))) {
-        throw new Error('not an admin')
+        throw new GqlAuthorizationError('not an admin')
       }
 
       const sub = await models.sub.findUnique({ where: { name: subName } })
@@ -57,7 +70,7 @@ export default {
       }
 
       if (sub.userId !== me.id) {
-        throw new GqlInputError('you do not own this sub')
+        throw new GqlAuthorizationError('you do not own this sub')
       }
 
       // we need to get the existing domain if we're updating or re-verifying

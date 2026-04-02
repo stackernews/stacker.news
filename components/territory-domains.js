@@ -146,18 +146,21 @@ export default function CustomDomainForm ({ sub }) {
   const [setDomain] = useMutation(SET_DOMAIN)
 
   // Get the custom domain and poll for changes
-  const { data, refetch } = useQuery(GET_DOMAIN, SSR
+  const { data, refetch, stopPolling, startPolling } = useQuery(GET_DOMAIN, SSR
     ? {}
     : {
         variables: { subName: sub.name },
-        pollInterval: NORMAL_POLL_INTERVAL_MS,
-        nextFetchPolicy: 'cache-and-network',
-        onCompleted: ({ domain }) => {
-          if (domain?.status !== 'PENDING') {
-            return { pollInterval: 0 }
-          }
-        }
+        nextFetchPolicy: 'cache-and-network'
       })
+
+  useEffect(() => {
+    if (data?.domain?.status !== 'PENDING') {
+      stopPolling()
+    } else {
+      startPolling(NORMAL_POLL_INTERVAL_MS)
+    }
+  }, [data?.domain?.status])
+
   const toaster = useToast()
 
   const { domainName, status } = data?.domain || {}

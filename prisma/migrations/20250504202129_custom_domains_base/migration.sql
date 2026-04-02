@@ -147,7 +147,7 @@ AFTER INSERT ON "DomainVerificationAttempt"
 FOR EACH ROW
 EXECUTE FUNCTION update_record_status_from_attempt();
 
--- SCENARIO: Territory got stopped after grace period
+-- SCENARIO: Territory gets stopped after grace period
 -- HOLD the domain when the sub is stopped
 -- this is to prevent the domain from being used by another sub;
 -- won't delete anything but it will require a new verification attempt if the sub is resumed
@@ -165,7 +165,7 @@ FOR EACH ROW
 WHEN (NEW.status = 'STOPPED')
 EXECUTE FUNCTION hold_domain_on_sub_stop();
 
--- SCENARIO: Territory got taken over by a different user
+-- SCENARIO: Territory gets taken over by a different user
 -- clear the domain when the sub is taken over by a different user;
 -- this will delete the domain, its certificates, verification attempts, DNS records and brandings.
 -- will also trigger a request to ACM to delete the certificate because the domain is being deleted

@@ -58,21 +58,23 @@ const DomainLabel = ({ domain, polling }) => {
       <span>custom domain</span>
       {domain && (
         <div className='d-flex align-items-center gap-2'>
-          {status !== 'HOLD'
+          {status === 'PENDING'
             ? (
               <>
                 {getStatusBadge('CNAME', records?.CNAME?.status)}
                 {getStatusBadge('SSL', records?.SSL?.status)}
               </>
               )
-            : (
-              <>
-                <Badge bg='secondary'>HOLD</Badge>
-                <SubmitButton variant='link' className='p-0'>
-                  <RefreshLine className={styles.refresh} style={{ width: '1rem', height: '1rem' }} />
-                </SubmitButton>
-              </>
-              )}
+            : status === 'HOLD'
+              ? (
+                <>
+                  <Badge bg='secondary'>HOLD</Badge>
+                  <SubmitButton variant='link' className='p-0'>
+                    <RefreshLine className={styles.refresh} style={{ width: '1rem', height: '1rem' }} />
+                  </SubmitButton>
+                </>
+                )
+              : <Badge bg='success'>active</Badge>}
           {polling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
         </div>
       )}
@@ -130,10 +132,13 @@ const DomainGuidelines = ({ domain }) => {
           {dnsRecord({ record: records?.CNAME })}
         </div>
       )}
+      {records?.CNAME?.status === 'VERIFIED' && !records?.SSL && (
+        <p>CNAME verified. Requesting SSL certificate...</p>
+      )}
       {records?.SSL?.status === 'PENDING' && (
         <div className=''>
           <h5>Step 2: Prepare your domain for SSL</h5>
-          <p>We issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
+          <p>We've issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>
           <h6>CNAME</h6>
           {dnsRecord({ record: records?.SSL })}
         </div>

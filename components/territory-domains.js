@@ -8,7 +8,6 @@ import { GET_DOMAIN, SET_DOMAIN } from '@/fragments/domains'
 import { useEffect, createContext, useContext, useState } from 'react'
 import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
-import RefreshLine from '@/svgs/refresh-line.svg'
 import styles from './item.module.css'
 
 // Domain context for custom domains
@@ -66,14 +65,7 @@ const DomainLabel = ({ domain, polling }) => {
               </>
               )
             : status === 'HOLD'
-              ? (
-                <>
-                  <Badge bg='secondary'>HOLD</Badge>
-                  <SubmitButton variant='link' className='p-0'>
-                    <RefreshLine className={styles.refresh} style={{ width: '1rem', height: '1rem' }} />
-                  </SubmitButton>
-                </>
-                )
+              ? <Badge bg='secondary'>HOLD</Badge>
               : <Badge bg='success'>active</Badge>}
           {polling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
         </div>
@@ -200,27 +192,35 @@ export default function CustomDomainForm ({ sub }) {
         className='mb-2'
       >
         <div className='d-flex align-items-center gap-2'>
-          <Input
-            disabled={!!data?.domain}
-            groupClassName='w-100'
-            label={<DomainLabel domain={data?.domain} polling={polling} />}
-            name='domainName'
-            placeholder='www.example.com'
-          />
-          {data?.domain
+          <div className='flex-grow-1'>
+            <Input
+              disabled={!!data?.domain}
+              label={<DomainLabel domain={data?.domain} polling={polling} />}
+              name='domainName'
+              placeholder='www.example.com'
+            />
+          </div>
+          {data?.domain && (
+            <Button
+              variant='danger'
+              className='mt-3'
+              onClick={() => onSubmit({ domainName: '' })}
+            >
+              reset
+            </Button>
+          )}
+          {!data?.domain
             ? (
-              <Button
-                variant='danger'
-                className='mt-3'
-                onClick={() => onSubmit({ domainName: '' })}
-              >
-                reset
-              </Button>
+              <SubmitButton variant='primary' className='mt-3'>verify</SubmitButton>
               )
-            : <SubmitButton variant='primary' className='mt-3'>verify</SubmitButton>}
+            : data?.domain?.status === 'HOLD'
+              ? (
+                <SubmitButton variant='success' className='mt-3'>re-verify</SubmitButton>
+                )
+              : null}
         </div>
       </Form>
-      {data?.domain && data?.domain?.status !== 'ACTIVE' && (
+      {data?.domain && data?.domain?.status === 'PENDING' && (
         <DomainGuidelines domain={data?.domain} />
       )}
     </>

@@ -314,11 +314,19 @@ a.link:visited {
 
 .refresh {
     cursor: pointer;
+    color: var(--theme-grey);
+    padding: 0;
+    margin-bottom: 2px;
+    transition: color 0.07s ease-in-out;
+}
+
+.refresh svg {
     fill: var(--theme-grey);
     width: 1rem;
     height: 1rem;
+    transition: fill 0.07s ease-in-out;
 }
 
-.refresh:hover {
+.refresh:hover svg {
     fill: var(--bs-primary);
 }

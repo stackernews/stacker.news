@@ -24,7 +24,7 @@ export const DomainProvider = ({ domain: ssrDomain, children }) => {
 
   // maintain the custom domain state across re-renders
   useEffect(() => {
-    if (ssrDomain && !domain) {
+    if (ssrDomain) {
       setDomain(ssrDomain)
     }
   }, [ssrDomain])

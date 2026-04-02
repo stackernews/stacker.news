@@ -2,12 +2,34 @@ import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { SN_ADMIN_IDS } from '@/lib/constants'
 
+const VERIFICATION_DELAY = 30000 // 30 seconds
+
 async function cleanDomainVerificationJobs (domain, models) {
   // delete any existing domain verification job left
   await models.$queryRaw`
   DELETE FROM pgboss.job
   WHERE name = 'domainVerification'
       AND data->>'domainId' = ${domain.id}::TEXT`
+}
+
+/**
+ * Schedule a domain verification job to run in a given amount of time.
+ * @param {Object} options - The options for scheduling the job.
+ * @param {number} options.domainId - The ID of the domain to verify.
+ * @param {number} [options.startAfter=VERIFICATION_DELAY] - The amount of time to wait before running the job in milliseconds.
+ * @param {models} models - prisma models or transaction
+ */
+async function scheduleDomainVerificationJob ({ domainId, startAfter = VERIFICATION_DELAY }, models) {
+  await models.$executeRaw`
+  INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, startafter, keepuntil, singletonkey)
+  VALUES ('domainVerification',
+          jsonb_build_object('domainId', ${domainId}::INTEGER),
+          3,
+          60,
+          now() + interval '${startAfter} milliseconds',
+          now() + interval '2 days',
+          'domainVerification:' || ${domainId}::TEXT -- domain <-> job isolation
+        )`
 }
 
 export default {
@@ -45,63 +67,49 @@ export default {
       })
 
       if (domainName) {
-        // validate the domain name
-        domainName = domainName.trim() // protect against trailing spaces
+        domainName = domainName.trim()
         await validateSchema(customDomainSchema, { domainName })
 
-        // updating the domain name and recovering from HOLD is allowed
+        // updating the domain name, recovering from HOLD is allowed
         if (existing && existing.domainName === domainName && existing.status !== 'HOLD') {
           throw new GqlInputError('domain already set')
         }
 
-        // we should always make sure to get a new updatedAt timestamp
-        // to know when should we put the domain in HOLD during verification
+        // fresh updatedAt so we know when to put the domain in HOLD during verification
         const initializeDomain = {
           domainName,
           updatedAt: new Date(),
           status: 'PENDING'
         }
 
+        const resuming = existing?.status === 'HOLD'
+
         const updatedDomain = await models.$transaction(async tx => {
-          // we're changing the domain name, delete the domain if it exists
           if (existing) {
-            // delete any existing domain verification job left
             await cleanDomainVerificationJobs(existing, tx)
-            // delete the domain if we're not resuming from HOLD
-            if (existing.status !== 'HOLD') {
+            if (!resuming) {
               await tx.domain.delete({ where: { subName } })
             }
           }
 
-          const domain = await tx.domain.create({
-            data: {
-              ...initializeDomain,
-              sub: { connect: { name: subName } }
-            }
-          })
+          const domain = resuming
+            ? await tx.domain.update({ where: { id: existing.id }, data: initializeDomain })
+            : await tx.domain.create({
+              data: { ...initializeDomain, sub: { connect: { name: subName } } }
+            })
 
-          // create the CNAME verification record
-          await tx.domainVerificationRecord.create({
-            data: {
-              domainId: domain.id,
-              type: 'CNAME',
-              recordName: domainName,
-              recordValue: new URL(process.env.NEXT_PUBLIC_URL).host
-            }
-          })
+          if (!resuming) {
+            await tx.domainVerificationRecord.create({
+              data: {
+                domainId: domain.id,
+                type: 'CNAME',
+                recordName: domainName,
+                recordValue: new URL(process.env.NEXT_PUBLIC_URL).host
+              }
+            })
+          }
 
-          // create the job to verify the domain in 30 seconds
-          await tx.$executeRaw`
-          INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, startafter, keepuntil, singletonkey)
-          VALUES ('domainVerification',
-                  jsonb_build_object('domainId', ${domain.id}::INTEGER),
-                  3,
-                  60,
-                  now() + interval '30 seconds',
-                  now() + interval '2 days',
-                  'domainVerification:' || ${domain.id}::TEXT -- domain <-> job isolation
-                )`
-
+          await scheduleDomainVerificationJob({ domainId: domain.id }, tx)
           return domain
         })
 

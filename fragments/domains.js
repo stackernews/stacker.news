@@ -74,7 +74,7 @@ export const GET_DOMAIN = gql`
 `
 
 export const SET_DOMAIN = gql`
-  mutation SetDomain($subName: String!, $domainName: String!) {
+  mutation SetDomain($subName: String!, $domainName: String) {
     setDomain(subName: $subName, domainName: $domainName) {
       domainName
     }

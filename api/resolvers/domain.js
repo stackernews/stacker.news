@@ -41,6 +41,10 @@ export default {
       }
 
       const sub = await models.sub.findUnique({ where: { name: subName } })
+      if (!sub) {
+        throw new GqlInputError('sub not found')
+      }
+
       if (sub.userId !== me.id) {
         throw new GqlAuthorizationError('you do not own this sub')
       }

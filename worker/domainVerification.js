@@ -19,6 +19,13 @@ const getVerificationInterval = (updatedAt) => {
 }
 const VERIFICATION_HOLD_THRESHOLD = -2 // 2 days ago
 
+// delete all related domain verification jobs for a domain
+async function deleteDomainJobs (domainId, models) {
+  await models.$queryRaw`
+  DELETE FROM pgboss.job
+  WHERE name = 'domainVerification' AND data->>'domainId' = ${domainId}::TEXT`
+}
+
 export async function domainVerification ({ id: jobId, data: { domainId }, boss }) {
   // establish connection to database
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
@@ -37,6 +44,14 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     // if we can't find the domain, bail without scheduling a retry
     if (!domain) {
       console.log(`domain with ID ${domainId} not found`)
+      return
+    }
+
+    // when a domain gets put on HOLD, we delete any remaining domain verification jobs
+    // this handles the edge case where a domain is put on HOLD manually or for some other reason
+    if (domain.status === 'HOLD') {
+      console.log(`domain ${domain.domainName} is on HOLD, skipping verification and deleting any remaining domain verification jobs`)
+      await deleteDomainJobs(domainId, models)
       return
     }
 
@@ -77,10 +92,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
       await models.domain.update({ where: { id: domainId }, data: { status: 'HOLD' } })
 
       // delete any related domain verification jobs that may exist
-      await models.$queryRaw`
-      DELETE FROM pgboss.job
-      WHERE name = 'domainVerification'
-            AND data->>'domainId' = ${domainId}::TEXT`
+      await deleteDomainJobs(domainId, models)
     }
 
     throw error

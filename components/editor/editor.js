@@ -27,7 +27,6 @@ import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softk
 import { MarkdownTextExtension } from '@/lib/lexical/exts/markdown'
 import AppendValuePlugin from '@/components/editor/plugins/core/append-value'
 import TransformerBridgePlugin from '@/components/editor/plugins/core/transformer-bridge'
-import MarkdownRichPastePlugin from '@/components/editor/plugins/core/markdown-paste'
 import { useEditorMode } from './contexts/mode'
 import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
 import { RichTextExtension } from '@lexical/rich-text'
@@ -185,12 +184,7 @@ function EditorContent ({
           <LinkEditorPlugin anchorElem={containerRef} />
         </>
       )}
-      {isMarkdown && (
-        <>
-          <TransformerBridgePlugin />
-          <MarkdownRichPastePlugin />
-        </>
-      )}
+      {isMarkdown && <TransformerBridgePlugin />}
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
       {warn && <BootstrapForm.Text className='text-warning'>{warn}</BootstrapForm.Text>}
     </div>

@@ -92,7 +92,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
 
 async function verifyDomain (domain, models) {
   // if we're still here and it has been 48 hours, put the domain on HOLD, stopping the verification process
-  if (datePivot(new Date(), { days: VERIFICATION_HOLD_THRESHOLD }) > domain.updatedAt) {
+  if (datePivot(new Date(), { minutes: VERIFICATION_HOLD_THRESHOLD }) > domain.updatedAt) {
     // delete certificate infos if any, it will trigger a deleteCertificate job
     // an ACM certificate would expire in 72 hours anyway, it's best to delete it
     await models.domainCertificate.delete({ where: { domainId: domain.id } })
@@ -296,11 +296,15 @@ async function logAttempt ({ domain, models, record, stage, status, message }) {
 export async function clearLongHeldDomains () {
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
   try {
-    await models.domain.deleteMany({
-      where: { status: 'HOLD', updatedAt: { lt: datePivot(new Date(), { days: 30 }) } }
+    const deleted = await models.domain.deleteMany({
+      where: { status: 'HOLD', updatedAt: { lt: datePivot(new Date(), { days: -30 }) } } // 30 days ago
     })
+
+    if (deleted.count > 0) {
+      console.log(`cleared ${deleted.count} custom domains that have been on HOLD for 30 days or more`)
+    }
   } catch (error) {
-    console.error(`couldn't clear long held domains: ${error.message}`)
+    console.error(`couldn't clear old domains that have been on HOLD: ${error.message}`)
   } finally {
     await models.$disconnect()
   }

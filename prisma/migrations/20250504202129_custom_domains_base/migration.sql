@@ -183,6 +183,22 @@ FOR EACH ROW
 WHEN (NEW."userId" != OLD."userId")
 EXECUTE FUNCTION clear_domain_on_sub_takeover();
 
+-- SCENARIO: Domain transitions to HOLD
+-- delete any associated certificate so the ACM cleanup trigger fires
+CREATE OR REPLACE FUNCTION delete_certificate_on_domain_hold()
+RETURNS TRIGGER AS $$
+BEGIN
+  DELETE FROM "DomainCertificate" WHERE "domainId" = NEW.id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_delete_certificate_on_domain_hold
+AFTER UPDATE ON "Domain"
+FOR EACH ROW
+WHEN (NEW.status = 'HOLD' AND OLD.status IS DISTINCT FROM 'HOLD')
+EXECUTE FUNCTION delete_certificate_on_domain_hold();
+
 -- ask ACM to delete the certificate
 CREATE OR REPLACE FUNCTION ask_acm_to_delete_certificate()
 RETURNS TRIGGER AS $$

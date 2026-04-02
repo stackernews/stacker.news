@@ -2,31 +2,28 @@ import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { GqlAuthenticationError, GqlInputError, GqlAuthorizationError } from '@/lib/error'
 import { SN_ADMIN_IDS } from '@/lib/constants'
 
-const VERIFICATION_DELAY = 30000 // 30 seconds
-
-async function cleanDomainVerificationJobs (domain, models) {
+async function cleanDomainVerificationJobs (domainId, models) {
   // delete any existing domain verification job left
   await models.$queryRaw`
   DELETE FROM pgboss.job
   WHERE name = 'domainVerification'
-      AND data->>'domainId' = ${domain.id}::TEXT`
+      AND data->>'domainId' = ${domainId}::TEXT`
 }
 
 /**
  * Schedule a domain verification job to run in a given amount of time.
  * @param {Object} options - The options for scheduling the job.
  * @param {number} options.domainId - The ID of the domain to verify.
- * @param {number} [options.startAfter=VERIFICATION_DELAY] - The amount of time to wait before running the job in milliseconds.
  * @param {models} models - prisma models or transaction
  */
-async function scheduleDomainVerificationJob ({ domainId, startAfter = VERIFICATION_DELAY }, models) {
+async function scheduleDomainVerificationJob (domainId, models) {
   await models.$executeRaw`
   INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, startafter, keepuntil, singletonkey)
   VALUES ('domainVerification',
           jsonb_build_object('domainId', ${domainId}::INTEGER),
           3,
           60,
-          now() + interval '${startAfter} milliseconds',
+          now() + interval '30 seconds',
           now() + interval '2 days',
           'domainVerification:' || ${domainId}::TEXT -- domain <-> job isolation
         )`
@@ -99,7 +96,7 @@ export default {
 
         const updatedDomain = await models.$transaction(async tx => {
           if (existing) {
-            await cleanDomainVerificationJobs(existing, tx)
+            await cleanDomainVerificationJobs(existing.id, tx)
             if (!resuming) {
               await tx.domain.delete({ where: { subName } })
             }
@@ -122,7 +119,7 @@ export default {
             })
           }
 
-          await scheduleDomainVerificationJob({ domainId: domain.id }, tx)
+          await scheduleDomainVerificationJob(domain.id, tx)
           return domain
         })
 
@@ -132,7 +129,7 @@ export default {
           if (existing) {
             return await models.$transaction(async tx => {
               // delete any existing domain verification job left
-              await cleanDomainVerificationJobs(existing, tx)
+              await cleanDomainVerificationJobs(existing.id, tx)
               // delete the domain
               return await tx.domain.delete({ where: { subName } })
             })

@@ -17,6 +17,7 @@ const getVerificationInterval = (updatedAt) => {
   // before 1 hour, the verification interval is 30 seconds
   return 30
 }
+
 const VERIFICATION_HOLD_THRESHOLD = -2 // 2 days ago
 
 // delete all related domain verification jobs for a domain
@@ -104,7 +105,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
 
 async function verifyDomain (domain, models) {
   // if we're still here and it has been 48 hours, put the domain on HOLD, stopping the verification process
-  if (datePivot(new Date(), { minutes: VERIFICATION_HOLD_THRESHOLD }) > domain.updatedAt) {
+  if (datePivot(new Date(), { days: VERIFICATION_HOLD_THRESHOLD }) > domain.updatedAt) {
     // delete certificate infos if any, it will trigger a deleteCertificate job
     // an ACM certificate would expire in 72 hours anyway, it's best to delete it
     await models.domainCertificate.deleteMany({ where: { domainId: domain.id } })

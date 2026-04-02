@@ -6,7 +6,7 @@ export default gql`
   }
 
   extend type Mutation {
-    setDomain(subName: String!, domainName: String!): Domain
+    setDomain(subName: String!, domainName: String): Domain
   }
 
   type Domain {

@@ -146,7 +146,7 @@ async function verifyDomain (domain, models) {
 async function verifyRecord (type, record, domain, models) {
   const result = await verifyDNSRecord(type, record.recordName, record.recordValue)
   const status = result.valid ? 'VERIFIED' : 'PENDING'
-  const message = result.valid ? `${type} record verified` : result.error || `${type} record is not valid`
+  const message = result.valid ? `${type} record verified` : result.error?.message || `${type} record is not valid`
 
   // log the record verification attempt
   await logAttempt({ domain, models, record, stage: type, status, message })
@@ -158,13 +158,13 @@ async function requestCertificate (domain, models) {
   let message = null
 
   // ask ACM to request a certificate for the domain
-  const { certificateArn, error } = await issueDomainCertificate(domain.domainName)
+  const { certificateArn, error: requestError } = await issueDomainCertificate(domain.domainName)
 
   if (certificateArn) {
     // check the status of the just created certificate
     const { certStatus, error: checkError } = await checkCertificateStatus(certificateArn)
     if (checkError) {
-      message = 'Could not check certificate status: ' + checkError
+      message = 'Could not check certificate status: ' + checkError?.message
       throw new Error(message)
     } else {
       try {
@@ -188,7 +188,7 @@ async function requestCertificate (domain, models) {
       }
     }
   } else {
-    message = 'Could not request an ACM certificate: ' + error
+    message = 'Could not request an ACM certificate: ' + requestError?.message
     throw new Error(message)
   }
 
@@ -224,7 +224,7 @@ async function getACMValidationValues (domain, models, certificateArn) {
       }
     }
   } else {
-    message = 'Could not get validation values: ' + error
+    message = 'Could not get validation values: ' + error?.message
     throw new Error(message)
   }
 
@@ -264,7 +264,7 @@ async function attachACMCertificateToELB (domain, models, certificateArn) {
   if (!error) {
     message = `Certificate ${certificateArn} is now attached to ELB listener`
   } else {
-    message = `Could not attach certificate ${certificateArn} to ELB listener: ${error.message}`
+    message = `Could not attach certificate ${certificateArn} to ELB listener: ${error?.message}`
     throw new Error(message)
   }
 

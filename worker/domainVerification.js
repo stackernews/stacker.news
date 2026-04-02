@@ -10,7 +10,7 @@ import {
 } from '@/lib/domain-verification'
 import { datePivot } from '@/lib/time'
 
-const VERIFICATION_INTERVAL = (updatedAt) => {
+const getVerificationInterval = (updatedAt) => {
   const pivot = datePivot(new Date(), { hours: -1 }) // 1 hour ago
   // after 1 hour, the verification interval is 5 minutes
   if (pivot > updatedAt) return 60 * 5
@@ -58,7 +58,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     if (result.status === 'PENDING') {
       // we still need to verify the domain, schedule the job to run again
       const newJobId = await boss.sendDebounced('domainVerification', { domainId }, {
-        startAfter: VERIFICATION_INTERVAL(domain.updatedAt),
+        startAfter: getVerificationInterval(domain.updatedAt),
         retryLimit: 3,
         retryDelay: 60 // on critical errors, retry every minute
       }, 30, `domainVerification:${domainId}`)

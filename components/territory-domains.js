@@ -193,6 +193,7 @@ export default function CustomDomainForm ({ sub }) {
       >
         <div className='d-flex align-items-center gap-2'>
           <Input
+            disabled={!!data?.domain}
             groupClassName='w-100'
             label={<DomainLabel domain={data?.domain} polling={polling} />}
             name='domainName'

@@ -144,6 +144,12 @@ async function verifyDomain (domain, models) {
 
 // verify a single record, logs the result and returns true if the record is valid
 async function verifyRecord (type, record, domain, models) {
+  if (!record) {
+    const message = `${type} record not found`
+    await logAttempt({ domain, models, record: null, stage: type, status: 'PENDING', message })
+    return false
+  }
+
   const result = await verifyDNSRecord(type, record.recordName, record.recordValue)
   const status = result.valid ? 'VERIFIED' : 'PENDING'
   const message = result.valid ? `${type} record verified` : result.error?.message || `${type} record is not valid`

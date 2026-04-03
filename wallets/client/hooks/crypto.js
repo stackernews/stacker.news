@@ -29,12 +29,14 @@ export function useSetKey () {
   const updateKeyHash = useUpdateKeyHash()
   const logger = useWalletLogger()
 
-  return useCallback(async ({ key, hash, updatedAt }, { updateDb = true } = {}) => {
+  return useCallback(async ({ key, hash, updatedAt }, { updateDb = true, updateServer = true } = {}) => {
     if (updateDb) {
       updatedAt = updatedAt ?? Date.now()
       await set('vault', 'key', { key, hash, updatedAt })
     }
-    await updateKeyHash(hash)
+    if (updateServer) {
+      await updateKeyHash(hash)
+    }
     dispatch({ type: SET_KEY, key, hash, updatedAt })
     logger.debug(`using key ${hash}`)
   }, [set, dispatch, updateKeyHash, logger])

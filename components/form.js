@@ -1197,28 +1197,63 @@ function PasswordScanner ({ onScan, text }) {
   )
 }
 
-export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: initialValue, ...props }) {
-  const [showPass, setShowPass] = useState(false)
+export function PasswordInput (props) {
+  if (props.noForm) {
+    return <StandalonePasswordInput {...props} />
+  }
+
+  return <FormikPasswordInput {...props} />
+}
+
+function StandalonePasswordInput ({ value: initialValue, noForm, ...props }) {
   const [value, setValue] = useState(initialValue)
-  const [field,, helpers] = props.noForm ? [{ value }, {}, { setValue }] : useField(props)
+
+  useEffect(() => {
+    setValue(initialValue)
+  }, [initialValue])
+
+  return (
+    <PasswordInputBase
+      {...props}
+      noForm
+      value={value}
+      setValue={setValue}
+    />
+  )
+}
+
+function FormikPasswordInput (props) {
+  const [field,, helpers] = useField(props)
+
+  return (
+    <PasswordInputBase
+      {...props}
+      value={field?.value}
+      setValue={helpers.setValue}
+    />
+  )
+}
+
+function PasswordInputBase ({ newPass, qr, copy, readOnly, append, under, value, setValue, className, noForm, ...props }) {
+  const [showPass, setShowPass] = useState(false)
 
   const Append = useMemo(() => {
     return (
       <>
         <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
         {copy && (
-          <CopyButton icon value={field?.value} />
+          <CopyButton icon value={value} />
         )}
         {qr && (
           <PasswordScanner
             text="Where'd you learn to square dance?"
-            onScan={v => helpers.setValue(v)}
+            onScan={setValue}
           />
         )}
         {append}
       </>
     )
-  }, [showPass, copy, field?.value, helpers.setValue, qr, readOnly, append])
+  }, [showPass, copy, value, setValue, qr, append])
 
   const style = props.style ? { ...props.style } : {}
   if (props.as === 'textarea') {
@@ -1231,19 +1266,26 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: ini
   return (
     <ClientInput
       {...props}
+      noForm={noForm}
       style={style}
-      className={styles.passwordInput}
+      className={classNames(styles.passwordInput, className)}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
       readOnly={readOnly}
       append={props.as === 'textarea' ? undefined : Append}
-      value={field?.value}
-      under={props.as === 'textarea'
-        ? (
-          <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>
-            {Append}
-          </div>)
-        : undefined}
+      value={value}
+      under={
+        props.as === 'textarea'
+          ? (
+            <>
+              <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>
+                {Append}
+              </div>
+              {under}
+            </>
+            )
+          : under
+      }
     />
   )
 }

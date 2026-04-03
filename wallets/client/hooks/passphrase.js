@@ -1,5 +1,5 @@
 import { Form, PasswordInput, SubmitButton } from '@/components/form'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import { object, string } from 'yup'
 import { Passphrase } from '@/wallets/client/components'
@@ -7,58 +7,17 @@ import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '@/components/toast'
 import { useDisablePassphraseExport, useWalletEncryptionUpdate, useWalletReset } from '@/wallets/client/hooks/query'
+import { useWithKeySync } from '@/wallets/client/hooks/global'
 import { useWalletLogger } from '@/wallets/client/hooks/logger'
 import { useGenerateRandomKey, useKeySalt, useRemoteKeyHash, useSetKey } from '@/wallets/client/hooks/crypto'
 import { deriveKey } from '@/wallets/lib/crypto'
-import AccordianItem from '@/components/accordian-item'
+import { useSingleFlight } from '@/wallets/client/hooks/singleFlight'
+import styles from '@/styles/wallet.module.css'
+import RefreshIcon from '@/svgs/refresh-line.svg'
 
-export function useShowPassphrase () {
+export function useNeedsPassphraseSetup () {
   const { me } = useMe()
-  const showModal = useShowModal()
-  const generateRandomKey = useGenerateRandomKey()
-  const updateWalletEncryption = useWalletEncryptionUpdate()
-  const toaster = useToast()
-
-  const onShow = useCallback(async () => {
-    let passphrase, key, hash
-    try {
-      ({ passphrase, key, hash } = await generateRandomKey())
-      await updateWalletEncryption({ key, hash })
-    } catch (err) {
-      toaster.danger('failed to update wallet encryption: ' + err.message)
-      return
-    }
-    showModal(
-      close => <Passphrase passphrase={passphrase} />,
-      { replaceModal: true, keepOpen: true }
-    )
-  }, [showModal, generateRandomKey, updateWalletEncryption, toaster])
-
-  const cb = useCallback(() => {
-    showModal(close => (
-      <div>
-        <p className='line-height-md'>
-          The next screen will show the passphrase that was used to encrypt your wallets.
-        </p>
-        <p className='line-height-md fw-bold'>
-          You will not be able to see the passphrase again.
-        </p>
-        <p className='line-height-md'>
-          Do you want to see it now?
-        </p>
-        <div className='mt-3 d-flex justify-content-between align-items-center'>
-          <Button variant='grey-medium' onClick={close}>cancel</Button>
-          <Button variant='danger' onClick={onShow}>yes, show me</Button>
-        </div>
-      </div>
-    ))
-  }, [showModal, onShow])
-
-  if (!me || !me.privates?.showPassphrase) {
-    return null
-  }
-
-  return cb
+  return !!me?.privates?.showPassphrase
 }
 
 function useSavePassphrase () {
@@ -80,6 +39,7 @@ export function useResetPassphrase () {
   const walletReset = useWalletReset()
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
+  const withKeySync = useWithKeySync()
   const toaster = useToast()
   const logger = useWalletLogger()
 
@@ -88,15 +48,17 @@ export function useResetPassphrase () {
       try {
         logger.debug('passphrase reset')
         const { key: randomKey, hash } = await generateRandomKey()
-        await setKey({ key: randomKey, hash })
-        await walletReset({ newKeyHash: hash })
+        await withKeySync(async () => {
+          await setKey({ key: randomKey, hash }, { updateServer: false })
+          await walletReset({ newKeyHash: hash })
+        })
         close()
       } catch (err) {
         logger.debug('failed to reset passphrase: ' + err)
         console.error('failed to reset passphrase:', err)
-        toaster.error('failed to reset passphrase')
+        toaster.danger('failed to reset passphrase')
       }
-    }, [walletReset, generateRandomKey, setKey, toaster, logger])
+    }, [walletReset, generateRandomKey, setKey, withKeySync, toaster, logger])
 
   return useCallback(async () => {
     showModal(close => (
@@ -128,95 +90,265 @@ const passphraseSchema = ({ hash, salt }) => object().shape({
     })
 })
 
-export function usePassphrasePrompt () {
-  const savePassphrase = useSavePassphrase()
-  const hash = useRemoteKeyHash()
-  const salt = useKeySalt()
-  const showPassphrase = useShowPassphrase()
-  const resetPassphrase = useResetPassphrase()
-
-  const onSubmit = useCallback(async ({ passphrase }) => {
-    await savePassphrase({ passphrase })
-  }, [savePassphrase])
-
-  const [showPassphrasePrompt, setShowPassphrasePrompt] = useState(false)
-  const togglePassphrasePrompt = useCallback(() => setShowPassphrasePrompt(v => !v), [])
-
-  const Prompt = useMemo(() => (
+function PassphrasePromptContent ({
+  hash,
+  salt,
+  onSubmit,
+  onReset,
+  onCancel,
+  showCancel = true
+}) {
+  return (
     <div>
-      <h4>Wallet decryption</h4>
+      <h4>Enter your Stacker News wallet passphrase</h4>
       <p className='line-height-md mt-3'>
-        Enter your passphrase to decrypt your wallets on this device.
+        Enter the passphrase you saved when you first set up wallets on another device.
       </p>
-      <AccordianItem
-        className='line-height-md text-white my-3'
-        header='Where can I find my passphrase?'
-        body={
-          showPassphrase
-            ? (
-              <>
-                <p>
-                  Your passphrase was generated on the device where you first created your wallets. To find it:
-                </p>
-                <ol>
-                  <li>Go to your wallets on that original device</li>
-                  <li>Look above your list of wallets</li>
-                  <li>Click the 'passphrase' button to reveal it</li>
-                </ol>
-                <p>
-                  Make sure to store your passphrase somewhere safe — you'll need to enter it on any device you want to access your wallets like this one.
-                </p>
-              </>
-              )
-            : (
-              <>
-                <p>
-                  We have already shown you your passphrase so we cannot show it to you again, sorry.
-                  Please check your password manager or other locations where you may have stored your passphrase.
-                </p>
-              </>
-              )
-        }
-      />
-      <AccordianItem
-        className='line-height-md text-white my-3'
-        header='I lost my passphrase. What should I do?'
-        body={
-          <>
-            <p>
-              If you lost your passphrase, press <span className='fw-bold text-danger'>reset</span>.
-              This will <b>issue a new passphrase</b> and <b>delete all your sending credentials</b>.
-              Your credentials for receiving will not be affected.
-            </p>
-          </>
-          }
-      />
       <Form
-        className='mt-3'
+        className='mt-4'
         schema={passphraseSchema({ hash, salt })}
         initial={{ passphrase: '' }}
         onSubmit={onSubmit}
       >
-        <PasswordInput
-          label='passphrase'
-          name='passphrase'
-          placeholder=''
-          required
-          autoFocus
-        />
-        <div className='mt-3'>
-          <div className='d-flex justify-content-between align-items-center'>
-            <Button className='me-auto' variant='danger' onClick={resetPassphrase}>reset</Button>
-            <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={togglePassphrasePrompt}>cancel</Button>
-            <SubmitButton variant='primary'>save</SubmitButton>
+        <div className={styles.passphraseSetup}>
+          <div className={styles.passphraseSetupNotice}>
+            <p className='fw-bold mb-2 line-height-md'>
+              Enter your Stacker News wallet passphrase to access your wallets on this device.
+            </p>
+            <p className='text-muted mb-0 line-height-md'>
+              If you stored it in your password manager, it may be available to fill below.
+            </p>
+          </div>
+
+          <PasswordInput
+            label='Enter your saved passphrase'
+            name='passphrase'
+            placeholder=''
+            under={(
+              <div className={styles.passphraseInputHint}>
+                Use the same passphrase on every device where you want to access these wallets.
+              </div>
+            )}
+            required
+            autoFocus
+            groupClassName='mb-0'
+            className={styles.passphraseManagerInput}
+          />
+
+          <div className={styles.passphraseSetupActions}>
+            <p className='text-muted mb-0 line-height-md'>
+              If you no longer have the saved passphrase, you can reset wallets instead.
+            </p>
+            <div className={styles.passphraseSetupButtons}>
+              <button
+                type='button'
+                className={styles.passphraseResetButton}
+                onClick={onReset}
+              >
+                reset wallets
+              </button>
+              <div className='d-flex align-items-center gap-3 flex-wrap justify-content-end'>
+                {showCancel && (
+                  <Button type='button' className='text-muted nav-link fw-bold p-0' variant='link' onClick={onCancel}>cancel</Button>
+                )}
+                <SubmitButton variant='primary' submittingText='unlocking...'>unlock</SubmitButton>
+              </div>
+            </div>
           </div>
         </div>
       </Form>
     </div>
-  ), [showPassphrase, resetPassphrase, togglePassphrasePrompt, onSubmit, hash, salt])
+  )
+}
+
+export function usePassphrasePrompt ({ showCancel = false, onCancel, onSuccess } = {}) {
+  const savePassphrase = useSavePassphrase()
+  const hash = useRemoteKeyHash()
+  const salt = useKeySalt()
+  const resetPassphrase = useResetPassphrase()
+
+  const onSubmit = useCallback(async ({ passphrase }) => {
+    await savePassphrase({ passphrase })
+    await onSuccess?.()
+  }, [savePassphrase, onSuccess])
+
+  const Prompt = useMemo(() => (
+    <PassphrasePromptContent
+      hash={hash}
+      salt={salt}
+      onSubmit={onSubmit}
+      onReset={resetPassphrase}
+      onCancel={onCancel}
+      showCancel={showCancel && !!onCancel}
+    />
+  ), [hash, salt, onCancel, onSubmit, resetPassphrase, showCancel])
+
+  return Prompt
+}
+
+export function usePassphraseSetup () {
+  const { me } = useMe()
+  const needsPassphraseSetup = useNeedsPassphraseSetup()
+  const generateRandomKey = useGenerateRandomKey()
+  const updateWalletEncryption = useWalletEncryptionUpdate()
+  const toaster = useToast()
+
+  const [candidate, setCandidate] = useState(null)
+  const [generationError, setGenerationError] = useState(null)
+
+  useEffect(() => {
+    if (!needsPassphraseSetup) {
+      setCandidate(null)
+      setGenerationError(null)
+    }
+  }, [needsPassphraseSetup])
+
+  useEffect(() => {
+    if (!needsPassphraseSetup || candidate || generationError) return
+
+    let cancelled = false
+
+    generateRandomKey()
+      .then(({ passphrase, key, hash }) => {
+        if (cancelled) return
+        setCandidate({ passphrase, key, hash })
+        setGenerationError(null)
+      })
+      .catch(err => {
+        if (cancelled) return
+        console.error('failed to generate passphrase:', err)
+        setGenerationError(err)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [needsPassphraseSetup, candidate, generationError, generateRandomKey])
+
+  const retryGeneration = useCallback(() => {
+    setCandidate(null)
+    setGenerationError(null)
+  }, [])
+
+  const [savePassphrase, savingPassphrase] = useSingleFlight(async () => {
+    if (!candidate) return
+
+    try {
+      await updateWalletEncryption({ key: candidate.key, hash: candidate.hash })
+    } catch (err) {
+      toaster.danger('failed to save passphrase: ' + err.message)
+      throw err
+    }
+  })
+
+  const [regeneratePassphrase, regeneratingPassphrase] = useSingleFlight(async () => {
+    try {
+      const { passphrase, key, hash } = await generateRandomKey()
+      setCandidate({ passphrase, key, hash })
+      setGenerationError(null)
+    } catch (err) {
+      console.error('failed to regenerate passphrase:', err)
+      toaster.danger('failed to generate a new passphrase')
+    }
+  })
+
+  const onSaveSubmit = useCallback((e) => {
+    e.preventDefault()
+    savePassphrase()
+  }, [savePassphrase])
+
+  const SetupPrompt = useMemo(() => (
+    <div className={candidate ? undefined : 'text-center'}>
+      <h4>Save your passphrase</h4>
+      <p className='line-height-md mt-3'>
+        Before you can continue, save this passphrase somewhere safe.
+      </p>
+      {candidate
+        ? (
+          <form autoComplete='on' className='mt-4' onSubmit={onSaveSubmit}>
+            <input
+              type='hidden'
+              name='username'
+              autoComplete='username'
+              value={me?.name ?? ''}
+              readOnly
+            />
+            <div className={styles.passphraseSetup}>
+              <div className={styles.passphraseSetupNotice}>
+                <p className='fw-bold mb-2 line-height-md'>
+                  Save this passphrase before you continue.
+                </p>
+                <p className='text-muted mb-0 line-height-md'>
+                  A password manager is usually the easiest place to keep it.
+                </p>
+              </div>
+              <PasswordInput
+                noForm
+                id='wallet-passphrase'
+                name='passphrase'
+                label='Save somewhere safe'
+                under={(
+                  <div className={styles.passphraseInputHint}>
+                    Your browser or password manager may offer to save this field when you continue. You can also use the copy button below.
+                  </div>
+                )}
+                newPass
+                readOnly
+                value={candidate.passphrase}
+                groupClassName='mb-0'
+                className={styles.passphraseManagerInput}
+              />
+              <Passphrase
+                passphrase={candidate.passphrase}
+                title='Readable backup'
+                hint='Use the same passphrase on every device where you want to decrypt your wallets.'
+              />
+              <div className={styles.passphraseSetupActions}>
+                <p className='text-muted mb-0 line-height-md'>
+                  After you continue, we will stop showing this passphrase and open your wallets.
+                </p>
+                <div className={styles.passphraseSetupButtons}>
+                  <button
+                    type='button'
+                    className={styles.passphraseRegenerateButton}
+                    onClick={regeneratePassphrase}
+                    disabled={savingPassphrase || regeneratingPassphrase}
+                    aria-label='generate a new passphrase'
+                    title='generate a new passphrase'
+                  >
+                    <RefreshIcon width={18} height={18} className={regeneratingPassphrase ? 'spin' : undefined} />
+                  </button>
+                  <Button
+                    type='submit'
+                    variant='primary'
+                    disabled={savingPassphrase || regeneratingPassphrase}
+                  >
+                    {savingPassphrase ? 'Saving your passphrase...' : "I've saved my passphrase"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </form>
+          )
+        : generationError
+          ? (
+            <>
+              <p className='line-height-md text-muted mt-4'>
+                We could not generate a passphrase right now.
+              </p>
+              <div className='d-flex justify-content-end mt-3'>
+                <Button variant='secondary' onClick={retryGeneration}>try again</Button>
+              </div>
+            </>
+            )
+          : (
+            <p className='line-height-md text-muted mt-4'>generating passphrase...</p>
+            )}
+    </div>
+  ), [candidate, generationError, me?.name, onSaveSubmit, regeneratePassphrase, regeneratingPassphrase, retryGeneration, savingPassphrase])
 
   return useMemo(
-    () => [showPassphrasePrompt, togglePassphrasePrompt, Prompt],
-    [showPassphrasePrompt, togglePassphrasePrompt, Prompt]
+    () => ({ needsPassphraseSetup, SetupPrompt }),
+    [needsPassphraseSetup, SetupPrompt]
   )
 }

@@ -118,6 +118,8 @@ Credentials to spend from your wallet are always stored encrypted on the server.
 
 You need to enter your passphrase on another device so it can derive the same key to decrypt your wallets.
 
+If you have not saved your passphrase yet, visiting wallets on the device where you first set them up will prompt you to save it before continuing.
+
 ### I have a wallet attached but I still receive CCs. Why?
 
 This can happen for any of the following reasons:

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { timeoutSignal } from '@/lib/time'
 import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { requestPersistentStorage } from '@/components/use-indexeddb'
+import { requestPersistentStorage, useIndexedDB } from '@/components/use-indexeddb'
 import {
   UPSERT_WALLET_RECEIVE_BLINK,
   UPSERT_WALLET_RECEIVE_CLN_REST,
@@ -37,9 +37,20 @@ import {
   TEST_WALLET_RECEIVE_CLINK,
   DELETE_WALLET
 } from '@/wallets/client/fragments'
+import { ME } from '@/fragments/users'
 import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
-import { useTemplates, useWallets } from '@/wallets/client/hooks/global'
-import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks/crypto'
+import {
+  SET_KEY,
+  WALLETS_QUERY_LOADING,
+  useTemplates,
+  useWallets,
+  useWalletsDispatch,
+  useWalletsLoading,
+  useWithKeySync,
+  useKeySyncInProgress
+} from '@/wallets/client/hooks/global'
+import { WalletsRefreshingError } from '@/wallets/client/errors'
+import { useDecryption, useEncryption, useRemoteKeyHashUpdatedAt } from '@/wallets/client/hooks/crypto'
 import { useWalletLoggerFactory } from '@/wallets/client/hooks/logger'
 import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
 import {
@@ -47,13 +58,38 @@ import {
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 
+function updateMePrivates (client, privates) {
+  client.cache.updateQuery({ query: ME }, data => {
+    if (!data?.me?.privates) return data
+
+    return {
+      me: {
+        ...data.me,
+        privates: {
+          ...data.me.privates,
+          ...privates
+        }
+      }
+    }
+  })
+}
+
 export function useWalletsQuery () {
   const { me } = useMe()
   const query = useQuery(WALLETS, { skip: !me })
   const [wallets, setWallets] = useState(null)
   const [error, setError] = useState(null)
+  const keySyncInProgress = useKeySyncInProgress()
 
   const { decryptWallet, ready } = useWalletDecryption()
+  const clearWalletData = useCallback(() => {
+    setWallets(null)
+    setError(null)
+  }, [])
+  const needsFreshWalletData = useRefetchOnRemoteKeyHashChange(query.refetch, {
+    onRefreshStart: clearWalletData,
+    errorMessage: 'failed to refetch wallets after key update:'
+  })
 
   useEffect(() => {
     // the query might fail because of network errors like ERR_NETWORK_CHANGED
@@ -68,31 +104,39 @@ export function useWalletsQuery () {
   }, [query.startPolling, query.stopPolling, wallets])
 
   useEffect(() => {
-    if (!query.data?.wallets || !ready) return
+    if (!query.data?.wallets || !ready || needsFreshWalletData || keySyncInProgress) return
+
+    let cancelled = false
+
     Promise.all(
       query.data?.wallets.map(w => decryptWallet(w))
     )
       .then(wallets => wallets.map(server2Client))
       .then(wallets => {
+        if (cancelled) return
         setWallets(wallets)
         setError(null)
       })
       .catch(err => {
+        if (cancelled) return
         console.error('failed to decrypt wallets:', err)
         setWallets([])
         // OperationError from the Web Crypto API does not have a message
         setError(new Error('decryption error: ' + (err.message || err.name)))
       })
-  }, [query.data, decryptWallet, ready])
+    return () => {
+      cancelled = true
+    }
+  }, [query.data, decryptWallet, ready, needsFreshWalletData, keySyncInProgress])
 
   useRefetchOnChange(query.refetch)
 
   return useMemo(() => ({
     ...query,
     error: error ?? query.error,
-    loading: !wallets,
+    loading: !(error ?? query.error) && (needsFreshWalletData || !wallets),
     data: wallets ? { wallets } : null
-  }), [query, error, wallets])
+  }), [query, error, needsFreshWalletData, wallets])
 }
 
 function useRefetchOnChange (refetch) {
@@ -108,16 +152,30 @@ function useRefetchOnChange (refetch) {
 
 export function useDecryptedWallet (wallet) {
   const { decryptWallet, ready } = useWalletDecryption()
-  const [decryptedWallet, setDecryptedWallet] = useState(server2Client(wallet))
+  const [decryptedWallet, setDecryptedWallet] = useState(() => server2Client(wallet))
 
   useEffect(() => {
+    const nextWallet = server2Client(wallet)
+    setDecryptedWallet(nextWallet)
+
     if (!ready || !wallet) return
+
+    let cancelled = false
+
     decryptWallet(wallet)
       .then(server2Client)
-      .then(wallet => setDecryptedWallet(wallet))
+      .then(wallet => {
+        if (cancelled) return
+        setDecryptedWallet(wallet)
+      })
       .catch(err => {
+        if (cancelled) return
         console.error('failed to decrypt wallet:', err)
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [decryptWallet, wallet, ready])
 
   return decryptedWallet
@@ -229,11 +287,19 @@ function useLightningAddressToWalletMapper () {
 
 export function useWalletEncryptionUpdate () {
   const wallets = useWallets()
+  const walletsLoading = useWalletsLoading()
+  const dispatch = useWalletsDispatch()
+  const client = useApolloClient()
+  const { set } = useIndexedDB()
   const [mutate] = useMutation(UPDATE_WALLET_ENCRYPTION)
-  const setKey = useSetKey()
   const { encryptConfig } = useEncryptConfig()
+  const withKeySync = useWithKeySync()
 
   return useCallback(async ({ key, hash }) => {
+    if (walletsLoading) {
+      throw new WalletsRefreshingError()
+    }
+
     const encrypted = await Promise.all(
       wallets.map(async d => ({
         ...d,
@@ -253,26 +319,50 @@ export function useWalletEncryptionUpdate () {
       })
     }))
 
-    await mutate({ variables: { keyHash: hash, wallets: data } })
+    await withKeySync(async () => {
+      await mutate({ variables: { keyHash: hash, wallets: data } })
 
-    await setKey({ key, hash })
-  }, [wallets, mutate, setKey, encryptConfig])
+      const updatedAt = Date.now()
+      await set('vault', 'key', { key, hash, updatedAt })
+      dispatch({ type: SET_KEY, key, hash, updatedAt })
+      dispatch({ type: WALLETS_QUERY_LOADING })
+      updateMePrivates(client, {
+        showPassphrase: false,
+        vaultKeyHash: hash,
+        vaultKeyHashUpdatedAt: new Date(updatedAt).toISOString()
+      })
+    })
+  }, [wallets, walletsLoading, dispatch, client, set, mutate, encryptConfig, withKeySync])
 }
 
 export function useWalletReset () {
+  const dispatch = useWalletsDispatch()
+  const client = useApolloClient()
   const [mutate] = useMutation(RESET_WALLETS)
 
   return useCallback(async ({ newKeyHash }) => {
     await mutate({ variables: { newKeyHash } })
-  }, [mutate])
+    dispatch({ type: WALLETS_QUERY_LOADING })
+
+    updateMePrivates(client, {
+      showPassphrase: true,
+      vaultKeyHash: newKeyHash,
+      vaultKeyHashUpdatedAt: new Date().toISOString()
+    })
+  }, [dispatch, client, mutate])
 }
 
 export function useDisablePassphraseExport () {
+  const client = useApolloClient()
   const [mutate] = useMutation(DISABLE_PASSPHRASE_EXPORT)
 
   return useCallback(async () => {
     await mutate()
-  }, [mutate])
+
+    updateMePrivates(client, {
+      showPassphrase: false
+    })
+  }, [client, mutate])
 }
 
 export function useSetWalletPriorities () {
@@ -460,4 +550,51 @@ export function useUpdateKeyHash () {
   return useCallback(async (keyHash) => {
     await mutate({ variables: { keyHash } })
   }, [mutate])
+}
+
+export function useRefetchOnRemoteKeyHashChange (refetch, { onRefreshStart, errorMessage } = {}) {
+  const remoteKeyHashUpdatedAt = useRemoteKeyHashUpdatedAt()
+  const keyHashUpdatedAtRef = useRef(remoteKeyHashUpdatedAt)
+  const [needsRefresh, setNeedsRefresh] = useState(false)
+
+  useEffect(() => {
+    if (!remoteKeyHashUpdatedAt || keyHashUpdatedAtRef.current === remoteKeyHashUpdatedAt) {
+      keyHashUpdatedAtRef.current = remoteKeyHashUpdatedAt
+      return
+    }
+
+    // undefined → value is initial hydration, not a key change
+    if (!keyHashUpdatedAtRef.current) {
+      keyHashUpdatedAtRef.current = remoteKeyHashUpdatedAt
+      return
+    }
+
+    keyHashUpdatedAtRef.current = remoteKeyHashUpdatedAt
+    onRefreshStart?.()
+    setNeedsRefresh(true)
+  }, [remoteKeyHashUpdatedAt, onRefreshStart])
+
+  useEffect(() => {
+    if (!needsRefresh) return
+
+    let cancelled = false
+
+    refetch()
+      .catch(err => {
+        if (cancelled) return
+        if (errorMessage) {
+          console.error(errorMessage, err)
+        }
+      })
+      .finally(() => {
+        if (cancelled) return
+        setNeedsRefresh(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [needsRefresh, refetch, errorMessage])
+
+  return needsRefresh
 }

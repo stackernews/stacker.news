@@ -40,7 +40,7 @@ import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
 import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
-import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
+import { isAutoRetryEligiblePayIn } from './payIn/hooks/auto-retry-utils'
 import MapIcon from '@/svgs/map.svg'
 
 function Notification ({ n, fresh }) {
@@ -517,7 +517,7 @@ function PayInFailed ({ n }) {
         colorClass = 'success'
         break
       default:
-        if (willAutoRetryPayIn(payIn) || payIn.payInState !== 'FAILED') {
+        if (isAutoRetryEligiblePayIn(payIn) || payIn.payInState !== 'FAILED') {
           actionString += 'pending'
         } else {
           actionString += 'failed'
@@ -532,7 +532,7 @@ function PayInFailed ({ n }) {
       <NoteHeader color={colorClass}>
         {actionString}
         <span className='ms-1 text-muted fw-light'> {numWithUnits(msatsToSats(payIn.mcost))}</span>
-        <span className={['FAILED'].includes(payIn.payInState) && !willAutoRetryPayIn(payIn) ? 'visible' : 'invisible'}>
+        <span className={['FAILED'].includes(payIn.payInState) && !isAutoRetryEligiblePayIn(payIn) ? 'visible' : 'invisible'}>
           <Button
             size='sm' variant={classNames('outline-warning ms-2 border-1 rounded py-0', disableRetry && 'pulse')}
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}

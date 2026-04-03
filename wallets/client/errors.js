@@ -69,6 +69,13 @@ export class WalletsNotAvailableError extends WalletConfigurationError {
   }
 }
 
+export class WalletsRefreshingError extends WalletConfigurationError {
+  constructor () {
+    super('wallets are still refreshing')
+    this.name = 'WalletsRefreshingError'
+  }
+}
+
 export class AnonWalletError extends WalletConfigurationError {
   constructor () {
     super('anon cannot pay with wallets')

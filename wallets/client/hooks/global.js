@@ -7,7 +7,7 @@
  *      - generating or reading the CryptoKey from IndexedDB if it exists
  *   - hooks to access the global context
  */
-import { createContext, useContext, useEffect, useReducer, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react'
 
 import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
@@ -65,6 +65,24 @@ export function useKeyError () {
   return keyError
 }
 
+export function useKeySyncInProgress () {
+  const { keySyncInProgress } = useContext(WalletsContext)
+  return keySyncInProgress
+}
+
+export function useWithKeySync () {
+  const dispatch = useWalletsDispatch()
+
+  return useCallback(async (fn) => {
+    dispatch({ type: KEY_SYNC_START })
+    try {
+      return await fn()
+    } finally {
+      dispatch({ type: KEY_SYNC_END })
+    }
+  }, [dispatch])
+}
+
 export function WalletsProvider ({ children }) {
   // https://react.dev/learn/scaling-up-with-reducer-and-context
   const [state, dispatch] = useReducer(walletsReducer, {
@@ -75,7 +93,8 @@ export function WalletsProvider ({ children }) {
     key: null,
     keyHash: null,
     keyUpdatedAt: null,
-    keyError: null
+    keyError: null,
+    keySyncInProgress: false
   })
 
   return (
@@ -109,9 +128,12 @@ export function useServerWallets () {
       dispatch({ type: WALLETS_QUERY_ERROR, error: query.error })
       return
     }
-    if (query.loading) return
+    if (query.loading) {
+      dispatch({ type: WALLETS_QUERY_LOADING })
+      return
+    }
     dispatch({ type: SET_WALLETS, wallets: query.data.wallets })
-  }, [query])
+  }, [dispatch, query.error, query.loading, query.data])
 }
 
 export function useKeyInit () {
@@ -119,18 +141,19 @@ export function useKeyInit () {
 
   const dispatch = useWalletsDispatch()
   const wrongKey = useIsWrongKey()
+  const keySyncInProgress = useKeySyncInProgress()
 
   const logger = useWalletLogger()
 
   useEffect(() => {
     if (typeof window.indexedDB === 'undefined') {
       dispatch({ type: KEY_STORAGE_UNAVAILABLE })
-    } else if (wrongKey) {
+    } else if (!keySyncInProgress && wrongKey) {
       dispatch({ type: WRONG_KEY })
     } else {
       dispatch({ type: KEY_MATCH })
     }
-  }, [wrongKey, dispatch])
+  }, [wrongKey, keySyncInProgress, dispatch])
 
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
@@ -241,6 +264,9 @@ export const WRONG_KEY = 'WRONG_KEY'
 export const KEY_MATCH = 'KEY_MATCH'
 export const KEY_STORAGE_UNAVAILABLE = 'KEY_STORAGE_UNAVAILABLE'
 export const WALLETS_QUERY_ERROR = 'WALLETS_QUERY_ERROR'
+export const WALLETS_QUERY_LOADING = 'WALLETS_QUERY_LOADING'
+export const KEY_SYNC_START = 'KEY_SYNC_START'
+export const KEY_SYNC_END = 'KEY_SYNC_END'
 
 function walletsReducer (state, action) {
   switch (action.type) {
@@ -265,6 +291,17 @@ function walletsReducer (state, action) {
         walletsLoading: false,
         walletsError: action.error
       }
+    case WALLETS_QUERY_LOADING:
+      if (state.walletsLoading && !state.walletsError) {
+        return state
+      }
+      return {
+        ...state,
+        walletsLoading: true,
+        walletsError: null,
+        wallets: state.wallets,
+        templates: state.templates
+      }
     case SET_KEY:
       return {
         ...state,
@@ -286,6 +323,16 @@ function walletsReducer (state, action) {
       return {
         ...state,
         keyError: KeyStatus.KEY_STORAGE_UNAVAILABLE
+      }
+    case KEY_SYNC_START:
+      return {
+        ...state,
+        keySyncInProgress: true
+      }
+    case KEY_SYNC_END:
+      return {
+        ...state,
+        keySyncInProgress: false
       }
     default:
       return state

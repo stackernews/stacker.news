@@ -192,7 +192,7 @@ export default {
       })
     },
     retryPayIn: async (parent, { payInId, sendProtocolId }, { models, me }) => {
-      return await retry(payInId, { models, me, sendProtocolId })
+      return await retry(payInId, { me, sendProtocolId })
     }
   },
   PayIn: {

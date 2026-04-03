@@ -7,6 +7,7 @@ import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { USER_ID } from '@/lib/constants'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { useMe } from './me'
+import { useDomain } from './territory-domains'
 
 // this is intented to be compatible with upsert item mutations
 // so that it can be reused for all post types and comments and we don't have
@@ -22,6 +23,7 @@ export default function useItemSubmit (mutation,
   const crossposter = useCrossposter()
   const [upsertItem] = usePayInMutation(mutation)
   const { me } = useMe()
+  const { domain } = useDomain()
 
   return useCallback(
     async ({ subNames: submittedSubNames, crosspost, title, options, bounty, status, ...values }, { resetForm }) => {
@@ -107,11 +109,12 @@ export default function useItemSubmit (mutation,
         if (item) {
           await router.push(`/items/${item.id}`)
         } else {
-          await router.push(subNames.length === 1 ? `/~${subNames[0]}/new` : '/new')
+          const prefix = domain ? '' : (subNames.length === 1 ? `/~${subNames[0]}` : '')
+          await router.push(prefix + '/new')
         }
       }
     }, [me, upsertItem, router, crossposter, item, onSuccessfulSubmit,
-      navigateOnSubmit, extraValues, payInMutationOptions]
+      navigateOnSubmit, extraValues, payInMutationOptions, domain]
   )
 }
 

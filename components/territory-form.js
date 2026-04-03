@@ -17,6 +17,7 @@ import TerritoryDomains, { useDomain } from './territory-domains'
 import Link from 'next/link'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
+import LinkExternal from '@/svgs/link-external.svg'
 
 function SatFilterRanges () {
   const { values } = useFormikContext()
@@ -310,7 +311,7 @@ export default function TerritoryForm ({ sub }) {
                 body={<TerritoryDomains sub={sub} />}
               />
             </div>}
-          {sub && domain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news</Link>}
+          {sub && domain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news <LinkExternal width={16} height={16} /></Link>}
         </>}
     </FeeButtonProvider>
   )

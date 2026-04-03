@@ -40,6 +40,21 @@ export const DomainProvider = ({ domain: ssrDomain, children }) => {
 
 export const useDomain = () => useContext(DomainContext)
 
+export function usePrefix (sub) {
+  const { domain } = useDomain()
+  if (domain) return ''
+  return sub ? `/~${sub}` : ''
+}
+
+export function useNavKeys (path, sub) {
+  const { domain } = useDomain()
+  const offset = domain ? 1 : (sub ? 2 : 1)
+  return {
+    topNavKey: path.split('/')[offset] ?? '',
+    dropNavKey: path.split('/').slice(offset).join('/')
+  }
+}
+
 const getStatusBadge = (type, status) => {
   switch (status) {
     case 'VERIFIED':

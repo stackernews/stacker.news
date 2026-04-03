@@ -13,6 +13,7 @@ import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 import ActionDropdown from './action-dropdown'
 import { TerritoryTransferDropdownItem } from './territory-transfer'
+import { usePrefix } from './territory-domains'
 
 const SubscribeTerritoryContext = createContext({ refetchQueries: [] })
 
@@ -92,6 +93,7 @@ export function TerritoryInfo ({ sub, includeLink, truncated }) {
 export default function TerritoryHeader ({ sub }) {
   const { me } = useMe()
   const toaster = useToast()
+  const prefix = usePrefix(sub.name)
 
   const [toggleMuteSub] = useMutation(
     gql`
@@ -119,12 +121,12 @@ export default function TerritoryHeader ({ sub }) {
           <TerritoryDetails sub={sub}>
             <div className='d-flex my-2 justify-content-end'>
               {sub.name}
-              <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-1' />
+              <Share path={`${prefix}/`} title={`~${sub.name} stacker news territory`} className='mx-1' />
               {me &&
                 <>
                   {(isMine
                     ? (
-                      <Link href={`/~${sub.name}/edit`} className='d-flex align-items-center'>
+                      <Link href={`${prefix}/edit`} className='d-flex align-items-center'>
                         <Button variant='outline-grey border-2 rounded py-0' size='sm'>edit territory</Button>
                       </Link>)
                     : (

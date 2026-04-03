@@ -15,7 +15,7 @@ const SN_REFEREE_LANDING = 'sn_referee_landing'
 // main domain
 const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
 // territory paths that needs to be rewritten to ~subname
-const SN_TERRITORY_PATHS = ['/~', '/recent', '/random', '/top', '/post', '/edit']
+const SN_TERRITORY_PATHS = ['/~', '/new', '/top', '/post', '/edit', '/rss']
 
 async function customDomainMiddleware (request, domain, subName) {
   // clone the url to build on top of it
@@ -28,19 +28,12 @@ async function customDomainMiddleware (request, domain, subName) {
 
   // TEST
   console.log('[domains] custom domain', domain, 'with subname', subName) // TEST
-  console.log('[domains] main domain', SN_MAIN_DOMAIN) // TEST
+  console.log('[domains] main domain', JSON.stringify(SN_MAIN_DOMAIN)) // TEST
   console.log('[domains] pathname', pathname) // TEST
-  console.log('[domains] searchParams', searchParams) // TEST
+  console.log('[domains] searchParams', JSON.stringify(searchParams)) // TEST
+  console.log('[domains] search', url.search)
 
   // TODO: handle auth sync
-
-  // if sub param exists and doesn't match the domain's subname, update it
-  if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
-    console.log('[domains] setting sub to', subName) // TEST
-    searchParams.set('sub', subName)
-    url.search = searchParams.toString()
-    return NextResponse.redirect(url, { headers })
-  }
 
   // clean up the pathname from any subname
   if (pathname.startsWith('/~')) {
@@ -48,6 +41,16 @@ async function customDomainMiddleware (request, domain, subName) {
     url.pathname = cleanPath
     console.log('[domains] redirecting to clean url:', url) // TEST
     // redirect to the clean path
+    return NextResponse.redirect(url, { headers })
+  }
+
+  // if sub param exists and doesn't match the domain's subname, update it
+  if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
+    console.log('[domains] setting sub to', subName) // TEST
+    searchParams.set('sub', subName)
+    url.search = searchParams.toString()
+    console.log('[domains] new searchParams', url.search)
+    console.log('[domains] new url', url)
     return NextResponse.redirect(url, { headers })
   }
 

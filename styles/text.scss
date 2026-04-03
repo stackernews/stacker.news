@@ -573,7 +573,6 @@ span + .sn-link {
 .sn-embed--youtube {
   width: 100%;
   max-width: 320px;
-  aspect-ratio: 16 / 9;
 }
 
 .topLevel .sn-embed--youtube {
@@ -584,7 +583,6 @@ span + .sn-link {
 .sn-embed--rumble {
   width: 100%;
   max-width: 320px;
-  aspect-ratio: 16 / 9;
 }
 
 .topLevel .sn-embed--rumble {
@@ -595,11 +593,19 @@ span + .sn-link {
 .sn-embed--peertube {
   width: 100%;
   max-width: 320px;
-  aspect-ratio: 16 / 9;
 }
 
 .topLevel .sn-embed--peertube {
   max-width: 640px;
+}
+
+// aspect-ratio only on HTML placeholders
+// this way embeds get aspect-ratio from their inner components,
+// and Safari won't break because of nested aspect-ratio declarations
+.sn-embed-placeholder.sn-embed--youtube,
+.sn-embed-placeholder.sn-embed--rumble,
+.sn-embed-placeholder.sn-embed--peertube {
+  aspect-ratio: 16 / 9;
 }
 
 // wavlake embed

@@ -62,6 +62,7 @@ export default gql`
     nitems(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
 
+    domain: Domain
     optional: SubOptional!
   }
 

@@ -468,6 +468,7 @@ export function BaseSuggest ({
             index: 0
           })
         })
+        .catch(err => console.error(err))
     } else {
       resetSuggestions()
     }

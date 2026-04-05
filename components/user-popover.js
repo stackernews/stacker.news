@@ -32,7 +32,7 @@ export default function UserPopover ({ name, children }) {
   )
 
   const getUser = useCallback(() => {
-    execute({ variables: { name } })
+    execute({ variables: { name } }).catch(err => console.error(err))
   }, [execute, name])
 
   return (

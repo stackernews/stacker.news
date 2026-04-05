@@ -66,8 +66,8 @@ export default function PostEdit ({ ssrData }) {
           ...territoryAdds
         }
       })
-    })
-  }, [subs])
+    }).catch(err => console.error(err)).catch(err => console.error(err))
+  }, [subs, fetchSubs])
 
   const [,, editThreshold] = useCanEdit(item)
   const EditInfo = editThreshold && item.payIn?.payInState === 'PAID'

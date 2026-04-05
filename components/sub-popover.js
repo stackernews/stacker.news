@@ -16,7 +16,7 @@ export default function SubPopover ({ sub, children }) {
   )
 
   const getSub = useCallback(() => {
-    execute({ variables: { sub } })
+    execute({ variables: { sub } }).catch(err => console.error(err))
   }, [execute, sub])
 
   return (

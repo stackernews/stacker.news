@@ -56,8 +56,12 @@ export default function TerritoryForm ({ sub }) {
     // never show "territory archived" warning during edits
     if (sub) return
     const name = e.target.value
-    const { data } = await fetchSub({ variables: { sub: name } })
-    setArchived(data?.sub?.status === 'STOPPED')
+    try {
+      const { data } = await fetchSub({ variables: { sub: name } })
+      setArchived(data?.sub?.status === 'STOPPED')
+    } catch (err) {
+      console.error(err)
+    }
   }, [fetchSub, setArchived])
 
   const onSubmit = useCallback(

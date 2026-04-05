@@ -20,7 +20,7 @@ export function willAutoRetryPayIn (payIn) {
 export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
   const payInHelper = usePayInHelper()
-  const [getFailedPayIns] = useLazyQuery(FAILED_PAY_INS, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
+  const [getFailedPayIns] = useLazyQuery(FAILED_PAY_INS, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only', errorPolicy: 'all' })
   const { me } = useMe()
 
   const retry = useCallback(async (payIn) => {

@@ -153,9 +153,13 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
   const [getSub] = useLazyQuery(SUB_FULL)
 
   const handleTerritoryClick = async (subName) => {
-    const { data } = await getSub({ variables: { sub: subName } })
-    if (data?.sub) {
-      showModal(() => <TerritoryInfo sub={data.sub} includeLink />)
+    try {
+      const { data } = await getSub({ variables: { sub: subName } })
+      if (data?.sub) {
+        showModal(() => <TerritoryInfo sub={data.sub} includeLink />)
+      }
+    } catch (err) {
+      console.error(err)
     }
   }
 

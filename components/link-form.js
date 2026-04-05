@@ -68,8 +68,8 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
         ...ItemFields
       }
     }`)
-  const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
-  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), DUPES_DEBOUNCE_MS, [getDupes])
+  const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args).catch(err => console.error(err)), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
+  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args).catch(err => console.error(err)), DUPES_DEBOUNCE_MS, [getDupes])
 
   useEffect(() => {
     if (!dupesLoading) {

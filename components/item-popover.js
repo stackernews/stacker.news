@@ -12,7 +12,7 @@ export default function ItemPopover ({ id, children }) {
   })
 
   const getItem = useCallback(() => {
-    execute({ variables: { id } })
+    execute({ variables: { id } }).catch(err => console.error(err))
   }, [execute, id])
 
   return (

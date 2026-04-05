@@ -60,6 +60,12 @@ module.exports = withPlausibleProxy()({
     scrollRestoration: true,
     serverSourceMaps: true
   },
+  // suppress deprecation warnings of bootstrap sass
+  // https://github.com/twbs/bootstrap/issues/40962
+  sassOptions: {
+    quietDeps: true,
+    silenceDeprecations: ['legacy-js-api', 'color-functions']
+  },
   reactStrictMode: true,
   productionBrowserSourceMaps: true,
   generateBuildId: commitHash ? async () => commitHash : undefined,
@@ -164,10 +170,6 @@ module.exports = withPlausibleProxy()({
         destination: '/api/web-app-origin-association'
       },
       {
-        source: '/~:sub/:slug*\\?:query*',
-        destination: '/~/:slug*?:query*&sub=:sub'
-      },
-      {
         source: '/~:sub/:slug*',
         destination: '/~/:slug*?sub=:sub'
       },
@@ -213,8 +215,8 @@ module.exports = withPlausibleProxy()({
       }
     ]
   },
-  webpack: (config, { isServer, dev, defaultLoaders }) => {
-    if (isServer) {
+  webpack: (config, { isServer, dev, defaultLoaders, nextRuntime }) => {
+    if (isServer && nextRuntime === 'nodejs') {
       const workboxPlugin = new InjectManifest({
         include: [/\/(icons|maskable|splash)\//, /\.(webp|mp4|woff|woff2)$/],
         swDest: '../../public/sw.js',

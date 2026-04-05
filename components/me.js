@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { ME } from '@/fragments/users'
 import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 

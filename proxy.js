@@ -1,4 +1,5 @@
-import { NextResponse, URLPattern } from 'next/server'
+import 'urlpattern-polyfill'
+import { NextResponse } from 'next/server'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -84,7 +85,7 @@ function referrerMiddleware (request) {
   return response
 }
 
-export function middleware (request) {
+export function proxy (request) {
   const resp = referrerMiddleware(request)
 
   const isDev = process.env.NODE_ENV === 'development'

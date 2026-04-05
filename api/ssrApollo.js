@@ -1,4 +1,5 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client'
+import { LocalState } from '@apollo/client/local-state'
 import { SchemaLink } from '@apollo/client/link/schema'
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import resolvers from './resolvers'
@@ -24,9 +25,10 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
   if (req) {
     req = await multiAuthMiddleware(req, res)
   }
-  const session = req && await getServerSession(req, res, getAuthOptions(req))
+  const session = req && (await getServerSession(req, res, getAuthOptions(req)))
   const client = new ApolloClient({
     ssrMode: true,
+
     link: new SchemaLink({
       schema: makeExecutableSchema({
         typeDefs,
@@ -49,10 +51,13 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
         }
       })()
     }),
+
     cache: new InMemoryCache({
       freezeResults: true
     }),
+
     assumeImmutableResults: true,
+
     defaultOptions: {
       watchQuery: {
         fetchPolicy: 'no-cache',
@@ -64,7 +69,14 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
         nextFetchPolicy: 'no-cache',
         ssr: true
       }
-    }
+    },
+
+    /*
+    Inserted by Apollo Client 3->4 migration codemod.
+    If you are not using the `@client` directive in your application,
+    you can safely remove this option.
+    */
+    localState: new LocalState({})
   })
 
   await client.clearStore()

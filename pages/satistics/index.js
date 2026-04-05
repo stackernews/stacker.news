@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import MoreFooter from '@/components/more-footer'

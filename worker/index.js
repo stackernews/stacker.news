@@ -15,6 +15,8 @@ import { repin } from './repin'
 import { trust } from './trust'
 import { earn, earnRefill } from './earn'
 import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client'
+import { Defer20220824Handler } from '@apollo/client/incremental'
+import { LocalState } from '@apollo/client/local-state'
 import { indexItem, indexAllItems } from './search'
 import { timestampItem } from './ots'
 import { computeStreaks, checkStreak } from './streak'
@@ -59,7 +61,9 @@ async function work () {
       uri: `${process.env.SELF_URL}/api/graphql`,
       fetch
     }),
+
     cache: new InMemoryCache(),
+
     defaultOptions: {
       watchQuery: {
         fetchPolicy: 'no-cache',
@@ -69,7 +73,21 @@ async function work () {
         fetchPolicy: 'no-cache',
         nextFetchPolicy: 'no-cache'
       }
-    }
+    },
+
+    /*
+    Inserted by Apollo Client 3->4 migration codemod.
+    If you are not using the `@client` directive in your application,
+    you can safely remove this option.
+    */
+    localState: new LocalState({}),
+
+    /*
+    Inserted by Apollo Client 3->4 migration codemod.
+    If you are not using the `@defer` directive in your application,
+    you can safely remove this option.
+    */
+    incrementalHandler: new Defer20220824Handler()
   })
 
   const { lnd } = authenticatedLndGrpc({

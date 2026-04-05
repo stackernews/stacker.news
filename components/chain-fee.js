@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from 'react'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { NORMAL_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { CHAIN_FEE } from '@/fragments/chainFee'
 

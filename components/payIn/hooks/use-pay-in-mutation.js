@@ -3,9 +3,9 @@
 
 import { useCallback, useState } from 'react'
 import { InvoiceCanceledError } from '@/wallets/client/errors'
-import { useApolloClient, useMutation } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client/react'
 import usePayPayIn from '@/components/payIn/hooks/use-pay-pay-in'
-import { getOperationName } from '@apollo/client/utilities'
+import { getOperationName } from '@apollo/client/utilities/internal'
 import { useMe } from '@/components/me'
 import { USER_ID } from '@/lib/constants'
 import { willAutoRetryPayIn } from './use-auto-retry-pay-ins'

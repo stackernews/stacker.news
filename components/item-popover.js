@@ -1,18 +1,19 @@
 import { ITEM } from '@/fragments/items'
 import errorStyles from '@/styles/error.module.css'
-import { useLazyQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import classNames from 'classnames'
 import HoverablePopover from './hoverable-popover'
 import { ItemSkeleton, ItemSummary } from './item'
+import { useCallback } from 'react'
 
 export default function ItemPopover ({ id, children }) {
-  const [getItem, { loading, data }] = useLazyQuery(
-    ITEM,
-    {
-      variables: { id },
-      fetchPolicy: 'cache-first'
-    }
-  )
+  const [execute, { loading, data }] = useLazyQuery(ITEM, {
+    fetchPolicy: 'cache-first'
+  })
+
+  const getItem = useCallback(() => {
+    execute({ variables: { id } })
+  }, [execute, id])
 
   return (
     <HoverablePopover

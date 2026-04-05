@@ -164,10 +164,6 @@ module.exports = withPlausibleProxy()({
         destination: '/api/web-app-origin-association'
       },
       {
-        source: '/~:sub/:slug*\\?:query*',
-        destination: '/~/:slug*?:query*&sub=:sub'
-      },
-      {
         source: '/~:sub/:slug*',
         destination: '/~/:slug*?sub=:sub'
       },
@@ -213,8 +209,8 @@ module.exports = withPlausibleProxy()({
       }
     ]
   },
-  webpack: (config, { isServer, dev, defaultLoaders }) => {
-    if (isServer) {
+  webpack: (config, { isServer, dev, defaultLoaders, nextRuntime }) => {
+    if (isServer && nextRuntime === 'nodejs') {
       const workboxPlugin = new InjectManifest({
         include: [/\/(icons|maskable|splash)\//, /\.(webp|mp4|woff|woff2)$/],
         swDest: '../../public/sw.js',

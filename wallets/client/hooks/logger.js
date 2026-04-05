@@ -1,4 +1,4 @@
-import { useMutation, useLazyQuery } from '@apollo/client'
+import { useLazyQuery, useMutation } from '@apollo/client/react'
 import { ADD_WALLET_LOG, WALLET_LOGS, DELETE_WALLET_LOGS } from '@/wallets/client/fragments'
 import { createContext, useCallback, useContext, useMemo, useState, useEffect } from 'react'
 import { useShowModal } from '@/components/modal'
@@ -96,7 +96,6 @@ export function useWalletLogs (protocol, debug) {
   // if we're configuring a protocol template, there are no logs to fetch
   const noFetch = protocol && isTemplate(protocol)
   const [fetchLogs, { called, loading, error }] = useLazyQuery(WALLET_LOGS, {
-    variables: { protocolId, debug },
     skip: noFetch,
     fetchPolicy: 'network-only'
   })

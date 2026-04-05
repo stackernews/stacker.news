@@ -4,7 +4,7 @@ import { WalletMultiStepForm } from '@/wallets/client/components'
 import { WALLET } from '@/wallets/client/fragments'
 import { useDecryptedWallet } from '@/wallets/client/hooks'
 import { unurlify } from '@/wallets/lib/util'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 
 const variablesFunc = params => {

@@ -1,6 +1,6 @@
 import { useWalletPayment } from '@/wallets/client/hooks'
 import usePayInHelper from './use-pay-in-helper'
-import { useLazyQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
 import { useCallback, useEffect } from 'react'

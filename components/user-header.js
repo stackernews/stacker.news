@@ -6,7 +6,8 @@ import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
 import { useState, useEffect } from 'react'
 import { Form, Input, SubmitButton } from './form'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client/react'
 import styles from './user-header.module.css'
 import navStyles from '@/styles/nav.module.css'
 import { useMe } from './me'
@@ -238,8 +239,7 @@ function SocialLink ({ name, id }) {
     return (
       // eslint-disable-next-line
       <Link className={className} target='_blank' href={`https://twitter.com/${id}`} rel={UNKNOWN_LINK_REL}>
-        <TwitterIcon width={20} height={20} className='me-1' />
-        @{id}
+        <TwitterIcon width={20} height={20} className='me-1' />@{id}
       </Link>
     )
   }

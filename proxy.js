@@ -84,7 +84,7 @@ function referrerMiddleware (request) {
   return response
 }
 
-export function middleware (request) {
+export function proxy (request) {
   const resp = referrerMiddleware(request)
 
   const isDev = process.env.NODE_ENV === 'development'

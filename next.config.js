@@ -55,6 +55,7 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
     // so we need to resolve the relative path to the lightning module
     LIGHTNING_MODULE_PATH: require('path').relative(process.cwd(), require.resolve('lightning'))
   },
+  transpilePackages: ['next-plausible'],
   compress: false,
   experimental: {
     scrollRestoration: true,

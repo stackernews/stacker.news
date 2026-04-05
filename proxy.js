@@ -1,4 +1,5 @@
-import { NextResponse, URLPattern } from 'next/server'
+import 'urlpattern-polyfill'
+import { NextResponse } from 'next/server'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })

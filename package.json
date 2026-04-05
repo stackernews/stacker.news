@@ -124,6 +124,7 @@
     "unist-util-visit": "^5.0.0",
     "unzipper": "^0.12.3",
     "url-unshort": "^6.1.0",
+    "urlpattern-polyfill": "^10.1.0",
     "web-push": "^3.6.7",
     "webln": "^0.3.2",
     "webpack": "^5.95.0",
@@ -145,6 +146,9 @@
     ],
     "extends": [
       "next"
+    ],
+    "globals": [
+      "URLPattern"
     ]
   },
   "devDependencies": {

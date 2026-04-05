@@ -46,7 +46,7 @@ try {
   commitHash = '0000'
 }
 
-module.exports = withPlausibleProxy()({
+module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi3E-sauvdFABb.js' })({
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,

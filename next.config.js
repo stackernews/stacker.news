@@ -60,6 +60,12 @@ module.exports = withPlausibleProxy()({
     scrollRestoration: true,
     serverSourceMaps: true
   },
+  // suppress deprecation warnings of bootstrap sass
+  // https://github.com/twbs/bootstrap/issues/40962
+  sassOptions: {
+    quietDeps: true,
+    silenceDeprecations: ['legacy-js-api', 'color-functions']
+  },
   reactStrictMode: true,
   productionBrowserSourceMaps: true,
   generateBuildId: commitHash ? async () => commitHash : undefined,

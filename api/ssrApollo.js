@@ -70,12 +70,7 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
         ssr: true
       }
     },
-
-    /*
-    Inserted by Apollo Client 3->4 migration codemod.
-    If you are not using the `@client` directive in your application,
-    you can safely remove this option.
-    */
+    // @client directive support
     localState: new LocalState({})
   })
 

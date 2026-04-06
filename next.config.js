@@ -216,8 +216,8 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
       }
     ]
   },
-  webpack: (config, { isServer, dev, defaultLoaders, nextRuntime }) => {
-    if (isServer && nextRuntime === 'nodejs') {
+  webpack: (config, { isServer, dev, defaultLoaders }) => {
+    if (isServer) {
       const workboxPlugin = new InjectManifest({
         include: [/\/(icons|maskable|splash)\//, /\.(webp|mp4|woff|woff2)$/],
         swDest: '../../public/sw.js',

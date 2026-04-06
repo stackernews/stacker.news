@@ -25,10 +25,9 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
   if (req) {
     req = await multiAuthMiddleware(req, res)
   }
-  const session = req && (await getServerSession(req, res, getAuthOptions(req)))
+  const session = req && await getServerSession(req, res, getAuthOptions(req))
   const client = new ApolloClient({
     ssrMode: true,
-
     link: new SchemaLink({
       schema: makeExecutableSchema({
         typeDefs,
@@ -51,13 +50,10 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
         }
       })()
     }),
-
     cache: new InMemoryCache({
       freezeResults: true
     }),
-
     assumeImmutableResults: true,
-
     defaultOptions: {
       watchQuery: {
         fetchPolicy: 'no-cache',

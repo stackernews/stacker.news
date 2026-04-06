@@ -59,9 +59,7 @@ async function work () {
       uri: `${process.env.SELF_URL}/api/graphql`,
       fetch
     }),
-
     cache: new InMemoryCache(),
-
     defaultOptions: {
       watchQuery: {
         fetchPolicy: 'no-cache',

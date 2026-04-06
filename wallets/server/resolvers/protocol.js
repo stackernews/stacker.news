@@ -45,6 +45,17 @@ export const resolvers = {
   }
 }
 
+async function getVaultMetadata (models, userId) {
+  return await models.user.findUnique({
+    where: { id: userId },
+    select: {
+      vaultKeyHash: true,
+      vaultKeyHashUpdatedAt: true,
+      showPassphrase: true
+    }
+  })
+}
+
 export function testWalletProtocol (protocol) {
   return async (parent, args, { me, models, tx }) => {
     if (!me) {
@@ -96,7 +107,7 @@ export function upsertWalletProtocol (protocol) {
       throw new GqlInputError('walletId or templateName is required')
     }
 
-    const { vaultKeyHash: existingKeyHash } = await models.user.findUnique({ where: { id: me.id } })
+    const { vaultKeyHash: existingKeyHash } = await getVaultMetadata(models, me.id)
 
     const schema = protocolServerSchema(protocol, { keyHash: existingKeyHash, ignoreKeyHash })
     try {
@@ -304,7 +315,10 @@ async function addWalletLog (parent, { protocolId, level, message, timestamp, pa
   if (!me) throw new GqlAuthenticationError()
 
   const logger = walletLogger({ models, protocolId, userId: me.id, payInId })
-  await logger[level.toLowerCase()](message, { createdAt: timestamp })
+  await logger[level.toLowerCase()](message, {
+    createdAt: timestamp,
+    ...(payInId != null ? { updateStatus: true } : {})
+  })
 
   return true
 }

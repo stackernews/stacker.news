@@ -2,7 +2,7 @@
 // if PENDING_HELD and a zap, it's optimistic unless the zapper is anon
 
 import { useCallback, useMemo, useState } from 'react'
-import { InvoiceCanceledError, WalletsRefreshingError } from '@/wallets/client/errors'
+import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { useApolloClient, useMutation } from '@apollo/client'
 import usePayPayIn from '@/components/payIn/hooks/use-pay-pay-in'
 import { getOperationName } from '@apollo/client/utilities'
@@ -11,8 +11,6 @@ import { USER_ID } from '@/lib/constants'
 import { isAutoRetryEligiblePayIn } from './auto-retry-utils'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
-import { useWallets, useWalletsLoading } from '@/wallets/client/hooks/global'
-import { shouldBlockWalletPayInWhileRefreshing } from './pay-in-mutation-utils'
 
 /*
 this is just like useMutation with a few changes:
@@ -32,20 +30,13 @@ this is just like useMutation with a few changes:
 */
 export default function usePayInMutation (mutation, { onCompleted, ...options } = {}) {
   const { me } = useMe()
-  const wallets = useWallets()
   const sendProtocolId = usePreferredSendProtocolId()
-  const walletsLoading = useWalletsLoading()
   const [mutate, result] = useMutation(mutation)
   const client = useApolloClient()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
   const payPayIn = usePayPayIn()
   const mutationName = getOperationName(mutation)
-  const hasKnownSendWallet = useMemo(
-    () => Boolean(me?.privates?.hasSendWallet) ||
-      wallets.some(wallet => wallet.protocols?.some(protocol => protocol.send && protocol.enabled)),
-    [me?.privates?.hasSendWallet, wallets]
-  )
   const hookOptions = useMemo(
     () => withPayInMutationDefaults(mutation, options, me, sendProtocolId),
     [mutation, options, me, sendProtocolId]
@@ -53,13 +44,6 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 
   const innerMutate = useCallback(async ({ onCompleted: innerOnCompleted, ...innerOptions } = {}) => {
     const callOptions = withPayInMutationDefaults(mutation, innerOptions, me, sendProtocolId)
-
-    if (shouldBlockWalletPayInWhileRefreshing(hookOptions, callOptions, {
-      walletsLoading,
-      hasKnownSendWallet
-    })) {
-      throw new WalletsRefreshingError()
-    }
 
     const hookCachePhases = getCachePhases(hookOptions)
     const callCachePhases = getCachePhases(callOptions)
@@ -140,7 +124,7 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
     }
     setInnerResult(result)
     return result
-  }, [mutate, hookOptions, payPayIn, client.cache, mutation, mutationName, me, sendProtocolId, walletsLoading, hasKnownSendWallet, onCompleted])
+  }, [mutate, hookOptions, payPayIn, client.cache, mutation, mutationName, me, sendProtocolId, onCompleted])
 
   return [innerMutate, innerResult]
 }

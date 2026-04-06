@@ -39,7 +39,9 @@ export default function usePayPayIn () {
 
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
-      payIn = await payInHelper.retry(payIn, { update: onRetry })
+      // QR/manual fallback should not keep attributing the successor invoice
+      // to the wallet protocol that already failed to pay it.
+      payIn = await payInHelper.retry(payIn, { sendProtocolId: null, update: onRetry })
     }
     return await qrPayIn(payIn, walletError, { persistOnNavigate, waitFor })
   }, [payInHelper, qrPayIn, walletPayment])

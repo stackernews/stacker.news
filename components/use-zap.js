@@ -4,7 +4,7 @@ import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { ZAP_DEBOUNCE_MS } from '@/lib/constants'
-import { useEventCallback } from '@/lib/use-event-callback'
+import { useEventCallback } from '@/components/use-event-callback'
 import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
 import { ActCanceledError, modifyActCache, updateAncestors, zapUndo, zapUndoTrigger } from './item-act'
 

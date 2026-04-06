@@ -66,7 +66,7 @@ export default function PostEdit ({ ssrData }) {
           ...territoryAdds
         }
       })
-    }).catch(err => console.error(err)).catch(err => console.error(err))
+    }).catch(err => console.error(err))
   }, [subs, fetchSubs])
 
   const [,, editThreshold] = useCanEdit(item)

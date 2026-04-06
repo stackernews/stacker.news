@@ -61,6 +61,53 @@ export const resolvers = {
   }
 }
 
+async function getVaultMetadata (models, userId) {
+  return await models.user.findUnique({
+    where: { id: userId },
+    select: {
+      vaultKeyHash: true,
+      vaultKeyHashUpdatedAt: true,
+      showPassphrase: true
+    }
+  })
+}
+
+async function setVaultShowPassphrase (tx, { userId, showPassphrase }) {
+  return await tx.user.update({
+    where: { id: userId },
+    data: { showPassphrase }
+  })
+}
+
+async function updateVaultMetadata (tx, { userId, currentKeyHash, keyHash, showPassphrase, updatedAt = new Date() }) {
+  if (currentKeyHash === undefined) {
+    throw new TypeError('currentKeyHash required')
+  }
+  if (!keyHash) {
+    throw new TypeError('keyHash required')
+  }
+
+  return await tx.user.update({
+    where: { id: userId, vaultKeyHash: currentKeyHash },
+    data: {
+      vaultKeyHash: keyHash,
+      showPassphrase,
+      vaultKeyHashUpdatedAt: updatedAt
+    }
+  })
+}
+
+async function initializeVaultKeyHash (models, { userId, keyHash }) {
+  const count = await models.$executeRaw`
+    UPDATE users
+    SET "vaultKeyHash" = ${keyHash}, "vaultKeyHashUpdatedAt" = NOW()
+    WHERE id = ${userId}
+    AND "vaultKeyHash" = ''
+  `
+
+  return count > 0
+}
+
 async function wallets (parent, args, { me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
@@ -108,7 +155,6 @@ async function wallet (parent, { id, name }, { me, models }) {
   const template = await models.walletTemplate.findUnique({ where: { name } })
   return { ...template, __resolveType: 'WalletTemplate' }
 }
-
 function walletStatus (wallet, type) {
   const protocols = wallet.protocols.filter(protocol => type === 'send' ? protocol.send : !protocol.send)
 
@@ -134,7 +180,7 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
   if (!me) throw new GqlAuthenticationError()
   if (!keyHash) throw new GqlInputError('hash required')
 
-  const { vaultKeyHash: oldKeyHash } = await models.user.findUnique({ where: { id: me.id } })
+  const { vaultKeyHash: oldKeyHash } = await getVaultMetadata(models, me.id)
 
   return await models.$transaction(async tx => {
     for (const { id: walletId, protocols } of wallets) {
@@ -146,13 +192,11 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
 
     // optimistic concurrency control:
     // make sure the user's vault key didn't change while we were updating the protocols
-    await tx.user.update({
-      where: { id: me.id, vaultKeyHash: oldKeyHash },
-      data: {
-        vaultKeyHash: keyHash,
-        showPassphrase: false,
-        vaultKeyHashUpdatedAt: new Date()
-      }
+    await updateVaultMetadata(tx, {
+      userId: me.id,
+      currentKeyHash: oldKeyHash,
+      keyHash,
+      showPassphrase: false
     })
 
     return true
@@ -161,15 +205,9 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
 
 async function updateKeyHash (parent, { keyHash }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
+  if (!keyHash) throw new GqlInputError('hash required')
 
-  const count = await models.$executeRaw`
-    UPDATE users
-    SET "vaultKeyHash" = ${keyHash}, "vaultKeyHashUpdatedAt" = NOW()
-    WHERE id = ${me.id}
-    AND "vaultKeyHash" = ''
-  `
-
-  return count > 0
+  return await initializeVaultKeyHash(models, { userId: me.id, keyHash })
 }
 
 async function deleteWallet (parent, { id }, { me, models }) {
@@ -185,8 +223,9 @@ async function deleteWallet (parent, { id }, { me, models }) {
 
 async function resetWallets (parent, { newKeyHash }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
+  if (!newKeyHash) throw new GqlInputError('hash required')
 
-  const { vaultKeyHash: oldHash } = await models.user.findUnique({ where: { id: me.id } })
+  const { vaultKeyHash: oldHash } = await getVaultMetadata(models, me.id)
 
   await models.$transaction(async tx => {
     const protocols = await tx.walletProtocol.findMany({
@@ -202,14 +241,12 @@ async function resetWallets (parent, { newKeyHash }, { me, models }) {
       await removeWalletProtocol(parent, { id: protocol.id }, { me, tx })
     }
 
-    await tx.user.update({
-      where: { id: me.id, vaultKeyHash: oldHash },
-      // TODO(wallet-v2): nullable vaultKeyHash column
-      data: {
-        vaultKeyHash: newKeyHash,
-        showPassphrase: true,
-        vaultKeyHashUpdatedAt: new Date()
-      }
+    // TODO(wallet-v2): nullable vaultKeyHash column
+    await updateVaultMetadata(tx, {
+      userId: me.id,
+      currentKeyHash: oldHash,
+      keyHash: newKeyHash,
+      showPassphrase: true
     })
   })
 
@@ -219,7 +256,7 @@ async function resetWallets (parent, { newKeyHash }, { me, models }) {
 async function disablePassphraseExport (parent, args, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
-  await models.user.update({ where: { id: me.id }, data: { showPassphrase: false } })
+  await setVaultShowPassphrase(models, { userId: me.id, showPassphrase: false })
 
   return true
 }

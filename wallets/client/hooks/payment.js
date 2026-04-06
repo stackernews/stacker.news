@@ -1,20 +1,90 @@
-import { useCallback } from 'react'
+import { createContext, useCallback, useContext, useMemo } from 'react'
+import { useMutation } from '@apollo/client'
 import { sha256 } from '@noble/hashes/sha2.js'
-import { useSendProtocols, useWalletLoggerFactory } from '@/wallets/client/hooks'
-import { useWalletsLoading } from '@/wallets/client/hooks/global'
+import { ADD_WALLET_LOG } from '@/wallets/client/fragments'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
-  WalletPaymentError, WalletError, WalletReceiverError, WalletsRefreshingError
+  WalletPaymentError, WalletError, WalletReceiverError
 } from '@/wallets/client/errors'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { useMe } from '@/components/me'
 import { formatSats, msatsToSats } from '@/lib/format'
 import usePayInHelper from '@/components/payIn/hooks/use-pay-in-helper'
+import { useDiagnostics } from './diagnostics'
+import { useSendProtocols } from './wallet'
+import { isTemplate } from '@/wallets/lib/util'
+
+export const WalletFormLogsContext = createContext(null)
+
+export function useWalletFormLogs () {
+  return useContext(WalletFormLogsContext)
+}
+
+export function useWriteWalletLog () {
+  const formLogs = useWalletFormLogs()
+  const [addWalletLog] = useMutation(ADD_WALLET_LOG)
+
+  return useCallback(({ protocol, level, message, payInId }) => {
+    if (protocol && isTemplate(protocol)) {
+      formLogs?.addLog?.({ level, message })
+      return
+    }
+
+    return addWalletLog({
+      variables: {
+        protocolId: protocol ? Number(protocol.id) : null,
+        level,
+        message,
+        timestamp: new Date(),
+        payInId
+      }
+    }).catch(err => {
+      console.error('error adding wallet log:', err)
+    })
+  }, [formLogs, addWalletLog])
+}
+
+export function useWalletLoggerFactory () {
+  const [diagnostics] = useDiagnostics()
+  const writeWalletLog = useWriteWalletLog()
+
+  const log = useCallback(({ protocol, level, message, payInId }) => {
+    console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
+
+    return writeWalletLog({ protocol, level, message, payInId })
+  }, [writeWalletLog])
+
+  return useCallback((protocol, payIn) => {
+    const payInId = payIn ? Number(payIn.id) : null
+    return {
+      ok: (message) => {
+        log({ protocol, level: 'OK', message, payInId })
+      },
+      info: (message) => {
+        log({ protocol, level: 'INFO', message, payInId })
+      },
+      error: (message) => {
+        log({ protocol, level: 'ERROR', message, payInId })
+      },
+      warn: (message) => {
+        log({ protocol, level: 'WARN', message, payInId })
+      },
+      debug: (message) => {
+        if (!diagnostics) return
+        log({ protocol, level: 'DEBUG', message, payInId })
+      }
+    }
+  }, [log, diagnostics])
+}
+
+export function useWalletLogger (protocol) {
+  const loggerFactory = useWalletLoggerFactory()
+  return useMemo(() => loggerFactory(protocol), [loggerFactory, protocol])
+}
 
 export function useWalletPayment () {
   const protocols = useSendProtocols()
-  const walletsLoading = useWalletsLoading()
   const sendPayment = useSendPayment()
   const payInHelper = usePayInHelper()
   const { me } = useMe()
@@ -28,10 +98,6 @@ export function useWalletPayment () {
     // anon user cannot pay with wallets
     if (!me) {
       throw new AnonWalletError()
-    }
-
-    if (walletsLoading) {
-      throw new WalletsRefreshingError()
     }
 
     // throw a special error that caller can handle separately if no payment was attempted
@@ -110,7 +176,7 @@ export function useWalletPayment () {
 
     // if we reach this line, no wallet payment succeeded
     throw new WalletPaymentAggregateError([aggregateError], latestPayIn)
-  }, [protocols, walletsLoading, me, payInHelper, sendPayment, loggerFactory])
+  }, [protocols, me, payInHelper, sendPayment, loggerFactory])
 }
 
 function useSendPayment () {
@@ -144,4 +210,18 @@ function useSendPayment () {
 function verifyPreimage (hash, preimage) {
   const preimageHash = Buffer.from(sha256(Buffer.from(preimage, 'hex'))).toString('hex')
   return hash === preimageHash
+}
+
+function mapLevelToConsole (level) {
+  switch (level) {
+    case 'OK':
+    case 'INFO':
+      return 'info'
+    case 'ERROR':
+      return 'error'
+    case 'WARN':
+      return 'warn'
+    default:
+      return 'log'
+  }
 }

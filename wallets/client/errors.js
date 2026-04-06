@@ -69,10 +69,10 @@ export class WalletsNotAvailableError extends WalletConfigurationError {
   }
 }
 
-export class WalletsRefreshingError extends WalletConfigurationError {
+export class WalletSendStateNotReadyError extends WalletConfigurationError {
   constructor () {
-    super('wallets are still refreshing')
-    this.name = 'WalletsRefreshingError'
+    super('wallet send state is not ready')
+    this.name = 'WalletSendStateNotReadyError'
   }
 }
 

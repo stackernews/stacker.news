@@ -1,7 +1,7 @@
-import { useWallets, useWalletsLoading } from '@/wallets/client/hooks/global'
+import { useWallets, useWalletsSettled } from '@/wallets/client/hooks/global'
 
 export function useWalletIndicator () {
   const wallets = useWallets()
-  const loading = useWalletsLoading()
-  return !loading && wallets.length === 0
+  const walletsSettled = useWalletsSettled()
+  return walletsSettled && wallets.length === 0
 }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useEffect } from 'react'
+import { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { InputGroup, Nav } from 'react-bootstrap'
 import classNames from 'classnames'
 import styles from '@/styles/wallet.module.css'
@@ -10,7 +10,8 @@ import Info from '@/components/info'
 import { useFormState, useNext, useStep, useStepIndex } from '@/components/multi-step-form'
 import { isTemplate, protocolDisplayName, protocolFields, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
-import { TemplateLogsProvider, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport, useSingleFlight } from '@/wallets/client/hooks'
+import { useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport, useSingleFlight } from '@/wallets/client/hooks'
+import { WalletFormLogsContext } from '@/wallets/client/hooks/payment'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowUpRight from '@/svgs/arrow-right-up-line.svg'
 import ArrowDownLeft from '@/svgs/arrow-left-down-line.svg'
@@ -20,6 +21,32 @@ import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols
 import { BackButton, SkipButton } from './button'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
+
+function WalletFormLogsProvider ({ children }) {
+  const [logs, setLogs] = useState([])
+
+  const addLog = useCallback(({ level, message }) => {
+    // TODO(wallet-v2): Date.now() might return the same value for two logs
+    //   use window.performance.now() instead?
+    setLogs(prev => [{ id: Date.now(), level, message, createdAt: new Date() }, ...prev])
+  }, [])
+
+  const clearLogs = useCallback(() => {
+    setLogs([])
+  }, [])
+
+  const value = useMemo(() => ({
+    logs,
+    addLog,
+    clearLogs
+  }), [logs, addLog, clearLogs])
+
+  return (
+    <WalletFormLogsContext.Provider value={value}>
+      {children}
+    </WalletFormLogsContext.Provider>
+  )
+}
 
 export function WalletMultiStepForm ({ wallet }) {
   const initial = useMemo(() => wallet.protocols
@@ -63,10 +90,10 @@ export function WalletMultiStepForm ({ wallet }) {
 
 function WalletForm () {
   return (
-    <TemplateLogsProvider>
+    <WalletFormLogsProvider>
       <WalletProtocolSelector />
       <WalletProtocolForm />
-    </TemplateLogsProvider>
+    </WalletFormLogsProvider>
   )
 }
 

@@ -6,10 +6,12 @@ import { useMe } from '@/components/me'
 import { useEffect } from 'react'
 import { NORMAL_POLL_INTERVAL_MS, PAY_IN_AUTO_RETRY_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { WalletConfigurationError } from '@/wallets/client/errors'
+import { useWalletSendReady } from '@/wallets/client/hooks/global'
 
 export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
   const sendProtocolId = usePreferredSendProtocolId()
+  const walletSendReady = useWalletSendReady()
   const payInHelper = usePayInHelper()
   const [getFailedPayIns] = useLazyQuery(FAILED_PAY_INS, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
   const { me } = useMe()
@@ -18,7 +20,7 @@ export function useAutoRetryPayIns () {
     // we always retry failed invoices, even if the user has no wallets on any client
     // to make sure that failed payments will always show up in notifications eventually
 
-    if (!me) return
+    if (!me || !walletSendReady) return
 
     let timeout
     let stopped = false
@@ -79,7 +81,7 @@ export function useAutoRetryPayIns () {
 
     queuePoll()
     return stopPolling
-  }, [me?.id, sendProtocolId, getFailedPayIns, payInHelper, waitForWalletPayment])
+  }, [me?.id, walletSendReady, sendProtocolId, getFailedPayIns, payInHelper, waitForWalletPayment])
 }
 
 export function isAutoRetryEligiblePayIn (payIn) {

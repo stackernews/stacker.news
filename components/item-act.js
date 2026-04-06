@@ -9,7 +9,7 @@ import { defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { meAnonSats } from '@/lib/apollo'
-import { useHasSendWallet } from '@/wallets/client/hooks'
+import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
 import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { satsToMsats } from '@/lib/format'
@@ -56,7 +56,8 @@ const setItemMeAnonSats = ({ id, amount }) => {
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
-  const hasSendWallet = useHasSendWallet()
+  const sendProtocolId = usePreferredSendProtocolId()
+  const hasReadySendWallet = sendProtocolId !== undefined
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -85,7 +86,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     }
 
     const options = {}
-    if (hasSendWallet || me?.privates?.sats > Number(amount)) {
+    if (hasReadySendWallet || me?.privates?.sats > Number(amount)) {
       onPaid()
     } else {
       // we want to close the modal only after paid so the modal can stack
@@ -112,7 +113,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, hasSendWallet, act, item.id, onClose, abortSignal, animate])
+  }, [me, actor, hasReadySendWallet, act, item.id, onClose, abortSignal, animate])
 
   return (
     <Form
@@ -295,7 +296,8 @@ export function getActCachePhases (me) {
 
 export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const { me } = useMe()
-  const hasSendWallet = useHasSendWallet()
+  const sendProtocolId = usePreferredSendProtocolId()
+  const hasSendWallet = sendProtocolId !== undefined
   const phases = getActCachePhases(me)
   const { cachePhases: callerCachePhases = {}, ...restOptions } = options
 

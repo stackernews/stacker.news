@@ -1,15 +1,15 @@
 import { useMe } from '@/components/me'
-import { useWallets, useWalletsLoading } from '@/wallets/client/hooks/global'
+import { useWalletSendReady, useWallets } from '@/wallets/client/hooks/global'
 import protocols from '@/wallets/client/protocols'
 import { isWallet } from '@/wallets/lib/util'
 import { useMemo } from 'react'
 
 export function useSendProtocols () {
   const wallets = useWallets()
-  const walletsLoading = useWalletsLoading()
+  const walletSendReady = useWalletSendReady()
   return useMemo(
     () => {
-      if (walletsLoading) return []
+      if (!walletSendReady) return []
 
       return wallets
         .filter(w => w.send)
@@ -37,7 +37,7 @@ export function useSendProtocols () {
           ]
         }, [])
     }
-    , [wallets, walletsLoading])
+    , [wallets, walletSendReady])
 }
 
 export function useHasSendWallet () {

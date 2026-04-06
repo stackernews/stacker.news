@@ -8,12 +8,6 @@ const VAULT_ENTRY_FIELDS = gql`
   }
 `
 
-export const CLEAR_VAULT = gql`
-  mutation ClearVault {
-    clearVault
-  }
-`
-
 const WALLET_PROTOCOL_FIELDS = gql`
   ${VAULT_ENTRY_FIELDS}
   # need to use field aliases because of https://github.com/graphql/graphql-js/issues/53
@@ -181,21 +175,6 @@ export const WALLETS = gql`
     wallets {
       ...WalletOrTemplateFields
     }
-  }
-`
-
-export const WALLET = gql`
-  ${WALLET_OR_TEMPLATE_FIELDS}
-  query Wallet($id: ID, $name: String) {
-    wallet(id: $id, name: $name) {
-      ...WalletOrTemplateFields
-    }
-  }
-`
-
-export const REMOVE_WALLET = gql`
-  mutation removeWallet($id: ID!) {
-    removeWallet(id: $id)
   }
 `
 

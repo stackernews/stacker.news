@@ -63,7 +63,7 @@ export function SubmitButton ({
         : onClick}
       {...props}
     >
-      {formik.isSubmitting ? submittingText : children}{!disabled && appendText && <small> {appendText}</small>}
+      {formik.isSubmitting ? submittingText : children}{appendText && <small> {appendText}</small>}
     </Button>
   )
 }

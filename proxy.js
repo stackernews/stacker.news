@@ -1,5 +1,5 @@
 import 'urlpattern-polyfill'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getDomainMapping } from '@/lib/domains'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
@@ -206,7 +206,7 @@ export async function proxy (req) {
   // clear subname header to prevent potential spoofing
   const headers = new Headers(req.headers)
   headers.delete('x-stacker-news-subname')
-  const request = new Request(req, { headers })
+  const request = new NextRequest(req, { headers })
 
   const referrerResp = referrerMiddleware(request)
   // TODO: check if we actually need this, and WHY

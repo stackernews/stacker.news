@@ -1,6 +1,6 @@
 import { Badge, Button } from 'react-bootstrap'
 import { Form, Input, SubmitButton, CopyButton } from './form'
-import { useMutation, useQuery } from '@apollo/client'
+import { useMutation, useQuery } from '@apollo/client/react'
 import { customDomainSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
 import { NORMAL_POLL_INTERVAL_MS, SSR } from '@/lib/constants'

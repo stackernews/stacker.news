@@ -5,13 +5,11 @@ import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
 import { useEffect } from 'react'
 import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
-import { useWalletSendReady } from '@/wallets/client/hooks/global'
 import { retryFailedPayIn } from './auto-retry-utils'
 
 export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
   const sendProtocolId = usePreferredSendProtocolId()
-  const walletSendReady = useWalletSendReady()
   const payInHelper = usePayInHelper()
   const [getFailedPayIns] = useLazyQuery(FAILED_PAY_INS, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
   const { me } = useMe()
@@ -20,7 +18,7 @@ export function useAutoRetryPayIns () {
     // we always retry failed invoices, even if the user has no wallets on any client
     // to make sure that failed payments will always show up in notifications eventually
 
-    if (!me || !walletSendReady) return
+    if (!me) return
 
     let timeout
     let stopped = false
@@ -81,5 +79,5 @@ export function useAutoRetryPayIns () {
 
     queuePoll()
     return stopPolling
-  }, [me?.id, walletSendReady, sendProtocolId, getFailedPayIns, payInHelper, waitForWalletPayment])
+  }, [me?.id, sendProtocolId, getFailedPayIns, payInHelper, waitForWalletPayment])
 }

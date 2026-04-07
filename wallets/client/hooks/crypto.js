@@ -53,7 +53,7 @@ export async function readOrCreateVaultKeyRecord (db, { createKey, logger }) {
 }
 
 export function useVaultLocalStore () {
-  const { get, open, set } = useIndexedDB()
+  const { get, open, remove, set } = useIndexedDB()
 
   const readKey = useCallback(async () => {
     return await get(VAULT_STORE_NAME, VAULT_KEY_ID)
@@ -63,11 +63,16 @@ export function useVaultLocalStore () {
     return await writeVaultKeyRecord(set, { key, hash, updatedAt })
   }, [set])
 
+  const deleteKey = useCallback(async () => {
+    await remove(VAULT_STORE_NAME, VAULT_KEY_ID)
+  }, [remove])
+
   return useMemo(() => ({
     open,
     readKey,
+    deleteKey,
     writeKey
-  }), [open, readKey, writeKey])
+  }), [open, readKey, deleteKey, writeKey])
 }
 
 export function useSetKey () {

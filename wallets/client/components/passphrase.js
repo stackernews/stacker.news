@@ -9,7 +9,6 @@ import { useGenerateRandomKey, useKeySalt, useSetKey } from '@/wallets/client/ho
 import { deriveKey } from '@/wallets/lib/crypto'
 import { useSingleFlight } from '@/wallets/client/hooks/singleFlight'
 import { useWalletLogger } from '@/wallets/client/hooks/payment'
-import { useWithKeySync } from '@/wallets/client/hooks/global'
 import { useDisablePassphraseExport, useWalletEncryptionUpdate, useWalletReset } from '@/wallets/client/hooks/query'
 import styles from '@/styles/wallet.module.css'
 import RefreshIcon from '@/svgs/refresh-line.svg'
@@ -67,7 +66,6 @@ function useVaultActions () {
   const generateRandomKey = useGenerateRandomKey()
   const updateWalletEncryption = useWalletEncryptionUpdate()
   const walletReset = useWalletReset()
-  const withKeySync = useWithKeySync()
   const logger = useWalletLogger()
 
   const unlockWithPassphrase = useCallback(async ({ passphrase }) => {
@@ -88,13 +86,10 @@ function useVaultActions () {
     logger.debug('vault passphrase reset requested')
     const { key: randomKey, hash } = await generateRandomKey()
 
-    await withKeySync(async () => {
-      await setKey({ key: randomKey, hash }, { updateServer: false })
-      await walletReset({ newKeyHash: hash })
-    })
+    await walletReset({ key: randomKey, newKeyHash: hash })
 
     logger.debug('vault passphrase reset completed')
-  }, [generateRandomKey, setKey, walletReset, withKeySync, logger])
+  }, [generateRandomKey, walletReset, logger])
 
   return {
     unlockWithPassphrase,

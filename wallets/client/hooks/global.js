@@ -201,6 +201,7 @@ function useKeyInit () {
 
   useEffect(() => {
     if (!me?.id || !db) return
+    let cancelled = false
 
     async function keyInit () {
       try {
@@ -212,13 +213,19 @@ function useKeyInit () {
           logger
         })
 
+        if (cancelled) return
         await setKey({ key, hash, updatedAt }, { updateDb: false })
       } catch (err) {
+        if (cancelled) return
         logger.debug('key init: error: ' + err)
         console.error('key init: error:', err)
       }
     }
     keyInit()
+
+    return () => {
+      cancelled = true
+    }
   }, [me?.id, db, generateRandomKey, setKey, logger])
 }
 

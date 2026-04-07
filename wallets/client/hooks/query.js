@@ -75,6 +75,31 @@ function updateVaultRemoteMetadata (client, patch) {
   })
 }
 
+async function stageVaultKeyWithRollback ({ readKey, writeKey, deleteKey, key, hash, runServerChange }) {
+  const previousRecord = await readKey()
+  const nextRecord = await writeKey({ key, hash })
+
+  try {
+    await runServerChange()
+    return nextRecord
+  } catch (err) {
+    if (previousRecord) {
+      try {
+        await writeKey(previousRecord)
+      } catch (rollbackError) {
+        console.error('failed to rollback staged vault key:', rollbackError)
+      }
+    } else {
+      try {
+        await deleteKey()
+      } catch (rollbackError) {
+        console.error('failed to clear staged vault key:', rollbackError)
+      }
+    }
+    throw err
+  }
+}
+
 export const WalletQueryPhase = {
   ERROR: 'ERROR',
   REFRESHING: 'REFRESHING',
@@ -383,7 +408,7 @@ export function useWalletEncryptionUpdate () {
   const walletSendReady = useWalletSendReady()
   const dispatch = useWalletsDispatch()
   const client = useApolloClient()
-  const { writeKey } = useVaultLocalStore()
+  const { deleteKey, readKey, writeKey } = useVaultLocalStore()
   const [mutate] = useMutation(UPDATE_WALLET_ENCRYPTION)
   const { encryptConfig } = useEncryptConfig()
   const withKeySync = useWithKeySync()
@@ -413,9 +438,19 @@ export function useWalletEncryptionUpdate () {
     }))
 
     await withKeySync(async () => {
-      await mutate({ variables: { keyHash: hash, wallets: data } })
+      // Stage the replacement key locally first so a successful server update
+      // never leaves this device without the matching key material.
+      const { updatedAt } = await stageVaultKeyWithRollback({
+        deleteKey,
+        readKey,
+        writeKey,
+        key,
+        hash,
+        runServerChange: async () => {
+          await mutate({ variables: { keyHash: hash, wallets: data } })
+        }
+      })
 
-      const { updatedAt } = await writeKey({ key, hash })
       dispatch({ type: SET_KEY, key, hash, updatedAt })
       updateVaultRemoteMetadata(client, {
         showPassphrase: false,
@@ -424,23 +459,38 @@ export function useWalletEncryptionUpdate () {
       })
       await client.refetchQueries({ include: [ME] })
     })
-  }, [wallets, walletSendReady, dispatch, client, writeKey, mutate, encryptConfig, withKeySync])
+  }, [wallets, walletSendReady, dispatch, client, deleteKey, readKey, writeKey, mutate, encryptConfig, withKeySync])
 }
 
 export function useWalletReset () {
   const client = useApolloClient()
+  const dispatch = useWalletsDispatch()
+  const { deleteKey, readKey, writeKey } = useVaultLocalStore()
   const [mutate] = useMutation(RESET_WALLETS)
+  const withKeySync = useWithKeySync()
 
-  return useCallback(async ({ newKeyHash }) => {
-    await mutate({ variables: { newKeyHash } })
+  return useCallback(async ({ key, newKeyHash }) => {
+    await withKeySync(async () => {
+      const { updatedAt } = await stageVaultKeyWithRollback({
+        deleteKey,
+        readKey,
+        writeKey,
+        key,
+        hash: newKeyHash,
+        runServerChange: async () => {
+          await mutate({ variables: { newKeyHash } })
+        }
+      })
 
-    updateVaultRemoteMetadata(client, {
-      showPassphrase: true,
-      vaultKeyHash: newKeyHash,
-      vaultKeyHashUpdatedAt: new Date().toISOString()
+      dispatch({ type: SET_KEY, key, hash: newKeyHash, updatedAt })
+      updateVaultRemoteMetadata(client, {
+        showPassphrase: true,
+        vaultKeyHash: newKeyHash,
+        vaultKeyHashUpdatedAt: new Date(updatedAt).toISOString()
+      })
+      await client.refetchQueries({ include: [ME] })
     })
-    await client.refetchQueries({ include: [ME] })
-  }, [client, mutate])
+  }, [client, dispatch, deleteKey, readKey, writeKey, mutate, withKeySync])
 }
 
 export function useDisablePassphraseExport () {

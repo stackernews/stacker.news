@@ -8,6 +8,7 @@ import {
   deleteDomainCertificate,
   detachDomainCertificate
 } from '@/lib/domain-verification'
+import { cleanDomainVerificationJobs } from '@/api/resolvers/domain'
 import { datePivot } from '@/lib/time'
 
 const getVerificationInterval = (updatedAt) => {
@@ -19,13 +20,6 @@ const getVerificationInterval = (updatedAt) => {
 }
 
 const VERIFICATION_HOLD_THRESHOLD = -2 // 2 days ago
-
-// delete all related domain verification jobs for a domain
-async function deleteDomainJobs (domainId, models) {
-  await models.$queryRaw`
-  DELETE FROM pgboss.job
-  WHERE name = 'domainVerification' AND data->>'domainId' = ${domainId}::TEXT`
-}
 
 export async function domainVerification ({ id: jobId, data: { domainId }, boss }) {
   // establish connection to database
@@ -52,7 +46,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     // this handles the edge case where a domain is put on HOLD manually or for some other reason
     if (domain.status === 'HOLD') {
       console.log(`domain ${domain.domainName} is on HOLD, skipping verification and deleting any remaining domain verification jobs`)
-      await deleteDomainJobs(domainId, models)
+      await cleanDomainVerificationJobs(domainId, models)
       return
     }
 
@@ -93,7 +87,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
       await models.domain.update({ where: { id: domainId }, data: { status: 'HOLD' } })
 
       // delete any related domain verification jobs that may exist
-      await deleteDomainJobs(domainId, models)
+      await cleanDomainVerificationJobs(domainId, models)
     }
 
     throw error
@@ -254,7 +248,7 @@ async function checkACMValidation (domain, models, record) {
   let message = null
 
   const { certStatus, error } = await checkCertificateStatus(domain.certificate.certificateArn)
-  if (certStatus) {
+  if (!error) {
     if (certStatus !== domain.certificate.status) {
       console.log(`certificate status for ${domain.domainName} has changed from ${domain.certificate.status} to ${certStatus}`)
       await models.domainCertificate.update({

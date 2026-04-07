@@ -201,7 +201,12 @@ function applySecurityHeaders (resp) {
   return resp
 }
 
-export async function middleware (request) {
+export async function middleware (req) {
+  // clear subname header to prevent potential spoofing
+  const headers = new Headers(req.headers)
+  headers.delete('x-stacker-news-subname')
+  const request = new Request(req, { headers })
+
   const referrerResp = referrerMiddleware(request)
   // TODO: check if we actually need this, and WHY
   if (referrerResp.headers.get('Location')) {

@@ -2,7 +2,7 @@ import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { GqlAuthenticationError, GqlInputError, GqlAuthorizationError } from '@/lib/error'
 import { SN_ADMIN_IDS } from '@/lib/constants'
 
-async function cleanDomainVerificationJobs (domainId, models) {
+export async function cleanDomainVerificationJobs (domainId, models) {
   // delete any existing domain verification job left
   await models.$queryRaw`
   DELETE FROM pgboss.job

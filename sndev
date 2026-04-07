@@ -508,10 +508,9 @@ sndev__login() {
   docker__exec db psql -U sn -d stackernews -q <<EOF
     INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
     UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
+    DELETE FROM verification_requests WHERE token = '$token';
     INSERT INTO verification_requests (identifier, token, expires)
-      VALUES ('$email', '$token', NOW() + INTERVAL '1 day')
-      ON CONFLICT (token) DO UPDATE
-      SET identifier = '$email', expires = NOW() + INTERVAL '1 day';
+      VALUES ('$email', '$token', NOW() + INTERVAL '1 day');
 EOF
 
   echo

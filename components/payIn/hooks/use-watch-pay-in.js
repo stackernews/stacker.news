@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { GET_PAY_IN_RESULT } from '@/fragments/payIn'
 import usePayInHelper, { WaitCheckControllerAbortedError } from './use-pay-in-helper'
 import { useEffect } from 'react'

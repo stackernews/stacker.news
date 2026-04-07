@@ -1,4 +1,5 @@
-import { NextResponse, URLPattern } from 'next/server'
+import 'urlpattern-polyfill'
+import { NextResponse } from 'next/server'
 import { getDomainMapping } from '@/lib/domains'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
@@ -201,7 +202,7 @@ function applySecurityHeaders (resp) {
   return resp
 }
 
-export async function middleware (req) {
+export async function proxy (req) {
   // clear subname header to prevent potential spoofing
   const headers = new Headers(req.headers)
   headers.delete('x-stacker-news-subname')

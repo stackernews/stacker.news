@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { gql, useQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'

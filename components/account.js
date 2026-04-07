@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { USER_ID } from '@/lib/constants'
 import { USER } from '@/fragments/users'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { UserListRow } from '@/components/user-list'
 import useCookie from '@/components/use-cookie'
 import Link from 'next/link'

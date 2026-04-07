@@ -1,5 +1,5 @@
 import React, { useContext, useMemo } from 'react'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { fixedDecimal } from '@/lib/format'
 import { useMe } from './me'
 import { PRICE } from '@/fragments/price'

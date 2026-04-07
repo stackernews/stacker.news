@@ -37,7 +37,8 @@ import {
   TEST_WALLET_RECEIVE_CLINK,
   DELETE_WALLET
 } from '@/wallets/client/fragments'
-import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
 import { useTemplates, useWallets } from '@/wallets/client/hooks/global'
 import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks/crypto'
 import { useWalletLoggerFactory } from '@/wallets/client/hooks/logger'

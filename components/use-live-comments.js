@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useQuery, useApolloClient } from '@apollo/client'
+import { useApolloClient, useQuery } from '@apollo/client/react'
 import { SSR } from '../lib/constants'
 import preserveScroll from './preserve-scroll'
 import { GET_NEW_COMMENTS } from '../fragments/comments'

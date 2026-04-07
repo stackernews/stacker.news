@@ -3,9 +3,9 @@
 
 import { useCallback, useState } from 'react'
 import { InvoiceCanceledError } from '@/wallets/client/errors'
-import { useApolloClient, useMutation } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client/react'
 import usePayPayIn from '@/components/payIn/hooks/use-pay-pay-in'
-import { getOperationName } from '@apollo/client/utilities'
+import { getOperationAST } from 'graphql'
 import { useMe } from '@/components/me'
 import { USER_ID } from '@/lib/constants'
 import { willAutoRetryPayIn } from './use-auto-retry-pay-ins'
@@ -38,7 +38,7 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
   const payPayIn = usePayPayIn()
-  const mutationName = getOperationName(mutation)
+  const mutationName = getOperationAST(mutation)?.name?.value
 
   const innerMutate = useCallback(async ({ onCompleted: innerOnCompleted, ...innerOptions } = {}) => {
     const hookCachePhases = getCachePhases(options)
@@ -156,7 +156,7 @@ function getCachePhases (options = {}) {
 // all paid actions need these fields and they're easy to forget
 function addOptimisticResponseExtras (mutation, payInOptimisticResponse, me) {
   if (!payInOptimisticResponse) return payInOptimisticResponse
-  const mutationName = getOperationName(mutation)
+  const mutationName = getOperationAST(mutation)?.name?.value
   const payerPrivates = payInOptimisticResponse.payerPrivates?.result
     ? {
         ...payInOptimisticResponse.payerPrivates,

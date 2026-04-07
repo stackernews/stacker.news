@@ -6,7 +6,8 @@ import EditImage from '@/svgs/image-edit-fill.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import { useShowModal } from './modal'
 import { FileUpload } from './file-upload'
-import { gql, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import { useToast } from './toast'
 
 export default function Avatar ({ onSuccess }) {

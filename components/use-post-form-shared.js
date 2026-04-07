@@ -3,7 +3,7 @@ import { AdvPostInitial } from './adv-post-form'
 import { SubSelectInitial } from './sub-select'
 import { normalizeForwards } from '@/lib/form'
 import useItemSubmit from './use-item-submit'
-import { useApolloClient } from '@apollo/client'
+import { useApolloClient } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 
 /**

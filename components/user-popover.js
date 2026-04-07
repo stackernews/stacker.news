@@ -1,11 +1,12 @@
 import { USER } from '@/fragments/users'
 import errorStyles from '@/styles/error.module.css'
-import { useLazyQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import classNames from 'classnames'
 import Link from 'next/link'
 import HoverablePopover from './hoverable-popover'
 import ItemPopover from './item-popover'
 import { UserBase, UserSkeleton } from './user-list'
+import { useCallback } from 'react'
 
 function StackingSince ({ since }) {
   return (
@@ -23,13 +24,16 @@ function StackingSince ({ since }) {
 }
 
 export default function UserPopover ({ name, children }) {
-  const [getUser, { loading, data }] = useLazyQuery(
+  const [execute, { loading, data }] = useLazyQuery(
     USER,
     {
-      variables: { name },
       fetchPolicy: 'cache-first'
     }
   )
+
+  const getUser = useCallback(() => {
+    execute({ variables: { name } }).catch(err => console.error(err))
+  }, [execute, name])
 
   return (
     <HoverablePopover

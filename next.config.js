@@ -46,7 +46,7 @@ try {
   commitHash = '0000'
 }
 
-module.exports = withPlausibleProxy()({
+module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi3E-sauvdFABb.js' })({
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
@@ -55,10 +55,17 @@ module.exports = withPlausibleProxy()({
     // so we need to resolve the relative path to the lightning module
     LIGHTNING_MODULE_PATH: require('path').relative(process.cwd(), require.resolve('lightning'))
   },
+  transpilePackages: ['next-plausible'],
   compress: false,
   experimental: {
     scrollRestoration: true,
     serverSourceMaps: true
+  },
+  // suppress deprecation warnings of bootstrap sass
+  // https://github.com/twbs/bootstrap/issues/40962
+  sassOptions: {
+    quietDeps: true,
+    silenceDeprecations: ['legacy-js-api', 'color-functions']
   },
   reactStrictMode: true,
   productionBrowserSourceMaps: true,
@@ -162,10 +169,6 @@ module.exports = withPlausibleProxy()({
       {
         source: '/.well-known/web-app-origin-association',
         destination: '/api/web-app-origin-association'
-      },
-      {
-        source: '/~:sub/:slug*\\?:query*',
-        destination: '/~/:slug*?:query*&sub=:sub'
       },
       {
         source: '/~:sub/:slug*',

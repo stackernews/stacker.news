@@ -1,7 +1,7 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
 import { USER, USER_WITH_SUBS } from '@/fragments/users'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import PageLoading from '@/components/page-loading'
 import { UserLayout } from '.'
 import TerritoryList from '@/components/territory-list'

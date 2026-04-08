@@ -14,7 +14,9 @@ export default function SecondBar (props) {
         activeKey={topNavKey}
       >
         {!domain && <NavSelect sub={sub} size='medium' className='me-1' />}
-        <div className='ms-2 d-flex'><Sorts {...props} className='ms-1' /></div>
+        <div className={`${!domain ? 'ms-2 d-flex' : 'd-flex'}`}>
+          <Sorts {...props} className={!domain ? 'ms-1' : undefined} />
+        </div>
         <PostItem className='ms-auto me-0 d-none d-md-flex' prefix={prefix} />
       </Nav>
     </Navbar>

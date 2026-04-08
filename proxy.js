@@ -1,6 +1,6 @@
 import 'urlpattern-polyfill'
 import { NextRequest, NextResponse } from 'next/server'
-import { getDomainMapping } from '@/lib/domains'
+import { getDomainMapping, createDomainsDebugLogger } from '@/lib/domains'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -19,6 +19,8 @@ const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
 const SN_TERRITORY_PATHS = ['/~', '/new', '/top', '/post', '/edit', '/rss']
 
 async function customDomainMiddleware (request, domain, subName) {
+  // logger is enabled if NEXT_PUBLIC_CUSTOM_DOMAINS_DEBUG == 1
+  const logger = createDomainsDebugLogger(domain)
   // clone the url to build on top of it
   const url = request.nextUrl.clone()
   // we need pathname, searchParams and origin
@@ -27,12 +29,11 @@ async function customDomainMiddleware (request, domain, subName) {
   const headers = new Headers(request.headers)
   headers.set('x-stacker-news-subname', subName)
 
-  // TEST
-  console.log('[domains] custom domain', domain, 'with subname', subName) // TEST
-  console.log('[domains] main domain', JSON.stringify(SN_MAIN_DOMAIN)) // TEST
-  console.log('[domains] pathname', pathname) // TEST
-  console.log('[domains] searchParams', JSON.stringify(searchParams)) // TEST
-  console.log('[domains] search', url.search)
+  logger.log('custom domain', domain, 'with subname', subName)
+  logger.log('main domain', JSON.stringify(SN_MAIN_DOMAIN))
+  logger.log('pathname', pathname)
+  logger.log('searchParams', JSON.stringify(searchParams))
+  logger.log('search', url.search)
 
   // TODO: handle auth sync
 
@@ -40,25 +41,25 @@ async function customDomainMiddleware (request, domain, subName) {
   if (pathname.startsWith('/~')) {
     const cleanPath = pathname.replace(/^\/~[^/]+/, '') || '/'
     url.pathname = cleanPath
-    console.log('[domains] redirecting to clean url:', url) // TEST
+    logger.log('redirecting to clean url:', url)
     // redirect to the clean path
     return NextResponse.redirect(url, { headers })
   }
 
   // if sub param exists and doesn't match the domain's subname, update it
   if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
-    console.log('[domains] setting sub to', subName) // TEST
+    logger.log('setting sub to', subName)
     searchParams.set('sub', subName)
     url.search = searchParams.toString()
-    console.log('[domains] new searchParams', url.search)
-    console.log('[domains] new url', url)
+    logger.log('new searchParams', url.search)
+    logger.log('new url', url)
     return NextResponse.redirect(url, { headers })
   }
 
   // if we're at the root or on some territory path, hide the subname by rewriting
   if (pathname === '/' || SN_TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
     url.pathname = `/~${subName}${pathname === '/' ? '' : pathname}`
-    console.log('[domains] rewrite to:', url.pathname) // TEST
+    logger.log('rewrite to:', url.pathname)
     // rewrite to the territory path
     return NextResponse.rewrite(url, { headers })
   }
@@ -151,7 +152,6 @@ function applyReferrerCookies (response, referrer) {
       }
     )
   }
-  console.log('[domains] response.cookies', response.cookies) // TEST
   return response
 }
 
@@ -223,7 +223,7 @@ export async function proxy (req) {
     // check if we have a mapping for this domain
     const mapping = await getDomainMapping(domainToMap)
     if (mapping?.subName) {
-      console.log('[domains] allowed custom domain', domain, 'detected, pointing to', mapping.subName) // TEST
+      console.log('[domains] allowed custom domain', domain, 'detected, pointing to', mapping.subName)
       const resp = await customDomainMiddleware(request, domain, mapping.subName)
       // apply referrer cookies to the custom domain response
       const referredResp = applyReferrerCookies(resp, referrerResp)

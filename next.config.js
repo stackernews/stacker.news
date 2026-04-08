@@ -47,6 +47,13 @@ try {
 }
 
 module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi3E-sauvdFABb.js' })({
+  // enables Next.js HMR for custom domains in development
+  allowedDevOrigins: isProd
+    ? undefined
+    : [
+        '.sndev',
+        ...(process.env.ALLOWED_DEV_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || [])
+      ],
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,

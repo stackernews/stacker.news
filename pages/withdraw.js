@@ -49,14 +49,10 @@ function WithdrawForm () {
         activeKey={router.query.type ?? 'invoice'}
       >
         <Nav.Item>
-          <Link href='/withdraw' passHref legacyBehavior>
-            <Nav.Link eventKey='invoice'>invoice</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/withdraw' eventKey='invoice'>invoice</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/withdraw?type=lnaddr' passHref legacyBehavior>
-            <Nav.Link eventKey='lnaddr'>lightning address</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/withdraw?type=lnaddr' eventKey='lnaddr'>lightning address</Nav.Link>
         </Nav.Item>
       </Nav>
       <SelectedWithdrawalForm />

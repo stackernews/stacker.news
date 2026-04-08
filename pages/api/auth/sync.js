@@ -29,7 +29,7 @@ export default async function handler (req, res) {
     }
 
     if (req.method === 'GET') {
-      const { domain, redirectUri, signup } = req.query
+      const { domain, redirectUri = '/', signup } = req.query
       if (!domain || !redirectUri?.startsWith('/')) {
         return res.status(400).json({ status: 'ERROR', reason: 'domain and a correct redirectUri are required' })
       }
@@ -60,7 +60,9 @@ export default async function handler (req, res) {
   }
 }
 
-async function checkDomainValidity (domainName) {
+async function checkDomainValidity (receivedDomain) {
+  const domainName = process.env.NODE_ENV === 'development' ? receivedDomain.split(':')[0] : receivedDomain
+
   try {
     await validateSchema(customDomainSchema, { domainName })
     const domain = await models.domain.findUnique({
@@ -73,6 +75,7 @@ async function checkDomainValidity (domainName) {
 
     return { status: 'OK' }
   } catch (error) {
+    console.error('[auth sync] domain is not valid', error)
     return { status: 'ERROR', reason: 'domain is not valid' }
   }
 }

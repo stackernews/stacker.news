@@ -50,32 +50,26 @@ export default function UserHeader ({ user }) {
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Link href={'/' + user.name} passHref legacyBehavior>
-            <Nav.Link eventKey='bio'>bio</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href={'/' + user.name} eventKey='bio'>bio</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href={'/' + user.name + '/all'} passHref legacyBehavior>
-            <Nav.Link eventKey='items'>
-              {numWithUnits(user.nitems, {
-                abbreviate: false,
-                unitSingular: 'item',
-                unitPlural: 'items'
-              })}
-            </Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href={'/' + user.name + '/all'} eventKey='items'>
+            {numWithUnits(user.nitems, {
+              abbreviate: false,
+              unitSingular: 'item',
+              unitPlural: 'items'
+            })}
+          </Nav.Link>
         </Nav.Item>
         {showTerritoriesTab && (
           <Nav.Item>
-            <Link href={'/' + user.name + '/territories'} passHref legacyBehavior>
-              <Nav.Link eventKey='territories'>
-                {numWithUnits(user.nterritories, {
-                  abbreviate: false,
-                  unitSingular: 'territory',
-                  unitPlural: 'territories'
-                })}
-              </Nav.Link>
-            </Link>
+            <Nav.Link as={Link} href={'/' + user.name + '/territories'} eventKey='territories'>
+              {numWithUnits(user.nterritories, {
+                abbreviate: false,
+                unitSingular: 'territory',
+                unitPlural: 'territories'
+              })}
+            </Nav.Link>
           </Nav.Item>
         )}
       </Nav>

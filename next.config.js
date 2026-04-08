@@ -55,6 +55,11 @@ module.exports = withPlausibleProxy()({
     // so we need to resolve the relative path to the lightning module
     LIGHTNING_MODULE_PATH: require('path').relative(process.cwd(), require.resolve('lightning'))
   },
+  // the app uses plain <img> tags exclusively — disable the built-in
+  // image optimization endpoint since it is unused and adds attack surface
+  images: {
+    unoptimized: true
+  },
   compress: false,
   experimental: {
     scrollRestoration: true,

@@ -221,10 +221,10 @@ export async function proxy (req) {
     // in development we might have a port in the domain
     const domainToMap = process.env.NODE_ENV === 'development' ? domain.split(':')[0] : domain
     // check if we have a mapping for this domain
-    const subName = await getDomainMapping(domainToMap)
-    if (subName) {
-      console.log('[domains] allowed custom domain', domain, 'detected, pointing to', subName) // TEST
-      const resp = await customDomainMiddleware(request, domain, subName.subName)
+    const mapping = await getDomainMapping(domainToMap)
+    if (mapping?.subName) {
+      console.log('[domains] allowed custom domain', domain, 'detected, pointing to', mapping.subName) // TEST
+      const resp = await customDomainMiddleware(request, domain, mapping.subName)
       // apply referrer cookies to the custom domain response
       const referredResp = applyReferrerCookies(resp, referrerResp)
       // finally apply security headers

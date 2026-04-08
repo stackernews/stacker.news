@@ -181,6 +181,34 @@ It detaches the ACM certificate from our ALB listener and then deletes the ACM c
 
 It's a necessary step to ensure that we don't waste AWS resources and also provide safety regarding the custom domain access to Stacker News.
 
+# Auth Sync
+
+Cross-domain JWT authentication is a complex issue due to browser security restrictions, mainly because cookies:
+- are bound to specific domains
+- -- cookie property of `stacker.news` - **DON'T EAT**
+
+and
+
+- can't be set for another domain
+- -- `stacker.news` <- cookie -> `pizza.com` 🚫
+
+Instead of fighting these restrictions, Auth Sync works with them by creating a whole new session:
+- user visits `pizza.com/login`
+- middleware redirects to auth sync **on the main domain** accessing that domain cookies
+- -- `https://stacker.news/api/auth/sync?domain=pizza.com&redirectUri=/items/212142`
+- checks if pizza.com is an **allowed domain**
+- checks if there's a session
+- -- if not: redirects to `stacker.news/login` with `/api/auth/sync` as callback to continue syncing
+- auth sync creates a short-lived verification token and redirects back to the custom domain with the `token` parameter
+- -- `https://pizza.com/?token=42424242&redirectUri=/items/212142`
+- middleware exchanges this token for a session, **setting the session cookie** on pizza.com
+- -- `POST: https://stacker.news/api/auth/sync; token: 42424242`
+
+
+This design focuses on security as the verification token is a one-time code that dies in **5 minutes** and has **256 bits** of entropy. The JWT is then generated server-side and applied to the final middleware response.
+
+
+
 # Neat stuff
 
 ### Let's go HTTPS with a reverse proxy

@@ -81,7 +81,7 @@ export default {
       })
 
       if (domainName) {
-        domainName = domainName.trim()
+        domainName = domainName.trim().toLowerCase()
         await validateSchema(customDomainSchema, { domainName })
 
         // updating the domain name, recovering from HOLD is allowed

@@ -45,7 +45,7 @@ export default {
         throw new GqlInputError('sub not found')
       }
 
-      if (sub.userId !== me.id) {
+      if (sub.userId !== Number(me.id)) {
         throw new GqlAuthorizationError('you do not own this sub')
       }
 
@@ -70,7 +70,7 @@ export default {
         throw new GqlInputError('sub not found')
       }
 
-      if (sub.userId !== me.id) {
+      if (sub.userId !== Number(me.id)) {
         throw new GqlAuthorizationError('you do not own this sub')
       }
 

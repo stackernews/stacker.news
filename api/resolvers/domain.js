@@ -148,7 +148,7 @@ export default {
   },
   Domain: {
     records: async (domain) => {
-      if (!domain.records) return []
+      if (!domain.records?.length) return null
 
       // O(1) lookups by type, simpler checks for CNAME and ACM validation records
       return Object.fromEntries(domain.records.map(record => [record.type, record]))

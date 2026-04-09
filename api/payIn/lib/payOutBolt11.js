@@ -1,5 +1,5 @@
 import { parsePaymentRequest } from 'ln-service'
-import { PAY_IN_RECEIVER_FAILURE_REASONS } from './is'
+import { PAY_IN_RECEIVER_FAILURE_REASONS } from '@/lib/pay-in'
 import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
 import { payInFailureReasonsSql } from './sql'
 

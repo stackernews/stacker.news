@@ -41,7 +41,7 @@ export function useWalletLoggerFactory () {
   const [addWalletLog] = useMutation(ADD_WALLET_LOG)
   const [diagnostics] = useDiagnostics()
 
-  const log = useCallback(({ protocol, level, message, payInId }) => {
+  const log = useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
     console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
 
     if (protocol && isTemplate(protocol)) {
@@ -50,7 +50,7 @@ export function useWalletLoggerFactory () {
       return
     }
 
-    return addWalletLog({ variables: { protocolId: protocol ? Number(protocol.id) : null, level, message, timestamp: new Date(), payInId } })
+    return addWalletLog({ variables: { protocolId: protocol ? Number(protocol.id) : null, level, message, timestamp: new Date(), payInId, updateStatus } })
       .catch(err => {
         console.error('error adding wallet log:', err)
       })
@@ -59,21 +59,21 @@ export function useWalletLoggerFactory () {
   return useCallback((protocol, payIn) => {
     const payInId = payIn ? Number(payIn.id) : null
     return {
-      ok: (message) => {
-        log({ protocol, level: 'OK', message, payInId })
+      ok: (message, context = {}) => {
+        log({ protocol, level: 'OK', message, payInId, updateStatus: context.updateStatus })
       },
-      info: (message) => {
-        log({ protocol, level: 'INFO', message, payInId })
+      info: (message, context = {}) => {
+        log({ protocol, level: 'INFO', message, payInId, updateStatus: context.updateStatus })
       },
-      error: (message) => {
-        log({ protocol, level: 'ERROR', message, payInId })
+      error: (message, context = {}) => {
+        log({ protocol, level: 'ERROR', message, payInId, updateStatus: context.updateStatus })
       },
-      warn: (message) => {
-        log({ protocol, level: 'WARN', message, payInId })
+      warn: (message, context = {}) => {
+        log({ protocol, level: 'WARN', message, payInId, updateStatus: context.updateStatus })
       },
-      debug: (message) => {
+      debug: (message, context = {}) => {
         if (!diagnostics) return
-        log({ protocol, level: 'DEBUG', message, payInId })
+        log({ protocol, level: 'DEBUG', message, payInId, updateStatus: context.updateStatus })
       }
     }
   }, [log, diagnostics])
@@ -84,7 +84,7 @@ export function useWalletLogger (protocol) {
   return useMemo(() => loggerFactory(protocol), [loggerFactory, protocol])
 }
 
-export function useWalletLogs (protocol, debug, payInId, { poll = true } = {}) {
+export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInterval = FAST_POLL_INTERVAL_MS } = {}) {
   const { templateLogs, clearTemplateLogs } = useContext(TemplateLogsContext)
 
   const [cursor, setCursor] = useState(null)
@@ -138,10 +138,10 @@ export function useWalletLogs (protocol, debug, payInId, { poll = true } = {}) {
       }
       const { entries: updatedLogs } = data.walletLogs
       setLogs(logs => [...updatedLogs.filter(log => !logs.some(l => l.id === log.id)), ...logs])
-    }, FAST_POLL_INTERVAL_MS)
+    }, pollInterval)
 
     return () => clearInterval(interval)
-  }, [fetchLogs, logFilters, noFetch, poll])
+  }, [fetchLogs, logFilters, noFetch, poll, pollInterval])
 
   const loadMore = useCallback(async () => {
     const { data } = await fetchLogs({ variables: { ...logFilters, cursor } })
@@ -165,7 +165,7 @@ export function useWalletLogs (protocol, debug, payInId, { poll = true } = {}) {
       hasMore: cursor !== null,
       clearLogs
     }
-  }, [loading, noFetch, called, templateLogs, logs, error, loadMore, clearLogs])
+  }, [loading, noFetch, called, templateLogs, logs, error, loadMore, cursor, clearLogs])
 }
 
 function mapLevelToConsole (level) {

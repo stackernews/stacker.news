@@ -1,15 +1,9 @@
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useMemo } from 'react'
+import { PAY_IN_RECEIVER_FAILURE_REASONS } from '@/lib/pay-in'
 import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/client/errors'
 import { GET_PAY_IN_RESULT, CANCEL_PAY_IN_BOLT11, RETRY_PAY_IN } from '@/fragments/payIn'
 import { FAST_POLL_INTERVAL_MS } from '@/lib/constants'
-
-const RECEIVER_FAILURE_REASONS = [
-  'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_FEE',
-  'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_EXPIRY',
-  'INVOICE_FORWARDING_CLTV_DELTA_TOO_LOW',
-  'INVOICE_FORWARDING_FAILED'
-]
 
 export default function usePayInHelper () {
   const client = useApolloClient()
@@ -34,7 +28,7 @@ export default function usePayInHelper () {
       throw new InvoiceExpiredError(payInBolt11)
     }
 
-    if (RECEIVER_FAILURE_REASONS.includes(payInFailureReason)) {
+    if (PAY_IN_RECEIVER_FAILURE_REASONS.includes(payInFailureReason)) {
       throw new WalletReceiverError(payInBolt11)
     }
 

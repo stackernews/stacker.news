@@ -10,8 +10,8 @@ import { isTemplate } from '@/wallets/lib/util'
 //   when we delete logs for a protocol, the cache is not updated
 //   so when we go to all wallet logs, we still see the deleted logs until the query is refetched
 
-export function WalletLogs ({ protocol, payInId, className, debug, poll = true }) {
-  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol, debug, payInId, { poll })
+export function WalletLogs ({ protocol, payInId, className, debug, poll = true, pollInterval }) {
+  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol, debug, payInId, { poll, pollInterval })
   const deleteLogs = useDeleteWalletLogs(protocol, debug)
 
   const onDelete = useCallback(() => {

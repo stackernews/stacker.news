@@ -300,11 +300,11 @@ async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me,
   }
 }
 
-async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId }, { me, models }) {
+async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId, updateStatus }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   const logger = walletLogger({ models, protocolId, userId: me.id, payInId })
-  await logger[level.toLowerCase()](message, { createdAt: timestamp })
+  await logger[level.toLowerCase()](message, { createdAt: timestamp, updateStatus })
 
   return true
 }

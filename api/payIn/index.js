@@ -15,6 +15,7 @@ import { createHmac } from '../resolvers/wallet'
 import createPrisma from '@/lib/create-prisma'
 import { PayInFailureReasonError } from './errors'
 import { payInReplacePayOuts } from './lib/payInFailed'
+import { GqlInputError } from '@/lib/error'
 const models = createPrisma({ connectionParams: { connection_limit: 2 } })
 
 export default async function pay (payInType, payInArgs, { me, custodialOnly, sendProtocolId } = {}) {
@@ -40,7 +41,10 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly, se
       }
     }
 
-    sendProtocolId = await resolveSendProtocolSelection(sendProtocolId, { me })
+    sendProtocolId = await resolveSendProtocolSelection(sendProtocolId, {
+      me,
+      requireExplicit: sendProtocolId !== undefined && sendProtocolId !== null
+    })
     console.group('payIn', payInType, payInArgs)
 
     const payIn = await payInModule.getInitial(models, payInArgs, { me, sendProtocolId })
@@ -368,7 +372,10 @@ export async function retry (payInId, { me, sendProtocolId }) {
   let payInFailedInitial
   let shouldConsumeRetryAttempt = false
   try {
-    const sendProtocolSelection = await resolveSendProtocolSelection(sendProtocolId, { me })
+    const sendProtocolSelection = await resolveSendProtocolSelection(sendProtocolId, {
+      me,
+      requireExplicit: sendProtocolId !== undefined && sendProtocolId !== null
+    })
     const include = {
       payInBolt11: true,
       payOutCustodialTokens: { include: { subPayOutCustodialToken: true } },
@@ -490,10 +497,19 @@ async function normalizeSendProtocolId (sendProtocolId, { me }) {
   return protocol?.id
 }
 
-async function resolveSendProtocolSelection (sendProtocolId, { me }) {
+async function resolveSendProtocolSelection (sendProtocolId, { me, requireExplicit = false } = {}) {
   if (sendProtocolId === null) {
     return null
   }
 
-  return await normalizeSendProtocolId(sendProtocolId, { me })
+  if (sendProtocolId === undefined) {
+    return undefined
+  }
+
+  const normalizedSendProtocolId = await normalizeSendProtocolId(sendProtocolId, { me })
+  if (requireExplicit && !normalizedSendProtocolId) {
+    throw new GqlInputError('invalid send protocol')
+  }
+
+  return normalizedSendProtocolId
 }

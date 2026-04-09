@@ -27,8 +27,8 @@ export function useSendProtocols () {
 }
 
 export function useHasSendWallet () {
-  const protocols = useSendProtocols()
-  return useMemo(() => protocols.length > 0, [protocols])
+  const sendProtocolId = usePreferredSendProtocolId()
+  return sendProtocolId !== undefined
 }
 
 export function usePreferredSendProtocolId () {

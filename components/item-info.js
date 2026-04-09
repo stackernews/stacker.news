@@ -29,7 +29,7 @@ import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
 import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
-import { willAutoRetryPayIn } from './payIn/hooks/use-auto-retry-pay-ins'
+import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { gql } from '@apollo/client'
 
 function itemTitle (item) {
@@ -362,7 +362,7 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
 
   if (canManagePayIn) {
     // are we automatically retrying?
-    if (willAutoRetryPayIn(item.payIn)) {
+    if (isAutoRetryEligiblePayIn(item.payIn)) {
       Component = () => <span className={classNames('text-info')}>pending</span>
     } else if (item.payIn.payInState === 'FAILED') {
       Component = () => <span className={classNames('text-warning', disableDualRetry ? 'pulse' : 'pointer')}>retry payment</span>

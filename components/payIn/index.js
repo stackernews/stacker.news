@@ -1,12 +1,13 @@
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
+import { FAILED_PAY_IN_STATES, getPayInFailureDetail, getPayOutBolt11FailureDetail, describePayInType } from '@/lib/pay-in'
 import Qr from '../qr'
 import Bolt11Info from './bolt11-info'
 import useWatchPayIn from './hooks/use-watch-pay-in'
 import { PayInStatus, PayInStatusSkeleton } from './status'
 import PayInMetadata from './metadata'
-import { describePayInType } from '@/lib/pay-in'
 import { PayInContext } from './context'
-import { GET_PAY_IN_FULL } from '@/fragments/payIn'
+import { GET_PAY_IN_FULL_NO_WALLET_INFO } from '@/fragments/payIn'
 import { PayInSankey, PayInSankeySkeleton } from './sankey'
 import { useMe } from '@/components/me'
 import { WalletLogs } from '@/wallets/client/components'
@@ -17,9 +18,14 @@ const TERMINAL_PAY_IN_STATES = new Set(['PAID', 'FAILED'])
 
 export default function PayIn ({ id, ssrData }) {
   const { me } = useMe()
-  const { data, error } = useWatchPayIn({ id, query: GET_PAY_IN_FULL })
+  const { data, error } = useWatchPayIn({ id, query: GET_PAY_IN_FULL_NO_WALLET_INFO })
 
-  const payIn = data?.payIn || ssrData?.payIn
+  const payIn = data?.payIn
+    ? {
+        ...data.payIn,
+        walletInfo: ssrData?.payIn?.walletInfo
+      }
+    : ssrData?.payIn
 
   if (error) {
     return <div>{error.message}</div>
@@ -40,6 +46,7 @@ export default function PayIn ({ id, ssrData }) {
           <small className='text-muted' suppressHydrationWarning>{new Date(payIn.createdAt).toLocaleString()}</small>
         </div>
       </div>
+      <PayInFailureMessage payIn={payIn} />
       {payIn.payerPrivates?.payInBolt11 &&
         (
           <>
@@ -80,6 +87,33 @@ export default function PayIn ({ id, ssrData }) {
   )
 }
 
+function PayInFailureMessage ({ payIn }) {
+  if (!FAILED_PAY_IN_STATES.includes(payIn.payInState)) {
+    return null
+  }
+
+  const message = getPayInFailureMessage(payIn)
+  if (!message) {
+    return null
+  }
+
+  return <small className='d-block mt-1 text-muted'>{message}</small>
+}
+
+function getPayInFailureMessage (payIn) {
+  const payOutStatus = payIn.payeePrivates?.payOutBolt11?.status
+  if (payOutStatus) {
+    return getPayOutBolt11FailureDetail(payOutStatus).userMessage
+  }
+
+  const payInFailureReason = payIn.payerPrivates?.payInFailureReason
+  if (!payInFailureReason) {
+    return null
+  }
+
+  return getPayInFailureDetail(payInFailureReason).userMessage
+}
+
 function PayInWalletSection ({ payIn }) {
   const walletInfo = payIn.walletInfo
   if (!walletInfo) {
@@ -99,7 +133,7 @@ function PayInWalletSection ({ payIn }) {
         <Link href={`/wallets/${walletInfo.walletId}`}>{walletInfo.walletName}</Link>{' '}
         <span className='text-muted'>via {walletInfo.protocolName}</span>
       </div>
-      <WalletLogs payInId={Number(payIn.id)} poll={shouldPoll} />
+      <WalletLogs payInId={Number(payIn.id)} poll={shouldPoll} pollInterval={NORMAL_POLL_INTERVAL_MS} />
     </div>
   )
 }

@@ -167,7 +167,7 @@ const typeDefs = gql`
     setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
 
     # logs
-    addWalletLog(protocolId: Int, level: String!, message: String!, timestamp: Date!, payInId: Int): Boolean
+    addWalletLog(protocolId: Int, level: String!, message: String!, timestamp: Date!, payInId: Int, updateStatus: Boolean): Boolean
     deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
   }
 

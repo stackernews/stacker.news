@@ -852,7 +852,7 @@ export default {
 
       return await pay('POLL_VOTE', { id }, { me, models, sendProtocolId })
     },
-    act: async (parent, { id, sats, act = 'TIP', sendProtocolId }, { me, models, lnd, headers }) => {
+    act: async (parent, { id, sats, act = 'TIP', hasSendWallet, sendProtocolId }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
       await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
@@ -895,7 +895,7 @@ export default {
       }
 
       if (act === 'TIP') {
-        return await pay('ZAP', { id, sats }, { me, models, sendProtocolId })
+        return await pay('ZAP', { id, sats, hasSendWallet }, { me, models, sendProtocolId })
       } else if (act === 'DONT_LIKE_THIS') {
         return await pay('DOWN_ZAP', { id, sats }, { me, models, sendProtocolId })
       } else if (act === 'BOOST') {

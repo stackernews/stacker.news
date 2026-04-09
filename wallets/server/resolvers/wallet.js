@@ -32,6 +32,15 @@ const WalletTemplate = {
   }
 }
 
+const walletInclude = {
+  template: true,
+  protocols: {
+    orderBy: {
+      id: 'asc'
+    }
+  }
+}
+
 export const resolvers = {
   WalletOrTemplate,
   Wallet,
@@ -61,14 +70,7 @@ async function wallets (parent, args, { me, models }) {
     where: {
       userId: me.id
     },
-    include: {
-      template: true,
-      protocols: {
-        orderBy: {
-          id: 'asc'
-        }
-      }
-    },
+    include: walletInclude,
     orderBy: [
       { priority: 'asc' },
       { id: 'asc' }
@@ -96,14 +98,7 @@ async function wallet (parent, { id, name }, { me, models }) {
   if (id) {
     const wallet = await models.wallet.findUnique({
       where: { id: Number(id), userId: me.id },
-      include: {
-        template: true,
-        protocols: {
-          orderBy: {
-            id: 'asc'
-          }
-        }
-      }
+      include: walletInclude
     })
     if (!wallet) throw new GqlInputError('wallet not found')
 

@@ -237,6 +237,15 @@ export const GET_PAY_IN_FULL = gql`
   }
 `
 
+export const GET_PAY_IN_FULL_NO_WALLET_INFO = gql`
+  ${PAY_IN_STATISTICS_FIELDS}
+  query payIn($id: Int!) {
+    payIn(id: $id) {
+      ...PayInStatisticsFields
+    }
+  }
+`
+
 export const GET_PAY_IN_RESULT = gql`
   ${PAY_IN_FIELDS}
   query payIn($id: Int!) {

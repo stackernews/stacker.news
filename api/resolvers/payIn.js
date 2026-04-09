@@ -239,36 +239,45 @@ export default {
         return null
       }
 
-      for (const [protocolId, role] of [
-        [payIn.payInBolt11?.protocolId, 'SEND'],
-        [payIn.payOutBolt11?.protocolId, 'RECEIVE']
-      ]) {
-        if (!protocolId) continue
+      const protocolCandidates = [
+        { protocolId: payIn.payInBolt11?.protocolId, role: 'SEND' },
+        { protocolId: payIn.payOutBolt11?.protocolId, role: 'RECEIVE' }
+      ]
+        .filter(({ protocolId }) => protocolId)
+        .map(({ protocolId, role }) => ({ protocolId: Number(protocolId), role }))
 
-        const protocol = await models.walletProtocol.findFirst({
-          where: {
-            id: Number(protocolId),
-            wallet: {
-              userId: Number(me.id)
-            }
+      if (!protocolCandidates.length) {
+        return null
+      }
+
+      const protocols = await models.walletProtocol.findMany({
+        where: {
+          id: {
+            in: protocolCandidates.map(({ protocolId }) => protocolId)
           },
-          include: {
-            wallet: {
-              include: {
-                template: true
-              }
+          wallet: {
+            userId: Number(me.id)
+          }
+        },
+        include: {
+          wallet: {
+            include: {
+              template: true
             }
           }
-        })
+        }
+      })
 
-        if (protocol) {
-          return {
-            walletId: protocol.wallet.id,
-            walletName: protocol.wallet.template.name,
-            protocolId: protocol.id,
-            protocolName: protocol.name,
-            role
-          }
+      for (const { protocolId, role } of protocolCandidates) {
+        const protocol = protocols.find(protocol => protocol.id === protocolId)
+        if (!protocol) continue
+
+        return {
+          walletId: protocol.wallet.id,
+          walletName: protocol.wallet.template.name,
+          protocolId: protocol.id,
+          protocolName: protocol.name,
+          role
         }
       }
 

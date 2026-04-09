@@ -8,7 +8,7 @@ import usePayPayIn from '@/components/payIn/hooks/use-pay-pay-in'
 import { getOperationName } from '@apollo/client/utilities'
 import { useMe } from '@/components/me'
 import { USER_ID } from '@/lib/constants'
-import { isAutoRetryEligiblePayIn } from './auto-retry-utils'
+import { isAutoRetryEligiblePayIn } from './use-auto-retry-pay-ins'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
 
@@ -45,16 +45,25 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
   const innerMutate = useCallback(async ({ onCompleted: innerOnCompleted, ...innerOptions } = {}) => {
     const callOptions = withPayInMutationDefaults(mutation, innerOptions, me, sendProtocolId)
 
-    const hookCachePhases = getCachePhases(hookOptions)
-    const callCachePhases = getCachePhases(callOptions)
+    const hookCachePhases = hookOptions.cachePhases || {}
+    const callCachePhases = callOptions.cachePhases || {}
     const onMutationResult = composeCallbacks(hookCachePhases.onMutationResult, callCachePhases.onMutationResult)
     const onPayError = composeCallbacks(hookCachePhases.onPayError, callCachePhases.onPayError)
     const onPaidMissingResult = composeCallbacks(hookCachePhases.onPaidMissingResult, callCachePhases.onPaidMissingResult)
     const onPaid = composeCallbacks(hookCachePhases.onPaid, callCachePhases.onPaid)
-    const onRetry = composeCallbacks(hookOptions?.onRetry, callOptions?.onRetry)
+    const onRetry = composeCallbacks(hookOptions.onRetry, callOptions.onRetry)
     const ourOnCompleted = composeCallbacks(onCompleted, innerOnCompleted)
 
-    const mergedOptions = mergeMutationOptions(hookOptions, callOptions)
+    const mergedOptions = {
+      ...hookOptions,
+      ...callOptions
+    }
+    if (hookOptions.variables || callOptions.variables) {
+      mergedOptions.variables = {
+        ...(hookOptions.variables || {}),
+        ...(callOptions.variables || {})
+      }
+    }
     const { data, ...rest } = await mutate({
       ...mergedOptions,
       update: composeCallbacks(mergedOptions.update, onMutationResult)
@@ -149,10 +158,6 @@ function mergePayInWithFallbackResult (paidPayIn, fallbackResult) {
     : paidPayIn
 }
 
-function getCachePhases (options = {}) {
-  return options?.cachePhases || {}
-}
-
 function withPayInMutationDefaults (mutation, options = {}, me, sendProtocolId) {
   const nextOptions = {
     ...options,
@@ -172,22 +177,6 @@ function withPayInMutationDefaults (mutation, options = {}, me, sendProtocolId) 
   }
 
   return nextOptions
-}
-
-function mergeMutationOptions (baseOptions = {}, overrideOptions = {}) {
-  const mergedOptions = {
-    ...baseOptions,
-    ...overrideOptions
-  }
-
-  if (baseOptions.variables || overrideOptions.variables) {
-    mergedOptions.variables = {
-      ...(baseOptions.variables || {}),
-      ...(overrideOptions.variables || {})
-    }
-  }
-
-  return mergedOptions
 }
 
 // all paid actions need these fields and they're easy to forget

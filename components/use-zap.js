@@ -4,8 +4,7 @@ import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { ZAP_DEBOUNCE_MS } from '@/lib/constants'
-import { useEventCallback } from '@/components/use-event-callback'
-import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
+import { useHasSendWallet } from '@/wallets/client/hooks'
 import { ActCanceledError, modifyActCache, updateAncestors, zapUndo, zapUndoTrigger } from './item-act'
 
 const ZAP_ME_SATS_FRAGMENT = gql`
@@ -13,8 +12,7 @@ const ZAP_ME_SATS_FRAGMENT = gql`
 `
 
 export function useZap ({ nextTip }) {
-  const sendProtocolId = usePreferredSendProtocolId()
-  const hasSendWallet = sendProtocolId !== undefined
+  const hasSendWallet = useHasSendWallet()
   const client = useApolloClient()
   const animate = useAnimation()
 
@@ -24,13 +22,15 @@ export function useZap ({ nextTip }) {
   const [undoPending, setUndoPending] = useState(0)
   const undoControllerRef = useRef(null)
   const mountedRef = useRef(true)
+  const fireZapRef = useRef()
+  const flushAllRef = useRef()
 
   // direct mutation — bypasses useAct to avoid double cache writes from getActCachePhases
   // waitFor is passed per-call in fireZap so debounce timer always uses latest send-wallet availability
   const [sendZap] = usePayInMutation(ACT_MUTATION)
 
   // fire the accumulated zap mutation for a buffer entry
-  const fireZap = useEventCallback(async (entry) => {
+  fireZapRef.current = async (entry) => {
     const { totalSats, item, me: entryMe } = entry
     try {
       const { error } = await sendZap({
@@ -101,16 +101,18 @@ export function useZap ({ nextTip }) {
         payOutBolt11Public: true
       }, entryMe, { optimistic: false })
     }
-  })
+  }
+  const fireZap = useCallback((entry) => fireZapRef.current(entry), [])
 
   // flush all pending debounced zaps (used on unmount)
-  const flushAll = useEventCallback(() => {
+  flushAllRef.current = () => {
     for (const [, entry] of bufferRef.current) {
       clearTimeout(entry.timer)
       fireZap(entry)
     }
     bufferRef.current.clear()
-  })
+  }
+  const flushAll = useCallback(() => flushAllRef.current(), [])
 
   // cleanup: flush pending zaps on unmount so we don't lose them
   useEffect(() => {

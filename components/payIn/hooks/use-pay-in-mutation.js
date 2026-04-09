@@ -1,14 +1,14 @@
 // if PENDING_HELD and not a zap, then it's pessimistic
 // if PENDING_HELD and a zap, it's optimistic unless the zapper is anon
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { useApolloClient, useMutation } from '@apollo/client'
 import usePayPayIn from '@/components/payIn/hooks/use-pay-pay-in'
 import { getOperationName } from '@apollo/client/utilities'
 import { useMe } from '@/components/me'
 import { USER_ID } from '@/lib/constants'
-import { willAutoRetryPayIn } from './use-auto-retry-pay-ins'
+import { isAutoRetryEligiblePayIn } from './auto-retry-utils'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
 
@@ -31,16 +31,20 @@ this is just like useMutation with a few changes:
 export default function usePayInMutation (mutation, { onCompleted, ...options } = {}) {
   const { me } = useMe()
   const sendProtocolId = usePreferredSendProtocolId()
-  const hookOptions = withPayInMutationDefaults(mutation, options, me, sendProtocolId)
   const [mutate, result] = useMutation(mutation)
   const client = useApolloClient()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
   const payPayIn = usePayPayIn()
   const mutationName = getOperationName(mutation)
+  const hookOptions = useMemo(
+    () => withPayInMutationDefaults(mutation, options, me, sendProtocolId),
+    [mutation, options, me, sendProtocolId]
+  )
 
   const innerMutate = useCallback(async ({ onCompleted: innerOnCompleted, ...innerOptions } = {}) => {
     const callOptions = withPayInMutationDefaults(mutation, innerOptions, me, sendProtocolId)
+
     const hookCachePhases = getCachePhases(hookOptions)
     const callCachePhases = getCachePhases(callOptions)
     const onMutationResult = composeCallbacks(hookCachePhases.onMutationResult, callCachePhases.onMutationResult)
@@ -100,18 +104,15 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
           console.error('usePayInMutation: failed to pay for optimistic mutation', mutationName, e)
           // onPayError is called after the invoice fails to pay, but only if we're not automatically retrying
           // because if we're automatically retrying, we want the optimistic cache to persist
-          if (e instanceof InvoiceCanceledError || !willAutoRetryPayIn(payIn)) {
+          if (e instanceof InvoiceCanceledError || !isAutoRetryEligiblePayIn(payIn)) {
             onPayError?.(e, client.cache, { data })
           }
           payError = e
         })
       }
     } else if (payIn.payInState === 'PAID') {
-      console.log('payInMutation: paid', payIn.payInState, payIn.payInType)
-      // fee credits/reward sats paid for it
       emitPaidSuccess({ paidPayIn: payIn, includeOnCompleted: true })
     } else {
-      console.log('payInMutation: unexpected', payIn.payInState, payIn.payInType)
       payError = new Error(`PayIn is in an unexpected state: ${payIn.payInState}`)
     }
 
@@ -123,7 +124,7 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
     }
     setInnerResult(result)
     return result
-  }, [mutate, hookOptions, payPayIn, client.cache, setInnerResult, mutation, me, onCompleted, sendProtocolId])
+  }, [mutate, hookOptions, payPayIn, client.cache, mutation, mutationName, me, sendProtocolId, onCompleted])
 
   return [innerMutate, innerResult]
 }

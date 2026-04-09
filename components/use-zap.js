@@ -4,6 +4,7 @@ import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { ZAP_DEBOUNCE_MS } from '@/lib/constants'
+import { useEventCallback } from '@/components/use-event-callback'
 import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
 import { ActCanceledError, modifyActCache, updateAncestors, zapUndo, zapUndoTrigger } from './item-act'
 
@@ -29,7 +30,7 @@ export function useZap ({ nextTip }) {
   const [sendZap] = usePayInMutation(ACT_MUTATION)
 
   // fire the accumulated zap mutation for a buffer entry
-  const fireZap = useCallback(async (entry) => {
+  const fireZap = useEventCallback(async (entry) => {
     const { totalSats, item, me: entryMe } = entry
     try {
       const { error } = await sendZap({
@@ -100,28 +101,25 @@ export function useZap ({ nextTip }) {
         payOutBolt11Public: true
       }, entryMe, { optimistic: false })
     }
-  }, [client, sendZap, hasSendWallet])
+  })
 
   // flush all pending debounced zaps (used on unmount)
-  // stored in a ref so the cleanup effect has stable deps (only runs on unmount)
-  const flushAllRef = useRef(null)
-  flushAllRef.current = () => {
+  const flushAll = useEventCallback(() => {
     for (const [, entry] of bufferRef.current) {
       clearTimeout(entry.timer)
       fireZap(entry)
     }
     bufferRef.current.clear()
-  }
+  })
 
   // cleanup: flush pending zaps on unmount so we don't lose them
-  // empty deps — only runs on mount/unmount, uses ref for latest flushAll
   useEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
-      flushAllRef.current?.()
+      flushAll()
     }
-  }, [])
+  }, [flushAll])
 
   // the per-click zap function — synchronous from the caller's perspective
   const zap = useCallback(({ item, me: meProp }) => {

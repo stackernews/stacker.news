@@ -3,19 +3,9 @@ import usePayInHelper from './use-pay-in-helper'
 import { useLazyQuery } from '@apollo/client'
 import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
-import { useCallback, useEffect } from 'react'
-import { WalletConfigurationError } from '@/wallets/client/errors'
-import { NORMAL_POLL_INTERVAL_MS, PAY_IN_AUTO_RETRY_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
-
-export function willAutoRetryPayIn (payIn) {
-  if (!payIn || !payIn.payerPrivates) return false
-  const { payInState, payInType, payInStateChangedAt, payerPrivates: { payInFailureReason, retryCount } } = payIn
-  return payInState !== 'PAID' &&
-    PAY_IN_AUTO_RETRY_TYPES.includes(payInType) &&
-    retryCount < WALLET_MAX_RETRIES &&
-    new Date(payInStateChangedAt) > new Date(Date.now() - WALLET_RETRY_BEFORE_MS) &&
-    payInFailureReason !== 'USER_CANCELLED'
-}
+import { useEffect } from 'react'
+import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
+import { retryFailedPayIn } from './auto-retry-utils'
 
 export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
@@ -24,30 +14,28 @@ export function useAutoRetryPayIns () {
   const [getFailedPayIns] = useLazyQuery(FAILED_PAY_INS, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
   const { me } = useMe()
 
-  const retry = useCallback(async (payIn) => {
-    const newPayIn = await payInHelper.retry(payIn, { sendProtocolId })
-    // if the payIn has no bolt11, there's nothing to retry
-    if (!newPayIn.payerPrivates.payInBolt11) {
-      return
-    }
-    try {
-      await waitForWalletPayment(newPayIn)
-    } catch (err) {
-      if (err instanceof WalletConfigurationError) {
-        // consume attempt by canceling invoice
-        await payInHelper.cancel(newPayIn)
-      }
-      throw err
-    }
-  }, [payInHelper, sendProtocolId, waitForWalletPayment])
-
   useEffect(() => {
     // we always retry failed invoices, even if the user has no wallets on any client
     // to make sure that failed payments will always show up in notifications eventually
 
     if (!me) return
 
+    let timeout
+    let stopped = false
+    const isStopped = () => stopped
+
+    const retry = async (payIn) => {
+      await retryFailedPayIn(payIn, {
+        sendProtocolId,
+        payInHelper,
+        waitForWalletPayment,
+        isStopped
+      })
+    }
+
     const retryPoll = async () => {
+      if (isStopped()) return
+
       let failedPayIns
       try {
         const { data, error } = await getFailedPayIns()
@@ -59,6 +47,8 @@ export function useAutoRetryPayIns () {
       }
 
       for (const payIn of failedPayIns) {
+        if (isStopped()) return
+
         try {
           await retry(payIn)
         } catch (err) {
@@ -69,7 +59,6 @@ export function useAutoRetryPayIns () {
       }
     }
 
-    let timeout, stopped
     const queuePoll = () => {
       timeout = setTimeout(async () => {
         try {
@@ -90,5 +79,5 @@ export function useAutoRetryPayIns () {
 
     queuePoll()
     return stopPolling
-  }, [me?.id, getFailedPayIns, retry])
+  }, [me?.id, sendProtocolId, getFailedPayIns, payInHelper, waitForWalletPayment])
 }

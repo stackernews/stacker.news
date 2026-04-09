@@ -40,7 +40,7 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly, se
       }
     }
 
-    sendProtocolId = await normalizeSendProtocolId(sendProtocolId, { me })
+    sendProtocolId = await resolveSendProtocolSelection(sendProtocolId, { me })
     console.group('payIn', payInType, payInArgs)
 
     const payIn = await payInModule.getInitial(models, payInArgs, { me, sendProtocolId })
@@ -368,7 +368,7 @@ export async function retry (payInId, { me, sendProtocolId }) {
   let payInFailedInitial
   let shouldConsumeRetryAttempt = false
   try {
-    sendProtocolId = await normalizeSendProtocolId(sendProtocolId, { me })
+    const sendProtocolSelection = await resolveSendProtocolSelection(sendProtocolId, { me })
     const include = {
       payInBolt11: true,
       payOutCustodialTokens: { include: { subPayOutCustodialToken: true } },
@@ -390,8 +390,9 @@ export async function retry (payInId, { me, sendProtocolId }) {
     if (isWithdrawal(payInFailedInitial)) {
       throw new Error('Withdrawal payIns cannot be retried')
     }
-    const retrySendProtocolId = sendProtocolId ??
-      await normalizeSendProtocolId(payInFailedInitial.payInBolt11?.protocolId, { me })
+    const retrySendProtocolId = sendProtocolId === undefined
+      ? sendProtocolSelection ?? await normalizeSendProtocolId(payInFailedInitial.payInBolt11?.protocolId, { me })
+      : sendProtocolSelection
     if (isPessimistic(payInFailedInitial, { me })) {
       // pessimistic payIns are fully re-executed without tracking
       return await pay(
@@ -487,4 +488,12 @@ async function normalizeSendProtocolId (sendProtocolId, { me }) {
   })
 
   return protocol?.id
+}
+
+async function resolveSendProtocolSelection (sendProtocolId, { me }) {
+  if (sendProtocolId === null) {
+    return null
+  }
+
+  return await normalizeSendProtocolId(sendProtocolId, { me })
 }

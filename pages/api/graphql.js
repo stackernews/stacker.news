@@ -62,7 +62,7 @@ const apolloServer = new ApolloServer({
 
 const boss = new PgBoss(process.env.DATABASE_URL)
 
-export default startServerAndCreateNextHandler(apolloServer, {
+const apolloHandler = startServerAndCreateNextHandler(apolloServer, {
   context: async (req, res) => {
     const apiKey = req.headers['x-api-key']
     let session
@@ -98,3 +98,22 @@ export default startServerAndCreateNextHandler(apolloServer, {
     }
   }
 })
+
+// Reject GET requests with non-standard Content-Type headers (e.g. message/*)
+// to prevent cross-site timing attacks that bypass CORS preflight checks.
+export default function protectedContentTypeHandler (req, res) {
+  // Check raw headers so duplicate Content-Type headers can't hide an invalid value.
+  const invalidGetContentType = req.method === 'GET' &&
+    req.rawHeaders.some((name, i, headers) =>
+      i % 2 === 0 &&
+      name.toLowerCase() === 'content-type' &&
+      headers[i + 1]
+        .split(',')
+        .some(value => value.split(';', 1)[0].trim().toLowerCase() !== 'application/json')
+    )
+
+  if (invalidGetContentType) {
+    return res.status(400).json({ error: 'Invalid Content-Type' })
+  }
+  return apolloHandler(req, res)
+}

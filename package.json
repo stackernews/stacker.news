@@ -88,7 +88,7 @@
     "next-plausible": "^4.0.0",
     "next-seo": "^6.6.0",
     "node-s3-url-encode": "^0.0.4",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^8.0.4",
     "nostr": "^0.2.8",
     "nostr-tools": "^2.8.0",
     "nprogress": "^0.2.0",
@@ -159,8 +159,8 @@
     "standard": "^17.1.2"
   },
   "overrides": {
-    "happy-dom": "^20.0.2",
-    "serialize-javascript": ">=7.0.3",
+    "happy-dom": "^20.8.7",
+    "serialize-javascript": "^7.0.5",
     "glob": ">=13.0.6",
     "form-data": ">=4.0.5",
     "bn.js": ">=4.12.3",

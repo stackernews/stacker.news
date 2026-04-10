@@ -64,8 +64,8 @@ const getAllowedDevOrigins = () => {
 }
 
 module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi3E-sauvdFABb.js' })({
+  allowedDevOrigins: getAllowedDevOrigins(),
   env: {
-    allowedDevOrigins: getAllowedDevOrigins(),
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
     NEXT_PUBLIC_ASSET_PREFIX: isProd ? 'https://a.stacker.news' : '',

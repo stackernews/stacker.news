@@ -46,8 +46,26 @@ try {
   commitHash = '0000'
 }
 
+const getAllowedDevOrigins = () => {
+  if (isProd) return undefined
+
+  const devOrigins = []
+  try {
+    // NEXT_PUBLIC_URL is `http://domain:3000`, we just need the domain
+    devOrigins.push(new URL(process.env.NEXT_PUBLIC_URL).hostname)
+  } catch {}
+
+  // extra origins, comma separated, can be set in the environment variable ALLOWED_DEV_ORIGINS
+  const extraOrigins = process.env.ALLOWED_DEV_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || []
+  devOrigins.push(...extraOrigins)
+
+  // if no origins are found, localhost is always allowed
+  return devOrigins
+}
+
 module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi3E-sauvdFABb.js' })({
   env: {
+    allowedDevOrigins: getAllowedDevOrigins(),
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
     NEXT_PUBLIC_ASSET_PREFIX: isProd ? 'https://a.stacker.news' : '',

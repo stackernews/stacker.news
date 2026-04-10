@@ -1,6 +1,12 @@
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { GqlAuthenticationError, GqlInputError, GqlAuthorizationError } from '@/lib/error'
-import { SN_ADMIN_IDS } from '@/lib/constants'
+import {
+  DOMAIN_VERIFICATION_HOLD_AFTER_DAYS,
+  DOMAIN_VERIFICATION_INTERVAL_SECONDS,
+  DOMAIN_VERIFICATION_RETRY_DELAY_SECONDS,
+  DOMAIN_VERIFICATION_RETRY_LIMIT,
+  SN_ADMIN_IDS
+} from '@/lib/constants'
 
 export async function cleanDomainVerificationJobs (domainId, models) {
   // delete any existing domain verification job left
@@ -21,10 +27,10 @@ async function scheduleDomainVerificationJob (domainId, models) {
   INSERT INTO pgboss.job (name, data, retrylimit, retrydelay, startafter, keepuntil, singletonkey)
   VALUES ('domainVerification',
           jsonb_build_object('domainId', ${domainId}::INTEGER),
-          3,
-          60,
-          now() + interval '30 seconds',
-          now() + interval '2 days',
+          ${DOMAIN_VERIFICATION_RETRY_LIMIT},
+          ${DOMAIN_VERIFICATION_RETRY_DELAY_SECONDS},
+          now() + ${DOMAIN_VERIFICATION_INTERVAL_SECONDS} * interval '1 second',
+          now() + ${DOMAIN_VERIFICATION_HOLD_AFTER_DAYS} * interval '1 day',
           'domainVerification:' || ${domainId}::TEXT -- domain <-> job isolation
         )`
 }

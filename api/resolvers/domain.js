@@ -45,7 +45,7 @@ export default {
         throw new GqlInputError('sub not found')
       }
 
-      if (sub.userId !== me.id) {
+      if (sub.userId !== Number(me.id)) {
         throw new GqlAuthorizationError('you do not own this sub')
       }
 
@@ -70,7 +70,7 @@ export default {
         throw new GqlInputError('sub not found')
       }
 
-      if (sub.userId !== me.id) {
+      if (sub.userId !== Number(me.id)) {
         throw new GqlAuthorizationError('you do not own this sub')
       }
 
@@ -81,7 +81,7 @@ export default {
       })
 
       if (domainName) {
-        domainName = domainName.trim()
+        domainName = domainName.trim().toLowerCase()
         await validateSchema(customDomainSchema, { domainName })
 
         // updating the domain name, recovering from HOLD is allowed
@@ -148,7 +148,7 @@ export default {
   },
   Domain: {
     records: async (domain) => {
-      if (!domain.records) return []
+      if (!domain.records?.length) return null
 
       // O(1) lookups by type, simpler checks for CNAME and ACM validation records
       return Object.fromEntries(domain.records.map(record => [record.type, record]))

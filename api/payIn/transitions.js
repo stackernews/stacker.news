@@ -39,6 +39,7 @@ function logReceiveWalletFailure (payOutBolt11, payInId, models, { level, messag
   const { protocolId, userId } = payOutBolt11
   const logger = walletLogger({ protocolId, userId, payInId, models })
   logger[level](`couldn't send payment to your wallet: ${message}`, { updateStatus })
+    .catch(err => console.error('failed to write receive wallet log:', err))
 }
 
 function formatPayInFailureMessage (payInFailureReason) {

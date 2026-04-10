@@ -84,8 +84,10 @@ export default {
         domainName = domainName.trim().toLowerCase()
         await validateSchema(customDomainSchema, { domainName })
 
+        const sameDomain = existing && existing.domainName === domainName
+
         // updating the domain name, recovering from HOLD is allowed
-        if (existing && existing.domainName === domainName && existing.status !== 'HOLD') {
+        if (sameDomain && existing.status !== 'HOLD') {
           throw new GqlInputError('domain already set')
         }
 
@@ -96,7 +98,7 @@ export default {
           status: 'PENDING'
         }
 
-        const resuming = existing?.status === 'HOLD'
+        const resuming = sameDomain && existing?.status === 'HOLD'
 
         const updatedDomain = await models.$transaction(async tx => {
           if (existing) {

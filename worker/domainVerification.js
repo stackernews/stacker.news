@@ -59,11 +59,13 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     const result = await verifyDomain(domain, models)
     console.log(`domain verification result: ${JSON.stringify(result)}`)
 
-    // update the domain with the result and register the attempt
-    await models.domain.update({
-      where: { id: domainId },
-      data: { status: result.status }
-    })
+    // update the domain status only if it has changed
+    if (domain.status !== result.status) {
+      await models.domain.update({
+        where: { id: domainId },
+        data: { status: result.status }
+      })
+    }
 
     // log the general verification attempt
     await logAttempt({ domain, models, stage: 'VERIFICATION_COMPLETE', status: result.status, message: result.message })

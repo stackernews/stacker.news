@@ -3,13 +3,20 @@ import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
 import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/hooks/global'
 import { useUpdateKeyHash } from '@/wallets/client/hooks/query'
-import { useWalletLogger } from '@/wallets/client/hooks/payment'
+import { useWalletLogger } from '@/wallets/client/hooks/logger'
 import { decrypt as _decrypt, deriveKey, encrypt as _encrypt, generateRandomPassphrase } from '@/wallets/lib/crypto'
 
 export class CryptoKeyRequiredError extends Error {
   constructor () {
     super('CryptoKey required')
     this.name = 'CryptoKeyRequiredError'
+  }
+}
+
+export class WalletLocalStateRecoveryError extends Error {
+  constructor (message = 'failed to recover local wallet state on this device') {
+    super(message)
+    this.name = 'WalletLocalStateRecoveryError'
   }
 }
 
@@ -147,6 +154,41 @@ export function useGenerateRandomKey () {
   }, [salt])
 }
 
+export async function stageVaultKeyWithRollback ({
+  readKey,
+  writeKey,
+  deleteKey,
+  key,
+  hash,
+  runServerChange
+}) {
+  const previousRecord = await readKey()
+  const nextRecord = await writeKey({ key, hash })
+
+  try {
+    await runServerChange()
+    return nextRecord
+  } catch (err) {
+    if (previousRecord) {
+      try {
+        await writeKey(previousRecord)
+      } catch (rollbackError) {
+        console.error('failed to rollback staged vault key:', rollbackError)
+        await clearStagedVaultKeyOrThrow(deleteKey, rollbackError)
+      }
+    } else {
+      try {
+        await deleteKey()
+      } catch (rollbackError) {
+        console.error('failed to clear staged vault key:', rollbackError)
+        throw new WalletLocalStateRecoveryError()
+      }
+    }
+
+    throw err
+  }
+}
+
 function isWrongVaultKey (localHash, remoteHash) {
   return Boolean(localHash && remoteHash && localHash !== remoteHash)
 }
@@ -162,6 +204,18 @@ async function writeVaultKeyRecord (write, { key, hash, updatedAt }) {
   const record = buildVaultKeyRecord({ key, hash, updatedAt })
   await write(VAULT_STORE_NAME, VAULT_KEY_ID, record)
   return record
+}
+
+async function clearStagedVaultKeyOrThrow (deleteKey, rollbackError) {
+  try {
+    await deleteKey()
+  } catch (clearError) {
+    console.error('failed to clear staged vault key after rollback failure:', clearError)
+    throw new WalletLocalStateRecoveryError()
+  }
+
+  console.error('cleared staged vault key after rollback failure:', rollbackError)
+  throw new WalletLocalStateRecoveryError()
 }
 
 function buildVaultKeyRecord ({ key, hash, updatedAt = Date.now() }) {

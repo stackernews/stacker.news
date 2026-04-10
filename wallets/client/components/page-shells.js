@@ -1,5 +1,4 @@
 import Moon from '@/svgs/moon-fill.svg'
-import { useMemo } from 'react'
 import { useMe } from '@/components/me'
 import { WalletLayout } from './layout'
 import { WalletPassphrasePrompt, WalletPassphraseSetup } from './passphrase'
@@ -10,62 +9,8 @@ import {
   useKeyError,
   useKeySyncInProgress,
   useWalletsError,
-  useWalletPageLoading
+  useWalletSendReady
 } from '../hooks/global'
-
-const WalletPageGate = {
-  KEY_STORAGE_UNAVAILABLE: 'KEY_STORAGE_UNAVAILABLE',
-  LOCKED: 'LOCKED',
-  ERROR: 'ERROR',
-  LOADING: 'LOADING',
-  SETUP_REQUIRED: 'SETUP_REQUIRED',
-  READY: 'READY'
-}
-
-function deriveVaultPageState ({
-  hasLocalKey,
-  keyError,
-  keySyncInProgress,
-  walletPageLoading,
-  walletsError,
-  needsPassphraseSetup,
-  pageError
-}) {
-  if (keyError === KEY_STORAGE_UNAVAILABLE) return WalletPageGate.KEY_STORAGE_UNAVAILABLE
-  if (keyError === WRONG_KEY) return WalletPageGate.LOCKED
-  if (pageError || walletsError) return WalletPageGate.ERROR
-  if (!hasLocalKey || keySyncInProgress || walletPageLoading) return WalletPageGate.LOADING
-  if (needsPassphraseSetup) return WalletPageGate.SETUP_REQUIRED
-  return WalletPageGate.READY
-}
-
-function useVaultController () {
-  const { me } = useMe()
-  const key = useKey()
-  const keyError = useKeyError()
-  const keySyncInProgress = useKeySyncInProgress()
-  const walletPageLoading = useWalletPageLoading()
-  const walletsError = useWalletsError()
-  const showPassphrase = !!me?.privates?.showPassphrase
-  const error = walletsError ?? null
-
-  const pageGate = useMemo(() => {
-    return deriveVaultPageState({
-      hasLocalKey: !!key,
-      keyError,
-      walletPageLoading,
-      walletsError,
-      needsPassphraseSetup: showPassphrase,
-      keySyncInProgress,
-      pageError: error
-    })
-  }, [key, keyError, walletPageLoading, walletsError, showPassphrase, keySyncInProgress, error])
-
-  return useMemo(() => ({
-    pageGate,
-    error
-  }), [pageGate, error])
-}
 
 export function WalletCenteredPromptShell ({ children }) {
   return (
@@ -101,66 +46,48 @@ export function WalletLoadingShell ({ message = 'loading wallets' }) {
   )
 }
 
-export function WalletPageGateShell ({
-  pageGate,
-  error,
-  errorTitle = 'failed to load wallets',
-  loadingMessage = 'loading wallets',
-  lockedPrompt,
-  setupPrompt,
-  children
-}) {
-  if (pageGate === WalletPageGate.KEY_STORAGE_UNAVAILABLE) {
+export function WalletRouteGateShell ({ children, errorTitle, loadingMessage }) {
+  const { me } = useMe()
+  const key = useKey()
+  const keyError = useKeyError()
+  const keySyncInProgress = useKeySyncInProgress()
+  const walletSendReady = useWalletSendReady()
+  const walletsError = useWalletsError()
+
+  if (keyError === KEY_STORAGE_UNAVAILABLE) {
     return <WalletKeyStorageUnavailableShell />
   }
 
-  if (pageGate === WalletPageGate.LOCKED) {
+  if (keyError === WRONG_KEY) {
     return (
       <WalletCenteredPromptShell>
-        {lockedPrompt}
+        <WalletPassphrasePrompt showCancel={false} />
       </WalletCenteredPromptShell>
     )
   }
 
-  if (pageGate === WalletPageGate.ERROR) {
+  if (walletsError) {
     return (
       <WalletErrorShell
-        title={errorTitle}
-        message={error?.message ?? 'unknown error'}
+        title={errorTitle ?? 'failed to load wallets'}
+        message={walletsError.message ?? 'unknown error'}
       />
     )
   }
 
-  if (pageGate === WalletPageGate.LOADING) {
+  if (!key || keySyncInProgress || !walletSendReady) {
     return <WalletLoadingShell message={loadingMessage} />
   }
 
-  if (pageGate === WalletPageGate.SETUP_REQUIRED) {
+  if (me?.privates?.showPassphrase) {
     return (
       <WalletCenteredPromptShell>
-        {setupPrompt}
+        <WalletPassphraseSetup />
       </WalletCenteredPromptShell>
     )
   }
 
   return children
-}
-
-export function WalletRouteGateShell ({ children, errorTitle, loadingMessage }) {
-  const { error, pageGate } = useVaultController()
-
-  return (
-    <WalletPageGateShell
-      pageGate={pageGate}
-      error={error}
-      errorTitle={errorTitle}
-      loadingMessage={loadingMessage}
-      lockedPrompt={<WalletPassphrasePrompt showCancel={false} />}
-      setupPrompt={<WalletPassphraseSetup />}
-    >
-      {children}
-    </WalletPageGateShell>
-  )
 }
 
 export function WalletKeyStorageUnavailableShell () {

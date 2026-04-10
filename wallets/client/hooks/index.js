@@ -1,9 +1,7 @@
 export {
   WalletsProvider,
   useWallets,
-  useWalletPageLoading,
   useWalletSendReady,
-  useWalletsSettled,
   useTemplates,
   useWalletsError,
   useWalletsDispatch,
@@ -21,6 +19,7 @@ export {
   KEY_SYNC_END
 } from './global'
 export * from './payment'
+export * from './logger'
 export * from './image'
 export * from './indicator'
 export * from './wallet'

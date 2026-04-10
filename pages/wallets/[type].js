@@ -6,6 +6,7 @@ import {
   WalletMultiStepForm
 } from '@/wallets/client/components'
 import { useTemplates, useWallets } from '@/wallets/client/hooks'
+import { unurlify } from '@/wallets/lib/util'
 import { useMemo } from 'react'
 import { useRouter } from 'next/router'
 
@@ -24,7 +25,7 @@ export default function Wallet () {
       return wallets.find(wallet => Number(wallet.id) === id) ?? null
     }
 
-    const templateName = routeType.toUpperCase().replace(/-/g, '_')
+    const templateName = unurlify(routeType)
     return templates.find(template => template.name === templateName) ?? null
   }, [routeType, wallets, templates])
 

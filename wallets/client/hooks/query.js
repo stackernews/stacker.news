@@ -49,22 +49,20 @@ import {
   useKeySyncInProgress
 } from '@/wallets/client/hooks/global'
 import { WalletSendStateNotReadyError } from '@/wallets/client/errors'
-import { useDecryption, useEncryption, useVaultLocalStore } from '@/wallets/client/hooks/crypto'
+import {
+  stageVaultKeyWithRollback,
+  useDecryption,
+  useEncryption,
+  useVaultLocalStore
+} from '@/wallets/client/hooks/crypto'
 import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
 import {
   isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
-import { useWalletLoggerFactory } from './payment'
+import { useWalletLoggerFactory } from './logger'
 
 const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
-
-class WalletLocalStateRecoveryError extends Error {
-  constructor (message = 'failed to recover local wallet state on this device') {
-    super(message)
-    this.name = 'WalletLocalStateRecoveryError'
-  }
-}
 
 function updateVaultRemoteMetadata (client, patch) {
   client.cache.updateQuery({ query: ME }, data => {
@@ -80,99 +78,6 @@ function updateVaultRemoteMetadata (client, patch) {
       }
     }
   })
-}
-
-async function clearStagedVaultKeyOrThrow (deleteKey, rollbackError) {
-  try {
-    await deleteKey()
-  } catch (clearError) {
-    console.error('failed to clear staged vault key after rollback failure:', clearError)
-    throw new WalletLocalStateRecoveryError()
-  }
-
-  console.error('cleared staged vault key after rollback failure:', rollbackError)
-  throw new WalletLocalStateRecoveryError()
-}
-
-async function stageVaultKeyWithRollback ({ readKey, writeKey, deleteKey, key, hash, runServerChange }) {
-  const previousRecord = await readKey()
-  const nextRecord = await writeKey({ key, hash })
-
-  try {
-    await runServerChange()
-    return nextRecord
-  } catch (err) {
-    if (previousRecord) {
-      try {
-        await writeKey(previousRecord)
-      } catch (rollbackError) {
-        console.error('failed to rollback staged vault key:', rollbackError)
-        await clearStagedVaultKeyOrThrow(deleteKey, rollbackError)
-      }
-    } else {
-      try {
-        await deleteKey()
-      } catch (rollbackError) {
-        console.error('failed to clear staged vault key:', rollbackError)
-        throw new WalletLocalStateRecoveryError()
-      }
-    }
-    throw err
-  }
-}
-
-export const WalletQueryPhase = {
-  ERROR: 'ERROR',
-  REFRESHING: 'REFRESHING',
-  DECRYPTING: 'DECRYPTING',
-  READY: 'READY'
-}
-
-export function deriveWalletQueryPhase ({
-  wallets,
-  error,
-  queryError,
-  refreshWindowActive
-}) {
-  const resolvedError = error ?? queryError ?? null
-
-  if (resolvedError) return WalletQueryPhase.ERROR
-  if (refreshWindowActive) return WalletQueryPhase.REFRESHING
-  if (!wallets) return WalletQueryPhase.DECRYPTING
-  return WalletQueryPhase.READY
-}
-
-export function deriveWalletQueryState ({
-  wallets,
-  error,
-  queryError,
-  serverWallets,
-  decryptionReady,
-  refreshWindowActive
-}) {
-  const resolvedError = error ?? queryError ?? null
-  const phase = deriveWalletQueryPhase({
-    wallets,
-    error,
-    queryError,
-    refreshWindowActive
-  })
-
-  return {
-    error: resolvedError,
-    phase,
-    walletPageLoading: [WalletQueryPhase.REFRESHING, WalletQueryPhase.DECRYPTING].includes(phase),
-    walletSendReady: phase === WalletQueryPhase.READY,
-    walletsSettled: phase === WalletQueryPhase.READY,
-    shouldDecryptWallets: serverWallets != null && decryptionReady && !refreshWindowActive
-  }
-}
-
-export function shouldStartRemoteWalletRefresh ({ previousKeyHashUpdatedAt, keyHashUpdatedAt }) {
-  if (!keyHashUpdatedAt || previousKeyHashUpdatedAt === keyHashUpdatedAt) return false
-
-  // undefined -> value is initial hydration, not a key change
-  return Boolean(previousKeyHashUpdatedAt)
 }
 
 export function useWalletQueryRefreshState ({
@@ -196,7 +101,9 @@ export function useWalletQueryRefreshState ({
     const previousKeyHashUpdatedAt = keyHashUpdatedAtRef.current
     keyHashUpdatedAtRef.current = keyHashUpdatedAt
 
-    if (!shouldStartRemoteWalletRefresh({ previousKeyHashUpdatedAt, keyHashUpdatedAt })) return
+    if (!keyHashUpdatedAt || previousKeyHashUpdatedAt === keyHashUpdatedAt) return
+    // undefined -> value is initial hydration, not a key change
+    if (!previousKeyHashUpdatedAt) return
 
     // Run before paint so wallet pages do not briefly render stale unlocked content.
     clearWalletData()
@@ -245,6 +152,7 @@ export function useWalletsQuery () {
   const keyHashUpdatedAt = me?.privates?.vaultKeyHashUpdatedAt ?? null
 
   const { decryptWallet, ready } = useWalletDecryption()
+  const serverWallets = query.data?.wallets ?? null
   const clearWalletData = useCallback(() => {
     setWallets(null)
     setError(null)
@@ -256,14 +164,9 @@ export function useWalletsQuery () {
     clearWalletData,
     refetch: query.refetch
   })
-  const walletQueryState = deriveWalletQueryState({
-    wallets,
-    error,
-    queryError: query.error,
-    serverWallets: query.data?.wallets ?? null,
-    decryptionReady: ready,
-    refreshWindowActive
-  })
+  const walletsError = error ?? query.error ?? null
+  const shouldDecryptWallets = serverWallets != null && ready && !refreshWindowActive
+  const walletSendReady = !walletsError && !refreshWindowActive && wallets != null
 
   useEffect(() => {
     // the query might fail because of network errors like ERR_NETWORK_CHANGED
@@ -278,12 +181,12 @@ export function useWalletsQuery () {
   }, [query.startPolling, query.stopPolling, wallets])
 
   useEffect(() => {
-    if (!walletQueryState.shouldDecryptWallets) return
+    if (!shouldDecryptWallets) return
 
     let cancelled = false
 
     Promise.all(
-      query.data?.wallets.map(w => decryptWallet(w))
+      serverWallets.map(w => decryptWallet(w))
     )
       .then(wallets => wallets.map(server2Client))
       .then(wallets => {
@@ -301,7 +204,7 @@ export function useWalletsQuery () {
     return () => {
       cancelled = true
     }
-  }, [query.data, decryptWallet, walletQueryState.shouldDecryptWallets])
+  }, [serverWallets, decryptWallet, shouldDecryptWallets])
 
   useEffect(() => {
     if (!me?.id) return
@@ -311,13 +214,10 @@ export function useWalletsQuery () {
 
   return useMemo(() => ({
     ...query,
-    walletsData: wallets ? { wallets } : null,
-    walletsError: walletQueryState.error,
-    walletQueryPhase: walletQueryState.phase,
-    walletPageLoading: walletQueryState.walletPageLoading,
-    walletSendReady: walletQueryState.walletSendReady,
-    walletsSettled: walletQueryState.walletsSettled
-  }), [query, walletQueryState, wallets])
+    walletsData: wallets == null ? null : { wallets },
+    walletsError,
+    walletSendReady
+  }), [query, wallets, walletsError, walletSendReady])
 }
 
 function server2Client (wallet) {

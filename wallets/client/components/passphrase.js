@@ -8,7 +8,6 @@ import { useToast } from '@/components/toast'
 import { useGenerateRandomKey, useKeySalt, useSetKey } from '@/wallets/client/hooks/crypto'
 import { deriveKey } from '@/wallets/lib/crypto'
 import { useSingleFlight } from '@/wallets/client/hooks/singleFlight'
-import { useWalletLogger } from '@/wallets/client/hooks/payment'
 import { useDisablePassphraseExport, useWalletEncryptionUpdate, useWalletReset } from '@/wallets/client/hooks/query'
 import styles from '@/styles/wallet.module.css'
 import RefreshIcon from '@/svgs/refresh-line.svg'
@@ -52,43 +51,6 @@ const passphraseSchema = object().shape({
   passphrase: string().required('required')
 })
 
-function useVaultActions () {
-  const setKey = useSetKey()
-  const disablePassphraseExport = useDisablePassphraseExport()
-  const generateRandomKey = useGenerateRandomKey()
-  const updateWalletEncryption = useWalletEncryptionUpdate()
-  const walletReset = useWalletReset()
-  const logger = useWalletLogger()
-
-  const unlockWithPassphrase = useCallback(async ({ key, hash }) => {
-    logger.debug('vault unlock requested')
-    await setKey({ key, hash }, { updateServer: false })
-    await disablePassphraseExport()
-    logger.debug('vault unlock completed')
-  }, [setKey, disablePassphraseExport, logger])
-
-  const savePassphraseCandidate = useCallback(async ({ key, hash }) => {
-    logger.debug('vault passphrase save requested')
-    await updateWalletEncryption({ key, hash })
-    logger.debug('vault passphrase save completed')
-  }, [updateWalletEncryption, logger])
-
-  const resetPassphrase = useCallback(async () => {
-    logger.debug('vault passphrase reset requested')
-    const { key: randomKey, hash } = await generateRandomKey()
-
-    await walletReset({ key: randomKey, newKeyHash: hash })
-
-    logger.debug('vault passphrase reset completed')
-  }, [generateRandomKey, walletReset, logger])
-
-  return {
-    unlockWithPassphrase,
-    savePassphraseCandidate,
-    resetPassphrase
-  }
-}
-
 function ResetPassphraseDialog ({ onCancel, onConfirm }) {
   return (
     <div>
@@ -113,7 +75,10 @@ export function WalletPassphrasePrompt ({
   onSuccess
 }) {
   const { me } = useMe()
-  const { resetPassphrase, unlockWithPassphrase } = useVaultActions()
+  const setKey = useSetKey()
+  const disablePassphraseExport = useDisablePassphraseExport()
+  const generateRandomKey = useGenerateRandomKey()
+  const walletReset = useWalletReset()
   const hash = me?.privates?.vaultKeyHash ?? null
   const salt = useKeySalt()
   const showModal = useShowModal()
@@ -124,9 +89,10 @@ export function WalletPassphrasePrompt ({
     if (hash !== derived.hash) {
       throw new Error('wrong passphrase')
     }
-    await unlockWithPassphrase(derived)
+    await setKey(derived, { updateServer: false })
+    await disablePassphraseExport()
     await onSuccess?.()
-  }, [hash, salt, unlockWithPassphrase, onSuccess])
+  }, [hash, salt, setKey, disablePassphraseExport, onSuccess])
 
   const showResetPassphraseModal = useCallback(() => {
     showModal(close => (
@@ -134,7 +100,8 @@ export function WalletPassphrasePrompt ({
         onCancel={close}
         onConfirm={async () => {
           try {
-            await resetPassphrase()
+            const { key, hash } = await generateRandomKey()
+            await walletReset({ key, newKeyHash: hash })
             close()
           } catch (err) {
             console.error('failed to reset passphrase:', err)
@@ -143,19 +110,8 @@ export function WalletPassphrasePrompt ({
         }}
       />
     ))
-  }, [showModal, resetPassphrase, toaster])
+  }, [showModal, generateRandomKey, walletReset, toaster])
 
-  return (
-    <WalletPassphrasePromptContent
-      onSubmit={onSubmit}
-      onReset={showResetPassphraseModal}
-      onCancel={onCancel}
-      showCancel={showCancel && !!onCancel}
-    />
-  )
-}
-
-function WalletPassphrasePromptContent ({ onSubmit, onReset, onCancel, showCancel = true }) {
   return (
     <div>
       <h4>Enter your Stacker News wallet passphrase</h4>
@@ -201,12 +157,12 @@ function WalletPassphrasePromptContent ({ onSubmit, onReset, onCancel, showCance
               <button
                 type='button'
                 className={styles.passphraseResetButton}
-                onClick={onReset}
+                onClick={showResetPassphraseModal}
               >
                 reset wallets
               </button>
               <div className='d-flex align-items-center gap-3 flex-wrap justify-content-end'>
-                {showCancel && (
+                {showCancel && !!onCancel && (
                   <Button type='button' className='text-muted nav-link fw-bold p-0' variant='link' onClick={onCancel}>cancel</Button>
                 )}
                 <SubmitButton variant='primary' submittingText='unlocking...'>unlock</SubmitButton>
@@ -219,28 +175,15 @@ function WalletPassphrasePromptContent ({ onSubmit, onReset, onCancel, showCance
   )
 }
 
-function usePassphraseSetupState () {
+export function WalletPassphraseSetup () {
   const { me } = useMe()
   const needsPassphraseSetup = !!me?.privates?.showPassphrase
   const generateRandomKey = useGenerateRandomKey()
-  const { savePassphraseCandidate } = useVaultActions()
+  const updateWalletEncryption = useWalletEncryptionUpdate()
   const toaster = useToast()
 
   const [candidate, setCandidate] = useState(null)
   const [generationError, setGenerationError] = useState(null)
-
-  const applyCandidate = useCallback((nextCandidate) => {
-    setCandidate(nextCandidate)
-    setGenerationError(null)
-  }, [])
-
-  const handleGenerationError = useCallback((err, { toastMessage } = {}) => {
-    console.error('failed to generate passphrase:', err)
-    setGenerationError(err)
-    if (toastMessage) {
-      toaster.danger(toastMessage)
-    }
-  }, [toaster])
 
   useEffect(() => {
     if (!needsPassphraseSetup) {
@@ -257,19 +200,21 @@ function usePassphraseSetupState () {
     generateRandomKey()
       .then(nextCandidate => {
         if (cancelled) return
-        applyCandidate(nextCandidate)
+        setCandidate(nextCandidate)
+        setGenerationError(null)
       })
       .catch(err => {
         if (cancelled) return
-        handleGenerationError(err)
+        console.error('failed to generate passphrase:', err)
+        setGenerationError(err)
       })
 
     return () => {
       cancelled = true
     }
-  }, [needsPassphraseSetup, candidate, generationError, generateRandomKey, applyCandidate, handleGenerationError])
+  }, [needsPassphraseSetup, candidate, generationError, generateRandomKey])
 
-  const retryGeneration = useCallback(() => {
+  const onRetry = useCallback(() => {
     setCandidate(null)
     setGenerationError(null)
   }, [])
@@ -278,7 +223,7 @@ function usePassphraseSetupState () {
     if (!candidate) return
 
     try {
-      await savePassphraseCandidate({ key: candidate.key, hash: candidate.hash })
+      await updateWalletEncryption({ key: candidate.key, hash: candidate.hash })
     } catch (err) {
       toaster.danger(err.message ? 'failed to save passphrase: ' + err.message : 'failed to save passphrase')
       throw err
@@ -287,9 +232,13 @@ function usePassphraseSetupState () {
 
   const [regeneratePassphrase, regeneratingPassphrase] = useSingleFlight(async () => {
     try {
-      applyCandidate(await generateRandomKey())
+      const nextCandidate = await generateRandomKey()
+      setCandidate(nextCandidate)
+      setGenerationError(null)
     } catch (err) {
-      handleGenerationError(err, { toastMessage: 'failed to generate a new passphrase' })
+      console.error('failed to generate passphrase:', err)
+      setGenerationError(err)
+      toaster.danger('failed to generate a new passphrase')
     }
   })
 
@@ -300,39 +249,6 @@ function usePassphraseSetupState () {
     } catch {}
   }, [savePassphrase])
 
-  return {
-    candidate,
-    generationError,
-    onRegenerate: regeneratePassphrase,
-    onRetry: retryGeneration,
-    onSaveSubmit,
-    regeneratingPassphrase,
-    savingPassphrase
-  }
-}
-
-export function WalletPassphraseSetup () {
-  const { me } = useMe()
-  const state = usePassphraseSetupState()
-
-  return (
-    <WalletPassphraseSetupContent
-      username={me?.name}
-      {...state}
-    />
-  )
-}
-
-function WalletPassphraseSetupContent ({
-  username,
-  candidate,
-  generationError,
-  onRegenerate,
-  onRetry,
-  onSaveSubmit,
-  regeneratingPassphrase,
-  savingPassphrase
-}) {
   return (
     <div className={candidate ? undefined : 'text-center'}>
       <h4>Save your Stacker News wallet passphrase</h4>
@@ -346,7 +262,7 @@ function WalletPassphraseSetupContent ({
               type='hidden'
               name='username'
               autoComplete='username'
-              value={username ?? ''}
+              value={me?.name ?? ''}
               readOnly
             />
             <div className={styles.passphraseSetup}>
@@ -387,7 +303,7 @@ function WalletPassphraseSetupContent ({
                   <button
                     type='button'
                     className={styles.passphraseRegenerateButton}
-                    onClick={onRegenerate}
+                    onClick={regeneratePassphrase}
                     disabled={savingPassphrase || regeneratingPassphrase}
                     aria-label='generate a new passphrase'
                     title='generate a new passphrase'

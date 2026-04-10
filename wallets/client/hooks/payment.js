@@ -1,7 +1,5 @@
-import { createContext, useCallback, useContext, useMemo } from 'react'
-import { useMutation } from '@apollo/client'
+import { useCallback } from 'react'
 import { sha256 } from '@noble/hashes/sha2.js'
-import { ADD_WALLET_LOG } from '@/wallets/client/fragments'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
@@ -11,79 +9,9 @@ import { timeoutSignal, withTimeout } from '@/lib/time'
 import { useMe } from '@/components/me'
 import { formatSats, msatsToSats } from '@/lib/format'
 import usePayInHelper from '@/components/payIn/hooks/use-pay-in-helper'
-import { useDiagnostics } from './diagnostics'
 import { useWalletSendReady } from './global'
+import { useWalletLoggerFactory } from './logger'
 import { useSendProtocols } from './wallet'
-import { isTemplate } from '@/wallets/lib/util'
-
-export const WalletFormLogsContext = createContext(null)
-
-export function useWalletFormLogs () {
-  return useContext(WalletFormLogsContext)
-}
-
-export function useWriteWalletLog () {
-  const formLogs = useWalletFormLogs()
-  const [addWalletLog] = useMutation(ADD_WALLET_LOG)
-
-  return useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
-    if (protocol && isTemplate(protocol)) {
-      formLogs?.addLog?.({ level, message })
-      return
-    }
-
-    return addWalletLog({
-      variables: {
-        protocolId: protocol ? Number(protocol.id) : null,
-        level,
-        message,
-        timestamp: new Date(),
-        payInId,
-        updateStatus
-      }
-    }).catch(err => {
-      console.error('error adding wallet log:', err)
-    })
-  }, [formLogs, addWalletLog])
-}
-
-export function useWalletLoggerFactory () {
-  const [diagnostics] = useDiagnostics()
-  const writeWalletLog = useWriteWalletLog()
-
-  const log = useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
-    console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
-
-    return writeWalletLog({ protocol, level, message, payInId, updateStatus })
-  }, [writeWalletLog])
-
-  return useCallback((protocol, payIn) => {
-    const payInId = payIn ? Number(payIn.id) : null
-    return {
-      ok: (message, context = {}) => {
-        log({ protocol, level: 'OK', message, payInId, updateStatus: context.updateStatus })
-      },
-      info: (message, context = {}) => {
-        log({ protocol, level: 'INFO', message, payInId, updateStatus: context.updateStatus })
-      },
-      error: (message, context = {}) => {
-        log({ protocol, level: 'ERROR', message, payInId, updateStatus: context.updateStatus })
-      },
-      warn: (message, context = {}) => {
-        log({ protocol, level: 'WARN', message, payInId, updateStatus: context.updateStatus })
-      },
-      debug: (message, context = {}) => {
-        if (!diagnostics) return
-        log({ protocol, level: 'DEBUG', message, payInId, updateStatus: context.updateStatus })
-      }
-    }
-  }, [log, diagnostics])
-}
-
-export function useWalletLogger (protocol) {
-  const loggerFactory = useWalletLoggerFactory()
-  return useMemo(() => loggerFactory(protocol), [loggerFactory, protocol])
-}
 
 export function useWalletPayment () {
   const protocols = useSendProtocols()
@@ -217,18 +145,4 @@ function useSendPayment () {
 function verifyPreimage (hash, preimage) {
   const preimageHash = Buffer.from(sha256(Buffer.from(preimage, 'hex'))).toString('hex')
   return hash === preimageHash
-}
-
-function mapLevelToConsole (level) {
-  switch (level) {
-    case 'OK':
-    case 'INFO':
-      return 'info'
-    case 'ERROR':
-      return 'error'
-    case 'WARN':
-      return 'warn'
-    default:
-      return 'log'
-  }
 }

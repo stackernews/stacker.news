@@ -9,7 +9,7 @@ import { defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { meAnonSats } from '@/lib/apollo'
-import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
+import { useHasSendWallet } from '@/wallets/client/hooks'
 import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { satsToMsats } from '@/lib/format'
@@ -56,8 +56,7 @@ const setItemMeAnonSats = ({ id, amount }) => {
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
-  const sendProtocolId = usePreferredSendProtocolId()
-  const hasReadySendWallet = sendProtocolId !== undefined
+  const hasReadySendWallet = useHasSendWallet()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -296,8 +295,7 @@ export function getActCachePhases (me) {
 
 export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const { me } = useMe()
-  const sendProtocolId = usePreferredSendProtocolId()
-  const hasSendWallet = sendProtocolId !== undefined
+  const hasSendWallet = useHasSendWallet()
   const phases = getActCachePhases(me)
   const { cachePhases: callerCachePhases = {}, ...restOptions } = options
 

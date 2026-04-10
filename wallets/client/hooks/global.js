@@ -14,7 +14,7 @@ import { isTemplate, isWallet } from '@/wallets/lib/util'
 import { useWeblnEvents } from '@/wallets/lib/protocols/webln'
 import { useWalletsQuery } from '@/wallets/client/hooks/query'
 import { readOrCreateVaultKeyRecord, useGenerateRandomKey, useSetKey, useIsWrongKey, useVaultLocalStore } from '@/wallets/client/hooks/crypto'
-import { useWalletLogger } from '@/wallets/client/hooks/payment'
+import { useWalletLogger } from '@/wallets/client/hooks/logger'
 import { useAutoRetryPayIns } from '@/components/payIn/hooks/use-auto-retry-pay-ins'
 
 const WalletDataContext = createContext(null)
@@ -26,19 +26,9 @@ export function useWallets () {
   return wallets
 }
 
-export function useWalletPageLoading () {
-  const { walletPageLoading } = useContext(WalletDataContext)
-  return walletPageLoading
-}
-
 export function useWalletSendReady () {
   const { walletSendReady } = useContext(WalletDataContext)
   return walletSendReady
-}
-
-export function useWalletsSettled () {
-  const { walletsSettled } = useContext(WalletDataContext)
-  return walletsSettled
 }
 
 export function useTemplates () {
@@ -139,13 +129,11 @@ function WalletDataProvider ({ children }) {
 
     return {
       wallets,
-      walletPageLoading: query.walletPageLoading,
       walletSendReady: query.walletSendReady,
-      walletsSettled: query.walletsSettled,
       walletsError: query.walletsError ?? null,
       templates
     }
-  }, [query.walletsData, query.walletPageLoading, query.walletSendReady, query.walletsSettled, query.walletsError])
+  }, [query.walletsData, query.walletSendReady, query.walletsError])
 
   return (
     <WalletDataContext.Provider value={value}>

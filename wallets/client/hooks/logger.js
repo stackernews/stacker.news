@@ -1,12 +1,81 @@
 import { useMutation, useLazyQuery } from '@apollo/client'
-import { WALLET_LOGS, DELETE_WALLET_LOGS } from '@/wallets/client/fragments'
-import { useCallback, useMemo, useState, useEffect } from 'react'
+import { ADD_WALLET_LOG, WALLET_LOGS, DELETE_WALLET_LOGS } from '@/wallets/client/fragments'
+import { createContext, useCallback, useContext, useMemo, useState, useEffect } from 'react'
 import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
 import { useToast } from '@/components/toast'
 import { FAST_POLL_INTERVAL_MS } from '@/lib/constants'
 import { isTemplate } from '@/wallets/lib/util'
-import { useWalletFormLogs } from './payment'
+import { useDiagnostics } from './diagnostics'
+
+export const WalletFormLogsContext = createContext(null)
+
+export function useWalletFormLogs () {
+  return useContext(WalletFormLogsContext)
+}
+
+export function useWriteWalletLog () {
+  const formLogs = useWalletFormLogs()
+  const [addWalletLog] = useMutation(ADD_WALLET_LOG)
+
+  return useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
+    if (protocol && isTemplate(protocol)) {
+      formLogs?.addLog?.({ level, message })
+      return
+    }
+
+    return addWalletLog({
+      variables: {
+        protocolId: protocol ? Number(protocol.id) : null,
+        level,
+        message,
+        timestamp: new Date(),
+        payInId,
+        updateStatus
+      }
+    }).catch(err => {
+      console.error('error adding wallet log:', err)
+    })
+  }, [formLogs, addWalletLog])
+}
+
+export function useWalletLoggerFactory () {
+  const [diagnostics] = useDiagnostics()
+  const writeWalletLog = useWriteWalletLog()
+
+  const log = useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
+    console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
+
+    return writeWalletLog({ protocol, level, message, payInId, updateStatus })
+  }, [writeWalletLog])
+
+  return useCallback((protocol, payIn) => {
+    const payInId = payIn ? Number(payIn.id) : null
+    return {
+      ok: (message, context = {}) => {
+        log({ protocol, level: 'OK', message, payInId, updateStatus: context.updateStatus })
+      },
+      info: (message, context = {}) => {
+        log({ protocol, level: 'INFO', message, payInId, updateStatus: context.updateStatus })
+      },
+      error: (message, context = {}) => {
+        log({ protocol, level: 'ERROR', message, payInId, updateStatus: context.updateStatus })
+      },
+      warn: (message, context = {}) => {
+        log({ protocol, level: 'WARN', message, payInId, updateStatus: context.updateStatus })
+      },
+      debug: (message, context = {}) => {
+        if (!diagnostics) return
+        log({ protocol, level: 'DEBUG', message, payInId, updateStatus: context.updateStatus })
+      }
+    }
+  }, [log, diagnostics])
+}
+
+export function useWalletLogger (protocol) {
+  const loggerFactory = useWalletLoggerFactory()
+  return useMemo(() => loggerFactory(protocol), [loggerFactory, protocol])
+}
 
 export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInterval = FAST_POLL_INTERVAL_MS } = {}) {
   const formLogs = useWalletFormLogs()
@@ -130,4 +199,18 @@ function DeleteWalletLogsObstacle ({ protocol, onClose, onSuccess, debug }) {
       <ObstacleButtons onClose={onClose} onConfirm={handleConfirm} confirmText='delete' />
     </div>
   )
+}
+
+function mapLevelToConsole (level) {
+  switch (level) {
+    case 'OK':
+    case 'INFO':
+      return 'info'
+    case 'ERROR':
+      return 'error'
+    case 'WARN':
+      return 'warn'
+    default:
+      return 'log'
+  }
 }

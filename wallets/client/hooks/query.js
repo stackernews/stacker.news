@@ -59,6 +59,13 @@ import { useWalletLoggerFactory } from './payment'
 
 const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
+class WalletLocalStateRecoveryError extends Error {
+  constructor (message = 'failed to recover local wallet state on this device') {
+    super(message)
+    this.name = 'WalletLocalStateRecoveryError'
+  }
+}
+
 function updateVaultRemoteMetadata (client, patch) {
   client.cache.updateQuery({ query: ME }, data => {
     if (!data?.me?.privates) return data
@@ -75,6 +82,18 @@ function updateVaultRemoteMetadata (client, patch) {
   })
 }
 
+async function clearStagedVaultKeyOrThrow (deleteKey, rollbackError) {
+  try {
+    await deleteKey()
+  } catch (clearError) {
+    console.error('failed to clear staged vault key after rollback failure:', clearError)
+    throw new WalletLocalStateRecoveryError()
+  }
+
+  console.error('cleared staged vault key after rollback failure:', rollbackError)
+  throw new WalletLocalStateRecoveryError()
+}
+
 async function stageVaultKeyWithRollback ({ readKey, writeKey, deleteKey, key, hash, runServerChange }) {
   const previousRecord = await readKey()
   const nextRecord = await writeKey({ key, hash })
@@ -88,12 +107,14 @@ async function stageVaultKeyWithRollback ({ readKey, writeKey, deleteKey, key, h
         await writeKey(previousRecord)
       } catch (rollbackError) {
         console.error('failed to rollback staged vault key:', rollbackError)
+        await clearStagedVaultKeyOrThrow(deleteKey, rollbackError)
       }
     } else {
       try {
         await deleteKey()
       } catch (rollbackError) {
         console.error('failed to clear staged vault key:', rollbackError)
+        throw new WalletLocalStateRecoveryError()
       }
     }
     throw err

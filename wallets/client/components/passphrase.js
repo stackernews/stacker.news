@@ -48,33 +48,24 @@ function Passphrase ({
   )
 }
 
-const passphraseSchema = ({ hash, salt }) => object().shape({
+const passphraseSchema = object().shape({
   passphrase: string().required('required')
-    .test(async (value, context) => {
-      const { hash: expectedHash } = await deriveKey(value, salt)
-      if (hash !== expectedHash) {
-        return context.createError({ message: 'wrong passphrase' })
-      }
-      return true
-    })
 })
 
 function useVaultActions () {
   const setKey = useSetKey()
-  const keySalt = useKeySalt()
   const disablePassphraseExport = useDisablePassphraseExport()
   const generateRandomKey = useGenerateRandomKey()
   const updateWalletEncryption = useWalletEncryptionUpdate()
   const walletReset = useWalletReset()
   const logger = useWalletLogger()
 
-  const unlockWithPassphrase = useCallback(async ({ passphrase }) => {
+  const unlockWithPassphrase = useCallback(async ({ key, hash }) => {
     logger.debug('vault unlock requested')
-    const { key, hash } = await deriveKey(passphrase, keySalt)
     await setKey({ key, hash }, { updateServer: false })
     await disablePassphraseExport()
     logger.debug('vault unlock completed')
-  }, [setKey, disablePassphraseExport, keySalt, logger])
+  }, [setKey, disablePassphraseExport, logger])
 
   const savePassphraseCandidate = useCallback(async ({ key, hash }) => {
     logger.debug('vault passphrase save requested')
@@ -129,9 +120,13 @@ export function WalletPassphrasePrompt ({
   const toaster = useToast()
 
   const onSubmit = useCallback(async ({ passphrase }) => {
-    await unlockWithPassphrase({ passphrase })
+    const derived = await deriveKey(passphrase, salt)
+    if (hash !== derived.hash) {
+      throw new Error('wrong passphrase')
+    }
+    await unlockWithPassphrase(derived)
     await onSuccess?.()
-  }, [unlockWithPassphrase, onSuccess])
+  }, [hash, salt, unlockWithPassphrase, onSuccess])
 
   const showResetPassphraseModal = useCallback(() => {
     showModal(close => (
@@ -143,7 +138,7 @@ export function WalletPassphrasePrompt ({
             close()
           } catch (err) {
             console.error('failed to reset passphrase:', err)
-            toaster.danger('failed to reset passphrase')
+            toaster.danger(err.message || 'failed to reset passphrase')
           }
         }}
       />
@@ -152,8 +147,6 @@ export function WalletPassphrasePrompt ({
 
   return (
     <WalletPassphrasePromptContent
-      hash={hash}
-      salt={salt}
       onSubmit={onSubmit}
       onReset={showResetPassphraseModal}
       onCancel={onCancel}
@@ -162,14 +155,7 @@ export function WalletPassphrasePrompt ({
   )
 }
 
-function WalletPassphrasePromptContent ({
-  hash,
-  salt,
-  onSubmit,
-  onReset,
-  onCancel,
-  showCancel = true
-}) {
+function WalletPassphrasePromptContent ({ onSubmit, onReset, onCancel, showCancel = true }) {
   return (
     <div>
       <h4>Enter your Stacker News wallet passphrase</h4>
@@ -178,7 +164,7 @@ function WalletPassphrasePromptContent ({
       </p>
       <Form
         className='mt-4'
-        schema={passphraseSchema({ hash, salt })}
+        schema={passphraseSchema}
         initial={{ passphrase: '' }}
         onSubmit={onSubmit}
       >
@@ -294,7 +280,7 @@ function usePassphraseSetupState () {
     try {
       await savePassphraseCandidate({ key: candidate.key, hash: candidate.hash })
     } catch (err) {
-      toaster.danger('failed to save passphrase: ' + err.message)
+      toaster.danger(err.message ? 'failed to save passphrase: ' + err.message : 'failed to save passphrase')
       throw err
     }
   })

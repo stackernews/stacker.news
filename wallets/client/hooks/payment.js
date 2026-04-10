@@ -5,13 +5,14 @@ import { ADD_WALLET_LOG } from '@/wallets/client/fragments'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
-  WalletPaymentError, WalletError, WalletReceiverError
+  WalletPaymentError, WalletError, WalletReceiverError, WalletSendStateNotReadyError
 } from '@/wallets/client/errors'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { useMe } from '@/components/me'
 import { formatSats, msatsToSats } from '@/lib/format'
 import usePayInHelper from '@/components/payIn/hooks/use-pay-in-helper'
 import { useDiagnostics } from './diagnostics'
+import { useWalletSendReady } from './global'
 import { useSendProtocols } from './wallet'
 import { isTemplate } from '@/wallets/lib/util'
 
@@ -25,7 +26,7 @@ export function useWriteWalletLog () {
   const formLogs = useWalletFormLogs()
   const [addWalletLog] = useMutation(ADD_WALLET_LOG)
 
-  return useCallback(({ protocol, level, message, payInId }) => {
+  return useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
     if (protocol && isTemplate(protocol)) {
       formLogs?.addLog?.({ level, message })
       return
@@ -37,7 +38,8 @@ export function useWriteWalletLog () {
         level,
         message,
         timestamp: new Date(),
-        payInId
+        payInId,
+        updateStatus
       }
     }).catch(err => {
       console.error('error adding wallet log:', err)
@@ -49,30 +51,30 @@ export function useWalletLoggerFactory () {
   const [diagnostics] = useDiagnostics()
   const writeWalletLog = useWriteWalletLog()
 
-  const log = useCallback(({ protocol, level, message, payInId }) => {
+  const log = useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
     console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
 
-    return writeWalletLog({ protocol, level, message, payInId })
+    return writeWalletLog({ protocol, level, message, payInId, updateStatus })
   }, [writeWalletLog])
 
   return useCallback((protocol, payIn) => {
     const payInId = payIn ? Number(payIn.id) : null
     return {
-      ok: (message) => {
-        log({ protocol, level: 'OK', message, payInId })
+      ok: (message, context = {}) => {
+        log({ protocol, level: 'OK', message, payInId, updateStatus: context.updateStatus })
       },
-      info: (message) => {
-        log({ protocol, level: 'INFO', message, payInId })
+      info: (message, context = {}) => {
+        log({ protocol, level: 'INFO', message, payInId, updateStatus: context.updateStatus })
       },
-      error: (message) => {
-        log({ protocol, level: 'ERROR', message, payInId })
+      error: (message, context = {}) => {
+        log({ protocol, level: 'ERROR', message, payInId, updateStatus: context.updateStatus })
       },
-      warn: (message) => {
-        log({ protocol, level: 'WARN', message, payInId })
+      warn: (message, context = {}) => {
+        log({ protocol, level: 'WARN', message, payInId, updateStatus: context.updateStatus })
       },
-      debug: (message) => {
+      debug: (message, context = {}) => {
         if (!diagnostics) return
-        log({ protocol, level: 'DEBUG', message, payInId })
+        log({ protocol, level: 'DEBUG', message, payInId, updateStatus: context.updateStatus })
       }
     }
   }, [log, diagnostics])
@@ -85,6 +87,7 @@ export function useWalletLogger (protocol) {
 
 export function useWalletPayment () {
   const protocols = useSendProtocols()
+  const walletSendReady = useWalletSendReady()
   const sendPayment = useSendPayment()
   const payInHelper = usePayInHelper()
   const { me } = useMe()
@@ -98,6 +101,10 @@ export function useWalletPayment () {
     // anon user cannot pay with wallets
     if (!me) {
       throw new AnonWalletError()
+    }
+
+    if (!walletSendReady) {
+      throw new WalletSendStateNotReadyError()
     }
 
     // throw a special error that caller can handle separately if no payment was attempted
@@ -176,7 +183,7 @@ export function useWalletPayment () {
 
     // if we reach this line, no wallet payment succeeded
     throw new WalletPaymentAggregateError([aggregateError], latestPayIn)
-  }, [protocols, me, payInHelper, sendPayment, loggerFactory])
+  }, [protocols, walletSendReady, me, payInHelper, sendPayment, loggerFactory])
 }
 
 function useSendPayment () {

@@ -47,7 +47,6 @@ export const resolvers = {
   WalletTemplate,
   Query: {
     wallets,
-    wallet,
     walletSettings
   },
   Mutation: {
@@ -137,24 +136,6 @@ async function wallets (parent, args, { me, models }) {
   return [...wallets, ...walletTemplates]
 }
 
-async function wallet (parent, { id, name }, { me, models }) {
-  if (!me) {
-    throw new GqlAuthenticationError()
-  }
-
-  if (id) {
-    const wallet = await models.wallet.findUnique({
-      where: { id: Number(id), userId: me.id },
-      include: walletInclude
-    })
-    if (!wallet) throw new GqlInputError('wallet not found')
-
-    return mapWalletResolveTypes(wallet)
-  }
-
-  const template = await models.walletTemplate.findUnique({ where: { name } })
-  return { ...template, __resolveType: 'WalletTemplate' }
-}
 function walletStatus (wallet, type) {
   const protocols = wallet.protocols.filter(protocol => type === 'send' ? protocol.send : !protocol.send)
 

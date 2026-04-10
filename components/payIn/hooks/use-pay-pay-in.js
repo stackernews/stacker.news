@@ -2,7 +2,7 @@ import { useWalletPayment } from '@/wallets/client/hooks'
 import usePayInHelper from './use-pay-in-helper'
 import useQrPayIn from './use-qr-pay-in'
 import { useCallback } from 'react'
-import { WalletError, InvoiceCanceledError, InvoiceExpiredError, WalletPaymentError } from '@/wallets/client/errors'
+import { WalletError, InvoiceCanceledError, InvoiceExpiredError, WalletPaymentError, WalletSendStateNotReadyError } from '@/wallets/client/errors'
 
 export default function usePayPayIn () {
   const walletPayment = useWalletPayment()
@@ -15,6 +15,9 @@ export default function usePayPayIn () {
     try {
       return await walletPayment(payIn, { waitFor, protocolLimit })
     } catch (err) {
+      if (err instanceof WalletSendStateNotReadyError) {
+        throw err
+      }
       walletError = null
       if (err instanceof WalletError) {
         walletError = err

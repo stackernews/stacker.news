@@ -5,7 +5,7 @@ import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
 import { useEffect } from 'react'
 import { NORMAL_POLL_INTERVAL_MS, PAY_IN_AUTO_RETRY_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
-import { WalletConfigurationError } from '@/wallets/client/errors'
+import { WalletConfigurationError, WalletSendStateNotReadyError } from '@/wallets/client/errors'
 
 export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
@@ -128,9 +128,14 @@ async function retryFailedPayIn (payIn, {
       await payInHelper.cancel(newPayIn).catch(() => {})
       return
     }
+    if (err instanceof WalletSendStateNotReadyError) {
+      // Release the successor attempt so it can be retried once wallets settle again.
+      await payInHelper.cancel(newPayIn).catch(() => {})
+      return
+    }
     if (err instanceof WalletConfigurationError) {
       // consume attempt by canceling invoice
-      await payInHelper.cancel(newPayIn)
+      await payInHelper.cancel(newPayIn).catch(() => {})
     }
     throw err
   }

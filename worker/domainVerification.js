@@ -8,18 +8,23 @@ import {
   deleteDomainCertificate,
   detachDomainCertificate
 } from '@/lib/domain-verification'
+import {
+  DOMAIN_HOLD_RETENTION_DAYS,
+  DOMAIN_VERIFICATION_HOLD_AFTER_DAYS,
+  DOMAIN_VERIFICATION_INTERVAL_SECONDS,
+  DOMAIN_VERIFICATION_RETRY_DELAY_SECONDS,
+  DOMAIN_VERIFICATION_RETRY_LIMIT,
+  DOMAIN_VERIFICATION_SLOW_AFTER_HOURS,
+  DOMAIN_VERIFICATION_SLOW_INTERVAL_SECONDS
+} from '@/lib/constants'
 import { cleanDomainVerificationJobs } from '@/api/resolvers/domain'
 import { datePivot } from '@/lib/time'
 
 const getVerificationInterval = (updatedAt) => {
-  const pivot = datePivot(new Date(), { hours: -1 }) // 1 hour ago
-  // after 1 hour, the verification interval is 5 minutes
-  if (pivot > updatedAt) return 60 * 5
-  // before 1 hour, the verification interval is 30 seconds
-  return 30
+  const pivot = datePivot(new Date(), { hours: -DOMAIN_VERIFICATION_SLOW_AFTER_HOURS })
+  if (pivot > updatedAt) return DOMAIN_VERIFICATION_SLOW_INTERVAL_SECONDS
+  return DOMAIN_VERIFICATION_INTERVAL_SECONDS
 }
-
-const VERIFICATION_HOLD_THRESHOLD = -2 // 2 days ago
 
 export async function domainVerification ({ id: jobId, data: { domainId }, boss }) {
   // establish connection to database
@@ -54,11 +59,13 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     const result = await verifyDomain(domain, models)
     console.log(`domain verification result: ${JSON.stringify(result)}`)
 
-    // update the domain with the result and register the attempt
-    await models.domain.update({
-      where: { id: domainId },
-      data: { status: result.status }
-    })
+    // update the domain status only if it has changed
+    if (domain.status !== result.status) {
+      await models.domain.update({
+        where: { id: domainId },
+        data: { status: result.status }
+      })
+    }
 
     // log the general verification attempt
     await logAttempt({ domain, models, stage: 'VERIFICATION_COMPLETE', status: result.status, message: result.message })
@@ -69,9 +76,9 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
       // we still need to verify the domain, schedule the job to run again
       const newJobId = await boss.sendDebounced('domainVerification', { domainId }, {
         startAfter: getVerificationInterval(domain.updatedAt),
-        retryLimit: 3,
-        retryDelay: 60 // on critical errors, retry every minute
-      }, 30, `domainVerification:${domainId}`)
+        retryLimit: DOMAIN_VERIFICATION_RETRY_LIMIT,
+        retryDelay: DOMAIN_VERIFICATION_RETRY_DELAY_SECONDS
+      }, DOMAIN_VERIFICATION_INTERVAL_SECONDS, `domainVerification:${domainId}`)
       console.log(`domain ${domain.domainName} is still pending verification, created job with ID ${newJobId}`)
     }
   } catch (error) {
@@ -98,10 +105,10 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
 }
 
 async function verifyDomain (domain, models) {
-  // if we're still here and it has been 48 hours, put the domain on HOLD, stopping the verification process
+  // put the domain on HOLD if it has been on PENDING for too long
   // the DB trigger will delete the certificate (if any), which cascades into the ACM cleanup trigger
-  if (datePivot(new Date(), { days: VERIFICATION_HOLD_THRESHOLD }) > domain.updatedAt) {
-    return { status: 'HOLD', message: `Domain ${domain.domainName} has been put on HOLD because we couldn't verify it in 48 hours` }
+  if (datePivot(new Date(), { days: -DOMAIN_VERIFICATION_HOLD_AFTER_DAYS }) > domain.updatedAt) {
+    return { status: 'HOLD', message: `Domain ${domain.domainName} has been put on HOLD because we couldn't verify it for the last ${DOMAIN_VERIFICATION_HOLD_AFTER_DAYS} days` }
   }
 
   const status = 'PENDING'
@@ -303,16 +310,19 @@ async function logAttempt ({ domain, models, record, stage, status, message }) {
   })
 }
 
-// clear domains that have been on HOLD for 30 days or more
+// clear domains that have been on HOLD past the retention window
 export async function clearLongHeldDomains () {
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })
   try {
     const deleted = await models.domain.deleteMany({
-      where: { status: 'HOLD', updatedAt: { lt: datePivot(new Date(), { days: -30 }) } } // 30 days ago
+      where: {
+        status: 'HOLD',
+        updatedAt: { lt: datePivot(new Date(), { days: -DOMAIN_HOLD_RETENTION_DAYS }) }
+      }
     })
 
     if (deleted.count > 0) {
-      console.log(`cleared ${deleted.count} custom domains that have been on HOLD for 30 days or more`)
+      console.log(`cleared ${deleted.count} custom domains that have been on HOLD for ${DOMAIN_HOLD_RETENTION_DAYS} days or more`)
     }
   } catch (error) {
     console.error(`couldn't clear old domains that have been on HOLD: ${error.message}`)

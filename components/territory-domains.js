@@ -3,12 +3,14 @@ import { Form, Input, SubmitButton, CopyButton } from './form'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { customDomainSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
-import { NORMAL_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
+import { SSR } from '@/lib/constants'
 import { GET_DOMAIN, SET_DOMAIN } from '@/fragments/domains'
 import { useEffect, createContext, useContext, useState } from 'react'
 import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
 import styles from './item.module.css'
+
+const DOMAIN_POLL_INTERVAL_MS = 10_000
 
 // Domain context for custom domains
 const DomainContext = createContext({
@@ -172,7 +174,7 @@ export default function CustomDomainForm ({ sub }) {
     if (data?.domain?.status !== 'PENDING') {
       stopPolling()
     } else {
-      startPolling(NORMAL_POLL_INTERVAL_MS)
+      startPolling(DOMAIN_POLL_INTERVAL_MS)
     }
   }, [data?.domain?.status])
 

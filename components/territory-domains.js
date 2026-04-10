@@ -127,6 +127,11 @@ const DomainGuidelines = ({ domain }) => {
     )
   }
 
+  /**
+   * CNAME pending -> show only Step 1
+   * CNAME verified but no SSL -> show placeholder
+   * CNAME verified and SSL is pending -> show Step 2
+   */
   return (
     <div className='d-flex'>
       {records?.CNAME?.status === 'PENDING' && (
@@ -140,7 +145,7 @@ const DomainGuidelines = ({ domain }) => {
       {records?.CNAME?.status === 'VERIFIED' && !records?.SSL && (
         <p>CNAME verified. Requesting SSL certificate...</p>
       )}
-      {records?.SSL?.status === 'PENDING' && (
+      {records?.CNAME?.status === 'VERIFIED' && records?.SSL?.status === 'PENDING' && (
         <div className=''>
           <h5>Step 2: Prepare your domain for SSL</h5>
           <p>We've issued an SSL certificate for your domain. To validate it, add the following CNAME record:</p>

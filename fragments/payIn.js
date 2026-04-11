@@ -148,7 +148,6 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     }
     payOutBolt11Public {
       msats
-      payOutType
     }
     payerPrivates {
       userId
@@ -178,13 +177,10 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     }
     payeePrivates {
       payOutBolt11 {
-        id
         msats
-        userId
         bolt11
         preimage
         status
-        payOutType
       }
     }
     payOutCustodialTokens {
@@ -195,9 +191,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
         mtokensAfter
       }
       sometimesPrivates {
-        userId
         user {
-          id
           name
         }
       }
@@ -224,7 +218,8 @@ export const SATISTICS = gql`
   }
 `
 
-export const GET_PAY_IN_FULL = gql`
+// Used by SSR so the transaction page has viewer-scoped wallet info on first render.
+export const GET_PAY_IN_FULL_WITH_WALLET_INFO = gql`
   ${PAY_IN_STATISTICS_FIELDS}
   ${PAY_IN_WALLET_INFO_FIELDS}
   query payIn($id: Int!) {
@@ -237,7 +232,8 @@ export const GET_PAY_IN_FULL = gql`
   }
 `
 
-export const GET_PAY_IN_FULL_NO_WALLET_INFO = gql`
+// Used for polling so we do not re-resolve walletInfo on every refresh.
+export const GET_PAY_IN_FULL_WITHOUT_WALLET_INFO = gql`
   ${PAY_IN_STATISTICS_FIELDS}
   query payIn($id: Int!) {
     payIn(id: $id) {

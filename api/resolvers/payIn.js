@@ -212,7 +212,7 @@ export default {
       if (!payIn.payOutBolt11) {
         return null
       }
-      return { msats: payIn.payOutBolt11?.msats, payOutType: payIn.payOutBolt11?.payOutType }
+      return { msats: payIn.payOutBolt11?.msats }
     },
     payeePrivates: (payIn, args, { models, me }) => {
       // if I'm logged in, and the payOutBolt11 is mine, let them see it
@@ -354,7 +354,7 @@ export default {
       return payOutCustodialToken
     },
     sometimesPrivates: (payOutCustodialToken, args, { models, me }) => {
-      if (!isMine(payOutCustodialToken, { me }) && ['INVITE_GIFT', 'REWARD'].includes(payOutCustodialToken.payOutType)) {
+      if (!isMine(payOutCustodialToken, { me }) && payOutCustodialToken.payOutType !== 'ZAP') {
         return null
       }
       return payOutCustodialToken

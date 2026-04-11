@@ -285,17 +285,24 @@ async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me,
   })
 
   return {
-    entries: logs.map(log => ({
-      ...log,
-      ...(log.protocol
-        ? {
-            wallet: {
-              ...log.protocol.wallet,
-              name: log.protocol.wallet.template.name
+    entries: logs.map(log => {
+      const protocol = log.protocol && Number(log.protocol.wallet.userId) === Number(me.id)
+        ? log.protocol
+        : null
+
+      return {
+        ...log,
+        protocol,
+        ...(protocol
+          ? {
+              wallet: {
+                ...protocol.wallet,
+                name: protocol.wallet.template.name
+              }
             }
-          }
-        : {})
-    })),
+          : {})
+      }
+    }),
     cursor: logs.length === LIMIT ? nextCursorEncoded(decodedCursor, LIMIT) : null
   }
 }
@@ -303,8 +310,59 @@ async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me,
 async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId, updateStatus }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
+  if (protocolId != null) {
+    const protocol = await models.walletProtocol.findFirst({
+      where: {
+        id: Number(protocolId),
+        wallet: {
+          userId: me.id
+        }
+      },
+      select: {
+        id: true
+      }
+    })
+
+    if (!protocol) {
+      throw new GqlInputError('wallet protocol not found')
+    }
+  }
+  if (payInId != null) {
+    const payIn = await models.payIn.findFirst({
+      where: {
+        id: Number(payInId),
+        userId: me.id
+      },
+      select: {
+        id: true
+      }
+    })
+
+    if (!payIn) {
+      throw new GqlInputError('payIn not found')
+    }
+  }
+
   const logger = walletLogger({ models, protocolId, userId: me.id, payInId })
-  await logger[level.toLowerCase()](message, { createdAt: timestamp, updateStatus })
+  switch (level) {
+    case 'OK':
+      await logger.ok(message, { createdAt: timestamp, updateStatus })
+      break
+    case 'INFO':
+      await logger.info(message, { createdAt: timestamp, updateStatus })
+      break
+    case 'WARNING':
+      await logger.warn(message, { createdAt: timestamp, updateStatus })
+      break
+    case 'ERROR':
+      await logger.error(message, { createdAt: timestamp, updateStatus })
+      break
+    case 'DEBUG':
+      await logger.debug(message, { createdAt: timestamp, updateStatus })
+      break
+    default:
+      throw new GqlInputError('invalid log level')
+  }
 
   return true
 }

@@ -41,10 +41,7 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly, se
       }
     }
 
-    sendProtocolId = await resolveSendProtocolSelection(sendProtocolId, {
-      me,
-      requireExplicit: sendProtocolId !== undefined && sendProtocolId !== null
-    })
+    sendProtocolId = await resolveRequestedSendProtocolId(sendProtocolId, { me })
     console.group('payIn', payInType, payInArgs)
 
     const payIn = await payInModule.getInitial(models, payInArgs, { me, sendProtocolId })
@@ -372,10 +369,7 @@ export async function retry (payInId, { me, sendProtocolId }) {
   let payInFailedInitial
   let shouldConsumeRetryAttempt = false
   try {
-    const sendProtocolSelection = await resolveSendProtocolSelection(sendProtocolId, {
-      me,
-      requireExplicit: sendProtocolId !== undefined && sendProtocolId !== null
-    })
+    const sendProtocolSelection = await resolveRequestedSendProtocolId(sendProtocolId, { me })
     const include = {
       payInBolt11: true,
       payOutCustodialTokens: { include: { subPayOutCustodialToken: true } },
@@ -397,9 +391,7 @@ export async function retry (payInId, { me, sendProtocolId }) {
     if (isWithdrawal(payInFailedInitial)) {
       throw new Error('Withdrawal payIns cannot be retried')
     }
-    const retrySendProtocolId = sendProtocolId === undefined
-      ? sendProtocolSelection ?? await normalizeSendProtocolId(payInFailedInitial.payInBolt11?.protocolId, { me })
-      : sendProtocolSelection
+    const retrySendProtocolId = await resolveRetrySendProtocolId(sendProtocolId, sendProtocolSelection, payInFailedInitial, { me })
     if (isPessimistic(payInFailedInitial, { me })) {
       // pessimistic payIns are fully re-executed without tracking
       return await pay(
@@ -495,6 +487,25 @@ async function normalizeSendProtocolId (sendProtocolId, { me }) {
   })
 
   return protocol?.id
+}
+
+function isExplicitSendProtocolSelection (sendProtocolId) {
+  return sendProtocolId !== undefined && sendProtocolId !== null
+}
+
+async function resolveRequestedSendProtocolId (sendProtocolId, { me }) {
+  return await resolveSendProtocolSelection(sendProtocolId, {
+    me,
+    requireExplicit: isExplicitSendProtocolSelection(sendProtocolId)
+  })
+}
+
+async function resolveRetrySendProtocolId (sendProtocolId, sendProtocolSelection, payIn, { me }) {
+  if (sendProtocolId !== undefined) {
+    return sendProtocolSelection
+  }
+
+  return sendProtocolSelection ?? await normalizeSendProtocolId(payIn.payInBolt11?.protocolId, { me })
 }
 
 async function resolveSendProtocolSelection (sendProtocolId, { me, requireExplicit = false } = {}) {

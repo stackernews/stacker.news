@@ -55,7 +55,7 @@ export function useWalletPayment () {
         if (!(paymentError instanceof WalletError)) {
           // payment failed for some reason unrelated to wallets (ie invoice expired or was canceled).
           // bail out of attempting wallets.
-          logger.error(message, { updateStatus: true })
+          logger.error(message)
           throw paymentError
         }
 

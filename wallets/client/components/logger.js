@@ -48,7 +48,6 @@ export function WalletLogs ({ protocol, payInId, className, debug, poll = true, 
             level={log.level}
             message={log.message}
             context={log.context}
-            payIn={log.payIn}
             ts={log.createdAt}
           />
         ))}
@@ -130,6 +129,7 @@ function Level ({ level }) {
       className = 'text-success'; break
     case 'error':
       className = 'text-danger'; break
+    case 'warn':
     case 'warning':
       level = 'warn'
       className = 'text-warning'; break

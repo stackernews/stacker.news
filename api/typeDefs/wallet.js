@@ -167,7 +167,7 @@ const typeDefs = gql`
     setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
 
     # logs
-    addWalletLog(protocolId: Int, level: String!, message: String!, timestamp: Date!, payInId: Int, updateStatus: Boolean): Boolean
+    addWalletLog(protocolId: Int, level: WalletLogLevel!, message: String!, timestamp: Date!, payInId: Int, updateStatus: Boolean): Boolean
     deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
   }
 
@@ -178,6 +178,14 @@ const typeDefs = gql`
     WARNING
     ERROR
     DISABLED
+  }
+
+  enum WalletLogLevel {
+    OK
+    INFO
+    WARNING
+    ERROR
+    DEBUG
   }
 
   type Wallet {
@@ -372,9 +380,8 @@ const typeDefs = gql`
     createdAt: Date!
     wallet: Wallet
     protocol: WalletProtocol
-    level: String!
+    level: WalletLogLevel!
     message: String!
-    payIn: PayIn
     context: JSONObject
   }
 

@@ -176,7 +176,6 @@ type PayIn {
 
 type PayOutBolt11Public {
   msats: BigInt!
-  payOutType: PayOutType!
 }
 
 type PayInBolt11Public {

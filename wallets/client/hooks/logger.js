@@ -69,7 +69,7 @@ export function useWalletLoggerFactory () {
         log({ protocol, level: 'ERROR', message, payInId, updateStatus: context.updateStatus })
       },
       warn: (message, context = {}) => {
-        log({ protocol, level: 'WARN', message, payInId, updateStatus: context.updateStatus })
+        log({ protocol, level: 'WARNING', message, payInId, updateStatus: context.updateStatus })
       },
       debug: (message, context = {}) => {
         if (!diagnostics) return
@@ -102,53 +102,49 @@ export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInte
     fetchPolicy: 'network-only'
   })
 
-  useEffect(() => {
-    setCursor(null)
-    setLogs([])
-  }, [logFilters])
+  const loadLogs = useCallback(async ({ cursor, mode } = {}) => {
+    const { data, error } = await fetchLogs({
+      variables: cursor ? { ...logFilters, cursor } : logFilters
+    })
+    if (error) {
+      console.error('failed to fetch wallet logs:', error.message)
+      return
+    }
+
+    const { entries, cursor: nextCursor } = data.walletLogs
+    if (mode === 'append') {
+      setLogs(logs => [...logs, ...entries.filter(log => !logs.some(existing => existing.id === log.id))])
+      setCursor(nextCursor)
+      return
+    }
+    if (mode === 'prepend') {
+      setLogs(logs => [...entries.filter(log => !logs.some(existing => existing.id === log.id)), ...logs])
+      return
+    }
+
+    setLogs(entries)
+    setCursor(nextCursor)
+  }, [fetchLogs, logFilters])
 
   useEffect(() => {
     if (noFetch) return
 
-    let active = true
-    const syncLogs = async () => {
-      const { data, error } = await fetchLogs({ variables: logFilters })
-      if (!active) return
-      if (error) {
-        console.error('failed to fetch wallet logs:', error.message)
-        return
-      }
-      const { entries, cursor } = data.walletLogs
-      setLogs(entries)
-      setCursor(cursor)
-    }
+    setCursor(null)
+    setLogs([])
+    loadLogs()
 
-    syncLogs()
-    return () => { active = false }
-  }, [fetchLogs, logFilters, noFetch])
+    if (!poll) return
 
-  useEffect(() => {
-    if (noFetch || !poll) return
-
-    const interval = setInterval(async () => {
-      const { data, error } = await fetchLogs({ variables: logFilters })
-      if (error) {
-        console.error('failed to fetch wallet logs:', error.message)
-        return
-      }
-      const { entries: updatedLogs } = data.walletLogs
-      setLogs(logs => [...updatedLogs.filter(log => !logs.some(l => l.id === log.id)), ...logs])
+    const interval = setInterval(() => {
+      loadLogs({ mode: 'prepend' })
     }, pollInterval)
 
     return () => clearInterval(interval)
-  }, [fetchLogs, logFilters, noFetch, poll, pollInterval])
+  }, [loadLogs, noFetch, poll, pollInterval])
 
   const loadMore = useCallback(async () => {
-    const { data } = await fetchLogs({ variables: { ...logFilters, cursor } })
-    const { entries: cursorLogs, cursor: newCursor } = data.walletLogs
-    setLogs(logs => [...logs, ...cursorLogs.filter(log => !logs.some(l => l.id === log.id))])
-    setCursor(newCursor)
-  }, [fetchLogs, cursor, logFilters])
+    await loadLogs({ cursor, mode: 'append' })
+  }, [loadLogs, cursor])
 
   const clearLogs = useCallback(() => {
     setLogs([])
@@ -176,6 +172,7 @@ function mapLevelToConsole (level) {
     case 'ERROR':
       return 'error'
     case 'WARN':
+    case 'WARNING':
       return 'warn'
     default:
       return 'log'

@@ -12,19 +12,23 @@ export function walletLogger ({
     // if no timestamp is given, set createdAt to time when logger was called to keep logs in order
     // since logs are created asynchronously and thus might get inserted out of order
     // however, millisecond precision is not always enough ...
-    const createdAt = context?.createdAt ?? new Date()
-    delete context?.createdAt
-
-    const updateStatus = protocolId && ['OK', 'ERROR', 'WARNING'].includes(level) && (context.bolt11 || context?.updateStatus)
-    delete context?.updateStatus
+    const {
+      createdAt = new Date(),
+      updateStatus: requestedStatusUpdate,
+      ...baseContext
+    } = context
+    const updateStatus = protocolId &&
+      ['OK', 'ERROR', 'WARNING'].includes(level) &&
+      (baseContext.bolt11 || requestedStatusUpdate)
 
     try {
-      if (context.bolt11) {
+      let logContext = baseContext
+      if (baseContext.bolt11) {
         // automatically populate context from bolt11 to avoid duplicating this code
         // (this is needed because in some cases we want to log before we have an invoice or withdrawal id)
-        context = {
-          ...context,
-          ...await logContextFromBolt11(context.bolt11)
+        logContext = {
+          ...baseContext,
+          ...await logContextFromBolt11(baseContext.bolt11)
         }
       }
 
@@ -35,7 +39,7 @@ export function walletLogger ({
             protocolId,
             level,
             message,
-            context,
+            context: logContext,
             payInId,
             createdAt
           }

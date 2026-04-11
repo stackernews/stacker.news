@@ -629,11 +629,14 @@ export async function payInCancel ({ data, models, lnd, boss, ...args }) {
   if (transitionedPayIn) {
     if (transitionedPayIn.payOutBolt11) {
       const { protocolId, userId, bolt11 } = transitionedPayIn.payOutBolt11
-      const logger = walletLogger({ protocolId, userId, payInId, models })
       try {
         const decoded = parsePaymentRequest({ request: bolt11 })
-        logger.info(`invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`)
-          .catch(err => console.error('failed to write canceled payIn wallet log:', err))
+        logPayInWalletStatus(transitionedPayIn, payInId, models, {
+          level: 'info',
+          message: `invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`,
+          protocolId,
+          userId
+        })
       } catch (err) {
         console.error('failed to decode bolt11 for canceled payIn wallet log:', err)
       }

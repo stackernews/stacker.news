@@ -245,20 +245,27 @@ export async function removeWalletProtocol (parent, { id }, { me, models, tx }) 
   return await (tx ? transaction(tx) : models.$transaction(transaction))
 }
 
-async function walletLogs (parent, { protocolId, cursor, debug }, { me, models }) {
+async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   const decodedCursor = decodeCursor(cursor)
+  const where = {
+    userId: me.id,
+    createdAt: {
+      lt: decodedCursor.time
+    },
+    level: debug ? 'DEBUG' : { not: 'DEBUG' }
+  }
+
+  if (protocolId !== undefined) {
+    where.protocolId = protocolId
+  }
+  if (payInId !== undefined) {
+    where.payInId = payInId
+  }
 
   const logs = await models.walletLog.findMany({
-    where: {
-      userId: me.id,
-      protocolId,
-      createdAt: {
-        lt: decodedCursor.time
-      },
-      level: debug ? 'DEBUG' : { not: 'DEBUG' }
-    },
+    where,
     orderBy: {
       createdAt: 'desc'
     },
@@ -278,26 +285,84 @@ async function walletLogs (parent, { protocolId, cursor, debug }, { me, models }
   })
 
   return {
-    entries: logs.map(log => ({
-      ...log,
-      ...(log.protocol
-        ? {
-            wallet: {
-              ...log.protocol.wallet,
-              name: log.protocol.wallet.template.name
+    entries: logs.map(log => {
+      const protocol = log.protocol && Number(log.protocol.wallet.userId) === Number(me.id)
+        ? log.protocol
+        : null
+
+      return {
+        ...log,
+        protocol,
+        ...(protocol
+          ? {
+              wallet: {
+                ...protocol.wallet,
+                name: protocol.wallet.template.name
+              }
             }
-          }
-        : {})
-    })),
+          : {})
+      }
+    }),
     cursor: logs.length === LIMIT ? nextCursorEncoded(decodedCursor, LIMIT) : null
   }
 }
 
-async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId }, { me, models }) {
+async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId, updateStatus }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
+  if (protocolId != null) {
+    const protocol = await models.walletProtocol.findFirst({
+      where: {
+        id: Number(protocolId),
+        wallet: {
+          userId: me.id
+        }
+      },
+      select: {
+        id: true
+      }
+    })
+
+    if (!protocol) {
+      throw new GqlInputError('wallet protocol not found')
+    }
+  }
+  if (payInId != null) {
+    const payIn = await models.payIn.findFirst({
+      where: {
+        id: Number(payInId),
+        userId: me.id
+      },
+      select: {
+        id: true
+      }
+    })
+
+    if (!payIn) {
+      throw new GqlInputError('payIn not found')
+    }
+  }
+
   const logger = walletLogger({ models, protocolId, userId: me.id, payInId })
-  await logger[level.toLowerCase()](message, { createdAt: timestamp })
+  switch (level) {
+    case 'OK':
+      await logger.ok(message, { createdAt: timestamp, updateStatus })
+      break
+    case 'INFO':
+      await logger.info(message, { createdAt: timestamp, updateStatus })
+      break
+    case 'WARNING':
+      await logger.warn(message, { createdAt: timestamp, updateStatus })
+      break
+    case 'ERROR':
+      await logger.error(message, { createdAt: timestamp, updateStatus })
+      break
+    case 'DEBUG':
+      await logger.debug(message, { createdAt: timestamp, updateStatus })
+      break
+    default:
+      throw new GqlInputError('invalid log level')
+  }
 
   return true
 }

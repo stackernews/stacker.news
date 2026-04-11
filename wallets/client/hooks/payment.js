@@ -75,11 +75,11 @@ export function useWalletPayment () {
         if (paymentError instanceof WalletReceiverError) {
           // if payment failed because of the receiver, use the same wallet again
           // and log this as info, not error
-          logger.info('failed to forward payment to receiver, retrying with new invoice')
+          logger.info('couldn\'t deliver the payment to the recipient wallet, retrying with a new invoice')
           i -= 1
         } else if (paymentError instanceof WalletPaymentError) {
           // only log payment errors, not configuration errors
-          logger.error(message)
+          logger.error(message, { updateStatus: true })
         }
 
         if (paymentError instanceof WalletPaymentError) {
@@ -90,7 +90,8 @@ export function useWalletPayment () {
         // only create a new invoice if we will try to pay with a protocol again
         const retry = paymentError instanceof WalletReceiverError || i < protocolLimit - 1
         if (retry) {
-          latestPayIn = await payInHelper.retry(latestPayIn)
+          const retryProtocol = paymentError instanceof WalletReceiverError ? protocol : protocols[i + 1]
+          latestPayIn = await payInHelper.retry(latestPayIn, { sendProtocolId: Number(retryProtocol.id) })
         }
 
         aggregateError = new WalletAggregateError([aggregateError, paymentError], latestPayIn)
@@ -121,12 +122,12 @@ function useSendPayment () {
 
       // some wallets like Coinos will always immediately return success without providing the preimage
       if (!preimage) {
-        return logger.warn('wallet returned success without proof of payment')
+        return logger.warn('wallet returned success without proof of payment', { updateStatus: true })
       }
       if (!verifyPreimage(payInBolt11.hash, preimage)) {
-        return logger.warn('wallet returned success with invalid proof of payment')
+        return logger.warn('wallet returned success with invalid proof of payment', { updateStatus: true })
       }
-      logger.ok(`↗ payment sent: ${formatSats(msatsToSats(payInBolt11.msatsRequested))}`)
+      logger.ok(`↗ payment sent: ${formatSats(msatsToSats(payInBolt11.msatsRequested))}`, { updateStatus: true })
     } catch (err) {
       // we don't log the error here since we want to handle receiver errors separately
       const message = err.message || err.toString?.()

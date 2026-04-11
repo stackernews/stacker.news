@@ -259,21 +259,27 @@ export const SET_WALLET_SETTINGS = gql`
 `
 
 export const ADD_WALLET_LOG = gql`
-  mutation AddWalletLog($protocolId: Int, $level: String!, $message: String!, $timestamp: Date!, $payInId: Int) {
-    addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, payInId: $payInId)
+  mutation AddWalletLog($protocolId: Int, $level: WalletLogLevel!, $message: String!, $timestamp: Date!, $payInId: Int, $updateStatus: Boolean) {
+    addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, payInId: $payInId, updateStatus: $updateStatus)
   }
 `
 
 export const WALLET_LOGS = gql`
-  query WalletLogs($protocolId: Int, $cursor: String, $debug: Boolean) {
-    walletLogs(protocolId: $protocolId, cursor: $cursor, debug: $debug) {
+  query WalletLogs($protocolId: Int, $payInId: Int, $cursor: String, $debug: Boolean) {
+    walletLogs(protocolId: $protocolId, payInId: $payInId, cursor: $cursor, debug: $debug) {
       entries {
         id
         level
         message
         createdAt
         wallet {
+          id
           name
+        }
+        protocol {
+          id
+          name
+          send
         }
         context
       }

@@ -151,11 +151,12 @@ function getSankeyData (payIn) {
 
   // Create individual nodes for each payOutCustodialToken
   if (payIn.payOutCustodialTokens && payIn.payOutCustodialTokens.length > 0) {
-    payIn.payOutCustodialTokens.forEach((token, index) => {
+    payIn.payOutCustodialTokens.forEach((token) => {
       let id = payTypeShortName(token.payOutType)
       if (['TERRITORY_REVENUE', 'DEFUNCT_DELAYED_TERRITORY_REVENUE'].includes(token.payOutType) && token.sub?.name) {
         id = `~${token.sub.name}`
       } else if (['ZAP', 'REWARD'].includes(token.payOutType) && token.sometimesPrivates?.user?.name) {
+        // Only label payouts when the resolver exposed viewer-owned identity data.
         id = `@${token.sometimesPrivates.user.name}`
       } else if (token.payOutType === 'ROUTING_FEE') {
         id = 'route'

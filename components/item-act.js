@@ -96,8 +96,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       variables: {
         id: item.id,
         sats: Number(amount),
-        act,
-        hasSendWallet
+        act
       },
       optimisticResponse: me
         ? {

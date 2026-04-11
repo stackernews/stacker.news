@@ -27,8 +27,16 @@ export function useSendProtocols () {
 }
 
 export function useHasSendWallet () {
+  const sendProtocolId = usePreferredSendProtocolId()
+  return sendProtocolId !== undefined
+}
+
+export function usePreferredSendProtocolId () {
   const protocols = useSendProtocols()
-  return useMemo(() => protocols.length > 0, [protocols])
+  return useMemo(() => {
+    if (!protocols[0]?.id) return undefined
+    return Number(protocols[0].id)
+  }, [protocols])
 }
 
 export function useWalletSupport (wallet) {

@@ -9,7 +9,7 @@ extend type Query {
 }
 
 extend type Mutation {
-  retryPayIn(payInId: Int!): PayIn!
+  retryPayIn(payInId: Int!, sendProtocolId: Int): PayIn!
   cancelPayInBolt11(hash: String!, hmac: String, userCancel: Boolean): PayIn
 }
 
@@ -115,6 +115,19 @@ type PayInBolt11 {
   comment: PayInBolt11Comment
 }
 
+enum PayInWalletRole {
+  SEND
+  RECEIVE
+}
+
+type PayInWalletInfo {
+  walletId: ID!
+  walletName: String!
+  protocolId: Int!
+  protocolName: String!
+  role: PayInWalletRole!
+}
+
 type PayInCustodialToken {
   id: Int!
   payInId: Int!
@@ -158,11 +171,11 @@ type PayIn {
   payeePrivates: PayeePrivates
   payOutCustodialTokens: [PayOutCustodialToken!]
   item: Item
+  walletInfo: PayInWalletInfo
 }
 
 type PayOutBolt11Public {
   msats: BigInt!
-  payOutType: PayOutType!
 }
 
 type PayInBolt11Public {

@@ -1,13 +1,6 @@
+import { PAY_IN_RECEIVER_FAILURE_REASONS } from '@/lib/pay-in'
 import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import payInTypeModules from '../types'
-
-export const PAY_IN_RECEIVER_FAILURE_REASONS = [
-  'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_FEE',
-  'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_EXPIRY',
-  'INVOICE_WRAPPING_FAILED_UNKNOWN',
-  'INVOICE_FORWARDING_CLTV_DELTA_TOO_LOW',
-  'INVOICE_FORWARDING_FAILED'
-]
 
 export function isPessimistic (payIn, { me }) {
   const payInModule = payInTypeModules[payIn.payInType]

@@ -40,24 +40,20 @@ export function useRetryPayInByType (payInId, payInType, mutationOptions = {}) {
   return retryPayIn
 }
 
-export function getPayInFailureData (error) {
-  return {
-    payInState: 'FAILED',
-    payInStateChangedAt: new Date().toISOString(),
-    payerPrivates: {
-      __typename: 'PayerPrivates',
-      payInFailureReason: error instanceof InvoiceCanceledError ? 'USER_CANCELLED' : 'EXECUTION_FAILED'
-    }
-  }
-}
-
 export function getRetryPayInFailureUpdate (error, data) {
   const retryResult = Object.values(data ?? {})[0]
   if (!retryResult?.id) return null
 
   return {
     retryPayInId: retryResult.id,
-    failureData: getPayInFailureData(error)
+    failureData: {
+      payInState: 'FAILED',
+      payInStateChangedAt: new Date().toISOString(),
+      payerPrivates: {
+        __typename: 'PayerPrivates',
+        payInFailureReason: error instanceof InvoiceCanceledError ? 'USER_CANCELLED' : 'EXECUTION_FAILED'
+      }
+    }
   }
 }
 

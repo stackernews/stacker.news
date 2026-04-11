@@ -8,6 +8,11 @@
     color: var(--theme-grey) !important; /* .text-muted */
 }
 
+.transaction {
+    max-height: 18rem;
+    font-size: 0.75rem;
+}
+
 @media screen and (min-width: 768px) {
     .container {
         max-height: 70svh;
@@ -15,6 +20,10 @@
 
     .embedded {
         max-height: 25svh;
+    }
+
+    .transaction {
+        max-height: 22rem;
     }
 }
 
@@ -35,6 +44,10 @@
     text-align: right;
 }
 
+.transaction .timestamp {
+    min-width: 2.5rem;
+}
+
 .level {
     font-weight: bold;
     text-transform: uppercase;
@@ -50,6 +63,10 @@
     word-break: break-word;
 }
 
+.transaction .message {
+    flex: 1;
+}
+
 .indicator {
     margin-left: auto;
 }
@@ -61,4 +78,9 @@
     column-gap: 0.5rem;
     padding-left: 0.5rem;
     padding-bottom: 0.5rem;
+}
+
+.transaction .context {
+    padding-top: 0.25rem;
+    padding-left: 0.1rem;
 }

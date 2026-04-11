@@ -191,8 +191,8 @@ export default {
         lnd
       })
     },
-    retryPayIn: async (parent, { payInId }, { models, me }) => {
-      return await retry(payInId, { models, me })
+    retryPayIn: async (parent, { payInId, sendProtocolId }, { models, me }) => {
+      return await retry(payInId, { models, me, sendProtocolId })
     }
   },
   PayIn: {
@@ -212,7 +212,7 @@ export default {
       if (!payIn.payOutBolt11) {
         return null
       }
-      return { msats: payIn.payOutBolt11?.msats, payOutType: payIn.payOutBolt11?.payOutType }
+      return { msats: payIn.payOutBolt11?.msats }
     },
     payeePrivates: (payIn, args, { models, me }) => {
       // if I'm logged in, and the payOutBolt11 is mine, let them see it
@@ -230,6 +230,58 @@ export default {
         return payIn.item
       }
       return await getItem(payIn, { id: payIn.itemPayIn.itemId }, { me, models })
+    },
+    walletInfo: async (payIn, args, { models, me }) => {
+      if (typeof payIn.walletInfo !== 'undefined') {
+        return payIn.walletInfo
+      }
+      if (!me || Number(me.id) === USER_ID.anon) {
+        return null
+      }
+
+      const protocolCandidates = [
+        { protocolId: payIn.payInBolt11?.protocolId, role: 'SEND' },
+        { protocolId: payIn.payOutBolt11?.protocolId, role: 'RECEIVE' }
+      ]
+        .filter(({ protocolId }) => protocolId)
+        .map(({ protocolId, role }) => ({ protocolId: Number(protocolId), role }))
+
+      if (!protocolCandidates.length) {
+        return null
+      }
+
+      const protocols = await models.walletProtocol.findMany({
+        where: {
+          id: {
+            in: protocolCandidates.map(({ protocolId }) => protocolId)
+          },
+          wallet: {
+            userId: Number(me.id)
+          }
+        },
+        include: {
+          wallet: {
+            include: {
+              template: true
+            }
+          }
+        }
+      })
+
+      for (const { protocolId, role } of protocolCandidates) {
+        const protocol = protocols.find(protocol => protocol.id === protocolId)
+        if (!protocol) continue
+
+        return {
+          walletId: protocol.wallet.id,
+          walletName: protocol.wallet.template.name,
+          protocolId: protocol.id,
+          protocolName: protocol.name,
+          role
+        }
+      }
+
+      return null
     },
     payOutCustodialTokens: async (payIn, args, { models, me }) => {
       let payOutCustodialTokens = []
@@ -302,7 +354,7 @@ export default {
       return payOutCustodialToken
     },
     sometimesPrivates: (payOutCustodialToken, args, { models, me }) => {
-      if (!isMine(payOutCustodialToken, { me }) && ['INVITE_GIFT', 'REWARD'].includes(payOutCustodialToken.payOutType)) {
+      if (!isMine(payOutCustodialToken, { me }) && payOutCustodialToken.payOutType !== 'ZAP') {
         return null
       }
       return payOutCustodialToken

@@ -369,7 +369,7 @@ export async function retry (payInId, { me, sendProtocolId }) {
   let payInFailedInitial
   let shouldConsumeRetryAttempt = false
   try {
-    const sendProtocolSelection = await resolveRequestedSendProtocolId(sendProtocolId, { me })
+    const requestedSendProtocolId = await resolveRequestedSendProtocolId(sendProtocolId, { me })
     const include = {
       payInBolt11: true,
       payOutCustodialTokens: { include: { subPayOutCustodialToken: true } },
@@ -391,7 +391,10 @@ export async function retry (payInId, { me, sendProtocolId }) {
     if (isWithdrawal(payInFailedInitial)) {
       throw new Error('Withdrawal payIns cannot be retried')
     }
-    const retrySendProtocolId = await resolveRetrySendProtocolId(sendProtocolId, sendProtocolSelection, payInFailedInitial, { me })
+    const previousSendProtocolId = payInFailedInitial.payInBolt11?.protocolId
+    const retrySendProtocolId = sendProtocolId !== undefined
+      ? requestedSendProtocolId
+      : await findOwnedEnabledSendProtocolId(previousSendProtocolId, { me })
     if (isPessimistic(payInFailedInitial, { me })) {
       // pessimistic payIns are fully re-executed without tracking
       return await pay(
@@ -466,7 +469,11 @@ export async function retry (payInId, { me, sendProtocolId }) {
   }
 }
 
-async function normalizeSendProtocolId (sendProtocolId, { me }) {
+// sendProtocolId has three meanings at the API boundary:
+// - undefined: no selection was supplied; retries may reuse the previous protocol if it is still usable
+// - null: explicitly clear protocol attribution
+// - any other value: explicitly select a protocol that must be owned, enabled, and send-capable
+async function findOwnedEnabledSendProtocolId (sendProtocolId, { me }) {
   const protocolId = Number(sendProtocolId)
   if (!Number.isInteger(protocolId) || protocolId <= 0 || !me || Number(me.id) === USER_ID.anon) {
     return undefined
@@ -489,38 +496,15 @@ async function normalizeSendProtocolId (sendProtocolId, { me }) {
   return protocol?.id
 }
 
-function isExplicitSendProtocolSelection (sendProtocolId) {
-  return sendProtocolId !== undefined && sendProtocolId !== null
-}
-
 async function resolveRequestedSendProtocolId (sendProtocolId, { me }) {
-  return await resolveSendProtocolSelection(sendProtocolId, {
-    me,
-    requireExplicit: isExplicitSendProtocolSelection(sendProtocolId)
-  })
-}
-
-async function resolveRetrySendProtocolId (sendProtocolId, sendProtocolSelection, payIn, { me }) {
-  if (sendProtocolId !== undefined) {
-    return sendProtocolSelection
+  if (sendProtocolId === undefined || sendProtocolId === null) {
+    return sendProtocolId
   }
 
-  return sendProtocolSelection ?? await normalizeSendProtocolId(payIn.payInBolt11?.protocolId, { me })
-}
-
-async function resolveSendProtocolSelection (sendProtocolId, { me, requireExplicit = false } = {}) {
-  if (sendProtocolId === null) {
-    return null
-  }
-
-  if (sendProtocolId === undefined) {
-    return undefined
-  }
-
-  const normalizedSendProtocolId = await normalizeSendProtocolId(sendProtocolId, { me })
-  if (requireExplicit && !normalizedSendProtocolId) {
+  const protocolId = await findOwnedEnabledSendProtocolId(sendProtocolId, { me })
+  if (!protocolId) {
     throw new GqlInputError('invalid send protocol')
   }
 
-  return normalizedSendProtocolId
+  return protocolId
 }

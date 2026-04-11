@@ -62,7 +62,7 @@ export function useWalletLoggerFactory () {
         log({ protocol, level: 'ERROR', message, payInId, updateStatus: context.updateStatus })
       },
       warn: (message, context = {}) => {
-        log({ protocol, level: 'WARN', message, payInId, updateStatus: context.updateStatus })
+        log({ protocol, level: 'WARNING', message, payInId, updateStatus: context.updateStatus })
       },
       debug: (message, context = {}) => {
         if (!diagnostics) return
@@ -209,6 +209,7 @@ function mapLevelToConsole (level) {
     case 'ERROR':
       return 'error'
     case 'WARN':
+    case 'WARNING':
       return 'warn'
     default:
       return 'log'

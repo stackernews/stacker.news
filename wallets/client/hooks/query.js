@@ -164,7 +164,10 @@ export function useWalletsQuery () {
     clearWalletData,
     refetch: query.refetch
   })
-  const walletsError = error ?? query.error ?? null
+  // Keep retrying through transient Apollo fetch errors while the unsafe
+  // refresh window is still active, but continue surfacing local decrypt errors.
+  const queryError = refreshWindowActive ? null : query.error
+  const walletsError = error ?? queryError ?? null
   const shouldDecryptWallets = serverWallets != null && ready && !refreshWindowActive
   const walletSendReady = !walletsError && !refreshWindowActive && wallets != null
 

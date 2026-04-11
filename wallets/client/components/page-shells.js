@@ -1,5 +1,6 @@
 import Moon from '@/svgs/moon-fill.svg'
 import { useMe } from '@/components/me'
+import { useEffect, useState } from 'react'
 import { WalletLayout } from './layout'
 import { WalletPassphrasePrompt, WalletPassphraseSetup } from './passphrase'
 import {
@@ -48,11 +49,22 @@ export function WalletLoadingShell ({ message = 'loading wallets' }) {
 
 export function WalletRouteGateShell ({ children, errorTitle, loadingMessage }) {
   const { me } = useMe()
+  const [justUnlocked, setJustUnlocked] = useState(false)
   const key = useKey()
   const keyError = useKeyError()
   const keySyncInProgress = useKeySyncInProgress()
   const walletSendReady = useWalletSendReady()
   const walletsError = useWalletsError()
+
+  useEffect(() => {
+    setJustUnlocked(false)
+  }, [me?.id])
+
+  useEffect(() => {
+    if (!me?.privates?.showPassphrase) {
+      setJustUnlocked(false)
+    }
+  }, [me?.privates?.showPassphrase])
 
   if (keyError === KEY_STORAGE_UNAVAILABLE) {
     return <WalletKeyStorageUnavailableShell />
@@ -61,7 +73,7 @@ export function WalletRouteGateShell ({ children, errorTitle, loadingMessage }) 
   if (keyError === WRONG_KEY) {
     return (
       <WalletCenteredPromptShell>
-        <WalletPassphrasePrompt showCancel={false} />
+        <WalletPassphrasePrompt showCancel={false} onSuccess={() => setJustUnlocked(true)} />
       </WalletCenteredPromptShell>
     )
   }
@@ -79,7 +91,7 @@ export function WalletRouteGateShell ({ children, errorTitle, loadingMessage }) 
     return <WalletLoadingShell message={loadingMessage} />
   }
 
-  if (me?.privates?.showPassphrase) {
+  if (me?.privates?.showPassphrase && !justUnlocked) {
     return (
       <WalletCenteredPromptShell>
         <WalletPassphraseSetup />

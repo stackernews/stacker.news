@@ -90,9 +90,12 @@ export function WalletPassphrasePrompt ({
       throw new Error('wrong passphrase')
     }
     await setKey(derived, { updateServer: false })
-    await disablePassphraseExport()
     await onSuccess?.()
-  }, [hash, salt, setKey, disablePassphraseExport, onSuccess])
+    disablePassphraseExport().catch(err => {
+      console.error('failed to disable passphrase export:', err)
+      toaster.warning('wallets unlocked, but failed to update passphrase state')
+    })
+  }, [hash, salt, setKey, disablePassphraseExport, onSuccess, toaster])
 
   const showResetPassphraseModal = useCallback(() => {
     showModal(close => (

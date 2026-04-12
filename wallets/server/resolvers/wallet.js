@@ -157,6 +157,24 @@ async function walletSettings (parent, args, { me, models }) {
   return await models.user.findUnique({ where: { id: me.id } })
 }
 
+async function assertNoServerSendProtocols (tx, { userId, wallets }) {
+  const hasPayloadSendProtocols = wallets.some(({ protocols }) => protocols.some(({ send }) => send))
+  if (hasPayloadSendProtocols) return
+
+  const existingSendProtocols = await tx.walletProtocol.count({
+    where: {
+      send: true,
+      wallet: {
+        userId
+      }
+    }
+  })
+
+  if (existingSendProtocols > 0) {
+    throw new GqlInputError('unlock or reset existing sending wallets before changing passphrase')
+  }
+}
+
 async function updateWalletEncryption (parent, { keyHash, wallets }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
   if (!keyHash) throw new GqlInputError('hash required')
@@ -164,6 +182,8 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
   const { vaultKeyHash: oldKeyHash } = await getVaultMetadata(models, me.id)
 
   return await models.$transaction(async tx => {
+    await assertNoServerSendProtocols(tx, { userId: me.id, wallets })
+
     for (const { id: walletId, protocols } of wallets) {
       for (const { name, send, config } of protocols) {
         const mutation = upsertWalletProtocol({ name, send })

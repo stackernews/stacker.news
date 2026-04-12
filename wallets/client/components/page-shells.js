@@ -55,6 +55,9 @@ export function WalletRouteGateShell ({ children, errorTitle, loadingMessage }) 
   const keySyncInProgress = useKeySyncInProgress()
   const walletSendReady = useWalletSendReady()
   const walletsError = useWalletsError()
+  const canRecoverReceiveOnlyPassphrase = keyError === WRONG_KEY &&
+    me?.privates?.showPassphrase &&
+    !me?.privates?.hasSendWallet
 
   useEffect(() => {
     setJustUnlocked(false)
@@ -68,6 +71,18 @@ export function WalletRouteGateShell ({ children, errorTitle, loadingMessage }) 
 
   if (keyError === KEY_STORAGE_UNAVAILABLE) {
     return <WalletKeyStorageUnavailableShell />
+  }
+
+  if (canRecoverReceiveOnlyPassphrase && !walletsError && !walletSendReady) {
+    return <WalletLoadingShell message={loadingMessage} />
+  }
+
+  if (canRecoverReceiveOnlyPassphrase && walletSendReady) {
+    return (
+      <WalletCenteredPromptShell>
+        <WalletPassphraseSetup />
+      </WalletCenteredPromptShell>
+    )
   }
 
   if (keyError === WRONG_KEY) {

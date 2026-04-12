@@ -84,10 +84,12 @@ export function WalletPassphrasePrompt ({
   const showModal = useShowModal()
   const toaster = useToast()
 
-  const onSubmit = useCallback(async ({ passphrase }) => {
+  const onSubmit = useCallback(async ({ passphrase }, { setFieldError, setFieldTouched }) => {
     const derived = await deriveKey(passphrase, salt)
     if (hash !== derived.hash) {
-      throw new Error('wrong passphrase')
+      setFieldTouched('passphrase', true, false)
+      setFieldError('passphrase', 'wrong passphrase')
+      return
     }
     await setKey(derived, { updateServer: false })
     await onSuccess?.()

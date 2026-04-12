@@ -1,4 +1,5 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client'
+import { LocalState } from '@apollo/client/local-state'
 import { SchemaLink } from '@apollo/client/link/schema'
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import resolvers from './resolvers'
@@ -64,7 +65,9 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
         nextFetchPolicy: 'no-cache',
         ssr: true
       }
-    }
+    },
+    // @client directive support
+    localState: new LocalState({})
   })
 
   await client.clearStore()
@@ -166,6 +169,17 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
+    const isCustomDomain = req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
+    const subName = req.headers['x-stacker-news-subname'] || null
+    let domain = null
+    if (isCustomDomain && subName) {
+      domain = {
+        domainName: req.headers.host,
+        subName
+        // TODO: custom branding
+      }
+    }
+
     let { data: { me } } = await client.query({ query: ME })
 
     // required to redirect to /signup on page reload
@@ -230,6 +244,7 @@ export function getGetServerSideProps (
     return {
       props: {
         ...props,
+        domain,
         me,
         price,
         blockHeight,

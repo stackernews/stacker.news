@@ -1,4 +1,5 @@
-import { gql, useQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import Col from 'react-bootstrap/Col'

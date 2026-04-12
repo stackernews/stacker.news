@@ -1,4 +1,4 @@
-import { useApolloClient, useMutation } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client/react'
 import { useCallback, useMemo } from 'react'
 import { PAY_IN_RECEIVER_FAILURE_REASONS } from '@/lib/pay-in'
 import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/client/errors'

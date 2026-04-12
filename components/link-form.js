@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Form, Input, SNInput } from '@/components/form'
 import { useRouter } from 'next/router'
-import { gql, useLazyQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import AdvPostForm from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
 import Item from './item'
@@ -67,8 +68,8 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
         ...ItemFields
       }
     }`)
-  const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
-  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args), DUPES_DEBOUNCE_MS, [getDupes])
+  const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args).catch(err => console.error(err)), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
+  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args).catch(err => console.error(err)), DUPES_DEBOUNCE_MS, [getDupes])
 
   useEffect(() => {
     if (!dupesLoading) {

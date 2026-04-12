@@ -1,4 +1,4 @@
-import { useMutation, useLazyQuery } from '@apollo/client'
+import { useLazyQuery, useMutation } from '@apollo/client/react'
 import { ADD_WALLET_LOG, WALLET_LOGS, DELETE_WALLET_LOGS } from '@/wallets/client/fragments'
 import { createContext, useCallback, useContext, useMemo, useState, useEffect } from 'react'
 import { useShowModal } from '@/components/modal'
@@ -94,15 +94,23 @@ export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInte
   // if we're configuring a protocol template, there are no logs to fetch
   const noFetch = protocol && isTemplate(protocol)
   const [fetchLogs, { called, loading, error }] = useLazyQuery(WALLET_LOGS, {
-    variables: logFilters,
-    skip: noFetch,
-    fetchPolicy: 'network-only'
+    fetchPolicy: 'network-only',
+    errorPolicy: 'all'
   })
 
   const loadLogs = useCallback(async ({ cursor, mode } = {}) => {
-    const { data, error } = await fetchLogs({
-      variables: cursor ? { ...logFilters, cursor } : logFilters
-    })
+    if (noFetch) return
+
+    let data, error
+    try {
+      ({ data, error } = await fetchLogs({
+        variables: cursor ? { ...logFilters, cursor } : logFilters
+      }))
+    } catch (err) {
+      console.error(err)
+      return
+    }
+
     if (error) {
       console.error('failed to fetch wallet logs:', error.message)
       return
@@ -121,7 +129,7 @@ export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInte
 
     setLogs(entries)
     setCursor(nextCursor)
-  }, [fetchLogs, logFilters])
+  }, [fetchLogs, logFilters, noFetch])
 
   useEffect(() => {
     if (noFetch) return

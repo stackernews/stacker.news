@@ -1,19 +1,23 @@
 import { SUB_FULL } from '@/fragments/subs'
 import errorStyles from '@/styles/error.module.css'
-import { useLazyQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import classNames from 'classnames'
 import HoverablePopover from './hoverable-popover'
 import { TerritoryInfo, TerritoryInfoSkeleton } from './territory-header'
 import { truncateString } from '@/lib/format'
+import { useCallback } from 'react'
 
 export default function SubPopover ({ sub, children }) {
-  const [getSub, { loading, data }] = useLazyQuery(
+  const [execute, { loading, data }] = useLazyQuery(
     SUB_FULL,
     {
-      variables: { sub },
       fetchPolicy: 'cache-first'
     }
   )
+
+  const getSub = useCallback(() => {
+    execute({ variables: { sub } }).catch(err => console.error(err))
+  }, [execute, sub])
 
   return (
     <HoverablePopover

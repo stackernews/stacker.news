@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Dropdown from 'react-bootstrap/Dropdown'
-import { useLazyQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import { LexicalTypeaheadMenuPlugin, MenuOption } from '@lexical/react/LexicalTypeaheadMenuPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import useDebounceCallback from '@/components/use-debounce-callback'

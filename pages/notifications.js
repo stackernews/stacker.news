@@ -3,7 +3,7 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import Notifications, { NotificationAlert } from '@/components/notifications'
 import { HAS_NOTIFICATIONS, NOTIFICATIONS } from '@/fragments/notifications'
-import { useApolloClient } from '@apollo/client'
+import { useApolloClient } from '@apollo/client/react'
 import { clearNotifications } from '@/components/serviceworker'
 
 export const getServerSideProps = getGetServerSideProps({ query: NOTIFICATIONS, authRequired: true })

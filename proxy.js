@@ -1,4 +1,6 @@
-import { NextResponse, URLPattern } from 'next/server'
+import 'urlpattern-polyfill'
+import { NextRequest, NextResponse } from 'next/server'
+import { getDomainMapping, createDomainsDebugLogger } from '@/lib/domains'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -11,6 +13,60 @@ const SN_REFERRER = 'sn_referrer'
 const SN_REFERRER_NONCE = 'sn_referrer_nonce'
 // key for referred pages
 const SN_REFEREE_LANDING = 'sn_referee_landing'
+// main domain
+const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
+// territory paths that needs to be rewritten to ~subname
+const SN_TERRITORY_PATHS = ['/~', '/new', '/top', '/post', '/edit', '/rss']
+
+async function customDomainMiddleware (request, domain, subName) {
+  // logger is enabled if NEXT_PUBLIC_CUSTOM_DOMAINS_DEBUG == 1
+  const logger = createDomainsDebugLogger(domain)
+  // clone the url to build on top of it
+  const url = request.nextUrl.clone()
+  // we need pathname, searchParams and origin
+  const { pathname, searchParams } = url
+  // set the subname in the request headers
+  const headers = new Headers(request.headers)
+  headers.set('x-stacker-news-subname', subName)
+
+  logger.log('custom domain', domain, 'with subname', subName)
+  logger.log('main domain', JSON.stringify(SN_MAIN_DOMAIN))
+  logger.log('pathname', pathname)
+  logger.log('searchParams', JSON.stringify(searchParams))
+  logger.log('search', url.search)
+
+  // TODO: handle auth sync
+
+  // clean up the pathname from any subname
+  if (pathname.startsWith('/~')) {
+    const cleanPath = pathname.replace(/^\/~[^/]+/, '') || '/'
+    url.pathname = cleanPath
+    logger.log('redirecting to clean url:', url)
+    // redirect to the clean path
+    return NextResponse.redirect(url, { headers })
+  }
+
+  // if sub param exists and doesn't match the domain's subname, update it
+  if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
+    logger.log('setting sub to', subName)
+    searchParams.set('sub', subName)
+    url.search = searchParams.toString()
+    logger.log('new searchParams', url.search)
+    logger.log('new url', url)
+    return NextResponse.redirect(url, { headers })
+  }
+
+  // if we're at the root or on some territory path, hide the subname by rewriting
+  if (pathname === '/' || SN_TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
+    url.pathname = `/~${subName}${pathname === '/' ? '' : pathname}`
+    logger.log('rewrite to:', url.pathname)
+    // rewrite to the territory path
+    return NextResponse.rewrite(url, { headers })
+  }
+
+  // continue if we don't need to redirect, mainly for API routes
+  return NextResponse.next({ request: { headers } })
+}
 
 function getContentReferrer (request, url) {
   if (itemPattern.test(url)) {
@@ -84,9 +140,22 @@ function referrerMiddleware (request) {
   return response
 }
 
-export function middleware (request) {
-  const resp = referrerMiddleware(request)
+function applyReferrerCookies (response, referrer) {
+  for (const cookie of referrer.cookies.getAll()) {
+    response.cookies.set(
+      cookie.name,
+      cookie.value,
+      {
+        maxAge: cookie.maxAge,
+        expires: cookie.expires,
+        path: cookie.path
+      }
+    )
+  }
+  return response
+}
 
+function applySecurityHeaders (resp) {
   const isDev = process.env.NODE_ENV === 'development'
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
@@ -131,6 +200,39 @@ export function middleware (request) {
   resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
 
   return resp
+}
+
+export async function proxy (req) {
+  // clear subname header to prevent potential spoofing
+  const headers = new Headers(req.headers)
+  headers.delete('x-stacker-news-subname')
+  const request = new NextRequest(req, { headers })
+
+  const referrerResp = referrerMiddleware(request)
+  // TODO: check if we actually need this, and WHY
+  if (referrerResp.headers.get('Location')) {
+    // this is a redirect, apply security headers
+    return applySecurityHeaders(referrerResp)
+  }
+
+  // if we're on a custom domain, handle it
+  const domain = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  if (domain !== SN_MAIN_DOMAIN?.host) { // we don't need middleware to fail if dev messes up ENVs
+    // in development we might have a port in the domain
+    const domainToMap = process.env.NODE_ENV === 'development' ? domain.split(':')[0] : domain
+    // check if we have a mapping for this domain
+    const mapping = await getDomainMapping(domainToMap)
+    if (mapping?.subName) {
+      console.log('[domains] allowed custom domain', domain, 'detected, pointing to', mapping.subName)
+      const resp = await customDomainMiddleware(request, domain, mapping.subName)
+      // apply referrer cookies to the custom domain response
+      const referredResp = applyReferrerCookies(resp, referrerResp)
+      // finally apply security headers
+      return applySecurityHeaders(referredResp)
+    }
+  }
+
+  return applySecurityHeaders(referrerResp)
 }
 
 export const config = {

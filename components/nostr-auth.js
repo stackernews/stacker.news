@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { gql, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import { signIn } from 'next-auth/react'
 import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'

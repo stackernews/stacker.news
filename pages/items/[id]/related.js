@@ -6,7 +6,7 @@ import Items from '@/components/items'
 import Layout from '@/components/layout'
 import { useRouter } from 'next/router'
 import Item from '@/components/item'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import PageLoading from '@/components/page-loading'
 
 export const getServerSideProps = getGetServerSideProps({

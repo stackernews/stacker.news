@@ -100,9 +100,12 @@ export function useOverflow ({ containerRef, truncated = false }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-export default function Text ({ topLevel, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
+export default function Text ({ topLevel, children: text, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
+  // if we don't have anything to render, bail
+  if (!state && !text?.trim()) return null
+
   const containerRef = useRef(null)
-  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
+  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!text })
   const carousel = useCarousel()
 
   const textClassNames = useMemo(() => {
@@ -119,7 +122,7 @@ export default function Text ({ topLevel, children, className, innerClassName, s
       <SNReader
         topLevel={topLevel}
         state={state}
-        text={children} // if children is provided, markdown will be parsed and rendered
+        text={text} // if text is provided, markdown will be parsed and rendered
         html={html}
         imgproxyUrls={imgproxyUrls}
         rel={rel}
@@ -128,7 +131,7 @@ export default function Text ({ topLevel, children, className, innerClassName, s
         innerClassName={innerClassName}
       />
     )
-  }, [children, topLevel, state, html, imgproxyUrls, rel, readerRef, name, innerClassName])
+  }, [text, topLevel, state, html, imgproxyUrls, rel, readerRef, name, innerClassName])
 
   return (
     <div className={textClassNames} ref={containerRef}>

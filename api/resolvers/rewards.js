@@ -119,10 +119,10 @@ export default {
     }
   },
   Mutation: {
-    donateToRewards: async (parent, { sats }, { me, models }) => {
+    donateToRewards: async (parent, { sats, sendProtocolId }, { me, models }) => {
       await validateSchema(amountSchema, { amount: sats })
 
-      return await pay('DONATE', { sats }, { me, models })
+      return await pay('DONATE', { sats }, { me, models, sendProtocolId })
     }
   },
   Reward: {

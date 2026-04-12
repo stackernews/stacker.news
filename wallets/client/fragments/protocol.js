@@ -5,12 +5,6 @@ const shared = {
   arguments: 'walletId: $walletId, templateName: $templateName, enabled: $enabled'
 }
 
-export const REMOVE_WALLET_PROTOCOL = gql`
-  mutation removeWalletProtocol($id: ID!) {
-    removeWalletProtocol(id: $id)
-  }
-`
-
 // upserts
 
 export const UPSERT_WALLET_SEND_LNBITS = gql`

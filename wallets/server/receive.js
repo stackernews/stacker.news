@@ -18,6 +18,7 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
         `↙ incoming payment: ${formatSats(msatsToSats(msats))}`, {
           amount: formatMsats(msats)
         })
+        .catch(err => console.error('failed to write incoming payment wallet log:', err))
 
       let bolt11
       try {
@@ -34,6 +35,7 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
       logger.info(`created invoice for ${formatSats(msatsToSats(invoice.mtokens))}`, {
         bolt11
       })
+        .catch(err => console.error('failed to write created invoice wallet log:', err))
 
       if (BigInt(invoice.mtokens) !== BigInt(msats)) {
         if (BigInt(invoice.mtokens) > BigInt(msats)) {
@@ -51,6 +53,7 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
     } catch (err) {
       console.error('failed to create user invoice:', err)
       logger.error(err.message, { updateStatus: true })
+        .catch(logErr => console.error('failed to write invoice failure wallet log:', logErr))
     }
   }
 }

@@ -1,15 +1,17 @@
 import { formatBytes } from '@/lib/format'
 import { useEffect, useState } from 'react'
+import { useMe } from '@/components/me'
 import {
-  useKeyHash, useKeyUpdatedAt, useDiagnostics, useRemoteKeyHash, useRemoteKeyHashUpdatedAt, useWalletsUpdatedAt
+  useKeyHash, useKeyUpdatedAt, useDiagnostics, useWalletsUpdatedAt
 } from '@/wallets/client/hooks'
 import { timeSince } from '@/lib/time'
 
 export function WalletDebugSettings () {
+  const { me } = useMe()
   const localKeyHash = useKeyHash()
   const localKeyUpdatedAt = useKeyUpdatedAt()
-  const remoteKeyHash = useRemoteKeyHash()
-  const remoteKeyHashUpdatedAt = useRemoteKeyHashUpdatedAt()
+  const remoteKeyHash = me?.privates?.vaultKeyHash ?? null
+  const remoteKeyHashUpdatedAt = me?.privates?.vaultKeyHashUpdatedAt ?? null
   const walletsUpdatedAt = useWalletsUpdatedAt()
   const [persistent, setPersistent] = useState(null)
   const [quota, setQuota] = useState(null)

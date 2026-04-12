@@ -44,6 +44,9 @@ export function payInClone (payIn) {
     genesisId: payIn.genesisId ?? payIn.id
   }
   for (const key in payIn) {
+    if (key === 'payInBolt11') {
+      continue
+    }
     if (Array.isArray(payIn[key])) {
       if (key === 'beneficiaries') {
         result[key] = payIn[key].map(beneficiary => payInClone(beneficiary))

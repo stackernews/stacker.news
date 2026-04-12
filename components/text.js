@@ -100,12 +100,30 @@ export function useOverflow ({ containerRef, truncated = false }) {
   return { overflowing, show, setShow, Overflow }
 }
 
-export default function Text ({ topLevel, children: text, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
+/**
+ * Renders rich content from Markdown or Lexical state
+ *
+ * @param {object} props - props object
+ * @param {boolean} props.topLevel - whether to render as top-level content
+ * @param {string} props.children - Markdown text
+ * @param {string} props.className - container class name
+ * @param {string} props.innerClassName - Lexical contenteditable className
+ * @param {string} props.state - serialized Lexical state
+ * @param {string} props.html - pre-Lexical SSR HTML content
+ * @param {object} props.imgproxyUrls - imgproxy data object
+ * @param {string} props.rel - link rel attribute
+ * @param {string} props.name - link name attribute
+ * @param {object} props.readerRef - reader ref
+ */
+export default function Text (props) {
   // if we don't have anything to render, bail
-  if (!state && !text?.trim()) return null
+  if (!props.state && !props.children?.trim()) return null
+  return <TextBody {...props} />
+}
 
+export function TextBody ({ topLevel, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
   const containerRef = useRef(null)
-  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!text })
+  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
   const carousel = useCarousel()
 
   const textClassNames = useMemo(() => {
@@ -122,7 +140,7 @@ export default function Text ({ topLevel, children: text, className, innerClassN
       <SNReader
         topLevel={topLevel}
         state={state}
-        text={text} // if text is provided, markdown will be parsed and rendered
+        text={children} // if children is provided, markdown will be parsed and rendered
         html={html}
         imgproxyUrls={imgproxyUrls}
         rel={rel}
@@ -131,7 +149,7 @@ export default function Text ({ topLevel, children: text, className, innerClassN
         innerClassName={innerClassName}
       />
     )
-  }, [text, topLevel, state, html, imgproxyUrls, rel, readerRef, name, innerClassName])
+  }, [children, topLevel, state, html, imgproxyUrls, rel, readerRef, name, innerClassName])
 
   return (
     <div className={textClassNames} ref={containerRef}>

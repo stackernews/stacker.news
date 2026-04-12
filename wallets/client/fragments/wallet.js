@@ -8,12 +8,6 @@ const VAULT_ENTRY_FIELDS = gql`
   }
 `
 
-export const CLEAR_VAULT = gql`
-  mutation ClearVault {
-    clearVault
-  }
-`
-
 const WALLET_PROTOCOL_FIELDS = gql`
   ${VAULT_ENTRY_FIELDS}
   # need to use field aliases because of https://github.com/graphql/graphql-js/issues/53
@@ -184,21 +178,6 @@ export const WALLETS = gql`
   }
 `
 
-export const WALLET = gql`
-  ${WALLET_OR_TEMPLATE_FIELDS}
-  query Wallet($id: ID, $name: String) {
-    wallet(id: $id, name: $name) {
-      ...WalletOrTemplateFields
-    }
-  }
-`
-
-export const REMOVE_WALLET = gql`
-  mutation removeWallet($id: ID!) {
-    removeWallet(id: $id)
-  }
-`
-
 export const SET_WALLET_PRIORITIES = gql`
   mutation SetWalletPriorities($priorities: [WalletPriorityUpdate!]!) {
     setWalletPriorities(priorities: $priorities)
@@ -259,21 +238,27 @@ export const SET_WALLET_SETTINGS = gql`
 `
 
 export const ADD_WALLET_LOG = gql`
-  mutation AddWalletLog($protocolId: Int, $level: String!, $message: String!, $timestamp: Date!, $payInId: Int) {
-    addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, payInId: $payInId)
+  mutation AddWalletLog($protocolId: Int, $level: WalletLogLevel!, $message: String!, $timestamp: Date!, $payInId: Int, $updateStatus: Boolean) {
+    addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, payInId: $payInId, updateStatus: $updateStatus)
   }
 `
 
 export const WALLET_LOGS = gql`
-  query WalletLogs($protocolId: Int, $cursor: String, $debug: Boolean) {
-    walletLogs(protocolId: $protocolId, cursor: $cursor, debug: $debug) {
+  query WalletLogs($protocolId: Int, $payInId: Int, $cursor: String, $debug: Boolean) {
+    walletLogs(protocolId: $protocolId, payInId: $payInId, cursor: $cursor, debug: $debug) {
       entries {
         id
         level
         message
         createdAt
         wallet {
+          id
           name
+        }
+        protocol {
+          id
+          name
+          send
         }
         context
       }

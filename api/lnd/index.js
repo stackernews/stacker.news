@@ -1,6 +1,7 @@
 import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
+import { getPayOutBolt11FailureDetail } from '@/lib/pay-in'
 import { randomBytes } from 'crypto'
 import { chanNumber } from 'bolt07'
 import { once } from 'events'
@@ -167,32 +168,22 @@ export function getPaymentFailureStatus (withdrawal) {
     throw new Error('withdrawal is not failed')
   }
 
+  const failure = status => ({
+    status,
+    message: getPayOutBolt11FailureDetail(status).message
+  })
+
   if (withdrawal?.failed?.is_insufficient_balance) {
-    return {
-      status: 'INSUFFICIENT_BALANCE',
-      message: 'you didn\'t have enough sats'
-    }
+    return failure('INSUFFICIENT_BALANCE')
   } else if (withdrawal?.failed?.is_invalid_payment) {
-    return {
-      status: 'INVALID_PAYMENT',
-      message: 'invalid payment'
-    }
+    return failure('INVALID_PAYMENT')
   } else if (withdrawal?.failed?.is_pathfinding_timeout) {
-    return {
-      status: 'PATHFINDING_TIMEOUT',
-      message: 'no route found'
-    }
+    return failure('PATHFINDING_TIMEOUT')
   } else if (withdrawal?.failed?.is_route_not_found) {
-    return {
-      status: 'ROUTE_NOT_FOUND',
-      message: 'no route found'
-    }
+    return failure('ROUTE_NOT_FOUND')
   }
 
-  return {
-    status: 'UNKNOWN_FAILURE',
-    message: 'unknown failure'
-  }
+  return failure('UNKNOWN_FAILURE')
 }
 
 export const getBlockHeight = cachedFetcher(async function fetchBlockHeight ({ lnd, ...args }) {

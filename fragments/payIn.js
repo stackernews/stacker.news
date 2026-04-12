@@ -51,6 +51,16 @@ export const PAY_IN_BOLT11_FIELDS = gql`
   }
 `
 
+export const PAY_IN_WALLET_INFO_FIELDS = gql`
+  fragment PayInWalletInfoFields on PayInWalletInfo {
+    walletId
+    walletName
+    protocolId
+    protocolName
+    role
+  }
+`
+
 export const PAY_IN_FIELDS = gql`
   ${SUB_FULL_FIELDS}
   ${COMMENTS}
@@ -138,7 +148,6 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     }
     payOutBolt11Public {
       msats
-      payOutType
     }
     payerPrivates {
       userId
@@ -168,13 +177,10 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     }
     payeePrivates {
       payOutBolt11 {
-        id
         msats
-        userId
         bolt11
         preimage
         status
-        payOutType
       }
     }
     payOutCustodialTokens {
@@ -185,9 +191,7 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
         mtokensAfter
       }
       sometimesPrivates {
-        userId
         user {
-          id
           name
         }
       }
@@ -214,7 +218,22 @@ export const SATISTICS = gql`
   }
 `
 
-export const GET_PAY_IN_FULL = gql`
+// Used by SSR so the transaction page has viewer-scoped wallet info on first render.
+export const GET_PAY_IN_FULL_WITH_WALLET_INFO = gql`
+  ${PAY_IN_STATISTICS_FIELDS}
+  ${PAY_IN_WALLET_INFO_FIELDS}
+  query payIn($id: Int!) {
+    payIn(id: $id) {
+      ...PayInStatisticsFields
+      walletInfo {
+        ...PayInWalletInfoFields
+      }
+    }
+  }
+`
+
+// Used for polling so we do not re-resolve walletInfo on every refresh.
+export const GET_PAY_IN_FULL_WITHOUT_WALLET_INFO = gql`
   ${PAY_IN_STATISTICS_FIELDS}
   query payIn($id: Int!) {
     payIn(id: $id) {
@@ -234,8 +253,8 @@ export const GET_PAY_IN_RESULT = gql`
 
 export const RETRY_PAY_IN = gql`
   ${PAY_IN_FIELDS}
-  mutation retryPayIn($payInId: Int!) {
-    retryPayIn(payInId: $payInId) {
+  mutation retryPayIn($payInId: Int!, $sendProtocolId: Int) {
+    retryPayIn(payInId: $payInId, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }
@@ -259,32 +278,32 @@ export const CANCEL_PAY_IN_BOLT11 = gql`
 
 export const DONATE = gql`
   ${PAY_IN_FIELDS}
-  mutation donateToRewards($sats: Int!) {
-    donateToRewards(sats: $sats) {
+  mutation donateToRewards($sats: Int!, $sendProtocolId: Int) {
+    donateToRewards(sats: $sats, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
 
 export const BUY_CREDITS = gql`
   ${PAY_IN_FIELDS}
-  mutation buyCredits($credits: Int!) {
-    buyCredits(credits: $credits) {
+  mutation buyCredits($credits: Int!, $sendProtocolId: Int) {
+    buyCredits(credits: $credits, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
 
 export const ACT_MUTATION = gql`
   ${PAY_IN_FIELDS}
-  mutation act($id: ID!, $sats: Int!, $act: String, $hasSendWallet: Boolean) {
-    act(id: $id, sats: $sats, act: $act, hasSendWallet: $hasSendWallet) {
+  mutation act($id: ID!, $sats: Int!, $act: String, $sendProtocolId: Int) {
+    act(id: $id, sats: $sats, act: $act, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
 
 export const PAY_BOUNTY_MUTATION = gql`
   ${PAY_IN_FIELDS}
-  mutation payBounty($id: ID!) {
-    payBounty(id: $id) {
+  mutation payBounty($id: ID!, $sendProtocolId: Int) {
+    payBounty(id: $id, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
@@ -292,9 +311,9 @@ export const PAY_BOUNTY_MUTATION = gql`
 export const UPSERT_DISCUSSION = gql`
   ${PAY_IN_FIELDS}
   mutation upsertDiscussion($subNames: [String!]!, $id: ID, $title: String!, $text: String,
-    $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
+    $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}, $sendProtocolId: Int) {
     upsertDiscussion(subNames: $subNames, id: $id, title: $title, text: $text,
-      forward: $forward, ${HASH_HMAC_INPUT_2}) {
+      forward: $forward, ${HASH_HMAC_INPUT_2}, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
@@ -303,10 +322,10 @@ export const UPSERT_JOB = gql`
   ${PAY_IN_FIELDS}
   mutation upsertJob($subNames: [String!]!, $id: ID, $title: String!, $company: String!,
     $location: String, $remote: Boolean, $text: String!, $url: String!,
-    $status: String, $logo: Int) {
+    $status: String, $logo: Int, $sendProtocolId: Int) {
     upsertJob(subNames: $subNames, id: $id, title: $title, company: $company,
       location: $location, remote: $remote, text: $text,
-      url: $url, status: $status, logo: $logo) {
+      url: $url, status: $status, logo: $logo, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
@@ -314,9 +333,9 @@ export const UPSERT_JOB = gql`
 export const UPSERT_LINK = gql`
   ${PAY_IN_FIELDS}
   mutation upsertLink($subNames: [String!]!, $id: ID, $title: String!, $url: String!,
-    $text: String, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}) {
+    $text: String, $forward: [ItemForwardInput], ${HASH_HMAC_INPUT_1}, $sendProtocolId: Int) {
     upsertLink(subNames: $subNames, id: $id, title: $title, url: $url, text: $text,
-      forward: $forward, ${HASH_HMAC_INPUT_2}) {
+      forward: $forward, ${HASH_HMAC_INPUT_2}, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
@@ -325,10 +344,10 @@ export const UPSERT_POLL = gql`
   ${PAY_IN_FIELDS}
   mutation upsertPoll($subNames: [String!]!, $id: ID, $title: String!, $text: String,
     $options: [String!]!, $forward: [ItemForwardInput], $pollExpiresAt: Date,
-    $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}) {
+    $randPollOptions: Boolean, ${HASH_HMAC_INPUT_1}, $sendProtocolId: Int) {
     upsertPoll(subNames: $subNames, id: $id, title: $title, text: $text,
       options: $options, forward: $forward, pollExpiresAt: $pollExpiresAt,
-      randPollOptions: $randPollOptions, ${HASH_HMAC_INPUT_2}) {
+      randPollOptions: $randPollOptions, ${HASH_HMAC_INPUT_2}, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
@@ -336,41 +355,41 @@ export const UPSERT_POLL = gql`
 export const UPSERT_BOUNTY = gql`
   ${PAY_IN_FIELDS}
   mutation upsertBounty($subNames: [String!]!, $id: ID, $title: String!, $bounty: Int!,
-    $text: String, $forward: [ItemForwardInput]) {
+    $text: String, $forward: [ItemForwardInput], $sendProtocolId: Int) {
     upsertBounty(subNames: $subNames, id: $id, title: $title, bounty: $bounty, text: $text,
-      forward: $forward) {
+      forward: $forward, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
 
 export const POLL_VOTE = gql`
   ${PAY_IN_FIELDS}
-  mutation pollVote($id: ID!) {
-    pollVote(id: $id) {
+  mutation pollVote($id: ID!, $sendProtocolId: Int) {
+    pollVote(id: $id, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
 
 export const UPSERT_BIO = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertBio($text: String!) {
-    upsertBio(text: $text) {
+  mutation upsertBio($text: String!, $sendProtocolId: Int) {
+    upsertBio(text: $text, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
 
 export const CREATE_COMMENT = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertComment($text: String!, $parentId: ID!) {
-    upsertComment(text: $text, parentId: $parentId) {
+  mutation upsertComment($text: String!, $parentId: ID!, $sendProtocolId: Int) {
+    upsertComment(text: $text, parentId: $parentId, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
 
 export const UPDATE_COMMENT = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertComment($id: ID!, $text: String!, ${HASH_HMAC_INPUT_1}) {
-    upsertComment(id: $id, text: $text, ${HASH_HMAC_INPUT_2}) {
+  mutation upsertComment($id: ID!, $text: String!, ${HASH_HMAC_INPUT_1}, $sendProtocolId: Int) {
+    upsertComment(id: $id, text: $text, ${HASH_HMAC_INPUT_2}, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
@@ -380,11 +399,11 @@ export const UPSERT_SUB = gql`
   mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
     $replyCost: Int!, $postsSatsFilter: Int,
     $postTypes: [String!]!, $billingType: String!,
-    $billingAutoRenew: Boolean!, $nsfw: Boolean!) {
+    $billingAutoRenew: Boolean!, $nsfw: Boolean!, $sendProtocolId: Int) {
       upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
         replyCost: $replyCost, postsSatsFilter: $postsSatsFilter,
         postTypes: $postTypes, billingType: $billingType,
-        billingAutoRenew: $billingAutoRenew, nsfw: $nsfw) {
+        billingAutoRenew: $billingAutoRenew, nsfw: $nsfw, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
@@ -394,19 +413,19 @@ export const UNARCHIVE_TERRITORY = gql`
   mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
     $replyCost: Int!, $postsSatsFilter: Int,
     $postTypes: [String!]!, $billingType: String!,
-    $billingAutoRenew: Boolean!, $nsfw: Boolean!) {
+    $billingAutoRenew: Boolean!, $nsfw: Boolean!, $sendProtocolId: Int) {
       unarchiveTerritory(name: $name, desc: $desc, baseCost: $baseCost,
         replyCost: $replyCost, postsSatsFilter: $postsSatsFilter,
         postTypes: $postTypes, billingType: $billingType,
-        billingAutoRenew: $billingAutoRenew, nsfw: $nsfw) {
+        billingAutoRenew: $billingAutoRenew, nsfw: $nsfw, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`
 
 export const SUB_PAY = gql`
   ${PAY_IN_FIELDS}
-  mutation paySub($name: String!) {
-    paySub(name: $name) {
+  mutation paySub($name: String!, $sendProtocolId: Int) {
+    paySub(name: $name, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`

@@ -21,6 +21,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
 
   const logger = walletLogger({ models, userId: user.id })
   logger.info(`${user.name}@stacker.news payment attempt`, { amount: formatMsats(amount), nostr, comment })
+    .catch(err => console.error('failed to write lnurl payment attempt log:', err))
 
   try {
     await assertGofacYourself({ models, headers })
@@ -95,6 +96,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
   } catch (error) {
     console.log(error)
     logger.error(`${user.name}@stacker.news payment failed: ${error.message}`)
+      .catch(err => console.error('failed to write lnurl payment failure log:', err))
     res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice to customer\'s attached wallet' })
   }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { timeoutSignal } from '@/lib/time'
 import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
@@ -37,24 +37,140 @@ import {
   TEST_WALLET_RECEIVE_CLINK,
   DELETE_WALLET
 } from '@/wallets/client/fragments'
+import { ME } from '@/fragments/users'
 import { gql } from '@apollo/client'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
-import { useTemplates, useWallets } from '@/wallets/client/hooks/global'
-import { useDecryption, useEncryption, useSetKey } from '@/wallets/client/hooks/crypto'
-import { useWalletLoggerFactory } from '@/wallets/client/hooks/logger'
+import {
+  SET_KEY,
+  useTemplates,
+  useWallets,
+  useWalletsDispatch,
+  useWalletSendReady,
+  useWithKeySync,
+  useKeySyncInProgress
+} from '@/wallets/client/hooks/global'
+import { WalletSendStateNotReadyError } from '@/wallets/client/errors'
+import {
+  stageVaultKeyWithRollback,
+  useDecryption,
+  useEncryption,
+  useVaultLocalStore
+} from '@/wallets/client/hooks/crypto'
 import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
 import {
   isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
+import { useWalletLoggerFactory } from './logger'
+
+const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
+
+function updateVaultRemoteMetadata (client, patch) {
+  client.cache.updateQuery({ query: ME }, data => {
+    if (!data?.me?.privates) return data
+
+    return {
+      me: {
+        ...data.me,
+        privates: {
+          ...data.me.privates,
+          ...patch
+        }
+      }
+    }
+  })
+}
+
+export function useWalletQueryRefreshState ({
+  keySyncInProgress,
+  keyHashUpdatedAt,
+  clearWalletData,
+  refetch
+}) {
+  const keyHashUpdatedAtRef = useRef(keyHashUpdatedAt)
+  const [remoteRefreshPending, setRemoteRefreshPending] = useState(false)
+
+  useEffect(() => {
+    if (!keySyncInProgress) return
+
+    // Save/reset flows should not keep serving stale decrypted wallets
+    // while the replacement key and wallet metadata are being synced.
+    clearWalletData()
+  }, [keySyncInProgress, clearWalletData])
+
+  useClientLayoutEffect(() => {
+    const previousKeyHashUpdatedAt = keyHashUpdatedAtRef.current
+    keyHashUpdatedAtRef.current = keyHashUpdatedAt
+
+    if (!keyHashUpdatedAt || previousKeyHashUpdatedAt === keyHashUpdatedAt) return
+    // undefined -> value is initial hydration, not a key change
+    if (!previousKeyHashUpdatedAt) return
+
+    // Run before paint so wallet pages do not briefly render stale unlocked content.
+    clearWalletData()
+    setRemoteRefreshPending(true)
+  }, [keyHashUpdatedAt, clearWalletData])
+
+  useEffect(() => {
+    if (!remoteRefreshPending) return
+
+    let cancelled = false
+    let retryTimeout
+
+    const refetchRemoteWallets = async () => {
+      try {
+        await refetch()
+        if (cancelled) return
+        setRemoteRefreshPending(false)
+      } catch (err) {
+        if (cancelled) return
+        console.error('failed to refetch wallets after key update:', err)
+        // Keep the unsafe window closed until we successfully replace stale server data.
+        retryTimeout = setTimeout(() => {
+          refetchRemoteWallets()
+        }, FAST_POLL_INTERVAL_MS)
+      }
+    }
+
+    refetchRemoteWallets()
+
+    return () => {
+      cancelled = true
+      clearTimeout(retryTimeout)
+    }
+  }, [remoteRefreshPending, refetch])
+
+  return keySyncInProgress || remoteRefreshPending
+}
 
 export function useWalletsQuery () {
   const { me } = useMe()
   const query = useQuery(WALLETS, { skip: !me })
   const [wallets, setWallets] = useState(null)
   const [error, setError] = useState(null)
+  const keySyncInProgress = useKeySyncInProgress()
+  const walletsUpdatedAt = useWalletsUpdatedAt()
+  const keyHashUpdatedAt = me?.privates?.vaultKeyHashUpdatedAt ?? null
 
   const { decryptWallet, ready } = useWalletDecryption()
+  const serverWallets = query.data?.wallets ?? null
+  const clearWalletData = useCallback(() => {
+    setWallets(null)
+    setError(null)
+  }, [])
+
+  const refreshWindowActive = useWalletQueryRefreshState({
+    keySyncInProgress,
+    keyHashUpdatedAt,
+    clearWalletData,
+    refetch: query.refetch
+  })
+  // Keep retrying through transient Apollo fetch errors while the unsafe
+  // refresh window is still active, but continue surfacing local decrypt errors.
+  const queryError = refreshWindowActive ? null : query.error
+  const walletsError = error ?? queryError ?? null
+  const shouldDecryptWallets = serverWallets != null && ready && !refreshWindowActive
+  const walletSendReady = !walletsError && !refreshWindowActive && wallets != null
 
   useEffect(() => {
     // the query might fail because of network errors like ERR_NETWORK_CHANGED
@@ -69,59 +185,43 @@ export function useWalletsQuery () {
   }, [query.startPolling, query.stopPolling, wallets])
 
   useEffect(() => {
-    if (!query.data?.wallets || !ready) return
+    if (!shouldDecryptWallets) return
+
+    let cancelled = false
+
     Promise.all(
-      query.data?.wallets.map(w => decryptWallet(w))
+      serverWallets.map(w => decryptWallet(w))
     )
       .then(wallets => wallets.map(server2Client))
       .then(wallets => {
+        if (cancelled) return
         setWallets(wallets)
         setError(null)
       })
       .catch(err => {
+        if (cancelled) return
         console.error('failed to decrypt wallets:', err)
         setWallets([])
         // OperationError from the Web Crypto API does not have a message
         setError(new Error('decryption error: ' + (err.message || err.name)))
       })
-  }, [query.data, decryptWallet, ready])
-
-  useRefetchOnChange(query.refetch)
-
-  return useMemo(() => ({
-    ...query,
-    error: error ?? query.error,
-    loading: !wallets,
-    data: wallets ? { wallets } : null
-  }), [query, error, wallets])
-}
-
-function useRefetchOnChange (refetch) {
-  const { me } = useMe()
-  const walletsUpdatedAt = useWalletsUpdatedAt()
+    return () => {
+      cancelled = true
+    }
+  }, [serverWallets, decryptWallet, shouldDecryptWallets])
 
   useEffect(() => {
     if (!me?.id) return
 
-    refetch()
-  }, [refetch, me?.id, walletsUpdatedAt])
-}
+    query.refetch()
+  }, [query.refetch, me?.id, walletsUpdatedAt])
 
-export function useDecryptedWallet (wallet) {
-  const { decryptWallet, ready } = useWalletDecryption()
-  const [decryptedWallet, setDecryptedWallet] = useState(server2Client(wallet))
-
-  useEffect(() => {
-    if (!ready || !wallet) return
-    decryptWallet(wallet)
-      .then(server2Client)
-      .then(wallet => setDecryptedWallet(wallet))
-      .catch(err => {
-        console.error('failed to decrypt wallet:', err)
-      })
-  }, [decryptWallet, wallet, ready])
-
-  return decryptedWallet
+  return useMemo(() => ({
+    ...query,
+    walletsData: wallets == null ? null : { wallets },
+    walletsError,
+    walletSendReady
+  }), [query, wallets, walletsError, walletSendReady])
 }
 
 function server2Client (wallet) {
@@ -230,11 +330,19 @@ function useLightningAddressToWalletMapper () {
 
 export function useWalletEncryptionUpdate () {
   const wallets = useWallets()
+  const walletSendReady = useWalletSendReady()
+  const dispatch = useWalletsDispatch()
+  const client = useApolloClient()
+  const { deleteKey, readKey, writeKey } = useVaultLocalStore()
   const [mutate] = useMutation(UPDATE_WALLET_ENCRYPTION)
-  const setKey = useSetKey()
   const { encryptConfig } = useEncryptConfig()
+  const withKeySync = useWithKeySync()
 
   return useCallback(async ({ key, hash }) => {
+    if (!walletSendReady) {
+      throw new WalletSendStateNotReadyError()
+    }
+
     const encrypted = await Promise.all(
       wallets.map(async d => ({
         ...d,
@@ -254,26 +362,73 @@ export function useWalletEncryptionUpdate () {
       })
     }))
 
-    await mutate({ variables: { keyHash: hash, wallets: data } })
+    await withKeySync(async () => {
+      // Stage the replacement key locally first so a successful server update
+      // never leaves this device without the matching key material.
+      const { updatedAt } = await stageVaultKeyWithRollback({
+        deleteKey,
+        readKey,
+        writeKey,
+        key,
+        hash,
+        runServerChange: async () => {
+          await mutate({ variables: { keyHash: hash, wallets: data } })
+        }
+      })
 
-    await setKey({ key, hash })
-  }, [wallets, mutate, setKey, encryptConfig])
+      dispatch({ type: SET_KEY, key, hash, updatedAt })
+      updateVaultRemoteMetadata(client, {
+        showPassphrase: false,
+        vaultKeyHash: hash,
+        vaultKeyHashUpdatedAt: new Date(updatedAt).toISOString()
+      })
+      await client.refetchQueries({ include: [ME] })
+    })
+  }, [wallets, walletSendReady, dispatch, client, deleteKey, readKey, writeKey, mutate, encryptConfig, withKeySync])
 }
 
 export function useWalletReset () {
+  const client = useApolloClient()
+  const dispatch = useWalletsDispatch()
+  const { deleteKey, readKey, writeKey } = useVaultLocalStore()
   const [mutate] = useMutation(RESET_WALLETS)
+  const withKeySync = useWithKeySync()
 
-  return useCallback(async ({ newKeyHash }) => {
-    await mutate({ variables: { newKeyHash } })
-  }, [mutate])
+  return useCallback(async ({ key, newKeyHash }) => {
+    await withKeySync(async () => {
+      const { updatedAt } = await stageVaultKeyWithRollback({
+        deleteKey,
+        readKey,
+        writeKey,
+        key,
+        hash: newKeyHash,
+        runServerChange: async () => {
+          await mutate({ variables: { newKeyHash } })
+        }
+      })
+
+      dispatch({ type: SET_KEY, key, hash: newKeyHash, updatedAt })
+      updateVaultRemoteMetadata(client, {
+        showPassphrase: true,
+        vaultKeyHash: newKeyHash,
+        vaultKeyHashUpdatedAt: new Date(updatedAt).toISOString()
+      })
+      await client.refetchQueries({ include: [ME] })
+    })
+  }, [client, dispatch, deleteKey, readKey, writeKey, mutate, withKeySync])
 }
 
 export function useDisablePassphraseExport () {
+  const client = useApolloClient()
   const [mutate] = useMutation(DISABLE_PASSPHRASE_EXPORT)
 
   return useCallback(async () => {
     await mutate()
-  }, [mutate])
+
+    updateVaultRemoteMetadata(client, {
+      showPassphrase: false
+    })
+  }, [client, mutate])
 }
 
 export function useSetWalletPriorities () {
@@ -300,56 +455,64 @@ export function useSetWalletPriorities () {
 // (the mutation would throw if called but we make sure to never call it.)
 const NOOP_MUTATION = gql`mutation noop { noop }`
 
-function protocolUpsertMutation (protocol) {
-  switch (protocol.name) {
-    case 'LNBITS':
-      return protocol.send ? UPSERT_WALLET_SEND_LNBITS : UPSERT_WALLET_RECEIVE_LNBITS
-    case 'PHOENIXD':
-      return protocol.send ? UPSERT_WALLET_SEND_PHOENIXD : UPSERT_WALLET_RECEIVE_PHOENIXD
-    case 'BLINK':
-      return protocol.send ? UPSERT_WALLET_SEND_BLINK : UPSERT_WALLET_RECEIVE_BLINK
-    case 'LN_ADDR':
-      return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS
-    case 'NWC':
-      return protocol.send ? UPSERT_WALLET_SEND_NWC : UPSERT_WALLET_RECEIVE_NWC
-    case 'CLN_REST':
-      return protocol.send ? UPSERT_WALLET_SEND_CLN_REST : UPSERT_WALLET_RECEIVE_CLN_REST
-    case 'LND_GRPC':
-      return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_LND_GRPC
-    case 'LNC':
-      return protocol.send ? UPSERT_WALLET_SEND_LNC : NOOP_MUTATION
-    case 'WEBLN':
-      return protocol.send ? UPSERT_WALLET_SEND_WEBLN : NOOP_MUTATION
-    case 'CLINK':
-      return protocol.send ? UPSERT_WALLET_SEND_CLINK : UPSERT_WALLET_RECEIVE_CLINK
-    default:
-      return NOOP_MUTATION
+const UPSERT_PROTOCOL_MUTATIONS = {
+  LNBITS: {
+    send: UPSERT_WALLET_SEND_LNBITS,
+    receive: UPSERT_WALLET_RECEIVE_LNBITS
+  },
+  PHOENIXD: {
+    send: UPSERT_WALLET_SEND_PHOENIXD,
+    receive: UPSERT_WALLET_RECEIVE_PHOENIXD
+  },
+  BLINK: {
+    send: UPSERT_WALLET_SEND_BLINK,
+    receive: UPSERT_WALLET_RECEIVE_BLINK
+  },
+  LN_ADDR: {
+    receive: UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS
+  },
+  NWC: {
+    send: UPSERT_WALLET_SEND_NWC,
+    receive: UPSERT_WALLET_RECEIVE_NWC
+  },
+  CLN_REST: {
+    send: UPSERT_WALLET_SEND_CLN_REST,
+    receive: UPSERT_WALLET_RECEIVE_CLN_REST
+  },
+  LND_GRPC: {
+    receive: UPSERT_WALLET_RECEIVE_LND_GRPC
+  },
+  LNC: {
+    send: UPSERT_WALLET_SEND_LNC
+  },
+  WEBLN: {
+    send: UPSERT_WALLET_SEND_WEBLN
+  },
+  CLINK: {
+    send: UPSERT_WALLET_SEND_CLINK,
+    receive: UPSERT_WALLET_RECEIVE_CLINK
   }
+}
+
+const RECEIVE_TEST_MUTATIONS = {
+  LNBITS: TEST_WALLET_RECEIVE_LNBITS,
+  PHOENIXD: TEST_WALLET_RECEIVE_PHOENIXD,
+  BLINK: TEST_WALLET_RECEIVE_BLINK,
+  LN_ADDR: TEST_WALLET_RECEIVE_LIGHTNING_ADDRESS,
+  NWC: TEST_WALLET_RECEIVE_NWC,
+  CLN_REST: TEST_WALLET_RECEIVE_CLN_REST,
+  LND_GRPC: TEST_WALLET_RECEIVE_LND_GRPC,
+  CLINK: TEST_WALLET_RECEIVE_CLINK
+}
+
+function protocolUpsertMutation (protocol) {
+  const mutationType = protocol.send ? 'send' : 'receive'
+  return UPSERT_PROTOCOL_MUTATIONS[protocol.name]?.[mutationType] ?? NOOP_MUTATION
 }
 
 function protocolTestMutation (protocol) {
   if (protocol.send) return NOOP_MUTATION
-
-  switch (protocol.name) {
-    case 'LNBITS':
-      return TEST_WALLET_RECEIVE_LNBITS
-    case 'PHOENIXD':
-      return TEST_WALLET_RECEIVE_PHOENIXD
-    case 'BLINK':
-      return TEST_WALLET_RECEIVE_BLINK
-    case 'LN_ADDR':
-      return TEST_WALLET_RECEIVE_LIGHTNING_ADDRESS
-    case 'NWC':
-      return TEST_WALLET_RECEIVE_NWC
-    case 'CLN_REST':
-      return TEST_WALLET_RECEIVE_CLN_REST
-    case 'LND_GRPC':
-      return TEST_WALLET_RECEIVE_LND_GRPC
-    case 'CLINK':
-      return TEST_WALLET_RECEIVE_CLINK
-    default:
-      return NOOP_MUTATION
-  }
+  return RECEIVE_TEST_MUTATIONS[protocol.name] ?? NOOP_MUTATION
 }
 
 export function useTestSendPayment (protocol) {

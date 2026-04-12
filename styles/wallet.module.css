@@ -161,6 +161,109 @@
   margin: 2rem 0;
 }
 
+.passphraseSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.passphraseSectionTitle {
+  font-size: 0.8rem;
+  color: var(--theme-grey);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.passphraseSetup {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.passphraseSetupNotice {
+  background-color: var(--theme-toolbarHover);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.passphraseManagerInput {
+  font-family: var(--bs-font-monospace);
+  letter-spacing: 0.01em;
+}
+
+.passphraseInputHint {
+  margin-top: 0.35rem;
+  line-height: 1.2;
+  font-size: 0.875rem;
+  color: var(--theme-grey);
+}
+
+.passphraseSetupActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.passphraseSetupButtons {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.passphraseRegenerateButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--theme-grey);
+  cursor: pointer;
+}
+
+.passphraseRegenerateButton:hover {
+  color: var(--bs-body-color);
+}
+
+.passphraseRegenerateButton:focus-visible {
+  outline: 2px solid var(--theme-borderColor);
+  outline-offset: 4px;
+}
+
+.passphraseRegenerateButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.passphraseResetButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bs-danger);
+  font-weight: 700;
+}
+
+.passphraseResetButton:hover {
+  color: var(--bs-danger);
+  opacity: 0.85;
+}
+
+.passphraseResetButton:focus-visible {
+  outline: 2px solid var(--theme-borderColor);
+  outline-offset: 4px;
+}
+
+.passphraseResetButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .protocolSelector {
   margin-bottom: 1rem;
 }

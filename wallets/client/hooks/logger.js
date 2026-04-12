@@ -8,6 +8,8 @@ import { FAST_POLL_INTERVAL_MS } from '@/lib/constants'
 import { isTemplate } from '@/wallets/lib/util'
 import { useDiagnostics } from './diagnostics'
 
+const EMPTY_LOGS = []
+
 export const WalletFormLogsContext = createContext(null)
 
 export function useWalletFormLogs () {
@@ -79,7 +81,7 @@ export function useWalletLogger (protocol) {
 
 export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInterval = FAST_POLL_INTERVAL_MS } = {}) {
   const formLogs = useWalletFormLogs()
-  const localLogs = formLogs?.logs ?? []
+  const localLogs = formLogs?.logs ?? EMPTY_LOGS
   const clearLocalLogs = formLogs?.clearLogs
 
   const [cursor, setCursor] = useState(null)

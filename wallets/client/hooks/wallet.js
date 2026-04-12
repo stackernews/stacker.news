@@ -1,29 +1,43 @@
 import { useMe } from '@/components/me'
-import { useWallets } from '@/wallets/client/hooks/global'
+import { useWalletSendReady, useWallets } from '@/wallets/client/hooks/global'
 import protocols from '@/wallets/client/protocols'
 import { isWallet } from '@/wallets/lib/util'
 import { useMemo } from 'react'
 
 export function useSendProtocols () {
   const wallets = useWallets()
+  const walletSendReady = useWalletSendReady()
   return useMemo(
-    () => wallets
-      .filter(w => w.send)
-      .reduce((acc, wallet) => {
-        return [
-          ...acc,
-          ...wallet.protocols
-            .filter(p => p.send && p.enabled)
-            .map(walletProtocol => {
-              const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
-              return {
-                ...walletProtocol,
-                sendPayment
-              }
-            })
-        ]
-      }, [])
-    , [wallets])
+    () => {
+      if (!walletSendReady) return []
+
+      return wallets
+        .filter(w => w.send)
+        .reduce((acc, wallet) => {
+          const configuredSendProtocols = wallet.protocols.filter(p => p.send && p.enabled)
+          const configuredByName = new Map(configuredSendProtocols.map(protocol => [protocol.name, protocol]))
+          // Match the protocol order users see in the wallet form when picking a default sender.
+          const templateOrderedProtocols = (wallet.template?.protocols || [])
+            .filter(protocol => protocol.send)
+            .map(protocol => configuredByName.get(protocol.name))
+            .filter(Boolean)
+          const remainingProtocols = configuredSendProtocols
+            .filter(protocol => !templateOrderedProtocols.some(ordered => ordered.id === protocol.id))
+
+          return [
+            ...acc,
+            ...[...templateOrderedProtocols, ...remainingProtocols]
+              .map(walletProtocol => {
+                const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
+                return {
+                  ...walletProtocol,
+                  sendPayment
+                }
+              })
+          ]
+        }, [])
+    }
+    , [wallets, walletSendReady])
 }
 
 export function useHasSendWallet () {

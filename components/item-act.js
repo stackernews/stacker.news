@@ -56,7 +56,7 @@ const setItemMeAnonSats = ({ id, amount }) => {
 export default function ItemAct ({ onClose, item, act = 'TIP', step, children, abortSignal }) {
   const inputRef = useRef(null)
   const { me } = useMe()
-  const hasSendWallet = useHasSendWallet()
+  const hasReadySendWallet = useHasSendWallet()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     }
 
     const options = {}
-    if (hasSendWallet || me?.privates?.sats > Number(amount)) {
+    if (hasReadySendWallet || me?.privates?.sats > Number(amount)) {
       onPaid()
     } else {
       // we want to close the modal only after paid so the modal can stack
@@ -112,7 +112,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, hasSendWallet, act, item.id, onClose, abortSignal, animate])
+  }, [me, actor, hasReadySendWallet, act, item.id, onClose, abortSignal, animate])
 
   return (
     <Form

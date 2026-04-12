@@ -6,55 +6,50 @@ import { ObstacleButtons } from '@/components/obstacle'
 import { useToast } from '@/components/toast'
 import { FAST_POLL_INTERVAL_MS } from '@/lib/constants'
 import { isTemplate } from '@/wallets/lib/util'
-import { useDiagnostics } from '@/wallets/client/hooks/diagnostics'
+import { useDiagnostics } from './diagnostics'
 
-const TemplateLogsContext = createContext({})
+const EMPTY_LOGS = []
 
-export function TemplateLogsProvider ({ children }) {
-  const [templateLogs, setTemplateLogs] = useState([])
+export const WalletFormLogsContext = createContext(null)
 
-  const addTemplateLog = useCallback(({ level, message }) => {
-    // TODO(wallet-v2): Date.now() might return the same value for two logs
-    //   use window.performance.now() instead?
-    setTemplateLogs(prev => [{ id: Date.now(), level, message, createdAt: new Date() }, ...prev])
-  }, [])
+export function useWalletFormLogs () {
+  return useContext(WalletFormLogsContext)
+}
 
-  const clearTemplateLogs = useCallback(() => {
-    setTemplateLogs([])
-  }, [])
+export function useWriteWalletLog () {
+  const formLogs = useWalletFormLogs()
+  const [addWalletLog] = useMutation(ADD_WALLET_LOG)
 
-  const value = useMemo(() => ({
-    templateLogs,
-    addTemplateLog,
-    clearTemplateLogs
-  }), [templateLogs, addTemplateLog, clearTemplateLogs])
+  return useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
+    if (protocol && isTemplate(protocol)) {
+      formLogs?.addLog?.({ level, message })
+      return
+    }
 
-  return (
-    <TemplateLogsContext.Provider value={value}>
-      {children}
-    </TemplateLogsContext.Provider>
-  )
+    return addWalletLog({
+      variables: {
+        protocolId: protocol ? Number(protocol.id) : null,
+        level,
+        message,
+        timestamp: new Date(),
+        payInId,
+        updateStatus
+      }
+    }).catch(err => {
+      console.error('error adding wallet log:', err)
+    })
+  }, [formLogs, addWalletLog])
 }
 
 export function useWalletLoggerFactory () {
-  const { addTemplateLog } = useContext(TemplateLogsContext)
-  const [addWalletLog] = useMutation(ADD_WALLET_LOG)
   const [diagnostics] = useDiagnostics()
+  const writeWalletLog = useWriteWalletLog()
 
   const log = useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
     console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
 
-    if (protocol && isTemplate(protocol)) {
-      // this is a template, so there's no protocol yet to which we could attach logs in the db
-      addTemplateLog?.({ level, message })
-      return
-    }
-
-    return addWalletLog({ variables: { protocolId: protocol ? Number(protocol.id) : null, level, message, timestamp: new Date(), payInId, updateStatus } })
-      .catch(err => {
-        console.error('error adding wallet log:', err)
-      })
-  }, [addWalletLog, addTemplateLog])
+    return writeWalletLog({ protocol, level, message, payInId, updateStatus })
+  }, [writeWalletLog])
 
   return useCallback((protocol, payIn) => {
     const payInId = payIn ? Number(payIn.id) : null
@@ -85,7 +80,9 @@ export function useWalletLogger (protocol) {
 }
 
 export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInterval = FAST_POLL_INTERVAL_MS } = {}) {
-  const { templateLogs, clearTemplateLogs } = useContext(TemplateLogsContext)
+  const formLogs = useWalletFormLogs()
+  const localLogs = formLogs?.logs ?? EMPTY_LOGS
+  const clearLocalLogs = formLogs?.clearLogs
 
   const [cursor, setCursor] = useState(null)
   const [logs, setLogs] = useState([])
@@ -148,35 +145,20 @@ export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInte
 
   const clearLogs = useCallback(() => {
     setLogs([])
-    clearTemplateLogs?.()
+    clearLocalLogs?.()
     setCursor(null)
-  }, [clearTemplateLogs])
+  }, [clearLocalLogs])
 
   return useMemo(() => {
     return {
       loading: noFetch ? false : (!called ? true : loading),
-      logs: noFetch ? templateLogs : logs,
+      logs: noFetch ? localLogs : logs,
       error,
       loadMore,
       hasMore: cursor !== null,
       clearLogs
     }
-  }, [loading, noFetch, called, templateLogs, logs, error, loadMore, cursor, clearLogs])
-}
-
-function mapLevelToConsole (level) {
-  switch (level) {
-    case 'OK':
-    case 'INFO':
-      return 'info'
-    case 'ERROR':
-      return 'error'
-    case 'WARN':
-    case 'WARNING':
-      return 'warn'
-    default:
-      return 'log'
-  }
+  }, [loading, noFetch, called, localLogs, logs, error, loadMore, cursor, clearLogs])
 }
 
 export function useDeleteWalletLogs (protocol, debug) {
@@ -219,4 +201,19 @@ function DeleteWalletLogsObstacle ({ protocol, onClose, onSuccess, debug }) {
       <ObstacleButtons onClose={onClose} onConfirm={handleConfirm} confirmText='delete' />
     </div>
   )
+}
+
+function mapLevelToConsole (level) {
+  switch (level) {
+    case 'OK':
+    case 'INFO':
+      return 'info'
+    case 'ERROR':
+      return 'error'
+    case 'WARN':
+    case 'WARNING':
+      return 'warn'
+    default:
+      return 'log'
+  }
 }

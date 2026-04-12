@@ -5,7 +5,7 @@ import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
 import { useEffect } from 'react'
 import { NORMAL_POLL_INTERVAL_MS, PAY_IN_AUTO_RETRY_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
-import { WalletConfigurationError } from '@/wallets/client/errors'
+import { WalletConfigurationError, WalletSendStateNotReadyError } from '@/wallets/client/errors'
 
 export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
@@ -107,10 +107,15 @@ async function retryFailedPayIn (payIn, {
 }) {
   const newPayIn = await payInHelper.retry(payIn, { sendProtocolId })
   const hasBolt11 = !!newPayIn.payerPrivates.payInBolt11
+  const releaseAttempt = async () => {
+    await payInHelper.cancel(newPayIn).catch(err => {
+      console.error('failed to cancel successor payIn:', err)
+    })
+  }
   if (isStopped()) {
     // Release the successor attempt so it can be retried again later.
     if (hasBolt11) {
-      await payInHelper.cancel(newPayIn).catch(() => {})
+      await releaseAttempt()
     }
     return
   }
@@ -125,12 +130,17 @@ async function retryFailedPayIn (payIn, {
   } catch (err) {
     if (isStopped()) {
       // Stop/pause events should not strand the new attempt in a pending state.
-      await payInHelper.cancel(newPayIn).catch(() => {})
+      await releaseAttempt()
+      return
+    }
+    if (err instanceof WalletSendStateNotReadyError) {
+      // Release the successor attempt so it can be retried once wallets settle again.
+      await releaseAttempt()
       return
     }
     if (err instanceof WalletConfigurationError) {
       // consume attempt by canceling invoice
-      await payInHelper.cancel(newPayIn)
+      await releaseAttempt()
     }
     throw err
   }

@@ -7,7 +7,6 @@ const typeDefs = gql`
     numBolt11s: Int!
     connectAddress: String!
     wallets: [WalletOrTemplate!]!
-    wallet(id: ID, name: String): WalletOrTemplate
     walletSettings: WalletSettings!
     walletLogs(protocolId: Int, payInId: Int, cursor: String, debug: Boolean): WalletLogs!
   }

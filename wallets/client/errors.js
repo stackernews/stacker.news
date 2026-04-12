@@ -69,6 +69,13 @@ export class WalletsNotAvailableError extends WalletConfigurationError {
   }
 }
 
+export class WalletSendStateNotReadyError extends WalletConfigurationError {
+  constructor () {
+    super('wallet send state is not ready')
+    this.name = 'WalletSendStateNotReadyError'
+  }
+}
+
 export class AnonWalletError extends WalletConfigurationError {
   constructor () {
     super('anon cannot pay with wallets')

@@ -1,6 +1,6 @@
 import { Button } from 'react-bootstrap'
 import styles from '@/styles/logger.module.css'
-import { useWalletLogs, useDeleteWalletLogs } from '@/wallets/client/hooks'
+import { useWalletLogs, useDeleteWalletLogs } from '@/wallets/client/hooks/logger'
 import { useCallback, useEffect, useState, Fragment } from 'react'
 import { timeSince } from '@/lib/time'
 import classNames from 'classnames'

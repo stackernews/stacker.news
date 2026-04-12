@@ -27,6 +27,16 @@ export function useIndexedDB (dbName) {
     }
   }, [dbName])
 
+  const remove = useCallback(async (storeName, key) => {
+    const db = await _open(dbName, VERSION)
+
+    try {
+      return await _remove(db, storeName, key)
+    } finally {
+      db.close()
+    }
+  }, [dbName])
+
   const deleteDb = useCallback(async () => {
     return await _delete(dbName)
   }, [dbName])
@@ -35,7 +45,7 @@ export function useIndexedDB (dbName) {
     return await _open(dbName, VERSION)
   }, [dbName])
 
-  return useMemo(() => ({ set, get, deleteDb, open }), [set, get, deleteDb, open])
+  return useMemo(() => ({ set, get, remove, deleteDb, open }), [set, get, remove, deleteDb, open])
 }
 
 async function _open (dbName, version = 1) {
@@ -103,6 +113,28 @@ async function _get (db, storeName, key) {
 
     request.onerror = (event) => {
       reject(new IndexedDBGetError(event.target?.error?.message))
+    }
+
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+  })
+}
+
+async function _remove (db, storeName, key) {
+  return await new Promise((resolve, reject) => {
+    let request
+    try {
+      request = db
+        .transaction(storeName, 'readwrite')
+        .objectStore(storeName)
+        .delete(key)
+    } catch (error) {
+      return reject(new IndexedDBDeleteError(error?.message))
+    }
+
+    request.onerror = (event) => {
+      reject(new IndexedDBDeleteError(event.target?.error?.message))
     }
 
     request.onsuccess = () => {

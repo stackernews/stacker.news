@@ -1,18 +1,21 @@
 import { useCallback } from 'react'
 import { sha256 } from '@noble/hashes/sha2.js'
-import { useSendProtocols, useWalletLoggerFactory } from '@/wallets/client/hooks'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
-  WalletPaymentError, WalletError, WalletReceiverError
+  WalletPaymentError, WalletError, WalletReceiverError, WalletSendStateNotReadyError
 } from '@/wallets/client/errors'
 import { timeoutSignal, withTimeout } from '@/lib/time'
 import { useMe } from '@/components/me'
 import { formatSats, msatsToSats } from '@/lib/format'
 import usePayInHelper from '@/components/payIn/hooks/use-pay-in-helper'
+import { useWalletSendReady } from './global'
+import { useWalletLoggerFactory } from './logger'
+import { useSendProtocols } from './wallet'
 
 export function useWalletPayment () {
   const protocols = useSendProtocols()
+  const walletSendReady = useWalletSendReady()
   const sendPayment = useSendPayment()
   const payInHelper = usePayInHelper()
   const { me } = useMe()
@@ -21,10 +24,15 @@ export function useWalletPayment () {
   return useCallback(async (payIn, { waitFor, protocolLimit = protocols.length } = {}) => {
     let aggregateError = new WalletAggregateError([])
     let latestPayIn = payIn
+    const attempts = Math.min(protocolLimit, protocols.length)
 
     // anon user cannot pay with wallets
     if (!me) {
       throw new AnonWalletError()
+    }
+
+    if (!walletSendReady) {
+      throw new WalletSendStateNotReadyError()
     }
 
     // throw a special error that caller can handle separately if no payment was attempted
@@ -32,12 +40,11 @@ export function useWalletPayment () {
       throw new WalletsNotAvailableError()
     }
 
-    for (let i = 0; i < protocolLimit; i++) {
+    for (let i = 0; i < attempts; i++) {
       const protocol = protocols[i]
       const controller = payInHelper.waitCheckController(latestPayIn.id)
 
       const logger = loggerFactory(protocol, latestPayIn)
-      console.log('useWalletPayment: protocol', protocol.name, latestPayIn)
       const paymentPromise = sendPayment(protocol, latestPayIn.payerPrivates.payInBolt11, logger)
       const pollPromise = controller.wait(waitFor)
 
@@ -75,11 +82,11 @@ export function useWalletPayment () {
         if (paymentError instanceof WalletReceiverError) {
           // if payment failed because of the receiver, use the same wallet again
           // and log this as info, not error
-          logger.info('failed to forward payment to receiver, retrying with new invoice')
+          logger.info('couldn\'t deliver the payment to the recipient wallet, retrying with a new invoice')
           i -= 1
         } else if (paymentError instanceof WalletPaymentError) {
           // only log payment errors, not configuration errors
-          logger.error(message)
+          logger.error(message, { updateStatus: true })
         }
 
         if (paymentError instanceof WalletPaymentError) {
@@ -88,9 +95,10 @@ export function useWalletPayment () {
         }
 
         // only create a new invoice if we will try to pay with a protocol again
-        const retry = paymentError instanceof WalletReceiverError || i < protocolLimit - 1
+        const retry = paymentError instanceof WalletReceiverError || i < attempts - 1
         if (retry) {
-          latestPayIn = await payInHelper.retry(latestPayIn)
+          const retryProtocol = paymentError instanceof WalletReceiverError ? protocol : protocols[i + 1]
+          latestPayIn = await payInHelper.retry(latestPayIn, { sendProtocolId: Number(retryProtocol.id) })
         }
 
         aggregateError = new WalletAggregateError([aggregateError, paymentError], latestPayIn)
@@ -103,12 +111,11 @@ export function useWalletPayment () {
 
     // if we reach this line, no wallet payment succeeded
     throw new WalletPaymentAggregateError([aggregateError], latestPayIn)
-  }, [protocols, payInHelper, sendPayment])
+  }, [protocols, walletSendReady, me, payInHelper, sendPayment, loggerFactory])
 }
 
 function useSendPayment () {
   return useCallback(async (protocol, payInBolt11, logger) => {
-    console.log('useSendPayment: protocol', protocol.name, payInBolt11)
     try {
       logger.info(`↗ sending payment: ${formatSats(msatsToSats(payInBolt11.msatsRequested))}`)
       const preimage = await withTimeout(
@@ -121,12 +128,12 @@ function useSendPayment () {
 
       // some wallets like Coinos will always immediately return success without providing the preimage
       if (!preimage) {
-        return logger.warn('wallet returned success without proof of payment')
+        return logger.warn('wallet returned success without proof of payment', { updateStatus: true })
       }
       if (!verifyPreimage(payInBolt11.hash, preimage)) {
-        return logger.warn('wallet returned success with invalid proof of payment')
+        return logger.warn('wallet returned success with invalid proof of payment', { updateStatus: true })
       }
-      logger.ok(`↗ payment sent: ${formatSats(msatsToSats(payInBolt11.msatsRequested))}`)
+      logger.ok(`↗ payment sent: ${formatSats(msatsToSats(payInBolt11.msatsRequested))}`, { updateStatus: true })
     } catch (err) {
       // we don't log the error here since we want to handle receiver errors separately
       const message = err.message || err.toString?.()

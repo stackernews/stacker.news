@@ -23,18 +23,20 @@ export function useZap ({ nextTip }) {
   const [undoPending, setUndoPending] = useState(0)
   const undoControllerRef = useRef(null)
   const mountedRef = useRef(true)
+  const fireZapRef = useRef()
+  const flushAllRef = useRef()
 
   // direct mutation — bypasses useAct to avoid double cache writes from getActCachePhases
-  // waitFor is passed per-call in fireZap so debounce timer always uses latest hasSendWallet
+  // waitFor is passed per-call in fireZap so debounce timer always uses latest send-wallet availability
   const [sendZap] = usePayInMutation(ACT_MUTATION)
 
   // fire the accumulated zap mutation for a buffer entry
-  const fireZap = useCallback(async (entry) => {
+  fireZapRef.current = async (entry) => {
     const { totalSats, item, me: entryMe } = entry
     try {
       const { error } = await sendZap({
-        variables: { id: item.id, sats: totalSats, act: 'TIP', hasSendWallet },
-        // pass waitFor per-call so debounce timer always uses latest hasSendWallet
+        variables: { id: item.id, sats: totalSats, act: 'TIP' },
+        // pass waitFor per-call so debounce timer always uses latest send-wallet availability
         waitFor: payIn =>
           hasSendWallet
             ? payIn?.payInState === 'PAID'
@@ -100,11 +102,10 @@ export function useZap ({ nextTip }) {
         payOutBolt11Public: true
       }, entryMe, { optimistic: false })
     }
-  }, [client, sendZap, hasSendWallet])
+  }
+  const fireZap = useCallback((entry) => fireZapRef.current(entry), [])
 
   // flush all pending debounced zaps (used on unmount)
-  // stored in a ref so the cleanup effect has stable deps (only runs on unmount)
-  const flushAllRef = useRef(null)
   flushAllRef.current = () => {
     for (const [, entry] of bufferRef.current) {
       clearTimeout(entry.timer)
@@ -112,16 +113,16 @@ export function useZap ({ nextTip }) {
     }
     bufferRef.current.clear()
   }
+  const flushAll = useCallback(() => flushAllRef.current(), [])
 
   // cleanup: flush pending zaps on unmount so we don't lose them
-  // empty deps — only runs on mount/unmount, uses ref for latest flushAll
   useEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
-      flushAllRef.current?.()
+      flushAll()
     }
-  }, [])
+  }, [flushAll])
 
   // the per-click zap function — synchronous from the caller's perspective
   const zap = useCallback(({ item, me: meProp }) => {

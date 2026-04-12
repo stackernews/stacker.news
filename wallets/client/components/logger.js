@@ -1,6 +1,6 @@
 import { Button } from 'react-bootstrap'
 import styles from '@/styles/logger.module.css'
-import { useWalletLogs, useDeleteWalletLogs } from '@/wallets/client/hooks'
+import { useWalletLogs, useDeleteWalletLogs } from '@/wallets/client/hooks/logger'
 import { useCallback, useEffect, useState, Fragment } from 'react'
 import { timeSince } from '@/lib/time'
 import classNames from 'classnames'
@@ -10,15 +10,16 @@ import { isTemplate } from '@/wallets/lib/util'
 //   when we delete logs for a protocol, the cache is not updated
 //   so when we go to all wallet logs, we still see the deleted logs until the query is refetched
 
-export function WalletLogs ({ protocol, className, debug }) {
-  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol, debug)
+export function WalletLogs ({ protocol, payInId, className, debug, poll = true, pollInterval }) {
+  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol, debug, payInId, { poll, pollInterval })
   const deleteLogs = useDeleteWalletLogs(protocol, debug)
 
   const onDelete = useCallback(() => {
     deleteLogs({ onSuccess: clearLogs })
   }, [deleteLogs, clearLogs])
 
-  const embedded = !!protocol
+  const embedded = !!protocol || payInId !== undefined
+  const transaction = payInId !== undefined && !protocol
 
   // avoid unnecessary clutter when attaching new wallet
   const hideLogs = logs.length === 0 && protocol && isTemplate(protocol)
@@ -26,10 +27,11 @@ export function WalletLogs ({ protocol, className, debug }) {
 
   // showing delete button and logs footer for temporary template logs is unnecessary clutter
   const template = protocol && isTemplate(protocol)
+  const canDelete = !template && payInId === undefined
 
   return (
     <div className={className}>
-      {!template && (
+      {canDelete && (
         <div className='d-flex w-100 align-items-center mb-3'>
           <span
             style={{ cursor: 'pointer' }}
@@ -38,33 +40,32 @@ export function WalletLogs ({ protocol, className, debug }) {
           </span>
         </div>
       )}
-      <div className={classNames(styles.container, embedded && styles.embedded)}>
+      <div className={classNames(styles.container, embedded && styles.embedded, transaction && styles.transaction)}>
         {logs.map((log, i) => (
           <LogMessage
-            key={i}
+            key={log.id ?? i}
             tag={protocol ? null : log.wallet?.name}
             level={log.level}
             message={log.message}
             context={log.context}
-            payIn={log.payIn}
             ts={log.createdAt}
           />
         ))}
-        {!template && <WalletLogsFooter empty={logs.length === 0} loading={loading} hasMore={hasMore} loadMore={loadMore} />}
+        {!template && <WalletLogsFooter empty={logs.length === 0} loading={loading} hasMore={hasMore} loadMore={loadMore} transaction={transaction} />}
       </div>
     </div>
   )
 }
 
-function WalletLogsFooter ({ empty, loading, hasMore, loadMore }) {
+function WalletLogsFooter ({ empty, loading, hasMore, loadMore, transaction }) {
   return (
     <>
       {loading
         ? <div className='w-100 text-center'>loading...</div>
-        : empty && <div className='w-100 text-center'>empty</div>}
+        : empty && <div className='w-100 text-center'>{transaction ? 'no activity' : 'empty'}</div>}
       {hasMore
         ? <div className='w-100 text-center'><Button onClick={loadMore} size='sm' className='mt-3'>more</Button></div>
-        : <div className='w-100 text-center'>------ start of logs ------</div>}
+        : !transaction && <div className='w-100 text-center'>------ start of logs ------</div>}
     </>
   )
 }
@@ -128,6 +129,7 @@ function Level ({ level }) {
       className = 'text-success'; break
     case 'error':
       className = 'text-danger'; break
+    case 'warn':
     case 'warning':
       level = 'warn'
       className = 'text-warning'; break

@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import PageLoading from '@/components/page-loading'
 import { ME_REWARDS } from '@/fragments/rewards'
 import { CenterLayout } from '@/components/layout'

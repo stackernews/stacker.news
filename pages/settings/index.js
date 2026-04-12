@@ -4,7 +4,8 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import Nav from 'react-bootstrap/Nav'
 import Layout from '@/components/layout'
 import { useMemo } from 'react'
-import { gql, useMutation, useQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useMutation, useQuery } from '@apollo/client/react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { SETTINGS, SET_SETTINGS } from '@/fragments/users'
 import { useRouter } from 'next/router'
@@ -49,29 +50,19 @@ export function SettingsHeader () {
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Link href='/settings' passHref legacyBehavior>
-            <Nav.Link eventKey='general'>general</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/settings' eventKey='general'>general</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/settings/logins' passHref legacyBehavior>
-            <Nav.Link eventKey='logins'>logins</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/settings/logins' eventKey='logins'>logins</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/settings/wallets' passHref legacyBehavior>
-            <Nav.Link eventKey='wallets'>wallets</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/settings/wallets' eventKey='wallets'>wallets</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/settings/subscriptions/stackers' passHref legacyBehavior>
-            <Nav.Link eventKey='subscriptions'>subscriptions</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/settings/subscriptions/stackers' eventKey='subscriptions'>subscriptions</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/settings/mutes' passHref legacyBehavior>
-            <Nav.Link eventKey='mutes'>mutes</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/settings/mutes' eventKey='mutes'>mutes</Nav.Link>
         </Nav.Item>
       </Nav>
     </>

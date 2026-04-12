@@ -54,34 +54,20 @@ export default function OffCanvas ({ me, dropNavKey }) {
             {me
               ? (
                 <>
-                  <Link href={'/' + me.name} passHref legacyBehavior>
-                    <Dropdown.Item active={me.name === dropNavKey}>
-                      <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
-                    </Dropdown.Item>
-                  </Link>
-                  <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
-                    <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
-                  </Link>
-                  <Link href='/wallets' passHref legacyBehavior>
-                    <Dropdown.Item eventKey='wallets'>
-                      <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
-                    </Dropdown.Item>
-                  </Link>
-                  <Link href='/credits' passHref legacyBehavior>
-                    <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>
-                  </Link>
-                  <Link href='/satistics' passHref legacyBehavior>
-                    <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
-                  </Link>
+                  <Dropdown.Item as={Link} href={'/' + me.name} active={me.name === dropNavKey}>
+                    <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
+                  </Dropdown.Item>
+                  <Dropdown.Item as={Link} href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
+                  <Dropdown.Item as={Link} href='/wallets' eventKey='wallets'>
+                    <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
+                  </Dropdown.Item>
+                  <Dropdown.Item as={Link} href='/credits' eventKey='credits'>credits</Dropdown.Item>
+                  <Dropdown.Item as={Link} href='/satistics' eventKey='satistics'>satistics</Dropdown.Item>
                   <Dropdown.Divider />
-                  <Link href='/invites' passHref legacyBehavior>
-                    <Dropdown.Item eventKey='invites'>invites</Dropdown.Item>
-                  </Link>
+                  <Dropdown.Item as={Link} href='/invites' eventKey='invites'>invites</Dropdown.Item>
                   <Dropdown.Divider />
                   <div className='d-flex align-items-center'>
-                    <Link href='/settings' passHref legacyBehavior>
-                      <Dropdown.Item eventKey='settings'>settings</Dropdown.Item>
-                    </Link>
+                    <Dropdown.Item as={Link} href='/settings' eventKey='settings'>settings</Dropdown.Item>
                   </div>
                   <Dropdown.Divider />
                   <LogoutDropdownItem handleClose={handleClose} />

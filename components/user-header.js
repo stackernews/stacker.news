@@ -6,7 +6,8 @@ import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
 import { useState, useEffect } from 'react'
 import { Form, Input, SubmitButton } from './form'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client/react'
 import styles from './user-header.module.css'
 import navStyles from '@/styles/nav.module.css'
 import { useMe } from './me'
@@ -49,32 +50,26 @@ export default function UserHeader ({ user }) {
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Link href={'/' + user.name} passHref legacyBehavior>
-            <Nav.Link eventKey='bio'>bio</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href={'/' + user.name} eventKey='bio'>bio</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href={'/' + user.name + '/all'} passHref legacyBehavior>
-            <Nav.Link eventKey='items'>
-              {numWithUnits(user.nitems, {
-                abbreviate: false,
-                unitSingular: 'item',
-                unitPlural: 'items'
-              })}
-            </Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href={'/' + user.name + '/all'} eventKey='items'>
+            {numWithUnits(user.nitems, {
+              abbreviate: false,
+              unitSingular: 'item',
+              unitPlural: 'items'
+            })}
+          </Nav.Link>
         </Nav.Item>
         {showTerritoriesTab && (
           <Nav.Item>
-            <Link href={'/' + user.name + '/territories'} passHref legacyBehavior>
-              <Nav.Link eventKey='territories'>
-                {numWithUnits(user.nterritories, {
-                  abbreviate: false,
-                  unitSingular: 'territory',
-                  unitPlural: 'territories'
-                })}
-              </Nav.Link>
-            </Link>
+            <Nav.Link as={Link} href={'/' + user.name + '/territories'} eventKey='territories'>
+              {numWithUnits(user.nterritories, {
+                abbreviate: false,
+                unitSingular: 'territory',
+                unitPlural: 'territories'
+              })}
+            </Nav.Link>
           </Nav.Item>
         )}
       </Nav>
@@ -238,8 +233,7 @@ function SocialLink ({ name, id }) {
     return (
       // eslint-disable-next-line
       <Link className={className} target='_blank' href={`https://twitter.com/${id}`} rel={UNKNOWN_LINK_REL}>
-        <TwitterIcon width={20} height={20} className='me-1' />
-        @{id}
+        <TwitterIcon width={20} height={20} className='me-1' />@{id}
       </Link>
     )
   }

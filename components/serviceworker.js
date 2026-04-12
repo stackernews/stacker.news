@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { Workbox } from 'workbox-window'
-import { gql, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import { requestPersistentStorage } from './use-indexeddb'
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY

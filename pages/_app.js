@@ -1,6 +1,7 @@
 import '@/styles/globals.scss'
 import '@/styles/text.scss'
-import { ApolloProvider, gql } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { ApolloProvider } from '@apollo/client/react'
 import { MeProvider } from '@/components/me'
 import PlausibleProvider from 'next-plausible'
 import getApolloClient from '@/lib/apollo.js'
@@ -110,7 +111,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
         <meta name='viewport' content='initial-scale=1.0, width=device-width, viewport-fit=cover' />
       </Head>
       <ErrorBoundary>
-        <PlausibleProvider domain='stacker.news' trackOutboundLinks>
+        <PlausibleProvider>
           <ApolloProvider client={client}>
             <MeProvider me={me}>
               <CookiesProvider ssrPublicCookies={ssrPublicCookies}>

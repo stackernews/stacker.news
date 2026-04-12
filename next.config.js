@@ -46,7 +46,25 @@ try {
   commitHash = '0000'
 }
 
-module.exports = withPlausibleProxy()({
+const getAllowedDevOrigins = () => {
+  if (isProd) return undefined
+
+  const devOrigins = []
+  try {
+    // NEXT_PUBLIC_URL is `http://domain:3000`, we just need the domain
+    devOrigins.push(new URL(process.env.NEXT_PUBLIC_URL).hostname)
+  } catch {}
+
+  // extra origins, comma separated, can be set in the environment variable ALLOWED_DEV_ORIGINS
+  const extraOrigins = process.env.ALLOWED_DEV_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || []
+  devOrigins.push(...extraOrigins)
+
+  // if no origins are found, localhost is always allowed
+  return devOrigins
+}
+
+module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi3E-sauvdFABb.js' })({
+  allowedDevOrigins: getAllowedDevOrigins(),
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
@@ -55,6 +73,7 @@ module.exports = withPlausibleProxy()({
     // so we need to resolve the relative path to the lightning module
     LIGHTNING_MODULE_PATH: require('path').relative(process.cwd(), require.resolve('lightning'))
   },
+  transpilePackages: ['next-plausible'],
   // the app uses plain <img> tags exclusively — disable the built-in
   // image optimization endpoint since it is unused and adds attack surface
   images: {
@@ -64,6 +83,12 @@ module.exports = withPlausibleProxy()({
   experimental: {
     scrollRestoration: true,
     serverSourceMaps: true
+  },
+  // suppress deprecation warnings of bootstrap sass
+  // https://github.com/twbs/bootstrap/issues/40962
+  sassOptions: {
+    quietDeps: true,
+    silenceDeprecations: ['legacy-js-api', 'color-functions']
   },
   reactStrictMode: true,
   productionBrowserSourceMaps: true,
@@ -167,10 +192,6 @@ module.exports = withPlausibleProxy()({
       {
         source: '/.well-known/web-app-origin-association',
         destination: '/api/web-app-origin-association'
-      },
-      {
-        source: '/~:sub/:slug*\\?:query*',
-        destination: '/~/:slug*?:query*&sub=:sub'
       },
       {
         source: '/~:sub/:slug*',

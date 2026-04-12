@@ -2,7 +2,7 @@ import { Fragment, useCallback, forwardRef, useRef } from 'react'
 import { UPLOAD_TYPES_ALLOW, MEDIA_URL } from '@/lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'
-import { useMutation } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import piexif from 'piexifjs'
 
 export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar, allow }, ref) => {

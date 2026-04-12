@@ -38,7 +38,8 @@ import {
   DELETE_WALLET
 } from '@/wallets/client/fragments'
 import { ME } from '@/fragments/users'
-import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
 import {
   SET_KEY,
   useTemplates,

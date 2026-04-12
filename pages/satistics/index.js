@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
 import MoreFooter from '@/components/more-footer'
@@ -24,14 +24,10 @@ export function SatisticsHeader () {
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Link href='/satistics' passHref legacyBehavior>
-            <Nav.Link eventKey='history'>history</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/satistics' eventKey='history'>history</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/satistics/graphs/day' passHref legacyBehavior>
-            <Nav.Link eventKey='graphs'>graphs</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/satistics/graphs/day' eventKey='graphs'>graphs</Nav.Link>
         </Nav.Item>
       </Nav>
     </>

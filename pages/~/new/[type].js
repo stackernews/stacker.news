@@ -5,7 +5,7 @@ import NewHeader from '@/components/new-header'
 import { useRouter } from 'next/router'
 import { SUB_FULL, SUB_ITEMS } from '@/fragments/subs'
 import { COMMENT_TYPE_QUERY } from '@/lib/constants'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import PageLoading from '@/components/page-loading'
 
 const staticVariables = { sort: 'new' }

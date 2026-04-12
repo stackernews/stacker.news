@@ -1,5 +1,6 @@
 import { CopyInput } from './form'
-import { gql, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import { INVITE_FIELDS } from '@/fragments/invites'
 import styles from '@/styles/invites.module.css'
 import { useToast } from '@/components/toast'

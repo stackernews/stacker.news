@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { InputGroup, Nav } from 'react-bootstrap'
 import styles from '@/styles/nav.module.css'
-import { useMutation } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/withdrawal'
 import { requestProvider } from 'webln'
 import { useEffect, useState } from 'react'
@@ -49,14 +49,10 @@ function WithdrawForm () {
         activeKey={router.query.type ?? 'invoice'}
       >
         <Nav.Item>
-          <Link href='/withdraw' passHref legacyBehavior>
-            <Nav.Link eventKey='invoice'>invoice</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/withdraw' eventKey='invoice'>invoice</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/withdraw?type=lnaddr' passHref legacyBehavior>
-            <Nav.Link eventKey='lnaddr'>lightning address</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href='/withdraw?type=lnaddr' eventKey='lnaddr'>lightning address</Nav.Link>
         </Nav.Item>
       </Nav>
       <SelectedWithdrawalForm />

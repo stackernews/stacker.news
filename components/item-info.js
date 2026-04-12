@@ -31,6 +31,8 @@ import useCanEdit from './use-can-edit'
 import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { gql } from '@apollo/client'
+import { useDomain } from './territory-domains'
+import LinkExternal from '@/svgs/link-external.svg'
 
 function itemTitle (item) {
   let title = ''
@@ -79,6 +81,7 @@ export default function ItemInfo ({
   setDisableRetry, disableRetry, updatePayIn
 }) {
   const { me } = useMe()
+  const { domain } = useDomain()
   const router = useRouter()
   const showModal = useShowModal()
   const [hasNewComments, setHasNewComments] = useState(false)
@@ -161,13 +164,19 @@ export default function ItemInfo ({
             </Link>
           </>}
       </span>
-      {item.subNames?.map(subName => (
-        <SubPopover key={subName} sub={subName}>
-          <Link href={`/~${subName}`}>
-            {' '}<Badge className={styles.newComment} bg={null}>{subName}</Badge>
-          </Link>
-        </SubPopover>
-      ))}
+      {item.subNames?.map(subName => {
+        const isExternal = domain && subName !== domain.subName
+        const href = domain ? (isExternal ? `${process.env.NEXT_PUBLIC_URL}/~${subName}` : '/') : `/~${subName}`
+
+        return (
+          <SubPopover key={subName} sub={subName}>
+            {/* eslint-disable-next-line */}
+            <Link href={href} target={isExternal ? '_blank' : undefined}>
+              {' '}<Badge className={styles.newComment} bg={null}>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
+            </Link>
+          </SubPopover>
+        )
+      })}
       {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
       {item.freebie && !item.position &&

@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { useField } from 'formik'
-import { useMutation, useQuery } from '@apollo/client'
+import { useMutation, useQuery } from '@apollo/client/react'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Info from '@/components/info'
 import { useToast } from '@/components/toast'

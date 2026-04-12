@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useMutation } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import { useMe } from '@/components/me'
 import { useToast } from '@/components/toast'
 import { SET_DIAGNOSTICS } from '@/fragments/users'

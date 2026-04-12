@@ -1,4 +1,5 @@
-import { gql, useApolloClient } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useApolloClient } from '@apollo/client/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'

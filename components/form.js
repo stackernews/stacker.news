@@ -10,7 +10,7 @@ import Row from 'react-bootstrap/Row'
 import styles from './form.module.css'
 import AddIcon from '@/svgs/add-fill.svg'
 import CloseIcon from '@/svgs/close-line.svg'
-import { useLazyQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import { useToast } from './toast'
@@ -75,7 +75,7 @@ export function SubmitButton ({
   )
 }
 
-export function CopyButton ({ value, icon, ...props }) {
+export function CopyButton ({ value, icon, append, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
@@ -95,6 +95,14 @@ export function CopyButton ({ value, icon, ...props }) {
       <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
         <Clipboard height={20} width={20} />
       </InputGroup.Text>
+    )
+  }
+
+  if (append) {
+    return (
+      <span className={styles.appendButton} {...props} onClick={handleClick}>
+        {append}
+      </span>
     )
   }
 
@@ -459,16 +467,7 @@ export function BaseSuggest ({
   getSuggestionsQuery, queryName, itemsField,
   children
 }) {
-  const [getSuggestions] = useLazyQuery(getSuggestionsQuery, {
-    onCompleted: data => {
-      query !== undefined && setSuggestions({
-        array: data[itemsField]
-          .filter((...args) => filterItems(query, ...args))
-          .map(transformItem),
-        index: 0
-      })
-    }
-  })
+  const [getSuggestions] = useLazyQuery(getSuggestionsQuery)
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
   const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
   useEffect(() => {
@@ -476,6 +475,15 @@ export function BaseSuggest ({
       // remove the leading character and any trailing spaces
       const q = query?.replace(/^[@ ~]+|[ ]+$/g, '').replace(/@[^\s]*$/, '').replace(/~[^\s]*$/, '')
       getSuggestions({ variables: { q, limit: 5 } })
+        .then(({ data }) => {
+          query !== undefined && setSuggestions({
+            array: data[itemsField]
+              .filter((...args) => filterItems(query, ...args))
+              .map(transformItem),
+            index: 0
+          })
+        })
+        .catch(err => console.error(err))
     } else {
       resetSuggestions()
     }

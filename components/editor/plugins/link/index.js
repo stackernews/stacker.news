@@ -11,7 +11,7 @@ import LinkEditor from './editor'
 import { getSelectedNode } from '@/lib/lexical/commands/utils'
 import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
 import { ensureProtocol, removeTracking, URL_REGEXP } from '@/lib/url'
-import { $isCodeNode } from '@lexical/code'
+import { $isCodeNode } from '@lexical/code-core'
 
 export default function LinkEditorPlugin ({ anchorElem }) {
   const [isLinkEditable, setIsLinkEditable] = useState(false)

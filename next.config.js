@@ -68,6 +68,7 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
+    NEXT_PUBLIC_SPARK_NETWORK: (process.env.NEXT_PUBLIC_SPARK_NETWORK || '').toUpperCase(),
     NEXT_PUBLIC_ASSET_PREFIX: isProd ? 'https://a.stacker.news' : '',
     // in prod, we build in /var/app/staging and then cp and deploy in /var/app/current
     // so we need to resolve the relative path to the lightning module

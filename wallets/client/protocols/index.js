@@ -6,6 +6,7 @@ import * as webln from './webln'
 import * as lnc from './lnc'
 import * as clnRest from './clnRest'
 import * as clink from './clink'
+import * as spark from './spark'
 
 export * from './util'
 
@@ -16,8 +17,17 @@ export * from './util'
 /**
  * @typedef {Object} ClientWalletProtocol
  * @property {ProtocolName} name - must match a protocol name in the database
+ * @property {ProtocolPrepareConfig} [prepareConfig] - fills hidden/generated config before validation
  * @property {ProtocolSendPayment} sendPayment - pays a bolt11 invoice
  * @property {ProtocolTestSendPayment} testSendPayment - test if configuration can pay
+ */
+
+/**
+ * @callback ProtocolPrepareConfig
+ * @param {{name: ProtocolName, send: boolean}} protocol - current protocol
+ * @param {Object} config - current protocol configuration
+ * @param {{current: Object, complementary: Object}} context - current and complementary form configs
+ * @returns {Promise<void|Object|ProtocolConfigPatches>} - patches to apply to current/complementary configs
  */
 
 /**
@@ -30,7 +40,7 @@ export * from './util'
 
 /**
  * @typedef {Object} SendPaymentArgs
- * @property {number} bolt11 - the bolt11 invoice the wallet should pay
+ * @property {string} bolt11 - the bolt11 invoice the wallet should pay
  */
 
 /**
@@ -42,10 +52,11 @@ export * from './util'
  * @callback ProtocolTestSendPayment
  * @param {Object} config - current protocol configuration
  * @param {SendPaymentOptions} opts - additional options for the payment
- * @returns {Promise<void>}
+ * @returns {Promise<void|Object|ProtocolConfigPatches>}
  */
 
 /** @typedef {string} Preimage */
+/** @typedef {{current?: Object, complementary?: Object}} ProtocolConfigPatches */
 
 /** @type {ClientWalletProtocol[]} */
 export default [
@@ -56,5 +67,6 @@ export default [
   webln,
   lnc,
   clnRest,
-  clink
+  clink,
+  spark
 ]

@@ -1,4 +1,4 @@
-import { isTemplate, isWallet, protocolClientSchema, protocolFields, protocolFormId, walletLud16Domain } from '@/wallets/lib/util'
+import { isTemplate, isWallet, protocolClientSchema, protocolFields, protocolFormFields, protocolFormId, walletLud16Domain } from '@/wallets/lib/util'
 import { createContext, useContext, useEffect, useMemo, useCallback, useState } from 'react'
 import { useWalletProtocolUpsert } from '@/wallets/client/hooks'
 import { MultiStepForm, useFormState, useStep } from '@/components/multi-step-form'
@@ -65,6 +65,10 @@ export function useProtocol () {
   const { protocol, setProtocol } = useContext(WalletMultiStepFormContext)
   const protocols = useWalletProtocols()
   const [lnAddrForm] = useProtocolForm({ name: 'LN_ADDR', send: false })
+  const selectedProtocol = useMemo(() => {
+    if (!protocol) return protocols[0]
+    return protocols.find(p => p.id === protocol.id) ?? protocols[0]
+  }, [protocol, protocols])
 
   useEffect(() => {
     // this makes sure that we've always selected a protocol (that exists) when moving between send and receive
@@ -81,7 +85,7 @@ export function useProtocol () {
   }, [protocol, protocols, setProtocol, lnAddrForm])
 
   // make sure we always have a protocol, even on first render before useEffect runs
-  return useMemo(() => [protocol ?? protocols[0], setProtocol], [protocol, protocols, setProtocol])
+  return useMemo(() => [selectedProtocol, setProtocol], [selectedProtocol, setProtocol])
 }
 
 function useProtocolFormState (protocol) {
@@ -101,8 +105,9 @@ export function useProtocolForm (protocol) {
   const [nwcSendFormState] = useProtocolFormState({ name: 'NWC', send: true })
   const wallet = useWallet()
   const lud16Domain = walletLud16Domain(wallet.name)
-  const fields = protocolFields(protocol)
-  const initial = fields.reduce((acc, field) => {
+  const allFields = protocolFields(protocol)
+  const fields = protocolFormFields(protocol)
+  const initial = allFields.reduce((acc, field) => {
     // we only fallback to the existing protocol config because formState was not initialized yet on first render
     // after init, we use formState as the source of truth everywhere
     let value = formState?.config?.[field.name] ?? protocol.config?.[field.name]

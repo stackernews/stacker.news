@@ -8,9 +8,10 @@ import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import { useFormState, useNext, useStep, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, protocolDisplayName, protocolFields, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
+import { isTemplate, protocolDisplayName, protocolFormFields, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { WalletFormLogsContext, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport, useSingleFlight } from '@/wallets/client/hooks'
+import { protocolPrepareConfig } from '@/wallets/client/protocols'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowUpRight from '@/svgs/arrow-right-up-line.svg'
 import ArrowDownLeft from '@/svgs/arrow-left-down-line.svg'
@@ -122,7 +123,18 @@ function WalletProtocolSelector () {
   }, [protocol, saveCurrentForm, selectProtocol])
 
   // don't show selector if there's only one protocol option
-  if (protocols.length <= 1) return null
+  if (protocols.length <= 1) {
+    return (
+      <div className={styles.protocolSelector}>
+        <div className={styles.protocolSelectorHeader}>
+          {isSend ? 'Send protocol' : 'Receive protocol'}
+        </div>
+        <div className='text-center text-muted mb-3'>
+          {protocolDisplayName(protocol)}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.protocolSelector}>
@@ -154,6 +166,7 @@ function WalletProtocolForm () {
   const testCreateInvoice = useTestCreateInvoice(protocol)
   const logger = useWalletLogger(protocol)
   const [{ fields, initial, schema }, setFormState] = useProtocolForm(protocol)
+  const [{ initial: complementaryInitial }, setComplementaryFormState] = useProtocolForm({ name: protocol.name, send: !protocol.send })
 
   // validate and save form values (used by both submit and tab switch)
   const validateAndSave = useCallback(async (values) => {
@@ -169,6 +182,19 @@ function WalletProtocolForm () {
     }
 
     if (values.enabled) {
+      let complementaryValues = complementaryInitial
+      const patches = await protocolPrepareConfig(protocol, values, {
+        current: values,
+        complementary: complementaryValues
+      })
+      if (patches?.current) {
+        values = { ...values, ...patches.current }
+      }
+      if (patches?.complementary) {
+        complementaryValues = { ...complementaryValues, ...patches.complementary }
+        setComplementaryFormState(complementaryValues)
+      }
+
       if (protocol.send) {
         logger.info(`testing ${name} send ...`)
         const additionalValues = await testSendPayment(values)
@@ -183,7 +209,7 @@ function WalletProtocolForm () {
 
     setFormState(values)
     return values
-  }, [protocol, wallet, setFormState, testSendPayment, testCreateInvoice, logger])
+  }, [protocol, wallet, setFormState, testSendPayment, testCreateInvoice, logger, complementaryInitial, setComplementaryFormState])
 
   // form submit handler - validates, saves, and navigates to next step
   const onSubmit = useCallback(async ({ ...values }) => {
@@ -235,11 +261,18 @@ function FormTabSwitchHandler ({ validateAndSave, setFormState }) {
   const { values } = useFormikContext()
   const [, setSaveCurrentForm] = useSaveCurrentForm()
   const valuesRef = useRef(values)
+  const validateAndSaveRef = useRef(validateAndSave)
+  const setFormStateRef = useRef(setFormState)
 
   // keep ref updated with latest values
   useEffect(() => {
     valuesRef.current = values
   }, [values])
+
+  useEffect(() => {
+    validateAndSaveRef.current = validateAndSave
+    setFormStateRef.current = setFormState
+  }, [validateAndSave, setFormState])
 
   // register save function on mount, clear on unmount
   useEffect(() => {
@@ -248,17 +281,17 @@ function FormTabSwitchHandler ({ validateAndSave, setFormState }) {
       const currentValues = { ...valuesRef.current }
       // skip validation for empty forms, just save the state
       if (!hasFormValues(currentValues)) {
-        setFormState(currentValues)
+        setFormStateRef.current(currentValues)
         return
       }
-      await validateAndSave(currentValues)
+      await validateAndSaveRef.current(currentValues)
     }
     setSaveCurrentForm(() => saveFunction)
 
     return () => {
       setSaveCurrentForm(null)
     }
-  }, [validateAndSave, setFormState, setSaveCurrentForm])
+  }, [setSaveCurrentForm])
 
   return null
 }
@@ -440,10 +473,11 @@ function ProtocolReviewCard ({ protocol }) {
   const displayName = protocolDisplayName(protocol)
   const isEnabled = protocol.enabled
   // only show fields that are defined in the protocol schema (not internal values)
-  const fields = protocolFields(protocol)
+  const fields = protocolFormFields(protocol)
   const fieldNames = new Set(fields.map(f => f.name))
   const configEntries = Object.entries(protocol.config || {})
     .filter(([key, value]) => value && fieldNames.has(key))
+  const hasHiddenConfig = configEntries.length === 0 && Object.values(protocol.config || {}).some(value => value)
 
   // get field label or fallback to key name
   const getFieldLabel = (key) => {
@@ -479,6 +513,13 @@ function ProtocolReviewCard ({ protocol }) {
               <span className={styles.configValue}>{maskValue(key, value)}</span>
             </div>
           ))}
+        </div>
+      )}
+      {hasHiddenConfig && (
+        <div className={styles.configList}>
+          <div className={styles.configItem}>
+            <span className={styles.configValue}>managed automatically</span>
+          </div>
         </div>
       )}
     </div>

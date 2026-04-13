@@ -10,9 +10,9 @@ const VERIFICATION_TOKEN_EXPIRY = 1000 * 60 * 5 // 5 minutes in milliseconds
 export default async function handler (req, res) {
   try {
     if (req.method === 'POST') {
-      const { verificationToken } = req.body
-      if (!verificationToken) {
-        return res.status(400).json({ status: 'ERROR', reason: 'verification token is required' })
+      const { verificationToken, domainName } = req.body
+      if (!verificationToken || !domainName) {
+        return res.status(400).json({ status: 'ERROR', reason: 'verification token and domain name are required' })
       }
 
       const verificationResult = await consumeVerificationToken(verificationToken)
@@ -20,7 +20,7 @@ export default async function handler (req, res) {
         return res.status(400).json(verificationResult)
       }
 
-      const sessionTokenResult = await createEphemeralSessionToken(verificationResult.userId)
+      const sessionTokenResult = await createEphemeralSessionToken(domainName, verificationResult.userId)
       if (sessionTokenResult.status === 'ERROR') {
         return res.status(500).json(sessionTokenResult)
       }
@@ -143,10 +143,10 @@ async function consumeVerificationToken (verificationToken) {
   }
 }
 
-async function createEphemeralSessionToken (userId) {
+async function createEphemeralSessionToken (domainName, userId) {
   try {
     const sessionToken = await encodeJWT({
-      token: { id: userId, sub: userId },
+      token: { id: userId, sub: userId, domainName },
       secret: process.env.NEXTAUTH_SECRET,
       maxAge: SYNC_TOKEN_MAX_AGE
     })

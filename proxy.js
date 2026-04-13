@@ -28,6 +28,7 @@ async function customDomainMiddleware (request, domain, subName) {
   const { pathname, searchParams } = url
   // set the subname in the request headers
   const headers = new Headers(request.headers)
+  headers.set('x-stacker-news-domain', domain)
   headers.set('x-stacker-news-subname', subName)
 
   logger.log('custom domain', domain, 'with subname', subName)
@@ -41,7 +42,7 @@ async function customDomainMiddleware (request, domain, subName) {
     const signup = pathname.startsWith('/signup')
     return redirectToAuthSync(searchParams, domain, signup, headers)
   }
-  if (searchParams.has('sync_token')) return establishAuthSync(request, searchParams, headers)
+  if (searchParams.has('sync_token')) return establishAuthSync(request, searchParams, domain, headers)
 
   // clean up the pathname from any subname
   if (pathname.startsWith('/~')) {
@@ -93,13 +94,13 @@ async function redirectToAuthSync (searchParams, domain, signup, headers) {
   return NextResponse.redirect(syncUrl, { headers })
 }
 
-async function establishAuthSync (request, searchParams, headers) {
+async function establishAuthSync (request, searchParams, domain, headers) {
   const token = searchParams.get('sync_token')
   const redirectUri = searchParams.get('redirectUri') || '/'
   const res = NextResponse.redirect(new URL(redirectUri, request.url), { headers })
 
   try {
-    const body = JSON.stringify({ verificationToken: token })
+    const body = JSON.stringify({ verificationToken: token, domainName: domain })
     const fetchHeaders = new Headers(headers)
     fetchHeaders.set('Content-Type', 'application/json')
 
@@ -264,9 +265,9 @@ function applySecurityHeaders (resp) {
 export async function proxy (req) {
   // clear subname header to prevent potential spoofing
   const headers = new Headers(req.headers)
+  headers.delete('x-stacker-news-domain')
   headers.delete('x-stacker-news-subname')
   const request = new NextRequest(req, { headers })
-
   const referrerResp = referrerMiddleware(request)
   // TODO: check if we actually need this, and WHY
   if (referrerResp.headers.get('Location')) {

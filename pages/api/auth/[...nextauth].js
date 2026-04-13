@@ -119,6 +119,17 @@ function getCallbacks (req, res) {
         }
       }
 
+      // tokens created for a custom domain should only be used on that domain
+      if (token?.domainName) {
+        try {
+          const currentDomain = new URL(req.headers.referer).host || req.headers['x-stacker-news-domain']
+          if (currentDomain !== token.domainName) return null
+        } catch (error) {
+          console.error('cannot verify domain', error)
+          return null
+        }
+      }
+
       if (token?.id) {
         // HACK token.sub is used by nextjs v4 internally and is used like a userId
         // setting it here allows us to link multiple auth method to an account

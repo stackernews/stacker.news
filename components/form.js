@@ -1,6 +1,7 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
+import { isAbortError } from '@/lib/error'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
@@ -483,7 +484,7 @@ export function BaseSuggest ({
             index: 0
           })
         })
-        .catch(err => console.error(err))
+        .catch(err => !isAbortError(err) && console.error(err))
     } else {
       resetSuggestions()
     }

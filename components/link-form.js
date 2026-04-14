@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { isAbortError } from '@/lib/error'
 import { Form, Input, SNInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql } from '@apollo/client'
@@ -68,8 +69,8 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
         ...ItemFields
       }
     }`)
-  const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args).catch(err => console.error(err)), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
-  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args).catch(err => console.error(err)), DUPES_DEBOUNCE_MS, [getDupes])
+  const getPageTitleAndUnshortedDebounce = useDebounceCallback((...args) => getPageTitleAndUnshorted(...args).catch(err => !isAbortError(err) && console.error(err)), LOOKUP_DEBOUNCE_MS, [getPageTitleAndUnshorted])
+  const getDupesDebounce = useDebounceCallback((...args) => getDupes(...args).catch(err => !isAbortError(err) && console.error(err)), DUPES_DEBOUNCE_MS, [getDupes])
 
   useEffect(() => {
     if (!dupesLoading) {

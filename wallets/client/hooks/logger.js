@@ -1,4 +1,5 @@
 import { useLazyQuery, useMutation } from '@apollo/client/react'
+import { isAbortError } from '@/lib/error'
 import { ADD_WALLET_LOG, WALLET_LOGS, DELETE_WALLET_LOGS } from '@/wallets/client/fragments'
 import { createContext, useCallback, useContext, useMemo, useState, useEffect } from 'react'
 import { useShowModal } from '@/components/modal'
@@ -107,7 +108,7 @@ export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInte
         variables: cursor ? { ...logFilters, cursor } : logFilters
       }))
     } catch (err) {
-      console.error(err)
+      !isAbortError(err) && console.error(err)
       return
     }
 

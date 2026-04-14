@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isAbortError } from '@/lib/error'
 import { useRouter } from 'next/router'
 import { MultiSelect, Select } from './form'
 import { EXTRA_LONG_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
@@ -159,7 +160,7 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
         showModal(() => <TerritoryInfo sub={data.sub} includeLink />)
       }
     } catch (err) {
-      console.error(err)
+      !isAbortError(err) && console.error(err)
     }
   }
 

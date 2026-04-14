@@ -1,4 +1,5 @@
 import { USER } from '@/fragments/users'
+import { isAbortError } from '@/lib/error'
 import errorStyles from '@/styles/error.module.css'
 import { useLazyQuery } from '@apollo/client/react'
 import classNames from 'classnames'
@@ -32,7 +33,7 @@ export default function UserPopover ({ name, children }) {
   )
 
   const getUser = useCallback(() => {
-    execute({ variables: { name } }).catch(err => console.error(err))
+    execute({ variables: { name } }).catch(err => !isAbortError(err) && console.error(err))
   }, [execute, name])
 
   return (

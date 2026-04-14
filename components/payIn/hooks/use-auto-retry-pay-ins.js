@@ -1,4 +1,5 @@
 import { usePreferredSendProtocolId, useWalletPayment } from '@/wallets/client/hooks'
+import { isAbortError } from '@/lib/error'
 import usePayInHelper from './use-pay-in-helper'
 import { useLazyQuery } from '@apollo/client/react'
 import { FAILED_PAY_INS } from '@/fragments/payIn'
@@ -42,7 +43,7 @@ export function useAutoRetryPayIns () {
         if (error) throw error
         failedPayIns = data.failedPayIns
       } catch (err) {
-        console.error('failed to fetch invoices to retry:', err)
+        !isAbortError(err) && console.error('failed to fetch invoices to retry:', err)
         return
       }
 

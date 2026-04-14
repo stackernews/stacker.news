@@ -1,4 +1,5 @@
 import { SUB_FULL } from '@/fragments/subs'
+import { isAbortError } from '@/lib/error'
 import errorStyles from '@/styles/error.module.css'
 import { useLazyQuery } from '@apollo/client/react'
 import classNames from 'classnames'
@@ -16,7 +17,7 @@ export default function SubPopover ({ sub, children }) {
   )
 
   const getSub = useCallback(() => {
-    execute({ variables: { sub } }).catch(err => console.error(err))
+    execute({ variables: { sub } }).catch(err => !isAbortError(err) && console.error(err))
   }, [execute, sub])
 
   return (

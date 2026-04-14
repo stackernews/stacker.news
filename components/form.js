@@ -458,6 +458,7 @@ export function BaseSuggest ({
   children
 }) {
   const [index, setIndex] = useState(0)
+  const [show, setShow] = useState(true)
   const q = query !== undefined
     ? query.replace(/^[@ ~]+|[ ]+$/g, '').replace(/@[^\s]*$/, '').replace(/~[^\s]*$/, '')
     : undefined
@@ -473,6 +474,13 @@ export function BaseSuggest ({
       .filter((...args) => filterItems(query, ...args))
       .map(transformItem)
   }, [data, itemsField, filterItems, transformItem, query])
+
+  useEffect(() => {
+    setIndex(0)
+    setShow(true)
+  }, [suggestions])
+
+  const resetSuggestions = useCallback(() => setShow(false), [])
 
   const onKeyDown = useCallback(e => {
     switch (e.code) {
@@ -512,8 +520,8 @@ export function BaseSuggest ({
   }, [onSelect, index, suggestions])
   return (
     <>
-      {children?.({ onKeyDown })}
-      <Dropdown show={suggestions.length > 0} style={dropdownStyle}>
+      {children?.({ onKeyDown, resetSuggestions })}
+      <Dropdown show={show && suggestions.length > 0} style={dropdownStyle}>
         <Dropdown.Menu className={styles.suggestionsMenu}>
           {suggestions.map((v, i) =>
             <Dropdown.Item

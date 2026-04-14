@@ -1,4 +1,5 @@
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client/react'
 import { useShowModal } from './modal'
 import { ObstacleButtons } from './obstacle'
 import { useToast } from './toast'

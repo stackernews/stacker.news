@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import Item, { ItemSkeleton } from './item'
 import ItemJob from './item-job'
 import styles from './item.module.css'

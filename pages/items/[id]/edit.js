@@ -1,4 +1,5 @@
 import { ITEM } from '@/fragments/items'
+import { isAbortError } from '@/lib/error'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { DiscussionForm } from '@/components/discussion-form'
 import { LinkForm } from '@/components/link-form'
@@ -7,7 +8,7 @@ import JobForm from '@/components/job-form'
 import { PollForm } from '@/components/poll-form'
 import { BountyForm } from '@/components/bounty-form'
 import { useEffect, useState } from 'react'
-import { useLazyQuery, useQuery } from '@apollo/client'
+import { useLazyQuery, useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { FeeButtonProvider } from '@/components/fee-button'
@@ -66,8 +67,8 @@ export default function PostEdit ({ ssrData }) {
           ...territoryAdds
         }
       })
-    })
-  }, [subs])
+    }).catch(err => !isAbortError(err) && console.error(err))
+  }, [subs, fetchSubs])
 
   const [,, editThreshold] = useCanEdit(item)
   const EditInfo = editThreshold && item.payIn?.payInState === 'PAID'

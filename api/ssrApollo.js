@@ -1,4 +1,5 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client'
+import { LocalState } from '@apollo/client/local-state'
 import { SchemaLink } from '@apollo/client/link/schema'
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import resolvers from './resolvers'
@@ -64,7 +65,9 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
         nextFetchPolicy: 'no-cache',
         ssr: true
       }
-    }
+    },
+    // @client directive support
+    localState: new LocalState({})
   })
 
   await client.clearStore()

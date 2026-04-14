@@ -1,5 +1,5 @@
 import Layout from '@/components/layout'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import UserHeader from '@/components/user-header'
 import Button from 'react-bootstrap/Button'
 import styles from '@/styles/user.module.css'

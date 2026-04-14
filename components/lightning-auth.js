@@ -1,4 +1,5 @@
-import { gql, useMutation, useQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useMutation, useQuery } from '@apollo/client/react'
 import { signIn } from 'next-auth/react'
 import { useEffect } from 'react'
 import Col from 'react-bootstrap/Col'

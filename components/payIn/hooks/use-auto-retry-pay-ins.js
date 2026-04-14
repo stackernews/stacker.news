@@ -1,6 +1,7 @@
 import { usePreferredSendProtocolId, useWalletPayment } from '@/wallets/client/hooks'
+import { isAbortError } from '@/lib/error'
 import usePayInHelper from './use-pay-in-helper'
-import { useLazyQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
 import { useEffect } from 'react'
@@ -11,7 +12,7 @@ export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
   const sendProtocolId = usePreferredSendProtocolId()
   const payInHelper = usePayInHelper()
-  const [getFailedPayIns] = useLazyQuery(FAILED_PAY_INS, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only' })
+  const [getFailedPayIns] = useLazyQuery(FAILED_PAY_INS, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only', errorPolicy: 'all' })
   const { me } = useMe()
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export function useAutoRetryPayIns () {
         if (error) throw error
         failedPayIns = data.failedPayIns
       } catch (err) {
-        console.error('failed to fetch invoices to retry:', err)
+        !isAbortError(err) && console.error('failed to fetch invoices to retry:', err)
         return
       }
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
+import { isAbortError } from '@/lib/error'
 import {
   COMMAND_PRIORITY_EDITOR,
   $getRoot,
@@ -16,7 +17,8 @@ import {
 } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { gql, useLazyQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import { useFeeButton } from '@/components/fee-button'
 import { FileUpload } from '@/components/file-upload'
 import useDebounceCallback from '@/components/use-debounce-callback'
@@ -262,24 +264,22 @@ function useLexicalUploadFees (editor) {
 
   const [updateUploadFees] = useLazyQuery(UPLOAD_FEES_QUERY, {
     fetchPolicy: 'no-cache',
-    nextFetchPolicy: 'no-cache',
-    onError: (err) => {
-      console.error(err)
-    },
-    onCompleted: ({ uploadFees }) => {
-      const { uploadFees: feePerUpload, nUnpaid } = uploadFees
-      const totalFees = feePerUpload * nUnpaid
-      merge({
-        uploadFees: {
-          term: `+ ${numWithUnits(feePerUpload, { abbreviate: false })} x ${nUnpaid}`,
-          label: 'upload fee',
-          op: '+',
-          modifier: cost => cost + totalFees,
-          omit: !totalFees
-        }
-      })
-    }
+    nextFetchPolicy: 'no-cache'
   })
+
+  const handleUploadFeesData = useCallback(({ data }) => {
+    const { uploadFees: feePerUpload, nUnpaid } = data.uploadFees
+    const totalFees = feePerUpload * nUnpaid
+    merge({
+      uploadFees: {
+        term: `+ ${numWithUnits(feePerUpload, { abbreviate: false })} x ${nUnpaid}`,
+        label: 'upload fee',
+        op: '+',
+        modifier: cost => cost + totalFees,
+        omit: !totalFees
+      }
+    })
+  }, [merge])
 
   // extracts S3 keys from text and updates upload fees
   const $refreshUploadFees = useCallback(() => {
@@ -288,14 +288,18 @@ function useLexicalUploadFees (editor) {
       const text = $getRoot().getTextContent() || ''
       const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
       updateUploadFees({ variables: { s3Keys } })
+        .then(handleUploadFeesData)
+        .catch(err => !isAbortError(err) && console.error(err))
     } else {
       const mediaNodes = $nodesOfType(MediaNode)
       const s3Keys = mediaNodes
         .flatMap(node => [...node.getSrc().matchAll(AWS_S3_URL_REGEXP)])
         .map(m => Number(m[1]))
       updateUploadFees({ variables: { s3Keys } })
+        .then(handleUploadFeesData)
+        .catch(err => !isAbortError(err) && console.error(err))
     }
-  }, [updateUploadFees])
+  }, [updateUploadFees, handleUploadFeesData])
 
   // debounced version for update listener
   const refreshUploadFeesDebounced = useDebounceCallback(() => {

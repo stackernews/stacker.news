@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import { useMutation } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useToast } from './toast'

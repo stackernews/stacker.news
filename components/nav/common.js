@@ -26,11 +26,9 @@ import { numWithUnits } from '@/lib/format'
 
 export function Brand ({ className }) {
   return (
-    <Link href='/' passHref legacyBehavior>
-      <Navbar.Brand className={classNames(styles.brand, className)}>
-        <SnIcon width={36} height={36} />
-      </Navbar.Brand>
-    </Link>
+    <Navbar.Brand as={Link} href='/' className={classNames(styles.brand, className)}>
+      <SnIcon width={36} height={36} />
+    </Navbar.Brand>
   )
 }
 
@@ -84,11 +82,9 @@ export function BackOrBrand ({ className }) {
 
 export function SearchItem ({ prefix, className }) {
   return (
-    <Link href='/search' passHref legacyBehavior>
-      <Nav.Link eventKey='search' className={className}>
-        <SearchIcon className='theme' width={22} height={28} />
-      </Nav.Link>
-    </Link>
+    <Nav.Link as={Link} href='/search' eventKey='search' className={className}>
+      <SearchIcon className='theme' width={22} height={28} />
+    </Nav.Link>
   )
 }
 
@@ -120,13 +116,11 @@ export function NavNotifications ({ className }) {
 
   return (
     <>
-      <Link href='/notifications' passHref legacyBehavior>
-        <Nav.Link eventKey='notifications' className={className}>
-          <Indicator show={hasNewNotes} top='2px' right='0px' variant='danger'>
-            <NoteIcon height={28} width={20} className='theme' />
-          </Indicator>
-        </Nav.Link>
-      </Link>
+      <Nav.Link as={Link} href='/notifications' eventKey='notifications' className={className}>
+        <Indicator show={hasNewNotes} top='2px' right='0px' variant='danger'>
+          <NoteIcon height={28} width={20} className='theme' />
+        </Indicator>
+      </Nav.Link>
     </>
   )
 }
@@ -149,11 +143,9 @@ export function NavWalletSummary ({ className }) {
 
   return (
     <Nav.Item className={className}>
-      <Link href='/credits' passHref legacyBehavior>
-        <Nav.Link eventKey='credits' className='text-success text-monospace px-0 text-nowrap'>
-          <WalletSummary me={me} />
-        </Nav.Link>
-      </Link>
+      <Nav.Link as={Link} href='/credits' eventKey='credits' className='text-success text-monospace px-0 text-nowrap'>
+        <WalletSummary me={me} />
+      </Nav.Link>
     </Nav.Item>
   )
 }
@@ -193,34 +185,20 @@ export function MeDropdown ({ me, dropNavKey }) {
           </div>
         </Dropdown.Toggle>
         <Dropdown.Menu>
-          <Link href={'/' + me.name} passHref legacyBehavior>
-            <Dropdown.Item active={me.name === dropNavKey}>
-              <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
-            </Dropdown.Item>
-          </Link>
-          <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
-            <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
-          </Link>
-          <Link href='/wallets' passHref legacyBehavior>
-            <Dropdown.Item eventKey='wallets'>
-              <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
-            </Dropdown.Item>
-          </Link>
-          <Link href='/credits' passHref legacyBehavior>
-            <Dropdown.Item eventKey='credits'>credits</Dropdown.Item>
-          </Link>
-          <Link href='/satistics' passHref legacyBehavior>
-            <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
-          </Link>
+          <Dropdown.Item as={Link} href={'/' + me.name} active={me.name === dropNavKey}>
+            <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
+          </Dropdown.Item>
+          <Dropdown.Item as={Link} href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
+          <Dropdown.Item as={Link} href='/wallets' eventKey='wallets'>
+            <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
+          </Dropdown.Item>
+          <Dropdown.Item as={Link} href='/credits' eventKey='credits'>credits</Dropdown.Item>
+          <Dropdown.Item as={Link} href='/satistics' eventKey='satistics'>satistics</Dropdown.Item>
           <Dropdown.Divider />
-          <Link href='/invites' passHref legacyBehavior>
-            <Dropdown.Item eventKey='invites'>invites</Dropdown.Item>
-          </Link>
+          <Dropdown.Item as={Link} href='/invites' eventKey='invites'>invites</Dropdown.Item>
           <Dropdown.Divider />
           <div className='d-flex align-items-center'>
-            <Link href='/settings' passHref legacyBehavior>
-              <Dropdown.Item eventKey='settings'>settings</Dropdown.Item>
-            </Link>
+            <Dropdown.Item as={Link} href='/settings' eventKey='settings'>settings</Dropdown.Item>
           </div>
           <Dropdown.Divider />
           <LogoutDropdownItem />
@@ -391,28 +369,17 @@ export function AnonDropdown ({ path }) {
   )
 }
 
-export function Sorts ({ sub, prefix, className }) {
+export function Sorts ({ prefix, className }) {
   return (
     <>
       <Nav.Item className={className}>
-        <Link href={prefix + '/'} passHref legacyBehavior>
-          <Nav.Link eventKey='' className={`${styles.navLink} ${styles.navSort}`}>lit</Nav.Link>
-        </Link>
+        <Nav.Link as={Link} href={prefix + '/'} eventKey='' className={`${styles.navLink} ${styles.navSort}`}>lit</Nav.Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Link href={prefix + '/new'} passHref legacyBehavior>
-          <Nav.Link eventKey='new' className={`${styles.navLink} ${styles.navSort}`}>new</Nav.Link>
-        </Link>
+        <Nav.Link as={Link} href={prefix + '/new'} eventKey='new' className={`${styles.navLink} ${styles.navSort}`}>new</Nav.Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Link
-          href={{
-            pathname: '/~/top/[type]/[when]',
-            query: { type: 'posts', when: 'day', sub }
-          }} as={prefix + '/top/posts/day'} passHref legacyBehavior
-        >
-          <Nav.Link eventKey='top' className={`${styles.navLink} ${styles.navSort}`}>top</Nav.Link>
-        </Link>
+        <Nav.Link as={Link} href={prefix + '/top/posts/day'} eventKey='top' className={`${styles.navLink} ${styles.navSort}`}>top</Nav.Link>
       </Nav.Item>
     </>
   )

@@ -1,9 +1,11 @@
 import AccordianItem from './accordian-item'
+import { isAbortError } from '@/lib/error'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
 import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
 import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
-import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useApolloClient, useLazyQuery } from '@apollo/client/react'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
@@ -55,8 +57,12 @@ export default function TerritoryForm ({ sub }) {
     // never show "territory archived" warning during edits
     if (sub) return
     const name = e.target.value
-    const { data } = await fetchSub({ variables: { sub: name } })
-    setArchived(data?.sub?.status === 'STOPPED')
+    try {
+      const { data } = await fetchSub({ variables: { sub: name } })
+      setArchived(data?.sub?.status === 'STOPPED')
+    } catch (err) {
+      !isAbortError(err) && console.error(err)
+    }
   }, [fetchSub, setArchived])
 
   const onSubmit = useCallback(

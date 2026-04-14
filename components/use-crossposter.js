@@ -1,8 +1,10 @@
 import { useCallback } from 'react'
+import { isAbortError } from '@/lib/error'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
 import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
-import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client/react'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 
@@ -188,7 +190,7 @@ export default function useCrossposter () {
 
       return data?.item
     } catch (e) {
-      console.error(e)
+      !isAbortError(e) && console.error(e)
       return null
     }
   }

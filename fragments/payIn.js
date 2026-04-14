@@ -27,6 +27,7 @@ export const PAY_IN_BOLT11_FIELDS = gql`
     payInId
     bolt11
     hash
+    description
     hmac
     msatsRequested
     msatsReceived
@@ -178,7 +179,9 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     payeePrivates {
       payOutBolt11 {
         msats
+        hash
         bolt11
+        description
         preimage
         status
       }

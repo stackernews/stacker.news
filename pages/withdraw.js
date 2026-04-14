@@ -14,7 +14,7 @@ import { lnAddrSchema, withdrawlSchema } from '@/lib/validate'
 import { useShowModal } from '@/components/modal'
 import { useField } from 'formik'
 import { useToast } from '@/components/toast'
-import { decode } from 'bolt11'
+import { bech32 } from 'bech32'
 import CameraIcon from '@/svgs/camera-line.svg'
 import useDebounceCallback from '@/components/use-debounce-callback'
 import { lnAddrOptions } from '@/lib/lnurl'
@@ -24,6 +24,19 @@ import PageLoading from '@/components/page-loading'
 import dynamic from 'next/dynamic'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
+
+// LND and LDK both cap BOLT11 invoice length at 7089 bytes.
+const BOLT11_BECH32_LIMIT = 7089
+const BOLT11_PREFIX = /^ln(?:bc|tb|bcrt|tbs)\d*[munp]?$/i
+
+function isBolt11PaymentRequest (invoice) {
+  try {
+    const { prefix } = bech32.decode(invoice, BOLT11_BECH32_LIMIT)
+    return BOLT11_PREFIX.test(prefix)
+  } catch {
+    return false
+  }
+}
 
 export default function Withdraw () {
   return (
@@ -155,7 +168,7 @@ function InvoiceScanner ({ fieldName }) {
                     result = result.toLowerCase()
                     if (result.split('lightning=')[1]) {
                       helpers.setValue(result.split('lightning=')[1].split(/[&?]/)[0])
-                    } else if (decode(result.replace(/^lightning:/, ''))) {
+                    } else if (isBolt11PaymentRequest(result.replace(/^lightning:/, ''))) {
                       helpers.setValue(result.replace(/^lightning:/, ''))
                     } else {
                       throw new Error('Not a proper lightning payment request')

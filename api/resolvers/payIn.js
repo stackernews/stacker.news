@@ -8,6 +8,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getItem, getItemsById } from './item'
 import { getSub } from './sub'
 import { Prisma } from '@prisma/client'
+import { parsePaymentRequest } from 'ln-service'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -32,6 +33,18 @@ function payInResultType (payInType) {
 function isMine (payIn, { me }) {
   const meId = me?.id ?? USER_ID.anon
   return Number(meId) === Number(payIn.userId)
+}
+
+function invoiceDescription (bolt11) {
+  if (!bolt11) {
+    return null
+  }
+
+  try {
+    return parsePaymentRequest({ request: bolt11 }).description ?? null
+  } catch {
+    return null
+  }
 }
 
 async function hydratePayInItems (payIns, { me, models }) {
@@ -344,6 +357,14 @@ export default {
         return null
       }
       return payInBolt11.preimage
+    },
+    description: (payInBolt11) => {
+      return invoiceDescription(payInBolt11.bolt11)
+    }
+  },
+  PayOutBolt11: {
+    description: (payOutBolt11) => {
+      return invoiceDescription(payOutBolt11.bolt11)
     }
   },
   PayOutCustodialToken: {

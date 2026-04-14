@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
+import { isAbortError } from '@/lib/error'
 import {
   COMMAND_PRIORITY_EDITOR,
   $getRoot,
@@ -288,7 +289,7 @@ function useLexicalUploadFees (editor) {
       const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
       updateUploadFees({ variables: { s3Keys } })
         .then(handleUploadFeesData)
-        .catch(err => console.error(err))
+        .catch(err => !isAbortError(err) && console.error(err))
     } else {
       const mediaNodes = $nodesOfType(MediaNode)
       const s3Keys = mediaNodes
@@ -296,7 +297,7 @@ function useLexicalUploadFees (editor) {
         .map(m => Number(m[1]))
       updateUploadFees({ variables: { s3Keys } })
         .then(handleUploadFeesData)
-        .catch(err => console.error(err))
+        .catch(err => !isAbortError(err) && console.error(err))
     }
   }, [updateUploadFees, handleUploadFeesData])
 

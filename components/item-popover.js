@@ -1,4 +1,5 @@
 import { ITEM } from '@/fragments/items'
+import { isAbortError } from '@/lib/error'
 import errorStyles from '@/styles/error.module.css'
 import { useLazyQuery } from '@apollo/client/react'
 import classNames from 'classnames'
@@ -12,7 +13,7 @@ export default function ItemPopover ({ id, children }) {
   })
 
   const getItem = useCallback(() => {
-    execute({ variables: { id } }).catch(err => console.error(err))
+    execute({ variables: { id } }).catch(err => !isAbortError(err) && console.error(err))
   }, [execute, id])
 
   return (

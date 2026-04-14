@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { isAbortError } from '@/lib/error'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
 import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
@@ -189,7 +190,7 @@ export default function useCrossposter () {
 
       return data?.item
     } catch (e) {
-      console.error(e)
+      !isAbortError(e) && console.error(e)
       return null
     }
   }

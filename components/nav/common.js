@@ -369,7 +369,7 @@ export function AnonDropdown ({ path }) {
   )
 }
 
-export function Sorts ({ sub, prefix, className }) {
+export function Sorts ({ prefix, className }) {
   return (
     <>
       <Nav.Item className={className}>

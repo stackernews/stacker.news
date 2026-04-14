@@ -1,4 +1,5 @@
 import { ITEM } from '@/fragments/items'
+import { isAbortError } from '@/lib/error'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { DiscussionForm } from '@/components/discussion-form'
 import { LinkForm } from '@/components/link-form'
@@ -66,7 +67,7 @@ export default function PostEdit ({ ssrData }) {
           ...territoryAdds
         }
       })
-    }).catch(err => console.error(err))
+    }).catch(err => !isAbortError(err) && console.error(err))
   }, [subs, fetchSubs])
 
   const [,, editThreshold] = useCanEdit(item)

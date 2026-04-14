@@ -1,4 +1,5 @@
 import AccordianItem from './accordian-item'
+import { isAbortError } from '@/lib/error'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
 import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
 import { useFormikContext } from 'formik'
@@ -64,7 +65,7 @@ export default function TerritoryForm ({ sub }) {
       const { data } = await fetchSub({ variables: { sub: name } })
       setArchived(data?.sub?.status === 'STOPPED')
     } catch (err) {
-      console.error(err)
+      !isAbortError(err) && console.error(err)
     }
   }, [fetchSub, setArchived])
 

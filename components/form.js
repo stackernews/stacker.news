@@ -1,6 +1,7 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
+import { isAbortError } from '@/lib/error'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
@@ -10,7 +11,11 @@ import Row from 'react-bootstrap/Row'
 import styles from './form.module.css'
 import AddIcon from '@/svgs/add-fill.svg'
 import CloseIcon from '@/svgs/close-line.svg'
+<<<<<<< refactor/lazy-queries-ac4-migration
 import { useQuery } from '@apollo/client/react'
+=======
+import { useLazyQuery } from '@apollo/client/react'
+>>>>>>> master
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import { useToast } from './toast'
@@ -457,6 +462,7 @@ export function BaseSuggest ({
   getSuggestionsQuery, queryName, itemsField,
   children
 }) {
+<<<<<<< refactor/lazy-queries-ac4-migration
   const [index, setIndex] = useState(0)
   const [show, setShow] = useState(true)
   const q = query !== undefined
@@ -482,6 +488,29 @@ export function BaseSuggest ({
 
   const resetSuggestions = useCallback(() => setShow(false), [])
 
+=======
+  const [getSuggestions] = useLazyQuery(getSuggestionsQuery)
+  const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
+  const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
+  useEffect(() => {
+    if (query !== undefined) {
+      // remove the leading character and any trailing spaces
+      const q = query?.replace(/^[@ ~]+|[ ]+$/g, '').replace(/@[^\s]*$/, '').replace(/~[^\s]*$/, '')
+      getSuggestions({ variables: { q, limit: 5 } })
+        .then(({ data }) => {
+          query !== undefined && setSuggestions({
+            array: data[itemsField]
+              .filter((...args) => filterItems(query, ...args))
+              .map(transformItem),
+            index: 0
+          })
+        })
+        .catch(err => !isAbortError(err) && console.error(err))
+    } else {
+      resetSuggestions()
+    }
+  }, [query, resetSuggestions, getSuggestions])
+>>>>>>> master
   const onKeyDown = useCallback(e => {
     switch (e.code) {
       case 'ArrowUp':

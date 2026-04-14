@@ -1,10 +1,15 @@
 import AccordianItem from './accordian-item'
+import { isAbortError } from '@/lib/error'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
 import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
 import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql } from '@apollo/client'
+<<<<<<< refactor/lazy-queries-ac4-migration
 import { useApolloClient } from '@apollo/client/react'
+=======
+import { useApolloClient, useLazyQuery } from '@apollo/client/react'
+>>>>>>> master
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
@@ -55,9 +60,19 @@ export default function TerritoryForm ({ sub }) {
     // never show "territory archived" warning during edits
     if (sub) return
     const name = e.target.value
+<<<<<<< refactor/lazy-queries-ac4-migration
     const { data } = await client.query({ query: SUB, variables: { sub: name } })
     setArchived(data?.sub?.status === 'STOPPED')
   }, [client, setArchived])
+=======
+    try {
+      const { data } = await fetchSub({ variables: { sub: name } })
+      setArchived(data?.sub?.status === 'STOPPED')
+    } catch (err) {
+      !isAbortError(err) && console.error(err)
+    }
+  }, [fetchSub, setArchived])
+>>>>>>> master
 
   const onSubmit = useCallback(
     async ({ ...variables }) => {

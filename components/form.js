@@ -469,6 +469,7 @@ export function BaseSuggest ({
   })
 
   const suggestions = useMemo(() => {
+    // return empty array if suggestions are not shown or data is not available
     if (!show || !data?.[itemsField]) return []
     return data[itemsField]
       .filter((...args) => filterItems(query, ...args))
@@ -482,8 +483,8 @@ export function BaseSuggest ({
   }, [q])
 
   const resetSuggestions = useCallback(() => {
-    setShow(false)
     setIndex(0)
+    setShow(false)
   }, [])
 
   const onKeyDown = useCallback(e => {
@@ -493,14 +494,14 @@ export function BaseSuggest ({
           break
         }
         e.preventDefault()
-        setIndex(Math.max(index - 1, 0))
+        setIndex(prev => Math.max(prev - 1, 0))
         break
       case 'ArrowDown':
         if (suggestions.length === 0) {
           break
         }
         e.preventDefault()
-        setIndex(Math.min(index + 1, suggestions.length - 1))
+        setIndex(prev => Math.min(prev + 1, suggestions.length - 1))
         break
       case 'Tab':
       case 'Enter':

@@ -1,12 +1,6 @@
 import { CopyInput } from '@/components/form'
-import { bolt11Tags } from '@/lib/bolt11'
 
-export default ({ bolt11, preimage, children }) => {
-  let description, paymentHash
-  if (bolt11) {
-    ({ description, payment_hash: paymentHash } = bolt11Tags(bolt11))
-  }
-
+export default ({ bolt11, hash, preimage, description, children }) => {
   return (
     <div className='d-grid align-items-center w-100' style={{ gridTemplateColumns: 'auto 1fr', gap: '0.5rem' }}>
       {bolt11 &&
@@ -20,7 +14,7 @@ export default ({ bolt11, preimage, children }) => {
             placeholder={bolt11}
           />
         </>}
-      {paymentHash &&
+      {hash &&
         <>
           <div>hash</div>
           <CopyInput
@@ -28,7 +22,7 @@ export default ({ bolt11, preimage, children }) => {
             groupClassName='w-100 mb-0'
             readOnly
             noForm
-            placeholder={paymentHash}
+            placeholder={hash}
           />
         </>}
       {preimage &&

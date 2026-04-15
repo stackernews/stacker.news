@@ -41,7 +41,6 @@ export function useAutoRetryPayIns () {
         const { data, error } = await client.query({
           query: FAILED_PAY_INS,
           fetchPolicy: 'network-only',
-          nextFetchPolicy: 'network-only',
           errorPolicy: 'all'
         })
         if (error) throw error

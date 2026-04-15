@@ -266,8 +266,7 @@ function useLexicalUploadFees (editor) {
     return await client.query({
       query: UPLOAD_FEES_QUERY,
       variables: { s3Keys },
-      fetchPolicy: 'no-cache',
-      nextFetchPolicy: 'no-cache'
+      fetchPolicy: 'no-cache'
     })
   }, [client])
 

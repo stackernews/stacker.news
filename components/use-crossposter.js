@@ -1,10 +1,9 @@
 import { useCallback } from 'react'
-import { isAbortError } from '@/lib/error'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
 import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { gql } from '@apollo/client'
-import { useLazyQuery, useMutation, useQuery } from '@apollo/client/react'
+import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 
@@ -85,23 +84,10 @@ function bountyToEvent (item) {
 
 export default function useCrossposter () {
   const toaster = useToast()
+  const client = useApolloClient()
   const { data } = useQuery(SETTINGS)
   const userRelays = data?.settings?.privates?.nostrRelays || []
   const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...userRelays]
-
-  const [fetchItem] = useLazyQuery(
-    gql`
-      ${ITEM_FULL_FIELDS}
-      ${POLL_FIELDS}
-      query Item($id: ID!) {
-        item(id: $id) {
-          ...ItemFullFields
-          ...PollFields
-        }
-      }`, {
-      fetchPolicy: 'no-cache'
-    }
-  )
 
   const [updateNoteId] = useMutation(
     gql`
@@ -185,14 +171,21 @@ export default function useCrossposter () {
   }
 
   const fetchItemData = async (itemId) => {
-    try {
-      const { data } = await fetchItem({ variables: { id: itemId } })
+    const { data } = await client.query({
+      query: gql`
+      ${ITEM_FULL_FIELDS}
+      ${POLL_FIELDS}
+      query Item($id: ID!) {
+        item(id: $id) {
+          ...ItemFullFields
+          ...PollFields
+        }
+      }`,
+      variables: { id: itemId },
+      fetchPolicy: 'no-cache'
+    })
 
-      return data?.item
-    } catch (e) {
-      !isAbortError(e) && console.error(e)
-      return null
-    }
+    return data?.item
   }
 
   const crosspostItem = async item => {

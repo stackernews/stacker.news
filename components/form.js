@@ -469,18 +469,22 @@ export function BaseSuggest ({
   })
 
   const suggestions = useMemo(() => {
-    if (!data?.[itemsField]) return []
+    if (!show || !data?.[itemsField]) return []
     return data[itemsField]
       .filter((...args) => filterItems(query, ...args))
       .map(transformItem)
-  }, [data, itemsField, filterItems, transformItem, query])
+  }, [show, data, itemsField, filterItems, transformItem, query])
 
+  // show mentions suggestions on query trigger
   useEffect(() => {
     setIndex(0)
-    setShow(true)
-  }, [suggestions])
+    setShow(q !== undefined)
+  }, [q])
 
-  const resetSuggestions = useCallback(() => setShow(false), [])
+  const resetSuggestions = useCallback(() => {
+    setShow(false)
+    setIndex(0)
+  }, [])
 
   const onKeyDown = useCallback(e => {
     switch (e.code) {
@@ -517,11 +521,11 @@ export function BaseSuggest ({
       default:
         break
     }
-  }, [onSelect, index, suggestions])
+  }, [suggestions, onSelect, index, resetSuggestions, selectWithTab])
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions })}
-      <Dropdown show={show && suggestions.length > 0} style={dropdownStyle}>
+      <Dropdown show={suggestions.length > 0} style={dropdownStyle}>
         <Dropdown.Menu className={styles.suggestionsMenu}>
           {suggestions.map((v, i) =>
             <Dropdown.Item

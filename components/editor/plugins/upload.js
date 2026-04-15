@@ -273,8 +273,6 @@ function useLexicalUploadFees (editor) {
 
   const handleUploadFeesData = useCallback(({ data }) => {
     const { uploadFees: feePerUpload, nUnpaid } = data.uploadFees
-    console.log('feePerUpload', feePerUpload)
-    console.log('nUnpaid', nUnpaid)
     const totalFees = feePerUpload * nUnpaid
     merge({
       uploadFees: {

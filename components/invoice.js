@@ -4,7 +4,7 @@ import AccordianItem from './accordian-item'
 import Qr, { QrSkeleton } from './qr'
 import { CompactLongCountdown } from './countdown'
 import PayerData from './payer-data'
-import Bolt11Info from './bolt11-info'
+import Bolt11Info from './payIn/bolt11-info'
 import { useQuery } from '@apollo/client/react'
 import { INVOICE } from '@/fragments/invoice'
 import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
@@ -99,7 +99,7 @@ export default function Invoice ({
     )
   }
 
-  const { bolt11, confirmedPreimage } = invoice
+  const { bolt11, confirmedPreimage, hash, description } = invoice
 
   return (
     <>
@@ -113,7 +113,7 @@ export default function Invoice ({
         <>
           {info && <div className='text-muted fst-italic text-center'>{info}</div>}
           <InvoiceExtras {...invoice} />
-          <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
+          <Bolt11Info bolt11={bolt11} hash={hash} preimage={confirmedPreimage} description={description} />
           {invoice?.item && <ActionInfo invoice={invoice} />}
         </>}
     </>

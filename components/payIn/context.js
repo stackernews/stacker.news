@@ -43,7 +43,14 @@ export function PayInContext ({ payIn }) {
       return <div className='w-100'><PayInMetadata payInBolt11={payIn.payerPrivates.payInBolt11} /></div>
     case 'WITHDRAWAL':
     case 'AUTO_WITHDRAWAL':
-      return <Bolt11Info bolt11={payIn.payeePrivates.payOutBolt11.bolt11} preimage={payIn.payeePrivates.payOutBolt11.preimage} />
+      return (
+        <Bolt11Info
+          bolt11={payIn.payeePrivates.payOutBolt11.bolt11}
+          hash={payIn.payeePrivates.payOutBolt11.hash}
+          preimage={payIn.payeePrivates.payOutBolt11.preimage}
+          description={payIn.payeePrivates.payOutBolt11.description}
+        />
+      )
     case 'DONATE':
       return <small className='text-muted d-flex justify-content-center w-100'>Praise be, you donated to the rewards pool.</small>
     case 'BUY_CREDITS':

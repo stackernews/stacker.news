@@ -1,5 +1,4 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { isAbortError } from '@/lib/error'
 import {
   COMMAND_PRIORITY_EDITOR,
   $getRoot,
@@ -18,7 +17,7 @@ import {
 import { mergeRegister } from '@lexical/utils'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { gql } from '@apollo/client'
-import { useLazyQuery } from '@apollo/client/react'
+import { useApolloClient } from '@apollo/client/react'
 import { useFeeButton } from '@/components/fee-button'
 import { FileUpload } from '@/components/file-upload'
 import useDebounceCallback from '@/components/use-debounce-callback'
@@ -260,15 +259,22 @@ export default function FileUploadPlugin ({ editorRef }) {
  * ```
  */
 function useLexicalUploadFees (editor) {
+  const client = useApolloClient()
   const { merge } = useFeeButton()
 
-  const [updateUploadFees] = useLazyQuery(UPLOAD_FEES_QUERY, {
-    fetchPolicy: 'no-cache',
-    nextFetchPolicy: 'no-cache'
-  })
+  const updateUploadFees = useCallback(async (s3Keys) => {
+    return await client.query({
+      query: UPLOAD_FEES_QUERY,
+      variables: { s3Keys },
+      fetchPolicy: 'no-cache',
+      nextFetchPolicy: 'no-cache'
+    })
+  }, [client])
 
   const handleUploadFeesData = useCallback(({ data }) => {
     const { uploadFees: feePerUpload, nUnpaid } = data.uploadFees
+    console.log('feePerUpload', feePerUpload)
+    console.log('nUnpaid', nUnpaid)
     const totalFees = feePerUpload * nUnpaid
     merge({
       uploadFees: {
@@ -287,17 +293,15 @@ function useLexicalUploadFees (editor) {
     if (isMarkdown) {
       const text = $getRoot().getTextContent() || ''
       const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
-      updateUploadFees({ variables: { s3Keys } })
+      updateUploadFees(s3Keys)
         .then(handleUploadFeesData)
-        .catch(err => !isAbortError(err) && console.error(err))
     } else {
       const mediaNodes = $nodesOfType(MediaNode)
       const s3Keys = mediaNodes
         .flatMap(node => [...node.getSrc().matchAll(AWS_S3_URL_REGEXP)])
         .map(m => Number(m[1]))
-      updateUploadFees({ variables: { s3Keys } })
+      updateUploadFees(s3Keys)
         .then(handleUploadFeesData)
-        .catch(err => !isAbortError(err) && console.error(err))
     }
   }, [updateUploadFees, handleUploadFeesData])
 

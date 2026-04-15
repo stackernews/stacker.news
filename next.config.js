@@ -271,6 +271,7 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
             'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL_MS),
             'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL_MS),
             'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_MDAST_DEBUG': JSON.stringify(process.env.NEXT_PUBLIC_MDAST_DEBUG),
             'process.env.SANCTIONED_COUNTRY_CODES': JSON.stringify(process.env.SANCTIONED_COUNTRY_CODES),
             'process.env.NEXT_IS_EXPORT_WORKER': 'true'
           })

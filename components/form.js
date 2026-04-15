@@ -508,11 +508,11 @@ export function BaseSuggest ({
         }
         e.preventDefault()
         onSelect(suggestions[index].name)
-        setIndex(0)
+        resetSuggestions()
         break
       case 'Escape':
         e.preventDefault()
-        setIndex(0)
+        resetSuggestions()
         break
       default:
         break
@@ -529,7 +529,7 @@ export function BaseSuggest ({
               active={index === i}
               onClick={() => {
                 onSelect(v.name)
-                setIndex(0)
+                resetSuggestions()
               }}
             >
               {v.name}

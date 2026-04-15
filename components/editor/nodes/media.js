@@ -371,7 +371,7 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
         }
       } catch (error) {
         if (error.name === 'AbortError') return
-        console.error('cannot check media type', error)
+        console.warn('cannot check media type', error)
       }
     }
     checkMedia()

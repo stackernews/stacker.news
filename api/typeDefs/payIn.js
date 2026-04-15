@@ -105,6 +105,7 @@ type PayInBolt11 {
   preimage: String
   hmac: String
   bolt11: String!
+  description: String
   expiresAt: Date!
   confirmedAt: Date
   cancelledAt: Date
@@ -236,6 +237,7 @@ type PayOutBolt11 {
   hash: String
   preimage: String
   bolt11: String
+  description: String
   expiresAt: Date!
 }
 

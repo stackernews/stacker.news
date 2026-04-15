@@ -66,7 +66,14 @@ export default function PayIn ({ id, ssrData }) {
                 <div className='mt-3'>
                   <AccordianItem
                     header='lightning invoice'
-                    body={<Bolt11Info bolt11={payIn.payerPrivates.payInBolt11.bolt11} preimage={payIn.payerPrivates.payInBolt11.preimage} />}
+                    body={(
+                      <Bolt11Info
+                        bolt11={payIn.payerPrivates.payInBolt11.bolt11}
+                        hash={payIn.payerPrivates.payInBolt11.hash}
+                        preimage={payIn.payerPrivates.payInBolt11.preimage}
+                        description={payIn.payerPrivates.payInBolt11.description}
+                      />
+                    )}
                   />
                 </div>
                 )}

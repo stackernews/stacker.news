@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react'
-import { isAbortError } from '@/lib/error'
 import { useRouter } from 'next/router'
 import { MultiSelect, Select } from './form'
 import { EXTRA_LONG_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { ACTIVE_SUBS, SUB_FULL } from '@/fragments/subs'
-<<<<<<< refactor/lazy-queries-ac4-migration
 import { useApolloClient, useQuery } from '@apollo/client/react'
-=======
-import { useLazyQuery, useQuery } from '@apollo/client/react'
->>>>>>> master
 import styles from './sub-select.module.css'
 import { useMe } from './me'
 import { useShowModal } from './modal'
@@ -158,7 +153,6 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
   const showModal = useShowModal()
 
   const handleTerritoryClick = async (subName) => {
-<<<<<<< refactor/lazy-queries-ac4-migration
     const { data } = await client.query({
       query: SUB_FULL,
       variables: { sub: subName }
@@ -166,15 +160,6 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
 
     if (data?.sub) {
       showModal(() => <TerritoryInfo sub={data.sub} includeLink />)
-=======
-    try {
-      const { data } = await getSub({ variables: { sub: subName } })
-      if (data?.sub) {
-        showModal(() => <TerritoryInfo sub={data.sub} includeLink />)
-      }
-    } catch (err) {
-      !isAbortError(err) && console.error(err)
->>>>>>> master
     }
   }
 

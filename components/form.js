@@ -465,7 +465,7 @@ export function BaseSuggest ({
 
   const { data } = useQuery(getSuggestionsQuery, {
     variables: { q, limit: 5 },
-    skip: !q
+    skip: q === undefined
   })
 
   const suggestions = useMemo(() => {

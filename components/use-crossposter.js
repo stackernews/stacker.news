@@ -171,21 +171,26 @@ export default function useCrossposter () {
   }
 
   const fetchItemData = async (itemId) => {
-    const { data } = await client.query({
-      query: gql`
-      ${ITEM_FULL_FIELDS}
-      ${POLL_FIELDS}
-      query Item($id: ID!) {
-        item(id: $id) {
-          ...ItemFullFields
-          ...PollFields
-        }
-      }`,
-      variables: { id: itemId },
-      fetchPolicy: 'no-cache'
-    })
+    try {
+      const { data } = await client.query({
+        query: gql`
+        ${ITEM_FULL_FIELDS}
+        ${POLL_FIELDS}
+        query Item($id: ID!) {
+          item(id: $id) {
+            ...ItemFullFields
+            ...PollFields
+          }
+        }`,
+        variables: { id: itemId },
+        fetchPolicy: 'no-cache'
+      })
 
-    return data?.item
+      return data?.item
+    } catch (e) {
+      console.error(e)
+      return null
+    }
   }
 
   const crosspostItem = async item => {

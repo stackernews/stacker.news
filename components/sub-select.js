@@ -153,13 +153,16 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
   const showModal = useShowModal()
 
   const handleTerritoryClick = async (subName) => {
-    const { data } = await client.query({
-      query: SUB_FULL,
-      variables: { sub: subName }
-    })
-
-    if (data?.sub) {
-      showModal(() => <TerritoryInfo sub={data.sub} includeLink />)
+    try {
+      const { data } = await client.query({
+        query: SUB_FULL,
+        variables: { sub: subName }
+      })
+      if (data?.sub) {
+        showModal(() => <TerritoryInfo sub={data.sub} includeLink />)
+      }
+    } catch (err) {
+      console.error(err)
     }
   }
 

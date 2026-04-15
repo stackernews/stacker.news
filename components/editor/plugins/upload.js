@@ -293,6 +293,7 @@ function useLexicalUploadFees (editor) {
       const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
       updateUploadFees(s3Keys)
         .then(handleUploadFeesData)
+        .catch(err => console.error(err))
     } else {
       const mediaNodes = $nodesOfType(MediaNode)
       const s3Keys = mediaNodes
@@ -300,6 +301,7 @@ function useLexicalUploadFees (editor) {
         .map(m => Number(m[1]))
       updateUploadFees(s3Keys)
         .then(handleUploadFeesData)
+        .catch(err => console.error(err))
     }
   }, [updateUploadFees, handleUploadFeesData])
 

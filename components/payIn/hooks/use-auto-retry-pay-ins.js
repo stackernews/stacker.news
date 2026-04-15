@@ -1,7 +1,6 @@
 import { usePreferredSendProtocolId, useWalletPayment } from '@/wallets/client/hooks'
-import { isAbortError } from '@/lib/error'
 import usePayInHelper from './use-pay-in-helper'
-import { useLazyQuery } from '@apollo/client/react'
+import { useApolloClient } from '@apollo/client/react'
 import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
 import { useEffect } from 'react'
@@ -12,7 +11,7 @@ export function useAutoRetryPayIns () {
   const waitForWalletPayment = useWalletPayment()
   const sendProtocolId = usePreferredSendProtocolId()
   const payInHelper = usePayInHelper()
-  const [getFailedPayIns] = useLazyQuery(FAILED_PAY_INS, { fetchPolicy: 'network-only', nextFetchPolicy: 'network-only', errorPolicy: 'all' })
+  const client = useApolloClient()
   const { me } = useMe()
 
   useEffect(() => {
@@ -39,11 +38,16 @@ export function useAutoRetryPayIns () {
 
       let failedPayIns
       try {
-        const { data, error } = await getFailedPayIns()
+        const { data, error } = await client.query({
+          query: FAILED_PAY_INS,
+          fetchPolicy: 'network-only',
+          nextFetchPolicy: 'network-only',
+          errorPolicy: 'all'
+        })
         if (error) throw error
         failedPayIns = data.failedPayIns
       } catch (err) {
-        !isAbortError(err) && console.error('failed to fetch invoices to retry:', err)
+        console.error('failed to fetch invoices to retry:', err)
         return
       }
 
@@ -80,7 +84,7 @@ export function useAutoRetryPayIns () {
 
     queuePoll()
     return stopPolling
-  }, [me?.id, sendProtocolId, getFailedPayIns, payInHelper, waitForWalletPayment])
+  }, [me?.id, sendProtocolId, client, payInHelper, waitForWalletPayment])
 }
 
 export function isAutoRetryEligiblePayIn (payIn) {

@@ -154,7 +154,10 @@ EXECUTE FUNCTION update_record_status_from_attempt();
 CREATE OR REPLACE FUNCTION hold_domain_on_sub_stop()
 RETURNS TRIGGER AS $$
 BEGIN
-  UPDATE "Domain" SET "status" = 'HOLD' WHERE "subName" = NEW.name;
+  UPDATE "Domain" 
+  SET "status" = 'HOLD', 
+      "updated_at" = NOW()
+  WHERE "subName" = NEW.name;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

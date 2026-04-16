@@ -120,16 +120,15 @@ export default {
               data: { ...initializeDomain, sub: { connect: { name: subName } } }
             })
 
-          if (!resuming) {
-            await tx.domainVerificationRecord.create({
-              data: {
-                domainId: domain.id,
-                type: 'CNAME',
-                recordName: domainName,
-                recordValue: new URL(process.env.NEXT_PUBLIC_URL).host
-              }
-            })
-          }
+          // prepare the CNAME record for verification
+          await tx.domainVerificationRecord.create({
+            data: {
+              domainId: domain.id,
+              type: 'CNAME',
+              recordName: domainName,
+              recordValue: new URL(process.env.NEXT_PUBLIC_URL).host
+            }
+          })
 
           await scheduleDomainVerificationJob(domain.id, tx)
           return domain

@@ -216,7 +216,7 @@ export async function proxy (req) {
   }
 
   // if we're on a custom domain, handle it
-  const domain = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  const domain = request.headers.get('host')
   if (domain !== SN_MAIN_DOMAIN?.host) { // we don't need middleware to fail if dev messes up ENVs
     // in development we might have a port in the domain
     const domainToMap = process.env.NODE_ENV === 'development' ? domain.split(':')[0] : domain

@@ -68,7 +68,7 @@
     "linkedom": "^0.18.12",
     "ln-service": "^57.22.0",
     "macaroon": "^3.0.4",
-    "mathjs": "^13.2.0",
+    "mathjs": "^15.2.0",
     "mdast-util-find-and-replace": "^3.0.1",
     "mdast-util-from-markdown": "^2.0.1",
     "mdast-util-gfm": "^3.0.0",

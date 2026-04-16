@@ -83,8 +83,8 @@ Spark phase 1 note:
 - store only `identityPubkey` on the receive side
 - create receive invoices on the server with a global service wallet configured via `SPARK_SERVICE_MNEMONIC` (`NEXT_PUBLIC_SPARK_NETWORK` chooses the network: `REGTEST` in dev, `MAINNET` in prod, set explicitly for staging)
 - return a standard BOLT11 invoice from `createLightningInvoice()` so the normal receive/payOut path can consume it
-- local `sndev` regtest does not include Spark routing, so full end-to-end payout tests still require live Spark connectivity
-- see `wallets/lib/protocols/docs/dev/spark.md` for the hosted `REGTEST` dev flow
+- local `sndev` regtest does not include Spark routing, so a mock (gated by `NEXT_PUBLIC_SPARK_MOCK=1`, dev-only) mirrors Spark hodl invoices onto `sn_lnd` at the same payment hash and settles them via the stacker node; real invoice creation still hits hosted Spark
+- see `wallets/lib/protocols/docs/dev/spark.md` for the sndev mock flow and the live SDK check
 
 ### Spark operator threat model
 

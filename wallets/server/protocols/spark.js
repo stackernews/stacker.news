@@ -27,7 +27,7 @@ async function createServiceWallet () {
   return wallet
 }
 
-async function getServiceWallet ({ signal } = {}) {
+export async function getServiceWallet ({ signal } = {}) {
   signal?.throwIfAborted()
   if (!serviceWalletPromise) {
     serviceWalletPromise = createServiceWallet().catch(err => {
@@ -39,7 +39,7 @@ async function getServiceWallet ({ signal } = {}) {
   return await serviceWalletPromise
 }
 
-function invalidateServiceWallet () {
+export function invalidateServiceWallet () {
   serviceWalletPromise = undefined
 }
 

@@ -88,7 +88,7 @@ export function useProtocol () {
   return useMemo(() => [selectedProtocol, setProtocol], [selectedProtocol, setProtocol])
 }
 
-function useProtocolFormState (protocol) {
+export function useProtocolFormState (protocol) {
   const formId = protocolFormId(protocol)
   const [formState, setFormState] = useFormState(formId)
   const setProtocolFormState = useCallback(

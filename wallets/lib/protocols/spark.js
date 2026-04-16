@@ -18,7 +18,6 @@ export default [
         required: true,
         validate: bip39Validator(),
         encrypt: true,
-        hidden: true,
         editable: false
       }
     ],
@@ -35,7 +34,6 @@ export default [
         label: 'identity pubkey',
         required: true,
         validate: identityPubkeyValidator,
-        hidden: true,
         editable: false
       }
     ],

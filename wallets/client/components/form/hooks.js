@@ -3,6 +3,9 @@ import { createContext, useContext, useEffect, useMemo, useCallback, useState } 
 import { useWalletProtocolUpsert } from '@/wallets/client/hooks'
 import { MultiStepForm, useFormState, useStep } from '@/components/multi-step-form'
 import { parseNwcUrl } from '@/wallets/lib/validate'
+import { useApolloClient } from '@apollo/client/react'
+import { ME } from '@/fragments/users'
+import { WALLETS } from '@/wallets/client/fragments'
 
 export const Step = {
   SEND: 'send',
@@ -155,6 +158,7 @@ export function useSaveWallet () {
   const wallet = useWallet()
   const [formState] = useFormState()
   const upsert = useWalletProtocolUpsert()
+  const client = useApolloClient()
 
   const save = useCallback(async () => {
     let walletId = isWallet(wallet) ? wallet.id : undefined
@@ -171,7 +175,9 @@ export function useSaveWallet () {
       )
       walletId ??= id
     }
-  }, [wallet, formState, upsert])
+
+    await client.refetchQueries({ include: [ME, WALLETS] })
+  }, [wallet, formState, upsert, client])
 
   return save
 }

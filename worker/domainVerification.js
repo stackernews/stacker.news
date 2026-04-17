@@ -3,6 +3,8 @@ import {
   verifyDNSRecord,
   issueDomainCertificate,
   checkCertificateStatus,
+  certDetails,
+  extractCertificateStatus,
   getValidationValues,
   attachDomainCertificate,
   deleteDomainCertificate,
@@ -39,13 +41,21 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
       }
     })
 
-    console.log(`domainVerification: ${JSON.stringify(domain, null, 2)}`)
-
     // if we can't find the domain, bail without scheduling a retry
     if (!domain) {
       console.log(`domain with ID ${domainId} not found`)
       return
     }
+
+    console.log(`domainVerification: ${JSON.stringify({
+      id: domain.id,
+      domainName: domain.domainName,
+      subName: domain.subName,
+      status: domain.status,
+      recordCount: domain.records?.length ?? 0,
+      certificateStatus: domain.certificate?.status ?? null,
+      updatedAt: domain.updatedAt
+    })}`)
 
     // when a domain gets put on HOLD, we delete any remaining domain verification jobs
     // this handles the edge case where a domain is put on HOLD manually or for some other reason
@@ -59,15 +69,19 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     const result = await verifyDomain(domain, models)
     console.log(`domain verification result: ${JSON.stringify(result)}`)
 
+    const domainStatus = result.status === 'VERIFIED'
+      ? 'ACTIVE'
+      : result.status === 'FAILED' ? 'HOLD' : 'PENDING'
+
     // update the domain status only if it has changed
-    if (domain.status !== result.status) {
+    if (domain.status !== domainStatus) {
       await models.domain.update({
         where: { id: domainId },
-        data: { status: result.status }
+        data: { status: domainStatus }
       })
     }
 
-    // log the general verification attempt
+    // log the overall verification attempt
     await logAttempt({ domain, models, stage: 'VERIFICATION_COMPLETE', status: result.status, message: result.message })
 
     // if the result is PENDING it means we still have to verify the domain
@@ -84,19 +98,24 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
   } catch (error) {
     console.error(`couldn't verify domain with ID ${domainId}: ${error.message}`)
 
-    // get the job details to get the retry count
-    const jobDetails = await boss.getJobById(jobId)
-    console.log(`job details: ${JSON.stringify(jobDetails)}`)
+    try {
+      // get the job details to get the retry count
+      const jobDetails = await boss.getJobById(jobId)
+      console.log(`job details: ${JSON.stringify(jobDetails)}`)
 
-    // if we couldn't verify the domain after 3 attempts, put it on hold if it exists and delete any related verification jobs
-    if (jobDetails?.retrycount >= 3) {
-      console.log(`couldn't verify domain with ID ${domainId} for the third time, putting it on HOLD if it exists and deleting any related domain verification jobs`)
-      await models.domain.update({ where: { id: domainId }, data: { status: 'HOLD' } })
+      // if we exhausted retries, put the domain on HOLD and drop any lingering verification jobs
+      if (jobDetails?.retrycount >= DOMAIN_VERIFICATION_RETRY_LIMIT) {
+        console.log(`couldn't verify domain with ID ${domainId} after ${DOMAIN_VERIFICATION_RETRY_LIMIT} retries, putting it on HOLD and deleting any related domain verification jobs`)
+        await models.domain.update({ where: { id: domainId }, data: { status: 'HOLD' } })
 
-      // delete any related domain verification jobs that may exist
-      await cleanDomainVerificationJobs(domainId, models)
+        // delete any related domain verification jobs
+        await cleanDomainVerificationJobs(domainId, models)
+      }
+    } catch (cleanupError) {
+      console.error(`post-failure cleanup for domain ${domainId} failed: ${cleanupError.message}`)
     }
 
+    // rethrow the original error
     throw error
   } finally {
     // close prisma connection
@@ -105,10 +124,10 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
 }
 
 async function verifyDomain (domain, models) {
-  // put the domain on HOLD if it has been on PENDING for too long
-  // the DB trigger will delete the certificate (if any), which cascades into the ACM cleanup trigger
+  // bail with FAILED if the domain has been on PENDING for too long; domain will be put on HOLD,
+  // the DB trigger will delete the certificate (if any), which cascades into the ACM cleanup trigger.
   if (datePivot(new Date(), { days: -DOMAIN_VERIFICATION_HOLD_AFTER_DAYS }) > domain.updatedAt) {
-    return { status: 'HOLD', message: `Domain ${domain.domainName} has been put on HOLD because we couldn't verify it for the last ${DOMAIN_VERIFICATION_HOLD_AFTER_DAYS} days` }
+    return { status: 'FAILED', message: `Domain ${domain.domainName} has been put on HOLD because we couldn't verify it for the last ${DOMAIN_VERIFICATION_HOLD_AFTER_DAYS} days` }
   }
 
   const status = 'PENDING'
@@ -127,13 +146,17 @@ async function verifyDomain (domain, models) {
   try {
     // STEP 2a: Request a certificate
     let certificateArn = domain.certificate?.certificateArn || null
+    // reuse the describeCertificate response across steps 2a and 2b when we just issued the cert
+    let freshCertificate = null
     if (!certificateArn) {
-      certificateArn = await requestCertificate(domain, models)
+      const issued = await requestCertificate(domain, models)
+      certificateArn = issued.certificateArn
+      freshCertificate = issued.certificate
     }
 
     // STEP 2b: Get the validation values for the certificate
     if (certificateArn && !recordMap.SSL) {
-      await getACMValidationValues(domain, models, certificateArn)
+      await getACMValidationValues(domain, models, certificateArn, freshCertificate)
 
       // return PENDING to check ACM validation later
       return { status, message: 'Certificate issued and validation values stored.' }
@@ -150,8 +173,8 @@ async function verifyDomain (domain, models) {
     throw error
   }
 
-  // STEP 3: If everything is verified, update the domain status to ACTIVE
-  return { status: 'ACTIVE', message: `Domain ${domain.domainName} has been successfully verified` }
+  // STEP 3: domain is verified
+  return { status: 'VERIFIED', message: `Domain ${domain.domainName} has been successfully verified` }
 }
 
 // verify a single record, logs the result and returns true if the record is valid
@@ -172,54 +195,56 @@ async function verifyRecord (type, record, domain, models) {
 }
 
 // request a certificate for the domain from ACM
+// returns { certificateArn, certificate }
 async function requestCertificate (domain, models) {
   let message = null
 
   // ask ACM to request a certificate for the domain
   const { certificateArn, error: requestError } = await issueDomainCertificate(domain.domainName)
 
-  if (certificateArn) {
-    // check the status of the just created certificate
-    const { certStatus, error: checkError } = await checkCertificateStatus(certificateArn)
-    if (checkError) {
-      message = 'Could not check certificate status: ' + checkError?.message
-      throw new Error(message)
-    } else {
-      try {
-        // store the certificate in the database with its status
-        await models.domainCertificate.create({
-          data: {
-            domain: { connect: { id: domain.id } },
-            certificateArn,
-            status: certStatus
-          }
-        })
-        message = 'An ACM certificate with arn ' + certificateArn + ' has been successfully requested'
-      } catch (e) {
-        // if record already exists, move on
-        if (e.code === 'P2002') {
-          message = 'Certificate already stored'
-        } else {
-          message = 'Could not store certificate in the database: ' + e.message
-          throw new Error(message)
-        }
-      }
-    }
-  } else {
+  if (!certificateArn) {
     message = 'Could not request an ACM certificate: ' + requestError?.message
     throw new Error(message)
   }
 
-  const status = certificateArn ? 'PENDING' : 'FAILED'
-  await logAttempt({ domain, models, stage: 'ACM_REQUEST_CERTIFICATE', status, message })
-  return certificateArn
+  // describe the certificate to get the status and validation values
+  const { certificate, error: describeError } = await certDetails(certificateArn)
+  if (describeError) {
+    message = 'Could not check certificate status: ' + describeError?.message
+    throw new Error(message)
+  }
+
+  const certStatus = extractCertificateStatus(certificate)
+
+  try {
+    // store the certificate in the database with its status
+    await models.domainCertificate.create({
+      data: {
+        domain: { connect: { id: domain.id } },
+        certificateArn,
+        status: certStatus
+      }
+    })
+    message = 'An ACM certificate with arn ' + certificateArn + ' has been successfully requested'
+  } catch (e) {
+    // if record already exists, move on
+    if (e.code === 'P2002') {
+      message = 'Certificate already stored'
+    } else {
+      message = 'Could not store certificate in the database: ' + e.message
+      throw new Error(message)
+    }
+  }
+
+  await logAttempt({ domain, models, stage: 'ACM_REQUEST_CERTIFICATE', status: 'PENDING', message })
+  return { certificateArn, certificate }
 }
 
-async function getACMValidationValues (domain, models, certificateArn) {
+async function getACMValidationValues (domain, models, certificateArn, certificate = null) {
   let message = null
 
   // get the validation values for the certificate
-  const { cname, value, error } = await getValidationValues(certificateArn)
+  const { cname, value, error } = await getValidationValues(certificateArn, certificate)
   if (cname && value) {
     try {
       // store the validation values in the database
@@ -302,8 +327,6 @@ async function logAttempt ({ domain, models, record, stage, status, message }) {
   if (record) {
     data.verificationRecord = { connect: { id: record.id } }
   }
-
-  console.log(`logAttempt: ${JSON.stringify(data, null, 2)}`)
 
   return await models.domainVerificationAttempt.create({
     data

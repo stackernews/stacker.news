@@ -917,7 +917,7 @@ model Domain {
   updatedAt               DateTime                    @default(now()) @updatedAt @map("updated_at")
   domainName              String                      @unique @db.Citext
   subName                 String                      @unique @db.Citext
-  status                  DomainVerificationStatus    @default(PENDING)
+  status                  DomainStatus                @default(PENDING)
   tokenVersion            Int                         @default(0)
 
   sub                     Sub                         @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
@@ -937,7 +937,7 @@ model DomainVerificationAttempt {
   domainId                Int
   verificationRecordId    Int?
   stage                   DomainVerificationStage   @default(GENERAL)
-  status                  DomainVerificationStatus  @default(PENDING)
+  status                  RecordStatus              @default(PENDING)
   message                 String?
 
   domain                  Domain                    @relation(fields: [domainId], references: [id], onDelete: Cascade)
@@ -956,7 +956,7 @@ model DomainVerificationRecord {
   type           DomainRecordType
   recordName     String
   recordValue    String
-  status         DomainVerificationStatus     @default(PENDING)
+  status         RecordStatus                 @default(PENDING)
   attempts       DomainVerificationAttempt[]
 
   domain         Domain                       @relation(fields: [domainId], references: [id], onDelete: Cascade)
@@ -978,12 +978,17 @@ model DomainCertificate {
   @@unique([domainId])
 }
 
-enum DomainVerificationStatus {
+enum DomainStatus {
+  PENDING
+  ACTIVE
+  HOLD
+  FAILED
+}
+
+enum RecordStatus {
   PENDING
   VERIFIED
   FAILED
-  ACTIVE
-  HOLD
 }
 
 enum DomainVerificationStage {

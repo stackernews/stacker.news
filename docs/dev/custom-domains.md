@@ -177,11 +177,9 @@ The `DomainVerification` job logs every step into `DomainVerificationAttempt`, w
 If the result of a DNS verification on the `CNAME` record is `VERIFIED`, it triggers a field `status` update to the related `DomainVerificationRecord`, keeping the record **statuses** in sync with the `DomainVerification` job results.
 
 ### HOLD domain on territory STOP
-Let's say the territory owner doesn't renew their territory, and they have a custom domain attached to it. We can't let the custom domain access Stacker News as the domain can be transferred or out of original owner's control.
+When a domain enters `HOLD` the `delete_certificate_and_verification_records_on_domain_hold` trigger deletes the associated `DomainCertificate` (which cascades into `ask_acm_to_delete_certificate` and removes the cert from ACM + ALB) and all `DomainVerificationRecord` rows tied to that domain.
 
-A territory stop triggers a function that puts the custom domain on `HOLD`, effectively stopping the custom domain functionality.
-
-If the territory owner comes back and renews, they have to repeat the Domain Verification process just to make sure that everything is alright. The verification values will be the same and the certificate hasn't been deleted, so it should just take 30 seconds.
+If the territory owner comes back and renews, they have to repeat the Domain Verification process from scratch: a new ACM certificate is issued, new SSL validation values are generated and presented to the user, and the user must publish a fresh SSL `CNAME` before ACM can validate. Only the `subName` binding and the user's own `CNAME` to `stacker.news` (which lives in the user's DNS, not in our DB) survive across the HOLD.
 
 ### Clear domain on territory takeover
 If a new territory owner comes up, we delete every trace of the custom domain. This also deletes its certificates, verification attempts, DNS records and customizations.

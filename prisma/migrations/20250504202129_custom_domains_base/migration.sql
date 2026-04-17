@@ -5,7 +5,10 @@ CREATE TYPE "DomainVerificationStage" AS ENUM ('GENERAL', 'CNAME', 'ACM_REQUEST_
 CREATE TYPE "DomainRecordType" AS ENUM ('CNAME', 'SSL');
 
 -- CreateEnum
-CREATE TYPE "DomainVerificationStatus" AS ENUM ('PENDING', 'VERIFIED', 'FAILED', 'ACTIVE', 'HOLD');
+CREATE TYPE "DomainStatus" AS ENUM ('PENDING', 'ACTIVE', 'HOLD', 'FAILED');
+
+-- CreateEnum
+CREATE TYPE "RecordStatus" AS ENUM ('PENDING', 'VERIFIED', 'FAILED');
 
 -- CreateEnum
 CREATE TYPE "DomainCertificateStatus" AS ENUM ('PENDING_VALIDATION', 'ISSUED', 'INACTIVE', 'EXPIRED', 'REVOKED', 'FAILED', 'VALIDATION_TIMED_OUT');
@@ -17,7 +20,7 @@ CREATE TABLE "Domain" (
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "domainName" CITEXT NOT NULL,
     "subName" CITEXT NOT NULL,
-    "status" "DomainVerificationStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "DomainStatus" NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "Domain_pkey" PRIMARY KEY ("id")
 );
@@ -30,7 +33,7 @@ CREATE TABLE "DomainVerificationAttempt" (
     "domainId" INTEGER NOT NULL,
     "verificationRecordId" INTEGER,
     "stage" "DomainVerificationStage" NOT NULL DEFAULT 'GENERAL',
-    "status" "DomainVerificationStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "RecordStatus" NOT NULL DEFAULT 'PENDING',
     "message" TEXT,
 
     CONSTRAINT "DomainVerificationAttempt_pkey" PRIMARY KEY ("id")
@@ -46,7 +49,7 @@ CREATE TABLE "DomainVerificationRecord" (
     "type" "DomainRecordType" NOT NULL,
     "recordName" TEXT NOT NULL,
     "recordValue" TEXT NOT NULL,
-    "status" "DomainVerificationStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "RecordStatus" NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "DomainVerificationRecord_pkey" PRIMARY KEY ("id")
 );

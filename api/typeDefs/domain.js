@@ -15,7 +15,7 @@ export default gql`
     updatedAt: Date!
     domainName: String!
     subName: String!
-    status: DomainVerificationStatus
+    status: DomainStatus
     records: DomainVerificationRecordMap
     attempts: [DomainVerificationAttempt]
     certificate: DomainCertificate
@@ -30,7 +30,7 @@ export default gql`
     type: DomainRecordType
     recordName: String!
     recordValue: String!
-    status: DomainVerificationStatus
+    status: RecordStatus
     attempts: [DomainVerificationAttempt]
   }
 
@@ -46,7 +46,7 @@ export default gql`
     domainId: Int!
     verificationRecordId: Int
     stage: DomainVerificationStage
-    status: DomainVerificationStatus
+    status: RecordStatus
     message: String
   }
 
@@ -74,12 +74,17 @@ export default gql`
     SSL
   }
 
-  enum DomainVerificationStatus {
+  enum DomainStatus {
+    PENDING
+    ACTIVE
+    HOLD
+    FAILED
+  }
+
+  enum RecordStatus {
     PENDING
     VERIFIED
     FAILED
-    ACTIVE
-    HOLD
   }
 
   enum DomainCertificateStatus {

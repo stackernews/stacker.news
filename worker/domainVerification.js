@@ -310,6 +310,64 @@ async function logAttempt ({ domain, models, record, stage, status, message }) {
   })
 }
 
+// Checks active domains for DNS drift. If record has drifted puts the domain on HOLD
+// a BEFORE UPDATE trigger on Domain bumps the tokenVersion,
+// retroactively revoking every JWT associated with the domain.
+export async function checkActiveDomainsDNS () {
+  const models = createPrisma({ connectionParams: { connection_limit: 1 } })
+  try {
+    const domains = await models.domain.findMany({
+      where: { status: 'ACTIVE' },
+      include: { records: { where: { type: 'CNAME' } } }
+    })
+
+    for (const domain of domains) {
+      const cname = domain.records[0]
+      if (!cname) continue
+
+      let drifted = false
+      let reason = null
+      try {
+        const result = await verifyDNSRecord('CNAME', cname.recordName, cname.recordValue)
+        if (!result.valid) {
+          drifted = true
+          reason = result.error?.message || 'CNAME record drifted'
+        }
+      } catch (error) {
+        // don't switch on temporary DNS errors
+        console.error(`[dns-drift] resolver error for ${domain.domainName}: ${error.message}`)
+        continue
+      }
+
+      if (!drifted) continue
+
+      console.log(`[dns-drift] ${domain.domainName} drifted (${reason}); switching to HOLD`)
+
+      // switching a domain to HOLD triggers:
+      // - bump_domain_token_version -> revokes every JWT associated with the domain (fires on any ACTIVE boundary crossing)
+      // - delete_certificate_and_verification_records_on_domain_hold -> deletes cert + records
+      // - ask_acm_to_delete_certificate -> asks ACM to delete the certificate
+      await models.domain.update({
+        where: { id: domain.id },
+        data: { status: 'HOLD' }
+      })
+
+      await logAttempt({
+        domain,
+        models,
+        stage: 'CNAME',
+        status: 'HOLD',
+        message: `DNS drift detected: ${reason}`
+      })
+    }
+  } catch (error) {
+    console.error(`[dns-drift] check failed: ${error.message}`)
+    throw error
+  } finally {
+    await models.$disconnect()
+  }
+}
+
 // clear domains that have been on HOLD past the retention window
 export async function clearLongHeldDomains () {
   const models = createPrisma({ connectionParams: { connection_limit: 1 } })

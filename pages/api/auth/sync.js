@@ -145,8 +145,22 @@ async function consumeVerificationToken (verificationToken) {
 
 async function createEphemeralSessionToken (domainName, userId) {
   try {
+    const domain = await models.domain.findUnique({
+      where: { domainName, status: 'ACTIVE' },
+      select: { id: true, tokenVersion: true }
+    })
+    if (!domain) {
+      return { status: 'ERROR', reason: 'domain is no longer active' }
+    }
+
     const sessionToken = await encodeJWT({
-      token: { id: userId, sub: userId, domainName },
+      token: {
+        id: userId,
+        sub: userId,
+        domainName,
+        domainId: domain.id,
+        domainVersion: domain.tokenVersion
+      },
       secret: process.env.NEXTAUTH_SECRET,
       maxAge: SYNC_TOKEN_MAX_AGE
     })

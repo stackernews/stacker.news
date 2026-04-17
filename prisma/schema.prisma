@@ -918,6 +918,7 @@ model Domain {
   domainName              String                      @unique @db.Citext
   subName                 String                      @unique @db.Citext
   status                  DomainVerificationStatus    @default(PENDING)
+  tokenVersion            Int                         @default(0)
 
   sub                     Sub                         @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   attempts                DomainVerificationAttempt[]

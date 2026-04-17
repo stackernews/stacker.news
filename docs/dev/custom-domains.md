@@ -158,6 +158,19 @@ Every midnight, the `clearLongHeldDomains` job gets executed to remove domains t
 
 A domain removal also means the certificate removal, which triggers **Ask ACM to delete certificate**.
 
+### Active Domain DNS Drift Check
+A pgboss cron `checkActiveDomainsDNS` runs every 5 minutes (`*/5 * * * *`) and, for each `ACTIVE` domain:
+- re-resolves the stored `CNAME` `DomainVerificationRecord` against live DNS via the same `verifyDNSRecord` helper used during initial verification
+- on a clean drift (record present but mismatched), flips the domain to `HOLD`
+- on a temporary resolver error (i.e. timeout), logs and skips
+
+Switching to `HOLD` cascades into:
+1. **Bump token version** — a db trigger on `Domain` increments `tokenVersion` whenever the domain switches from or to `ACTIVE`. [see token revocation via `tokenVersion`](#token-revocation-via-tokenversion).
+2. **Delete cert + verification records**
+3. **Ask ACM to delete certificate** — chained from the cert deletion
+
+The territory owner can re-verify and the domain returns to `ACTIVE`, but with a higher `tokenVersion` than any token issued before the drift.
+
 ### Update `DomainVerificationRecord` status
 The `DomainVerification` job logs every step into `DomainVerificationAttempt`, when it comes to steps that involves DNS records like the `CNAME` record or ACM validation records, a connection between `DomainVerificationAttempt` and `DomainVerificationRecord` gets established.
 
@@ -185,7 +198,6 @@ It's a necessary step to ensure that we don't waste AWS resources and also provi
 
 Cross-domain JWT authentication is a complex issue due to browser security restrictions, mainly because cookies:
 - are bound to specific domains
-- -- cookie property of `stacker.news` - **DON'T EAT**
 
 and
 
@@ -205,126 +217,67 @@ Instead of fighting these restrictions, Auth Sync works with them by creating a 
 - -- `POST: https://stacker.news/api/auth/sync; token: 42424242`
 
 
-This design focuses on security as the verification token is a one-time code that dies in **5 minutes** and has **256 bits** of entropy. The JWT is then generated server-side and applied to the final middleware response.
+The verification token is a one-time code that dies in **5 minutes** and has **256 bits** of entropy. The JWT is then generated server-side and applied to the final middleware response.
 
+### Token revocation via `domainId` + `tokenVersion`
 
+JWTs are stateless, so once a session cookie has been set on `pizza.com` we cannot un-issue it: the cookie remains valid in every browser that ever signed in until it expires (30 days by default). That is a problem the moment we suspect the domain itself is no longer trustworthy.
 
-# Neat stuff
+Every custom-domain JWT carries two claims that together make it revocable without abandoning the JWT model:
 
-### Let's go HTTPS with a reverse proxy
+- **`domainId`** — the primary key of the `Domain` row the token was minted against. Pins the JWT to a specific *row lifetime*. If the row is deleted and recreated (owner removes and re-adds the domain, takeover, etc.), the replacement row has a fresh autoincrement `id` that no pre-existing JWT can reference.
+- **`domainVersion`** — this is the value of `Domain.tokenVersion` when the JWT was created. If the domain leaves and later returns to `ACTIVE`, `tokenVersion` increases. Old JWTs with a different version become invalid.
 
-To set custom domains correctly we need to have a domain and SSL certificates.
+A `BEFORE UPDATE` trigger on `Domain` (`bump_domain_token_version`) increments `tokenVersion` on **any transition to/from `ACTIVE`**. The trigger alone can't help across row lifetimes, which is exactly why `domainId` exists.
 
-We'll cover a basic **NGINX** configuration with **Let's Encrypt/certbot** on Linux-based systems, but you have the freedom to experiment with other methods and platforms.
+##### Where `domainId` and `tokenVersion` are read
 
-#### Prerequisites
-- a domain or a public hostname
-- install [nginx](https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/)
-- install [certbot](https://certbot.eff.org/instructions?ws=nginx&os=pip)
-- possibility to add `CNAME` and `TXT` records
-- domain with an `A` record at your nginx host
+Two sides read these, with different consistency requirements:
 
+- **Mint side** — `createEphemeralSessionToken` in [pages/api/auth/sync.js](../../pages/api/auth/sync.js) reads the row **directly from the DB** (uncached) and snapshots both `id` and `tokenVersion` into the JWT. Since the minted cookie lives for up to 30 days, any staleness here could mint a token against an outdated row identity or revoked reign.
+- **Verify side** — the next-auth `jwt` callback reads through `getDomainMapping`, which goes through `domainsMappingsCache` (same cache the proxy uses). This runs on every custom-domain request, so hitting the DB here would be expensive. Bounded staleness is acceptable because the mint side already guarantees that no *new* tokens can be minted with the old identity — the stale window only delays the rejection of pre-existing tokens.
 
-### Step 1: Create a nginx site for your SN instance
+##### Enforcement
 
-Start creating a new site by editing `/etc/nginx/sites-available/your-domain.tld` with your editor of choice.
+The check happens once per request, in [pages/api/auth/[...nextauth].js](../../pages/api/auth/[...nextauth].js)'s `jwt` callback, after the existing same-domain check:
 
-<details><summary>A sample nginx site configuration to prepare for certbot</summary>
-Edit this configuration to match your configuration, you can have more domains.
+```js
+if (token?.domainName) {
+  // ... same-domain check ...
 
-```
-server {
-    listen 80;
-    listen [::]:80;
-    server_name your-domain.tld (sub.your-domain.tld, another.your-domain.tld);
-
-    # for Let's Encrypt SSL issuance
-    location /.well-known/acme-challenge/ {
-        root /var/www/letsencrypt;
-        try_files $uri =404;
-    }
+  const mapping = await getDomainMapping(token.domainName)
+  if (!mapping) return null                                      // domain is not ACTIVE right now
+  if (mapping.id !== token.domainId) return null                 // row was deleted and recreated
+  if (mapping.tokenVersion !== token.domainVersion) return null  // ACTIVE reign has changed
 }
 ```
-</details>
 
-after editing, send `sudo systemctl restart nginx`
+`getDomainMapping` reads from `domainsMappingsCache` (the same cache the proxy uses). Both SSR (`getServerSession`) and `/api/graphql` go through `getAuthOptions` -> this callback.
 
-### Step 2: Get a certificate for your domains
-We can now get a certificate for your domain from Let's Encrypt/certbot.
+##### Why all three checks?
 
-Edit the `-d` section to match your configuration. Every domain, sub-domain needs to have its own certificate.
+They cover different failure modes:
+- `!mapping` — the domain is not `ACTIVE` **right now** (on HOLD, deleted, unknown).
+- `mapping.id !== token.domainId` — the row was deleted and recreated since the token was minted. A fresh row always has a strictly greater autoincrement `id`, so old tokens can never match the new row regardless of what `tokenVersion` happens to land on.
+- `mapping.tokenVersion !== token.domainVersion` — the domain has crossed the `ACTIVE` boundary at least once since the token was minted, within the same row lifetime.
 
-```
-sudo certbot certonly \
-  --webroot -w /var/www/letsencrypt \
-  -d your-domain.tld (-d sub.your-domain.tld -d another.your-domain.tld) \
-  --email your@email.com \
-  --agree-tos --no-eff-email \
-  --deploy-hook "systemctl reload nginx"
-```
+##### an attack scenario, prevented
 
-If everything went smooth, we should now have a domain with a valid SSL certificate.
+Two variants worth walking through, since they exercise different parts of the defense.
 
-### Step 3: Proxy everything to sndev!
+**Variant A — DNS drift within a single row lifetime** (caught by `tokenVersion`):
 
-Let's go back to `/etc/nginx/sites-available/your-domain.tld` to add a SSL proxy for our sndev instance
+1. `pizza.com` is `ACTIVE` with `tokenVersion=3`. Alice signs in and gets a JWT carrying `{ domainName: 'pizza.com', domainId: 42, domainVersion: 3 }`.
+2. The attacker hijacks DNS for `pizza.com` and exfiltrates her cookie.
+3. Within ~5 minutes, `checkActiveDomainsDNS` notices the CNAME no longer matches and switches the domain to `HOLD`. The `ACTIVE -> HOLD` trigger bumps `tokenVersion` to `4`, and the on-HOLD trigger deletes the certificate and verification records.
+4. Next request from Alice's browser **or** the attacker's stolen cookie, once the verifier's cache refreshes past the bump: `!mapping` is true -> the request is rejected and the user is `anon`.
+5. The territory owner notices, fixes DNS, re-verifies. The domain goes back through `PENDING` and the `PENDING -> ACTIVE` trigger bumps `tokenVersion` again, to `5`.
+6. The domain is `ACTIVE` again, so `!mapping` passes and `domainId` still matches (the row was updated, not recreated). **But** the cached `tokenVersion` is `5` while the JWT snapshots `3`, so the version check rejects them: `5 !== 3` -> both have to sign in again.
 
-<details><summary>A sample nginx reverse proxy config</summary>
-Edit this configuration to match your configuration, you can have more domains.
+**Variant B — owner removes and re-adds the domain** (caught by `domainId`):
 
-```
-server {
-    listen 80;
-    listen [::]:80;
-    server_name your-domain.tld (sub.your-domain.tld, another.your-domain.tld);
-
-    # for Let's Encrypt SSL issuance
-    location /.well-known/acme-challenge/ {
-        root /var/www/letsencrypt;
-        try_files $uri =404;
-    }
-
-    # 301 to HTTPS
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name your-domain.tld (sub.your-domain.tld, another.your-domain.tld);
-
-    ssl_certificate     /etc/letsencrypt/live/your-domain.tld/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.tld/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-
-    # proxy everything to sndev
-    location / {
-        proxy_pass http://sndev-instance-ip:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # optional security headers
-    add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-Content-Type-Options "nosniff";
-    add_header Referrer-Policy "no-referrer-when-downgrade";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
-}
-```
-</details>
-
-### Step 4: Start sndev
-Make sure to change your environment variables such as `.env.local` from something like `http://localhost:3000` to `https://your-domain.tld`
-
-Start sndev with `./sndev start` and then navigate to your domain, you should see **Stacker News**!
-
-If not, go back and make sure that everything is correct, you can encounter any kind of errors and **Internet can be of help**.
+1. `pizza.com` is `ACTIVE`, row `id=42`, `tokenVersion=1`. Alice signs in and gets a JWT carrying `{ domainName: 'pizza.com', domainId: 42, domainVersion: 1 }`. The attacker steals her cookie and keeps it warm (actively replaying so it gets re-encoded with the default 30-day session maxAge).
+2. The owner calls `setDomain(subName, null)`, which hard-deletes row `id=42` (cascading into cert cleanup). Alice's and the attacker's cookies start failing the `!mapping` check.
+3. Weeks later, the owner re-adds `pizza.com`. A fresh row is created, `id=43`, `tokenVersion` defaulted to `0`.
+4. Verification succeeds, the `PENDING -> ACTIVE` trigger bumps `tokenVersion` to `1`.
+5. The attacker tries their stolen cookie again. The domain is `ACTIVE` (so `!mapping` passes) and the new `tokenVersion=1` happens to collide with the stolen JWT's `domainVersion=1`. Without `domainId`, **this would resurrect the stolen token**. With `domainId` in place: `mapping.id` is `43`, the JWT claims `42`, `43 !== 42` -> rejected.

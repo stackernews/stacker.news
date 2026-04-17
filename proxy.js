@@ -100,7 +100,8 @@ async function establishAuthSync (request, searchParams, domain, headers) {
   const res = NextResponse.redirect(new URL(redirectUri, request.url), { headers })
 
   try {
-    const body = JSON.stringify({ verificationToken: token, domainName: domain })
+    const domainName = process.env.NODE_ENV === 'development' ? domain.split(':')[0] : domain
+    const body = JSON.stringify({ verificationToken: token, domainName })
     const fetchHeaders = new Headers(headers)
     fetchHeaders.set('Content-Type', 'application/json')
 

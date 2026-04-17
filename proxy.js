@@ -16,7 +16,11 @@ const SN_REFEREE_LANDING = 'sn_referee_landing'
 // main domain
 const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
 // territory paths that needs to be rewritten to ~subname
-const SN_TERRITORY_PATHS = ['/~', '/new', '/top', '/post', '/edit', '/rss']
+const SN_TERRITORY_PATHS = ['/new', '/top', '/post', '/edit', '/rss']
+
+function isTerritoryPath (pathname) {
+  return SN_TERRITORY_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
+}
 
 async function customDomainMiddleware (request, domain, subName) {
   // logger is enabled if NEXT_PUBLIC_CUSTOM_DOMAINS_DEBUG == 1
@@ -57,7 +61,7 @@ async function customDomainMiddleware (request, domain, subName) {
   }
 
   // if we're at the root or on some territory path, hide the subname by rewriting
-  if (pathname === '/' || SN_TERRITORY_PATHS.some(p => pathname.startsWith(p))) {
+  if (pathname === '/' || isTerritoryPath(pathname)) {
     url.pathname = `/~${subName}${pathname === '/' ? '' : pathname}`
     logger.log('rewrite to:', url.pathname)
     // rewrite to the territory path

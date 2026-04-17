@@ -89,7 +89,7 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
     console.log(`job details: ${JSON.stringify(jobDetails)}`)
 
     // if we couldn't verify the domain after 3 retries, put it on hold if it exists and delete any related verification jobs
-    if (jobDetails?.retrycount >= 3) {
+    if (jobDetails?.retrycount >= DOMAIN_VERIFICATION_RETRY_LIMIT) {
       console.log(`couldn't verify domain with ID ${domainId} for the third retry, putting it on HOLD if it exists and deleting any related domain verification jobs`)
       await models.domain.update({ where: { id: domainId }, data: { status: 'HOLD' } })
 

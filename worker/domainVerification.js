@@ -84,19 +84,24 @@ export async function domainVerification ({ id: jobId, data: { domainId }, boss 
   } catch (error) {
     console.error(`couldn't verify domain with ID ${domainId}: ${error.message}`)
 
-    // get the job details to get the retry count
-    const jobDetails = await boss.getJobById(jobId)
-    console.log(`job details: ${JSON.stringify(jobDetails)}`)
+    try {
+      // get the job details to get the retry count
+      const jobDetails = await boss.getJobById(jobId)
+      console.log(`job details: ${JSON.stringify(jobDetails)}`)
 
-    // if we couldn't verify the domain after 3 retries, put it on hold if it exists and delete any related verification jobs
-    if (jobDetails?.retrycount >= DOMAIN_VERIFICATION_RETRY_LIMIT) {
-      console.log(`couldn't verify domain with ID ${domainId} for the third retry, putting it on HOLD if it exists and deleting any related domain verification jobs`)
-      await models.domain.update({ where: { id: domainId }, data: { status: 'HOLD' } })
+      // if we exhausted retries, put the domain on HOLD and drop any lingering verification jobs
+      if (jobDetails?.retrycount >= DOMAIN_VERIFICATION_RETRY_LIMIT) {
+        console.log(`couldn't verify domain with ID ${domainId} after ${DOMAIN_VERIFICATION_RETRY_LIMIT} retries, putting it on HOLD and deleting any related domain verification jobs`)
+        await models.domain.update({ where: { id: domainId }, data: { status: 'HOLD' } })
 
-      // delete any related domain verification jobs that may exist
-      await cleanDomainVerificationJobs(domainId, models)
+        // delete any related domain verification jobs
+        await cleanDomainVerificationJobs(domainId, models)
+      }
+    } catch (cleanupError) {
+      console.error(`post-failure cleanup for domain ${domainId} failed: ${cleanupError.message}`)
     }
 
+    // rethrow the original error
     throw error
   } finally {
     // close prisma connection

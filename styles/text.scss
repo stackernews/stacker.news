@@ -870,7 +870,7 @@ span + .sn-link {
   all: unset;
 }
 
-.sn-text__superscript {
+.sn-text__superscript, .sn-footnote-ref {
   vertical-align: super !important;
   font-size: .8em !important;
 }

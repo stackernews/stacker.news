@@ -42,7 +42,7 @@ export default function Wallet () {
                 message='this wallet could not be found'
               />
               )
-            : <WalletMultiStepForm wallet={wallet} />}
+            : <WalletMultiStepForm key={routeType} wallet={wallet} />}
     </WalletRouteGateShell>
   )
 }

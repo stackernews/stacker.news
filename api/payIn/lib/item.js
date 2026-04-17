@@ -30,8 +30,9 @@ export async function getItemResult (tx, { id }) {
 }
 
 export async function getMentions (tx, { text, userId }) {
+  const sanitizedText = text.replace(/```[\s\S]*?```/g, ' ')
   const mentionPattern = /\B@[\w_]+/gi
-  const names = text.match(mentionPattern)?.map(m => m.slice(1))
+  const names = sanitizedText.match(mentionPattern)?.map(m => m.slice(1))
   if (names?.length > 0) {
     const users = await tx.user.findMany({
       where: {
@@ -48,9 +49,11 @@ export async function getMentions (tx, { text, userId }) {
   return []
 }
 
+
 export const getItemMentions = async (tx, { text, userId }) => {
+  const sanitizedText = text.replace(/```[\s\S]*?```/g, ' ')
   const linkPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+[a-zA-Z0-9/?=]*`, 'gi')
-  const refs = text.match(linkPattern)?.map(m => {
+  const refs = sanitizedText.match(linkPattern)?.map(m => {
     try {
       const { itemId, commentId } = parseInternalLinks(m)
       return Number(commentId || itemId)

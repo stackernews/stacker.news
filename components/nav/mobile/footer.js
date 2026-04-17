@@ -6,6 +6,7 @@ import classNames from 'classnames'
 import Offcanvas from './offcanvas'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
+import { usePrefix, useNavKeys } from '../../territory-domains'
 
 function useDetectKeyboardOpen (minKeyboardHeight = 300, defaultValue) {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(defaultValue)
@@ -32,17 +33,19 @@ export default function BottomBar ({ sub }) {
   const router = useRouter()
   const { me } = useMe()
   const isKeyboardOpen = useDetectKeyboardOpen(200, false)
+  const path = router.asPath.split('?')[0]
+  const prefix = usePrefix(sub)
+  const { topNavKey, dropNavKey } = useNavKeys(path, sub)
 
   if (isKeyboardOpen) {
     return null
   }
 
-  const path = router.asPath.split('?')[0]
   const props = {
-    prefix: sub ? `/~${sub}` : '',
+    prefix,
     path,
-    topNavKey: path.split('/')[sub ? 2 : 1] ?? '',
-    dropNavKey: path.split('/').slice(sub ? 2 : 1).join('/'),
+    topNavKey,
+    dropNavKey,
     sub
   }
 

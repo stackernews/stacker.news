@@ -12,6 +12,7 @@ import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import { multiAuthMiddleware, setMultiAuthCookies } from '@/lib/auth'
+import { getDomainMapping } from '@/lib/domains'
 import { BECH32_CHARSET } from '@/lib/constants'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import * as cookie from 'cookie'
@@ -116,6 +117,27 @@ function getCallbacks (req, res) {
               notifyReferral(referrerData.referrerId)
             }
           }
+        }
+      }
+
+      // custom domain session token validation
+      if (token?.domainName) {
+        try {
+          const currentDomain = new URL(req.headers.referer).host || req.headers['x-stacker-news-domain']
+          // tokens created for a custom domain should only be used on that domain
+          if (currentDomain !== token.domainName) return null
+
+          const mapping = await getDomainMapping(token.domainName)
+          // token is valid only if:
+          // - the domain is still ACTIVE (mapping exists)
+          // - it's the same Domain row the token was minted against (domainId match)
+          // - ACTIVE status hasn't changed since the token was minted (tokenVersion match)
+          if (!mapping) return null
+          if (mapping.id !== token.domainId) return null
+          if (mapping.tokenVersion !== token.domainVersion) return null
+        } catch (error) {
+          console.error('cannot verify domain', error)
+          return null
         }
       }
 

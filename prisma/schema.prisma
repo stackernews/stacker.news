@@ -924,9 +924,7 @@ model Domain {
   records                 DomainVerificationRecord[]
   certificate             DomainCertificate?
 
-  @@index([domainName])
   @@index([createdAt])
-  @@index([subName])
 }
 
 model DomainVerificationAttempt {

@@ -170,8 +170,7 @@ export default function ItemInfo ({
 
         return (
           <SubPopover key={subName} sub={subName}>
-            {/* eslint-disable-next-line */}
-            <Link href={href} target={isExternal ? '_blank' : undefined}>
+            <Link href={href} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined}>
               {' '}<Badge className={styles.newComment} bg={null}>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
             </Link>
           </SubPopover>

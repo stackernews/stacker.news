@@ -1,7 +1,6 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
-import { isAbortError } from '@/lib/error'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
@@ -11,7 +10,7 @@ import Row from 'react-bootstrap/Row'
 import styles from './form.module.css'
 import AddIcon from '@/svgs/add-fill.svg'
 import CloseIcon from '@/svgs/close-line.svg'
-import { useLazyQuery } from '@apollo/client/react'
+import { useQuery } from '@apollo/client/react'
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import { useToast } from './toast'
@@ -452,69 +451,68 @@ function InputInner ({
   )
 }
 
-const INITIAL_SUGGESTIONS = { array: [], index: 0 }
-
 export function BaseSuggest ({
   query, onSelect, dropdownStyle,
   transformItem = item => item, selectWithTab = true, filterItems = () => true,
   getSuggestionsQuery, queryName, itemsField,
   children
 }) {
-  const [getSuggestions] = useLazyQuery(getSuggestionsQuery)
-  const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
-  const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
+  const [index, setIndex] = useState(0)
+  const [show, setShow] = useState(true)
+  const q = query !== undefined
+    ? query.replace(/^[@ ~]+|[ ]+$/g, '').replace(/@[^\s]*$/, '').replace(/~[^\s]*$/, '')
+    : undefined
+
+  const { data } = useQuery(getSuggestionsQuery, {
+    variables: { q, limit: 5 },
+    skip: q === undefined
+  })
+
+  const suggestions = useMemo(() => {
+    // return empty array if suggestions are not shown or data is not available
+    if (!show || !data?.[itemsField]) return []
+    return data[itemsField]
+      .filter((...args) => filterItems(query, ...args))
+      .map(transformItem)
+  }, [show, data, itemsField, filterItems, transformItem, query])
+
+  // show mentions suggestions on query trigger
   useEffect(() => {
-    if (query !== undefined) {
-      // remove the leading character and any trailing spaces
-      const q = query?.replace(/^[@ ~]+|[ ]+$/g, '').replace(/@[^\s]*$/, '').replace(/~[^\s]*$/, '')
-      getSuggestions({ variables: { q, limit: 5 } })
-        .then(({ data }) => {
-          query !== undefined && setSuggestions({
-            array: data[itemsField]
-              .filter((...args) => filterItems(query, ...args))
-              .map(transformItem),
-            index: 0
-          })
-        })
-        .catch(err => !isAbortError(err) && console.error(err))
-    } else {
-      resetSuggestions()
-    }
-  }, [query, resetSuggestions, getSuggestions])
+    setIndex(0)
+    setShow(q !== undefined)
+  }, [q])
+
+  const resetSuggestions = useCallback(() => {
+    setIndex(0)
+    setShow(false)
+  }, [])
+
   const onKeyDown = useCallback(e => {
     switch (e.code) {
       case 'ArrowUp':
-        if (suggestions.array.length === 0) {
+        if (suggestions.length === 0) {
           break
         }
         e.preventDefault()
-        setSuggestions(suggestions =>
-          ({
-            ...suggestions,
-            index: Math.max(suggestions.index - 1, 0)
-          }))
+        setIndex(prev => Math.max(prev - 1, 0))
         break
       case 'ArrowDown':
-        if (suggestions.array.length === 0) {
+        if (suggestions.length === 0) {
           break
         }
         e.preventDefault()
-        setSuggestions(suggestions =>
-          ({
-            ...suggestions,
-            index: Math.min(suggestions.index + 1, suggestions.array.length - 1)
-          }))
+        setIndex(prev => Math.min(prev + 1, suggestions.length - 1))
         break
       case 'Tab':
       case 'Enter':
         if (e.code === 'Tab' && !selectWithTab) {
           break
         }
-        if (suggestions.array?.length === 0) {
+        if (suggestions?.length === 0) {
           break
         }
         e.preventDefault()
-        onSelect(suggestions.array[suggestions.index].name)
+        onSelect(suggestions[index].name)
         resetSuggestions()
         break
       case 'Escape':
@@ -524,16 +522,16 @@ export function BaseSuggest ({
       default:
         break
     }
-  }, [onSelect, resetSuggestions, suggestions])
+  }, [suggestions, onSelect, index, resetSuggestions, selectWithTab])
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions })}
-      <Dropdown show={suggestions.array.length > 0} style={dropdownStyle}>
+      <Dropdown show={suggestions.length > 0} style={dropdownStyle}>
         <Dropdown.Menu className={styles.suggestionsMenu}>
-          {suggestions.array.map((v, i) =>
+          {suggestions.map((v, i) =>
             <Dropdown.Item
               key={v.name}
-              active={suggestions.index === i}
+              active={index === i}
               onClick={() => {
                 onSelect(v.name)
                 resetSuggestions()

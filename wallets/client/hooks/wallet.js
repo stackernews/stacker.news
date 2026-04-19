@@ -1,6 +1,6 @@
 import { useMe } from '@/components/me'
 import { useWalletSendReady, useWallets } from '@/wallets/client/hooks/global'
-import protocols from '@/wallets/client/protocols'
+import { protocolSendPayment } from '@/wallets/client/protocols'
 import { isWallet } from '@/wallets/lib/util'
 import { useMemo } from 'react'
 
@@ -26,14 +26,14 @@ export function useSendProtocols () {
 
           return [
             ...acc,
+            // Route sendPayment through protocolSendPayment so dev-mode NEXT_PUBLIC_SPARK_MOCK
+            // (and any future protocol overrides) can intercept it.
             ...[...templateOrderedProtocols, ...remainingProtocols]
-              .map(walletProtocol => {
-                const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
-                return {
-                  ...walletProtocol,
-                  sendPayment
-                }
-              })
+              .map(walletProtocol => ({
+                ...walletProtocol,
+                sendPayment: (bolt11, config, opts) =>
+                  protocolSendPayment(walletProtocol, bolt11, config, opts)
+              }))
           ]
         }, [])
     }

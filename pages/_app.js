@@ -38,8 +38,7 @@ function writeQuery (client, apollo, data) {
       query: gql`${apollo.query}`,
       data,
       variables: apollo.variables,
-      overwrite: SSR,
-      broadcast: false
+      overwrite: SSR
     })
   }
 }

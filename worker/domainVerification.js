@@ -200,7 +200,7 @@ async function requestCertificate (domain, models) {
   let message = null
 
   // ask ACM to request a certificate for the domain
-  const { certificateArn, error: requestError } = await issueDomainCertificate(domain.domainName)
+  const { certificateArn, error: requestError } = await issueDomainCertificate(domain.domainName, domain.id)
 
   if (!certificateArn) {
     message = 'Could not request an ACM certificate: ' + requestError?.message

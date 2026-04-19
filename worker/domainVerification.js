@@ -311,9 +311,8 @@ async function attachACMCertificateToELB (domain, models, certificateArn) {
     throw new Error(message)
   }
 
-  const status = !error ? 'VERIFIED' : 'FAILED'
-  await logAttempt({ domain, models, stage: 'ELB_ATTACH_CERTIFICATE', status, message })
-  return status !== 'FAILED'
+  await logAttempt({ domain, models, stage: 'ELB_ATTACH_CERTIFICATE', status: 'VERIFIED', message })
+  return true
 }
 
 async function logAttempt ({ domain, models, record, stage, status, message }) {

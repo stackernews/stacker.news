@@ -5,7 +5,7 @@ import { customDomainSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
 import { SSR } from '@/lib/constants'
 import { GET_DOMAIN, SET_DOMAIN } from '@/fragments/domains'
-import { useEffect, createContext, useContext, useState } from 'react'
+import { useEffect, createContext, useContext } from 'react'
 import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
 import styles from './item.module.css'
@@ -20,21 +20,9 @@ const DomainContext = createContext({
   }
 })
 
-export const DomainProvider = ({ domain: ssrDomain, children }) => {
-  const [domain, setDomain] = useState(ssrDomain || null)
-
-  // maintain the custom domain state across re-renders
-  useEffect(() => {
-    if (ssrDomain) {
-      setDomain(ssrDomain)
-    }
-  }, [ssrDomain])
-
-  // TODO: Placeholder for Auth Sync
-
+export const DomainProvider = ({ domain, children }) => {
   return (
     <DomainContext.Provider value={{ domain }}>
-      {/* TODO: Placeholder for Branding */}
       {children}
     </DomainContext.Provider>
   )

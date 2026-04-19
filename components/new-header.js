@@ -2,6 +2,7 @@ import { ITEM_TYPES, ITEM_TYPES_UNIVERSAL } from '@/lib/constants'
 import BootstrapForm from 'react-bootstrap/Form'
 import { Select } from './form'
 import { useRouter } from 'next/router'
+import { usePrefix } from './territory-domains'
 
 function ActiveBountiesCheckbox ({ prefix }) {
   const router = useRouter()
@@ -28,7 +29,7 @@ function ActiveBountiesCheckbox ({ prefix }) {
 
 export default function NewHeader ({ type, sub }) {
   const router = useRouter()
-  const prefix = sub ? `/~${sub.name}` : ''
+  const prefix = usePrefix(sub?.name)
 
   const items = sub
     ? ITEM_TYPES_UNIVERSAL.concat(sub.postTypes.map(p =>

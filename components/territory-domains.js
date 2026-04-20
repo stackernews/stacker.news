@@ -5,7 +5,7 @@ import { customDomainSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
 import { SSR } from '@/lib/constants'
 import { GET_DOMAIN, SET_DOMAIN } from '@/fragments/domains'
-import { useEffect, createContext, useContext } from 'react'
+import { useEffect, createContext, useContext, useMemo } from 'react'
 import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
 import styles from './item.module.css'
@@ -13,16 +13,12 @@ import styles from './item.module.css'
 const DOMAIN_POLL_INTERVAL_MS = 10_000
 
 // Domain context for custom domains
-const DomainContext = createContext({
-  domain: {
-    domainName: null,
-    subName: null
-  }
-})
+const DomainContext = createContext({ domain: null })
 
 export const DomainProvider = ({ domain, children }) => {
+  const value = useMemo(() => ({ domain }), [domain])
   return (
-    <DomainContext.Provider value={{ domain }}>
+    <DomainContext.Provider value={value}>
       {children}
     </DomainContext.Provider>
   )

@@ -275,9 +275,8 @@ async function getACMValidationValues (domain, models, certificateArn, certifica
     throw new Error(message)
   }
 
-  const status = cname && value ? 'PENDING' : 'FAILED'
-  await logAttempt({ domain, models, stage: 'ACM_REQUEST_VALIDATION_VALUES', status, message })
-  return status !== 'FAILED'
+  await logAttempt({ domain, models, stage: 'ACM_REQUEST_VALIDATION_VALUES', status: 'PENDING', message })
+  return true
 }
 
 async function checkACMValidation (domain, models, record) {

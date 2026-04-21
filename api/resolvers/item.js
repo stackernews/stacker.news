@@ -59,16 +59,40 @@ export async function getItemsById (ids, { me, models }) {
   return items.map(({ rank, ...item }) => item)
 }
 
+export const getSortField = (by, type) => {
+  switch (by) {
+    case 'comments': return 'ncomments'
+    case 'sats': return 'ranktop'
+    case 'downsats': return 'downMsats'
+    default: return type === 'bookmarks' ? 'bookmarkCreatedAt' : 'created_at'
+  }
+}
+
+export const keysetClause = (decodedCursor, sortField, table = 'Item', op = '<', idField = 'id') => {
+  if (decodedCursor.id && decodedCursor.sortValue !== undefined) {
+    const field = sortField.includes('.') ? sortField : `"${table}"."${sortField}"`
+    const idColumn = `"${table}"."${idField}"`
+    const sortValue = sortField === 'created_at' || sortField === 'bookmarkCreatedAt' || sortField === 'payInStateChangedAt'
+      ? `(TO_TIMESTAMP(${decodedCursor.sortValue / 1000}) AT TIME ZONE 'UTC')`
+      : decodedCursor.sortValue
+
+    const lastId = typeof decodedCursor.id === 'string' ? `'${decodedCursor.id}'` : decodedCursor.id
+
+    return `(${field}, ${idColumn}) ${op} (${sortValue}, ${lastId})`
+  }
+  return null
+}
+
 const orderByClause = (by, me, models, type, sub) => {
   switch (by) {
     case 'comments':
-      return 'ORDER BY "Item".ncomments DESC'
+      return 'ORDER BY "Item".ncomments DESC, "Item".id DESC'
     case 'sats':
       return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
     case 'downsats':
-      return 'ORDER BY "Item"."downMsats" DESC'
+      return 'ORDER BY "Item"."downMsats" DESC, "Item".id DESC'
     default:
-      return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
+      return `ORDER BY ${type === 'bookmarks' ? 'b.created_at' : '"Item".created_at'} DESC, "Item".id DESC`
   }
 }
 
@@ -172,7 +196,7 @@ const relationClause = (type) => {
   let clause = ''
   switch (type) {
     case 'bookmarks':
-      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" JOIN "Bookmark" b ON b."itemId" = "Item"."id" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
       break
     case 'comments':
     case 'freebies':
@@ -204,7 +228,7 @@ export const payInJoinFilter = me => {
 }
 
 const selectClause = (type) => type === 'bookmarks'
-  ? `${SELECT}, "Bookmark"."created_at" as "bookmarkCreatedAt"`
+  ? `${SELECT}, b."created_at" as "bookmarkCreatedAt"`
   : SELECT
 
 const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'Item'
@@ -418,6 +442,7 @@ export default {
           }
 
           table = type === 'bookmarks' ? 'Bookmark' : 'Item'
+          const userSortField = getSortField(by, type)
           items = await itemQueryWithMeta({
             me,
             models,
@@ -430,9 +455,10 @@ export default {
                 activeOrMine(me),
                 typeClause(type),
                 by === 'downsats' && '"Item"."downMsats" > 0',
-                whenClause(when || 'forever', table))}
+                whenClause(when || 'forever', table),
+                keysetClause(decodedCursor, userSortField, table))}
               ${orderByClause(by, me, models, type)}
-              OFFSET $4
+              ${decodedCursor.id ? '' : 'OFFSET $4'}
               LIMIT $5`,
             orderBy: orderByClause(by, me, models, type)
           }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
@@ -452,15 +478,17 @@ export default {
                 activeOrMine(me),
                 await filterClause(type, sub, 'new', ctx),
                 typeClause(type),
-                muteClause(me)
+                muteClause(me),
+                keysetClause(decodedCursor, 'payInStateChangedAt', 'PayIn')
               )}
-              ORDER BY "PayIn"."payInStateChangedAt" DESC
-              OFFSET $2
+              ORDER BY "PayIn"."payInStateChangedAt" DESC, "Item".id DESC
+              ${decodedCursor.id ? '' : 'OFFSET $2'}
               LIMIT $3`,
-            orderBy: 'ORDER BY "PayIn"."payInStateChangedAt" DESC'
+            orderBy: 'ORDER BY "PayIn"."payInStateChangedAt" DESC, "Item".id DESC'
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':
+          const topSortField = getSortField(by || 'sats', type)
           items = await itemQueryWithMeta({
             me,
             models,
@@ -478,9 +506,10 @@ export default {
                 '"Item".status = \'ACTIVE\'',
                 by === 'downsats' && '"Item"."downMsats" > 0',
                 await filterClause(type, sub, 'top', ctx, by),
-                muteClause(me))}
+                muteClause(me),
+                keysetClause(decodedCursor, topSortField, 'Item'))}
               ${orderByClause(by || 'sats', me, models, type, sub)}
-              OFFSET $3
+              ${decodedCursor.id ? '' : 'OFFSET $3'}
               LIMIT $4`,
             orderBy: orderByClause(by || 'sats', me, models, type, sub)
           }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
@@ -530,16 +559,26 @@ export default {
                   '"Item".status = \'ACTIVE\'',
                   await filterClause(type, sub, 'lit', ctx),
                   subClause(sub, 3, 'Item', me, showNsfw),
-                  muteClause(me))}
+                  muteClause(me),
+                  keysetClause(decodedCursor, 'ranklit'))}
                 ORDER BY ranklit DESC, "Item".id DESC
-                OFFSET $1
+                ${decodedCursor.id ? '' : 'OFFSET $1'}
                 LIMIT $2`,
             orderBy: 'ORDER BY ranklit DESC, "Item".id DESC'
           }, decodedCursor.offset, limit, ...subArr)
           break
       }
+
+      let nextSortField = 'created_at'
+      switch (sort) {
+        case 'new': nextSortField = 'payInStateChangedAt'; break
+        case 'top': nextSortField = getSortField(by || 'sats', type); break
+        case 'user': nextSortField = getSortField(by, type); break
+        default: nextSortField = 'ranklit'; break
+      }
+
       return {
-        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, items, limit, nextSortField) : null,
         items,
         pins
       }

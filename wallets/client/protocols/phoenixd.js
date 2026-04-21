@@ -33,6 +33,31 @@ export async function sendPayment (bolt11, { url, apiKey }, { signal }) {
   return preimage
 }
 
+export async function getBalance ({ url, apiKey }, { signal } = {}) {
+  const headers = new Headers()
+  headers.set('Accept', 'application/json')
+  headers.set('Authorization', 'Basic ' + Buffer.from(':' + apiKey).toString('base64'))
+
+  const method = 'GET'
+  const res = await snFetch(url, {
+    path: '/getbalance',
+    method,
+    headers,
+    signal
+  })
+
+  assertResponseOk(res, { method })
+  assertContentTypeJson(res, { method })
+
+  const balance = await res.json()
+  if (balance.balanceSat == null) return null
+
+  return {
+    amount: balance.balanceSat,
+    currency: 'BTC'
+  }
+}
+
 export async function testSendPayment (config, { signal }) {
   // TODO:
   //   Not sure which endpoint to call to test primary password

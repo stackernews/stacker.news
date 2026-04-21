@@ -1,9 +1,17 @@
-import { sendPayment as clnSendPayment } from '@/lib/cln'
+import { getBalance as clnGetBalance, sendPayment as clnSendPayment } from '@/lib/cln'
+import { msatsToSats } from '@/lib/format'
 
 export const name = 'CLN_REST'
 
 export const sendPayment = async (bolt11, config, { signal }) => {
   return await clnSendPayment(bolt11, config, { signal })
+}
+
+export const getBalance = async (config, { signal } = {}) => {
+  return {
+    amount: msatsToSats(await clnGetBalance(config, { signal })),
+    currency: 'BTC'
+  }
 }
 
 export const testSendPayment = async ({ socket, rune, cert }, { signal }) => {

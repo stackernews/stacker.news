@@ -32,7 +32,7 @@ export const createInvoice = async (
 
   // call callback with amount and conditionally comment
   const method = 'GET'
-  const res = await snFetch(callbackUrl.toString(), { method, signal })
+  const res = await snFetch(callbackUrl.toString(), { method, signal, safe: true })
 
   assertResponseOk(res, { method })
   assertContentTypeJson(res, { method })

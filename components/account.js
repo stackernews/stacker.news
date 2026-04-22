@@ -11,7 +11,11 @@ import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } f
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 
 export const nextAccount = async () => {
-  const { status } = await fetch('/api/next-account', { credentials: 'include' })
+  const { status } = await fetch('/api/next-account', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' }
+  })
   // if status is 302, this means the server was able to switch us to the next available account
   return status === 302
 }

@@ -8,6 +8,17 @@ import { HTTPS, MULTI_AUTH_JWT, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, SESSION_COO
  * @return {void}
  */
 export default (req, res) => {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST')
+    res.status(405).end()
+    return
+  }
+
+  if (!isSameOrigin(req)) {
+    res.status(403).end()
+    return
+  }
+
   // is there a cookie pointer?
   const userId = req.cookies[MULTI_AUTH_POINTER]
 
@@ -58,3 +69,17 @@ export default (req, res) => {
 
 const b64Encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64')
 const b64Decode = s => JSON.parse(Buffer.from(s, 'base64'))
+
+function isSameOrigin (req) {
+  const expectedOrigin = process.env.NEXT_PUBLIC_URL
+  if (!expectedOrigin) return false
+
+  const source = req.headers.origin || req.headers.referer
+  if (!source) return false
+
+  try {
+    return new URL(source).origin === expectedOrigin
+  } catch {
+    return false
+  }
+}

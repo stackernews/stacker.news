@@ -17,7 +17,6 @@ import {
   HOMEPAGE_POSTS_SATS_FILTER
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
-import uu from 'url-unshort'
 import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
@@ -587,7 +586,8 @@ export default {
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {
       const res = {}
       try {
-        const response = await snFetch(url, { protocol: 'http', redirect: 'follow' })
+        const normalizedUrl = ensureProtocol(url)
+        const response = await snFetch(normalizedUrl, { protocol: 'http', safe: true })
         const html = await response.text()
         const doc = domino.createWindow(html).document
         const titleRuleSet = {
@@ -602,12 +602,8 @@ export default {
 
         res.title = metadata?.title
         if (moreThanOneYearAgo) res.title += dateHint
-      } catch { }
-
-      try {
-        const unshorted = await uu().expand(url)
-        if (unshorted) {
-          res.unshorted = unshorted
+        if (response.url && response.url !== normalizedUrl) {
+          res.unshorted = response.url
         }
       } catch { }
 

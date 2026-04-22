@@ -683,7 +683,6 @@ model Sub {
   postsSatsFilter  Int         @default(10)
   nsfw             Boolean     @default(false)
 
-
   parent                  Sub?                      @relation("ParentChildren", fields: [parentName], references: [name])
   children                Sub[]                     @relation("ParentChildren")
   user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)

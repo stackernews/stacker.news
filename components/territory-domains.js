@@ -24,6 +24,7 @@ export const DomainProvider = ({ domain, children }) => {
   )
 }
 
+/** returns domain data with this shape: { domainName, subName } */
 export const useDomain = () => useContext(DomainContext)
 
 export function usePrefix (sub) {

@@ -1,6 +1,7 @@
 import { gql } from '@apollo/client'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
+
 // we can't import from users because of circular dependency
 const STREAK_FIELDS = gql`
   fragment StreakFields on User {

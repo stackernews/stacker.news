@@ -164,8 +164,9 @@ export default function ItemInfo ({
             </Link>
           </>}
       </span>
+      {/* XXX: ideally we would use the proxy middleware to handle external subnames, but it would break local dev: https://github.com/vercel/next.js/issues/44482 */}
       {item.subNames?.map(subName => {
-        const isExternal = domain && subName !== domain.subName
+        const isExternal = domain && (subName !== domain.subName)
         const href = domain ? (isExternal ? `${process.env.NEXT_PUBLIC_URL}/~${subName}` : '/') : `/~${subName}`
 
         return (

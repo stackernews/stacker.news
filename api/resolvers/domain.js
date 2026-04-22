@@ -5,7 +5,7 @@ import {
   DOMAIN_VERIFICATION_INTERVAL_SECONDS,
   DOMAIN_VERIFICATION_RETRY_DELAY_SECONDS,
   DOMAIN_VERIFICATION_RETRY_LIMIT,
-  SN_ADMIN_IDS
+  DOMAIN_BETA_IDS
 } from '@/lib/constants'
 
 export async function cleanDomainVerificationJobs (domainId, models) {
@@ -42,8 +42,9 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      if (!SN_ADMIN_IDS.includes(Number(me.id))) {
-        throw new GqlAuthorizationError('not an admin')
+      // beta access
+      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
+        throw new GqlAuthorizationError('not allowed')
       }
 
       const sub = await models.sub.findUnique({ where: { name: subName } })
@@ -67,8 +68,9 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      if (!SN_ADMIN_IDS.includes(Number(me.id))) {
-        throw new GqlAuthorizationError('not an admin')
+      // beta access
+      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
+        throw new GqlAuthorizationError('not allowed')
       }
 
       const sub = await models.sub.findUnique({ where: { name: subName } })

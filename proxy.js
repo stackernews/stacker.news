@@ -1,7 +1,7 @@
 import 'urlpattern-polyfill'
 import { NextRequest, NextResponse } from 'next/server'
 import { SESSION_COOKIE, cookieOptions } from '@/lib/auth'
-import { getDomainMappingFromRequest, createDomainsDebugLogger, SN_MAIN_DOMAIN } from '@/lib/domains'
+import { getDomainMapping, createDomainsDebugLogger, SN_MAIN_DOMAIN, normalizeDomain } from '@/lib/domains'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -77,7 +77,7 @@ async function customDomainMiddleware (request, domain, subName) {
 }
 
 async function redirectToAuthSync (searchParams, domain, signup, headers) {
-  const syncUrl = new URL('/api/auth/sync', SN_MAIN_DOMAIN)
+  const syncUrl = new URL('/api/auth/redirect', SN_MAIN_DOMAIN)
   syncUrl.searchParams.set('domain', domain)
 
   if (signup) {
@@ -100,8 +100,9 @@ async function establishAuthSync (request, searchParams, domain, headers) {
   const redirectUri = searchParams.get('redirectUri') || '/'
   const res = NextResponse.redirect(new URL(redirectUri, request.url), { headers })
 
+  const { domainName } = normalizeDomain(domain)
+
   try {
-    const domainName = process.env.NODE_ENV === 'development' ? domain.split(':')[0] : domain
     const body = JSON.stringify({ verificationToken: token, domainName })
     const fetchHeaders = new Headers(headers)
     fetchHeaders.set('Content-Type', 'application/json')
@@ -278,9 +279,12 @@ export async function proxy (req) {
   }
 
   // if we're on a custom domain, handle it
-  const mapping = await getDomainMappingFromRequest(request)
+  const domain = request.headers.get('host')
+  const mapping = await getDomainMapping(domain)
   if (mapping) {
-    const domainResp = await customDomainMiddleware(request, mapping.domainName, mapping.subName)
+    // domain can have a port (local dev), so we pass the whole domain to the middleware
+    // instead of the domain retrieved from the mapping
+    const domainResp = await customDomainMiddleware(request, domain, mapping.subName)
     // apply referrer cookies to the custom domain response
     resp = applyReferrerCookies(domainResp, resp)
   }

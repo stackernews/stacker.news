@@ -2,8 +2,8 @@ import models from '@/api/models'
 import { randomBytes } from 'node:crypto'
 import { encode as encodeJWT, getToken } from 'next-auth/jwt'
 import { validateSchema, customDomainSchema } from '@/lib/validate'
+import { SN_MAIN_DOMAIN, normalizeDomain } from '@/lib/domains'
 
-const SN_MAIN_DOMAIN = new URL(process.env.NEXT_PUBLIC_URL)
 const SYNC_TOKEN_MAX_AGE = 60 * 5 // 5 minutes
 const VERIFICATION_TOKEN_EXPIRY = 1000 * 60 * 5 // 5 minutes in milliseconds
 
@@ -61,7 +61,9 @@ export default async function handler (req, res) {
 }
 
 async function checkDomainValidity (receivedDomain) {
-  const domainName = process.env.NODE_ENV === 'development' ? receivedDomain.split(':')[0] : receivedDomain
+  // the received domain can carry a port in local dev (e.g. pizza.com:3000);
+  // the Domain row stores bare hostnames, so we always normalize before lookup.
+  const { domainName } = normalizeDomain(receivedDomain)
 
   try {
     await validateSchema(customDomainSchema, { domainName })

@@ -6,7 +6,7 @@ import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer } from './lightning-auth'
 import { NostrAuthWithExplainer } from './nostr-auth'
-import LoginButton from './login-button'
+import LoginButton, { LoginWithNymButton } from './login-button'
 import { emailSchema } from '@/lib/validate'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { datePivot } from '@/lib/time'
@@ -74,7 +74,7 @@ export function authErrorMessage (error, signin) {
 
 const multiAuthProviders = ['Lightning', 'Nostr']
 
-export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin, syncSignup }) {
+export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin, syncSignup, domainData }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error, signin))
   const router = useRouter()
   const [, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
@@ -126,6 +126,21 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
           dismissible
         >{errorMessage}
         </Alert>}
+      {/** custom domain auth sync button */}
+      {domainData && (
+        <LoginWithNymButton
+          className={`mt-2 mb-3 ${styles.providerButton}`}
+          onClick={() => {
+            const callbackUrl = router.query.callbackUrl
+            const redirectUri = callbackUrl?.startsWith('http')
+              ? new URL(callbackUrl).pathname
+              : callbackUrl || '/'
+            // port is only present in local dev; in prod domainData.port is null and we send the bare host.
+            const domain = domainData.port ? `${domainData.domainName}:${domainData.port}` : domainData.domainName
+            router.push({ pathname: '/api/auth/sync', query: { domain, redirectUri } })
+          }}
+        />
+      )}
       {sortedProviders.map(provider => {
         switch (provider.name) {
           case 'Email':

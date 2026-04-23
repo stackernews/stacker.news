@@ -6,14 +6,15 @@ import { StaticLayout } from '@/components/layout'
 import Login from '@/components/login'
 import { isExternal } from '@/lib/url'
 import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
+import { getDomainMapping, normalizeDomain } from '@/lib/domains'
 
-export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, syncSignup = null, error = null } }) {
+export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, syncSignup = null, domain = null, error = null } }) {
   let session = await getServerSession(req, res, getAuthOptions(req))
 
   // required to prevent infinite redirect loops if we switch to anon
   // but are on a page that would redirect us to /signup.
   // without this code, /signup would redirect us back to the callbackUrl.
-  if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON) {
+  if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON || domain) {
     session = null
   }
 
@@ -47,6 +48,12 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
     }
   }
 
+  // the ?domain= query param carries the custom domain's host as-is (with its port in local dev).
+  // we pass the port alongside the mapping so the client can redirect back through /api/auth/sync
+  const mapping = domain ? await getDomainMapping(domain) : null
+  const { domainPort } = domain ? normalizeDomain(domain) : { domainPort: null }
+  const domainData = mapping ? { ...mapping, port: domainPort } : null
+
   const providers = await getProviders()
 
   return {
@@ -55,7 +62,8 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
       callbackUrl,
       error,
       multiAuth,
-      syncSignup
+      syncSignup,
+      domainData
     }
   }
 }
@@ -66,11 +74,11 @@ function LoginFooter ({ callbackUrl }) {
   )
 }
 
-function LoginHeader () {
+function LoginHeader ({ domainData }) {
   return (
     <>
       <h3 className='w-100 pb-2'>
-        Log in
+        Log in {domainData && ` to ~${domainData.subName}`}
       </h3>
       <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>Nothing wrestles up a smile like a familiar face.</div>
     </>
@@ -94,7 +102,7 @@ export default function LoginPage ({ multiAuth, ...props }) {
     <StaticLayout footerLinks={false}>
       <Login
         Footer={multiAuthBool ? undefined : () => <LoginFooter callbackUrl={props.callbackUrl} />}
-        Header={multiAuthBool ? () => <MultiAuthHeader /> : () => <LoginHeader />}
+        Header={multiAuthBool ? () => <MultiAuthHeader /> : () => <LoginHeader domainData={props.domainData} />}
         text='Log in'
         signin
         multiAuth={multiAuth}

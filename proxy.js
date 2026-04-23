@@ -28,9 +28,9 @@ async function customDomainMiddleware (request, domain, subName) {
   // we need pathname, searchParams and origin
   const { pathname, searchParams } = url
   // set the subname and domain in the request headers
-  const headers = new Headers(request.headers)
-  headers.set('x-stacker-news-subname', subName)
-  headers.set('x-stacker-news-domain', domain)
+  const reqHeaders = new Headers(request.headers)
+  reqHeaders.set('x-stacker-news-subname', subName)
+  reqHeaders.set('x-stacker-news-domain', domain)
 
   logger.log('custom domain', domain, 'with subname', subName)
   logger.log('pathname', pathname)
@@ -44,8 +44,7 @@ async function customDomainMiddleware (request, domain, subName) {
     const cleanPath = pathname.replace(/^\/~[^/]+/, '') || '/'
     url.pathname = cleanPath
     logger.log('redirecting to clean url:', url)
-    // redirect to the clean path
-    return NextResponse.redirect(url, { headers })
+    return NextResponse.redirect(url)
   }
 
   // if sub param exists and doesn't match the domain's subname, update it
@@ -55,19 +54,17 @@ async function customDomainMiddleware (request, domain, subName) {
     url.search = searchParams.toString()
     logger.log('new searchParams', url.search)
     logger.log('new url', url)
-    return NextResponse.redirect(url, { headers })
+    return NextResponse.redirect(url)
   }
 
   // if we're at the root or on some territory path, hide the subname by rewriting
   if (pathname === '/' || isTerritoryPath(pathname)) {
     url.pathname = `/~${subName}${pathname === '/' ? '' : pathname}`
     logger.log('rewrite to:', url.pathname)
-    // rewrite to the territory path
-    return NextResponse.rewrite(url, { headers })
+    return NextResponse.rewrite(url, { request: { headers: reqHeaders } })
   }
 
-  // continue if we don't need to redirect, mainly for API routes
-  return NextResponse.next({ request: { headers } })
+  return NextResponse.next({ request: { headers: reqHeaders } })
 }
 
 function getContentReferrer (request, url) {

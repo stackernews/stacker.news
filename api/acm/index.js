@@ -6,11 +6,12 @@ const config = {
   endpoint: process.env.NODE_ENV === 'development' ? process.env.LOCALSTACK_ENDPOINT : undefined
 }
 
-export async function requestCertificate (domain) {
+export async function requestCertificate (domain, idempotencyToken) {
   const acm = new AWS.ACM(config)
   const params = {
     DomainName: domain,
     ValidationMethod: 'DNS',
+    IdempotencyToken: String(idempotencyToken),
     Tags: [
       {
         Key: 'ManagedBy',

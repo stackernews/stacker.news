@@ -19,6 +19,7 @@ import { satsToMsats } from '@/lib/format'
 import { MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
 import { createUserLoader, createSubLoader } from '@/api/loaders'
+import { getDomainMappingFromRequest } from '@/lib/domains'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   // switch session cookie before getting session on SSR
@@ -169,16 +170,14 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
-    const isCustomDomain = req.headers.host !== process.env.NEXT_PUBLIC_URL.replace(/^https?:\/\//, '')
-    const subName = req.headers['x-stacker-news-subname'] || null
-    let domain = null
-    if (isCustomDomain && subName) {
-      domain = {
-        domainName: req.headers.host,
-        subName
-        // TODO: custom branding
-      }
-    }
+    // inject custom domain data if any
+    const domainMapping = await getDomainMappingFromRequest(req)
+    const domain = domainMapping
+      ? {
+          domainName: domainMapping.domainName,
+          subName: domainMapping.subName
+        }
+      : null
 
     let { data: { me } } = await client.query({ query: ME })
 

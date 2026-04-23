@@ -5,7 +5,7 @@ import { customDomainSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
 import { SSR } from '@/lib/constants'
 import { GET_DOMAIN, SET_DOMAIN } from '@/fragments/domains'
-import { useEffect, createContext, useContext, useState } from 'react'
+import { useEffect, useState, createContext, useContext, useMemo } from 'react'
 import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
 import styles from './item.module.css'
@@ -13,31 +13,28 @@ import styles from './item.module.css'
 const DOMAIN_POLL_INTERVAL_MS = 10_000
 
 // Domain context for custom domains
-const DomainContext = createContext({
-  domain: {
-    domainName: null,
-    subName: null
-  }
-})
+const DomainContext = createContext({ domain: null })
 
 export const DomainProvider = ({ domain: ssrDomain, children }) => {
-  const [domain, setDomain] = useState(ssrDomain || null)
+  const [domain, setDomain] = useState(ssrDomain ?? null)
 
-  // maintain the custom domain state across re-renders
+  // maintain the custom domain state across re-renders and nodata navigations
   useEffect(() => {
-    if (ssrDomain) {
+    if (ssrDomain !== undefined) {
       setDomain(ssrDomain)
     }
   }, [ssrDomain])
 
+  const value = useMemo(() => ({ domain }), [domain])
+
   return (
-    <DomainContext.Provider value={{ domain }}>
-      {/* TODO: Placeholder for Branding */}
+    <DomainContext.Provider value={value}>
       {children}
     </DomainContext.Provider>
   )
 }
 
+/** returns domain data with this shape: { domainName, subName } */
 export const useDomain = () => useContext(DomainContext)
 
 export function usePrefix (sub) {

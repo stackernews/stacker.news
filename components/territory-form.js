@@ -8,7 +8,7 @@ import { gql } from '@apollo/client'
 import { useApolloClient, useLazyQuery } from '@apollo/client/react'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, SN_ADMIN_IDS, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, DOMAIN_BETA_IDS, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { territorySchema } from '@/lib/validate'
 import { useMe } from './me'
 import Info from './info'
@@ -308,7 +308,7 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
-      {SN_ADMIN_IDS.includes(Number(me.id)) &&
+      {DOMAIN_BETA_IDS.includes(Number(me?.id)) &&
         <>
           {sub && !domain &&
             <div className='w-100'>

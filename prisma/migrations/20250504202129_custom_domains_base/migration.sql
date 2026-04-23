@@ -73,13 +73,7 @@ CREATE UNIQUE INDEX "Domain_domainName_key" ON "Domain"("domainName");
 CREATE UNIQUE INDEX "Domain_subName_key" ON "Domain"("subName");
 
 -- CreateIndex
-CREATE INDEX "Domain_domainName_idx" ON "Domain"("domainName");
-
--- CreateIndex
 CREATE INDEX "Domain_created_at_idx" ON "Domain"("created_at");
-
--- CreateIndex
-CREATE INDEX "Domain_subName_idx" ON "Domain"("subName");
 
 -- CreateIndex
 CREATE INDEX "DomainVerificationAttempt_domainId_idx" ON "DomainVerificationAttempt"("domainId");

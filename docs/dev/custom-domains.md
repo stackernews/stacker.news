@@ -19,7 +19,7 @@ Since SN has several paths that depends on the `sub` parameter or the `~subName/
 - Redirects paths that uses `~subName` to `/`
 
 The territory paths are the following:
-`['/~', '/recent', '/random', '/top', '/post', '/edit']`
+`['/new', '/top', '/post', '/edit', '/rss']`
 
 Rewriting `~subName` to `/` gives custom domains an **independent-like look**, so that things like `/~subName/post` can now look like `/post`, etc.
 # Domain Verification
@@ -87,6 +87,8 @@ AWS operations are handled within the verification job. Each steps logs attempts
 ##### Certificate issuance
 After DNS checks, if we don't have a certificate already, we request ACM a new certificate for the domain.
 ACM will return a `certificateArn`, which is the unique ID of an ACM certificate, that is immediately used to check its status. These informations are then stored in the `DomainCertificate` table.
+
+note: we provide an `IdempotencyToken` to AWS ACM in order to avoid creating new certificates for the same domain within 1 hour.
 
 ##### Certificate validation values
 ACM needs to verify domain ownership in order to validate the certificate, in this case we use the DNS method.

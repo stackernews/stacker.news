@@ -8,7 +8,8 @@ import {
   getValidationValues,
   attachDomainCertificate,
   deleteDomainCertificate,
-  detachDomainCertificate
+  detachDomainCertificate,
+  ACM_TERMINAL_FAILED_STATUSES
 } from '@/lib/domain-verification'
 import {
   DOMAIN_HOLD_RETENTION_DAYS,
@@ -163,8 +164,11 @@ async function verifyDomain (domain, models) {
     }
 
     // STEP 2c: Check ACM validation
-    const sslVerified = await checkACMValidation(domain, models, recordMap.SSL)
-    if (!sslVerified) return { status, message: 'ACM validation is still pending.' }
+    const sslStatus = await checkACMValidation(domain, models, recordMap.SSL)
+    if (sslStatus === 'FAILED') {
+      return { status: 'FAILED', message: `ACM certificate for ${domain.domainName} is in a terminal failed state.` }
+    }
+    if (sslStatus !== 'VERIFIED') return { status, message: 'ACM validation is still pending.' }
 
     // STEP 2d: Attach the certificate to the ELB listener
     await attachACMCertificateToELB(domain, models, certificateArn)
@@ -200,7 +204,7 @@ async function requestCertificate (domain, models) {
   let message = null
 
   // ask ACM to request a certificate for the domain
-  const { certificateArn, error: requestError } = await issueDomainCertificate(domain.domainName)
+  const { certificateArn, error: requestError } = await issueDomainCertificate(domain.domainName, domain.id)
 
   if (!certificateArn) {
     message = 'Could not request an ACM certificate: ' + requestError?.message
@@ -271,9 +275,8 @@ async function getACMValidationValues (domain, models, certificateArn, certifica
     throw new Error(message)
   }
 
-  const status = cname && value ? 'PENDING' : 'FAILED'
-  await logAttempt({ domain, models, stage: 'ACM_REQUEST_VALIDATION_VALUES', status, message })
-  return status !== 'FAILED'
+  await logAttempt({ domain, models, stage: 'ACM_REQUEST_VALIDATION_VALUES', status: 'PENDING', message })
+  return true
 }
 
 async function checkACMValidation (domain, models, record) {
@@ -294,9 +297,18 @@ async function checkACMValidation (domain, models, record) {
     throw new Error(message)
   }
 
-  const status = certStatus === 'ISSUED' ? 'VERIFIED' : 'PENDING'
+  let status
+  if (certStatus === 'ISSUED') {
+    status = 'VERIFIED'
+  } else if (ACM_TERMINAL_FAILED_STATUSES.has(certStatus)) {
+    status = 'FAILED'
+    message = `ACM certificate is in a terminal failed state: ${certStatus}`
+  } else {
+    status = 'PENDING'
+  }
+
   await logAttempt({ domain, models, record, stage: 'ACM_VALIDATION', status, message })
-  return status === 'VERIFIED'
+  return status
 }
 
 async function attachACMCertificateToELB (domain, models, certificateArn) {
@@ -311,9 +323,8 @@ async function attachACMCertificateToELB (domain, models, certificateArn) {
     throw new Error(message)
   }
 
-  const status = !error ? 'VERIFIED' : 'FAILED'
-  await logAttempt({ domain, models, stage: 'ELB_ATTACH_CERTIFICATE', status, message })
-  return status !== 'FAILED'
+  await logAttempt({ domain, models, stage: 'ELB_ATTACH_CERTIFICATE', status: 'VERIFIED', message })
+  return true
 }
 
 async function logAttempt ({ domain, models, record, stage, status, message }) {

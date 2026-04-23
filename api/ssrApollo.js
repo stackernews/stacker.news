@@ -188,7 +188,9 @@ export function getGetServerSideProps (
     }
 
     if (authRequired && !me) {
-      let callback = process.env.NEXT_PUBLIC_URL + req.url
+      // if we're on a custom domain, use the domain header instead of the main domain
+      const origin = domain ? req.headers['x-stacker-news-domain'] : process.env.NEXT_PUBLIC_URL
+      let callback = origin + req.url
       // On client-side routing, the callback is a NextJS URL
       // so we need to remove the NextJS stuff.
       // Example: /_next/data/development/territory.json

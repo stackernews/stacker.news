@@ -131,7 +131,6 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
         <LoginWithNymButton
           className={`mt-2 mb-3 ${styles.providerButton}`}
           onClick={() => {
-            const callbackUrl = router.query.callbackUrl
             const redirectUri = callbackUrl?.startsWith('http')
               ? new URL(callbackUrl).pathname
               : callbackUrl || '/'

@@ -18,6 +18,12 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
     session = null
   }
 
+  // the ?domain= query param carries the custom domain's host as-is (with its port in local dev).
+  // we pass the port alongside the mapping so the client can redirect back through /api/auth/sync
+  const mapping = domain ? await getDomainMapping(domain) : null
+  const { domainPort } = domain ? normalizeDomain(domain) : { domainPort: null }
+  const domainData = mapping ? { ...mapping, port: domainPort } : null
+
   // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
   // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking
   let external = true
@@ -27,7 +33,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
     console.error('error decoding callback:', callbackUrl, err)
   }
 
-  if (external) {
+  if (external && !domainData) {
     callbackUrl = '/'
   }
 
@@ -47,12 +53,6 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
       }
     }
   }
-
-  // the ?domain= query param carries the custom domain's host as-is (with its port in local dev).
-  // we pass the port alongside the mapping so the client can redirect back through /api/auth/sync
-  const mapping = domain ? await getDomainMapping(domain) : null
-  const { domainPort } = domain ? normalizeDomain(domain) : { domainPort: null }
-  const domainData = mapping ? { ...mapping, port: domainPort } : null
 
   const providers = await getProviders()
 

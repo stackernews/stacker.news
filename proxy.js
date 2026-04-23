@@ -41,9 +41,9 @@ async function customDomainMiddleware (request, domain, subName) {
   // Auth Sync
   if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
     const signup = pathname.startsWith('/signup')
-    return redirectToAuthSync(searchParams, domain, signup, headers)
+    return redirectToAuth(searchParams, domain, signup, headers)
   }
-  if (searchParams.has('sync_token')) return establishAuthSync(request, searchParams, domain, headers)
+  if (searchParams.has('sync_token')) return syncAccount(request, searchParams, domain, headers)
 
   // clean up the pathname from any subname
   if (pathname.startsWith('/~')) {
@@ -76,26 +76,22 @@ async function customDomainMiddleware (request, domain, subName) {
   return NextResponse.next({ request: { headers } })
 }
 
-async function redirectToAuthSync (searchParams, domain, signup, headers) {
-  const syncUrl = new URL('/api/auth/redirect', SN_MAIN_DOMAIN)
-  syncUrl.searchParams.set('domain', domain)
+async function redirectToAuth (searchParams, domain, signup, headers) {
+  const loginUrl = new URL('/api/auth/redirect', SN_MAIN_DOMAIN)
+  loginUrl.searchParams.set('domain', domain)
 
   if (signup) {
-    syncUrl.searchParams.set('signup', 'true')
+    loginUrl.searchParams.set('signup', 'true')
   }
 
   if (searchParams.has('callbackUrl')) {
-    const callbackUrl = searchParams.get('callbackUrl')
-    const redirectUri = callbackUrl.startsWith('http')
-      ? new URL(callbackUrl).pathname
-      : callbackUrl
-    syncUrl.searchParams.set('redirectUri', redirectUri)
+    loginUrl.searchParams.set('callbackUrl', searchParams.get('callbackUrl'))
   }
 
-  return NextResponse.redirect(syncUrl, { headers })
+  return NextResponse.redirect(loginUrl, { headers })
 }
 
-async function establishAuthSync (request, searchParams, domain, headers) {
+async function syncAccount (request, searchParams, domain, headers) {
   const token = searchParams.get('sync_token')
   const redirectUri = searchParams.get('redirectUri') || '/'
   const res = NextResponse.redirect(new URL(redirectUri, request.url), { headers })

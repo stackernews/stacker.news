@@ -27,13 +27,20 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
   // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
   // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking
   let external = true
+  let callbackHost = null
   try {
-    external = isExternal(decodeURIComponent(callbackUrl))
+    const decoded = decodeURIComponent(callbackUrl)
+    external = isExternal(decoded)
+    if (external) callbackHost = new URL(decoded).host
   } catch (err) {
     console.error('error decoding callback:', callbackUrl, err)
   }
 
-  if (external && !domainData) {
+  // external callbackUrls are only allowed when they point at the custom domain
+  // we're syncing against (domainData). anything else is reset to avoid open redirects.
+  const matchesDomain = callbackHost && domainData &&
+    normalizeDomain(callbackHost).domainName === domainData.domainName
+  if (external && !matchesDomain) {
     callbackUrl = '/'
   }
 

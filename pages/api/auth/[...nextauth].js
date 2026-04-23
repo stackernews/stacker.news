@@ -164,6 +164,30 @@ function getCallbacks (req, res) {
       session.user.id = token.id
 
       return session
+    },
+    // allow absolute callback URLs that point at an active custom domain.
+    async redirect ({ url, baseUrl }) {
+      if (url.startsWith('/')) return `${baseUrl}${url}`
+
+      try {
+        const parsed = new URL(url)
+        if (parsed.origin === baseUrl) return url
+
+        // redirect to the auth sync endpoint if on custom domain
+        // TODO: handle multi auth
+        const { domainName, domainPort } = normalizeDomain(parsed.host)
+        const mapping = await getDomainMapping(domainName)
+        if (mapping) {
+          const syncUrl = new URL('/api/auth/sync', baseUrl)
+          syncUrl.searchParams.set('domain', domainPort ? `${domainName}:${domainPort}` : domainName)
+          syncUrl.searchParams.set('redirectUri', (parsed.pathname || '/') + parsed.search + parsed.hash)
+          return syncUrl.href
+        }
+      } catch (error) {
+        console.error('[nextauth redirect] invalid callback URL', url, error)
+      }
+
+      return baseUrl
     }
   }
 }

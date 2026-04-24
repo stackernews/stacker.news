@@ -32,38 +32,32 @@ async function customDomainMiddleware (request, domain, subName) {
   reqHeaders.set('x-stacker-news-subname', subName)
   reqHeaders.set('x-stacker-news-domain', domain)
 
-  logger.log('custom domain', domain, 'with subname', subName)
-  logger.log('pathname', pathname)
-  logger.log('searchParams', JSON.stringify(searchParams))
-  logger.log('search', url.search)
-
-  // TODO: handle auth sync
+  // log the original request path
+  const from = `${pathname}${url.search}`
 
   // clean up the pathname from any subname
   if (pathname.startsWith('/~')) {
-    const cleanPath = pathname.replace(/^\/~[^/]+/, '') || '/'
-    url.pathname = cleanPath
-    logger.log('redirecting to clean url:', url)
+    url.pathname = pathname.replace(/^\/~[^/]+/, '') || '/'
+    logger.log(`${from} -> redirect ${url.pathname}${url.search} (strip subname)`)
     return NextResponse.redirect(url)
   }
 
   // if sub param exists and doesn't match the domain's subname, update it
   if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
-    logger.log('setting sub to', subName)
     searchParams.set('sub', subName)
     url.search = searchParams.toString()
-    logger.log('new searchParams', url.search)
-    logger.log('new url', url)
+    logger.log(`${from} -> redirect ${url.pathname}${url.search} (fix sub=${subName})`)
     return NextResponse.redirect(url)
   }
 
   // if we're at the root or on some territory path, hide the subname by rewriting
   if (pathname === '/' || isTerritoryPath(pathname)) {
     url.pathname = `/~${subName}${pathname === '/' ? '' : pathname}`
-    logger.log('rewrite to:', url.pathname)
+    logger.log(`${from} -> rewrite ${url.pathname}`)
     return NextResponse.rewrite(url, { request: { headers: reqHeaders } })
   }
 
+  logger.log(`${from} -> pass-through`)
   return NextResponse.next({ request: { headers: reqHeaders } })
 }
 

@@ -1,6 +1,6 @@
 import 'urlpattern-polyfill'
 import { NextRequest, NextResponse } from 'next/server'
-import { getDomainMappingFromRequest, createDomainsDebugLogger } from '@/lib/domains'
+import { getDomainMapping, createDomainsDebugLogger } from '@/lib/domains'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -215,9 +215,12 @@ export async function proxy (req) {
   }
 
   // if we're on a custom domain, handle it
-  const mapping = await getDomainMappingFromRequest(request)
+  const domain = request.headers.get('host')
+  const mapping = await getDomainMapping(domain)
   if (mapping) {
-    const domainResp = await customDomainMiddleware(request, mapping.domainName, mapping.subName)
+    // domain can have a port (local dev), so we pass the whole domain to the middleware
+    // instead of the domain retrieved from the mapping
+    const domainResp = await customDomainMiddleware(request, domain, mapping.subName)
     // apply referrer cookies to the custom domain response
     resp = applyReferrerCookies(domainResp, resp)
   }

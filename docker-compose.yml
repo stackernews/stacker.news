@@ -148,9 +148,9 @@ services:
     labels:
       - "CONNECT=localhost:3001"
     cpu_shares: "${CPU_SHARES_LOW}"
-  s3:
-    container_name: s3
-    image: localstack/localstack:s3-latest
+  aws:
+    container_name: aws
+    image: localstack/localstack:4.12
     # healthcheck:
     #   test: ["CMD-SHELL", "awslocal", "s3", "ls", "s3://uploads"]
     #   interval: 10s
@@ -160,17 +160,20 @@ services:
     restart: unless-stopped
     profiles:
       - images
+      - domains
     env_file: *env_file
     environment:
       - DEBUG=1
+      # we only need s3 and acm emulation, ELBv2 mocks are not provided by localstack
+      - SERVICES=s3,acm
     ports:
       - "4566:4566"
     expose:
       - "4566"
     volumes:
-      - 's3:/var/lib/localstack'
-      - './docker/s3/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh'
-      - './docker/s3/cors.json:/etc/localstack/init/ready.d/cors.json'
+      - 'aws:/var/lib/localstack'
+      - './docker/aws/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh'
+      - './docker/aws/cors.json:/etc/localstack/init/ready.d/cors.json'
     labels:
       - "CONNECT=localhost:4566"
     cpu_shares: "${CPU_SHARES_LOW}"
@@ -930,7 +933,7 @@ volumes:
   lnd:
   cln:
   router_lnd:
-  s3:
+  aws:
   nwc_send:
   nwc_recv:
   tordata:

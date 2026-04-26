@@ -1,32 +1,32 @@
-import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import classNames from 'classnames'
 import { useRouter } from 'next/router'
 
 const MultiStepFormContext = createContext()
 
 export function MultiStepForm ({ children, initial, steps }) {
-  const [stepIndex, setStepIndex] = useState(0)
-  const [formState, setFormState] = useState({})
+  const [formState, setFormState] = useState(initial ?? {})
   const router = useRouter()
+  const initialPathname = useRef(router.pathname)
+  const step = Array.isArray(router.query.step) ? router.query.step[0] : router.query.step
+  const stepIndex = Math.max(0, steps.indexOf(step))
 
   useEffect(() => {
-    // initial state might not be available on first render so we sync changes
-    if (initial) setFormState(initial)
-  }, [initial])
+    if (!router.isReady) return
+    if (router.pathname !== initialPathname.current) return
 
-  useEffect(() => {
-    const idx = Math.max(0, steps.indexOf(router.query.step))
-    setStepIndex(idx)
+    if (step === steps[stepIndex]) return
+
     router.replace({
       pathname: router.pathname,
-      query: { type: router.query.type, step: steps[idx] }
+      query: { ...router.query, step: steps[stepIndex] }
     }, null, { shallow: true })
-  }, [router.query.step, steps])
+  }, [router, step, stepIndex, steps])
 
   const next = useCallback(() => {
     const idx = Math.min(stepIndex + 1, steps.length - 1)
     router.push(
-      { pathname: router.pathname, query: { type: router.query.type, step: steps[idx] } },
+      { pathname: router.pathname, query: { ...router.query, step: steps[idx] } },
       null,
       { shallow: true }
     )

@@ -75,7 +75,7 @@ export function SubmitButton ({
   )
 }
 
-export function CopyButton ({ value, icon, ...props }) {
+export function CopyButton ({ value, icon, append, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
@@ -95,6 +95,14 @@ export function CopyButton ({ value, icon, ...props }) {
       <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
         <Clipboard height={20} width={20} />
       </InputGroup.Text>
+    )
+  }
+
+  if (append) {
+    return (
+      <span className={styles.appendButton} {...props} onClick={handleClick}>
+        {append}
+      </span>
     )
   }
 

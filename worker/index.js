@@ -39,6 +39,11 @@ import { isServiceEnabled } from '@/lib/sndev'
 import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts'
 import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
+import {
+  domainVerification,
+  deleteCertificateExternal,
+  clearLongHeldDomains
+} from './domainVerification.js'
 import { untrackOldItems } from './untrackOldItems'
 
 // WebSocket polyfill
@@ -130,6 +135,11 @@ async function work () {
   if (isServiceEnabled('images')) {
     await boss.work('imgproxy', jobWrapper(imgproxy))
     await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
+  }
+  if (isServiceEnabled('domains')) {
+    await boss.work('domainVerification', jobWrapper(domainVerification))
+    await boss.work('deleteDomainCertificate', jobWrapper(deleteCertificateExternal))
+    await boss.work('clearLongHeldDomains', jobWrapper(clearLongHeldDomains))
   }
   await boss.work('weeklyPost-*', jobWrapper(weeklyPost))
   await boss.work('payWeeklyPostBounty', jobWrapper(payWeeklyPostBounty))

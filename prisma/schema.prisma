@@ -696,6 +696,7 @@ model Sub {
   AggPayIn                AggPayIn[]
   AggPayOut               AggPayOut[]
   itemSubs                ItemSub[]
+  domain                  Domain?
 
   @@index([parentName])
   @@index([createdAt])
@@ -907,6 +908,109 @@ model Reminder {
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([userId, remindAt], map: "Reminder.userId_reminderAt_index")
+}
+
+model Domain {
+  id                      Int                         @id @default(autoincrement())
+  createdAt               DateTime                    @default(now()) @map("created_at")
+  updatedAt               DateTime                    @default(now()) @updatedAt @map("updated_at")
+  domainName              String                      @unique @db.Citext
+  subName                 String                      @unique @db.Citext
+  status                  DomainStatus                @default(PENDING)
+
+  sub                     Sub                         @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  attempts                DomainVerificationAttempt[]
+  records                 DomainVerificationRecord[]
+  certificate             DomainCertificate?
+
+  @@index([createdAt])
+}
+
+model DomainVerificationAttempt {
+  id                      Int                       @id @default(autoincrement())
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  updatedAt               DateTime                  @default(now()) @updatedAt @map("updated_at")
+  domainId                Int
+  verificationRecordId    Int?
+  stage                   DomainVerificationStage   @default(GENERAL)
+  status                  RecordStatus              @default(PENDING)
+  message                 String?
+
+  domain                  Domain                    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  verificationRecord      DomainVerificationRecord? @relation(fields: [verificationRecordId], references: [id], onDelete: Cascade)
+
+  @@index([domainId])
+  @@index([verificationRecordId])
+}
+
+model DomainVerificationRecord {
+  id             Int                          @id @default(autoincrement())
+  createdAt      DateTime                     @default(now()) @map("created_at")
+  updatedAt      DateTime                     @default(now()) @updatedAt @map("updated_at")
+  lastCheckedAt  DateTime?                    @map("last_checked_at")
+  domainId       Int
+  type           DomainRecordType
+  recordName     String
+  recordValue    String
+  status         RecordStatus                 @default(PENDING)
+  attempts       DomainVerificationAttempt[]
+
+  domain         Domain                       @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId, type, recordName])
+  @@index([domainId])
+}
+
+model DomainCertificate {
+  id              Int                       @id @default(autoincrement())
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @default(now()) @updatedAt @map("updated_at")
+  domainId        Int
+  certificateArn  String                    @unique
+  status          DomainCertificateStatus
+
+  domain          Domain                    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId])
+}
+
+enum DomainStatus {
+  PENDING
+  ACTIVE
+  HOLD
+  FAILED
+}
+
+enum RecordStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum DomainVerificationStage {
+  GENERAL
+  CNAME
+  ACM_REQUEST_CERTIFICATE
+  ACM_REQUEST_VALIDATION_VALUES
+  ACM_VALIDATION
+  ELB_ATTACH_CERTIFICATE
+  VERIFICATION_COMPLETE
+}
+
+enum DomainRecordType {
+  CNAME
+  SSL
+}
+
+// TODO: use these statuses or get rid of most of them
+enum DomainCertificateStatus {
+  PENDING_VALIDATION
+  ISSUED
+  INACTIVE
+  EXPIRED
+  REVOKED
+  FAILED
+  VALIDATION_TIMED_OUT
 }
 
 enum EarnType {

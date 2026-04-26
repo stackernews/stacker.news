@@ -16,10 +16,12 @@ import { whenToFrom } from '@/lib/time'
 import { useMe } from './me'
 import { useField } from 'formik'
 import { searchSchema } from '@/lib/validate'
+import { usePrefix } from './territory-domains'
 
 export default function Search ({ sub }) {
   const router = useRouter()
   const { me } = useMe()
+  const prefix = usePrefix(sub)
   const q = typeof router.query.q === 'string' ? router.query.q : ''
   const from = typeof router.query.from === 'string' ? router.query.from : ''
   const to = typeof router.query.to === 'string' ? router.query.to : ''
@@ -28,11 +30,6 @@ export default function Search ({ sub }) {
   const queryWhen = typeof router.query.when === 'string' ? router.query.when : ''
 
   const search = async values => {
-    let prefix = ''
-    if (sub) {
-      prefix = `/~${sub}`
-    }
-
     const query = values.q?.trim()
     if (query) {
       const nextValues = { ...values, q: query }

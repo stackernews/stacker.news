@@ -19,6 +19,7 @@ import { satsToMsats } from '@/lib/format'
 import { MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
 import { createUserLoader, createSubLoader } from '@/api/loaders'
+import { getDomainMapping } from '@/lib/domains'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   // switch session cookie before getting session on SSR
@@ -169,6 +170,10 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
+    // inject custom domain data if any
+    const host = req.headers.host
+    const domain = host ? await getDomainMapping(host) : null
+
     let { data: { me } } = await client.query({ query: ME })
 
     // required to redirect to /signup on page reload
@@ -233,6 +238,7 @@ export function getGetServerSideProps (
     return {
       props: {
         ...props,
+        domain,
         me,
         price,
         blockHeight,

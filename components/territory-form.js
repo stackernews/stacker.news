@@ -8,15 +8,18 @@ import { gql } from '@apollo/client'
 import { useApolloClient, useLazyQuery } from '@apollo/client/react'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, DOMAIN_BETA_IDS, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { territorySchema } from '@/lib/validate'
 import { useMe } from './me'
 import Info from './info'
 import { abbrNum } from '@/lib/format'
 import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
+import TerritoryDomains, { useDomain } from './territory-domains'
+import Link from 'next/link'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
+import LinkExternal from '@/svgs/link-external.svg'
 
 function SatFilterRanges () {
   const { values } = useFormikContext()
@@ -46,6 +49,7 @@ export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
+  const { domain } = useDomain()
   const [upsertSub] = usePayInMutation(UPSERT_SUB)
   const [unarchiveTerritory] = usePayInMutation(UNARCHIVE_TERRITORY)
 
@@ -304,6 +308,17 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
+      {DOMAIN_BETA_IDS.includes(Number(me?.id)) &&
+        <>
+          {sub && !domain &&
+            <div className='w-100'>
+              <AccordianItem
+                header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
+                body={<TerritoryDomains sub={sub} />}
+              />
+            </div>}
+          {sub && domain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news <LinkExternal width={16} height={16} /></Link>}
+        </>}
     </FeeButtonProvider>
   )
 }

@@ -294,3 +294,39 @@ a.link:visited {
 .skeleton .otherItemLonger {
     width: 60px;
 }
+
+.record {
+    display: flex;
+    flex-direction: column;
+    margin-right: 0.5rem;
+}
+
+.clipboard {
+    cursor: pointer;
+    fill: var(--theme-grey);
+    width: 1rem;
+    height: 1rem;
+}
+
+.clipboard:hover {
+    fill: var(--bs-primary);
+}
+
+.refresh {
+    cursor: pointer;
+    color: var(--theme-grey);
+    padding: 0;
+    margin-bottom: 2px;
+    transition: color 0.07s ease-in-out;
+}
+
+.refresh svg {
+    fill: var(--theme-grey);
+    width: 1rem;
+    height: 1rem;
+    transition: fill 0.07s ease-in-out;
+}
+
+.refresh:hover svg {
+    fill: var(--bs-primary);
+}

@@ -137,7 +137,6 @@ export default function Comment ({
     classes.add('outline-new-comment-unset')
     // untrack new comment and its descendants if it's not a live comment
     navigator?.untrackNewComment(ref, { includeDescendants: hasOutline })
-    didTrackRef.current = false
   }
 
   useEffect(() => {

@@ -114,6 +114,8 @@ export default function Comment ({
       ? 'yep'
       : 'nope')
   const ref = useRef(null)
+  // if comment is registered with the new comments navigator
+  const didTrackRef = useRef(false)
   const { ref: readerRef, onRef: onReaderRef } = useCallbackRef()
   const router = useRouter()
   const root = useRoot()
@@ -165,6 +167,8 @@ export default function Comment ({
   useEffect(() => {
     // checking navigator because outlining should happen only on item pages
     if (!navigator || me?.id === item.user?.id) return
+    // bail if we already registered this comment
+    if (didTrackRef.current) return
 
     const itemCreatedAt = new Date(item.createdAt).getTime()
 
@@ -192,12 +196,18 @@ export default function Comment ({
       ref.current.classList.add('outline-new-comment')
     }
 
-    navigator.trackNewComment(ref, itemCreatedAt)
-
-    return () => {
-      navigator.untrackNewComment(ref, { includeDescendants: true })
-    }
+    // track the new comment instantly so that a subsequent unsetOutline can remove it immediately
+    didTrackRef.current = navigator.trackNewComment(ref, itemCreatedAt)
   }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
+
+  // untrack comment from the new comments navigator on unmount
+  useEffect(() => {
+    return () => {
+      if (!didTrackRef.current) return
+      navigator?.untrackNewComment(ref, { includeDescendants: true })
+      didTrackRef.current = false
+    }
+  }, [])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT || (item.comments?.comments.length === 0 && item.nDirectComments > 0)
   // Don't show OP badge when anon user comments on anon user posts

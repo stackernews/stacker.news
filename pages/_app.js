@@ -25,8 +25,11 @@ import { DomainProvider } from '@/components/territory-domains'
 import { WalletsProvider } from '@/wallets/client/hooks'
 import FaviconProvider from '@/components/favicon'
 import { CookiesProvider } from '@/components/use-cookie'
+import { patchDOMTranslations } from '@/lib/patch-dom-translate'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
+
+patchDOMTranslations()
 
 NProgress.configure({
   showSpinner: false

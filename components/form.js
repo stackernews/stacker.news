@@ -484,6 +484,11 @@ export function BaseSuggest ({
       .map(transformItem)
   }, [show, data, itemsField, filterItems, transformItem, query])
 
+  // always base the active index on the current suggestions array
+  const activeIndex = suggestions.length === 0
+    ? 0
+    : Math.min(index, suggestions.length - 1)
+
   // show mentions suggestions on query trigger
   useEffect(() => {
     setIndex(0)
@@ -502,14 +507,14 @@ export function BaseSuggest ({
           break
         }
         e.preventDefault()
-        setIndex(prev => Math.max(prev - 1, 0))
+        setIndex(Math.max(activeIndex - 1, 0))
         break
       case 'ArrowDown':
         if (suggestions.length === 0) {
           break
         }
         e.preventDefault()
-        setIndex(prev => Math.min(prev + 1, suggestions.length - 1))
+        setIndex(Math.min(activeIndex + 1, suggestions.length - 1))
         break
       case 'Tab':
       case 'Enter':
@@ -520,7 +525,7 @@ export function BaseSuggest ({
           break
         }
         e.preventDefault()
-        onSelect(suggestions[index].name)
+        onSelect(suggestions[activeIndex].name)
         resetSuggestions()
         break
       case 'Escape':
@@ -530,7 +535,7 @@ export function BaseSuggest ({
       default:
         break
     }
-  }, [suggestions, onSelect, index, resetSuggestions, selectWithTab])
+  }, [suggestions, onSelect, activeIndex, resetSuggestions, selectWithTab])
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions })}
@@ -539,7 +544,7 @@ export function BaseSuggest ({
           {suggestions.map((v, i) =>
             <Dropdown.Item
               key={v.name}
-              active={index === i}
+              active={activeIndex === i}
               onClick={() => {
                 onSelect(v.name)
                 resetSuggestions()

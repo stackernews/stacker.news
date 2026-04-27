@@ -1,5 +1,4 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { isAbortError } from '@/lib/error'
 import {
   COMMAND_PRIORITY_EDITOR,
   $getRoot,
@@ -29,6 +28,7 @@ import styles from '@/lib/lexical/theme/editor.module.css'
 import { $insertTextAtSelection } from '@/lib/lexical/utils'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import { $createMediaNode, MediaNode } from '@/lib/lexical/nodes/content/media'
+import { isAbortError } from '@/lib/error'
 
 // submit disabled reason for upload
 export const UPLOAD_SUBMIT_DISABLED_REASON = 'upload'
@@ -263,8 +263,7 @@ function useLexicalUploadFees (editor) {
   const { merge } = useFeeButton()
 
   const [updateUploadFees] = useLazyQuery(UPLOAD_FEES_QUERY, {
-    fetchPolicy: 'no-cache',
-    nextFetchPolicy: 'no-cache'
+    fetchPolicy: 'no-cache'
   })
 
   const handleUploadFeesData = useCallback(({ data }) => {

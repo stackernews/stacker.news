@@ -197,8 +197,8 @@ export default function Comment ({
       ref.current.classList.add('outline-new-comment')
     }
 
-    didTrackRef.current = true
-    navigator.trackNewComment(ref, itemCreatedAt)
+    // track the new comment instantly so that a subsequent unsetOutline can remove it immediately
+    didTrackRef.current = navigator.trackNewComment(ref, itemCreatedAt)
   }, [item.id, root.lastCommentAt, root.meCommentsViewedAt])
 
   // untrack comment from the new comments navigator on unmount

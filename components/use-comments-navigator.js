@@ -59,35 +59,31 @@ export function useCommentsNavigator () {
     setHasNewComments(false)
   }, [])
 
-  // track a new comment
+  // track a new comment, returns true if the ref was actually inserted
   const trackNewComment = useCallback((commentRef, createdAt) => {
-    setHasNewComments(true)
-    try {
-      window.requestAnimationFrame(() => {
-        if (!commentRef?.current || !commentRef.current.isConnected) return
+    const node = commentRef?.current
+    if (!node || !node.isConnected) return false
 
-        // dedupe
-        const existing = commentRefs.current.some(item => item.ref.current === commentRef.current)
-        if (existing) return
+    // dedupe
+    const existing = commentRefs.current.some(item => item.ref.current === node)
+    if (existing) return false
 
-        // find the correct insertion position to maintain sort order
-        const insertIndex = commentRefs.current.findIndex(item => item.createdAt > createdAt)
-        const newItem = { ref: commentRef, createdAt }
+    // find the correct insertion position to maintain sort order
+    const insertIndex = commentRefs.current.findIndex(item => item.createdAt > createdAt)
+    const newItem = { ref: commentRef, createdAt }
 
-        if (insertIndex === -1) {
-          // append if no newer comments found
-          commentRefs.current.push(newItem)
-        } else {
-          // insert at the correct position to maintain sort order
-          commentRefs.current.splice(insertIndex, 0, newItem)
-        }
-
-        throttleCountUpdate()
-      })
-    } catch {
-      // in the rare case of a ref being disconnected during RAF, ignore to avoid blocking UI
+    if (insertIndex === -1) {
+      // append if no newer comments found
+      commentRefs.current.push(newItem)
+    } else {
+      // insert at the correct position to maintain sort order
+      commentRefs.current.splice(insertIndex, 0, newItem)
     }
-  }, [throttleCountUpdate])
+
+    setHasNewComments(true)
+    throttleCountUpdate()
+    return true
+  }, [throttleCountUpdate, setHasNewComments])
 
   // remove a comment ref from the list
   const untrackNewComment = useCallback((commentRef, options = {}) => {

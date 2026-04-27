@@ -3,7 +3,7 @@ import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
-import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine, payInJoinFilter } from './item'
+import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine, payInJoinFilter, keysetClause } from './item'
 import { USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
@@ -118,15 +118,16 @@ export async function topUsers (parent, { cursor, when, by = 'stacked', from, to
     SELECT * FROM user_stats
     JOIN users ON user_stats."userId" = users.id
     WHERE users.id NOT IN (${Prisma.join([...SN_SYSTEM_ONLY_IDS, USER_ID.anon])})
-    ORDER BY ${column} DESC NULLS LAST, users.created_at ASC
-    OFFSET ${decodedCursor.offset}
+    ${decodedCursor.id ? Prisma.sql`AND ${Prisma.raw(keysetClause(decodedCursor, column.values[0], 'users'))}` : Prisma.empty}
+    ORDER BY ${column} DESC NULLS LAST, users.id DESC
+    ${decodedCursor.id ? Prisma.empty : Prisma.sql`OFFSET ${decodedCursor.offset}`}
     LIMIT ${limit}`
   ).map(
     u => u.hideFromTopUsers && (!me || me.id !== u.id) ? null : u
   )
 
   return {
-    cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+    cursor: users.length === limit ? nextCursorEncoded(decodedCursor, users, limit, column.values[0]) : null,
     users
   }
 }

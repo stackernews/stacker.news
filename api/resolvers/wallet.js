@@ -169,7 +169,7 @@ async function fetchLnAddrInvoice (
   }
 
   // call callback with amount and conditionally comment
-  const res = await (await snFetch(callback.toString())).json()
+  const res = await (await snFetch(callback.toString(), { safe: true })).json()
   if (res.status === 'ERROR') {
     throw new Error(res.reason)
   }

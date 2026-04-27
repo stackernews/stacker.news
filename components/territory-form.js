@@ -4,7 +4,7 @@ import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
 import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql } from '@apollo/client'
-import { useApolloClient } from '@apollo/client/react'
+import { useApolloClient, useLazyQuery } from '@apollo/client/react'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, DOMAIN_BETA_IDS, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
@@ -19,6 +19,7 @@ import Link from 'next/link'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
 import LinkExternal from '@/svgs/link-external.svg'
+import { isAbortError } from '@/lib/error'
 
 function SatFilterRanges () {
   const { values } = useFormikContext()
@@ -54,19 +55,19 @@ export default function TerritoryForm ({ sub }) {
 
   const schema = territorySchema({ client, me, sub })
 
+  const [fetchSub] = useLazyQuery(SUB)
   const [archived, setArchived] = useState(false)
   const onNameChange = useCallback(async (formik, e) => {
     // never show "territory archived" warning during edits
     if (sub) return
     const name = e.target.value
     try {
-      const { data } = await client.query({ query: SUB, variables: { sub: name } })
+      const { data } = await fetchSub({ variables: { sub: name } })
       setArchived(data?.sub?.status === 'STOPPED')
-    } catch (e) {
-      console.error(e)
-      setArchived(false)
+    } catch (err) {
+      !isAbortError(err) && console.error(err)
     }
-  }, [client, setArchived])
+  }, [fetchSub, setArchived])
 
   const onSubmit = useCallback(
     async ({ ...variables }) => {

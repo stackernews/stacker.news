@@ -76,7 +76,7 @@ export const MagicCodeForm = ({ onSubmit, disabled }) => {
         groupClassName='d-flex flex-column justify-content-center gap-2'
         inputType='text'
         hideError // hide error message on every input, allow custom error message
-        disabled={disabled} // disable the form if no callback is provided
+        autocomplete='one-time-code'
       />
       <SubmitButton variant='primary' className='ps-4 pe-3' disabled={disabled}>enter <ArrowRightLineIcon height={20} width={20} className='ms-2' /></SubmitButton>
     </Form>

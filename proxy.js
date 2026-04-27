@@ -29,54 +29,47 @@ async function customDomainMiddleware (request, domain, subName) {
   // we need pathname, searchParams and origin
   const { pathname, searchParams } = url
   // set the subname and domain in the request headers
-  const headers = new Headers(request.headers)
-  headers.set('x-stacker-news-subname', subName)
-  headers.set('x-stacker-news-domain', domain)
+  const reqHeaders = new Headers(request.headers)
+  reqHeaders.set('x-stacker-news-subname', subName)
+  reqHeaders.set('x-stacker-news-domain', domain)
 
-  logger.log('custom domain', domain, 'with subname', subName)
-  logger.log('pathname', pathname)
-  logger.log('searchParams', JSON.stringify(searchParams))
-  logger.log('search', url.search)
+  // log the original request path
+  const from = `${pathname}${url.search}`
 
   // Auth Sync
   if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
     const signup = pathname.startsWith('/signup')
-    return redirectToAuth(searchParams, domain, signup, headers)
+    return redirectToAuth(searchParams, domain, signup)
   }
-  if (searchParams.has('sync_token')) return syncAccount(request, searchParams, domain, headers)
+  if (searchParams.has('sync_token')) return syncAccount(request, searchParams, domain, reqHeaders)
 
   // clean up the pathname from any subname
   if (pathname.startsWith('/~')) {
-    const cleanPath = pathname.replace(/^\/~[^/]+/, '') || '/'
-    url.pathname = cleanPath
-    logger.log('redirecting to clean url:', url)
-    // redirect to the clean path
-    return NextResponse.redirect(url, { headers })
+    url.pathname = pathname.replace(/^\/~[^/]+/, '') || '/'
+    logger.log(`${from} -> redirect ${url.pathname}${url.search} (strip subname)`)
+    return NextResponse.redirect(url)
   }
 
   // if sub param exists and doesn't match the domain's subname, update it
   if (searchParams.has('sub') && searchParams.get('sub') !== subName) {
-    logger.log('setting sub to', subName)
     searchParams.set('sub', subName)
     url.search = searchParams.toString()
-    logger.log('new searchParams', url.search)
-    logger.log('new url', url)
-    return NextResponse.redirect(url, { headers })
+    logger.log(`${from} -> redirect ${url.pathname}${url.search} (fix sub=${subName})`)
+    return NextResponse.redirect(url)
   }
 
   // if we're at the root or on some territory path, hide the subname by rewriting
   if (pathname === '/' || isTerritoryPath(pathname)) {
     url.pathname = `/~${subName}${pathname === '/' ? '' : pathname}`
-    logger.log('rewrite to:', url.pathname)
-    // rewrite to the territory path
-    return NextResponse.rewrite(url, { headers })
+    logger.log(`${from} -> rewrite ${url.pathname}`)
+    return NextResponse.rewrite(url, { request: { headers: reqHeaders } })
   }
 
-  // continue if we don't need to redirect, mainly for API routes
-  return NextResponse.next({ request: { headers } })
+  logger.log(`${from} -> pass-through`)
+  return NextResponse.next({ request: { headers: reqHeaders } })
 }
 
-async function redirectToAuth (searchParams, domain, signup, headers) {
+async function redirectToAuth (searchParams, domain, signup) {
   const loginUrl = new URL('/api/auth/redirect', SN_MAIN_DOMAIN)
   loginUrl.searchParams.set('domain', domain)
 
@@ -88,13 +81,13 @@ async function redirectToAuth (searchParams, domain, signup, headers) {
     loginUrl.searchParams.set('callbackUrl', searchParams.get('callbackUrl'))
   }
 
-  return NextResponse.redirect(loginUrl, { headers })
+  return NextResponse.redirect(loginUrl)
 }
 
 async function syncAccount (request, searchParams, domain, headers) {
   const token = searchParams.get('sync_token')
   const redirectUri = searchParams.get('redirectUri') || '/'
-  const res = NextResponse.redirect(new URL(redirectUri, request.url), { headers })
+  const res = NextResponse.redirect(new URL(redirectUri, request.url))
 
   const { domainName } = normalizeDomain(domain)
 
@@ -123,7 +116,7 @@ async function syncAccount (request, searchParams, domain, headers) {
     return res
   } catch (error) {
     console.error('[auth sync] cannot establish auth sync:', error.message)
-    return NextResponse.redirect(new URL('/error', request.url), { headers })
+    return NextResponse.redirect(new URL('/error', request.url))
   }
 }
 

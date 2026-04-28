@@ -1,4 +1,5 @@
 import { filetypemime } from 'magic-bytes.js'
+import { snFetch } from '../lib/fetch.js'
 
 const TIMEOUT_HEAD = 2000
 const TIMEOUT_GET = 10000
@@ -24,7 +25,7 @@ function timeoutSignal (timeout) {
 const requiresAuth = (res) => res.status === 401 || res.status === 403
 
 async function headMime (url, timeout = TIMEOUT_HEAD) {
-  const res = await fetch(url, { method: 'HEAD', signal: timeoutSignal(timeout) })
+  const res = await snFetch(url, { method: 'HEAD', signal: timeoutSignal(timeout), safe: true })
   // bail on auth or forbidden
   if (requiresAuth(res)) return null
 
@@ -32,11 +33,12 @@ async function headMime (url, timeout = TIMEOUT_HEAD) {
 }
 
 async function readMagicBytes (url, { timeout = TIMEOUT_GET, byteLimit = BYTE_LIMIT } = {}) {
-  const res = await fetch(url, {
+  const res = await snFetch(url, {
     method: 'GET',
     // accept image and video, but not other types
     headers: { Range: `bytes=0-${byteLimit - 1}`, Accept: 'image/*,video/*;q=0.9,*/*;q=0.8' },
-    signal: timeoutSignal(timeout)
+    signal: timeoutSignal(timeout),
+    safe: true
   })
   // bail on auth or forbidden
   if (requiresAuth(res)) return { bytes: null, headers: res.headers }

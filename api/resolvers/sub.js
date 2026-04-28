@@ -1,6 +1,7 @@
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import { validateSchema, territorySchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
+import { keysetClause } from './item'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import pay from '../payIn'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
@@ -90,12 +91,13 @@ export async function topSubs (parent, { query, cursor, when, from, to, limit, b
     )
     SELECT * FROM sub_stats
     JOIN "Sub" ON sub_stats.name = "Sub".name
-    ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
-    OFFSET ${decodedCursor.offset}
+    ${decodedCursor.id ? Prisma.sql`WHERE ${Prisma.raw(keysetClause(decodedCursor, column.values[0], 'Sub', '<', 'name'))}` : Prisma.empty}
+    ORDER BY ${column} DESC NULLS LAST, "Sub".name DESC
+    ${decodedCursor.id ? Prisma.empty : Prisma.sql`OFFSET ${decodedCursor.offset}`}
     LIMIT ${limit}`
 
   return {
-    cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+    cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, subs, limit, column.values[0], 'name') : null,
     subs
   }
 }

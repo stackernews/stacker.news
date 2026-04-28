@@ -165,7 +165,7 @@ const isMediaURL = async (url, { forceFetch }) => {
   // fallback: first run HEAD with small timeout
   try {
     // https://stackoverflow.com/a/68118683
-    const res = await snFetch(url, { timeout: 1000, method: 'HEAD' })
+    const res = await snFetch(url, { timeout: 1000, method: 'HEAD', safe: true })
     const buf = await res.blob()
     isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
   } catch (err) {
@@ -181,7 +181,7 @@ const isMediaURL = async (url, { forceFetch }) => {
 
   // if not known yet, run GET request with longer timeout
   try {
-    const res = await snFetch(url, { timeout: 10000 })
+    const res = await snFetch(url, { timeout: 10000, safe: true })
     const buf = await res.blob()
     isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
   } catch (err) {

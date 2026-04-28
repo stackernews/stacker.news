@@ -8,6 +8,8 @@ import RecvIcon from '@/svgs/arrow-left-down-line.svg'
 import SendIcon from '@/svgs/arrow-right-up-line.svg'
 import DragIcon from '@/svgs/draggable.svg'
 import { useWalletImage, useWalletSupport, useWalletStatus, WalletStatus, useWalletDelete } from '@/wallets/client/hooks'
+import protocols from '@/wallets/client/protocols'
+import { numWithUnits } from '@/lib/format'
 import { isWallet, urlify, walletDisplayName } from '@/wallets/lib/util'
 import { Draggable } from '@/wallets/client/components'
 import TrashIcon from '@/svgs/delete-bin-line.svg'
@@ -15,11 +17,13 @@ import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
+import { useEffect, useMemo, useState } from 'react'
 
 export function WalletCard ({ wallet, draggable = false, index, ...props }) {
   const image = useWalletImage(wallet.name)
   const status = useWalletStatus(wallet)
   const support = useWalletSupport(wallet)
+  const { balance, showBalanceSlot } = useWalletCardBalance(wallet)
   const showModal = useShowModal()
   const router = useRouter()
 
@@ -34,10 +38,19 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
         {support.receive && <RecvIcon className={`${styles.indicator} ${statusToClass(status.receive)}`} />}
       </div>
       <Card.Body>
-        <div className='d-flex text-center align-items-center h-100'>
+        <div className={classNames(
+          'd-flex flex-column text-center align-items-center justify-content-center h-100',
+          showBalanceSlot && styles.walletBodyWithBalance
+        )}
+        >
           {image
             ? <img className={styles.walletLogo} {...image} />
             : <Card.Title className={styles.walletLogo}>{walletDisplayName(wallet.name)}</Card.Title>}
+          {showBalanceSlot && (
+            <div className={styles.walletBalance}>
+              {balance !== null ? formatWalletBalance(balance) : null}
+            </div>
+          )}
         </div>
       </Card.Body>
       <Card.Footer className={classNames(styles.attach, 'd-flex justify-content-around px-2 px-sm-3')}>
@@ -81,6 +94,78 @@ function statusToClass (status) {
     case WalletStatus.WARNING: return styles.warning
     case WalletStatus.DISABLED: return styles.disabled
   }
+}
+
+function useWalletCardBalance (wallet) {
+  const sendProtocol = useMemo(() => {
+    if (!isWallet(wallet)) return null
+
+    const configuredSendProtocols = wallet.protocols.filter(protocol => protocol.send && protocol.enabled)
+    if (configuredSendProtocols.length === 0) return null
+
+    const configuredByName = new Map(configuredSendProtocols.map(protocol => [protocol.name, protocol]))
+    const templateOrderedProtocols = (wallet.template?.protocols || [])
+      .filter(protocol => protocol.send)
+      .map(protocol => configuredByName.get(protocol.name))
+      .filter(Boolean)
+    const remainingProtocols = configuredSendProtocols
+      .filter(protocol => !templateOrderedProtocols.some(ordered => ordered.id === protocol.id))
+    const configuredProtocol = [...templateOrderedProtocols, ...remainingProtocols][0]
+    if (!configuredProtocol) return null
+
+    const walletProtocol = protocols.find(protocol => protocol.name === configuredProtocol.name)
+    if (!walletProtocol?.getBalance) return null
+
+    return {
+      config: configuredProtocol.config,
+      getBalance: walletProtocol.getBalance
+    }
+  }, [wallet])
+  const [balance, setBalance] = useState(null)
+
+  useEffect(() => {
+    if (!sendProtocol) {
+      setBalance(null)
+      return
+    }
+
+    const controller = new AbortController()
+    let cancelled = false
+
+    setBalance(null)
+    sendProtocol.getBalance(sendProtocol.config, { signal: controller.signal })
+      .then(nextBalance => {
+        if (cancelled) return
+        setBalance(nextBalance ?? null)
+      })
+      .catch(err => {
+        if (cancelled || err?.name === 'AbortError') return
+        console.error('failed to fetch wallet balance:', err)
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [sendProtocol])
+
+  return {
+    balance,
+    showBalanceSlot: Boolean(sendProtocol)
+  }
+}
+
+function formatWalletBalance ({ amount, currency }) {
+  if (currency === 'BTC') {
+    return numWithUnits(amount)
+  }
+
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount / 100)
 }
 
 function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {

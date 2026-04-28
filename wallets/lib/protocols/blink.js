@@ -88,6 +88,7 @@ export async function getWallet ({ apiKey, currency }, { signal }) {
             wallets {
               id
               walletCurrency
+              balance
             }
           }
         }

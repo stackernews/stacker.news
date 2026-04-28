@@ -96,6 +96,21 @@
   line-height: 1;
 }
 
+.walletBodyWithBalance {
+  padding-top: calc(0.75rem + (0.8rem * 1.2));
+}
+
+.walletBalance {
+  margin-top: 0.75rem;
+  min-height: calc(0.8rem * 1.2);
+  max-width: 100%;
+  color: var(--theme-grey);
+  font-family: var(--bs-font-monospace);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
 .walletBanner {
   max-width: min(256px, 100vw);
   max-height: 100px;

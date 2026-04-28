@@ -2,6 +2,7 @@ import 'urlpattern-polyfill'
 import { NextRequest, NextResponse } from 'next/server'
 import { SESSION_COOKIE, cookieOptions } from '@/lib/auth'
 import { getDomainMapping, createDomainsDebugLogger, SN_MAIN_DOMAIN, normalizeDomain } from '@/lib/domains'
+import { isSafeRedirectPath } from '@/lib/url'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -86,7 +87,8 @@ async function redirectToAuth (searchParams, domain, signup) {
 
 async function syncAccount (request, searchParams, domain, headers) {
   const token = searchParams.get('sync_token')
-  const redirectUri = searchParams.get('redirectUri') || '/'
+  const rawRedirectUri = searchParams.get('redirectUri')
+  const redirectUri = isSafeRedirectPath(rawRedirectUri) ? rawRedirectUri : '/'
   const res = NextResponse.redirect(new URL(redirectUri, request.url))
 
   const { domainName } = normalizeDomain(domain)

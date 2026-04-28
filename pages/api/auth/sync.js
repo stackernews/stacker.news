@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { encode as encodeJWT, getToken } from 'next-auth/jwt'
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { SN_MAIN_DOMAIN, normalizeDomain } from '@/lib/domains'
+import { isSafeRedirectPath } from '@/lib/url'
 
 const SYNC_TOKEN_MAX_AGE = 60 * 5 // 5 minutes
 const VERIFICATION_TOKEN_EXPIRY = 1000 * 60 * 5 // 5 minutes in milliseconds
@@ -30,7 +31,7 @@ export default async function handler (req, res) {
 
     if (req.method === 'GET') {
       const { domain, redirectUri = '/', signup } = req.query
-      if (!domain || !redirectUri?.startsWith('/')) {
+      if (!domain || !isSafeRedirectPath(redirectUri)) {
         return res.status(400).json({ status: 'ERROR', reason: 'domain and a correct redirectUri are required' })
       }
 

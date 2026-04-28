@@ -129,7 +129,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
       {/** custom domain auth sync button */}
       {domainData && (
         <LoginWithNymButton
-          className={`mt-2 mb-3 ${styles.providerButton}`}
+          className={styles.providerButton}
           onClick={() => {
             // TODO: unify with nextauth custom redirect
             const redirectUri = callbackUrl?.startsWith('http')

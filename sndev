@@ -431,19 +431,35 @@ __sndev__pr_track() {
     *)       url=$(echo "$json" | grep -e '"ssh_url"' | head -n1 | sed -e 's/^.*"ssh_url":[[:space:]]*"//; s/",[[:space:]]*$//') ;;
   esac
 
-  push=$(git remote -v | grep -e "$url .*push" | head -n1) || true
-  if [ -n "$push" ]; then
-    remote=$(echo "$push" | cut -f 1)
-  else
-    remote=$(echo "$json" | grep -e '"login"' | head -n1 | sed -e 's/^.*"login":[[:space:]]*"//; s/",[[:space:]]*$//')
-    git remote remove "$remote" 1>/dev/null 2>&1 || true
-    git remote add "$remote" "$url"
+  ref=$(echo "$json" | grep -e '"ref"' | head -n1 | sed -e 's/^.*"ref":[[:space:]]*"//; s/",[[:space:]]*$//')
+  remote="pr-$1"
+  branch="pr/$1"
+  refspec="+refs/heads/$ref:refs/remotes/$remote/$ref"
+
+  legacy_remote=$(git remote -v | awk -v url="$url" '$2 == url && $3 == "(push)" { print $1; exit }')
+  if [ -n "$legacy_remote" ]; then
+    keep_push=$(git config --local --get-all "remote.$legacy_remote.push" | sed '/^pr\/[0-9][0-9]*:/d')
+    git config --local --unset-all "remote.$legacy_remote.push" 1>/dev/null 2>&1 || true
+    if [ -n "$keep_push" ]; then
+      echo "$keep_push" | while IFS= read -r push; do
+        git config --local --add "remote.$legacy_remote.push" "$push"
+      done
+    fi
   fi
 
-  ref=$(echo "$json" | grep -e '"ref"' | head -n1 | sed -e 's/^.*"ref":[[:space:]]*"//; s/",[[:space:]]*$//')
-  git fetch "$remote" "$ref"
-  git checkout -t -b "pr/$1" "$remote/$ref"
-  git config --local "remote.$remote.push" pr/$1:$ref
+  git config --local "remote.$remote.url" "$url"
+  git config --local --unset-all "remote.$remote.fetch" 1>/dev/null 2>&1 || true
+  git config --local --add "remote.$remote.fetch" "$refspec"
+  git config --local --unset-all "remote.$remote.push" 1>/dev/null 2>&1 || true
+  git config --local --add "remote.$remote.push" "HEAD:refs/heads/$ref"
+  git fetch "$remote"
+  if git show-ref --verify --quiet "refs/heads/$branch"; then
+    git checkout "$branch"
+  else
+    git checkout -b "$branch" "$remote/$ref"
+  fi
+  git config --local "branch.$branch.remote" "$remote"
+  git config --local "branch.$branch.merge" "refs/heads/$ref"
   exit 0
 }
 
@@ -476,7 +492,9 @@ USAGE
   $ sndev pr [OPTIONS] PR_NUMBER
 
 OPTIONS
-  -t, --track   track the pr in a new branch, creating a remote if necessary
+  -t, --track   track the pr in a local pr/NUMBER branch, creating a narrow
+                pr-NUMBER remote so normal git pull and git push target the
+                pr's upstream branch
                 defaults to checking out the pr in a detached state
 "
 

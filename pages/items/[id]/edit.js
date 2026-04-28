@@ -1,5 +1,4 @@
 import { ITEM } from '@/fragments/items'
-import { isAbortError } from '@/lib/error'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { DiscussionForm } from '@/components/discussion-form'
 import { LinkForm } from '@/components/link-form'
@@ -7,8 +6,8 @@ import { CenterLayout } from '@/components/layout'
 import JobForm from '@/components/job-form'
 import { PollForm } from '@/components/poll-form'
 import { BountyForm } from '@/components/bounty-form'
-import { useEffect, useState } from 'react'
-import { useLazyQuery, useQuery } from '@apollo/client/react'
+import { useMemo, useState } from 'react'
+import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { FeeButtonProvider } from '@/components/fee-button'
@@ -26,49 +25,29 @@ export const getServerSideProps = getGetServerSideProps({
 export default function PostEdit ({ ssrData }) {
   const router = useRouter()
   const { data } = useQuery(ITEM, { variables: { id: router.query.id } })
-  const [fetchSubs] = useLazyQuery(SUBS)
   if (!data && !ssrData) return <PageLoading />
 
   const { item } = data || ssrData
   const [subs, setSubs] = useState(item.subNames)
-  const [baseLineItems, setBaseLineItems] = useState({})
 
-  useEffect(() => {
-    const territoryAddPrefix = 'territory-add-'
-    const addedSubs = subsDiff(subs, item.subNames)
-    if (!addedSubs.length) {
-      setBaseLineItems(prev => Object.entries(prev).reduce((acc, [key, value]) => {
-        if (!key.startsWith(territoryAddPrefix)) {
-          acc[key] = value
-        }
-        return acc
-      }, {}))
-      return
-    }
-    fetchSubs({ variables: { subNames: addedSubs } }).then(res => {
-      setBaseLineItems(prev => {
-        const newBaseLineItems = Object.entries(prev).reduce((acc, [key, value]) => {
-          if (!key.startsWith(territoryAddPrefix)) {
-            acc[key] = value
-          }
-          return acc
-        }, {})
-        const territoryAdds = res.data.subs.reduce((acc, sub) => ({
-          ...acc,
-          [`${territoryAddPrefix}${sub.name}`]: {
-            label: `~${sub.name} post`,
-            term: `+ ${sub.baseCost}`,
-            op: '+',
-            modifier: cost => cost + sub.baseCost
-          }
-        }), {})
-        return {
-          ...newBaseLineItems,
-          ...territoryAdds
-        }
-      })
-    }).catch(err => !isAbortError(err) && console.error(err))
-  }, [subs, fetchSubs])
+  const addedSubs = useMemo(() => subsDiff(subs, item.subNames), [subs, item.subNames])
+  const { data: subsData } = useQuery(SUBS, {
+    variables: { subNames: addedSubs },
+    skip: !addedSubs.length
+  })
+
+  const baseLineItems = useMemo(() => {
+    if (!addedSubs.length || !subsData?.subs) return {}
+    return subsData.subs.reduce((acc, sub) => ({
+      ...acc,
+      [`territory-add-${sub.name}`]: {
+        label: `~${sub.name} post`,
+        term: `+ ${sub.baseCost}`,
+        op: '+',
+        modifier: cost => cost + sub.baseCost
+      }
+    }), {})
+  }, [addedSubs, subsData])
 
   const [,, editThreshold] = useCanEdit(item)
   const EditInfo = editThreshold && item.payIn?.payInState === 'PAID'

@@ -1,7 +1,6 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
-import { isAbortError } from '@/lib/error'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
@@ -33,6 +32,7 @@ import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 import { SNEditor } from './editor'
+import { isAbortError } from '@/lib/error'
 export { MultiSelect } from './multi-select'
 export class SessionRequiredError extends Error {
   constructor () {
@@ -489,6 +489,7 @@ export function BaseSuggest ({
       resetSuggestions()
     }
   }, [query, resetSuggestions, getSuggestions])
+
   const onKeyDown = useCallback(e => {
     switch (e.code) {
       case 'ArrowUp':

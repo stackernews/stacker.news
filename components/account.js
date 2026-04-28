@@ -94,11 +94,12 @@ const AccountListRow = ({ account, selected, ...props }) => {
 }
 
 export const useIsLurker = () => {
-  // TODO, signup button for lurkers conflicts with one-click-login path
+  const accounts = useAccounts()
   const { domain } = useDomain()
+
+  // TODO, signup button for lurkers conflicts with one-click-login path
   if (domain) return false
 
-  const accounts = useAccounts()
   return accounts.length === 0
 }
 

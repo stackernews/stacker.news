@@ -23,8 +23,6 @@ import SwitchAccountList, { nextAccount, useAccounts, useIsLurker } from '@/comp
 import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
 import { numWithUnits } from '@/lib/format'
-import { useDomain } from '@/components/territory-domains'
-
 export function Brand ({ className }) {
   return (
     <Navbar.Brand as={Link} href='/' className={classNames(styles.brand, className)}>
@@ -259,7 +257,6 @@ export default function LoginButton () {
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   const router = useRouter()
-  const { domain } = useDomain()
 
   const handleLogout = async () => {
     const next = await nextAccount()
@@ -278,8 +275,7 @@ function LogoutObstacle ({ onClose }) {
     }
 
     onClose()
-    await signOut({ callbackUrl: '/', redirect: !domain })
-    domain && router.push('/')
+    await signOut({ callbackUrl: window.location.origin + '/' })
   }
 
   return (

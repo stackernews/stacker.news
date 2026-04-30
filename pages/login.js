@@ -8,6 +8,11 @@ import { isExternal } from '@/lib/url'
 import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import { getDomainMapping, normalizeDomain } from '@/lib/domains'
 
+// callbackUrl arriving at /login is expected to be same-origin: custom-domain
+// auth flows are funneled through /api/auth/redirect, which wraps the user's
+// destination into a /api/auth/sync URL on the main domain. anything else is a
+// stale link or someone trying an open redirect, so we collapse it to '/'.
+
 export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, syncSignup = null, domain = null, error = null } }) {
   let session = await getServerSession(req, res, getAuthOptions(req))
 
@@ -26,22 +31,13 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
 
   // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
   // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking
-  let external = true
-  let callbackHost = null
-  try {
-    const decoded = decodeURIComponent(callbackUrl)
-    external = isExternal(decoded)
-    if (external) callbackHost = new URL(decoded).host
-  } catch (err) {
-    console.error('error decoding callback:', callbackUrl, err)
-  }
-
-  // external callbackUrls are only allowed when they point at the custom domain
-  // we're syncing against (domainData). anything else is reset to avoid open redirects.
-  const matchesDomain = callbackHost && domainData &&
-    normalizeDomain(callbackHost).domainName === domainData.domainName
-  if (external && !matchesDomain) {
-    callbackUrl = '/'
+  if (callbackUrl) {
+    try {
+      if (isExternal(decodeURIComponent(callbackUrl))) callbackUrl = '/'
+    } catch (err) {
+      console.error('error decoding callback:', callbackUrl, err)
+      callbackUrl = '/'
+    }
   }
 
   if (session && callbackUrl && !multiAuth && !syncSignup) {

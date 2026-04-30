@@ -1,9 +1,10 @@
 import { cachedFetcher, snFetch } from '@/lib/fetch'
 
+const CHAIN_FEE_URL = process.env.CHAIN_FEE_URL || 'https://mempool.space/api/v1/fees/recommended'
+
 const getChainFeeRate = cachedFetcher(async function fetchChainFeeRate () {
-  const url = 'https://mempool.space/api/v1/fees/recommended'
   try {
-    const res = await snFetch(url)
+    const res = await snFetch(CHAIN_FEE_URL)
     const body = await res.json()
     return body.hourFee
   } catch (err) {

@@ -211,13 +211,23 @@ Instead of fighting these restrictions, Auth Sync works with them by creating a 
 - checks if pizza.com is an **allowed domain**
 - checks if there's a session
 - -- if not: redirects to `stacker.news/login` with `/api/auth/sync` as callback to continue syncing
-- auth sync creates a short-lived verification token and redirects back to the custom domain with the `token` parameter
-- -- `https://pizza.com/?token=42424242&redirectUri=/items/212142`
+- auth sync creates a short-lived verification token and redirects back to the custom domain with the `sync_token` parameter
+- -- `https://pizza.com/?sync_token=42424242&redirectUri=/items/212142`
 - middleware exchanges this token for a session, **setting the session cookie** on pizza.com
-- -- `POST: https://stacker.news/api/auth/sync; token: 42424242`
+- -- `POST: https://stacker.news/api/auth/sync; verificationToken: 42424242`
 
 
 The verification token is a one-time code that dies in **5 minutes** and has **256 bits** of entropy. The JWT is then generated server-side and applied to the final middleware response.
+
+### Redirect callback allowlist
+
+NextAuth still owns the final `callbackUrl` redirect after login. [pages/api/auth/[...nextauth].js](../../pages/api/auth/[...nextauth].js)'s `redirect` callback allows:
+
+- relative paths like `/settings` resolve against `baseUrl`, which is the main SN origin for the login flow
+- absolute same-origin URLs are allowed unchanged
+- absolute URLs on an `ACTIVE` custom domain are allowed unchanged after the host is parsed with `parseSafeHost` and checked with `getDomainMapping`
+
+Everything else falls back to `baseUrl`.
 
 ### Token revocation via `domainId` + `tokenVersion`
 
@@ -234,7 +244,7 @@ A `BEFORE UPDATE` trigger on `Domain` (`bump_domain_token_version`) increments `
 
 Two sides read these, with different consistency requirements:
 
-- **Mint side** — `createEphemeralSessionToken` in [pages/api/auth/sync.js](../../pages/api/auth/sync.js) reads the row **directly from the DB** (uncached) and snapshots both `id` and `tokenVersion` into the JWT. Since the minted cookie lives for up to 30 days, any staleness here could mint a token against an outdated row identity or revoked reign.
+- **Mint side** — `createSessionToken` in [pages/api/auth/sync.js](../../pages/api/auth/sync.js) reads the row **directly from the DB** (uncached) and snapshots both `id` and `tokenVersion` into the JWT. Since the minted cookie lives for up to 30 days, any staleness here could mint a token against an outdated row identity or revoked reign.
 - **Verify side** — the next-auth `jwt` callback reads through `getDomainMapping`, which goes through `domainsMappingsCache` (same cache the proxy uses). This runs on every custom-domain request, so hitting the DB here would be expensive. Bounded staleness is acceptable because the mint side already guarantees that no *new* tokens can be minted with the old identity — the stale window only delays the rejection of pre-existing tokens.
 
 ##### Enforcement

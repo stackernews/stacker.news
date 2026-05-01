@@ -359,22 +359,16 @@ export async function checkActiveDomainsDNS () {
       const cname = domain.records[0]
       if (!cname) continue
 
-      let drifted = false
-      let reason = null
-      try {
-        const result = await verifyDNSRecord('CNAME', cname.recordName, cname.recordValue)
-        if (!result.valid) {
-          drifted = true
-          reason = result.error?.message || 'CNAME record drifted'
-        }
-      } catch (error) {
-        // don't switch on temporary DNS errors
-        console.error(`[dns-drift] resolver error for ${domain.domainName}: ${error.message}`)
+      const result = await verifyDNSRecord('CNAME', cname.recordName, cname.recordValue)
+      if (result.valid) continue
+
+      // never switch to HOLD on a transient since revoking JWTs + deleting the cert is expensive to recover from.
+      if (result.transient) {
+        console.warn(`[dns-drift] inconclusive resolution for ${domain.domainName}: ${result.error?.message}; skipping`)
         continue
       }
 
-      if (!drifted) continue
-
+      const reason = result.error?.message || 'CNAME record drifted'
       console.log(`[dns-drift] ${domain.domainName} drifted (${reason}); switching to HOLD`)
 
       // switching a domain to HOLD triggers:

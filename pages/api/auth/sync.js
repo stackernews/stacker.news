@@ -4,7 +4,7 @@ import { encode as encodeJWT, getToken } from 'next-auth/jwt'
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { SN_MAIN_DOMAIN } from '@/lib/domains'
 import { formatHost, parseSafeHost, safeRedirectPath } from '@/lib/safe-url'
-import { VERIFICATION_TOKEN_EXPIRY, AUTH_SYNC_TOKEN_TAG } from '@/lib/constants'
+import { VERIFICATION_TOKEN_EXPIRY_MS, AUTH_SYNC_TOKEN_TAG } from '@/lib/constants'
 import { multiAuthMiddleware } from '@/lib/auth'
 
 export default async function handler (req, res) {
@@ -109,7 +109,7 @@ async function createVerificationToken (token, domainId) {
         // bind the token to the domain it was created for
         identifier: `${AUTH_SYNC_TOKEN_TAG}:${token.id}:${domainId}`,
         token: randomBytes(32).toString('hex'),
-        expires: new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY)
+        expires: new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_MS)
       }
     })
     return { status: 'OK', token: verificationToken.token }

@@ -20,6 +20,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
   // required to prevent infinite redirect loops if we switch to anon
   // but are on a page that would redirect us to /signup.
   // without this code, /signup would redirect us back to the callbackUrl.
+  // also nullify session if a we come from a custom domain to force fresh auth
   if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON || domain) {
     session = null
   }

@@ -163,8 +163,8 @@ A domain removal also means the certificate removal, which triggers **Ask ACM to
 ### Active Domain DNS Drift Check
 A pgboss cron `checkActiveDomainsDNS` runs every 5 minutes (`*/5 * * * *`) and, for each `ACTIVE` domain:
 - re-resolves the stored `CNAME` `DomainVerificationRecord` against live DNS via the same `verifyDNSRecord` helper used during initial verification
-- on a clean drift (record present but mismatched), flips the domain to `HOLD`
-- on a temporary resolver error (i.e. timeout), logs and skips
+- on a **conclusive drift** (record present but pointing elsewhere, wrong record count, or `ENOTFOUND` / `ENODATA` from the resolver), flips the domain to `HOLD`
+- on an **inconclusive result** (timeout, `ESERVFAIL`, network error, unknown error code, …), logs and skips. a real persistent drift will surface as a conclusive answer on the next tick
 
 Switching to `HOLD` cascades into:
 1. **Bump token version** — a db trigger on `Domain` increments `tokenVersion` whenever the domain switches from or to `ACTIVE`. [see token revocation via `tokenVersion`](#token-revocation-via-tokenversion).

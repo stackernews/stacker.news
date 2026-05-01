@@ -74,18 +74,18 @@ export function authErrorMessage (error, signin) {
 
 const multiAuthProviders = ['Lightning', 'Nostr']
 
-export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin, syncSignup, domainData }) {
+export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin, domainData }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error, signin))
   const router = useRouter()
   const [, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
 
   // we can't signup if we're already logged in to another account
-  // for signups with auth sync, we first need to switch to anon.
+  // for custom-domain signups, we first need to switch to anon.
   useEffect(() => {
-    if (syncSignup) {
+    if (!signin && domainData) {
       setPointerCookie(MULTI_AUTH_ANON, cookieOptions({ httpOnly: false }))
     }
-  }, [syncSignup, setPointerCookie])
+  }, [signin, domainData, setPointerCookie])
 
   multiAuth = typeof multiAuth === 'string' ? multiAuth === 'true' : !!multiAuth
 

@@ -14,9 +14,11 @@ function SignUpHeader () {
   )
 }
 
-function SignUpFooter ({ callbackUrl }) {
+function SignUpFooter ({ callbackUrl, domain }) {
+  const query = { callbackUrl, ...(domain && { domain }) }
+
   return (
-    <small className='fw-bold text-muted pt-4'>Been here before? <Link href={{ pathname: '/login', query: { callbackUrl } }}>log in</Link></small>
+    <small className='fw-bold text-muted pt-4'>Been here before? <Link href={{ pathname: '/login', query }}>log in</Link></small>
   )
 }
 
@@ -25,7 +27,7 @@ export default function SignUp ({ ...props }) {
     <StaticLayout footerLinks={false}>
       <Login
         Header={() => <SignUpHeader />}
-        Footer={() => <SignUpFooter callbackUrl={props.callbackUrl} />}
+        Footer={() => <SignUpFooter callbackUrl={props.callbackUrl} domain={props.domain} />}
         text='Continue'
         {...props}
       />

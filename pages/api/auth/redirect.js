@@ -25,7 +25,6 @@ export default async function handler (req, res) {
   const loginUrl = new URL(signup ? '/signup' : '/login', SN_MAIN_DOMAIN)
   loginUrl.searchParams.set('domain', canonicalDomain)
   loginUrl.searchParams.set('callbackUrl', syncPath)
-  if (signup) loginUrl.searchParams.set('syncSignup', 'true')
 
   res.redirect(302, loginUrl.href)
 }

@@ -5,6 +5,7 @@ import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { SN_MAIN_DOMAIN } from '@/lib/domains'
 import { formatHost, parseSafeHost, safeRedirectPath } from '@/lib/safe-url'
 import { SYNC_TOKEN_MAX_AGE, VERIFICATION_TOKEN_EXPIRY, AUTH_SYNC_TOKEN_TAG } from '@/lib/constants'
+import { multiAuthMiddleware } from '@/lib/auth'
 
 export default async function handler (req, res) {
   try {
@@ -51,6 +52,8 @@ export default async function handler (req, res) {
         return handleNoSession(res, canonicalDomain, redirectUri, signup)
       }
 
+      // honor multi auth cookie
+      req = await multiAuthMiddleware(req, res)
       const sessionToken = await getToken({ req })
       if (!sessionToken) {
         return handleNoSession(res, canonicalDomain, redirectUri)

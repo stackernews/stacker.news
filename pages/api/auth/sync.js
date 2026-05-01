@@ -4,10 +4,7 @@ import { encode as encodeJWT, getToken } from 'next-auth/jwt'
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { SN_MAIN_DOMAIN } from '@/lib/domains'
 import { formatHost, parseSafeHost, safeRedirectPath } from '@/lib/safe-url'
-
-const SYNC_TOKEN_MAX_AGE = 60 * 5 // 5 minutes
-const VERIFICATION_TOKEN_EXPIRY = 1000 * 60 * 5 // 5 minutes in milliseconds
-const AUTH_SYNC_TOKEN_TAG = 'auth-sync'
+import { SYNC_TOKEN_MAX_AGE, VERIFICATION_TOKEN_EXPIRY, AUTH_SYNC_TOKEN_TAG } from '@/lib/constants'
 
 export default async function handler (req, res) {
   try {
@@ -118,7 +115,7 @@ async function createVerificationToken (token, domainId) {
   }
 }
 
-async function redirectToDomain (res, domain, verificationToken, redirectUri) {
+function redirectToDomain (res, domain, verificationToken, redirectUri) {
   try {
     const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
     const target = new URL(`${protocol}://${formatHost(domain)}`)
@@ -126,9 +123,10 @@ async function redirectToDomain (res, domain, verificationToken, redirectUri) {
     target.searchParams.set('sync_token', verificationToken)
     target.searchParams.set('redirectUri', redirectUri)
 
-    res.redirect(302, target.href)
+    return res.redirect(302, target.href)
   } catch (error) {
-    return { status: 'ERROR', reason: 'cannot construct the URL' }
+    console.error('[auth sync] cannot construct redirect URL', error)
+    return res.status(500).json({ status: 'ERROR', reason: 'cannot construct the URL' })
   }
 }
 

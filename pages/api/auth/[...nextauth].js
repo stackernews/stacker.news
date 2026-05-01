@@ -134,7 +134,7 @@ function getCallbacks (req, res) {
           // - ACTIVE status hasn't changed since the token was minted (tokenVersion match)
           if (!mapping) return null
           if (mapping.id !== token.domainId) return null
-          if (mapping.tokenVersion !== token.domainVersion) return null
+          if (mapping.tokenVersion !== token.tokenVersion) return null
         } catch (error) {
           console.error('cannot verify domain', error)
           return null

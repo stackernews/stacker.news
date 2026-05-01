@@ -226,7 +226,7 @@ JWTs are stateless, so once a session cookie has been set on `pizza.com` we cann
 Every custom-domain JWT carries two claims that together make it revocable without abandoning the JWT model:
 
 - **`domainId`** — the primary key of the `Domain` row the token was minted against. Pins the JWT to a specific *row lifetime*. If the row is deleted and recreated (owner removes and re-adds the domain, takeover, etc.), the replacement row has a fresh autoincrement `id` that no pre-existing JWT can reference.
-- **`domainVersion`** — this is the value of `Domain.tokenVersion` when the JWT was created. If the domain leaves and later returns to `ACTIVE`, `tokenVersion` increases. Old JWTs with a different version become invalid.
+- **`tokenVersion`** — this is the value of `Domain.tokenVersion` when the JWT was created. If the domain leaves and later returns to `ACTIVE`, `tokenVersion` increases. Old JWTs with a different version become invalid.
 
 A `BEFORE UPDATE` trigger on `Domain` (`bump_domain_token_version`) increments `tokenVersion` on **any transition to/from `ACTIVE`**. The trigger alone can't help across row lifetimes, which is exactly why `domainId` exists.
 
@@ -248,7 +248,7 @@ if (token?.domainName) {
   const mapping = await getDomainMapping(token.domainName)
   if (!mapping) return null                                      // domain is not ACTIVE right now
   if (mapping.id !== token.domainId) return null                 // row was deleted and recreated
-  if (mapping.tokenVersion !== token.domainVersion) return null  // ACTIVE reign has changed
+  if (mapping.tokenVersion !== token.tokenVersion) return null  // ACTIVE reign has changed
 }
 ```
 
@@ -259,7 +259,7 @@ if (token?.domainName) {
 They cover different failure modes:
 - `!mapping` — the domain is not `ACTIVE` **right now** (on HOLD, deleted, unknown).
 - `mapping.id !== token.domainId` — the row was deleted and recreated since the token was minted. A fresh row always has a strictly greater autoincrement `id`, so old tokens can never match the new row regardless of what `tokenVersion` happens to land on.
-- `mapping.tokenVersion !== token.domainVersion` — the domain has crossed the `ACTIVE` boundary at least once since the token was minted, within the same row lifetime.
+- `mapping.tokenVersion !== token.tokenVersion` — the domain has crossed the `ACTIVE` boundary at least once since the token was minted, within the same row lifetime.
 
 ##### an attack scenario, prevented
 
@@ -267,7 +267,7 @@ Two variants worth walking through, since they exercise different parts of the d
 
 **Variant A — DNS drift within a single row lifetime** (caught by `tokenVersion`):
 
-1. `pizza.com` is `ACTIVE` with `tokenVersion=3`. Alice signs in and gets a JWT carrying `{ domainName: 'pizza.com', domainId: 42, domainVersion: 3 }`.
+1. `pizza.com` is `ACTIVE` with `tokenVersion=3`. Alice signs in and gets a JWT carrying `{ domainName: 'pizza.com', domainId: 42, tokenVersion: 3 }`.
 2. The attacker hijacks DNS for `pizza.com` and exfiltrates her cookie.
 3. Within ~5 minutes, `checkActiveDomainsDNS` notices the CNAME no longer matches and switches the domain to `HOLD`. The `ACTIVE -> HOLD` trigger bumps `tokenVersion` to `4`, and the on-HOLD trigger deletes the certificate and verification records.
 4. Next request from Alice's browser **or** the attacker's stolen cookie, once the verifier's cache refreshes past the bump: `!mapping` is true -> the request is rejected and the user is `anon`.
@@ -276,8 +276,8 @@ Two variants worth walking through, since they exercise different parts of the d
 
 **Variant B — owner removes and re-adds the domain** (caught by `domainId`):
 
-1. `pizza.com` is `ACTIVE`, row `id=42`, `tokenVersion=1`. Alice signs in and gets a JWT carrying `{ domainName: 'pizza.com', domainId: 42, domainVersion: 1 }`. The attacker steals her cookie and keeps it warm (actively replaying so it gets re-encoded with the default 30-day session maxAge).
+1. `pizza.com` is `ACTIVE`, row `id=42`, `tokenVersion=1`. Alice signs in and gets a JWT carrying `{ domainName: 'pizza.com', domainId: 42, tokenVersion: 1 }`. The attacker steals her cookie and keeps it warm (actively replaying so it gets re-encoded with the default 30-day session maxAge).
 2. The owner calls `setDomain(subName, null)`, which hard-deletes row `id=42` (cascading into cert cleanup). Alice's and the attacker's cookies start failing the `!mapping` check.
 3. Weeks later, the owner re-adds `pizza.com`. A fresh row is created, `id=43`, `tokenVersion` defaulted to `0`.
 4. Verification succeeds, the `PENDING -> ACTIVE` trigger bumps `tokenVersion` to `1`.
-5. The attacker tries their stolen cookie again. The domain is `ACTIVE` (so `!mapping` passes) and the new `tokenVersion=1` happens to collide with the stolen JWT's `domainVersion=1`. Without `domainId`, **this would resurrect the stolen token**. With `domainId` in place: `mapping.id` is `43`, the JWT claims `42`, `43 !== 42` -> rejected.
+5. The attacker tries their stolen cookie again. The domain is `ACTIVE` (so `!mapping` passes) and the new `tokenVersion=1` happens to collide with the stolen JWT's `tokenVersion=1`. Without `domainId`, **this would resurrect the stolen token**. With `domainId` in place: `mapping.id` is `43`, the JWT claims `42`, `43 !== 42` -> rejected.

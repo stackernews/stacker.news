@@ -162,7 +162,7 @@ async function createEphemeralSessionToken (domainName, userId) {
         sub: userId,
         domainName,
         domainId: domain.id,
-        domainVersion: domain.tokenVersion
+        tokenVersion: domain.tokenVersion
       },
       secret: process.env.NEXTAUTH_SECRET,
       maxAge: SYNC_TOKEN_MAX_AGE

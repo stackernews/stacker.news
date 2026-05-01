@@ -1,7 +1,6 @@
 import 'urlpattern-polyfill'
 import { NextRequest, NextResponse } from 'next/server'
 import { SESSION_COOKIE, cookieOptions } from '@/lib/auth'
-import { SYNC_TOKEN_MAX_AGE } from '@/lib/constants'
 import { getDomainMapping, createDomainsDebugLogger, SN_MAIN_DOMAIN } from '@/lib/domains'
 import { parseSafeHost, safeRedirectPath } from '@/lib/safe-url'
 
@@ -118,7 +117,7 @@ async function syncAccount (request, searchParams, domain, headers) {
       throw new Error(data.reason)
     }
 
-    res.cookies.set(SESSION_COOKIE, data.sessionToken, cookieOptions({ maxAge: SYNC_TOKEN_MAX_AGE }))
+    res.cookies.set(SESSION_COOKIE, data.sessionToken, cookieOptions())
     return res
   } catch (error) {
     console.error('[auth sync] cannot establish auth sync:', error.message)

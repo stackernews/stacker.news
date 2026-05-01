@@ -4,7 +4,7 @@ import { encode as encodeJWT, getToken } from 'next-auth/jwt'
 import { validateSchema, customDomainSchema } from '@/lib/validate'
 import { SN_MAIN_DOMAIN } from '@/lib/domains'
 import { formatHost, parseSafeHost, safeRedirectPath } from '@/lib/safe-url'
-import { SYNC_TOKEN_MAX_AGE, VERIFICATION_TOKEN_EXPIRY, AUTH_SYNC_TOKEN_TAG } from '@/lib/constants'
+import { VERIFICATION_TOKEN_EXPIRY, AUTH_SYNC_TOKEN_TAG } from '@/lib/constants'
 import { multiAuthMiddleware } from '@/lib/auth'
 
 export default async function handler (req, res) {
@@ -26,7 +26,7 @@ export default async function handler (req, res) {
         return res.status(400).json(verificationResult)
       }
 
-      const sessionTokenResult = await createEphemeralSessionToken(parsedDomain.hostname, verificationResult.userId)
+      const sessionTokenResult = await createSessionToken(parsedDomain.hostname, verificationResult.userId)
       if (sessionTokenResult.status === 'ERROR') {
         return res.status(500).json(sessionTokenResult)
       }
@@ -162,7 +162,7 @@ async function consumeVerificationToken (verificationToken, expectedDomainId) {
   }
 }
 
-async function createEphemeralSessionToken (domainName, userId) {
+async function createSessionToken (domainName, userId) {
   try {
     const domain = await models.domain.findUnique({
       where: { domainName, status: 'ACTIVE' },
@@ -180,8 +180,7 @@ async function createEphemeralSessionToken (domainName, userId) {
         domainId: domain.id,
         tokenVersion: domain.tokenVersion
       },
-      secret: process.env.NEXTAUTH_SECRET,
-      maxAge: SYNC_TOKEN_MAX_AGE
+      secret: process.env.NEXTAUTH_SECRET
     })
 
     return { status: 'OK', sessionToken }

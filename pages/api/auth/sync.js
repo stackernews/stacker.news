@@ -120,8 +120,7 @@ async function createVerificationToken (token, domainId) {
 
 function redirectToDomain (res, domain, verificationToken, redirectUri) {
   try {
-    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
-    const target = new URL(`${protocol}://${formatHost(domain)}`)
+    const target = new URL(`${SN_MAIN_DOMAIN.protocol}//${formatHost(domain)}`)
 
     target.searchParams.set('sync_token', verificationToken)
     target.searchParams.set('redirectUri', redirectUri)

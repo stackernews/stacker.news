@@ -384,7 +384,7 @@ export async function checkActiveDomainsDNS () {
         domain,
         models,
         stage: 'CNAME',
-        status: 'HOLD',
+        status: 'FAILED',
         message: `DNS drift detected: ${reason}`
       })
     }

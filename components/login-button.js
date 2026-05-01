@@ -12,6 +12,7 @@ import styles from '@/components/dropdown.module.css'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
 import classNames from 'classnames'
 import { useRouter } from 'next/router'
+import { safeRedirectPath } from '@/lib/safe-url'
 
 export default function LoginButton ({ text, type, className, onClick, disabled }) {
   let Icon, variant
@@ -63,11 +64,9 @@ export function LoginWithNymButton ({ className, callbackUrl, domainData, disabl
       <Button
         variant='success'
         onClick={() => {
-          const redirectUri = callbackUrl?.startsWith('http')
-            ? new URL(callbackUrl).pathname
-            : callbackUrl || '/'
           // port is only present in local dev; in prod domainData.port is null and we send the bare host.
           const domain = domainData.port ? `${domainData.domainName}:${domainData.port}` : domainData.domainName
+          const redirectUri = safeRedirectPath(callbackUrl, domain)
           router.push({ pathname: '/api/auth/sync', query: { domain, redirectUri } })
         }}
         disabled={disabled}

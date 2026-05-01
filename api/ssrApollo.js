@@ -19,7 +19,7 @@ import { satsToMsats } from '@/lib/format'
 import { MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
 import { createUserLoader, createSubLoader } from '@/api/loaders'
-import { getDomainMapping } from '@/lib/domains'
+import { getDomainMapping, SN_MAIN_DOMAIN } from '@/lib/domains'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   // switch session cookie before getting session on SSR
@@ -184,7 +184,7 @@ export function getGetServerSideProps (
 
     if (authRequired && !me) {
       // if we're on a custom domain, use the domain header instead of the main domain
-      const origin = domain ? req.headers['x-stacker-news-domain'] : process.env.NEXT_PUBLIC_URL
+      const origin = domain ? `${SN_MAIN_DOMAIN.protocol}//${req.headers['x-stacker-news-domain']}` : process.env.NEXT_PUBLIC_URL
       let callback = origin + req.url
       // On client-side routing, the callback is a NextJS URL
       // so we need to remove the NextJS stuff.

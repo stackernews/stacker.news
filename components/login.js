@@ -130,15 +130,8 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
       {domainData && (
         <LoginWithNymButton
           className={styles.providerButton}
-          onClick={() => {
-            // TODO: unify with nextauth custom redirect
-            const redirectUri = callbackUrl?.startsWith('http')
-              ? new URL(callbackUrl).pathname
-              : callbackUrl || '/'
-            // port is only present in local dev; in prod domainData.port is null and we send the bare host.
-            const domain = domainData.port ? `${domainData.domainName}:${domainData.port}` : domainData.domainName
-            router.push({ pathname: '/api/auth/sync', query: { domain, redirectUri } })
-          }}
+          callbackUrl={callbackUrl}
+          domainData={domainData}
         />
       )}
       {sortedProviders.map(provider => {

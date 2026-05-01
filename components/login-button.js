@@ -11,6 +11,7 @@ import { ButtonGroup, Dropdown } from 'react-bootstrap'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
 import classNames from 'classnames'
+import { useRouter } from 'next/router'
 
 export default function LoginButton ({ text, type, className, onClick, disabled }) {
   let Icon, variant
@@ -47,8 +48,8 @@ export default function LoginButton ({ text, type, className, onClick, disabled 
   )
 }
 
-// TODO: it's maybe better to select an account and give it to the sync endpoint instead of switching accounts here
-export function LoginWithNymButton ({ className, onClick, disabled }) {
+export function LoginWithNymButton ({ className, callbackUrl, domainData, disabled }) {
+  const router = useRouter()
   const accounts = useAccounts()
   const [pointerCookie, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
 
@@ -57,45 +58,50 @@ export function LoginWithNymButton ({ className, onClick, disabled }) {
 
   const title = `Log in with @${account?.name}`
 
-  const mainButton = (
-    <Button
-      variant='success'
-      onClick={onClick}
-      disabled={disabled}
-      className={className}
-      title={title}
-      style={{ minWidth: 0 }}
-    >
-      <SNIcon width={20} height={20} className='me-3 flex-shrink-0' />
-      <span className='text-truncate' style={{ minWidth: 0 }}>{title}</span>
-    </Button>
-  )
-
-  if (accounts.length === 1) return mainButton
-
   return (
     <Dropdown className='mb-4 w-100' as={ButtonGroup}>
-      {mainButton}
-      <Dropdown.Toggle
-        split
+      <Button
         variant='success'
-        onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
-        title='select account'
-        style={{ maxWidth: '42px' }}
+        onClick={() => {
+          const redirectUri = callbackUrl?.startsWith('http')
+            ? new URL(callbackUrl).pathname
+            : callbackUrl || '/'
+          // port is only present in local dev; in prod domainData.port is null and we send the bare host.
+          const domain = domainData.port ? `${domainData.domainName}:${domainData.port}` : domainData.domainName
+          router.push({ pathname: '/api/auth/sync', query: { domain, redirectUri } })
+        }}
+        disabled={disabled}
+        className={className}
+        title={title}
+        style={{ minWidth: 0 }}
       >
-        <ArrowDownIcon width={16} height={16} />
-      </Dropdown.Toggle>
-      <Dropdown.Menu className={styles.dropdownExtra} style={{ width: '150px' }}>
-        {accounts.map(account => (
-          <Dropdown.Item
-            key={account.id}
-            onClick={() => setPointerCookie(account.id, cookieOptions({ httpOnly: false }))}
-            className={classNames(styles.dropdownExtraItem, Number(account.id) === Number(pointerCookie) && styles.active)}
+        <SNIcon width={20} height={20} className='me-3 flex-shrink-0' />
+        <span className='text-truncate' style={{ minWidth: 0 }}>{title}</span>
+      </Button>
+      {accounts.length > 1 && (
+        <>
+          <Dropdown.Toggle
+            split
+            variant='success'
+            onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
+            title='select account'
+            style={{ maxWidth: '42px' }}
           >
-            <span className={styles.dropdownExtraItemText}>{account.name}</span>
-          </Dropdown.Item>
-        ))}
-      </Dropdown.Menu>
+            <ArrowDownIcon width={16} height={16} />
+          </Dropdown.Toggle>
+          <Dropdown.Menu className={styles.dropdownExtra} style={{ width: '150px' }}>
+            {accounts.map(account => (
+              <Dropdown.Item
+                key={account.id}
+                onClick={() => setPointerCookie(account.id, cookieOptions({ httpOnly: false }))}
+                className={classNames(styles.dropdownExtraItem, Number(account.id) === Number(pointerCookie) && styles.active)}
+              >
+                <span className={styles.dropdownExtraItemText}>{account.name}</span>
+              </Dropdown.Item>
+            ))}
+          </Dropdown.Menu>
+        </>
+      )}
     </Dropdown>
   )
 }

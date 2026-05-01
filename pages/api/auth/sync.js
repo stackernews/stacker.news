@@ -2,8 +2,8 @@ import models from '@/api/models'
 import { randomBytes } from 'node:crypto'
 import { encode as encodeJWT, getToken } from 'next-auth/jwt'
 import { validateSchema, customDomainSchema } from '@/lib/validate'
-import { SN_MAIN_DOMAIN, normalizeDomain } from '@/lib/domains'
-import { isSafeRedirectPath } from '@/lib/url'
+import { SN_MAIN_DOMAIN } from '@/lib/domains'
+import { formatHost, parseSafeHost, safeRedirectPath } from '@/lib/safe-url'
 
 const SYNC_TOKEN_MAX_AGE = 60 * 5 // 5 minutes
 const VERIFICATION_TOKEN_EXPIRY = 1000 * 60 * 5 // 5 minutes in milliseconds
@@ -12,7 +12,8 @@ export default async function handler (req, res) {
   try {
     if (req.method === 'POST') {
       const { verificationToken, domainName } = req.body
-      if (!verificationToken || !domainName) {
+      const parsedDomain = parseSafeHost(domainName)
+      if (!verificationToken || !parsedDomain) {
         return res.status(400).json({ status: 'ERROR', reason: 'verification token and domain name are required' })
       }
 
@@ -21,7 +22,7 @@ export default async function handler (req, res) {
         return res.status(400).json(verificationResult)
       }
 
-      const sessionTokenResult = await createEphemeralSessionToken(domainName, verificationResult.userId)
+      const sessionTokenResult = await createEphemeralSessionToken(parsedDomain.hostname, verificationResult.userId)
       if (sessionTokenResult.status === 'ERROR') {
         return res.status(500).json(sessionTokenResult)
       }
@@ -30,23 +31,26 @@ export default async function handler (req, res) {
     }
 
     if (req.method === 'GET') {
-      const { domain, redirectUri = '/', signup } = req.query
-      if (!domain || !isSafeRedirectPath(redirectUri)) {
-        return res.status(400).json({ status: 'ERROR', reason: 'domain and a correct redirectUri are required' })
+      const { domain, redirectUri: rawRedirectUri, signup } = req.query
+      const parsedDomain = parseSafeHost(domain)
+      if (!parsedDomain) {
+        return res.status(400).json({ status: 'ERROR', reason: 'domain is required' })
       }
 
-      const domainValidation = await checkDomainValidity(domain)
+      const domainValidation = await checkDomainValidity(parsedDomain.hostname)
       if (domainValidation.status === 'ERROR') {
         return res.status(400).json(domainValidation)
       }
 
+      const canonicalDomain = formatHost(parsedDomain)
+      const redirectUri = safeRedirectPath(rawRedirectUri, canonicalDomain)
       if (signup) {
-        return handleNoSession(res, domain, redirectUri, signup)
+        return handleNoSession(res, canonicalDomain, redirectUri, signup)
       }
 
       const sessionToken = await getToken({ req })
       if (!sessionToken) {
-        return handleNoSession(res, domain, redirectUri)
+        return handleNoSession(res, canonicalDomain, redirectUri)
       }
 
       const newVerificationToken = await createVerificationToken(sessionToken)
@@ -54,7 +58,7 @@ export default async function handler (req, res) {
         return res.status(500).json(newVerificationToken)
       }
 
-      return redirectToDomain(res, domain, newVerificationToken.token, redirectUri)
+      return redirectToDomain(res, parsedDomain, newVerificationToken.token, redirectUri)
     }
   } catch (error) {
     return res.status(500).json({ status: 'ERROR', reason: 'auth sync broke its legs' })
@@ -62,14 +66,10 @@ export default async function handler (req, res) {
 }
 
 async function checkDomainValidity (receivedDomain) {
-  // the received domain can carry a port in local dev (e.g. pizza.com:3000);
-  // the Domain row stores bare hostnames, so we always normalize before lookup.
-  const { domainName } = normalizeDomain(receivedDomain)
-
   try {
-    await validateSchema(customDomainSchema, { domainName })
+    await validateSchema(customDomainSchema, { domainName: receivedDomain })
     const domain = await models.domain.findUnique({
-      where: { domainName, status: 'ACTIVE' }
+      where: { domainName: receivedDomain, status: 'ACTIVE' }
     })
 
     if (!domain) {
@@ -110,10 +110,10 @@ async function createVerificationToken (token) {
   }
 }
 
-async function redirectToDomain (res, domainName, verificationToken, redirectUri) {
+async function redirectToDomain (res, domain, verificationToken, redirectUri) {
   try {
     const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
-    const target = new URL(`${protocol}://${domainName}`)
+    const target = new URL(`${protocol}://${formatHost(domain)}`)
 
     target.searchParams.set('sync_token', verificationToken)
     target.searchParams.set('redirectUri', redirectUri)

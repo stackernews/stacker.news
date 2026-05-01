@@ -12,7 +12,8 @@ import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import { multiAuthMiddleware, setMultiAuthCookies } from '@/lib/auth'
-import { getDomainMapping, normalizeDomain } from '@/lib/domains'
+import { getDomainMapping } from '@/lib/domains'
+import { parseSafeHost } from '@/lib/safe-url'
 import { BECH32_CHARSET } from '@/lib/constants'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import * as cookie from 'cookie'
@@ -123,7 +124,7 @@ function getCallbacks (req, res) {
       // custom domain session token validation
       if (token?.domainName) {
         try {
-          const { domainName: currentDomain } = normalizeDomain(req.headers.host)
+          const currentDomain = parseSafeHost(req.headers.host)?.hostname
           // tokens created for a custom domain should only be used on that domain
           if (currentDomain !== token.domainName) return null
 
@@ -175,8 +176,8 @@ function getCallbacks (req, res) {
         const parsed = new URL(url)
         if (parsed.origin === baseUrl) return url
 
-        const { domainName } = normalizeDomain(parsed.host)
-        const mapping = await getDomainMapping(domainName)
+        const domainName = parseSafeHost(parsed.host)?.hostname
+        const mapping = domainName ? await getDomainMapping(domainName) : null
         if (mapping) return url
       } catch (error) {
         console.error('[nextauth redirect] invalid callback URL', url, error)

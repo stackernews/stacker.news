@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { StaticLayout } from '@/components/layout'
 import Login from '@/components/login'
 import { isExternal } from '@/lib/url'
+import { parseSafeHost } from '@/lib/safe-url'
 import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
-import { getDomainMapping, normalizeDomain } from '@/lib/domains'
+import { getDomainMapping } from '@/lib/domains'
 
 // callbackUrl arriving at /login is expected to be same-origin: custom-domain
 // auth flows are funneled through /api/auth/redirect, which wraps the user's
@@ -25,9 +26,9 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
 
   // the ?domain= query param carries the custom domain's host as-is (with its port in local dev).
   // we pass the port alongside the mapping so the client can redirect back through /api/auth/sync
-  const mapping = domain ? await getDomainMapping(domain) : null
-  const { domainPort } = domain ? normalizeDomain(domain) : { domainPort: null }
-  const domainData = mapping ? { ...mapping, port: domainPort } : null
+  const parsedDomain = domain ? parseSafeHost(domain) : null
+  const mapping = parsedDomain ? await getDomainMapping(parsedDomain.hostname) : null
+  const domainData = mapping ? { ...mapping, port: parsedDomain.port } : null
 
   // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
   // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking

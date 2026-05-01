@@ -7,6 +7,7 @@ import { formatHost, parseSafeHost, safeRedirectPath } from '@/lib/safe-url'
 
 const SYNC_TOKEN_MAX_AGE = 60 * 5 // 5 minutes
 const VERIFICATION_TOKEN_EXPIRY = 1000 * 60 * 5 // 5 minutes in milliseconds
+const AUTH_SYNC_TOKEN_TAG = 'auth-sync'
 
 export default async function handler (req, res) {
   try {
@@ -17,7 +18,12 @@ export default async function handler (req, res) {
         return res.status(400).json({ status: 'ERROR', reason: 'verification token and domain name are required' })
       }
 
-      const verificationResult = await consumeVerificationToken(verificationToken)
+      const domainValidation = await checkDomainValidity(parsedDomain.hostname)
+      if (domainValidation.status === 'ERROR') {
+        return res.status(400).json(domainValidation)
+      }
+
+      const verificationResult = await consumeVerificationToken(verificationToken, domainValidation.domainId)
       if (verificationResult.status === 'ERROR') {
         return res.status(400).json(verificationResult)
       }
@@ -53,7 +59,7 @@ export default async function handler (req, res) {
         return handleNoSession(res, canonicalDomain, redirectUri)
       }
 
-      const newVerificationToken = await createVerificationToken(sessionToken)
+      const newVerificationToken = await createVerificationToken(sessionToken, domainValidation.domainId)
       if (newVerificationToken.status === 'ERROR') {
         return res.status(500).json(newVerificationToken)
       }
@@ -69,14 +75,15 @@ async function checkDomainValidity (receivedDomain) {
   try {
     await validateSchema(customDomainSchema, { domainName: receivedDomain })
     const domain = await models.domain.findUnique({
-      where: { domainName: receivedDomain, status: 'ACTIVE' }
+      where: { domainName: receivedDomain, status: 'ACTIVE' },
+      select: { id: true }
     })
 
     if (!domain) {
       return { status: 'ERROR', reason: 'domain not allowed' }
     }
 
-    return { status: 'OK' }
+    return { status: 'OK', domainId: domain.id }
   } catch (error) {
     console.error('[auth sync] domain is not valid', error)
     return { status: 'ERROR', reason: 'domain is not valid' }
@@ -95,11 +102,12 @@ function handleNoSession (res, domainName, redirectUri, signup = false) {
   res.redirect(302, loginRedirectUrl.href)
 }
 
-async function createVerificationToken (token) {
+async function createVerificationToken (token, domainId) {
   try {
     const verificationToken = await models.verificationToken.create({
       data: {
-        identifier: token.id.toString(),
+        // bind the token to the domain it was created for
+        identifier: `${AUTH_SYNC_TOKEN_TAG}:${token.id}:${domainId}`,
         token: randomBytes(32).toString('hex'),
         expires: new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY)
       }
@@ -124,9 +132,9 @@ async function redirectToDomain (res, domain, verificationToken, redirectUri) {
   }
 }
 
-async function consumeVerificationToken (verificationToken) {
+async function consumeVerificationToken (verificationToken, expectedDomainId) {
   try {
-    const identifier = await models.$transaction(async tx => {
+    const userId = await models.$transaction(async tx => {
       const token = await tx.verificationToken.findFirst({
         where: {
           token: verificationToken,
@@ -135,12 +143,19 @@ async function consumeVerificationToken (verificationToken) {
       })
       if (!token) throw new Error('invalid verification token')
 
+      const identifier = token.identifier || ''
+
+      const [tag, userIdStr, domainIdStr] = identifier.split(':')
+      if (tag !== AUTH_SYNC_TOKEN_TAG || Number(domainIdStr) !== expectedDomainId) {
+        throw new Error('invalid verification token domain')
+      }
+
       await tx.verificationToken.delete({ where: { id: token.id } })
 
-      return token.identifier
+      return Number(userIdStr)
     })
 
-    return { status: 'OK', userId: Number(identifier) }
+    return { status: 'OK', userId }
   } catch (error) {
     return { status: 'ERROR', reason: 'cannot validate verification token' }
   }

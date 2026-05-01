@@ -12,7 +12,6 @@ import styles from '@/components/dropdown.module.css'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
 import classNames from 'classnames'
 import { useRouter } from 'next/router'
-import { safeRedirectPath } from '@/lib/safe-url'
 
 export default function LoginButton ({ text, type, className, onClick, disabled }) {
   let Icon, variant
@@ -49,7 +48,7 @@ export default function LoginButton ({ text, type, className, onClick, disabled 
   )
 }
 
-export function LoginWithNymButton ({ className, callbackUrl, domainData, disabled }) {
+export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
   const router = useRouter()
   const accounts = useAccounts()
   const [pointerCookie, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
@@ -63,12 +62,7 @@ export function LoginWithNymButton ({ className, callbackUrl, domainData, disabl
     <Dropdown className='mb-4 w-100' as={ButtonGroup}>
       <Button
         variant='success'
-        onClick={() => {
-          // port is only present in local dev; in prod domainData.port is null and we send the bare host.
-          const domain = domainData.port ? `${domainData.domainName}:${domainData.port}` : domainData.domainName
-          const redirectUri = safeRedirectPath(callbackUrl, domain)
-          router.push({ pathname: '/api/auth/sync', query: { domain, redirectUri } })
-        }}
+        onClick={() => router.push(callbackUrl)}
         disabled={disabled}
         className={className}
         title={title}

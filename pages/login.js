@@ -74,10 +74,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
 }
 
 function LoginFooter ({ callbackUrl, domain }) {
-  const query = {
-    callbackUrl,
-    ...(domain ? { domain } : {})
-  }
+  const query = { callbackUrl, ...(domain && { domain }) }
 
   return (
     <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query }}>sign up</Link></small>

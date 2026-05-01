@@ -131,7 +131,6 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
         <LoginWithNymButton
           className={styles.providerButton}
           callbackUrl={callbackUrl}
-          domainData={domainData}
         />
       )}
       {sortedProviders.map(provider => {

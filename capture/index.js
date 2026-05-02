@@ -1,14 +1,16 @@
 import express from 'express'
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer-core'
 import mediaCheck from './media-check.js'
 import cors from 'cors'
 
 const captureUrl = process.env.CAPTURE_URL || 'http://host.docker.internal:3000/'
+const captureBaseUrl = new URL(captureUrl)
 const port = process.env.PORT || 5678
 const maxPages = Number(process.env.MAX_PAGES) || 5
 const timeout = Number(process.env.TIMEOUT) || 10000
 const protocolTimeout = Number(process.env.PROTOCOL_TIMEOUT) || 30000
 const browserCloseTimeout = Number(process.env.BROWSER_CLOSE_TIMEOUT) || 2000
+const browserResetMaxWait = Number(process.env.BROWSER_RESET_MAX_WAIT) || protocolTimeout
 const cache = process.env.CACHE || 60000
 const width = process.env.WIDTH || 600
 const height = process.env.HEIGHT || 315
@@ -55,7 +57,7 @@ const args = [
 
 let browser
 let browserPromise
-let browserResetRequested = false
+let browserResetRequestedAt = null
 let browserResetPromise
 let activeCaptures = 0
 let captureCount = 0
@@ -69,8 +71,9 @@ const retryLaterResult = {
   }
 }
 
-function activeCaptureCount () {
-  return activeCaptures
+function requestBrowserReset (targetBrowser = browser) {
+  if (targetBrowser && targetBrowser !== browser) return
+  browserResetRequestedAt ??= Date.now()
 }
 
 async function getBrowser () {
@@ -156,7 +159,7 @@ async function resetBrowser () {
     if (oldBrowser) {
       await closeBrowser(oldBrowser)
     }
-    browserResetRequested = false
+    browserResetRequestedAt = null
   })().finally(() => {
     browserResetPromise = null
   })
@@ -165,7 +168,11 @@ async function resetBrowser () {
 }
 
 async function resetBrowserIfIdle () {
-  if (!browserResetRequested || activeCaptures > 0) return
+  if (browserResetRequestedAt === null) return
+  if (activeCaptures > 0 && Date.now() - browserResetRequestedAt < browserResetMaxWait) return
+  if (activeCaptures > 0) {
+    console.error(`forcing browser reset after ${Date.now() - browserResetRequestedAt}ms with ${activeCaptures} active captures`)
+  }
 
   await resetBrowser()
 }
@@ -192,47 +199,39 @@ function isAssetPath (pathname) {
 
 async function addCaptureCleanupScript (page) {
   await page.evaluateOnNewDocument(() => {
-    function hideCaptureChrome () {
-      document.getElementById('nprogress')?.remove()
-
-      for (const navbar of document.querySelectorAll('.navbar')) {
-        const mobileNav = navbar.closest('nav.d-block.d-md-none')
-        const stickyNav = navbar.closest('[class*="sticky"]')
-        const responsiveNav = navbar.closest('.d-none.d-md-block, .d-block.d-md-none')
-        const element = mobileNav ?? stickyNav ?? responsiveNav ?? navbar
-        element.style.setProperty('display', 'none', 'important')
-      }
-    }
-
-    function installCaptureCleanup () {
-      hideCaptureChrome()
-      const observer = new window.MutationObserver(hideCaptureChrome)
-      observer.observe(document.documentElement, {
-        childList: true,
-        subtree: true
-      })
-      const disconnect = () => observer.disconnect()
-      window.addEventListener('load', () => setTimeout(disconnect, 1000), { once: true })
-      setTimeout(disconnect, 3000)
+    function installCaptureCss () {
+      const style = document.createElement('style')
+      style.textContent = `
+        #nprogress,
+        .navbar,
+        nav.d-block.d-md-none:has(.navbar),
+        [class*="sticky"]:has(.navbar),
+        .d-none.d-md-block:has(.navbar),
+        .d-block.d-md-none:has(.navbar) {
+          display: none !important;
+        }
+      `
+      ;(document.head ?? document.documentElement).appendChild(style)
     }
 
     if (document.documentElement) {
-      installCaptureCleanup()
+      installCaptureCss()
     } else {
-      document.addEventListener('DOMContentLoaded', installCaptureCleanup, { once: true })
+      document.addEventListener('DOMContentLoaded', installCaptureCss, { once: true })
     }
   })
 }
 
 async function captureImage (url, timeLabel) {
   let page
+  let captureBrowser
   let captured = false
 
   try {
     console.time(timeLabel)
 
     await resetBrowserIfIdle()
-    if (browserResetRequested) {
+    if (browserResetRequestedAt !== null) {
       console.timeLog(timeLabel, 'browser reset pending', 'active captures', activeCaptures)
       return retryLaterResult
     }
@@ -243,13 +242,14 @@ async function captureImage (url, timeLabel) {
     }
     activeCaptures++
     captured = true
-    console.timeLog(timeLabel, 'capturing', 'active captures', activeCaptureCount())
+    console.timeLog(timeLabel, 'capturing', 'active captures', activeCaptures)
 
     const urlParams = new URLSearchParams(url.search)
     const commentId = urlParams.get('commentId')
 
     console.timeLog(timeLabel, 'creating page')
-    page = await (await getBrowser()).newPage()
+    captureBrowser = await getBrowser()
+    page = await captureBrowser.newPage()
     console.timeLog(timeLabel, 'page created')
     await addCaptureCleanupScript(page)
     await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }])
@@ -268,8 +268,8 @@ async function captureImage (url, timeLabel) {
 
     if (commentId) {
       console.timeLog(timeLabel, 'scrolling to comment')
-      await page.waitForSelector('.outline-it')
-      await new Promise((resolve, _reject) => setTimeout(resolve, 100))
+      const comment = await page.waitForSelector('.outline-it', { timeout: imageLoadTimeout }).catch(() => null)
+      if (comment) await new Promise((resolve, _reject) => setTimeout(resolve, 100))
     }
 
     console.timeLog(timeLabel, 'waiting for media placeholders')
@@ -306,7 +306,7 @@ async function captureImage (url, timeLabel) {
   } catch (err) {
     console.timeLog(timeLabel, 'error', err)
     if (isProtocolError(err)) {
-      browserResetRequested = true
+      requestBrowserReset(captureBrowser)
     }
     return {
       status: 500,
@@ -316,20 +316,26 @@ async function captureImage (url, timeLabel) {
     }
   } finally {
     if (captured) activeCaptures = Math.max(0, activeCaptures - 1)
-    console.timeEnd(timeLabel, 'active captures', activeCaptureCount())
-    if (!browserResetRequested && page) {
+    console.timeEnd(timeLabel, 'active captures', activeCaptures)
+    if (browserResetRequestedAt === null && page) {
       let closeFailed = false
       const timedOut = await withTimeout(page.close().catch(err => {
         closeFailed = true
         console.error(err)
       }), browserCloseTimeout, 'page close')
-      if (timedOut || closeFailed) browserResetRequested = true
+      if (timedOut || closeFailed) requestBrowserReset(captureBrowser)
     }
     await resetBrowserIfIdle()
   }
 }
 
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  await resetBrowserIfIdle()
+  if (browserResetRequestedAt !== null || browserResetPromise) {
+    res.setHeader('Cache-Control', 'no-store')
+    return res.status(503).end()
+  }
+
   res.status(200).end()
 })
 
@@ -340,9 +346,9 @@ app.get('/media/:url', cors({
 }), mediaCheck)
 
 app.get('/*', async (req, res) => {
-  const url = new URL(req.originalUrl, captureUrl)
+  const url = new URL(req.originalUrl, captureBaseUrl)
   const timeLabel = `${Date.now()}-${++captureCount}-${url.href}`
-  if (!url.href.startsWith(captureUrl)) {
+  if (url.origin !== captureBaseUrl.origin) {
     res.setHeader('Cache-Control', 'no-store')
     return res.status(400).end()
   }

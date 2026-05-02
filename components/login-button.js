@@ -54,16 +54,16 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
   const [pointerCookie, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
 
   const account = accounts.find(account => account.id === Number(pointerCookie))
-  if (!account) return null
+  if (!accounts.length) return null
 
-  const title = `Log in with @${account?.name}`
+  const title = account ? `Log in with @${account.name}` : 'Log in with @nym'
 
   return (
     <Dropdown className='mb-4 w-100' as={ButtonGroup}>
       <Button
         variant='success'
-        onClick={() => router.push(callbackUrl)}
-        disabled={disabled}
+        onClick={() => account && router.push(callbackUrl)}
+        disabled={disabled || !account}
         className={className}
         title={title}
         style={{ minWidth: 0 }}
@@ -71,7 +71,7 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
         <SNIcon width={20} height={20} className='me-3 flex-shrink-0' />
         <span className='text-truncate' style={{ minWidth: 0 }}>{title}</span>
       </Button>
-      {accounts.length > 1 && (
+      {(accounts.length > 1 || !account) && (
         <>
           <Dropdown.Toggle
             split

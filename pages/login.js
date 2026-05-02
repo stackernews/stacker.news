@@ -15,22 +15,22 @@ import { getDomainMapping } from '@/lib/domains'
 // stale link or someone trying an open redirect, so we collapse it to '/'.
 
 export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, domain = null, error = null } }) {
+  // the ?domain= query param carries the custom domain's host as-is (with its port in local dev).
+  // we pass the port alongside the mapping so the client can redirect back through /api/auth/sync
+  const parsedDomain = domain ? parseSafeHost(domain) : null
+  const mapping = parsedDomain ? await getDomainMapping(parsedDomain.hostname) : null
+  const canonicalDomain = mapping ? formatHost(parsedDomain) : null
+  const domainData = mapping ? { subName: mapping.subName, port: parsedDomain.port } : null
+
   let session = await getServerSession(req, res, getAuthOptions(req))
 
   // required to prevent infinite redirect loops if we switch to anon
   // but are on a page that would redirect us to /signup.
   // without this code, /signup would redirect us back to the callbackUrl.
   // also nullify session if a we come from a custom domain to force fresh auth
-  if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON || domain) {
+  if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON || domainData) {
     session = null
   }
-
-  // the ?domain= query param carries the custom domain's host as-is (with its port in local dev).
-  // we pass the port alongside the mapping so the client can redirect back through /api/auth/sync
-  const parsedDomain = domain ? parseSafeHost(domain) : null
-  const mapping = parsedDomain ? await getDomainMapping(parsedDomain.hostname) : null
-  const canonicalDomain = mapping ? formatHost(parsedDomain) : null
-  const domainData = mapping ? { ...mapping, port: parsedDomain.port } : null
 
   // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
   // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking

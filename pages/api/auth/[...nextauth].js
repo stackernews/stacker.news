@@ -13,7 +13,7 @@ import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import { multiAuthMiddleware, setMultiAuthCookies } from '@/lib/auth'
 import { getDomainMapping } from '@/lib/domains'
-import { parseSafeHost } from '@/lib/safe-url'
+import { isSafeRedirectPath, parseSafeHost } from '@/lib/safe-url'
 import { BECH32_CHARSET } from '@/lib/constants'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import * as cookie from 'cookie'
@@ -170,7 +170,9 @@ function getCallbacks (req, res) {
     // absolute URLs are allowed only when they're same-origin or point at an
     // active custom domain.
     async redirect ({ url, baseUrl }) {
-      if (url.startsWith('/')) return `${baseUrl}${url}`
+      // even though string concatenation with baseUrl makes this unexploitable,
+      // for consistency, we check if the path is safe
+      if (isSafeRedirectPath(url)) return `${baseUrl}${url}`
 
       try {
         const parsed = new URL(url)

@@ -29,6 +29,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
   // we pass the port alongside the mapping so the client can redirect back through /api/auth/sync
   const parsedDomain = domain ? parseSafeHost(domain) : null
   const mapping = parsedDomain ? await getDomainMapping(parsedDomain.hostname) : null
+  const canonicalDomain = mapping ? formatHost(parsedDomain) : null
   const domainData = mapping ? { ...mapping, port: parsedDomain.port } : null
 
   // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
@@ -67,14 +68,14 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
       callbackUrl,
       error,
       multiAuth,
-      domain: domainData ? formatHost(parsedDomain) : null,
+      canonicalDomain,
       domainData
     }
   }
 }
 
 function LoginFooter ({ callbackUrl, domain }) {
-  const query = { callbackUrl, ...(domain && { domain }) }
+  const query = { ...(domain && { domain }), callbackUrl }
 
   return (
     <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query }}>sign up</Link></small>
@@ -108,7 +109,7 @@ export default function LoginPage ({ multiAuth, ...props }) {
   return (
     <StaticLayout footerLinks={false}>
       <Login
-        Footer={multiAuthBool ? undefined : () => <LoginFooter callbackUrl={props.callbackUrl} domain={props.domain} />}
+        Footer={multiAuthBool ? undefined : () => <LoginFooter callbackUrl={props.callbackUrl} domain={props.canonicalDomain} />}
         Header={multiAuthBool ? () => <MultiAuthHeader /> : () => <LoginHeader domainData={props.domainData} />}
         text='Log in'
         signin

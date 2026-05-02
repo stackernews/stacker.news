@@ -38,7 +38,7 @@ async function customDomainMiddleware (request, domain, subName) {
   const from = `${pathname}${url.search}`
 
   // Auth Sync
-  if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
+  if (pathname === '/login' || pathname === '/signup') {
     const signup = pathname.startsWith('/signup')
     return redirectToAuth(searchParams, domain, signup)
   }

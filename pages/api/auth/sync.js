@@ -96,6 +96,7 @@ function handleNoSession (res, domainName, redirectUri, signup = false) {
   syncUrl.searchParams.set('redirectUri', redirectUri)
 
   const loginRedirectUrl = new URL(signup ? '/signup' : '/login', SN_MAIN_DOMAIN)
+  loginRedirectUrl.searchParams.set('domain', domainName)
   loginRedirectUrl.searchParams.set('callbackUrl', syncUrl.href)
 
   res.redirect(302, loginRedirectUrl.href)

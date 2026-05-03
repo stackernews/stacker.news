@@ -12,7 +12,7 @@
     "cors": "^2.8.5",
     "express": "^4.20.0",
     "magic-bytes.js": "^1.12.1",
-    "puppeteer": "^20.8.2"
+    "puppeteer-core": "^21.10.0"
   },
   "type": "module"
 }

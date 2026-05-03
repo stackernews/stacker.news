@@ -22,6 +22,10 @@ function isTerritoryPath (pathname) {
   return SN_TERRITORY_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
 }
 
+function isPrefetchRequest (request) {
+  return request.headers.has('next-router-prefetch') || request.headers.get('purpose') === 'prefetch'
+}
+
 async function customDomainMiddleware (request, domain, subName) {
   // logger is enabled if NEXT_PUBLIC_CUSTOM_DOMAINS_DEBUG == 1
   const logger = createDomainsDebugLogger(domain)
@@ -266,18 +270,27 @@ export async function proxy (req) {
   headers.delete('x-stacker-news-domain')
   const request = new NextRequest(req, { headers })
 
+  // domain can have a port (local dev), so we pass the whole domain to the middleware
+  // instead of the domain retrieved from the mapping
+  const domain = request.headers.get('host')
+  const mapping = await getDomainMapping(domain)
+
+  // prefetches need to be custom-domain aware.
+  // for these requests, we skip referrer attribution and CSP/security headers
+  if (isPrefetchRequest(request)) {
+    return mapping
+      ? customDomainMiddleware(request, domain, mapping.subName)
+      : NextResponse.next()
+  }
+
+  // non-prefetch reqs: referrer + custom domain + security headers
   let resp = referrerMiddleware(request)
   // if resp is a redirect, apply security headers immediately and return
   if (resp.headers.get('Location')) {
     return applySecurityHeaders(resp)
   }
 
-  // if we're on a custom domain, handle it
-  const domain = request.headers.get('host')
-  const mapping = await getDomainMapping(domain)
   if (mapping) {
-    // domain can have a port (local dev), so we pass the whole domain to the middleware
-    // instead of the domain retrieved from the mapping
     const domainResp = await customDomainMiddleware(request, domain, mapping.subName)
     // apply referrer cookies to the custom domain response
     resp = applyReferrerCookies(domainResp, resp)
@@ -289,13 +302,10 @@ export async function proxy (req) {
 export const config = {
   matcher: [
     // NextJS recommends to not add the CSP header to prefetches and static assets
+    // prefetches are handled separately in the middleware for custom domain rewrites
     // See https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
     {
-      source: '/((?!api|_next/static|_error|404|500|offline|_next/image|_next/webpack-hmr|favicon.ico).*)',
-      missing: [
-        { type: 'header', key: 'next-router-prefetch' },
-        { type: 'header', key: 'purpose', value: 'prefetch' }
-      ]
+      source: '/((?!api|_next/static|_error|404|500|offline|_next/image|_next/webpack-hmr|favicon.ico).*)'
     }
   ]
 }

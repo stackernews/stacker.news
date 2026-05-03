@@ -43,8 +43,9 @@ network:
 #
 variables:                    # Pass environment variables as key value pairs.
   CAPTURE_URL: https://stacker.news/
-  MAX_PAGES: 10
-  TIMEOUT: 3000
+  MAX_PAGES: 5
+  TIMEOUT: 5000
+  PROTOCOL_TIMEOUT: 30000
   NEXT_PUBLIC_URL: https://stacker.news
 
 #secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.

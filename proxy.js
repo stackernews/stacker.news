@@ -1,6 +1,8 @@
 import 'urlpattern-polyfill'
 import { NextRequest, NextResponse } from 'next/server'
-import { getDomainMapping, createDomainsDebugLogger } from '@/lib/domains'
+import { SESSION_COOKIE, cookieOptions } from '@/lib/auth'
+import { getDomainMapping, createDomainsDebugLogger, SN_MAIN_DOMAIN } from '@/lib/domains'
+import { parseSafeHost, safeRedirectPath } from '@/lib/safe-url'
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -39,6 +41,13 @@ async function customDomainMiddleware (request, domain, subName) {
   // log the original request path
   const from = `${pathname}${url.search}`
 
+  // Auth Sync
+  if (pathname === '/login' || pathname === '/signup') {
+    const signup = pathname.startsWith('/signup')
+    return redirectToAuth(searchParams, domain, signup)
+  }
+  if (searchParams.has('sync_token')) return syncAccount(request, searchParams, domain, reqHeaders)
+
   // clean up the pathname from any subname
   if (pathname.startsWith('/~')) {
     url.pathname = pathname.replace(/^\/~[^/]+/, '') || '/'
@@ -63,6 +72,61 @@ async function customDomainMiddleware (request, domain, subName) {
 
   logger.log(`${from} -> pass-through`)
   return NextResponse.next({ request: { headers: reqHeaders } })
+}
+
+async function redirectToAuth (searchParams, domain, signup) {
+  const loginUrl = new URL('/api/auth/redirect', SN_MAIN_DOMAIN)
+  loginUrl.searchParams.set('domain', domain)
+
+  if (signup) {
+    loginUrl.searchParams.set('signup', 'true')
+  }
+
+  if (searchParams.has('callbackUrl')) {
+    loginUrl.searchParams.set('callbackUrl', searchParams.get('callbackUrl'))
+  }
+
+  return NextResponse.redirect(loginUrl)
+}
+
+async function syncAccount (request, searchParams, domain, headers) {
+  const token = searchParams.get('sync_token')
+  const rawRedirectUri = searchParams.get('redirectUri')
+  const redirectUri = safeRedirectPath(rawRedirectUri, domain)
+  const res = NextResponse.redirect(new URL(redirectUri, request.url))
+
+  const domainName = parseSafeHost(domain)?.hostname
+  if (!domainName) {
+    return NextResponse.redirect(new URL('/error', request.url))
+  }
+
+  try {
+    const body = JSON.stringify({ verificationToken: token, domainName })
+    const fetchHeaders = new Headers(headers)
+    fetchHeaders.set('Content-Type', 'application/json')
+
+    const response = await fetch(`${SN_MAIN_DOMAIN.origin}/api/auth/sync`, {
+      method: 'POST',
+      headers: fetchHeaders,
+      body,
+      signal: AbortSignal.timeout(10000)
+    })
+
+    if (!response.ok) {
+      throw new Error(response.status)
+    }
+
+    const data = await response.json()
+    if (data.status === 'ERROR') {
+      throw new Error(data.reason)
+    }
+
+    res.cookies.set(SESSION_COOKIE, data.sessionToken, cookieOptions())
+    return res
+  } catch (error) {
+    console.error('[auth sync] cannot establish auth sync:', error.message)
+    return NextResponse.redirect(new URL('/error', request.url))
+  }
 }
 
 function getContentReferrer (request, url) {

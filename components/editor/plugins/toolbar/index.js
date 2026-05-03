@@ -1,6 +1,7 @@
 import ActionTooltip from '@/components/action-tooltip'
 import classNames from 'classnames'
 import styles from '@/lib/lexical/theme/editor.module.css'
+import dropdownStyles from '@/components/dropdown.module.css'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
@@ -92,7 +93,7 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
           {icon}
           {arrow && <ArrowDownIcon />}
         </Dropdown.Toggle>
-        <Dropdown.Menu className={styles.dropdownExtra} as={MenuAlternateDimension}>
+        <Dropdown.Menu className={dropdownStyles.dropdownExtra} as={MenuAlternateDimension}>
           {options.map(option => (
             <DropdownMenuItem
               key={option.id}
@@ -117,12 +118,12 @@ function DropdownMenuItem ({ option, onAction, isActive }) {
     <Dropdown.Item
       title={tooltipText}
       onClick={() => onAction(option)}
-      className={classNames(styles.dropdownExtraItem, isActive && styles.active)}
+      className={classNames(dropdownStyles.dropdownExtraItem, isActive && dropdownStyles.active)}
       onPointerDown={e => e.preventDefault()}
     >
       <span className={styles.dropdownExtraItemLabel}>
         {option.icon}
-        <span className={styles.dropdownExtraItemText}>{option.name}</span>
+        <span className={dropdownStyles.dropdownExtraItemText}>{option.name}</span>
       </span>
       <span className={styles.dropdownExtraItemShortcut}>
         {shortcutDisplay}

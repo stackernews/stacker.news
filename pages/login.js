@@ -5,29 +5,42 @@ import Link from 'next/link'
 import { StaticLayout } from '@/components/layout'
 import Login from '@/components/login'
 import { isExternal } from '@/lib/url'
+import { formatHost, parseSafeHost } from '@/lib/safe-url'
 import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
+import { getDomainMapping } from '@/lib/domains'
 
-export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, error = null } }) {
+// callbackUrl arriving at /login is expected to be same-origin: custom-domain
+// auth flows are funneled through /api/auth/redirect, which wraps the user's
+// destination into a /api/auth/sync URL on the main domain. anything else is a
+// stale link or someone trying an open redirect, so we collapse it to '/'.
+
+export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, domain = null, error = null } }) {
+  // the ?domain= query param carries the custom domain's host as-is (with its port in local dev).
+  // we pass the port alongside the mapping so the client can redirect back through /api/auth/sync
+  const parsedDomain = domain ? parseSafeHost(domain) : null
+  const mapping = parsedDomain ? await getDomainMapping(parsedDomain.hostname) : null
+  const canonicalDomain = mapping ? formatHost(parsedDomain) : null
+  const domainData = mapping ? { subName: mapping.subName, port: parsedDomain.port } : null
+
   let session = await getServerSession(req, res, getAuthOptions(req))
 
   // required to prevent infinite redirect loops if we switch to anon
   // but are on a page that would redirect us to /signup.
   // without this code, /signup would redirect us back to the callbackUrl.
-  if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON) {
+  // also nullify session if a we come from a custom domain to force fresh auth
+  if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON || domainData) {
     session = null
   }
 
   // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
   // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking
-  let external = true
-  try {
-    external = isExternal(decodeURIComponent(callbackUrl))
-  } catch (err) {
-    console.error('error decoding callback:', callbackUrl, err)
-  }
-
-  if (external) {
-    callbackUrl = '/'
+  if (callbackUrl) {
+    try {
+      if (isExternal(decodeURIComponent(callbackUrl))) callbackUrl = '/'
+    } catch (err) {
+      console.error('error decoding callback:', callbackUrl, err)
+      callbackUrl = '/'
+    }
   }
 
   if (session && callbackUrl && !multiAuth) {
@@ -54,22 +67,26 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, mult
       providers,
       callbackUrl,
       error,
-      multiAuth
+      multiAuth,
+      canonicalDomain,
+      domainData
     }
   }
 }
 
-function LoginFooter ({ callbackUrl }) {
+function LoginFooter ({ callbackUrl, domain }) {
+  const query = { ...(domain && { domain }), callbackUrl }
+
   return (
-    <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query: { callbackUrl } }}>sign up</Link></small>
+    <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query }}>sign up</Link></small>
   )
 }
 
-function LoginHeader () {
+function LoginHeader ({ domainData }) {
   return (
     <>
       <h3 className='w-100 pb-2'>
-        Log in
+        Log in {domainData && ` to ~${domainData.subName}`}
       </h3>
       <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>Nothing wrestles up a smile like a familiar face.</div>
     </>
@@ -92,8 +109,8 @@ export default function LoginPage ({ multiAuth, ...props }) {
   return (
     <StaticLayout footerLinks={false}>
       <Login
-        Footer={multiAuthBool ? undefined : () => <LoginFooter callbackUrl={props.callbackUrl} />}
-        Header={multiAuthBool ? () => <MultiAuthHeader /> : () => <LoginHeader />}
+        Footer={multiAuthBool ? undefined : () => <LoginFooter callbackUrl={props.callbackUrl} domain={props.canonicalDomain} />}
+        Header={multiAuthBool ? () => <MultiAuthHeader /> : () => <LoginHeader domainData={props.domainData} />}
         text='Log in'
         signin
         multiAuth={multiAuth}

@@ -7,6 +7,7 @@ import useCookie from '@/components/use-cookie'
 import Link from 'next/link'
 import AddIcon from '@/svgs/add-fill.svg'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER } from '@/lib/auth'
+import { useDomain } from '@/components/territory-domains'
 
 const b64Decode = str => Buffer.from(str, 'base64').toString('utf-8')
 
@@ -94,6 +95,9 @@ const AccountListRow = ({ account, selected, ...props }) => {
 
 export const useIsLurker = () => {
   const accounts = useAccounts()
+  const { domain } = useDomain()
+  if (domain) return false
+
   return accounts.length === 0
 }
 

@@ -251,15 +251,6 @@
   opacity: 0.8;
 }
 
-/* dropdown menus */
-
-.dropdownExtra, .tableActionMenuDropdown {
-  padding: 0.45rem 0.35rem;
-  width: 240px;
-  border-radius: 0.4rem;
-  z-index: 2000;
-}
-
 .dropdownSearchContainer {
   padding: 0.15rem;
   margin-bottom: 0.1rem;
@@ -269,36 +260,6 @@
 
 .dropdownSearchInput {
   width: 100%;
-}
-
-.dropdownExtraItem, .tableActionMenuItem {
-  display: flex;
-  gap: 1.25rem;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.1rem;
-  padding: 0.35rem;
-  font-size: 14px;
-  font-weight: normal;
-  text-wrap: wrap;
-}
-
-.dropdownExtraItem:hover, .tableActionMenuItem:hover {
-  background-color: var(--theme-toolbarActive);
-  opacity: 1;
-  border-radius: 0.3rem;
-}
-
-.dropdownExtraItem.active {
-  opacity: 1;
-  font-weight: 500;
-  font-size: 15px;
-}
-
-.dropdownExtraItem.active .dropdownExtraItemText {
-  color: var(--theme-brandColor) !important;
-  filter: drop-shadow(0 0 6px var(--bs-primary));
-  font-weight: 500;
 }
 
 .dropdownExtraItemLabel, .tableActionMenuItemLabel {
@@ -576,7 +537,28 @@
 }
 
 .tableActionMenuDropdown {
+  padding: 0.45rem 0.35rem;
   width: 100% !important;
+  border-radius: 0.4rem;
+  z-index: 2000;
+}
+
+.tableActionMenuItem {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.1rem;
+  padding: 0.35rem;
+  font-size: 14px;
+  font-weight: normal;
+  text-wrap: wrap;
+}
+
+.tableActionMenuItem:hover {
+  background-color: var(--theme-toolbarActive);
+  opacity: 1;
+  border-radius: 0.3rem;
 }
 
 /* increase specificity for table action menu label, instead of !important */

@@ -12,6 +12,8 @@ import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
 import { hashEmail } from '@/lib/crypto'
 import { multiAuthMiddleware, setMultiAuthCookies } from '@/lib/auth'
+import { getDomainMapping } from '@/lib/domains'
+import { isSafeRedirectPath, parseSafeHost } from '@/lib/safe-url'
 import { BECH32_CHARSET } from '@/lib/constants'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import * as cookie from 'cookie'
@@ -119,6 +121,27 @@ function getCallbacks (req, res) {
         }
       }
 
+      // custom domain session token validation
+      if (token?.domainName) {
+        try {
+          const currentDomain = parseSafeHost(req.headers.host)?.hostname
+          // tokens created for a custom domain should only be used on that domain
+          if (currentDomain !== token.domainName) return null
+
+          const mapping = await getDomainMapping(token.domainName)
+          // token is valid only if:
+          // - the domain is still ACTIVE (mapping exists)
+          // - it's the same Domain row the token was minted against (domainId match)
+          // - ACTIVE status hasn't changed since the token was minted (tokenVersion match)
+          if (!mapping) return null
+          if (mapping.id !== token.domainId) return null
+          if (mapping.tokenVersion !== token.tokenVersion) return null
+        } catch (error) {
+          console.error('cannot verify domain', error)
+          return null
+        }
+      }
+
       if (token?.id) {
         // HACK token.sub is used by nextjs v4 internally and is used like a userId
         // setting it here allows us to link multiple auth method to an account
@@ -142,6 +165,27 @@ function getCallbacks (req, res) {
       session.user.id = token.id
 
       return session
+    },
+    // allowlist for redirects: relative paths resolve to the main domain,
+    // absolute URLs are allowed only when they're same-origin or point at an
+    // active custom domain.
+    async redirect ({ url, baseUrl }) {
+      // even though string concatenation with baseUrl makes this unexploitable,
+      // for consistency, we check if the path is safe
+      if (isSafeRedirectPath(url)) return `${baseUrl}${url}`
+
+      try {
+        const parsed = new URL(url)
+        if (parsed.origin === baseUrl) return url
+
+        const domainName = parseSafeHost(parsed.host)?.hostname
+        const mapping = domainName ? await getDomainMapping(domainName) : null
+        if (mapping) return url
+      } catch (error) {
+        console.error('[nextauth redirect] invalid callback URL', url, error)
+      }
+
+      return baseUrl
     }
   }
 }

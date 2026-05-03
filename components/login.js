@@ -6,13 +6,14 @@ import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer } from './lightning-auth'
 import { NostrAuthWithExplainer } from './nostr-auth'
-import LoginButton from './login-button'
+import LoginButton, { LoginWithNymButton } from './login-button'
 import { emailSchema } from '@/lib/validate'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { datePivot } from '@/lib/time'
 import * as cookie from 'cookie'
-import { cookieOptions } from '@/lib/auth'
+import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import Link from 'next/link'
+import useCookie from './use-cookie'
 
 export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
   const disabled = multiAuth
@@ -73,9 +74,18 @@ export function authErrorMessage (error, signin) {
 
 const multiAuthProviders = ['Lightning', 'Nostr']
 
-export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin }) {
+export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin, domainData }) {
   const [errorMessage, setErrorMessage] = useState(authErrorMessage(error, signin))
   const router = useRouter()
+  const [, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
+
+  // we can't signup if we're already logged in to another account
+  // for custom-domain signups, we first need to switch to anon.
+  useEffect(() => {
+    if (!signin && domainData) {
+      setPointerCookie(MULTI_AUTH_ANON, cookieOptions({ httpOnly: false }))
+    }
+  }, [signin, domainData, setPointerCookie])
 
   multiAuth = typeof multiAuth === 'string' ? multiAuth === 'true' : !!multiAuth
 
@@ -116,6 +126,13 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
           dismissible
         >{errorMessage}
         </Alert>}
+      {/** custom domain auth sync button */}
+      {domainData && (
+        <LoginWithNymButton
+          className={styles.providerButton}
+          callbackUrl={callbackUrl}
+        />
+      )}
       {sortedProviders.map(provider => {
         switch (provider.name) {
           case 'Email':

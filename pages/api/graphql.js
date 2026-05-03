@@ -14,6 +14,7 @@ import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/dis
 import PgBoss from 'pg-boss'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
 import { createUserLoader, createSubLoader } from '@/api/loaders'
+import { isAllowedOrigin } from '@/lib/domains'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -99,9 +100,37 @@ const apolloHandler = startServerAndCreateNextHandler(apolloServer, {
   }
 })
 
+// CORS allowlist for /api/graphql: only the main domain and any
+// ACTIVE custom domain mapping may make cross-origin calls.
+async function applyGraphqlCORS (req, res) {
+  // vary on Origin so shared caches never serve a response intended for
+  // a different (or no) origin
+  res.setHeader('Vary', 'Origin')
+
+  const origin = req.headers.origin
+  if (!origin) return
+
+  const isAllowed = await isAllowedOrigin(origin)
+  if (!isAllowed) return
+
+  res.setHeader('Access-Control-Allow-Origin', origin)
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key, Authorization')
+  res.setHeader('Access-Control-Max-Age', '86400')
+}
+
 // Reject GET requests with non-standard Content-Type headers (e.g. message/*)
 // to prevent cross-site timing attacks that bypass CORS preflight checks.
-export default function protectedContentTypeHandler (req, res) {
+export default async function protectedContentTypeHandler (req, res) {
+  await applyGraphqlCORS(req, res)
+
+  // short-circuit preflights so that if the origin was not allowlisted above, the
+  // response simply lacks the CORS headers and the browser will reject it
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end()
+  }
+
   // Check raw headers so duplicate Content-Type headers can't hide an invalid value.
   const invalidGetContentType = req.method === 'GET' &&
     req.rawHeaders.some((name, i, headers) =>

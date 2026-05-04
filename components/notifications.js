@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { gql } from '@apollo/client'
-import { useQuery } from '@apollo/client/react'
+import { useMutation, useQuery } from '@apollo/client/react'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
@@ -716,7 +716,41 @@ function JobChanged ({ n }) {
 }
 
 function Reply ({ n }) {
-  return <NoteItem item={n.item} />
+  const toaster = useToast()
+  const [unsubscribed, setUnsubscribed] = useState(false)
+  const [unsubscribeThread] = useMutation(
+    gql`
+      mutation unsubscribeThread($id: ID!) {
+        unsubscribeThread(id: $id) {
+          id
+        }
+      }
+    `
+  )
+  return (
+    <>
+      <NoteItem item={n.item} />
+      {!unsubscribed && (
+        <div className='text-end'>
+          <span
+            className='text-muted small pointer'
+            onClick={async () => {
+              try {
+                await unsubscribeThread({ variables: { id: n.item.id } })
+                setUnsubscribed(true)
+                toaster.success('unsubscribed from thread')
+              } catch (err) {
+                console.error(err)
+                toaster.danger('failed to unsubscribe from thread')
+              }
+            }}
+          >
+            unsubscribe from thread
+          </span>
+        </div>
+      )}
+    </>
+  )
 }
 
 function FollowActivity ({ n }) {

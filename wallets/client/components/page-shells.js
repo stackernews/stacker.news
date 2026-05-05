@@ -118,10 +118,13 @@ export function WalletRouteGateShell ({ children, errorTitle, loadingMessage }) 
 }
 
 export function WalletKeyStorageUnavailableShell () {
+  const insecureContext = typeof window !== 'undefined' && window.isSecureContext === false
   return (
     <WalletErrorShell
       title='wallets unavailable'
-      message='this device does not support storage of cryptographic keys via IndexedDB'
+      message={insecureContext
+        ? 'wallets require a secure (HTTPS) connection on this device'
+        : 'this device does not support storage of cryptographic keys via IndexedDB'}
     />
   )
 }

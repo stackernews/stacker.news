@@ -38,7 +38,7 @@ export default async function handler (req, res) {
     // exchange the code for a session token
     const tokenData = await exchangeCode(parsedDomain.hostname, code, verifier)
     // set the session cookie
-    res.appendHeader('Set-Cookie', cookie.serialize(SESSION_COOKIE, tokenData.sessionToken, cookieOptions()))
+    res.appendHeader('Set-Cookie', cookie.serialize(SESSION_COOKIE, tokenData.sessionToken, cookieOptions({ req })))
 
     // mirror multi-auth state on the custom domain so the account picker also works here.
     // each per-user JWT is the domain-bound session token minted for THIS domain (not the
@@ -52,7 +52,8 @@ export default async function handler (req, res) {
           jwt: tokenData.sessionToken,
           name: tokenData.user.name,
           photoId: tokenData.user.photoId
-        }
+        },
+        req
       )
       for (const { name, value, options } of multiAuthCookies) {
         res.appendHeader('Set-Cookie', cookie.serialize(name, value, options))

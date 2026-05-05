@@ -1,7 +1,7 @@
 import 'urlpattern-polyfill'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
-import { HTTPS } from '@/lib/auth'
+import { isSecureRequest } from '@/lib/auth'
 import {
   deriveChallenge,
   DOMAINS_AUTH_VERIFIER_COOKIE,
@@ -10,13 +10,15 @@ import {
 } from '@/lib/domains/auth'
 import { getDomainMapping, createDomainsDebugLogger } from '@/lib/domains'
 
-const verifierCookieOptions = {
+// per-request because the Secure flag depends on whether the request hit us
+// over HTTPS (Caddy in dev, ALB in prod) or plain HTTP localhost.
+const verifierCookieOptions = (req) => ({
   httpOnly: true,
   sameSite: 'lax',
-  secure: HTTPS,
+  secure: isSecureRequest(req),
   path: '/',
   maxAge: DOMAINS_AUTH_VERIFIER_TTL_S
-}
+})
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -108,7 +110,7 @@ async function redirectToAuth (request, searchParams, domain, signup) {
   }
 
   const response = NextResponse.redirect(redirectUrl)
-  response.cookies.set(DOMAINS_AUTH_VERIFIER_COOKIE, verifier, verifierCookieOptions)
+  response.cookies.set(DOMAINS_AUTH_VERIFIER_COOKIE, verifier, verifierCookieOptions(request))
   return response
 }
 

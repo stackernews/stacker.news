@@ -1,6 +1,5 @@
 import * as cookie from 'cookie'
-import { datePivot } from '@/lib/time'
-import { HTTPS, MULTI_AUTH_JWT, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, SESSION_COOKIE } from '@/lib/auth'
+import { cookieOptions as baseCookieOptions, MULTI_AUTH_JWT, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, SESSION_COOKIE } from '@/lib/auth'
 
 /**
  * @param  {NextApiRequest}  req
@@ -22,13 +21,7 @@ export default (req, res) => {
 
   const cookies = []
 
-  const cookieOptions = {
-    path: '/',
-    secure: HTTPS,
-    httpOnly: true,
-    sameSite: 'lax',
-    expires: datePivot(new Date(), { months: 1 })
-  }
+  const cookieOptions = baseCookieOptions({ req })
   // remove JWT pointed to by cookie pointer
   cookies.push(cookie.serialize(MULTI_AUTH_JWT(userId), '', { ...cookieOptions, expires: 0, maxAge: 0 }))
 

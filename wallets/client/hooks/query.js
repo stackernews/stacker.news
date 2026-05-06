@@ -54,6 +54,7 @@ import {
   stageVaultKeyWithRollback,
   useDecryption,
   useEncryption,
+  useIsWrongKey,
   useVaultLocalStore
 } from '@/wallets/client/hooks/crypto'
 import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
@@ -151,6 +152,7 @@ export function useWalletsQuery () {
   const keySyncInProgress = useKeySyncInProgress()
   const walletsUpdatedAt = useWalletsUpdatedAt()
   const keyHashUpdatedAt = me?.privates?.vaultKeyHashUpdatedAt ?? null
+  const wrongKey = useIsWrongKey()
 
   const { decryptWallet, ready } = useWalletDecryption()
   const serverWallets = query.data?.wallets ?? null
@@ -169,7 +171,10 @@ export function useWalletsQuery () {
   // refresh window is still active, but continue surfacing local decrypt errors.
   const queryError = refreshWindowActive ? null : query.error
   const walletsError = error ?? queryError ?? null
-  const shouldDecryptWallets = serverWallets != null && ready && !refreshWindowActive
+  // Skip decryption when the local key is known to mismatch the server's vault
+  // key hash. WalletRouteGateShell will render the passphrase prompt and the
+  // decrypt rerun will succeed once the user re-derives the matching key.
+  const shouldDecryptWallets = serverWallets != null && ready && !refreshWindowActive && !wrongKey
   const walletSendReady = !walletsError && !refreshWindowActive && wallets != null
 
   useEffect(() => {

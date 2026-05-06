@@ -354,11 +354,55 @@ sndev__domains() {
       fi
     fi
     ;;
+  trust)
+    sndev__domains_trust
+    ;;
   # PLACEHOLDER for domain verification management
   *)
     sndev__help_domains
     exit 0
   esac
+}
+
+sndev__domains_trust() {
+  if ! docker ps --format '{{.Names}}' | grep -q '^caddy$'; then
+    echo "caddy is not running."
+    echo "start it with: ./sndev start (with the 'domains' profile in COMPOSE_PROFILES)"
+    exit 1
+  fi
+
+  ca_path="/data/caddy/pki/authorities/local/root.crt"
+  tmp_ca=$(mktemp -t sn-caddy-root.XXXXXX 2>/dev/null || mktemp /tmp/sn-caddy-root.XXXXXX)
+  if ! docker__exec caddy cat "$ca_path" > "$tmp_ca" 2>/dev/null; then
+    rm -f "$tmp_ca"
+    echo "could not read caddy local CA at $ca_path."
+    echo "the cert is generated lazily on the first https request — try hitting"
+    echo "any https://*.sndev URL once and re-run, or check 'sndev logs caddy'."
+    exit 1
+  fi
+
+  case "$(uname)" in
+    Darwin)
+      echo "installing caddy local CA into the macOS System keychain (requires sudo)"
+      sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$tmp_ca"
+      ;;
+    Linux)
+      echo "installing caddy local CA into /usr/local/share/ca-certificates (requires sudo)"
+      sudo cp "$tmp_ca" /usr/local/share/ca-certificates/sndev-caddy-root.crt
+      sudo update-ca-certificates
+      ;;
+    *)
+      echo "automatic install not supported on $(uname). the CA cert is at: $tmp_ca"
+      echo "import it into your system trust store manually."
+      exit 1
+      ;;
+  esac
+
+  rm -f "$tmp_ca"
+  echo
+  echo "trust installed. restart Chrome/Safari to pick up the new root CA."
+  echo "Firefox uses its own NSS trust store — import the cert manually via"
+  echo "Settings > Privacy & Security > Certificates > Import."
 }
 
 sndev__help_domains() {
@@ -370,6 +414,31 @@ USAGE
 
 COMMANDS
   dns             [add|remove|list]
+  trust           install the caddy local CA into the host trust store
+"
+
+  echo "$help"
+}
+
+sndev__help_domains_trust() {
+  help="
+install the caddy local CA into the host trust store
+
+USAGE
+  $ sndev domains trust
+
+DESCRIPTION
+  Pulls the auto-generated Caddy local root CA out of the running caddy
+  container and installs it into the host trust store, so HTTPS to any
+  custom dev domain (https://*.sndev, https://*.test, https://*.example.com,
+  etc.) shows a green padlock and is treated as a secure context — which
+  unlocks window.crypto.subtle, Secure cookies, and matches prod behavior.
+
+  One-time per machine. The CA is persisted in the caddy_data docker volume.
+
+REQUIREMENTS
+  - the 'domains' compose profile must be enabled and 'caddy' running
+  - sudo (to write to the system keychain on macOS / ca-certificates on Linux)
 "
 
   echo "$help"

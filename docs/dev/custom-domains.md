@@ -283,3 +283,58 @@ Two variants worth walking through, since they exercise different parts of the d
 3. Weeks later, the owner re-adds `pizza.com`. A fresh row is created, `id=43`, `tokenVersion` defaulted to `0`.
 4. Verification succeeds, the `PENDING -> ACTIVE` trigger bumps `tokenVersion` to `1`.
 5. The attacker tries their stolen cookie again. The domain is `ACTIVE` (so `!mapping` passes) and the new `tokenVersion=1` happens to collide with the stolen JWT's `tokenVersion=1`. Without `domainId`, **this would resurrect the stolen token**. With `domainId` in place: `mapping.id` is `43`, the JWT claims `42`, `43 !== 42` -> rejected.
+
+# Local dev: end-to-end HTTPS
+
+Custom domains in production sit behind the AWS ALB, which terminates HTTPS
+using ACM-issued certs and forwards plain HTTP to the app. The dev environment
+mirrors that with a `caddy` container in the `domains` compose profile that
+reverse-proxies `:80` and `:443` on the host into `app:3000`.
+
+This matters for QA because browsers only treat HTTPS (and `localhost`) as
+[secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts).
+On a plain-HTTP custom-domain origin like `http://aaa.example.com`, anything
+that depends on `window.crypto.subtle` (the wallet vault key derivation) or on
+`Secure` cookies will silently degrade or break in dev — but work fine in prod
+behind the ALB. Running through Caddy closes that gap.
+
+#### Setup
+
+1. Make sure nothing else is using host ports 80 and 443 (a local nginx /
+   Apache / Caddy will conflict). Stop them before starting the dev env.
+2. Start the env with the `domains` profile enabled (already part of the
+   default `COMPOSE_PROFILES` if you've been working on custom domains):
+   ```sh
+   ./sndev start
+   ```
+3. Resolve your test domain to `127.0.0.1`. Either:
+   - add it to `/etc/hosts`, e.g. `127.0.0.1 aaa.example.com`, or
+   - use the dnsmasq flow: `./sndev domains dns add cname www.foo.sndev sn.sndev`
+     (`*.sndev` already resolves to `127.0.0.1` via dnsmasq).
+4. **One-time:** install Caddy's local root CA into the host trust store so
+   browsers trust the auto-generated certs:
+   ```sh
+   ./sndev domains trust
+   ```
+   This shells out to `security add-trusted-cert` on macOS or
+   `update-ca-certificates` on Linux (both require sudo). Restart Chrome /
+   Safari to pick up the new root. Firefox uses its own NSS trust store —
+   import the cert manually via Settings if you use Firefox.
+5. Open `https://aaa.example.com` (or whatever domain you set up). Real
+   green-padlock HTTPS, `crypto.subtle` defined, HMR over `wss://`, secure
+   cookies, the works.
+
+`./sndev domains trust` is idempotent and persists in the `caddy_data` named
+volume across container restarts; you don't need to re-run it after
+`./sndev restart` or `./sndev stop`.
+
+#### Caveats
+
+- The Caddy local CA is **only** trusted on the machine that ran
+  `./sndev domains trust`. Other devices on your network won't trust it.
+- `./sndev delete` (which wipes volumes) destroys the Caddy CA. The next
+  `./sndev domains trust` will install a fresh one; you'll want to remove the
+  old one from your trust store first to avoid clutter.
+- The `customDomainSchema` requires ≥3 labels (`www.example.com`), so 2-label
+  test names like `aaa.test` won't pass `setDomain` validation — use
+  `www.aaa.test` or similar.

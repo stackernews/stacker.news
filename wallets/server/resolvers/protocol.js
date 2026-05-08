@@ -1,15 +1,16 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { SN_ADMIN_IDS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { validateSchema } from '@/lib/validate'
 import protocols from '@/wallets/lib/protocols'
 import { protocolRelationName, isEncryptedField, protocolMutationName, protocolServerSchema, protocolTestMutationName } from '@/wallets/lib/util'
 import { mapWalletResolveTypes } from '@/wallets/server/resolvers/util'
 import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
 import { timeoutSignal, withTimeout } from '@/lib/time'
-import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { walletLogger } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/client/errors'
+import { parsePaymentRequest } from 'ln-service'
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -51,6 +52,10 @@ export function testWalletProtocol (protocol) {
       throw new GqlAuthenticationError()
     }
 
+    if (process.env.NODE_ENV === 'production' && protocol.name === 'SPARK' && !SN_ADMIN_IDS.includes(me.id)) {
+      throw new GqlInputError('spark wallet is in limited beta')
+    }
+
     if (protocol.send) {
       throw new GqlInputError('can only test receive protocols')
     }
@@ -72,8 +77,17 @@ export function testWalletProtocol (protocol) {
       throw new GqlInputError('failed to create invoice: ' + e.message)
     }
 
-    if (!invoice || !invoice.startsWith('lnbc')) {
+    let parsed
+    try {
+      parsed = parsePaymentRequest({ request: invoice })
+    } catch {
       throw new GqlInputError('wallet returned invalid invoice')
+    }
+
+    // Reject non-mainnet invoices in production to match pre-existing startsWith('lnbc') behavior.
+    // ln-service reports network as 'bitcoin' for mainnet.
+    if (process.env.NODE_ENV === 'production' && parsed.network !== 'bitcoin') {
+      throw new GqlInputError('wallet returned invoice on wrong network')
     }
 
     return true
@@ -90,6 +104,10 @@ export function upsertWalletProtocol (protocol) {
   }, { me, models, tx }) => {
     if (!me) {
       throw new GqlAuthenticationError()
+    }
+
+    if (process.env.NODE_ENV === 'production' && protocol.name === 'SPARK' && !SN_ADMIN_IDS.includes(me.id)) {
+      throw new GqlInputError('spark wallet is in limited beta')
     }
 
     if (!walletId && !templateName) {

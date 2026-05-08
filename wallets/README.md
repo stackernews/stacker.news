@@ -78,6 +78,22 @@ That's it!
 - add required triggers: `wallet_to_jsonb` and if send protocol, also `wallet_clear_vault`
 - run `npx prisma migrate dev`
 
+Spark phase 1 note:
+- store the user mnemonic only in a send-side `Vault` entry
+- store only `identityPubkey` on the receive side
+- create receive invoices on the server with a global service wallet configured via `SPARK_SERVICE_MNEMONIC` (`NEXT_PUBLIC_SPARK_NETWORK` chooses the network: `REGTEST` in dev, `MAINNET` in prod, set explicitly for staging)
+- return a standard BOLT11 invoice from `createLightningInvoice()` so the normal receive/payOut path can consume it
+- local `sndev` regtest does not include Spark routing, so a mock (gated by `NEXT_PUBLIC_SPARK_MOCK=1`, dev-only) mirrors Spark hodl invoices onto `sn_lnd` at the same payment hash and settles them via the stacker node; real invoice creation still hits hosted Spark
+- see `wallets/lib/protocols/docs/dev/spark.md` for the sndev mock flow and the live SDK check
+
+### Spark operator threat model
+
+**Service wallet is a global SPOF for receive.** Unlike NWC/Blink/Phoenixd/LND where each receive row carries its own credential, every Spark receive user routes invoice creation through a single server-held `SPARK_SERVICE_MNEMONIC`. Compromise of that env var is global across all Spark recv users. Store the prod mnemonic in a secret manager (not committed env), rotate via a scheduled ops procedure, and document a fallback for Lightspark/SSP outages (Spark recv invoices will fail while the SSP is unreachable — no local degradation path exists). Admins-only gating in prod (`SN_ADMIN_IDS` check in `wallets/server/resolvers/protocol.js` and `wallets/server/resolvers/wallet.js`) is the interim safety valve.
+
+**Client mnemonic in memory.** Spark send decrypts the user's BIP-39 mnemonic into browser JS state and hands it to `SparkWallet.initialize`. An XSS in SN's frontend mid-zap can read it from React state — same class as other browser-custody wallets (Blink, NWC url with secret, Clink secretKey), but worth stating. Spark send should be offered with the same friction as other custodial-in-browser protocols.
+
+**`identityPubkey` is plaintext and durable.** Receive stores the user's Spark identity pubkey plaintext in `WalletRecvSpark.identityPubkey` and exposes it via GraphQL. It's not a secret, but it is a stable cross-service identifier — deleting a wallet does not rotate the user's Spark identity, so Spark-to-user linkage persists outside SN.
+
 <details>
 <summary>Example</summary>
 
@@ -126,7 +142,7 @@ index 00000000..04ff1847
 +    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 +    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 +    "protocolId" INTEGER NOT NULL,
-+    "address" TEXT NOT NULL,
++    "identityPubkey" TEXT NOT NULL,
 +
 +    CONSTRAINT "WalletRecvSpark_pkey" PRIMARY KEY ("id")
 +);
@@ -246,7 +262,7 @@ index 4f3cb9e2..c25c0fc8 100644
 +  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
 +  protocolId Int            @unique
 +  protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
-+  address    String
++  identityPubkey String
 +}
 
 ```
@@ -341,7 +357,7 @@ index 00000000..0c4ba2dd
 --- /dev/null
 +++ b/wallets/lib/protocols/spark.js
 @@ -0,0 +1,39 @@
-+import { bip39Validator, externalLightningAddressValidator } from '@/wallets/lib/validate'
++import { bip39Validator } from '@/wallets/lib/validate'
 +
 +// Spark
 +// https://github.com/breez/spark-sdk
@@ -359,7 +375,8 @@ index 00000000..0c4ba2dd
 +        type: 'password',
 +        required: true,
 +        validate: bip39Validator(),
-+        encrypt: true
++        encrypt: true,
++        hidden: true
 +      }
 +    ],
 +    relationName: 'walletSendSpark'
@@ -370,11 +387,12 @@ index 00000000..0c4ba2dd
 +    displayName: 'Spark',
 +    fields: [
 +      {
-+        name: 'address',
-+        label: 'address',
++        name: 'identityPubkey',
++        label: 'identity pubkey',
 +        type: 'text',
 +        required: true,
-+        validate: externalLightningAddressValidator
++        // generated client-side from the mnemonic; the server stores only this pubkey
++        hidden: true
 +      }
 +    ],
 +    relationName: 'walletRecvSpark'
@@ -424,16 +442,18 @@ index 00000000..abc610ac
 +
 +export async function createInvoice (
 +  { msats, description, descriptionHash, expiry },
-+  { address },
++  { identityPubkey },
 +  { signal }
 +) {
-+  // TODO: implement
++  // initialize one global service wallet from env and call
++  // createLightningInvoice({ receiverIdentityPubkey: identityPubkey, expirySeconds: expiry, ... })
++  // then return request.invoice.encodedInvoice
 +}
 +
-+export async function testCreateInvoice ({ address }, { signal }) {
++export async function testCreateInvoice ({ identityPubkey }, { signal }) {
 +  return await createInvoice(
 +    { msats: 1000, description: 'SN test invoice', expiry: 1 },
-+    { address },
++    { identityPubkey },
 +    { signal })
 +}
 
@@ -474,7 +494,7 @@ index 6284b821..7420ec15 100644
 +
 +    upsertWalletRecvSpark(
 +      ${shared},
-+      address: String!
++      identityPubkey: String!
 +    ): WalletRecvSpark!
 +
      upsertWalletRecvClink(
@@ -485,7 +505,7 @@ index 6284b821..7420ec15 100644
      ): Boolean!
 
 +    testWalletRecvSpark(
-+      address: String!
++      identityPubkey: String!
 +    ): Boolean!
 +
      # delete
@@ -525,7 +545,7 @@ index 6284b821..7420ec15 100644
 
 +  type WalletRecvSpark {
 +    id: ID!
-+    address: String!
++    identityPubkey: String!
 +  }
 +
    input AutowithdrawSettings {
@@ -556,11 +576,11 @@ index 8b132e82..38586def 100644
 +export const UPSERT_WALLET_RECEIVE_SPARK = gql`
 +  mutation upsertWalletRecvSpark(
 +    ${shared.variables},
-+    $address: String!
++    $identityPubkey: String!
 +  ) {
 +    upsertWalletRecvSpark(
 +      ${shared.arguments},
-+      address: $address
++      identityPubkey: $identityPubkey
 +    ) {
 +      id
 +    }
@@ -576,8 +596,8 @@ index 8b132e82..38586def 100644
  `
 +
 +export const TEST_WALLET_RECEIVE_SPARK = gql`
-+  mutation testWalletRecvSpark($address: String!) {
-+    testWalletRecvSpark(address: $address)
++  mutation testWalletRecvSpark($identityPubkey: String!) {
++    testWalletRecvSpark(identityPubkey: $identityPubkey)
 +  }
 +`
 diff --git a/wallets/client/fragments/wallet.js b/wallets/client/fragments/wallet.js
@@ -603,7 +623,7 @@ index 6d8676cc..b646c890 100644
        }
 +      ... on WalletRecvSpark {
 +        id
-+        address
++        identityPubkey
 +      }
      }
    }

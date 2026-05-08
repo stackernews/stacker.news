@@ -8,15 +8,16 @@ import CancelButton from '@/components/cancel-button'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import { useFormState, useNext, useStep, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, protocolDisplayName, protocolFields, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
+import { isTemplate, protocolDisplayName, protocolFormFields, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
 import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
 import { WalletFormLogsContext, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport, useSingleFlight } from '@/wallets/client/hooks'
+import { protocolPrepareConfig } from '@/wallets/client/protocols'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowUpRight from '@/svgs/arrow-right-up-line.svg'
 import ArrowDownLeft from '@/svgs/arrow-left-down-line.svg'
 import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
 import { useFormikContext } from 'formik'
-import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm, useSaveWallet, useSaveCurrentForm, hasProtocolConfig } from './hooks'
+import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm, useProtocolFormState, useSaveWallet, useSaveCurrentForm, hasProtocolConfig } from './hooks'
 import { BackButton, SkipButton } from './button'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
@@ -45,6 +46,69 @@ function WalletFormLogsProvider ({ children }) {
       {children}
     </WalletFormLogsContext.Provider>
   )
+}
+
+// Spark's config is fully derived from the user's mnemonic: send gets the mnemonic,
+// receive gets the identityPubkey derived from it. We prepare both when the Spark
+// form step mounts so the user sees read-only populated fields instead of empty
+// required inputs. Per-step hook: shared state lives in the multi-step form state
+// map, so navigating between send/recv sees the prepared values without re-running.
+function useSparkPrepare (wallet) {
+  const isSpark = wallet.name === 'SPARK'
+  const [sendFormState, setSendFormState] = useProtocolFormState({ name: 'SPARK', send: true })
+  const [recvFormState, setRecvFormState] = useProtocolFormState({ name: 'SPARK', send: false })
+
+  const sendProtocol = useMemo(() => wallet.protocols?.find(p => p.send && p.name === 'SPARK'), [wallet])
+  const recvProtocol = useMemo(() => wallet.protocols?.find(p => !p.send && p.name === 'SPARK'), [wallet])
+
+  const alreadyPrepared = useMemo(() => {
+    if (!isSpark) return true
+    if (sendFormState?.config?.mnemonic) return true
+    if (recvFormState?.config?.identityPubkey) return true
+    if (sendProtocol?.config?.mnemonic) return true
+    if (recvProtocol?.config?.identityPubkey) return true
+    return false
+  }, [isSpark, sendFormState, recvFormState, sendProtocol, recvProtocol])
+
+  const [ready, setReady] = useState(alreadyPrepared)
+  const [error, setError] = useState(null)
+  const [attempt, setAttempt] = useState(0)
+  const running = useRef(false)
+
+  useEffect(() => {
+    if (!isSpark || alreadyPrepared || running.current) return
+    running.current = true
+    setError(null)
+    setReady(false)
+    ;(async () => {
+      try {
+        const patches = await protocolPrepareConfig(
+          { name: 'SPARK', send: true },
+          {},
+          { current: {}, complementary: {} }
+        )
+        if (patches?.current?.mnemonic) {
+          setSendFormState({ enabled: true, ...patches.current })
+        }
+        if (patches?.complementary?.identityPubkey) {
+          setRecvFormState({ enabled: true, ...patches.complementary })
+        }
+        setReady(true)
+      } catch (err) {
+        setError(err)
+      } finally {
+        running.current = false
+      }
+    })()
+  }, [isSpark, alreadyPrepared, attempt, setSendFormState, setRecvFormState])
+
+  useEffect(() => {
+    if (alreadyPrepared) setReady(true)
+  }, [alreadyPrepared])
+
+  const retry = useCallback(() => setAttempt(a => a + 1), [])
+
+  return useMemo(() => ({ ready, error, retry }), [ready, error, retry])
 }
 
 export function WalletMultiStepForm ({ wallet }) {
@@ -122,7 +186,18 @@ function WalletProtocolSelector () {
   }, [protocol, saveCurrentForm, selectProtocol])
 
   // don't show selector if there's only one protocol option
-  if (protocols.length <= 1) return null
+  if (protocols.length <= 1) {
+    return (
+      <div className={styles.protocolSelector}>
+        <div className={styles.protocolSelectorHeader}>
+          {isSend ? 'Send protocol' : 'Receive protocol'}
+        </div>
+        <div className='text-center text-muted mb-3'>
+          {protocolDisplayName(protocol)}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.protocolSelector}>
@@ -154,6 +229,7 @@ function WalletProtocolForm () {
   const testCreateInvoice = useTestCreateInvoice(protocol)
   const logger = useWalletLogger(protocol)
   const [{ fields, initial, schema }, setFormState] = useProtocolForm(protocol)
+  const [{ initial: complementaryInitial }, setComplementaryFormState] = useProtocolForm({ name: protocol.name, send: !protocol.send })
 
   // validate and save form values (used by both submit and tab switch)
   const validateAndSave = useCallback(async (values) => {
@@ -169,6 +245,19 @@ function WalletProtocolForm () {
     }
 
     if (values.enabled) {
+      let complementaryValues = complementaryInitial
+      const patches = await protocolPrepareConfig(protocol, values, {
+        current: values,
+        complementary: complementaryValues
+      })
+      if (patches?.current) {
+        values = { ...values, ...patches.current }
+      }
+      if (patches?.complementary) {
+        complementaryValues = { ...complementaryValues, ...patches.complementary }
+        setComplementaryFormState(complementaryValues)
+      }
+
       if (protocol.send) {
         logger.info(`testing ${name} send ...`)
         const additionalValues = await testSendPayment(values)
@@ -183,7 +272,7 @@ function WalletProtocolForm () {
 
     setFormState(values)
     return values
-  }, [protocol, wallet, setFormState, testSendPayment, testCreateInvoice, logger])
+  }, [protocol, wallet, setFormState, testSendPayment, testCreateInvoice, logger, complementaryInitial, setComplementaryFormState])
 
   // form submit handler - validates, saves, and navigates to next step
   const onSubmit = useCallback(async ({ ...values }) => {
@@ -195,6 +284,13 @@ function WalletProtocolForm () {
       throw err
     }
   }, [validateAndSave, next, logger])
+
+  const sparkPrepare = useSparkPrepare(wallet)
+  if (protocol.name === 'SPARK' && !sparkPrepare.ready) {
+    return (
+      <SparkPrepareStatus sparkPrepare={sparkPrepare} protocol={protocol} />
+    )
+  }
 
   return (
     <>
@@ -220,6 +316,27 @@ function WalletProtocolForm () {
   )
 }
 
+function SparkPrepareStatus ({ sparkPrepare, protocol }) {
+  const { error, retry: handleRetry } = sparkPrepare
+  return (
+    <div className='text-center text-muted py-4'>
+      {error
+        ? (
+          <>
+            <p>Failed to prepare Spark wallet: {error.message}</p>
+            <button type='button' className='btn btn-sm btn-outline-secondary' onClick={handleRetry}>
+              retry
+            </button>
+          </>
+          )
+        : (
+          <p className='pulse'>preparing Spark wallet...</p>
+          )}
+      <WalletLogs className='mt-3' protocol={protocol} key={`logs-${protocol.id}`} />
+    </div>
+  )
+}
+
 // check if form values have meaningful content worth validating
 function hasFormValues (values) {
   if (!values) return false
@@ -235,11 +352,18 @@ function FormTabSwitchHandler ({ validateAndSave, setFormState }) {
   const { values } = useFormikContext()
   const [, setSaveCurrentForm] = useSaveCurrentForm()
   const valuesRef = useRef(values)
+  const validateAndSaveRef = useRef(validateAndSave)
+  const setFormStateRef = useRef(setFormState)
 
   // keep ref updated with latest values
   useEffect(() => {
     valuesRef.current = values
   }, [values])
+
+  useEffect(() => {
+    validateAndSaveRef.current = validateAndSave
+    setFormStateRef.current = setFormState
+  }, [validateAndSave, setFormState])
 
   // register save function on mount, clear on unmount
   useEffect(() => {
@@ -248,17 +372,17 @@ function FormTabSwitchHandler ({ validateAndSave, setFormState }) {
       const currentValues = { ...valuesRef.current }
       // skip validation for empty forms, just save the state
       if (!hasFormValues(currentValues)) {
-        setFormState(currentValues)
+        setFormStateRef.current(currentValues)
         return
       }
-      await validateAndSave(currentValues)
+      await validateAndSaveRef.current(currentValues)
     }
     setSaveCurrentForm(() => saveFunction)
 
     return () => {
       setSaveCurrentForm(null)
     }
-  }, [validateAndSave, setFormState, setSaveCurrentForm])
+  }, [setSaveCurrentForm])
 
   return null
 }
@@ -440,10 +564,11 @@ function ProtocolReviewCard ({ protocol }) {
   const displayName = protocolDisplayName(protocol)
   const isEnabled = protocol.enabled
   // only show fields that are defined in the protocol schema (not internal values)
-  const fields = protocolFields(protocol)
+  const fields = protocolFormFields(protocol)
   const fieldNames = new Set(fields.map(f => f.name))
   const configEntries = Object.entries(protocol.config || {})
     .filter(([key, value]) => value && fieldNames.has(key))
+  const hasHiddenConfig = configEntries.length === 0 && Object.values(protocol.config || {}).some(value => value)
 
   // get field label or fallback to key name
   const getFieldLabel = (key) => {
@@ -479,6 +604,13 @@ function ProtocolReviewCard ({ protocol }) {
               <span className={styles.configValue}>{maskValue(key, value)}</span>
             </div>
           ))}
+        </div>
+      )}
+      {hasHiddenConfig && (
+        <div className={styles.configList}>
+          <div className={styles.configItem}>
+            <span className={styles.configValue}>managed automatically</span>
+          </div>
         </div>
       )}
     </div>

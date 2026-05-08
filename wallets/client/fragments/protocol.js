@@ -245,6 +245,20 @@ export const UPSERT_WALLET_SEND_CLINK = gql`
   }
 `
 
+export const UPSERT_WALLET_SEND_SPARK = gql`
+  mutation upsertWalletSendSpark(
+    ${shared.variables},
+    $mnemonic: VaultEntryInput!
+  ) {
+    upsertWalletSendSpark(
+      ${shared.arguments},
+      mnemonic: $mnemonic
+    ) {
+      id
+    }
+  }
+`
+
 export const UPSERT_WALLET_RECEIVE_CLINK = gql`
   mutation upsertWalletRecvClink(
     ${shared.variables},
@@ -253,6 +267,20 @@ export const UPSERT_WALLET_RECEIVE_CLINK = gql`
     upsertWalletRecvClink(
       ${shared.arguments},
       noffer: $noffer
+    ) {
+      id
+    }
+  }
+`
+
+export const UPSERT_WALLET_RECEIVE_SPARK = gql`
+  mutation upsertWalletRecvSpark(
+    ${shared.variables},
+    $identityPubkey: String!
+  ) {
+    upsertWalletRecvSpark(
+      ${shared.arguments},
+      identityPubkey: $identityPubkey
     ) {
       id
     }
@@ -306,5 +334,11 @@ export const TEST_WALLET_RECEIVE_BLINK = gql`
 export const TEST_WALLET_RECEIVE_CLINK = gql`
   mutation testWalletRecvClink($noffer: String!) {
     testWalletRecvClink(noffer: $noffer)
+  }
+`
+
+export const TEST_WALLET_RECEIVE_SPARK = gql`
+  mutation testWalletRecvSpark($identityPubkey: String!) {
+    testWalletRecvSpark(identityPubkey: $identityPubkey)
   }
 `

@@ -168,5 +168,11 @@
         "displayName": "Blitz Wallet",
         "image": "/wallets/blitz.png",
         "url": "https://blitz-wallet.com/"
+    },
+    {
+        "name": "SPARK",
+        "displayName": "Spark",
+        "image": "/wallets/spark.svg",
+        "url": "https://spark.money/"
     }
 ]

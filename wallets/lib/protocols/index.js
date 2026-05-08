@@ -8,10 +8,11 @@ import phoenixdSuite from './phoenixd'
 import blinkSuite from './blink'
 import webln from './webln'
 import clinkSuite from './clink'
+import sparkSuite from './spark'
 
 /**
  * Protocol names as used in the database
- * @typedef {'NWC'|'LNBITS'|'PHOENIXD'|'BLINK'|'WEBLN'|'LN_ADDR'|'LNC'|'CLN_REST'|'LND_GRPC'|'CLINK'} ProtocolName
+ * @typedef {'NWC'|'LNBITS'|'PHOENIXD'|'BLINK'|'WEBLN'|'LN_ADDR'|'LNC'|'CLN_REST'|'LND_GRPC'|'CLINK'|'SPARK'} ProtocolName
  * @typedef {'text'|'password'} InputType
  */
 
@@ -35,6 +36,7 @@ import clinkSuite from './clink'
  * @property {string} [placeholder] - placeholder text shown in input field
  * @property {string} [hint] - hint text shown below field
  * @property {boolean} [share] - whether field can be used to prepopulate field of complementary send/receive protocol
+ * @property {boolean} [hidden] - whether the field should be kept in config but omitted from generic form/review UIs
  * @property {boolean} [editable] - whether the field is editable after it was saved
  */
 
@@ -49,5 +51,6 @@ export default [
   ...lnbitsSuite,
   ...blinkSuite,
   webln,
-  ...clinkSuite
+  ...clinkSuite,
+  ...sparkSuite
 ]

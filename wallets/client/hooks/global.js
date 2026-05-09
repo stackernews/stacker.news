@@ -151,15 +151,23 @@ function useKeyInit () {
 
   const logger = useWalletLogger()
 
+  // browsers only expose window.crypto.subtle in secure contexts (HTTPS, localhost, *.localhost).
+  // dev custom domains served over plain HTTP fail this check, which would otherwise crash
+  // PBKDF2 key derivation in deriveKey().
+  const keyStorageAvailable = typeof window !== 'undefined' &&
+    typeof window.indexedDB !== 'undefined' &&
+    window.isSecureContext &&
+    !!window.crypto?.subtle
+
   useEffect(() => {
-    if (typeof window.indexedDB === 'undefined') {
+    if (!keyStorageAvailable) {
       dispatch({ type: KEY_STORAGE_UNAVAILABLE })
     } else if (!keySyncInProgress && wrongKey) {
       dispatch({ type: WRONG_KEY })
     } else {
       dispatch({ type: KEY_MATCH })
     }
-  }, [wrongKey, keySyncInProgress, dispatch])
+  }, [keyStorageAvailable, wrongKey, keySyncInProgress, dispatch])
 
   const generateRandomKey = useGenerateRandomKey()
   const setKey = useSetKey()
@@ -167,7 +175,7 @@ function useKeyInit () {
   const { open } = useVaultLocalStore()
 
   useEffect(() => {
-    if (!me?.id) return
+    if (!me?.id || !keyStorageAvailable) return
     let db
 
     async function openDb () {
@@ -185,7 +193,7 @@ function useKeyInit () {
       db?.close()
       setDb(null)
     }
-  }, [me?.id, open])
+  }, [me?.id, keyStorageAvailable, open])
 
   useEffect(() => {
     if (!me?.id || !db) return

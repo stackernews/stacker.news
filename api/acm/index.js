@@ -1,4 +1,9 @@
-import AWS from 'aws-sdk'
+import {
+  ACMClient,
+  RequestCertificateCommand,
+  DescribeCertificateCommand,
+  DeleteCertificateCommand
+} from '@aws-sdk/client-acm'
 
 const config = {
   region: 'us-east-1',
@@ -7,7 +12,7 @@ const config = {
 }
 
 export async function requestCertificate (domain, idempotencyToken) {
-  const acm = new AWS.ACM(config)
+  const client = new ACMClient(config)
   const params = {
     DomainName: domain,
     ValidationMethod: 'DNS',
@@ -20,13 +25,13 @@ export async function requestCertificate (domain, idempotencyToken) {
     ]
   }
 
-  const certificate = await acm.requestCertificate(params).promise()
+  const certificate = await client.send(new RequestCertificateCommand(params))
   return certificate.CertificateArn
 }
 
 export async function describeCertificate (certificateArn) {
-  const acm = new AWS.ACM(config)
-  const certificate = await acm.describeCertificate({ CertificateArn: certificateArn }).promise()
+  const client = new ACMClient(config)
+  const certificate = await client.send(new DescribeCertificateCommand({ CertificateArn: certificateArn }))
   return certificate
 }
 
@@ -36,7 +41,7 @@ export async function getCertificateStatus (certificateArn) {
 }
 
 export async function deleteCertificate (certificateArn) {
-  const acm = new AWS.ACM(config)
-  const result = await acm.deleteCertificate({ CertificateArn: certificateArn }).promise()
+  const client = new ACMClient(config)
+  const result = await client.send(new DeleteCertificateCommand({ CertificateArn: certificateArn }))
   return result
 }

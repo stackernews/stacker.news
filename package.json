@@ -20,6 +20,7 @@
     "@auth/prisma-adapter": "^2.7.0",
     "@aws-sdk/client-s3": "^3.1024.0",
     "@aws-sdk/s3-presigned-post": "^3.1024.0",
+    "@aws-sdk/client-acm": "^3.1024.0",
     "@cashu/cashu-ts": "^2.4.1",
     "@graphile/depth-limit": "^0.3.1",
     "@graphql-tools/schema": "^10.0.6",

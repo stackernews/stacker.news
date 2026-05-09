@@ -9,7 +9,6 @@ import { NostrAuthWithExplainer } from './nostr-auth'
 import LoginButton, { LoginWithNymButton } from './login-button'
 import { emailSchema } from '@/lib/validate'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
-import { datePivot } from '@/lib/time'
 import * as cookie from 'cookie'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import Link from 'next/link'
@@ -91,13 +90,9 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
 
   // signup/signin awareness cookie
   useEffect(() => {
-    // expire cookie if we're on /signup instead of /login
+    // clear the cookie if we're on /signup instead of /login
     // since the server will only check if the cookie is set, not its value
-    const options = cookieOptions({
-      expires: signin ? datePivot(new Date(), { hours: 24 }) : 0,
-      maxAge: signin ? 86400 : 0,
-      httpOnly: false
-    })
+    const options = cookieOptions({ httpOnly: false, maxAge: signin ? 86400 : 0 })
     document.cookie = cookie.serialize('signin', signin, options)
   }, [signin])
 

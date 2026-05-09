@@ -1,7 +1,7 @@
 import 'urlpattern-polyfill'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
-import { HTTPS } from '@/lib/auth'
+import { cookieOptions } from '@/lib/auth'
 import {
   deriveChallenge,
   DOMAINS_AUTH_VERIFIER_COOKIE,
@@ -10,13 +10,7 @@ import {
 } from '@/lib/domains/auth'
 import { getDomainMapping, createDomainsDebugLogger } from '@/lib/domains'
 
-const verifierCookieOptions = {
-  httpOnly: true,
-  sameSite: 'lax',
-  secure: HTTPS,
-  path: '/',
-  maxAge: DOMAINS_AUTH_VERIFIER_TTL_S
-}
+const REFERRER_TTL_S = 60 * 60 * 24
 
 const referrerPattern = new URLPattern({ pathname: ':pathname(*)/r/:referrer([\\w_]+)' })
 const itemPattern = new URLPattern({ pathname: '/items/:id(\\d+){/:other(\\w+)}?' })
@@ -108,7 +102,11 @@ async function redirectToAuth (request, searchParams, domain, signup) {
   }
 
   const response = NextResponse.redirect(redirectUrl)
-  response.cookies.set(DOMAINS_AUTH_VERIFIER_COOKIE, verifier, verifierCookieOptions)
+  response.cookies.set(
+    DOMAINS_AUTH_VERIFIER_COOKIE,
+    verifier,
+    cookieOptions({ req: request, maxAge: DOMAINS_AUTH_VERIFIER_TTL_S })
+  )
   return response
 }
 
@@ -133,6 +131,11 @@ function getContentReferrer (request, url) {
 // we store the referrers in cookies for a future signup event
 // we pass the referrers in the request headers so we can use them in referral rewards for logged in stackers
 function referrerMiddleware (request) {
+  // referrer cookies are read only by middleware/SSR — keep them httpOnly.
+  // Secure follows isSecureRequest(req); TLS-terminating dev proxies must send
+  // X-Forwarded-Proto: https or sn_referrer stays non-Secure.
+  const referrerOptions = (maxAge) => cookieOptions({ req: request, maxAge })
+
   if (referrerPattern.test(request.url)) {
     const { pathname, referrer } = referrerPattern.exec(request.url).pathname.groups
 
@@ -144,20 +147,20 @@ function referrerMiddleware (request) {
     // explicit referrers are set for a day and can only be overriden by other explicit
     // referrers. Content referrers do not override explicit referrers because
     // explicit referees might click around before signing up.
-    response.cookies.set(SN_REFERRER, referrer, { maxAge: 60 * 60 * 24 })
+    response.cookies.set(SN_REFERRER, referrer, referrerOptions(REFERRER_TTL_S))
 
     // we record the first page the user lands on and keep it for 24 hours
     // in addition to the explicit referrer, this allows us to tell the referrer
     // which share link the user clicked on
     const contentReferrer = getContentReferrer(request, url)
     if (contentReferrer) {
-      response.cookies.set(SN_REFEREE_LANDING, contentReferrer, { maxAge: 60 * 60 * 24 })
+      response.cookies.set(SN_REFEREE_LANDING, contentReferrer, referrerOptions(REFERRER_TTL_S))
     }
     // store the explicit referrer for one page load
     // this allows us to attribute both explicit and implicit referrers after the redirect
     // e.g. items/<num>/r/<referrer> links should attribute both the item op and the referrer
     // without this the /r/<referrer> would be lost on redirect
-    response.cookies.set(SN_REFERRER_NONCE, referrer, { maxAge: 1 })
+    response.cookies.set(SN_REFERRER_NONCE, referrer, referrerOptions(1))
     return response
   }
 
@@ -178,23 +181,17 @@ function referrerMiddleware (request) {
 
   // if we don't already have an explicit referrer, give them the content referrer as one
   if (!request.cookies.has(SN_REFERRER) && contentReferrer) {
-    response.cookies.set(SN_REFERRER, contentReferrer, { maxAge: 60 * 60 * 24 })
+    response.cookies.set(SN_REFERRER, contentReferrer, referrerOptions(REFERRER_TTL_S))
   }
 
   return response
 }
 
 function applyReferrerCookies (response, referrer) {
-  for (const cookie of referrer.cookies.getAll()) {
-    response.cookies.set(
-      cookie.name,
-      cookie.value,
-      {
-        maxAge: cookie.maxAge,
-        expires: cookie.expires,
-        path: cookie.path
-      }
-    )
+  for (const { name, value, ...options } of referrer.cookies.getAll()) {
+    // forward all attributes (secure, httpOnly, sameSite, ...), not just timing,
+    // so referrer cookies inherit the security flags set by referrerMiddleware.
+    response.cookies.set(name, value, options)
   }
   return response
 }

@@ -1,6 +1,5 @@
 import * as cookie from 'cookie'
-import { datePivot } from '@/lib/time'
-import { HTTPS, MULTI_AUTH_JWT, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, SESSION_COOKIE } from '@/lib/auth'
+import { cookieOptions as baseCookieOptions, MULTI_AUTH_JWT, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, SESSION_COOKIE } from '@/lib/auth'
 
 /**
  * @param  {NextApiRequest}  req
@@ -22,23 +21,18 @@ export default (req, res) => {
 
   const cookies = []
 
-  const cookieOptions = {
-    path: '/',
-    secure: HTTPS,
-    httpOnly: true,
-    sameSite: 'lax',
-    expires: datePivot(new Date(), { months: 1 })
-  }
+  const cookieOptions = baseCookieOptions({ req })
+  const clearOptions = baseCookieOptions({ req, maxAge: 0 })
   // remove JWT pointed to by cookie pointer
-  cookies.push(cookie.serialize(MULTI_AUTH_JWT(userId), '', { ...cookieOptions, expires: 0, maxAge: 0 }))
+  cookies.push(cookie.serialize(MULTI_AUTH_JWT(userId), '', clearOptions))
 
   // update multi_auth cookie and check if there are more accounts available
   const oldMultiAuth = req.cookies[MULTI_AUTH_LIST] ? b64Decode(req.cookies[MULTI_AUTH_LIST]) : undefined
   const newMultiAuth = oldMultiAuth?.filter(({ id }) => id !== Number(userId))
   if (!oldMultiAuth || newMultiAuth?.length === 0) {
     // no next account available. cleanup: remove multi_auth + pointer cookie
-    cookies.push(cookie.serialize(MULTI_AUTH_LIST, '', { ...cookieOptions, httpOnly: false, expires: 0, maxAge: 0 }))
-    cookies.push(cookie.serialize(MULTI_AUTH_POINTER, '', { ...cookieOptions, httpOnly: false, expires: 0, maxAge: 0 }))
+    cookies.push(cookie.serialize(MULTI_AUTH_LIST, '', { ...clearOptions, httpOnly: false }))
+    cookies.push(cookie.serialize(MULTI_AUTH_POINTER, '', { ...clearOptions, httpOnly: false }))
     res.setHeader('Set-Cookie', cookies)
     res.status(204).end()
     return

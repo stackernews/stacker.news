@@ -41,7 +41,9 @@ export default function useCookie (name) {
   }, [name])
 
   const remove = useCallback(() => {
-    document.cookie = cookie.serialize(name, '', { expires: 0, maxAge: 0 })
+    // path must match the SET (cookieOptions defaults path to '/'); without it
+    // the browser uses the current URL's directory and the clear silently misses.
+    document.cookie = cookie.serialize(name, '', cookieOptions({ httpOnly: false, maxAge: 0 }))
     setValue(null)
   }, [name])
 

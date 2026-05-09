@@ -19,100 +19,99 @@ const mockedElb = {
   certificates: []
 }
 
-// mock AWS.ELBv2 class
-class MockELBv2 {
-  // mock describeLoadBalancers
-  // return the load balancers that match the names in the params
-  describeLoadBalancers (params) {
-    const { Names } = params
-    let loadBalancers = [...mockedElb.loadBalancers]
+// describeLoadBalancers
+// return the load balancers that match the names in the params
+function describeLoadBalancers ({ Names }) {
+  let loadBalancers = [...mockedElb.loadBalancers]
 
-    if (Names && Names.length > 0) {
-      loadBalancers = loadBalancers.filter(lb => Names.includes(lb.LoadBalancerName))
-    }
-
-    return {
-      promise: () => Promise.resolve({ LoadBalancers: loadBalancers })
-    }
+  if (Names && Names.length > 0) {
+    loadBalancers = loadBalancers.filter(lb => Names.includes(lb.LoadBalancerName))
   }
 
-  // mock describeListeners
-  // return the listeners that match the load balancer arn in the params
-  describeListeners (params) {
-    const { LoadBalancerArn, Filters } = params
-    let listeners = [...mockedElb.listeners]
+  return { LoadBalancers: loadBalancers }
+}
 
-    if (LoadBalancerArn) {
-      listeners = listeners.filter(listener => listener.LoadBalancerArn === LoadBalancerArn)
-    }
+// describeListeners
+// return the listeners that match the load balancer arn in the params
+function describeListeners ({ LoadBalancerArn, Filters }) {
+  let listeners = [...mockedElb.listeners]
 
-    if (Filters && Filters.length > 0) {
-      Filters.forEach(filter => {
-        if (filter.Name === 'protocol' && filter.Values) {
-          listeners = listeners.filter(listener =>
-            filter.Values.includes(listener.Protocol)
-          )
-        }
-      })
-    }
-
-    return {
-      promise: () => Promise.resolve({ Listeners: listeners })
-    }
+  if (LoadBalancerArn) {
+    listeners = listeners.filter(listener => listener.LoadBalancerArn === LoadBalancerArn)
   }
 
-  // mock describeListenerCertificates
-  // return the certificates that match the listener arn in the params
-  describeListenerCertificates (params) {
-    const { ListenerArn } = params
-    const certificates = mockedElb.certificates
-      .filter(cert => cert.ListenerArn === ListenerArn)
-      .map(cert => ({ CertificateArn: cert.CertificateArn }))
-
-    return {
-      promise: () => Promise.resolve({ Certificates: certificates })
-    }
-  }
-
-  // mock addListenerCertificates
-  // add the certificates to the mockedElb.certificates
-  addListenerCertificates (params) {
-    const { ListenerArn, Certificates } = params
-
-    Certificates.forEach(cert => {
-      // ELBv2 checks if the certificate is already attached to the listener
-      // and doesn't add it again if it is
-      const exists = mockedElb.certificates.some(
-        c => c.ListenerArn === ListenerArn && c.CertificateArn === cert.CertificateArn
-      )
-
-      if (!exists) {
-        mockedElb.certificates.push({
-          ListenerArn,
-          CertificateArn: cert.CertificateArn
-        })
+  if (Filters && Filters.length > 0) {
+    Filters.forEach(filter => {
+      if (filter.Name === 'protocol' && filter.Values) {
+        listeners = listeners.filter(listener =>
+          filter.Values.includes(listener.Protocol)
+        )
       }
     })
-
-    return {
-      promise: () => Promise.resolve({})
-    }
   }
 
-  // mock removeListenerCertificates
-  // remove the certificates from the mockedElb.certificates
-  // AWS doesn't throw an error if the certificate is not attached to the listener
-  removeListenerCertificates (params) {
-    const { ListenerArn, Certificates } = params
+  return { Listeners: listeners }
+}
 
-    Certificates.forEach(cert => {
-      mockedElb.certificates = mockedElb.certificates.filter(
-        c => !(c.ListenerArn === ListenerArn && c.CertificateArn === cert.CertificateArn)
-      )
-    })
+// describeListenerCertificates
+// return the certificates that match the listener arn in the params
+function describeListenerCertificates ({ ListenerArn }) {
+  const certificates = mockedElb.certificates
+    .filter(cert => cert.ListenerArn === ListenerArn)
+    .map(cert => ({ CertificateArn: cert.CertificateArn }))
 
-    return {
-      promise: () => Promise.resolve({})
+  return { Certificates: certificates }
+}
+
+// addListenerCertificates
+// add the certificates to the mockedElb.certificates
+// ELBv2 is idempotent: adding an already-attached certificate is a no-op
+function addListenerCertificates ({ ListenerArn, Certificates }) {
+  Certificates.forEach(cert => {
+    const exists = mockedElb.certificates.some(
+      c => c.ListenerArn === ListenerArn && c.CertificateArn === cert.CertificateArn
+    )
+
+    if (!exists) {
+      mockedElb.certificates.push({
+        ListenerArn,
+        CertificateArn: cert.CertificateArn
+      })
+    }
+  })
+
+  return {}
+}
+
+// removeListenerCertificates
+// remove the certificates from the mockedElb.certificates
+// ELBv2 is idempotent: removing an absent certificate is a no-op
+function removeListenerCertificates ({ ListenerArn, Certificates }) {
+  Certificates.forEach(cert => {
+    mockedElb.certificates = mockedElb.certificates.filter(
+      c => !(c.ListenerArn === ListenerArn && c.CertificateArn === cert.CertificateArn)
+    )
+  })
+
+  return {}
+}
+
+// drop-in for ElasticLoadBalancingV2Client: dispatches v3 Commands via send()
+class MockELBv2 {
+  async send (command) {
+    switch (command?.constructor?.name) {
+      case 'DescribeLoadBalancersCommand':
+        return describeLoadBalancers(command.input)
+      case 'DescribeListenersCommand':
+        return describeListeners(command.input)
+      case 'DescribeListenerCertificatesCommand':
+        return describeListenerCertificates(command.input)
+      case 'AddListenerCertificatesCommand':
+        return addListenerCertificates(command.input)
+      case 'RemoveListenerCertificatesCommand':
+        return removeListenerCertificates(command.input)
+      default:
+        throw new Error(`MockELBv2: unsupported command ${command?.constructor?.name}`)
     }
   }
 }

@@ -135,7 +135,7 @@ COMMANDS
 
 #### Running specific services
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` in a `.env.local` file to one or more of `minimal,images,search,payments,wallets,email,capture`. To only run mininal necessary without things like payments in `.env.local`:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` in a `.env.local` file to one or more of `minimal,images,search,payments,wallets,email,capture,domains,domains-caddy`. To only run minimal necessary without things like payments in `.env.local`:
 
 ```.env
 COMPOSE_PROFILES=minimal
@@ -189,6 +189,8 @@ To enable dnsmasq:
     ```
 
 To add/remove DNS records you can now use `./sndev domains dns`. More on this [here](#add-or-remove-dns-records-in-local).
+
+The `domains` profile enables dnsmasq and custom-domain worker jobs. The bundled Caddy HTTPS proxy is separate in `domains-caddy`, so you can keep local domain verification while omitting Caddy if an external TLS-terminating load balancer handles your dev domains.
 
 <br>
 
@@ -494,6 +496,8 @@ To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_
 ### Add or remove DNS records in local
 
 A worker dedicated to verifying custom domains, checks, among other things, if a domain has the correct DNS records and values. This would normally require a real domain and access to its DNS configuration. Therefore we use dnsmasq to have local DNS, make sure you have [enabled it](#local-dns-via-dnsmasq).
+
+If you access local custom domains through the bundled Caddy proxy, keep `domains-caddy` enabled too. If you use your own TLS-terminating load balancer, it should forward `X-Forwarded-Proto: https` so dev cookies that depend on secure requests are marked `Secure`.
 
 To add a DNS record the syntax is the following:
 

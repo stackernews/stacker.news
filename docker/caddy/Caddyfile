@@ -1,0 +1,56 @@
+# Local TLS terminator for custom-domain dev. Mirrors prod, where the AWS ALB
+# terminates HTTPS via ACM and forwards plain HTTP to the app.
+#
+# On-demand TLS with `tls internal` mints a per-SNI cert from Caddy's local CA
+# the first time a hostname is hit, so any dev custom domain (whatever
+# /etc/hosts or dnsmasq points at 127.0.0.1) works without per-domain config.
+#
+# Run `./sndev domains trust` once to install Caddy's local root CA into the
+# host trust store; after that browsers see a real green padlock and the page
+# is treated as a secure context (window.crypto.subtle, secure cookies, etc.).
+{
+	auto_https disable_redirects
+	local_certs
+
+	# Caddy refuses on-demand TLS without an "ask" endpoint, to prevent SNI
+	# floods from forcing it to mint unbounded certs. In dev we self-host a
+	# loopback-only allow-all ask on :5555 so any SNI is allowed without
+	# wiring up an external service.
+	on_demand_tls {
+		ask http://127.0.0.1:5555/
+	}
+
+	log {
+		output stderr
+		level WARN
+	}
+}
+
+# Loopback-only ask endpoint: any GET /?domain=<sni> returns 200, so Caddy
+# mints a cert for any incoming SNI. Bound to localhost so nothing outside the
+# container can reach it.
+http://127.0.0.1:5555 {
+	respond 200
+}
+
+# HTTPS catch-all: terminate TLS with the local CA, reverse-proxy to Next.js.
+:443 {
+	tls internal {
+		on_demand
+	}
+	encode zstd gzip
+
+	reverse_proxy app:3000 {
+		# preserve the original Host so proxy.js's getDomainMapping(host) sees
+		# the user-facing custom domain, not "app:3000"
+		header_up Host {host}
+		# Tell Next.js the browser-facing request was HTTPS so dev cookies that
+		# depend on Secure, like sn_referrer, match the TLS-terminated origin.
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# HTTP -> HTTPS, mirroring the prod ALB redirect.
+:80 {
+	redir https://{host}{uri} 308
+}

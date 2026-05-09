@@ -914,7 +914,12 @@ services:
       - "5353:53/udp"
     command:
       - --no-daemon
+      # Wildcard A records for dev test TLDs. Both .sndev and .test are RFC
+      # 2606 / 6761 reserved (.test) or invented for sndev (.sndev), so they
+      # never collide with real internet hostnames. Pair with macOS
+      # /etc/resolver/<tld> to get zero-/etc/hosts dev DNS.
       - --address=/.sndev/127.0.0.1
+      - --address=/.test/127.0.0.1
       - --conf-file=/etc/dnsmasq.conf
       - --conf-dir=/etc/dnsmasq.d
     volumes:
@@ -924,6 +929,27 @@ services:
     networks:
       domains-network:
         ipv4_address: 172.30.0.2
+  caddy:
+    # ALB-equivalent: terminates TLS for custom domains and forwards plain
+    # HTTP to the next.js app, so dev mirrors the prod traffic shape and
+    # browsers treat custom domains as secure contexts.
+    image: caddy:2.10-alpine
+    container_name: caddy
+    profiles:
+      - domains-caddy
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+        restart: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    cpu_shares: "${CPU_SHARES_LOW}"
 
 volumes:
   db:
@@ -940,6 +966,8 @@ volumes:
   eclair:
   dnsmasq:
   lnpub:
+  caddy_data:
+  caddy_config:
 
 networks:
   default: {}

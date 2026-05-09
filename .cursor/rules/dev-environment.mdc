@@ -44,7 +44,7 @@ Use `required_permissions: ["all"]` for shell commands that need Docker access.
 
 ## Compose Profiles
 
-Services are grouped into profiles: `minimal`, `payments`, `wallets`, `email`, `search`, `images`, `capture`, `domains`.
+Services are grouped into profiles: `minimal`, `payments`, `wallets`, `email`, `search`, `images`, `capture`, `domains`, `domains-caddy`.
 Not all services run by default — only those in the active `COMPOSE_PROFILES`.
 
 ## Database Access

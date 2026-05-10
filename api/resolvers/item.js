@@ -438,27 +438,51 @@ export default {
           }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
         case 'new':
-          items = await itemQueryWithMeta({
-            me,
-            models,
-            query: `
-              ${SELECT}
-              ${relationClause(type)}
-              ${payInJoinFilter(me)}
-              ${whereClause(
-                '"Item".created_at <= $1',
-                '"Item"."deletedAt" IS NULL',
-                subClause(sub, 4, subClauseTable(type), me, showNsfw),
-                activeOrMine(me),
-                await filterClause(type, sub, 'new', ctx),
-                typeClause(type),
-                muteClause(me)
-              )}
-              ORDER BY "PayIn"."payInStateChangedAt" DESC
-              OFFSET $2
-              LIMIT $3`,
-            orderBy: 'ORDER BY "PayIn"."payInStateChangedAt" DESC'
-          }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+          if (when) {
+            items = await itemQueryWithMeta({
+              me,
+              models,
+              query: `
+                ${SELECT}
+                ${relationClause(type)}
+                ${payInJoinFilter(me)}
+                ${whereClause(
+                  '"Item"."deletedAt" IS NULL',
+                  subClause(sub, 5, subClauseTable(type), me, showNsfw),
+                  activeOrMine(me),
+                  await filterClause(type, sub, 'new', ctx),
+                  typeClause(type),
+                  whenClause(when, 'Item'),
+                  muteClause(me)
+                )}
+                ORDER BY "PayIn"."payInStateChangedAt" DESC
+                OFFSET $3
+                LIMIT $4`,
+              orderBy: 'ORDER BY "PayIn"."payInStateChangedAt" DESC'
+            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
+          } else {
+            items = await itemQueryWithMeta({
+              me,
+              models,
+              query: `
+                ${SELECT}
+                ${relationClause(type)}
+                ${payInJoinFilter(me)}
+                ${whereClause(
+                  '"Item".created_at <= $1',
+                  '"Item"."deletedAt" IS NULL',
+                  subClause(sub, 4, subClauseTable(type), me, showNsfw),
+                  activeOrMine(me),
+                  await filterClause(type, sub, 'new', ctx),
+                  typeClause(type),
+                  muteClause(me)
+                )}
+                ORDER BY "PayIn"."payInStateChangedAt" DESC
+                OFFSET $2
+                LIMIT $3`,
+              orderBy: 'ORDER BY "PayIn"."payInStateChangedAt" DESC'
+            }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+          }
           break
         case 'top':
           items = await itemQueryWithMeta({
@@ -513,29 +537,56 @@ export default {
             }, ...subArr)
           }
 
-          items = await itemQueryWithMeta({
-            me,
-            models,
-            query: `
-                ${SELECT}
-                FROM "Item"
-                ${payInJoinFilter(me)}
-                ${whereClause(
-                  // in home (sub undefined), filter out global pinned items since we inject them later
-                  sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)',
-                  '"Item"."deletedAt" IS NULL',
-                  '"Item"."parentId" IS NULL',
-                  '"Item".bio = false',
-                  activeOrMine(me),
-                  '"Item".status = \'ACTIVE\'',
-                  await filterClause(type, sub, 'lit', ctx),
-                  subClause(sub, 3, 'Item', me, showNsfw),
-                  muteClause(me))}
-                ORDER BY ranklit DESC, "Item".id DESC
-                OFFSET $1
-                LIMIT $2`,
-            orderBy: 'ORDER BY ranklit DESC, "Item".id DESC'
-          }, decodedCursor.offset, limit, ...subArr)
+          if (when) {
+            items = await itemQueryWithMeta({
+              me,
+              models,
+              query: `
+                  ${SELECT}
+                  FROM "Item"
+                  ${payInJoinFilter(me)}
+                  ${whereClause(
+                    // in home (sub undefined), filter out global pinned items since we inject them later
+                    sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)',
+                    '"Item"."deletedAt" IS NULL',
+                    '"Item"."parentId" IS NULL',
+                    '"Item".bio = false',
+                    activeOrMine(me),
+                    '"Item".status = \'ACTIVE\'',
+                    await filterClause(type, sub, 'lit', ctx),
+                    subClause(sub, 5, 'Item', me, showNsfw),
+                    whenClause(when, 'Item'),
+                    muteClause(me))}
+                  ORDER BY ranklit DESC, "Item".id DESC
+                  OFFSET $3
+                  LIMIT $4`,
+              orderBy: 'ORDER BY ranklit DESC, "Item".id DESC'
+            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
+          } else {
+            items = await itemQueryWithMeta({
+              me,
+              models,
+              query: `
+                  ${SELECT}
+                  FROM "Item"
+                  ${payInJoinFilter(me)}
+                  ${whereClause(
+                    // in home (sub undefined), filter out global pinned items since we inject them later
+                    sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)',
+                    '"Item"."deletedAt" IS NULL',
+                    '"Item"."parentId" IS NULL',
+                    '"Item".bio = false',
+                    activeOrMine(me),
+                    '"Item".status = \'ACTIVE\'',
+                    await filterClause(type, sub, 'lit', ctx),
+                    subClause(sub, 3, 'Item', me, showNsfw),
+                    muteClause(me))}
+                  ORDER BY ranklit DESC, "Item".id DESC
+                  OFFSET $1
+                  LIMIT $2`,
+              orderBy: 'ORDER BY ranklit DESC, "Item".id DESC'
+            }, decodedCursor.offset, limit, ...subArr)
+          }
           break
       }
       return {

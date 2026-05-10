@@ -133,7 +133,8 @@ export default function Settings ({ ssrData }) {
             nostrCrossposting: settings?.nostrCrossposting,
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
             hideBookmarks: settings?.hideBookmarks,
-            noReferralLinks: settings?.noReferralLinks
+            noReferralLinks: settings?.noReferralLinks,
+            nitterize: settings?.nitterize
           }}
           schema={settingsSchema}
           onSubmit={async ({
@@ -410,6 +411,21 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label={<>don't create referral links on copy</>}
             name='noReferralLinks'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>use xcancel.com for x.com links
+                <Info>
+                  <ul>
+                    <li>automatically convert x.com and twitter.com links to xcancel.com</li>
+                    <li>xcancel.com is a privacy-preserving alternative frontend for Twitter/X</li>
+                    <li>no JavaScript, no ads, no tracking</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='nitterize'
           />
           <h4 className='mt-5'>content</h4>
           <Range

@@ -80,6 +80,7 @@ export default gql`
   input SettingsInput {
     autoDropBolt11s: Boolean!
     noReferralLinks: Boolean!
+    nitterize: Boolean!
     fiatCurrency: String!
     postsSatsFilter: Int
     commentsSatsFilter: Int
@@ -148,6 +149,7 @@ export default gql`
     """
     autoDropBolt11s: Boolean!
     noReferralLinks: Boolean!
+    nitterize: Boolean!
     fiatCurrency: String!
     postsSatsFilter: Int
     commentsSatsFilter: Int

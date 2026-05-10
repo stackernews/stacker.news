@@ -19,7 +19,7 @@ import { DownZap } from './dont-link-this'
 import { timeLeft } from '@/lib/time'
 import classNames from 'classnames'
 import removeMd from 'remove-markdown'
-import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
+import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks, nitterizeUrl } from '@/lib/url'
 import ItemPopover from './item-popover'
 import { useMe } from './me'
 import Boost from './boost-button'
@@ -60,6 +60,9 @@ function mediaType ({ url, imgproxyUrls }) {
 }
 
 function ItemLink ({ url, rel }) {
+  const { me } = useMe()
+  const nitterize = me?.privates?.nitterize
+
   try {
     const { linkText } = parseInternalLinks(url)
     if (linkText) {
@@ -70,13 +73,15 @@ function ItemLink ({ url, rel }) {
       )
     }
 
+    const displayUrl = nitterize ? nitterizeUrl(url) : url
+
     return (
       // eslint-disable-next-line
       <a
-        className={styles.link} target='_blank' href={url}
+        className={styles.link} target='_blank' href={displayUrl}
         rel={rel ?? UNKNOWN_LINK_REL}
       >
-        {url.replace(/(^https?:|^)\/\//, '')}
+        {displayUrl.replace(/(^https?:|^)\/\//, '')}
       </a>
     )
   } catch {

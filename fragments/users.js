@@ -24,6 +24,7 @@ ${STREAK_FIELDS}
     privates {
       autoDropBolt11s
       noReferralLinks
+      nitterize
       fiatCurrency
       postsSatsFilter
       commentsSatsFilter
@@ -89,6 +90,7 @@ export const SETTINGS_FIELDS = gql`
       imgproxyOnly
       showImagesAndVideos
       noReferralLinks
+      nitterize
       nostrPubkey
       nostrCrossposting
       nostrRelays

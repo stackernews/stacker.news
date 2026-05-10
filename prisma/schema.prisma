@@ -97,6 +97,7 @@ model User {
   hideNostr                 Boolean                @default(true)
   hideTwitter               Boolean                @default(true)
   noReferralLinks           Boolean                @default(false)
+  nitterize                 Boolean                @default(false)
   githubId                  String?
   twitterId                 String?
   followers                 UserSubscription[]     @relation("follower")

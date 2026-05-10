@@ -215,9 +215,30 @@ async function deleteWallet (parent, { id }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   await models.$transaction(async tx => {
+    const wallet = await tx.wallet.findUnique({
+      where: { id: Number(id), userId: me.id },
+      select: {
+        protocols: {
+          select: { id: true }
+        }
+      }
+    })
+
+    if (!wallet) throw new GqlInputError('wallet not found')
+
+    const protocolIds = wallet.protocols.map(({ id }) => id)
+    if (protocolIds.length > 0) {
+      await tx.walletLog.deleteMany({
+        where: {
+          userId: me.id,
+          protocolId: { in: protocolIds }
+        }
+      })
+    }
+
     await tx.wallet.delete({ where: { id: Number(id), userId: me.id } })
     await updateWalletBadges({ userId: me.id, tx })
-  })
+  }, { timeout: 20000 })
 
   return true
 }

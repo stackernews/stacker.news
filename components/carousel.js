@@ -6,6 +6,33 @@ import styles from './carousel.module.css'
 import { useShowModal } from './modal'
 import { Dropdown } from 'react-bootstrap'
 
+const NAV_FADE_TIMEOUT = 2000
+
+function useNavVisibility () {
+  const [visible, setVisible] = useState(true)
+  const timerRef = useRef(null)
+
+  const resetTimer = useCallback(() => {
+    setVisible(true)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setVisible(false), NAV_FADE_TIMEOUT)
+  }, [])
+
+  useEffect(() => {
+    // start the initial fade-out timer
+    timerRef.current = setTimeout(() => setVisible(false), NAV_FADE_TIMEOUT)
+
+    const onMouseMove = () => resetTimer()
+    document.addEventListener('mousemove', onMouseMove)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [resetTimer])
+
+  return visible
+}
+
 function useSwiping ({ moveLeft, moveRight }) {
   const [touchStartX, setTouchStartX] = useState(null)
 
@@ -77,11 +104,12 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
 
   useSwiping({ moveLeft, moveRight })
   useArrowKeys({ moveLeft, moveRight })
+  const navVisible = useNavVisibility()
 
   return (
     <div className={styles.fullScreenContainer} onClick={close}>
       <img className={styles.fullScreen} src={currentSrc} />
-      <div className={styles.fullScreenNavContainer}>
+      <div className={classNames(styles.fullScreenNavContainer, navVisible && styles.visible)}>
         <div
           className={classNames(styles.fullScreenNav, !canGoLeft && 'invisible', styles.left)}
           onClick={(e) => {

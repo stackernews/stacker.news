@@ -9,6 +9,13 @@ div.fullScreenNavContainer {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+div.fullScreenNavContainer:hover,
+div.fullScreenNavContainer.visible {
+    opacity: 1;
 }
 
 img.fullScreen {
@@ -31,7 +38,7 @@ img.fullScreen {
 }
 
 div.fullScreenNav:hover > svg {
-    background-color: rgba(0, 0, 0, .5);
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 div.fullScreenNav  {
@@ -54,10 +61,11 @@ div.fullScreenNav.right {
 div.fullScreenNav > svg {
     border-radius: 50%;
     backdrop-filter: blur(4px);
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.3);
     fill: white;
     max-height: 34px;
     max-width: 34px;
     padding: 0.35rem;
     margin: .75rem;
+    transition: background-color 0.2s ease;
 }

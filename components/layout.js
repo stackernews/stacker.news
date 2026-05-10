@@ -9,12 +9,12 @@ import styles from './layout.module.css'
 import PullToRefresh from './pull-to-refresh'
 
 export default function Layout ({
-  sub, contain = true, footer = true, footerLinks = true,
+  sub, subInfo, contain = true, footer = true, footerLinks = true,
   containClassName = '', seo = true, item, user, children
 }) {
   return (
     <>
-      {seo && <Seo sub={sub} item={item} user={user} />}
+      {seo && <Seo sub={sub} subInfo={subInfo} item={item} user={user} />}
       <Navigation sub={sub} />
       {contain
         ? (

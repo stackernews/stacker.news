@@ -21,7 +21,7 @@ export default function TerritoryPage ({ ssrData }) {
   const { sub } = data || ssrData
 
   return (
-    <CenterLayout sub={sub?.name}>
+    <CenterLayout sub={sub?.name} subInfo={sub}>
       <TerritoryPaymentDue sub={sub} />
       <h1 className='mt-5'>edit territory</h1>
       <TerritoryForm sub={sub} />

@@ -36,13 +36,13 @@ export function SeoSearch ({ sub }) {
 // index page seo
 // recent page seo
 
-export default function Seo ({ sub, item, user }) {
+export default function Seo ({ sub, subInfo, item, user }) {
   const router = useRouter()
   const pathNoQuery = router.asPath.split('?')[0]
   const defaultTitle = pathNoQuery.slice(1)
   const snStr = `stacker news${sub ? ` ~${sub}` : ''}`
   let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}stacker news`
-  let desc = 'moderating forums with money'
+  let desc = subInfo?.desc || 'moderating forums with money'
   if (item) {
     if (item.title) {
       fullTitle = `${item.title} \\ ${snStr}`

@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react'
+import { Fragment, forwardRef, useRef, useMemo } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
@@ -11,7 +11,7 @@ import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { useCommentsNavigatorContext } from './use-comments-navigator'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, commentCost, commentBoost }) {
+export const CommentsHeader = forwardRef(function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, commentCost, commentBoost }, ref) {
   const router = useRouter()
   const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
@@ -22,7 +22,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   }
 
   return (
-    <Navbar className='pt-1 pb-0 px-3'>
+    <Navbar ref={ref} className='pt-1 pb-0 px-3'>
       <Nav
         className={styles.navbarNav}
         activeKey={sort}
@@ -62,7 +62,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
       </Nav>
     </Navbar>
   )
-}
+})
 
 export default function Comments ({
   parentId, pinned, bio, parentCreatedAt,
@@ -76,12 +76,14 @@ export default function Comments ({
   // new comments navigator, tracks new comments and provides navigation controls
   const { navigator } = useCommentsNavigatorContext()
 
+  const headerRef = useRef(null)
   const pins = useMemo(() => comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position), [comments])
 
   return (
     <>
       {comments?.length > 0
         ? <CommentsHeader
+            ref={headerRef}
             commentSats={commentSats} commentCost={commentCost} commentBoost={commentBoost} parentCreatedAt={parentCreatedAt}
             pinned={pinned} bio={bio} handleSort={sort => {
               const { commentsViewedAt, commentId, ...query } = router.query
@@ -92,7 +94,14 @@ export default function Comments ({
               }, {
                 pathname: `/items/${parentId}`,
                 query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
-              }, { scroll: false })
+              }, { scroll: false }).then(() => {
+                // scroll to comments header after sort change so the user
+                // sees the re-sorted comments from the top, and to override
+                // any scroll restoration Next.js may apply for the new URL
+                if (headerRef.current) {
+                  headerRef.current.scrollIntoView({ behavior: 'smooth' })
+                }
+              })
             }}
           />
         : null}

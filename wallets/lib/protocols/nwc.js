@@ -71,5 +71,12 @@ export async function getNwc (nostr, url, { signal }) {
 
 export async function supportedMethods (url, { signal }) {
   const result = await nwcTryRun(nwc => nwc.getInfo(), { url }, { signal })
-  return result.methods
+  return parseSupportedMethods(result)
+}
+
+export function parseSupportedMethods (info) {
+  const methods = info?.methods ?? info?.supported ?? []
+  if (Array.isArray(methods)) return methods
+  if (typeof methods === 'string') return methods.split(/\s+/).filter(Boolean)
+  return []
 }

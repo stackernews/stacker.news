@@ -3,7 +3,7 @@ import styles from './comment.module.css'
 import Text, { SearchText } from './text'
 import Link from 'next/link'
 import Reply from './reply'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import UpVote from './upvote'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
@@ -17,9 +17,11 @@ import { numWithUnits } from '@/lib/format'
 import Share from './share'
 import ItemInfo from './item-info'
 import Badge from 'react-bootstrap/Badge'
+import Button from 'react-bootstrap/Button'
 import { RootProvider, useRoot } from './root'
 import { useMe } from './me'
 import { useQuoteReply } from './use-quote-reply'
+import { useShowModal } from './modal'
 import { DownZap } from './dont-link-this'
 import { commentSubTreeRootId } from '@/lib/item'
 import Pin from '@/svgs/pushpin-fill.svg'
@@ -104,6 +106,8 @@ export default function Comment ({
   navigator, ...props
 }) {
   const [edit, setEdit] = useState()
+  const formikRef = useRef(null)
+  const showModal = useShowModal()
   const { me } = useMe()
   // Collapse comments that don't meet the viewer's commentsSatsFilter threshold
   const commentsSatsFilter = me ? me.privates?.commentsSatsFilter : DEFAULT_COMMENTS_SATS_FILTER
@@ -120,6 +124,28 @@ export default function Comment ({
   const router = useRouter()
   const root = useRoot()
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text, readerRef })
+
+  const toggleEdit = useCallback(() => {
+    // if we're currently editing and the form has unsaved changes, confirm before canceling
+    if (edit && formikRef.current?.dirty) {
+      showModal(onClose => (
+        <>
+          <p className='fw-bolder'>Are you sure? You will lose your work</p>
+          <div className='d-flex justify-content-end'>
+            <Button
+              variant='info' onClick={() => {
+                setEdit(false)
+                onClose()
+              }}
+            >yep
+            </Button>
+          </div>
+        </>
+      ))
+    } else {
+      setEdit(!edit)
+    }
+  }, [edit, showModal])
 
   const { cache } = useApolloClient()
 
@@ -263,7 +289,7 @@ export default function Comment ({
                     </>
                   }
                   edit={edit}
-                  toggleEdit={e => { setEdit(!edit) }}
+                  toggleEdit={toggleEdit}
                   editText={edit ? 'cancel' : 'edit'}
                 />}
 
@@ -293,6 +319,7 @@ export default function Comment ({
                 onSuccess={() => {
                   setEdit(!edit)
                 }}
+                innerRef={formikRef}
               />
               )
             : (

@@ -6,7 +6,7 @@ import { ItemButtonBar } from './post'
 import { UPDATE_COMMENT } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
 
-export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
+export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel, innerRef }) {
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
     payInMutationOptions: {
       cachePhases: {
@@ -57,6 +57,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           }}
           schema={commentSchema}
           onSubmit={onSubmit}
+          innerRef={innerRef}
         >
           <SNInput
             name='text'

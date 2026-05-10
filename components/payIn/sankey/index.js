@@ -28,6 +28,7 @@ export function PayInSankey ({ payIn }) {
         linkContract={3}
         nodeHoverOthersOpacity={0.5}
         labelComponent={RotatingSankeyLabels}
+        valueFormat={v => new Intl.NumberFormat().format(v)}
         nodeTooltip={Tooltip}
         linkTooltip={Tooltip}
         nodeSpacing={24}
@@ -51,10 +52,11 @@ function assetFormatted (msats, type) {
 
 function Tooltip ({ node, link }) {
   node ??= link
-  if (!node.asset) {
+  const label = node.asset ?? node.formattedValue
+  if (!label) {
     return null
   }
-  return <div style={{ whiteSpace: 'nowrap', backgroundColor: 'var(--bs-body-bg)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--bs-border-color)' }}>{node.asset}</div>
+  return <div style={{ whiteSpace: 'nowrap', backgroundColor: 'var(--bs-body-bg)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--bs-border-color)' }}>{label}</div>
 }
 
 function getSankeyData (payIn) {

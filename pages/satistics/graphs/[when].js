@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { gql } from '@apollo/client'
 import { useQuery } from '@apollo/client/react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
@@ -11,6 +12,9 @@ import PageLoading from '@/components/page-loading'
 import { WhenAreaChartSkeleton, WhenLineChartSkeleton } from '@/components/charts-skeletons'
 import { UserAnalyticsHeader } from '@/components/user-analytics-header'
 import { numWithUnits } from '@/lib/format'
+import { DownloadCsvButton } from '@/components/download-csv'
+import { payTypeShortName } from '@/lib/pay-in'
+import { mergeGrowthDatasets, toCSV, downloadCSV } from '@/lib/csv'
 
 const WhenAreaChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenAreaChart), {
   loading: () => <WhenAreaChartSkeleton />
@@ -90,10 +94,23 @@ export default function Growth ({ ssrData }) {
     stackingGrowth
   } = data || ssrData
 
+  const handleDownloadCsv = useCallback(() => {
+    const rows = mergeGrowthDatasets([
+      { label: 'sats stacked', data: stackingGrowth },
+      { label: 'sats spent', data: spendingGrowth },
+      { label: 'spend counts', data: itemGrowth }
+    ], payTypeShortName)
+    if (rows.length === 0) return
+    downloadCSV(toCSV(rows), `satistics_${when || 'day'}.csv`)
+  }, [stackingGrowth, spendingGrowth, itemGrowth, when])
+
   return (
     <Layout>
       <SatisticsHeader />
-      <UserAnalyticsHeader pathname='satistics/graphs' />
+      <div className='d-flex align-items-center flex-wrap'>
+        <UserAnalyticsHeader pathname='satistics/graphs' />
+        <DownloadCsvButton onClick={handleDownloadCsv} />
+      </div>
       <UserGrowthTotals totals={growthTotals} />
       <Row>
         <Col className='mt-3'>

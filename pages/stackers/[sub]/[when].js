@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { gql } from '@apollo/client'
 import { useQuery } from '@apollo/client/react'
 import { getGetServerSideProps } from '@/api/ssrApollo'
@@ -10,6 +11,9 @@ import dynamic from 'next/dynamic'
 import PageLoading from '@/components/page-loading'
 import { WhenAreaChartSkeleton, WhenLineChartSkeleton } from '@/components/charts-skeletons'
 import { numWithUnits } from '@/lib/format'
+import { DownloadCsvButton } from '@/components/download-csv'
+import { payTypeShortName } from '@/lib/pay-in'
+import { mergeGrowthDatasets, toCSV, downloadCSV } from '@/lib/csv'
 
 const WhenAreaChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenAreaChart), {
   loading: () => <WhenAreaChartSkeleton />
@@ -121,9 +125,26 @@ export default function Growth ({ ssrData }) {
     stackerGrowth
   } = data || ssrData
 
+  const handleDownloadCsv = useCallback(() => {
+    const rows = mergeGrowthDatasets([
+      { label: 'sats stacked', data: stackingGrowth },
+      { label: 'sats spent', data: spendingGrowth },
+      { label: 'unique stackers', data: stackerGrowth },
+      { label: 'unique spenders', data: spenderGrowth },
+      { label: 'spend counts', data: itemGrowth },
+      ...(sub === 'all' ? [{ label: 'registrations', data: registrationGrowth }] : [])
+    ], payTypeShortName)
+    if (rows.length === 0) return
+    const prefix = sub && sub !== 'all' ? `${sub}_` : ''
+    downloadCSV(toCSV(rows), `${prefix}analytics_${when || 'day'}.csv`)
+  }, [stackingGrowth, spendingGrowth, stackerGrowth, spenderGrowth, itemGrowth, registrationGrowth, when, sub])
+
   return (
     <Layout>
-      <SubAnalyticsHeader />
+      <div className='d-flex align-items-center flex-wrap'>
+        <SubAnalyticsHeader />
+        <DownloadCsvButton onClick={handleDownloadCsv} />
+      </div>
       <GrowthTotals totals={growthTotals} sub={sub} />
       <Row>
         <Col className='mt-3'>

@@ -59,11 +59,16 @@ export async function getItemsById (ids, { me, models }) {
   return items.map(({ rank, ...item }) => item)
 }
 
-const orderByClause = (by, me, models, type, sub) => {
+const orderByClause = (by, me, models, type, sub, sort) => {
   switch (by) {
     case 'comments':
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
+      // when viewing a user's own posts, sort by the post's own sats (msats)
+      // rather than ranktop which includes comment sats, boost, etc.
+      if (sort === 'user') {
+        return 'ORDER BY "Item".msats DESC, "Item".id DESC'
+      }
       return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
     case 'downsats':
       return 'ORDER BY "Item"."downMsats" DESC'
@@ -431,10 +436,10 @@ export default {
                 typeClause(type),
                 by === 'downsats' && '"Item"."downMsats" > 0',
                 whenClause(when || 'forever', table))}
-              ${orderByClause(by, me, models, type)}
+              ${orderByClause(by, me, models, type, undefined, 'user')}
               OFFSET $4
               LIMIT $5`,
-            orderBy: orderByClause(by, me, models, type)
+            orderBy: orderByClause(by, me, models, type, undefined, 'user')
           }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
         case 'new':

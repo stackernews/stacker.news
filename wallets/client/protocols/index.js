@@ -1,11 +1,4 @@
-import * as nwc from './nwc'
-import * as lnbits from './lnbits'
-import * as phoenixd from './phoenixd'
-import * as blink from './blink'
-import * as webln from './webln'
-import * as lnc from './lnc'
-import * as clnRest from './clnRest'
-import * as clink from './clink'
+import { loadProtocol, protocolNames } from './registry'
 
 export * from './util'
 
@@ -47,14 +40,13 @@ export * from './util'
 
 /** @typedef {string} Preimage */
 
+function lazyProtocol (name) {
+  return {
+    name,
+    sendPayment: async (...args) => (await loadProtocol(name)).sendPayment(...args),
+    testSendPayment: async (...args) => (await loadProtocol(name)).testSendPayment(...args)
+  }
+}
+
 /** @type {ClientWalletProtocol[]} */
-export default [
-  nwc,
-  lnbits,
-  phoenixd,
-  blink,
-  webln,
-  lnc,
-  clnRest,
-  clink
-]
+export default protocolNames.map(lazyProtocol)

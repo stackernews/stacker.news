@@ -1,5 +1,3 @@
-import Nostr from '@/lib/nostr'
-import { NDKNWCWallet } from '@nostr-dev-kit/ndk-wallet'
 import { nwcUrlValidator, parseNwcUrl } from '@/wallets/lib/validate'
 
 // Nostr Wallet Connect (NIP-47)
@@ -44,6 +42,7 @@ export default [
 ]
 
 export async function nwcTryRun (fun, { url }, { signal }) {
+  const { default: Nostr } = await import('@/lib/nostr')
   const nostr = new Nostr()
   try {
     const nwc = await getNwc(nostr, url, { signal })
@@ -61,6 +60,7 @@ export async function nwcTryRun (fun, { url }, { signal }) {
 export async function getNwc (nostr, url, { signal }) {
   const ndk = nostr.ndk
   const { walletPubkey, secret, relayUrls } = parseNwcUrl(url)
+  const { NDKNWCWallet } = await import('@nostr-dev-kit/ndk-wallet')
   const nwc = new NDKNWCWallet(ndk, {
     pubkey: walletPubkey,
     relayUrls,

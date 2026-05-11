@@ -2,10 +2,9 @@ import bip39Words from '@/lib/bip39-words'
 import { decodeRune } from '@/lib/cln'
 import { B64_URL_REGEX } from '@/lib/format'
 import { isInvoicableMacaroon, isInvoiceMacaroon } from '@/lib/macaroon'
-import { NOSTR_PUBKEY_HEX } from '@/lib/nostr'
+import { NOSTR_PUBKEY_HEX } from '@/lib/nostr/common'
 import { TOR_REGEXP } from '@/lib/url'
 import { lightningAddressValidator } from '@/lib/validate'
-import { decodeBech32 as clinkDecodeBech32, OfferPriceType } from '@shocknet/clink-sdk'
 import { string, array } from 'yup'
 
 export const externalLightningAddressValidator = lightningAddressValidator
@@ -72,23 +71,23 @@ export const clinkValidator = (type) =>
     .matches(/^(noffer|ndebit)1[02-9ac-hj-np-z]+$/, { message: 'invalid bech32 encoding' })
     .test({
       name: 'decode',
-      test: (v, context) => {
+      test: async (v, context) => {
         let decoded
         try {
+          const { decodeBech32: clinkDecodeBech32, OfferPriceType } = await import('@shocknet/clink-sdk')
           decoded = clinkDecodeBech32(v)
+          if (decoded.type !== type) {
+            return context.createError({ message: `must be ${type}` })
+          }
+
+          const { data } = decoded
+          if (!data) return context.createError({ message: 'no data' })
+
+          if (type === 'noffer' && data.priceType && data.priceType !== OfferPriceType.Spontaneous) {
+            return context.createError({ message: 'offer must be for spontaneous payments' })
+          }
         } catch (e) {
           return context.createError({ message: `failed to decode bech32: ${e.message}` })
-        }
-
-        if (decoded.type !== type) {
-          return context.createError({ message: `must be ${type}` })
-        }
-
-        const { data } = decoded
-        if (!data) return context.createError({ message: 'no data' })
-
-        if (type === 'noffer' && data.priceType && data.priceType !== OfferPriceType.Spontaneous) {
-          return context.createError({ message: 'offer must be for spontaneous payments' })
         }
 
         return true

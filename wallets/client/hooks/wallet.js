@@ -1,6 +1,6 @@
 import { useMe } from '@/components/me'
 import { useWalletSendReady, useWallets } from '@/wallets/client/hooks/global'
-import { isWallet } from '@/wallets/lib/util'
+import { isWallet } from '@/wallets/lib/protocol-lite'
 import { useMemo } from 'react'
 
 async function sendPaymentWithProtocol (protocolName, ...args) {

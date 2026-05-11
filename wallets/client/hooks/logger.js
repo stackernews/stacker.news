@@ -6,7 +6,7 @@ import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
 import { useToast } from '@/components/toast'
 import { FAST_POLL_INTERVAL_MS } from '@/lib/constants'
-import { isTemplate } from '@/wallets/lib/util'
+import { isTemplate } from '@/wallets/lib/protocol-lite'
 import { useDiagnostics } from './diagnostics'
 
 const EMPTY_LOGS = []

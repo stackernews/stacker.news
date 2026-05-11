@@ -10,7 +10,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react'
 
 import { useMe } from '@/components/me'
-import { isTemplate, isWallet } from '@/wallets/lib/util'
+import { isTemplate, isWallet } from '@/wallets/lib/protocol-lite'
 import { useWeblnEvents } from '@/wallets/lib/protocols/webln'
 import { useWalletsQuery } from '@/wallets/client/hooks/query'
 import { readOrCreateVaultKeyRecord, useGenerateRandomKey, useSetKey, useIsWrongKey, useVaultLocalStore } from '@/wallets/client/hooks/crypto'

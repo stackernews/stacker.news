@@ -32,7 +32,6 @@ import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 import { isAbortError } from '@/lib/error'
-export { MultiSelect } from './multi-select'
 export class SessionRequiredError extends Error {
   constructor () {
     super('session required')

@@ -12,10 +12,8 @@ import styles from './user-header.module.css'
 import navStyles from '@/styles/nav.module.css'
 import { useMe } from './me'
 import { NAME_MUTATION } from '@/fragments/users'
-import { QRCodeSVG } from 'qrcode.react'
 import LightningIcon from '@/svgs/bolt.svg'
-import { encodeLNUrl } from '@/lib/lnurl'
-import Avatar from './avatar'
+import { encodeLNUrl } from '@/lib/lnurl-encode'
 import { userSchema } from '@/lib/validate'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
@@ -32,6 +30,10 @@ import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import ItemPopover from './item-popover'
+import dynamic from 'next/dynamic'
+
+const Avatar = dynamic(() => import('./avatar'), { ssr: false })
+const QRCodeSVG = dynamic(() => import('qrcode.react').then(mod => mod.QRCodeSVG), { ssr: false })
 
 const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
 

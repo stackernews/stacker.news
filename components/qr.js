@@ -1,5 +1,7 @@
-import { QRCodeSVG } from 'qrcode.react'
 import { CopyInput, InputSkeleton } from '@/components/form'
+import dynamic from 'next/dynamic'
+
+const QRCodeSVG = dynamic(() => import('qrcode.react').then(mod => mod.QRCodeSVG), { ssr: false })
 
 export const qrImageSettings = {
   src: 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 256 256\'%3E%3Cpath fill-rule=\'evenodd\' d=\'m46.7 96.4 37.858 53.837-71.787 62.934L117.5 155.4l-40.075-52.854 49.412-59.492Zm156.35 41.546-49.416-58.509-34.909 116.771 44.25-67.358 58.509 59.25L241.4 47.725Z\'/%3E%3C/svg%3E',

@@ -59,7 +59,7 @@ import {
 import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
 import {
   isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
-} from '@/wallets/lib/util'
+} from '@/wallets/lib/protocol-lite'
 import { useWalletLoggerFactory } from './logger'
 
 const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect

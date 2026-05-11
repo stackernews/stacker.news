@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
-import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
+import { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr-lite'
 import { gql } from '@apollo/client'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
 import { SETTINGS } from '@/fragments/users'
@@ -202,6 +202,7 @@ export default function useCrossposter () {
     if (!event) return { allSuccessful, noteId }
 
     do {
+      const { default: Nostr } = await import('@/lib/nostr')
       const nostr = new Nostr()
       try {
         const result = await nostr.crosspost(event, { relays: failedRelays || relays })

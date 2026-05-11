@@ -1,5 +1,5 @@
 import Layout from '@/components/layout'
-import { useWalletImage } from '@/wallets/client/hooks'
+import { useWalletImage } from '@/wallets/client/hooks/image'
 import { walletDisplayName, walletGuideUrl } from '@/wallets/lib/util'
 import Link from 'next/link'
 import InfoIcon from '@/svgs/information-fill.svg'

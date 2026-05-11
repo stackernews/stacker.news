@@ -1,21 +1,28 @@
 import { useEffect, useRef } from 'react'
-import katex from 'katex'
 
 export default function KatexRenderer ({ equation, titleText, inline, onClick }) {
   const katexElementRef = useRef(null)
 
   useEffect(() => {
+    let cancelled = false
     const katexElement = katexElementRef.current
     if (!katexElement) return
 
-    katex.render(equation, katexElement, {
-      displayMode: !inline,
-      errorColor: '#cc0000',
-      output: 'html',
-      strict: false,
-      throwOnError: false,
-      trust: false
+    import('katex').then(({ default: katex }) => {
+      if (cancelled) return
+      katex.render(equation, katexElement, {
+        displayMode: !inline,
+        errorColor: '#cc0000',
+        output: 'html',
+        strict: false,
+        throwOnError: false,
+        trust: false
+      })
     })
+
+    return () => {
+      cancelled = true
+    }
   }, [equation, inline])
 
   return (

@@ -1,6 +1,6 @@
 import { isTemplate, isWallet, protocolClientSchema, protocolFields, protocolFormId, walletLud16Domain } from '@/wallets/lib/util'
 import { createContext, useContext, useEffect, useMemo, useCallback, useState } from 'react'
-import { useWalletProtocolUpsert } from '@/wallets/client/hooks'
+import { useWalletProtocolUpsert } from '@/wallets/client/hooks/query'
 import { MultiStepForm, useFormState, useStep } from '@/components/multi-step-form'
 import { parseNwcUrl } from '@/wallets/lib/validate'
 import { useApolloClient } from '@apollo/client/react'

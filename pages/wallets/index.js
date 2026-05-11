@@ -1,10 +1,10 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import {
-  DndProvider,
-  useSetWalletPriorities,
   useTemplates,
   useWallets
-} from '@/wallets/client/hooks'
+} from '@/wallets/client/hooks/global'
+import { DndProvider } from '@/wallets/client/hooks/dnd'
+import { useSetWalletPriorities } from '@/wallets/client/hooks/query'
 import {
   WalletCard,
   WalletLayout,

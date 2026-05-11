@@ -39,7 +39,6 @@ import { mergeRegister, $getNearestNodeOfType } from '@lexical/utils'
 import { $snGetBlockType, $snGetElementFormat, $snHasLink } from '@/lib/lexical/commands/formatting/utils'
 import { $findTopLevelElement } from '@/lib/lexical/commands/utils'
 import { $isCodeNode } from '@lexical/code'
-import { normalizeCodeLanguage } from '@lexical/code-shiki'
 import { ListNode } from '@lexical/list'
 import { SN_INSERT_MATH_COMMAND } from '@/lib/lexical/commands/math'
 import MathIcon from '@/svgs/editor/toolbar/inserts/formula.svg'
@@ -192,7 +191,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           const selectedElement = $findTopLevelElement(selectedNode)
           if ($isCodeNode(selectedElement)) {
             const language = selectedElement.getLanguage()
-            updates.codeLanguage = language ? normalizeCodeLanguage(language) || language : ''
+            updates.codeLanguage = language || ''
           }
           if ($isElementNode(selectedElement)) {
             updates.elementFormat = selectedElement.getFormatType()

@@ -1,4 +1,4 @@
-import { useDndHandlers } from '@/wallets/client/hooks'
+import { useDndHandlers } from '@/wallets/client/hooks/dnd'
 import classNames from 'classnames'
 import styles from '@/styles/dnd.module.css'
 

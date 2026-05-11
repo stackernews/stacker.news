@@ -60,7 +60,6 @@ import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet
 import {
   isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
 } from '@/wallets/lib/util'
-import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { useWalletLoggerFactory } from './logger'
 
 const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
@@ -517,6 +516,7 @@ function protocolTestMutation (protocol) {
 
 export function useTestSendPayment (protocol) {
   return useCallback(async (values) => {
+    const { protocolTestSendPayment } = await import('@/wallets/client/protocols')
     return await protocolTestSendPayment(
       protocol,
       values,

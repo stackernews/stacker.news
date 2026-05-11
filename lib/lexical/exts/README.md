@@ -91,12 +91,9 @@ This ensures that multiple consecutive images/videos are automatically grouped i
 
 used by: **Reader**
 
-Like the original `CodeHighlighterShikiExtension` it registers code highlighting via Shiki. We added the `UPDATE_CODE_THEME_COMMAND` listener to re-register the Shiki Highlighter with a new default theme.
+Registers code highlighting with Lexical's Prism tokenizer. The extension name is kept for compatibility with existing imports.
 
 It's paired with `CodeThemePlugin` that listens to the `useDarkMode` hook and calls `UPDATE_CODE_THEME_COMMAND` whenever SN's theme changes.
-
-If we move from dark mode to light mode, it will re-register the highlighter with the `github-light-default` theme, and viceversa.
-
 
 
 

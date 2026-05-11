@@ -10,7 +10,7 @@ import { useToast } from './toast'
 import { Form, SubmitButton } from './form'
 import { PAY_BOUNTY_MUTATION } from '@/fragments/payIn'
 import usePayInMutation from './payIn/hooks/use-pay-in-mutation'
-import { useHasSendWallet } from '@/wallets/client/hooks'
+import { useHasSendWallet } from '@/wallets/client/hooks/wallet'
 
 const addBountyPaidToCache = (cache, { data }, { optimistic = true } = {}) => {
   const response = Object.values(data)[0]

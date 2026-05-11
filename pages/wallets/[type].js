@@ -5,7 +5,7 @@ import {
   WalletRouteGateShell,
   WalletMultiStepForm
 } from '@/wallets/client/components'
-import { useTemplates, useWallets } from '@/wallets/client/hooks'
+import { useTemplates, useWallets } from '@/wallets/client/hooks/global'
 import { unurlify } from '@/wallets/lib/util'
 import { useMemo } from 'react'
 import { useRouter } from 'next/router'

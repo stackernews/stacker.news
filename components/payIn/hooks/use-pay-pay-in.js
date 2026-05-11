@@ -1,4 +1,4 @@
-import { useWalletPayment } from '@/wallets/client/hooks'
+import { useWalletPayment } from '@/wallets/client/hooks/payment'
 import usePayInHelper from './use-pay-in-helper'
 import useQrPayIn from './use-qr-pay-in'
 import { useCallback } from 'react'

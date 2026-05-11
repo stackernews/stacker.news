@@ -1,8 +1,14 @@
 import { useMe } from '@/components/me'
 import { useWalletSendReady, useWallets } from '@/wallets/client/hooks/global'
-import protocols from '@/wallets/client/protocols'
 import { isWallet } from '@/wallets/lib/util'
 import { useMemo } from 'react'
+
+async function sendPaymentWithProtocol (protocolName, ...args) {
+  const { default: protocols } = await import('@/wallets/client/protocols')
+  const protocol = protocols.find(p => p.name === protocolName)
+  if (!protocol) throw new Error(`unknown wallet protocol: ${protocolName}`)
+  return await protocol.sendPayment(...args)
+}
 
 export function useSendProtocols () {
   const wallets = useWallets()
@@ -28,10 +34,10 @@ export function useSendProtocols () {
             ...acc,
             ...[...templateOrderedProtocols, ...remainingProtocols]
               .map(walletProtocol => {
-                const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
+                const protocolName = walletProtocol.name
                 return {
                   ...walletProtocol,
-                  sendPayment
+                  sendPayment: (...args) => sendPaymentWithProtocol(protocolName, ...args)
                 }
               })
           ]

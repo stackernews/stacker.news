@@ -7,7 +7,7 @@ import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
 import canvasStyles from './offcanvas.module.css'
 import classNames from 'classnames'
-import { useWalletIndicator } from '@/wallets/client/hooks'
+import { useWalletIndicator } from '@/wallets/client/hooks/indicator'
 
 function MeImage ({ me, onClick }) {
   const src = useMemo(() => me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg', [me?.photoId])

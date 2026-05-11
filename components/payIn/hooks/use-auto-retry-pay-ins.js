@@ -1,4 +1,5 @@
-import { usePreferredSendProtocolId, useWalletPayment } from '@/wallets/client/hooks'
+import { useWalletPayment } from '@/wallets/client/hooks/payment'
+import { usePreferredSendProtocolId } from '@/wallets/client/hooks/wallet'
 import usePayInHelper from './use-pay-in-helper'
 import { useApolloClient } from '@apollo/client/react'
 import { FAILED_PAY_INS } from '@/fragments/payIn'

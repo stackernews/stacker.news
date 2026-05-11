@@ -31,7 +31,6 @@ import { useShowModal } from './modal'
 import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
-import { SNEditor } from './editor'
 import { isAbortError } from '@/lib/error'
 export { MultiSelect } from './multi-select'
 export class SessionRequiredError extends Error {
@@ -137,6 +136,14 @@ export function InputSkeleton ({ label, hint }) {
     </BootstrapForm.Group>
   )
 }
+
+function EditorSkeleton () {
+  return <div className='form-control clouds' style={{ color: 'transparent', minHeight: '6rem' }}>.</div>
+}
+
+const SNEditor = dynamic(() => import('./editor').then(mod => mod.SNEditor), {
+  loading: EditorSkeleton
+})
 
 function useEntityAutocomplete ({
   prefix,

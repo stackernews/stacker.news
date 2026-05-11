@@ -5,7 +5,7 @@ import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { ZAP_DEBOUNCE_MS } from '@/lib/constants'
-import { useHasSendWallet } from '@/wallets/client/hooks'
+import { useHasSendWallet } from '@/wallets/client/hooks/wallet'
 import { ActCanceledError, modifyActCache, updateAncestors, zapUndo, zapUndoTrigger } from './item-act'
 
 const ZAP_ME_SATS_FRAGMENT = gql`

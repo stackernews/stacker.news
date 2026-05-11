@@ -10,7 +10,7 @@ import { useMe } from '@/components/me'
 import { USER_ID } from '@/lib/constants'
 import { isAutoRetryEligiblePayIn } from './use-auto-retry-pay-ins'
 import { composeCallbacks } from '@/lib/compose-callbacks'
-import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
+import { usePreferredSendProtocolId } from '@/wallets/client/hooks/wallet'
 
 /*
 this is just like useMutation with a few changes:

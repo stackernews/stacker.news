@@ -1,6 +1,7 @@
-import { msatsToSatsDecimal, numWithUnits } from '@/lib/format'
+import { msatsToSatsDecimal } from '@/lib/format'
 import { payTypeShortName } from '@/lib/pay-in'
 import { ResponsiveSankey } from '@nivo/sankey'
+import { formatSankeyAsset, formatSankeyValue } from './format'
 import { RotatingSankeyLabels } from './label'
 
 export function PayInSankey ({ payIn }) {
@@ -9,6 +10,7 @@ export function PayInSankey ({ payIn }) {
     <div className='position-relative' style={{ width: '100%', maxWidth: '600px', height: '460px' }}>
       <ResponsiveSankey
         data={data}
+        valueFormat={formatSankeyValue}
         margin={{ top: 60, right: 60, bottom: 160, left: 60 }}
         align='justify'
         labelPosition='outside'
@@ -40,13 +42,6 @@ export function PayInSankeySkeleton () {
   return (
     <div style={{ width: '100%', maxWidth: '600px', height: '360px' }} className='clouds' />
   )
-}
-
-function assetFormatted (msats, type) {
-  if (type === 'CREDITS') {
-    return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false })
-  }
-  return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'sat', unitPlural: 'sats', abbreviate: false })
 }
 
 function Tooltip ({ node, link }) {
@@ -199,7 +194,7 @@ function reduceLinksAndNodes ({ links, nodes }) {
 
   reducedNodes.forEach(node => {
     if (node.mtokens) {
-      node.asset = assetFormatted(node.mtokens, node.custodialTokenType)
+      node.asset = formatSankeyAsset(node.mtokens, node.custodialTokenType)
     }
   })
 
@@ -214,7 +209,7 @@ function reduceLinksAndNodes ({ links, nodes }) {
 
   reducedLinks.forEach(link => {
     link.value = msatsToSatsDecimal(link.mtokens)
-    link.asset = assetFormatted(link.mtokens, link.custodialTokenType)
+    link.asset = formatSankeyAsset(link.mtokens, link.custodialTokenType)
   })
 
   return { links: reducedLinks, nodes: reducedNodes }

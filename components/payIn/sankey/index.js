@@ -27,6 +27,7 @@ export function PayInSankey ({ payIn }) {
         layout='vertical'
         linkContract={3}
         nodeHoverOthersOpacity={0.5}
+        valueFormat={formatSankeyValue}
         labelComponent={RotatingSankeyLabels}
         nodeTooltip={Tooltip}
         linkTooltip={Tooltip}
@@ -42,11 +43,20 @@ export function PayInSankeySkeleton () {
   )
 }
 
+function msatsToSankeyValue (msats) {
+  return Number(msatsToSatsDecimal(msats))
+}
+
+export function formatSankeyValue (value) {
+  return new Intl.NumberFormat().format(value)
+}
+
 function assetFormatted (msats, type) {
+  const value = msatsToSankeyValue(msats)
   if (type === 'CREDITS') {
-    return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false })
+    return numWithUnits(value, { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false })
   }
-  return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'sat', unitPlural: 'sats', abbreviate: false })
+  return numWithUnits(value, { unitSingular: 'sat', unitPlural: 'sats', abbreviate: false })
 }
 
 function Tooltip ({ node, link }) {
@@ -57,7 +67,7 @@ function Tooltip ({ node, link }) {
   return <div style={{ whiteSpace: 'nowrap', backgroundColor: 'var(--bs-body-bg)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--bs-border-color)' }}>{node.asset}</div>
 }
 
-function getSankeyData (payIn) {
+export function getSankeyData (payIn) {
   const nodes = []
   const links = []
 
@@ -213,7 +223,7 @@ function reduceLinksAndNodes ({ links, nodes }) {
   })
 
   reducedLinks.forEach(link => {
-    link.value = msatsToSatsDecimal(link.mtokens)
+    link.value = msatsToSankeyValue(link.mtokens)
     link.asset = assetFormatted(link.mtokens, link.custodialTokenType)
   })
 

@@ -89,13 +89,25 @@ This ensures that multiple consecutive images/videos are automatically grouped i
 
 ## `CodeShikiSNExtension`
 
-used by: **Reader**
+used by: **Editor; Reader**
 
-Like the original `CodeHighlighterShikiExtension` it registers code highlighting via Shiki. We added the `UPDATE_CODE_THEME_COMMAND` listener to re-register the Shiki Highlighter with a new default theme.
+Re-implementation of `@lexical/code-shiki` that loads Shiki languages and themes on-demand instead of inlining all of them into the main bundle. The upstream package ships as a single 9 MB `.mjs` that statically embeds every TextMate grammar as a `JSON.parse` literal, which Webpack cannot tree-shake. We replace it with a thin layer over `@shikijs/core` + `@shikijs/engine-javascript` + `shiki/langs` + `shiki/themes`, where each language/theme is fetched as its own dynamically-imported chunk the first time a code block uses it.
 
-It's paired with `CodeThemePlugin` that listens to the `useDarkMode` hook and calls `UPDATE_CODE_THEME_COMMAND` whenever SN's theme changes.
+The extension is composed across `lib/lexical/exts/shiki/`:
 
-If we move from dark mode to light mode, it will re-register the highlighter with the `github-light-default` theme, and viceversa.
+- `highlighter.js` — Shiki singleton created with `createHighlighterCoreSync({ engine, langs: [], themes: [] })`. Exposes `loadCodeLanguage` / `loadCodeTheme` (which trigger the dynamic imports and `markDirty` the dependent `CodeNode` once loaded), plus `isCodeLanguageLoaded` / `isCodeThemeLoaded` and the `normalizeCodeLanguage` alias map used by the toolbar.
+- `tokenizer.js` — `ShikiTokenizer.$tokenize` calls `$getHighlightNodes`, which runs `shiki.codeToTokens` and maps tokens to `CodeHighlightNode` / `TabNode` / `LineBreakNode`. Also implements diff-prefix decoration for `diff-xxxx` languages.
+- `transforms.js` — `$codeNodeTransform`, `$textNodeTransform`, `$updateAndRetainSelection`, `getDiffRange`, `isEqual`, `updateCodeGutter`, `$isSelectionInCode`. Same selection-retaining minimal-diff splice as upstream.
+- `handlers.js` — `$handleTab` / `$handleMultilineIndent` / `$handleShiftLines` / `$handleMoveTo` so Tab, Alt+Up/Down, and Cmd-Home/End behave the way users expect inside a code block.
+- `register.js` — `registerCodeHighlighting(editor, tokenizer)` glues the transforms and command handlers onto the editor and tracks `data-gutter` line numbers via a mutation listener.
+- `index.js` — the public `CodeShikiSNExtension`. Depends on `CodeExtension` (from `@lexical/code-core`) so `CodeNode` / `CodeHighlightNode` registration and the Enter-thrice exit handler come for free.
+
+We add a `UPDATE_CODE_THEME_COMMAND` listener that:
+
+1. Calls `setTheme(newTheme)` on every existing `CodeNode` so the highlight transform reruns and repaints them.
+2. Mutates `tokenizer.defaultTheme` so any new `CodeNode` picks the right theme before the transform sets one on the node.
+
+It's paired with `CodeThemePlugin` which listens to the `useDarkMode` hook and dispatches `UPDATE_CODE_THEME_COMMAND` with `github-light-default` or `github-dark-default` whenever SN's theme changes.
 
 
 

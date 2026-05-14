@@ -14,8 +14,7 @@ export const INITIAL_FORMAT_STATE = {
   isSuperscript: false,
   isLowercase: false,
   isUppercase: false,
-  isCapitalize: false,
-  codeLanguage: null
+  isCapitalize: false
 }
 
 const INITIAL_STATE = {

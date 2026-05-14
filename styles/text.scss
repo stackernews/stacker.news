@@ -25,7 +25,7 @@
   padding-bottom: calc(var(--grid-gap) * 0.5);
 }
 
-.sn-text code, .sn-text blockquote {
+.sn-text .sn-code-block, .sn-text blockquote {
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
 }
@@ -885,6 +885,7 @@ span + .sn-link {
 .sn-code-block {
   position: relative;
   background-color: var(--theme-commentBg);
+  color: var(--bs-body-color);
   font-family: Menlo, Consolas, Monaco, monospace;
   display: block;
   line-height: 1.53;

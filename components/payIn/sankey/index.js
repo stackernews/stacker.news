@@ -28,6 +28,7 @@ export function PayInSankey ({ payIn }) {
         linkContract={3}
         nodeHoverOthersOpacity={0.5}
         labelComponent={RotatingSankeyLabels}
+        valueFormat={formatSankeyValue}
         nodeTooltip={Tooltip}
         linkTooltip={Tooltip}
         nodeSpacing={24}
@@ -47,6 +48,10 @@ function assetFormatted (msats, type) {
     return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false })
   }
   return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'sat', unitPlural: 'sats', abbreviate: false })
+}
+
+function formatSankeyValue (value) {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(Number(value))
 }
 
 function Tooltip ({ node, link }) {

@@ -221,6 +221,22 @@ export const SATISTICS = gql`
   }
 `
 
+export const WALLET_ACTIVITY = gql`
+  ${PAY_IN_STATISTICS_FIELDS}
+  ${PAY_IN_WALLET_INFO_FIELDS}
+  query WalletActivity($cursor: String, $walletId: ID, $custodialTokenType: CustodialTokenType) {
+    satistics(cursor: $cursor, walletId: $walletId, custodialTokenType: $custodialTokenType) {
+      payIns {
+        ...PayInStatisticsFields
+        walletInfo {
+          ...PayInWalletInfoFields
+        }
+      }
+      cursor
+    }
+  }
+`
+
 // Used by SSR so the transaction page has viewer-scoped wallet info on first render.
 export const GET_PAY_IN_FULL_WITH_WALLET_INFO = gql`
   ${PAY_IN_STATISTICS_FIELDS}

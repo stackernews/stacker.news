@@ -2,7 +2,8 @@ import {
   parsePaymentRequest
 } from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
-import { validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
+import { validateSchema, withdrawlSchema, lnAddrSchema, walletInvoiceSchema } from '@/lib/validate'
+import { satsToMsats } from '@/lib/format'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { lnAddrOptions } from '@/lib/lnurl'
@@ -11,6 +12,7 @@ import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/
 import { getNodeSockets } from '../lnd'
 import pay from '../payIn'
 import { dropBolt11 } from '@/worker/autoDropBolt11'
+import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
 
 export function createHmac (hash) {
   if (!hash) throw new GqlInputError('hash required to create hmac')
@@ -47,6 +49,7 @@ const resolvers = {
   },
   Mutation: {
     createWithdrawl: createWithdrawal,
+    createWalletInvoice,
     sendToLnAddr,
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {
@@ -118,6 +121,72 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   }
 
   return await pay('WITHDRAWAL', { bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models })
+}
+
+async function createWalletInvoice (parent, { walletId, amount, description }, { me, models }) {
+  if (!me) {
+    throw new GqlAuthenticationError()
+  }
+
+  const walletIdNumber = Number(walletId)
+  if (!Number.isSafeInteger(walletIdNumber) || walletIdNumber <= 0) {
+    throw new GqlInputError('invalid wallet id')
+  }
+
+  await validateSchema(walletInvoiceSchema, { amount, description })
+
+  const sats = Number(amount)
+  if (!Number.isSafeInteger(sats) || sats <= 0) {
+    throw new GqlInputError('invalid amount')
+  }
+
+  const protocols = await models.walletProtocol.findMany({
+    where: {
+      walletId: walletIdNumber,
+      send: false,
+      enabled: true,
+      wallet: {
+        userId: me.id
+      }
+    },
+    orderBy: {
+      id: 'asc'
+    }
+  })
+
+  if (protocols.length === 0) {
+    throw new GqlInputError('wallet cannot receive')
+  }
+
+  const walletProtocols = protocols.map(protocol => ({
+    ...protocol,
+    userId: me.id
+  }))
+
+  const invoices = createBolt11FromWalletProtocols(
+    walletProtocols,
+    {
+      msats: satsToMsats(sats),
+      description: description || `Invoice for @${me.name} on SN`
+    },
+    { models }
+  )
+  const { value } = await invoices.next()
+
+  if (value) {
+    const { bolt11, protocol } = value
+    const invoice = await parsePaymentRequest({ request: bolt11 })
+    return {
+      bolt11,
+      hash: invoice.id,
+      description: invoice.description,
+      msats: invoice.mtokens,
+      protocolId: protocol.id,
+      protocolName: protocol.name
+    }
+  }
+
+  throw new GqlInputError('wallet could not create a receive invoice')
 }
 
 async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },

@@ -41,6 +41,7 @@ export const resolvers = {
       }, [])
     ),
     addWalletLog,
+    removeWalletProtocol,
     deleteWalletLogs
   }
 }
@@ -245,7 +246,7 @@ export async function removeWalletProtocol (parent, { id }, { me, models, tx }) 
   return await (tx ? transaction(tx) : models.$transaction(transaction))
 }
 
-async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me, models }) {
+async function walletLogs (parent, { protocolId, walletId, payInId, cursor, debug }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   const decodedCursor = decodeCursor(cursor)
@@ -259,6 +260,14 @@ async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me,
 
   if (protocolId !== undefined) {
     where.protocolId = protocolId
+  }
+  if (walletId !== undefined) {
+    where.protocol = {
+      walletId: Number(walletId),
+      wallet: {
+        userId: me.id
+      }
+    }
   }
   if (payInId !== undefined) {
     where.payInId = payInId

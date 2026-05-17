@@ -85,14 +85,71 @@ export async function getPayIn (parent, { id }, { me, models }) {
 export default {
   Query: {
     payIn: getPayIn,
-    satistics: async (parent, { cursor }, { models, me }) => {
+    satistics: async (parent, { cursor, walletId, custodialTokenType }, { models, me }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
       const userId = me.id
+      const walletIdNumber = walletId != null ? Number(walletId) : null
+      if (walletIdNumber !== null && (!Number.isSafeInteger(walletIdNumber) || walletIdNumber <= 0)) {
+        throw new GqlInputError('invalid wallet id')
+      }
       const decodedCursor = decodeCursor(cursor)
       const offset = decodedCursor.offset
       const limit = LIMIT
+      const walletSendFilter = walletIdNumber !== null
+        ? Prisma.sql`
+            AND EXISTS (
+              SELECT 1
+              FROM "PayInBolt11"
+              JOIN "WalletProtocol" ON "WalletProtocol"."id" = "PayInBolt11"."protocolId"
+              JOIN "Wallet" ON "Wallet"."id" = "WalletProtocol"."walletId"
+              WHERE "PayInBolt11"."payInId" = "PayIn"."id"
+              AND "WalletProtocol"."walletId" = ${walletIdNumber}
+              AND "Wallet"."userId" = ${userId}
+            )`
+        : Prisma.empty
+      const walletReceiveFilter = walletIdNumber !== null
+        ? Prisma.sql`
+            AND EXISTS (
+              SELECT 1
+              FROM "PayOutBolt11"
+              JOIN "WalletProtocol" ON "WalletProtocol"."id" = "PayOutBolt11"."protocolId"
+              JOIN "Wallet" ON "Wallet"."id" = "WalletProtocol"."walletId"
+              WHERE "PayOutBolt11"."payInId" = "PayIn"."id"
+              AND "WalletProtocol"."walletId" = ${walletIdNumber}
+              AND "Wallet"."userId" = ${userId}
+            )`
+        : Prisma.empty
+      const tokenSendFilter = custodialTokenType
+        ? Prisma.sql`
+            AND EXISTS (
+              SELECT 1
+              FROM "PayInCustodialToken"
+              WHERE "PayInCustodialToken"."payInId" = "PayIn"."id"
+              AND "PayInCustodialToken"."custodialTokenType" = ${custodialTokenType}::"CustodialTokenType"
+            )`
+        : Prisma.empty
+      const tokenReceiveFilter = custodialTokenType
+        ? Prisma.sql`
+            AND (
+              EXISTS (
+                SELECT 1
+                FROM "RefundCustodialToken"
+                WHERE "RefundCustodialToken"."payInId" = "PayIn"."id"
+                AND "PayIn"."userId" = ${userId}
+                AND "RefundCustodialToken"."custodialTokenType" = ${custodialTokenType}::"CustodialTokenType"
+              ) OR
+              EXISTS (
+                SELECT 1
+                FROM "PayOutCustodialToken"
+                WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id"
+                AND "PayOutCustodialToken"."userId" = ${userId}
+                AND "PayIn"."payInState" = 'PAID'
+                AND "PayOutCustodialToken"."custodialTokenType" = ${custodialTokenType}::"CustodialTokenType"
+              )
+            )`
+        : Prisma.empty
 
       // why we need the union:
       // if we are paying in, we want a row for that when it's created, regardless of whether it's succeeded, pending, or failed
@@ -111,6 +168,8 @@ export default {
             AND "PayIn"."mcost" > 0
             AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT')
             AND "PayIn"."created_at" <= ${decodedCursor.time}
+            ${walletSendFilter}
+            ${tokenSendFilter}
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
           )
@@ -121,6 +180,8 @@ export default {
             WHERE "PayIn"."benefactorId" IS NULL
             AND "PayIn"."mcost" > 0
             AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
+            ${walletReceiveFilter}
+            ${tokenReceiveFilter}
             AND (
               EXISTS (
                 SELECT 1

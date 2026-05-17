@@ -10,8 +10,8 @@ import { isTemplate } from '@/wallets/lib/util'
 //   when we delete logs for a protocol, the cache is not updated
 //   so when we go to all wallet logs, we still see the deleted logs until the query is refetched
 
-export function WalletLogs ({ protocol, payInId, className, debug, poll = true, pollInterval }) {
-  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol, debug, payInId, { poll, pollInterval })
+export function WalletLogs ({ protocol, wallet, payInId, className, debug, poll = true, pollInterval }) {
+  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol, debug, payInId, { poll, pollInterval }, wallet)
   const deleteLogs = useDeleteWalletLogs(protocol, debug)
 
   const onDelete = useCallback(() => {
@@ -27,7 +27,7 @@ export function WalletLogs ({ protocol, payInId, className, debug, poll = true, 
 
   // showing delete button and logs footer for temporary template logs is unnecessary clutter
   const template = protocol && isTemplate(protocol)
-  const canDelete = !template && payInId === undefined
+  const canDelete = !template && payInId === undefined && !wallet
 
   return (
     <div className={className}>
@@ -95,7 +95,7 @@ export function LogMessage ({ tag, level, message, context, ts }) {
         <Level level={level} />
         {tag !== null && <Tag tag={tag?.toLowerCase() ?? 'system'} />}
         <Message message={message} />
-        {hasContext && <Indicator show={showContext} />}
+        <Indicator show={showContext} visible={hasContext} />
       </div>
       {hasContext && showContext && <Context context={filtered} />}
     </>
@@ -147,8 +147,8 @@ function Message ({ message }) {
   return <div className={styles.message}>{message}</div>
 }
 
-function Indicator ({ show }) {
-  return <div className={styles.indicator}>{show ? '-' : '+'}</div>
+function Indicator ({ show, visible }) {
+  return <div className={styles.indicator}>{visible ? (show ? '-' : '+') : null}</div>
 }
 
 function Context ({ context }) {

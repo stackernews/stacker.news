@@ -28,7 +28,9 @@
 }
 
 .row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 3.25rem 2.25rem max-content minmax(0, 1fr) 1rem;
+    align-items: baseline;
     gap: 0.5rem;
     font-family: monospace;
     color: var(--theme-grey) !important; /* .text-muted */
@@ -40,8 +42,7 @@
 
 .timestamp {
     white-space: nowrap;
-    min-width: 20px;
-    text-align: right;
+    text-align: left;
 }
 
 .transaction .timestamp {
@@ -51,7 +52,6 @@
 .level {
     font-weight: bold;
     text-transform: uppercase;
-    min-width: 30px;
 }
 
 .tag {
@@ -60,6 +60,7 @@
 }
 
 .message {
+    min-width: 0;
     word-break: break-word;
 }
 
@@ -68,7 +69,7 @@
 }
 
 .indicator {
-    margin-left: auto;
+    text-align: right;
 }
 
 .context {

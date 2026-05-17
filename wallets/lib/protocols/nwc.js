@@ -2,6 +2,8 @@ import Nostr from '@/lib/nostr'
 import { NDKNWCWallet } from '@nostr-dev-kit/ndk-wallet'
 import { nwcUrlValidator, parseNwcUrl } from '@/wallets/lib/validate'
 
+const UINT64_MAX_MSATS = 18446744073709551615n
+
 // Nostr Wallet Connect (NIP-47)
 // https://github.com/nostr-protocol/nips/blob/master/47.md
 
@@ -84,11 +86,28 @@ export async function getBalance (url, { signal } = {}) {
     const balance = response.result?.balance
     if (balance == null) return null
 
+    const balanceSats = nwcMsatsToSats(balance)
+    if (balanceSats == null) return null
+
     const maxAmount = response.result?.max_amount ?? response.result?.maxAmount
     if (maxAmount != null) {
-      return Math.floor(Math.min(balance, maxAmount) / 1000)
+      const maxAmountSats = nwcMsatsToSats(maxAmount)
+      if (maxAmountSats != null) return Math.min(balanceSats, maxAmountSats)
     }
 
-    return Math.floor(balance / 1000)
+    return balanceSats
   }, { url }, { signal })
+}
+
+function nwcMsatsToSats (msats) {
+  const amount = nwcAmountToBigInt(msats)
+  if (amount == null || amount === UINT64_MAX_MSATS) return null
+  return Number(amount / 1000n)
+}
+
+function nwcAmountToBigInt (amount) {
+  if (typeof amount === 'bigint') return amount
+  if (typeof amount === 'string' && /^\d+$/.test(amount)) return BigInt(amount)
+  if (typeof amount === 'number' && Number.isSafeInteger(amount) && amount >= 0) return BigInt(amount)
+  return null
 }

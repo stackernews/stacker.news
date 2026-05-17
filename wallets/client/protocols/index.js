@@ -19,6 +19,7 @@ export * from './util'
  * @property {ProtocolSendPayment} sendPayment - pays a bolt11 invoice
  * @property {ProtocolTestSendPayment} testSendPayment - test if configuration can pay
  * @property {ProtocolGetBalance} [getBalance] - fetches wallet balance when supported
+ * @property {boolean} [maxFee] - paying supports a max fee option in sats
  */
 
 /**
@@ -37,6 +38,7 @@ export * from './util'
 /**
  * @typedef {Object} SendPaymentOptions
  * @property {AbortSignal} signal - signal to abort the request
+ * @property {number} [maxFee] - maximum fee in sats
  */
 
 /**

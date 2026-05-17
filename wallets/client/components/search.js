@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react'
-import { Form, InputGroup, Button } from 'react-bootstrap'
-import SearchIcon from '@/svgs/search-line.svg'
+import { Form } from 'react-bootstrap'
 
 function fuzzySearch (query) {
   return (text) => {
@@ -17,23 +16,18 @@ export function WalletSearch ({ setSearchFilter }) {
     const query = e.target.value
     setSearchQuery(query)
     setSearchFilter(() => fuzzySearch(query))
-  }, [])
+  }, [setSearchFilter])
 
   return (
     <div className='d-flex justify-content-center mb-4 mt-4'>
       <div className='w-100' style={{ maxWidth: '400px' }}>
         <div className='position-relative'>
-          <InputGroup>
-            <Form.Control
-              type='text'
-              placeholder='Search wallets...'
-              value={searchQuery}
-              onChange={onChange}
-            />
-            <Button variant='primary' className='border-start-0'>
-              <SearchIcon width='16' height='16' />
-            </Button>
-          </InputGroup>
+          <Form.Control
+            type='text'
+            placeholder='Search wallets...'
+            value={searchQuery}
+            onChange={onChange}
+          />
         </div>
       </div>
     </div>

@@ -1,50 +1,33 @@
-import { useCallback, useMemo, useRef, useEffect, useState } from 'react'
-import { InputGroup, Nav } from 'react-bootstrap'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { InputGroup } from 'react-bootstrap'
 import classNames from 'classnames'
 import styles from '@/styles/wallet.module.css'
-import navStyles from '@/styles/nav.module.css'
-import { Checkbox, Form, Input, PasswordInput, SubmitButton } from '@/components/form'
-import CancelButton from '@/components/cancel-button'
+import { Form, Input, PasswordInput } from '@/components/form'
 import Text from '@/components/text'
 import Info from '@/components/info'
-import { useFormState, useNext, useStep, useStepIndex } from '@/components/multi-step-form'
-import { isTemplate, protocolDisplayName, protocolFields, protocolFormId, protocolLogName, walletLud16Domain } from '@/wallets/lib/util'
-import { WalletGuide, WalletLayout, WalletLayoutHeader, WalletLayoutImageOrName, WalletLogs } from '@/wallets/client/components'
-import { WalletFormLogsContext, useTestSendPayment, useWalletLogger, useTestCreateInvoice, useWalletSupport, useSingleFlight } from '@/wallets/client/hooks'
-import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
+import { isTemplate, protocolDisplayName, protocolFormId, protocolLogName, walletDisplayName, walletLud16Domain } from '@/wallets/lib/util'
+import { WalletGuide, WalletLayoutImageOrName } from '../layout'
+import { WalletDeleteObstacle } from '@/wallets/client/components/card'
+import { useTestSendPayment, useTestCreateInvoice, useWalletSupport, useSingleFlight, useWalletImage } from '@/wallets/client/hooks'
 import ArrowUpRight from '@/svgs/arrow-right-up-line.svg'
 import ArrowDownLeft from '@/svgs/arrow-left-down-line.svg'
 import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
+import TrashIcon from '@/svgs/delete-bin-line.svg'
 import { useFormikContext } from 'formik'
-import { WalletMultiStepFormContextProvider, Step, useWallet, useWalletProtocols, useProtocol, useProtocolForm, useSaveWallet, useSaveCurrentForm, hasProtocolConfig } from './hooks'
-import { BackButton, SkipButton } from './button'
+import { WalletSettingsFormContextProvider, useWallet, useWalletFormState, useWalletProtocols, useProtocolForm, useSaveWallet, useClearWalletProtocolForm, hasProtocolConfig } from './hooks'
 import { useToast } from '@/components/toast'
+import { useShowModal } from '@/components/modal'
 import { useRouter } from 'next/router'
+import copy from 'clipboard-copy'
+import { parseNwcUrl } from '@/wallets/lib/validate'
 
-function WalletFormLogsProvider ({ children }) {
-  const [logs, setLogs] = useState([])
-
-  const addLog = useCallback(({ level, message }) => {
-    // TODO(wallet-v2): Date.now() might return the same value for two logs
-    //   use window.performance.now() instead?
-    setLogs(prev => [{ id: Date.now(), level, message, createdAt: new Date() }, ...prev])
-  }, [])
-
-  const clearLogs = useCallback(() => {
-    setLogs([])
-  }, [])
-
-  const value = useMemo(() => ({
-    logs,
-    addLog,
-    clearLogs
-  }), [logs, addLog, clearLogs])
-
-  return (
-    <WalletFormLogsContext.Provider value={value}>
-      {children}
-    </WalletFormLogsContext.Provider>
-  )
+const TestStatus = {
+  SAVED: 'saved',
+  TESTED: 'tested',
+  NEEDS_TEST: 'needs_test',
+  TESTING: 'testing',
+  FAILED: 'failed',
+  NOT_SET: 'not_set'
 }
 
 export function WalletMultiStepForm ({ wallet }) {
@@ -58,231 +41,737 @@ export function WalletMultiStepForm ({ wallet }) {
       }
     }, {}), [wallet])
 
+  return (
+    <WalletSettingsFormContextProvider wallet={wallet} initial={initial}>
+      <WalletSettingsForm />
+    </WalletSettingsFormContextProvider>
+  )
+}
+
+function WalletSettingsForm () {
+  const wallet = useWallet()
   const support = useWalletSupport(wallet)
-  const steps = useMemo(() =>
-    [
-      support.send && Step.SEND,
-      support.receive && Step.RECEIVE,
-      Step.CONFIRM
-    ].filter(Boolean),
-  [support])
+  const sendProtocols = useWalletProtocols(true)
+  const receiveProtocols = useWalletProtocols(false)
+  const primarySendProtocols = useMemo(() => sendProtocols.filter(p => p.name !== 'WEBLN'), [sendProtocols])
+  const fallbackSendProtocols = useMemo(() => sendProtocols.filter(p => p.name === 'WEBLN'), [sendProtocols])
+  const sharedMethodNames = useMemo(() => {
+    const receiveNames = new Set(receiveProtocols.map(protocol => protocol.name))
+    return primarySendProtocols.map(protocol => protocol.name).filter(name => receiveNames.has(name))
+  }, [primarySendProtocols, receiveProtocols])
+  const [connectionMethod, setConnectionMethod] = useState(sharedMethodNames[0])
+  const [preferredReceiveProtocolName, setPreferredReceiveProtocolName] = useState()
+  const [formState, setFormState] = useWalletFormState()
+  const [testState, setTestState] = useState({})
+  const saveWallet = useSaveWallet()
+  const toaster = useToast()
+  const router = useRouter()
 
-  return (
-    <WalletLayout>
-      <div className={styles.form}>
-        <WalletLayoutHeader>
-          <WalletLayoutImageOrName name={wallet.name} maxHeight='80px' />
-        </WalletLayoutHeader>
-        <WalletGuide name={wallet.name} />
-        <WalletMultiStepFormContextProvider wallet={wallet} initial={initial} steps={steps}>
-          {steps.map(step => {
-            // WalletForm is aware of the current step via hooks
-            // and can thus render a different form for send vs. receive
-            if (step === Step.CONFIRM) return <WalletConfirmStep key={step} />
-            return <WalletForm key={step} />
-          })}
-        </WalletMultiStepFormContextProvider>
-      </div>
-    </WalletLayout>
-  )
-}
+  const configuredProtocols = useMemo(() => {
+    return Object.values(formState).filter(protocol => {
+      return protocol?.enabled !== false && hasProtocolConfig(protocol)
+    })
+  }, [formState])
+  const hasConfiguredCapability = useMemo(() => {
+    return Object.values(formState).some(hasProtocolConfig)
+  }, [formState])
+  const hasPendingRemoval = useMemo(() => {
+    return !isTemplate(wallet) && wallet.protocols.some(protocol => !hasProtocolConfig(formState[protocolFormId(protocol)]))
+  }, [wallet, formState])
 
-function WalletForm () {
-  return (
-    <WalletFormLogsProvider>
-      <WalletProtocolSelector />
-      <WalletProtocolForm />
-    </WalletFormLogsProvider>
-  )
-}
+  const saveBlocker = useMemo(() => {
+    const dirtyTest = Object.values(testState).find(({ status }) => {
+      return [TestStatus.NEEDS_TEST, TestStatus.TESTING, TestStatus.FAILED].includes(status)
+    })
+    if (dirtyTest) return statusBlockerMessage(dirtyTest)
 
-function WalletProtocolSelector () {
-  const protocols = useWalletProtocols()
-  const [protocol, selectProtocol] = useProtocol()
-  const [saveCurrentForm] = useSaveCurrentForm()
-  const step = useStep()
-  const isSend = step === Step.SEND
-  const logger = useWalletLogger(protocol)
-
-  const handleTabClick = useCallback(async (p) => {
-    // don't do anything if clicking the already selected protocol
-    if (p.name === protocol?.name) return
-
-    // if there's a current form, save/validate it first
-    if (saveCurrentForm) {
-      try {
-        await saveCurrentForm()
-      } catch (err) {
-        // validation failed, don't switch tabs
-        logger.error(err.message)
-        return
-      }
+    if (!hasConfiguredCapability && !hasPendingRemoval) {
+      return 'configure at least one capability'
     }
-    selectProtocol(p)
-  }, [protocol, saveCurrentForm, selectProtocol])
 
-  // don't show selector if there's only one protocol option
-  if (protocols.length <= 1) return null
+    const unready = configuredProtocols.find(protocol => !isProtocolReadyToSave(protocol, testState))
+    if (unready) return `test ${unready.send ? 'send' : 'receive'} before saving`
+
+    return null
+  }, [configuredProtocols, hasConfiguredCapability, hasPendingRemoval, testState])
+
+  const canSave = !saveBlocker
+
+  const onSaveWalletSubmit = useCallback(async () => {
+    if (!canSave) return
+    try {
+      await saveWallet()
+      toaster.success('wallet saved')
+      router.push(wallet.id ? `/wallets/${wallet.id}` : '/wallets')
+    } catch (err) {
+      console.error(err)
+      toaster.danger('failed to save wallet')
+    }
+  }, [canSave, saveWallet, toaster, router])
+
+  const [onSave, inFlight] = useSingleFlight(onSaveWalletSubmit)
+
+  useEffect(() => {
+    if (!sharedMethodNames.includes(connectionMethod)) {
+      setConnectionMethod(sharedMethodNames[0])
+    }
+  }, [connectionMethod, sharedMethodNames])
+
+  const onSharedMethodChange = useCallback((name) => {
+    if (sharedMethodNames.includes(name)) {
+      setConnectionMethod(name)
+    }
+  }, [sharedMethodNames])
+
+  const onReceiveMethodChange = useCallback((name) => {
+    setPreferredReceiveProtocolName(name)
+    onSharedMethodChange(name)
+  }, [onSharedMethodChange])
+
+  const onNwcLud16 = useCallback((address) => {
+    const protocol = receiveProtocols.find(protocol => protocol.name === 'LN_ADDR')
+    if (!protocol || !address) return
+
+    setPreferredReceiveProtocolName('LN_ADDR')
+    const testValues = normalizeTestValues(protocol, { enabled: true, address })
+    setFormState(protocolFormId(protocol), {
+      name: protocol.name,
+      send: protocol.send,
+      __typename: 'WalletProtocol',
+      enabled: true,
+      config: { address }
+    })
+    setTestState(prev => ({
+      ...prev,
+      [protocolFormId(protocol)]: {
+        status: TestStatus.NEEDS_TEST,
+        error: null,
+        fingerprint: valuesFingerprint(testValues),
+        protocol
+      }
+    }))
+  }, [receiveProtocols, setFormState])
 
   return (
-    <div className={styles.protocolSelector}>
-      <div className={styles.protocolSelectorHeader}>
-        {isSend ? 'Send protocol' : 'Receive protocol'}
+    <div className={styles.walletSettingsPage}>
+      <main className={styles.walletSettingsMain}>
+        <WalletSettingsHeader />
+
+        <div className={styles.capabilityList}>
+          {support.send && primarySendProtocols.length > 0 && (
+            <CapabilityCard
+              title='send capability'
+              subtitle='wallet payments'
+              icon={<ArrowUpRight width={16} height={16} />}
+              tone='send'
+              protocols={primarySendProtocols}
+              preferredProtocolName={connectionMethod}
+              onMethodChange={onSharedMethodChange}
+              onNwcLud16={onNwcLud16}
+              testState={testState}
+              setTestState={setTestState}
+            />
+          )}
+
+          {support.receive && receiveProtocols.length > 0 && (
+            <CapabilityCard
+              title='receive capability'
+              subtitle='invoice creation'
+              icon={<ArrowDownLeft width={16} height={16} />}
+              tone='receive'
+              protocols={receiveProtocols}
+              preferredProtocolName={preferredReceiveProtocolName ?? connectionMethod}
+              forcePreferredProtocol={!!preferredReceiveProtocolName}
+              onMethodChange={onReceiveMethodChange}
+              testState={testState}
+              setTestState={setTestState}
+            />
+          )}
+
+          {fallbackSendProtocols.map(protocol => (
+            <CapabilityCard
+              key={protocolFormId(protocol)}
+              title='WebLN fallback'
+              subtitle='optional browser support'
+              protocols={[protocol]}
+              tone='fallback'
+              optional
+              testState={testState}
+              setTestState={setTestState}
+            />
+          ))}
+        </div>
+        {!isTemplate(wallet) && <WalletSettingsDangerZone wallet={wallet} />}
+      </main>
+
+      <aside className={styles.walletSettingsAside}>
+        <div className={styles.walletSettingsAsideCard}>
+          <WalletLayoutImageOrName name={wallet.name} maxHeight='48px' />
+          <div className={styles.walletSettingsAsideTitle}>{walletDisplayName(wallet.name)}</div>
+          <p className='text-muted mb-0'>
+            Set up this wallet's capabilities, then test them before saving.
+          </p>
+          <WalletGuide name={wallet.name} />
+        </div>
+        <div className={styles.walletSettingsAsideCard}>
+          <div className={styles.walletSettingsAsideTitle}>save status</div>
+          <p className='text-muted mb-0'>
+            {canSave ? 'ready to save' : saveBlocker}
+          </p>
+        </div>
+      </aside>
+
+      <div className={styles.walletSettingsSaveBar}>
+        <button type='button' className={styles.walletFooterBackButton} onClick={() => router.back()}>
+          back
+        </button>
+        {!canSave
+          ? <div className={styles.walletSettingsSaveBlocker}>{saveBlocker}</div>
+          : (
+            <button
+              type='button'
+              className={classNames('btn btn-primary', styles.walletSettingsSaveButton, inFlight && 'pulse')}
+              disabled={inFlight}
+              onClick={onSave}
+            >
+              {inFlight ? 'saving wallet...' : 'save wallet'}
+            </button>
+            )}
       </div>
-      <Nav className={classNames(navStyles.nav, 'mt-0')} activeKey={protocol?.name}>
-        {
-          protocols.map(p => {
-            return (
-              <Nav.Item key={p.id} onClick={() => handleTabClick(p)}>
-                <Nav.Link eventKey={p.name}>
-                  {protocolDisplayName(p)}
-                </Nav.Link>
-              </Nav.Item>
-            )
-          })
-        }
-      </Nav>
     </div>
   )
 }
 
-function WalletProtocolForm () {
+function WalletSettingsDangerZone ({ wallet }) {
+  const showModal = useShowModal()
+  const router = useRouter()
+
+  return (
+    <section className={styles.walletSettingsDangerZone}>
+      <div>
+        <h2>danger zone</h2>
+        <p>Delete this wallet and its saved send/receive configuration.</p>
+      </div>
+      <button
+        type='button'
+        className={styles.deleteWalletButton}
+        onClick={() => showModal(onClose => (
+          <WalletDeleteObstacle wallet={wallet} onClose={onClose} onSuccess={() => router.push('/wallets')} />
+        ))}
+      >
+        <TrashIcon width={16} height={16} /> delete wallet
+      </button>
+    </section>
+  )
+}
+
+function WalletSettingsHeader () {
   const wallet = useWallet()
-  const [protocol] = useProtocol()
-  const next = useNext()
+  const image = useWalletImage(wallet.name)
+  const [imageError, setImageError] = useState(false)
+
+  useEffect(() => {
+    setImageError(false)
+  }, [image?.src])
+
+  return (
+    <header className={styles.walletSettingsHeader}>
+      <h1>configure</h1>
+      <div className={styles.walletActionWallet}>
+        {image && !imageError
+          ? <img src={image.src} alt={image.alt} onError={() => setImageError(true)} className={styles.walletActionWalletLogo} />
+          : walletDisplayName(wallet.name)}
+      </div>
+    </header>
+  )
+}
+
+function CapabilityCard ({ title, subtitle, icon, tone, protocols, preferredProtocolName, forcePreferredProtocol, onMethodChange, onNwcLud16, optional = false, testState, setTestState }) {
+  const [formState] = useWalletFormState()
+  const clearProtocolForm = useClearWalletProtocolForm()
+  const [showProtocolChoices, setShowProtocolChoices] = useState(false)
+  const initialProtocol = useMemo(() => {
+    return protocols.find(protocol => hasProtocolConfig(formState[protocolFormId(protocol)])) ??
+      protocols.find(protocol => protocol.name === preferredProtocolName) ??
+      protocols[0]
+  }, [protocols, formState, preferredProtocolName])
+  const [selectedProtocolName, setSelectedProtocolName] = useState(initialProtocol?.name)
+  const [hasSelectedProtocol, setHasSelectedProtocol] = useState(false)
+
+  useEffect(() => {
+    if (!protocols.find(protocol => protocol.name === selectedProtocolName)) {
+      setSelectedProtocolName(initialProtocol?.name)
+      setHasSelectedProtocol(false)
+    }
+  }, [protocols, selectedProtocolName, initialProtocol])
+
+  const protocol = protocols.find(protocol => protocol.name === selectedProtocolName) ?? initialProtocol
+  const formId = protocolFormId(protocol)
+  const protocolState = formState[formId]
+  const configured = hasProtocolConfig(protocolState)
+  const status = getCapabilityStatus(protocolState, testState[formId])
+  const [open, setOpen] = useState(configured)
+
+  useEffect(() => {
+    if (selectedProtocolName === preferredProtocolName) return
+    if ((forcePreferredProtocol || (!configured && !hasSelectedProtocol)) && protocols.find(protocol => protocol.name === preferredProtocolName)) {
+      setSelectedProtocolName(preferredProtocolName)
+    }
+  }, [configured, forcePreferredProtocol, hasSelectedProtocol, preferredProtocolName, protocols, selectedProtocolName])
+
+  useEffect(() => {
+    if (configured) setOpen(true)
+  }, [configured])
+
+  if (!protocol) return null
+
+  const onRemove = async () => {
+    if (!configured) return
+    if (!window.confirm(`Remove ${protocol.send ? 'send' : 'receive'} from this wallet? This change is saved when you save the wallet.`)) return
+
+    clearProtocolForm(formId)
+    setTestState(({ [formId]: _removed, ...testState }) => testState)
+    setOpen(false)
+  }
+
+  const clearTransientProtocol = (id) => {
+    clearProtocolForm(id)
+    setTestState(({ [id]: _removed, ...testState }) => testState)
+  }
+
+  const onCancel = () => {
+    protocols.forEach(protocol => clearProtocolForm(protocolFormId(protocol)))
+    setTestState(testState => {
+      const protocolIds = new Set(protocols.map(protocol => protocolFormId(protocol)))
+      return Object.fromEntries(Object.entries(testState).filter(([id]) => !protocolIds.has(id)))
+    })
+    setShowProtocolChoices(false)
+    setOpen(false)
+  }
+
+  return (
+    <section
+      className={classNames(
+        styles.capabilityCard,
+        tone === 'send' && styles.sendCapabilityCard,
+        tone === 'receive' && styles.receiveCapabilityCard,
+        tone === 'fallback' && styles.fallbackCapabilityCard,
+        optional && styles.optionalCapabilityCard
+      )}
+    >
+      <div className={styles.capabilityHeader}>
+        <div className={styles.capabilityTitleBlock}>
+          <div className={styles.capabilityTitleRow}>
+            {icon && <span className={styles.capabilityIcon}>{icon}</span>}
+            <h2>{title}</h2>
+          </div>
+          <div className={styles.capabilitySubtitle}>
+            {subtitle}
+            {protocols.length > 1 && ` via ${protocolDisplayName(protocol)}`}
+          </div>
+        </div>
+        <CapabilityStatus status={status} />
+      </div>
+
+      {open
+        ? (
+          <>
+            {protocols.length > 1 && (
+              <CapabilityMethodPicker
+                protocol={protocol}
+                protocols={protocols}
+                showChoices={showProtocolChoices}
+                setShowChoices={setShowProtocolChoices}
+                onSelect={(option) => {
+                  if (!configured) clearTransientProtocol(formId)
+                  setSelectedProtocolName(option.name)
+                  setHasSelectedProtocol(true)
+                  onMethodChange?.(option.name)
+                  setShowProtocolChoices(false)
+                }}
+              />
+            )}
+            <CapabilityProtocolForm
+              key={formId}
+              protocol={protocol}
+              testState={testState}
+              setTestState={setTestState}
+              onNwcLud16={onNwcLud16}
+              onRemove={configured ? onRemove : null}
+              onCancel={!configured ? onCancel : null}
+            />
+          </>
+          )
+        : (
+          <button
+            type='button'
+            className={styles.capabilityAddButton}
+            onClick={() => setOpen(true)}
+          >
+            + add
+          </button>
+          )}
+    </section>
+  )
+}
+
+function CapabilityMethodPicker ({ protocol, protocols, showChoices, setShowChoices, onSelect }) {
+  return (
+    <div className={styles.capabilityMethod}>
+      <strong>{protocolDisplayName(protocol)}</strong>
+      <button
+        type='button'
+        className={styles.capabilityTextButton}
+        onClick={() => setShowChoices(show => !show)}
+      >
+        {showChoices ? 'hide options' : 'change connection'}
+      </button>
+      {showChoices && (
+        <div className={styles.capabilityProtocolSelector}>
+          {protocols.map(option => (
+            <button
+              key={protocolFormId(option)}
+              type='button'
+              className={classNames(
+                styles.capabilityProtocolButton,
+                option.name === protocol.name && styles.activeCapabilityProtocolButton
+              )}
+              onClick={() => onSelect(option)}
+            >
+              {protocolDisplayName(option)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CapabilityProtocolForm ({ protocol, testState, setTestState, onNwcLud16, onRemove, onCancel }) {
+  const wallet = useWallet()
   const testSendPayment = useTestSendPayment(protocol)
   const testCreateInvoice = useTestCreateInvoice(protocol)
-  const logger = useWalletLogger(protocol)
   const [{ fields, initial, schema }, setFormState] = useProtocolForm(protocol)
+  const formId = protocolFormId(protocol)
+  const status = testState[formId]?.status
+  const error = testState[formId]?.error
+  const details = testState[formId]?.details
+  const action = status === TestStatus.TESTED ? 'test again' : 'test'
 
-  // validate and save form values (used by both submit and tab switch)
-  const validateAndSave = useCallback(async (values) => {
+  const testAndSave = useCallback(async (values) => {
     const lud16Domain = walletLud16Domain(wallet.name)
+    values = normalizeTestValues(protocol, values)
     if (values.address && lud16Domain) {
       values.address = `${values.address}@${lud16Domain}`
     }
 
-    const name = protocolLogName(protocol)
-
-    if (isTemplate(protocol)) {
-      values.enabled = true
-    }
-
-    if (values.enabled) {
+    if (values.enabled !== false) {
       if (protocol.send) {
-        logger.info(`testing ${name} send ...`)
         const additionalValues = await testSendPayment(values)
         values = { ...values, ...additionalValues }
-        logger.ok(`${name} send ok`)
       } else {
-        logger.info(`testing ${name} receive ...`)
         await testCreateInvoice(values)
-        logger.ok(`${name} receive ok`)
       }
     }
 
     setFormState(values)
     return values
-  }, [protocol, wallet, setFormState, testSendPayment, testCreateInvoice, logger])
+  }, [protocol, wallet, setFormState, testSendPayment, testCreateInvoice])
 
-  // form submit handler - validates, saves, and navigates to next step
-  const onSubmit = useCallback(async ({ ...values }) => {
+  const onTest = useCallback(async (values) => {
+    const testValues = normalizeTestValues(protocol, values)
+    const fingerprint = valuesFingerprint(testValues)
+    setTestState(prev => ({
+      ...prev,
+      [formId]: { status: TestStatus.TESTING, error: null, fingerprint, protocol }
+    }))
+
     try {
-      await validateAndSave(values)
-      next()
+      await testAndSave(values)
+      setTestState(prev => ({
+        ...prev,
+        [formId]: { status: TestStatus.TESTED, error: null, fingerprint, protocol }
+      }))
     } catch (err) {
-      logger.error(err.message)
-      throw err
+      const { message, details } = testErrorDetails(err, protocol)
+      setTestState(prev => ({
+        ...prev,
+        [formId]: {
+          status: TestStatus.FAILED,
+          error: message,
+          details,
+          fingerprint,
+          protocol
+        }
+      }))
     }
-  }, [validateAndSave, next, logger])
+  }, [formId, protocol, setTestState, testAndSave])
 
-  return (
-    <>
-      <Form
-        key={`form-${protocol.id}`}
-        enableReinitialize
-        initial={initial}
-        schema={schema}
-        onSubmit={onSubmit}
-      >
-        <FormTabSwitchHandler validateAndSave={validateAndSave} setFormState={setFormState} />
-        {fields.length === 0 && (
-          <p className='text-muted'>
-            No configuration needed for {protocolDisplayName(protocol)}.
-          </p>
-        )}
-        {fields.map(field => <WalletProtocolFormField key={field.name} {...field} />)}
-        {!isTemplate(protocol) && <Checkbox name='enabled' label='enabled' />}
-        <WalletProtocolFormNavigator />
-      </Form>
-      <WalletLogs className='mt-3' protocol={protocol} key={`logs-${protocol.id}`} />
-    </>
-  )
-}
-
-// check if form values have meaningful content worth validating
-function hasFormValues (values) {
-  if (!values) return false
-  if (values.enabled) return true
-  // check if any non-enabled fields have values
-  return Object.entries(values).some(
-    ([key, value]) => key !== 'enabled' && value !== '' && value !== false && value !== undefined && value !== null
-  )
-}
-
-// registers a save function for tab switching (validates before switch)
-function FormTabSwitchHandler ({ validateAndSave, setFormState }) {
-  const { values } = useFormikContext()
-  const [, setSaveCurrentForm] = useSaveCurrentForm()
-  const valuesRef = useRef(values)
-
-  // keep ref updated with latest values
-  useEffect(() => {
-    valuesRef.current = values
-  }, [values])
-
-  // register save function on mount, clear on unmount
-  useEffect(() => {
-    // create a save function that uses current form values
-    const saveFunction = async () => {
-      const currentValues = { ...valuesRef.current }
-      // skip validation for empty forms, just save the state
-      if (!hasFormValues(currentValues)) {
-        setFormState(currentValues)
-        return
+  const onInvalid = useCallback((errors, values) => {
+    const testValues = normalizeTestValues(protocol, values)
+    const fingerprint = valuesFingerprint(testValues)
+    const { message, details } = testErrorDetails(
+      { message: firstValidationError(errors) || 'fix validation errors before testing' },
+      protocol
+    )
+    setTestState(prev => ({
+      ...prev,
+      [formId]: {
+        status: TestStatus.FAILED,
+        error: message,
+        details,
+        fingerprint,
+        protocol
       }
-      await validateAndSave(currentValues)
-    }
-    setSaveCurrentForm(() => saveFunction)
-
-    return () => {
-      setSaveCurrentForm(null)
-    }
-  }, [validateAndSave, setFormState, setSaveCurrentForm])
-
-  return null
-}
-
-function WalletProtocolFormNavigator () {
-  const stepIndex = useStepIndex()
+    }))
+  }, [formId, protocol, setTestState])
 
   return (
-    <div className='d-flex justify-content-end align-items-center'>
-      <div className='me-auto'>
-        {stepIndex === 0 ? <CancelButton>cancel</CancelButton> : <BackButton />}
-      </div>
-      <SkipButton />
-      <SubmitButton variant='primary' className='ps-3 pe-2 d-flex align-items-center'>
-        next
-        <ArrowRight width={24} height={24} />
-      </SubmitButton>
+    <Form
+      enableReinitialize
+      initial={initial}
+      schema={schema}
+      onSubmit={onTest}
+      className={styles.capabilityForm}
+    >
+      <CapabilityFormStatusTracker
+        protocol={protocol}
+        fields={fields}
+        savedFingerprint={valuesFingerprint(normalizeTestValues(protocol, persistedProtocolValues(protocol, fields, wallet)))}
+        setTestState={setTestState}
+      />
+      {fields.length === 0 && (
+        <p className='text-muted mb-0'>
+          No configuration needed for {protocolDisplayName(protocol)}.
+        </p>
+      )}
+      {fields.map(field => <WalletProtocolFormField key={field.name} protocol={protocol} onNwcLud16={onNwcLud16} {...field} />)}
+
+      {error && <CapabilityError message={error} details={details} protocol={protocol} />}
+
+      <CapabilityTestRow protocol={protocol} fields={fields} status={status} action={action} onTest={onTest} onInvalid={onInvalid} />
+      <CapabilityStateRow
+        protocol={protocol}
+        testAndSave={testAndSave}
+        setTestState={setTestState}
+        onRemove={onRemove}
+        onCancel={onCancel}
+      />
+    </Form>
+  )
+}
+
+function CapabilityTestRow ({ protocol, fields, status, action, onTest, onInvalid }) {
+  const { values } = useFormikContext()
+  if (values.enabled === false) return null
+
+  return (
+    <div className={styles.capabilityTestRow}>
+      <span>
+        {protocol.send
+          ? 'Test that this wallet can send payments.'
+          : 'Test that this wallet can create invoices.'}
+      </span>
+      <CapabilityTestButton protocol={protocol} fields={fields} status={status} action={action} onTest={onTest} onInvalid={onInvalid} />
     </div>
   )
 }
 
-function WalletProtocolFormField ({ type, ...props }) {
+function CapabilityStateRow ({ protocol, testAndSave, setTestState, onRemove, onCancel }) {
+  const formik = useFormikContext()
+  const enabled = formik.values.enabled !== false
+  const showToggle = !isTemplate(protocol)
+  const formId = protocolFormId(protocol)
+
+  const onEnabledChange = useCallback(async (e) => {
+    const enabled = e.target.checked
+    const values = { ...formik.values, enabled }
+    const fingerprint = valuesFingerprint(normalizeTestValues(protocol, values))
+    await formik.setFieldValue('enabled', enabled)
+
+    if (!enabled) {
+      await testAndSave(values)
+    }
+
+    setTestState(prev => ({
+      ...prev,
+      [formId]: {
+        status: enabled ? TestStatus.NEEDS_TEST : TestStatus.SAVED,
+        error: null,
+        details: null,
+        fingerprint,
+        protocol
+      }
+    }))
+  }, [formId, formik, protocol, setTestState, testAndSave])
+
+  if (!showToggle && !onRemove && !onCancel) return null
+
+  return (
+    <div className={styles.capabilityStateRow}>
+      {onRemove && (
+        <button
+          type='button'
+          className={styles.capabilityRemoveButton}
+          onClick={onRemove}
+        >
+          remove {protocol.send ? 'send' : 'receive'}
+        </button>
+      )}
+      {onCancel && (
+        <button
+          type='button'
+          className={styles.capabilityCancelButton}
+          onClick={onCancel}
+        >
+          cancel {protocol.send ? 'send' : 'receive'}
+        </button>
+      )}
+      {showToggle && (
+        <label className={styles.capabilitySwitch}>
+          <input
+            type='checkbox'
+            role='switch'
+            name='enabled'
+            checked={enabled}
+            onChange={onEnabledChange}
+          />
+          <span className={styles.capabilitySwitchTrack} aria-hidden='true' />
+          <span className={styles.capabilitySwitchLabel}>{enabled ? 'enabled' : 'disabled'}</span>
+        </label>
+      )}
+    </div>
+  )
+}
+
+function CapabilityTestButton ({ protocol, fields, status, action, onTest, onInvalid }) {
+  const formik = useFormikContext()
+  const testing = status === TestStatus.TESTING
+
+  const handleTest = async () => {
+    const errors = await formik.validateForm()
+    formik.setTouched(touchedFields(fields), true)
+    if (Object.keys(errors).length > 0) {
+      onInvalid(errors, formik.values)
+      return
+    }
+    await onTest(formik.values)
+  }
+
+  return (
+    <button
+      type='button'
+      className={styles.capabilityTestButton}
+      disabled={testing || formik.isSubmitting}
+      onClick={handleTest}
+    >
+      {testing ? `testing ${protocolLogName(protocol)}...` : action}
+    </button>
+  )
+}
+
+function CapabilityError ({ message, details, protocol }) {
+  const [showDetails, setShowDetails] = useState(false)
+  const toaster = useToast()
+
+  const copyDetails = async () => {
+    try {
+      await copy(details || message)
+      toaster.success('copied details')
+    } catch (err) {
+      console.error('failed to copy wallet test details:', err)
+      toaster.danger('failed to copy details')
+    }
+  }
+
+  return (
+    <div className={styles.capabilityError}>
+      <div className={styles.capabilityErrorMessage}>{message}</div>
+      <div className={styles.capabilityErrorActions}>
+        {details && (
+          <button
+            type='button'
+            className={styles.capabilityErrorAction}
+            aria-expanded={showDetails}
+            onClick={() => setShowDetails(show => !show)}
+          >
+            {showDetails ? 'hide details' : 'show details'}
+          </button>
+        )}
+        <button type='button' className={styles.capabilityErrorAction} onClick={copyDetails}>copy details</button>
+      </div>
+      {details && showDetails && <pre className={styles.capabilityErrorDetails}>{details}</pre>}
+    </div>
+  )
+}
+
+function CapabilityFormStatusTracker ({ protocol, fields, savedFingerprint, setTestState }) {
+  const { values } = useFormikContext()
+  const [formState, setFormState] = useWalletFormState()
+  const formId = protocolFormId(protocol)
+  const configured = formState[formId]?.enabled !== false && hasProtocolConfig(formState[formId])
+  const fingerprint = useMemo(() => valuesFingerprint(normalizeTestValues(protocol, values)), [protocol, values])
+  const hasValues = useMemo(() => hasFormValues(values, fields), [values, fields])
+
+  useEffect(() => {
+    if (!hasValues && hasProtocolConfig(formState[formId])) {
+      setFormState(formId, {
+        name: protocol.name,
+        send: protocol.send,
+        __typename: isTemplate(protocol) ? 'WalletProtocolTemplate' : 'WalletProtocol',
+        enabled: false,
+        config: {}
+      })
+    }
+
+    setTestState(prev => {
+      const current = prev[formId]
+      const nextStatus = getNextTestStatus({ current, configured, fingerprint, hasValues, saved: isSavedProtocol(formState[formId]), savedFingerprint, disabled: values.enabled === false })
+      if (!nextStatus) return prev
+
+      return {
+        ...prev,
+        [formId]: {
+          status: nextStatus,
+          error: nextStatus === TestStatus.FAILED ? current?.error : null,
+          details: nextStatus === TestStatus.FAILED ? current?.details : null,
+          fingerprint,
+          protocol
+        }
+      }
+    })
+  }, [configured, fingerprint, formId, formState, hasValues, protocol, savedFingerprint, setFormState, setTestState])
+
+  return null
+}
+
+function getNextTestStatus ({ current, configured, fingerprint, hasValues, saved, savedFingerprint, disabled }) {
+  if (current?.status === TestStatus.TESTING) return null
+  if (current?.status === TestStatus.FAILED && current.fingerprint === fingerprint) return null
+
+  if (!hasValues) {
+    if (!current || current.status === TestStatus.NOT_SET) return null
+    return TestStatus.NOT_SET
+  }
+
+  if (disabled) {
+    if (current?.status === TestStatus.SAVED && current.fingerprint === fingerprint) return null
+    return TestStatus.SAVED
+  }
+
+  if (saved && fingerprint === savedFingerprint) {
+    if (current?.status === TestStatus.SAVED && current.fingerprint === fingerprint) return null
+    return TestStatus.SAVED
+  }
+
+  if (!current) return TestStatus.NEEDS_TEST
+  if (current.status === TestStatus.TESTED && current.fingerprint === fingerprint) return null
+  if (current.status === TestStatus.NEEDS_TEST && current.fingerprint === fingerprint) return null
+  return TestStatus.NEEDS_TEST
+}
+
+function WalletProtocolFormField ({ protocol, type, onNwcLud16, ...props }) {
   const wallet = useWallet()
-  const [protocol] = useProtocol()
   const formik = useFormikContext()
 
   function transform ({ validate, encrypt, editable, help, share, ...props }) {
@@ -319,7 +808,7 @@ function WalletProtocolFormField ({ type, ...props }) {
       </div>
     )
 
-    let append, onPaste
+    let append, onPaste, onChange
     const lud16Domain = walletLud16Domain(wallet.name)
     if (props.name === 'address' && lud16Domain) {
       append = <InputGroup.Text className='text-monospace'>@{lud16Domain}</InputGroup.Text>
@@ -335,7 +824,18 @@ function WalletProtocolFormField ({ type, ...props }) {
       }
     }
 
-    return { ...props, hint: bottomHint, label, readOnly, append, onPaste }
+    if (protocol.name === 'NWC' && protocol.send && props.name === 'url') {
+      onChange = (formik, e) => {
+        try {
+          const { lud16 } = parseNwcUrl(e.target.value)
+          if (lud16) onNwcLud16?.(lud16)
+        } catch {
+          // Ignore partial NWC strings while the user is still typing.
+        }
+      }
+    }
+
+    return { ...props, hint: bottomHint, label, readOnly, append, onPaste, onChange }
   }
 
   switch (type) {
@@ -349,138 +849,141 @@ function WalletProtocolFormField ({ type, ...props }) {
   }
 }
 
-function WalletConfirmStep () {
-  const [formState] = useFormState()
-  const saveWallet = useSaveWallet()
-  const toaster = useToast()
-  const router = useRouter()
-
-  const onSaveWalletSubmit = useCallback(async () => {
-    try {
-      await saveWallet()
-      toaster.success('wallet saved')
-      router.push('/wallets')
-    } catch (err) {
-      console.error(err)
-      toaster.danger('failed to save wallet')
-    }
-  }, [saveWallet, toaster, router])
-
-  const [onSubmit, inFlight] = useSingleFlight(onSaveWalletSubmit)
-
-  // group configured protocols by type (send vs receive), filtering out empty ones
-  const sendProtocols = Object.values(formState).filter(p => p?.send && hasProtocolConfig(p))
-  const receiveProtocols = Object.values(formState).filter(p => p && !p.send && hasProtocolConfig(p))
-
-  const hasConfig = sendProtocols.length > 0 || receiveProtocols.length > 0
-
+function CapabilityStatus ({ status }) {
   return (
-    <div className={styles.confirmStep}>
-      {!hasConfig
-        ? (
-          <div className={styles.emptyState}>
-            <div className={styles.emptyStateIcon}>?</div>
-            <p>No protocols configured</p>
-            <small className='text-muted'>Go back to configure send or receive protocols</small>
-          </div>
-          )
-        : (
-          <div className={styles.reviewSections}>
-            {sendProtocols.length > 0 && (
-              <div className={styles.reviewSection}>
-                <div className={styles.sectionHeader}>
-                  <div className={classNames(styles.sectionIcon, styles.sendIcon)}>
-                    <ArrowUpRight width={16} height={16} />
-                  </div>
-                  <span>Send</span>
-                </div>
-                <div className={styles.protocolList}>
-                  {sendProtocols.map(protocol => (
-                    <ProtocolReviewCard key={protocol.id || protocol.name} protocol={protocol} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {receiveProtocols.length > 0 && (
-              <div className={styles.reviewSection}>
-                <div className={styles.sectionHeader}>
-                  <div className={classNames(styles.sectionIcon, styles.receiveIcon)}>
-                    <ArrowDownLeft width={16} height={16} />
-                  </div>
-                  <span>Receive</span>
-                </div>
-                <div className={styles.protocolList}>
-                  {receiveProtocols.map(protocol => (
-                    <ProtocolReviewCard key={protocol.id || protocol.name} protocol={protocol} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          )}
-      <div className='d-flex justify-content-end align-items-center mt-4'>
-        <div className='me-auto'>
-          <BackButton />
-        </div>
-        <button
-          type='button'
-          className={classNames('btn btn-primary d-flex align-items-center', inFlight && 'pulse')}
-          disabled={!hasConfig || inFlight}
-          onClick={onSubmit}
-        >
-          <CheckCircle width={16} height={16} className='me-2' />
-          {inFlight ? 'saving wallet...' : 'save wallet'}
-        </button>
-      </div>
-    </div>
+    <span className={classNames(styles.capabilityStatus, capabilityStatusClass(status))}>
+      {[TestStatus.SAVED, TestStatus.TESTED].includes(status) && <CheckCircle width={14} height={14} />}
+      {statusLabel(status)}
+    </span>
   )
 }
 
-function ProtocolReviewCard ({ protocol }) {
-  const displayName = protocolDisplayName(protocol)
-  const isEnabled = protocol.enabled
-  // only show fields that are defined in the protocol schema (not internal values)
-  const fields = protocolFields(protocol)
-  const fieldNames = new Set(fields.map(f => f.name))
-  const configEntries = Object.entries(protocol.config || {})
-    .filter(([key, value]) => value && fieldNames.has(key))
-
-  // get field label or fallback to key name
-  const getFieldLabel = (key) => {
-    const field = fields.find(f => f.name === key)
-    return field?.label || key
+function statusLabel (status) {
+  switch (status) {
+    case TestStatus.SAVED:
+      return 'saved'
+    case TestStatus.TESTED:
+      return 'tested'
+    case TestStatus.TESTING:
+      return 'testing'
+    case TestStatus.NEEDS_TEST:
+      return 'needs test'
+    case TestStatus.FAILED:
+      return 'failed'
+    default:
+      return 'not set'
   }
+}
 
-  // mask sensitive values
-  const maskValue = (key, value) => {
-    const field = fields.find(f => f.name === key)
-    if (field?.encrypt) {
-      return '••••••••'
-    }
-    if (typeof value === 'string' && value.length > 40) {
-      return `${value.slice(0, 20)}...${value.slice(-8)}`
-    }
-    return String(value)
+function capabilityStatusClass (status) {
+  switch (status) {
+    case TestStatus.SAVED:
+    case TestStatus.TESTED:
+      return styles.testedCapabilityStatus
+    case TestStatus.TESTING:
+      return styles.testingCapabilityStatus
+    case TestStatus.NEEDS_TEST:
+      return styles.needsTestCapabilityStatus
+    case TestStatus.FAILED:
+      return styles.errorCapabilityStatus
+    default:
+      return styles.notSetCapabilityStatus
   }
+}
 
-  return (
-    <div className={classNames(styles.reviewCard, !isEnabled && styles.reviewCardDisabled)}>
-      <div className={styles.reviewCardHeader}>
-        <span className={styles.protocolName}>{displayName}</span>
-        {isEnabled
-          ? <CheckCircle width={14} height={14} className={styles.checkIcon} />
-          : <span className={styles.disabledBadge}>disabled</span>}
-      </div>
-      {configEntries.length > 0 && (
-        <div className={styles.configList}>
-          {configEntries.map(([key, value]) => (
-            <div key={key} className={styles.configItem}>
-              <span className={styles.configKey}>{getFieldLabel(key)}</span>
-              <span className={styles.configValue}>{maskValue(key, value)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+function getCapabilityStatus (protocol, test) {
+  if (test?.status) return test.status
+  if (isSavedProtocol(protocol) && protocol.enabled !== false && hasProtocolConfig(protocol)) return TestStatus.SAVED
+  if (protocol?.enabled !== false && hasProtocolConfig(protocol)) return TestStatus.TESTED
+  return TestStatus.NOT_SET
+}
+
+function isSavedProtocol (protocol) {
+  return !!protocol?.id && !!protocol?.__typename && !isTemplate(protocol)
+}
+
+function isProtocolReadyToSave (protocol, testState) {
+  const status = getCapabilityStatus(protocol, testState[protocolFormId(protocol)])
+  return [TestStatus.SAVED, TestStatus.TESTED].includes(status)
+}
+
+function statusBlockerMessage ({ status, protocol }) {
+  if (status === TestStatus.TESTING) return 'wait for test to finish'
+  if (status === TestStatus.FAILED) return 'fix failed test before saving'
+  return 'run capability tests before saving'
+}
+
+function normalizeTestValues (protocol, values) {
+  return {
+    ...values,
+    enabled: isTemplate(protocol) ? true : values.enabled
+  }
+}
+
+function persistedProtocolValues (protocol, fields, wallet) {
+  const lud16Domain = walletLud16Domain(wallet.name)
+  return fields.reduce((acc, field) => {
+    let value = protocol.config?.[field.name]
+    if (protocol.name === 'LN_ADDR' && field.name === 'address' && lud16Domain && value) {
+      value = value.split('@')[0]
+    }
+    return {
+      ...acc,
+      [field.name]: value || ''
+    }
+  }, { enabled: protocol.enabled })
+}
+
+function testErrorDetails (err, protocol) {
+  const side = protocol.send ? 'send' : 'receive'
+  const message = err?.graphQLErrors?.[0]?.message || err?.message || 'test failed'
+  const detailLines = [
+    `${protocolLogName(protocol)} ${side} failed: ${message}`,
+    ...errorDetailLines(err),
+    err?.stack
+  ].filter(Boolean)
+
+  return {
+    message: `${protocolDisplayName(protocol)} ${side} failed: ${message}`,
+    details: detailLines.join('\n\n')
+  }
+}
+
+function errorDetailLines (err) {
+  return [
+    ...err?.graphQLErrors?.map((error, i) => {
+      const parts = [`GraphQL error ${i + 1}: ${error.message}`]
+      if (error.path) parts.push(`path: ${error.path.join('.')}`)
+      if (error.extensions?.code) parts.push(`code: ${error.extensions.code}`)
+      return parts.join('\n')
+    }) ?? [],
+    err?.networkError && `Network error: ${err.networkError.message}`,
+    err?.cause && `Cause: ${err.cause.message || err.cause.toString?.()}`
+  ]
+}
+
+function firstValidationError (errors) {
+  if (!errors) return null
+  if (typeof errors === 'string') return errors
+  if (Array.isArray(errors)) return errors.map(firstValidationError).find(Boolean)
+  return Object.values(errors).map(firstValidationError).find(Boolean)
+}
+
+function touchedFields (fields) {
+  return fields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {})
+}
+
+function valuesFingerprint (values) {
+  return JSON.stringify(Object.keys(values ?? {}).sort().reduce((acc, key) => {
+    acc[key] = values[key]
+    return acc
+  }, {}))
+}
+
+function hasFormValues (values, fields = []) {
+  if (!values) return false
+  if (fields.length === 0) return values.enabled !== false
+  return Object.entries(values).some(
+    ([key, value]) => key !== 'enabled' && value !== '' && value !== false && value !== undefined && value !== null
   )
 }

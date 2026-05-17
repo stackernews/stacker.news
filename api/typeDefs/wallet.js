@@ -8,11 +8,12 @@ const typeDefs = gql`
     connectAddress: String!
     wallets: [WalletOrTemplate!]!
     walletSettings: WalletSettings!
-    walletLogs(protocolId: Int, payInId: Int, cursor: String, debug: Boolean): WalletLogs!
+    walletLogs(protocolId: Int, walletId: ID, payInId: Int, cursor: String, debug: Boolean): WalletLogs!
   }
 
   extend type Mutation {
     createWithdrawl(invoice: String!, maxFee: Int!): PayIn!
+    createWalletInvoice(walletId: ID!, amount: Int!, description: String): WalletExternalInvoice!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): PayIn!
     dropBolt11(hash: String!): Boolean
     buyCredits(credits: Int!, sendProtocolId: Int): PayIn!
@@ -154,6 +155,7 @@ const typeDefs = gql`
 
     # delete
     deleteWallet(id: ID!): Boolean
+    removeWalletProtocol(id: ID!): Boolean
 
     # crypto
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
@@ -217,6 +219,15 @@ const typeDefs = gql`
     id: ID!
     name: String!
     send: Boolean!
+  }
+
+  type WalletExternalInvoice {
+    bolt11: String!
+    hash: String!
+    description: String
+    msats: BigInt!
+    protocolId: ID!
+    protocolName: String!
   }
 
   union WalletProtocolConfig =

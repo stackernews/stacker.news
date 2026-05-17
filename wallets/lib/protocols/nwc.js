@@ -2,6 +2,8 @@ import Nostr from '@/lib/nostr'
 import { NDKNWCWallet } from '@nostr-dev-kit/ndk-wallet'
 import { nwcUrlValidator, parseNwcUrl } from '@/wallets/lib/validate'
 
+const UINT64_MAX_MSATS = 18446744073709551615n
+
 // Nostr Wallet Connect (NIP-47)
 // https://github.com/nostr-protocol/nips/blob/master/47.md
 
@@ -48,7 +50,7 @@ export async function nwcTryRun (fun, { url }, { signal }) {
   try {
     const nwc = await getNwc(nostr, url, { signal })
     const res = await fun(nwc)
-    if (res.error) throw new Error(res.error)
+    if (res?.error) throw new Error(res.error)
     return res
   } catch (e) {
     if (e.error) throw new Error(e.error.message || e.error.code)
@@ -72,4 +74,40 @@ export async function getNwc (nostr, url, { signal }) {
 export async function supportedMethods (url, { signal }) {
   const result = await nwcTryRun(nwc => nwc.getInfo(), { url }, { signal })
   return result.methods
+}
+
+export async function getBalance (url, { signal } = {}) {
+  return await nwcTryRun(async nwc => {
+    const response = await nwc.req('get_balance', {})
+    if (response.error) {
+      throw new Error(response.error.message || response.error.code)
+    }
+
+    const balance = response.result?.balance
+    if (balance == null) return null
+
+    const balanceSats = nwcMsatsToSats(balance)
+    if (balanceSats == null) return null
+
+    const maxAmount = response.result?.max_amount ?? response.result?.maxAmount
+    if (maxAmount != null) {
+      const maxAmountSats = nwcMsatsToSats(maxAmount)
+      if (maxAmountSats != null) return Math.min(balanceSats, maxAmountSats)
+    }
+
+    return balanceSats
+  }, { url }, { signal })
+}
+
+function nwcMsatsToSats (msats) {
+  const amount = nwcAmountToBigInt(msats)
+  if (amount == null || amount === UINT64_MAX_MSATS) return null
+  return Number(amount / 1000n)
+}
+
+function nwcAmountToBigInt (amount) {
+  if (typeof amount === 'bigint') return amount
+  if (typeof amount === 'string' && /^\d+$/.test(amount)) return BigInt(amount)
+  if (typeof amount === 'number' && Number.isSafeInteger(amount) && amount >= 0) return BigInt(amount)
+  return null
 }

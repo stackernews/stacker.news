@@ -11,8 +11,6 @@
   cursor: grabbing;
   opacity: 0.75;
   transform: scale(1.05) rotate(1.5deg);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2),
-              0 4px 10px rgba(0, 0, 0, 0.15);
   z-index: 1000;
 }
 
@@ -46,8 +44,6 @@
     touch-action: none;
     /* Simpler transform on mobile - no rotation since finger covers card */
     transform: scale(1.03);
-    /* Lighter shadow on mobile */
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
   }
 
   .dragOver {

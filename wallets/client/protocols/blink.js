@@ -20,6 +20,19 @@ export async function testSendPayment ({ apiKey, currency }, { signal }) {
   await getWallet({ apiKey, currency }, { signal })
 }
 
+export async function getBalance ({ apiKey, currency }, { signal } = {}) {
+  currency = currency ? currency.toUpperCase() : 'BTC'
+  const wallet = await getWallet({ apiKey, currency }, { signal })
+  if (wallet.balance == null) return null
+  const amount = Number(wallet.balance)
+  if (Number.isNaN(amount)) return null
+
+  return {
+    amount,
+    currency
+  }
+}
+
 async function payInvoice (bolt11, { apiKey, wallet }, { signal }) {
   const out = await request({
     apiKey,

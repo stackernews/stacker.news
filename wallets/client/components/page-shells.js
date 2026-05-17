@@ -1,7 +1,8 @@
 import Moon from '@/svgs/moon-fill.svg'
 import { useMe } from '@/components/me'
 import { useEffect, useState } from 'react'
-import { WalletLayout } from './layout'
+import { WalletShell } from './layout'
+import styles from '@/styles/wallet.module.css'
 import { WalletPassphrasePrompt, WalletPassphraseSetup } from './passphrase'
 import {
   KEY_STORAGE_UNAVAILABLE,
@@ -15,35 +16,41 @@ import {
 
 export function WalletCenteredPromptShell ({ children }) {
   return (
-    <WalletLayout>
-      <div className='py-5 d-flex flex-column align-items-center justify-content-center flex-grow-1 mx-auto' style={{ maxWidth: '500px' }}>
-        {children}
-      </div>
-    </WalletLayout>
+    <WalletShell noSidebar>
+      <main className={styles.walletMain}>
+        <div className='py-5 d-flex flex-column align-items-center justify-content-center flex-grow-1 mx-auto' style={{ maxWidth: '500px' }}>
+          {children}
+        </div>
+      </main>
+    </WalletShell>
   )
 }
 
 export function WalletErrorShell ({ title, message }) {
   return (
-    <WalletLayout>
-      <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
-        <span className='text-muted fw-bold my-1'>{title}</span>
-        <small className='d-block text-muted'>
-          {message}
-        </small>
-      </div>
-    </WalletLayout>
+    <WalletShell noSidebar>
+      <main className={styles.walletMain}>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
+          <span className='text-muted fw-bold my-1'>{title}</span>
+          <small className='d-block text-muted'>
+            {message}
+          </small>
+        </div>
+      </main>
+    </WalletShell>
   )
 }
 
 export function WalletLoadingShell ({ message = 'loading wallets' }) {
   return (
-    <WalletLayout>
-      <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted'>
-        <Moon className='spin fill-grey' height={28} width={28} />
-        <small className='d-block mt-3 text-muted'>{message}</small>
-      </div>
-    </WalletLayout>
+    <WalletShell noSidebar>
+      <main className={styles.walletMain}>
+        <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted'>
+          <Moon className='spin fill-grey' height={28} width={28} />
+          <small className='d-block mt-3 text-muted'>{message}</small>
+        </div>
+      </main>
+    </WalletShell>
   )
 }
 

@@ -80,7 +80,7 @@ export function useWalletLogger (protocol) {
   return useMemo(() => loggerFactory(protocol), [loggerFactory, protocol])
 }
 
-export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInterval = FAST_POLL_INTERVAL_MS } = {}) {
+export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInterval = FAST_POLL_INTERVAL_MS } = {}, wallet) {
   const formLogs = useWalletFormLogs()
   const localLogs = formLogs?.logs ?? EMPTY_LOGS
   const clearLocalLogs = formLogs?.clearLogs
@@ -90,7 +90,8 @@ export function useWalletLogs (protocol, debug, payInId, { poll = true, pollInte
 
   // if no protocol was given, we want to fetch all logs
   const protocolId = protocol ? Number(protocol.id) : undefined
-  const logFilters = useMemo(() => ({ protocolId, payInId, debug }), [protocolId, payInId, debug])
+  const walletId = wallet ? Number(wallet.id) : undefined
+  const logFilters = useMemo(() => ({ protocolId, walletId, payInId, debug }), [protocolId, walletId, payInId, debug])
 
   // if we're configuring a protocol template, there are no logs to fetch
   const noFetch = protocol && isTemplate(protocol)

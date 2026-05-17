@@ -1,0 +1,83 @@
+.pyramid {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--aspect, 1);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pyramid:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pyramid:focus-visible {
+  outline: 2px solid var(--bs-body-color);
+  outline-offset: 3px;
+}
+
+.layer {
+  position: absolute;
+  inset: var(--inset-y) var(--inset-x);
+  background: oklch(var(--l) var(--chroma) var(--hue));
+  box-shadow: var(--shadow);
+  transition:
+    inset 220ms cubic-bezier(.2, .7, .2, 1),
+    background 220ms ease;
+}
+
+.pyramid:not(:disabled):hover .layer,
+.pyramid:focus-visible .layer {
+  inset: calc(var(--inset-y) * 0.85) calc(var(--inset-x) * 0.85);
+}
+
+.label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  text-transform: uppercase;
+  pointer-events: none;
+  transition: color 220ms ease;
+}
+
+.slot {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+/* Dark-mode neon glow on active pyramids.
+   Consumers opt in with state='glow'. Light mode falls back to a soft
+   drop shadow. Motion users get a static effect. */
+.glow .layer:first-child {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+}
+
+:global([data-bs-theme='dark']) .glow .layer:first-child {
+  box-shadow:
+    0 0 32px oklch(0.7 var(--chroma, 0.15) var(--hue) / 0.45),
+    0 0 96px oklch(0.7 var(--chroma, 0.15) var(--hue) / 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer,
+  .label,
+  .slot {
+    transition: none;
+  }
+
+  .pyramid:not(:disabled):hover .layer,
+  .pyramid:focus-visible .layer {
+    inset: var(--inset-y) var(--inset-x);
+  }
+}

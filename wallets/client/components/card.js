@@ -18,12 +18,45 @@ import { ObstacleButtons } from '@/components/obstacle'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
 import { useEffect, useMemo, useState } from 'react'
+import { FetchTimeoutError } from '@/lib/fetch'
+import { WalletPermissionsError, WalletValidationError } from '@/wallets/client/errors'
+
+const walletBalanceCache = new Map()
+
+function walletBalanceCacheKey (wallet, protocol) {
+  return `${wallet.id}:${protocol.name}:${protocol.id ?? protocol.config?.id ?? protocol.config?.url ?? protocol.config?.address ?? 'default'}`
+}
+
+function classifyWalletBalanceError (err) {
+  if (err instanceof WalletPermissionsError || err instanceof WalletValidationError) {
+    return 'permanent'
+  }
+
+  if ([401, 403, 404].includes(err?.status)) {
+    return 'permanent'
+  }
+
+  const message = err?.message?.toLowerCase?.() ?? ''
+  if (/(unauthorized|forbidden|permission|missing .* scope|invalid .* (key|token|credential)|wallet .* not found)/.test(message)) {
+    return 'permanent'
+  }
+
+  if (err instanceof FetchTimeoutError || err?.name === 'TypeError') {
+    return 'temporary'
+  }
+
+  if (err?.status >= 500 || [408, 429].includes(err?.status)) {
+    return 'temporary'
+  }
+
+  return 'temporary'
+}
 
 export function WalletCard ({ wallet, draggable = false, index, ...props }) {
   const image = useWalletImage(wallet.name)
   const status = useWalletStatus(wallet)
   const support = useWalletSupport(wallet)
-  const { balance, showBalanceSlot } = useWalletCardBalance(wallet)
+  const { balance, loading, unavailable, error, showBalanceSlot } = useWalletCardBalance(wallet)
   const showModal = useShowModal()
   const router = useRouter()
 
@@ -48,7 +81,7 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
             : <Card.Title className={styles.walletLogo}>{walletDisplayName(wallet.name)}</Card.Title>}
           {showBalanceSlot && (
             <div className={styles.walletBalance}>
-              {balance !== null ? formatWalletBalance(balance) : null}
+              <WalletCardBalance balance={balance} loading={loading} unavailable={unavailable} error={error} />
             </div>
           )}
         </div>
@@ -82,8 +115,24 @@ export function WalletCard ({ wallet, draggable = false, index, ...props }) {
   return card
 }
 
+function WalletCardBalance ({ balance, loading, unavailable, error }) {
+  if (balance !== null) return formatWalletBalance(balance)
+  if (loading) return <span className={styles.walletRowBalanceLoading}>{formatWalletBalanceLoading()}</span>
+  if (error) {
+    return (
+      <span
+        className={classNames(styles.walletRowBalanceError, error === 'permanent' && styles.walletRowBalanceErrorPermanent)}
+        title={error === 'permanent' ? 'balance access denied' : 'balance temporarily unavailable'}
+      >!
+      </span>
+    )
+  }
+  if (unavailable) return <span className={styles.walletRowBalanceUnavailable}>—</span>
+  return null
+}
+
 function WalletLink ({ wallet, children, className }) {
-  const href = '/wallets' + (isWallet(wallet) ? `/${wallet.id}` : `/${urlify(wallet.name)}`)
+  const href = '/wallets' + (isWallet(wallet) ? `/${wallet.id}/configure` : `/${urlify(wallet.name)}/configure`)
   return <Link href={href} className={className}>{children}</Link>
 }
 
@@ -96,7 +145,7 @@ function statusToClass (status) {
   }
 }
 
-function useWalletCardBalance (wallet) {
+export function useWalletCardBalance (wallet) {
   const sendProtocol = useMemo(() => {
     if (!isWallet(wallet)) return null
 
@@ -117,45 +166,87 @@ function useWalletCardBalance (wallet) {
     if (!walletProtocol?.getBalance) return null
 
     return {
+      id: configuredProtocol.id,
+      name: configuredProtocol.name,
       config: configuredProtocol.config,
       getBalance: walletProtocol.getBalance
     }
   }, [wallet])
-  const [balance, setBalance] = useState(null)
+  const cacheKey = sendProtocol ? walletBalanceCacheKey(wallet, sendProtocol) : null
+  const [balance, setBalance] = useState(() => cacheKey ? walletBalanceCache.get(cacheKey) ?? null : null)
+  const [loading, setLoading] = useState(false)
+  const [unavailable, setUnavailable] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     if (!sendProtocol) {
       setBalance(null)
+      setLoading(false)
+      setUnavailable(true)
+      setError(null)
       return
     }
 
     const controller = new AbortController()
     let cancelled = false
+    const cachedBalance = walletBalanceCache.get(cacheKey)
 
-    setBalance(null)
+    setBalance(cachedBalance ?? null)
+    setLoading(cachedBalance === undefined)
+    setUnavailable(false)
+    setError(null)
     sendProtocol.getBalance(sendProtocol.config, { signal: controller.signal })
       .then(nextBalance => {
         if (cancelled) return
-        setBalance(nextBalance ?? null)
+        if (nextBalance !== null && nextBalance !== undefined) {
+          walletBalanceCache.set(cacheKey, nextBalance)
+          setBalance(nextBalance)
+          setUnavailable(false)
+          setError(null)
+        } else {
+          setBalance(cachedBalance ?? null)
+          setUnavailable(cachedBalance === undefined)
+          setError(null)
+        }
+        setLoading(false)
       })
       .catch(err => {
         if (cancelled || err?.name === 'AbortError') return
         console.error('failed to fetch wallet balance:', err)
+        setLoading(false)
+        if (cachedBalance === undefined) {
+          setUnavailable(false)
+          setError(classifyWalletBalanceError(err))
+        }
       })
 
     return () => {
       cancelled = true
       controller.abort()
     }
-  }, [sendProtocol])
+  }, [sendProtocol, cacheKey])
 
   return {
     balance,
-    showBalanceSlot: Boolean(sendProtocol)
+    loading,
+    unavailable,
+    error,
+    showBalanceSlot: isWallet(wallet)
   }
 }
 
-function formatWalletBalance ({ amount, currency }) {
+export function formatWalletBalanceLoading () {
+  try {
+    const group = new Intl.NumberFormat(undefined)
+      .formatToParts(1000)
+      .find(part => part.type === 'group')?.value ?? ','
+    return ['L', 'OAD', 'ING'].join(group)
+  } catch {
+    return 'L,OAD,ING'
+  }
+}
+
+export function formatWalletBalance ({ amount, currency }) {
   if (currency === 'BTC') {
     return numWithUnits(amount)
   }
@@ -168,7 +259,7 @@ function formatWalletBalance ({ amount, currency }) {
   }).format(amount / 100)
 }
 
-function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {
+export function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {
   const deleteWallet = useWalletDelete(wallet)
   const toaster = useToast()
 

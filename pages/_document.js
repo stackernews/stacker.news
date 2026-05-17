@@ -1,5 +1,8 @@
 import Document, { Html, Head, Main, NextScript } from 'next/document'
 import Script from 'next/script'
+import { getDomainBranding } from '@/lib/domains'
+import { buildSubThemeCss } from '@/lib/domains/custom-css'
+import { PUBLIC_MEDIA_URL } from '@/lib/constants'
 
 class MyDocument extends Document {
   // https://nextjs.org/docs/pages/building-your-application/routing/custom-document#customizing-renderpage
@@ -15,17 +18,34 @@ class MyDocument extends Document {
         enhanceComponent: (Component) => Component
       })
 
-    // response is not available on offline page for example
-    const csp = ctx.res?.getHeaders()['content-security-policy']
+    // req/res are not available on statically optimized pages (e.g. /offline, /404, /500)
+    const csp = ctx.res?.getHeaders?.()['content-security-policy']
     const nonce = csp ? /nonce-([a-zA-Z0-9]{48})/.exec(csp)?.[1] : undefined
+
+    const host = ctx.req?.headers?.host
+    let domainBrand = null
+    if (host) {
+      try {
+        domainBrand = await getDomainBranding(host)
+      } catch (error) {
+        console.error('[domains::_document] error getting domain branding', error)
+        domainBrand = null
+      }
+    }
 
     const initialProps = await Document.getInitialProps(ctx)
 
-    return { ...initialProps, nonce }
+    return { ...initialProps, nonce, theme: domainBrand?.theme, seo: domainBrand?.seo }
   }
 
   render () {
-    const { nonce } = this.props
+    const { nonce, theme, seo } = this.props
+
+    // custom domain SEO and territory theme
+    const themeCss = buildSubThemeCss(theme)
+    const logoUrl = theme?.logoId ? `${PUBLIC_MEDIA_URL}/${theme.logoId}` : null
+    const faviconUrl = seo?.faviconId ? `${PUBLIC_MEDIA_URL}/${seo.faviconId}` : null
+
     return (
       <Html lang='en' data-scroll-behavior='smooth'>
         <Head nonce={nonce}>
@@ -45,6 +65,19 @@ class MyDocument extends Document {
               }`
             }}
           />
+          {themeCss && (
+            <style
+              id='sn-branding-theme'
+              nonce={nonce}
+              dangerouslySetInnerHTML={{ __html: themeCss }}
+            />
+          )}
+          {faviconUrl && (
+            <link id='sn-branding-favicon' rel='icon' href={faviconUrl} />
+          )}
+          {logoUrl && (
+            <link rel='preload' as='image' href={logoUrl} />
+          )}
           <meta name='apple-mobile-web-app-capable' content='yes' />
           <meta name='mobile-web-app-capable' content='yes' />
           <meta name='theme-color' content='#121214' />

@@ -2,12 +2,35 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
 import { numWithUnits } from '@/lib/format'
+import { useDomain } from './territory-domains'
+
+// SEO for Stacker News or a custom domain
+// path is the URL path used for the dynamic capture fallback image
+function useCustomSeo (path) {
+  const { seo: customSeo } = useDomain()
+
+  const brand = customSeo?.title ?? 'stacker news'
+  const siteName = customSeo?.title ?? 'Stacker News'
+  const tagline = customSeo?.tagline ?? 'moderating forums with money'
+
+  // custom domain SEO doesn't support twitter handles yet
+  const twitter = customSeo
+    ? { cardType: 'summary_large_image' }
+    : { site: '@stacker_news', cardType: 'summary_large_image' }
+
+  return { customSeo, brand, siteName, tagline, twitter }
+}
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
-  const subStr = sub ? ` ~${sub}` : ''
-  const title = `${router.query.q || 'search'} \\ stacker news${subStr}`
-  const desc = `SN${subStr} search: ${router.query.q || ''}`
+  const { customSeo, brand, siteName, twitter } = useCustomSeo(router.asPath)
+
+  const subStr = !customSeo && sub ? ` ~${sub}` : ''
+  const query = router.query.q || ''
+  const title = `${query || 'search'} \\ ${brand}${subStr}`
+  const desc = customSeo
+    ? `${brand} search: ${query}`
+    : `SN${subStr} search: ${query}`
 
   return (
     <NextSeo
@@ -21,12 +44,9 @@ export function SeoSearch ({ sub }) {
             url: 'https://capture.stacker.news' + router.asPath
           }
         ],
-        site_name: 'Stacker News'
+        site_name: siteName
       }}
-      twitter={{
-        site: '@stacker_news',
-        cardType: 'summary_large_image'
-      }}
+      twitter={twitter}
     />
   )
 }
@@ -39,10 +59,14 @@ export function SeoSearch ({ sub }) {
 export default function Seo ({ sub, item, user }) {
   const router = useRouter()
   const pathNoQuery = router.asPath.split('?')[0]
+  const { customSeo, brand, siteName, tagline, twitter } = useCustomSeo(pathNoQuery)
+
   const defaultTitle = pathNoQuery.slice(1)
-  const snStr = `stacker news${sub ? ` ~${sub}` : ''}`
-  let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}stacker news`
-  let desc = 'moderating forums with money'
+  const snStr = `${brand}${!customSeo && sub ? ` ~${sub}` : ''}`
+
+  let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}${brand}`
+  let desc = tagline
+
   if (item) {
     if (item.title) {
       fullTitle = `${item.title} \\ ${snStr}`
@@ -84,12 +108,9 @@ export default function Seo ({ sub, item, user }) {
             url: 'https://capture.stacker.news' + pathNoQuery
           }
         ],
-        site_name: 'Stacker News'
+        site_name: siteName
       }}
-      twitter={{
-        site: '@stacker_news',
-        cardType: 'summary_large_image'
-      }}
+      twitter={twitter}
     />
   )
 }

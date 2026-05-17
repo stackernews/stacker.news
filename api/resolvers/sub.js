@@ -1,12 +1,13 @@
 import { timeUnitForRange, whenRange } from '@/lib/time'
-import { validateSchema, territorySchema } from '@/lib/validate'
+import { validateSchema, territorySchema, subThemeSchema, subSeoSchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import pay from '../payIn'
-import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { GqlAuthenticationError, GqlInputError, GqlAuthorizationError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
+import { DOMAIN_BETA_IDS } from '@/lib/constants'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -100,6 +101,24 @@ export async function topSubs (parent, { query, cursor, when, from, to, limit, b
   }
 }
 
+/** check that the upload is owned by the user and is an image */
+async function validateOwnedImageUpload (models, { id, userId, field }) {
+  if (!id) return
+
+  const upload = await models.upload.findFirst({
+    where: {
+      id,
+      userId,
+      type: { startsWith: 'image/' }
+    },
+    select: { id: true }
+  })
+
+  if (!upload) {
+    throw new GqlInputError(`${field} must be an image upload you own`)
+  }
+}
+
 export default {
   Query: {
     sub: getSub,
@@ -165,6 +184,44 @@ export default {
       })
 
       return latest?.createdAt
+    },
+    subTheme: async (parent, { subName }, { models, me }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
+        throw new GqlAuthorizationError('not allowed')
+      }
+
+      const sub = await models.sub.findUnique({ where: { name: subName } })
+      if (!sub) {
+        throw new GqlInputError('sub not found')
+      }
+      if (sub.userId !== Number(me.id)) {
+        throw new GqlAuthorizationError('you do not own this sub')
+      }
+
+      return await models.subTheme.findUnique({ where: { subName } })
+    },
+    subSeo: async (parent, { subName }, { models, me }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
+        throw new GqlAuthorizationError('not allowed')
+      }
+
+      const sub = await models.sub.findUnique({ where: { name: subName } })
+      if (!sub) {
+        throw new GqlInputError('sub not found')
+      }
+      if (sub.userId !== Number(me.id)) {
+        throw new GqlAuthorizationError('you do not own this sub')
+      }
+
+      return await models.subSeo.findUnique({ where: { subName } })
     },
     topSubs: async (parent, { cursor, when, by = 'stacked', from, to, limit }, { models, me }) => {
       const query = Prisma.sql`
@@ -345,6 +402,72 @@ export default {
       data.uploadIds = uploadIdsFromText(data.desc)
 
       return await pay('TERRITORY_UNARCHIVE', data, { me, models, lnd, sendProtocolId })
+    },
+    upsertSubTheme: async (parent, { subName, theme }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      // beta access
+      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
+        throw new GqlAuthorizationError('not allowed')
+      }
+
+      const sub = await models.sub.findUnique({ where: { name: subName } })
+      if (!sub) {
+        throw new GqlInputError('sub not found')
+      }
+      if (sub.userId !== Number(me.id)) {
+        throw new GqlAuthorizationError('you do not own this sub')
+      }
+
+      const domain = await models.domain.findUnique({ where: { subName } })
+      if (!domain) {
+        throw new GqlInputError('territory theme settings require a custom domain')
+      }
+
+      await validateSchema(subThemeSchema, theme)
+      await validateOwnedImageUpload(models, { id: theme.logoId, userId: Number(me.id), field: 'logoId' })
+
+      const updatedTheme = await models.subTheme.upsert({
+        where: { subName },
+        update: theme,
+        create: { subName, ...theme }
+      })
+
+      return updatedTheme
+    },
+    upsertSubSeo: async (parent, { subName, seo }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      // beta access
+      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
+        throw new GqlAuthorizationError('not allowed')
+      }
+
+      const sub = await models.sub.findUnique({ where: { name: subName } })
+      if (!sub) {
+        throw new GqlInputError('sub not found')
+      }
+      if (sub.userId !== Number(me.id)) {
+        throw new GqlAuthorizationError('you do not own this sub')
+      }
+
+      const domain = await models.domain.findUnique({ where: { subName } })
+      if (!domain) {
+        throw new GqlInputError('SEO settings require a custom domain')
+      }
+
+      await validateSchema(subSeoSchema, seo)
+      await validateOwnedImageUpload(models, { id: seo.faviconId, userId: Number(me.id), field: 'faviconId' })
+
+      return await models.subSeo.upsert({
+        where: { subName },
+        update: seo,
+        create: { subName, ...seo }
+      })
     }
   },
   Sub: {

@@ -49,6 +49,23 @@ export const SUB_FULL_FIELDS = gql`
     }
   }`
 
+export const SUB_THEME_FIELDS = gql`
+  fragment SubThemeFields on SubTheme {
+    subName
+    primaryColor
+    secondaryColor
+    linkColor
+    logoId
+  }`
+
+export const SUB_SEO_FIELDS = gql`
+  fragment SubSeoFields on SubSeo {
+    subName
+    title
+    tagline
+    faviconId
+  }`
+
 export const SUB = gql`
   ${SUB_FIELDS}
 
@@ -152,6 +169,33 @@ export const TOP_SUBS = gql`
         }
       }
       cursor
+    }
+  }
+`
+
+export const GET_SUB_THEME = gql`
+  ${SUB_THEME_FIELDS}
+  query SubTheme($subName: String!) {
+    subTheme(subName: $subName) {
+      ...SubThemeFields
+    }
+  }
+`
+
+export const UPSERT_SUB_THEME = gql`
+  ${SUB_THEME_FIELDS}
+  mutation UpsertSubTheme($subName: String!, $theme: SubThemeInput!) {
+    upsertSubTheme(subName: $subName, theme: $theme) {
+      ...SubThemeFields
+    }
+  }
+`
+
+export const UPSERT_SUB_SEO = gql`
+  ${SUB_SEO_FIELDS}
+  mutation UpsertSubSeo($subName: String!, $seo: SubSeoInput!) {
+    upsertSubSeo(subName: $subName, seo: $seo) {
+      ...SubSeoFields
     }
   }
 `

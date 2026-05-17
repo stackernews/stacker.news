@@ -1,3 +1,8 @@
+import { getDomainBranding } from '@/lib/domains'
+import { PUBLIC_MEDIA_URL } from '@/lib/constants'
+import { getRequestOrigin } from '@/lib/safe-url'
+import { truncateString } from '@/lib/format'
+
 const black = '#121214'
 const yellow = '#FADA5E'
 
@@ -128,17 +133,35 @@ const defaultManifest = {
   ]
 }
 
-const getManifest = (colorScheme) => {
-  if (colorScheme?.toLowerCase() === 'dark') {
-    return {
-      ...defaultManifest,
-      background_color: black
-    }
+// merges branding over defaults; only present fields override, so partial branding is safe
+const getManifest = (colorScheme, branding, origin) => {
+  const isDark = colorScheme?.toLowerCase() === 'dark'
+  const { seo, theme } = branding ?? {}
+  const faviconUrl = seo?.faviconId ? `${PUBLIC_MEDIA_URL}/${seo.faviconId}` : null
+
+  return {
+    ...defaultManifest,
+    ...(isDark && { background_color: black }),
+    ...(seo?.title && { name: seo.title, short_name: truncateString(seo.title, 12, '') }),
+    ...(seo?.tagline && { description: seo.tagline }),
+    ...(theme?.primaryColor && { background_color: theme.primaryColor }),
+    ...(faviconUrl && {
+      icons: [{ src: faviconUrl, sizes: 'any', purpose: 'any' }]
+    }),
+    // re-scope the PWA to the custom domain
+    ...(origin && {
+      url_handlers: [{ origin }],
+      // TODO REVIEW: this doesn't work, capture service cannot grab external domains
+      screenshots: [{
+        src: `https://capture.stacker.news/${origin}`,
+        type: 'image/png',
+        form_factor: 'wide'
+      }]
+    })
   }
-  return defaultManifest
 }
 
-const handler = (req, res) => {
+const handler = async (req, res) => {
   // Only GET requests allowed on this endpoint
   if (req.method !== 'GET') {
     res.status(405).end()
@@ -153,7 +176,23 @@ const handler = (req, res) => {
   res.setHeader('Critical-CH', PREFERS_COLOR_SCHEMA_HEADER)
 
   const colorScheme = req.headers[PREFERS_COLOR_SCHEMA_HEADER.toLowerCase()]
-  res.status(200).json(getManifest(colorScheme))
+
+  const host = req?.headers?.host
+  let domainBranding = null
+  if (host) {
+    try {
+      domainBranding = await getDomainBranding(host)
+    } catch (error) {
+      console.error('[pwa webmanifest] error getting domain branding', error)
+      domainBranding = null
+    }
+  }
+
+  // only trust the request origin when we resolved a custom-domain branding;
+  // mirrors the pattern in lib/rss.js so the main site keeps its canonical URL
+  const origin = (domainBranding && getRequestOrigin(req)) ?? null
+
+  res.status(200).json(getManifest(colorScheme, domainBranding, origin))
 }
 
 export default handler

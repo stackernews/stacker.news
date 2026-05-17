@@ -154,6 +154,10 @@ $zindex-sticky: 900;
   --theme-linkVisited: #53758;
   --theme-note-reply: rgba(0, 0, 0, 0.04);
   --theme-note-fresh: rgba(0, 124, 190, 0.5);
+  // foreground used on top of --bs-primary / --bs-secondary; computed from
+  // contrast at request time when a territory overrides the brand colors.
+  --theme-primary-text: #000;
+  --theme-secondary-text: #fff;
 }
 
 [data-bs-theme=dark] {
@@ -184,6 +188,81 @@ $zindex-sticky: 900;
 }
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';
+
+// Rebind component variables to the runtime CSS custom
+// variables so a territory that overrides --bs-primary / --bs-secondary
+// (see lib/domains/custom-css.js) also retints buttons, focus rings, etc.
+//
+// Bootstrap's button-variant() mixin bakes shade/tint at SCSS compile time,
+// so we recompute hover/active here with color-mix() against the *current*
+// value of var(--bs-primary). The contrast color ("text on primary") cannot
+// be derived in CSS, so it comes in as --theme-primary-text (default #000,
+// territory override computed via YIQ in lib/color.js).
+.btn-primary {
+  --bs-btn-color: var(--theme-primary-text);
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: var(--theme-primary-text);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-primary) 85%, #000);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-primary) 80%, #000);
+  --bs-btn-active-color: var(--theme-primary-text);
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-primary) 80%, #000);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-primary) 75%, #000);
+  --bs-btn-disabled-color: var(--theme-primary-text);
+  --bs-btn-disabled-bg: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: var(--theme-primary-text);
+  --bs-btn-hover-bg: var(--bs-primary);
+  --bs-btn-hover-border-color: var(--bs-primary);
+  --bs-btn-active-color: var(--theme-primary-text);
+  --bs-btn-active-bg: var(--bs-primary);
+  --bs-btn-active-border-color: var(--bs-primary);
+  --bs-btn-disabled-color: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+.btn-secondary {
+  --bs-btn-color: var(--theme-secondary-text);
+  --bs-btn-bg: var(--bs-secondary);
+  --bs-btn-border-color: var(--bs-secondary);
+  --bs-btn-hover-color: var(--theme-secondary-text);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-secondary) 85%, #000);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-secondary) 80%, #000);
+  --bs-btn-active-color: var(--theme-secondary-text);
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-secondary) 80%, #000);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-secondary) 75%, #000);
+  --bs-btn-disabled-color: var(--theme-secondary-text);
+  --bs-btn-disabled-bg: var(--bs-secondary);
+  --bs-btn-disabled-border-color: var(--bs-secondary);
+  --bs-btn-focus-shadow-rgb: var(--bs-secondary-rgb);
+}
+
+.btn-outline-secondary {
+  --bs-btn-color: var(--bs-secondary);
+  --bs-btn-border-color: var(--bs-secondary);
+  --bs-btn-hover-color: var(--theme-secondary-text);
+  --bs-btn-hover-bg: var(--bs-secondary);
+  --bs-btn-hover-border-color: var(--bs-secondary);
+  --bs-btn-active-color: var(--theme-secondary-text);
+  --bs-btn-active-bg: var(--bs-secondary);
+  --bs-btn-active-border-color: var(--bs-secondary);
+  --bs-btn-disabled-color: var(--bs-secondary);
+  --bs-btn-disabled-border-color: var(--bs-secondary);
+  --bs-btn-focus-shadow-rgb: var(--bs-secondary-rgb);
+}
+
+// SVG glyphs inside a primary button inherit the foreground text colour.
+.btn-primary svg,
+.btn-secondary svg {
+  fill: var(--bs-btn-color);
+}
 
 @media screen and (min-width: 899px) {
 
@@ -529,10 +608,6 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
   background-color: var(--theme-clickToContextColor);
 }
 
-.btn-primary svg {
-  fill: #212529;
-}
-
 .btn-grey svg {
   fill: #212529;
 }
@@ -758,13 +833,6 @@ header .navbar:not(:first-child) {
 div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-editor] *, [data-lexical-editor] *):focus,
 .form-control:focus {
   border-color: var(--bs-primary);
-}
-
-.btn-secondary,
-.btn-secondary:hover,
-.btn-secondary:active,
-.btn-secondary:disabled {
-  color: #ffffff !important;
 }
 
 .btn-twitter svg {

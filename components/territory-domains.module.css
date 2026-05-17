@@ -1,0 +1,21 @@
+.record {
+    display: flex;
+    flex-direction: column;
+    margin-right: 0.5rem;
+}
+
+.clipboard {
+    cursor: pointer;
+    fill: var(--theme-grey);
+    width: 1rem;
+    height: 1rem;
+}
+
+.clipboard:hover {
+    fill: var(--bs-primary);
+}
+
+.statusIcon {
+    width: 1rem;
+    height: 1rem;
+}

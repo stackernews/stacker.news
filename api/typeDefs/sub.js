@@ -11,6 +11,8 @@ export default gql`
     userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
     mySubscribedSubs(cursor: String): Subs
     subSuggestions(q: String!, limit: Limit! = 5): [Sub!]!
+    subTheme(subName: String!): SubTheme
+    subSeo(subName: String!): SubSeo
   }
 
   type Subs {
@@ -36,6 +38,8 @@ export default gql`
       billingType: String!, billingAutoRenew: Boolean!,
       sendProtocolId: Int,
       nsfw: Boolean!): PayIn!
+    upsertSubTheme(subName: String!, theme: SubThemeInput!): SubTheme!
+    upsertSubSeo(subName: String!, seo: SubSeoInput!): SubSeo!
   }
 
   type Sub {
@@ -74,5 +78,33 @@ export default gql`
     stacked(when: String, from: String, to: String): Int
     spent(when: String, from: String, to: String): Int
     revenue(when: String, from: String, to: String): Int
+  }
+
+  type SubTheme {
+    subName: String!
+    primaryColor: String
+    secondaryColor: String
+    linkColor: String
+    logoId: Int
+  }
+
+  input SubThemeInput {
+    primaryColor: String
+    secondaryColor: String
+    linkColor: String
+    logoId: Int
+  }
+
+  type SubSeo {
+    subName: String!
+    title: String
+    tagline: String
+    faviconId: Int
+  }
+
+  input SubSeoInput {
+    title: String
+    tagline: String
+    faviconId: Int
   }
 `

@@ -8,14 +8,16 @@ import { isExternal } from '@/lib/url'
 import { formatHost, parseSafeHost } from '@/lib/safe-url'
 import { MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import { getDomainMapping } from '@/lib/domains'
+import { getSeoWithFallback } from '@/lib/domains/seo'
 
 export async function getServerSideProps ({ req, res, query: { callbackUrl, multiAuth = false, domain = null, error = null } }) {
   // the ?domain= query param carries the custom domain's host as-is (with its port in local dev).
   // we pass the port alongside the mapping so the client can redirect back through /api/auth/sync
   const parsedDomain = domain ? parseSafeHost(domain) : null
   const mapping = parsedDomain ? await getDomainMapping(parsedDomain.hostname) : null
+  const seo = mapping ? getSeoWithFallback(mapping) : null
   const canonicalDomain = mapping ? formatHost(parsedDomain) : null
-  const domainData = mapping ? { subName: mapping.subName, port: parsedDomain.port } : null
+  const domainData = mapping ? { subName: mapping.subName, port: parsedDomain.port, seo } : null
 
   let session = await getServerSession(req, res, getAuthOptions(req))
 
@@ -83,7 +85,7 @@ function LoginHeader ({ domainData }) {
   return (
     <>
       <h3 className='w-100 pb-2'>
-        Log in {domainData && ` to ~${domainData.subName}`}
+        Log in {domainData && ` to ${domainData.seo.title}`}
       </h3>
       <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>Nothing wrestles up a smile like a familiar face.</div>
     </>

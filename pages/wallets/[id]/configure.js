@@ -3,31 +3,33 @@ import {
   WalletErrorShell,
   WalletLoadingShell,
   WalletRouteGateShell,
-  WalletMultiStepForm
+  WalletMultiStepForm,
+  WalletShell
 } from '@/wallets/client/components'
 import { useTemplates, useWallets } from '@/wallets/client/hooks'
 import { unurlify } from '@/wallets/lib/util'
+import styles from '@/styles/wallet.module.css'
 import { useMemo } from 'react'
 import { useRouter } from 'next/router'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
-export default function Wallet () {
+export default function WalletConfigurePage () {
   const router = useRouter()
   const wallets = useWallets()
   const templates = useTemplates()
-  const routeType = Array.isArray(router.query.type) ? router.query.type[0] : router.query.type
+  const routeId = Array.isArray(router.query.id) ? router.query.id[0] : router.query.id
   const wallet = useMemo(() => {
-    if (!routeType) return null
+    if (!routeId) return null
 
-    const id = Number(routeType)
+    const id = Number(routeId)
     if (!Number.isNaN(id)) {
       return wallets.find(wallet => Number(wallet.id) === id) ?? null
     }
 
-    const templateName = unurlify(routeType)
+    const templateName = unurlify(routeId)
     return templates.find(template => template.name === templateName) ?? null
-  }, [routeType, wallets, templates])
+  }, [routeId, wallets, templates])
 
   return (
     <WalletRouteGateShell>
@@ -42,7 +44,13 @@ export default function Wallet () {
                 message='this wallet could not be found'
               />
               )
-            : <WalletMultiStepForm key={routeType} wallet={wallet} />}
+            : (
+              <WalletShell noSidebar>
+                <main className={styles.walletMain}>
+                  <WalletMultiStepForm key={routeId} wallet={wallet} />
+                </main>
+              </WalletShell>
+              )}
     </WalletRouteGateShell>
   )
 }

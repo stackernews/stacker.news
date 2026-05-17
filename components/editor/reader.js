@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { defineExtension, configExtension } from 'lexical'
 import { RichTextExtension } from '@lexical/rich-text'
-import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
 import { ReactExtension } from '@lexical/react/ReactExtension'
 import { TableExtension } from '@lexical/table'
@@ -15,8 +14,27 @@ import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
 import NextLinkPlugin from './plugins/patch/next-link'
 import { MuteLexicalExtension } from '@/lib/lexical/exts/mute-lexical'
 import theme from '@/lib/lexical/theme'
+import { withDOM } from '@/lib/lexical/server/dom'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 
-const initiateLexical = (editor, state, text) => {
+/** creates a fake DOM to load Lexical in SSR */
+const initialContentEditableSSR = (editor) => {
+  if (typeof window !== 'undefined') return ''
+
+  return withDOM(() => {
+    // attach a temporary root element to the editor
+    // and let lexical render its content into it
+    const root = document.createElement('div')
+    editor.setRootElement(root)
+    const { innerHTML } = root
+    editor.setRootElement(null)
+    // return the rendered content as HTML
+    return innerHTML
+  })
+}
+
+const initiateEditorState = (editor, state, text) => {
   if (text) {
     markdownToLexical(editor, text)
     return
@@ -33,6 +51,19 @@ const initiateLexical = (editor, state, text) => {
       console.error(error)
     }
   }
+}
+
+function SSRContentEditable (props) {
+  const [editor] = useLexicalComposerContext()
+
+  return (
+    <ContentEditable
+      {...props}
+      // client-side Lexical will replace the server HTML once it has mounted
+      suppressHydrationWarning
+      dangerouslySetInnerHTML={{ __html: initialContentEditableSSR(editor) }}
+    />
+  )
 }
 
 export default function Reader ({ topLevel, state, text, readerRef, innerClassName }) {
@@ -55,17 +86,16 @@ export default function Reader ({ topLevel, state, text, readerRef, innerClassNa
         ...theme,
         topLevel: topLevel && 'topLevel'
       },
-      $initialEditorState: (editor) => initiateLexical(editor, state, text),
+      $initialEditorState: (editor) => initiateEditorState(editor, state, text),
       onError: (error) => console.error('reader has encountered an error:', error)
     }), [topLevel, state, text])
 
   return (
-    <LexicalExtensionComposer extension={reader} contentEditable={null}>
+    <LexicalExtensionComposer
+      extension={reader}
+      contentEditable={<SSRContentEditable data-sn-reader='true' className={innerClassName} />}
+    >
       <EditorRefPlugin editorRef={readerRef} />
-      <ContentEditable
-        data-sn-reader='true'
-        className={innerClassName}
-      />
       <CodeThemePlugin />
       <NextLinkPlugin />
     </LexicalExtensionComposer>

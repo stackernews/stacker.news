@@ -1,53 +1,56 @@
 import { isTemplate, isWallet, protocolClientSchema, protocolFields, protocolFormId, walletLud16Domain } from '@/wallets/lib/util'
-import { createContext, useContext, useEffect, useMemo, useCallback, useState } from 'react'
+import { createContext, useContext, useMemo, useCallback, useState } from 'react'
 import { useWalletProtocolUpsert } from '@/wallets/client/hooks'
-import { MultiStepForm, useFormState, useStep } from '@/components/multi-step-form'
 import { parseNwcUrl } from '@/wallets/lib/validate'
 import { useApolloClient } from '@apollo/client/react'
 import { ME } from '@/fragments/users'
-import { WALLETS } from '@/wallets/client/fragments'
+import { REMOVE_WALLET_PROTOCOL, WALLETS } from '@/wallets/client/fragments'
 
-export const Step = {
-  SEND: 'send',
-  RECEIVE: 'receive',
-  CONFIRM: 'confirm'
-}
+const WalletSettingsFormContext = createContext()
 
-const WalletMultiStepFormContext = createContext()
+export function WalletSettingsFormContextProvider ({ wallet, initial, children }) {
+  const [formState, setFormState] = useState(initial ?? {})
 
-export function WalletMultiStepFormContextProvider ({ wallet, initial, steps, children }) {
-  // save selected protocol, but useProtocol will always return the first protocol if no protocol is selected
-  const [protocol, setProtocol] = useState(null)
-  // ref to hold the current form's save function (for validating before tab switch)
-  const [saveCurrentForm, setSaveCurrentForm] = useState(null)
+  const updateFormState = useCallback((id, state) => {
+    setFormState(formState => {
+      return id ? { ...formState, [id]: state } : state
+    })
+  }, [])
 
-  const value = useMemo(() => ({
-    wallet, protocol, setProtocol, saveCurrentForm, setSaveCurrentForm
-  }), [wallet, protocol, setProtocol, saveCurrentForm, setSaveCurrentForm])
+  const clearFormState = useCallback((id) => {
+    setFormState(({ [id]: _removed, ...formState }) => formState)
+  }, [])
+
+  const value = useMemo(
+    () => ({ wallet, formState, updateFormState, clearFormState }),
+    [wallet, formState, updateFormState, clearFormState])
+
   return (
-    <WalletMultiStepFormContext.Provider value={value}>
-      <MultiStepForm initial={initial} steps={steps}>
-        {children}
-      </MultiStepForm>
-    </WalletMultiStepFormContext.Provider>
+    <WalletSettingsFormContext.Provider value={value}>
+      {children}
+    </WalletSettingsFormContext.Provider>
   )
 }
 
-export function useSaveCurrentForm () {
-  const { saveCurrentForm, setSaveCurrentForm } = useContext(WalletMultiStepFormContext)
-  return [saveCurrentForm, setSaveCurrentForm]
-}
-
 export function useWallet () {
-  const { wallet } = useContext(WalletMultiStepFormContext)
+  const { wallet } = useContext(WalletSettingsFormContext)
   return wallet
 }
 
-export function useWalletProtocols () {
-  const step = useStep()
+export function useWalletFormState () {
+  const { formState, updateFormState } = useContext(WalletSettingsFormContext)
+  return [formState, updateFormState]
+}
+
+export function useClearWalletProtocolForm () {
+  const { clearFormState } = useContext(WalletSettingsFormContext)
+  return clearFormState
+}
+
+export function useWalletProtocols (send) {
   const wallet = useWallet()
 
-  const protocolFilter = useCallback(p => step === Step.SEND ? p.send : !p.send, [step])
+  const protocolFilter = useCallback(p => p.send === send, [send])
 
   return useMemo(() => {
     // all protocols are templates if wallet is a template
@@ -61,38 +64,15 @@ export function useWalletProtocols () {
   }, [wallet, protocolFilter])
 }
 
-export function useProtocol () {
-  const { protocol, setProtocol } = useContext(WalletMultiStepFormContext)
-  const protocols = useWalletProtocols()
-  const [lnAddrForm] = useProtocolForm({ name: 'LN_ADDR', send: false })
-
-  useEffect(() => {
-    // this makes sure that we've always selected a protocol (that exists) when moving between send and receive
-    if (!protocol || !protocols.find(p => p.id === protocol.id)) {
-      // we switch to the LN_ADDR protocol form if it exists and there's an initial value
-      // else we just select the first protocol.
-      const lnAddrProto = protocols.find(p => p.name === 'LN_ADDR')
-      if (lnAddrForm?.initial.address && lnAddrProto) {
-        setProtocol(lnAddrProto)
-      } else {
-        setProtocol(protocols[0])
-      }
-    }
-  }, [protocol, protocols, setProtocol, lnAddrForm])
-
-  // make sure we always have a protocol, even on first render before useEffect runs
-  return useMemo(() => [protocol ?? protocols[0], setProtocol], [protocol, protocols, setProtocol])
-}
-
 function useProtocolFormState (protocol) {
   const formId = protocolFormId(protocol)
-  const [formState, setFormState] = useFormState(formId)
+  const [formState, updateFormState] = useWalletFormState()
   const setProtocolFormState = useCallback(
     ({ enabled, ...config }) => {
-      setFormState({ ...protocol, enabled, config })
+      updateFormState(formId, { ...protocol, enabled, config })
     },
-    [setFormState, protocol])
-  return useMemo(() => [formState, setProtocolFormState], [formState, setProtocolFormState])
+    [updateFormState, formId, protocol])
+  return useMemo(() => [formState[formId], setProtocolFormState], [formState, formId, setProtocolFormState])
 }
 
 export function useProtocolForm (protocol) {
@@ -105,13 +85,13 @@ export function useProtocolForm (protocol) {
   const initial = fields.reduce((acc, field) => {
     // we only fallback to the existing protocol config because formState was not initialized yet on first render
     // after init, we use formState as the source of truth everywhere
-    let value = formState?.config?.[field.name] ?? protocol.config?.[field.name]
+    let value = formState === undefined ? protocol.config?.[field.name] : formState.config?.[field.name]
 
     if (!value && field.share) {
       value = complementaryFormState?.config?.[field.name]
     }
 
-    if (protocol.name === 'LN_ADDR' && field.name === 'address' && lud16Domain) {
+    if (formState === undefined && protocol.name === 'LN_ADDR' && field.name === 'address' && lud16Domain) {
       // automatically set lightning addresses from NWC urls if lud16 parameter is present
       if (nwcSendFormState?.config?.url) {
         const { lud16 } = parseNwcUrl(nwcSendFormState.config.url)
@@ -145,18 +125,17 @@ export function useProtocolForm (protocol) {
 // check if a protocol has meaningful configuration
 export function hasProtocolConfig (protocol) {
   if (!protocol) return false
-  if (protocol.enabled) return true
+  const fields = protocolFields(protocol)
+  if (fields.length === 0) return protocol.enabled !== false
+
   const config = protocol.config || {}
-  const configKeys = Object.keys(config)
-  // protocols with no fields (like WebLN) are considered configured if they exist
-  if (configKeys.length === 0) return true
   // for protocols with fields, check if any have values
   return Object.values(config).some(v => v !== '' && v !== false && v !== undefined && v !== null)
 }
 
 export function useSaveWallet () {
   const wallet = useWallet()
-  const [formState] = useFormState()
+  const [formState] = useWalletFormState()
   const upsert = useWalletProtocolUpsert()
   const client = useApolloClient()
 
@@ -164,6 +143,10 @@ export function useSaveWallet () {
     let walletId = isWallet(wallet) ? wallet.id : undefined
     // filter out empty protocols before saving
     const protocolsToSave = Object.values(formState).filter(hasProtocolConfig)
+    const protocolsToRemove = isWallet(wallet)
+      ? wallet.protocols.filter(protocol => !hasProtocolConfig(formState[protocolFormId(protocol)]))
+      : []
+
     for (const protocol of protocolsToSave) {
       const { id } = await upsert(
         {
@@ -174,6 +157,10 @@ export function useSaveWallet () {
         protocol, { ...protocol.config, enabled: protocol.enabled ?? false }
       )
       walletId ??= id
+    }
+
+    for (const protocol of protocolsToRemove) {
+      await client.mutate({ mutation: REMOVE_WALLET_PROTOCOL, variables: { id: protocol.id } })
     }
 
     await client.refetchQueries({ include: [ME, WALLETS] })

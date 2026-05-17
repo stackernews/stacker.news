@@ -10,12 +10,12 @@ import PullToRefresh from './pull-to-refresh'
 
 export default function Layout ({
   sub, contain = true, footer = true, footerLinks = true,
-  containClassName = '', seo = true, item, user, children
+  containClassName = '', seo = true, item, user, hideMobileNav = false, hideNav = false, children
 }) {
   return (
     <>
       {seo && <Seo sub={sub} item={item} user={user} />}
-      <Navigation sub={sub} />
+      {!hideNav && <Navigation sub={sub} hideMobileNav={hideMobileNav} />}
       {contain
         ? (
           <Container as={PullToRefresh} className={`px-sm-0 ${styles.contain} ${containClassName}`}>
@@ -24,7 +24,7 @@ export default function Layout ({
           )
         : children}
       {footer && <Footer links={footerLinks} />}
-      <NavFooter sub={sub} />
+      {!hideMobileNav && <NavFooter sub={sub} />}
     </>
   )
 }

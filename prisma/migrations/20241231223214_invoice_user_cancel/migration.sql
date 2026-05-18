@@ -2,7 +2,7 @@
 ALTER TABLE "Invoice" ADD COLUMN "userCancel" BOOLEAN;
 
 -- Migrate existing rows
-UPDATE "Invoice" SET "userCancel" = false;
+UPDATE "Invoice" SET "userCancel" = false WHERE "cancelled";
 
 -- Add constraint to ensure consistent cancel state
 ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_cancel" CHECK (

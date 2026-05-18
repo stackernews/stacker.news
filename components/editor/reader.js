@@ -15,6 +15,7 @@ import { AutoLinkExtension } from '@/lib/lexical/exts/autolink'
 import NextLinkPlugin from './plugins/patch/next-link'
 import { MuteLexicalExtension } from '@/lib/lexical/exts/mute-lexical'
 import theme from '@/lib/lexical/theme'
+import CodeActionMenuPlugin from './plugins/code/actions'
 
 const initiateLexical = (editor, state, text) => {
   if (text) {
@@ -67,6 +68,7 @@ export default function Reader ({ topLevel, state, text, readerRef, innerClassNa
         className={innerClassName}
       />
       <CodeThemePlugin />
+      <CodeActionMenuPlugin />
       <NextLinkPlugin />
     </LexicalExtensionComposer>
   )

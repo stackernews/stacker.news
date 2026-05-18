@@ -1,6 +1,6 @@
 # MDAST <-> Lexical
 
-mdast-based markdown transformations for lexical
+mdast-based markdown transformations for Lexical
 
 ## the old [React-Markdown](https://github.com/remarkjs/react-markdown?tab=readme-ov-file#architecture) architecture
 
@@ -39,6 +39,8 @@ mdast tree
      ▼ (mdast-util-to-markdown)
 markdown string
 ```
+
+Most syntax round-trips cleanly through this pipeline, but a few transforms are intentionally normalizing or lossy, such as misleading-link rewriting, table alignment export, and display-only footnote backrefs.
 
 ## how to handle markdown transformations
 
@@ -119,31 +121,28 @@ testNode: (node) => node.type === 'html' && node.value === tag
 | `actions.visitChildren(mdastNode, lexicalParent)` | manually visit children |
 | `actions.nextVisitor()` | skip this visitor, try the next matching one |
 | `actions.addFormatting(format)` | add text formatting (bold, italic, etc.) |
+| `actions.removeFormatting(format)` | remove inherited formatting from the current mdast scope |
 | `actions.getParentFormatting()` | get inherited formatting from parent |
+| `actions.addStyle(style)` | attach style metadata for downstream visitors |
+| `actions.getParentStyle()` | read inherited style metadata |
 
 #### priority and nextVisitor
 
 when multiple visitors match the same mdast type, we can use priority to control order:
 
 ```javascript
-// high priority: check if link is an embed first
-export const MdastEmbedFromLinkVisitor = {
+// higher priority: internal item links become ItemMentionNode
+export const MdastItemMentionLinkVisitor = {
   testNode: 'link',
-  priority: 15,
+  priority: 20,
   visitNode ({ mdastNode, actions }) {
-    if (!isBareLink(mdastNode)) {
-      actions.nextVisitor()  // not a raw link, try next visitor
+    const parsed = parseInternalLinks(mdastNode.url)
+    if (parsed.itemId || parsed.commentId) {
+      actions.addAndStepInto($createItemMentionNode(...))
       return
     }
 
-    const embed = getEmbed(mdastNode.url)
-    if (embed.provider) {
-      const node = $createEmbedNode(...)
-      actions.addAndStepInto(node)
-      return
-    }
-
-    actions.nextVisitor() // not an embed, try next visitor
+    actions.nextVisitor()
   }
 }
 
@@ -178,6 +177,9 @@ export const LexicalHeadingVisitor = {
 |--------|-------------|
 | `actions.addAndStepInto(type, props)` | create mdast node, append to parent, visit children |
 | `actions.appendToParent(mdastParent, node)` | append mdast node directly (for leaf nodes) |
+| `actions.visitChildren(lexicalNode, mdastParent)` | visit a node's children manually |
+| `actions.visit(lexicalNode, mdastParent)` | visit an arbitrary lexical node manually |
+| `actions.nextVisitor()` | skip this visitor and try the next matching export visitor |
 
 #### export examples
 
@@ -196,10 +198,13 @@ export const LexicalParagraphVisitor = {
 export const LexicalEmbedVisitor = {
   testLexicalNode: $isEmbedNode,
   visitLexicalNode ({ lexicalNode, mdastParent, actions }) {
-    // output plain text url
+    // output the embed URL as its own paragraph
     actions.appendToParent(mdastParent, {
-      type: 'text',
-      value: lexicalNode.getSrc()
+      type: 'paragraph',
+      children: [{
+        type: 'text',
+        value: lexicalNode.getSrc()
+      }]
     })
   }
 }
@@ -217,8 +222,8 @@ for example, the mentions transform leans on `mdast-util-find-and-replace`, whic
 ```javascript
 import { findAndReplace } from 'mdast-util-find-and-replace'
 
-const USER = /\B@[a-z0-9_]+(?:\/[a-z0-9_/]+)?/gi
-const TERRITORY = /~[a-z][\w_]+/gi
+const USER = /\B@([\w_]+(?:\/[\w_]+)?)/gi
+const TERRITORY = /~([A-Za-z][\w_]+(?:\/[A-Za-z][\w_]+)?)/gi
 
 export function mentionTransform (tree) {
   findAndReplace(
@@ -242,7 +247,7 @@ export function mentionTransform (tree) {
         })
       ]
     ],
-    { ignore: ['code', 'inlineCode'] }
+    { ignore: ['code', 'inlineCode', 'link'] }
   )
 }
 ```
@@ -392,12 +397,15 @@ export function mentionTransform (tree) {
 **2. create import visitor** (`visitors/mentions.js`)
 
 ```javascript
-import { $createUserMentionNode, $isUserMentionNode } from '@/lib/lexical/nodes/mentions'
+import { $createUserMentionNode, $isUserMentionNode } from '@/lib/lexical/nodes/decorative/mentions'
 
 export const MdastUserMentionVisitor = {
   testNode: 'userMention',
   visitNode ({ mdastNode, actions }) {
-    const node = $createUserMentionNode({ name: mdastNode.value.name })
+    const node = $createUserMentionNode({
+      name: mdastNode.value.name,
+      path: mdastNode.value.path || ''
+    })
     actions.addAndStepInto(node)
   }
 }
@@ -413,12 +421,15 @@ export const LexicalUserMentionVisitor = {
   visitLexicalNode ({ lexicalNode, mdastParent, actions }) {
     actions.appendToParent(mdastParent, {
       type: 'userMention',
-      value: { name: lexicalNode.getName() }
+      value: {
+        name: lexicalNode.getUserMentionName(),
+        path: lexicalNode.getPath() || ''
+      }
     })
   },
   mdastType: 'userMention',
   toMarkdown (node) {
-    return `@${node.value.name}`
+    return `@${node.value.name}${node.value.path || ''}`
   }
 }
 ```
@@ -438,19 +449,27 @@ use custom MDAST nodes when:
 - you want semantic information preserved in the MDAST tree
 - you need the same representation in both directions
 
-for simple cases where you just need markdown output, you can skip the custom type and emit a `text` node directly in the export visitor:
+for simple cases where you just need markdown output, you can skip the custom type and emit standard mdast nodes directly in the export visitor.
+`ItemMentionNode` is a mixed example: it exports as a `link` when it carries custom text, otherwise it falls back to a plain text URL.
 
 ```javascript
-// item mentions are created from bare links (see link.js)
-// lexical -> mdast: outputs plain text URL
+// item mentions can come from mdast links or later autolink processing
+// lexical -> mdast: outputs a link for custom text, otherwise a plain text URL
 export const LexicalItemMentionVisitor = {
   testLexicalNode: $isItemMentionNode,
   visitLexicalNode ({ lexicalNode, mdastParent, actions }) {
-    // export as plain text URL, not a link
-    actions.appendToParent(mdastParent, {
-      type: 'text',
-      value: lexicalNode.getURL()
-    })
+    if (isCustomText(lexicalNode.getText(), lexicalNode.getItemMentionId())) {
+      actions.appendToParent(mdastParent, {
+        type: 'link',
+        url: lexicalNode.getURL(),
+        children: [{ type: 'text', value: lexicalNode.getText() }]
+      })
+    } else {
+      actions.appendToParent(mdastParent, {
+        type: 'text',
+        value: lexicalNode.getURL()
+      })
+    }
   }
 }
 ```
@@ -461,27 +480,37 @@ it is, anyway, recommended to map every custom Lexical node to a custom MDAST no
 
 ```
 lib/lexical/mdast/
-  index.js                      # main exports
-  import.js    # mdast → lexical core
-  export.js  # lexical → mdast core
-  format-constants.js            # text format flags (bold, italic, etc.)
+  index.js                       # main exports
+  import.js                      # mdast → lexical core
+  export.js                      # lexical → mdast core
+  shared.js                      # shared helpers (isParent)
+  format-constants.js            # text format bit flags (IS_BOLD, IS_ITALIC, etc.)
   visitors/
-    index.js                    # visitor arrays
-    root.js                     # root visitors
-    paragraph.js                # paragraph visitors
-    text.js                     # text + formatting visitors
-    linebreak.js                # linebreak visitors
-    formatting.js               # bold, italic, strikethrough, etc.
-    heading.js                  # heading visitors
-    link.js                     # link, embed, media, image visitors
-    quote.js                    # blockquote visitors
-    list.js                     # list + list item visitors
-    code.js                     # code block visitors
-    horizontal-rule.js          # horizontal rule visitors
-    mentions.js                 # user, territory, item mention visitors
+    index.js                     # pre-assembled import/export visitor arrays
+    root.js                      # root node visitors
+    paragraph.js                 # paragraph visitors
+    text.js                      # text + inline formatting visitors
+    linebreak.js                 # linebreak/break visitors
+    formatting.js                # emphasis, strong, delete, highlight, code, html
+    heading.js                   # heading + TOC visitors
+    link.js                      # link, autolink, embed visitors
+    media.js                     # image, media, gallery visitors
+    quote.js                     # blockquote visitors
+    list.js                      # list + list item visitors
+    code.js                      # code block visitors
+    horizontal-rule.js           # horizontal rule visitors
+    table.js                     # table, row, cell visitors
+    mentions.js                  # user, territory, item mention visitors
+    nostr.js                     # nostr ID visitors
+    math.js                      # block + inline math visitors
+    footnote.js                  # footnote reference, definition, section, backref visitors
   transforms/
-    index.js                    # transform exports
-    mentions.js                 # @user and ~territory transform
+    index.js                     # transform exports
+    mentions.js                  # @user and ~territory transform
+    nostr.js                     # nostr ID transform
+    links.js                     # misleading link + malformed encoding transforms
+    footnotes.js                 # footnote definition collection + backref insertion
+    toc.js                       # {:toc} paragraph → tableOfContents node
 ```
 
 ## some debugging
@@ -499,7 +528,8 @@ importMarkdownToLexical({
 
 ### handle unknown node types
 
-if you see `UnrecognizedMarkdownConstructError`, add a visitor for that mdast type:
+Unknown constructs no longer throw by default. The current importer logs a warning in development and falls back to inserting the original markdown slice as paragraph text.
+`UnrecognizedMarkdownConstructError` still exists in `import.js`, but the default fallback path does not currently throw it.
 
 ```javascript
 // check what type is failing

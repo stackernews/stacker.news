@@ -28,6 +28,7 @@ export function PayInSankey ({ payIn }) {
         linkContract={3}
         nodeHoverOthersOpacity={0.5}
         labelComponent={RotatingSankeyLabels}
+        valueFormat={formatSankeyValue}
         nodeTooltip={Tooltip}
         linkTooltip={Tooltip}
         nodeSpacing={24}
@@ -43,10 +44,19 @@ export function PayInSankeySkeleton () {
 }
 
 function assetFormatted (msats, type) {
+  const value = msatsToSatsNumber(msats)
   if (type === 'CREDITS') {
-    return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false })
+    return numWithUnits(value, { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false })
   }
-  return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'sat', unitPlural: 'sats', abbreviate: false })
+  return numWithUnits(value, { unitSingular: 'sat', unitPlural: 'sats', abbreviate: false })
+}
+
+function msatsToSatsNumber (msats) {
+  return Number(msatsToSatsDecimal(msats))
+}
+
+function formatSankeyValue (value) {
+  return new Intl.NumberFormat().format(value)
 }
 
 function Tooltip ({ node, link }) {
@@ -213,7 +223,7 @@ function reduceLinksAndNodes ({ links, nodes }) {
   })
 
   reducedLinks.forEach(link => {
-    link.value = msatsToSatsDecimal(link.mtokens)
+    link.value = msatsToSatsNumber(link.mtokens)
     link.asset = assetFormatted(link.mtokens, link.custodialTokenType)
   })
 

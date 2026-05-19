@@ -4,24 +4,23 @@ import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
 import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql } from '@apollo/client'
-import { useApolloClient, useLazyQuery, useQuery } from '@apollo/client/react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useApolloClient, useLazyQuery } from '@apollo/client/react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, DOMAIN_BETA_IDS, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST, SSR, DOMAIN_POLL_INTERVAL_MS } from '@/lib/constants'
+import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, DOMAIN_BETA_IDS, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { territorySchema } from '@/lib/validate'
 import { useMe } from './me'
 import Info from './info'
 import { abbrNum } from '@/lib/format'
 import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
-import TerritoryDomains, { useDomain } from './territory-domains'
+import { useDomain } from './territory-domains'
 import Link from 'next/link'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
 import LinkExternal from '@/svgs/link-external.svg'
 import { isAbortError } from '@/lib/error'
-import { TerritorySeoForm, TerritoryThemeForm } from './territory-customization'
-import { GET_DOMAIN_SETTINGS } from '@/fragments/domains'
+import TerritoryCustomization from './territory-customization'
 
 function SatFilterRanges () {
   const { values } = useFormikContext()
@@ -44,58 +43,6 @@ function SatFilterRanges () {
       max={1000}
       suffix=' sats'
     />
-  )
-}
-
-function TerritoryCustomizationSettings ({ sub }) {
-  const { data, refetch, stopPolling, startPolling } = useQuery(GET_DOMAIN_SETTINGS, SSR
-    ? {}
-    : {
-        variables: { subName: sub.name },
-        nextFetchPolicy: 'cache-and-network'
-      })
-  const domain = data?.domain ?? null
-  const seo = data?.subSeo ?? null
-  const hasActiveDomain = domain?.status === 'ACTIVE'
-
-  useEffect(() => {
-    if (domain?.status === 'PENDING') {
-      startPolling?.(DOMAIN_POLL_INTERVAL_MS)
-    } else {
-      stopPolling?.()
-    }
-  }, [domain?.status, startPolling, stopPolling])
-
-  return (
-    <div className='w-100'>
-      <AccordianItem
-        show
-        header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
-        body={
-          <>
-            <TerritoryDomains
-              sub={sub}
-              domain={domain}
-              onDomainChanged={refetch}
-            />
-            {hasActiveDomain && (
-              <>
-                <AccordianItem
-                  header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>appearance</div>}
-                  body={<TerritoryThemeForm sub={sub} refetchSettings={refetch} />}
-                  show
-                />
-                <AccordianItem
-                  header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>SEO settings</div>}
-                  body={<TerritorySeoForm sub={sub} seo={seo} refetchSettings={refetch} />}
-                  show
-                />
-              </>
-            )}
-          </>
-        }
-      />
-    </div>
   )
 }
 
@@ -364,8 +311,7 @@ export default function TerritoryForm ({ sub }) {
       </Form>
       {DOMAIN_BETA_IDS.includes(Number(me?.id)) &&
         <>
-          {sub && !domain &&
-            <TerritoryCustomizationSettings sub={sub} />}
+          {sub && !domain && <TerritoryCustomization sub={sub} />}
           {sub && domain && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain settings on stacker.news <LinkExternal width={16} height={16} /></Link>}
         </>}
     </FeeButtonProvider>

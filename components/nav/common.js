@@ -27,7 +27,8 @@ import { useDomain } from '@/components/territory-domains'
 
 export function Brand ({ className }) {
   const { domain } = useDomain()
-  const logoUrl = domain?.subTheme?.logoId ? `${PUBLIC_MEDIA_URL}/${domain.subTheme.logoId}` : null
+  const logoId = domain?.subBranding?.logoId
+  const logoUrl = logoId ? `${PUBLIC_MEDIA_URL}/${logoId}` : null
 
   return (
     <Navbar.Brand as={Link} href='/' className={classNames(styles.brand, className)}>

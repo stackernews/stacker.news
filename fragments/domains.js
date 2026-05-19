@@ -1,5 +1,4 @@
 import { gql } from 'graphql-tag'
-import { SUB_SEO_FIELDS } from './subs'
 
 export const DOMAIN_FIELDS = gql`
   fragment DomainFields on Domain {
@@ -66,24 +65,21 @@ export const DOMAIN_FULL_FIELDS = gql`
   }
 `
 
-export const GET_DOMAIN_SETTINGS = gql`
+export const GET_DOMAIN = gql`
   ${DOMAIN_FULL_FIELDS}
-  ${SUB_SEO_FIELDS}
-  query DomainSettings($subName: String!) {
+  query Domain($subName: String!) {
     domain(subName: $subName) {
       ...DomainFullFields
-    }
-    subSeo(subName: $subName) {
-      ...SubSeoFields
     }
   }
 `
 
 export const SET_DOMAIN = gql`
+  ${DOMAIN_FULL_FIELDS}
   mutation SetDomain($subName: String!, $domainName: String) {
     setDomain(subName: $subName, domainName: $domainName) {
-      id
-      domainName
+      name
+      domain { ...DomainFullFields }
     }
   }
 `

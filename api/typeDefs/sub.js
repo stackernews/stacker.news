@@ -11,8 +11,6 @@ export default gql`
     userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit! = ${LIMIT}): Subs
     mySubscribedSubs(cursor: String): Subs
     subSuggestions(q: String!, limit: Limit! = 5): [Sub!]!
-    subTheme(subName: String!): SubTheme
-    subSeo(subName: String!): SubSeo
   }
 
   type Subs {
@@ -38,8 +36,7 @@ export default gql`
       billingType: String!, billingAutoRenew: Boolean!,
       sendProtocolId: Int,
       nsfw: Boolean!): PayIn!
-    upsertSubTheme(subName: String!, theme: SubThemeInput!): SubTheme!
-    upsertSubSeo(subName: String!, seo: SubSeoInput!): SubSeo!
+    upsertSubBranding(subName: String!, branding: SubBrandingInput!): Sub!
   }
 
   type Sub {
@@ -68,6 +65,10 @@ export default gql`
     nitems(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
 
+    # owner only fields
+    domain: Domain
+    branding: SubBranding
+
     optional: SubOptional!
   }
 
@@ -80,29 +81,26 @@ export default gql`
     revenue(when: String, from: String, to: String): Int
   }
 
-  type SubTheme {
+  type SubBranding {
     subName: String!
+
+    # theme
     primaryColor: String
     secondaryColor: String
     linkColor: String
     logoId: Int
-  }
 
-  input SubThemeInput {
-    primaryColor: String
-    secondaryColor: String
-    linkColor: String
-    logoId: Int
-  }
-
-  type SubSeo {
-    subName: String!
+    # seo
     title: String
     tagline: String
     faviconId: Int
   }
 
-  input SubSeoInput {
+  input SubBrandingInput {
+    primaryColor: String
+    secondaryColor: String
+    linkColor: String
+    logoId: Int
     title: String
     tagline: String
     faviconId: Int

@@ -1,5 +1,5 @@
 import { timeUnitForRange, whenRange } from '@/lib/time'
-import { validateSchema, territorySchema, subThemeSchema, subSeoSchema } from '@/lib/validate'
+import { validateSchema, territorySchema, subBrandingSchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import pay from '../payIn'
@@ -101,24 +101,6 @@ export async function topSubs (parent, { query, cursor, when, from, to, limit, b
   }
 }
 
-/** check that the upload is owned by the user and is an image */
-async function validateOwnedImageUpload (models, { id, userId, field }) {
-  if (!id) return
-
-  const upload = await models.upload.findFirst({
-    where: {
-      id,
-      userId,
-      type: { startsWith: 'image/' }
-    },
-    select: { id: true }
-  })
-
-  if (!upload) {
-    throw new GqlInputError(`${field} must be an image upload you own`)
-  }
-}
-
 export default {
   Query: {
     sub: getSub,
@@ -184,44 +166,6 @@ export default {
       })
 
       return latest?.createdAt
-    },
-    subTheme: async (parent, { subName }, { models, me }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
-        throw new GqlAuthorizationError('not allowed')
-      }
-
-      const sub = await models.sub.findUnique({ where: { name: subName } })
-      if (!sub) {
-        throw new GqlInputError('sub not found')
-      }
-      if (sub.userId !== Number(me.id)) {
-        throw new GqlAuthorizationError('you do not own this sub')
-      }
-
-      return await models.subTheme.findUnique({ where: { subName } })
-    },
-    subSeo: async (parent, { subName }, { models, me }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
-        throw new GqlAuthorizationError('not allowed')
-      }
-
-      const sub = await models.sub.findUnique({ where: { name: subName } })
-      if (!sub) {
-        throw new GqlInputError('sub not found')
-      }
-      if (sub.userId !== Number(me.id)) {
-        throw new GqlAuthorizationError('you do not own this sub')
-      }
-
-      return await models.subSeo.findUnique({ where: { subName } })
     },
     topSubs: async (parent, { cursor, when, by = 'stacked', from, to, limit }, { models, me }) => {
       const query = Prisma.sql`
@@ -403,17 +347,19 @@ export default {
 
       return await pay('TERRITORY_UNARCHIVE', data, { me, models, lnd, sendProtocolId })
     },
-    upsertSubTheme: async (parent, { subName, theme }, { me, models }) => {
+    upsertSubBranding: async (parent, { subName, branding }, { me, models }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
-      // beta access
       if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
         throw new GqlAuthorizationError('not allowed')
       }
 
-      const sub = await models.sub.findUnique({ where: { name: subName } })
+      const sub = await models.sub.findUnique({
+        where: { name: subName },
+        select: { userId: true }
+      })
       if (!sub) {
         throw new GqlInputError('sub not found')
       }
@@ -423,51 +369,18 @@ export default {
 
       const domain = await models.domain.findUnique({ where: { subName } })
       if (!domain) {
-        throw new GqlInputError('territory theme settings require a custom domain')
+        throw new GqlInputError('requires a custom domain')
       }
 
-      await validateSchema(subThemeSchema, theme)
-      await validateOwnedImageUpload(models, { id: theme.logoId, userId: Number(me.id), field: 'logoId' })
+      await validateSchema(subBrandingSchema, branding)
 
-      const updatedTheme = await models.subTheme.upsert({
+      await models.subBranding.upsert({
         where: { subName },
-        update: theme,
-        create: { subName, ...theme }
+        update: branding,
+        create: { subName, ...branding }
       })
 
-      return updatedTheme
-    },
-    upsertSubSeo: async (parent, { subName, seo }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      // beta access
-      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
-        throw new GqlAuthorizationError('not allowed')
-      }
-
-      const sub = await models.sub.findUnique({ where: { name: subName } })
-      if (!sub) {
-        throw new GqlInputError('sub not found')
-      }
-      if (sub.userId !== Number(me.id)) {
-        throw new GqlAuthorizationError('you do not own this sub')
-      }
-
-      const domain = await models.domain.findUnique({ where: { subName } })
-      if (!domain) {
-        throw new GqlInputError('SEO settings require a custom domain')
-      }
-
-      await validateSchema(subSeoSchema, seo)
-      await validateOwnedImageUpload(models, { id: seo.faviconId, userId: Number(me.id), field: 'faviconId' })
-
-      return await models.subSeo.upsert({
-        where: { subName },
-        update: seo,
-        create: { subName, ...seo }
-      })
+      return await models.sub.findUnique({ where: { name: subName } })
     }
   },
   Sub: {
@@ -511,8 +424,27 @@ export default {
         console.error('error generating HTML from Lexical State:', error)
         return null
       }
+    },
+    domain: async (sub, args, { me, models }) => {
+      if (!canAccessDomainSettings({ sub, me })) return null
+      return await models.domain.findUnique({
+        where: { subName: sub.name },
+        include: { records: true, attempts: true }
+      })
+    },
+    branding: async (sub, args, { me, models }) => {
+      if (!canAccessDomainSettings({ sub, me })) return null
+      return await models.subBranding.findUnique({ where: { subName: sub.name } })
     }
   }
+}
+
+/** one can access domain settings if they are beta tester and the sub is owned by them */
+function canAccessDomainSettings ({ sub, me }) {
+  if (!me) return false
+  if (!DOMAIN_BETA_IDS.includes(Number(me.id))) return false
+  if (Number(sub.userId) !== Number(me.id)) return false
+  return true
 }
 
 async function createSub (parent, { sendProtocolId, ...data }, { me, models, lnd }) {

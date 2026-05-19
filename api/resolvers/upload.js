@@ -21,7 +21,7 @@ export default {
     }
   },
   Mutation: {
-    getSignedPOST: async (parent, { type, size, width, height, avatar }, { models, me }) => {
+    getSignedPOST: async (parent, { type, size, width, height, avatar, subAsset }, { models, me }) => {
       if (UPLOAD_TYPES_ALLOW.indexOf(type) === -1) {
         throw new GqlInputError(`upload must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
       }
@@ -30,13 +30,14 @@ export default {
         throw new GqlInputError(`upload must be less than ${UPLOAD_SIZE_MAX / (1024 ** 2)} megabytes`)
       }
 
-      if (avatar) {
+      if (avatar || subAsset) {
+        const assetType = subAsset ? 'territory asset' : 'avatar'
         if (AVATAR_TYPES_ALLOW.indexOf(type) === -1) {
-          throw new GqlInputError(`avatar must be ${AVATAR_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
+          throw new GqlInputError(`${assetType} must be ${AVATAR_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
         }
 
         if (size > UPLOAD_SIZE_MAX_AVATAR) {
-          throw new GqlInputError(`avatar must be less than ${UPLOAD_SIZE_MAX_AVATAR / (1024 ** 2)} megabytes`)
+          throw new GqlInputError(`${assetType} must be less than ${UPLOAD_SIZE_MAX_AVATAR / (1024 ** 2)} megabytes`)
         }
       }
 
@@ -54,7 +55,7 @@ export default {
         paid: false
       }
 
-      if (avatar) {
+      if (avatar || subAsset) {
         if (!me) throw new GqlAuthenticationError()
         fileParams.paid = true
       }

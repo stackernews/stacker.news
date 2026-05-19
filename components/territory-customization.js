@@ -1,16 +1,19 @@
 import { Form, Input, SubmitButton } from './form'
-import { subSeoSchema, subThemeSchema } from '@/lib/validate'
+import { subBrandingSchema } from '@/lib/validate'
 import { truncateDesc } from '@/lib/domains/seo'
 import { useField, useFormikContext } from 'formik'
 import { useState } from 'react'
 import { useToast } from './toast'
-import { PUBLIC_MEDIA_URL } from '@/lib/constants'
 import { FileUpload } from './file-upload'
 import { Button } from 'react-bootstrap'
 import styles from './territory-customization.module.css'
 import { useMutation, useQuery } from '@apollo/client/react'
-import { GET_SUB_THEME, UPSERT_SUB_SEO, UPSERT_SUB_THEME } from '@/fragments/subs'
+import { UPSERT_SUB_BRANDING } from '@/fragments/subs'
+import { GET_DOMAIN } from '@/fragments/domains'
 import SnIcon from '@/svgs/sn.svg'
+import { PUBLIC_MEDIA_URL, DOMAIN_POLL_INTERVAL_MS } from '@/lib/constants'
+import AccordianItem from './accordian-item'
+import TerritoryDomains from './territory-domains'
 
 // uploads via the presigned-POST flow; the form holds the upload id and the
 // preview is either the freshly uploaded url, derived from that id, or a built-in fallback.
@@ -51,7 +54,7 @@ function AssetField ({ label, name, hint, defaultAsset, brand, width = 48, heigh
           <div className='d-flex align-items-center gap-2'>
             <FileUpload
               allow={accept}
-              avatar // only images allowed, free upload, no paid check
+              subAsset // only images allowed, free upload
               onUpload={onUpload}
               onSuccess={({ id, url }) => {
                 onSuccess()
@@ -94,22 +97,30 @@ const SN_DEFAULTS = {
 const normalizeColorOverride = (value, fallback) =>
   value && value !== fallback ? value : null
 
-export function TerritoryThemeForm ({ sub, refetchSettings }) {
-  const [upsertSubTheme] = useMutation(UPSERT_SUB_THEME)
-  const { data } = useQuery(GET_SUB_THEME, {
-    variables: { subName: sub.name },
-    nextFetchPolicy: 'cache-and-network'
-  })
+// section label
+const SectionHeading = ({ children, className = '' }) => (
+  <div
+    className={`text-muted text-uppercase mt-4 mb-2 ${className}`}
+    style={{ fontWeight: 'bold', fontSize: '82%', letterSpacing: '0.04em' }}
+  >
+    {children}
+  </div>
+)
+
+export function TerritoryBrandingForm ({ sub, branding }) {
+  const [upsertSubBranding] = useMutation(UPSERT_SUB_BRANDING)
   const [uploading, setUploading] = useState(false)
 
   const toaster = useToast()
-  const theme = data?.subTheme
 
   const initial = {
-    primaryColor: theme?.primaryColor ?? SN_DEFAULTS.primaryColor,
-    secondaryColor: theme?.secondaryColor ?? SN_DEFAULTS.secondaryColor,
-    linkColor: theme?.linkColor ?? SN_DEFAULTS.linkColor,
-    logoId: theme?.logoId ?? null
+    primaryColor: branding?.primaryColor ?? SN_DEFAULTS.primaryColor,
+    secondaryColor: branding?.secondaryColor ?? SN_DEFAULTS.secondaryColor,
+    linkColor: branding?.linkColor ?? SN_DEFAULTS.linkColor,
+    logoId: branding?.logoId ?? null,
+    title: branding?.title ?? '',
+    tagline: branding?.tagline ?? '',
+    faviconId: branding?.faviconId ?? null
   }
 
   const onSubmit = async (values) => {
@@ -117,13 +128,15 @@ export function TerritoryThemeForm ({ sub, refetchSettings }) {
       primaryColor: normalizeColorOverride(values.primaryColor, SN_DEFAULTS.primaryColor),
       secondaryColor: normalizeColorOverride(values.secondaryColor, SN_DEFAULTS.secondaryColor),
       linkColor: normalizeColorOverride(values.linkColor, SN_DEFAULTS.linkColor),
-      logoId: values.logoId || null
+      logoId: values.logoId || null,
+      title: values.title?.trim() || null,
+      tagline: values.tagline?.trim() || null,
+      faviconId: values.faviconId || null
     }
 
     try {
-      await upsertSubTheme({ variables: { subName: sub.name, theme: input } })
-      await refetchSettings?.()
-      toaster.success('theme saved, may take a few minutes to take effect')
+      await upsertSubBranding({ variables: { subName: sub.name, branding: input } })
+      toaster.success('branding saved, may take a few minutes to take effect')
     } catch (error) {
       toaster.danger(error.message)
     }
@@ -132,11 +145,12 @@ export function TerritoryThemeForm ({ sub, refetchSettings }) {
   return (
     <Form
       initial={initial}
-      schema={subThemeSchema}
+      schema={subBrandingSchema}
       enableReinitialize
-      className='mt-2 mb-4'
+      className='mt-2'
       onSubmit={onSubmit}
     >
+      <SectionHeading className='mt-2'>appearance</SectionHeading>
       <AssetField
         label='site logo'
         name='logoId'
@@ -172,49 +186,7 @@ export function TerritoryThemeForm ({ sub, refetchSettings }) {
           className={styles.colorInput}
         />
       </div>
-      <div className='mt-3 d-flex justify-content-end'>
-        <SubmitButton variant='primary' disabled={uploading}>save theme</SubmitButton>
-      </div>
-    </Form>
-  )
-}
-
-export function TerritorySeoForm ({ sub, seo, refetchSettings }) {
-  const [upsertSubSeo] = useMutation(UPSERT_SUB_SEO)
-  const [uploading, setUploading] = useState(false)
-
-  const toaster = useToast()
-
-  const initial = {
-    title: seo?.title ?? '',
-    tagline: seo?.tagline ?? '',
-    faviconId: seo?.faviconId ?? null
-  }
-
-  const onSubmit = async (values) => {
-    const input = {
-      title: values.title?.trim() || null,
-      tagline: values.tagline?.trim() || null,
-      faviconId: values.faviconId || null
-    }
-
-    try {
-      await upsertSubSeo({ variables: { subName: sub.name, seo: input } })
-      await refetchSettings?.()
-      toaster.success('SEO saved, may take a few minutes to take effect')
-    } catch (error) {
-      toaster.danger(error.message)
-    }
-  }
-
-  return (
-    <Form
-      initial={initial}
-      schema={subSeoSchema}
-      enableReinitialize
-      className='mt-2'
-      onSubmit={onSubmit}
-    >
+      <SectionHeading>discovery (seo)</SectionHeading>
       <AssetField
         label='site favicon'
         name='faviconId'
@@ -242,8 +214,41 @@ export function TerritorySeoForm ({ sub, seo, refetchSettings }) {
         hint='the page description of your territory, defaults to the territory description if left blank'
       />
       <div className='mt-3 d-flex justify-content-end'>
-        <SubmitButton variant='primary' disabled={uploading}>save SEO</SubmitButton>
+        <SubmitButton variant='primary' disabled={uploading}>save branding</SubmitButton>
       </div>
     </Form>
+  )
+}
+
+export default function TerritoryCustomization ({ sub }) {
+  const domain = sub.domain ?? null
+  const branding = sub.branding ?? null
+  const hasDomain = !!domain
+
+  const pollInterval = domain?.status === 'PENDING' ? DOMAIN_POLL_INTERVAL_MS : 0
+  // cache write propagates to SUB_EDIT, we don't need to refetch the entire sub
+  useQuery(GET_DOMAIN, {
+    variables: { subName: sub.name },
+    fetchPolicy: 'cache-first',
+    pollInterval,
+    skip: !hasDomain
+  })
+
+  return (
+    <div className='w-100'>
+      <AccordianItem
+        show={hasDomain}
+        header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
+        body={
+          <>
+            <TerritoryDomains
+              sub={sub}
+              domain={domain}
+            />
+            {hasDomain && <TerritoryBrandingForm sub={sub} branding={branding} />}
+          </>
+        }
+      />
+    </div>
   )
 }

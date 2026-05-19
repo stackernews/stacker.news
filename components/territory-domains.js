@@ -149,7 +149,7 @@ const DomainGuidelines = ({ domain }) => {
   )
 }
 
-export default function CustomDomainForm ({ sub, domain, onDomainChanged }) {
+export default function CustomDomainForm ({ sub, domain }) {
   const [setDomain] = useMutation(SET_DOMAIN)
 
   const toaster = useToast()
@@ -157,7 +157,6 @@ export default function CustomDomainForm ({ sub, domain, onDomainChanged }) {
   const { domainName, status } = domain || {}
   const polling = status === 'PENDING'
 
-  // Update the custom domain
   const onSubmit = async ({ domainName }) => {
     try {
       await setDomain({
@@ -166,7 +165,6 @@ export default function CustomDomainForm ({ sub, domain, onDomainChanged }) {
           domainName
         }
       })
-      await onDomainChanged?.()
       if (domainName) {
         toaster.success('started domain verification')
       } else {

@@ -136,15 +136,14 @@ const defaultManifest = {
 // merges branding over defaults; only present fields override, so partial branding is safe
 const getManifest = (colorScheme, branding, origin) => {
   const isDark = colorScheme?.toLowerCase() === 'dark'
-  const { seo, theme } = branding ?? {}
-  const faviconUrl = seo?.faviconId ? `${PUBLIC_MEDIA_URL}/${seo.faviconId}` : null
+  const faviconUrl = branding?.faviconId ? `${PUBLIC_MEDIA_URL}/${branding.faviconId}` : null
 
   return {
     ...defaultManifest,
     ...(isDark && { background_color: black }),
-    ...(seo?.title && { name: seo.title, short_name: truncateString(seo.title, 12, '') }),
-    ...(seo?.tagline && { description: seo.tagline }),
-    ...(theme?.primaryColor && { background_color: theme.primaryColor }),
+    ...(branding?.title && { name: branding.title, short_name: truncateString(branding.title, 12, '') }),
+    ...(branding?.tagline && { description: branding.tagline }),
+    ...(branding?.primaryColor && { background_color: branding.primaryColor }),
     ...(faviconUrl && {
       icons: [{ src: faviconUrl, sizes: 'any', purpose: 'any' }]
     }),

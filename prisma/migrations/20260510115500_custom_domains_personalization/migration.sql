@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "SubTheme" (
+CREATE TABLE "SubBranding" (
     "subName" CITEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -7,36 +7,24 @@ CREATE TABLE "SubTheme" (
     "secondaryColor" TEXT,
     "linkColor" TEXT,
     "logoId" INTEGER,
-
-    CONSTRAINT "SubTheme_pkey" PRIMARY KEY ("subName")
-);
-
--- CreateIndex
-CREATE INDEX "SubTheme_logoId_idx" ON "SubTheme"("logoId");
-
--- AddForeignKey
-ALTER TABLE "SubTheme" ADD CONSTRAINT "SubTheme_subName_fkey" FOREIGN KEY ("subName") REFERENCES "Sub"("name") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "SubTheme" ADD CONSTRAINT "SubTheme_logoId_fkey" FOREIGN KEY ("logoId") REFERENCES "Upload"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- CreateTable
-CREATE TABLE "SubSeo" (
-    "subName" CITEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "title" TEXT,
     "tagline" TEXT,
     "faviconId" INTEGER,
 
-    CONSTRAINT "SubSeo_pkey" PRIMARY KEY ("subName")
+    CONSTRAINT "SubBranding_pkey" PRIMARY KEY ("subName")
 );
 
 -- CreateIndex
-CREATE INDEX "SubSeo_faviconId_idx" ON "SubSeo"("faviconId");
+CREATE INDEX "SubBranding_logoId_idx" ON "SubBranding"("logoId");
+
+-- CreateIndex
+CREATE INDEX "SubBranding_faviconId_idx" ON "SubBranding"("faviconId");
 
 -- AddForeignKey
-ALTER TABLE "SubSeo" ADD CONSTRAINT "SubSeo_subName_fkey" FOREIGN KEY ("subName") REFERENCES "Sub"("name") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "SubBranding" ADD CONSTRAINT "SubBranding_subName_fkey" FOREIGN KEY ("subName") REFERENCES "Sub"("name") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SubSeo" ADD CONSTRAINT "SubSeo_faviconId_fkey" FOREIGN KEY ("faviconId") REFERENCES "Upload"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "SubBranding" ADD CONSTRAINT "SubBranding_logoId_fkey" FOREIGN KEY ("logoId") REFERENCES "Upload"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SubBranding" ADD CONSTRAINT "SubBranding_faviconId_fkey" FOREIGN KEY ("faviconId") REFERENCES "Upload"("id") ON DELETE SET NULL ON UPDATE CASCADE;

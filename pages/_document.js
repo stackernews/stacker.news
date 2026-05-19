@@ -23,28 +23,28 @@ class MyDocument extends Document {
     const nonce = csp ? /nonce-([a-zA-Z0-9]{48})/.exec(csp)?.[1] : undefined
 
     const host = ctx.req?.headers?.host
-    let domainBrand = null
+    let domainBranding = null
     if (host) {
       try {
-        domainBrand = await getDomainBranding(host)
+        domainBranding = await getDomainBranding(host)
       } catch (error) {
         console.error('[domains::_document] error getting domain branding', error)
-        domainBrand = null
+        domainBranding = null
       }
     }
 
     const initialProps = await Document.getInitialProps(ctx)
 
-    return { ...initialProps, nonce, theme: domainBrand?.theme, seo: domainBrand?.seo }
+    return { ...initialProps, nonce, branding: domainBranding }
   }
 
   render () {
-    const { nonce, theme, seo } = this.props
+    const { nonce, branding } = this.props
 
     // custom domain SEO and territory theme
-    const themeCss = buildSubThemeCss(theme)
-    const logoUrl = theme?.logoId ? `${PUBLIC_MEDIA_URL}/${theme.logoId}` : null
-    const faviconUrl = seo?.faviconId ? `${PUBLIC_MEDIA_URL}/${seo.faviconId}` : null
+    const themeCss = buildSubThemeCss(branding)
+    const logoUrl = branding?.logoId ? `${PUBLIC_MEDIA_URL}/${branding.logoId}` : null
+    const faviconUrl = branding?.faviconId ? `${PUBLIC_MEDIA_URL}/${branding.faviconId}` : null
 
     return (
       <Html lang='en' data-scroll-behavior='smooth'>

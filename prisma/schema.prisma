@@ -332,8 +332,8 @@ model Upload {
   User         User[]
   ItemUpload   ItemUpload[]
   uploadPayIns UploadPayIn[]
-  subThemeLogos   SubTheme[] @relation("SubThemeLogo")
-  subSeoFavicons  SubSeo[]   @relation("SubSeoFavicon")
+  subBrandingLogos    SubBranding[] @relation("SubBrandingLogo")
+  subBrandingFavicons SubBranding[] @relation("SubBrandingFavicon")
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
@@ -700,8 +700,7 @@ model Sub {
   AggPayOut               AggPayOut[]
   itemSubs                ItemSub[]
   domain                  Domain?
-  theme                   SubTheme?
-  seo                     SubSeo?
+  branding                SubBranding?
 
   @@index([parentName])
   @@index([createdAt])
@@ -710,19 +709,32 @@ model Sub {
   @@index([path], type: Gist)
 }
 
-model SubTheme {
-  subName        String     @id @db.Citext
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @default(now()) @updatedAt @map("updated_at")
+// Per-territory branding for custom-domain territories.
+// Stores both appearance overrides (colors, logo) and SEO metadata
+// (title, tagline, favicon) on a single row keyed by subName. The
+// GraphQL surface exposes logical `theme` and `seo` projections.
+model SubBranding {
+  subName        String   @id @db.Citext
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // appearance
   primaryColor   String?
   secondaryColor String?
   linkColor      String?
   logoId         Int?
 
-  sub            Sub        @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
-  logo           Upload?    @relation("SubThemeLogo", fields: [logoId], references: [id], onDelete: SetNull)
+  // discovery / SEO
+  title          String?
+  tagline        String?
+  faviconId      Int?
+
+  sub     Sub     @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  logo    Upload? @relation("SubBrandingLogo",    fields: [logoId],    references: [id], onDelete: SetNull)
+  favicon Upload? @relation("SubBrandingFavicon", fields: [faviconId], references: [id], onDelete: SetNull)
 
   @@index([logoId])
+  @@index([faviconId])
 }
 
 model MuteSub {
@@ -1011,20 +1023,6 @@ model DomainCertificate {
   domain          Domain                    @relation(fields: [domainId], references: [id], onDelete: Cascade)
 
   @@unique([domainId])
-}
-
-model SubSeo {
-  subName    String   @id @db.Citext
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
-  title      String?
-  tagline    String?
-  faviconId  Int?
-
-  sub        Sub      @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
-  favicon    Upload?  @relation("SubSeoFavicon", fields: [faviconId], references: [id], onDelete: SetNull)
-
-  @@index([faviconId])
 }
 
 enum DomainStatus {

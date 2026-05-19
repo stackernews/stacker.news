@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { useToast } from './toast'
 import { FileUpload } from './file-upload'
 import { Button } from 'react-bootstrap'
-import styles from './territory-customization.module.css'
+import styles from './territory-branding.module.css'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { UPSERT_SUB_BRANDING } from '@/fragments/subs'
 import { GET_DOMAIN } from '@/fragments/domains'
@@ -220,7 +220,7 @@ export function TerritoryBrandingForm ({ sub, branding }) {
   )
 }
 
-export default function TerritoryCustomization ({ sub }) {
+export default function TerritoryBranding ({ sub }) {
   const domain = sub.domain ?? null
   const branding = sub.branding ?? null
   const hasDomain = !!domain

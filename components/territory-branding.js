@@ -2,7 +2,7 @@ import { Form, Input, SubmitButton } from './form'
 import { subBrandingSchema } from '@/lib/validate'
 import { truncateDesc } from '@/lib/domains/seo'
 import { useField, useFormikContext } from 'formik'
-import { useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { useToast } from './toast'
 import { FileUpload } from './file-upload'
 import { Button } from 'react-bootstrap'
@@ -14,6 +14,31 @@ import SnIcon from '@/svgs/sn.svg'
 import { PUBLIC_MEDIA_URL, DOMAIN_POLL_INTERVAL_MS } from '@/lib/constants'
 import AccordianItem from './accordian-item'
 import TerritoryDomains from './territory-domains'
+
+// shape: { subName, primaryColor?, secondaryColor?, linkColor?, logoId?, title, tagline, faviconId? } | null
+// produced by getDomainBranding at SSR and threaded through ssrApollo -> BrandingProvider.
+const BrandingContext = createContext(null)
+
+export const BrandingProvider = ({ branding: ssrBranding, children }) => {
+  const [branding, setBranding] = useState(ssrBranding ?? null)
+
+  // keep the SSR value flowing through client-side navigation,
+  // including nodata transitions where pageProps may briefly drop the prop
+  useEffect(() => {
+    if (ssrBranding !== undefined) {
+      setBranding(ssrBranding)
+    }
+  }, [ssrBranding])
+
+  return (
+    <BrandingContext.Provider value={branding}>
+      {children}
+    </BrandingContext.Provider>
+  )
+}
+
+/** returns the active custom-domain branding for this request, or null on the main site */
+export const useBranding = () => useContext(BrandingContext)
 
 // uploads via the presigned-POST flow; the form holds the upload id and the
 // preview is either the freshly uploaded url, derived from that id, or a built-in fallback.

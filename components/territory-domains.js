@@ -4,51 +4,22 @@ import { useMutation } from '@apollo/client/react'
 import { customDomainSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
 import { SET_DOMAIN } from '@/fragments/domains'
-import { useEffect, useState, createContext, useContext, useMemo } from 'react'
 import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
 import styles from './territory-domains.module.css'
-import { getSeoWithFallback } from '@/lib/domains/seo'
+import { useBranding } from './territory-branding'
 
-const DomainContext = createContext({ domain: null, seo: null })
-
-export const DomainProvider = ({ domain: ssrDomain, children }) => {
-  const [domain, setDomain] = useState(ssrDomain ?? null)
-
-  // maintain the custom domain state across re-renders and nodata navigations
-  useEffect(() => {
-    if (ssrDomain !== undefined) {
-      setDomain(ssrDomain)
-    }
-  }, [ssrDomain])
-
-  const seo = useMemo(
-    () => domain
-      ? getSeoWithFallback(domain)
-      : null,
-    [domain])
-
-  const value = useMemo(() => ({ domain, seo }), [domain, seo])
-
-  return (
-    <DomainContext.Provider value={value}>
-      {children}
-    </DomainContext.Provider>
-  )
-}
-
-/** returns active custom domain data and territory branding for the current host */
-export const useDomain = () => useContext(DomainContext)
-
+// on a custom domain the URL is already the sub root, so drop the `/~name` prefix
 export function usePrefix (sub) {
-  const { domain } = useDomain()
-  if (domain) return ''
+  const branding = useBranding()
+  if (branding) return ''
   return sub ? `/~${sub}` : ''
 }
 
+// path segment offsets shift by one on custom domains (no leading `/~name`)
 export function useNavKeys (path, sub) {
-  const { domain } = useDomain()
-  const offset = domain ? 1 : (sub ? 2 : 1)
+  const branding = useBranding()
+  const offset = branding ? 1 : (sub ? 2 : 1)
   return {
     topNavKey: path.split('/')[offset] ?? '',
     dropNavKey: path.split('/').slice(offset).join('/')

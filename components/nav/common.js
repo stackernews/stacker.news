@@ -23,12 +23,11 @@ import SwitchAccountList, { nextAccount, useAccounts, useIsLurker } from '@/comp
 import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
 import { numWithUnits } from '@/lib/format'
-import { useDomain } from '@/components/territory-domains'
+import { useBranding } from '@/components/territory-branding'
 
 export function Brand ({ className }) {
-  const { domain } = useDomain()
-  const logoId = domain?.subBranding?.logoId
-  const logoUrl = logoId ? `${PUBLIC_MEDIA_URL}/${logoId}` : null
+  const branding = useBranding()
+  const logoUrl = branding?.logoId ? `${PUBLIC_MEDIA_URL}/${branding.logoId}` : null
 
   return (
     <Navbar.Brand as={Link} href='/' className={classNames(styles.brand, className)}>
@@ -393,10 +392,13 @@ export function Sorts ({ prefix, className }) {
 }
 
 export function PostItem ({ className, prefix }) {
-  const { domain } = useDomain()
+  const branding = useBranding()
   const isLurker = useIsLurker()
+  // when a custom primary color is set we let the button text follow --bs-btn-color
+  // otherwise we use the default text-black
+  const textOverride = branding?.primaryColor ? '' : 'text-black'
   return (
-    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-${isLurker ? 'grey' : 'primary'} ${!domain ? 'text-black' : ''} py-md-1`}>
+    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-${isLurker ? 'grey' : 'primary'} ${textOverride} py-md-1`}>
       post
     </Link>
   )

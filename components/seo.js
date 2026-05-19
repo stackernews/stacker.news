@@ -2,33 +2,34 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
 import { numWithUnits } from '@/lib/format'
-import { useDomain } from './territory-domains'
+import { useBranding } from './territory-branding'
 
-// SEO for Stacker News or a custom domain
-// path is the URL path used for the dynamic capture fallback image
-function useCustomSeo (path) {
-  const { seo: customSeo } = useDomain()
+// Resolves the brand/site-name/tagline triple for SEO meta:
+// - on a custom domain those come from the territory's branding (with sub-name fallbacks)
+// - on stacker news those fall back to the SN defaults.
+function useSiteSeo () {
+  const branding = useBranding()
 
-  const brand = customSeo?.title ?? 'stacker news'
-  const siteName = customSeo?.title ?? 'Stacker News'
-  const tagline = customSeo?.tagline ?? 'moderating forums with money'
+  const brand = branding?.title ?? 'stacker news'
+  const siteName = branding?.title ?? 'Stacker News'
+  const tagline = branding?.tagline ?? 'moderating forums with money'
 
-  // custom domain SEO doesn't support twitter handles yet
-  const twitter = customSeo
+  // territory branding doesn't carry a twitter handle, so suppress @site on custom domains
+  const twitter = branding
     ? { cardType: 'summary_large_image' }
     : { site: '@stacker_news', cardType: 'summary_large_image' }
 
-  return { customSeo, brand, siteName, tagline, twitter }
+  return { branding, brand, siteName, tagline, twitter }
 }
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
-  const { customSeo, brand, siteName, twitter } = useCustomSeo(router.asPath)
+  const { branding, brand, siteName, twitter } = useSiteSeo()
 
-  const subStr = !customSeo && sub ? ` ~${sub}` : ''
+  const subStr = !branding && sub ? ` ~${sub}` : ''
   const query = router.query.q || ''
   const title = `${query || 'search'} \\ ${brand}${subStr}`
-  const desc = customSeo
+  const desc = branding
     ? `${brand} search: ${query}`
     : `SN${subStr} search: ${query}`
 
@@ -59,10 +60,10 @@ export function SeoSearch ({ sub }) {
 export default function Seo ({ sub, item, user }) {
   const router = useRouter()
   const pathNoQuery = router.asPath.split('?')[0]
-  const { customSeo, brand, siteName, tagline, twitter } = useCustomSeo(pathNoQuery)
+  const { branding, brand, siteName, tagline, twitter } = useSiteSeo()
 
   const defaultTitle = pathNoQuery.slice(1)
-  const snStr = `${brand}${!customSeo && sub ? ` ~${sub}` : ''}`
+  const snStr = `${brand}${!branding && sub ? ` ~${sub}` : ''}`
 
   let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}${brand}`
   let desc = tagline

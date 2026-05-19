@@ -1,7 +1,7 @@
 import Document, { Html, Head, Main, NextScript } from 'next/document'
 import Script from 'next/script'
 import { getDomainBranding } from '@/lib/domains'
-import { buildSubThemeCss } from '@/lib/domains/custom-css'
+import { buildSubBrandingCSS } from '@/lib/domains/custom-css'
 import { PUBLIC_MEDIA_URL } from '@/lib/constants'
 
 class MyDocument extends Document {
@@ -42,7 +42,7 @@ class MyDocument extends Document {
     const { nonce, branding } = this.props
 
     // custom domain SEO and territory theme
-    const themeCss = buildSubThemeCss(branding)
+    const themeCss = buildSubBrandingCSS(branding)
     const logoUrl = branding?.logoId ? `${PUBLIC_MEDIA_URL}/${branding.logoId}` : null
     const faviconUrl = branding?.faviconId ? `${PUBLIC_MEDIA_URL}/${branding.faviconId}` : null
 

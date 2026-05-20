@@ -125,8 +125,7 @@ export default function CustomDomainForm ({ sub, domain }) {
 
   const toaster = useToast()
 
-  const { domainName, status } = domain || {}
-  const polling = status === 'PENDING'
+  const polling = domain?.status === 'PENDING'
 
   const onSubmit = async ({ domainName }) => {
     try {
@@ -149,7 +148,7 @@ export default function CustomDomainForm ({ sub, domain }) {
   return (
     <>
       <Form
-        initial={{ domainName: domainName || '' }}
+        initial={{ domainName: domain?.domainName || '' }}
         schema={customDomainSchema}
         enableReinitialize
         onSubmit={onSubmit}

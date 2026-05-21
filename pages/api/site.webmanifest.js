@@ -1,8 +1,10 @@
 import { getDomainBranding } from '@/lib/domains'
 import { PUBLIC_MEDIA_URL } from '@/lib/constants'
+import { imgProxyEnabled, processResize } from '@/worker/imgproxy'
 import { getRequestOrigin } from '@/lib/safe-url'
 import { truncateString } from '@/lib/format'
 
+const PWA_ICON_SIZES = [48, 72, 96, 128, 192, 384, 512]
 const black = '#121214'
 const yellow = '#FADA5E'
 
@@ -133,10 +135,36 @@ const defaultManifest = {
   ]
 }
 
-// merges branding over defaults; only present fields override, so partial branding is safe
+// generates per-size PWA icons by resizing the uploaded favicon through imgproxy
+const buildBrandedIcons = (faviconId, backgroundColor) => {
+  const iconEntry = (size, purpose, resizeExtras = {}) => ({
+    src: processResize({ photoId: faviconId, width: size, height: size, ...resizeExtras }),
+    type: 'image/png',
+    sizes: `${size}x${size}`,
+    purpose
+  })
+
+  const anyIcons = PWA_ICON_SIZES.map(size => iconEntry(size, 'any'))
+  const maskableIcons = PWA_ICON_SIZES.map(size => iconEntry(size, 'maskable', {
+    // TODO REVIEW: maybe extra? we don't even do this ourselves
+    // 10% inset to keep the content inside Android's 80% maskable safe zone
+    padding: Math.floor(size * 0.1),
+    backgroundColor
+  }))
+
+  return [...anyIcons, ...maskableIcons]
+}
+
+// merges territory branding over SN defaults
 const getManifest = (colorScheme, branding, origin) => {
   const isDark = colorScheme?.toLowerCase() === 'dark'
   const faviconUrl = branding?.faviconId ? `${PUBLIC_MEDIA_URL}/${branding.faviconId}` : null
+
+  const brandedIcons = branding?.faviconId && imgProxyEnabled
+    ? buildBrandedIcons(branding.faviconId, branding?.primaryColor || black)
+    : faviconUrl
+      ? [{ src: faviconUrl, sizes: 'any', purpose: 'any' }]
+      : null
 
   return {
     ...defaultManifest,
@@ -144,9 +172,7 @@ const getManifest = (colorScheme, branding, origin) => {
     ...(branding?.title && { name: branding.title, short_name: truncateString(branding.title, 12, '') }),
     ...(branding?.tagline && { description: branding.tagline }),
     ...(branding?.primaryColor && { background_color: branding.primaryColor }),
-    ...(faviconUrl && {
-      icons: [{ src: faviconUrl, sizes: 'any', purpose: 'any' }]
-    }),
+    ...(brandedIcons && { icons: brandedIcons }),
     // re-scope the PWA to the custom domain
     ...(origin && {
       url_handlers: [{ origin }],

@@ -5,7 +5,7 @@ import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
 import { snFetch } from '@/lib/fetch'
 
-const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
+export const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
 
 if (!imgProxyEnabled) {
@@ -16,6 +16,11 @@ const IMGPROXY_URL = process.env.IMGPROXY_URL_DOCKER || process.env.NEXT_PUBLIC_
 const IMGPROXY_SALT = process.env.IMGPROXY_SALT
 const IMGPROXY_KEY = process.env.IMGPROXY_KEY
 const MEDIA_CHECK_URL = process.env.MEDIA_CHECK_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_CHECK_URL
+
+// in dev we may use MEDIA_URL_DOCKER or NEXT_PUBLIC_MEDIA_URL
+// in prod we use NEXT_PUBLIC_MEDIA_DOMAIN
+const MEDIA_URL = process.env.MEDIA_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
+const PUBLIC_IMGPROXY_URL = process.env.NEXT_PUBLIC_IMGPROXY_URL
 
 const cache = new Map()
 
@@ -128,7 +133,7 @@ const getMetadata = async (url) => {
   return { dimensions: { width, height }, format, video: !!videoStreams?.length }
 }
 
-const createImgproxyPath = ({ url, pathname = '/', options }) => {
+export const createImgproxyPath = ({ url, pathname = '/', options }) => {
   const b64Url = Buffer.from(url, 'utf-8').toString('base64url')
   const target = path.join(options, b64Url)
   const signature = sign(target)
@@ -202,6 +207,29 @@ const sign = (target) => {
   return hmac.digest('base64url')
 }
 
+/** resize an Upload to (width, height) via imgproxy, returning a public-facing URL.
+ *
+ * `padding` > 0 insets the content with a centered `backgroundColor` gutter,
+ * creating a safe zone for consumers that crop the canvas edges (e.g. Android adaptive icons).
+ *
+ * `format` is the image format to use, defaults to 'png'.
+ */
+export function processResize ({ photoId, width, height, padding = 0, backgroundColor, format = 'png' }) {
+  const innerWidth = width - 2 * padding
+  const innerHeight = height - 2 * padding
+
+  const opts = [`/rs:fill:${innerWidth}:${innerHeight}`]
+  if (padding > 0) opts.push(`/pd:${padding}`)
+  if (backgroundColor) opts.push(`/bg:${backgroundColor.replace('#', '')}`)
+  if (format) opts.push(`/f:${format}`)
+
+  const url = `${MEDIA_URL}/${photoId}`
+  console.log('[imgproxy - resize] id:', photoId, '-- url:', url)
+
+  const path = createImgproxyPath({ url, options: opts.join('') })
+  return new URL(path, PUBLIC_IMGPROXY_URL).toString()
+}
+
 export async function processCrop ({ photoId, cropData }) {
   const { x, y, width, height, originalWidth, originalHeight } = cropData
   const cropWidth = Math.round(originalWidth * width)
@@ -218,15 +246,11 @@ export async function processCrop ({ photoId, cropData }) {
     `/rs:fill:${size}:${size}`
   ].join('')
 
-  // in dev we may use MEDIA_URL_DOCKER or NEXT_PUBLIC_MEDIA_URL
-  // in prod we use NEXT_PUBLIC_MEDIA_DOMAIN
-  const uploadsUrl = process.env.MEDIA_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
-  const url = `${uploadsUrl}/${photoId}`
+  const url = `${MEDIA_URL}/${photoId}`
   console.log('[imgproxy - cropjob] id:', photoId, '-- url:', url)
 
   const pathname = '/'
   const path = createImgproxyPath({ url, pathname, options })
-  const publicImgproxyUrl = process.env.NEXT_PUBLIC_IMGPROXY_URL
 
-  return new URL(path, publicImgproxyUrl).toString()
+  return new URL(path, PUBLIC_IMGPROXY_URL).toString()
 }

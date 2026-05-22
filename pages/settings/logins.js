@@ -23,6 +23,8 @@ import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
 import { SettingsHeader, hasOnlyOneAuthMethod } from './index'
 import { AuthBanner } from '@/components/banners'
+import * as cookie from 'cookie'
+import { cookieOptions } from '@/lib/auth'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -245,12 +247,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
 }
 
 function EmailLinkForm ({ callbackUrl }) {
-  const [linkUnverifiedEmail] = useMutation(
-    gql`
-      mutation linkUnverifiedEmail($email: String!) {
-        linkUnverifiedEmail(email: $email)
-      }`
-  )
+  const { me } = useMe()
 
   return (
     <Form
@@ -259,13 +256,14 @@ function EmailLinkForm ({ callbackUrl }) {
       }}
       schema={emailSchema}
       onSubmit={async ({ email }) => {
-        // add email to user's account
-        // then call signIn
-        const { data } = await linkUnverifiedEmail({ variables: { email } })
-        if (data.linkUnverifiedEmail) {
-          window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
-          signIn('email', { email, callbackUrl })
-        }
+        // signal a "link to current account" intent to nextauth.
+        // value is the linker's userId so a stale cookie from another session
+        // can't be repurposed to link an email to a different account.
+        const options = cookieOptions({ httpOnly: false, maxAge: 300 })
+        document.cookie = cookie.serialize('link', String(me.id), options)
+
+        window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
+        signIn('email', { email, callbackUrl })
       }}
     >
       <div className='d-flex align-items-center'>

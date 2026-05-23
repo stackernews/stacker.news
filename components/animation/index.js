@@ -2,42 +2,37 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
 import { randInRange } from '@/lib/rand'
 
-import { LightningProvider, useLightning } from './lightning'
-// import { SnowProvider, useSnow } from './snow'
-
-const [SelectedAnimationProvider, useSelectedAnimation] = [
-  LightningProvider, useLightning
-  // SnowProvider, useSnow // TODO: the snow animation doesn't seem to work anymore
-]
+import { ThunderstormProvider, useThunderstrike } from '@/components/thunderstorm/provider'
 
 export function AnimationProvider ({ children }) {
   return (
-    <SelectedAnimationProvider>
+    <ThunderstormProvider>
       <AnimationHooks>
         {children}
       </AnimationHooks>
-    </SelectedAnimationProvider>
+    </ThunderstormProvider>
   )
 }
 
 export function useAnimation () {
-  const animate = useSelectedAnimation()
+  const strike = useThunderstrike()
 
   return useCallback(() => {
-    const should = window.localStorage.getItem('lnAnimate') || 'yes'
-    if (should !== 'yes') return false
-    animate()
+    if (!getAnimationDefault()) return false
+    strike()
     return true
-  }, [animate])
+  }, [strike])
+}
+
+function getAnimationDefault () {
+  if (typeof window === 'undefined') return undefined
+  const stored = window.localStorage.getItem('lnAnimate')
+  if (stored) return stored === 'yes'
+  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 export function useAnimationEnabled () {
-  const [enabled, setEnabled] = useState(undefined)
-
-  useEffect(() => {
-    const enabled = window.localStorage.getItem('lnAnimate') || 'yes'
-    setEnabled(enabled === 'yes')
-  }, [])
+  const [enabled, setEnabled] = useState(getAnimationDefault)
 
   const toggleEnabled = useCallback(() => {
     setEnabled(enabled => {

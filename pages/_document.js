@@ -44,7 +44,6 @@ class MyDocument extends Document {
     // custom domain SEO and territory theme
     const themeCss = buildSubBrandingCSS(branding)
     const logoUrl = branding?.logoId ? `${PUBLIC_MEDIA_URL}/${branding.logoId}` : null
-    const faviconUrl = branding?.faviconId ? `${PUBLIC_MEDIA_URL}/${branding.faviconId}` : null
 
     return (
       <Html lang='en' data-scroll-behavior='smooth'>
@@ -71,9 +70,6 @@ class MyDocument extends Document {
               nonce={nonce}
               dangerouslySetInnerHTML={{ __html: themeCss }}
             />
-          )}
-          {faviconUrl && (
-            <link id='sn-branding-favicon' rel='icon' href={faviconUrl} />
           )}
           {logoUrl && (
             <link rel='preload' as='image' href={logoUrl} />

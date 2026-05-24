@@ -32,7 +32,7 @@ export function Brand ({ className }) {
   return (
     <Navbar.Brand as={Link} href='/' className={classNames(styles.brand, className)}>
       {logoUrl
-        ? <img src={logoUrl} alt='site logo' width={36} height={36} className={styles.brandImage} />
+        ? <img src={logoUrl} alt='site logo' width={36} height={36} className={styles.brandImage} loading='eager' decoding='async' />
         : <SnIcon width={36} height={36} />}
     </Navbar.Brand>
   )

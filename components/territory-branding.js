@@ -253,7 +253,10 @@ export default function TerritoryBranding ({ sub }) {
   const hasDomain = !!domain
 
   const pollInterval = domain?.status === 'PENDING' ? DOMAIN_POLL_INTERVAL_MS : 0
-  // cache write propagates to SUB_EDIT, we don't need to refetch the entire sub
+
+  // initial render will read from cache which is already populated by SSR
+  // if the status is PENDING, each poll will hit the network and update the cache
+  // since SUB_EDIT selects the same Domain type, reading from sub will always read the latest value
   useQuery(GET_DOMAIN, {
     variables: { subName: sub.name },
     fetchPolicy: 'cache-first',

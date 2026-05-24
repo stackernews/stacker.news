@@ -45,10 +45,17 @@ class MyDocument extends Document {
     const themeCss = buildSubBrandingCSS(branding)
     const logoUrl = branding?.logoId ? `${PUBLIC_MEDIA_URL}/${branding.logoId}` : null
 
+    // version the manifest URL so territory branding edits bust caches
+    // the handler can then cache aggressively.
+    const manifestVersion = branding?.updatedAt ? new Date(branding.updatedAt).getTime() : null
+    const manifestHref = manifestVersion
+      ? `/api/site.webmanifest?v=${manifestVersion}`
+      : '/api/site.webmanifest'
+
     return (
       <Html lang='en' data-scroll-behavior='smooth'>
         <Head nonce={nonce}>
-          <link rel='manifest' href='/api/site.webmanifest' />
+          <link rel='manifest' href={manifestHref} />
           <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
           <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
           <style

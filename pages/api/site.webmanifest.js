@@ -217,6 +217,14 @@ const handler = async (req, res) => {
   // mirrors the pattern in lib/rss.js so the main site keeps its canonical URL
   const origin = (domainBranding && getRequestOrigin(req)) ?? null
 
+  // cached aggressively for territory-branded responses, shorter TTL for unbranded responses
+  // branded responses are URL-versioned via ?v=<branding.updatedAt> in _document.js,
+  // so when the domain mappings cache expires, we bust the manifest cache too, allowing us to cache aggressively.
+  const cacheControl = domainBranding
+    ? 'public, max-age=86400, stale-while-revalidate=604800' // 1 day for territory-branded responses
+    : 'public, max-age=3600, stale-while-revalidate=86400' // 1 hour for SN responses
+  res.setHeader('Cache-Control', cacheControl)
+
   res.status(200).json(getManifest(colorScheme, domainBranding, origin))
 }
 

@@ -195,67 +195,42 @@ $zindex-sticky: 900;
 //
 // Bootstrap's button-variant() mixin bakes shade/tint at SCSS compile time,
 // so we recompute hover/active here with color-mix() against the *current*
-// value of var(--bs-primary). The contrast color ("text on primary") cannot
-// be derived in CSS, so it comes in as --theme-primary-text (default #000,
-// territory override computed via YIQ in lib/color.js).
-.btn-primary {
-  --bs-btn-color: var(--theme-primary-text);
-  --bs-btn-bg: var(--bs-primary);
-  --bs-btn-border-color: var(--bs-primary);
-  --bs-btn-hover-color: var(--theme-primary-text);
-  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-primary) 85%, #000);
-  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-primary) 80%, #000);
-  --bs-btn-active-color: var(--theme-primary-text);
-  --bs-btn-active-bg: color-mix(in srgb, var(--bs-primary) 80%, #000);
-  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-primary) 75%, #000);
-  --bs-btn-disabled-color: var(--theme-primary-text);
-  --bs-btn-disabled-bg: var(--bs-primary);
-  --bs-btn-disabled-border-color: var(--bs-primary);
-  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+// value of var(--bs-#{$variant}). The contrast color ("text on $variant")
+// cannot be derived in CSS, so it comes in as --theme-#{$variant}-text
+// (default #000, territory override computed via YIQ in lib/color.js).
+@mixin brand-button-filled($variant) {
+  --bs-btn-color: var(--theme-#{$variant}-text);
+  --bs-btn-bg: var(--bs-#{$variant});
+  --bs-btn-border-color: var(--bs-#{$variant});
+  --bs-btn-hover-color: var(--theme-#{$variant}-text);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-#{$variant}) 85%, #000);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-#{$variant}) 80%, #000);
+  --bs-btn-active-color: var(--theme-#{$variant}-text);
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-#{$variant}) 80%, #000);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-#{$variant}) 75%, #000);
+  --bs-btn-disabled-color: var(--theme-#{$variant}-text);
+  --bs-btn-disabled-bg: var(--bs-#{$variant});
+  --bs-btn-disabled-border-color: var(--bs-#{$variant});
+  --bs-btn-focus-shadow-rgb: var(--bs-#{$variant}-rgb);
 }
 
-.btn-outline-primary {
-  --bs-btn-color: var(--bs-primary);
-  --bs-btn-border-color: var(--bs-primary);
-  --bs-btn-hover-color: var(--theme-primary-text);
-  --bs-btn-hover-bg: var(--bs-primary);
-  --bs-btn-hover-border-color: var(--bs-primary);
-  --bs-btn-active-color: var(--theme-primary-text);
-  --bs-btn-active-bg: var(--bs-primary);
-  --bs-btn-active-border-color: var(--bs-primary);
-  --bs-btn-disabled-color: var(--bs-primary);
-  --bs-btn-disabled-border-color: var(--bs-primary);
-  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+@mixin brand-button-outline($variant) {
+  --bs-btn-color: var(--bs-#{$variant});
+  --bs-btn-border-color: var(--bs-#{$variant});
+  --bs-btn-hover-color: var(--theme-#{$variant}-text);
+  --bs-btn-hover-bg: var(--bs-#{$variant});
+  --bs-btn-hover-border-color: var(--bs-#{$variant});
+  --bs-btn-active-color: var(--theme-#{$variant}-text);
+  --bs-btn-active-bg: var(--bs-#{$variant});
+  --bs-btn-active-border-color: var(--bs-#{$variant});
+  --bs-btn-disabled-color: var(--bs-#{$variant});
+  --bs-btn-disabled-border-color: var(--bs-#{$variant});
+  --bs-btn-focus-shadow-rgb: var(--bs-#{$variant}-rgb);
 }
 
-.btn-secondary {
-  --bs-btn-color: var(--theme-secondary-text);
-  --bs-btn-bg: var(--bs-secondary);
-  --bs-btn-border-color: var(--bs-secondary);
-  --bs-btn-hover-color: var(--theme-secondary-text);
-  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-secondary) 85%, #000);
-  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-secondary) 80%, #000);
-  --bs-btn-active-color: var(--theme-secondary-text);
-  --bs-btn-active-bg: color-mix(in srgb, var(--bs-secondary) 80%, #000);
-  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-secondary) 75%, #000);
-  --bs-btn-disabled-color: var(--theme-secondary-text);
-  --bs-btn-disabled-bg: var(--bs-secondary);
-  --bs-btn-disabled-border-color: var(--bs-secondary);
-  --bs-btn-focus-shadow-rgb: var(--bs-secondary-rgb);
-}
-
-.btn-outline-secondary {
-  --bs-btn-color: var(--bs-secondary);
-  --bs-btn-border-color: var(--bs-secondary);
-  --bs-btn-hover-color: var(--theme-secondary-text);
-  --bs-btn-hover-bg: var(--bs-secondary);
-  --bs-btn-hover-border-color: var(--bs-secondary);
-  --bs-btn-active-color: var(--theme-secondary-text);
-  --bs-btn-active-bg: var(--bs-secondary);
-  --bs-btn-active-border-color: var(--bs-secondary);
-  --bs-btn-disabled-color: var(--bs-secondary);
-  --bs-btn-disabled-border-color: var(--bs-secondary);
-  --bs-btn-focus-shadow-rgb: var(--bs-secondary-rgb);
+@each $variant in (primary, secondary) {
+  .btn-#{$variant} { @include brand-button-filled($variant); }
+  .btn-outline-#{$variant} { @include brand-button-outline($variant); }
 }
 
 // SVG glyphs inside a primary button inherit the foreground text colour.

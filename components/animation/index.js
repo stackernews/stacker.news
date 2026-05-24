@@ -32,7 +32,11 @@ function getAnimationDefault () {
 }
 
 export function useAnimationEnabled () {
-  const [enabled, setEnabled] = useState(getAnimationDefault)
+  const [enabled, setEnabled] = useState(false)
+
+  useEffect(() => {
+    setEnabled(getAnimationDefault())
+  }, [])
 
   const toggleEnabled = useCallback(() => {
     setEnabled(enabled => {

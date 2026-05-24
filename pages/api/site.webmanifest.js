@@ -1,6 +1,6 @@
 import { getDomainBranding } from '@/lib/domains'
 import { PUBLIC_MEDIA_URL } from '@/lib/constants'
-import { imgProxyEnabled, processResize } from '@/worker/imgproxy'
+import { imgProxyEnabled, processResize } from '@/lib/imgproxy'
 import { getRequestOrigin } from '@/lib/safe-url'
 import { truncateString } from '@/lib/format'
 

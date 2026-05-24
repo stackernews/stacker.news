@@ -46,7 +46,6 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
   const [field, , helpers] = useField(name)
   const formik = useFormikContext()
   const [freshUrl, setFreshUrl] = useState(null)
-  const toaster = useToast()
 
   const previewUrl = freshUrl || (field.value ? `${PUBLIC_MEDIA_URL}/${field.value}` : defaultAsset)
 
@@ -86,10 +85,7 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
                 setFreshUrl(url)
                 helpers.setValue(Number(id))
               }}
-              onError={() => {
-                onError()
-                toaster.danger('upload failed')
-              }}
+              onError={onError}
             >
               <Button size='sm' variant='secondary' disabled={uploading}>
                 {uploading ? 'uploading...' : (field.value ? 'replace' : 'upload')}

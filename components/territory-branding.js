@@ -42,7 +42,7 @@ export const useBranding = () => useContext(BrandingContext)
 
 // uploads via the presigned-POST flow; the form holds the upload id and the
 // preview is either the freshly uploaded url, derived from that id, or a built-in fallback.
-function AssetField ({ label, name, hint, defaultAsset, brand, width = 48, height = 48, accept = 'image/*', uploading, onUpload, onSuccess, onError }) {
+function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 48, height = 48, accept = 'image/*', uploading, onUpload, onSuccess, onError }) {
   const [field, , helpers] = useField(name)
   const formik = useFormikContext()
   const [freshUrl, setFreshUrl] = useState(null)
@@ -79,7 +79,7 @@ function AssetField ({ label, name, hint, defaultAsset, brand, width = 48, heigh
           <div className='d-flex align-items-center gap-2'>
             <FileUpload
               allow={accept}
-              subAsset // only images allowed, free upload
+              subName={subName} // by passing the subName, we're opting into the free upload path
               onUpload={onUpload}
               onSuccess={({ id, url }) => {
                 onSuccess()
@@ -179,6 +179,7 @@ export function TerritoryBrandingForm ({ sub, branding }) {
       <AssetField
         label='site logo'
         name='logoId'
+        subName={sub.name}
         hint='shown in the nav (in place of the SN icon)'
         width={64}
         height={64}
@@ -215,6 +216,7 @@ export function TerritoryBrandingForm ({ sub, branding }) {
       <AssetField
         label='site favicon'
         name='faviconId'
+        subName={sub.name}
         hint='shown in browser tabs on your custom domain. 32x32 recommended'
         width={64}
         height={64}

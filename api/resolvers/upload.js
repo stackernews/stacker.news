@@ -1,6 +1,6 @@
-import { USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW, AWS_S3_URL_REGEXP, AVATAR_TYPES_ALLOW, MEDIA_URL } from '@/lib/constants'
+import { USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW, AWS_S3_URL_REGEXP, AVATAR_TYPES_ALLOW, MEDIA_URL, DOMAIN_BETA_IDS } from '@/lib/constants'
 import { createPresignedPost } from '@/api/s3'
-import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { msatsToSats } from '@/lib/format'
 import { Prisma } from '@prisma/client'
 
@@ -21,7 +21,7 @@ export default {
     }
   },
   Mutation: {
-    getSignedPOST: async (parent, { type, size, width, height, avatar, subAsset }, { models, me }) => {
+    getSignedPOST: async (parent, { type, size, width, height, avatar, subName }, { models, me }) => {
       if (UPLOAD_TYPES_ALLOW.indexOf(type) === -1) {
         throw new GqlInputError(`upload must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace(/^(image|video)\//, '')).join(', ')}`)
       }
@@ -30,8 +30,10 @@ export default {
         throw new GqlInputError(`upload must be less than ${UPLOAD_SIZE_MAX / (1024 ** 2)} megabytes`)
       }
 
-      if (avatar || subAsset) {
-        const assetType = subAsset ? 'territory asset' : 'avatar'
+      // free uploads: avatars are bound to the caller's photoId, sub assets to a sub they own.
+      const isFreeAsset = avatar || subName
+      if (isFreeAsset) {
+        const assetType = subName ? 'territory asset' : 'avatar'
         if (AVATAR_TYPES_ALLOW.indexOf(type) === -1) {
           throw new GqlInputError(`${assetType} must be ${AVATAR_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
         }
@@ -55,8 +57,9 @@ export default {
         paid: false
       }
 
-      if (avatar || subAsset) {
+      if (isFreeAsset) {
         if (!me) throw new GqlAuthenticationError()
+        if (subName) await assertCanUploadSubAsset({ me, subName, models })
         fileParams.paid = true
       }
 
@@ -64,6 +67,25 @@ export default {
       return createPresignedPost({ key: String(upload.id), type, size })
     }
   }
+}
+
+// mirrors the trust boundary enforced by `upsertSubBranding` so the free
+// upload path can't be used outside of legitimate territory branding flows.
+async function assertCanUploadSubAsset ({ me, subName, models }) {
+  if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
+    throw new GqlAuthorizationError('not allowed')
+  }
+
+  const sub = await models.sub.findUnique({
+    where: { name: subName },
+    select: { userId: true, domain: { select: { subName: true } } }
+  })
+
+  if (!sub) throw new GqlInputError('sub not found')
+  if (Number(sub.userId) !== Number(me.id)) {
+    throw new GqlAuthorizationError('you do not own this sub')
+  }
+  if (!sub.domain) throw new GqlInputError('requires a custom domain')
 }
 
 export function uploadIdsFromText (text) {

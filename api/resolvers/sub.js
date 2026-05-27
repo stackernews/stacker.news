@@ -372,12 +372,12 @@ export default {
         throw new GqlInputError('requires a custom domain')
       }
 
-      await validateSchema(subBrandingSchema, branding)
+      const validBranding = await validateSchema(subBrandingSchema, branding)
 
       await models.subBranding.upsert({
         where: { subName },
-        update: branding,
-        create: { subName, ...branding }
+        update: validBranding,
+        create: { subName, ...validBranding }
       })
 
       return await models.sub.findUnique({ where: { name: subName } })

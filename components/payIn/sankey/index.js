@@ -1,4 +1,4 @@
-import { msatsToSatsDecimal, numWithUnits } from '@/lib/format'
+import { formatMsatsAsSats, msatsToSatsDecimal } from '@/lib/format'
 import { payTypeShortName } from '@/lib/pay-in'
 import { ResponsiveSankey } from '@nivo/sankey'
 import { RotatingSankeyLabels } from './label'
@@ -43,10 +43,11 @@ export function PayInSankeySkeleton () {
 }
 
 function assetFormatted (msats, type) {
+  const amount = formatMsatsAsSats(msats)
   if (type === 'CREDITS') {
-    return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false })
+    return `${amount} ${BigInt(msats) === 1000n ? 'CC' : 'CCs'}`
   }
-  return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'sat', unitPlural: 'sats', abbreviate: false })
+  return `${amount} ${BigInt(msats) === 1000n ? 'sat' : 'sats'}`
 }
 
 function Tooltip ({ node, link }) {

@@ -174,15 +174,7 @@ const getManifest = (colorScheme, branding, origin) => {
     ...(branding?.primaryColor && { background_color: branding.primaryColor }),
     ...(brandedIcons && { icons: brandedIcons }),
     // re-scope the PWA to the custom domain
-    ...(origin && {
-      url_handlers: [{ origin }],
-      // TODO REVIEW: this doesn't work, capture service cannot grab external domains
-      screenshots: [{
-        src: `https://capture.stacker.news/${origin}`,
-        type: 'image/png',
-        form_factor: 'wide'
-      }]
-    })
+    ...(origin && { url_handlers: [{ origin }] })
   }
 }
 

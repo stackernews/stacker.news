@@ -36,6 +36,7 @@ export default gql`
       billingType: String!, billingAutoRenew: Boolean!,
       sendProtocolId: Int,
       nsfw: Boolean!): PayIn!
+    upsertSubBranding(subName: String!, branding: SubBrandingInput!): Sub!
   }
 
   type Sub {
@@ -64,6 +65,10 @@ export default gql`
     nitems(when: String, from: String, to: String): Int!
     meSubscription: Boolean!
 
+    # owner only fields
+    domain: Domain
+    branding: SubBranding
+
     optional: SubOptional!
   }
 
@@ -74,5 +79,30 @@ export default gql`
     stacked(when: String, from: String, to: String): Int
     spent(when: String, from: String, to: String): Int
     revenue(when: String, from: String, to: String): Int
+  }
+
+  type SubBranding {
+    subName: String!
+
+    # theme
+    primaryColor: String
+    secondaryColor: String
+    linkColor: String
+    logoId: Int
+
+    # seo
+    title: String
+    tagline: String
+    faviconId: Int
+  }
+
+  input SubBrandingInput {
+    primaryColor: String
+    secondaryColor: String
+    linkColor: String
+    logoId: Int
+    title: String
+    tagline: String
+    faviconId: Int
   }
 `

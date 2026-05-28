@@ -1,12 +1,13 @@
 import { timeUnitForRange, whenRange } from '@/lib/time'
-import { validateSchema, territorySchema } from '@/lib/validate'
+import { validateSchema, territorySchema, subBrandingSchema } from '@/lib/validate'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { notifyTerritoryTransfer } from '@/lib/webPush'
 import pay from '../payIn'
-import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
+import { GqlAuthenticationError, GqlInputError, GqlAuthorizationError } from '@/lib/error'
 import { uploadIdsFromText } from './upload'
 import { Prisma } from '@prisma/client'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
+import { DOMAIN_BETA_IDS } from '@/lib/constants'
 
 export async function getSub (parent, { name }, { models, me }) {
   if (!name) return null
@@ -345,6 +346,41 @@ export default {
       data.uploadIds = uploadIdsFromText(data.desc)
 
       return await pay('TERRITORY_UNARCHIVE', data, { me, models, lnd, sendProtocolId })
+    },
+    upsertSubBranding: async (parent, { subName, branding }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
+        throw new GqlAuthorizationError('not allowed')
+      }
+
+      const sub = await models.sub.findUnique({
+        where: { name: subName },
+        select: { userId: true }
+      })
+      if (!sub) {
+        throw new GqlInputError('sub not found')
+      }
+      if (sub.userId !== Number(me.id)) {
+        throw new GqlAuthorizationError('you do not own this sub')
+      }
+
+      const domain = await models.domain.findUnique({ where: { subName } })
+      if (!domain) {
+        throw new GqlInputError('requires a custom domain')
+      }
+
+      const validBranding = await validateSchema(subBrandingSchema, branding)
+
+      await models.subBranding.upsert({
+        where: { subName },
+        update: validBranding,
+        create: { subName, ...validBranding }
+      })
+
+      return await models.sub.findUnique({ where: { name: subName } })
     }
   },
   Sub: {
@@ -388,8 +424,27 @@ export default {
         console.error('error generating HTML from Lexical State:', error)
         return null
       }
+    },
+    domain: async (sub, args, { me, models }) => {
+      if (!canAccessDomainSettings({ sub, me })) return null
+      return await models.domain.findUnique({
+        where: { subName: sub.name },
+        include: { records: true, attempts: true }
+      })
+    },
+    branding: async (sub, args, { me, models }) => {
+      if (!canAccessDomainSettings({ sub, me })) return null
+      return await models.subBranding.findUnique({ where: { subName: sub.name } })
     }
   }
+}
+
+/** one can access domain settings if they are beta tester and the sub is owned by them */
+function canAccessDomainSettings ({ sub, me }) {
+  if (!me) return false
+  if (!DOMAIN_BETA_IDS.includes(Number(me.id))) return false
+  if (Number(sub.userId) !== Number(me.id)) return false
+  return true
 }
 
 async function createSub (parent, { sendProtocolId, ...data }, { me, models, lnd }) {

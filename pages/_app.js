@@ -21,7 +21,7 @@ import 'nprogress/nprogress.css'
 import { ChainFeeProvider } from '@/components/chain-fee.js'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
-import { DomainProvider } from '@/components/territory-domains'
+import { BrandingProvider } from '@/components/territory-branding'
 import { WalletsProvider } from '@/wallets/client/hooks'
 import FaviconProvider from '@/components/favicon'
 import { CookiesProvider } from '@/components/use-cookie'
@@ -103,7 +103,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, ssrPublicCookies, me, price, blockHeight, chainFee, domain, ...otherProps } = props
+  const { apollo, ssrData, ssrPublicCookies, me, price, blockHeight, chainFee, branding, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -116,7 +116,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       <ErrorBoundary>
         <PlausibleProvider>
           <ApolloProvider client={client}>
-            <DomainProvider domain={domain}>
+            <BrandingProvider branding={branding}>
               <MeProvider me={me}>
                 <CookiesProvider ssrPublicCookies={ssrPublicCookies}>
                   <WalletsProvider>
@@ -145,7 +145,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                   </WalletsProvider>
                 </CookiesProvider>
               </MeProvider>
-            </DomainProvider>
+            </BrandingProvider>
           </ApolloProvider>
         </PlausibleProvider>
       </ErrorBoundary>

@@ -7,7 +7,7 @@ function SignUpHeader ({ domainData }) {
   return (
     <>
       <h3 className='w-100 pb-2'>
-        Sign up {domainData && ` to ~${domainData.subName}`}
+        Sign up {domainData && ` to ${domainData.title}`}
       </h3>
       <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>We saved you a seat, pardner.</div>
     </>

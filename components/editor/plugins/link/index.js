@@ -5,7 +5,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import {
   PASTE_COMMAND, SELECTION_CHANGE_COMMAND,
   $getSelection, $isNodeSelection, $isRangeSelection,
-  COMMAND_PRIORITY_HIGH, COMMAND_PRIORITY_LOW
+  COMMAND_PRIORITY_HIGH, COMMAND_PRIORITY_LOW, $createTextNode
 } from 'lexical'
 import LinkEditor from './editor'
 import { getSelectedNode } from '@/lib/lexical/commands/utils'
@@ -109,7 +109,8 @@ export default function LinkEditorPlugin ({ anchorElem }) {
             return true
           }
 
-          const autolink = $createAutoLinkNode(href)
+          const autolink = $createAutoLinkNode(href).append($createTextNode(href))
+          console.log('autolink', autolink)
           selection.insertNodes([autolink])
           return true
         }, COMMAND_PRIORITY_HIGH

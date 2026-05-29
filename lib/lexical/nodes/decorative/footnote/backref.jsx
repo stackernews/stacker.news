@@ -1,37 +1,27 @@
-import { ElementNode, $applyNodeReplacement } from 'lexical'
+import { DecoratorNode, $applyNodeReplacement } from 'lexical'
 
-function backrefDOM (config, { identifier }) {
+function backrefDOM (config, identifier) {
   const a = document.createElement('a')
   a.href = `#fnref-${identifier}`
   a.setAttribute('data-lexical-footnote-backref', 'true')
   a.setAttribute('data-lexical-footnote-backref-id', identifier)
   a.setAttribute('aria-label', `back to reference ${identifier}`)
   a.textContent = ' ↩'
-  const theme = config.theme
-  const className = theme.footnoteBackref
-  if (className !== undefined) {
-    a.className = className
-  }
+  const className = config.theme.footnoteBackref
+  if (className !== undefined) a.className = className
   return a
 }
 
 function $convertFootnoteBackrefElement (domNode) {
   const identifier = domNode.getAttribute('data-lexical-footnote-backref-id')
-  if (identifier) {
-    return { node: $createFootnoteBackrefNode({ identifier }) }
-  }
-  return null
+  return identifier ? { node: $createFootnoteBackrefNode({ identifier }) } : null
 }
 
-export class FootnoteBackrefNode extends ElementNode {
+export class FootnoteBackrefNode extends DecoratorNode {
   __identifier
 
   static getType () {
     return 'footnote-backref'
-  }
-
-  getIdentifier () {
-    return this.__identifier
   }
 
   static clone (node) {
@@ -39,9 +29,15 @@ export class FootnoteBackrefNode extends ElementNode {
   }
 
   static importJSON (serializedNode) {
-    return $createFootnoteBackrefNode({
-      identifier: serializedNode.identifier
-    })
+    return $createFootnoteBackrefNode({ identifier: serializedNode.identifier })
+  }
+
+  static importDOM () {
+    return {
+      a: (domNode) => domNode.hasAttribute('data-lexical-footnote-backref')
+        ? { conversion: $convertFootnoteBackrefElement, priority: 1 }
+        : null
+    }
   }
 
   constructor (identifier, key) {
@@ -49,30 +45,20 @@ export class FootnoteBackrefNode extends ElementNode {
     this.__identifier = identifier
   }
 
+  getIdentifier () {
+    return this.__identifier
+  }
+
   exportJSON () {
-    return {
-      ...super.exportJSON(),
-      type: 'footnote-backref',
-      version: 1,
-      identifier: this.__identifier
-    }
+    return { type: 'footnote-backref', version: 1, identifier: this.__identifier }
   }
 
   createDOM (config) {
-    return backrefDOM(config, { identifier: this.__identifier })
+    return backrefDOM(config, this.__identifier)
   }
 
   exportDOM (editor) {
-    return { element: backrefDOM(editor._config, { identifier: this.__identifier }) }
-  }
-
-  static importDOM () {
-    return {
-      a: (domNode) => {
-        if (!domNode.hasAttribute('data-lexical-footnote-backref')) return null
-        return { conversion: $convertFootnoteBackrefElement, priority: 1 }
-      }
-    }
+    return { element: backrefDOM(editor._config, this.__identifier) }
   }
 
   isInline () {
@@ -81,6 +67,11 @@ export class FootnoteBackrefNode extends ElementNode {
 
   updateDOM () {
     return false
+  }
+
+  // backref is present in the DOM
+  decorate () {
+    return null
   }
 }
 

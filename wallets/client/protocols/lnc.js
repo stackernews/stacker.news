@@ -23,6 +23,20 @@ export async function testSendPayment (credentials, { logger }) {
   return lnc.credentials.credentials
 }
 
+export async function getBalance (credentials, { logger } = {}) {
+  return await mutex.runExclusive(async () => {
+    const lnc = await getLNC(credentials, { logger })
+    const balance = await lnc.lnd.lightning.channelBalance()
+    const amount = lndAmountToSats(balance.localBalance ?? balance.local_balance ?? balance.balance)
+    if (amount == null) return null
+
+    return {
+      amount,
+      currency: 'BTC'
+    }
+  })
+}
+
 async function disconnectLNC (lnc, { logger } = {}) {
   try {
     if (!lnc?.isConnected) return
@@ -168,4 +182,28 @@ class LncCredentialStore {
   clear () {
     this.credentials = {}
   }
+}
+
+function lndAmountToSats (amount) {
+  if (amount == null) return null
+
+  if (typeof amount === 'number') {
+    return amount
+  }
+
+  if (typeof amount === 'string') {
+    const parsed = Number(amount)
+    return Number.isNaN(parsed) ? null : parsed
+  }
+
+  if (amount.sat != null) {
+    return lndAmountToSats(amount.sat)
+  }
+
+  if (amount.msat != null) {
+    const parsed = Number(amount.msat)
+    return Number.isNaN(parsed) ? null : Math.floor(parsed / 1000)
+  }
+
+  return null
 }

@@ -1,4 +1,5 @@
 import { snFetch } from '@/lib/fetch'
+import { msatsToSats } from '@/lib/format'
 import { assertContentTypeJson } from '@/lib/url'
 
 export const name = 'LNBITS'
@@ -16,6 +17,16 @@ export async function sendPayment (bolt11, { url, apiKey }, { signal }) {
 
 export async function testSendPayment ({ url, apiKey }, { signal }) {
   await getWallet({ url, apiKey }, { signal })
+}
+
+export async function getBalance ({ url, apiKey }, { signal } = {}) {
+  const wallet = await getWallet({ url, apiKey }, { signal })
+  if (wallet.balance == null) return null
+
+  return {
+    amount: msatsToSats(wallet.balance),
+    currency: 'BTC'
+  }
 }
 
 async function getWallet ({ url, apiKey }, { signal }) {

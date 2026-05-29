@@ -10,7 +10,7 @@ import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
-import { processCrop } from '@/worker/imgproxy'
+import { processCrop } from '@/lib/imgproxy'
 import { payInTypesSql } from '../payIn/lib/sql'
 import { Prisma } from '@prisma/client'
 

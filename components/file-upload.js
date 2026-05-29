@@ -5,14 +5,14 @@ import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client/react'
 import piexif from 'piexifjs'
 
-export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar, allow }, ref) => {
+export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar, subName, allow }, ref) => {
   const toaster = useToast()
   ref ??= useRef(null)
 
   const [getSignedPOST] = useMutation(
     gql`
-      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!, $avatar: Boolean) {
-        getSignedPOST(type: $type, size: $size, width: $width, height: $height, avatar: $avatar) {
+      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!, $avatar: Boolean, $subName: String) {
+        getSignedPOST(type: $type, size: $size, width: $width, height: $height, avatar: $avatar, subName: $subName) {
           url
           fields
         }
@@ -31,6 +31,7 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         let data
         const variables = {
           avatar,
+          subName,
           type: file.type,
           size: file.size,
           width: element.width || element.videoWidth,

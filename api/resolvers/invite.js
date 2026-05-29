@@ -75,6 +75,7 @@ export default {
   },
 
   Invite: {
+    createdAt: (invite) => invite.createdAt ?? invite.created_at,
     user: async (invite, args, { me, models }) => {
       return await models.user.findUnique({ where: { id: invite.userId } })
     },

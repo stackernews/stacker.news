@@ -1,20 +1,14 @@
-import { createHmac } from 'node:crypto'
 import { extractUrls } from '@/lib/md'
 import { isJob } from '@/lib/item'
-import path from 'node:path'
 import { decodeProxyUrl } from '@/lib/url'
+import { imgProxyEnabled, createImgproxyPath } from '@/lib/imgproxy'
 import { snFetch } from '@/lib/fetch'
-
-const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
-  (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
 
 if (!imgProxyEnabled) {
   console.warn('IMGPROXY_* env vars not set, imgproxy calls are no-ops now')
 }
 
 const IMGPROXY_URL = process.env.IMGPROXY_URL_DOCKER || process.env.NEXT_PUBLIC_IMGPROXY_URL
-const IMGPROXY_SALT = process.env.IMGPROXY_SALT
-const IMGPROXY_KEY = process.env.IMGPROXY_KEY
 const MEDIA_CHECK_URL = process.env.MEDIA_CHECK_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_CHECK_URL
 
 const cache = new Map()
@@ -128,13 +122,6 @@ const getMetadata = async (url) => {
   return { dimensions: { width, height }, format, video: !!videoStreams?.length }
 }
 
-const createImgproxyPath = ({ url, pathname = '/', options }) => {
-  const b64Url = Buffer.from(url, 'utf-8').toString('base64url')
-  const target = path.join(options, b64Url)
-  const signature = sign(target)
-  return path.join(pathname, signature, target)
-}
-
 const isMediaURL = async (url, { forceFetch }) => {
   if (cache.has(url)) return cache.get(url)
 
@@ -190,43 +177,4 @@ const isMediaURL = async (url, { forceFetch }) => {
 
   cache.set(url, isMedia)
   return isMedia
-}
-
-const hexDecode = (hex) => Buffer.from(hex, 'hex')
-
-const sign = (target) => {
-  // https://github.com/imgproxy/imgproxy/blob/master/examples/signature.js
-  const hmac = createHmac('sha256', hexDecode(IMGPROXY_KEY))
-  hmac.update(hexDecode(IMGPROXY_SALT))
-  hmac.update(target)
-  return hmac.digest('base64url')
-}
-
-export async function processCrop ({ photoId, cropData }) {
-  const { x, y, width, height, originalWidth, originalHeight } = cropData
-  const cropWidth = Math.round(originalWidth * width)
-  const cropHeight = Math.round(originalHeight * height)
-
-  const centerX = x + width / 2
-  const centerY = y + height / 2
-
-  const size = 200 // 200px avatar size
-
-  const options = [
-    `/crop:${cropWidth}:${cropHeight}`,
-    `/gravity:fp:${centerX}:${centerY}`,
-    `/rs:fill:${size}:${size}`
-  ].join('')
-
-  // in dev we may use MEDIA_URL_DOCKER or NEXT_PUBLIC_MEDIA_URL
-  // in prod we use NEXT_PUBLIC_MEDIA_DOMAIN
-  const uploadsUrl = process.env.MEDIA_URL_DOCKER || process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
-  const url = `${uploadsUrl}/${photoId}`
-  console.log('[imgproxy - cropjob] id:', photoId, '-- url:', url)
-
-  const pathname = '/'
-  const path = createImgproxyPath({ url, pathname, options })
-  const publicImgproxyUrl = process.env.NEXT_PUBLIC_IMGPROXY_URL
-
-  return new URL(path, publicImgproxyUrl).toString()
 }

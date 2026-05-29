@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, useState } from 'react'
 import { useHasNewNotes } from './use-has-new-notes'
 import Head from 'next/head'
+import { useBranding } from './territory-branding'
+import { PUBLIC_MEDIA_URL } from '@/lib/constants'
 
 const FAVICONS = {
   default: '/favicon.png',
@@ -19,12 +21,20 @@ const getFavicon = (hasNewNotes, hasNewComments) => {
 export const FaviconContext = createContext()
 
 export default function FaviconProvider ({ children }) {
+  const branding = useBranding()
   const hasNewNotes = useHasNewNotes()
   const [hasNewComments, setHasNewComments] = useState(false)
 
-  const favicon = useMemo(() =>
-    getFavicon(hasNewNotes, hasNewComments),
-  [hasNewNotes, hasNewComments])
+  const brandFavicon = branding?.faviconId
+    ? `${PUBLIC_MEDIA_URL}/${branding.faviconId}`
+    : null
+
+  const favicon = useMemo(() => {
+    // if a custom favicon is set, exclusively use it
+    // XXX: notification and new comment flavors are not available for custom domains
+    if (brandFavicon) return brandFavicon
+    return getFavicon(hasNewNotes, hasNewComments)
+  }, [hasNewNotes, hasNewComments, brandFavicon])
 
   const contextValue = useMemo(() => ({
     favicon,
@@ -36,7 +46,7 @@ export default function FaviconProvider ({ children }) {
   return (
     <FaviconContext.Provider value={contextValue}>
       <Head>
-        <link rel='shortcut icon' href={favicon} />
+        <link rel='icon' href={favicon} />
       </Head>
       {children}
     </FaviconContext.Provider>

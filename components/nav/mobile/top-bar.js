@@ -15,13 +15,13 @@ export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNa
         activeKey={topNavKey}
       >
         <Back className='d-flex d-md-none' />
-        {hasNavSelect({ path, pathname })
+        {!branding && hasNavSelect({ path, pathname })
           ? <NavSelect sub={sub} className='w-100' />
           : (
             <>
               <NavPrice className='flex-shrink-1' />
               <CommentsNavigator navigator={navigator} commentCount={commentCount} className='px-2' />
-              {me ? <NavWalletSummary /> : <SignUpButton width='fit-content' />}
+              {me ? <NavWalletSummary /> : branding ? null : <SignUpButton width='fit-content' />}
             </>)}
       </Nav>
     </Navbar>

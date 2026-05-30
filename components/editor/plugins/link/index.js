@@ -110,7 +110,6 @@ export default function LinkEditorPlugin ({ anchorElem }) {
           }
 
           const autolink = $createAutoLinkNode(href).append($createTextNode(href))
-          console.log('autolink', autolink)
           selection.insertNodes([autolink])
           return true
         }, COMMAND_PRIORITY_HIGH

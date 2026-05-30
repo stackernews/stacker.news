@@ -160,6 +160,15 @@ export default function FileUploadPlugin ({ editorRef }) {
           const items = e.clipboardData?.items || []
           if (items.length === 0) return false
 
+          // rich text editors like Microsoft Word put a rendered bitmap of the selection on the
+          // clipboard alongside the real text/html content. when there is actual text
+          // to paste, prefer it and let the default rich-text/markdown paste handle it
+          // instead of uploading the incidental image.
+          const plain = e.clipboardData?.getData('text/plain')?.trim()
+          const html = e.clipboardData?.getData('text/html')?.trim()
+          // check for both, so that image uploads that carry e.g. a text/plain URL still upload
+          if (plain && html) return false
+
           const fileList = new window.DataTransfer()
           let hasImages = false
 

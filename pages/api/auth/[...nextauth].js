@@ -386,6 +386,12 @@ export const getAuthOptions = (req, res) => ({
         // silently attach an email to the wrong user
         if (session?.id && String(session.id) === linkCookie) {
           linkUserId = Number(session.id)
+        } else if (session?.id) {
+          // link intent, but the active account isn't the one that started
+          // the attempt (e.g. the user switched accounts mid-flow). fail
+          // loudly instead of falling through to getUserByEmail -> createUser,
+          // which would silently create a brand-new account for this email.
+          throw new Error('account changed during email link attempt')
         }
       }
 

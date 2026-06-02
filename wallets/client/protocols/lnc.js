@@ -1,7 +1,7 @@
 import { Mutex } from 'async-mutex'
 import { msatsToSats } from '@/lib/format'
 import { isAbortLike, raceAbort, throwIfAborted } from '@/lib/time'
-import { WalletPermissionsError, WalletBalanceProbeSkipped } from '@/wallets/client/errors'
+import { WalletPaymentRejectedError, WalletPermissionsError, WalletBalanceProbeSkipped } from '@/wallets/client/errors'
 import { walletBalance } from './util'
 
 export const name = 'LNC'
@@ -26,17 +26,11 @@ export async function sendPayment (bolt11, credentials, { logger, maxFee, signal
       // as a string to avoid the 53-bit int safety ceiling.
       request.fee_limit = { fixed: String(maxFee) }
     }
-    let result
-    try {
-      result = await connection.call(lnc.lnd.lightning.sendPaymentSync(request), { logger, signal })
-    } catch (err) {
-      if (isAbortLike(err)) throw err
-      // the RPC was already transmitted, so a transport drop may have left the
-      // payment in flight; flag it so the shell warns instead of inviting a retry.
-      throw Object.assign(err, { settledUnknown: true })
-    }
+    // a transport drop after the RPC was transmitted may leave the payment in
+    // flight; sendWalletPayment classifies such errors as settled-unknown by default
+    const result = await connection.call(lnc.lnd.lightning.sendPaymentSync(request), { logger, signal })
     const { paymentError, paymentPreimage: preimage } = result
-    if (paymentError) throw new Error(paymentError) // LND reported a routing failure -> definitive
+    if (paymentError) throw new WalletPaymentRejectedError(paymentError) // LND reported a routing failure -> definitive
     // a missing preimage on an otherwise-OK response is settled-unknown; return it
     // and let sendWalletPayment flag it via the proof check.
     if (!preimage) return preimage

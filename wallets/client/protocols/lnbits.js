@@ -15,6 +15,12 @@ export async function sendPayment (bolt11, { url, apiKey }, { signal }) {
   // see https://docs.lnbits.com/guide/concepts#payment-states), so poll until it
   // reports a terminal state. A missing preimage on SUCCESS is handled by
   // sendWalletPayment (surfaced as settled-unknown for direct sends).
+  // Some deployments prune a failed outgoing payment's record, so the status read
+  // 404s forever and the send surfaces as settled-unknown at the caller's timeout.
+  // We deliberately do NOT convert 404s into a definitive failure: a 404 is the
+  // absence of a record, not a provider failure report — proxy blips and lookup
+  // quirks can 404 a payment that is still in flight, and a fabricated failure
+  // here invites a double-pay.
   return await pollUntilSettled(
     () => getPayment(hash, { url, apiKey }, { signal }),
     // LNbits v1 reports terminal failure as { paid: false, status: 'failed' }
@@ -50,12 +56,10 @@ async function lnbitsRequest ({ url, apiKey, path, method = 'GET', body }, { sig
     const errBody = await res.json()
     const message = errBody.detail || `${res.status} ${res.statusText}`
     if (accessDeniedStatuses.has(res.status)) {
-      throw new WalletPermissionsError(message)
+      throw Object.assign(new WalletPermissionsError(message), { status: res.status })
     }
-    throw Object.assign(new Error(message), {
-      status: res.status,
-      statusText: res.statusText
-    })
+    // the balance classifier reads err.status to distinguish permanent errors
+    throw Object.assign(new Error(message), { status: res.status })
   }
 
   return await res.json()

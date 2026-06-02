@@ -1,4 +1,4 @@
-import { WalletError } from '@/wallets/client/errors'
+import { WalletConfigurationError, WalletError } from '@/wallets/client/errors'
 import { isAbortLike, raceAbort } from '@/lib/time'
 
 export const name = 'WEBLN'
@@ -7,15 +7,18 @@ export const name = 'WEBLN'
 export const enforcesMaxFee = false
 
 export async function sendPayment (bolt11, _config, { signal } = {}) {
+  // failures up to and including enable() happen before any payment is
+  // attempted: a configuration error renders as a definitive, safe-to-retry
+  // failure instead of the in-flight warning
   if (typeof window.webln === 'undefined') {
-    throw new WalletError('lightning browser extension not found')
+    throw new WalletConfigurationError('lightning browser extension not found')
   }
 
   try {
     await raceAbort(window.webln.enable(), signal)
   } catch (err) {
     if (isAbortLike(err)) throw err
-    throw new WalletError(err.message)
+    throw new WalletConfigurationError(err.message)
   }
 
   const response = await raceAbort(window.webln.sendPayment(bolt11), signal)

@@ -1,5 +1,6 @@
 import { msatsToSats, toPositiveNumber } from '@/lib/format'
 import { abortableSleep, isAbortLike } from '@/lib/time'
+import { WalletPaymentRejectedError } from '@/wallets/client/errors'
 import protocols from '@/wallets/client/protocols'
 
 function protocol (name) {
@@ -24,7 +25,9 @@ export async function pollUntilSettled (probe, classify, { intervalMs, signal })
     }
     const terminal = classify(result)
     if (terminal && 'value' in terminal) return terminal.value
-    if (terminal && 'error' in terminal) throw new Error(terminal.error)
+    // a provider-reported terminal failure is the only thing the loop reports as
+    // a definitive (safe-to-retry) failure
+    if (terminal && 'error' in terminal) throw new WalletPaymentRejectedError(terminal.error)
     await abortableSleep(intervalMs, signal)
   }
 }

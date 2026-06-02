@@ -3,7 +3,6 @@ import { useMe } from '@/components/me'
 import { useIndexedDB } from '@/components/use-indexeddb'
 import { SET_KEY, useKey, useKeyHash, useWalletsDispatch } from '@/wallets/client/hooks/global'
 import { useUpdateKeyHash } from '@/wallets/client/hooks/query'
-import { useWalletLogger } from '@/wallets/client/hooks/logger'
 import { decrypt as _decrypt, deriveKey, encrypt as _encrypt, generateRandomPassphrase } from '@/wallets/lib/crypto'
 
 export class CryptoKeyRequiredError extends Error {
@@ -23,7 +22,7 @@ export class WalletLocalStateRecoveryError extends Error {
 const VAULT_STORE_NAME = 'vault'
 const VAULT_KEY_ID = 'key'
 
-export async function readOrCreateVaultKeyRecord (db, { createKey, logger }) {
+export async function readOrCreateVaultKeyRecord (db, { createKey }) {
   // IndexedDB transactions auto-commit around async gaps, so the key must be
   // prepared before opening the read/write transaction that may need to store it.
   const { key, hash } = await createKey()
@@ -33,13 +32,11 @@ export async function readOrCreateVaultKeyRecord (db, { createKey, logger }) {
     const read = tx.objectStore(VAULT_STORE_NAME).get(VAULT_KEY_ID)
 
     read.onerror = () => {
-      logger?.debug?.('vault init: error reading key: ' + read.error)
       reject(read.error)
     }
 
     read.onsuccess = () => {
       if (read.result) {
-        logger?.debug?.('vault init: key found in IndexedDB')
         return resolve(read.result)
       }
 
@@ -47,12 +44,10 @@ export async function readOrCreateVaultKeyRecord (db, { createKey, logger }) {
       const write = tx.objectStore(VAULT_STORE_NAME).put(record, VAULT_KEY_ID)
 
       write.onerror = () => {
-        logger?.debug?.('vault init: error writing new random key: ' + write.error)
         reject(write.error)
       }
 
       write.onsuccess = () => {
-        logger?.debug?.('vault init: saved new random key')
         resolve(record)
       }
     }
@@ -86,7 +81,6 @@ export function useSetKey () {
   const { writeKey } = useVaultLocalStore()
   const dispatch = useWalletsDispatch()
   const updateKeyHash = useUpdateKeyHash()
-  const logger = useWalletLogger()
 
   return useCallback(async ({ key, hash, updatedAt }, { updateDb = true, updateServer = true } = {}) => {
     if (updateDb) {
@@ -97,8 +91,7 @@ export function useSetKey () {
       await updateKeyHash(hash)
     }
     dispatch({ type: SET_KEY, key, hash, updatedAt })
-    logger.debug(`using key ${hash}`)
-  }, [writeKey, dispatch, updateKeyHash, logger])
+  }, [writeKey, dispatch, updateKeyHash])
 }
 
 export function useEncryption () {

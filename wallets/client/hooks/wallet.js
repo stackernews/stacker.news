@@ -1,8 +1,9 @@
 import { useMe } from '@/components/me'
-import { useWalletSendReady, useWallets } from '@/wallets/client/hooks/global'
+import { useTemplates, useWalletSendReady, useWallets } from '@/wallets/client/hooks/global'
 import protocols from '@/wallets/client/protocols'
-import { isWallet } from '@/wallets/lib/util'
+import { isWallet, orderedSendProtocols, templatePathSegmentToName } from '@/wallets/lib/util'
 import { useMemo } from 'react'
+import { useRouter } from 'next/router'
 
 export function useSendProtocols () {
   const wallets = useWallets()
@@ -14,26 +15,10 @@ export function useSendProtocols () {
       return wallets
         .filter(w => w.send)
         .reduce((acc, wallet) => {
-          const configuredSendProtocols = wallet.protocols.filter(p => p.send && p.enabled)
-          const configuredByName = new Map(configuredSendProtocols.map(protocol => [protocol.name, protocol]))
-          // Match the protocol order users see in the wallet form when picking a default sender.
-          const templateOrderedProtocols = (wallet.template?.protocols || [])
-            .filter(protocol => protocol.send)
-            .map(protocol => configuredByName.get(protocol.name))
-            .filter(Boolean)
-          const remainingProtocols = configuredSendProtocols
-            .filter(protocol => !templateOrderedProtocols.some(ordered => ordered.id === protocol.id))
-
           return [
             ...acc,
-            ...[...templateOrderedProtocols, ...remainingProtocols]
-              .map(walletProtocol => {
-                const { sendPayment } = protocols.find(p => p.name === walletProtocol.name)
-                return {
-                  ...walletProtocol,
-                  sendPayment
-                }
-              })
+            ...orderedSendProtocols(wallet)
+              .map(withClientSendProtocol)
           ]
         }, [])
     }
@@ -65,10 +50,41 @@ export const WalletStatus = {
   DISABLED: 'DISABLED'
 }
 
-export function useWalletStatus (wallet) {
-  if (!isWallet(wallet)) return WalletStatus.DISABLED
+// Send/receive status from the wallet record; templates are DISABLED.
+export function walletStatus (wallet) {
+  if (!isWallet(wallet)) {
+    return { send: WalletStatus.DISABLED, receive: WalletStatus.DISABLED }
+  }
 
-  return useMemo(() => ({ send: wallet.send, receive: wallet.receive }), [wallet])
+  return { send: wallet.send, receive: wallet.receive }
+}
+
+export function useWalletCapabilities (wallet) {
+  const support = useWalletSupport(wallet)
+  const sendProtocol = useMemo(() => {
+    const walletProtocol = orderedSendProtocols(wallet)[0]
+    return walletProtocol ? withClientSendProtocol(walletProtocol) : null
+  }, [wallet])
+  const receiveProtocol = useMemo(() => {
+    return wallet.protocols.find(protocol => !protocol.send && protocol.enabled)
+  }, [wallet.protocols])
+
+  return useMemo(() => ({
+    sendProtocol,
+    receiveProtocol,
+    hasConfiguredProtocols: wallet.protocols.length > 0,
+    canSend: support.send && Boolean(sendProtocol),
+    canReceive: support.receive && Boolean(receiveProtocol)
+  }), [receiveProtocol, sendProtocol, support.receive, support.send, wallet.protocols.length])
+}
+
+function withClientSendProtocol (walletProtocol) {
+  const clientProtocol = protocols.find(protocol => protocol.name === walletProtocol.name)
+  return {
+    ...walletProtocol,
+    sendPayment: clientProtocol?.sendPayment,
+    enforcesMaxFee: clientProtocol?.enforcesMaxFee
+  }
 }
 
 export function useWalletsUpdatedAt () {
@@ -76,8 +92,28 @@ export function useWalletsUpdatedAt () {
   return me?.privates?.walletsUpdatedAt
 }
 
-export function useProtocolTemplates (wallet) {
-  return useMemo(() => {
-    return isWallet(wallet) ? wallet.template.protocols : wallet.protocols
-  }, [wallet])
+export function useRouteWallet () {
+  const router = useRouter()
+  const wallets = useWallets()
+  const routeId = Array.isArray(router.query.id) ? router.query.id[0] : router.query.id
+  const wallet = useMemo(() => {
+    const id = Number(routeId)
+    if (!Number.isSafeInteger(id)) return null
+    return wallets.find(wallet => Number(wallet.id) === id) ?? null
+  }, [routeId, wallets])
+
+  return { wallet, ready: router.isReady, routeId }
+}
+
+export function useRouteTemplate () {
+  const router = useRouter()
+  const templates = useTemplates()
+  const routeTemplate = router.query.template
+  const template = useMemo(() => {
+    if (!routeTemplate) return null
+    const name = templatePathSegmentToName(routeTemplate)
+    return templates.find(t => t.name === name) ?? null
+  }, [routeTemplate, templates])
+
+  return { template, ready: router.isReady, routeTemplate }
 }

@@ -1,5 +1,6 @@
 import { snFetch } from '@/lib/fetch'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import { WalletPaymentRejectedError } from '@/wallets/client/errors'
 import { walletBalance } from './util'
 
 export const name = 'PHOENIXD'
@@ -31,7 +32,10 @@ export async function sendPayment (bolt11, { url, apiKey }, { signal }) {
   const payment = await res.json()
   const preimage = payment.paymentPreimage
   if (!preimage) {
-    throw new Error(payment.reason)
+    // phoenixd reports why a payment failed; without a reason or preimage the
+    // outcome is unprovable, so let sendWalletPayment's proof check flag it.
+    if (payment.reason) throw new WalletPaymentRejectedError(payment.reason)
+    return undefined
   }
 
   return preimage

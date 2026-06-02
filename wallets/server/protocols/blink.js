@@ -1,19 +1,21 @@
 import { getScopes, SCOPE_READ, SCOPE_RECEIVE, SCOPE_WRITE, getWallet, request } from '@/wallets/lib/protocols/blink'
-import { msatsToSats } from '@/lib/format'
+import { msatsToSats, msatsSatsFloor } from '@/lib/format'
+import { WalletPermissionsError } from '@/wallets/client/errors'
 
 export const name = 'BLINK'
+// Blink (BTC) only invoices whole sats, so it can receive a request snapped down to the sat grid
+export const receivableMsats = msatsSatsFloor
 
 export async function createInvoice (
   { msats, description, expiry },
-  { apiKeyRecv: apiKey, currencyRecv: currency },
+  { apiKey, currency },
   { signal }) {
   currency = currency ? currency.toUpperCase() : 'BTC'
-
-  const wallet = await getWallet({ apiKey, currency }, { signal })
-
   if (currency !== 'BTC') {
     throw new Error('unsupported currency ' + currency)
   }
+
+  const wallet = await getWallet({ apiKey, currency }, { signal })
 
   const out = await request({
     apiKey,
@@ -41,24 +43,23 @@ export async function createInvoice (
   const res = out.data.lnInvoiceCreate
   const errors = res.errors
   if (errors && errors.length > 0) {
-    throw new Error(errors.map(e => e.code + ' ' + e.message).join(', '))
+    throw new Error(errors.map(e => e.message).join(', '))
   }
 
   return res.invoice.paymentRequest
 }
 
-export async function testCreateInvoice ({ apiKeyRecv, currencyRecv }, { signal }) {
-  const scopes = await getScopes({ apiKey: apiKeyRecv }, { signal })
+export async function testCreateInvoice ({ apiKey, currency }, { signal }) {
+  const scopes = await getScopes({ apiKey }, { signal })
   if (!scopes.includes(SCOPE_READ)) {
-    throw new Error('missing READ scope')
+    throw new WalletPermissionsError('missing READ scope')
   }
   if (scopes.includes(SCOPE_WRITE)) {
-    throw new Error('WRITE scope must not be present')
+    throw new WalletPermissionsError('WRITE scope must not be present')
   }
   if (!scopes.includes(SCOPE_RECEIVE)) {
-    throw new Error('missing RECEIVE scope')
+    throw new WalletPermissionsError('missing RECEIVE scope')
   }
 
-  currencyRecv = currencyRecv ? currencyRecv.toUpperCase() : 'BTC'
-  return await createInvoice({ msats: 1000, expiry: 1 }, { apiKeyRecv, currencyRecv }, { signal })
+  return await createInvoice({ msats: 1000, expiry: 1 }, { apiKey, currency }, { signal })
 }

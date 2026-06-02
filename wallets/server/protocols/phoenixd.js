@@ -1,8 +1,13 @@
 import { snFetch } from '@/lib/fetch'
-import { msatsToSats } from '@/lib/format'
+import { msatsToSats, msatsSatsFloor } from '@/lib/format'
+import { truncateToCharLength } from '@/lib/validate'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 
 export const name = 'PHOENIXD'
+// phoenixd only invoices whole sats, so it can receive a request snapped down to the sat grid
+export const receivableMsats = msatsSatsFloor
+// phoenixd rejects descriptions over 128 chars, so clamp
+export const receivableDescription = description => truncateToCharLength(description, 128)
 
 export async function createInvoice (
   { msats, description, descriptionHash, expiry },
@@ -17,7 +22,7 @@ export async function createInvoice (
   const body = new URLSearchParams()
   body.append('description', description)
   body.append('amountSat', msatsToSats(msats))
-  body.append('expirySeconds', Math.ceil(expiry / 1000))
+  body.append('expirySeconds', expiry)
 
   const method = 'POST'
   const res = await snFetch(url, {

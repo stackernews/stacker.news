@@ -27,7 +27,6 @@ export const PAY_IN_BOLT11_FIELDS = gql`
     payInId
     bolt11
     hash
-    description
     hmac
     msatsRequested
     msatsReceived
@@ -181,7 +180,6 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
         msats
         hash
         bolt11
-        description
         preimage
         status
       }
@@ -211,8 +209,8 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
 
 export const SATISTICS = gql`
   ${PAY_IN_STATISTICS_FIELDS}
-  query Satistics($cursor: String) {
-    satistics(cursor: $cursor) {
+  query Satistics($cursor: String, $walletId: ID) {
+    satistics(cursor: $cursor, walletId: $walletId) {
       payIns {
         ...PayInStatisticsFields
       }

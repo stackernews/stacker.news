@@ -1,0 +1,21 @@
+/* Capability test-status pill: base + tested/testing/failed state colors. */
+
+.status {
+  padding-top: 0.15rem;
+  font-size: 0.9rem;
+  color: var(--state-color, var(--theme-grey));
+}
+.status svg {
+  /* beats global svg/.fill-* rules in globals.scss so the icon follows the status state color */
+  color: inherit !important;
+  fill: currentColor !important;
+}
+.tested {
+  --state-color: var(--bs-success);
+}
+.testing {
+  --state-color: var(--bs-warning);
+}
+.failed {
+  --state-color: var(--bs-danger);
+}

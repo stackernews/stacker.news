@@ -70,6 +70,7 @@
     "isomorphic-ws": "^5.0.0",
     "katex": "^0.16.22",
     "lexical": "^0.45.0",
+    "light-bolt11-decoder": "^3.2.0",
     "linkedom": "^0.18.12",
     "ln-service": "^57.22.0",
     "macaroon": "^3.0.4",

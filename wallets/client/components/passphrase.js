@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { CopyButton, Form, PasswordInput, SubmitButton } from '@/components/form'
 import { Button } from 'react-bootstrap'
+import classNames from 'classnames'
 import { object, string } from 'yup'
 import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
@@ -9,7 +10,8 @@ import { useGenerateRandomKey, useKeySalt, useSetKey } from '@/wallets/client/ho
 import { deriveKey } from '@/wallets/lib/crypto'
 import { useSingleFlight } from '@/wallets/client/hooks/singleFlight'
 import { useDisablePassphraseExport, useWalletEncryptionUpdate, useWalletReset } from '@/wallets/client/hooks/query'
-import styles from '@/styles/wallet.module.css'
+import shared from '@/wallets/client/components/wallet.module.css'
+import styles from './passphrase.module.css'
 import RefreshIcon from '@/svgs/refresh-line.svg'
 
 function Passphrase ({
@@ -20,10 +22,10 @@ function Passphrase ({
 }) {
   const words = passphrase.trim().split(/\s+/)
   return (
-    <div className={styles.passphraseSection}>
+    <div className={styles.section}>
       <div className='d-flex justify-content-between align-items-start gap-3'>
         <div>
-          <div className={styles.passphraseSectionTitle}>{title}</div>
+          <div className={classNames(styles.sectionTitle, 'text-muted')}>{title}</div>
           {hint && (
             <p className='text-muted mb-0 line-height-md'>
               {hint}
@@ -34,7 +36,7 @@ function Passphrase ({
           <CopyButton className='rounded flex-shrink-0' value={passphrase} variant='grey-medium' />
         )}
       </div>
-      <div className={styles.passphrase}>
+      <div className={styles.words}>
         {words.map((word, index) => (
           <div className='d-flex' key={index}>
             <span className='text-muted me-2'>{index + 1}.</span>
@@ -129,8 +131,8 @@ export function WalletPassphrasePrompt ({
         initial={{ passphrase: '' }}
         onSubmit={onSubmit}
       >
-        <div className={styles.passphraseSetup}>
-          <div className={styles.passphraseSetupNotice}>
+        <div className={styles.setup}>
+          <div className={styles.notice}>
             <p className='fw-bold mb-2 line-height-md'>
               Enter your Stacker News wallet passphrase to access your wallets on this device.
             </p>
@@ -144,24 +146,24 @@ export function WalletPassphrasePrompt ({
             name='passphrase'
             placeholder=''
             under={(
-              <div className={styles.passphraseInputHint}>
+              <div className={styles.inputHint}>
                 Use the same passphrase on every device where you want to access these wallets.
               </div>
             )}
             required
             autoFocus
             groupClassName='mb-0'
-            className={styles.passphraseManagerInput}
+            className={classNames(styles.managerInput, 'font-monospace')}
           />
 
-          <div className={styles.passphraseSetupActions}>
+          <div className={styles.actions}>
             <p className='text-muted mb-0 line-height-md'>
               If you no longer have the saved passphrase, you can reset wallets instead.
             </p>
-            <div className={styles.passphraseSetupButtons}>
+            <div className={styles.buttons}>
               <button
                 type='button'
-                className={styles.passphraseResetButton}
+                className={classNames(shared.textButton, shared.dangerTextButton, styles.resetButton)}
                 onClick={showResetPassphraseModal}
               >
                 reset wallets
@@ -270,8 +272,8 @@ export function WalletPassphraseSetup () {
               value={me?.name ?? ''}
               readOnly
             />
-            <div className={styles.passphraseSetup}>
-              <div className={styles.passphraseSetupNotice}>
+            <div className={styles.setup}>
+              <div className={styles.notice}>
                 <p className='fw-bold mb-2 line-height-md'>
                   Save this passphrase before you continue.
                 </p>
@@ -285,7 +287,7 @@ export function WalletPassphraseSetup () {
                 name='passphrase'
                 label='Save somewhere safe'
                 under={(
-                  <div className={styles.passphraseInputHint}>
+                  <div className={styles.inputHint}>
                     Your browser or password manager may offer to save this field when you continue. You can also use the copy button below.
                   </div>
                 )}
@@ -293,21 +295,21 @@ export function WalletPassphraseSetup () {
                 readOnly
                 value={candidate.passphrase}
                 groupClassName='mb-0'
-                className={styles.passphraseManagerInput}
+                className={classNames(styles.managerInput, 'font-monospace')}
               />
               <Passphrase
                 passphrase={candidate.passphrase}
                 title='Readable backup'
                 hint='Use the same passphrase on every device where you want to decrypt your wallets.'
               />
-              <div className={styles.passphraseSetupActions}>
+              <div className={styles.actions}>
                 <p className='text-muted mb-0 line-height-md'>
                   After you continue, we will stop showing this passphrase and open your wallets.
                 </p>
-                <div className={styles.passphraseSetupButtons}>
+                <div className={styles.buttons}>
                   <button
                     type='button'
-                    className={styles.passphraseRegenerateButton}
+                    className={classNames(shared.textButton, styles.regenerateButton)}
                     onClick={regeneratePassphrase}
                     disabled={savingPassphrase || regeneratingPassphrase}
                     aria-label='generate a new passphrase'

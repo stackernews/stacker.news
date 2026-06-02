@@ -6,7 +6,7 @@ import { hexValidator, urlValidator } from '@/wallets/lib/validate'
 export default [
   {
     name: 'LNBITS',
-    displayName: 'API',
+    displayName: 'LNbits',
     send: true,
     fields: [
       {
@@ -30,7 +30,7 @@ export default [
   },
   {
     name: 'LNBITS',
-    displayName: 'API',
+    displayName: 'LNbits',
     send: false,
     fields: [
       {

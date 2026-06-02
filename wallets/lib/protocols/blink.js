@@ -18,7 +18,7 @@ const blinkCurrencyValidator = string().oneOf(['BTC', 'USD'])
 export default [
   {
     name: 'BLINK',
-    displayName: 'API',
+    displayName: 'Blink',
     send: true,
     fields: [
       {
@@ -49,7 +49,7 @@ export default [
   },
   {
     name: 'BLINK',
-    displayName: 'API',
+    displayName: 'Blink',
     send: false,
     fields: [
       {
@@ -88,6 +88,7 @@ export async function getWallet ({ apiKey, currency }, { signal }) {
             wallets {
               id
               walletCurrency
+              balance
             }
           }
         }
@@ -119,7 +120,7 @@ export async function request ({ apiKey, query, variables = {} }, { signal }) {
   assertResponseOk(res, { method })
   assertContentTypeJson(res, { method })
 
-  return res.json()
+  return await res.json()
 }
 
 export async function getScopes ({ apiKey }, { signal }) {

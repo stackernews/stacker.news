@@ -75,25 +75,33 @@ That's it!
 **1.2 Update migration file**
 
 - add `COMMIT` after statements to add enum values
-- add required triggers: `wallet_to_jsonb` and if send protocol, also `wallet_clear_vault`
+- add required triggers: `wallet_to_jsonb` and, if send protocol, also `wallet_clear_vault`
 - run `npx prisma migrate dev`
 
+  ```sql
+  CREATE TRIGGER wallet_to_jsonb
+      AFTER INSERT OR UPDATE ON "WalletSendFoo"
+      FOR EACH ROW
+      EXECUTE PROCEDURE wallet_to_jsonb();
+  ```
+
+  `wallet_to_jsonb` fires immediately when the protocol relation row changes.
+  Prisma writes nested Vault rows after the relation row, so protocol update
+  helpers intentionally touch the relation row's `updatedAt` after nested writes
+  complete. That second touch re-fires `wallet_to_jsonb` so
+  `WalletProtocol.config` materializes the latest Vault values. Keep protocol
+  config writes on `upsertProtocolInTransaction` and
+  `updateExistingProtocolConfigInTransaction` unless you also preserve this
+  post-write touch.
+
 <details>
-<summary>Example</summary>
+<summary>Example: DB schema changes to add Spark</summary>
 
 ```diff
-commit 0834650e84e3c0ba86f881f0f3643e87b26108e7
-Author: ekzyis <ek@stacker.news>
-Date:   Tue Sep 23 07:24:37 2025 +0200
-
-    DB schema for Spark
-
-diff --git a/prisma/migrations/20250923052230_spark/migration.sql b/prisma/migrations/20250923052230_spark/migration.sql
+diff --git a/prisma/migrations/<timestamp>_spark/migration.sql b/prisma/migrations/<timestamp>_spark/migration.sql
 new file mode 100644
-index 00000000..04ff1847
 --- /dev/null
-+++ b/prisma/migrations/20250923052230_spark/migration.sql
-@@ -0,0 +1,64 @@
++++ b/prisma/migrations/<timestamp>_spark/migration.sql
 +-- AlterEnum
 +ALTER TYPE "WalletName" ADD VALUE 'SPARK'; COMMIT;
 +
@@ -151,6 +159,11 @@ index 00000000..04ff1847
 +
 +CREATE TRIGGER wallet_to_jsonb
 +    AFTER INSERT OR UPDATE ON "WalletSendSpark"
++    FOR EACH ROW
++    EXECUTE PROCEDURE wallet_to_jsonb();
++
++CREATE TRIGGER wallet_to_jsonb
++    AFTER INSERT OR UPDATE ON "WalletRecvSpark"
 +    FOR EACH ROW
 +    EXECUTE PROCEDURE wallet_to_jsonb();
 +
@@ -267,8 +280,28 @@ index 4f3cb9e2..c25c0fc8 100644
 - if protocol to send payments: Add file to [wallets/client/protocols](/wallets/client/protocols) (see [JSDoc](/wallets/client/protocols/index.js) for details)
 - import in index.js file and add to default export
 
+#### Protocol cancellation contract
+
+Every wallet protocol method receives an `AbortSignal` in its options. Adapters
+must respect that signal for sends, receives, tests, balance reads, and any
+polling they start.
+
+- Pass `signal` through to `snFetch`, `fetch`, LNURL/NWC helpers, or SDK calls
+  that accept a signal.
+- Use `throwIfAborted(signal)` before starting work that cannot be interrupted.
+- Use `raceAbort(promise, signal)` around SDK/provider calls that do not accept a
+  signal so the adapter rejects promptly when the wallet shell times out.
+- Use `abortableSleep(ms, signal)` in polling loops. Plain `sleep(ms)` can leave
+  a loop running after the caller gives up.
+- Clean up local resources in `finally` blocks after aborts, such as pools,
+  sockets, listeners, and temporary sessions.
+
+Some wallet providers cannot cancel an already-submitted payment internally. In
+those cases the adapter still must reject on `signal`; the underlying wallet may
+continue in the background, and the send UI will show the in-flight warning.
+
 <details>
-<summary>Example</summary>
+<summary>Example: JS code to add Spark</summary>
 
 ```diff
 commit 53f6de1e4380a3209bf0beba966b9592259f11de
@@ -443,72 +476,41 @@ index 00000000..abc610ac
 
 ### 3. Update GraphQL code
 
-- add GraphQL type
-- add GraphQL type to `WalletProtocolConfig` union
-- add GraphQL type to `WalletProtocolFields` fragment via spread operator (...)
-- add GraphQL mutation to upsert and test protocol
-- resolve GraphQL type in `mapWalletResolveTypes` function
+- add GraphQL output type for the protocol (e.g. `WalletSendSpark`)
+- add the output type to the `WalletProtocolConfig` union
+- add the output type to the `WalletProtocolFields` fragment via spread (...)
+- add a typed config input (e.g. `WalletSendSparkConfigInput`) and a branch in
+  the `WalletProtocolConfigInput @oneOf` wrapper, keyed by the protocol's
+  relation name (e.g. `walletSendSpark`)
+- for receive protocols, add a branch to the `WalletRecvProtocolTestInput @oneOf`
+  wrapper (the recv config input doubles as the test input)
+- resolve the output type in `mapWalletResolveTypes`
+
+There is no per-protocol upsert/remove or test mutation: configure-save goes
+through the atomic `saveWalletProtocols` mutation and probe-testing goes
+through `testWalletRecvProtocol`. Both dispatch on the typed config branch via
+`reverseProtocolRelationName`, so adding a protocol only touches the schema,
+one client fragment, and one resolver helper.
 
 <details>
-<summary>Example</summary>
+<summary>Example: GraphQL changes to add Spark</summary>
 
 ```diff
-commit 72c9d3a46928775d66ac93ed1e66294f435bbcb7
-Author: ekzyis <ek@stacker.news>
-Date:   Tue Sep 23 07:55:17 2025 +0200
-
-    GraphQL code for Spark
-
 diff --git a/api/typeDefs/wallet.js b/api/typeDefs/wallet.js
-index 6284b821..7420ec15 100644
 --- a/api/typeDefs/wallet.js
 +++ b/api/typeDefs/wallet.js
-@@ -108,6 +108,16 @@ const typeDefs = gql`
-       ${shared}
-     ): WalletSendWebLN!
-
-+    upsertWalletSendSpark(
-+      ${shared},
-+      mnemonic: VaultEntryInput!
-+    ): WalletSendSpark!
-+
-+    upsertWalletRecvSpark(
-+      ${shared},
-+      address: String!
-+    ): WalletRecvSpark!
-+
-     upsertWalletRecvClink(
-       ${shared},
-       noffer: String!
-@@ -153,6 +163,10 @@ const typeDefs = gql`
-       noffer: String!
-     ): Boolean!
-
-+    testWalletRecvSpark(
-+      address: String!
-+    ): Boolean!
-+
-     # delete
-     deleteWallet(id: ID!): Boolean
-
-@@ -228,6 +242,7 @@ const typeDefs = gql`
-     | WalletSendWebLN
-     | WalletSendLNC
+@@ union WalletProtocolConfig =
      | WalletSendCLNRest
+     | WalletSendClink
 +    | WalletSendSpark
      | WalletRecvNWC
-     | WalletRecvLNbits
-     | WalletRecvPhoenixd
-@@ -236,6 +251,7 @@ const typeDefs = gql`
-     | WalletRecvCLNRest
-     | WalletRecvLNDGRPC
+     ...
      | WalletRecvClink
 +    | WalletRecvSpark
 
-   type WalletSettings {
-     receiveCreditsBelowSats: Int!
-@@ -296,6 +312,11 @@ const typeDefs = gql`
-     rune: VaultEntry!
+@@ type WalletSendClink {
+     ndebit: VaultEntry!
+     secretKey: VaultEntry!
    }
 
 +  type WalletSendSpark {
@@ -517,9 +519,10 @@ index 6284b821..7420ec15 100644
 +  }
 +
    type WalletRecvNWC {
+     ...
+   }
+@@ type WalletRecvClink {
      id: ID!
-     url: String!
-@@ -343,6 +364,11 @@ const typeDefs = gql`
      noffer: String!
    }
 
@@ -527,67 +530,29 @@ index 6284b821..7420ec15 100644
 +    id: ID!
 +    address: String!
 +  }
-+
-   input AutowithdrawSettings {
-     autoWithdrawThreshold: Int!
-     autoWithdrawMaxFeePercent: Float!
-diff --git a/wallets/client/fragments/protocol.js b/wallets/client/fragments/protocol.js
-index 8b132e82..38586def 100644
---- a/wallets/client/fragments/protocol.js
-+++ b/wallets/client/fragments/protocol.js
-@@ -249,6 +249,34 @@ export const UPSERT_WALLET_RECEIVE_CLINK = gql`
-   }
- `
 
-+export const UPSERT_WALLET_SEND_SPARK = gql`
-+  mutation upsertWalletSendSpark(
-+    ${shared.variables},
-+    $mnemonic: VaultEntryInput!
-+  ) {
-+    upsertWalletSendSpark(
-+      ${shared.arguments},
-+      mnemonic: $mnemonic
-+    ) {
-+      id
-+    }
-+  }
-+`
-+
-+export const UPSERT_WALLET_RECEIVE_SPARK = gql`
-+  mutation upsertWalletRecvSpark(
-+    ${shared.variables},
-+    $address: String!
-+  ) {
-+    upsertWalletRecvSpark(
-+      ${shared.arguments},
-+      address: $address
-+    ) {
-+      id
-+    }
-+  }
-+`
-+
- // tests
-
- export const TEST_WALLET_RECEIVE_NWC = gql`
-@@ -298,3 +326,9 @@ export const TEST_WALLET_RECEIVE_CLINK = gql`
-     testWalletRecvClink(noffer: $noffer)
+@@ input WalletProtocolConfigInput @oneOf {
+     walletSendClink: WalletSendClinkConfigInput
+     walletRecvClink: WalletRecvClinkConfigInput
++    walletSendSpark: WalletSendSparkConfigInput
++    walletRecvSpark: WalletRecvSparkConfigInput
+     # WebLN has no fields; the boolean is a sentinel and must be true.
+     walletSendWebLN: Boolean
    }
- `
-+
-+export const TEST_WALLET_RECEIVE_SPARK = gql`
-+  mutation testWalletRecvSpark($address: String!) {
-+    testWalletRecvSpark(address: $address)
-+  }
-+`
+
+@@ input WalletRecvProtocolTestInput @oneOf {
+     walletRecvClink: WalletRecvClinkConfigInput
++    walletRecvSpark: WalletRecvSparkConfigInput
+   }
+
+@@ input WalletRecvClinkConfigInput { noffer: String! }
++  input WalletSendSparkConfigInput { mnemonic: VaultEntryInput! }
++  input WalletRecvSparkConfigInput { address: String! }
+
 diff --git a/wallets/client/fragments/wallet.js b/wallets/client/fragments/wallet.js
-index 6d8676cc..b646c890 100644
 --- a/wallets/client/fragments/wallet.js
 +++ b/wallets/client/fragments/wallet.js
-@@ -78,6 +78,12 @@ const WALLET_PROTOCOL_FIELDS = gql`
-           ...VaultEntryFields
-         }
-       }
+@@ ... on WalletSendClink { ... }
 +      ... on WalletSendSpark {
 +        id
 +        encryptedMnemonic: mnemonic {
@@ -595,9 +560,9 @@ index 6d8676cc..b646c890 100644
 +        }
 +      }
        ... on WalletRecvNWC {
-         id
-         url
-@@ -117,6 +123,10 @@ const WALLET_PROTOCOL_FIELDS = gql`
+         ...
+       }
+@@ ... on WalletRecvClink {
          id
          noffer
        }
@@ -608,66 +573,26 @@ index 6d8676cc..b646c890 100644
      }
    }
  `
-diff --git a/wallets/client/hooks/query.js b/wallets/client/hooks/query.js
-index 51cf44b0..37169a69 100644
---- a/wallets/client/hooks/query.js
-+++ b/wallets/client/hooks/query.js
-@@ -13,6 +13,7 @@ import {
-   UPSERT_WALLET_RECEIVE_NWC,
-   UPSERT_WALLET_RECEIVE_PHOENIXD,
-   UPSERT_WALLET_RECEIVE_CLINK,
-+  UPSERT_WALLET_RECEIVE_SPARK,
-   UPSERT_WALLET_SEND_BLINK,
-   UPSERT_WALLET_SEND_LNBITS,
-   UPSERT_WALLET_SEND_LNC,
-@@ -20,6 +21,7 @@ import {
-   UPSERT_WALLET_SEND_PHOENIXD,
-   UPSERT_WALLET_SEND_WEBLN,
-   UPSERT_WALLET_SEND_CLN_REST,
-+  UPSERT_WALLET_SEND_SPARK,
-   WALLETS,
-   UPDATE_WALLET_ENCRYPTION,
-   RESET_WALLETS,
-@@ -34,6 +36,7 @@ import {
-   TEST_WALLET_RECEIVE_CLN_REST,
-   TEST_WALLET_RECEIVE_LND_GRPC,
-   TEST_WALLET_RECEIVE_CLINK,
-+  TEST_WALLET_RECEIVE_SPARK,
-   DELETE_WALLET
- } from '@/wallets/client/fragments'
- import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
-@@ -320,6 +323,8 @@ function protocolUpsertMutation (protocol) {
-       return protocol.send ? UPSERT_WALLET_SEND_WEBLN : NOOP_MUTATION
-     case 'CLINK':
-       return protocol.send ? NOOP_MUTATION : UPSERT_WALLET_RECEIVE_CLINK
-+    case 'SPARK':
-+      return protocol.send ? UPSERT_WALLET_SEND_SPARK : UPSERT_WALLET_RECEIVE_SPARK
-     default:
-       return NOOP_MUTATION
-   }
-@@ -345,6 +350,8 @@ function protocolTestMutation (protocol) {
-       return TEST_WALLET_RECEIVE_LND_GRPC
-     case 'CLINK':
-       return TEST_WALLET_RECEIVE_CLINK
-+    case 'SPARK':
-+      return TEST_WALLET_RECEIVE_SPARK
-     default:
-       return NOOP_MUTATION
-   }
+
 diff --git a/wallets/server/resolvers/util.js b/wallets/server/resolvers/util.js
-index e11ee3e1..6d3741bc 100644
 --- a/wallets/server/resolvers/util.js
 +++ b/wallets/server/resolvers/util.js
-@@ -21,6 +21,8 @@ export function mapWalletResolveTypes (wallet) {
-         return 'WalletRecvLNDGRPC'
-       case 'CLINK':
-         return 'WalletRecvClink'
+@@ case 'CLINK':
+         return send ? 'WalletSendClink' : 'WalletRecvClink'
 +      case 'SPARK':
 +        return send ? 'WalletSendSpark' : 'WalletRecvSpark'
        default:
          return null
      }
-
 ```
+
+Notes:
+- Receive-side `WalletRecv*ConfigInput` types do double duty as the test-mutation
+  inputs, so the `WalletRecvProtocolTestInput` branch reuses the same type
+  instead of declaring a separate `*TestInput`.
+- No new `gql` documents are needed in `wallets/client/fragments/protocol.js`
+  and no new lookup-table cases are needed in `wallets/client/hooks/query.js` —
+  `useSaveWallet` and `useTestCreateInvoice` already dispatch on the protocol's
+  relation name.
 
 </details>

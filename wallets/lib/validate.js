@@ -112,8 +112,14 @@ export const socketValidator = (msg = 'invalid socket') =>
       exclusive: false
     })
 
-export const runeValidator = ({ method }) =>
-  string()
+export const runeValidator = ({ method, methods, optionalMethods = [] }) => {
+  const requiredAlternatives = (methods ?? [method]).map(method => `method=${method}`)
+  const optionalAlternatives = optionalMethods.map(method => `method=${method}`)
+  const allowedAlternatives = [...requiredAlternatives, ...optionalAlternatives]
+  const expectedRestriction = requiredAlternatives.join(' or ') +
+    (optionalAlternatives.length ? `, optionally ${optionalAlternatives.join(' or ')}` : '')
+
+  return string()
     .matches(B64_URL_REGEX, { message: 'invalid rune' })
     .test({
       name: 'rune',
@@ -121,17 +127,23 @@ export const runeValidator = ({ method }) =>
         const decoded = decodeRune(v)
         if (!decoded) return context.createError({ message: 'invalid rune' })
         if (decoded.restrictions.length === 0) {
-          return context.createError({ message: `rune must be restricted to method=${method}` })
+          return context.createError({ message: `rune must be restricted to ${expectedRestriction}` })
         }
-        if (decoded.restrictions.length !== 1 || decoded.restrictions[0].alternatives.length !== 1) {
-          return context.createError({ message: `rune must be restricted to method=${method} only` })
+        if (decoded.restrictions.length !== 1) {
+          return context.createError({ message: `rune must be restricted to ${expectedRestriction} only` })
         }
-        if (decoded.restrictions[0].alternatives[0] !== `method=${method}`) {
-          return context.createError({ message: `rune must be restricted to method=${method} only` })
+
+        const alternatives = new Set(decoded.restrictions[0].alternatives)
+        if (
+          !requiredAlternatives.every(alternative => alternatives.has(alternative)) ||
+          !decoded.restrictions[0].alternatives.every(alternative => allowedAlternatives.includes(alternative))
+        ) {
+          return context.createError({ message: `rune must be restricted to ${expectedRestriction} only` })
         }
         return true
       }
     })
+}
 
 export const invoiceMacaroonValidator = () =>
   string()

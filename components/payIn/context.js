@@ -4,8 +4,7 @@ import { CommentFlat } from '@/components/comment'
 import { TerritoryDetails } from '../territory-header'
 import { truncateString } from '@/lib/format'
 import Invite from '../invite'
-import Bolt11Info from './bolt11-info'
-import { PayInMetadata } from './metadata'
+import Bolt11Info, { toBolt11InfoProps } from './bolt11-info'
 
 export function PayInContext ({ payIn }) {
   switch (payIn.payInType) {
@@ -40,16 +39,13 @@ export function PayInContext ({ payIn }) {
         />
       )
     case 'PROXY_PAYMENT':
-      return <div className='w-100'><PayInMetadata payInBolt11={payIn.payerPrivates.payInBolt11} /></div>
+      return (
+        <Bolt11Info {...toBolt11InfoProps(payIn.payerPrivates?.payInBolt11)} />
+      )
     case 'WITHDRAWAL':
     case 'AUTO_WITHDRAWAL':
       return (
-        <Bolt11Info
-          bolt11={payIn.payeePrivates.payOutBolt11.bolt11}
-          hash={payIn.payeePrivates.payOutBolt11.hash}
-          preimage={payIn.payeePrivates.payOutBolt11.preimage}
-          description={payIn.payeePrivates.payOutBolt11.description}
-        />
+        <Bolt11Info {...toBolt11InfoProps(payIn.payeePrivates.payOutBolt11)} />
       )
     case 'DONATE':
       return <small className='text-muted d-flex justify-content-center w-100'>Praise be, you donated to the rewards pool.</small>

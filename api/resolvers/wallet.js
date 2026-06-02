@@ -2,15 +2,18 @@ import {
   parsePaymentRequest
 } from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
-import { validateSchema, withdrawlSchema, lnAddrSchema } from '@/lib/validate'
+import { validateSchema, withdrawlSchema, walletInvoiceSchema } from '@/lib/validate'
+import { satsToMsats } from '@/lib/format'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import { lnAddrOptions } from '@/lib/lnurl'
-import { snFetch } from '@/lib/fetch'
+import { fetchLnAddrInvoice } from '@/lib/lnurl'
+import { normalizeBolt11PaymentRequest } from '@/lib/bolt11'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
+import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { getNodeSockets } from '../lnd'
 import pay from '../payIn'
 import { dropBolt11 } from '@/worker/autoDropBolt11'
+import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
 
 export function createHmac (hash) {
   if (!hash) throw new GqlInputError('hash required to create hmac')
@@ -47,6 +50,7 @@ const resolvers = {
   },
   Mutation: {
     createWithdrawl: createWithdrawal,
+    createWalletInvoice,
     sendToLnAddr,
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {
@@ -69,8 +73,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   await validateSchema(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
 
-  // remove 'lightning:' prefix if present
-  invoice = invoice.replace(/^lightning:/, '')
+  invoice = normalizeBolt11PaymentRequest(invoice)
 
   // decode invoice to get amount
   let decoded, sockets
@@ -120,70 +123,86 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   return await pay('WITHDRAWAL', { bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models })
 }
 
+async function createWalletInvoice (parent, { walletId, amount, description }, { me, models }) {
+  if (!me) {
+    throw new GqlAuthenticationError()
+  }
+  assertApiKeyNotPermitted({ me })
+
+  const walletIdNumber = parseWalletId(walletId)
+
+  const validated = await validateSchema(walletInvoiceSchema, { amount, description })
+
+  const sats = Number(validated.amount)
+
+  const protocols = await models.walletProtocol.findMany({
+    where: {
+      walletId: walletIdNumber,
+      send: false,
+      enabled: true,
+      wallet: {
+        userId: me.id
+      }
+    },
+    orderBy: {
+      id: 'asc'
+    }
+  })
+
+  if (protocols.length === 0) {
+    throw new GqlInputError('wallet cannot receive')
+  }
+
+  const walletProtocols = protocols.map(protocol => ({
+    ...protocol,
+    userId: me.id
+  }))
+
+  const invoices = createBolt11FromWalletProtocols(
+    walletProtocols,
+    {
+      msats: satsToMsats(sats),
+      description: validated.description
+    },
+    { models, limitPending: false }
+  )
+  const { value } = await invoices.next()
+
+  if (value) {
+    return { bolt11: value.bolt11 }
+  }
+
+  throw new GqlInputError('wallet could not create a receive invoice')
+}
+
 async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
   { me, models, lnd, headers }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
   assertApiKeyNotPermitted({ me })
+  if (maxFee < 0) {
+    throw new GqlInputError('max fee must be at least 0')
+  }
 
-  const res = await fetchLnAddrInvoice({ addr, amount, maxFee, comment, ...payer },
-    {
-      me,
-      models,
-      lnd
-    })
+  const res = await fetchLnAddrInvoice(
+    { addr, amount, comment, ...payer },
+    { me, validateInvoice: validateLnAddrInvoice }
+  )
 
   // take pr and createWithdrawl
   return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
 }
 
-async function fetchLnAddrInvoice (
-  { addr, amount, maxFee, comment, ...payer },
-  { me, models, lnd }) {
-  const options = await lnAddrOptions(addr)
-  await validateSchema(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
-
-  if (payer) {
-    payer = {
-      ...payer,
-      identifier: payer.identifier ? `${me.name}@stacker.news` : undefined
-    }
-    payer = Object.fromEntries(
-      Object.entries(payer).filter(([, value]) => !!value)
-    )
-  }
-
-  const milliamount = 1000 * amount
-  const callback = new URL(options.callback)
-  callback.searchParams.append('amount', milliamount)
-
-  if (comment?.length) {
-    callback.searchParams.append('comment', comment)
-  }
-
-  let stringifiedPayerData = ''
-  if (payer && Object.entries(payer).length) {
-    stringifiedPayerData = JSON.stringify(payer)
-    callback.searchParams.append('payerdata', stringifiedPayerData)
-  }
-
-  // call callback with amount and conditionally comment
-  const res = await (await snFetch(callback.toString())).json()
-  if (res.status === 'ERROR') {
-    throw new Error(res.reason)
-  }
-
-  // decode invoice
+async function validateLnAddrInvoice (bolt11, expectedMsats) {
+  let decoded
   try {
-    const decoded = await parsePaymentRequest({ request: res.pr })
-    if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
-      throw new Error('invoice has incorrect amount')
-    }
-  } catch (e) {
-    console.log(e)
-    throw e
+    decoded = await parsePaymentRequest({ request: bolt11 })
+  } catch (err) {
+    throw new GqlInputError('could not decode invoice')
   }
 
-  return res
+  if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(expectedMsats)) {
+    throw new GqlInputError('invoice has incorrect amount')
+  }
 }

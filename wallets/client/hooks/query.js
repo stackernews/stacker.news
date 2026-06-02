@@ -58,7 +58,7 @@ import {
 } from '@/wallets/client/hooks/crypto'
 import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
 import {
-  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
+  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, walletLud16Domain
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { useWalletLoggerFactory } from './logger'
@@ -355,11 +355,7 @@ export function useWalletEncryptionUpdate () {
 
     const data = encrypted.map(wallet => ({
       id: wallet.id,
-      protocols: wallet.protocols.map(protocol => {
-        const { id, __typename: relationName, ...config } = protocol
-        const { name, send } = reverseProtocolRelationName(relationName)
-        return { name, send, config }
-      })
+      protocols: wallet.protocols.map(walletProtocolConfigInputBranch)
     }))
 
     await withKeySync(async () => {
@@ -385,6 +381,14 @@ export function useWalletEncryptionUpdate () {
       await client.refetchQueries({ include: [ME] })
     })
   }, [wallets, walletSendReady, dispatch, client, deleteKey, readKey, writeKey, mutate, encryptConfig, withKeySync])
+}
+
+function walletProtocolConfigInputBranch (protocol) {
+  const { id, __typename, ...config } = protocol
+  const branch = __typename.charAt(0).toLowerCase() + __typename.slice(1)
+  return {
+    [branch]: Object.keys(config).length === 0 ? true : config
+  }
 }
 
 export function useWalletReset () {

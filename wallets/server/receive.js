@@ -9,6 +9,7 @@ const MAX_PENDING_INVOICES_PER_WALLET = 25
 
 export async function * createBolt11FromWalletProtocols (walletProtocols, { msats, description, descriptionHash, expiry = 360 }, { models, limitPending = true }) {
   msats = toPositiveNumber(msats)
+  description ||= ''
 
   for (const protocol of walletProtocols) {
     // snap the request onto what this provider can actually invoice

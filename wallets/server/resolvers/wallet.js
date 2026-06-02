@@ -1,6 +1,6 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { mapWalletResolveTypes } from '@/wallets/server/resolvers/util'
-import { updateExistingProtocolConfigInTransaction } from '@/wallets/server/persist'
+import { decodeProtocolConfig, updateExistingProtocolConfigInTransaction } from '@/wallets/server/persist'
 import { assertRotationPayloadCoversSendProtocols, getVaultMetadata, initializeVaultKeyHash, setVaultShowPassphrase, updateVaultMetadata } from '@/wallets/server/vault'
 import { commitWithBadgeNotifications, updateWalletBadges } from '@/wallets/server/badges'
 import { validateSchema, walletSettingsSchema } from '@/lib/validate'
@@ -119,9 +119,18 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
     const updatedSendProtocolIds = new Set()
 
     for (const { id: walletId, protocols } of wallets) {
-      for (const { name, send, config } of protocols) {
-        const { id: protocolId } = await updateExistingProtocolConfigInTransaction({ tx, walletId, userId: me.id, name, send, config, keyHash })
-        if (send) updatedSendProtocolIds.add(protocolId)
+      for (const wrapper of protocols) {
+        const { protocol, config } = decodeProtocolConfig(wrapper)
+        const { id: protocolId } = await updateExistingProtocolConfigInTransaction({
+          tx,
+          walletId,
+          userId: me.id,
+          name: protocol.name,
+          send: protocol.send,
+          config,
+          keyHash
+        })
+        if (protocol.send) updatedSendProtocolIds.add(protocolId)
       }
     }
 

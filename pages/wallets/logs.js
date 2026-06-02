@@ -1,15 +1,15 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { WalletLayout, WalletLayoutHeader, WalletLogs } from '@/wallets/client/components'
+import { WalletLayoutHeader, WalletLogs, WalletShellMain } from '@/wallets/client/components'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function WalletLogsPage () {
   return (
-    <WalletLayout>
+    <WalletShellMain>
       <div className='py-5'>
         <WalletLayoutHeader>wallet logs</WalletLayoutHeader>
         <WalletLogs />
       </div>
-    </WalletLayout>
+    </WalletShellMain>
   )
 }

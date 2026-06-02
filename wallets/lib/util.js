@@ -139,9 +139,9 @@ export function isTemplate (obj) {
   return obj.__typename.endsWith('Template')
 }
 
-export function protocolFormId ({ name, send }) {
-  // we don't use the protocol id as the form id because then we can't find the
-  // complementary protocol to share fields between templates and non-templates
-  // by simply flipping send to recv and vice versa
+export function protocolKey ({ name, send }) {
+  // a protocol's stable identity is name+side, not its DB id: the id differs
+  // between a template and its configured instance, but name+side lets us find
+  // the complementary protocol by simply flipping send to recv and vice versa
   return `${name}-${send ? 'send' : 'recv'}`
 }

@@ -1,0 +1,40 @@
+/* Wallet-home sidebar (desktop) + the mobile switcher/details sheet. */
+
+.sidebar {
+  position: sticky;
+  top: 5rem;
+  align-self: start;
+  max-height: calc(100svh - 5rem);
+  margin-left: -0.75rem;
+  padding: 1.75rem 0.75rem;
+  overflow-y: auto;
+}
+.title {
+  font-size: 1.6rem;
+  margin: 0;
+}
+.orderHint {
+  margin: -0.35rem 0 0;
+  color: var(--theme-grey);
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+.sheet {
+  /* wins over Bootstrap .offcanvas-bottom's fixed height (equal specificity, source-order dependent) */
+  height: auto !important;
+  max-height: 85svh;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+}
+.sheet :global(.offcanvas-body) {
+  padding-right: 1rem;
+  padding-left: 1rem;
+  overflow-x: visible;
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    /* beats Bootstrap's .d-flex display utility (itself !important) */
+    display: none !important;
+  }
+}

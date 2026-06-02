@@ -187,6 +187,23 @@ $zindex-sticky: 900;
   --theme-note-fresh: rgba(0, 124, 190, 0.75);
 }
 
+// Wallet design tokens: 1:1 named aliases for the radii and gaps that recur across
+// the wallet UI, so the scale stays consistent and is adjustable in one place.
+// Defined at :root (not a wallet-scoped class) so they also reach portaled wallet
+// UI rendered outside the wallet DOM (the offcanvas sheet, the fullscreen scanner).
+:root {
+  --wt-radius-xs: 8px;
+  --wt-radius-sm: 10px;
+  --wt-radius-md: 12px;
+  --wt-radius-lg: 16px;
+  --wt-radius-pill: 999px;
+  --wt-gap-xs: 0.35rem;
+  --wt-gap-sm: 0.5rem;
+  --wt-gap-md: 0.75rem;
+  --wt-gap-lg: 1rem;
+  --wt-gap-xl: 1.25rem;
+}
+
 @import '../node_modules/bootstrap/scss/bootstrap.scss';
 
 // Rebind component variables to the runtime CSS custom

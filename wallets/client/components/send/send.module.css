@@ -1,0 +1,288 @@
+/* Wallet send flow: destination input, detected invoice, QR scanner, max-fee,
+   toggle chips, submit/footer, and the sent-success summary. */
+
+.fields,
+.result {
+  width: min(100%, 560px);
+}
+.fields {
+  margin-right: auto;
+  gap: 2rem;
+}
+.result {
+  margin-right: auto;
+  margin-left: auto;
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+}
+.fields :global(.form-group),
+.toggleChipSection :global(.form-group),
+.maxFee :global(.form-group) {
+  margin-bottom: 0;
+}
+
+.detectedRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--wt-gap-md);
+  /* Matches the destination textarea min-height so the input slot doesn't
+     visibly shrink when the textarea is swapped for the detected row. */
+  min-height: 86px;
+}
+.detectedIdentity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wt-gap-xs);
+}
+.detectedValue {
+  min-width: 0;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.invoiceActions svg {
+  color: currentColor;
+  fill: currentColor;
+}
+.scannerOverlay {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  color: #fff;
+}
+.scannerHeader {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 0.75rem) 1rem 0.75rem;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 75%), transparent);
+  font-weight: 800;
+}
+.scannerClose {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+.scannerStage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wt-gap-lg);
+  padding: 1rem 1.25rem calc(env(safe-area-inset-bottom) + 2rem);
+}
+.scannerViewport {
+  position: relative;
+  width: min(100%, 420px, calc(100vw - 2.5rem));
+  max-height: min(100%, 420px);
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 6%);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+  aspect-ratio: 1 / 1;
+}
+.scannerViewport video {
+  object-fit: cover;
+}
+.scannerFrame {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: min(68%, 286px);
+  border: 4px solid rgb(255 255 255 / 92%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 92%) 0 6px, transparent 6.5px);
+  box-shadow: 0 0 18px rgb(0 0 0 / 45%);
+  transform: translate(-50%, -50%);
+  aspect-ratio: 1 / 1;
+  pointer-events: none;
+}
+.scannerFrame::before,
+.scannerFrame::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  box-shadow: 0 0 18px rgb(0 0 0 / 45%);
+  border-radius: var(--wt-radius-pill);
+  transform: translate(-50%, -50%);
+}
+.scannerFrame::before {
+  width: calc(100% + 88px);
+  height: 4px;
+  background: linear-gradient(to right, rgb(255 255 255 / 92%) 0 24%, transparent 24% 76%, rgb(255 255 255 / 92%) 76% 100%);
+}
+.scannerFrame::after {
+  width: 4px;
+  height: calc(100% + 88px);
+  background: linear-gradient(to bottom, rgb(255 255 255 / 92%) 0 24%, transparent 24% 76%, rgb(255 255 255 / 92%) 76% 100%);
+}
+.scannerHint {
+  color: rgb(255 255 255 / 72%);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: center;
+}
+.scannerError {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+  color: rgb(255 255 255 / 75%);
+  font-weight: 700;
+  text-align: center;
+}
+
+.lnAddrPending {
+  margin-top: 0.35rem;
+  min-height: calc(0.875rem * 1.25);
+}
+.toggleChipSection {
+  margin-top: 0.75rem;
+}
+.toggleChipLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.toggleChip {
+  --focus-ring-offset: 2px;
+  --chip-padding: 0.35rem 0.8rem;
+  min-height: 36px;
+}
+.toggleChipIcon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  /* beats global svg fill rules so the chip icon follows currentColor */
+  color: currentColor !important;
+  fill: currentColor !important;
+}
+
+.maxFee {
+  gap: 0.6rem;
+}
+.maxFeeSummary {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.maxFeeLabel {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+.maxFeeControl {
+  --chip-padding: 0.35rem 0.65rem;
+  --chip-radius: 6px;
+  --chip-bg: transparent;
+  --chip-color: var(--bs-body-color);
+  min-height: 42px;
+}
+.maxFeeAmount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.maxFeeUnit {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.maxFeeIcon {
+  margin-left: 0.15rem;
+  fill: currentColor;
+}
+
+.submit {
+  min-width: 180px;
+  font-weight: 800;
+}
+.submit small {
+  font-size: 0.875em;
+  font-weight: 400;
+}
+.footer {
+  --wallet-bottom-bar-padding: 1.5rem 0 0;
+  margin-top: auto;
+}
+
+.result :global(.input-group) {
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 420px;
+}
+.success {
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+.sentSummary {
+  gap: var(--wt-gap-xs);
+}
+.sentLabel {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.sentAmount {
+  gap: var(--wt-gap-xs);
+  font-size: clamp(2.25rem, 7vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.sentAmountUnit {
+  font-size: 0.3em;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding-bottom: 0.5em;
+}
+.sentTo {
+  max-width: 100%;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.sentDest {
+  color: var(--bs-body-color);
+  overflow-wrap: anywhere;
+}
+.internalIcon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  /* beats global svg/.fill-* rules so the icon uses the body color */
+  color: var(--bs-body-color) !important;
+  fill: currentColor;
+}
+.internalIcon path {
+  fill: currentColor;
+}
+.walletName {
+  color: var(--bs-body-color);
+}
+
+@media (max-width: 767px) {
+  .result,
+  .fields {
+    width: 100%;
+    max-width: 100%;
+  }
+  .result {
+    padding-top: 1.5rem;
+  }
+}

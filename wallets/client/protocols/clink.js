@@ -1,9 +1,12 @@
 import { decodeBech32, generateSecretKey, newNdebitPaymentRequest, SendNdebitRequest, SimplePool } from '@shocknet/clink-sdk'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { isAbortLike, raceAbort } from '@/lib/time'
 
 export const name = 'CLINK'
+// ndebit/CLINK has no protocol-level routing fee cap.
+export const enforcesMaxFee = false
 
-export async function sendPayment (bolt11, { ndebit, secretKey }, { signal }) {
+export async function sendPayment (bolt11, { ndebit, secretKey }, { signal, timeout = WALLET_SEND_PAYMENT_TIMEOUT_MS } = {}) {
   const { data: { pubkey, relay, pointer } } = decodeBech32(ndebit)
 
   const pool = new SimplePool()
@@ -11,9 +14,12 @@ export async function sendPayment (bolt11, { ndebit, secretKey }, { signal }) {
 
   let response
   try {
-    const timeout = Math.floor(WALLET_SEND_PAYMENT_TIMEOUT_MS / 1000)
-    response = await SendNdebitRequest(pool, Buffer.from(secretKey, 'hex'), [relay], pubkey, request, timeout)
+    response = await raceAbort(
+      SendNdebitRequest(pool, Buffer.from(secretKey, 'hex'), [relay], pubkey, request, Math.ceil(timeout / 1000)),
+      signal
+    )
   } catch (e) {
+    if (isAbortLike(e)) throw e
     throw typeof e === 'string' ? new Error(e) : e
   } finally {
     pool.close([relay])
@@ -23,12 +29,9 @@ export async function sendPayment (bolt11, { ndebit, secretKey }, { signal }) {
     throw new Error(response.error)
   }
 
-  // CLINK will return no preimage if it was an internal transaction
-  // but that should never happen for our payments.
-  if (!response.preimage) {
-    throw new Error('payment settled without preimage')
-  }
-
+  // No preimage means an intra-ledger settlement: the payment settled but we
+  // can't prove it. Return it and let sendWalletPayment flag it as
+  // settled-unknown via the proof check, rather than reporting a hard failure.
   return response.preimage
 }
 

@@ -1677,6 +1677,7 @@ model PayInBolt11 {
   @@index([cancelledAt])
   @@index([userId])
   @@index([protocolId])
+  @@index([protocolId, payInId])
 }
 
 enum WithdrawlStatus {
@@ -1713,6 +1714,7 @@ model PayOutBolt11 {
   @@index([hash])
   @@index([protocolId])
   @@index([status])
+  @@index([protocolId, payInId])
 }
 
 model PayInBolt11Lud18 {

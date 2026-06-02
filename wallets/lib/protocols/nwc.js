@@ -83,10 +83,7 @@ function nwcResponseError (error) {
   if (NWC_ACCESS_DENIED_CODES.has(error?.code)) {
     return new WalletPermissionsError(message)
   }
-  return Object.assign(new Error(message), {
-    code: error?.code,
-    nwcError: error
-  })
+  return Object.assign(new Error(message), { nwcError: error })
 }
 
 export async function getNwc (nostr, url) {

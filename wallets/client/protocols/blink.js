@@ -1,5 +1,5 @@
 import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, request } from '@/wallets/lib/protocols/blink'
-import { WalletPermissionsError } from '@/wallets/client/errors'
+import { WalletPaymentRejectedError, WalletPermissionsError } from '@/wallets/client/errors'
 import { abortableSleep } from '@/lib/time'
 import { walletBalance, pollUntilSettled } from './util'
 
@@ -67,7 +67,7 @@ async function payInvoice (bolt11, { apiKey, wallet }, { signal }) {
   const status = out.data.lnInvoicePaymentSend.status
   const errors = out.data.lnInvoicePaymentSend.errors
   if (errors && errors.length > 0) {
-    throw new Error('failed to pay invoice ' + errors.map(e => e.code + ' ' + e.message).join(', '))
+    throw new WalletPaymentRejectedError('failed to pay invoice ' + errors.map(e => e.code + ' ' + e.message).join(', '))
   }
 
   // payment was settled immediately. A missing preimage is settled-unknown, not a
@@ -78,7 +78,7 @@ async function payInvoice (bolt11, { apiKey, wallet }, { signal }) {
 
   // payment failed immediately
   if (status === 'FAILED') {
-    throw new Error('failed to pay invoice')
+    throw new WalletPaymentRejectedError('failed to pay invoice')
   }
 
   // payment couldn't be settled (or fail) immediately, so we wait for a result
@@ -135,12 +135,11 @@ async function getTxInfo (bolt11, { apiKey, wallet }, { signal }) {
 
   const tx = out.data.me.defaultAccount.walletById.transactionsByPaymentRequest.find(t => t.direction === 'SEND')
   if (!tx) {
-    // the transaction was not found, something went wrong
-    return {
-      status: 'FAILED',
-      preImage: null,
-      error: 'transaction not found'
-    }
+    // not yet indexed: transactionsByPaymentRequest is eventually consistent right
+    // after submit, so report still-pending rather than fabricating a failure for
+    // an in-flight payment. If it never appears, the caller's timeout classifies
+    // the send as settled-unknown.
+    return null
   }
   return {
     status: tx.status,

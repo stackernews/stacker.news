@@ -300,28 +300,27 @@ Some wallet providers cannot cancel an already-submitted payment internally. In
 those cases the adapter still must reject on `signal`; the underlying wallet may
 continue in the background, and the send UI will show the in-flight warning.
 
-#### Post-submit failure (in-flight) contract
+#### Send failure-classification contract
 
-Once the payment request has been transmitted (a POST returned, a mutation was
-accepted, an RPC was sent), the adapter must not surface an ambiguous error as a
-definitive failure — otherwise the direct-send UI tells the user the payment
-failed and invites a retry that double-pays. Express a possibly-settled outcome
-one of these ways instead of a bare `throw`:
+"This payment definitively failed" is the claim that needs proof. Unless an
+adapter proves it, `sendWalletPayment` classifies a send error as
+settled-unknown and the direct-send UI warns "may still be in flight" instead
+of inviting a retry that double-pays. A forgotten case over-warns; it never
+loses money. To prove a failure is safe to retry:
 
-- Poll through `pollUntilSettled(probe, classify, { intervalMs, signal })` in
-  `wallets/client/protocols/util.js`. It polls until a terminal state or the
-  caller's timeout, so a transient status-read error is never reported as a
-  failure; only a provider-reported terminal state (`classify` returning
-  `{ error }`) is.
-- Return a missing/`undefined` preimage when the payment settled but is
-  unprovable (e.g. an intra-ledger settlement). `sendWalletPayment` turns that
-  into a settled-unknown result.
-- For a non-abort rejection after the request was sent (e.g. a transport drop),
-  flag it: `throw Object.assign(err, { settledUnknown: true })`.
+- Throw `WalletPaymentRejectedError` exactly where the provider itself reports
+  the payment terminally failed — an error response, a `FAILED` status, or a
+  terminal `{ error }` returned by your `pollUntilSettled` classify callback
+  (`pollUntilSettled` throws it for you).
+- Throw `WalletValidationError`/`WalletConfigurationError` (or subclasses) for
+  problems that occur before any payment is attempted, such as missing
+  permissions or a missing browser extension.
 
-Failures *before* the request is transmitted stay plain throws — they are safe
-to retry. Abort/timeout errors are auto-classified as in-flight by
-`sendWalletPayment`, so keep rethrowing them unchanged.
+Everything else — transport errors, SDK throws, abort/timeout rejections — is
+classified as settled-unknown automatically; never convert one into a
+definitive failure. When the payment settled but is unprovable (e.g. an
+intra-ledger settlement), return a missing/`undefined` preimage and
+`sendWalletPayment`'s proof check surfaces it as settled-unknown.
 
 <details>
 <summary>Example: JS code to add Spark</summary>

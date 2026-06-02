@@ -1,6 +1,7 @@
 import { decodeBech32, generateSecretKey, newNdebitPaymentRequest, SendNdebitRequest, SimplePool } from '@shocknet/clink-sdk'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
-import { isAbortLike, raceAbort } from '@/lib/time'
+import { WalletPaymentRejectedError } from '@/wallets/client/errors'
+import { raceAbort } from '@/lib/time'
 
 export const name = 'CLINK'
 // ndebit/CLINK has no protocol-level routing fee cap.
@@ -19,14 +20,15 @@ export async function sendPayment (bolt11, { ndebit, secretKey }, { signal, time
       signal
     )
   } catch (e) {
-    if (isAbortLike(e)) throw e
+    // the clink SDK throws strings; everything (including aborts) rethrows unwrapped
     throw typeof e === 'string' ? new Error(e) : e
   } finally {
     pool.close([relay])
   }
 
   if (response.res === 'GFY') {
-    throw new Error(response.error)
+    // the service rejected the payment request: terminally failed, safe to retry
+    throw new WalletPaymentRejectedError(response.error)
   }
 
   // No preimage means an intra-ledger settlement: the payment settled but we

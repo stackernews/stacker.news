@@ -25,32 +25,17 @@ export class WalletError extends Error {}
 export class WalletPaymentError extends WalletError {}
 export class WalletConfigurationError extends WalletError {}
 export class WalletValidationError extends WalletError {}
-
-export class WalletNotEnabledError extends WalletConfigurationError {
-  constructor (name) {
-    super(`wallet is not enabled: ${name}`)
-    this.name = 'WalletNotEnabledError'
-    this.wallet = name
-    this.reason = 'wallet is not enabled'
-  }
-}
-
-export class WalletSendNotConfiguredError extends WalletConfigurationError {
-  constructor (name) {
-    super(`wallet send is not configured: ${name}`)
-    this.name = 'WalletSendNotConfiguredError'
-    this.wallet = name
-    this.reason = 'wallet send is not configured'
-  }
-}
+export class WalletBalanceProbeSkipped extends WalletError {}
 
 export class WalletSenderError extends WalletPaymentError {
-  constructor (name, invoice, message) {
-    super(`${name} failed to pay invoice ${invoice.hash}: ${message}`)
+  constructor (name, invoice, message, { cause } = {}) {
+    super(`${name} failed to pay invoice ${invoice.hash}: ${message}`, { cause })
     this.name = 'WalletSenderError'
     this.wallet = name
     this.invoice = invoice
     this.reason = message
+    // settledUnknown is owned by sendWalletPayment, which assigns it at the sole
+    // construction site based on what the cause proves about the payment outcome.
   }
 }
 
@@ -59,6 +44,16 @@ export class WalletReceiverError extends WalletPaymentError {
     super(`payment forwarding failed for invoice ${invoice.hash}`)
     this.name = 'WalletReceiverError'
     this.invoice = invoice
+  }
+}
+
+// the wallet/provider reported the payment terminally failed: it is safe to retry.
+// adapters throw this only where the provider itself says FAILED — anything less
+// is classified as settled-unknown by sendWalletPayment.
+export class WalletPaymentRejectedError extends WalletPaymentError {
+  constructor (message) {
+    super(message)
+    this.name = 'WalletPaymentRejectedError'
   }
 }
 
@@ -83,18 +78,22 @@ export class AnonWalletError extends WalletConfigurationError {
   }
 }
 
+function flattenWalletErrors (errors) {
+  return errors.reduce((acc, e) => {
+    if (Array.isArray(e?.errors)) {
+      acc.push(...e.errors)
+    } else {
+      acc.push(e)
+    }
+    return acc
+  }, [])
+}
+
 export class WalletAggregateError extends WalletError {
   constructor (errors, invoice) {
     super('WalletAggregateError')
     this.name = 'WalletAggregateError'
-    this.errors = errors.reduce((acc, e) => {
-      if (Array.isArray(e?.errors)) {
-        acc.push(...e.errors)
-      } else {
-        acc.push(e)
-      }
-      return acc
-    }, [])
+    this.errors = flattenWalletErrors(errors)
     this.invoice = invoice
   }
 }
@@ -103,14 +102,7 @@ export class WalletPaymentAggregateError extends WalletPaymentError {
   constructor (errors, invoice) {
     super('WalletPaymentAggregateError')
     this.name = 'WalletPaymentAggregateError'
-    this.errors = errors.reduce((acc, e) => {
-      if (Array.isArray(e?.errors)) {
-        acc.push(...e.errors)
-      } else {
-        acc.push(e)
-      }
-      return acc
-    }, []).filter(e => e instanceof WalletPaymentError)
+    this.errors = flattenWalletErrors(errors).filter(e => e instanceof WalletPaymentError)
     this.invoice = invoice
   }
 }
@@ -119,5 +111,12 @@ export class WalletPermissionsError extends WalletValidationError {
   constructor (message) {
     super('wrong permissions: ' + message)
     this.name = 'WalletPermissionsError'
+  }
+}
+
+export class WalletStaleConfigError extends WalletConfigurationError {
+  constructor () {
+    super('wallet changed since last test')
+    this.name = 'WalletStaleConfigError'
   }
 }

@@ -548,7 +548,7 @@ export default {
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {
       const res = {}
       try {
-        const response = await snFetch(url, { protocol: 'http', redirect: 'follow' })
+        const response = await snFetch(url, { protocol: 'http', redirect: 'follow', size: 2 * 1024 * 1024 })
         const html = await response.text()
         const doc = domino.createWindow(html).document
         const titleRuleSet = {

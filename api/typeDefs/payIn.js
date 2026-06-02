@@ -4,7 +4,7 @@ export default gql`
 
 extend type Query {
   payIn(id: Int!): PayIn
-  satistics(cursor: String): Satistics
+  satistics(cursor: String, walletId: ID): Satistics
   failedPayIns: [PayIn!]!
 }
 
@@ -105,7 +105,7 @@ type PayInBolt11 {
   preimage: String
   hmac: String
   bolt11: String!
-  description: String
+  description: String @deprecated(reason: "Compatibility shim; always null")
   expiresAt: Date!
   confirmedAt: Date
   cancelledAt: Date
@@ -237,7 +237,7 @@ type PayOutBolt11 {
   hash: String
   preimage: String
   bolt11: String
-  description: String
+  description: String @deprecated(reason: "Compatibility shim; always null")
   expiresAt: Date!
 }
 

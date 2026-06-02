@@ -21,7 +21,6 @@ import { writeWalletLog } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/client/errors'
 
 const MAX_WALLET_LOG_MESSAGE_BYTES = 4096
-const WALLET_LOG_LEVELS = new Set(['OK', 'INFO', 'WARNING', 'ERROR', 'DEBUG'])
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -146,7 +145,7 @@ export async function saveWalletProtocols (parent, { walletId, templateName, ups
   return wallet ? mapWalletResolveTypes(wallet) : null
 }
 
-async function walletLogs (parent, { protocolId, walletId, payInId, cursor }, { me, models }) {
+async function walletLogs (parent, { walletId, payInId, cursor }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   const decodedCursor = decodeCursor(cursor)
@@ -158,9 +157,6 @@ async function walletLogs (parent, { protocolId, walletId, payInId, cursor }, { 
     level: { not: 'DEBUG' }
   }
 
-  if (protocolId !== undefined) {
-    where.protocolId = protocolId
-  }
   if (walletId !== undefined) {
     const walletIdNumber = parseWalletId(walletId)
     where.protocol = {
@@ -220,9 +216,6 @@ async function walletLogs (parent, { protocolId, walletId, payInId, cursor }, { 
 async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId, updateStatus }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
-  if (!WALLET_LOG_LEVELS.has(level)) {
-    throw new GqlInputError('invalid log level')
-  }
   if (utf8ByteLength(message) > MAX_WALLET_LOG_MESSAGE_BYTES) {
     throw new GqlInputError('wallet log message is too long')
   }

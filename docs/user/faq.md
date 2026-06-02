@@ -30,7 +30,7 @@ Stacker News never takes custody of stackers' money to send it to someone else.
 
 To help new stackers get started without requiring them to [attach a lightning wallet](#how-do-i-attach-a-wallet), stackers without an attached wallet will earn cowboy credits (CCs) when other stackers zap their content. Stacker News will accept CCs instead of sats for any payment on the site at a 1:1 ratio. This means new stackers can use these earned CCs to pay for posts, comments, zaps, jobs, boosts, donations or even territories but cannot withdraw them.
 
-If you need additional cowboy credits beyond what you've earned through zaps, you can always purchase them with sats at a 1:1 ratio [here](/credits).
+If you need additional cowboy credits beyond what you've earned through zaps, you can always purchase them with sats at a 1:1 ratio [here](/wallets/cowboy-credits).
 
 ### What are zaps?
 
@@ -60,7 +60,7 @@ To earn sats via [zaps](#zaps) from fellow stackers peer-to-peer, you need to [a
 
 **2. Daily rewards**
 
-Stackers can also earn sats via daily rewards. Stacker News uses the revenue it generates from post, comment, zap and boost fees, the job board and donations to reward stackers that contributed to the site with even more sats beyond the zaps they already received. Contributions also include zapping content since they are used as a signal for ranking. **You do not need to attach a wallet to receive daily rewards in sats. They are automatically deposited into your account.** You can find and withdraw your reward sats balance [here](/credits).
+Stackers can also earn sats via daily rewards. Stacker News uses the revenue it generates from post, comment, zap and boost fees, the job board and donations to reward stackers that contributed to the site with even more sats beyond the zaps they already received. Contributions also include zapping content since they are used as a signal for ranking. **You do not need to attach a wallet to receive daily rewards in sats. They are automatically deposited into your account.** You can find and withdraw your reward sats balance [here](/wallets/reward-sats/send).
 
 **3. Referrals**
 
@@ -111,6 +111,10 @@ Other applications don't require two strings for one of the following reasons:
 1. they only use NWC for sending but not for receiving
 2. you can only receive while you are logged in
 3. they (irresponsibly) store permissions to spend in plaintext on their server
+
+### Why does my sending wallet balance show as unavailable?
+
+Some wallet connections separate spending from balance reads. For NWC, the send string needs `get_balance`. For LNC, the session needs `/lnrpc.Lightning/ChannelBalance`. For CLNRest, the rune needs `method=bkpr-listbalances`. Send-only connections can still pay, but their balance will show as unavailable.
 
 ### Why do I need to enter a passphrase on another device to see my wallets?
 

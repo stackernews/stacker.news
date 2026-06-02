@@ -1,8 +1,14 @@
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
-import { msatsToSats } from '@/lib/format'
+import { msatsToSats, msatsSatsFloor } from '@/lib/format'
+import { truncateToCharLength } from '@/lib/validate'
 import { decodeBech32, generateSecretKey, SendNofferRequest, SimplePool } from '@shocknet/clink-sdk'
+import { raceAbort } from '@/lib/time'
 
 export const name = 'CLINK'
+// CLINK (noffer) only invoices whole sats, so it can receive a request snapped down to the sat grid
+export const receivableMsats = msatsSatsFloor
+// the clink SDK hard-rejects descriptions over 100 chars (String.length), so clamp
+export const receivableDescription = description => truncateToCharLength(description, 100)
 
 // https://clinkme.dev/specs.html
 const ERR_INVALID_AMOUNT = 5
@@ -21,7 +27,10 @@ export async function createInvoice (
   try {
     const timeout = Math.floor(WALLET_CREATE_INVOICE_TIMEOUT_MS / 1000)
     // CLINK does not support a custom invoice description or expiry
-    response = await SendNofferRequest(pool, sk, [relay], pubkey, request, timeout)
+    response = await raceAbort(
+      SendNofferRequest(pool, sk, [relay], pubkey, request, timeout),
+      signal
+    )
   } catch (e) {
     throw typeof e === 'string' ? new Error(e) : e
   } finally {
@@ -37,7 +46,7 @@ export async function createInvoice (
     throw new Error(`invalid amount: amount must be between ${min} and ${max} sats`)
   }
 
-  throw new Error(response.error)
+  throw new Error(response.error ?? 'clink invoice failed')
 }
 
 export async function testCreateInvoice ({ noffer }, { signal }) {

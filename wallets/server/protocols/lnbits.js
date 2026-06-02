@@ -1,9 +1,11 @@
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { snFetch } from '@/lib/fetch'
-import { msatsToSats } from '@/lib/format'
+import { msatsToSats, msatsSatsFloor } from '@/lib/format'
 import { assertContentTypeJson } from '@/lib/url'
 
 export const name = 'LNBITS'
+// lnbits only invoices whole sats, so it can receive a request snapped down to the sat grid
+export const receivableMsats = msatsSatsFloor
 
 export async function createInvoice (
   { msats, description, descriptionHash, expiry },

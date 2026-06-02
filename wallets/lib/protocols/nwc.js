@@ -3,6 +3,7 @@ import { NDKNWCWallet } from '@nostr-dev-kit/ndk-wallet'
 import { nwcUrlValidator, parseNwcUrl } from '@/wallets/lib/validate'
 import { msatsToSats } from '@/lib/format'
 import { isAbortLike, raceAbort } from '@/lib/time'
+import { WalletPermissionsError } from '@/wallets/client/errors'
 
 // Some NWC services (notably Alby Hub) extend the NIP-47 `get_balance` response
 // with a non-standard `max_amount` field that uses 2^64-1 (uint64 max) as the
@@ -12,6 +13,7 @@ import { isAbortLike, raceAbort } from '@/lib/time'
 const UINT64_MAX_MSATS = 18446744073709551615n
 export const NWC_PAY_INVOICE_METHOD = 'pay_invoice'
 const NWC_GET_BALANCE_METHOD = 'get_balance'
+const NWC_ACCESS_DENIED_CODES = new Set(['UNAUTHORIZED', 'RESTRICTED'])
 
 // Nostr Wallet Connect (NIP-47)
 // https://github.com/nostr-protocol/nips/blob/master/47.md
@@ -65,15 +67,26 @@ export async function nwcTryRun (fun, { url }, { signal }) {
     // race the NWC call against signal so caller-initiated aborts/timeouts
     // settle the await even if NDK never responds
     const res = await raceAbort(fun(nwc), signal)
-    if (res?.error) throw new Error(res.error.message || res.error.code || res.error)
+    if (res?.error) throw nwcResponseError(res.error)
     return res
   } catch (e) {
     if (isAbortLike(e)) throw e
-    if (e.error) throw new Error(e.error.message || e.error.code || e.error)
+    if (e.error) throw nwcResponseError(e.error)
     throw e
   } finally {
     nostr.close()
   }
+}
+
+function nwcResponseError (error) {
+  const message = error?.message || error?.code || String(error)
+  if (NWC_ACCESS_DENIED_CODES.has(error?.code)) {
+    return new WalletPermissionsError(message)
+  }
+  return Object.assign(new Error(message), {
+    code: error?.code,
+    nwcError: error
+  })
 }
 
 export async function getNwc (nostr, url) {
@@ -98,7 +111,7 @@ export async function getBalance (url, { signal } = {}) {
 
     const response = await nwc.req('get_balance', {})
     if (response.error) {
-      throw new Error(response.error.message || response.error.code)
+      throw nwcResponseError(response.error)
     }
 
     const balance = response.result?.balance

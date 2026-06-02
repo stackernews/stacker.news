@@ -1,25 +1,25 @@
 import { WalletError } from '@/wallets/client/errors'
+import { isAbortLike, raceAbort } from '@/lib/time'
 
 export const name = 'WEBLN'
+// WebLN's sendPayment does not standardize a fee cap; it relies on the
+// provider extension's own budget controls.
+export const enforcesMaxFee = false
 
-export async function sendPayment (bolt11) {
+export async function sendPayment (bolt11, _config, { signal } = {}) {
   if (typeof window.webln === 'undefined') {
     throw new WalletError('lightning browser extension not found')
   }
 
-  // this will prompt the user to unlock the wallet if it's locked
   try {
-    await window.webln.enable()
+    await raceAbort(window.webln.enable(), signal)
   } catch (err) {
+    if (isAbortLike(err)) throw err
     throw new WalletError(err.message)
   }
 
-  // this will prompt for payment if no budget is set
-  const response = await window.webln.sendPayment(bolt11)
+  const response = await raceAbort(window.webln.sendPayment(bolt11), signal)
   if (!response) {
-    // sendPayment returns nothing if WebLN was enabled
-    // but browser extension that provides WebLN was then disabled
-    // without reloading the page
     throw new WalletError('sendPayment returned no response')
   }
 

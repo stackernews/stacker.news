@@ -1,6 +1,7 @@
 import { string } from 'yup'
 import { snFetch } from '@/lib/fetch'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import { WalletPermissionsError } from '@/wallets/client/errors'
 
 // Blink
 // http://blink.sv/
@@ -120,7 +121,26 @@ export async function request ({ apiKey, query, variables = {} }, { signal }) {
   assertResponseOk(res, { method })
   assertContentTypeJson(res, { method })
 
-  return await res.json()
+  const body = await res.json()
+  const authError = body.errors?.find(isAuthGraphQLError)
+  if (authError) {
+    throw new WalletPermissionsError(authError.message || 'blink authorization failed')
+  }
+
+  return body
+}
+
+function isAuthGraphQLError (err) {
+  const text = [
+    err?.message,
+    err?.code,
+    err?.extensions?.code,
+    err?.extensions?.error,
+    err?.extensions?.classification
+  ].filter(Boolean).join(' ').toLowerCase()
+
+  return ['auth', 'unauthorized', 'unauthorised', 'forbidden', 'permission', 'scope']
+    .some(term => text.includes(term))
 }
 
 export async function getScopes ({ apiKey }, { signal }) {

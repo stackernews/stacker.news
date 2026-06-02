@@ -1,0 +1,128 @@
+/* Shared wallet primitives: small building blocks used across wallet UI. */
+
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--text-button-gap, 0.35rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-button-color, var(--theme-grey));
+  font-weight: 700;
+  line-height: var(--text-button-line-height, normal);
+  text-decoration: none;
+  --focus-ring-offset: 4px;
+}
+.textButton:hover {
+  color: var(--text-button-hover-color, var(--bs-body-color));
+  text-decoration: none;
+}
+.textButton:focus-visible {
+  outline: 2px solid var(--theme-borderColor);
+  outline-offset: var(--focus-ring-offset, 4px);
+}
+.dangerTextButton {
+  --text-button-color: var(--bs-danger);
+  --text-button-hover-color: var(--bs-danger);
+}
+.infoTextButton {
+  --text-button-color: var(--bs-info);
+}
+.walletFooterBackButton {
+  width: fit-content;
+  margin-right: auto;
+  --focus-ring-offset: 4px;
+  --text-button-line-height: 1;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--chip-gap, 0.35rem);
+  padding: var(--chip-padding, 0.35rem 1rem);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: var(--chip-radius, var(--wt-radius-pill));
+  background: var(--chip-bg, var(--bs-body-bg));
+  color: var(--chip-color, var(--theme-grey));
+  font-weight: 700;
+  line-height: 1;
+}
+.chip:hover,
+.chip:focus-visible,
+.chipActive {
+  border-color: var(--bs-body-color);
+  color: var(--bs-body-color);
+}
+
+.surfaceRow {
+  width: 100%;
+  min-height: var(--surface-row-min-height, 64px);
+  padding: var(--surface-row-padding, 0.85rem 1rem);
+  border: var(--surface-row-border, 1px solid transparent);
+  border-radius: var(--surface-row-radius, var(--wt-radius-sm));
+  background: var(--surface-row-bg, color-mix(in srgb, var(--theme-toolbarHover) 38%, var(--bs-body-bg)));
+  color: var(--bs-body-color);
+  text-decoration: none;
+}
+.surfaceRow:hover {
+  color: var(--bs-body-color);
+  text-decoration: none;
+}
+.surfaceRowHover:hover {
+  border-color: var(--bs-primary);
+  box-shadow: inset 0 0 0 1px var(--bs-primary);
+  color: var(--bs-body-color);
+}
+
+.stackSection,
+.formStack {
+  display: flex;
+  flex-direction: column;
+}
+.stackSection {
+  gap: var(--wt-gap-md);
+}
+.formStack {
+  gap: var(--wt-gap-xl);
+}
+
+.walletRowMeta {
+  gap: var(--wt-gap-xs);
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.walletBottomBar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--wt-gap-lg);
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--wallet-bottom-bar-padding, 1rem 0 0);
+  border-top: 1px solid var(--theme-borderColor);
+  background: var(--bs-body-bg);
+}
+
+@media (max-width: 767px) {
+  .formResponsiveReset :global(.col),
+  .formResponsiveReset :global(.input-group),
+  .formResponsiveReset :global(.form-control),
+  .formResponsiveReset :global(.input-group-text) {
+    min-width: 0;
+  }
+  .formResponsiveReset :global(.row) {
+    --bs-gutter-x: 0;
+    width: 100%;
+    margin-right: 0;
+    margin-left: 0;
+  }
+  .walletBottomBar {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    align-items: center;
+    width: 100%;
+    padding: 1.25rem 0 calc(env(safe-area-inset-bottom) + 1rem);
+  }
+}

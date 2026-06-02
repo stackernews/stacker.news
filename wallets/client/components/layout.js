@@ -1,16 +1,44 @@
 import Layout from '@/components/layout'
-import { useWalletImage } from '@/wallets/client/hooks'
-import { walletDisplayName, walletGuideUrl } from '@/wallets/lib/util'
+import { Back, Brand, NavNotifications, NavPrice } from '@/components/nav/common'
+import { PriceCarouselProvider } from '@/components/nav/price-carousel'
+import { walletGuideUrl } from '@/wallets/lib/util'
+import { WalletLogo } from './wallet-logo'
 import Link from 'next/link'
 import InfoIcon from '@/svgs/information-fill.svg'
+import styles from '@/wallets/client/components/layout.module.css'
+import classNames from 'classnames'
 
-export function WalletLayout ({ children }) {
-  // TODO(wallet-v2): py-5 doesn't work, I think it gets overriden by the layout class
-  // so I still need to add it manually to the first child ...
+export function WalletShell ({ children, mobileHeader, noSidebar, mobileTopBar = true }) {
   return (
-    <Layout className='py-5' footer={false}>
-      {children}
+    // Wallet pages replace the global mobile footer with app-like wallet chrome.
+    <Layout className='py-5' containClassName={classNames(styles.walletContain, 'pb-0')} footer={false} hideMobileNav>
+      <div className={classNames(styles.walletShell, noSidebar && styles.walletShellNoSidebar)}>
+        {(mobileTopBar || mobileHeader) && (
+          <div className={styles.mobileWalletHeader}>
+            {mobileTopBar && <WalletMobileTopBar />}
+            {mobileHeader}
+          </div>
+        )}
+        {children}
+      </div>
     </Layout>
+  )
+}
+
+function WalletMobileTopBar () {
+  return (
+    <PriceCarouselProvider>
+      <div className={styles.walletMobileTopBar}>
+        <div className='d-inline-flex align-items-center w-fit-content'>
+          <Back />
+          <Brand />
+        </div>
+        <NavPrice className='justify-self-center' />
+        <div className={classNames(styles.walletMobileAccount, 'd-flex align-items-center justify-content-end gap-2')}>
+          <NavNotifications className='d-flex align-items-center justify-content-end p-0' />
+        </div>
+      </div>
+    </PriceCarouselProvider>
   )
 }
 
@@ -22,38 +50,81 @@ export function WalletLayoutHeader ({ children }) {
   )
 }
 
-export function WalletLayoutSubHeader ({ children }) {
-  return (
-    <h6 className='text-muted text-center'>
-      {children}
-    </h6>
-  )
-}
-
-export function WalletLayoutLink ({ children, href }) {
-  return (
-    <Link href={href} className='text-muted fw-bold text-underline'>
-      {children}
-    </Link>
-  )
-}
-
-export function WalletLayoutImageOrName ({ name, maxHeight = '50px' }) {
-  const img = useWalletImage(name)
+function WalletLayoutImageOrName ({ name, height = '50px' }) {
   return (
     <div className='d-flex justify-content-center align-items-center text-center'>
-      {img
-        ? (
-          <img
-            src={img.src}
-            alt={img.alt}
-            style={{
-              maxHeight,
-              maxWidth: '100%'
-            }}
-          />
-          )
-        : walletDisplayName(name)}
+      <WalletLogo name={name} fallback='name' height={height} />
+    </div>
+  )
+}
+
+function WalletDetailHeader ({ wallet, title }) {
+  return (
+    <header className={styles.walletPageHeading}>
+      <h1>{title}</h1>
+      <div className={classNames(styles.walletActionWallet, 'd-inline-flex align-items-center text-muted fw-bold')}>
+        <WalletLayoutImageOrName name={wallet.name} height='24px' />
+      </div>
+    </header>
+  )
+}
+
+export function WalletShellMain ({ children, mobileTopBar }) {
+  return (
+    <WalletShell noSidebar mobileTopBar={mobileTopBar}>
+      <main className={styles.walletMain}>
+        {children}
+      </main>
+    </WalletShell>
+  )
+}
+
+export function WalletDetailPage ({ wallet, title, children }) {
+  return (
+    <WalletShellMain>
+      <div className={styles.walletDetailPage}>
+        {title && <WalletDetailHeader wallet={wallet} title={title} />}
+        {children}
+      </div>
+    </WalletShellMain>
+  )
+}
+
+export function WalletActionShell ({ wallet, title, identity, available, children }) {
+  return (
+    <WalletShellMain>
+      <div className={styles.walletActionPage}>
+        <div className={classNames(styles.walletActionBody, 'd-flex flex-column')}>
+          <div className={styles.walletPageHeading}>
+            <h1>{title}</h1>
+            <div className={styles.walletActionWalletRow}>
+              <div className={classNames(styles.walletActionWallet, 'd-inline-flex align-items-center text-muted fw-bold')}>
+                {identity ?? <WalletLayoutImageOrName name={wallet.name} height='24px' />}
+              </div>
+              {available && (
+                <div className={classNames(styles.walletActionAvailable, 'text-end')}>
+                  <div className={styles.walletActionAvailableAmount}>{available.amount}</div>
+                  <div className={classNames(styles.walletActionAvailableLabel, 'text-muted')}>{available.label ?? 'available'}</div>
+                </div>
+              )}
+            </div>
+          </div>
+          {children}
+        </div>
+      </div>
+    </WalletShellMain>
+  )
+}
+
+export function WalletActionEmpty ({ message, backHref, backLabel = 'back to wallet' }) {
+  return (
+    <div className='d-flex flex-column align-items-center justify-content-center gap-4 flex-fill fs-4 text-center text-muted'>
+      <div>{message}</div>
+      {backHref && (
+        <Link href={backHref} className='btn btn-secondary'>
+          {backLabel}
+        </Link>
+      )}
     </div>
   )
 }

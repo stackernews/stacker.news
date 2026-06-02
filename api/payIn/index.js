@@ -123,7 +123,7 @@ async function begin (models, payInInitial, payInArgs, { me, custodialOnly, send
     }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 10000 })
 
-  return await afterBegin(models, { payIn, result, mCostRemaining }, { me, sendProtocolId })
+  return await afterBegin(models, { payIn, result, mCostRemaining }, { me, sendProtocolId, payInArgs })
 }
 
 export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
@@ -141,7 +141,7 @@ export async function onBegin (tx, payInId, payInArgs, benefactorResult) {
   return result
 }
 
-async function afterBegin (models, { payIn, result, mCostRemaining }, { me, sendProtocolId }) {
+async function afterBegin (models, { payIn, result, mCostRemaining }, { me, sendProtocolId, payInArgs }) {
   async function afterInvoiceCreation ({ payInState, payInBolt11 }) {
     try {
       const inStates = ['PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP']
@@ -196,7 +196,11 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me, send
       })
     } else if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
       const payInBolt11 = await payInBolt11WrapProspect(models, payIn,
-        { msats: mCostRemaining, description: await payInTypeModules[payIn.payInType].describe(models, payIn.id) })
+        {
+          msats: mCostRemaining,
+          description: await payInTypeModules[payIn.payInType].describe(models, payIn.id),
+          descriptionHash: payInArgs?.descriptionHash
+        })
       return await afterInvoiceCreation({
         payInState: 'PENDING_HELD',
         payInBolt11

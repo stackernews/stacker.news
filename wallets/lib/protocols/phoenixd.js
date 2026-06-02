@@ -6,7 +6,7 @@ import { hexValidator, urlValidator } from '@/wallets/lib/validate'
 export default [
   {
     name: 'PHOENIXD',
-    displayName: 'API',
+    displayName: 'Phoenixd',
     send: true,
     fields: [
       {
@@ -35,7 +35,7 @@ export default [
   },
   {
     name: 'PHOENIXD',
-    displayName: 'API',
+    displayName: 'Phoenixd',
     send: false,
     fields: [
       {

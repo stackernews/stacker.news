@@ -14,6 +14,7 @@ import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/dis
 import PgBoss from 'pg-boss'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
 import { createUserLoader, createSubLoader } from '@/api/loaders'
+import { getDomainMapping } from '@/lib/domains'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -85,6 +86,13 @@ const apolloHandler = startServerAndCreateNextHandler(apolloServer, {
       : null
     const userLoader = createUserLoader(models)
     const subLoader = createSubLoader(models)
+    // lazily resolves the request's custom domain mapping (ACTIVE domains only),
+    // repeat reads within a request hit the cache once.
+    let domainMappingPromise
+    const getDomain = () => {
+      domainMappingPromise ??= getDomainMapping(req.headers.host)
+      return domainMappingPromise
+    }
     return {
       models,
       headers: req.headers,
@@ -94,6 +102,7 @@ const apolloHandler = startServerAndCreateNextHandler(apolloServer, {
       boss,
       userLoader,
       subLoader,
+      getDomain,
       lexicalStateLoader: lexicalStateLoader({ me, userLoader })
     }
   }

@@ -595,8 +595,8 @@ services:
     restart: unless-stopped
     depends_on:
       <<: *depends_on_bitcoin
+    env_file: *env_file
     environment:
-      <<: *env_file
       JAVA_OPTS:
         -Declair.printToConsole
         -Dakka.loglevel=DEBUG

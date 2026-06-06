@@ -1,51 +1,25 @@
 import { Badge, Button } from 'react-bootstrap'
 import { Form, Input, SubmitButton, CopyButton } from './form'
-import { useMutation, useQuery } from '@apollo/client/react'
+import { useMutation } from '@apollo/client/react'
 import { customDomainSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
-import { SSR } from '@/lib/constants'
-import { GET_DOMAIN, SET_DOMAIN } from '@/fragments/domains'
-import { useEffect, useState, createContext, useContext, useMemo } from 'react'
+import { SET_DOMAIN } from '@/fragments/domains'
 import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
-import styles from './item.module.css'
+import styles from './territory-domains.module.css'
+import { useBranding } from './territory-branding'
 
-const DOMAIN_POLL_INTERVAL_MS = 10_000
-
-// Domain context for custom domains
-const DomainContext = createContext({ domain: null })
-
-export const DomainProvider = ({ domain: ssrDomain, children }) => {
-  const [domain, setDomain] = useState(ssrDomain ?? null)
-
-  // maintain the custom domain state across re-renders and nodata navigations
-  useEffect(() => {
-    if (ssrDomain !== undefined) {
-      setDomain(ssrDomain)
-    }
-  }, [ssrDomain])
-
-  const value = useMemo(() => ({ domain }), [domain])
-
-  return (
-    <DomainContext.Provider value={value}>
-      {children}
-    </DomainContext.Provider>
-  )
-}
-
-/** returns domain data with this shape: { domainName, subName } */
-export const useDomain = () => useContext(DomainContext)
-
+// on a custom domain the URL is already the sub root, so drop the `/~name` prefix
 export function usePrefix (sub) {
-  const { domain } = useDomain()
-  if (domain) return ''
+  const branding = useBranding()
+  if (branding) return ''
   return sub ? `/~${sub}` : ''
 }
 
+// path segment offsets shift by one on custom domains (no leading `/~name`)
 export function useNavKeys (path, sub) {
-  const { domain } = useDomain()
-  const offset = domain ? 1 : (sub ? 2 : 1)
+  const branding = useBranding()
+  const offset = branding ? 1 : (sub ? 2 : 1)
   return {
     topNavKey: path.split('/')[offset] ?? '',
     dropNavKey: path.split('/').slice(offset).join('/')
@@ -79,7 +53,7 @@ const DomainLabel = ({ domain, polling }) => {
             : status === 'HOLD'
               ? <Badge bg='secondary'>HOLD</Badge>
               : <Badge bg='success'>active</Badge>}
-          {polling && <Moon className='spin fill-grey' style={{ width: '1rem', height: '1rem' }} />}
+          {polling && <Moon className={`spin fill-grey ${styles.statusIcon}`} />}
         </div>
       )}
     </div>
@@ -92,32 +66,22 @@ const DomainGuidelines = ({ domain }) => {
   const dnsRecord = ({ record }) => {
     return (
       <div className='d-flex align-items-center gap-2 flex-wrap'>
-        <span className={`${styles.record}`}>
+        <span className={styles.record}>
           <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
             host
             <CopyButton
               value={record?.recordName}
-              append={
-                <ClipboardLine
-                  className={`${styles.clipboard}`}
-                  style={{ width: '1rem', height: '1rem' }}
-                />
-              }
+              append={<ClipboardLine className={styles.clipboard} />}
             />
           </small>
           <pre>{record?.recordName}</pre>
         </span>
-        <span className={`${styles.record}`}>
+        <span className={styles.record}>
           <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
             value
             <CopyButton
               value={record?.recordValue}
-              append={
-                <ClipboardLine
-                  className={`${styles.clipboard}`}
-                  style={{ width: '1rem', height: '1rem' }}
-                />
-              }
+              append={<ClipboardLine className={styles.clipboard} />}
             />
           </small>
           <pre>{record?.recordValue}</pre>
@@ -156,31 +120,13 @@ const DomainGuidelines = ({ domain }) => {
   )
 }
 
-export default function CustomDomainForm ({ sub }) {
+export default function CustomDomainForm ({ sub, domain }) {
   const [setDomain] = useMutation(SET_DOMAIN)
-
-  // Get the custom domain and poll for changes
-  const { data, refetch, stopPolling, startPolling } = useQuery(GET_DOMAIN, SSR
-    ? {}
-    : {
-        variables: { subName: sub.name },
-        nextFetchPolicy: 'cache-and-network'
-      })
-
-  useEffect(() => {
-    if (data?.domain?.status !== 'PENDING') {
-      stopPolling()
-    } else {
-      startPolling(DOMAIN_POLL_INTERVAL_MS)
-    }
-  }, [data?.domain?.status])
 
   const toaster = useToast()
 
-  const { domainName, status } = data?.domain || {}
-  const polling = status === 'PENDING'
+  const polling = domain?.status === 'PENDING'
 
-  // Update the custom domain
   const onSubmit = async ({ domainName }) => {
     try {
       await setDomain({
@@ -189,7 +135,6 @@ export default function CustomDomainForm ({ sub }) {
           domainName
         }
       })
-      refetch()
       if (domainName) {
         toaster.success('started domain verification')
       } else {
@@ -203,21 +148,22 @@ export default function CustomDomainForm ({ sub }) {
   return (
     <>
       <Form
-        initial={{ domainName: domainName || '' }}
+        initial={{ domainName: domain?.domainName || '' }}
         schema={customDomainSchema}
+        enableReinitialize
         onSubmit={onSubmit}
         className='mb-2'
       >
         <div className='d-flex align-items-center gap-2'>
           <div className='flex-grow-1'>
             <Input
-              disabled={!!data?.domain}
-              label={<DomainLabel domain={data?.domain} polling={polling} />}
+              disabled={!!domain}
+              label={<DomainLabel domain={domain} polling={polling} />}
               name='domainName'
               placeholder='www.example.com'
             />
           </div>
-          {data?.domain && (
+          {domain && (
             <Button
               variant='danger'
               className='mt-3'
@@ -226,19 +172,19 @@ export default function CustomDomainForm ({ sub }) {
               reset
             </Button>
           )}
-          {!data?.domain
+          {!domain
             ? (
               <SubmitButton variant='primary' className='mt-3'>verify</SubmitButton>
               )
-            : data?.domain?.status === 'HOLD'
+            : domain?.status === 'HOLD'
               ? (
                 <SubmitButton variant='success' className='mt-3'>re-verify</SubmitButton>
                 )
               : null}
         </div>
       </Form>
-      {data?.domain && data?.domain?.status === 'PENDING' && (
-        <DomainGuidelines domain={data?.domain} />
+      {domain && domain?.status === 'PENDING' && (
+        <DomainGuidelines domain={domain} />
       )}
     </>
   )

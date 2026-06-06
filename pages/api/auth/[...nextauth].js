@@ -98,6 +98,8 @@ function getCallbacks (req, res) {
       if (user) {
         // reset signup cookie if any
         res.appendHeader('Set-Cookie', cookie.serialize('signin', '', cookieOptions({ req, httpOnly: false, maxAge: 0 })))
+        // reset link cookie if any
+        res.appendHeader('Set-Cookie', cookie.serialize('link', '', cookieOptions({ req, httpOnly: false, maxAge: 0 })))
         // token won't have an id on it for new logins, we add it
         // note: token is what's kept in the jwt
         token.id = Number(user.id)
@@ -371,6 +373,29 @@ export const getAuthOptions = (req, res) => ({
       return user
     },
     useVerificationToken: async ({ identifier, token }) => {
+      // check auth linking intent
+      const linkCookie = req.cookies.link
+      let linkUserId = null
+      if (linkCookie && !req.cookies.signin) {
+        // link to whichever account is currently logged in
+        // (the account that started the link attempt)
+        const reqWithSession = await multiAuthMiddleware(req, res)
+        const session = await getToken({ req: reqWithSession })
+        // only act on the link cookie if its userId matches the active
+        // session; otherwise a stale cookie from another account could
+        // silently attach an email to the wrong user
+        if (session?.id && String(session.id) === linkCookie) {
+          linkUserId = Number(session.id)
+        } else if (session?.id) {
+          // link intent, but the active account isn't the one that started
+          // the attempt (e.g. the user switched accounts mid-flow). fail
+          // loudly instead of falling through to getUserByEmail -> createUser,
+          // which would silently create a brand-new account for this email.
+          throw new Error('account changed during email link attempt')
+        }
+      }
+
+      // email verification flow
       return await prisma.$transaction(async (tx) => {
         const [verificationRequest] = await tx.$queryRaw`
           UPDATE verification_requests
@@ -394,6 +419,23 @@ export const getAuthOptions = (req, res) => ({
           await tx.verificationToken.delete({
             where: { id: verificationRequest.id }
           })
+
+          // if we were trying to link an email to an account,
+          // attach it now that the email verification succeeded
+          if (linkUserId) {
+            try {
+              await tx.user.update({
+                where: { id: linkUserId },
+                data: { emailHash: hashEmail({ email: identifier }) }
+              })
+            } catch (error) {
+              if (error.code === 'P2002') {
+                throw new Error('email taken')
+              }
+              throw error
+            }
+          }
+
           return verificationRequest
         }
 
@@ -499,13 +541,16 @@ async function sendVerificationRequest ({
       return resolve()
     }
 
+    // check if we're trying to link an email to an account
+    const linkIntent = !!req.cookies.link
+
     nodemailer.createTransport(server).sendMail(
       {
         to: email,
         from,
         subject: `login to ${site}`,
         text: text({ url, token, site, email }),
-        html: user ? html({ url, token, site, email }) : newUserHtml({ url, token, site, email })
+        html: (user || linkIntent) ? html({ url, token, site, email }) : newUserHtml({ url, token, site, email })
       },
       (error) => {
         if (error) {

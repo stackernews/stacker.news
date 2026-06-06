@@ -2,15 +2,14 @@ import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
-import { bioSchema, emailSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
+import { bioSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine, payInJoinFilter } from './item'
 import { USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
-import { hashEmail } from '@/lib/crypto'
 import { isMuted } from '@/lib/user'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
-import { processCrop } from '@/worker/imgproxy'
+import { processCrop } from '@/lib/imgproxy'
 import { payInTypesSql } from '../payIn/lib/sql'
 import { Prisma } from '@prisma/client'
 
@@ -753,28 +752,6 @@ export default {
       }
 
       return await authMethods(user, undefined, { models, me })
-    },
-    linkUnverifiedEmail: async (parent, { email }, { models, me }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-      assertApiKeyNotPermitted({ me })
-
-      await validateSchema(emailSchema, { email })
-
-      try {
-        await models.user.update({
-          where: { id: me.id },
-          data: { emailHash: hashEmail({ email }) }
-        })
-      } catch (error) {
-        if (error.code === 'P2002') {
-          throw new GqlInputError('email taken')
-        }
-        throw error
-      }
-
-      return true
     },
     subscribeUserPosts: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }

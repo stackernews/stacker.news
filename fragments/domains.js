@@ -2,6 +2,7 @@ import { gql } from 'graphql-tag'
 
 export const DOMAIN_FIELDS = gql`
   fragment DomainFields on Domain {
+    id
     domainName
     status
     subName
@@ -74,9 +75,11 @@ export const GET_DOMAIN = gql`
 `
 
 export const SET_DOMAIN = gql`
+  ${DOMAIN_FULL_FIELDS}
   mutation SetDomain($subName: String!, $domainName: String) {
     setDomain(subName: $subName, domainName: $domainName) {
-      domainName
+      name
+      domain { ...DomainFullFields }
     }
   }
 `

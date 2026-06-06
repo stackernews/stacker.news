@@ -8,6 +8,11 @@
     filter: drop-shadow(0 0 6px var(--bs-primary));
 }
 
+.brandImage {
+    object-fit: contain;
+    display: block;
+}
+
 .postAnon {
     border-width: 2px;
 }

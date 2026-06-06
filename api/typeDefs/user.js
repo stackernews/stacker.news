@@ -44,7 +44,6 @@ export default gql`
     upsertBio(text: String!, sendProtocolId: Int): PayIn!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
-    linkUnverifiedEmail(email: String!): Boolean
     subscribeUserPosts(id: ID): User
     subscribeUserComments(id: ID): User
     toggleMute(id: ID): User

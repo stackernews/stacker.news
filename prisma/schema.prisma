@@ -332,6 +332,8 @@ model Upload {
   User         User[]
   ItemUpload   ItemUpload[]
   uploadPayIns UploadPayIn[]
+  subBrandingLogos    SubBranding[] @relation("SubBrandingLogo")
+  subBrandingFavicons SubBranding[] @relation("SubBrandingFavicon")
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
@@ -698,12 +700,41 @@ model Sub {
   AggPayOut               AggPayOut[]
   itemSubs                ItemSub[]
   domain                  Domain?
+  branding                SubBranding?
 
   @@index([parentName])
   @@index([createdAt])
   @@index([userId])
   @@index([statusUpdatedAt])
   @@index([path], type: Gist)
+}
+
+// Per-territory branding for custom-domain territories.
+// Stores both appearance overrides (colors, logo) and SEO metadata
+// (title, tagline, favicon) on a single row keyed by subName. The
+// GraphQL surface exposes logical `theme` and `seo` projections.
+model SubBranding {
+  subName        String   @id @db.Citext
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // appearance
+  primaryColor   String?
+  secondaryColor String?
+  linkColor      String?
+  logoId         Int?
+
+  // discovery / SEO
+  title          String?
+  tagline        String?
+  faviconId      Int?
+
+  sub     Sub     @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  logo    Upload? @relation("SubBrandingLogo",    fields: [logoId],    references: [id], onDelete: SetNull)
+  favicon Upload? @relation("SubBrandingFavicon", fields: [faviconId], references: [id], onDelete: SetNull)
+
+  @@index([logoId])
+  @@index([faviconId])
 }
 
 model MuteSub {

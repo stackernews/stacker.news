@@ -42,7 +42,6 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      // beta access
       if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
         throw new GqlAuthorizationError('not allowed')
       }
@@ -51,12 +50,11 @@ export default {
       if (!sub) {
         throw new GqlInputError('sub not found')
       }
-
       if (sub.userId !== Number(me.id)) {
         throw new GqlAuthorizationError('you do not own this sub')
       }
 
-      return models.domain.findUnique({
+      return await models.domain.findUnique({
         where: { subName },
         include: { records: true, attempts: true }
       })
@@ -68,7 +66,6 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      // beta access
       if (!DOMAIN_BETA_IDS.includes(Number(me.id))) {
         throw new GqlAuthorizationError('not allowed')
       }
@@ -77,7 +74,6 @@ export default {
       if (!sub) {
         throw new GqlInputError('sub not found')
       }
-
       if (sub.userId !== Number(me.id)) {
         throw new GqlAuthorizationError('you do not own this sub')
       }
@@ -108,7 +104,7 @@ export default {
 
         const resuming = sameDomain && existing?.status === 'HOLD'
 
-        const updatedDomain = await models.$transaction(async tx => {
+        await models.$transaction(async tx => {
           if (existing) {
             await cleanDomainVerificationJobs(existing.id, tx)
             if (!resuming) {
@@ -135,24 +131,21 @@ export default {
           await scheduleDomainVerificationJob(domain.id, tx)
           return domain
         })
-
-        return updatedDomain
-      } else {
+      } else if (existing) {
         try {
-          if (existing) {
-            return await models.$transaction(async tx => {
-              // delete any existing domain verification job left
-              await cleanDomainVerificationJobs(existing.id, tx)
-              // delete the domain
-              return await tx.domain.delete({ where: { subName } })
-            })
-          }
-          return null
+          await models.$transaction(async tx => {
+            // delete any existing domain verification job left
+            await cleanDomainVerificationJobs(existing.id, tx)
+            // delete the domain
+            await tx.domain.delete({ where: { subName } })
+          })
         } catch (error) {
           console.error(error)
           throw new GqlInputError('failed to delete domain')
         }
       }
+
+      return sub
     }
   },
   Domain: {

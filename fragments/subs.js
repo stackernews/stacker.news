@@ -1,6 +1,7 @@
 import { gql } from '@apollo/client'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
+import { DOMAIN_FULL_FIELDS } from './domains'
 
 // we can't import from users because of circular dependency
 const STREAK_FIELDS = gql`
@@ -49,12 +50,37 @@ export const SUB_FULL_FIELDS = gql`
     }
   }`
 
+export const SUB_BRANDING_FIELDS = gql`
+  fragment SubBrandingFields on SubBranding {
+    subName
+    primaryColor
+    secondaryColor
+    linkColor
+    logoId
+    title
+    tagline
+    faviconId
+  }`
+
 export const SUB = gql`
   ${SUB_FIELDS}
 
   query Sub($sub: String) {
     sub(name: $sub) {
       ...SubFields
+    }
+  }`
+
+// territory edit with domain and branding forms
+export const SUB_EDIT = gql`
+  ${SUB_FIELDS}
+  ${SUB_BRANDING_FIELDS}
+  ${DOMAIN_FULL_FIELDS}
+  query SubEdit($sub: String) {
+    sub(name: $sub) {
+      ...SubFields
+      domain { ...DomainFullFields }
+      branding { ...SubBrandingFields }
     }
   }`
 
@@ -152,6 +178,16 @@ export const TOP_SUBS = gql`
         }
       }
       cursor
+    }
+  }
+`
+
+export const UPSERT_SUB_BRANDING = gql`
+  ${SUB_BRANDING_FIELDS}
+  mutation UpsertSubBranding($subName: String!, $branding: SubBrandingInput!) {
+    upsertSubBranding(subName: $subName, branding: $branding) {
+      name
+      branding { ...SubBrandingFields }
     }
   }
 `

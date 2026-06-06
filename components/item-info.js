@@ -31,7 +31,7 @@ import useCanEdit from './use-can-edit'
 import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { gql } from '@apollo/client'
-import { useDomain } from './territory-domains'
+import { useBranding } from './territory-branding'
 import LinkExternal from '@/svgs/link-external.svg'
 
 function itemTitle (item) {
@@ -81,7 +81,7 @@ export default function ItemInfo ({
   setDisableRetry, disableRetry, updatePayIn
 }) {
   const { me } = useMe()
-  const { domain } = useDomain()
+  const branding = useBranding()
   const router = useRouter()
   const showModal = useShowModal()
   const [hasNewComments, setHasNewComments] = useState(false)
@@ -166,8 +166,8 @@ export default function ItemInfo ({
       </span>
       {/* XXX: ideally we would use the proxy middleware to handle external subnames, but it would break local dev: https://github.com/vercel/next.js/issues/44482 */}
       {item.subNames?.map(subName => {
-        const isExternal = domain && (subName !== domain.subName)
-        const href = domain ? (isExternal ? `${process.env.NEXT_PUBLIC_URL}/~${subName}` : '/') : `/~${subName}`
+        const isExternal = branding && (subName !== branding.subName)
+        const href = branding ? (isExternal ? `${process.env.NEXT_PUBLIC_URL}/~${subName}` : '/') : `/~${subName}`
 
         return (
           <SubPopover key={subName} sub={subName}>

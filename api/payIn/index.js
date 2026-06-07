@@ -82,6 +82,11 @@ async function queuePayInFailed (tx, payInId, payInFailureReason) {
       now(), 1000)`
 }
 
+async function queuePayInWithdrawalFailed (tx, payInId) {
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+    VALUES ('payInWithdrawalFailed', jsonb_build_object('payInId', ${payInId}::INTEGER), now(), 1000)`
+}
+
 async function begin (models, payInInitial, payInArgs, { me, custodialOnly, sendProtocolId }) {
   const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
     await obtainRowLevelLocks(tx, payInInitial)
@@ -213,7 +218,10 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me, send
         max_fee: msatsToSats(mtokens),
         pathfinding_timeout: LND_PATHFINDING_TIMEOUT_MS,
         confidence: LND_PATHFINDING_TIME_PREF_PPM
-      }).catch(e => queuePayInFailed(models, payIn.id, e.payInFailureReason ?? 'WITHDRAWAL_FAILED').catch(console.error))
+      }).catch(e => {
+        console.error('failed to withdraw', e)
+        queuePayInWithdrawalFailed(models, payIn.id).catch(console.error)
+      })
     } else {
       throw new Error('Invalid payIn begin state')
     }

@@ -31,7 +31,7 @@ export class TableOfContentsNode extends DecoratorBlockNode {
     }
   }
 
-  createDOM (config) {
+  createDOM () {
     const domNode = document.createElement('div')
     domNode.setAttribute('data-lexical-toc', 'true')
     return domNode

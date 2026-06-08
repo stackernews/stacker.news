@@ -26,7 +26,7 @@ const bestResSrcState = createState('bestResSrc', {
 })
 
 function $convertMediaElement (domNode) {
-  let src, alt, title, width, height, kind, srcSet, bestResSrc
+  let src, alt, title, width, height, kind, srcSet, bestResSrc, maxWidth
 
   if (domNode instanceof window.HTMLImageElement || domNode instanceof window.HTMLVideoElement) {
     ({ alt, title, src, width, height, srcSet, bestResSrc } = domNode)
@@ -34,8 +34,12 @@ function $convertMediaElement (domNode) {
   } else if (domNode instanceof window.HTMLSpanElement && domNode.hasAttribute('data-sn-media-src')) {
     src = domNode.getAttribute('data-sn-media-src')
     kind = domNode.getAttribute('data-sn-media-kind') || 'unknown'
-    alt = ''
-    title = ''
+    alt = domNode.getAttribute('data-sn-media-alt') || ''
+    title = domNode.getAttribute('data-sn-media-title') || ''
+    srcSet = domNode.getAttribute('data-sn-media-srcset') || null
+    bestResSrc = domNode.getAttribute('data-sn-media-bestres') || null
+    const maxWidthAttr = domNode.getAttribute('data-sn-media-maxwidth')
+    maxWidth = maxWidthAttr ? parseInt(maxWidthAttr, 10) : undefined
     const style = domNode.style
     width = style.getPropertyValue('--width')
     height = style.getPropertyValue('--height')
@@ -45,10 +49,24 @@ function $convertMediaElement (domNode) {
     return null
   }
 
-  const node = $createMediaNode({ src, alt, title, width, height, srcSet, bestResSrc })
+  const node = $createMediaNode({ src, alt, title, width, height, srcSet, bestResSrc, maxWidth })
   $setState(node, kindState, kind)
   $setState(node, statusState, 'done')
   return { node }
+}
+
+/** writes media fields as data attributes so the node can be losslessly
+ * reconstructed from HTML into Lexical (see $convertMediaElement) */
+function setMediaHydrationAttributes (node, el) {
+  const alt = node.getAlt()
+  const title = node.getTitle()
+  const srcSet = node.getSrcSet()
+  const bestResSrc = node.getBestResSrc()
+  if (alt) el.setAttribute('data-sn-media-alt', alt)
+  if (title) el.setAttribute('data-sn-media-title', title)
+  if (srcSet) el.setAttribute('data-sn-media-srcset', srcSet)
+  if (bestResSrc) el.setAttribute('data-sn-media-bestres', bestResSrc)
+  if (node.__maxWidth != null) el.setAttribute('data-sn-media-maxwidth', String(node.__maxWidth))
 }
 
 export class MediaNode extends DecoratorNode {
@@ -155,6 +173,7 @@ export class MediaNode extends DecoratorNode {
     span.className = editor._config.theme?.media
     span.setAttribute('data-sn-media-kind', kind)
     span.setAttribute('data-sn-media-src', this.__src)
+    setMediaHydrationAttributes(this, span)
 
     if (kind === 'unknown') {
       // export a link instead of media if we don't know the type
@@ -184,6 +203,7 @@ export class MediaNode extends DecoratorNode {
     span.className = config.theme?.media
     span.setAttribute('data-sn-media-kind', this.getKind())
     span.setAttribute('data-sn-media-src', this.__src)
+    setMediaHydrationAttributes(this, span)
     const { width, height } = this.getWidthAndHeight() || {}
     width && span.style.setProperty('--width', width)
     height && span.style.setProperty('--height', height)

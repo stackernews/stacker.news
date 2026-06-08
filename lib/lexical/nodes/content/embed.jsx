@@ -123,6 +123,15 @@ export class EmbedNode extends DecoratorBlockNode {
     return { element: decorator }
   }
 
+  createDOM (config, editor) {
+    const div = super.createDOM(config)
+    div.setAttribute('data-lexical-embed-provider', this.__provider || '')
+    this.__id && div.setAttribute('data-lexical-embed-id', this.__id)
+    this.__src && div.setAttribute('data-lexical-embed-src', this.__src)
+    this.__meta && div.setAttribute('data-lexical-embed-meta', JSON.stringify(this.__meta))
+    return div
+  }
+
   updateDOM () {
     return false
   }

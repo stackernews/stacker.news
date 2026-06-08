@@ -1,6 +1,5 @@
 import { $applyNodeReplacement, DecoratorNode } from 'lexical'
 import katex from 'katex'
-
 export const $encodeMath = (math) => Buffer.from(math).toString('base64')
 export const $decodeMath = (math) => Buffer.from(math, 'base64').toString('utf-8')
 
@@ -66,6 +65,13 @@ export class MathNode extends DecoratorNode {
   createDOM (_config) {
     const element = document.createElement(this.__inline ? 'span' : 'div')
     element.className = _config.theme.math
+    // serialize the math so the node can be reconstructed when importing from HTML
+    try {
+      element.setAttribute('data-lexical-math', $encodeMath(this.__math))
+      element.setAttribute('data-lexical-inline', this.__inline)
+    } catch (error) {
+      console.error('error encoding math', error)
+    }
     return element
   }
 

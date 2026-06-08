@@ -153,6 +153,17 @@ export class SNHeadingNode extends HeadingNode {
 
     return {
       ...headingConverters,
+      // the reader renders a decorative anchor link inside headings (createDOM,
+      // read-only) that is not part of the editor state. Skip it (and its text)
+      // so importing from HTML doesn't import it as a duplicate link.
+      // runs regardless of which heading converter created the parent.
+      a: node => {
+        if (!node.classList?.contains('sn-heading__link')) return null
+        return {
+          conversion: () => ({ node: null, forChild: () => null }),
+          priority: 3
+        }
+      },
       p: node => {
         const paragraph = node
         const firstChild = paragraph.firstChild

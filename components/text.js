@@ -7,6 +7,8 @@ import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
 import { SNReader } from './editor'
 
+const SHOW_FULL_TEXT_QUERY = 'showFullText'
+
 export function SearchText ({ text }) {
   return (
     <div className={styles.text}>
@@ -19,27 +21,50 @@ export function SearchText ({ text }) {
   )
 }
 
-export function useOverflow ({ containerRef, truncated = false }) {
+export function useOverflow ({ containerRef, truncated = false, itemId }) {
   const router = useRouter()
+  const { asPath, events, pathname, query, replace } = router
+  const fullTextItemId = query[SHOW_FULL_TEXT_QUERY]
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?
   const [show, setShow] = useState(false)
-  const showOverflow = useCallback(() => setShow(true), [setShow])
+  const routeShowsFullText = useCallback((url = asPath) => {
+    if (url.includes('#')) return true
+    if (!itemId) return false
 
-  // if we are navigating to a hash, show the full text
+    const expectedItemId = String(itemId)
+    return Array.isArray(fullTextItemId)
+      ? fullTextItemId.includes(expectedItemId)
+      : fullTextItemId === expectedItemId
+  }, [asPath, fullTextItemId, itemId])
+
+  const showOverflow = useCallback(() => {
+    setShow(true)
+    if (!itemId || routeShowsFullText()) return
+
+    replace({
+      pathname,
+      query: {
+        ...query,
+        [SHOW_FULL_TEXT_QUERY]: String(itemId)
+      }
+    }, undefined, { shallow: true, scroll: false }).catch(console.error)
+  }, [itemId, pathname, query, replace, routeShowsFullText])
+
+  // show full text when the route targets hidden content
   useEffect(() => {
-    setShow(router.asPath.includes('#'))
+    setShow(routeShowsFullText())
     const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#'))
+      setShow(routeShowsFullText(url))
     }
 
-    router.events.on('hashChangeStart', handleRouteChange)
+    events.on('hashChangeStart', handleRouteChange)
 
     return () => {
-      router.events.off('hashChangeStart', handleRouteChange)
+      events.off('hashChangeStart', handleRouteChange)
     }
-  }, [router.asPath, router.events])
+  }, [events, routeShowsFullText])
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
@@ -114,6 +139,7 @@ export function useOverflow ({ containerRef, truncated = false }) {
  * @param {string} props.rel - link rel attribute
  * @param {string} props.name - link name attribute
  * @param {object} props.readerRef - reader ref
+ * @param {number|string} props.itemId - item id used to persist full-text expansion in the URL
  */
 export default function Text (props) {
   // if we don't have anything to render, bail
@@ -121,9 +147,9 @@ export default function Text (props) {
   return <TextBody {...props} />
 }
 
-export function TextBody ({ topLevel, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
+export function TextBody ({ topLevel, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef, itemId }) {
   const containerRef = useRef(null)
-  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
+  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children, itemId })
   const carousel = useCarousel()
 
   const textClassNames = useMemo(() => {

@@ -7,9 +7,18 @@ import { Form, SubmitButton, MultiInput } from '@/components/form'
 import { emailTokenSchema } from '@/lib/validate'
 import ArrowRightLineIcon from '@/svgs/arrow-right-line.svg'
 import LoopVideo from '@/components/loop-video'
+import { cookieOptions, EMAIL_AUTH_CALLBACK } from '@/lib/auth'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })
+
+function emailCallbackFromCookie (cookies) {
+  try {
+    return JSON.parse(cookies[EMAIL_AUTH_CALLBACK])
+  } catch {
+    return null
+  }
+}
 
 export default function Email () {
   const router = useRouter()
@@ -17,8 +26,9 @@ export default function Email () {
   const [signin, setSignin] = useState(false)
 
   useEffect(() => {
-    setSignin(!!cookie.parse(document.cookie).signin)
-    setCallback(JSON.parse(window.sessionStorage.getItem('callback')))
+    const cookies = cookie.parse(document.cookie)
+    setSignin(!!cookies.signin)
+    setCallback(emailCallbackFromCookie(cookies))
   }, [])
 
   // build and push the final callback URL
@@ -27,6 +37,7 @@ export default function Email () {
     if (callback.callbackUrl) params.set('callbackUrl', callback.callbackUrl)
     params.set('token', token)
     params.set('email', callback.email.toLowerCase())
+    document.cookie = cookie.serialize(EMAIL_AUTH_CALLBACK, '', cookieOptions({ httpOnly: false, maxAge: 0 }))
     const url = `/api/auth/callback/email?${params.toString()}`
     router.push(url)
   }, [callback, router])

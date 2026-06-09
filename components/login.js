@@ -10,7 +10,7 @@ import LoginButton, { LoginWithNymButton } from './login-button'
 import { emailSchema } from '@/lib/validate'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import * as cookie from 'cookie'
-import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
+import { cookieOptions, EMAIL_AUTH_CALLBACK, MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import Link from 'next/link'
 import useCookie from './use-cookie'
 
@@ -24,7 +24,8 @@ export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
       }}
       schema={emailSchema}
       onSubmit={async ({ email }) => {
-        window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
+        const options = cookieOptions({ httpOnly: false, maxAge: 300 })
+        document.cookie = cookie.serialize(EMAIL_AUTH_CALLBACK, JSON.stringify({ email, callbackUrl }), options)
         signIn('email', { email, callbackUrl, multiAuth })
       }}
     >

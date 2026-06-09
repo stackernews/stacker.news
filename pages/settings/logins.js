@@ -24,7 +24,7 @@ import { useMe } from '@/components/me'
 import { SettingsHeader, hasOnlyOneAuthMethod } from './index'
 import { AuthBanner } from '@/components/banners'
 import * as cookie from 'cookie'
-import { cookieOptions } from '@/lib/auth'
+import { cookieOptions, EMAIL_AUTH_CALLBACK } from '@/lib/auth'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -261,8 +261,7 @@ function EmailLinkForm ({ callbackUrl }) {
         // can't be repurposed to link an email to a different account.
         const options = cookieOptions({ httpOnly: false, maxAge: 300 })
         document.cookie = cookie.serialize('link', String(me.id), options)
-
-        window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
+        document.cookie = cookie.serialize(EMAIL_AUTH_CALLBACK, JSON.stringify({ email, callbackUrl }), options)
         signIn('email', { email, callbackUrl })
       }}
     >

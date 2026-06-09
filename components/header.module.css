@@ -8,6 +8,11 @@
     filter: drop-shadow(0 0 6px var(--bs-primary));
 }
 
+.brandImage {
+    object-fit: contain;
+    display: block;
+}
+
 .postAnon {
     border-width: 2px;
 }
@@ -32,6 +37,12 @@
 
 .navLink {
     padding: 0.25rem 1rem;
+}
+
+.navSort {
+    text-transform: uppercase;
+    font-weight: normal;
+    letter-spacing: 0.05em;
 }
 
 .navbar {
@@ -83,6 +94,10 @@
     flex-grow: 1;
     justify-content: center;
     align-items: center;
+}
+
+.price:first-child {
+    justify-content: flex-start;
 }
 
 .price > div {

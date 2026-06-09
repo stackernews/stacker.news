@@ -6,33 +6,35 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
-import Head from 'next/head'
+import { PUBLIC_MEDIA_URL, USER_ID } from '../../lib/constants'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
-import HiddenWalletSummary from '../hidden-wallet-summary'
-import { abbrNum, msatsToSats } from '../../lib/format'
+import { abbrNum } from '../../lib/format'
 import { useServiceWorker } from '../serviceworker'
 import { signOut } from 'next-auth/react'
 import Badges from '../badge'
-import { randInRange } from '../../lib/rand'
-import { useLightning } from '../lightning'
 import LightningIcon from '../../svgs/bolt.svg'
 import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWallets } from '@/wallets/index'
-import SwitchAccountList, { useAccounts } from '@/components/account'
+import { useWalletIndicator } from '@/wallets/client/hooks'
+import SwitchAccountList, { nextAccount, useAccounts, useIsLurker } from '@/components/account'
 import { useShowModal } from '@/components/modal'
+import { ObstacleButtons } from '@/components/obstacle'
+import { numWithUnits } from '@/lib/format'
+import { useBranding } from '@/components/territory-branding'
 
 export function Brand ({ className }) {
+  const branding = useBranding()
+  const logoUrl = branding?.logoId ? `${PUBLIC_MEDIA_URL}/${branding.logoId}` : null
+
   return (
-    <Link href='/' passHref legacyBehavior>
-      <Navbar.Brand className={classNames(styles.brand, className)}>
-        <SnIcon width={36} height={36} />
-      </Navbar.Brand>
-    </Link>
+    <Navbar.Brand as={Link} href='/' className={classNames(styles.brand, className)}>
+      {logoUrl
+        ? <img src={logoUrl} alt='site logo' width={36} height={36} className={styles.brandImage} loading='eager' decoding='async' />
+        : <SnIcon width={36} height={36} />}
+    </Navbar.Brand>
   )
 }
 
@@ -86,11 +88,9 @@ export function BackOrBrand ({ className }) {
 
 export function SearchItem ({ prefix, className }) {
   return (
-    <Link href='/search' passHref legacyBehavior>
-      <Nav.Link eventKey='search' className={className}>
-        <SearchIcon className='theme' width={22} height={28} />
-      </Nav.Link>
-    </Link>
+    <Nav.Link as={Link} href='/search' eventKey='search' className={className}>
+      <SearchIcon className='theme' width={22} height={28} />
+    </Nav.Link>
   )
 }
 
@@ -122,93 +122,89 @@ export function NavNotifications ({ className }) {
 
   return (
     <>
-      <Head>
-        <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
-      </Head>
-      <Link href='/notifications' passHref legacyBehavior>
-        <Nav.Link eventKey='notifications' className={classNames('position-relative', className)}>
+      <Nav.Link as={Link} href='/notifications' eventKey='notifications' className={className}>
+        <Indicator show={hasNewNotes} top='2px' right='0px' variant='danger'>
           <NoteIcon height={28} width={20} className='theme' />
-          {hasNewNotes &&
-            <span className={styles.notification}>
-              <span className='invisible'>{' '}</span>
-            </span>}
-        </Nav.Link>
-      </Link>
+        </Indicator>
+      </Nav.Link>
     </>
   )
 }
 
 export function WalletSummary () {
   const { me } = useMe()
-  if (!me) return null
-  if (me.privates?.hideWalletBalance) {
-    return <HiddenWalletSummary abbreviate fixedWidth />
-  }
-  return `${abbrNum(me.privates?.sats)}`
+  if (!me || me.privates?.sats === 0) return null
+  return (
+    <span
+      className='text-monospace'
+      title={`${numWithUnits(me.privates?.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`}
+    >
+      {`${abbrNum(me.privates?.sats)}`}
+    </span>
+  )
 }
 
 export function NavWalletSummary ({ className }) {
   const { me } = useMe()
-  const walletLimitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
 
   return (
     <Nav.Item className={className}>
-      <Link href='/wallet' passHref legacyBehavior>
-        <Nav.Link eventKey='wallet' className={`${walletLimitReached ? 'text-warning' : 'text-success'} text-monospace px-0 text-nowrap`}>
-          <WalletSummary me={me} />
-        </Nav.Link>
-      </Link>
+      <Nav.Link as={Link} href='/credits' eventKey='credits' className='text-success text-monospace px-0 text-nowrap'>
+        <WalletSummary me={me} />
+      </Nav.Link>
     </Nav.Item>
+  )
+}
+
+export const Indicator = ({ show, top = '0px', right = '0px', variant = 'secondary', children }) => {
+  return (
+    <div className='w-fit-content position-relative'>
+      {children}
+      {show && (
+        <span
+          className={`position-absolute p-1 bg-${variant}`}
+          style={{ top, right, height: '5px', width: '5px', border: '1px solid var(--bs-body-bg)' }}
+        >
+          <span className='invisible'>{' '}</span>
+        </span>
+      )}
+    </div>
   )
 }
 
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
+
+  const profileIndicator = !me.bioId
+  const walletIndicator = useWalletIndicator()
+  const indicator = profileIndicator || walletIndicator
+
   return (
-    <div className=''>
+    <div className='ms-2'>
       <Dropdown className={styles.dropdown} align='end'>
         <Dropdown.Toggle className='nav-link nav-item fw-normal' id='profile' variant='custom'>
           <div className='d-flex align-items-center'>
-            <Nav.Link eventKey={me.name} as='span' className='p-0 position-relative'>
-              {`@${me.name}`}
-              {!me.bioId &&
-                <span className='d-inline-block p-1'>
-                  <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px', height: '5px', width: '5px' }}>
-                    <span className='invisible'>{' '}</span>
-                  </span>
-                </span>}
+            <Nav.Link eventKey={me.name} as='span' className='p-0'>
+              <Indicator show={indicator} top='2px' right='-5px'>@{me.name}</Indicator>
             </Nav.Link>
-            <Badges user={me} />
+            <Badges user={me} className='ms-1' height={16} width={14} />
           </div>
         </Dropdown.Toggle>
         <Dropdown.Menu>
-          <Link href={'/' + me.name} passHref legacyBehavior>
-            <Dropdown.Item active={me.name === dropNavKey}>
-              profile
-              {me && !me.bioId &&
-                <div className='p-1 d-inline-block bg-secondary ms-1'>
-                  <span className='invisible'>{' '}</span>
-                </div>}
-            </Dropdown.Item>
-          </Link>
-          <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
-            <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
-          </Link>
-          <Link href='/wallet' passHref legacyBehavior>
-            <Dropdown.Item eventKey='wallet'>wallet</Dropdown.Item>
-          </Link>
-          <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
-            <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
-          </Link>
+          <Dropdown.Item as={Link} href={'/' + me.name} active={me.name === dropNavKey}>
+            <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
+          </Dropdown.Item>
+          <Dropdown.Item as={Link} href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
+          <Dropdown.Item as={Link} href='/wallets' eventKey='wallets'>
+            <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
+          </Dropdown.Item>
+          <Dropdown.Item as={Link} href='/credits' eventKey='credits'>credits</Dropdown.Item>
+          <Dropdown.Item as={Link} href='/satistics' eventKey='satistics'>satistics</Dropdown.Item>
           <Dropdown.Divider />
-          <Link href='/referrals/month' passHref legacyBehavior>
-            <Dropdown.Item eventKey='referrals'>referrals</Dropdown.Item>
-          </Link>
+          <Dropdown.Item as={Link} href='/invites' eventKey='invites'>invites</Dropdown.Item>
           <Dropdown.Divider />
           <div className='d-flex align-items-center'>
-            <Link href='/settings' passHref legacyBehavior>
-              <Dropdown.Item eventKey='settings'>settings</Dropdown.Item>
-            </Link>
+            <Dropdown.Item as={Link} href='/settings' eventKey='settings'>settings</Dropdown.Item>
           </div>
           <Dropdown.Divider />
           <LogoutDropdownItem />
@@ -218,7 +214,10 @@ export function MeDropdown ({ me, dropNavKey }) {
   )
 }
 
-export function SignUpButton ({ className = 'py-0', width }) {
+// this is the width of the 'switch account' button if no width is given
+const SWITCH_ACCOUNT_BUTTON_WIDTH = '162px'
+
+export function SignUpButton ({ className, width }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -227,8 +226,9 @@ export function SignUpButton ({ className = 'py-0', width }) {
 
   return (
     <Button
-      className={classNames('align-items-center ps-2 py-1 pe-3', className)}
-      style={{ borderWidth: '2px', width: width || '150px' }}
+      className={classNames('align-items-center ps-2 pe-3 py-0', className)}
+      // 161px is the width of the 'switch account' button
+      style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
       onClick={() => handleLogin('/signup')}
     >
@@ -252,7 +252,7 @@ export default function LoginButton () {
     <Button
       className='align-items-center px-3 py-1'
       id='login'
-      style={{ borderWidth: '2px', width: '150px' }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
       onClick={() => handleLogin('/login')}
     >
@@ -263,43 +263,36 @@ export default function LoginButton () {
 
 function LogoutObstacle ({ onClose }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  const { removeLocalWallets } = useWallets()
-  const { multiAuthSignout } = useAccounts()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    const next = await nextAccount()
+    // only signout if we did not find a next account
+    if (next) {
+      onClose()
+      // reload whatever page we're on to avoid any bugs
+      router.reload()
+      return
+    }
+
+    // order is important because we need to be logged in to delete push subscription on server
+    const pushSubscription = await swRegistration?.pushManager.getSubscription()
+    if (pushSubscription) {
+      await togglePushSubscription().catch(console.error)
+    }
+
+    await signOut({ callbackUrl: window.location.origin + '/' })
+  }
 
   return (
-    <div className='d-flex m-auto flex-column w-fit-content'>
+    <div className='text-center'>
       <h4 className='mb-3'>I reckon you want to logout?</h4>
-      <div className='mt-2 d-flex justify-content-between'>
-        <Button
-          className='me-2'
-          variant='grey-medium'
-          onClick={onClose}
-        >
-          cancel
-        </Button>
-        <Button
-          onClick={async () => {
-            const switchSuccess = await multiAuthSignout()
-            // only signout if multiAuth did not find a next available account
-            if (switchSuccess) {
-              onClose()
-              return
-            }
-
-            // order is important because we need to be logged in to delete push subscription on server
-            const pushSubscription = await swRegistration?.pushManager.getSubscription()
-            if (pushSubscription) {
-              await togglePushSubscription().catch(console.error)
-            }
-
-            removeLocalWallets()
-
-            await signOut({ callbackUrl: '/' })
-          }}
-        >
-          logout
-        </Button>
-      </div>
+      <ObstacleButtons
+        onClose={onClose}
+        onConfirm={handleLogout}
+        confirmText='logout'
+        confirmVariant='primary'
+      />
     </div>
   )
 }
@@ -317,7 +310,8 @@ export function LogoutDropdownItem ({ handleClose }) {
       </Dropdown.Item>
       <Dropdown.Item
         onClick={async () => {
-          showModal(onClose => (<LogoutObstacle onClose={onClose} />))
+          handleClose?.()
+          showModal(onClose => <LogoutObstacle onClose={onClose} />)
         }}
       >logout
       </Dropdown.Item>
@@ -327,7 +321,7 @@ export function LogoutDropdownItem ({ handleClose }) {
 
 function SwitchAccountButton ({ handleClose }) {
   const showModal = useShowModal()
-  const { accounts } = useAccounts()
+  const accounts = useAccounts()
 
   if (accounts.length === 0) return null
 
@@ -335,7 +329,7 @@ function SwitchAccountButton ({ handleClose }) {
     <Button
       className='align-items-center px-3 py-1'
       variant='outline-grey-darkmode'
-      style={{ borderWidth: '2px', width: '150px' }}
+      style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       onClick={() => {
         // login buttons rendered in offcanvas aren't wrapped inside <Dropdown>
         // so we manually close the offcanvas in that case by passing down handleClose here
@@ -355,7 +349,7 @@ export function LoginButtons ({ handleClose }) {
         <LoginButton />
       </Dropdown.Item>
       <Dropdown.Item className='py-1'>
-        <SignUpButton />
+        <SignUpButton className='py-1' />
       </Dropdown.Item>
       <Dropdown.Item className='py-1'>
         <SwitchAccountButton handleClose={handleClose} />
@@ -365,22 +359,10 @@ export function LoginButtons ({ handleClose }) {
 }
 
 export function AnonDropdown ({ path }) {
-  const strike = useLightning()
-
-  useEffect(() => {
-    if (!window.localStorage.getItem('striked')) {
-      const to = setTimeout(() => {
-        strike()
-        window.localStorage.setItem('striked', 'yep')
-      }, randInRange(3000, 10000))
-      return () => clearTimeout(to)
-    }
-  }, [])
-
   return (
     <div className='position-relative'>
-      <Dropdown className={styles.dropdown} align='end' autoClose>
-        <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
+      <Dropdown className={classNames(styles.dropdown, 'pe-0')} align='end' autoClose>
+        <Dropdown.Toggle className='nav-link nav-item pe-0' id='profile' variant='custom'>
           <Nav.Link eventKey='anon' as='span' className='p-0 fw-normal'>
             @anon<Badges user={{ id: USER_ID.anon }} />
           </Nav.Link>
@@ -393,46 +375,46 @@ export function AnonDropdown ({ path }) {
   )
 }
 
-export function Sorts ({ sub, prefix, className }) {
+export function Sorts ({ prefix, className }) {
   return (
     <>
       <Nav.Item className={className}>
-        <Link href={prefix + '/'} passHref legacyBehavior>
-          <Nav.Link eventKey='' className={styles.navLink}>hot</Nav.Link>
-        </Link>
+        <Nav.Link as={Link} href={prefix + '/'} eventKey='' className={`${styles.navLink} ${styles.navSort}`}>lit</Nav.Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Link href={prefix + '/recent'} passHref legacyBehavior>
-          <Nav.Link eventKey='recent' className={styles.navLink}>recent</Nav.Link>
-        </Link>
+        <Nav.Link as={Link} href={prefix + '/new'} eventKey='new' className={`${styles.navLink} ${styles.navSort}`}>new</Nav.Link>
       </Nav.Item>
-      {sub !== 'jobs' &&
-        <>
-          <Nav.Item className={className}>
-            <Link href={prefix + '/random'} passHref legacyBehavior>
-              <Nav.Link eventKey='random' className={styles.navLink}>random</Nav.Link>
-            </Link>
-          </Nav.Item>
-          <Nav.Item className={className}>
-            <Link
-              href={{
-                pathname: '/~/top/[type]/[when]',
-                query: { type: 'posts', when: 'day', sub }
-              }} as={prefix + '/top/posts/day'} passHref legacyBehavior
-            >
-              <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
-            </Link>
-          </Nav.Item>
-        </>}
+      <Nav.Item className={className}>
+        <Nav.Link as={Link} href={prefix + '/top/posts/day'} eventKey='top' className={`${styles.navLink} ${styles.navSort}`}>top</Nav.Link>
+      </Nav.Item>
     </>
   )
 }
 
 export function PostItem ({ className, prefix }) {
+  const branding = useBranding()
+  const isLurker = useIsLurker()
+  // when a custom primary color is set we let the button text follow --bs-btn-color
+  // otherwise we use the default text-black
+  const textOverride = branding?.primaryColor ? '' : 'text-black'
   return (
-    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-primary py-md-1`}>
+    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-${isLurker ? 'grey' : 'primary'} ${textOverride} py-md-1`}>
       post
     </Link>
+  )
+}
+
+export function RightCorner ({ dropNavKey, path, className = 'd-none d-md-flex' }) {
+  const { me } = useMe()
+  const isLurker = useIsLurker()
+  return (
+    <>
+      {me
+        ? <MeCorner dropNavKey={dropNavKey} me={me} className={className} />
+        : isLurker
+          ? <LurkerCorner className={className} />
+          : <AnonCorner path={path} className={className} />}
+    </>
   )
 }
 
@@ -441,7 +423,7 @@ export function MeCorner ({ dropNavKey, me, className }) {
     <div className={className}>
       <NavNotifications />
       <MeDropdown me={me} dropNavKey={dropNavKey} />
-      <NavWalletSummary className='d-inline-block' />
+      <NavWalletSummary className='d-inline-block ms-1' />
     </div>
   )
 }
@@ -450,6 +432,15 @@ export function AnonCorner ({ dropNavKey, className }) {
   return (
     <div className={className}>
       <AnonDropdown dropNavKey={dropNavKey} />
+    </div>
+  )
+}
+
+// add signup button to lurker corner
+export function LurkerCorner ({ className }) {
+  return (
+    <div className={className}>
+      <SignUpButton width='auto' />
     </div>
   )
 }

@@ -1,3 +1,5 @@
+import pay from '@/api/payIn'
+
 export async function repin ({ name, models }) {
   // get the id
   const id = name.slice('repin-'.length)
@@ -25,14 +27,15 @@ export async function repin ({ name, models }) {
   }
 
   // create a new item with matching 1) title, text, and url and 2) setting pinId
-  await models.item.create({
-    data: {
-      title: current.title,
-      text: current.text,
-      url: current.url,
-      userId: current.userId,
-      subName: current.subName,
-      pinId
-    }
+  await pay('ITEM_CREATE', {
+    title: current.title,
+    text: current.text,
+    url: current.url,
+    userId: current.userId,
+    subName: current.subName,
+    pinId
+  }, {
+    me: { id: current.userId },
+    custodialOnly: true
   })
 }

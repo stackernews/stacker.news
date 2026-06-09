@@ -1,11 +1,11 @@
 <p align="center">
 <a href="https://stacker.news">
-<img height="50" alt="Internet Communities with Bitcoin Economies" src="https://github.com/stackernews/stacker.news/assets/34140557/a8ccc5dc-c453-46dc-be74-60dd0a42ce09">
+<img height="50" alt="sn banner" src="https://github.com/stackernews/stacker.news/assets/34140557/a8ccc5dc-c453-46dc-be74-60dd0a42ce09">
 </a>
 </p>
 
 
-- Stacker News makes internet communities that pay you Bitcoin
+- Stacker News moderates forums with money
 - What You See is What We Ship (look ma, I invented an initialism)
 - 100% FOSS
 - We pay bitcoin for PRs, issues, documentation, code reviews and more
@@ -31,8 +31,37 @@ Go to [localhost:3000](http://localhost:3000).
    - ssh: `git clone git@github.com:stackernews/stacker.news.git`
    - https: `git clone https://github.com/stackernews/stacker.news.git`
 - Install [docker](https://docs.docker.com/compose/install/)
+    - If you're running MacOS or Windows, I ***highly recommend***  using [OrbStack](https://orbstack.dev/) instead of Docker Desktop
 - Please make sure that at least 10 GB of free space is available, otherwise you may encounter issues while setting up the development environment.
 
+<br>
+
+### GitHub Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stackernews/stacker.news)
+
+You can run Stacker News on Github Codespaces
+
+#### Setup
+
+1. Open the repository on GitHub and click the **"Code"** button
+2. Select the Codespaces tab and create a new codespace.
+   - You can also configure your codespace to run select services based on  `COMPOSE_PROFILES` as well as in a different region and machine type by clicking "..." and selecting "New with options...". Check [Modifying services](#modifying-services) for more information on `COMPOSE_PROFILES`
+3. Wait for the environment to set up (this may take several minutes the first time)
+4. Once ready, you'll see a terminal with the environment initialized
+
+#### Usage
+
+After the codespace is created, the development environment will be automatically set up and services started.
+
+Access your running application at the URL shown in the forwarded ports panel (typically `https://your-codespace-name-3000.app.github.dev`).
+
+#### Port Configuration
+
+⚠️ **Important**: For various internal services and external access to work properly, you must set forwarded ports to **Public** in the Ports tab:
+
+1. In your codespace, look for the "PORTS" tab in the bottom panel
+2. Click the lock icon to change visibility from "Private" to "Public"
 <br>
 
 ## Usage
@@ -64,51 +93,49 @@ USAGE
   $ sndev help [COMMAND]
 
 COMMANDS
-  help            show help
+  help                    show help
 
   env:
-    start         start env
-    stop          stop env
-    restart       restart env
-    status        status of env
-    logs          logs from env
-    delete        delete env
+    start                 start env
+    stop                  stop env
+    restart               restart env
+    status                status of env
+    logs                  logs from env
+    delete                delete env
 
   sn:
-    login         login as a nym
-    fund_user     fund a nym without using an LN invoice
+    login                 login as a nym
+    set_balance           set the balance of a nym
 
-  lnd:
-    fund          pay a bolt11 for funding
-    withdraw      create a bolt11 for withdrawal
-
-  cln:
-    cln_fund      pay a bolt11 for funding with CLN
-    cln_withdraw  create a bolt11 for withdrawal with CLN
+  lightning:
+    fund                   pay a bolt11 for funding
+    withdraw               create a bolt11 for withdrawal
 
   db:
-    psql          open psql on db
-    prisma        run prisma commands
+    psql                   open psql on db
+    prisma                 run prisma commands
+
+  domains:
+    domains                custom domains dev management
 
   dev:
-    pr            fetch and checkout a pr
-    lint          run linters
-    open          open container url in browser
+    pr                     fetch and checkout a pr
+    lint                   run linters
+    test                   run tests
 
   other:
-    compose         docker compose passthrough
-    sn_lndcli       lncli passthrough on sn_lnd
-    stacker_lndcli  lncli passthrough on stacker_lnd
-    stacker_clncli  lightning-cli passthrough on stacker_cln
-    stacker_litcli  litcli passthrough on litd
-
+    cli                    service cli passthrough
+    open                   open service GUI in browser
+    onion                  service onion address
+    cert                   service tls cert
+    compose                docker compose passthrough
 ```
 
 ### Modifying services
 
 #### Running specific services
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` in a `.env.local` file to one or more of `minimal,images,search,payments,wallets,email,capture`. To only run mininal necessary without things like payments in `.env.local`:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` in a `.env.local` file to one or more of `minimal,images,search,payments,wallets,email,capture,domains,domains-caddy`. To only run minimal necessary without things like payments in `.env.local`:
 
 ```.env
 COMPOSE_PROFILES=minimal
@@ -135,13 +162,42 @@ services:
 
 You can read more about [docker compose override files](https://docs.docker.com/compose/multiple-compose-files/merge/).
 
+#### Enabling semantic search
 
+Semantic search is now enabled automatically in dev when the `search` profile is active.
+
+- Ensure `search` is in `COMPOSE_PROFILES`:
+
+    ```.env
+    COMPOSE_PROFILES=...,search,...
+    ```
+- Start your environment with `./sndev start`.
+- On first boot, OpenSearch downloads and deploys the embedding model, then creates a neural-ready index. This can take a couple minutes.
+
+No manual script run or container restart is required for the default setup.
+
+If you need to manually repair or recreate semantic search resources, restart from a fresh dev volume with `./sndev delete` and then run `./sndev start`.
+
+#### Local DNS via dnsmasq
+
+To enable dnsmasq:
+
+- domains should be enabled in `COMPOSE_PROFILES`:
+
+    ```.env
+    COMPOSE_PROFILES=...,domains,...
+    ```
+
+To add/remove DNS records you can now use `./sndev domains dns`. More on this [here](#add-or-remove-dns-records-in-local).
+
+The `domains` profile enables dnsmasq and custom-domain worker jobs. The bundled Caddy HTTPS proxy is separate in `domains-caddy`, so you can keep local domain verification while omitting Caddy if an external TLS-terminating load balancer handles your dev domains.
 
 <br>
 
 # Table of Contents
 - [Getting started](#getting-started)
     - [Installation](#installation)
+        - [GitHub Codespaces](#github-codespaces)
     - [Usage](#usage)
         - [Modifying services](#modifying-services)
             - [Running specific services](#running-specific-services)
@@ -368,9 +424,11 @@ You can connect to the local database via `./sndev psql`. [psql](https://www.pos
 
 <br>
 
-## Running lncli on the local lnd nodes
+## Running cli on local lightning nodes
 
-You can run `lncli` on the local lnd nodes via `./sndev sn_lncli` and `./sndev stacker_lncli`. The node for your local SN instance is `sn_lnd` and the node serving as any external node, like a stacker's node or external wallet, is `stacker_lnd`.
+You can run `lncli` on the local lnd nodes via `./sndev cli lnd` and `./sndev cli sn_lnd`. The node for your local SN instance is `sn_lnd` and the node serving as any external node, like a stacker's node or external wallet, is `lnd`.
+
+You can run `lightning-cli` on the local cln node via `./sndev cli cln` which serves as an external node or wallet.
 
 <br>
 
@@ -433,6 +491,27 @@ To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_
 
 <br>
 
+## Custom domains
+
+### Add or remove DNS records in local
+
+A worker dedicated to verifying custom domains, checks, among other things, if a domain has the correct DNS records and values. This would normally require a real domain and access to its DNS configuration. Therefore we use dnsmasq to have local DNS, make sure you have [enabled it](#local-dns-via-dnsmasq).
+
+If you access local custom domains through the bundled Caddy proxy, keep `domains-caddy` enabled too. If you use your own TLS-terminating load balancer, it should forward `X-Forwarded-Proto: https` so dev cookies that depend on secure requests are marked `Secure`.
+
+To add a DNS record the syntax is the following:
+
+`./sndev domains dns add|remove cname|txt <name/domain> <value>`
+
+For TXT records, you can also use `""` quoted strings on `value`.
+
+To list all DNS records present in the dnsmasq config: `./sndev domains dns list`
+
+#### Access a local custom domain added via dnsmasq
+sndev will use the dnsmasq DNS server by default, but chances are that you might want to access the domain via your browser.
+
+For every edit on dnsmasq, it will give you the option to either edit the `/etc/hosts` file or use the dnsmasq DNS server which can be reached on `127.0.0.1:5353`. You can avoid getting asked to edit the `/etc/hosts` file by adding the `--no-hosts` parameter.
+
 # Internals
 
 <br>
@@ -459,7 +538,7 @@ In addition, we run other critical services the above services interact with lik
 
 To ensure stackers balances are kept sane, some wallet updates are run in [serializable transactions](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE) at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in [plpgsql](https://www.postgresql.org/docs/current/plpgsql.html) stored procedures and can be found in the `prisma/migrations` folder.
 
-*UPDATE*: Most wallet updates are now run in [read committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED) transactions. See `api/paidAction/README.md` for more information.
+*UPDATE*: Most wallet updates are now run in [read committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED) transactions. See `api/payIn/README.md` for more information.
 
 <br>
 
@@ -470,7 +549,7 @@ Open a [discussion](http://github.com/stackernews/stacker.news/discussions) or [
 
 # Responsible disclosure
 
-If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new). Our PGP key can be found [here](https://stacker.news/pgp.txt) (EBAF 75DA 7279 CB48).
+If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new). Our PGP key can be found [here](https://stacker.news/pgp.txt) (FEE1 E768 E0B3 81F5).
 
 <br>
 

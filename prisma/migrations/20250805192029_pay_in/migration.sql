@@ -1,0 +1,1972 @@
+-- CreateEnum
+CREATE TYPE "PayInType" AS ENUM ('BUY_CREDITS', 'ITEM_CREATE', 'ITEM_UPDATE', 'ZAP', 'DOWN_ZAP', 'BOOST', 'DONATE', 'POLL_VOTE', 'INVITE_GIFT', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE', 'PROXY_PAYMENT', 'REWARDS', 'WITHDRAWAL', 'AUTO_WITHDRAWAL', 'MEDIA_UPLOAD', 'DEFUNCT_TERRITORY_DAILY_PAYOUT');
+
+-- CreateEnum
+CREATE TYPE "PayInState" AS ENUM ('PENDING_INVOICE_CREATION', 'PENDING_INVOICE_WRAP', 'PENDING_WITHDRAWAL', 'PENDING', 'PENDING_HELD', 'HELD', 'PAID', 'FAILED', 'FORWARDING', 'FORWARDED', 'FAILED_FORWARD', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "PayInFailureReason" AS ENUM ('INVOICE_CREATION_FAILED', 'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_FEE', 'INVOICE_WRAPPING_FAILED_HIGH_PREDICTED_EXPIRY', 'INVOICE_WRAPPING_FAILED_UNKNOWN', 'INVOICE_FORWARDING_CLTV_DELTA_TOO_LOW', 'INVOICE_FORWARDING_FAILED', 'HELD_INVOICE_UNEXPECTED_ERROR', 'HELD_INVOICE_SETTLED_TOO_SLOW', 'WITHDRAWAL_FAILED', 'USER_CANCELLED', 'SYSTEM_CANCELLED', 'INVOICE_EXPIRED', 'EXECUTION_FAILED', 'UNKNOWN_FAILURE');
+
+-- CreateEnum
+CREATE TYPE "CustodialTokenType" AS ENUM ('CREDITS', 'SATS');
+
+-- CreateEnum
+CREATE TYPE "PayOutType" AS ENUM ('TERRITORY_REVENUE', 'REWARDS_POOL', 'ROUTING_FEE', 'ROUTING_FEE_REFUND', 'PROXY_PAYMENT', 'ZAP', 'REWARD', 'INVITE_GIFT', 'WITHDRAWAL', 'SYSTEM_REVENUE', 'BUY_CREDITS', 'INVOICE_OVERPAY_SPILLOVER', 'DEFUNCT_REFERRAL_ACT', 'DEFUNCT_DELAYED_TERRITORY_REVENUE');
+
+-- AlterTable
+ALTER TABLE "LnWith" ADD COLUMN     "payInId" INTEGER;
+
+-- AlterTable
+ALTER TABLE "WalletLog" ADD COLUMN     "payInId" INTEGER;
+
+-- AlterTable
+ALTER TABLE "Earn" ADD COLUMN     "payOutCustodialTokenId" INTEGER,
+ADD COLUMN     "typeProportion" FLOAT;
+
+-- add user for rewards if they don't exist (for dev)
+INSERT INTO users (id, name) VALUES (9513, 'rewards') ON CONFLICT DO NOTHING;
+
+UPDATE "Upload" SET "paid" = false WHERE "paid" IS NULL;
+
+-- AlterTable
+ALTER TABLE "Upload" ALTER COLUMN "paid" SET NOT NULL,
+ALTER COLUMN "paid" SET DEFAULT false;
+
+-- AlterTable
+ALTER TABLE "PollVote" ADD COLUMN     "payInId" INTEGER;
+
+-- CreateTable
+CREATE UNLOGGED TABLE "ItemPayIn" (
+    "id" SERIAL NOT NULL,
+    "itemId" INTEGER NOT NULL,
+    "payInId" INTEGER NOT NULL,
+
+    CONSTRAINT "ItemPayIn_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "SubPayIn" (
+    "id" SERIAL NOT NULL,
+    "subName" CITEXT NOT NULL,
+    "payInId" INTEGER NOT NULL,
+
+    CONSTRAINT "SubPayIn_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "PayIn" (
+    "id" SERIAL NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "mcost" BIGINT NOT NULL,
+    "payInType" "PayInType" NOT NULL,
+    "payInState" "PayInState" NOT NULL,
+    "payInFailureReason" "PayInFailureReason",
+    "payInStateChangedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "genesisId" INTEGER,
+    "successorId" INTEGER,
+    "retryCount" INTEGER NOT NULL DEFAULT 0,
+    "benefactorId" INTEGER,
+    "userId" INTEGER NOT NULL,
+
+    CONSTRAINT "PayIn_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "PayInCustodialToken" (
+    "id" SERIAL NOT NULL,
+    "payInId" INTEGER NOT NULL,
+    "mtokens" BIGINT NOT NULL,
+    "custodialTokenType" "CustodialTokenType" NOT NULL,
+    "mtokensAfter" BIGINT,
+
+    CONSTRAINT "PayInCustodialToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "PessimisticEnv" (
+    "id" SERIAL NOT NULL,
+    "payInId" INTEGER NOT NULL,
+    "args" JSONB,
+    "error" TEXT,
+    "result" JSONB,
+
+    CONSTRAINT "PessimisticEnv_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "SubPayOutCustodialToken" (
+    "id" SERIAL NOT NULL,
+    "subName" CITEXT NOT NULL,
+    "payOutCustodialTokenId" INTEGER NOT NULL,
+
+    CONSTRAINT "SubPayOutCustodialToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "PayOutCustodialToken" (
+    "id" SERIAL NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "payOutType" "PayOutType" NOT NULL,
+    "userId" INTEGER,
+    "payInId" INTEGER NOT NULL,
+    "mtokens" BIGINT NOT NULL,
+    "custodialTokenType" "CustodialTokenType" NOT NULL,
+    "mtokensAfter" BIGINT,
+
+    CONSTRAINT "PayOutCustodialToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "PayInBolt11" (
+    "id" SERIAL NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "payInId" INTEGER NOT NULL,
+    "hash" TEXT NOT NULL,
+    "preimage" TEXT,
+    "bolt11" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "confirmedAt" TIMESTAMP(3),
+    "confirmedIndex" BIGINT,
+    "cancelledAt" TIMESTAMP(3),
+    "msatsRequested" BIGINT NOT NULL,
+    "msatsReceived" BIGINT,
+    "expiryHeight" INTEGER,
+    "acceptHeight" INTEGER,
+    "userId" INTEGER NOT NULL,
+    "protocolId" INTEGER,
+
+    CONSTRAINT "PayInBolt11_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "PayOutBolt11" (
+    "id" SERIAL NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "payOutType" "PayOutType" NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "hash" TEXT,
+    "preimage" TEXT,
+    "bolt11" TEXT,
+    "msats" BIGINT NOT NULL,
+    "status" "WithdrawlStatus",
+    "protocolId" INTEGER,
+    "payInId" INTEGER NOT NULL,
+
+    CONSTRAINT "PayOutBolt11_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "PayInBolt11Lud18" (
+    "id" SERIAL NOT NULL,
+    "payInBolt11Id" INTEGER NOT NULL,
+    "name" TEXT,
+    "identifier" TEXT,
+    "email" TEXT,
+    "pubkey" TEXT,
+
+    CONSTRAINT "PayInBolt11Lud18_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "PayInBolt11NostrNote" (
+    "id" SERIAL NOT NULL,
+    "payInBolt11Id" INTEGER NOT NULL,
+    "note" JSONB NOT NULL,
+
+    CONSTRAINT "PayInBolt11NostrNote_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "PayInBolt11Comment" (
+    "id" SERIAL NOT NULL,
+    "payInBolt11Id" INTEGER NOT NULL,
+    "comment" TEXT NOT NULL,
+
+    CONSTRAINT "PayInBolt11Comment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "RefundCustodialToken" (
+    "id" SERIAL NOT NULL,
+    "payInId" INTEGER NOT NULL,
+    "mtokens" BIGINT NOT NULL,
+    "mtokensAfter" BIGINT,
+    "custodialTokenType" "CustodialTokenType" NOT NULL,
+
+    CONSTRAINT "RefundCustodialToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE UNLOGGED TABLE "UploadPayIn" (
+    "id" SERIAL NOT NULL,
+    "uploadId" INTEGER NOT NULL,
+    "payInId" INTEGER NOT NULL,
+
+    CONSTRAINT "UploadPayIn_pkey" PRIMARY KEY ("id")
+);
+
+-- do transformations to unlogged tables
+
+-- create function to determine if credits or sats based on time passed in
+CREATE OR REPLACE FUNCTION get_custodial_token_type(created_at TIMESTAMP)
+RETURNS "CustodialTokenType" AS $$
+BEGIN
+    RETURN CASE
+        WHEN created_at < '2025-01-03 00:00:00' THEN 'SATS'
+        ELSE 'CREDITS'
+    END;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_territory_revenue(created_at TIMESTAMP, msats BIGINT)
+RETURNS BIGINT AS $$
+BEGIN
+    RETURN CASE
+        WHEN created_at < '2023-12-05 00:00:00' THEN 0
+        WHEN created_at < '2024-09-19 00:00:00' THEN FLOOR(msats * 0.5)
+        ELSE FLOOR(msats * 0.7)
+    END;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- =============================================================================
+-- SECTION 1: INVITES
+-- Description: Migrate invite gifts to PayIn/PayOut system
+-- Estimated rows: SELECT COUNT(*) FROM users WHERE "inviteId" IS NOT NULL
+-- Balance: PayIn.mcost = PayInCustodialToken.mtokens = PayOutCustodialToken.mtokens
+-- =============================================================================
+
+CREATE TEMP TABLE invite AS
+SELECT users.id AS invited_user_id, users.created_at AS "invitedAt", "Invite".*
+FROM users
+JOIN "Invite" ON "Invite"."id" = "users"."inviteId"
+WHERE users."inviteId" IS NOT NULL;
+
+CREATE INDEX invite_id_idx ON invite (id);
+ANALYZE invite;
+
+CREATE TEMP TABLE map_invite_payin (invited_user_id INTEGER, payin_id INTEGER PRIMARY KEY);
+
+-- Generate PayIn IDs and create records
+WITH invite_with_payin_ids AS (
+    SELECT
+        invite.*,
+        nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+    FROM invite
+), insert_payins AS (
+    INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+    SELECT
+        payin_id,
+        "invitedAt",                    -- created_at
+        "invitedAt",                    -- updated_at
+        gift * 1000,                    -- mcost (convert sats to msats)
+        'INVITE_GIFT',                  -- payInType
+        'PAID',                         -- payInState (invites are always paid)
+        "invitedAt",                    -- payInStateChangedAt
+        "userId"                        -- userId (inviter)
+    FROM invite_with_payin_ids
+)
+-- Store invite->payin mapping for later joins
+INSERT INTO map_invite_payin (invited_user_id, payin_id)
+SELECT invited_user_id, payin_id FROM invite_with_payin_ids;
+
+-- Step 2: Record the funding source (custodial tokens)
+-- Token type depends on invite date: SATS before 2025-01-03, CREDITS after
+INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
+SELECT map_invite_payin.payin_id, gift * 1000, get_custodial_token_type("invitedAt")
+FROM invite
+JOIN map_invite_payin ON map_invite_payin.invited_user_id = invite.invited_user_id;
+
+-- Step 3: Record the payout to invited user
+-- Creates balance: PayIn.mcost = PayInCustodialToken.mtokens = PayOutCustodialToken.mtokens
+INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+SELECT "invitedAt", "invitedAt", invite.invited_user_id, map_invite_payin.payin_id, gift * 1000, get_custodial_token_type("invitedAt"), 'INVITE_GIFT'
+FROM invite
+JOIN map_invite_payin ON map_invite_payin.invited_user_id = invite.invited_user_id;
+
+-- Cleanup: Remove temporary tables to free memory
+DROP TABLE invite;
+DROP TABLE map_invite_payin;
+
+-- =============================================================================
+-- SECTION 2: DONATIONS
+-- Description: Migrate donations to PayIn/PayOut system
+-- Note: Assumes custodial token funding, creates BUY_CREDITS for invoices
+-- =============================================================================
+
+-- for donations, we don't know the funding source exactly - it could've been a pessimistic invoice
+-- or custodial tokens, so we assume it was custodial tokens, then for those invoices we'll create a
+-- BUY_CREDITS payin
+WITH donations AS (
+    SELECT "Donation".*
+    FROM "Donation"
+), payins AS (
+    INSERT INTO "PayIn" (created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+    SELECT "created_at", "created_at", "sats" * 1000, 'DONATE', 'PAID', "created_at", "userId"
+    FROM donations
+    RETURNING "PayIn".*
+), payincustodialtokens AS (
+    INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
+    SELECT id, mcost, get_custodial_token_type("created_at")
+    FROM payins
+)
+INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+SELECT "created_at", "created_at", 9513, id, mcost, 'SATS', 'REWARDS_POOL'
+FROM payins;
+
+--------------------
+------WITHDRAWLS----
+--------------------
+
+-- Batched withdrawal migration to handle large datasets
+DO $$
+DECLARE
+    batch_size INTEGER := 50000;
+    offset_val INTEGER := 0;
+    rows_processed INTEGER;
+    batch_num INTEGER := 1;
+    max_id INTEGER;
+BEGIN
+    -- Get max withdrawal ID for progress tracking
+    SELECT COALESCE(MAX("id"), 0) INTO max_id FROM "Withdrawl";
+    RAISE NOTICE 'Pay In Migration: Processing % total withdrawals in batches of %', max_id, batch_size;
+
+    -- Create persistent temp tables for the entire withdrawal migration
+    DROP TABLE IF EXISTS withdrawal_batch;
+    DROP TABLE IF EXISTS map_withdrawal_payin_batch;
+
+    CREATE TEMP TABLE withdrawal_batch AS
+    SELECT "Withdrawl".* FROM "Withdrawl" WHERE FALSE; -- Empty template
+
+    CREATE TEMP TABLE map_withdrawal_payin_batch (
+        withdrawal_id INTEGER PRIMARY KEY,
+        payin_id INTEGER NOT NULL
+    );
+
+    LOOP
+        RAISE NOTICE 'Pay In Migration: Processing withdrawal batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+
+        -- Clear batch table
+        TRUNCATE withdrawal_batch;
+        TRUNCATE map_withdrawal_payin_batch;
+
+        -- Load next batch
+        INSERT INTO withdrawal_batch
+        SELECT "Withdrawl".*
+        FROM "Withdrawl"
+        LEFT JOIN "InvoiceForward" ON "InvoiceForward"."withdrawlId" = "Withdrawl"."id"
+        WHERE "InvoiceForward"."withdrawlId" IS NULL
+          AND "Withdrawl"."id" > offset_val
+        ORDER BY "Withdrawl"."id"
+        LIMIT batch_size;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        EXIT WHEN rows_processed = 0;
+
+        -- Create indexes for this batch
+        DROP INDEX IF EXISTS withdrawal_batch_id_idx;
+        CREATE UNIQUE INDEX withdrawal_batch_id_idx ON withdrawal_batch (id);
+        ANALYZE withdrawal_batch;
+
+        -- Process PayIn records for this batch
+        WITH withdrawal_payin_prospect AS (
+            SELECT withdrawal_batch.*, nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+            FROM withdrawal_batch
+        ), insert_payin AS (
+            INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+            SELECT payin_id, "created_at", "updated_at", "msatsPaying" + "msatsFeePaying",
+                CASE WHEN "autoWithdraw" THEN 'AUTO_WITHDRAWAL' ELSE 'WITHDRAWAL' END::"PayInType",
+                CASE WHEN "status" = 'CONFIRMED' THEN 'PAID' WHEN "status" IS NULL THEN 'PENDING_WITHDRAWAL' ELSE 'FAILED' END::"PayInState",
+                "updated_at", "userId"
+            FROM withdrawal_payin_prospect
+            RETURNING *
+        )
+        INSERT INTO map_withdrawal_payin_batch (withdrawal_id, payin_id)
+        SELECT id, payin_id FROM withdrawal_payin_prospect;
+
+        -- Insert PayInCustodialToken records for this batch
+        INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
+        SELECT map_withdrawal_payin_batch.payin_id, "msatsPaying" + "msatsFeePaying", 'SATS'
+        FROM withdrawal_batch
+        JOIN map_withdrawal_payin_batch ON map_withdrawal_payin_batch.withdrawal_id = withdrawal_batch.id;
+
+        -- Insert PayOutBolt11 records for this batch
+        INSERT INTO "PayOutBolt11" (created_at, updated_at, "payOutType", "hash", "preimage", "bolt11", "msats", "status", "userId", "payInId", "protocolId")
+        SELECT "created_at", "updated_at", 'WITHDRAWAL', "hash", "preimage", "bolt11", COALESCE("msatsPaid", "msatsPaying"), "status", "userId", map_withdrawal_payin_batch.payin_id, "protocolId"
+        FROM withdrawal_batch
+        JOIN map_withdrawal_payin_batch ON map_withdrawal_payin_batch.withdrawal_id = withdrawal_batch.id;
+
+        -- Insert routing fee PayOutCustodialToken records for this batch
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT "created_at", "updated_at", NULL, map_withdrawal_payin_batch.payin_id, COALESCE("msatsFeePaid", "msatsFeePaying"), 'SATS', 'ROUTING_FEE'
+        FROM withdrawal_batch
+        JOIN map_withdrawal_payin_batch ON map_withdrawal_payin_batch.withdrawal_id = withdrawal_batch.id
+        WHERE COALESCE("msatsFeePaid", "msatsFeePaying") > 0;
+
+        -- Insert routing fee refund PayOutCustodialToken records for this batch
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT "created_at", "updated_at", "userId", map_withdrawal_payin_batch.payin_id, withdrawal_batch."msatsFeePaying" - withdrawal_batch."msatsFeePaid", 'SATS', 'ROUTING_FEE_REFUND'
+        FROM withdrawal_batch
+        JOIN map_withdrawal_payin_batch ON map_withdrawal_payin_batch.withdrawal_id = withdrawal_batch.id
+        WHERE "status" = 'CONFIRMED' AND "msatsFeePaid" < "msatsFeePaying";
+
+        -- Update offset for next batch
+        SELECT MAX(id) INTO offset_val FROM withdrawal_batch;
+        batch_num := batch_num + 1;
+    END LOOP;
+
+    -- Clean up
+    DROP TABLE IF EXISTS withdrawal_batch;
+    DROP TABLE IF EXISTS map_withdrawal_payin_batch;
+
+    RAISE NOTICE 'Pay In Migration: Completed withdrawal migration in % batches', batch_num - 1;
+END $$;
+
+--------------------
+------SUBACTS-------
+--------------------
+    -- for all subacts, create a payin, payincustodialtoken, and payoutcustodialtoken
+    -- like with donations, we don't know the funding source exactly - it could've been a pessimistic invoice
+    -- or custodial tokens, so we assume it was custodial tokens, then for those invoices we'll create a
+    -- BUY_CREDITS payin
+
+CREATE TEMP TABLE subact_billing AS
+SELECT "SubAct".*, "Sub"."created_at" AS "subCreatedAt"
+FROM "SubAct"
+JOIN "Sub" ON "Sub"."name" = "SubAct"."subName"
+WHERE "SubAct"."type" = 'BILLING';
+
+CREATE UNIQUE INDEX subact_billing_id_idx ON subact_billing (id);
+ANALYZE subact_billing;
+
+CREATE TEMP TABLE map_subact_billing_payin (subact_id INTEGER PRIMARY KEY, payin_id INTEGER NOT NULL);
+
+WITH subact_billing_payin_prospect AS (
+    SELECT subact_billing.*, nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+    FROM subact_billing
+), insert_payin AS (
+    INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+    SELECT payin_id, "created_at", "updated_at", "msats",
+        CASE WHEN "created_at" > "subCreatedAt" THEN 'TERRITORY_BILLING' ELSE 'TERRITORY_CREATE' END::"PayInType",
+        'PAID', "created_at", "userId"
+    FROM subact_billing_payin_prospect
+)
+INSERT INTO map_subact_billing_payin (subact_id, payin_id)
+SELECT id, payin_id FROM subact_billing_payin_prospect;
+
+INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
+SELECT map_subact_billing_payin.payin_id, "msats", get_custodial_token_type("created_at")
+FROM subact_billing
+JOIN map_subact_billing_payin ON map_subact_billing_payin.subact_id = subact_billing.id;
+
+INSERT INTO "SubPayIn" ("payInId", "subName")
+SELECT map_subact_billing_payin.payin_id, "subName"
+FROM subact_billing
+JOIN map_subact_billing_payin ON map_subact_billing_payin.subact_id = subact_billing.id;
+
+INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+SELECT "created_at", "updated_at", 4502, map_subact_billing_payin.payin_id, "msats", 'SATS', 'SYSTEM_REVENUE'
+FROM subact_billing
+JOIN map_subact_billing_payin ON map_subact_billing_payin.subact_id = subact_billing.id;
+
+DROP TABLE subact_billing;
+DROP TABLE map_subact_billing_payin;
+
+CREATE TEMP TABLE subact_revenue AS
+SELECT "SubAct".*, "Sub"."created_at" AS "subCreatedAt"
+FROM "SubAct"
+JOIN "Sub" ON "Sub"."name" = "SubAct"."subName"
+WHERE "SubAct"."type" = 'REVENUE';
+
+CREATE UNIQUE INDEX subact_revenue_id_idx ON subact_revenue (id);
+ANALYZE subact_revenue;
+
+CREATE TEMP TABLE map_subact_revenue_payin (subact_id INTEGER PRIMARY KEY, payin_id INTEGER NOT NULL);
+
+WITH subact_revenue_payin_prospect AS (
+    SELECT subact_revenue.*, nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+    FROM subact_revenue
+), insert_payin AS (
+    INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+    SELECT payin_id, "created_at", "updated_at", "msats", 'DEFUNCT_TERRITORY_DAILY_PAYOUT', 'PAID', "created_at", 9513
+    FROM subact_revenue_payin_prospect
+)
+INSERT INTO map_subact_revenue_payin (subact_id, payin_id)
+SELECT id, payin_id FROM subact_revenue_payin_prospect;
+
+INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
+SELECT map_subact_revenue_payin.payin_id, "msats", 'SATS'
+FROM subact_revenue
+JOIN map_subact_revenue_payin ON map_subact_revenue_payin.subact_id = subact_revenue.id;
+
+CREATE TEMP TABLE map_subact_revenue_payoutcustodialtoken (subact_id INTEGER PRIMARY KEY, payoutcustodialtoken_id INTEGER NOT NULL);
+
+WITH subact_revenue_payoutcustodialtoken_prospect AS (
+    SELECT subact_revenue.*, map_payin.payin_id, nextval(pg_get_serial_sequence('"PayOutCustodialToken"', 'id')) AS payoutcustodialtoken_id
+    FROM subact_revenue
+    JOIN map_subact_revenue_payin map_payin ON map_payin.subact_id = subact_revenue.id
+), insert_payoutcustodialtoken AS (
+    INSERT INTO "PayOutCustodialToken" (id, created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+    SELECT payoutcustodialtoken_id, "created_at", "updated_at", "userId", payin_id, "msats", 'SATS', 'TERRITORY_REVENUE'
+    FROM subact_revenue_payoutcustodialtoken_prospect
+)
+INSERT INTO map_subact_revenue_payoutcustodialtoken (subact_id, payoutcustodialtoken_id)
+SELECT id, payoutcustodialtoken_id FROM subact_revenue_payoutcustodialtoken_prospect;
+
+INSERT INTO "SubPayOutCustodialToken" ("payOutCustodialTokenId", "subName")
+SELECT payoutcustodialtoken_id, "subName"
+FROM subact_revenue
+JOIN map_subact_revenue_payoutcustodialtoken ON map_subact_revenue_payoutcustodialtoken.subact_id = subact_revenue.id;
+
+DROP TABLE subact_revenue;
+DROP TABLE map_subact_revenue_payin;
+DROP TABLE map_subact_revenue_payoutcustodialtoken;
+
+--------------------
+------EARN----------
+--------------------
+
+--- this is tricky ... we'll need to group by day and user
+--- each day will be its own payin, and each user for that day will be its own payoutcustodialtoken
+--- which must be associated with the earn rows
+
+CREATE TEMP TABLE earn_day AS
+SELECT sum("msats") AS "msats", "created_at"
+FROM "Earn"
+GROUP BY "Earn"."created_at";
+
+CREATE UNIQUE INDEX earn_day_id_idx ON earn_day ("created_at");
+ANALYZE earn_day;
+
+CREATE TEMP TABLE map_earn_day_payin (created_at TIMESTAMP PRIMARY KEY, payin_id INTEGER NOT NULL);
+
+WITH earn_day_payin_prospect AS (
+    SELECT earn_day.*, nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+    FROM earn_day
+), insert_payin AS (
+    INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+    SELECT payin_id, "created_at", "created_at", "msats", 'REWARDS', 'PAID', "created_at", 9513
+    FROM earn_day_payin_prospect
+)
+INSERT INTO map_earn_day_payin (created_at, payin_id)
+SELECT "created_at", payin_id FROM earn_day_payin_prospect;
+
+INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
+SELECT map_earn_day_payin.payin_id, "msats", 'SATS'
+FROM earn_day
+JOIN map_earn_day_payin ON map_earn_day_payin.created_at = earn_day.created_at;
+
+WITH payouts AS (
+    INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+    SELECT "Earn"."created_at", "Earn"."created_at", "Earn"."userId", map_earn_day_payin.payin_id, SUM("Earn"."msats"), 'SATS', 'REWARD'
+    FROM earn_day
+    JOIN map_earn_day_payin ON map_earn_day_payin.created_at = earn_day.created_at
+    JOIN "Earn" ON "Earn"."created_at" = earn_day.created_at
+    GROUP BY map_earn_day_payin.payin_id, "Earn"."created_at", "Earn"."userId"
+    RETURNING id, "created_at", "userId"
+)
+UPDATE "Earn" SET "payOutCustodialTokenId" = payouts.id
+FROM payouts
+WHERE "Earn"."created_at" = payouts."created_at" AND "Earn"."userId" = payouts."userId";
+
+DROP TABLE earn_day;
+DROP TABLE map_earn_day_payin;
+
+--------------------------
+-----INVOICE: RECEIVE-----
+--------------------------
+
+-- Batched invoice migration to handle large datasets
+DO $$
+DECLARE
+    batch_size INTEGER := 30000;
+    offset_val INTEGER := 0;
+    rows_processed INTEGER;
+    batch_num INTEGER := 1;
+    max_id INTEGER;
+BEGIN
+    -- Get max invoice ID for progress tracking
+    SELECT COALESCE(MAX("Invoice"."id"), 0) INTO max_id
+    FROM "Invoice"
+    JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice"."id"
+    WHERE "Invoice"."actionType" = 'RECEIVE' AND "Invoice"."actionState" IN ('PAID', 'FAILED', 'RETRYING');
+
+    RAISE NOTICE 'Pay In Migration: Processing % total receive invoices in batches of %', max_id, batch_size;
+
+    -- Create persistent temp tables for the entire invoice migration
+    DROP TABLE IF EXISTS invoice_batch;
+    DROP TABLE IF EXISTS map_invoice_payin_batch;
+
+    CREATE TEMP TABLE invoice_batch AS
+    SELECT "Invoice".*, "InvoiceForward"."expiryHeight", "InvoiceForward"."acceptHeight",
+           "InvoiceForward"."bolt11" AS "forwardBolt11", "InvoiceForward"."withdrawlId" AS "withdrawalId"
+    FROM "Invoice"
+    JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice"."id"
+    WHERE FALSE; -- Empty template
+
+    CREATE TEMP TABLE map_invoice_payin_batch (
+        payin_id INTEGER PRIMARY KEY,
+        invoice_id INTEGER NOT NULL
+    );
+
+    LOOP
+        RAISE NOTICE 'Pay In Migration: Processing invoice batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+
+        -- Clear batch tables
+        TRUNCATE invoice_batch;
+        TRUNCATE map_invoice_payin_batch;
+
+        -- Load next batch
+        INSERT INTO invoice_batch
+        SELECT "Invoice".*, "InvoiceForward"."expiryHeight", "InvoiceForward"."acceptHeight",
+               "InvoiceForward"."bolt11" AS "forwardBolt11", "InvoiceForward"."withdrawlId" AS "withdrawalId"
+        FROM "Invoice"
+        JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice"."id"
+        WHERE "Invoice"."actionType" = 'RECEIVE'
+          AND "Invoice"."actionState" IN ('PAID', 'FAILED', 'RETRYING')
+          AND "Invoice"."id" > offset_val
+        ORDER BY "Invoice"."id"
+        LIMIT batch_size;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        EXIT WHEN rows_processed = 0;
+
+        -- Create indexes for this batch
+        DROP INDEX IF EXISTS invoice_batch_id_idx;
+        DROP INDEX IF EXISTS invoice_batch_hash_idx;
+        DROP INDEX IF EXISTS invoice_batch_withdrawalId_idx;
+        CREATE UNIQUE INDEX invoice_batch_id_idx ON invoice_batch (id);
+        CREATE UNIQUE INDEX invoice_batch_hash_idx ON invoice_batch (hash);
+        CREATE INDEX invoice_batch_withdrawalId_idx ON invoice_batch ("withdrawalId");
+        ANALYZE invoice_batch;
+
+        -- Process PayIn records for this batch
+        WITH invoice_payin_prospect AS (
+            SELECT invoice_batch.*, nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+            FROM invoice_batch
+        ), insert_payin AS (
+            INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+            SELECT payin_id, "created_at", "updated_at", "msatsRequested", 'PROXY_PAYMENT',
+             CASE WHEN "actionState" = 'PAID' THEN 'PAID' ELSE 'FAILED' END::"PayInState", "updated_at", "userId"
+            FROM invoice_payin_prospect
+            RETURNING *
+        )
+        INSERT INTO map_invoice_payin_batch (invoice_id, payin_id)
+        SELECT id, payin_id FROM invoice_payin_prospect;
+
+        -- Insert PayInBolt11 records for this batch
+        INSERT INTO "PayInBolt11" (created_at, updated_at, "payInId", "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId", "expiryHeight", "acceptHeight")
+        SELECT "created_at", "updated_at", map_invoice_payin_batch.payin_id, "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId", "expiryHeight", "acceptHeight"
+        FROM invoice_batch
+        JOIN map_invoice_payin_batch ON map_invoice_payin_batch.invoice_id = invoice_batch.id;
+
+        -- Insert bolt11 comments, lud18 data, and nostr notes for this batch
+        WITH bolt11s AS (
+            SELECT invoice_batch.comment, invoice_batch."lud18Data", invoice_batch."desc",
+                   map_invoice_payin_batch.payin_id, "PayInBolt11"."id" AS "payInBolt11Id"
+            FROM invoice_batch
+            JOIN map_invoice_payin_batch ON map_invoice_payin_batch.invoice_id = invoice_batch.id
+            JOIN "PayInBolt11" ON "PayInBolt11"."payInId" = map_invoice_payin_batch.payin_id
+        ), insert_bolt11_comments AS (
+            INSERT INTO "PayInBolt11Comment" ("payInBolt11Id", "comment")
+            SELECT "payInBolt11Id", comment
+            FROM bolt11s
+            WHERE comment IS NOT NULL
+        ), insert_bolt11_lud18s AS (
+            INSERT INTO "PayInBolt11Lud18" ("payInBolt11Id", "name", "identifier", "email", "pubkey")
+            SELECT "payInBolt11Id", "lud18Data"->>'name', "lud18Data"->>'identifier', "lud18Data"->>'email', "lud18Data"->>'pubkey'
+            FROM bolt11s
+            WHERE "lud18Data" IS NOT NULL
+        )
+        INSERT INTO "PayInBolt11NostrNote" ("payInBolt11Id", "note")
+        SELECT "payInBolt11Id", "desc"::jsonb
+        FROM bolt11s
+        WHERE "desc" IS JSON;
+
+        -- Insert PayOutBolt11 records for this batch
+        INSERT INTO "PayOutBolt11" (created_at, updated_at, "payOutType", "hash", "preimage",
+            "bolt11", "msats", "status", "userId", "payInId", "protocolId")
+        SELECT invoice_batch."created_at", invoice_batch."updated_at", 'PROXY_PAYMENT', invoice_batch."hash", "Withdrawl"."preimage",
+            "Withdrawl"."bolt11", "Withdrawl"."msatsPaying", "Withdrawl"."status", "Withdrawl"."userId", map_invoice_payin_batch.payin_id, "Withdrawl"."protocolId"
+        FROM invoice_batch
+        JOIN map_invoice_payin_batch ON map_invoice_payin_batch.invoice_id = invoice_batch.id
+        JOIN "Withdrawl" ON "Withdrawl"."id" = invoice_batch."withdrawalId"
+        WHERE invoice_batch."withdrawalId" IS NOT NULL;
+
+        -- Insert routing fee PayOutCustodialToken records for this batch
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT "Withdrawl"."created_at", "Withdrawl"."updated_at", NULL, map_invoice_payin_batch.payin_id,
+            COALESCE("Withdrawl"."msatsFeePaid", "Withdrawl"."msatsFeePaying"), 'SATS', 'ROUTING_FEE'
+        FROM invoice_batch
+        JOIN map_invoice_payin_batch ON map_invoice_payin_batch.invoice_id = invoice_batch.id
+        JOIN "Withdrawl" ON "Withdrawl"."id" = invoice_batch."withdrawalId"
+        WHERE invoice_batch."withdrawalId" IS NOT NULL AND COALESCE("Withdrawl"."msatsFeePaid", "Withdrawl"."msatsFeePaying") > 0;
+
+        -- Insert rewards pool PayOutCustodialToken records for withdrawals
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT invoice_batch."created_at", invoice_batch."updated_at", 9513, map_invoice_payin_batch.payin_id,
+            invoice_batch."msatsRequested" - COALESCE("Withdrawl"."msatsFeePaid", "Withdrawl"."msatsFeePaying") - COALESCE("Withdrawl"."msatsPaid", "Withdrawl"."msatsPaying"),
+            'SATS', 'REWARDS_POOL'
+        FROM invoice_batch
+        JOIN map_invoice_payin_batch ON map_invoice_payin_batch.invoice_id = invoice_batch.id
+        JOIN "Withdrawl" ON "Withdrawl"."id" = invoice_batch."withdrawalId"
+        WHERE invoice_batch."withdrawalId" IS NOT NULL;
+
+        -- Insert rewards pool PayOutCustodialToken records for non-withdrawals
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT invoice_batch."created_at", invoice_batch."updated_at", 9513, map_invoice_payin_batch.payin_id, invoice_batch."msatsRequested", 'SATS', 'REWARDS_POOL'
+        FROM invoice_batch
+        JOIN map_invoice_payin_batch ON map_invoice_payin_batch.invoice_id = invoice_batch.id
+        WHERE invoice_batch."withdrawalId" IS NULL;
+
+        -- Update offset for next batch
+        SELECT MAX(id) INTO offset_val FROM invoice_batch;
+        batch_num := batch_num + 1;
+    END LOOP;
+
+    -- Clean up
+    DROP TABLE IF EXISTS invoice_batch;
+    DROP TABLE IF EXISTS map_invoice_payin_batch;
+
+    RAISE NOTICE 'Pay In Migration: Completed invoice migration in % batches', batch_num - 1;
+END $$;
+
+--------------------------
+---INVOICE: Pessimistic---
+--------------------------
+
+-- Batched pessimistic invoice migration to handle large datasets
+DO $$
+DECLARE
+    batch_size INTEGER := 30000;
+    offset_val INTEGER := 0;
+    rows_processed INTEGER;
+    batch_num INTEGER := 1;
+    max_id INTEGER;
+BEGIN
+    -- Get max invoice ID for progress tracking
+    SELECT COALESCE(MAX("Invoice"."id"), 0) INTO max_id
+    FROM "Invoice"
+    LEFT JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice"."id"
+    WHERE "InvoiceForward".id IS NULL AND (
+        "Invoice"."actionType" IS NULL OR
+        "Invoice"."actionType" IN ('BUY_CREDITS', 'DONATE', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE')
+    );
+
+    RAISE NOTICE 'Pay In Migration: Processing % total pessimistic invoices in batches of %', max_id, batch_size;
+
+    -- Create persistent temp tables for the entire invoice migration
+    DROP TABLE IF EXISTS invoice_pessimistic_batch;
+    DROP TABLE IF EXISTS map_invoice_pessimistic_payin_batch;
+
+    CREATE TEMP TABLE invoice_pessimistic_batch AS
+    SELECT "Invoice".*
+    FROM "Invoice"
+    WHERE FALSE; -- Empty template
+
+    CREATE TEMP TABLE map_invoice_pessimistic_payin_batch (
+        payin_id INTEGER PRIMARY KEY,
+        invoice_pessimistic_id INTEGER NOT NULL
+    );
+
+    LOOP
+        RAISE NOTICE 'Pay In Migration: Processing pessimistic invoice batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+
+        -- Clear batch tables
+        TRUNCATE invoice_pessimistic_batch;
+        TRUNCATE map_invoice_pessimistic_payin_batch;
+
+        -- Load next batch
+        INSERT INTO invoice_pessimistic_batch
+        SELECT "Invoice".*
+        FROM "Invoice"
+        LEFT JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice"."id"
+        WHERE "InvoiceForward".id IS NULL
+          AND ("Invoice"."actionType" IS NULL OR "Invoice"."actionType" IN ('BUY_CREDITS', 'DONATE', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE'))
+          AND "Invoice"."id" > offset_val
+        ORDER BY "Invoice"."id"
+        LIMIT batch_size;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        EXIT WHEN rows_processed = 0;
+
+        -- Create indexes for this batch
+        DROP INDEX IF EXISTS invoice_pessimistic_batch_id_idx;
+        DROP INDEX IF EXISTS invoice_pessimistic_batch_hash_idx;
+        CREATE UNIQUE INDEX invoice_pessimistic_batch_id_idx ON invoice_pessimistic_batch (id);
+        CREATE UNIQUE INDEX invoice_pessimistic_batch_hash_idx ON invoice_pessimistic_batch (hash);
+        ANALYZE invoice_pessimistic_batch;
+
+        -- Process PayIn records for this batch
+        WITH invoice_pessimistic_payin_prospect AS (
+            SELECT invoice_pessimistic_batch.*, nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+            FROM invoice_pessimistic_batch
+        ), insert_payin AS (
+            INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+            SELECT payin_id, "created_at", "updated_at", COALESCE("msatsReceived", "msatsRequested"), 'BUY_CREDITS',
+                CASE WHEN "confirmedAt" IS NOT NULL THEN 'PAID' ELSE 'FAILED' END::"PayInState",
+                "updated_at", "userId"
+            FROM invoice_pessimistic_payin_prospect
+        )
+        INSERT INTO map_invoice_pessimistic_payin_batch (invoice_pessimistic_id, payin_id)
+        SELECT id, payin_id FROM invoice_pessimistic_payin_prospect;
+
+        -- Insert PayInBolt11 records for this batch
+        INSERT INTO "PayInBolt11" (created_at, updated_at, "payInId", "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId")
+        SELECT "created_at", "updated_at", map_invoice_pessimistic_payin_batch.payin_id, "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId"
+        FROM invoice_pessimistic_batch
+        JOIN map_invoice_pessimistic_payin_batch ON map_invoice_pessimistic_payin_batch.invoice_pessimistic_id = invoice_pessimistic_batch.id;
+
+        -- Insert PayOutCustodialToken records for this batch
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT "created_at", "updated_at", "userId", map_invoice_pessimistic_payin_batch.payin_id,
+            COALESCE(invoice_pessimistic_batch."msatsReceived", invoice_pessimistic_batch."msatsRequested"),
+            get_custodial_token_type(invoice_pessimistic_batch."created_at"), 'BUY_CREDITS'
+        FROM invoice_pessimistic_batch
+        JOIN map_invoice_pessimistic_payin_batch ON map_invoice_pessimistic_payin_batch.invoice_pessimistic_id = invoice_pessimistic_batch.id;
+
+        -- Update offset for next batch
+        SELECT MAX(id) INTO offset_val FROM invoice_pessimistic_batch;
+        batch_num := batch_num + 1;
+    END LOOP;
+
+    -- Clean up
+    DROP TABLE IF EXISTS invoice_pessimistic_batch;
+    DROP TABLE IF EXISTS map_invoice_pessimistic_payin_batch;
+
+    RAISE NOTICE 'Pay In Migration: Completed pessimistic invoice migration in % batches', batch_num - 1;
+END $$;
+
+--------------------------
+-------Item Create--------
+--------------------------
+
+-- Batched item create migration to handle large datasets
+DO $$
+DECLARE
+    batch_size INTEGER := 30000;
+    offset_val INTEGER := 0;
+    rows_processed INTEGER;
+    batch_num INTEGER := 1;
+    max_id INTEGER;
+BEGIN
+    -- Get max item ID for progress tracking
+    SELECT COALESCE(MAX("id"), 0) INTO max_id FROM "Item";
+    RAISE NOTICE 'Pay In Migration: Processing % total items in batches of %', max_id, batch_size;
+
+    -- Create persistent temp tables for the entire item create migration
+    DROP TABLE IF EXISTS item_create_batch;
+    DROP TABLE IF EXISTS map_item_create_payin_batch;
+
+    CREATE TEMP TABLE item_create_batch (
+        id INTEGER PRIMARY KEY,
+        "subName" TEXT,
+        territory_owner_id INTEGER,
+        "userId" INTEGER,
+        created_at TIMESTAMP,
+        "invoiceId" INTEGER,
+        hash TEXT,
+        preimage TEXT,
+        bolt11 TEXT,
+        "expiresAt" TIMESTAMP,
+        "confirmedAt" TIMESTAMP,
+        "confirmedIndex" INTEGER,
+        "cancelledAt" TIMESTAMP,
+        "msatsRequested" BIGINT,
+        "msatsReceived" BIGINT,
+        "actionState" TEXT,
+        invoice_created_at TIMESTAMP,
+        invoice_updated_at TIMESTAMP,
+        fee_msats BIGINT,
+        boost_msats BIGINT,
+        boost_referrer_id INTEGER,
+        boost_referral_msats BIGINT,
+        upload_ids INTEGER[]
+    );
+
+    CREATE TEMP TABLE map_item_create_payin_batch (
+        item_id INTEGER PRIMARY KEY,
+        payin_id INTEGER NOT NULL
+    );
+
+    CREATE TEMP TABLE boost_beneficiary_batch (
+        item_id INTEGER,
+        payin_id INTEGER NOT NULL
+    );
+
+    LOOP
+        RAISE NOTICE 'Pay In Migration: Processing item create batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+
+        -- Clear batch tables
+        TRUNCATE item_create_batch;
+        TRUNCATE map_item_create_payin_batch;
+
+        -- Load next batch
+        INSERT INTO item_create_batch
+        SELECT "Item".id, COALESCE("Item"."subName", "root_item"."subName") AS "subName", COALESCE(towner.owner_id, s."userId") AS territory_owner_id, "Item"."userId", "Item".created_at, "Item"."invoiceId",
+               "Invoice"."hash", "Invoice"."preimage", "Invoice"."bolt11", "Invoice"."expiresAt",
+               "Invoice"."confirmedAt", "Invoice"."confirmedIndex", "Invoice"."cancelledAt",
+               "Invoice"."msatsRequested", "Invoice"."msatsReceived", "Invoice"."actionState",
+               "Invoice"."created_at" AS invoice_created_at, "Invoice"."updated_at" AS invoice_updated_at,
+               COALESCE(item_fee_acts.msats, 0) AS fee_msats,
+               COALESCE(item_boost_acts.msats, 0) AS boost_msats,
+               item_boost_acts.referrer_id AS boost_referrer_id,
+               COALESCE(item_boost_acts.referral_msats, 0) AS boost_referral_msats,
+               item_uploads.upload_ids
+        FROM "Item"
+        LEFT JOIN "Invoice" ON "Invoice".id = "Item"."invoiceId" AND "Invoice"."actionType" = 'ITEM_CREATE'
+        LEFT JOIN LATERAL (
+            SELECT sum("msats") AS msats
+            FROM "ItemAct"
+            WHERE "ItemAct"."itemId" = "Item"."id"
+              AND "ItemAct"."act" = 'FEE'
+              AND "ItemAct"."userId" = "Item"."userId"
+            GROUP BY "ItemAct"."itemId"
+        ) AS item_fee_acts ON TRUE
+        LEFT JOIN "Item" root_item ON "Item"."rootId" = "root_item"."id"
+        LEFT JOIN LATERAL (
+            SELECT tt."newUserId" AS owner_id
+            FROM "TerritoryTransfer" tt
+            WHERE tt."subName" = COALESCE("Item"."subName", "root_item"."subName")
+                AND tt."created_at" <= "Item"."created_at"
+            ORDER BY tt."created_at" DESC
+            LIMIT 1
+        ) towner ON TRUE
+        LEFT JOIN "Sub" s ON s."name" = COALESCE("Item"."subName", "root_item"."subName")
+        LEFT JOIN LATERAL (
+            SELECT sum("ItemAct"."msats") AS msats, sum("ReferralAct"."msats") AS referral_msats, MAX("ReferralAct"."referrerId") AS referrer_id
+            FROM "ItemAct"
+            LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct"."id"
+            WHERE "ItemAct"."itemId" = "Item"."id"
+              AND "ItemAct"."act" = 'BOOST'
+              AND "ItemAct"."userId" = "Item"."userId"
+              AND "Item".created_at = "ItemAct".created_at
+            GROUP BY "ItemAct"."itemId"
+        ) AS item_boost_acts ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT array_agg("uploadId") AS upload_ids
+            FROM "ItemUpload"
+            WHERE "ItemUpload"."itemId" = "Item"."id"
+            GROUP BY "ItemUpload"."itemId"
+        ) AS item_uploads ON TRUE
+        WHERE "Item".id > offset_val
+        ORDER BY "Item".id
+        LIMIT batch_size;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        EXIT WHEN rows_processed = 0;
+
+        -- Create indexes for this batch
+        DROP INDEX IF EXISTS item_create_batch_id_idx;
+        DROP INDEX IF EXISTS item_create_batch_hash_idx;
+        CREATE UNIQUE INDEX item_create_batch_id_idx ON item_create_batch (id);
+        CREATE UNIQUE INDEX item_create_batch_hash_idx ON item_create_batch (hash);
+        ANALYZE item_create_batch;
+
+        -- Process PayIn records for this batch
+        WITH item_create_payin_prospect AS (
+            SELECT item_create_batch.*, nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+            FROM item_create_batch
+        ), insert_payin AS (
+            INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+            SELECT payin_id,
+                   "created_at",
+                   COALESCE("confirmedAt", "invoice_updated_at", "created_at"),
+                   fee_msats,
+                   'ITEM_CREATE'::"PayInType",
+                   CASE WHEN "actionState" IS NULL OR "actionState" = 'PAID' THEN 'PAID' ELSE 'FAILED' END::"PayInState",
+                   COALESCE("confirmedAt", "invoice_updated_at", "created_at"),
+                   "userId"
+            FROM item_create_payin_prospect
+        )
+        INSERT INTO map_item_create_payin_batch (item_id, payin_id)
+        SELECT id, payin_id FROM item_create_payin_prospect;
+
+        -- Insert ItemPayIn records for this batch
+        INSERT INTO "ItemPayIn" ("payInId", "itemId")
+        SELECT map_item_create_payin_batch.payin_id, item_id
+        FROM map_item_create_payin_batch;
+
+        -- Insert PayInBolt11 records for items with invoices
+        INSERT INTO "PayInBolt11" (created_at, updated_at, "payInId", "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId")
+        SELECT "invoice_created_at", "invoice_updated_at", map_item_create_payin_batch.payin_id, "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId"
+        FROM item_create_batch
+        JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
+        WHERE "hash" IS NOT NULL;
+
+        -- Insert custodial tokens for the difference between fee and invoice amount
+        INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
+        SELECT map_item_create_payin_batch.payin_id,
+               fee_msats + boost_msats - COALESCE("msatsReceived", "msatsRequested", 0),
+               get_custodial_token_type("created_at")
+        FROM item_create_batch
+        JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
+        WHERE fee_msats + boost_msats - COALESCE("msatsReceived", "msatsRequested", 0) > 0;
+
+        -- Insert upload associations
+        INSERT INTO "UploadPayIn" ("payInId", "uploadId")
+        SELECT map_item_create_payin_batch.payin_id, unnest(upload_ids)
+        FROM item_create_batch
+        JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
+        WHERE upload_ids IS NOT NULL;
+
+        -- Insert payout to territory revenue and rewards pool for fees
+        WITH territory_revenue AS (
+            INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+            SELECT "created_at", "created_at", territory_owner_id, map_item_create_payin_batch.payin_id, get_territory_revenue("created_at", fee_msats), 'SATS', 'DEFUNCT_DELAYED_TERRITORY_REVENUE'
+            FROM item_create_batch
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
+            WHERE territory_owner_id IS NOT NULL
+            RETURNING "payInId" as payin_id, mtokens as territory_revenue_msats, id as territory_revenue_id
+        ), sub_payout_custodial_token AS (
+            INSERT INTO "SubPayOutCustodialToken" ("subName", "payOutCustodialTokenId")
+            SELECT item_create_batch."subName", territory_revenue.territory_revenue_id
+            FROM territory_revenue
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.payin_id = territory_revenue.payin_id
+            JOIN item_create_batch ON item_create_batch.id = map_item_create_payin_batch.item_id
+        )
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT "created_at", "created_at", 9513, map_item_create_payin_batch.payin_id, fee_msats - COALESCE(territory_revenue.territory_revenue_msats, 0), 'SATS', 'REWARDS_POOL'
+        FROM item_create_batch
+        JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
+        LEFT JOIN territory_revenue ON territory_revenue.payin_id = map_item_create_payin_batch.payin_id
+        WHERE fee_msats - COALESCE(territory_revenue.territory_revenue_msats, 0) > 0;
+
+        -- Insert boost beneficiary
+        WITH boost_beneficiary AS (
+            INSERT INTO "PayIn" (created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId", "benefactorId")
+            SELECT "created_at", "created_at", boost_msats, 'BOOST',
+                    CASE WHEN "actionState" IS NULL OR "actionState" = 'PAID' THEN 'PAID' ELSE 'FAILED' END::"PayInState",
+                "created_at", "userId", map_item_create_payin_batch.payin_id
+            FROM item_create_batch
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.item_id = item_create_batch.id
+            WHERE boost_msats > 0
+            RETURNING "PayIn"."id" as id, "PayIn".created_at as created_at, "PayIn".mcost as boost_msats, "PayIn"."benefactorId" as benefactor_id
+        ),
+        boost_item_payin AS (
+            INSERT INTO "ItemPayIn" ("payInId", "itemId")
+            SELECT boost_beneficiary.id, map_item_create_payin_batch.item_id
+            FROM boost_beneficiary
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.payin_id = boost_beneficiary.benefactor_id
+        ),
+        boost_referral AS (
+            INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+            SELECT boost_beneficiary.created_at, boost_beneficiary.created_at, boost_referrer_id, boost_beneficiary.id, boost_referral_msats, 'SATS', 'DEFUNCT_REFERRAL_ACT'
+            FROM boost_beneficiary
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.payin_id = boost_beneficiary.benefactor_id
+            JOIN item_create_batch ON item_create_batch.id = map_item_create_payin_batch.item_id
+            WHERE boost_referral_msats > 0
+            RETURNING "payInId" as id, mtokens as boost_referral_msats
+        ), territory_revenue AS (
+            INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+            SELECT boost_beneficiary.created_at, boost_beneficiary.created_at, item_create_batch.territory_owner_id, boost_beneficiary.id, get_territory_revenue(boost_beneficiary.created_at, boost_beneficiary.boost_msats), 'SATS', 'DEFUNCT_DELAYED_TERRITORY_REVENUE'
+            FROM boost_beneficiary
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.payin_id = boost_beneficiary.benefactor_id
+            JOIN item_create_batch ON item_create_batch.id = map_item_create_payin_batch.item_id
+            WHERE boost_beneficiary.boost_msats > 0 AND item_create_batch.territory_owner_id IS NOT NULL
+            RETURNING "payInId" as payin_id, mtokens as territory_revenue_msats, id as territory_revenue_id
+        ), sub_payout_custodial_token AS (
+            INSERT INTO "SubPayOutCustodialToken" ("subName", "payOutCustodialTokenId")
+            SELECT item_create_batch."subName", territory_revenue.territory_revenue_id
+            FROM territory_revenue
+            JOIN boost_beneficiary ON boost_beneficiary.id = territory_revenue.payin_id
+            JOIN map_item_create_payin_batch ON map_item_create_payin_batch.payin_id = boost_beneficiary.benefactor_id
+            JOIN item_create_batch ON item_create_batch.id = map_item_create_payin_batch.item_id
+        )
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT boost_beneficiary.created_at, boost_beneficiary.created_at, 9513, boost_beneficiary.id, boost_beneficiary.boost_msats - COALESCE(boost_referral.boost_referral_msats, 0) - COALESCE(territory_revenue.territory_revenue_msats, 0), 'SATS', 'REWARDS_POOL'
+        FROM boost_beneficiary
+        LEFT JOIN boost_referral ON boost_referral.id = boost_beneficiary.id
+        LEFT JOIN territory_revenue ON territory_revenue.payin_id = boost_beneficiary.id
+        WHERE boost_beneficiary.boost_msats - COALESCE(boost_referral.boost_referral_msats, 0) - COALESCE(territory_revenue.territory_revenue_msats, 0) > 0;
+
+        -- Update offset for next batch
+        SELECT MAX(id) INTO offset_val FROM item_create_batch;
+        batch_num := batch_num + 1;
+    END LOOP;
+
+    -- Clean up
+    DROP TABLE IF EXISTS item_create_batch;
+    DROP TABLE IF EXISTS map_item_create_payin_batch;
+
+    RAISE NOTICE 'Pay In Migration: Completed item create migration in % batches', batch_num - 1;
+END $$;
+
+--------------------------
+-------Item Act: ZAPS-----
+--------------------------
+
+-- Create temporary covering indexes to speed up zap migration
+CREATE INDEX IF NOT EXISTS itemact_zap_batch_idx
+ON "ItemAct" ("itemId", "userId", "created_at", "invoiceId")
+INCLUDE ("msats", "id")
+WHERE "act" IN ('TIP','FEE');
+
+CREATE INDEX IF NOT EXISTS "Item_userId_covering_idx"
+  ON "Item"("id", "userId");
+
+CREATE INDEX IF NOT EXISTS "Invoice_covering_zap_idx"
+  ON "Invoice"("id")
+  INCLUDE ("hash", "preimage", "bolt11", "expiresAt", "confirmedAt", "confirmedIndex",
+           "cancelledAt", "msatsRequested", "msatsReceived", "actionState", "created_at", "updated_at");
+
+CREATE INDEX IF NOT EXISTS "InvoiceForward_covering_zap_idx"
+  ON "InvoiceForward"("invoiceId")
+  INCLUDE ("bolt11", "expiryHeight", "acceptHeight", "withdrawlId");
+
+CREATE INDEX IF NOT EXISTS "Withdrawl_covering_zap_idx"
+  ON "Withdrawl"("id")
+  INCLUDE ("hash", "preimage", "msatsPaying", "msatsFeePaying", "msatsFeePaid",
+           "msatsPaid", "status", "protocolId", "created_at", "updated_at");
+
+CREATE INDEX IF NOT EXISTS "ReferralAct_zap_idx"
+  ON "ReferralAct"("itemActId", "referrerId", "msats") WHERE "msats" > 0;
+
+CREATE INDEX IF NOT EXISTS "ItemForward_zap_idx"
+  ON "ItemForward"("itemId", "userId", "pct") WHERE "pct" > 0;
+
+-- Persistent TEMP tables for zap migration (created once per session)
+DROP TABLE IF EXISTS item_act_zaps_batch;
+CREATE TEMP TABLE item_act_zaps_batch (
+    "itemId" INTEGER,
+    "subName" TEXT,
+    "territoryOwnerId" INTEGER,
+    "userId" INTEGER,
+    "created_at" TIMESTAMP,
+    "invoiceId" INTEGER,
+    "msats" BIGINT,
+    "tipMsats" BIGINT,
+    "feeMsats" BIGINT,
+    "feeId" INTEGER,
+    "targetUserId" INTEGER,
+    "hash" TEXT,
+    "preimage" TEXT,
+    "bolt11" TEXT,
+    "expiresAt" TIMESTAMP,
+    "confirmedAt" TIMESTAMP,
+    "confirmedIndex" INTEGER,
+    "cancelledAt" TIMESTAMP,
+    "msatsRequested" BIGINT,
+    "msatsReceived" BIGINT,
+    "actionState" TEXT,
+    "invoice_created_at" TIMESTAMP,
+    "invoice_updated_at" TIMESTAMP,
+    "forward_bolt11" TEXT,
+    "expiryHeight" INTEGER,
+    "acceptHeight" INTEGER,
+    "withdrawal_hash" TEXT,
+    "withdrawal_preimage" TEXT,
+    "msatsPaying" BIGINT,
+    "msatsFeePaying" BIGINT,
+    "msatsFeePaid" BIGINT,
+    "msatsPaid" BIGINT,
+    "withdrawal_status" "WithdrawlStatus",
+    "protocolId" INTEGER,
+    "withdrawal_created_at" TIMESTAMP,
+    "withdrawal_updated_at" TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS "item_act_zaps_batch_item_id_idx" ON item_act_zaps_batch ("itemId", "userId", "created_at", "invoiceId");
+CREATE INDEX IF NOT EXISTS "item_act_zaps_batch_invoice_id_idx" ON item_act_zaps_batch ("invoiceId");
+
+DROP TABLE IF EXISTS zap_referral_acts_batch;
+CREATE TEMP TABLE zap_referral_acts_batch (
+    "itemId" INTEGER,
+    "userId" INTEGER,
+    "created_at" TIMESTAMP,
+    "invoiceId" INTEGER,
+    "referrerId" INTEGER,
+    "msats" BIGINT
+);
+CREATE INDEX IF NOT EXISTS "zap_referral_acts_batch_item_id_idx" ON zap_referral_acts_batch ("itemId", "userId", "created_at", "invoiceId");
+
+DROP TABLE IF EXISTS zap_forwards_batch;
+CREATE TEMP TABLE zap_forwards_batch (
+    "itemId" INTEGER,
+    "userId" INTEGER,
+    "created_at" TIMESTAMP,
+    "invoiceId" INTEGER,
+    "forward_user_id" INTEGER,
+    "pct" INTEGER
+);
+CREATE INDEX IF NOT EXISTS "zap_forwards_batch_item_id_idx" ON zap_forwards_batch ("itemId", "userId", "created_at", "invoiceId");
+
+DROP TABLE IF EXISTS map_zap_payin_batch;
+CREATE TEMP TABLE map_zap_payin_batch (
+    item_id INTEGER,
+    user_id INTEGER,
+    created_at TIMESTAMP,
+    invoice_id INTEGER,
+    payin_id INTEGER NOT NULL,
+    PRIMARY KEY (item_id, payin_id)
+);
+CREATE INDEX IF NOT EXISTS "map_zap_payin_batch_item_id_idx" ON map_zap_payin_batch ("item_id", "user_id", "created_at", "invoice_id");
+
+-- Additional temporary aggregation tables
+DROP TABLE IF EXISTS referral_total_batch;
+CREATE TEMP TABLE referral_total_batch (
+    "itemId" INTEGER,
+    "userId" INTEGER,
+    "created_at" TIMESTAMP,
+    invoice_id0 INTEGER,
+    total BIGINT
+);
+CREATE INDEX IF NOT EXISTS referral_total_batch_key ON referral_total_batch ("itemId","userId","created_at","invoice_id0");
+
+DROP TABLE IF EXISTS territory_revenue_batch;
+CREATE TEMP TABLE territory_revenue_batch (
+    territory_revenue_id INTEGER,
+    payin_id INTEGER,
+    sub_name TEXT
+);
+CREATE INDEX IF NOT EXISTS territory_revenue_batch_payin ON territory_revenue_batch (payin_id);
+
+DROP TABLE IF EXISTS territory_revenue_sum_batch;
+CREATE TEMP TABLE territory_revenue_sum_batch (
+    payin_id INTEGER,
+    tr_msats BIGINT
+);
+CREATE INDEX IF NOT EXISTS territory_revenue_sum_batch_payin ON territory_revenue_sum_batch (payin_id);
+
+DROP TABLE IF EXISTS zaps_net_batch;
+CREATE TEMP TABLE zaps_net_batch (
+    "itemId" INTEGER,
+    "userId" INTEGER,
+    "created_at" TIMESTAMP,
+    invoice_id0 INTEGER,
+    gross_fee_msats BIGINT
+);
+CREATE INDEX IF NOT EXISTS zaps_net_batch_key ON zaps_net_batch ("itemId","userId","created_at","invoice_id0");
+
+-- Batched zap migration to handle large datasets
+DO $$
+DECLARE
+    batch_size INTEGER := 10000;  -- Process Items in batches of 10k
+    min_id INTEGER := 0;
+    max_id INTEGER;
+    rows_processed INTEGER;
+    batch_num INTEGER := 1;
+BEGIN
+    -- Get the max Item ID that has zaps
+    SELECT COALESCE(MAX("Item"."id"), 0) INTO max_id
+    FROM "Item"
+    WHERE EXISTS (
+        SELECT 1 FROM "ItemAct"
+        WHERE "ItemAct"."itemId" = "Item"."id"
+          AND "ItemAct"."act" IN ('TIP', 'FEE')
+    );
+    RAISE NOTICE 'Pay In Migration: Processing Items up to ID % in batches of %', max_id, batch_size;
+
+    -- Temp tables are created outside this function; nothing to create here
+
+    LOOP
+        EXIT WHEN min_id > max_id;
+
+        RAISE NOTICE 'Pay In Migration: Processing zap batch % (Item IDs % to %)', batch_num, min_id, min_id + batch_size;
+
+        -- Clear batch tables
+        TRUNCATE item_act_zaps_batch;
+        TRUNCATE zap_referral_acts_batch;
+        TRUNCATE zap_forwards_batch;
+        TRUNCATE map_zap_payin_batch;
+        TRUNCATE referral_total_batch;
+        TRUNCATE territory_revenue_batch;
+        TRUNCATE territory_revenue_sum_batch;
+        TRUNCATE zaps_net_batch;
+        RAISE NOTICE 'Pay In Migration: Cleared temp tables for zap batch %', batch_num;
+
+        -- Aggregate zaps for Items in this ID range only
+        -- This is more efficient because:
+        -- 1. Better data locality for GROUP BY
+        -- 2. All ItemForward joins will be for consecutive Item IDs
+        -- 3. ReferralAct joins benefit from processing related items together
+        INSERT INTO item_act_zaps_batch
+        SELECT "ItemAct"."itemId", COALESCE("Item"."subName", "root_item"."subName") AS "subName", COALESCE(towner.owner_id, s."userId") AS territory_owner_id, "ItemAct"."userId", "ItemAct"."created_at", "ItemAct"."invoiceId",
+               sum("ItemAct"."msats") AS "msats",
+               sum(CASE WHEN "ItemAct"."act" = 'TIP' THEN "ItemAct"."msats" ELSE 0 END) AS "tipMsats",
+               sum(CASE WHEN "ItemAct"."act" = 'FEE' THEN "ItemAct"."msats" ELSE 0 END) AS "feeMsats",
+               max("ItemAct"."id") FILTER(WHERE "ItemAct"."act" = 'FEE') AS "feeId",
+               "Item"."userId" AS "targetUserId",
+               NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+               NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+        FROM "ItemAct"
+        JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+        LEFT JOIN "Item" root_item ON "Item"."rootId" = "root_item"."id"
+        LEFT JOIN LATERAL (
+            SELECT tt."newUserId" AS owner_id
+            FROM "TerritoryTransfer" tt
+            WHERE tt."subName" = COALESCE("Item"."subName", "root_item"."subName")
+                AND tt."created_at" <= "ItemAct"."created_at"
+            ORDER BY tt."created_at" DESC
+            LIMIT 1
+        ) towner ON TRUE
+        LEFT JOIN "Sub" s ON s."name" = COALESCE("Item"."subName", "root_item"."subName")
+        WHERE "ItemAct"."act" IN ('TIP', 'FEE')
+          AND "ItemAct"."userId" <> "Item"."userId"
+          AND "ItemAct"."itemId" > min_id
+          AND "ItemAct"."itemId" <= min_id + batch_size
+        GROUP BY "ItemAct"."itemId", "ItemAct"."userId", "ItemAct"."created_at", "ItemAct"."invoiceId", "Item"."userId", "Item"."subName", "root_item"."subName", towner.owner_id, s."userId";
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % loaded % aggregated acts', batch_num, rows_processed;
+
+        ANALYZE item_act_zaps_batch;
+
+        -- Now join invoice data only for rows that have invoices
+        UPDATE item_act_zaps_batch AS zaps
+        SET "hash" = "Invoice"."hash",
+            "preimage" = "Invoice"."preimage",
+            "bolt11" = "Invoice"."bolt11",
+            "expiresAt" = "Invoice"."expiresAt",
+            "confirmedAt" = "Invoice"."confirmedAt",
+            "confirmedIndex" = "Invoice"."confirmedIndex",
+            "cancelledAt" = "Invoice"."cancelledAt",
+            "msatsRequested" = "Invoice"."msatsRequested",
+            "msatsReceived" = "Invoice"."msatsReceived",
+            "actionState" = "Invoice"."actionState",
+            "invoice_created_at" = "Invoice"."created_at",
+            "invoice_updated_at" = "Invoice"."updated_at",
+            "forward_bolt11" = "InvoiceForward"."bolt11",
+            "expiryHeight" = "InvoiceForward"."expiryHeight",
+            "acceptHeight" = "InvoiceForward"."acceptHeight",
+            "withdrawal_hash" = "Withdrawl"."hash",
+            "withdrawal_preimage" = "Withdrawl"."preimage",
+            "msatsPaying" = "Withdrawl"."msatsPaying",
+            "msatsFeePaying" = "Withdrawl"."msatsFeePaying",
+            "msatsFeePaid" = "Withdrawl"."msatsFeePaid",
+            "msatsPaid" = "Withdrawl"."msatsPaid",
+            "withdrawal_status" = "Withdrawl"."status",
+            "protocolId" = "Withdrawl"."protocolId",
+            "withdrawal_created_at" = "Withdrawl"."created_at",
+            "withdrawal_updated_at" = "Withdrawl"."updated_at"
+        FROM "Invoice"
+        LEFT JOIN "InvoiceForward" ON "InvoiceForward"."invoiceId" = "Invoice"."id"
+        LEFT JOIN "Withdrawl" ON "Withdrawl"."id" = "InvoiceForward"."withdrawlId"
+        WHERE "Invoice".id = zaps."invoiceId" AND zaps."invoiceId" IS NOT NULL;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % updated % rows with invoice data', batch_num, rows_processed;
+
+        -- Load referral acts for this batch
+        INSERT INTO zap_referral_acts_batch
+        SELECT zaps."itemId", zaps."userId", zaps."created_at", COALESCE(zaps."invoiceId", 0),
+               "ReferralAct"."referrerId", "ReferralAct"."msats"
+        FROM item_act_zaps_batch zaps
+        JOIN "ReferralAct" ON "ReferralAct"."itemActId" = zaps."feeId"
+        WHERE "ReferralAct"."msats" > 0;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % loaded % referral acts', batch_num, rows_processed;
+
+        ANALYZE zap_referral_acts_batch;
+
+        -- Load forwards for this batch
+        INSERT INTO zap_forwards_batch
+        SELECT zaps."itemId", zaps."userId", zaps."created_at", COALESCE(zaps."invoiceId", 0),
+               "ItemForward"."userId" AS forward_user_id, "ItemForward"."pct"
+        FROM item_act_zaps_batch zaps
+        JOIN "ItemForward" ON "ItemForward"."itemId" = zaps."itemId"
+        WHERE "ItemForward"."pct" > 0;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % loaded % forwards', batch_num, rows_processed;
+
+        ANALYZE zap_forwards_batch;
+
+        -- Skip ANALYZE in loop for speed (only needed at start)
+
+        -- Insert PayIn records for this batch
+        WITH zap_payin_prospect AS (
+            SELECT item_act_zaps_batch.*, nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+            FROM item_act_zaps_batch
+        ), insert_payin AS (
+            INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+            SELECT payin_id,
+                   "created_at",
+                   COALESCE("confirmedAt", "invoice_updated_at", "created_at"),
+                   "msats",
+                   'ZAP'::"PayInType",
+                   CASE WHEN "invoiceId" is NULL OR "confirmedAt" IS NOT NULL THEN 'PAID'::"PayInState" ELSE 'FAILED'::"PayInState" END,
+                   COALESCE("confirmedAt", "invoice_updated_at", "created_at"),
+                   "userId"
+            FROM zap_payin_prospect
+        )
+        INSERT INTO map_zap_payin_batch (item_id, user_id, created_at, invoice_id, payin_id)
+        SELECT "itemId", "userId", "created_at", COALESCE("invoiceId", 0), payin_id
+        FROM zap_payin_prospect;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % created % PayIns', batch_num, rows_processed;
+
+        ANALYZE map_zap_payin_batch;
+
+        -- Insert ItemPayIn records
+        INSERT INTO "ItemPayIn" ("payInId", "itemId")
+        SELECT map.payin_id, "itemId"
+        FROM item_act_zaps_batch zaps
+        JOIN map_zap_payin_batch map ON (
+            map.item_id = zaps."itemId" AND
+            map.user_id = zaps."userId" AND
+            map.created_at = zaps."created_at" AND
+            map.invoice_id = COALESCE(zaps."invoiceId", 0)
+        );
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % ItemPayIn links', batch_num, rows_processed;
+
+        -- Insert PayInBolt11 records for zaps with invoices
+        INSERT INTO "PayInBolt11" (created_at, updated_at, "payInId", "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId", "expiryHeight", "acceptHeight")
+        SELECT "invoice_created_at", "invoice_updated_at", map.payin_id, "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId", "expiryHeight", "acceptHeight"
+        FROM item_act_zaps_batch zaps
+        JOIN map_zap_payin_batch map ON (
+            map.item_id = zaps."itemId" AND
+            map.user_id = zaps."userId" AND
+            map.created_at = zaps."created_at" AND
+            map.invoice_id = COALESCE(zaps."invoiceId", 0)
+        )
+        WHERE "hash" IS NOT NULL;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % PayInBolt11 rows', batch_num, rows_processed;
+
+        -- Insert PayOutBolt11 records for zaps with withdrawals
+        INSERT INTO "PayOutBolt11" (created_at, updated_at, "payOutType", "hash", "preimage",
+            "bolt11", "msats", "status", "userId", "payInId", "protocolId")
+        SELECT "withdrawal_created_at", "withdrawal_updated_at", 'ZAP', "withdrawal_hash", "withdrawal_preimage",
+            "forward_bolt11", "msatsPaying", "withdrawal_status", "targetUserId", map.payin_id, "protocolId"
+        FROM item_act_zaps_batch zaps
+        JOIN map_zap_payin_batch map ON (
+            map.item_id = zaps."itemId" AND
+            map.user_id = zaps."userId" AND
+            map.created_at = zaps."created_at" AND
+            map.invoice_id = COALESCE(zaps."invoiceId", 0)
+        )
+        WHERE "withdrawal_hash" IS NOT NULL;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % PayOutBolt11 rows', batch_num, rows_processed;
+
+        -- Insert PayInCustodialToken records for zaps without invoices
+        INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
+        SELECT map.payin_id, "msats", get_custodial_token_type(zaps."created_at")
+        FROM item_act_zaps_batch zaps
+        JOIN map_zap_payin_batch map ON (
+            map.item_id = zaps."itemId" AND
+            map.user_id = zaps."userId" AND
+            map.created_at = zaps."created_at" AND
+            map.invoice_id = COALESCE(zaps."invoiceId", 0)
+        )
+        WHERE "hash" IS NULL;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % PayInCustodialToken rows (no invoice)', batch_num, rows_processed;
+
+        -- Insert routing fee PayOutCustodialToken records for withdrawals
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT "withdrawal_created_at", "withdrawal_updated_at", NULL, map.payin_id,
+            COALESCE("msatsFeePaid", "msatsFeePaying"), 'SATS', 'ROUTING_FEE'
+        FROM item_act_zaps_batch zaps
+        JOIN map_zap_payin_batch map ON (
+            map.item_id = zaps."itemId" AND
+            map.user_id = zaps."userId" AND
+            map.created_at = zaps."created_at" AND
+            map.invoice_id = COALESCE(zaps."invoiceId", 0)
+        )
+        WHERE "withdrawal_hash" IS NOT NULL AND COALESCE("msatsFeePaid", "msatsFeePaying") > 0;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % ROUTING_FEE payouts', batch_num, rows_processed;
+
+        -- Insert territory revenue and rewards pool PayOutCustodialToken records for withdrawals
+        WITH territory_revenue AS (
+            INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+            SELECT "invoice_created_at", "invoice_updated_at", zaps."territoryOwnerId", map.payin_id,
+                get_territory_revenue("invoice_created_at", COALESCE("msatsReceived", "msatsRequested") - COALESCE("msatsFeePaid", "msatsFeePaying") - COALESCE("msatsPaid", "msatsPaying")), 'SATS', 'DEFUNCT_DELAYED_TERRITORY_REVENUE'
+            FROM item_act_zaps_batch zaps
+            JOIN map_zap_payin_batch map ON (
+                map.item_id = zaps."itemId" AND
+                map.user_id = zaps."userId" AND
+                map.created_at = zaps."created_at" AND
+                map.invoice_id = COALESCE(zaps."invoiceId", 0)
+            )
+            WHERE "withdrawal_hash" IS NOT NULL AND COALESCE("msatsReceived", "msatsRequested") - COALESCE("msatsFeePaid", "msatsFeePaying") - COALESCE("msatsPaid", "msatsPaying") > 0
+            AND zaps."territoryOwnerId" IS NOT NULL
+            RETURNING "payInId" as payin_id, mtokens as territory_revenue_msats, id as territory_revenue_id
+        ), sub_payout_custodial_token AS (
+            INSERT INTO "SubPayOutCustodialToken" ("subName", "payOutCustodialTokenId")
+            SELECT item_act_zaps_batch."subName", territory_revenue.territory_revenue_id
+            FROM territory_revenue
+            JOIN map_zap_payin_batch ON map_zap_payin_batch.payin_id = territory_revenue.payin_id
+            JOIN item_act_zaps_batch ON (
+                item_act_zaps_batch."itemId" = map_zap_payin_batch.item_id AND
+                item_act_zaps_batch."userId" = map_zap_payin_batch.user_id AND
+                item_act_zaps_batch."created_at" = map_zap_payin_batch.created_at AND
+                COALESCE(item_act_zaps_batch."invoiceId", 0) = map_zap_payin_batch.invoice_id
+            )
+        )
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT "invoice_created_at", "invoice_updated_at", 9513, map.payin_id,
+            COALESCE("msatsReceived", "msatsRequested") - COALESCE("msatsFeePaid", "msatsFeePaying") - COALESCE("msatsPaid", "msatsPaying") - COALESCE(territory_revenue.territory_revenue_msats, 0), 'SATS', 'REWARDS_POOL'
+        FROM item_act_zaps_batch zaps
+        JOIN map_zap_payin_batch map ON (
+            map.item_id = zaps."itemId" AND
+            map.user_id = zaps."userId" AND
+            map.created_at = zaps."created_at" AND
+            map.invoice_id = COALESCE(zaps."invoiceId", 0)
+        )
+        LEFT JOIN territory_revenue ON territory_revenue.payin_id = map.payin_id
+        WHERE "withdrawal_hash" IS NOT NULL AND COALESCE("msatsReceived", "msatsRequested") - COALESCE("msatsFeePaid", "msatsFeePaying") - COALESCE("msatsPaid", "msatsPaying") - COALESCE(territory_revenue.territory_revenue_msats, 0) > 0;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % REWARDS_POOL payouts (withdrawals)', batch_num, rows_processed;
+
+        -- Insert referral act payouts (for fees)
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT zaps."created_at", zaps."created_at", ref."referrerId", map.payin_id, ref."msats", 'SATS', 'DEFUNCT_REFERRAL_ACT'
+        FROM item_act_zaps_batch zaps
+        JOIN map_zap_payin_batch map ON (
+            map.item_id = zaps."itemId" AND
+            map.user_id = zaps."userId" AND
+            map.created_at = zaps."created_at" AND
+            map.invoice_id = COALESCE(zaps."invoiceId", 0)
+        )
+        JOIN zap_referral_acts_batch ref ON (
+            ref."itemId" = zaps."itemId" AND
+            ref."userId" = zaps."userId" AND
+            ref."created_at" = zaps."created_at" AND
+            ref."invoiceId" = COALESCE(zaps."invoiceId", 0)
+        )
+        WHERE zaps."withdrawal_hash" IS NULL AND ref."referrerId" <> zaps."targetUserId";
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % referral payouts', batch_num, rows_processed;
+
+        -- Insert forward payouts (for tips)
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT zaps."created_at", zaps."created_at", fwd."forward_user_id", map.payin_id,
+            fwd."pct" * zaps."tipMsats" / 100, get_custodial_token_type(zaps."created_at"), 'ZAP'
+        FROM item_act_zaps_batch zaps
+        JOIN map_zap_payin_batch map ON (
+            map.item_id = zaps."itemId" AND
+            map.user_id = zaps."userId" AND
+            map.created_at = zaps."created_at" AND
+            map.invoice_id = COALESCE(zaps."invoiceId", 0)
+        )
+        JOIN zap_forwards_batch fwd ON (
+            fwd."itemId" = zaps."itemId" AND
+            fwd."userId" = zaps."userId" AND
+            fwd."created_at" = zaps."created_at" AND
+            fwd."invoiceId" = COALESCE(zaps."invoiceId", 0)
+        )
+        WHERE zaps."withdrawal_hash" IS NULL AND (fwd."pct" * zaps."tipMsats" / 100) > 0;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % forward payouts', batch_num, rows_processed;
+
+        -- Insert remaining tip amount to target user
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT zaps."created_at", zaps."created_at", zaps."targetUserId", map.payin_id,
+            zaps."tipMsats" - COALESCE(forward_total.total, 0), get_custodial_token_type(zaps."created_at"), 'ZAP'
+        FROM item_act_zaps_batch zaps
+        JOIN map_zap_payin_batch map ON (
+            map.item_id = zaps."itemId" AND
+            map.user_id = zaps."userId" AND
+            map.created_at = zaps."created_at" AND
+            map.invoice_id = COALESCE(zaps."invoiceId", 0)
+        )
+        LEFT JOIN (
+            SELECT fwd."itemId", fwd."userId", fwd."created_at", fwd."invoiceId",
+                   sum(fwd."pct" * zaps."tipMsats" / 100) AS total
+            FROM zap_forwards_batch fwd
+            JOIN item_act_zaps_batch zaps ON (fwd."itemId", fwd."userId", fwd."created_at", fwd."invoiceId") =
+                                           (zaps."itemId", zaps."userId", zaps."created_at", COALESCE(zaps."invoiceId", 0))
+            WHERE (fwd."pct" * zaps."tipMsats" / 100) > 0
+            GROUP BY fwd."itemId", fwd."userId", fwd."created_at", fwd."invoiceId"
+        ) forward_total ON (forward_total."itemId", forward_total."userId", forward_total."created_at", forward_total."invoiceId") =
+                           (zaps."itemId", zaps."userId", zaps."created_at", COALESCE(zaps."invoiceId", 0))
+        WHERE zaps."withdrawal_hash" IS NULL;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % target-user tip payouts', batch_num, rows_processed;
+
+        -- Insert remaining fee amount to rewards pool and territory revenue
+        /* 1) Pre-aggregate referral totals once per batch */
+        INSERT INTO referral_total_batch ("itemId","userId","created_at",invoice_id0,total)
+        SELECT
+            ref."itemId",
+            ref."userId",
+            ref."created_at",
+            ref."invoiceId"                 AS invoice_id0,
+            SUM(ref."msats")                AS total
+        FROM zap_referral_acts_batch ref
+        JOIN item_act_zaps_batch zaps
+        ON (ref."itemId", ref."userId", ref."created_at", ref."invoiceId")
+        = (zaps."itemId", zaps."userId", zaps."created_at", COALESCE(zaps."invoiceId", 0))
+        WHERE ref."referrerId" <> zaps."targetUserId"
+        GROUP BY ref."itemId", ref."userId", ref."created_at", ref."invoiceId";
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % computed % referral totals', batch_num, rows_processed;
+
+        /* 2A) Insert territory revenue and capture subName alongside the inserted payout id */
+        WITH ins AS (
+            INSERT INTO "PayOutCustodialToken"
+                (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+            SELECT
+                z."created_at",
+                z."created_at",
+                z."territoryOwnerId",
+                m.payin_id,
+                get_territory_revenue(z."created_at", z."feeMsats"),
+                'SATS',
+                'DEFUNCT_DELAYED_TERRITORY_REVENUE'
+            FROM item_act_zaps_batch z
+            JOIN map_zap_payin_batch m
+                ON (m.item_id, m.user_id, m.created_at, m.invoice_id)
+                = (z."itemId", z."userId", z."created_at", COALESCE(z."invoiceId", 0))
+            WHERE z."withdrawal_hash" IS NULL
+                AND z."territoryOwnerId" IS NOT NULL
+            RETURNING id, "payInId" AS payin_id)
+        INSERT INTO territory_revenue_batch (territory_revenue_id, payin_id, sub_name)
+        SELECT
+            ins.id        AS territory_revenue_id,
+            ins.payin_id  AS payin_id,
+            z."subName"   AS sub_name
+        FROM ins
+        JOIN map_zap_payin_batch m ON m.payin_id = ins.payin_id
+        JOIN item_act_zaps_batch z
+            ON (z."itemId", z."userId", z."created_at", COALESCE(z."invoiceId", 0))
+            = (m.item_id, m.user_id, m.created_at, m.invoice_id);
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % territory revenue rows', batch_num, rows_processed;
+
+        /* 2B) Sub mapping for inserted territory revenue rows */
+        INSERT INTO "SubPayOutCustodialToken" ("subName", "payOutCustodialTokenId")
+        SELECT sub_name, territory_revenue_id
+        FROM territory_revenue_batch;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % sub mappings for territory revenue', batch_num, rows_processed;
+
+        /* 1) Pre-sum territory revenue once per batch */
+        INSERT INTO territory_revenue_sum_batch (payin_id, tr_msats)
+        SELECT t.payin_id,
+            SUM(poct.mtokens)::BIGINT AS tr_msats
+        FROM territory_revenue_batch t
+        JOIN "PayOutCustodialToken" poct
+        ON poct.id = t.territory_revenue_id
+        GROUP BY t.payin_id;
+
+        /* 2) Precompute gross fee per (item,user,ts,invoice) and filter out withdrawal rows */
+        INSERT INTO zaps_net_batch ("itemId","userId","created_at",invoice_id0,gross_fee_msats)
+        SELECT
+            z."itemId",
+            z."userId",
+            z."created_at",
+            COALESCE(z."invoiceId", 0) AS invoice_id0,
+            /* one-time arithmetic so planner can reuse it */
+            (z."feeMsats" + (COALESCE(z."msatsReceived", 0) - COALESCE(z."msatsRequested", 0)))::BIGINT AS gross_fee_msats
+        FROM item_act_zaps_batch z
+        WHERE z."withdrawal_hash" IS NULL;
+
+        /* 3) Fast rewards-pool insert (no LATERAL, all joins on indexed keys) */
+        INSERT INTO "PayOutCustodialToken"
+            (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT
+        znb."created_at",
+        znb."created_at",
+        9513,                        -- rewards pool user
+        m.payin_id,
+        znb.gross_fee_msats
+            - COALESCE(rt.total, 0)
+            - COALESCE(trs.tr_msats, 0)               AS mtokens,
+        'SATS',
+        'REWARDS_POOL'
+        FROM zaps_net_batch znb
+        JOIN map_zap_payin_batch m
+        ON (m.item_id, m.user_id, m.created_at, m.invoice_id)
+        = (znb."itemId", znb."userId", znb."created_at", znb.invoice_id0)
+        LEFT JOIN referral_total_batch rt
+        ON (rt."itemId", rt."userId", rt."created_at", rt."invoice_id0")
+        = (znb."itemId", znb."userId", znb."created_at", znb.invoice_id0)
+        LEFT JOIN territory_revenue_sum_batch trs
+        ON trs.payin_id = m.payin_id
+        WHERE (znb.gross_fee_msats - COALESCE(rt.total, 0) - COALESCE(trs.tr_msats, 0)) > 0;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        RAISE NOTICE 'Pay In Migration: Zap batch % inserted % REWARDS_POOL payouts (non-withdrawals)', batch_num, rows_processed;
+
+        -- Update offset for next batch
+        min_id := min_id + batch_size;
+        batch_num := batch_num + 1;
+    END LOOP;
+
+    -- Clean up
+    DROP TABLE IF EXISTS item_act_zaps_batch;
+    DROP TABLE IF EXISTS zap_referral_acts_batch;
+    DROP TABLE IF EXISTS zap_forwards_batch;
+    DROP TABLE IF EXISTS map_zap_payin_batch;
+    DROP TABLE IF EXISTS referral_total_batch;
+    DROP TABLE IF EXISTS territory_revenue_batch;
+    DROP TABLE IF EXISTS territory_revenue_sum_batch;
+    DROP TABLE IF EXISTS zaps_net_batch;
+
+    RAISE NOTICE 'Pay In Migration: Completed zap migration in % batches', batch_num - 1;
+END $$;
+
+-- Drop temporary covering indexes after zap migration
+DROP INDEX IF EXISTS "itemact_zap_batch_idx";
+DROP INDEX IF EXISTS "Item_userId_covering_idx";
+DROP INDEX IF EXISTS "Invoice_covering_zap_idx";
+DROP INDEX IF EXISTS "InvoiceForward_covering_zap_idx";
+DROP INDEX IF EXISTS "Withdrawl_covering_zap_idx";
+DROP INDEX IF EXISTS "ReferralAct_zap_idx";
+DROP INDEX IF EXISTS "ItemForward_zap_idx";
+
+----------------------------------------------
+---Item Act: BOOST, DONT_LIKE_THIS, POLL -----
+----------------------------------------------
+
+-- Batched boost/poll migration to handle large datasets
+DO $$
+DECLARE
+    batch_size INTEGER := 30000;
+    offset_val INTEGER := 0;
+    rows_processed INTEGER;
+    batch_num INTEGER := 1;
+    max_id INTEGER;
+BEGIN
+    -- Get max ItemAct ID for progress tracking
+    SELECT COALESCE(MAX("ItemAct"."id"), 0) INTO max_id
+    FROM "ItemAct"
+    JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+    WHERE "act" IN ('BOOST', 'DONT_LIKE_THIS', 'POLL')
+      AND "Item"."created_at" <> "ItemAct"."created_at";
+
+    RAISE NOTICE 'Pay In Migration: Processing % total boost/poll acts in batches of %', max_id, batch_size;
+
+    -- Create persistent temp tables
+    DROP TABLE IF EXISTS item_act_boost_poll_batch;
+    DROP TABLE IF EXISTS boost_poll_referral_acts_batch;
+    DROP TABLE IF EXISTS map_boost_poll_payin_batch;
+
+    CREATE TEMP TABLE item_act_boost_poll_batch (
+        id INTEGER PRIMARY KEY,
+        "itemId" INTEGER,
+        "subName" TEXT,
+        "territoryOwnerId" INTEGER,
+        "userId" INTEGER,
+        "created_at" TIMESTAMP,
+        "updated_at" TIMESTAMP,
+        "msats" BIGINT,
+        "act" TEXT,
+        "invoiceId" INTEGER,
+        hash TEXT,
+        preimage TEXT,
+        bolt11 TEXT,
+        "expiresAt" TIMESTAMP,
+        "confirmedAt" TIMESTAMP,
+        "confirmedIndex" INTEGER,
+        "cancelledAt" TIMESTAMP,
+        "msatsRequested" BIGINT,
+        "msatsReceived" BIGINT,
+        "actionState" TEXT,
+        invoice_created_at TIMESTAMP,
+        invoice_updated_at TIMESTAMP
+    );
+
+    CREATE TEMP TABLE boost_poll_referral_acts_batch (
+        item_act_id INTEGER,
+        "referrerId" INTEGER,
+        "msats" BIGINT
+    );
+
+    CREATE TEMP TABLE map_boost_poll_payin_batch (
+        item_act_id INTEGER PRIMARY KEY,
+        payin_id INTEGER NOT NULL
+    );
+
+    LOOP
+        RAISE NOTICE 'Pay In Migration: Processing boost/poll batch % (IDs % to %)', batch_num, offset_val + 1, offset_val + batch_size;
+
+        -- Clear batch tables
+        TRUNCATE item_act_boost_poll_batch;
+        TRUNCATE boost_poll_referral_acts_batch;
+        TRUNCATE map_boost_poll_payin_batch;
+
+        -- Load next batch
+        INSERT INTO item_act_boost_poll_batch
+        SELECT "ItemAct".id, "ItemAct"."itemId", COALESCE("Item"."subName", "root_item"."subName") AS "subName", COALESCE(towner.owner_id, s."userId") AS territory_owner_id, "ItemAct"."userId", "ItemAct"."created_at", "ItemAct"."updated_at",
+               "ItemAct"."msats", "ItemAct"."act", "ItemAct"."invoiceId",
+               "Invoice"."hash", "Invoice"."preimage", "Invoice"."bolt11", "Invoice"."expiresAt",
+               "Invoice"."confirmedAt", "Invoice"."confirmedIndex", "Invoice"."cancelledAt",
+               "Invoice"."msatsRequested", "Invoice"."msatsReceived", "Invoice"."actionState",
+               "Invoice"."created_at" AS invoice_created_at, "Invoice"."updated_at" AS invoice_updated_at
+        FROM "ItemAct"
+        JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+        LEFT JOIN "Item" root_item ON "Item"."rootId" = "root_item"."id"
+        LEFT JOIN LATERAL (
+            SELECT tt."newUserId" AS owner_id
+            FROM "TerritoryTransfer" tt
+            WHERE tt."subName" = COALESCE("Item"."subName", "root_item"."subName")
+                AND tt."created_at" <= "ItemAct"."created_at"
+            ORDER BY tt."created_at" DESC
+            LIMIT 1
+        ) towner ON TRUE
+        LEFT JOIN "Invoice" ON "Invoice"."id" = "ItemAct"."invoiceId"
+        LEFT JOIN "Sub" s ON s."name" = COALESCE("Item"."subName", "root_item"."subName")
+        WHERE "ItemAct"."act" IN ('BOOST', 'DONT_LIKE_THIS', 'POLL')
+          AND "Item"."created_at" <> "ItemAct"."created_at"
+          AND "ItemAct".id > offset_val
+        ORDER BY "ItemAct".id
+        LIMIT batch_size;
+
+        GET DIAGNOSTICS rows_processed = ROW_COUNT;
+        EXIT WHEN rows_processed = 0;
+
+        -- Create indexes for this batch
+        DROP INDEX IF EXISTS item_act_boost_poll_batch_id_idx;
+        DROP INDEX IF EXISTS item_act_boost_poll_batch_hash_idx;
+        CREATE UNIQUE INDEX item_act_boost_poll_batch_id_idx ON item_act_boost_poll_batch (id);
+        CREATE UNIQUE INDEX item_act_boost_poll_batch_hash_idx ON item_act_boost_poll_batch (hash);
+        ANALYZE item_act_boost_poll_batch;
+
+        -- Load referral acts for this batch
+        INSERT INTO boost_poll_referral_acts_batch
+        SELECT acts.id AS item_act_id, "ReferralAct"."referrerId", "ReferralAct"."msats"
+        FROM item_act_boost_poll_batch acts
+        JOIN "ReferralAct" ON "ReferralAct"."itemActId" = acts.id
+        WHERE "ReferralAct"."msats" > 0;
+
+        -- Insert PayIn records for this batch
+        WITH boost_poll_payin_prospect AS (
+            SELECT item_act_boost_poll_batch.*, nextval(pg_get_serial_sequence('"PayIn"', 'id')) AS payin_id
+            FROM item_act_boost_poll_batch
+        ), insert_payin AS (
+            INSERT INTO "PayIn" (id, created_at, updated_at, mcost, "payInType", "payInState", "payInStateChangedAt", "userId")
+            SELECT payin_id,
+                   "created_at",
+                   COALESCE("confirmedAt", "invoice_updated_at", "created_at"),
+                   "msats",
+                   CASE
+                       WHEN "act" = 'BOOST' THEN 'BOOST'::"PayInType"
+                       WHEN "act" = 'DONT_LIKE_THIS' THEN 'DOWN_ZAP'::"PayInType"
+                       WHEN "act" = 'POLL' THEN 'POLL_VOTE'::"PayInType"
+                   END,
+                   CASE WHEN "invoiceId" is NULL OR "confirmedAt" IS NOT NULL THEN 'PAID'::"PayInState" ELSE 'FAILED'::"PayInState" END,
+                   COALESCE("confirmedAt", "invoice_updated_at", "created_at"),
+                   "userId"
+            FROM boost_poll_payin_prospect
+        )
+        INSERT INTO map_boost_poll_payin_batch (item_act_id, payin_id)
+        SELECT id, payin_id FROM boost_poll_payin_prospect;
+
+        -- Insert ItemPayIn records
+        INSERT INTO "ItemPayIn" ("payInId", "itemId")
+        SELECT map_boost_poll_payin_batch.payin_id, "itemId"
+        FROM item_act_boost_poll_batch
+        JOIN map_boost_poll_payin_batch ON map_boost_poll_payin_batch.item_act_id = item_act_boost_poll_batch.id;
+
+        -- Insert PayInBolt11 records for items with invoices
+        INSERT INTO "PayInBolt11" (created_at, updated_at, "payInId", "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId")
+        SELECT "invoice_created_at", "invoice_updated_at", map_boost_poll_payin_batch.payin_id, "hash", "preimage",
+            "bolt11", "expiresAt", "confirmedAt", "confirmedIndex", "cancelledAt",
+            "msatsRequested", "msatsReceived", "userId"
+        FROM item_act_boost_poll_batch
+        JOIN map_boost_poll_payin_batch ON map_boost_poll_payin_batch.item_act_id = item_act_boost_poll_batch.id
+        WHERE "hash" IS NOT NULL;
+
+        -- Insert PayInCustodialToken records for items without invoices
+        INSERT INTO "PayInCustodialToken" ("payInId", mtokens, "custodialTokenType")
+        SELECT map_boost_poll_payin_batch.payin_id, "msats", get_custodial_token_type("created_at")
+        FROM item_act_boost_poll_batch
+        JOIN map_boost_poll_payin_batch ON map_boost_poll_payin_batch.item_act_id = item_act_boost_poll_batch.id
+        WHERE "hash" IS NULL;
+
+        -- Insert referral act payouts
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT acts."created_at", acts."created_at", ref."referrerId", map_boost_poll_payin_batch.payin_id, ref."msats", 'SATS', 'DEFUNCT_REFERRAL_ACT'
+        FROM item_act_boost_poll_batch acts
+        JOIN map_boost_poll_payin_batch ON map_boost_poll_payin_batch.item_act_id = acts.id
+        JOIN boost_poll_referral_acts_batch ref ON ref.item_act_id = acts.id;
+
+        -- Insert remaining amount to rewards pool and territory revenue
+        WITH territory_revenue AS (
+            INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+            SELECT acts."created_at", acts."created_at", acts."territoryOwnerId", map_boost_poll_payin_batch.payin_id, get_territory_revenue(acts."created_at", acts."msats"), 'SATS', 'DEFUNCT_DELAYED_TERRITORY_REVENUE'
+            FROM item_act_boost_poll_batch acts
+            JOIN map_boost_poll_payin_batch ON map_boost_poll_payin_batch.item_act_id = acts.id
+            WHERE acts."territoryOwnerId" IS NOT NULL
+            RETURNING "payInId" as payin_id, mtokens as territory_revenue_msats, id as territory_revenue_id
+        ), sub_payout_custodial_token AS (
+            INSERT INTO "SubPayOutCustodialToken" ("subName", "payOutCustodialTokenId")
+            SELECT item_act_boost_poll_batch."subName", territory_revenue.territory_revenue_id
+            FROM territory_revenue
+            JOIN map_boost_poll_payin_batch ON map_boost_poll_payin_batch.payin_id = territory_revenue.payin_id
+            JOIN item_act_boost_poll_batch ON item_act_boost_poll_batch.id = map_boost_poll_payin_batch.item_act_id
+        )
+        INSERT INTO "PayOutCustodialToken" (created_at, updated_at, "userId", "payInId", mtokens, "custodialTokenType", "payOutType")
+        SELECT acts."created_at", acts."created_at", 9513, map_boost_poll_payin_batch.payin_id,
+            acts."msats" - COALESCE(referral_total.total, 0) - COALESCE(territory_revenue.territory_revenue_msats, 0), 'SATS', 'REWARDS_POOL'
+        FROM item_act_boost_poll_batch acts
+        JOIN map_boost_poll_payin_batch ON map_boost_poll_payin_batch.item_act_id = acts.id
+        LEFT JOIN (
+            SELECT ref.item_act_id, sum(ref."msats") AS total
+            FROM boost_poll_referral_acts_batch ref
+            GROUP BY ref.item_act_id
+        ) referral_total ON referral_total.item_act_id = acts.id
+        LEFT JOIN territory_revenue ON territory_revenue.payin_id = map_boost_poll_payin_batch.payin_id
+        WHERE acts."msats" - COALESCE(referral_total.total, 0) - COALESCE(territory_revenue.territory_revenue_msats, 0) > 0;
+
+        -- Update offset for next batch
+        SELECT MAX(id) INTO offset_val FROM item_act_boost_poll_batch;
+        batch_num := batch_num + 1;
+    END LOOP;
+
+    -- Clean up
+    DROP TABLE IF EXISTS item_act_boost_poll_batch;
+    DROP TABLE IF EXISTS boost_poll_referral_acts_batch;
+    DROP TABLE IF EXISTS map_boost_poll_payin_batch;
+
+    RAISE NOTICE 'Pay In Migration: Completed boost/poll migration in % batches', batch_num - 1;
+END $$;
+
+
+-- begin logging the tables
+ALTER TABLE "ItemPayIn" SET LOGGED;
+ALTER TABLE "SubPayIn" SET LOGGED;
+ALTER TABLE "PayIn" SET LOGGED;
+ALTER TABLE "PayInCustodialToken" SET LOGGED;
+ALTER TABLE "PessimisticEnv" SET LOGGED;
+ALTER TABLE "SubPayOutCustodialToken" SET LOGGED;
+ALTER TABLE "PayOutCustodialToken" SET LOGGED;
+ALTER TABLE "PayInBolt11" SET LOGGED;
+ALTER TABLE "PayOutBolt11" SET LOGGED;
+ALTER TABLE "PayInBolt11Lud18" SET LOGGED;
+ALTER TABLE "PayInBolt11NostrNote" SET LOGGED;
+ALTER TABLE "PayInBolt11Comment" SET LOGGED;
+ALTER TABLE "RefundCustodialToken" SET LOGGED;
+ALTER TABLE "UploadPayIn" SET LOGGED;

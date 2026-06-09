@@ -2,46 +2,51 @@ import { useShowModal } from './modal'
 import { useToast } from './toast'
 import ItemAct from './item-act'
 import AccordianItem from './accordian-item'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import BoostIcon from '@/svgs/arrow-up-double-line.svg'
 import styles from './upvote.module.css'
-import { BoostHelp } from './adv-post-form'
-import { BOOST_MULT } from '@/lib/constants'
+import { BOOST_MIN } from '@/lib/constants'
 import classNames from 'classnames'
-
 export default function Boost ({ item, className, ...props }) {
   const { boost } = item
-  const [hover, setHover] = useState(false)
+  const [color, nextColor] = useMemo(() => [getColor(boost), getColor(boost + BOOST_MIN)], [boost])
 
-  const [color, nextColor] = useMemo(() => [getColor(boost), getColor(boost + BOOST_MULT)], [boost])
-
-  const style = useMemo(() => (hover || boost
-    ? {
-        fill: hover ? nextColor : color,
-        filter: `drop-shadow(0 0 6px ${hover ? nextColor : color}90)`
-      }
-    : undefined), [boost, hover])
+  const style = useMemo(() => ({
+    '--hover-fill': nextColor,
+    '--hover-filter': `drop-shadow(0 0 6px ${nextColor}90)`,
+    '--fill': color,
+    '--filter': `drop-shadow(0 0 6px ${color}90)`
+  }), [color, nextColor])
 
   return (
     <Booster
-      item={item} As={({ ...oprops }) =>
+      item={item} As={oprops =>
         <div className='upvoteParent'>
           <div
-            className={styles.upvoteWrapper}
+            className={classNames(styles.upvoteWrapper, item.deletedAt && styles.noSelfTips)}
           >
             <BoostIcon
-              {...props} {...oprops} style={style}
+              {...props}
+              {...oprops}
+              style={style}
               width={26}
               height={26}
-              onPointerEnter={() => setHover(true)}
-              onMouseLeave={() => setHover(false)}
-              onTouchEnd={() => setHover(false)}
-              className={classNames(styles.boost, className, boost && styles.voted)}
+              className={classNames(styles.boost, className, boost && styles.boosted)}
             />
           </div>
         </div>}
     />
+  )
+}
+
+export function BoostHelp () {
+  return (
+    <ol>
+      <li>Boost is <strong>exactly</strong> like a zap from other stackers: it ranks the item higher based on the amount</li>
+      <li>100% of boost goes to the territory founder and top stackers as rewards</li>
+      <li>Boosted items can be downzapped to reduce their rank</li>
+    </ol>
   )
 }
 
@@ -54,7 +59,7 @@ function Booster ({ item, As, children }) {
       onClick={async () => {
         try {
           showModal(onClose =>
-            <ItemAct onClose={onClose} item={item} act='BOOST' step={BOOST_MULT}>
+            <ItemAct onClose={onClose} item={item} act='BOOST' step={BOOST_MIN}>
               <AccordianItem header='what is boost?' body={<BoostHelp />} />
             </ItemAct>)
         } catch (error) {

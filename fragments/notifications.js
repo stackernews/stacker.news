@@ -2,36 +2,47 @@ import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
 import { SUB_FIELDS } from './subs'
-import { INVOICE_FIELDS } from './wallet'
-
+import { PAY_IN_LINK_FIELDS } from './payIn'
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
-export const INVOICIFICATION = gql`
+export const PAY_INIFICATION = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
-  ${INVOICE_FIELDS}
-  fragment InvoicificationFields on Invoicification {
+  ${PAY_IN_LINK_FIELDS}
+  fragment PayInificationFields on PayInification {
     id
     sortTime
-    invoice {
-      ...InvoiceFields
-      item {
-        ...ItemFullFields
-        ...PollFields
-      }
-      itemAct {
-        id
-        act
-        invoice {
-          id
-          actionState
+    earnedSats
+    payInItem {
+      ...ItemFullFields
+      ...PollFields
+    }
+    payIn {
+      ...PayInLinkFields
+      payerPrivates {
+        payInBolt11 {
+          lud18Data {
+            id
+            name
+            identifier
+            email
+            pubkey
+          }
+          nostrNote {
+            id
+            note
+          }
+          comment {
+            id
+            comment
+          }
         }
       }
     }
   }`
 
 export const NOTIFICATIONS = gql`
-  ${INVOICIFICATION}
+  ${PAY_INIFICATION}
   ${INVITE_FIELDS}
   ${SUB_FIELDS}
 
@@ -67,6 +78,15 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on BountyPayment {
+          id
+          sortTime
+          earnedSats
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
         ... on Revenue {
           id
           sortTime
@@ -82,11 +102,37 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
-        ... on Streak {
+        ... on CowboyHat {
           id
           sortTime
           days
-          type
+        }
+        ... on NewHorse {
+          id
+          sortTime
+        }
+        ... on LostHorse {
+          id
+          sortTime
+        }
+        ... on NewGun {
+          id
+          sortTime
+        }
+        ... on LostGun {
+          id
+          sortTime
+        }
+        ... on Bulletinification {
+          id
+          sortTime
+          bulletin {
+            title
+            text
+            lexicalState
+            html
+            iconType
+          }
         }
         ... on Earn {
           id
@@ -112,6 +158,18 @@ export const NOTIFICATIONS = gql`
         ... on Referral {
           id
           sortTime
+          source {
+            __typename
+            ... on Item {
+              ...ItemFullFields
+            }
+            ... on Sub {
+              ...SubFields
+            }
+            ... on User {
+              name
+            }
+          }
         }
         ... on Reply {
           id
@@ -165,29 +223,8 @@ export const NOTIFICATIONS = gql`
             ...SubFields
           }
         }
-        ... on InvoicePaid {
-          id
-          sortTime
-          earnedSats
-          invoice {
-            id
-            nostr
-            comment
-            lud18Data
-          }
-        }
-        ... on Invoicification {
-          ...InvoicificationFields
-        }
-        ... on WithdrawlPaid {
-          id
-          sortTime
-          earnedSats
-          withdrawl {
-            autoWithdraw
-            p2p
-            satsFeePaid
-          }
+        ... on PayInification {
+          ...PayInificationFields
         }
         ... on Reminder {
           id

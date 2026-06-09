@@ -4,7 +4,7 @@ import { abbrNum, numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
 import userStyles from './user-header.module.css'
 import React, { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
 import Badges from './badge'
@@ -17,25 +17,18 @@ import CheckCircle from '@/svgs/checkbox-circle-fill.svg'
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
 const Spent = ({ user }) => (user.optional.spent !== null && <span>{abbrNum(user.optional.spent)} spent</span>)
-const Posts = ({ user }) => (
-  <Link href={`/${user.name}/posts`} className='text-reset'>
-    {numWithUnits(user.nposts, { unitSingular: 'post', unitPlural: 'posts' })}
+const Items = ({ user }) => (
+  <Link href={`/${user.name}/all`} className='text-reset'>
+    {numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}
   </Link>)
-const Comments = ({ user }) => (
-  <Link href={`/${user.name}/comments`} className='text-reset'>
-    {numWithUnits(user.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })}
-  </Link>)
-const Referrals = ({ user }) => (user.optional.referrals !== null && <span>{numWithUnits(user.optional.referrals, { unitSingular: 'referral', unitPlural: 'referrals' })}</span>)
 const Seperator = () => (<span> \ </span>)
 
 const STAT_POS = {
   stacked: 0,
   spent: 1,
-  posts: 2,
-  comments: 3,
-  referrals: 4
+  items: 2
 }
-const STAT_COMPONENTS = [Stacked, Spent, Posts, Comments, Referrals]
+const STAT_COMPONENTS = [Stacked, Spent, Items]
 
 function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
@@ -80,7 +73,7 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
       </Link>
       <div className={styles.hunk}>
         <div className='d-flex'>
-          <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
+          <Link href={`/${user.name}`} className={`${styles.title} mb-0 d-inline-flex align-items-center justify-content-center text-reset`}>
             @{user.name}<Badges badgeClassName='fill-grey' height={14} width={14} user={user} />
           </Link>
           {nymActionDropdown && <NymActionDropdown user={user} className='' />}
@@ -107,13 +100,13 @@ export function User ({ user, rank, statComps, className = 'mb-2', Embellish, ny
           <div className={styles.other}>
             {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
           </div>}
-        {Embellish && <Embellish rank={rank} />}
+        {Embellish && <Embellish rank={rank} user={user} />}
       </UserBase>
     </>
   )
 }
 
-function UserHidden ({ rank, Embellish }) {
+function UserHidden ({ rank, user, Embellish }) {
   return (
     <>
       {rank
@@ -133,7 +126,7 @@ function UserHidden ({ rank, Embellish }) {
           <div className={`${styles.title} text-muted d-inline-flex align-items-center`}>
             stacker is in hiding
           </div>
-          {Embellish && <Embellish rank={rank} />}
+          {Embellish && <Embellish rank={rank} user={user} />}
         </div>
       </div>
     </>
@@ -148,7 +141,7 @@ export function ListUsers ({ users, rank, statComps = DEFAULT_STAT_COMPONENTS, E
       {users.map((user, i) => (
         user
           ? <User key={user.id} user={user} rank={rank && i + 1} statComps={statComps} Embellish={Embellish} nymActionDropdown={nymActionDropdown} />
-          : <UserHidden key={i} rank={rank && i + 1} Embellish={Embellish} />
+          : <UserHidden key={i} rank={rank && i + 1} user={user} Embellish={Embellish} />
       ))}
     </div>
   )

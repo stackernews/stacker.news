@@ -1,0 +1,287 @@
+/**
+ * This file provides:
+ *   - the global context for the wallets
+ *   - the global hooks that are always mounted like:
+ *      - fetching wallets
+ *      - checking for invoices to retry
+ *      - generating or reading the CryptoKey from IndexedDB if it exists
+ *   - hooks to access the global context
+ */
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react'
+
+import { useMe } from '@/components/me'
+import { isTemplate, isWallet } from '@/wallets/lib/util'
+import { useWeblnEvents } from '@/wallets/lib/protocols/webln'
+import { useWalletsQuery } from '@/wallets/client/hooks/query'
+import { readOrCreateVaultKeyRecord, useGenerateRandomKey, useSetKey, useIsWrongKey, useVaultLocalStore } from '@/wallets/client/hooks/crypto'
+import { useWalletLogger } from '@/wallets/client/hooks/logger'
+import { useAutoRetryPayIns } from '@/components/payIn/hooks/use-auto-retry-pay-ins'
+
+const WalletDataContext = createContext(null)
+const WalletsContext = createContext(null)
+const WalletsDispatchContext = createContext(null)
+
+export function useWallets () {
+  const { wallets } = useContext(WalletDataContext)
+  return wallets
+}
+
+export function useWalletSendReady () {
+  const { walletSendReady } = useContext(WalletDataContext)
+  return walletSendReady
+}
+
+export function useTemplates () {
+  const { templates } = useContext(WalletDataContext)
+  return templates
+}
+
+export function useWalletsError () {
+  const { walletsError } = useContext(WalletDataContext)
+  return walletsError
+}
+
+export function useWalletsDispatch () {
+  return useContext(WalletsDispatchContext)
+}
+
+export function useKey () {
+  const { key } = useContext(WalletsContext)
+  return key
+}
+
+export function useKeyHash () {
+  const { keyHash } = useContext(WalletsContext)
+  return keyHash
+}
+
+export function useKeyUpdatedAt () {
+  const { keyUpdatedAt } = useContext(WalletsContext)
+  return keyUpdatedAt
+}
+
+export function useKeyError () {
+  const { keyError } = useContext(WalletsContext)
+  return keyError
+}
+
+export function useKeySyncInProgress () {
+  const { keySyncInProgress } = useContext(WalletsContext)
+  return keySyncInProgress
+}
+
+export function useWithKeySync () {
+  const dispatch = useWalletsDispatch()
+
+  return useCallback(async (fn) => {
+    dispatch({ type: KEY_SYNC_START })
+    try {
+      return await fn()
+    } finally {
+      dispatch({ type: KEY_SYNC_END })
+    }
+  }, [dispatch])
+}
+
+export function WalletsProvider ({ children }) {
+  // https://react.dev/learn/scaling-up-with-reducer-and-context
+  const [state, dispatch] = useReducer(walletsReducer, {
+    key: null,
+    keyHash: null,
+    keyUpdatedAt: null,
+    keyError: null,
+    keySyncInProgress: false
+  })
+
+  return (
+    <WalletsDispatchContext.Provider value={dispatch}>
+      <WalletsContext.Provider value={state}>
+        <WalletDataProvider>
+          <WalletHooks>
+            {children}
+          </WalletHooks>
+        </WalletDataProvider>
+      </WalletsContext.Provider>
+    </WalletsDispatchContext.Provider>
+  )
+}
+
+function WalletHooks ({ children }) {
+  useAutoRetryPayIns()
+  useKeyInit()
+  useDeleteLocalWallets()
+  useWeblnEvents()
+
+  return children
+}
+
+function WalletDataProvider ({ children }) {
+  const query = useWalletsQuery()
+
+  const value = useMemo(() => {
+    const entries = query.walletsData?.wallets ?? []
+    const wallets = entries
+      .filter(isWallet)
+      .sort((a, b) => a.priority === b.priority ? a.id - b.id : a.priority - b.priority)
+    const templates = entries
+      .filter(isTemplate)
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    return {
+      wallets,
+      walletSendReady: query.walletSendReady,
+      walletsError: query.walletsError ?? null,
+      templates
+    }
+  }, [query.walletsData, query.walletSendReady, query.walletsError])
+
+  return (
+    <WalletDataContext.Provider value={value}>
+      {children}
+    </WalletDataContext.Provider>
+  )
+}
+
+function useKeyInit () {
+  const { me } = useMe()
+
+  const dispatch = useWalletsDispatch()
+  const wrongKey = useIsWrongKey()
+  const keySyncInProgress = useKeySyncInProgress()
+
+  const logger = useWalletLogger()
+
+  // browsers only expose window.crypto.subtle in secure contexts (HTTPS, localhost, *.localhost).
+  // dev custom domains served over plain HTTP fail this check, which would otherwise crash
+  // PBKDF2 key derivation in deriveKey().
+  const keyStorageAvailable = typeof window !== 'undefined' &&
+    typeof window.indexedDB !== 'undefined' &&
+    window.isSecureContext &&
+    !!window.crypto?.subtle
+
+  useEffect(() => {
+    if (!keyStorageAvailable) {
+      dispatch({ type: KEY_STORAGE_UNAVAILABLE })
+    } else if (!keySyncInProgress && wrongKey) {
+      dispatch({ type: WRONG_KEY })
+    } else {
+      dispatch({ type: KEY_MATCH })
+    }
+  }, [keyStorageAvailable, wrongKey, keySyncInProgress, dispatch])
+
+  const generateRandomKey = useGenerateRandomKey()
+  const setKey = useSetKey()
+  const [db, setDb] = useState(null)
+  const { open } = useVaultLocalStore()
+
+  useEffect(() => {
+    if (!me?.id || !keyStorageAvailable) return
+    let db
+
+    async function openDb () {
+      try {
+        db = await open()
+        setDb(db)
+      } catch (err) {
+        dispatch({ type: KEY_STORAGE_UNAVAILABLE })
+        console.error('failed to open indexeddb:', err)
+      }
+    }
+    openDb()
+
+    return () => {
+      db?.close()
+      setDb(null)
+    }
+  }, [me?.id, keyStorageAvailable, open])
+
+  useEffect(() => {
+    if (!me?.id || !db) return
+    let cancelled = false
+
+    async function keyInit () {
+      try {
+        // create random key before opening transaction in case we need it
+        // because we can't run async code in a transaction because it will close the transaction
+        // see https://javascript.info/indexeddb#transactions-autocommit
+        const { key, hash, updatedAt } = await readOrCreateVaultKeyRecord(db, {
+          createKey: generateRandomKey,
+          logger
+        })
+
+        if (cancelled) return
+        await setKey({ key, hash, updatedAt }, { updateDb: false })
+      } catch (err) {
+        if (cancelled) return
+        logger.debug('key init: error: ' + err)
+        console.error('key init: error:', err)
+      }
+    }
+    keyInit()
+
+    return () => {
+      cancelled = true
+    }
+  }, [me?.id, db, generateRandomKey, setKey, logger])
+}
+
+function useDeleteLocalWallets () {
+  const { me } = useMe()
+
+  useEffect(() => {
+    if (!me?.id) return
+
+    // we used to store wallets locally so this makes sure we delete them if there are any left over
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith('wallet:'))
+      .filter((key) => key.split(':').length < 3 || key.endsWith(me.id))
+      .forEach((key) => window.localStorage.removeItem(key))
+  }, [me?.id])
+}
+
+// wallet actions
+export const SET_KEY = 'SET_KEY'
+export const WRONG_KEY = 'WRONG_KEY'
+export const KEY_MATCH = 'KEY_MATCH'
+export const KEY_STORAGE_UNAVAILABLE = 'KEY_STORAGE_UNAVAILABLE'
+export const KEY_SYNC_START = 'KEY_SYNC_START'
+export const KEY_SYNC_END = 'KEY_SYNC_END'
+
+function walletsReducer (state, action) {
+  switch (action.type) {
+    case SET_KEY:
+      return {
+        ...state,
+        key: action.key,
+        keyHash: action.hash,
+        keyUpdatedAt: action.updatedAt
+      }
+    case WRONG_KEY:
+      return {
+        ...state,
+        keyError: WRONG_KEY
+      }
+    case KEY_MATCH:
+      return {
+        ...state,
+        keyError: null
+      }
+    case KEY_STORAGE_UNAVAILABLE:
+      return {
+        ...state,
+        keyError: KEY_STORAGE_UNAVAILABLE
+      }
+    case KEY_SYNC_START:
+      return {
+        ...state,
+        keySyncInProgress: true
+      }
+    case KEY_SYNC_END:
+      return {
+        ...state,
+        keySyncInProgress: false
+      }
+    default:
+      return state
+  }
+}

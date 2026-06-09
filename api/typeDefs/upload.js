@@ -21,6 +21,6 @@ export default gql`
   }
 
   extend type Mutation {
-    getSignedPOST(type: String!, size: Int!, width: Int!, height: Int!, avatar: Boolean): SignedPost!
+    getSignedPOST(type: String!, size: Int!, width: Int!, height: Int!, avatar: Boolean, subName: String): SignedPost!
   }
 `

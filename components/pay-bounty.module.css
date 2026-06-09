@@ -2,3 +2,9 @@
     color: var(--bs-success);
     margin-left: 1rem;
 }
+
+.noWallet {
+    color: var(--theme-grey);
+    margin-left: 1rem;
+    font-style: italic;
+}

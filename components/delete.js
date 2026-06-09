@@ -1,4 +1,4 @@
-import { useMutation } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
 import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
@@ -30,7 +30,8 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
             url: () => deleteItem.url,
             pollCost: () => deleteItem.pollCost,
             deletedAt: () => deleteItem.deletedAt
-          }
+          },
+          optimistic: true
         })
       }
     }

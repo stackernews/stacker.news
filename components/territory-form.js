@@ -1,26 +1,57 @@
 import AccordianItem from './accordian-item'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
-import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
+import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
+import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
-import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useApolloClient, useLazyQuery } from '@apollo/client/react'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, DOMAIN_BETA_IDS, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { territorySchema } from '@/lib/validate'
 import { useMe } from './me'
 import Info from './info'
 import { abbrNum } from '@/lib/format'
 import { purchasedType } from '@/lib/territory'
 import { SUB } from '@/fragments/subs'
-import { usePaidMutation } from './use-paid-mutation'
-import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/paidAction'
+import TerritoryBranding, { useBranding } from './territory-branding'
+import Link from 'next/link'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { UNARCHIVE_TERRITORY, UPSERT_SUB } from '@/fragments/payIn'
+import LinkExternal from '@/svgs/link-external.svg'
+import { isAbortError } from '@/lib/error'
+
+function SatFilterRanges () {
+  const { values } = useFormikContext()
+  const baseCost = values.baseCost || 1
+
+  return (
+    <Range
+      label={
+        <div className='d-flex align-items-center'>posts sat filter
+          <Info>
+            <ul>
+              <li>minimum net investment (cost + zaps + boost - downzaps) for posts to appear in lit/top</li>
+              <li>must be at least the post cost ({baseCost} sats)</li>
+            </ul>
+          </Info>
+        </div>
+      }
+      name='postsSatsFilter'
+      min={baseCost}
+      max={1000}
+      suffix=' sats'
+    />
+  )
+}
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
   const client = useApolloClient()
   const { me } = useMe()
-  const [upsertSub] = usePaidMutation(UPSERT_SUB)
-  const [unarchiveTerritory] = usePaidMutation(UNARCHIVE_TERRITORY)
+  const branding = useBranding()
+  const [upsertSub] = usePayInMutation(UPSERT_SUB)
+  const [unarchiveTerritory] = usePayInMutation(UNARCHIVE_TERRITORY)
 
   const schema = territorySchema({ client, me, sub })
 
@@ -30,8 +61,12 @@ export default function TerritoryForm ({ sub }) {
     // never show "territory archived" warning during edits
     if (sub) return
     const name = e.target.value
-    const { data } = await fetchSub({ variables: { sub: name } })
-    setArchived(data?.sub?.status === 'STOPPED')
+    try {
+      const { data } = await fetchSub({ variables: { sub: name } })
+      setArchived(data?.sub?.status === 'STOPPED')
+    } catch (err) {
+      !isAbortError(err) && console.error(err)
+    }
   }, [fetchSub, setArchived])
 
   const onSubmit = useCallback(
@@ -91,10 +126,12 @@ export default function TerritoryForm ({ sub }) {
           name: sub?.name || '',
           desc: sub?.desc || '',
           baseCost: sub?.baseCost || 10,
+          replyCost: sub?.replyCost || 1,
+          // Default sat filter to match the post cost
+          postsSatsFilter: sub?.postsSatsFilter ?? sub?.baseCost ?? 10,
           postTypes: sub?.postTypes || POST_TYPES,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
-          moderated: sub?.moderated || false,
           nsfw: sub?.nsfw || false
         }}
         schema={schema}
@@ -122,12 +159,13 @@ export default function TerritoryForm ({ sub }) {
             </div>
           )}
         />
-        <MarkdownInput
+        <SNInput
           label='description'
           name='desc'
-          maxLength={MAX_TERRITORY_DESC_LENGTH}
+          lengthOptions={{ maxLength: MAX_TERRITORY_DESC_LENGTH, show: true }}
           required
           minRows={3}
+          topLevel
         />
         <Input
           label='post cost'
@@ -197,7 +235,7 @@ export default function TerritoryForm ({ sub }) {
             >
               <Checkbox
                 type='radio'
-                label='100k sats/month'
+                label={`${abbrNum(TERRITORY_PERIOD_COST('MONTHLY'))} sats/month`}
                 value='MONTHLY'
                 name='billingType'
                 id='monthly-checkbox'
@@ -206,7 +244,7 @@ export default function TerritoryForm ({ sub }) {
               />
               <Checkbox
                 type='radio'
-                label='1m sats/year'
+                label={`${abbrNum(TERRITORY_PERIOD_COST('YEARLY'))} sats/year`}
                 value='YEARLY'
                 name='billingType'
                 id='yearly-checkbox'
@@ -215,7 +253,7 @@ export default function TerritoryForm ({ sub }) {
               />
               <Checkbox
                 type='radio'
-                label='3m sats once'
+                label={`${abbrNum(TERRITORY_PERIOD_COST('ONCE'))} sats once`}
                 value='ONCE'
                 name='billingType'
                 id='once-checkbox'
@@ -234,22 +272,14 @@ export default function TerritoryForm ({ sub }) {
           header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
           body={
             <>
-              <BootstrapForm.Label>moderation</BootstrapForm.Label>
-              <Checkbox
-                inline
-                label={
-                  <div className='d-flex align-items-center'>enable moderation
-                    <Info>
-                      <ol>
-                        <li>Outlaw posts and comments with a click</li>
-                        <li>Your territory will get a <Badge bg='secondary'>moderated</Badge> badge</li>
-                      </ol>
-                    </Info>
-                  </div>
-          }
-                name='moderated'
-                groupClassName='ms-1'
+              <Input
+                label='reply cost'
+                name='replyCost'
+                type='number'
+                required
+                append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
               />
+              <SatFilterRanges />
               <BootstrapForm.Label>nsfw</BootstrapForm.Label>
               <Checkbox
                 inline
@@ -278,6 +308,11 @@ export default function TerritoryForm ({ sub }) {
           />
         </div>
       </Form>
+      {DOMAIN_BETA_IDS.includes(Number(me?.id)) &&
+        <>
+          {sub && !branding && <TerritoryBranding sub={sub} />}
+          {sub && branding && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain and branding settings on stacker.news <LinkExternal width={16} height={16} /></Link>}
+        </>}
     </FeeButtonProvider>
   )
 }

@@ -1,5 +1,7 @@
 import '@/styles/globals.scss'
-import { ApolloProvider, gql } from '@apollo/client'
+import '@/styles/text.scss'
+import { gql } from '@apollo/client'
+import { ApolloProvider } from '@apollo/client/react'
 import { MeProvider } from '@/components/me'
 import PlausibleProvider from 'next-plausible'
 import getApolloClient from '@/lib/apollo.js'
@@ -7,24 +9,27 @@ import { PriceProvider } from '@/components/price'
 import { BlockHeightProvider } from '@/components/block-height'
 import Head from 'next/head'
 import { useRouter } from 'next/dist/client/router'
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { ShowModalProvider } from '@/components/modal'
 import ErrorBoundary from '@/components/error-boundary'
-import { LightningProvider } from '@/components/lightning'
+import { AnimationProvider } from '@/components/animation'
 import { ToastProvider } from '@/components/toast'
 import { ServiceWorkerProvider } from '@/components/serviceworker'
 import { SSR } from '@/lib/constants'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import { LoggerProvider } from '@/components/logger'
 import { ChainFeeProvider } from '@/components/chain-fee.js'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
-import { WebLnProvider } from '@/wallets/webln/client'
-import { AccountProvider } from '@/components/account'
-import { WalletsProvider } from '@/wallets/index'
+import { BrandingProvider } from '@/components/territory-branding'
+import { WalletsProvider } from '@/wallets/client/hooks'
+import FaviconProvider from '@/components/favicon'
+import { CookiesProvider } from '@/components/use-cookie'
+import { patchDOMTranslations } from '@/lib/patch-dom-translate'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
+
+patchDOMTranslations()
 
 NProgress.configure({
   showSpinner: false
@@ -36,8 +41,7 @@ function writeQuery (client, apollo, data) {
       query: gql`${apollo.query}`,
       data,
       variables: apollo.variables,
-      overwrite: SSR,
-      broadcast: false
+      overwrite: SSR
     })
   }
 }
@@ -46,9 +50,17 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
+  const shouldShowProgressBar = useCallback((newPathname, shallow) => {
+    return !shallow || newPathname !== router.pathname
+  }, [router.pathname])
+
   useEffect(() => {
-    const nprogressStart = (_, { shallow }) => !shallow && NProgress.start()
-    const nprogressDone = (_, { shallow }) => !shallow && NProgress.done()
+    const nprogressStart = (newPathname, { shallow }) => {
+      shouldShowProgressBar(newPathname, shallow) && NProgress.start()
+    }
+    const nprogressDone = (newPathname, { shallow }) => {
+      NProgress.done()
+    }
 
     router.events.on('routeChangeStart', nprogressStart)
     router.events.on('routeChangeComplete', nprogressDone)
@@ -77,7 +89,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       router.events.off('routeChangeComplete', nprogressDone)
       router.events.off('routeChangeError', nprogressDone)
     }
-  }, [router.asPath, props?.apollo])
+  }, [router.asPath, props?.apollo, shouldShowProgressBar])
 
   useEffect(() => {
     // hack to disable ios pwa prompt for https://github.com/stackernews/stacker.news/issues/953
@@ -91,7 +103,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, blockHeight, chainFee, ...otherProps } = props
+  const { apollo, ssrData, ssrPublicCookies, me, price, blockHeight, chainFee, branding, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -102,17 +114,17 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
         <meta name='viewport' content='initial-scale=1.0, width=device-width, viewport-fit=cover' />
       </Head>
       <ErrorBoundary>
-        <PlausibleProvider domain='stacker.news' trackOutboundLinks>
+        <PlausibleProvider>
           <ApolloProvider client={client}>
-            <MeProvider me={me}>
-              <WalletsProvider>
-                <HasNewNotesProvider>
-                  <LoggerProvider>
-                    <WebLnProvider>
-                      <ServiceWorkerProvider>
-                        <AccountProvider>
+            <BrandingProvider branding={branding}>
+              <MeProvider me={me}>
+                <CookiesProvider ssrPublicCookies={ssrPublicCookies}>
+                  <WalletsProvider>
+                    <HasNewNotesProvider>
+                      <FaviconProvider>
+                        <ServiceWorkerProvider>
                           <PriceProvider price={price}>
-                            <LightningProvider>
+                            <AnimationProvider>
                               <ToastProvider>
                                 <ShowModalProvider>
                                   <BlockHeightProvider blockHeight={blockHeight}>
@@ -125,15 +137,15 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                                   </BlockHeightProvider>
                                 </ShowModalProvider>
                               </ToastProvider>
-                            </LightningProvider>
+                            </AnimationProvider>
                           </PriceProvider>
-                        </AccountProvider>
-                      </ServiceWorkerProvider>
-                    </WebLnProvider>
-                  </LoggerProvider>
-                </HasNewNotesProvider>
-              </WalletsProvider>
-            </MeProvider>
+                        </ServiceWorkerProvider>
+                      </FaviconProvider>
+                    </HasNewNotesProvider>
+                  </WalletsProvider>
+                </CookiesProvider>
+              </MeProvider>
+            </BrandingProvider>
           </ApolloProvider>
         </PlausibleProvider>
       </ErrorBoundary>

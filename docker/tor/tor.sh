@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function initialize { 
+function initialize {
     ####################### generate and save control password ########################
     cp -f /etc/tor/torrc.template /tordata/torrc
     TOR_PASSWORD=""
@@ -21,9 +21,9 @@ function mergeServices {
     cat /services.conf >> /tordata/torrc
 }
 
-# There is a circular dependency between tor and stacker_lnd:
-#  <-> tor needs stacker_lnd to be running to resolve the hidden service target
-#  <-> stacker_lnd needs to wait for tor to start and generate the hidden service address
+# There is a circular dependency between tor and lnd:
+#  <-> tor needs lnd to be running to resolve the hidden service target
+#  <-> lnd needs to wait for tor to start and generate the hidden service address
 # Afaik there isn't an "official" solution for this issue.
 #
 # This workaround starts tor the first time without the lnd hidden service
@@ -47,7 +47,7 @@ then
         exit 0
     fi
 else
-    # Step 1: we start tor with a fake hidden service that points to port 8080, 
+    # Step 1: we start tor with a fake hidden service that points to port 8080,
     # just to get it to generate the hidden service data, then we kill it immediately after
     echo "Initializing..."
     initialize
@@ -58,7 +58,7 @@ else
 
     # debug
     ls /tordata/hidden_service/
-    
+
     # Step 2: we merge the service configuration and start tor again
     echo "Starting tor..."
     initialize

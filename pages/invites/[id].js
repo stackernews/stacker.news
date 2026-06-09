@@ -2,14 +2,13 @@ import Login from '@/components/login'
 import { getProviders } from 'next-auth/react'
 import { getServerSession } from 'next-auth/next'
 import models from '@/api/models'
-import serialize from '@/api/resolvers/serial'
 import { gql } from '@apollo/client'
-import { INVITE_FIELDS } from '@/fragments/invites'
+import { PUBLIC_INVITE_FIELDS } from '@/fragments/invites'
 import getSSRApolloClient from '@/api/ssrApollo'
 import Link from 'next/link'
 import { CenterLayout } from '@/components/layout'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
-import { notifyInvite } from '@/lib/webPush'
+import pay from '@/api/payIn'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
   const session = await getServerSession(req, res, getAuthOptions(req))
@@ -17,10 +16,10 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
   const client = await getSSRApolloClient({ req, res })
   const { data } = await client.query({
     query: gql`
-      ${INVITE_FIELDS}
+      ${PUBLIC_INVITE_FIELDS}
       {
         invite(id: "${id}") {
-          ...InviteFields
+          ...PublicInviteFields
         }
       }`
   })
@@ -36,12 +35,10 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
     try {
       // attempt to send gift
       // catch any errors and just ignore them for now
-      await serialize(
-        models.$queryRawUnsafe('SELECT invite_drain($1::INTEGER, $2::TEXT)', session.user.id, id),
-        { models }
-      )
-      const invite = await models.invite.findUnique({ where: { id } })
-      notifyInvite(invite.userId)
+      await pay('INVITE_GIFT', {
+        id,
+        userId: session.user.id
+      }, { models, me: { id: parseInt(data.invite.user.id) } })
     } catch (e) {
       console.log(e)
     }
@@ -66,14 +63,14 @@ function InviteHeader ({ invite }) {
   let Inner
   if (invite.revoked) {
     Inner = () => <div className='text-danger'>this invite link expired</div>
-  } else if ((invite.limit && invite.limit <= invite.invitees.length) || invite.poor) {
-    Inner = () => <div className='text-danger'>this invite link has no more sats</div>
+  } else if (invite.full || invite.poor) {
+    Inner = () => <div className='text-danger'>this invite link has no more cowboy credits</div>
   } else {
     Inner = () => (
       <div>
-        Get <span className='text-success'>{invite.gift} free sats</span> from{' '}
+        Get <span className='text-success'>{invite.gift} cowboy credits</span> from{' '}
         <Link href={`/${invite.user.name}`}>@{invite.user.name}</Link>{' '}
-        when you sign up today
+        when you sign up
       </div>
     )
   }

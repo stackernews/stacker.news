@@ -1,8 +1,10 @@
 import UpBolt from '@/svgs/bolt.svg'
 import styles from './upvote.module.css'
-import { gql, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import ActionTooltip from './action-tooltip'
-import ItemAct, { ZapUndoController, useZap } from './item-act'
+import ItemAct, { ZapUndoController } from './item-act'
+import { useZap } from './use-zap'
 import { useMe } from './me'
 import getColor from '@/lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -103,22 +105,18 @@ export const nextTip = (meSats, { tipDefault, turboTipping, tipRandom, tipRandom
   return defaultTipIncludingRandom({ tipDefault, tipRandom, tipRandomMin, tipRandomMax })
 }
 
-export default function UpVote ({ item, className }) {
+export default function UpVote ({ item, className, collapsed }) {
   const showModal = useShowModal()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
   const { me } = useMe()
-  const [hover, setHover] = useState(false)
   const [setWalkthrough] = useMutation(
     gql`
       mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
         setWalkthrough(upvotePopover: $upvotePopover, tipPopover: $tipPopover)
       }`
   )
-
-  const [controller, setController] = useState(null)
-  const [pending, setPending] = useState(0)
 
   const setVoteShow = useCallback((yes) => {
     if (!me) return
@@ -148,10 +146,16 @@ export default function UpVote ({ item, className }) {
     }
   }, [me, tipShow, setWalkthrough])
 
-  const zap = useZap()
+  // debounced zap hook — zapPending is non-zero during undo window
+  const { zap, pending: zapPending, cancel: zapCancel } = useZap({ nextTip })
+  // separate state for long-press custom amount undo (ItemAct modal has its own undo flow)
+  const [longPressPending, setLongPressPending] = useState(0)
+  const [longPressController, setLongPressController] = useState(null)
+  // combined pending for bolt UI — either debounced undo or long-press undo
+  const pending = zapPending || longPressPending
 
-  const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
-    [item?.mine, item?.meForward, item?.deletedAt])
+  const disabled = useMemo(() => collapsed || item?.mine || item?.meForward || item?.deletedAt,
+    [collapsed, item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
     const meSats = (me ? item?.meSats : item?.meAnonSats) || 0
@@ -172,9 +176,14 @@ export default function UpVote ({ item, className }) {
     me, item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault,
     me?.privates?.tipRandom, me?.privates?.tipRandomMin, me?.privates?.tipRandomMax, pending])
 
-  const handleModalClosed = () => {
-    setHover(false)
-  }
+  // cancel any active undo (debounced or long-press)
+  const cancelAnyUndo = useCallback(() => {
+    if (zapPending) zapCancel()
+    if (longPressController) {
+      longPressController.abort()
+      setLongPressController(null)
+    }
+  }, [zapPending, zapCancel, longPressController])
 
   const handleLongPress = (e) => {
     if (!item) return
@@ -186,19 +195,21 @@ export default function UpVote ({ item, className }) {
 
     setTipShow(false)
 
+    // if any undo is active, cancel it and return
     if (pending) {
-      controller.abort()
-      setController(null)
+      cancelAnyUndo()
       return
     }
-    const c = new ZapUndoController({ onStart: (sats) => setPending(sats), onDone: () => setPending(0) })
-    setController(c)
+
+    // long-press opens custom amount modal with its own undo flow
+    const c = new ZapUndoController({ onStart: (sats) => setLongPressPending(sats), onDone: () => setLongPressPending(0) })
+    setLongPressController(c)
 
     showModal(onClose =>
-      <ItemAct onClose={onClose} item={item} abortSignal={c.signal} />, { onClose: handleModalClosed })
+      <ItemAct onClose={onClose} item={item} abortSignal={c.signal} />)
   }
 
-  const handleShortPress = async () => {
+  const handleShortPress = () => {
     if (me) {
       if (!item) return
 
@@ -213,29 +224,25 @@ export default function UpVote ({ item, className }) {
         setTipShow(true)
       }
 
+      // if any undo is active, cancel it
       if (pending) {
-        controller.abort()
-        setController(null)
+        cancelAnyUndo()
         return
       }
-      const c = new ZapUndoController({ onStart: (sats) => setPending(sats), onDone: () => setPending(0) })
-      setController(c)
 
-      await zap({ item, me, abortSignal: c.signal })
+      // synchronous — updates cache immediately, starts debounce timer
+      zap({ item, me })
     } else {
-      showModal(onClose => <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
+      showModal(onClose => <ItemAct onClose={onClose} item={item} />)
     }
   }
 
-  const style = useMemo(() => {
-    const fillColor = pending || hover ? nextColor : color
-    return meSats || hover || pending
-      ? {
-          fill: fillColor,
-          filter: `drop-shadow(0 0 6px ${fillColor}90)`
-        }
-      : undefined
-  }, [hover, pending, nextColor, color, meSats])
+  const style = useMemo(() => ({
+    '--hover-fill': nextColor,
+    '--hover-filter': `drop-shadow(0 0 6px ${nextColor}90)`,
+    '--fill': color,
+    '--filter': `drop-shadow(0 0 6px ${color}90)`
+  }), [color, nextColor])
 
   return (
     <div ref={ref} className='upvoteParent'>
@@ -244,13 +251,8 @@ export default function UpVote ({ item, className }) {
         onShortPress={handleShortPress}
       >
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
-          <div
-            className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}
-          >
+          <div className={classNames(disabled && styles.noSelfTips, styles.upvoteWrapper)}>
             <UpBolt
-              onPointerEnter={() => setHover(true)}
-              onMouseLeave={() => setHover(false)}
-              onTouchEnd={() => setHover(false)}
               width={26}
               height={26}
               className={classNames(styles.upvote,

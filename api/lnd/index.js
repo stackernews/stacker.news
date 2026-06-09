@@ -1,7 +1,11 @@
 import { cachedFetcher } from '@/lib/fetch'
-import { toPositiveNumber } from '@/lib/validate'
+import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
-import { getIdentity, getHeight, getWalletInfo, getNode } from 'ln-service'
+import { getPayOutBolt11FailureDetail } from '@/lib/pay-in'
+import { randomBytes } from 'crypto'
+import { chanNumber } from 'bolt07'
+import { once } from 'events'
+import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
 
 const lnd = global.lnd || authenticatedLndGrpc({
   cert: process.env.LND_CERT,
@@ -20,12 +24,94 @@ getWalletInfo({ lnd }, (err, result) => {
   console.log('LND GRPC connection successful')
 })
 
+// we create our own probe because estimateRouteFee is busted https://github.com/lightningnetwork/lnd/discussions/10427
+export async function estimateRouteFeeProbe ({ lnd, request, maxFeeMsat, timeoutSeconds, maxCltvDelta }) {
+  if (!request) {
+    throw new Error('Payment request is required')
+  }
+  const inv = parsePaymentRequest({ request })
+  const params = {
+    allow_self_payment: true,
+    amt_msat: inv.mtokens,
+    cancelable: true,
+    cltv_limit: maxCltvDelta ? toPositiveNumber(maxCltvDelta) : undefined,
+    dest: Buffer.from(inv.destination, 'hex'),
+    dest_custom_records: undefined,
+    dest_features: inv.features.map(n => n.bit),
+    fee_limit_msat: maxFeeMsat ? toPositiveNumber(maxFeeMsat) : undefined,
+    final_cltv_delta: inv.cltv_delta,
+    last_hop_pubkey: undefined,
+    max_parts: 1,
+    max_shard_size_msat: undefined,
+    no_inflight_updates: true,
+    outgoing_chan_id: undefined,
+    outgoing_chan_ids: [],
+    payment_addr: Buffer.from(inv.payment, 'hex'),
+    payment_hash: randomBytes(32), // this is what makes it a probe
+    payment_request: undefined,
+    route_hints: inv.routes?.map(r => ({
+      hop_hints: r.slice(1).map((h, i) => ({
+        fee_base_msat: h.base_fee_mtokens,
+        fee_proportional_millionths: h.fee_rate,
+        chan_id: chanNumber({ channel: h.channel }).number,
+        cltv_expiry_delta: h.cltv_delta,
+        node_id: r[i].public_key
+      }))
+    })) ?? [],
+    time_pref: 1,
+    timeout_seconds: timeoutSeconds ? toPositiveNumber(timeoutSeconds) : undefined
+  }
+  const sub = lnd.router.sendPaymentV2(params)
+  const [probe] = await once(sub, 'data')
+
+  // a successful probe returns FAILURE_REASON_INCORRECT_PAYMENT_DETAILS
+  if (probe.failure_reason === 'FAILURE_REASON_INCORRECT_PAYMENT_DETAILS') {
+    // there's only one htlc in the probe, because max_parts is 1
+    const { htlcs: [{ route: { total_fees_msat: routingFeeMsat, total_time_lock: timeLockDelay } }] } = probe
+    return {
+      routingFeeMsat: toPositiveNumber(routingFeeMsat),
+      // subtract the cltv delta of the invoice to emulate estimateRouteFee
+      timeLockDelay: toPositiveNumber(timeLockDelay - inv.cltv_delta)
+    }
+  }
+
+  throw new Error(`Unable to estimate route: ${probe.failure_reason || 'unknown reason'}`)
+}
+
 export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
+  // if the payment request includes us as route hint, we needd to use the destination and amount
+  // otherwise, this will fail with a self-payment error
+  if (request) {
+    const inv = parsePaymentRequest({ request })
+    const ourPubkey = await getOurPubkey({ lnd })
+    if (Array.isArray(inv.routes)) {
+      for (const route of inv.routes) {
+        if (Array.isArray(route)) {
+          for (const hop of route) {
+            if (hop.public_key === ourPubkey) {
+              console.log('estimateRouteFee ignoring self-payment route')
+              request = false
+              break
+            }
+          }
+        }
+      }
+    }
+    // XXX we don't use the payment request anymore because it causes the channel to be marked as unusable
+    // and the real payment fails see: https://github.com/lightningnetwork/lnd/discussions/10427
+    // without the request, the estimate is a statistical estimate based on past payments
+    // NOTE: this should be fixed in v0.20.1-beta
+    request = false
+  }
+
   return await new Promise((resolve, reject) => {
     const params = {}
+
     if (request) {
+      console.log('estimateRouteFee using payment request')
       params.payment_request = request
     } else {
+      console.log('estimateRouteFee using destination and amount')
       params.dest = Buffer.from(destination, 'hex')
       params.amt_sat = tokens ? toPositiveNumber(tokens) : toPositiveNumber(BigInt(mtokens) / BigInt(1e3))
     }
@@ -35,17 +121,11 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
       timeout
     }, (err, res) => {
       if (err) {
-        if (res?.failure_reason) {
-          reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
-        } else {
-          reject(err)
-        }
-        return
+        return reject(err)
       }
 
-      if (res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
-        reject(new Error('Unable to estimate route, excessive values: ' + JSON.stringify(res)))
-        return
+      if (res.failure_reason !== 'FAILURE_REASON_NONE' || res.routing_fee_msat < 0 || res.time_lock_delay <= 0) {
+        return reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
       }
 
       resolve({
@@ -88,32 +168,22 @@ export function getPaymentFailureStatus (withdrawal) {
     throw new Error('withdrawal is not failed')
   }
 
-  if (withdrawal?.failed.is_insufficient_balance) {
-    return {
-      status: 'INSUFFICIENT_BALANCE',
-      message: 'you didn\'t have enough sats'
-    }
-  } else if (withdrawal?.failed.is_invalid_payment) {
-    return {
-      status: 'INVALID_PAYMENT',
-      message: 'invalid payment'
-    }
-  } else if (withdrawal?.failed.is_pathfinding_timeout) {
-    return {
-      status: 'PATHFINDING_TIMEOUT',
-      message: 'no route found'
-    }
-  } else if (withdrawal?.failed.is_route_not_found) {
-    return {
-      status: 'ROUTE_NOT_FOUND',
-      message: 'no route found'
-    }
+  const failure = status => ({
+    status,
+    message: getPayOutBolt11FailureDetail(status).message
+  })
+
+  if (withdrawal?.failed?.is_insufficient_balance) {
+    return failure('INSUFFICIENT_BALANCE')
+  } else if (withdrawal?.failed?.is_invalid_payment) {
+    return failure('INVALID_PAYMENT')
+  } else if (withdrawal?.failed?.is_pathfinding_timeout) {
+    return failure('PATHFINDING_TIMEOUT')
+  } else if (withdrawal?.failed?.is_route_not_found) {
+    return failure('ROUTE_NOT_FOUND')
   }
 
-  return {
-    status: 'UNKNOWN_FAILURE',
-    message: 'unknown failure'
-  }
+  return failure('UNKNOWN_FAILURE')
 }
 
 export const getBlockHeight = cachedFetcher(async function fetchBlockHeight ({ lnd, ...args }) {
@@ -159,5 +229,17 @@ export const getNodeSockets = cachedFetcher(async function fetchNodeSockets ({ l
     return publicKey
   }
 })
+
+export async function getPaymentOrNotSent ({ id, lnd }) {
+  try {
+    return await getPayment({ id, lnd })
+  } catch (err) {
+    if (err[1] === 'SentPaymentNotFound') {
+      return { notSent: true, is_failed: true }
+    } else {
+      throw err
+    }
+  }
+}
 
 export default lnd

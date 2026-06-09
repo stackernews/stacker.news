@@ -1,9 +1,9 @@
 import { useCallback } from 'react'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
-import { DEFAULT_CROSSPOSTING_RELAYS, crosspost } from '@/lib/nostr'
-import { callWithTimeout } from '@/lib/time'
-import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
+import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
+import { gql } from '@apollo/client'
+import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
 
@@ -18,7 +18,7 @@ function itemToContent (item, { includeTitle = true } = {}) {
     content += `\n\n${item.text}`
   }
 
-  content += `\n\noriginally posted at https://stacker.news/items/${item.id}`
+  content += `\n\nhttps://stacker.news/items/${item.id}`
 
   return content.trim()
 }
@@ -84,23 +84,10 @@ function bountyToEvent (item) {
 
 export default function useCrossposter () {
   const toaster = useToast()
+  const client = useApolloClient()
   const { data } = useQuery(SETTINGS)
   const userRelays = data?.settings?.privates?.nostrRelays || []
   const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...userRelays]
-
-  const [fetchItem] = useLazyQuery(
-    gql`
-      ${ITEM_FULL_FIELDS}
-      ${POLL_FIELDS}
-      query Item($id: ID!) {
-        item(id: $id) {
-          ...ItemFullFields
-          ...PollFields
-        }
-      }`, {
-      fetchPolicy: 'no-cache'
-    }
-  )
 
   const [updateNoteId] = useMutation(
     gql`
@@ -185,7 +172,19 @@ export default function useCrossposter () {
 
   const fetchItemData = async (itemId) => {
     try {
-      const { data } = await fetchItem({ variables: { id: itemId } })
+      const { data } = await client.query({
+        query: gql`
+        ${ITEM_FULL_FIELDS}
+        ${POLL_FIELDS}
+        query Item($id: ID!) {
+          item(id: $id) {
+            ...ItemFullFields
+            ...PollFields
+          }
+        }`,
+        variables: { id: itemId },
+        fetchPolicy: 'no-cache'
+      })
 
       return data?.item
     } catch (e) {
@@ -203,8 +202,9 @@ export default function useCrossposter () {
     if (!event) return { allSuccessful, noteId }
 
     do {
+      const nostr = new Nostr()
       try {
-        const result = await crosspost(event, failedRelays || relays)
+        const result = await nostr.crosspost(event, { relays: failedRelays || relays })
 
         if (result.error) {
           failedRelays = []
@@ -232,6 +232,8 @@ export default function useCrossposter () {
         // wait 2 seconds to show error then break
         await new Promise(resolve => setTimeout(resolve, 2000))
         return { allSuccessful, noteId }
+      } finally {
+        nostr.close()
       }
     } while (failedRelays.length > 0)
 
@@ -239,13 +241,6 @@ export default function useCrossposter () {
   }
 
   const handleCrosspost = useCallback(async (itemId) => {
-    try {
-      const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 10000)
-      if (!pubkey) throw new Error('failed to get pubkey')
-    } catch (e) {
-      throw new Error(`Nostr extension error: ${e.message}`)
-    }
-
     let noteId
 
     try {

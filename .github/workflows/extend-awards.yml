@@ -1,0 +1,60 @@
+name: extend-awards
+on:
+  pull_request_target:
+    types: [ closed ]
+    branches:
+      - master
+permissions:
+  pull-requests: write
+  contents: write
+  issues: read
+jobs:
+  if_merged:
+    if: |
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref != 'extend-awards/patch' &&
+      github.event.pull_request.user.login != 'huumn' &&
+      github.event.pull_request.user.login != 'ekzyis' &&
+      github.event.pull_request.user.login != 'Soxasora'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13' 
+      - run: pip install requests
+      - name: Check if branch exists
+        id: check_branch
+        run: |
+          git fetch origin extend-awards/patch || echo "Branch does not exist"
+          if git show-ref --verify --quiet refs/remotes/origin/extend-awards/patch; then
+            echo "exists=true" >> $GITHUB_ENV
+          else
+            echo "exists=false" >> $GITHUB_ENV
+          fi
+      - name: Checkout to existing branch
+        if: env.exists == 'true'
+        run: |
+          git checkout extend-awards/patch
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+      - run: python extend-awards.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+      - name: Commit changes and push to existing branch
+        if: env.exists == 'true'
+        run: |
+          git commit -am "Extending awards.csv" || exit 0
+          git push origin extend-awards/patch
+      - uses: peter-evans/create-pull-request@v7
+        if: env.exists == 'false'
+        with:
+          add-paths: awards.csv
+          branch: extend-awards/patch
+          commit-message: Extending awards.csv
+          title: Extending awards.csv
+          body: One or more PR's were merged that solve an issue(s) and awards.csv should be extended. Remember to delete the branch after merging.
+          delete-branch: true

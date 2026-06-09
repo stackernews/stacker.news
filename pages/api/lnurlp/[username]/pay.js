@@ -1,14 +1,13 @@
 import models from '@/api/models'
-import lnd from '@/api/lnd'
-import { createInvoice } from 'ln-service'
-import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescriptionHash } from '@/lib/lnurl'
-import serialize from '@/api/resolvers/serial'
+import { lnurlPayMetadata } from '@/lib/lnurl'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
-import { datePivot } from '@/lib/time'
-import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
-import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
+import { LNURLP_COMMENT_MAX_LENGTH } from '@/lib/constants'
+import { formatMsats, toPositiveBigInt } from '@/lib/format'
 import assertGofacYourself from '@/api/resolvers/ofac'
+import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
+import { walletLogger } from '@/wallets/server'
+import pay from '@/api/payIn'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -16,10 +15,19 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
+  if (!amount || amount < 1000) {
+    return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
+  }
+
+  const logger = walletLogger({ models, userId: user.id })
+  logger.info(`${user.name}@stacker.news payment attempt`, { amount: formatMsats(amount), nostr, comment })
+    .catch(err => console.error('failed to write lnurl payment attempt log:', err))
+
   try {
     await assertGofacYourself({ models, headers })
     // if nostr, decode, validate sig, check tags, set description hash
-    let description, descriptionHash, noteStr
+    let { description, descriptionHash } = lnurlPayMetadata(username)
+    let noteStr
     if (nostr) {
       noteStr = decodeURIComponent(nostr)
       const note = JSON.parse(noteStr)
@@ -30,23 +38,19 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       // If there is an amount tag, it MUST be equal to the amount query parameter
       const eventAmount = note.tags?.find(t => t[0] === 'amount')?.[1]
       if (schnorr.verify(note.sig, note.id, note.pubkey) && hasPTag && hasETag && (!eventAmount || Number(eventAmount) === Number(amount))) {
-        description = user.hideInvoiceDesc ? undefined : 'zap'
+        // override description hash
         descriptionHash = createHash('sha256').update(noteStr).digest('hex')
       } else {
         res.status(400).json({ status: 'ERROR', reason: 'invalid NIP-57 note' })
         return
       }
-    } else {
-      description = user.hideInvoiceDesc ? undefined : `Funding @${username} on stacker.news`
-      descriptionHash = lnurlPayDescriptionHashForUser(username)
     }
 
-    if (!amount || amount < 1000) {
-      return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
-    }
-
-    if (comment && comment.length > LNURLP_COMMENT_MAX_LENGTH) {
-      return res.status(400).json({ status: 'ERROR', reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length` })
+    if (comment?.length > LNURLP_COMMENT_MAX_LENGTH) {
+      return res.status(400).json({
+        status: 'ERROR',
+        reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length`
+      })
     }
 
     let parsedPayerData
@@ -55,7 +59,10 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
         parsedPayerData = JSON.parse(payerData)
       } catch (err) {
         console.error('failed to parse payerdata', err)
-        return res.status(400).json({ status: 'ERROR', reason: 'Invalid JSON supplied for payerdata parameter' })
+        return res.status(400).json({
+          status: 'ERROR',
+          reason: 'Invalid JSON supplied for payerdata parameter'
+        })
       }
 
       try {
@@ -66,35 +73,30 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       }
 
       // Update description hash to include the passed payer data
-      const metadataStr = `${lnurlPayMetadataString(username)}${payerData}`
-      descriptionHash = lnurlPayDescriptionHash(metadataStr)
+      descriptionHash = createHash('sha256').update(lnurlPayMetadata(username).metadata + payerData).digest('hex')
     }
 
     // generate invoice
-    const expiresAt = datePivot(new Date(), { minutes: 5 })
-    const invoice = await createInvoice({
+    const { payInBolt11 } = await pay('PROXY_PAYMENT', {
+      msats: toPositiveBigInt(amount),
       description,
-      description_hash: descriptionHash,
-      lnd,
-      mtokens: amount,
-      expires_at: expiresAt
-    })
+      descriptionHash,
+      comment: comment || '',
+      lud18Data: parsedPayerData,
+      noteStr
+    }, { models, me: user })
 
-    await serialize(
-      models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.secret}::TEXT, ${invoice.request},
-        ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description},
-        ${comment || null}, ${parsedPayerData || null}::JSONB, ${INV_PENDING_LIMIT}::INTEGER,
-        ${USER_IDS_BALANCE_NO_LIMIT.includes(Number(user.id)) ? 0 : BALANCE_LIMIT_MSATS})`,
-      { models }
-    )
+    if (!payInBolt11) throw new Error('could not generate invoice')
 
     return res.status(200).json({
-      pr: invoice.request,
+      pr: payInBolt11.bolt11,
       routes: [],
-      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.id}`
+      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${payInBolt11.hash}`
     })
   } catch (error) {
     console.log(error)
-    res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice' })
+    logger.error(`${user.name}@stacker.news payment failed: ${error.message}`)
+      .catch(err => console.error('failed to write lnurl payment failure log:', err))
+    res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice to customer\'s attached wallet' })
   }
 }

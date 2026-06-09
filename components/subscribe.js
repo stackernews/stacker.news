@@ -1,4 +1,4 @@
-import { useMutation } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useToast } from './toast'
@@ -17,8 +17,28 @@ export default function SubscribeDropdownItem ({ item: { id, meSubscription } })
           id: `Item:${id}`,
           fields: {
             meSubscription: () => subscribeItem.meSubscription
-          }
+          },
+          optimistic: true
         })
+
+        const unsubscribed = !subscribeItem.meSubscription
+        if (!unsubscribed) return
+
+        const cacheState = cache.extract()
+        Object.keys(cacheState)
+          .filter(key => key.startsWith('Item:'))
+          .forEach(key => {
+            cache.modify({
+              id: key,
+              fields: {
+                meSubscription: (existing, { readField }) => {
+                  const path = readField('path')
+                  return !path || !path.includes(id) ? existing : false
+                }
+              },
+              optimistic: true
+            })
+          })
       }
     }
   )

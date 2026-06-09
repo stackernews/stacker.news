@@ -4,6 +4,12 @@ import BackArrow from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 import ActionDropdown from './action-dropdown'
 
+export class ModalClosedError extends Error {
+  constructor () {
+    super('modal closed')
+  }
+}
+
 export const ShowModalContext = createContext(() => null)
 
 export function ShowModalProvider ({ children }) {
@@ -109,6 +115,7 @@ export default function useModal () {
 
   const showModal = useCallback(
     (getContent, options) => {
+      document.activeElement?.blur()
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]

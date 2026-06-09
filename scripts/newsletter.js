@@ -1,8 +1,9 @@
 const { ApolloClient, InMemoryCache, HttpLink, gql } = require('@apollo/client')
+const { datePivot } = require('../lib/time.js')
 
 const ITEMS = gql`
-  query items ($sort: String, $when: String, $sub: String, $by: String) {
-    items (sort: $sort, when: $when, sub: $sub, by: $by) {
+  query items ($sort: String, $when: String, $sub: String, $by: String, $from: String, $to: String, $limit: Limit) {
+    items (sort: $sort, when: $when, sub: $sub, by: $by, from: $from, to: $to, limit: $limit) {
       cursor
       items {
         id
@@ -10,6 +11,7 @@ const ITEMS = gql`
         url
         ncomments
         sats
+        cost
         company
         status
         location
@@ -32,8 +34,8 @@ query TopCowboys($cursor: String) {
       name
       optional {
         streak
-        gunStreak
-        horseStreak
+        hasSendWallet
+        hasRecvWallet
       }
     }
     cursor
@@ -69,8 +71,8 @@ const abbrNum = n => {
 }
 
 const SEARCH = gql`
-query Search($q: String, $sort: String, $what: String, $when: String) {
-  search(q: $q, sort: $sort, what: $what, when: $when) {
+query Search($q: String, $sort: String, $what: String, $when: String, $from: String, $to: String) {
+  search(q: $q, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
     items {
       id
       title
@@ -79,6 +81,11 @@ query Search($q: String, $sort: String, $what: String, $when: String) {
   }
 }`
 
+const to = String(new Date(new Date().setHours(0, 0, 0, 0)).getTime())
+const from = String(datePivot(new Date(Number(to)), { days: -8 }).getTime())
+
+// we don't have bounties in the newsletter currently
+// eslint-disable-next-line no-unused-vars
 async function bountyWinner (q) {
   const WINNER = gql`
     query Item($id: ID!) {
@@ -94,7 +101,7 @@ async function bountyWinner (q) {
 
   const bounty = await client.query({
     query: SEARCH,
-    variables: { q: `${q} @sn`, sort: 'recent', what: 'posts', when: 'week' }
+    variables: { q: `${q} @sn`, sort: 'new', what: 'posts', when: 'custom', from, to }
   })
 
   const items = bounty.data.search.items.filter(i => i.bountyPaidTo?.length > 0)
@@ -114,7 +121,48 @@ async function bountyWinner (q) {
   }
 }
 
-async function getTopUsers ({ by, cowboys = false, includeHidden = false, count = 5, when = 'week' } = {}) {
+async function topComment (q) {
+  const TOP_COMMENT = gql`
+    query Item($id: ID!) {
+      item(id: $id) {
+        comments(sort: "top") {
+          comments {
+            text
+            sats
+            user {
+              name
+            }
+            imgproxyUrls
+          }
+        }
+      }
+    }`
+
+  const items = await client.query({
+    query: SEARCH,
+    variables: { q: `${q} @sn`, sort: 'new', what: 'posts', when: 'custom', from, to }
+  })
+
+  const post = items?.data.search.items?.length > 0 ? items.data.search.items[0] : null
+
+  if (!post) return
+
+  try {
+    const item = await client.query({
+      query: TOP_COMMENT,
+      variables: { id: post.id }
+    })
+
+    const topComment = item.data.item.comments.comments[0]
+
+    const winner = { ...topComment, image: Object.values(topComment.imgproxyUrls)[0]?.['640w'] }
+
+    return { item: post.id, winner }
+  } catch (e) {
+  }
+}
+
+async function getTopUsers ({ by, cowboys = false, includeHidden = false, count = 5, when = 'custom', from, to } = {}) {
   const accum = []
   let cursor = ''
   try {
@@ -126,7 +174,9 @@ async function getTopUsers ({ by, cowboys = false, includeHidden = false, count 
         variables = {
           ...variables,
           by,
-          when
+          when,
+          from,
+          to
         }
       }
       const result = await client.query({
@@ -143,34 +193,26 @@ async function getTopUsers ({ by, cowboys = false, includeHidden = false, count 
 }
 
 async function main () {
-  const { quote } = await import('../lib/md.js')
-
   const top = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'week' }
+    variables: { sort: 'top', when: 'custom', from, to, limit: 30 }
   })
 
   const meta = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'week', sub: 'meta' }
+    variables: { sort: 'top', when: 'custom', from, to, sub: 'meta' }
   })
 
   const ama = await client.query({
     query: ITEMS,
-    variables: { sort: 'top', when: 'week', sub: 'ama' }
+    variables: { sort: 'top', when: 'custom', from, to, sub: 'ama' }
   })
 
-  const boosts = await client.query({
-    query: ITEMS,
-    variables: { sort: 'top', when: 'forever', by: 'boost' }
-  })
+  const topMeme = await topComment('meme monday ~memes')
 
-  const topMeme = await bountyWinner('meme monday')
-  const topFact = await bountyWinner('fun fact')
-
-  const topCowboys = await getTopUsers({ cowboys: true })
-  const topStackers = await getTopUsers({ by: 'stacking' })
-  const topSpenders = await getTopUsers({ by: 'spent' })
+  const topCowboys = await getTopUsers({ cowboys: true, when: 'custom', from, to })
+  const topStackers = await getTopUsers({ by: 'stacked', when: 'custom', from, to })
+  const topSpenders = await getTopUsers({ by: 'spent', when: 'custom', from, to })
 
   process.stdout.write(
 `Happy Sat-urday Stackers,
@@ -180,14 +222,14 @@ Have a great weekend!
 ##### Top Posts
 ${top.data.items.items.map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
-    - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
+    - ${abbrNum(item.sats + item.boost + item.cost)} sats \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
 ##### Top AMAs
-${ama.data.items.items.slice(0, 3).map((item, i) =>
+${ama.data.items.items.slice(0, 10).map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
-    - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
+    - ${abbrNum(item.sats + item.boost + item.cost)} sats \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
-[**all AMAs**](https://stacker.news/~meta/top/posts/forever)
+[**all of this week's AMAs**](https://stacker.news/~ama/top/posts/week)
 
 ##### Don't miss
 ${top.data.items.items.map((item, i) =>
@@ -201,21 +243,14 @@ ${top.data.items.items.map((item, i) =>
 ${meta.data.items.items.slice(0, 10).map((item, i) =>
   `- [${item.title}](https://stacker.news/items/${item.id})\n`).join('')}
 
-[**all meta**](https://stacker.news/~meta/top/posts/week)
+[**all of this week's meta**](https://stacker.news/~meta/top/posts/week)
 
 -------
 
-##### Top Monday meme \\ ${abbrNum(topMeme?.winner.sats)} sats \\ [@${topMeme?.winner.user.name}](https://stacker.news/${topMeme?.winner.user.name})
-![](${topMeme?.winner.image})
+##### Top Monday meme
+![](${new URL(topMeme?.winner.image, 'https://imgprxy.stacker.news').href})
 
-[**all monday memes**](https://stacker.news/items/${topMeme?.bounty})
-
-------
-
-##### Top Friday fun fact \\ ${abbrNum(topFact?.winner.sats)} sats \\ [@${topFact?.winner.user.name}](https://stacker.news/${topFact?.winner.user.name})
-${topFact && quote(topFact?.winner.text)}
-
-[**all friday fun facts**](https://stacker.news/items/${topFact?.bounty})
+[**all monday memes**](https://stacker.news/items/${topMeme?.item})
 
 ------
 
@@ -240,22 +275,11 @@ ${topCowboys.map((user, i) =>
 
 ------
 
-##### Top Boosts
-${boosts.data.items.items.map((item, i) =>
-  item.subName === 'jobs'
-  ? `${i + 1}. [${item.title.trim()} \\ ${item.company} \\ ${item.location}${item.remote ? ' or Remote' : ''}](https://stacker.news/items/${item.id})\n`
-  : `${i + 1}. [${item.title.trim()}](https://stacker.news/items/${item.id})\n`
-  ).join('')}
-
-[**all jobs**](https://stacker.news/~jobs)
-
-------
-
 Yeehaw,
 Keyan
 A guy who works on Stacker News
 
-[Watch](https://www.youtube.com/@stackernews/live) or [Listen](https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2) to SN's top stories every week.
+[Watch](https://www.youtube.com/@stackernews/live) or [Listen to](https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2) or [Read in print](https://www.plebpoet.com/zines.html) SN's top stories every week.
 
 Get this newsletter sent to your email inbox by signing up [here](https://mail.stacker.news/subscription/form).`)
 }

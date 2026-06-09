@@ -1,14 +1,18 @@
 import { signIn } from 'next-auth/react'
 import styles from './login.module.css'
 import { Form, Input, SubmitButton } from '@/components/form'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer } from './lightning-auth'
 import { NostrAuthWithExplainer } from './nostr-auth'
-import LoginButton from './login-button'
+import LoginButton, { LoginWithNymButton } from './login-button'
 import { emailSchema } from '@/lib/validate'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
+import * as cookie from 'cookie'
+import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
+import Link from 'next/link'
+import useCookie from './use-cookie'
 
 export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
   const disabled = multiAuth
@@ -20,6 +24,7 @@ export function EmailLoginForm ({ text, callbackUrl, multiAuth }) {
       }}
       schema={emailSchema}
       onSubmit={async ({ email }) => {
+        window.sessionStorage.setItem('callback', JSON.stringify({ email, callbackUrl }))
         signIn('email', { email, callbackUrl, multiAuth })
       }}
     >
@@ -41,20 +46,62 @@ const authErrorMessages = {
   OAuthCallback: 'Error handling OAuth response. Try again or choose a different method.',
   OAuthCreateAccount: 'Could not create OAuth account. Try again or choose a different method.',
   EmailCreateAccount: 'Could not create Email account. Try again or choose a different method.',
-  Callback: 'Error in callback handler. Try again or choose a different method.',
+  Callback: 'Could not authenticate. Try again or choose a different method.',
   OAuthAccountNotLinked: 'This auth method is linked to another account. To link to this account first unlink the other account.',
   EmailSignin: 'Failed to send email. Make sure you entered your email address correctly.',
-  CredentialsSignin: 'Auth failed. Try again or choose a different method.',
+  CredentialsSignin: 'Could not authenticate. Try again or choose a different method.',
   default: 'Auth failed. Try again or choose a different method.'
 }
 
-export function authErrorMessage (error) {
-  return error && (authErrorMessages[error] ?? authErrorMessages.default)
+export function authErrorMessage (error, signin) {
+  if (!error) return null
+
+  const message = error && (authErrorMessages[error] ?? authErrorMessages.default)
+  // workaround for signin/signup awareness due to missing support from next-auth
+  if (signin) {
+    return (
+      <>
+        {message}
+        <br />
+        If you are new to Stacker News, please <Link className='fw-bold' href='/signup'>sign up</Link> first.
+      </>
+    )
+  }
+
+  return message
 }
 
-export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer }) {
-  const [errorMessage, setErrorMessage] = useState(authErrorMessage(error))
+const multiAuthProviders = ['Lightning', 'Nostr']
+
+export default function Login ({ providers, callbackUrl, multiAuth, error, text, Header, Footer, signin, domainData }) {
+  const [errorMessage, setErrorMessage] = useState(authErrorMessage(error, signin))
   const router = useRouter()
+  const [, setPointerCookie] = useCookie(MULTI_AUTH_POINTER)
+
+  // we can't signup if we're already logged in to another account
+  // for custom-domain signups, we first need to switch to anon.
+  useEffect(() => {
+    if (!signin && domainData) {
+      setPointerCookie(MULTI_AUTH_ANON, cookieOptions({ httpOnly: false }))
+    }
+  }, [signin, domainData, setPointerCookie])
+
+  multiAuth = typeof multiAuth === 'string' ? multiAuth === 'true' : !!multiAuth
+
+  // signup/signin awareness cookie
+  useEffect(() => {
+    // clear the cookie if we're on /signup instead of /login
+    // since the server will only check if the cookie is set, not its value
+    const options = cookieOptions({ httpOnly: false, maxAge: signin ? 86400 : 0 })
+    document.cookie = cookie.serialize('signin', signin, options)
+  }, [signin])
+
+  const sortedProviders = useMemo(() =>
+    // email first, remove lightning if signing up
+    Object.values(providers || {})
+      .sort((a, b) => a.name === 'Email' ? -1 : b.name === 'Email' ? 1 : 0)
+      .filter(provider => multiAuth ? multiAuthProviders.includes(provider.name) : signin || provider.name !== 'Lightning'),
+  [providers, signin, multiAuth])
 
   if (router.query.type === 'lightning') {
     return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} multiAuth={multiAuth} />
@@ -74,18 +121,26 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
           dismissible
         >{errorMessage}
         </Alert>}
-      {providers && Object.values(providers).map(provider => {
+      {/** custom domain auth sync button */}
+      {domainData && (
+        <LoginWithNymButton
+          className={styles.providerButton}
+          callbackUrl={callbackUrl}
+        />
+      )}
+      {sortedProviders.map(provider => {
         switch (provider.name) {
           case 'Email':
             return (
               <OverlayTrigger
+                key={provider.id}
                 placement='bottom'
                 overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
                 trigger={['hover', 'focus']}
               >
                 <div className='w-100' key={provider.id}>
-                  <div className='mt-2 text-center text-muted fw-bold'>or</div>
                   <EmailLoginForm text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
+                  <div className='my-3 mt-4 text-center text-muted fw-bold'>or</div>
                 </div>
               </OverlayTrigger>
             )
@@ -110,6 +165,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
           default:
             return (
               <OverlayTrigger
+                key={provider.id}
                 placement='bottom'
                 overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
                 trigger={['hover', 'focus']}
@@ -117,7 +173,6 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
                 <div className='w-100'>
                   <LoginButton
                     className={`mt-2 ${styles.providerButton}`}
-                    key={provider.id}
                     type={provider.id.toLowerCase()}
                     onClick={() => signIn(provider.id, { callbackUrl, multiAuth })}
                     text={`${text || 'Login'} with`}

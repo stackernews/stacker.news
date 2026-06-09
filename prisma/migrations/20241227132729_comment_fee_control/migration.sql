@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Sub" ADD COLUMN     "replyCost" INTEGER NOT NULL DEFAULT 1;

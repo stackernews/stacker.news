@@ -4,10 +4,12 @@ import Image from 'react-bootstrap/Image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Form, Input, SubmitButton } from './form'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client/react'
 import styles from './user-header.module.css'
+import navStyles from '@/styles/nav.module.css'
 import { useMe } from './me'
 import { NAME_MUTATION } from '@/fragments/users'
 import { QRCodeSVG } from 'qrcode.react'
@@ -28,8 +30,10 @@ import { hexToBech32 } from '@/lib/nostr'
 import NostrIcon from '@/svgs/nostr.svg'
 import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
-import { UNKNOWN_LINK_REL, MEDIA_URL } from '@/lib/constants'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import ItemPopover from './item-popover'
+
+const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -42,36 +46,30 @@ export default function UserHeader ({ user }) {
     <>
       <HeaderHeader user={user} />
       <Nav
-        className={styles.nav}
+        className={navStyles.nav}
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Link href={'/' + user.name} passHref legacyBehavior>
-            <Nav.Link eventKey='bio'>bio</Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href={'/' + user.name} eventKey='bio'>bio</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href={'/' + user.name + '/all'} passHref legacyBehavior>
-            <Nav.Link eventKey='items'>
-              {numWithUnits(user.nitems, {
-                abbreviate: false,
-                unitSingular: 'item',
-                unitPlural: 'items'
-              })}
-            </Nav.Link>
-          </Link>
+          <Nav.Link as={Link} href={'/' + user.name + '/all'} eventKey='items'>
+            {numWithUnits(user.nitems, {
+              abbreviate: false,
+              unitSingular: 'item',
+              unitPlural: 'items'
+            })}
+          </Nav.Link>
         </Nav.Item>
         {showTerritoriesTab && (
           <Nav.Item>
-            <Link href={'/' + user.name + '/territories'} passHref legacyBehavior>
-              <Nav.Link eventKey='territories'>
-                {numWithUnits(user.nterritories, {
-                  abbreviate: false,
-                  unitSingular: 'territory',
-                  unitPlural: 'territories'
-                })}
-              </Nav.Link>
-            </Link>
+            <Nav.Link as={Link} href={'/' + user.name + '/territories'} eventKey='territories'>
+              {numWithUnits(user.nterritories, {
+                abbreviate: false,
+                unitSingular: 'territory',
+                unitPlural: 'territories'
+              })}
+            </Nav.Link>
           </Nav.Item>
         )}
       </Nav>
@@ -178,7 +176,7 @@ function NymView ({ user, isMe, setEditting }) {
   const { me } = useMe()
   return (
     <div className='d-flex align-items-center mb-2'>
-      <div className={styles.username}>@{user.name}<Badges className='ms-2' user={user} badgeClassName='fill-grey' /></div>
+      <div className={styles.username}>@{user.name}<Badges showWalletBadges className='ms-2' user={user} badgeClassName='fill-grey' /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
       {!isMe && me && <NymActionDropdown user={user} />}
@@ -199,7 +197,13 @@ export function NymActionDropdown ({ user, className = 'ms-2' }) {
 }
 
 function HeaderNym ({ user, isMe }) {
+  const router = useRouter()
   const [editting, setEditting] = useState(false)
+
+  // if route changes, reset editting state
+  useEffect(() => {
+    setEditting(false)
+  }, [router.asPath])
 
   return editting
     ? <NymEdit user={user} setEditting={setEditting} />
@@ -229,8 +233,7 @@ function SocialLink ({ name, id }) {
     return (
       // eslint-disable-next-line
       <Link className={className} target='_blank' href={`https://twitter.com/${id}`} rel={UNKNOWN_LINK_REL}>
-        <TwitterIcon width={20} height={20} className='me-1' />
-        @{id}
+        <TwitterIcon width={20} height={20} className='me-1' />@{id}
       </Link>
     )
   }

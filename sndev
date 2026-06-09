@@ -7,6 +7,10 @@ if [ -f .env.local ]; then
   . ./.env.local
 fi
 
+logFilter() {
+  grep -v --line-buffered --color=never 'POST /api/graphql .*200'
+}
+
 docker__compose() {
   if [ ! -x "$(command -v docker)" ]; then
     echo "docker compose is not installed"
@@ -32,55 +36,31 @@ docker__exec() {
   DOCKER_CLI_HINTS=false command docker exec -i "$@"
 }
 
-docker__sn_lnd() {
-  t=$1
-  if [ "$t" = "-t" ]; then
-    shift
-  else
-    t=""
-  fi
-
-  docker__exec $t -u lnd sn_lnd lncli "$@"
-}
-
-docker__stacker_lnd() {
-  t=$1
-  if [ "$t" = "-t" ]; then
-    shift
-  else
-    t=""
-  fi
-
-  docker__exec $t -u lnd stacker_lnd lncli "$@"
-}
-
-docker__stacker_cln() {
-  t=$1
-  
-  if [ "$t" = "-t" ]; then
-    shift
-  else
-    t=""
-  fi
-
-  if [ "$1" = "get_onion" ]; then
-    onion="$(docker__exec $t stacker_cln cat /home/clightning/.tor/hidden_service/hostname | tr -d '[:space:]')"
-    echo "$onion:3010"
-    exit 0
-  fi
-
-  docker__exec $t -u clightning stacker_cln lightning-cli --regtest "$@"
-}
-
 sndev__start() {
   shift
 
   if [ $# -eq 0 ]; then
-    docker__compose up --build
-    exit 0
+    if command -v dmenu > /dev/null 2>&1;  then
+      # use dmenu if installed to select a profile
+      profiles=$(sndev__dmenu_profile)
+      if [ -z "$profiles" ]; then
+        exit 1
+      fi
+      COMPOSE_PROFILES="$profiles" docker__compose up --build
+    else
+      docker__compose up --build
+    fi
+  else
+    docker__compose up "$@"
   fi
+}
 
-  docker__compose up "$@"
+sndev__dmenu_profile() {
+  # dmenu allows to select multiple profiles with CTRL+Enter in which case it will
+  # immediately write the selected profile to stdout even if it was already selected
+  # so we use sort+uniq to remove duplicates
+  profiles="minimal payments wallets tor cln eclair nwc lnbits litd lndk lnpub email search images capture domains domains-caddy"
+  echo "$profiles" | tr ' ' '\n' | dmenu | sort | uniq | tr '\n' ',' | sed 's/,$//'
 }
 
 sndev__help_start() {
@@ -168,7 +148,7 @@ OPTIONS"
 sndev__logs() {
   shift
   if [ $# -eq 1 ]; then
-    docker__compose logs -t --tail=1000 -f "$@"
+    docker__compose logs -t --tail=1000 -f "$@" | logFilter
     exit 0
   fi
 
@@ -214,7 +194,7 @@ sndev__delete() {
   printf "this deletes containers, volumes, and orphans - are you sure? [y/N] "
   read -r answer
   if [ "$answer" = "y" ]; then
-    docker__compose down --volumes --remove-orphans
+    COMPOSE_PROFILES="*" docker__compose down --volumes --remove-orphans
   else
     echo "delete cancelled"
   fi
@@ -232,38 +212,41 @@ USAGE
   echo "$help"
 }
 
-sndev__fund_user() {
+sndev__set_balance() {
   shift
+
   if [ -z "$1" ]; then
-    echo "<nym> argument required"
-    sndev__help_fund_user
+    echo "NYM argument required"
+    sndev__help_set_balance
     exit 1
   fi
+
   if [ -z "$2" ]; then
-    echo "<msats> argument required"
-    sndev__help_fund_user
+    echo "MSATS argument required"
+    sndev__help_set_balance
     exit 2
   fi
-  re='^[0-9]+$'
-  if ! [[ $2 =~ $re ]]; then
-   echo "<msats> is not a positive integer"
-   sndev__help_fund_user
+
+  if ! echo "$2" | grep -qE "^[0-9]+$"; then
+   echo "MSATS argument is not a positive integer"
+   sndev__help_set_balance
    exit 3
   fi
+
   docker__exec db psql -U sn -d stackernews -q <<EOF
     UPDATE users set msats = $2 where name = '$1';
 EOF
 }
 
-sndev__help_fund_user() {
+sndev__help_set_balance() {
   help="
-fund a nym without using an LN invoice (local only)
+set the balance of a nym
 
 USAGE
-  $ sndev fund_user <nym> <msats>
+  $ sndev set_balance NYM MSATS
 
-  <nym> - the name of the user you want to fund
-  <msats> - the amount of millisatoshis to set the account to. Must be >= 0
+  NYM - the name of the user you want to set the balance of
+  MSATS - the amount of millisatoshis to set the account to. Must be >= 0
 "
 
   echo "$help"
@@ -271,7 +254,12 @@ USAGE
 
 sndev__fund() {
   shift
-  docker__stacker_lnd -t payinvoice "$@"
+  if [ "$1" = "--cln" ]; then
+    shift
+    sndev__cli -t cln pay "$@"
+  else
+    sndev__cli -t lnd payinvoice "$@"
+  fi
 }
 
 sndev__help_fund() {
@@ -279,46 +267,24 @@ help="
 pay a bolt11 for funding
 
 USAGE
-  $ sndev fund <bolt11> [OPTIONS]
+  $ sndev fund BOLT11 [OPTIONS]
+  $ sndev fund --cln BOLT11
 
 OPTIONS"
 
   echo "$help"
-  docker__stacker_lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
-}
-
-sndev__cln_fund() {
-  shift
-  docker__stacker_cln -t pay "$@"
-}
-
-sndev__help_cln_fund() {
-help="
-pay a bolt11 for funding with CLN
-
-USAGE
-  $ sndev cln_fund <bolt11>"
-  echo "$help"
-}
-
-sndev__cln_withdraw() {
-  shift
-  label=$(date +%s)
-  docker__stacker_cln -t invoice "$1" "$label" sndev | jq -r '.bolt11'
-}
-
-sndev__help_cln_withdraw() {
-help="
-create a bolt11 for withdrawal with CLN
-
-USAGE
-  $ sndev cln_withdraw <amount msats>"
-  echo "$help"
+  sndev__cli lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
 }
 
 sndev__withdraw() {
   shift
-  docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
+  if [ "$1" = "--cln" ]; then
+    shift
+    label=$(date +%s)
+    sndev__cli -t cln invoice "$1"sats "$label" sndev | jq -j '.bolt11'; echo
+  else
+    sndev__cli lnd addinvoice --amt "$@" | jq -j '.payment_request'; echo
+  fi
 }
 
 sndev__help_withdraw() {
@@ -326,12 +292,13 @@ sndev__help_withdraw() {
 create a bolt11 for withdrawal
 
 USAGE
-  $ sndev withdraw <amount sats> [OPTIONS]
+  $ sndev withdraw SATS [OPTIONS]
+  $ sndev withdraw --cln SATS
 
 OPTIONS"
 
   echo "$help"
-  docker__stacker_lnd addinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+(--amt|--amt_msat) value/'
+  sndev__cli lnd addinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+(--amt|--amt_msat) value/'
 }
 
 sndev__psql() {
@@ -371,6 +338,141 @@ COMMANDS"
   sndev__prisma --help | awk '/Commands/{y=1;next}y' | awk '!/^([\t ]+init)|([\t ]+studio)/' | sed -n '/Flags/q;p'
 }
 
+sndev__domains() {
+  shift
+  case $1 in
+  dns)
+    shift
+    if ./scripts/set-dnsmasq "$@" && { [ "$1" = "add" ] || [ "$1" = "remove" ]; }; then
+      echo "restarting dnsmasq to apply changes"
+      if docker ps | grep -q dnsmasq; then
+        docker__compose restart dnsmasq
+        exit 0
+      else
+        echo "dnsmasq is not running, you may need to start it manually"
+        exit 1
+      fi
+    fi
+    ;;
+  trust)
+    case $2 in
+      -h|--help|help)
+        sndev__help_domains_trust
+        exit 0
+        ;;
+    esac
+    sndev__domains_trust
+    ;;
+  # PLACEHOLDER for domain verification management
+  *)
+    sndev__help_domains
+    exit 0
+  esac
+}
+
+sndev__domains_trust() {
+  if ! docker ps --format '{{.Names}}' | grep -q '^caddy$'; then
+    echo "caddy is not running."
+    echo "start it with: ./sndev start (with the 'domains-caddy' profile in COMPOSE_PROFILES)"
+    exit 1
+  fi
+
+  ca_path="/data/caddy/pki/authorities/local/root.crt"
+  tmp_ca=$(mktemp -t sn-caddy-root.XXXXXX 2>/dev/null || mktemp /tmp/sn-caddy-root.XXXXXX)
+  if ! docker__exec caddy cat "$ca_path" > "$tmp_ca" 2>/dev/null; then
+    rm -f "$tmp_ca"
+    echo "could not read caddy local CA at $ca_path."
+    echo "the cert is generated lazily on the first https request — try hitting"
+    echo "any https://*.sndev URL once and re-run, or check 'sndev logs caddy'."
+    exit 1
+  fi
+
+  case "$(uname)" in
+    Darwin)
+      echo "installing caddy local CA into the macOS System keychain (requires sudo)"
+      sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$tmp_ca"
+      ;;
+    Linux)
+      if command -v update-ca-trust >/dev/null 2>&1; then
+        # Fedora / RHEL / CentOS / Rocky / Alma
+        dest=/etc/pki/ca-trust/source/anchors/sndev-caddy-root.crt
+        echo "installing caddy local CA into $dest (requires sudo)"
+        sudo cp "$tmp_ca" "$dest"
+        sudo update-ca-trust
+      elif command -v update-ca-certificates >/dev/null 2>&1; then
+        # Debian / Ubuntu / openSUSE
+        if [ -d /etc/pki/trust/anchors ]; then
+          dest=/etc/pki/trust/anchors/sndev-caddy-root.crt
+        else
+          dest=/usr/local/share/ca-certificates/sndev-caddy-root.crt
+        fi
+        echo "installing caddy local CA into $dest (requires sudo)"
+        sudo cp "$tmp_ca" "$dest"
+        sudo update-ca-certificates
+      elif command -v trust >/dev/null 2>&1; then
+        # Arch and other p11-kit based systems
+        echo "installing caddy local CA via 'trust anchor' (requires sudo)"
+        sudo trust anchor "$tmp_ca"
+      else
+        echo "no supported trust store tool found (update-ca-trust, update-ca-certificates, trust)."
+        echo "the CA cert is at: $tmp_ca"
+        echo "import it manually into your system trust store."
+        exit 1
+      fi
+      ;;
+    *)
+      echo "automatic install not supported on $(uname). the CA cert is at: $tmp_ca"
+      echo "import it into your system trust store manually."
+      exit 1
+      ;;
+  esac
+
+  rm -f "$tmp_ca"
+  echo
+  echo "trust installed. restart Chrome/Safari to pick up the new root CA."
+  echo "Firefox uses its own NSS trust store — import the cert manually via"
+  echo "Settings > Privacy & Security > Certificates > Import."
+}
+
+sndev__help_domains() {
+  help="
+manage custom domains
+
+USAGE
+  $ sndev domains [COMMAND]
+
+COMMANDS
+  dns             [add|remove|list]
+  trust           install the caddy local CA into the host trust store
+"
+
+  echo "$help"
+}
+
+sndev__help_domains_trust() {
+  help="
+install the caddy local CA into the host trust store
+
+USAGE
+  $ sndev domains trust
+
+DESCRIPTION
+  Pulls the auto-generated Caddy local root CA out of the running caddy
+  container and installs it into the host trust store, so HTTPS to any
+  custom dev domain (https://*.sndev, https://*.test, etc.) shows a green
+  padlock and is treated as a secure context — which
+  unlocks window.crypto.subtle, Secure cookies, and matches prod behavior.
+
+  One-time per machine. The CA is persisted in the caddy_data docker volume.
+
+REQUIREMENTS
+  - the 'domains-caddy' compose profile must be enabled and 'caddy' running
+  - sudo (to write to the system keychain on macOS / ca-certificates on Linux)
+"
+
+  echo "$help"
+}
+
 sndev__lint() {
   shift
   docker__exec -t -u apprunner app npm run lint
@@ -387,6 +489,30 @@ USAGE
   echo "$help"
 }
 
+sndev__test() {
+  shift
+
+  args=""
+  if [ $# -gt 0 ]; then
+    args="-- $@"
+  fi
+
+  docker__exec -t -u apprunner app npm run test $args
+}
+
+sndev__help_test() {
+  help="
+run tests
+
+USAGE
+  $ sndev test [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__exec -u apprunner app npm run test -- --help | awk '/Options:/{y=1;next}y'
+}
+
 sndev__compose() {
   shift
   docker__compose "$@"
@@ -396,45 +522,6 @@ sndev__help_compose() {
   docker__compose --help
 }
 
-sndev__sn_lndcli() {
-  shift
-  docker__sn_lnd -t "$@"
-}
-
-sndev__help_sn_lndcli() {
-  docker__sn_lnd --help
-}
-
-sndev__stacker_lndcli() {
-  shift
-  docker__stacker_lnd -t "$@"
-}
-
-sndev__help_stacker_lndcli() {
-  docker__stacker_lnd --help
-}
-
-sndev__stacker_clncli() {
-  shift
-  docker__stacker_cln -t "$@"
-}
-
-sndev__help_stacker_clncli() {
-  docker__stacker_cln help
-  echo
-  echo "EXTRA:"
-  echo "  get_onion          get the onion address"
-}
-
-sndev__stacker_litcli() {
-  shift
-  docker__exec -t litd litcli -n regtest --rpcserver localhost:8444 "$@"
-}
-
-sndev__help_stacker_litcli() {
-  docker__exec -t litd litcli -h
-}
-
 __sndev__pr_track() {
   json=$(curl -fsSH "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/stackernews/stacker.news/pulls/$1")
   case $(git config --get remote.origin.url) in
@@ -442,19 +529,35 @@ __sndev__pr_track() {
     *)       url=$(echo "$json" | grep -e '"ssh_url"' | head -n1 | sed -e 's/^.*"ssh_url":[[:space:]]*"//; s/",[[:space:]]*$//') ;;
   esac
 
-  push=$(git remote -v | grep -e "$url .*push" | head -n1) || true
-  if [ -n "$push" ]; then
-    remote=$(echo "$push" | cut -f 1)
-  else
-    remote=$(echo "$json" | grep -e '"login"' | head -n1 | sed -e 's/^.*"login":[[:space:]]*"//; s/",[[:space:]]*$//')
-    git remote remove "$remote" 1>/dev/null 2>&1 || true
-    git remote add "$remote" "$url"
+  ref=$(echo "$json" | grep -e '"ref"' | head -n1 | sed -e 's/^.*"ref":[[:space:]]*"//; s/",[[:space:]]*$//')
+  remote="pr-$1"
+  branch="pr/$1"
+  refspec="+refs/heads/$ref:refs/remotes/$remote/$ref"
+
+  legacy_remote=$(git remote -v | awk -v url="$url" '$2 == url && $3 == "(push)" { print $1; exit }')
+  if [ -n "$legacy_remote" ]; then
+    keep_push=$(git config --local --get-all "remote.$legacy_remote.push" | sed '/^pr\/[0-9][0-9]*:/d')
+    git config --local --unset-all "remote.$legacy_remote.push" 1>/dev/null 2>&1 || true
+    if [ -n "$keep_push" ]; then
+      echo "$keep_push" | while IFS= read -r push; do
+        git config --local --add "remote.$legacy_remote.push" "$push"
+      done
+    fi
   fi
 
-  ref=$(echo "$json" | grep -e '"ref"' | head -n1 | sed -e 's/^.*"ref":[[:space:]]*"//; s/",[[:space:]]*$//')
-  git fetch "$remote" "$ref"
-  git checkout -t -b "pr/$1" "$remote/$ref"
-  git config --local "remote.$remote.push" pr/$1:$ref
+  git config --local "remote.$remote.url" "$url"
+  git config --local --unset-all "remote.$remote.fetch" 1>/dev/null 2>&1 || true
+  git config --local --add "remote.$remote.fetch" "$refspec"
+  git config --local --unset-all "remote.$remote.push" 1>/dev/null 2>&1 || true
+  git config --local --add "remote.$remote.push" "HEAD:refs/heads/$ref"
+  git fetch "$remote"
+  if git show-ref --verify --quiet "refs/heads/$branch"; then
+    git checkout "$branch"
+  else
+    git checkout -b "$branch" "$remote/$ref"
+  fi
+  git config --local "branch.$branch.remote" "$remote"
+  git config --local "branch.$branch.merge" "refs/heads/$ref"
   exit 0
 }
 
@@ -484,10 +587,12 @@ sndev__help_pr() {
 fetch and checkout a pr
 
 USAGE
-  $ sndev pr [OPTIONS] <pr number>
+  $ sndev pr [OPTIONS] PR_NUMBER
 
 OPTIONS
-  -t, --track   track the pr in a new branch, creating a remote if necessary
+  -t, --track   track the pr in a local pr/NUMBER branch, creating a narrow
+                pr-NUMBER remote so normal git pull and git push target the
+                pr's upstream branch
                 defaults to checking out the pr in a detached state
 "
 
@@ -497,7 +602,7 @@ OPTIONS
 sndev__login() {
   shift
   if [ -z "$1" ]; then
-    echo "<nym> argument required"
+    echo "NYM argument required"
     sndev__help_login
     exit 1
   fi
@@ -508,18 +613,25 @@ sndev__login() {
   salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
   # upsert user with nym and nym@sndev.team
   email="$1@sndev.team"
+
+  # Detect Codespaces and set the correct base URL
+  if [ -n "$CODESPACE_NAME" ]; then
+    BASE_URL="https://${CODESPACE_NAME}-3000.app.github.dev"
+  else
+    BASE_URL="http://localhost:3000"
+  fi
+
   docker__exec db psql -U sn -d stackernews -q <<EOF
     INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
     UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
+    DELETE FROM verification_requests WHERE token = '$token';
     INSERT INTO verification_requests (identifier, token, expires)
-      VALUES ('$email', '$token', NOW() + INTERVAL '1 day')
-      ON CONFLICT (token) DO UPDATE
-      SET identifier = '$email', expires = NOW() + INTERVAL '1 day';
+      VALUES ('$email', '$token', NOW() + INTERVAL '1 day');
 EOF
 
   echo
   echo "open url in browser"
-  echo "http://localhost:3000/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
+  echo "$BASE_URL/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
   echo
 }
 
@@ -528,87 +640,137 @@ sndev__help_login() {
 login as a nym
 
 USAGE
-  $ sndev login <nym>
+  $ sndev login NYM
 "
 
   echo "$help"
 }
 
-sndev__help_stacker_lnd() {
+sndev__setup_codespaces() {
+  shift
+  ./scripts/setup-codespaces.sh
+}
+
+sndev__help_setup_codespaces() {
   help="
+setup Codespaces environment variables
 
 USAGE
-  $ sndev stacker_lnd get_cert         get the tls cert
-  $ sndev stacker_lnd get_onion        get the onion address
+  $ sndev setup_codespaces
+
+DESCRIPTION
+  Creates or updates .env.local with the correct URLs for GitHub Codespaces.
+  This is automatically run when the Codespace is created.
+
+REQUIREMENTS
+  - Set forwarded ports to 'Public' in the Ports tab for external access
 "
 
   echo "$help"
 }
 
-sndev__stacker_lnd() {  
+sndev__onion() {
   shift
-  if [ -z "$1" ]; then
-    echo "no command provided"
-    sndev__help_stacker_lnd
+  tordir=$(docker__compose ps $1 --format '{{.Label "TORDIR"}}')
+  if [ -z "$tordir" ]; then
+    echo "no TORDIR label found for $1"
     exit 1
   fi
-  if [ "$1" = "get_cert" ]; then
-    echo $(docker__exec -t stacker_lnd openssl base64 -A -in /home/lnd/.lnd/tls.cert)
-  elif [ "$1" = "get_onion" ];
-  then
-    onion="$(docker__exec -t stacker_lnd cat /home/lnd/.tor/hidden_service/hostname | tr -d '[:space:]')"
-    echo "$onion:10009"
-  fi  
+  onion=$(docker__exec $1 cat $tordir/hidden_service/hostname | tr -d '[:space:]')
+  echo "$onion"
 }
 
-sndev__help_lnbits() {
+sndev__help_onion() {
   help="
+get the onion address of a service
 
 USAGE
-  $ sndev stacker_lnbits get_onion        get the onion address
+  $ sndev onion SERVICE
 "
-}
 
-sndev__lnbits() {  
-  shift
-  if [ -z "$1" ]; then
-    echo "no command provided"
-    sndev__help_lnbits
-    exit 1
-  fi
-  if [ "$1" = "get_onion" ];
-  then
-    onion="$(docker__exec -t lnbits cat /app/.tor/hidden_service/hostname | tr -d '[:space:]')"
-    echo "$onion:5000"
-  fi
-}
-
-
-sndev__help_tor() {
-  help="
-
-USAGE
-  $ sndev tor get_onion         get the onion address
-"
-  
   echo "$help"
 }
 
-sndev__tor() {  
+sndev__cert() {
   shift
-  if [ -z "$1" ]; then
-    echo "no command provided"
-    sndev__help_tor
+  certdir=$(docker__compose ps $1 --format '{{.Label "CERTDIR"}}')
+  if [ -z "$certdir" ]; then
+    echo "no CERTDIR label found for $1"
     exit 1
   fi
-  if [ "$1" = "get_onion" ];
-  then
-    onion="$(docker__exec -t stacker_lnd cat /home/lnd/.tor/hidden_service/hostname | tr -d '[:space:]')"
-    echo "$onion"
-  fi  
+    if [ "$(uname)" = "Darwin" ]; then
+    docker__exec $1 cat $certdir/tls.cert | base64 -b 0
+  elif [ "$(uname)" = "Linux" ]; then
+    docker__exec $1 cat $certdir/tls.cert | base64 -w0
+  fi
+
+}
+
+sndev__help_cert() {
+  help="
+get the tls cert of a service
+
+USAGE
+  $ sndev cert SERVICE
+"
+
+  echo "$help"
+}
+
+sndev__cli() {
+  t=$1
+
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  if [ "$1" = "cli" ]; then
+    shift
+  fi
+
+  if [ -z "$1" ]; then
+    echo "SERVICE required"
+    sndev__help_cli
+    exit 1
+  fi
+
+  service=$1
+  cli=$(docker__compose ps $service --format '{{.Label "CLI"}}')
+  cli_user=$(docker__compose ps $service --format '{{.Label "CLI_USER"}}')
+  cli_args=$(docker__compose ps $service --format '{{.Label "CLI_ARGS"}}')
+
+  if [ -z "$cli" ]; then
+    echo "no CLI label found for $service"
+    exit 1
+  fi
+
+  shift
+
+  if [ -n "$cli_user" ]; then
+    cli_user="-u $cli_user"
+  fi
+
+  docker__exec $t $cli_user $service $cli $cli_args "$@"
+}
+
+sndev__help_cli() {
+  help="
+run a cli command on a service
+
+USAGE
+  $ sndev cli SERVICE [COMMAND [ARGS]]
+"
+
+  echo "$help"
 }
 
 sndev__help() {
+    if [ $# -eq 3 ]; then
+      call "sndev__$1_$2_$3" "$@"
+      exit 0
+    fi
     if [ $# -eq 2 ]; then
       call "sndev__$1_$2" "$@"
       exit 0
@@ -643,36 +805,33 @@ COMMANDS
 
   sn:
     login                 login as a nym
-    fund_user             fund a nym without using an LN invoice
+    set_balance           set the balance of a nym
 
-  lnd:
+  codespaces:
+    setup_codespaces      setup environment for GitHub Codespaces
+
+  lightning:
     fund                   pay a bolt11 for funding
     withdraw               create a bolt11 for withdrawal
-
-  cln:
-    cln_fund               pay a bolt11 for funding with CLN
-    cln_withdraw           create a bolt11 for withdrawal with CLN
 
   db:
     psql                   open psql on db
     prisma                 run prisma commands
 
+  domains:
+    domains                custom domains dev management
+
   dev:
     pr                     fetch and checkout a pr
     lint                   run linters
-    open                   open container url in browser
+    test                   run tests
 
   other:
+    cli                    service cli passthrough
+    open                   open service GUI in browser
+    onion                  service onion address
+    cert                   service tls cert
     compose                docker compose passthrough
-    sn_lndcli              lncli passthrough on sn_lnd
-    stacker_lndcli         lncli passthrough on stacker_lnd
-    stacker_clncli         lightning-cli passthrough on stacker_cln
-    stacker_litcli         litcli passthrough on litd
-    tor get_onion          get the onion address
-    stacker_lnd get_cert   get the tls cert
-    stacker_lnd get_onion  get the onion address
-    stacker_clncli get_onion  get the onion address
-    lndbits get_onion      get the onion address
 "
   echo "$help"
 }

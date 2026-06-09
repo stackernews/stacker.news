@@ -1,41 +1,11 @@
 import styles from './text.module.css'
-import ReactMarkdown from 'react-markdown'
-import gfm from 'remark-gfm'
-import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
-import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
-import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
-import MediaOrLink from './media-or-link'
-import { IMGPROXY_URL_REGEXP, decodeProxyUrl } from '@/lib/url'
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import reactStringReplace from 'react-string-replace'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
-import Link from 'next/link'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
-import isEqual from 'lodash/isEqual'
-import UserPopover from './user-popover'
-import ItemPopover from './item-popover'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
-import rehypeSN from '@/lib/rehype-sn'
-import remarkUnicode from '@/lib/remark-unicode'
-import Embed from './embed'
-import remarkMath from 'remark-math'
-import rehypeMathjax from 'rehype-mathjax'
-
-const rehypeSNStyled = () => rehypeSN({
-  stylers: [{
-    startTag: '<sup>',
-    endTag: '</sup>',
-    className: styles.superscript
-  }, {
-    startTag: '<sub>',
-    endTag: '</sub>',
-    className: styles.subscript
-  }]
-})
-
-const remarkPlugins = [gfm, remarkUnicode, [remarkMath, { singleDollarTextMath: false }]]
-const rehypePlugins = [rehypeSNStyled, rehypeMathjax]
+import { SNReader } from './editor'
 
 export function SearchText ({ text }) {
   return (
@@ -49,18 +19,19 @@ export function SearchText ({ text }) {
   )
 }
 
-// this is one of the slowest components to render
-export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, children, tab, itemId, outlawed, topLevel }) {
-  const [overflowing, setOverflowing] = useState(false)
+export function useOverflow ({ containerRef, truncated = false }) {
   const router = useRouter()
+  // would the text overflow on the current screen size?
+  const [overflowing, setOverflowing] = useState(false)
+  // should we show the full text?
   const [show, setShow] = useState(false)
-  const containerRef = useRef(null)
+  const showOverflow = useCallback(() => setShow(true), [setShow])
 
   // if we are navigating to a hash, show the full text
   useEffect(() => {
-    setShow(router.asPath.includes('#') && !router.asPath.includes('#itemfn-'))
+    setShow(router.asPath.includes('#'))
     const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#') && !url.includes('#itemfn-'))
+      setShow(url.includes('#'))
     }
 
     router.events.on('hashChangeStart', handleRouteChange)
@@ -72,178 +43,120 @@ export default memo(function Text ({ rel = UNKNOWN_LINK_REL, imgproxyUrls, child
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
-    const container = containerRef.current
-    if (!container || overflowing) return
+    if (!containerRef.current) return
+
+    const node = containerRef.current
+    if (!node) return
 
     function checkOverflow () {
-      setOverflowing(container.scrollHeight > window.innerHeight * 2)
+      setOverflowing(
+        truncated
+          ? node.scrollHeight > window.innerHeight * 0.5
+          : node.scrollHeight > window.innerHeight * 2
+      )
     }
 
     let resizeObserver
-    if (!overflowing && 'ResizeObserver' in window) {
-      resizeObserver = new window.ResizeObserver(checkOverflow).observe(container)
+    if ('ResizeObserver' in window) {
+      resizeObserver = new window.ResizeObserver(checkOverflow)
+      resizeObserver.observe(node)
     }
+
+    // when media is loaded from autolinks, scrollHeight changes but box size may not
+    // which ResizeObserver doesn't detect, so we need to capture load events from media
+    // and recheck overflow when media loads.
+    function handleMediaLoad (e) {
+      if (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') {
+        checkOverflow()
+      }
+    }
+    node.addEventListener('load', handleMediaLoad, true)
 
     window.addEventListener('resize', checkOverflow)
     checkOverflow()
-
     return () => {
       window.removeEventListener('resize', checkOverflow)
+      node.removeEventListener('load', handleMediaLoad, true)
       resizeObserver?.disconnect()
     }
-  }, [containerRef.current, setOverflowing])
+  }, [containerRef, setOverflowing, truncated])
 
-  const TextMediaOrLink = useCallback(props => {
-    return <MediaLink {...props} outlawed={outlawed} imgproxyUrls={imgproxyUrls} topLevel={topLevel} rel={rel} />
-  },
-  [outlawed, imgproxyUrls, topLevel, rel])
-
-  const components = useMemo(() => ({
-    h1: ({ node, id, ...props }) => <h1 id={topLevel ? id : undefined} {...props} />,
-    h2: ({ node, id, ...props }) => <h2 id={topLevel ? id : undefined} {...props} />,
-    h3: ({ node, id, ...props }) => <h3 id={topLevel ? id : undefined} {...props} />,
-    h4: ({ node, id, ...props }) => <h4 id={topLevel ? id : undefined} {...props} />,
-    h5: ({ node, id, ...props }) => <h5 id={topLevel ? id : undefined} {...props} />,
-    h6: ({ node, id, ...props }) => <h6 id={topLevel ? id : undefined} {...props} />,
-    table: Table,
-    p: P,
-    code: Code,
-    mention: Mention,
-    sub: Sub,
-    item: Item,
-    footnote: Footnote,
-    headlink: ({ node, href, ...props }) => <Link href={href} {...props} />,
-    autolink: ({ href, ...props }) => <TextMediaOrLink src={href} {...props} />,
-    a: ({ node, href, children, ...props }) => {
-      // if outlawed, render the link as text
-      if (outlawed) {
-        return href
-      }
-
-      // eslint-disable-next-line
-      return <Link id={props.id} target='_blank' rel={rel} href={href}>{children}</Link>
-    },
-    img: TextMediaOrLink,
-    embed: Embed
-  }), [outlawed, rel, TextMediaOrLink, topLevel])
-
-  const carousel = useCarousel()
-
-  const markdownContent = useMemo(() => (
-    <ReactMarkdown
-      components={components}
-      remarkPlugins={remarkPlugins}
-      rehypePlugins={rehypePlugins}
-      remarkRehypeOptions={{ clobberPrefix: `itemfn-${itemId}-` }}
-    >
-      {children}
-    </ReactMarkdown>
-  ), [components, remarkPlugins, rehypePlugins, children, itemId])
-
-  const showOverflow = useCallback(() => setShow(true), [setShow])
-
-  return (
-    <div
-      className={classNames(
-        styles.text,
-        topLevel && styles.topLevel,
-        show ? styles.textUncontained : overflowing && styles.textContained
-      )}
-      ref={containerRef}
-    >
-      {
-        carousel && tab !== 'preview'
-          ? markdownContent
-          : <CarouselProvider>{markdownContent}</CarouselProvider>
-      }
-      {overflowing && !show && (
+  const Overflow = useMemo(() => {
+    if (overflowing && !show) {
+      return (
         <Button
           size='lg'
           variant='info'
-          className={styles.textShowFull}
+          className='sn-text__show-full'
           onClick={showOverflow}
         >
           show full text
         </Button>
-      )}
-    </div>
-  )
-}, isEqual)
-
-function Mention ({ children, node, href, name, id }) {
-  return (
-    <UserPopover name={name}>
-      <Link
-        id={id}
-        href={href}
-      >
-        {children}
-      </Link>
-    </UserPopover>
-  )
-}
-
-function Sub ({ children, node, href, ...props }) {
-  return <Link href={href}>{children}</Link>
-}
-
-function Item ({ children, node, href, id }) {
-  return (
-    <ItemPopover id={id}>
-      <Link href={href}>{children}</Link>
-    </ItemPopover>
-  )
-}
-
-function Footnote ({ children, node, ...props }) {
-  return (
-    <Link {...props}>{children}</Link>
-  )
-}
-
-function MediaLink ({
-  node, src, outlawed, imgproxyUrls, rel = UNKNOWN_LINK_REL, ...props
-}) {
-  const url = IMGPROXY_URL_REGEXP.test(src) ? decodeProxyUrl(src) : src
-  // if outlawed, render the media link as text
-  if (outlawed) {
-    return url
-  }
-
-  const srcSet = imgproxyUrls?.[url]
-
-  return <MediaOrLink srcSet={srcSet} src={src} rel={rel} {...props} />
-}
-
-function Table ({ node, ...props }) {
-  return (
-    <span className='table-responsive'>
-      <table className='table table-bordered table-sm' {...props} />
-    </span>
-  )
-}
-
-function Code ({ node, inline, className, children, style, ...props }) {
-  return inline
-    ? (
-      <code className={className} {...props}>
-        {children}
-      </code>
       )
-    : (
-      <SyntaxHighlighter style={atomDark} language='text' PreTag='div' {...props}>
-        {children}
-      </SyntaxHighlighter>
-      )
+    }
+    return null
+  }, [showOverflow, overflowing, show, setShow])
+
+  return { overflowing, show, setShow, Overflow }
 }
 
-function P ({ children, node, onlyImages, somethingBefore, somethingAfter, ...props }) {
+/**
+ * Renders rich content from Markdown or Lexical state
+ *
+ * @param {object} props - props object
+ * @param {boolean} props.topLevel - whether to render as top-level content
+ * @param {string} props.children - Markdown text
+ * @param {string} props.className - container class name
+ * @param {string} props.innerClassName - Lexical contenteditable className
+ * @param {string} props.state - serialized Lexical state
+ * @param {string} props.html - pre-Lexical SSR HTML content
+ * @param {object} props.imgproxyUrls - imgproxy data object
+ * @param {string} props.rel - link rel attribute
+ * @param {string} props.name - link name attribute
+ * @param {object} props.readerRef - reader ref
+ */
+export default function Text (props) {
+  // if we don't have anything to render, bail
+  if (!props.state && !props.children?.trim()) return null
+  return <TextBody {...props} />
+}
+
+export function TextBody ({ topLevel, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
+  const containerRef = useRef(null)
+  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
+  const carousel = useCarousel()
+
+  const textClassNames = useMemo(() => {
+    return classNames(
+      'sn-text',
+      topLevel && 'topLevel',
+      show ? 'sn-text--uncontained' : overflowing && 'sn-text--contained',
+      className
+    )
+  }, [topLevel, show, overflowing, className])
+
+  const lexicalContent = useMemo(() => {
+    return (
+      <SNReader
+        topLevel={topLevel}
+        state={state}
+        text={children} // if children is provided, markdown will be parsed and rendered
+        html={html}
+        imgproxyUrls={imgproxyUrls}
+        rel={rel}
+        readerRef={readerRef}
+        name={name}
+        innerClassName={innerClassName}
+      />
+    )
+  }, [children, topLevel, state, html, imgproxyUrls, rel, readerRef, name, innerClassName])
+
   return (
-    <div
-      className={classNames(styles.p, onlyImages && styles.onlyImages,
-        somethingBefore && styles.somethingBefore, somethingAfter && styles.somethingAfter)} {...props}
-    >
-      {children}
+    <div className={textClassNames} ref={containerRef}>
+      {carousel
+        ? lexicalContent
+        : <CarouselProvider>{lexicalContent}</CarouselProvider>}
+      {Overflow}
     </div>
   )
 }

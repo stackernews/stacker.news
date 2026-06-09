@@ -4,7 +4,7 @@ import Items from '@/components/items'
 import Layout from '@/components/layout'
 import { SUB_FULL, SUB_ITEMS } from '@/fragments/subs'
 import Snl from '@/components/snl'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import PageLoading from '@/components/page-loading'
 import TerritoryHeader from '@/components/territory-header'
 

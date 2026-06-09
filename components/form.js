@@ -6,27 +6,19 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import copy from 'clipboard-copy'
 import Col from 'react-bootstrap/Col'
 import Dropdown from 'react-bootstrap/Dropdown'
-import Nav from 'react-bootstrap/Nav'
 import Row from 'react-bootstrap/Row'
-import Markdown from '@/svgs/markdown-line.svg'
-import AddFileIcon from '@/svgs/file-upload-line.svg'
 import styles from './form.module.css'
-import Text from '@/components/text'
 import AddIcon from '@/svgs/add-fill.svg'
 import CloseIcon from '@/svgs/close-line.svg'
-import { gql, useLazyQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client/react'
 import { USER_SUGGESTIONS } from '@/fragments/users'
-import TextareaAutosize from 'react-textarea-autosize'
+import { SUB_SUGGESTIONS } from '@/fragments/subs'
 import { useToast } from './toast'
 import { numWithUnits } from '@/lib/format'
 import textAreaCaret from 'textarea-caret'
-import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import useDebounceCallback, { debounce } from './use-debounce-callback'
-import { FileUpload } from './file-upload'
-import { AWS_S3_URL_REGEXP } from '@/lib/constants'
+import { debounce } from './use-debounce-callback'
 import { whenRange } from '@/lib/time'
-import { useFeeButton } from './fee-button'
 import Thumb from '@/svgs/thumb-up-fill.svg'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
@@ -34,14 +26,14 @@ import Info from './info'
 import { useMe } from './me'
 import classNames from 'classnames'
 import Clipboard from '@/svgs/clipboard-line.svg'
-import QrIcon from '@/svgs/qr-code-line.svg'
 import QrScanIcon from '@/svgs/qr-scan-line.svg'
 import { useShowModal } from './modal'
-import { QRCodeSVG } from 'qrcode.react'
-import { Scanner } from '@yudiel/react-qr-scanner'
-import { qrImageSettings } from './qr'
+import dynamic from 'next/dynamic'
 import { useIsClient } from './use-client'
-
+import PageLoading from './page-loading'
+import { SNEditor } from './editor'
+import { isAbortError } from '@/lib/error'
+export { MultiSelect } from './multi-select'
 export class SessionRequiredError extends Error {
   constructor () {
     super('session required')
@@ -72,12 +64,19 @@ export function SubmitButton ({
         : onClick}
       {...props}
     >
-      {formik.isSubmitting ? submittingText : children}{!disabled && appendText && <small> {appendText}</small>}
+      {formik.isSubmitting
+        ? submittingText
+        : (
+          <>
+            {children}
+            {appendText && <small> {appendText}</small>}
+          </>
+          )}
     </Button>
   )
 }
 
-function CopyButton ({ value, icon, ...props }) {
+export function CopyButton ({ value, icon, append, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
@@ -97,6 +96,14 @@ function CopyButton ({ value, icon, ...props }) {
       <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
         <Clipboard height={20} width={20} />
       </InputGroup.Text>
+    )
+  }
+
+  if (append) {
+    return (
+      <span className={styles.appendButton} {...props} onClick={handleClick}>
+        {append}
+      </span>
     )
   }
 
@@ -131,102 +138,43 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
-  const [tab, setTab] = useState('write')
-  const [, meta, helpers] = useField(props)
-  const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
-  innerRef = innerRef || useRef(null)
-  const imageUploadRef = useRef(null)
-  const previousTab = useRef(tab)
-  const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
+function useEntityAutocomplete ({
+  prefix,
+  meta,
+  helpers,
+  innerRef,
+  setSelectionRange,
+  SuggestComponent
+}) {
+  const [entityData, setEntityData] = useState()
 
-  const [updateUploadFees] = useLazyQuery(gql`
-    query uploadFees($s3Keys: [Int]!) {
-      uploadFees(s3Keys: $s3Keys) {
-        totalFees
-        nUnpaid
-        uploadFees
-        bytes24h
-      }
-    }`, {
-    fetchPolicy: 'no-cache',
-    nextFetchPolicy: 'no-cache',
-    onError: (err) => {
-      console.error(err)
-    },
-    onCompleted: ({ uploadFees }) => {
-      merge({
-        uploadFees: {
-          term: `+ ${numWithUnits(uploadFees.totalFees, { abbreviate: false })}`,
-          label: 'upload fee',
-          op: '+',
-          modifier: cost => cost + uploadFees.totalFees,
-          omit: !uploadFees.totalFees
-        }
-      })
-    }
-  })
-
-  props.as ||= TextareaAutosize
-  props.rows ||= props.minRows || 6
-
-  useEffect(() => {
-    !meta.value && setTab('write')
-  }, [meta.value])
-
-  useEffect(() => {
-    // focus on input when switching to write tab from preview tab
-    if (innerRef?.current && tab === 'write' && previousTab?.current !== 'write') {
-      innerRef.current.focus()
-    }
-    previousTab.current = tab
-  }, [tab])
-
-  useEffect(() => {
-    if (selectionRange.start <= selectionRange.end && innerRef?.current) {
-      const { start, end } = selectionRange
-      const input = innerRef.current
-      input.setSelectionRange(start, end)
-    }
-  }, [innerRef, selectionRange.start, selectionRange.end])
-
-  const [mention, setMention] = useState()
-  const insertMention = useCallback((name) => {
-    if (mention?.start === undefined || mention?.end === undefined) return
-    const { start, end } = mention
-    setMention(undefined)
-    const first = `${meta?.value.substring(0, start)}@${name}`
+  const handleSelect = useCallback((name) => {
+    if (entityData?.start === undefined || entityData?.end === undefined) return
+    const { start, end } = entityData
+    setEntityData(undefined)
+    const first = `${meta?.value.substring(0, start)}${prefix}${name}`
     const second = meta?.value.substring(end)
     const updatedValue = `${first}${second}`
     helpers.setValue(updatedValue)
     setSelectionRange({ start: first.length, end: first.length })
     innerRef.current.focus()
-  }, [mention, meta?.value, helpers?.setValue])
+  }, [entityData, meta?.value, helpers, prefix, setSelectionRange, innerRef])
 
-  const uploadFeesUpdate = useDebounceCallback(
-    (text) => {
-      const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
-      updateUploadFees({ variables: { s3Keys } })
-    }, 1000, [updateUploadFees])
-
-  const onChangeInner = useCallback((formik, e) => {
-    if (onChange) onChange(formik, e)
-    // check for mention editing
+  const handleTextChange = useCallback((e) => {
     const { value, selectionStart } = e.target
-    uploadFeesUpdate(value)
-
     if (!value || selectionStart === undefined) {
-      setMention(undefined)
-      return
+      setEntityData(undefined)
+      return false
     }
 
     let priorSpace = -1
     for (let i = selectionStart - 1; i >= 0; i--) {
-      if (/[^\w@]/.test(value[i])) {
+      if (/[^\w@~]/.test(value[i])) {
         priorSpace = i
         break
       }
     }
+
     let nextSpace = value.length
     for (let i = selectionStart; i <= value.length; i++) {
       if (/[^\w]/.test(value[i])) {
@@ -234,12 +182,13 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
         break
       }
     }
-    const currentSegment = value.substring(priorSpace + 1, nextSpace)
 
-    // set the query to the current character segment and note where it appears
-    if (/^@\w*$/.test(currentSegment)) {
+    const currentSegment = value.substring(priorSpace + 1, nextSpace)
+    const regexPattern = new RegExp(`^\\${prefix}\\w*$`)
+
+    if (regexPattern.test(currentSegment)) {
       const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
-      setMention({
+      setEntityData({
         query: currentSegment,
         start: priorSpace + 1,
         end: nextSpace,
@@ -249,212 +198,121 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
           left: `${left}px`
         }
       })
-    } else {
-      setMention(undefined)
-    }
-  }, [onChange, setMention, uploadFeesUpdate])
-
-  const onKeyDownInner = useCallback((userSuggestOnKeyDown) => {
-    return (e) => {
-      const metaOrCtrl = e.metaKey || e.ctrlKey
-      if (metaOrCtrl) {
-        if (e.key === 'k') {
-          // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
-          e.preventDefault()
-          insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-        if (e.key === 'b') {
-          // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
-          e.preventDefault()
-          insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-        if (e.key === 'i') {
-          // some browsers might use CTRL+I to do something else so prevent that behavior too
-          e.preventDefault()
-          insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-        if (e.key === 'u') {
-          // some browsers might use CTRL+U to do something else so prevent that behavior too
-          e.preventDefault()
-          imageUploadRef.current?.click()
-        }
-        if (e.key === 'Tab' && e.altKey) {
-          e.preventDefault()
-          insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-        }
-      }
-
-      if (!metaOrCtrl) {
-        userSuggestOnKeyDown(e)
-      }
-
-      if (onKeyDown) onKeyDown(e)
-    }
-  }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown])
-
-  const onPaste = useCallback((event) => {
-    const items = event.clipboardData.items
-    if (items.length === 0) {
-      return
+      return true
     }
 
-    let isImagePasted = false
-    const fileList = new window.DataTransfer()
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      if (item.type.indexOf('image') === 0) {
-        const blob = item.getAsFile()
-        const file = new File([blob], 'image', { type: blob.type })
-        fileList.items.add(file)
-        isImagePasted = true
-      }
+    setEntityData(undefined)
+    return false
+  }, [prefix])
+
+  // Return a function that takes a render prop instead of directly returning the component
+  return {
+    entityData,
+    handleSelect,
+    handleTextChange,
+    renderSuggest: (renderProps) => {
+      if (!entityData) return null
+
+      return (
+        <SuggestComponent
+          query={entityData?.query}
+          onSelect={handleSelect}
+          dropdownStyle={entityData?.style}
+        >
+          {renderProps}
+        </SuggestComponent>
+      )
     }
-
-    if (isImagePasted) {
-      event.preventDefault()
-      const changeEvent = new Event('change', { bubbles: true })
-      imageUploadRef.current.files = fileList.files
-      imageUploadRef.current.dispatchEvent(changeEvent)
-    }
-  }, [imageUploadRef])
-
-  const onDrop = useCallback((event) => {
-    event.preventDefault()
-    setDragStyle(null)
-    const changeEvent = new Event('change', { bubbles: true })
-    imageUploadRef.current.files = event.dataTransfer.files
-    imageUploadRef.current.dispatchEvent(changeEvent)
-  }, [imageUploadRef])
-
-  const [dragStyle, setDragStyle] = useState(null)
-  const onDragEnter = useCallback((e) => {
-    setDragStyle('over')
-  }, [setDragStyle])
-  const onDragLeave = useCallback((e) => {
-    setDragStyle(null)
-  }, [setDragStyle])
-
-  return (
-    <FormGroup label={label} className={groupClassName}>
-      <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
-        <Nav variant='tabs' defaultActiveKey='write' activeKey={tab} onSelect={tab => setTab(tab)}>
-          <Nav.Item>
-            <Nav.Link className='py-1' eventKey='write'>write</Nav.Link>
-          </Nav.Item>
-          <Nav.Item>
-            <Nav.Link className={styles.previewTab} eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
-          </Nav.Item>
-          <span className='ms-auto text-muted d-flex align-items-center'>
-            <FileUpload
-              multiple
-              ref={imageUploadRef}
-              className='d-flex align-items-center me-1'
-              onUpload={file => {
-                const uploadMarker = `![Uploading ${file.name}…]()`
-                const text = innerRef.current.value
-                const cursorPosition = innerRef.current.selectionStart || text.length
-                let preMarker = text.slice(0, cursorPosition)
-                const postMarker = text.slice(cursorPosition)
-                // when uploading multiple files at once, we want to make sure the upload markers are separated by blank lines
-                if (preMarker && !/\n+\s*$/.test(preMarker)) {
-                  preMarker += '\n\n'
-                }
-                const newText = preMarker + uploadMarker + postMarker
-                helpers.setValue(newText)
-                setSubmitDisabled?.(true)
-              }}
-              onSuccess={({ url, name }) => {
-                let text = innerRef.current.value
-                text = text.replace(`![Uploading ${name}…]()`, `![](${url})`)
-                helpers.setValue(text)
-                const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
-                updateUploadFees({ variables: { s3Keys } })
-                setSubmitDisabled?.(false)
-              }}
-              onError={({ name }) => {
-                let text = innerRef.current.value
-                text = text.replace(`![Uploading ${name}…]()`, '')
-                helpers.setValue(text)
-                setSubmitDisabled?.(false)
-              }}
-            >
-              <AddFileIcon width={18} height={18} />
-            </FileUpload>
-            <a
-              className='d-flex align-items-center'
-              href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
-            >
-              <Markdown width={18} height={18} />
-            </a>
-          </span>
-        </Nav>
-        <div className={`position-relative ${tab === 'write' ? '' : 'd-none'}`}>
-          <UserSuggest
-            query={mention?.query}
-            onSelect={insertMention}
-            dropdownStyle={mention?.style}
-          >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions }) => (
-            <InputInner
-              innerRef={innerRef}
-              {...props}
-              onChange={onChangeInner}
-              onKeyDown={onKeyDownInner(userSuggestOnKeyDown)}
-              onBlur={() => setTimeout(resetSuggestions, 500)}
-              onDragEnter={onDragEnter}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
-              onPaste={onPaste}
-              className={dragStyle === 'over' ? styles.dragOver : ''}
-            />)}
-          </UserSuggest>
-        </div>
-        {tab !== 'write' &&
-          <div className='form-group'>
-            <div className={`${styles.text} form-control`}>
-              <Text topLevel={topLevel} tab={tab}>{meta.value}</Text>
-            </div>
-          </div>}
-      </div>
-    </FormGroup>
-  )
-}
-
-function insertMarkdownFormatting (replaceFn, selectFn) {
-  return function (input, setValue, setSelectionRange) {
-    const start = input.selectionStart
-    const end = input.selectionEnd
-    const val = input.value
-    const selectedText = val.substring(start, end)
-    const mdFormatted = replaceFn(selectedText)
-    const newVal = val.substring(0, start) + mdFormatted + val.substring(end)
-    setValue(newVal)
-    // required for undo, see https://stackoverflow.com/a/27028258
-    document.execCommand('insertText', false, mdFormatted)
-    // see https://github.com/facebook/react/issues/6483
-    // for why we don't use `input.setSelectionRange` directly (hint: event order)
-    setSelectionRange(selectFn ? selectFn(start, end, mdFormatted) : { start: start + mdFormatted.length, end: start + mdFormatted.length })
   }
 }
 
-const insertMarkdownTabFormatting = insertMarkdownFormatting(
-  val => `\t${val}`,
-  (start, end, mdFormatted) => ({ start: start + 1, end: end + 1 }) // move inside tab
-)
-const insertMarkdownLinkFormatting = insertMarkdownFormatting(
-  val => `[${val}](url)`,
-  (start, end, mdFormatted) => (
-    start === end
-      ? { start: start + 1, end: end + 1 } // move inside brackets
-      : { start: start + mdFormatted.length - 4, end: start + mdFormatted.length - 1 }) // move to select url part
-)
-const insertMarkdownBoldFormatting = insertMarkdownFormatting(
-  val => `**${val}**`,
-  (start, end, mdFormatted) => ({ start: start + 2, end: end + 2 }) // move inside bold
-)
-const insertMarkdownItalicFormatting = insertMarkdownFormatting(
-  val => `_${val}_`,
-  (start, end, mdFormatted) => ({ start: start + 1, end: end + 1 }) // move inside italic
-)
+export function useDualAutocomplete ({ meta, helpers, innerRef, setSelectionRange }) {
+  const userAutocomplete = useEntityAutocomplete({
+    prefix: '@',
+    meta,
+    helpers,
+    innerRef,
+    setSelectionRange,
+    SuggestComponent: UserSuggest
+  })
+
+  const territoryAutocomplete = useEntityAutocomplete({
+    prefix: '~',
+    meta,
+    helpers,
+    innerRef,
+    setSelectionRange,
+    SuggestComponent: TerritorySuggest
+  })
+
+  const handleTextChange = useCallback((e) => {
+    // Try to match user mentions first, then territories
+    if (!userAutocomplete.handleTextChange(e)) {
+      territoryAutocomplete.handleTextChange(e)
+    }
+  }, [userAutocomplete, territoryAutocomplete])
+
+  const handleKeyDown = useCallback((e, userOnKeyDown, territoryOnKeyDown) => {
+    const metaOrCtrl = e.metaKey || e.ctrlKey
+    if (!metaOrCtrl) {
+      if (userAutocomplete.entityData) {
+        return userOnKeyDown(e)
+      } else if (territoryAutocomplete.entityData) {
+        return territoryOnKeyDown(e)
+      }
+    }
+    return false // Didn't handle the event
+  }, [userAutocomplete.entityData, territoryAutocomplete.entityData])
+
+  const handleBlur = useCallback((resetUserSuggestions, resetTerritorySuggestions) => {
+    setTimeout(resetUserSuggestions, 500)
+    setTimeout(resetTerritorySuggestions, 500)
+  }, [])
+
+  return {
+    userAutocomplete,
+    territoryAutocomplete,
+    handleTextChange,
+    handleKeyDown,
+    handleBlur
+  }
+}
+
+export function DualAutocompleteWrapper ({
+  userAutocomplete,
+  territoryAutocomplete,
+  children
+}) {
+  return (
+    <UserSuggest
+      query={userAutocomplete.entityData?.query}
+      onSelect={userAutocomplete.handleSelect}
+      dropdownStyle={userAutocomplete.entityData?.style}
+    >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions: resetUserSuggestions }) => (
+      <TerritorySuggest
+        query={territoryAutocomplete.entityData?.query}
+        onSelect={territoryAutocomplete.handleSelect}
+        dropdownStyle={territoryAutocomplete.entityData?.style}
+      >{({ onKeyDown: territorySuggestOnKeyDown, resetSuggestions: resetTerritorySuggestions }) =>
+        children({
+          userSuggestOnKeyDown,
+          territorySuggestOnKeyDown,
+          resetUserSuggestions,
+          resetTerritorySuggestions
+        })}
+      </TerritorySuggest>
+    )}
+    </UserSuggest>
+  )
+}
+
+export function SNInput ({ label, topLevel, groupClassName, onChange, ...props }) {
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <SNEditor name={props.name} topLevel={topLevel} onChange={onChange} {...props} />
+    </FormGroup>
+  )
+}
 
 function FormGroup ({ className, label, children }) {
   return (
@@ -467,8 +325,8 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
-  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
-  ...props
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength, hideError,
+  AppendColumn, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -509,6 +367,7 @@ function InputInner ({
       if (storageKey) {
         window.localStorage.setItem(storageKey, overrideValue)
       }
+      onChange && onChange(formik, { target: { value: overrideValue } })
     } else if (storageKey) {
       const draft = window.localStorage.getItem(storageKey)
       if (draft) {
@@ -545,38 +404,43 @@ function InputInner ({
 
   return (
     <>
-      <InputGroup hasValidation className={inputGroupClassName}>
-        {prepend}
-        <BootstrapForm.Control
-          ref={innerRef}
-          {...field}
-          {...props}
-          onKeyDown={onKeyDownInner}
-          onChange={onChangeInner}
-          onBlur={onBlurInner}
-          isInvalid={invalid}
-          isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
-        />
-        {(isClient && clear && field.value && !props.readOnly) &&
-          <Button
-            variant={null}
-            onClick={(e) => {
-              helpers.setValue('')
-              if (storageKey) {
-                window.localStorage.removeItem(storageKey)
-              }
-              if (onChange) {
-                onChange(formik, { target: { value: '' } })
-              }
-            }}
-            className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
-          ><CloseIcon className='fill-grey' height={20} width={20} />
-          </Button>}
-        {append}
-        <BootstrapForm.Control.Feedback type='invalid'>
-          {meta.touched && meta.error}
-        </BootstrapForm.Control.Feedback>
-      </InputGroup>
+      <Row>
+        <Col>
+          <InputGroup hasValidation className={inputGroupClassName}>
+            {prepend}
+            <BootstrapForm.Control
+              ref={innerRef}
+              {...field}
+              {...props}
+              onKeyDown={onKeyDownInner}
+              onChange={onChangeInner}
+              onBlur={onBlurInner}
+              isInvalid={!hideError && invalid} // if hideError is true, handle error showing separately
+              isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
+            />
+            {(isClient && clear && field.value && !props.readOnly) &&
+              <Button
+                variant={null}
+                onClick={(e) => {
+                  helpers.setValue('')
+                  if (storageKey) {
+                    window.localStorage.removeItem(storageKey)
+                  }
+                  if (onChange) {
+                    onChange(formik, { target: { value: '' } })
+                  }
+                }}
+                className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
+              ><CloseIcon className='fill-grey' height={20} width={20} />
+              </Button>}
+            {append}
+            <BootstrapForm.Control.Feedback type='invalid'>
+              {meta.touched && meta.error}
+            </BootstrapForm.Control.Feedback>
+          </InputGroup>
+        </Col>
+        {AppendColumn && <AppendColumn className={meta.touched && meta.error ? 'invisible' : ''} />}
+      </Row>
       {hint && (
         <BootstrapForm.Text>
           {hint}
@@ -597,29 +461,30 @@ function InputInner ({
 }
 
 const INITIAL_SUGGESTIONS = { array: [], index: 0 }
-export function UserSuggest ({
-  query, onSelect, dropdownStyle, children,
-  transformUser = user => user, selectWithTab = true, filterUsers = () => true
-}) {
-  const [getSuggestions] = useLazyQuery(USER_SUGGESTIONS, {
-    onCompleted: data => {
-      query !== undefined && setSuggestions({
-        array: data.userSuggestions
-          .filter((...args) => filterUsers(query, ...args))
-          .map(transformUser),
-        index: 0
-      })
-    }
-  })
 
+export function BaseSuggest ({
+  query, onSelect, dropdownStyle,
+  transformItem = item => item, selectWithTab = true, filterItems = () => true,
+  getSuggestionsQuery, queryName, itemsField,
+  children
+}) {
+  const [getSuggestions] = useLazyQuery(getSuggestionsQuery)
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
   const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
-
   useEffect(() => {
     if (query !== undefined) {
-      // remove both the leading @ and any @domain after nym
-      const q = query?.replace(/^[@ ]+|[ ]+$/g, '').replace(/@[^\s]*$/, '')
+      // remove the leading character and any trailing spaces
+      const q = query?.replace(/^[@ ~]+|[ ]+$/g, '').replace(/@[^\s]*$/, '').replace(/~[^\s]*$/, '')
       getSuggestions({ variables: { q, limit: 5 } })
+        .then(({ data }) => {
+          query !== undefined && setSuggestions({
+            array: data[itemsField]
+              .filter((...args) => filterItems(query, ...args))
+              .map(transformItem),
+            index: 0
+          })
+        })
+        .catch(err => !isAbortError(err) && console.error(err))
     } else {
       resetSuggestions()
     }
@@ -669,7 +534,6 @@ export function UserSuggest ({
         break
     }
   }, [onSelect, resetSuggestions, suggestions])
-
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions })}
@@ -692,17 +556,17 @@ export function UserSuggest ({
   )
 }
 
-export function InputUserSuggest ({
-  label, groupClassName, transformUser, filterUsers,
-  selectWithTab, onChange, transformQuery, ...props
+function BaseInputSuggest ({
+  label, groupClassName, transformItem, filterItems,
+  selectWithTab, onChange, transformQuery, SuggestComponent, prefixRegex, ...props
 }) {
   const [ovalue, setOValue] = useState()
   const [query, setQuery] = useState()
   return (
     <FormGroup label={label} className={groupClassName}>
-      <UserSuggest
-        transformUser={transformUser}
-        filterUsers={filterUsers}
+      <SuggestComponent
+        transformItem={transformItem}
+        filterItems={filterItems}
         selectWithTab={selectWithTab}
         onSelect={(v) => {
           // HACK ... ovalue does not trigger onChange
@@ -717,16 +581,82 @@ export function InputUserSuggest ({
             autoComplete='off'
             onChange={(formik, e) => {
               onChange && onChange(formik, e)
+              if (e.target.value === ovalue) {
+                // we don't need to set the ovalue or query if the value is the same
+                return
+              }
               setOValue(e.target.value)
-              setQuery(e.target.value.replace(/^[@ ]+|[ ]+$/g, ''))
+              setQuery(e.target.value.replace(prefixRegex, ''))
             }}
             overrideValue={ovalue}
             onKeyDown={onKeyDown}
             onBlur={() => setTimeout(resetSuggestions, 500)}
           />
         )}
-      </UserSuggest>
+      </SuggestComponent>
     </FormGroup>
+  )
+}
+
+export function InputUserSuggest ({
+  transformUser, filterUsers, ...props
+}) {
+  return (
+    <BaseInputSuggest
+      transformItem={transformUser}
+      filterItems={filterUsers}
+      SuggestComponent={UserSuggest}
+      prefixRegex={/^[@ ]+|[ ]+$/g}
+      {...props}
+    />
+  )
+}
+
+export function InputTerritorySuggest ({
+  transformSub, filterSubs, ...props
+}) {
+  return (
+    <BaseInputSuggest
+      transformItem={transformSub}
+      filterItems={filterSubs}
+      SuggestComponent={TerritorySuggest}
+      prefixRegex={/^[~ ]+|[ ]+$/g}
+      {...props}
+    />
+  )
+}
+
+function UserSuggest ({
+  transformUser = user => user, filterUsers = () => true,
+  children, ...props
+}) {
+  return (
+    <BaseSuggest
+      transformItem={transformUser}
+      filterItems={filterUsers}
+      getSuggestionsQuery={USER_SUGGESTIONS}
+      itemsField='userSuggestions'
+      {...props}
+    >
+      {children}
+    </BaseSuggest>
+  )
+}
+
+function TerritorySuggest ({
+  transformSub = sub => sub, filterSubs = () => true,
+  children, ...props
+}) {
+  return (
+    <BaseSuggest
+      transformItem={transformSub}
+      filterItems={filterSubs}
+      getSuggestionsQuery={SUB_SUGGESTIONS}
+      itemsField='subSuggestions'
+      {...props}
+    >
+      {children}
+    </BaseSuggest>
   )
 }
 
@@ -745,31 +675,38 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
       <FieldArray name={name} hasValidation>
         {({ form, ...fieldArrayHelpers }) => {
           const options = form.values[name]
+
           return (
             <>
-              {options?.map((_, i) => (
-                <div key={i}>
-                  <Row className='mb-2'>
-                    <Col>
-                      {children
-                        ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined })
-                        : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />}
-                    </Col>
-                    <Col className='d-flex ps-0' xs='auto'>
-                      {options.length - 1 === i && options.length !== max
-                        ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push(emptyItem)} />
-                        // filler div for col alignment across rows
-                        : <div style={{ width: '24px', height: '24px' }} />}
-                    </Col>
-                    {options.length - 1 === i &&
-                      <>
-                        {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
-                        {form.touched[name] && typeof form.errors[name] === 'string' &&
-                          <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
-                      </>}
-                  </Row>
-                </div>
-              ))}
+              {options?.map((_, i) => {
+                const AppendColumn = ({ className }) => (
+                  <Col className={`d-flex ps-0 ${className}`} xs='auto'>
+                    {options.length - 1 === i && options.length !== max
+                      // onMouseDown is used to prevent the blur event on text inputs from overriding the click event
+                      ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onMouseDown={() => fieldArrayHelpers.push(emptyItem)} />
+                      // filler div for col alignment across rows
+                      : <div style={{ width: '24px', height: '24px' }} />}
+                  </Col>
+                )
+                return (
+                  <div key={i}>
+                    <Row className='mb-2'>
+                      <Col>
+                        {children
+                          ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined, AppendColumn })
+                          : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} AppendColumn={AppendColumn} />}
+                      </Col>
+
+                      {options.length - 1 === i &&
+                        <>
+                          {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+                          {form.touched[name] && typeof form.errors[name] === 'string' &&
+                            <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
+                        </>}
+                    </Row>
+                  </div>
+                )
+              })}
             </>
           )
         }}
@@ -825,7 +762,108 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
   )
 }
 
-const StorageKeyPrefixContext = createContext()
+export function Range ({
+  label, groupClassName, hint, min, max, step = 1, onChange,
+  suffix, allOption, labels, ...props
+}) {
+  const [field, meta, helpers] = useField(props)
+  const isAll = allOption && field.value == null
+  const sliderMin = allOption ? min - step : min
+
+  // Clamp value when min/max changes
+  useEffect(() => {
+    if (field.value == null) return
+    if (field.value < min) {
+      helpers.setValue(min)
+    } else if (field.value > max) {
+      helpers.setValue(max)
+    }
+  }, [min, max])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', columnGap: '1rem', alignItems: 'center' }}>
+        {allOption
+          ? <span className='text-muted' style={{ whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
+          : <small className='text-muted text-monospace'>{min}</small>}
+        <BootstrapForm.Range
+          {...field}
+          {...props}
+          min={sliderMin}
+          max={max}
+          step={step}
+          value={isAll ? sliderMin : field.value}
+          onChange={(e) => {
+            const val = Number(e.target.value)
+            if (allOption && val <= sliderMin) {
+              helpers.setValue(null)
+            } else {
+              helpers.setValue(val)
+            }
+            onChange && onChange(e)
+          }}
+        />
+        <small className='text-muted text-monospace'>{max}</small>
+        <InputGroup className='flex-nowrap' style={{ width: 'auto' }}>
+          {isAll
+            ? <span className='form-control px-2' style={{ width: '4rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25em' }}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
+            : <BootstrapForm.Control
+                type='number'
+                min={min}
+                max={max}
+                step={step}
+                value={field.value}
+                className='text-end hide-spinners px-2'
+                style={{ width: '4rem' }}
+                onChange={(e) => {
+                  const val = Number(e.target.value)
+                  if (!isNaN(val)) {
+                    helpers.setValue(val)
+                  }
+                  onChange && onChange(e)
+                }}
+                onBlur={(e) => {
+                  const val = Number(e.target.value)
+                  if (!isNaN(val)) {
+                    helpers.setValue(Math.min(max, Math.max(min, val)))
+                  }
+                  field.onBlur(e)
+                }}
+              />}
+          {suffix && <InputGroup.Text>{suffix.trim()}</InputGroup.Text>}
+        </InputGroup>
+        {labels?.length > 0 && (
+          <div className='position-relative' style={{ gridColumn: 2, height: '1.2em' }}>
+            {labels.map(({ value, label: tickLabel }) => {
+              const pct = ((value - sliderMin) / (max - sliderMin)) * 100
+              return (
+                <span
+                  key={value}
+                  className='text-muted'
+                  style={{
+                    position: 'absolute',
+                    left: `${pct}%`,
+                    transform: 'translateX(-50%)',
+                    fontSize: '80%',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {tickLabel}
+                </span>
+              )
+            })}
+          </div>
+        )}
+      </div>
+      {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+      <BootstrapForm.Control.Feedback className='d-block' type='invalid'>
+        {meta.touched && meta.error}
+      </BootstrapForm.Control.Feedback>
+    </FormGroup>
+  )
+}
+
+export const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, validate, schema, onSubmit, children, initialError, validateImmediately,
@@ -858,15 +896,14 @@ export function Form ({
     })
   }, [storageKeyPrefix])
 
-  const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
-    const variables = { amount, ...values }
+  const onSubmitInner = useCallback(async (values, ...args) => {
     if (requireSession && !me) {
       throw new SessionRequiredError()
     }
 
     try {
       if (onSubmit) {
-        await onSubmit(variables, ...args)
+        await onSubmit(values, ...args)
       }
     } catch (err) {
       console.log(err.message, err)
@@ -951,6 +988,19 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
   )
 }
 
+function DatePickerSkeleton () {
+  return (
+    <div className='react-datepicker-wrapper'>
+      <input className='form-control clouds fade-out p-0 px-2 mb-0' />
+    </div>
+  )
+}
+
+const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
+  ssr: false,
+  loading: () => <DatePickerSkeleton />
+})
+
 export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to, className, ...props }) {
   const formik = noForm ? null : useFormikContext()
   const [,, fromHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: fromName })
@@ -1018,19 +1068,23 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   }
 
   return (
-    <ReactDatePicker
-      className={`form-control text-center ${className}`}
-      selectsRange
-      maxDate={new Date()}
-      minDate={new Date('2021-05-01')}
-      {...props}
-      selected={new Date(innerFrom)}
-      startDate={new Date(innerFrom)}
-      endDate={innerTo ? new Date(innerTo) : undefined}
-      dateFormat={dateFormat}
-      onChangeRaw={onChangeRawHandler}
-      onChange={innerOnChange}
-    />
+    <>
+      {ReactDatePicker && (
+        <ReactDatePicker
+          className={`form-control text-center ${className}`}
+          selectsRange
+          maxDate={new Date()}
+          minDate={new Date('2021-05-01')}
+          {...props}
+          selected={new Date(innerFrom)}
+          startDate={new Date(innerFrom)}
+          endDate={innerTo ? new Date(innerTo) : undefined}
+          dateFormat={dateFormat}
+          onChangeRaw={onChangeRawHandler}
+          onChange={innerOnChange}
+        />
+      )}
+    </>
   )
 }
 
@@ -1050,19 +1104,27 @@ export function DateTimeInput ({ label, groupClassName, name, ...props }) {
 
 function DateTimePicker ({ name, className, ...props }) {
   const [field, , helpers] = useField({ ...props, name })
+  const ReactDatePicker = dynamic(() => import('react-datepicker').then(mod => mod.default), {
+    ssr: false,
+    loading: () => <span>loading date picker</span>
+  })
   return (
-    <ReactDatePicker
-      {...field}
-      {...props}
-      showTimeSelect
-      dateFormat='Pp'
-      className={`form-control ${className}`}
-      selected={(field.value && new Date(field.value)) || null}
-      value={(field.value && new Date(field.value)) || null}
-      onChange={(val) => {
-        helpers.setValue(val)
-      }}
-    />
+    <>
+      {ReactDatePicker && (
+        <ReactDatePicker
+          {...field}
+          {...props}
+          showTimeSelect
+          dateFormat='Pp'
+          className={`form-control ${className}`}
+          selected={(field.value && new Date(field.value)) || null}
+          value={(field.value && new Date(field.value)) || null}
+          onChange={(val) => {
+            helpers.setValue(val)
+          }}
+        />
+      )}
+    </>
   )
 }
 
@@ -1099,36 +1161,13 @@ function PasswordHider ({ onClick, showPass }) {
   )
 }
 
-function QrPassword ({ value }) {
-  const showModal = useShowModal()
-  const toaster = useToast()
-
-  const showQr = useCallback(() => {
-    showModal(close => (
-      <div>
-        <p className='line-height-md text-muted'>Import this passphrase into another device by navigating to device sync settings and scanning this QR code</p>
-        <div className='d-block p-3 mx-auto' style={{ background: 'white', maxWidth: '300px' }}>
-          <QRCodeSVG className='h-auto mw-100' value={value} size={300} imageSettings={qrImageSettings} />
-        </div>
-      </div>
-    ))
-  }, [toaster, value, showModal])
-
-  return (
-    <>
-      <InputGroup.Text
-        style={{ cursor: 'pointer' }}
-        onClick={showQr}
-      >
-        <QrIcon height={16} width={16} />
-      </InputGroup.Text>
-    </>
-  )
-}
-
 function PasswordScanner ({ onScan, text }) {
   const showModal = useShowModal()
   const toaster = useToast()
+  const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), {
+    ssr: false,
+    loading: () => <PageLoading />
+  })
 
   return (
     <InputGroup.Text
@@ -1138,26 +1177,31 @@ function PasswordScanner ({ onScan, text }) {
           return (
             <div>
               {text && <h5 className='line-height-md mb-4 text-center'>{text}</h5>}
-              <Scanner
-                formats={['qr_code']}
-                onScan={([{ rawValue: result }]) => {
-                  onScan(result)
-                  onClose()
-                }}
-                styles={{
-                  video: {
-                    aspectRatio: '1 / 1'
-                  }
-                }}
-                onError={(error) => {
-                  if (error instanceof DOMException) {
-                    console.log(error)
-                  } else {
-                    toaster.danger('qr scan: ' + error?.message || error?.toString?.())
-                  }
-                  onClose()
-                }}
-              />
+              {Scanner && (
+                <Scanner
+                  formats={['qr_code']}
+                  onScan={([{ rawValue: result }]) => {
+                    if (result) {
+                      onScan(result)
+                      onClose()
+                    }
+                  }}
+                  styles={{
+                    video: {
+                      aspectRatio: '1 / 1'
+                    }
+                  }}
+                  onError={(error) => {
+                    if (error instanceof DOMException) {
+                      console.log(error)
+                    } else {
+                      toaster.danger('qr scan: ' + error?.message || error?.toString?.())
+                    }
+                    onClose()
+                  }}
+                  components={{ audio: false }}
+                />
+              )}
             </div>
           )
         })
@@ -1170,28 +1214,63 @@ function PasswordScanner ({ onScan, text }) {
   )
 }
 
-export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: initialValue, ...props }) {
-  const [showPass, setShowPass] = useState(false)
+export function PasswordInput (props) {
+  if (props.noForm) {
+    return <StandalonePasswordInput {...props} />
+  }
+
+  return <FormikPasswordInput {...props} />
+}
+
+function StandalonePasswordInput ({ value: initialValue, noForm, ...props }) {
   const [value, setValue] = useState(initialValue)
-  const [field,, helpers] = props.noForm ? [{ value }, {}, { setValue }] : useField(props)
+
+  useEffect(() => {
+    setValue(initialValue)
+  }, [initialValue])
+
+  return (
+    <PasswordInputBase
+      {...props}
+      noForm
+      value={value}
+      setValue={setValue}
+    />
+  )
+}
+
+function FormikPasswordInput (props) {
+  const [field,, helpers] = useField(props)
+
+  return (
+    <PasswordInputBase
+      {...props}
+      value={field?.value}
+      setValue={helpers.setValue}
+    />
+  )
+}
+
+function PasswordInputBase ({ newPass, qr, copy, readOnly, append, under, value, setValue, className, noForm, ...props }) {
+  const [showPass, setShowPass] = useState(false)
 
   const Append = useMemo(() => {
     return (
       <>
         <PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />
         {copy && (
-          <CopyButton icon value={field?.value} />
+          <CopyButton icon value={value} />
         )}
-        {qr && (readOnly
-          ? <QrPassword value={field?.value} />
-          : <PasswordScanner
-              text="Where'd you learn to square dance?"
-              onScan={v => helpers.setValue(v)}
-            />)}
+        {qr && (
+          <PasswordScanner
+            text="Where'd you learn to square dance?"
+            onScan={setValue}
+          />
+        )}
         {append}
       </>
     )
-  }, [showPass, copy, field?.value, helpers.setValue, qr, readOnly, append])
+  }, [showPass, copy, value, setValue, qr, append])
 
   const style = props.style ? { ...props.style } : {}
   if (props.as === 'textarea') {
@@ -1204,20 +1283,141 @@ export function PasswordInput ({ newPass, qr, copy, readOnly, append, value: ini
   return (
     <ClientInput
       {...props}
+      noForm={noForm}
       style={style}
-      className={styles.passwordInput}
+      className={classNames(styles.passwordInput, className)}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
       readOnly={readOnly}
       append={props.as === 'textarea' ? undefined : Append}
-      value={field?.value}
-      under={props.as === 'textarea'
-        ? (
-          <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>
-            {Append}
-          </div>)
-        : undefined}
+      value={value}
+      under={
+        props.as === 'textarea'
+          ? (
+            <>
+              <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>
+                {Append}
+              </div>
+              {under}
+            </>
+            )
+          : under
+      }
     />
+  )
+}
+
+export function MultiInput ({
+  name, label, groupClassName, length = 4, charLength = 1, upperCase, showSequence,
+  onChange, autoFocus, hideError, inputType = 'text',
+  ...props
+}) {
+  const formik = useFormikContext()
+  const [inputs, setInputs] = useState(new Array(length).fill(''))
+  const inputRefs = useRef(new Array(length).fill(null))
+  const [, meta, helpers] = useField({ name })
+
+  useEffect(() => {
+    autoFocus && inputRefs.current[0].focus() // focus the first input if autoFocus is true
+  }, [autoFocus])
+
+  const updateInputs = useCallback((newInputs) => {
+    setInputs(newInputs)
+    const combinedValue = newInputs.join('') // join the inputs to get the value
+    helpers.setValue(combinedValue) // set the value to the formik field
+    onChange?.(combinedValue)
+  }, [onChange, helpers])
+
+  const handleChange = useCallback((formik, e, index) => { // formik is not used but it's required to get the value
+    const value = e.target.value.slice(-charLength)
+    const processedValue = upperCase ? value.toUpperCase() : value // convert the input to uppercase if upperCase is tru
+
+    const newInputs = [...inputs]
+    newInputs[index] = processedValue
+    updateInputs(newInputs)
+
+    // focus the next input if the current input is filled
+    if (processedValue.length === charLength && index < length - 1) {
+      inputRefs.current[index + 1].focus()
+    }
+  }, [inputs, charLength, upperCase, onChange, length])
+
+  const handlePaste = useCallback((e) => {
+    e.preventDefault()
+    const pastedValues = e.clipboardData.getData('text').slice(0, length)
+    const processedValues = upperCase ? pastedValues.toUpperCase() : pastedValues
+    const chars = processedValues.split('')
+
+    const newInputs = [...inputs]
+    chars.forEach((char, i) => {
+      newInputs[i] = char.slice(0, charLength)
+    })
+
+    updateInputs(newInputs)
+    inputRefs.current[length - 1]?.focus() // simulating the paste by focusing the last input
+  }, [inputs, length, charLength, upperCase, updateInputs])
+
+  const handleKeyDown = useCallback((e, index) => {
+    switch (e.key) {
+      case 'Backspace': {
+        e.preventDefault()
+        const newInputs = [...inputs]
+        // if current input is empty move focus to the previous input else clear the current input
+        const targetIndex = inputs[index] === '' && index > 0 ? index - 1 : index
+        newInputs[targetIndex] = ''
+        updateInputs(newInputs)
+        inputRefs.current[targetIndex]?.focus()
+        break
+      }
+      case 'ArrowLeft': {
+        if (index > 0) { // focus the previous input if it's not the first input
+          e.preventDefault()
+          inputRefs.current[index - 1]?.focus()
+        }
+        break
+      }
+      case 'ArrowRight': {
+        if (index < length - 1) { // focus the next input if it's not the last input
+          e.preventDefault()
+          inputRefs.current[index + 1]?.focus()
+        }
+        break
+      }
+    }
+  }, [inputs, length, updateInputs])
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <div className='d-flex flex-row justify-content-center gap-2'>
+        {inputs.map((value, index) => (
+          <InputInner
+            inputGroupClassName='w-auto'
+            name={name}
+            key={index}
+            type={inputType}
+            value={value}
+            innerRef={(el) => { inputRefs.current[index] = el }}
+            onChange={(formik, e) => handleChange(formik, e, index)}
+            onKeyDown={e => handleKeyDown(e, index)}
+            onPaste={e => handlePaste(e, index)}
+            style={{
+              textAlign: 'center',
+              maxWidth: `${charLength * 44}px` // adjusts the max width of the input based on the charLength
+            }}
+            prepend={showSequence && <InputGroup.Text>{index + 1}</InputGroup.Text>} // show the index of the input
+            hideError
+            {...props}
+          />
+        ))}
+      </div>
+      <div>
+        {hideError && formik.submitCount > 0 && meta.touched && meta.error && ( // custom error message is showed if hideError is true
+          <BootstrapForm.Control.Feedback type='invalid' className='d-block'>
+            {meta.error}
+          </BootstrapForm.Control.Feedback>
+        )}
+      </div>
+    </FormGroup>
   )
 }
 

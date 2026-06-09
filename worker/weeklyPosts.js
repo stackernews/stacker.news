@@ -1,12 +1,15 @@
-import performPaidAction from '@/api/paidAction'
+import pay from '@/api/payIn'
 import { USER_ID } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import gql from 'graphql-tag'
 
 export async function autoPost ({ data: item, models, apollo, lnd, boss }) {
-  return await performPaidAction('ITEM_CREATE',
-    { ...item, subName: 'meta', userId: USER_ID.sn, apiKey: true },
-    { models, me: { id: USER_ID.sn }, lnd, forceFeeCredits: true })
+  return await pay('ITEM_CREATE',
+    { subNames: ['meta'], ...item, userId: USER_ID.sn, apiKey: true },
+    {
+      me: { id: USER_ID.sn },
+      custodialOnly: true
+    })
 }
 
 export async function weeklyPost (args) {
@@ -26,7 +29,9 @@ export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }
           bounty
           bountyPaidTo
           comments(sort: "top") {
-            id
+            comments {
+              id
+            }
           }
         }
       }`,
@@ -39,13 +44,16 @@ export async function payWeeklyPostBounty ({ data: { id }, models, apollo, lnd }
     throw new Error('Bounty already paid')
   }
 
-  const winner = item.comments[0]
+  const winner = item.comments.comments[0]
 
   if (!winner) {
     throw new Error('No winner')
   }
 
-  await performPaidAction('ZAP',
+  await pay('ZAP',
     { id: winner.id, sats: item.bounty },
-    { models, me: { id: USER_ID.sn }, lnd, forceFeeCredits: true })
+    {
+      me: { id: USER_ID.sn },
+      custodialOnly: true
+    })
 }

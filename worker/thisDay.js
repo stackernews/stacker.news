@@ -75,7 +75,7 @@ function topStackers (days) {
     if (user) {
       text += `
 - @${user.name}
-    - ${abbrNum(user.optional?.stacked)} stacked \\ ${abbrNum(user.optional?.spent)} spent \\ ${numWithUnits(user.nposts, { unitSingular: 'post', unitPlural: 'posts' })} \\ ${numWithUnits(user.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })} \\ \`${day}\``
+    - ${abbrNum(user.optional?.stacked)} stacked \\ ${abbrNum(user.optional?.spent)} spent \\ ${numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })} \\ \`${day}\``
     } else {
       text += `
 - stacker is in hiding for \`${day}\``
@@ -108,7 +108,7 @@ function topSubs (days) {
     if (sub) {
       text += `
 - ~${sub.name}
-    - ${abbrNum(sub.optional?.stacked)} stacked \\ ${abbrNum(sub.optional?.revenue)} revenue \\ ${abbrNum(sub.optional?.spent)} spent \\ ${numWithUnits(sub.nposts, { unitSingular: 'post', unitPlural: 'posts' })} \\ ${numWithUnits(sub.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })} \\ \`${day}\``
+    - ${abbrNum(sub.optional?.stacked)} stacked \\ ${abbrNum(sub.optional?.revenue)} revenue \\ ${abbrNum(sub.optional?.spent)} spent \\ ${numWithUnits(sub.nitems, { unitSingular: 'item', unitPlural: 'items' })} \\ \`${day}\``
     } else {
       text += `
 - no top territory for \`${day}\``
@@ -158,12 +158,10 @@ const THIS_DAY = gql`
     users: topUsers(when: "custom", from: $from, to: $to, limit: 1) {
       users {
         name
-        nposts(when: "custom", from: $from, to: $to)
-        ncomments(when: "custom", from: $from, to: $to)
+        nitems(when: "custom", from: $from, to: $to)
         optional {
           stacked(when: "custom", from: $from, to: $to)
           spent(when: "custom", from: $from, to: $to)
-          referrals(when: "custom", from: $from, to: $to)
         }
       }
     }
@@ -177,12 +175,11 @@ const THIS_DAY = gql`
           id
           optional {
             streak
-            gunStreak
-            horseStreak
+            hasSendWallet
+            hasRecvWallet
           }
         }
-        ncomments(when: "custom", from: $from, to: $to)
-        nposts(when: "custom", from: $from, to: $to)
+        nitems(when: "custom", from: $from, to: $to)
 
         optional {
           stacked(when: "custom", from: $from, to: $to)

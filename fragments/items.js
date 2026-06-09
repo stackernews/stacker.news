@@ -5,9 +5,9 @@ import { COMMENTS } from './comments'
 const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `
@@ -27,17 +27,28 @@ export const ITEM_FIELDS = gql`
       meMute
       ...StreakFields
     }
-    sub {
+    subs {
       name
       userId
-      moderated
       meMuteSub
       meSubscription
       nsfw
+      replyCost
+    }
+    payIn {
+      id
+      payInState
+      payInType
+      payInStateChangedAt
+      payerPrivates {
+        payInFailureReason
+        retryCount
+      }
     }
     otsHash
     position
     sats
+    credits
     meAnonSats @client
     boost
     bounty
@@ -46,22 +57,29 @@ export const ITEM_FIELDS = gql`
     path
     upvotes
     meSats
+    meCredits
     meDontLikeSats
+    downSats
+    commentDownSats
     meBookmark
     meSubscription
     meForward
-    outlawed
     freebie
+    netInvestment
     bio
     ncomments
+    nDirectComments
     commentSats
+    commentCredits
+    commentCost
+    commentBoost
     lastCommentAt
     isJob
     status
     company
     location
     remote
-    subName
+    subNames
     pollCost
     pollExpiresAt
     uploadId
@@ -69,12 +87,8 @@ export const ITEM_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
-    invoice {
-      id
-      actionState
-      confirmedAt
-    }
     cost
+    meCommentsViewedAt
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -83,24 +97,30 @@ export const ITEM_FULL_FIELDS = gql`
   fragment ItemFullFields on Item {
     ...ItemFields
     text
+    lexicalState
+    html
     root {
       id
+      createdAt
       title
       bounty
       bountyPaidTo
-      subName
+      subNames
       mine
+      ncomments
+      lastCommentAt
+      meCommentsViewedAt
       user {
         id
         name
         ...StreakFields
       }
-      sub {
+      subs {
         name
         userId
-        moderated
         meMuteSub
         meSubscription
+        replyCost
       }
     }
     forwards {
@@ -136,14 +156,13 @@ export const POLL_FIELDS = gql`
   fragment PollFields on Item {
     poll {
       meVoted
-      meInvoiceId
-      meInvoiceActionState
       count
       options {
         id
         option
         count
       }
+      randPollOptions
     }
   }`
 
@@ -162,13 +181,16 @@ export const ITEM_FULL = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
   ${COMMENTS}
-  query Item($id: ID!, $sort: String) {
+  query Item($id: ID!, $sort: String, $cursor: String) {
     item(id: $id) {
       ...ItemFullFields
       prior
       ...PollFields
-      comments(sort: $sort) {
-        ...CommentsRecursive
+      comments(sort: $sort, cursor: $cursor) {
+        cursor
+        comments {
+          ...CommentsRecursive
+        }
       }
     }
   }`
@@ -197,5 +219,11 @@ export const RELATED_ITEMS_WITH_ITEM = gql`
         ...ItemFields
       }
     }
+  }
+`
+
+export const UPDATE_ITEM_USER_VIEW = gql`
+  mutation updateCommentsViewAt($id: ID!, $meCommentsViewedAt: Date!) {
+    updateCommentsViewAt(id: $id, meCommentsViewedAt: $meCommentsViewedAt)
   }
 `

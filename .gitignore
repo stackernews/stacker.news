@@ -51,11 +51,27 @@ public/*-development.js
 .cache_ggshield
 docker-compose.*.yml
 *.sql
+*.sql.gz
 !/prisma/migrations/*/*.sql
-!/docker/db/seed.sql
+!/docker/db/000_seed.sql.gz
 
 # nostr wallet connect
 scripts/nwc-keys.json
 
 # lnbits
 docker/lnbits/data
+
+# lndk
+!docker/lndk/tls-*.pem
+
+# nostr link extract
+scripts/nostr-link-extract.config.json
+scripts/nostr-links.db
+scripts/twitter-link-extract.config.json
+scripts/twitter-links.db
+
+# pay-awards
+scripts/pay-awards.config.json
+
+# dnsmasq
+docker/dnsmasq/dnsmasq.d/*

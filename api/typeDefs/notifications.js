@@ -17,6 +17,31 @@ export default gql`
     sortTime: Date!
   }
 
+  type BountyPayment {
+    id: ID!
+    earnedSats: Int!
+    item: Item!
+    sortTime: Date!
+  }
+
+  enum BulletinIconType {
+    MAP
+  }
+
+  type Bulletinification {
+    id: ID!
+    bulletin: Bulletin
+    sortTime: Date!
+  }
+
+  type Bulletin {
+    title: String!
+    text: String
+    lexicalState: String
+    html: String
+    iconType: BulletinIconType
+  }
+
   type ForwardedVotification {
     id: ID!
     earnedSats: Int!
@@ -55,10 +80,12 @@ export default gql`
     sortTime: Date!
   }
 
-  type Invoicification {
+  type PayInification {
     id: ID!
-    invoice: Invoice!
+    payIn: PayIn!
+    earnedSats: Int!
     sortTime: Date!
+    payInItem: Item
   }
 
   type JobChanged {
@@ -73,13 +100,6 @@ export default gql`
     comments: Int!
     tipPosts: Int!
     tipComments: Int!
-  }
-
-  type Streak {
-    id: ID!
-    sortTime: Date!
-    days: Int
-    type: String!
   }
 
   type Earn {
@@ -110,23 +130,12 @@ export default gql`
     subName: String!
   }
 
-  type InvoicePaid {
-    id: ID!
-    earnedSats: Int!
-    invoice: Invoice!
-    sortTime: Date!
-  }
-
-  type WithdrawlPaid {
-    id: ID!
-    earnedSats: Int!
-    sortTime: Date!
-    withdrawl: Withdrawl!
-  }
+  union ReferralSource = Item | Sub | User
 
   type Referral {
     id: ID!
     sortTime: Date!
+    source: ReferralSource
   }
 
   type SubStatus {
@@ -153,11 +162,38 @@ export default gql`
     sortTime: Date!
   }
 
-  union Notification = Reply | Votification | Mention
-    | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
-    | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
-    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
-    | ReferralReward
+  type CowboyHat {
+    id: ID!
+    sortTime: Date!
+    days: Int
+  }
+
+  type NewHorse {
+    id: ID!
+    sortTime: Date!
+  }
+
+  type LostHorse {
+    id: ID!
+    sortTime: Date!
+  }
+
+  type NewGun {
+    id: ID!
+    sortTime: Date!
+  }
+
+  type LostGun {
+    id: ID!
+    sortTime: Date!
+  }
+
+  union Notification = Reply | Votification | BountyPayment | Mention
+    | Invitification | Earn | JobChanged | Referral
+    | FollowActivity | ForwardedVotification | Revenue | SubStatus
+    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | PayInification
+    | ReferralReward | CowboyHat | NewHorse | LostHorse | NewGun | LostGun
+    | Bulletinification
 
   type Notifications {
     lastChecked: Date

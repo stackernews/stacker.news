@@ -2,12 +2,46 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
 import { numWithUnits } from '@/lib/format'
+import { useBranding } from './territory-branding'
+
+// Resolves the brand/site-name/tagline triple for SEO meta:
+// - on a custom domain those come from the territory's branding (with sub-name fallbacks)
+// - on stacker news those fall back to the SN defaults.
+function useSiteSeo () {
+  const branding = useBranding()
+
+  const brand = branding?.title ?? 'stacker news'
+  const siteName = branding?.title ?? 'Stacker News'
+  const tagline = branding?.tagline ?? 'moderating forums with money'
+
+  // territory branding doesn't carry a twitter handle, so suppress @site on custom domains
+  const twitter = branding
+    ? { cardType: 'summary_large_image' }
+    : { site: '@stacker_news', cardType: 'summary_large_image' }
+
+  return { branding, brand, siteName, tagline, twitter }
+}
+
+// capture service takes a path and navigates to it on the main domain (stacker.news)
+// to support custom domains, we need to prepend the subname to the path
+function capturePath ({ path, branding }) {
+  if (!branding?.subName) return path
+
+  if (path === '/') return `/~${branding.subName}`
+  return `/~${branding.subName}${path}`
+}
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
-  const subStr = sub ? ` ~${sub}` : ''
-  const title = `${router.query.q || 'search'} \\ stacker news${subStr}`
-  const desc = `SN${subStr} search: ${router.query.q || ''}`
+  const { branding, brand, siteName, twitter } = useSiteSeo()
+  const imagePath = capturePath({ path: router.asPath, branding })
+
+  const subStr = !branding && sub ? ` ~${sub}` : ''
+  const query = router.query.q || ''
+  const title = `${query || 'search'} \\ ${brand}${subStr}`
+  const desc = branding
+    ? `${brand} search: ${query}`
+    : `SN${subStr} search: ${query}`
 
   return (
     <NextSeo
@@ -18,15 +52,12 @@ export function SeoSearch ({ sub }) {
         description: desc,
         images: [
           {
-            url: 'https://capture.stacker.news' + router.asPath
+            url: 'https://capture.stacker.news' + imagePath
           }
         ],
-        site_name: 'Stacker News'
+        site_name: siteName
       }}
-      twitter={{
-        site: '@stacker_news',
-        cardType: 'summary_large_image'
-      }}
+      twitter={twitter}
     />
   )
 }
@@ -39,10 +70,15 @@ export function SeoSearch ({ sub }) {
 export default function Seo ({ sub, item, user }) {
   const router = useRouter()
   const pathNoQuery = router.asPath.split('?')[0]
+  const { branding, brand, siteName, tagline, twitter } = useSiteSeo()
+  const imagePath = capturePath({ path: pathNoQuery, branding })
+
   const defaultTitle = pathNoQuery.slice(1)
-  const snStr = `stacker news${sub ? ` ~${sub}` : ''}`
-  let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}stacker news`
-  let desc = "It's like Hacker News but we pay you Bitcoin."
+  const snStr = `${brand}${!branding && sub ? ` ~${sub}` : ''}`
+
+  let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}${brand}`
+  let desc = tagline
+
   if (item) {
     if (item.title) {
       fullTitle = `${item.title} \\ ${snStr}`
@@ -81,15 +117,12 @@ export default function Seo ({ sub, item, user }) {
         description: desc,
         images: [
           {
-            url: 'https://capture.stacker.news' + pathNoQuery
+            url: 'https://capture.stacker.news' + imagePath
           }
         ],
-        site_name: 'Stacker News'
+        site_name: siteName
       }}
-      twitter={{
-        site: '@stacker_news',
-        cardType: 'summary_large_image'
-      }}
+      twitter={twitter}
     />
   )
 }

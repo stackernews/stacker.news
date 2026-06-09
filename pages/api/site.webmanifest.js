@@ -1,3 +1,10 @@
+import { getDomainBranding } from '@/lib/domains'
+import { PUBLIC_MEDIA_URL } from '@/lib/constants'
+import { imgProxyEnabled, processResize } from '@/lib/imgproxy'
+import { getRequestOrigin } from '@/lib/safe-url'
+import { truncateString } from '@/lib/format'
+
+const PWA_ICON_SIZES = [48, 72, 96, 128, 192, 384, 512]
 const black = '#121214'
 const yellow = '#FADA5E'
 
@@ -110,7 +117,7 @@ const defaultManifest = {
       url: 'url'
     }
   },
-  description: 'Stacker News is like Hacker News but it pays you Bitcoin',
+  description: 'moderating forums with money',
   categories: ['news', 'bitcoin', 'lightning', 'zaps', 'community'],
   screenshots: [
     {
@@ -128,17 +135,50 @@ const defaultManifest = {
   ]
 }
 
-const getManifest = (colorScheme) => {
-  if (colorScheme?.toLowerCase() === 'dark') {
-    return {
-      ...defaultManifest,
-      background_color: black
-    }
-  }
-  return defaultManifest
+// generates per-size PWA icons by resizing the uploaded favicon through imgproxy
+const buildBrandedIcons = (faviconId, backgroundColor) => {
+  const iconEntry = (size, purpose, resizeExtras = {}) => ({
+    src: processResize({ photoId: faviconId, width: size, height: size, ...resizeExtras }),
+    type: 'image/png',
+    sizes: `${size}x${size}`,
+    purpose
+  })
+
+  const anyIcons = PWA_ICON_SIZES.map(size => iconEntry(size, 'any'))
+  const maskableIcons = PWA_ICON_SIZES.map(size => iconEntry(size, 'maskable', {
+    // TODO REVIEW: maybe extra? we don't even do this ourselves
+    // 10% inset to keep the content inside Android's 80% maskable safe zone
+    padding: Math.floor(size * 0.1),
+    backgroundColor
+  }))
+
+  return [...anyIcons, ...maskableIcons]
 }
 
-const handler = (req, res) => {
+// merges territory branding over SN defaults
+const getManifest = (colorScheme, branding, origin) => {
+  const isDark = colorScheme?.toLowerCase() === 'dark'
+  const faviconUrl = branding?.faviconId ? `${PUBLIC_MEDIA_URL}/${branding.faviconId}` : null
+
+  const brandedIcons = branding?.faviconId && imgProxyEnabled
+    ? buildBrandedIcons(branding.faviconId, branding?.primaryColor || black)
+    : faviconUrl
+      ? [{ src: faviconUrl, sizes: 'any', purpose: 'any' }]
+      : null
+
+  return {
+    ...defaultManifest,
+    ...(isDark && { background_color: black }),
+    ...(branding?.title && { name: branding.title, short_name: truncateString(branding.title, 12, '') }),
+    ...(branding?.tagline && { description: branding.tagline }),
+    ...(branding?.primaryColor && { background_color: branding.primaryColor }),
+    ...(brandedIcons && { icons: brandedIcons }),
+    // re-scope the PWA to the custom domain
+    ...(origin && { url_handlers: [{ origin }] })
+  }
+}
+
+const handler = async (req, res) => {
   // Only GET requests allowed on this endpoint
   if (req.method !== 'GET') {
     res.status(405).end()
@@ -153,7 +193,31 @@ const handler = (req, res) => {
   res.setHeader('Critical-CH', PREFERS_COLOR_SCHEMA_HEADER)
 
   const colorScheme = req.headers[PREFERS_COLOR_SCHEMA_HEADER.toLowerCase()]
-  res.status(200).json(getManifest(colorScheme))
+
+  const host = req?.headers?.host
+  let domainBranding = null
+  if (host) {
+    try {
+      domainBranding = await getDomainBranding(host)
+    } catch (error) {
+      console.error('[pwa webmanifest] error getting domain branding', error)
+      domainBranding = null
+    }
+  }
+
+  // only trust the request origin when we resolved a custom-domain branding;
+  // mirrors the pattern in lib/rss.js so the main site keeps its canonical URL
+  const origin = (domainBranding && getRequestOrigin(req)) ?? null
+
+  // cached aggressively for territory-branded responses, shorter TTL for unbranded responses
+  // branded responses are URL-versioned via ?v=<branding.updatedAt> in _document.js,
+  // so when the domain mappings cache expires, we bust the manifest cache too, allowing us to cache aggressively.
+  const cacheControl = domainBranding
+    ? 'public, max-age=86400, stale-while-revalidate=604800' // 1 day for territory-branded responses
+    : 'public, max-age=3600, stale-while-revalidate=86400' // 1 hour for SN responses
+  res.setHeader('Cache-Control', cacheControl)
+
+  res.status(200).json(getManifest(colorScheme, domainBranding, origin))
 }
 
 export default handler

@@ -12,7 +12,7 @@ http:
   # To match all requests you can use the "/" path.
   path: '/'
   # You can specify a custom health check path. The default is "/".
-  # healthcheck: '/'
+  healthcheck: '/health'
 
 # Configuration for your containers and service.
 image:
@@ -43,8 +43,10 @@ network:
 #
 variables:                    # Pass environment variables as key value pairs.
   CAPTURE_URL: https://stacker.news/
-  MAX_PAGES: 10
-  TIMEOUT: 3000
+  MAX_PAGES: 5
+  TIMEOUT: 5000
+  PROTOCOL_TIMEOUT: 30000
+  NEXT_PUBLIC_URL: https://stacker.news
 
 #secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
 #  GITHUB_TOKEN: GITHUB_TOKEN  # The key is the name of the environment variable, the value is the name of the SSM parameter.

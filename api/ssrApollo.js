@@ -1,4 +1,5 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client'
+import { LocalState } from '@apollo/client/local-state'
 import { SchemaLink } from '@apollo/client/link/schema'
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import resolvers from './resolvers'
@@ -13,8 +14,18 @@ import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
 import { CHAIN_FEE } from '@/fragments/chainFee'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
+import { NOFOLLOW_LIMIT } from '@/lib/constants'
+import { satsToMsats } from '@/lib/format'
+import { MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
+import { lexicalStateLoader } from '@/lib/lexical/server/loader'
+import { createUserLoader, createSubLoader } from '@/api/loaders'
+import { getDomainBranding, SN_MAIN_DOMAIN } from '@/lib/domains'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
+  // switch session cookie before getting session on SSR
+  if (req) {
+    req = await multiAuthMiddleware(req, res)
+  }
   const session = req && await getServerSession(req, res, getAuthOptions(req))
   const client = new ApolloClient({
     ssrMode: true,
@@ -23,14 +34,22 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
         typeDefs,
         resolvers
       }),
-      context: {
-        models,
-        me: session
+      context: (() => {
+        const viewer = session
           ? session.user
-          : me,
-        lnd,
-        search
-      }
+          : me
+        const userLoader = createUserLoader(models)
+        const subLoader = createSubLoader(models)
+        return {
+          models,
+          me: viewer,
+          lnd,
+          search,
+          userLoader,
+          subLoader,
+          lexicalStateLoader: lexicalStateLoader({ me: viewer, userLoader })
+        }
+      })()
     }),
     cache: new InMemoryCache({
       freezeResults: true
@@ -47,7 +66,9 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
         nextFetchPolicy: 'no-cache',
         ssr: true
       }
-    }
+    },
+    // @client directive support
+    localState: new LocalState({})
   })
 
   await client.clearStore()
@@ -64,7 +85,17 @@ function oneDayReferral (request, { me }) {
     let prismaPromise, getData
 
     if (referrer.startsWith('item-')) {
-      prismaPromise = models.item.findUnique({ where: { id: parseInt(referrer.slice(5)) } })
+      prismaPromise = models.item.findUnique({
+        where: {
+          id: parseInt(referrer.slice(5)),
+          msats: {
+            gt: satsToMsats(NOFOLLOW_LIMIT)
+          },
+          weightedVotes: {
+            gt: 0
+          }
+        }
+      })
       getData = item => ({
         referrerId: item.userId,
         refereeId: parseInt(me.id),
@@ -77,7 +108,7 @@ function oneDayReferral (request, { me }) {
       if (['api', 'auth', 'day', 'invites', 'invoices', 'referrals', 'rewards',
         'satistics', 'settings', 'stackers', 'wallet', 'withdrawals', '404', '500',
         'email', 'live', 'login', 'notifications', 'offline', 'search', 'share',
-        'signup', 'territory', 'recent', 'top', 'edit', 'post', 'rss', 'saloon',
+        'signup', 'territory', 'new', 'top', 'edit', 'post', 'rss', 'saloon',
         'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily',
         'anon', 'ad'].includes(name)) continue
 
@@ -139,16 +170,22 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
+    // inject custom domain branding if any
+    const host = req.headers.host
+    const branding = host ? await getDomainBranding(host) : null
+
     let { data: { me } } = await client.query({ query: ME })
 
     // required to redirect to /signup on page reload
     // if we switched to anon and authentication is required
-    if (req.cookies['multi_auth.user-id'] === 'anonymous') {
+    if (req.cookies[MULTI_AUTH_POINTER] === MULTI_AUTH_ANON) {
       me = null
     }
 
     if (authRequired && !me) {
-      let callback = process.env.NEXT_PUBLIC_URL + req.url
+      // if we're on a custom domain, use the domain header instead of the main domain
+      const origin = branding ? `${SN_MAIN_DOMAIN.protocol}//${req.headers['x-stacker-news-domain']}` : process.env.NEXT_PUBLIC_URL
+      let callback = origin + req.url
       // On client-side routing, the callback is a NextJS URL
       // so we need to remove the NextJS stuff.
       // Example: /_next/data/development/territory.json
@@ -203,11 +240,18 @@ export function getGetServerSideProps (
     return {
       props: {
         ...props,
+        branding,
         me,
         price,
         blockHeight,
         chainFee,
-        ssrData: data
+        ssrData: data,
+        // only non-httpOnly cookies should be passed here
+        // passing httpOnly cookies would expose them to client JavaScript
+        ssrPublicCookies: {
+          [MULTI_AUTH_POINTER]: req.cookies[MULTI_AUTH_POINTER] || null,
+          [MULTI_AUTH_LIST]: req.cookies[MULTI_AUTH_LIST] || null
+        }
       }
     }
   }

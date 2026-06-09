@@ -1,6 +1,6 @@
 const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
-const { generatePrecacheManifest } = require('./sw/build.js')
+const CopyPlugin = require('copy-webpack-plugin')
 const webpack = require('webpack')
 
 let isProd = process.env.NODE_ENV === 'production'
@@ -46,7 +46,25 @@ try {
   commitHash = '0000'
 }
 
-module.exports = withPlausibleProxy()({
+const getAllowedDevOrigins = () => {
+  if (isProd) return undefined
+
+  const devOrigins = []
+  try {
+    // NEXT_PUBLIC_URL is `http://domain:3000`, we just need the domain
+    devOrigins.push(new URL(process.env.NEXT_PUBLIC_URL).hostname)
+  } catch {}
+
+  // extra origins, comma separated, can be set in the environment variable ALLOWED_DEV_ORIGINS
+  const extraOrigins = process.env.ALLOWED_DEV_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || []
+  devOrigins.push(...extraOrigins)
+
+  // if no origins are found, localhost is always allowed
+  return devOrigins
+}
+
+module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi3E-sauvdFABb.js' })({
+  allowedDevOrigins: getAllowedDevOrigins(),
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
     NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
@@ -55,9 +73,22 @@ module.exports = withPlausibleProxy()({
     // so we need to resolve the relative path to the lightning module
     LIGHTNING_MODULE_PATH: require('path').relative(process.cwd(), require.resolve('lightning'))
   },
+  transpilePackages: ['next-plausible'],
+  // the app uses plain <img> tags exclusively — disable the built-in
+  // image optimization endpoint since it is unused and adds attack surface
+  images: {
+    unoptimized: true
+  },
   compress: false,
   experimental: {
-    scrollRestoration: true
+    scrollRestoration: true,
+    serverSourceMaps: true
+  },
+  // suppress deprecation warnings of bootstrap sass
+  // https://github.com/twbs/bootstrap/issues/40962
+  sassOptions: {
+    quietDeps: true,
+    silenceDeprecations: ['legacy-js-api', 'color-functions']
   },
   reactStrictMode: true,
   productionBrowserSourceMaps: true,
@@ -108,13 +139,7 @@ module.exports = withPlausibleProxy()({
           noCacheHeader
         ]
       },
-      {
-        source: '/api/lnwith',
-        headers: [
-          ...corsHeaders
-        ]
-      },
-      ...['ttf', 'woff', 'woff2'].map(ext => ({
+      ...['woff', 'woff2'].map(ext => ({
         source: `/Lightningvolt-xoqm.${ext}`,
         headers: [
           ...corsHeaders,
@@ -157,10 +182,6 @@ module.exports = withPlausibleProxy()({
         destination: '/items/81862'
       },
       {
-        source: '/daily',
-        destination: '/api/daily'
-      },
-      {
         source: '/.well-known/lnurlp/:username',
         destination: '/api/lnurlp/:username'
       },
@@ -173,48 +194,86 @@ module.exports = withPlausibleProxy()({
         destination: '/api/web-app-origin-association'
       },
       {
-        source: '/~:sub/:slug*\\?:query*',
-        destination: '/~/:slug*?:query*&sub=:sub'
-      },
-      {
         source: '/~:sub/:slug*',
         destination: '/~/:slug*?sub=:sub'
       },
-      ...['/', '/post', '/rss', '/random', '/recent/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
+      ...['/', '/post', '/rss', '/new/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
     ]
   },
   async redirects () {
     return [
       {
         source: '/statistics',
-        destination: '/satistics?inc=invoice,withdrawal',
+        destination: '/satistics',
+        permanent: true
+      },
+      {
+        source: '/recent/:slug*',
+        destination: '/new/:slug*',
+        permanent: true
+      },
+      {
+        source: '/~:sub/recent/:slug*',
+        destination: '/~:sub/new/:slug*',
+        permanent: true
+      },
+      {
+        source: '/top/cowboys/:when',
+        destination: '/top/cowboys',
+        permanent: true
+      },
+      {
+        source: '/~:sub/top/cowboys',
+        destination: '/top/cowboys',
+        permanent: true
+      },
+      {
+        source: '/~:sub/top/stackers/:when*',
+        destination: '/top/stackers/:when*',
+        permanent: true
+      },
+      {
+        source: '/~:sub/top/territories/:when*',
+        destination: '/top/territories/:when*',
         permanent: true
       }
     ]
   },
   webpack: (config, { isServer, dev, defaultLoaders }) => {
     if (isServer) {
-      generatePrecacheManifest()
       const workboxPlugin = new InjectManifest({
-        // ignore the precached manifest which includes the webpack assets
-        // since they are not useful to us
-        exclude: [/.*/],
-        // by default, webpack saves service worker at .next/server/
+        include: [/\/(icons|maskable|splash)\//, /\.(webp|mp4|woff|woff2)$/],
         swDest: '../../public/sw.js',
         swSrc: './sw/index.js',
         webpackCompilationPlugins: [
+          // we want to precache these static assets so we copy them to include them in the webpack pipeline
+          // so InjectManifest can inject them into the service worker manifest
+          new CopyPlugin({
+            patterns: [
+              { from: 'public/icons', to: '../icons' },
+              { from: 'public/maskable', to: '../maskable' },
+              { from: 'public/splash', to: '../splash' },
+              { from: 'public/sleeping.mp4', to: '../sleeping.mp4' },
+              { from: 'public/Lightningvolt-xoqm.woff', to: '../Lightningvolt-xoqm.woff' },
+              { from: 'public/Lightningvolt-xoqm.woff2', to: '../Lightningvolt-xoqm.woff2' }
+            ]
+          }),
           // this is need to allow the service worker to access these environment variables
           // from lib/constants.js
           new webpack.DefinePlugin({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.MEDIA_URL_DOCKER': JSON.stringify(process.env.MEDIA_URL_DOCKER),
             'process.env.NEXT_PUBLIC_MEDIA_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_URL),
+            'process.env.NEXT_PUBLIC_MEDIA_CHECK_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_CHECK_URL),
             'process.env.NEXT_PUBLIC_MEDIA_DOMAIN': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_DOMAIN),
             'process.env.NEXT_PUBLIC_URL': JSON.stringify(process.env.NEXT_PUBLIC_URL),
-            'process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL),
-            'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL),
-            'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL),
-            'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL),
+            'process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL_MS': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL_MS),
+            'process.env.NEXT_PUBLIC_MDAST_DEBUG': JSON.stringify(process.env.NEXT_PUBLIC_MDAST_DEBUG),
+            'process.env.NEXT_PUBLIC_CUSTOM_DOMAINS_DEBUG': JSON.stringify(process.env.NEXT_PUBLIC_CUSTOM_DOMAINS_DEBUG),
+            'process.env.SANCTIONED_COUNTRY_CODES': JSON.stringify(process.env.SANCTIONED_COUNTRY_CODES),
             'process.env.NEXT_IS_EXPORT_WORKER': 'true'
           })
         ]
@@ -262,6 +321,12 @@ module.exports = withPlausibleProxy()({
         ]
       }
     )
+
+    // linkedom references canvas but we're not using it
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      canvas: false
+    }
 
     return config
   }

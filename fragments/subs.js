@@ -1,14 +1,15 @@
 import { gql } from '@apollo/client'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
+import { DOMAIN_FULL_FIELDS } from './domains'
 
 // we can't import from users because of circular dependency
 const STREAK_FIELDS = gql`
   fragment StreakFields on User {
     optional {
-    streak
-    gunStreak
-      horseStreak
+      streak
+      hasSendWallet
+      hasRecvWallet
     }
   }
 `
@@ -25,11 +26,11 @@ export const SUB_FIELDS = gql`
     billedLastAt
     billPaidUntil
     baseCost
+    replyCost
+    postsSatsFilter
     userId
     desc
     status
-    moderated
-    moderatedCount
     meMuteSub
     meSubscription
     nsfw
@@ -40,11 +41,25 @@ export const SUB_FULL_FIELDS = gql`
   ${STREAK_FIELDS}
   fragment SubFullFields on Sub {
     ...SubFields
+    lexicalState
+    html
     user {
       name
       id
       ...StreakFields
     }
+  }`
+
+export const SUB_BRANDING_FIELDS = gql`
+  fragment SubBrandingFields on SubBranding {
+    subName
+    primaryColor
+    secondaryColor
+    linkColor
+    logoId
+    title
+    tagline
+    faviconId
   }`
 
 export const SUB = gql`
@@ -53,6 +68,19 @@ export const SUB = gql`
   query Sub($sub: String) {
     sub(name: $sub) {
       ...SubFields
+    }
+  }`
+
+// territory edit with domain and branding forms
+export const SUB_EDIT = gql`
+  ${SUB_FIELDS}
+  ${SUB_BRANDING_FIELDS}
+  ${DOMAIN_FULL_FIELDS}
+  query SubEdit($sub: String) {
+    sub(name: $sub) {
+      ...SubFields
+      domain { ...DomainFullFields }
+      branding { ...SubBrandingFields }
     }
   }`
 
@@ -67,9 +95,17 @@ export const SUB_FULL = gql`
 
 export const SUBS = gql`
   ${SUB_FIELDS}
+  query Subs($subNames: [String!]) {
+    subs(subNames: $subNames) {
+      ...SubFields
+    }
+  }`
 
-  query Subs {
-    subs {
+export const ACTIVE_SUBS = gql`
+  ${SUB_FIELDS}
+
+  query ActiveSubs {
+    activeSubs {
       ...SubFields
     }
   }`
@@ -96,9 +132,6 @@ export const SUB_ITEMS = gql`
         ...CommentItemExtFields @include(if: $includeComments)
         position
       }
-      ad {
-        ...ItemFields
-      }
     }
   }
 `
@@ -110,13 +143,22 @@ export const SUB_SEARCH = gql`
     sub(name: $sub) {
       ...SubFields
     }
-    search(sub: $sub, q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
+    search(q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
       cursor
+      searchSuggestion
       items {
         ...ItemFullFields
         searchTitle
         searchText
       }
+    }
+  }
+`
+
+export const SUB_SUGGESTIONS = gql`
+  query subSuggestions($q: String!, $limit: Limit) {
+    subSuggestions(q: $q, limit: $limit) {
+      name
     }
   }
 `
@@ -127,8 +169,7 @@ export const TOP_SUBS = gql`
     topSubs(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
       subs {
         ...SubFullFields
-        ncomments(when: $when, from: $from, to: $to)
-        nposts(when: $when, from: $from, to: $to)
+        nitems(when: $when, from: $from, to: $to)
 
         optional {
           stacked(when: $when, from: $from, to: $to)
@@ -137,6 +178,16 @@ export const TOP_SUBS = gql`
         }
       }
       cursor
+    }
+  }
+`
+
+export const UPSERT_SUB_BRANDING = gql`
+  ${SUB_BRANDING_FIELDS}
+  mutation UpsertSubBranding($subName: String!, $branding: SubBrandingInput!) {
+    upsertSubBranding(subName: $subName, branding: $branding) {
+      name
+      branding { ...SubBrandingFields }
     }
   }
 `

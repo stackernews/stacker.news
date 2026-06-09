@@ -1,0 +1,21 @@
+{
+  "name": "sndev",
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb",
+    "storage": "32gb"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-containers"
+      ]
+    }
+  },
+  "containerEnv": {
+    "CPU_SHARES_IMPORTANT": "1024",
+    "CPU_SHARES_MODERATE": "512",
+    "CPU_SHARES_LOW": "128"
+  },
+  "postAttachCommand": "./scripts/setup-codespaces.sh && source .env.local && ./sndev start"
+}

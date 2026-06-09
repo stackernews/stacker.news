@@ -6,17 +6,30 @@ export const INVITE_FIELDS = gql`
   fragment InviteFields on Invite {
     id
     createdAt
-    invitees {
-      id
-      name
-    }
     gift
     limit
+    giftedCount
+    full
     revoked
     user {
       id
       name
       ...StreakFields
+    }
+    poor
+    description
+  }
+`
+
+export const PUBLIC_INVITE_FIELDS = gql`
+  fragment PublicInviteFields on Invite {
+    id
+    gift
+    revoked
+    full
+    user {
+      id
+      name
     }
     poor
   }

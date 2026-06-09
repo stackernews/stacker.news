@@ -1,21 +1,22 @@
-import { SUB } from '@/fragments/subs'
+import { SUB_EDIT } from '@/fragments/subs'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { CenterLayout } from '@/components/layout'
 import TerritoryForm from '@/components/territory-form'
 import PageLoading from '@/components/page-loading'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 import TerritoryPaymentDue from '@/components/territory-payment-due'
 
+// SUB_EDIT bundles SubFields + owner-only domain (records/attempts) and branding (theme/seo)
 export const getServerSideProps = getGetServerSideProps({
-  query: SUB,
+  query: SUB_EDIT,
   notFound: (data, vars, me) => !data.sub || Number(data.sub.userId) !== Number(me?.id),
   authRequired: true
 })
 
 export default function TerritoryPage ({ ssrData }) {
   const router = useRouter()
-  const { data } = useQuery(SUB, { variables: { sub: router.query.sub } })
+  const { data } = useQuery(SUB_EDIT, { variables: { sub: router.query.sub } })
   if (!data && !ssrData) return <PageLoading />
 
   const { sub } = data || ssrData

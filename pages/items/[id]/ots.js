@@ -3,7 +3,7 @@ import { ITEM_OTS } from '@/fragments/items'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import stringifyCanon from 'canonical-json'
 import Button from 'react-bootstrap/Button'
-import { useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 

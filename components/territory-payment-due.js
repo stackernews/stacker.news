@@ -6,15 +6,15 @@ import { Form } from './form'
 import { timeSince } from '@/lib/time'
 import { LongCountdown } from './countdown'
 import { useCallback } from 'react'
-import { useApolloClient } from '@apollo/client'
+import { useApolloClient } from '@apollo/client/react'
 import { nextBillingWithGrace } from '@/lib/territory'
-import { usePaidMutation } from './use-paid-mutation'
-import { SUB_PAY } from '@/fragments/paidAction'
+import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { SUB_PAY } from '@/fragments/payIn'
 
 export default function TerritoryPaymentDue ({ sub }) {
   const { me } = useMe()
   const client = useApolloClient()
-  const [paySub] = usePaidMutation(SUB_PAY)
+  const [paySub] = usePayInMutation(SUB_PAY)
 
   const onSubmit = useCallback(async ({ ...variables }) => {
     const { error } = await paySub({
@@ -81,7 +81,7 @@ export function TerritoryBillingLine ({ sub }) {
   return (
     <div className='text-muted'>
       <span>billing {sub.billingAutoRenew ? 'automatically renews' : 'due'} </span>
-      <span className='fw-bold'>{pastDue ? 'past due' : dueDate ? timeSince(dueDate) : 'never again'}</span>
+      <span className='fw-bold' suppressHydrationWarning>{pastDue ? 'past due' : dueDate ? timeSince(dueDate) : 'never again'}</span>
     </div>
   )
 }

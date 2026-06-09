@@ -1,3 +1,5 @@
+import { SN_ADMIN_IDS } from '@/lib/constants'
+
 export default {
   Query: {
     snl: async (parent, _, { models }) => {
@@ -7,7 +9,7 @@ export default {
   },
   Mutation: {
     onAirToggle: async (parent, _, { models, me }) => {
-      if (me.id !== 616) {
+      if (!me || !SN_ADMIN_IDS.includes(me.id)) {
         throw new Error('not an admin')
       }
       const { id, live } = await models.snl.findFirst()

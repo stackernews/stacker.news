@@ -1,5 +1,5 @@
 import { Nav, Navbar } from 'react-bootstrap'
-import { NavPrice, NavWalletSummary, Sorts, hasNavSelect } from '../common'
+import { NavWalletSummary, Sorts, hasNavSelect, SignUpButton } from '../common'
 import styles from '../../header.module.css'
 import { useMe } from '@/components/me'
 
@@ -14,7 +14,7 @@ export default function SecondBar (props) {
         activeKey={topNavKey}
       >
         <Sorts {...props} />
-        {me ? <NavWalletSummary className='ms-auto px-2' /> : <NavPrice className='justify-content-end' />}
+        {me ? <NavWalletSummary className='ms-auto px-2' /> : <SignUpButton className='ms-auto' width='fit-content' />}
       </Nav>
     </Navbar>
   )

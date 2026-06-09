@@ -1,7 +1,8 @@
 import Alert from 'react-bootstrap/Alert'
 import YouTube from '@/svgs/youtube-line.svg'
 import { useEffect, useState } from 'react'
-import { gql, useQuery } from '@apollo/client'
+import { gql } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 import { datePivot } from '@/lib/time'
 
 export default function Snl ({ ignorePreference }) {

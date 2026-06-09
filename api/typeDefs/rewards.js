@@ -7,7 +7,7 @@ export default gql`
   }
 
   extend type Mutation {
-    donateToRewards(sats: Int!): DonatePaidAction!
+    donateToRewards(sats: Int!, sendProtocolId: Int): PayIn!
   }
 
   type DonateResult {
@@ -18,8 +18,6 @@ export default gql`
     total: Int!
     time: Date!
     sources: [NameValue!]!
-    leaderboard: UsersNullable
-    ad: Item
   }
 
   type Reward {

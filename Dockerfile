@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:18.20.4-bullseye
+FROM node:22.21.1-bullseye
 
 ENV NODE_ENV=development
 
@@ -24,4 +24,6 @@ EXPOSE 9232
 
 COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps --loglevel verbose
-CMD ["sh","-c","npm install --loglevel verbose --legacy-peer-deps && npx prisma migrate dev && npm run dev"]
+
+# run npm ci again because we're mounting node_modules in local dev
+CMD ["sh","-c","npm ci --legacy-peer-deps --loglevel verbose && npx prisma migrate dev && npm run dev"]

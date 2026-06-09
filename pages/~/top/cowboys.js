@@ -6,6 +6,7 @@ import UserList from '@/components/user-list'
 
 export const getServerSideProps = getGetServerSideProps({ query: TOP_COWBOYS })
 
+// if a when descriptor is provided, it redirects here; see next.config.js
 export default function Index ({ ssrData }) {
   return (
     <Layout>

@@ -2,17 +2,17 @@ import { Fragment, useCallback, forwardRef, useRef } from 'react'
 import { UPLOAD_TYPES_ALLOW, MEDIA_URL } from '@/lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'
-import { useMutation } from '@apollo/client'
+import { useMutation } from '@apollo/client/react'
 import piexif from 'piexifjs'
 
-export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar, allow }, ref) => {
+export const FileUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar, subName, allow }, ref) => {
   const toaster = useToast()
   ref ??= useRef(null)
 
   const [getSignedPOST] = useMutation(
     gql`
-      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!, $avatar: Boolean) {
-        getSignedPOST(type: $type, size: $size, width: $width, height: $height, avatar: $avatar) {
+      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!, $avatar: Boolean, $subName: String) {
+        getSignedPOST(type: $type, size: $size, width: $width, height: $height, avatar: $avatar, subName: $subName) {
           url
           fields
         }
@@ -31,10 +31,11 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         let data
         const variables = {
           avatar,
+          subName,
           type: file.type,
           size: file.size,
-          width: element.width,
-          height: element.height
+          width: element.width || element.videoWidth,
+          height: element.height || element.videoHeight
         }
         try {
           ({ data } = await getSignedPOST({ variables }))
@@ -78,6 +79,11 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
 
       element.onerror = reject
       element.src = window.URL.createObjectURL(file)
+
+      // iOS Force the video to load metadata
+      if (element.tagName === 'VIDEO') {
+        element.load()
+      }
     })
   }, [toaster, getSignedPOST])
 
@@ -101,7 +107,11 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
               if (onSelect) await onSelect?.(file, s3Upload)
               else await s3Upload(file)
             } catch (e) {
-              toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
+              if (file.type === 'video/quicktime') {
+                toaster.danger(`upload of '${file.name}' failed: codec might not be supported, check video settings`)
+              } else {
+                toaster.danger(`upload of '${file.name}' failed: ` + e.message || e.toString?.())
+              }
               continue
             }
           }

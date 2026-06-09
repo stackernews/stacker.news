@@ -9,17 +9,18 @@ import PageLoading from '@/components/page-loading'
 import TerritoryHeader from '@/components/territory-header'
 
 export const getServerSideProps = getGetServerSideProps({
-  query: SUB_ITEMS,
+  query: vars => vars.sub ? SUB_ITEMS : null,
   notFound: (data, vars) => vars.sub && !data.sub
 })
 
 export default function Sub ({ ssrData }) {
   const router = useRouter()
   const variables = { ...router.query }
-  const { data } = useQuery(SUB_FULL, { variables })
+  const hasSub = !!variables.sub
+  const { data } = useQuery(SUB_FULL, { variables, skip: !hasSub })
 
-  if (!data && !ssrData) return <PageLoading />
-  const { sub } = data || ssrData
+  if (hasSub && !data && !ssrData) return <PageLoading />
+  const { sub } = data || ssrData || {}
 
   return (
     <Layout sub={sub?.name}>

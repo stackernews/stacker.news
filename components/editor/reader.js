@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import { defineExtension } from 'lexical'
 import { RichTextExtension } from '@lexical/rich-text'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -35,7 +35,8 @@ const renderServerHTML = (editor) => {
  * initial innerHTML for contentEditable
  * - server: paint the server-resolved html if available, otherwise
  *           generate a fake DOM to prepare Lexical for SSR content generation
- * - client: we use the server HTML when possible (e.g. items), otherwise we leave it empty
+ * - client: paint the resolver html on fresh mounts; either way Lexical repaints
+ *           the root element from the editor state as soon as ContentEditable attaches it
  */
 const initialContentEditable = (editor, html) => {
   if (typeof window === 'undefined') {
@@ -63,26 +64,17 @@ const initiateEditorState = (editor, state, text) => {
   }
 }
 
-function SSRContentEditable ({ state, text, html, ...props }) {
+function SSRContentEditable ({ html, ...props }) {
   const [editor] = useLexicalComposerContext()
-
-  const takeoverRef = useCallback((dom) => {
-    if (!dom || typeof window === 'undefined') return
-    // prevent re-runs, if the state is not empty, we've already reconstructed it
-    if (!editor.getEditorState().isEmpty()) return
-
-    // replace the server-painted DOM with the client-side Lexical state
-    initiateEditorState(editor, state, text)
-  }, [editor, state, text])
 
   const initialHTML = useMemo(() => initialContentEditable(editor, html), [editor, html])
 
   return (
     <ContentEditable
       {...props}
-      ref={takeoverRef}
       suppressHydrationWarning
-      // server HTML is preserved until takeoverRef swaps it with the client-side Lexical state
+      // server HTML is preserved until ContentEditable attaches the root element,
+      // which repaints it from the editor state before the browser paints
       dangerouslySetInnerHTML={{ __html: initialHTML }}
     />
   )
@@ -107,17 +99,19 @@ export default function Reader ({ topLevel, state, text, html, readerRef, innerC
         ...theme,
         topLevel: topLevel && 'topLevel'
       },
-      // the server paints the resolver html directly, so we only need to build the
-      // editor state on the server for the renderServerHTML fallback (non-items lacking html).
+      // the server paints the resolver html directly, so it only builds the editor state
+      // for the renderServerHTML fallback (non-items lacking html); the client always
+      // builds it, so anything it paints comes from the editor state
       $initialEditorState: (editor) => {
-        if (typeof window === 'undefined' && !html) initiateEditorState(editor, state, text)
+        if (typeof window === 'undefined' && html) return
+        initiateEditorState(editor, state, text)
       },
       onError: (error) => console.error('reader has encountered an error:', error)
     }), [topLevel, state, text, html])
 
   const contentEditable = useMemo(() => (
-    <SSRContentEditable state={state} text={text} html={html} data-sn-reader='true' className={innerClassName} />
-  ), [state, text, html, innerClassName])
+    <SSRContentEditable html={html} data-sn-reader='true' className={innerClassName} />
+  ), [html, innerClassName])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={contentEditable}>

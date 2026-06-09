@@ -102,15 +102,15 @@ For example, we used `ElementNode` to create footnotes:
     - parent container that groups footnote definitions
   - `FootnoteDefinitionNode`
     - parent container for the definition which will be a `TextNode`
-  - `FootnoteBackrefNode`
-    - parent container for the backref button which will be a `LinkNode`
 
 ### [`DecoratorNode`](https://lexical.dev/docs/concepts/nodes#decoratornode)
 
 It's a wrapper node to insert components inside the editor. In our case, React components.  
 It's the only way to render React with nodes, and it's at the core of many of our custom nodes.
 
-For example, we used `DecoratorNode` to create `MediaNode`.
+For example, we used `DecoratorNode` to create `MediaNode`, as well as the
+display-only `FootnoteReferenceNode` and `FootnoteBackrefNode` (the `↩` link).
+These render React content and hold no editable children.
 
 **`decorate ()`**
 

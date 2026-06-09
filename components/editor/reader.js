@@ -32,7 +32,7 @@ const renderServerHTML = (editor) => {
 }
 
 /**
- * initial innerHTML for contentEditable. three cases:
+ * initial innerHTML for contentEditable
  * - server: paint the server-resolved html if available, otherwise
  *           generate a fake DOM to prepare Lexical for SSR content generation
  * - client: we use the server HTML when possible (e.g. items), otherwise we leave it empty

@@ -55,7 +55,6 @@ export class UserMentionNode extends DecoratorNode {
 
   createDOM (config, editor) {
     if (isServerRendering()) {
-      console.log('isServerRendering', this.__userMentionName, this.__path)
       return this.exportDOM(editor).element
     }
     const domNode = document.createElement('span')

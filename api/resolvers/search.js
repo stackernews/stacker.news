@@ -381,9 +381,19 @@ function joinTitleAndText (title = '', text = '') {
   return normalizedTitle || normalizedText
 }
 
-function buildRelatedSource ({ title, text }) {
+function pollOptionsText (pollOptions = []) {
+  return pollOptions
+    .map(option => typeof option === 'string' ? option : option?.option)
+    .filter(Boolean)
+    .join('\n')
+}
+
+function buildRelatedSource ({ title, text, pollOptions }) {
   const normalizedTitle = title?.trim() || ''
-  const normalizedText = normalizeSearchText(text)
+  const normalizedText = [
+    normalizeSearchText(text),
+    normalizeSearchText(pollOptionsText(pollOptions))
+  ].filter(Boolean).join('\n\n')
 
   return {
     title: normalizedTitle,
@@ -811,7 +821,15 @@ export default {
       if (id) {
         const item = await getItem(parent, { id }, { me, models })
         if (item) {
-          source = buildRelatedSource(item)
+          let pollOptions = []
+          if (item.pollCost) {
+            pollOptions = await models.pollOption.findMany({
+              where: { itemId: Number(item.id) },
+              select: { option: true },
+              orderBy: { id: 'asc' }
+            })
+          }
+          source = buildRelatedSource({ ...item, pollOptions })
         }
       }
 

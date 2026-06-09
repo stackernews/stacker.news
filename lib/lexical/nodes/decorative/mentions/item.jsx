@@ -1,12 +1,35 @@
 import { DecoratorNode, $applyNodeReplacement } from 'lexical'
+import classNames from 'classnames'
+import {
+  DEFAULT_FORMAT,
+  IS_BOLD,
+  IS_ITALIC,
+  IS_STRIKETHROUGH,
+  IS_HIGHLIGHT,
+  IS_SUPERSCRIPT,
+  IS_SUBSCRIPT,
+  IS_UNDERLINE
+} from '@/lib/lexical/mdast/format-constants'
+
+const DEFAULT_TEXT_THEME = {
+  bold: 'sn-text__bold',
+  italic: 'sn-text__italic',
+  highlight: 'sn-text__highlight',
+  underline: 'sn-text__underline',
+  strikethrough: 'sn-text__strikethrough',
+  underlineStrikethrough: 'sn-text__underline-strikethrough',
+  superscript: 'sn-text__superscript',
+  subscript: 'sn-text__subscript'
+}
 
 function $convertItemMentionElement (domNode) {
   const id = domNode.getAttribute('data-lexical-item-mention-id')
   const text = domNode.querySelector('a')?.textContent
   const url = domNode.querySelector('a')?.getAttribute('href')
+  const format = getTextFormatFromClassName(domNode)
 
   if (id) {
-    const node = $createItemMentionNode({ id, text, url })
+    const node = $createItemMentionNode({ id, text, url, format })
     return { node }
   }
 
@@ -17,10 +40,61 @@ export function isCustomText (text, id) {
   return text && text !== `#${id}`
 }
 
+function textClass (theme, key) {
+  return theme?.[key] || DEFAULT_TEXT_THEME[key]
+}
+
+function hasTextClass (domNode, key) {
+  return domNode.classList.contains(DEFAULT_TEXT_THEME[key])
+}
+
+function getTextFormatFromClassName (domNode) {
+  let format = DEFAULT_FORMAT
+
+  if (hasTextClass(domNode, 'bold')) format |= IS_BOLD
+  if (hasTextClass(domNode, 'italic')) format |= IS_ITALIC
+  if (hasTextClass(domNode, 'highlight')) format |= IS_HIGHLIGHT
+  if (hasTextClass(domNode, 'superscript')) format |= IS_SUPERSCRIPT
+  if (hasTextClass(domNode, 'subscript')) format |= IS_SUBSCRIPT
+
+  if (hasTextClass(domNode, 'underlineStrikethrough')) {
+    format |= IS_UNDERLINE | IS_STRIKETHROUGH
+  } else {
+    if (hasTextClass(domNode, 'underline')) format |= IS_UNDERLINE
+    if (hasTextClass(domNode, 'strikethrough')) format |= IS_STRIKETHROUGH
+  }
+
+  return format
+}
+
+export function getTextFormatClassName (format = DEFAULT_FORMAT, theme) {
+  const underlined = format & IS_UNDERLINE
+  const struck = format & IS_STRIKETHROUGH
+
+  return classNames({
+    [textClass(theme, 'bold')]: format & IS_BOLD,
+    [textClass(theme, 'italic')]: format & IS_ITALIC,
+    [textClass(theme, 'highlight')]: format & IS_HIGHLIGHT,
+    [textClass(theme, 'underline')]: underlined && !struck,
+    [textClass(theme, 'strikethrough')]: struck && !underlined,
+    [textClass(theme, 'underlineStrikethrough')]: underlined && struck,
+    [textClass(theme, 'superscript')]: format & IS_SUPERSCRIPT,
+    [textClass(theme, 'subscript')]: format & IS_SUBSCRIPT
+  })
+}
+
+function getItemMentionClassName (theme, text, id, format) {
+  return classNames(
+    isCustomText(text, id) ? theme?.link : theme?.itemMention,
+    getTextFormatClassName(format, theme?.text)
+  )
+}
+
 export class ItemMentionNode extends DecoratorNode {
   __itemMentionId
   __text
   __url
+  __format
 
   static getType () {
     return 'item-mention'
@@ -38,19 +112,29 @@ export class ItemMentionNode extends DecoratorNode {
     return this.__url
   }
 
+  getFormat () {
+    return this.__format
+  }
+
   static clone (node) {
-    return new ItemMentionNode(node.__itemMentionId, node.__text, node.__url, node.__key)
+    return new ItemMentionNode(node.__itemMentionId, node.__text, node.__url, node.__format, node.__key)
   }
 
   static importJSON (serializedNode) {
-    return $createItemMentionNode({ id: serializedNode.itemMentionId, text: serializedNode.text, url: serializedNode.url })
+    return $createItemMentionNode({
+      id: serializedNode.itemMentionId,
+      text: serializedNode.text,
+      url: serializedNode.url,
+      format: serializedNode.format ?? DEFAULT_FORMAT
+    })
   }
 
-  constructor (itemMentionId, text, url, key) {
+  constructor (itemMentionId, text, url, format = DEFAULT_FORMAT, key) {
     super(key)
     this.__itemMentionId = itemMentionId
     this.__text = text
     this.__url = url
+    this.__format = format
   }
 
   exportJSON () {
@@ -59,14 +143,15 @@ export class ItemMentionNode extends DecoratorNode {
       version: 1,
       itemMentionId: this.__itemMentionId,
       text: this.__text,
-      url: this.__url
+      url: this.__url,
+      format: this.__format
     }
   }
 
   createDOM (config) {
     const domNode = document.createElement('span')
     const theme = config.theme
-    const className = isCustomText(this.__text, this.__itemMentionId) ? theme.link : theme.itemMention
+    const className = getItemMentionClassName(theme, this.__text, this.__itemMentionId, this.__format)
     if (className !== undefined) {
       domNode.className = className
     }
@@ -80,7 +165,7 @@ export class ItemMentionNode extends DecoratorNode {
     const wrapper = document.createElement('span')
     wrapper.setAttribute('data-lexical-item-mention', true)
     const theme = editor._config.theme
-    const className = isCustomText(this.__text, this.__itemMentionId) ? theme.link : theme.itemMention
+    const className = getItemMentionClassName(theme, this.__text, this.__itemMentionId, this.__format)
     if (className !== undefined) {
       wrapper.className = className
     }
@@ -113,22 +198,23 @@ export class ItemMentionNode extends DecoratorNode {
     return this.__text || `#${this.__itemMentionId}`
   }
 
-  decorate () {
+  decorate (_editor, config) {
     const ItemPopover = require('@/components/item-popover').default
     const MentionsComponent = require('@/components/editor/nodes/mentions').default
     const id = this.__itemMentionId
     const href = this.__url
     const text = this.__text || `#${this.__itemMentionId}`
+    const className = getItemMentionClassName(config?.theme, this.__text, this.__itemMentionId, this.__format)
     return (
       <ItemPopover id={id}>
-        <MentionsComponent nodeKey={this.getKey()} href={href} text={text} />
+        <MentionsComponent nodeKey={this.getKey()} href={href} text={text} className={className} />
       </ItemPopover>
     )
   }
 }
 
-export function $createItemMentionNode ({ id, text, url }) {
-  return $applyNodeReplacement(new ItemMentionNode(id, text, url))
+export function $createItemMentionNode ({ id, text, url, format = DEFAULT_FORMAT }) {
+  return $applyNodeReplacement(new ItemMentionNode(id, text, url, format))
 }
 
 export function $isItemMentionNode (node) {

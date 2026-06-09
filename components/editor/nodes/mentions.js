@@ -8,7 +8,7 @@ import { $isItemMentionNode } from '@/lib/lexical/nodes/decorative/mentions/item
 import { getLinkAttributes } from '@/lib/url'
 import { $createLinkNode } from '@lexical/link'
 
-export default function MentionsComponent ({ nodeKey, href, text }) {
+export default function MentionsComponent ({ nodeKey, href, text, className }) {
   const [editor] = useLexicalComposerContext()
   const isEditable = useLexicalEditable()
 
@@ -24,8 +24,10 @@ export default function MentionsComponent ({ nodeKey, href, text }) {
         const url = node.getURL()
         const displayText = node.getText()
         const { target, rel } = getLinkAttributes(url)
+        const textNode = $createTextNode(displayText || url)
+        textNode.setFormat(node.getFormat())
         newNode = $createLinkNode(url, { target, rel })
-          .append($createTextNode(displayText || url))
+          .append(textNode)
       } else {
         // other mention types become plain text
         // cursor will land on the text node triggering mentions menu
@@ -43,7 +45,7 @@ export default function MentionsComponent ({ nodeKey, href, text }) {
     onDoubleClick: breakMention
   })
 
-  if (!isEditable) return <Link href={href}>{text}</Link>
+  if (!isEditable) return <Link className={className} href={href}>{text}</Link>
 
-  return <span title='double click to edit'>{text}</span>
+  return <span className={className} title='double click to edit'>{text}</span>
 }

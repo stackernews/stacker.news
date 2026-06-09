@@ -1,6 +1,7 @@
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents'
 import { $applyNodeReplacement } from 'lexical'
+import { isServerRendering } from '@/lib/lexical/server/dom'
 
 export function $convertEmbedElement (domNode) {
   const provider = domNode.getAttribute('data-lexical-embed-provider')
@@ -124,6 +125,9 @@ export class EmbedNode extends DecoratorBlockNode {
   }
 
   createDOM (config, editor) {
+    if (isServerRendering()) {
+      return this.exportDOM(editor).element
+    }
     const div = super.createDOM(config)
     div.setAttribute('data-lexical-embed-provider', this.__provider || '')
     this.__id && div.setAttribute('data-lexical-embed-id', this.__id)

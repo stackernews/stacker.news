@@ -1,4 +1,5 @@
 import { DecoratorNode, $applyNodeReplacement } from 'lexical'
+import { isServerRendering } from '@/lib/lexical/server/dom'
 
 function $convertTerritoryMentionElement (domNode) {
   const textContent = domNode.textContent
@@ -45,7 +46,10 @@ export class TerritoryMentionNode extends DecoratorNode {
     }
   }
 
-  createDOM (config) {
+  createDOM (config, editor) {
+    if (isServerRendering()) {
+      return this.exportDOM(editor).element
+    }
     const domNode = document.createElement('span')
     const theme = config.theme
     const className = theme.territoryMention

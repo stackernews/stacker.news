@@ -1,4 +1,5 @@
 import { DecoratorNode, $applyNodeReplacement } from 'lexical'
+import { isServerRendering } from '@/lib/lexical/server/dom'
 
 function $convertUserMentionElement (domNode) {
   const textContent = domNode.textContent
@@ -52,7 +53,11 @@ export class UserMentionNode extends DecoratorNode {
     }
   }
 
-  createDOM (config) {
+  createDOM (config, editor) {
+    if (isServerRendering()) {
+      console.log('isServerRendering', this.__userMentionName, this.__path)
+      return this.exportDOM(editor).element
+    }
     const domNode = document.createElement('span')
     const theme = config.theme
     const className = theme.userMention

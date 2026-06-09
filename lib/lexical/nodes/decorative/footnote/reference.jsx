@@ -1,4 +1,5 @@
 import { DecoratorNode, $applyNodeReplacement } from 'lexical'
+import { isServerRendering } from '@/lib/lexical/server/dom'
 
 function referenceDOM (config, { identifier, label }) {
   const sup = document.createElement('sup')
@@ -67,7 +68,10 @@ export class FootnoteReferenceNode extends DecoratorNode {
     }
   }
 
-  createDOM (config) {
+  createDOM (config, editor) {
+    if (isServerRendering()) {
+      return this.exportDOM(editor).element
+    }
     return referenceDOM(config, { identifier: this.__identifier, label: this.__label })
   }
 

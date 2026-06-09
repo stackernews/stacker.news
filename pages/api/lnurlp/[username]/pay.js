@@ -26,7 +26,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
   try {
     await assertGofacYourself({ models, headers })
     // if nostr, decode, validate sig, check tags, set description hash
-    let { description, descriptionHash } = lnurlPayMetadata(username)
+    let { description, descriptionHash } = lnurlPayMetadata(user.name)
     let noteStr
     if (nostr) {
       noteStr = decodeURIComponent(nostr)
@@ -73,7 +73,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       }
 
       // Update description hash to include the passed payer data
-      descriptionHash = createHash('sha256').update(lnurlPayMetadata(username).metadata + payerData).digest('hex')
+      descriptionHash = createHash('sha256').update(lnurlPayMetadata(user.name).metadata + payerData).digest('hex')
     }
 
     // generate invoice
@@ -91,7 +91,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(200).json({
       pr: payInBolt11.bolt11,
       routes: [],
-      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${payInBolt11.hash}`
+      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${user.name}/verify/${payInBolt11.hash}`
     })
   } catch (error) {
     console.log(error)

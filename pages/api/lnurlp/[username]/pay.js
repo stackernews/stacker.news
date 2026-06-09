@@ -33,7 +33,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
   try {
     await assertGofacYourself({ models, headers })
     // if nostr, decode, validate sig, check tags, set description hash
-    let { description, descriptionHash } = lnurlPayMetadata(username)
+    let { description, descriptionHash } = lnurlPayMetadata(user.name)
     let noteStr
     let lud18Data
     if (nostr) {
@@ -71,7 +71,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
         return res.status(400).json({ status: 'ERROR', reason: err.toString() })
       }
 
-      descriptionHash = createHash('sha256').update(lnurlPayMetadata(username).metadata + payerData).digest('hex')
+      descriptionHash = createHash('sha256').update(lnurlPayMetadata(user.name).metadata + payerData).digest('hex')
     }
 
     if (comment && characterLength(comment) > LNURLP_COMMENT_MAX_LENGTH) {
@@ -96,7 +96,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(200).json({
       pr: payInBolt11.bolt11,
       routes: [],
-      verify: lnurlpVerifyUrl(username, payInBolt11.hash)
+      verify: lnurlpVerifyUrl(user.name, payInBolt11.hash)
     })
   } catch (error) {
     console.log(error)

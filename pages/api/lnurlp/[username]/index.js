@@ -10,9 +10,9 @@ export default async ({ query: { username } }, res) => {
   }
 
   const url = process.env.NODE_ENV === 'development' ? process.env.SELF_URL : process.env.NEXT_PUBLIC_URL
-  const { metadata } = lnurlPayMetadata(username)
+  const { metadata } = lnurlPayMetadata(user.name)
   return res.status(200).json({
-    callback: lnurlpCallbackUrl(username, url), // The URL from LN SERVICE which will accept the pay request parameters
+    callback: lnurlpCallbackUrl(user.name, url), // The URL from LN SERVICE which will accept the pay request parameters
     minSendable: Number(PROXY_PAYER_MIN_MSATS), // Min amount LN SERVICE is willing to receive, can not be less than 1 or more than `maxSendable`
     maxSendable: Number(PROXY_PAYER_MAX_MSATS), // Max amount LN SERVICE is willing to receive: the largest payer amount whose post-fee payout the wrap pipeline accepts
     metadata, // Metadata json which must be presented as raw string here, this is required to pass signature verification at a later step

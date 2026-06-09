@@ -5,7 +5,7 @@ import { parse } from 'tldts'
 import { searchSchema, validateSchema } from '@/lib/validate'
 import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER, HOMEPAGE_POSTS_SATS_FILTER } from '@/lib/constants'
 import { resolveOpensearchModelId } from '../search/model-id'
-import removeMd from 'remove-markdown'
+import { buildRelatedSource } from '@/lib/search-text'
 
 const DOUBLE_QUOTE_VARIANTS = [
   '\u201C', // left double quotation mark
@@ -367,28 +367,6 @@ function exactTextLeg (query) {
       ],
       minimum_should_match: 1
     }
-  }
-}
-
-function normalizeSearchText (text = '') {
-  return typeof text === 'string' ? removeMd(text).trim() : ''
-}
-
-function joinTitleAndText (title = '', text = '') {
-  const normalizedTitle = title.trim()
-  const normalizedText = text.trim()
-  if (normalizedTitle && normalizedText) return `${normalizedTitle}\n\n${normalizedText}`
-  return normalizedTitle || normalizedText
-}
-
-function buildRelatedSource ({ title, text }) {
-  const normalizedTitle = title?.trim() || ''
-  const normalizedText = normalizeSearchText(text)
-
-  return {
-    title: normalizedTitle,
-    hasBody: normalizedText.length > 0,
-    textQuery: joinTitleAndText(normalizedTitle, normalizedText)
   }
 }
 
@@ -811,7 +789,15 @@ export default {
       if (id) {
         const item = await getItem(parent, { id }, { me, models })
         if (item) {
-          source = buildRelatedSource(item)
+          let pollOptions = []
+          if (item.pollCost) {
+            pollOptions = await models.pollOption.findMany({
+              where: { itemId: Number(item.id) },
+              select: { option: true },
+              orderBy: { id: 'asc' }
+            })
+          }
+          source = buildRelatedSource({ ...item, pollOptions })
         }
       }
 

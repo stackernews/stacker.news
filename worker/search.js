@@ -1,7 +1,7 @@
 import { gql } from 'graphql-tag'
 import search from '@/api/search/index'
-import removeMd from 'remove-markdown'
 import { msatsToSats } from '@/lib/format'
+import { searchableText } from '@/lib/search-text'
 
 const ITEM_SEARCH_FIELDS = gql`
   fragment ItemSearchFields on Item {
@@ -13,6 +13,7 @@ const ITEM_SEARCH_FIELDS = gql`
     text
     url
     userId
+    pollCost
     subNames
     user {
       name
@@ -52,8 +53,17 @@ async function _indexItem (item, { models, updatedAt }) {
   if (item.location || item.remote) {
     itemcp.title += ` \\ ${item.location || ''}${item.location && item.remote ? ' or ' : ''}${item.remote ? 'Remote' : ''}`
   }
-  if (item.text) {
-    itemcp.text = removeMd(item.text)
+  let pollOptions = []
+  if (item.pollCost) {
+    pollOptions = await models.pollOption.findMany({
+      where: { itemId: Number(item.id) },
+      select: { option: true },
+      orderBy: { id: 'asc' }
+    })
+  }
+  const text = searchableText(item.text, pollOptions)
+  if (text) {
+    itemcp.text = text
   }
 
   // Keep territory metadata in a flat array because ingest processing can
@@ -198,6 +208,11 @@ export async function indexAllItems ({ models, boss }) {
           company: true,
           location: true,
           remote: true,
+          pollCost: true,
+          pollOptions: {
+            select: { option: true },
+            orderBy: { id: 'asc' }
+          },
           upvotes: true,
           boost: true,
           lastCommentAt: true,
@@ -243,11 +258,13 @@ export async function indexAllItems ({ models, boss }) {
         if (item.location || item.remote) {
           doc.title = `${doc.title} \\ ${item.location || ''}${item.location && item.remote ? ' or ' : ''}${item.remote ? 'Remote' : ''}`
         }
-        if (item.text) doc.text = removeMd(item.text)
+        const text = searchableText(item.text, item.pollOptions)
+        if (text) doc.text = text
         doc.textLength = doc.text ? doc.text.length : 0
 
         // clean up relation/raw fields not needed in the index
         delete doc.Bookmark
+        delete doc.pollOptions
         delete doc.root
         delete doc.msats
         delete doc.mcredits

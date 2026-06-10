@@ -40,9 +40,9 @@ const renderServerHTML = (editor) => {
  */
 const initialContentEditable = (editor, html) => {
   if (typeof window === 'undefined') {
-    return html ?? renderServerHTML(editor)
+    return html || renderServerHTML(editor)
   }
-  return html ?? ''
+  return html || ''
 }
 
 const initiateEditorState = (editor, state, text) => {

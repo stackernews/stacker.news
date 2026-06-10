@@ -2,6 +2,7 @@ import { $applyNodeReplacement } from 'lexical'
 import { DecoratorBlockNode } from '@lexical/react/LexicalDecoratorBlockNode'
 import { $extractHeadingsFromRoot, buildNestedTocStructure, buildHtmlFromStructure } from '@/lib/lexical/utils/toc'
 import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents'
+import { isServerRendering } from '@/lib/lexical/server/dom'
 
 function $convertTableOfContentsElement (domNode) {
   if (domNode.hasAttribute('data-lexical-toc')) {
@@ -31,7 +32,12 @@ export class TableOfContentsNode extends DecoratorBlockNode {
     }
   }
 
-  createDOM () {
+  createDOM (config, editor) {
+    // the Lexical reconciler commits the full editor state before calling createDOM,
+    // so we can read the headings here.
+    if (isServerRendering()) {
+      return this.exportDOM(editor).element
+    }
     const domNode = document.createElement('div')
     domNode.setAttribute('data-lexical-toc', 'true')
     return domNode
@@ -55,13 +61,12 @@ export class TableOfContentsNode extends DecoratorBlockNode {
       if (structure.length === 0) {
         const emptyDiv = document.createElement('div')
         emptyDiv.setAttribute('class', 'text-muted fst-italic')
-        emptyDiv.textContent = 'No headings found'
+        emptyDiv.textContent = 'no headings'
         details.appendChild(emptyDiv)
-        return { element: details }
+      } else {
+        details.appendChild(buildHtmlFromStructure(structure))
       }
 
-      const tocList = buildHtmlFromStructure(structure)
-      details.appendChild(tocList)
       div.appendChild(details)
       return { element: div }
     })

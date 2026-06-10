@@ -23,15 +23,23 @@ export function useOverflow ({ containerRef, truncated = false }) {
   const router = useRouter()
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
-  // should we show the full text?
-  const [show, setShow] = useState(false)
-  const showOverflow = useCallback(() => setShow(true), [setShow])
+  // always show the full text if the `full` query param is set
+  const [show, setShow] = useState(!!router.query.full)
+
+  const showOverflow = useCallback(() => {
+    // save the full text state to the query param
+    router.replace({
+      pathname: router.pathname,
+      query: { ...router.query, full: true }
+    }, router.asPath, { shallow: true })
+    setShow(true)
+  }, [router])
 
   // if we are navigating to a hash, show the full text
   useEffect(() => {
-    setShow(router.asPath.includes('#'))
-    const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#'))
+    if (router.asPath.includes('#')) setShow(true)
+    const handleRouteChange = (url) => {
+      if (url.includes('#')) setShow(true)
     }
 
     router.events.on('hashChangeStart', handleRouteChange)

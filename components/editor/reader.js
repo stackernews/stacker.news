@@ -81,6 +81,10 @@ function SSRContentEditable ({ html, ...props }) {
 }
 
 export default function Reader ({ topLevel, state, text, html, readerRef, innerClassName }) {
+  // text (e.g. truncated markdown) overrides html, so the server paints
+  // the same content the client builds from text
+  const effectiveHTML = text ? undefined : html
+
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -100,18 +104,18 @@ export default function Reader ({ topLevel, state, text, html, readerRef, innerC
         topLevel: topLevel && 'topLevel'
       },
       // the server paints the resolver html directly, so it only builds the editor state
-      // for the renderServerHTML fallback (non-items lacking html); the client always
-      // builds it, so anything it paints comes from the editor state
+      // for the renderServerHTML fallback (non-items lacking html, or text overriding it);
+      // the client always builds it, so anything it paints comes from the editor state
       $initialEditorState: (editor) => {
-        if (typeof window === 'undefined' && html) return
+        if (typeof window === 'undefined' && effectiveHTML) return
         initiateEditorState(editor, state, text)
       },
       onError: (error) => console.error('reader has encountered an error:', error)
-    }), [topLevel, state, text, html])
+    }), [topLevel, state, text, effectiveHTML])
 
   const contentEditable = useMemo(() => (
-    <SSRContentEditable html={html} data-sn-reader='true' className={innerClassName} />
-  ), [html, innerClassName])
+    <SSRContentEditable html={effectiveHTML} data-sn-reader='true' className={innerClassName} />
+  ), [effectiveHTML, innerClassName])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={contentEditable}>

@@ -16,33 +16,15 @@ import { MuteLexicalExtension } from '@/lib/lexical/exts/mute-lexical'
 import theme from '@/lib/lexical/theme'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { withDOM } from '@/lib/lexical/server/dom'
+import { generateHTML } from '@/lib/lexical/server/html'
 
-/** creates a fake DOM to load Lexical in SSR */
-const renderServerHTML = (editor) => {
-  return withDOM(() => {
-    // attach a temporary root element to the editor
-    // and let lexical render its content into it
-    const root = document.createElement('div')
-    editor.setRootElement(root)
-    const { innerHTML } = root
-    editor.setRootElement(null)
-    // return the rendered content as HTML
-    return innerHTML
-  })
-}
-
-/**
- * initial innerHTML for contentEditable
- * - server: paint the server-resolved html if available, otherwise
- *           generate a fake DOM to prepare Lexical for SSR content generation
- * - client: paint the resolver html on fresh mounts; either way Lexical repaints
- *           the root element from the editor state as soon as ContentEditable attaches it
- */
+// prioritize server-resolved HTML, otherwise generate it from the editor state
+// in SSR we generate it in a fake DOM
 const initialContentEditable = (editor, html) => {
   if (typeof window === 'undefined') {
-    return html || renderServerHTML(editor)
+    return html || withDOM(() => generateHTML(editor))
   }
-  return html || ''
+  return html || generateHTML(editor)
 }
 
 const initiateEditorState = (editor, state, text) => {
@@ -81,10 +63,6 @@ function SSRContentEditable ({ html, ...props }) {
 }
 
 export default function Reader ({ topLevel, state, text, html, readerRef, innerClassName }) {
-  // text (e.g. truncated markdown) overrides html, so the server paints
-  // the same content the client builds from text
-  const effectiveHTML = text ? undefined : html
-
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -103,19 +81,16 @@ export default function Reader ({ topLevel, state, text, html, readerRef, innerC
         ...theme,
         topLevel: topLevel && 'topLevel'
       },
-      // the server paints the resolver html directly, so it only builds the editor state
-      // for the renderServerHTML fallback (non-items lacking html, or text overriding it);
-      // the client always builds it, so anything it paints comes from the editor state
       $initialEditorState: (editor) => {
-        if (typeof window === 'undefined' && effectiveHTML) return
+        if (typeof window === 'undefined' && html) return
         initiateEditorState(editor, state, text)
       },
       onError: (error) => console.error('reader has encountered an error:', error)
-    }), [topLevel, state, text, effectiveHTML])
+    }), [topLevel, state, html, text])
 
   const contentEditable = useMemo(() => (
-    <SSRContentEditable html={effectiveHTML} data-sn-reader='true' className={innerClassName} />
-  ), [effectiveHTML, innerClassName])
+    <SSRContentEditable html={html} data-sn-reader='true' className={innerClassName} />
+  ), [html, innerClassName])
 
   return (
     <LexicalExtensionComposer extension={reader} contentEditable={contentEditable}>

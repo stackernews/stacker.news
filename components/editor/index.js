@@ -1,4 +1,3 @@
-import { useRouter } from 'next/router'
 import Editor from './editor'
 import { ToolbarContextProvider } from './contexts/toolbar'
 import { EditorModeProvider } from './contexts/mode'
@@ -14,11 +13,6 @@ export function SNEditor ({ ...props }) {
   )
 }
 
-export function SNReader ({ html, ...props }) {
-  const router = useRouter()
-  const debug = router.isReady && router.query.html
-
-  if (debug) return <div data-sn-reader dangerouslySetInnerHTML={{ __html: html }} />
-
-  return <Reader html={html} {...props} />
+export function SNReader (props) {
+  return <Reader {...props} />
 }

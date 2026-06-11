@@ -1,5 +1,4 @@
 import { $applyNodeReplacement, createState, $getState, $setState, DecoratorNode } from 'lexical'
-import { isServerRendering } from '@/lib/lexical/server/dom'
 
 // kind and status can change over time, so we need to store them in states
 const kindState = createState('kind', {
@@ -199,13 +198,7 @@ export class MediaNode extends DecoratorNode {
     return { element: span }
   }
 
-  createDOM (config, editor) {
-    // in SSR the decorator never mounts, so reuse exportDOM to paint the same
-    // static markup we'd serialize (loading box, autolink fallback for unknown
-    // kinds) instead of an empty shell. client takeover replaces it.
-    if (isServerRendering()) {
-      return this.exportDOM(editor).element
-    }
+  createDOM (config) {
     const span = document.createElement('span')
     span.className = config.theme?.media
     span.setAttribute('data-sn-media-kind', this.getKind())

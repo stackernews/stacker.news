@@ -13,7 +13,8 @@ export default [
         name: 'url',
         type: 'text',
         label: 'url',
-        validate: urlValidator('clearnet'),
+        // send wallet: dialed by the user's browser, so private/LAN addresses are allowed
+        validate: urlValidator('clearnet', { allowPrivate: true }),
         required: true,
         share: true
       },
@@ -42,7 +43,8 @@ export default [
         name: 'url',
         type: 'text',
         label: 'url',
-        validate: urlValidator('clearnet'),
+        // receive wallet: dialed by our servers, which can reach onion via the Tor proxy
+        validate: urlValidator('clearnet', 'tor'),
         required: true,
         share: true
       },

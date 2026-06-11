@@ -67,6 +67,7 @@
     "graphql-scalar": "^0.1.0",
     "graphql-tag": "^2.12.6",
     "graphql-type-json": "^0.3.2",
+    "ipaddr.js": "^2.4.0",
     "isomorphic-ws": "^5.0.0",
     "katex": "^0.16.22",
     "lexical": "^0.45.0",

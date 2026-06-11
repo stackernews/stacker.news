@@ -31,7 +31,8 @@ export default [
         type: 'password',
         placeholder: 'ndebit...',
         required: true,
-        validate: clinkValidator('ndebit'),
+        // send wallet: relay is dialed by the user's browser, so private/LAN is allowed
+        validate: clinkValidator('ndebit', { allowPrivate: true }),
         encrypt: true,
         editable: false
       },

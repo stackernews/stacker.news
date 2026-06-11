@@ -92,11 +92,13 @@ export function WalletProtocolFormField ({ protocol, type, onNwcLud16, ...props 
 
 // Adapt a field schema into a Formik validate fn: first error message, or
 // undefined when valid. The schema already has `required` and any codec folded in.
+// async (schema.validate, not validateSync) so schemas with async tests — e.g.
+// urlValidator's clearnet/tor check — work; Formik awaits async field validators.
 function makeFieldValidator (schema) {
   if (!schema) return undefined
-  return (value) => {
+  return async (value) => {
     try {
-      schema.validateSync(value)
+      await schema.validate(value)
       return undefined
     } catch (err) {
       return err.message

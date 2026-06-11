@@ -6,7 +6,7 @@ import { NOSTR_PUBKEY_HEX } from '@/lib/nostr'
 import { TOR_REGEXP } from '@/lib/url'
 import { lightningAddressValidator } from '@/lib/validate'
 import { decodeBech32 as clinkDecodeBech32, OfferPriceType } from '@shocknet/clink-sdk'
-import { string, array } from 'yup'
+import { string, array } from '@/lib/yup'
 
 export const externalLightningAddressValidator = lightningAddressValidator
   .test({
@@ -15,7 +15,7 @@ export const externalLightningAddressValidator = lightningAddressValidator
     message: 'lightning address must be external'
   })
 
-export const nwcUrlValidator = () =>
+export const nwcUrlValidator = ({ allowPrivate = false } = {}) =>
   string()
     .url()
     .test({
@@ -34,9 +34,12 @@ export const nwcUrlValidator = () =>
             throw new Error('pubkey must be 64 hex chars')
           }
           string().required('pubkey required').trim().matches(NOSTR_PUBKEY_HEX, 'pubkey must be 64 hex chars').validateSync(walletPubkey)
-          array().of(
-            string().required('relay url required').trim().wss('relay must use wss://')
-          ).min(1, 'at least one relay required').validateSync(relayUrls)
+          // receive relays are dialed by our servers and must be public; send relays are
+          // dialed by the user's browser (allowPrivate) and may reach their own LAN
+          let relaySchema = string().required('relay url required').trim().wss('relay must use wss://')
+          // .wss() runs first and guarantees a parseable wss:// url, so new URL won't throw here
+          if (!allowPrivate) relaySchema = relaySchema.publicHost(relay => new URL(relay).hostname, 'relay must be a public address')
+          array().of(relaySchema).min(1, 'at least one relay required').validateSync(relayUrls)
           string().required('secret required').trim().matches(/^[0-9a-fA-F]{64}$/, 'secret must be 64 hex chars').validateSync(secret)
         } catch (err) {
           return context.createError({ message: err.message })
@@ -66,8 +69,8 @@ export function parseNwcUrl (walletConnectUrl) {
   }
 }
 
-export const clinkValidator = (type) =>
-  string()
+export const clinkValidator = (type, { allowPrivate = false } = {}) => {
+  const schema = string()
     .matches(new RegExp(`^${type}1`), { message: `must start with ${type}1` })
     .matches(/^(noffer|ndebit)1[02-9ac-hj-np-z]+$/, { message: 'invalid bech32 encoding' })
     .test({
@@ -95,22 +98,44 @@ export const clinkValidator = (type) =>
       }
     })
 
-export const socketValidator = (msg = 'invalid socket') =>
-  string()
+  // the relay is decoded from the bech32 and dialed server-side for receive (noffer);
+  // ndebit send is browser-dialed (allowPrivate) and may reach the user's own LAN
+  if (allowPrivate) return schema
+  return schema.publicHost(v => {
+    const relay = clinkDecodeBech32(v).data?.relay
+    if (!relay) return ''
+    try {
+      return new URL(relay).hostname
+    } catch {
+      return new URL(`wss://${relay}`).hostname
+    }
+  }, 'relay must be a public address')
+}
+
+export const socketValidator = ({ allowPrivate = false } = {}) => {
+  const schema = string()
     .test({
       name: 'socket',
-      message: msg,
+      message: 'invalid socket',
       test: value => {
         try {
           const url = new URL(`http://${value}`)
-          return url.hostname && url.port && !url.username && !url.password &&
-              (!url.pathname || url.pathname === '/') && !url.search && !url.hash
+          return !!(url.hostname && url.port && !url.username && !url.password &&
+              (!url.pathname || url.pathname === '/') && !url.search && !url.hash)
         } catch (e) {
           return false
         }
       },
       exclusive: false
     })
+
+  // sockets we dial server-side (gRPC, CLN-REST receive) must be public — and since gRPC
+  // bypasses snFetch, this is its only SSRF guard (IP literals only; a hostname resolving
+  // private is not caught here). the browser-dialed send socket is exempt: it may
+  // legitimately reach the user's own LAN.
+  if (allowPrivate) return schema
+  return schema.publicHost(value => new URL(`http://${value}`).hostname)
+}
 
 export const runeValidator = ({ method, methods, optionalMethods = [] }) => {
   const requiredAlternatives = (methods ?? [method]).map(method => `method=${method}`)
@@ -179,34 +204,52 @@ export const bip39Validator = ({ min = 12, max = 24 } = {}) =>
 
 export const certValidator = () => string().hexOrBase64()
 
-export const urlValidator = (...args) =>
-  process.env.NODE_ENV === 'development'
-    ? string()
+export const urlValidator = (...args) => {
+  // receive endpoints are dialed by our servers and must be public; send endpoints are
+  // dialed by the user's browser, which may legitimately reach their own LAN/tailnet
+  const { allowPrivate = false } = args.find(arg => arg && typeof arg === 'object' && !Array.isArray(arg)) ?? {}
+
+  if (process.env.NODE_ENV === 'development') {
+    return string()
       .or([
         string().matches(/^(http:\/\/)?localhost:\d+$/),
         string().url()
       ], 'invalid url')
       .trim()
-    : string().url().trim()
-      .test(async (url, context) => {
-        if (args.includes('tor') && TOR_REGEXP.test(url)) {
-          // allow HTTP and HTTPS over Tor
-          if (!/^https?:\/\//.test(url)) {
-            return context.createError({ message: 'http or https required' })
-          }
-          return true
-        }
+  }
 
-        if (args.includes('clearnet')) {
-          try {
-            // force HTTPS over clearnet
-            await string().https().validate(url)
-          } catch (err) {
-            return context.createError({ message: err.message })
-          }
+  const schema = string().url().trim()
+    .test(async (url, context) => {
+      if (args.includes('tor') && TOR_REGEXP.test(url)) {
+        // allow HTTP and HTTPS over Tor
+        if (!/^https?:\/\//.test(url)) {
+          return context.createError({ message: 'http or https required' })
         }
-
         return true
-      })
+      }
+
+      if (args.includes('clearnet')) {
+        try {
+          // force HTTPS over clearnet
+          await string().https().validate(url)
+        } catch (err) {
+          return context.createError({ message: err.message })
+        }
+      }
+
+      return true
+    })
+
+  if (allowPrivate) return schema
+  // reject private/internal IP-literal endpoints (hostnames are judged at fetch time).
+  // mirror url()'s schemeless fallback so a schemeless private IP can't slip past.
+  return schema.publicHost(url => {
+    try {
+      return new URL(url).hostname
+    } catch {
+      return new URL(`http://${url}`).hostname
+    }
+  })
+}
 
 export const hexValidator = (length) => string().hex().length(length, `must be exactly ${length} hex chars`)

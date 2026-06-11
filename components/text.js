@@ -19,7 +19,7 @@ export function SearchText ({ text }) {
   )
 }
 
-export function useOverflow ({ containerRef, itemId, topLevel, truncated = false }) {
+export function useOverflow ({ containerRef, itemId, truncated = false }) {
   const router = useRouter()
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
@@ -29,17 +29,16 @@ export function useOverflow ({ containerRef, itemId, topLevel, truncated = false
 
   const storageKey = itemId && `showFullText:${itemId}`
 
-  // was the text expanded earlier in this tab session, or are we on a hash anchor?
-  // scroll restoration measures the first render, so we read this during it;
-  // subscribe is a no-op because sessionStorage doesn't emit same-tab events.
-  const subscribe = useCallback(() => () => {}, [])
+  // read-on-mount, not reactive: no same-tab storage event, so subscribe never fires.
+  // getSnapshot runs during render so scroll restoration sees the right height.
+  const subscribeNever = useCallback(() => () => {}, [])
   const storedShow = useSyncExternalStore(
-    subscribe,
+    subscribeNever,
     () => (!!storageKey && window.sessionStorage.getItem(storageKey) === 'true') || window.location.hash !== '',
     () => false
   )
 
-  const show = expanded || storedShow || !!(topLevel && router.query.full)
+  const show = expanded || storedShow
 
   const showOverflow = useCallback(() => {
     // remember the expanded state for the rest of the tab session
@@ -143,7 +142,7 @@ export default function Text (props) {
 
 export function TextBody ({ topLevel, itemId, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
   const containerRef = useRef(null)
-  const { overflowing, show, Overflow } = useOverflow({ containerRef, itemId, topLevel, truncated: !!children })
+  const { overflowing, show, Overflow } = useOverflow({ containerRef, itemId, truncated: !!children })
   const carousel = useCarousel()
 
   const textClassNames = useMemo(() => {

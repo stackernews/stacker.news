@@ -40,8 +40,9 @@ import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
-import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
+import { getFailedRetryPayIn, isBenignRetryRaceError, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
+import { isInvoiceSetupPending, toFailedPayIn } from '@/lib/pay-in'
 import MapIcon from '@/svgs/map.svg'
 
 function Notification ({ n, fresh }) {
@@ -420,6 +421,13 @@ function PayInFailed ({ n }) {
   const toaster = useToast()
   const { payIn, payInItem: item } = n
   const updatePayIn = useCallback((cache, { data }) => {
+    // a wrap-/creation-failed retry returns a bolt11-less successor in a transient
+    // PENDING_INVOICE_* state. It's a guaranteed failure (queuePayInFailed is already enqueued
+    // server-side), so show it as FAILED now rather than a stale 'pending' that only clears on a
+    // refetch — this lets the user recognize the failure and (once auto-retries exhaust) retry again.
+    const retryPayIn = isInvoiceSetupPending(data.retryPayIn)
+      ? toFailedPayIn(data.retryPayIn, 'EXECUTION_FAILED')
+      : data.retryPayIn
     cache.writeFragment({
       id: `PayInification:${n.id}`,
       fragment: gql`
@@ -438,15 +446,14 @@ function PayInFailed ({ n }) {
         }
       `,
       data: {
-        payIn: data.retryPayIn
+        payIn: retryPayIn
       }
     })
   }, [n.id])
 
   const revertPayIn = useCallback((error, cache, { data }) => {
-    const retryFailureUpdate = getRetryPayInFailureUpdate(error, data)
-    if (!retryFailureUpdate) return
-    const { retryPayInId, failureData } = retryFailureUpdate
+    const failedRetryPayIn = getFailedRetryPayIn(error, data)
+    if (!failedRetryPayIn) return
     cache.writeFragment({
       id: `PayInification:${n.id}`,
       fragment: gql`
@@ -462,11 +469,7 @@ function PayInFailed ({ n }) {
         }
       `,
       data: {
-        payIn: {
-          __typename: 'PayIn',
-          id: retryPayInId,
-          ...failureData
-        }
+        payIn: failedRetryPayIn
       }
     })
   }, [n.id])
@@ -545,7 +548,9 @@ function PayInFailed ({ n }) {
                 const { error } = await retry()
                 if (error) throw error
               } catch (error) {
-                toaster.danger(error?.message || error?.toString?.())
+                // a manual retry can race the lineage advancing / a concurrent retry — that's
+                // expected (the auto-retry swallows it too), so don't surface it as a payment error.
+                if (!isBenignRetryRaceError(error)) toaster.danger(error?.message || error?.toString?.())
               } finally {
                 setDisableRetry(false)
               }

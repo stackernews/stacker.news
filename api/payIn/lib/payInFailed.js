@@ -10,7 +10,12 @@ export async function payInReplacePayOuts (models, payInFailedInitial) {
 
   const payInFailed = { ...payInFailedInitial }
   try {
-    payInFailed.payOutBolt11 = await payOutBolt11Replacement(models, payInFailed.genesisId ?? payInFailed.id, payInFailed.payOutBolt11)
+    payInFailed.payOutBolt11 = await payOutBolt11Replacement(
+      models, payInFailed.genesisId ?? payInFailed.id, payInFailed.payOutBolt11, undefined,
+      // P2P-only payments (bounty/proxy) have no custodial fallback, so keep retrying wallets
+      // instead of giving up once each has failed twice.
+      { keepRetryingWallets: isP2POnly(payInFailedInitial) }
+    )
     // it's possible that the replacement payOutBolt11 is less than the original
     // due to msats truncation ... so we need to add the difference to the rewards pool
     if (payInFailed.payOutBolt11.msats !== payInFailedInitial.payOutBolt11.msats) {
@@ -36,7 +41,11 @@ export async function payInReplacePayOuts (models, payInFailedInitial) {
       throw e
     }
     // if we can no longer produce a payOutBolt11, we fallback to custodial tokens
-    payInFailed.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payInFailed.payOutBolt11))
+    // (only reached for credit-payable types; P2P-only payments re-threw above)
+    console.log('payInReplacePayOuts: no receive wallet available, falling back to custodial tokens')
+    // use the initial payOutBolt11: the "more msats" throw above happens after payInFailed's
+    // was reassigned to the oversized replacement, which would unbalance the payIn
+    payInFailed.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payInFailedInitial.payOutBolt11))
     // convert the routing fee to another rewards pool output
     const routingFee = payInFailed.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
     if (routingFee) {

@@ -1,6 +1,7 @@
 import { useWalletPayment } from '@/wallets/client/hooks'
 import usePayInHelper from './use-pay-in-helper'
 import useQrPayIn from './use-qr-pay-in'
+import { isInvoiceSetupPending } from '@/lib/pay-in'
 import { useCallback } from 'react'
 import { WalletError, InvoiceCanceledError, InvoiceExpiredError, WalletPaymentError } from '@/wallets/client/errors'
 
@@ -42,6 +43,9 @@ export default function usePayPayIn () {
       // QR/manual fallback should not keep attributing the successor invoice
       // to the wallet protocol that already failed to pay it.
       payIn = await payInHelper.retry(payIn, { sendProtocolId: null, update: onRetry })
+      // if the retried successor has no invoice (its creation/wrap failed too), there's nothing to
+      // show a QR for — surface the original wallet error instead of opening a bolt11-less QR.
+      if (isInvoiceSetupPending(payIn)) throw walletError
     }
     return await qrPayIn(payIn, walletError, { persistOnNavigate, waitFor })
   }, [payInHelper, qrPayIn, walletPayment])

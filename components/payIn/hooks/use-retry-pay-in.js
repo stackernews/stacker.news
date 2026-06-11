@@ -7,6 +7,8 @@ import { useHasSendWallet } from '@/wallets/client/hooks'
 import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { PAY_IN_ACT_TYPES } from '@/lib/constants'
+import { E_PAY_IN_RETRY_RACE } from '@/lib/error'
+import { toFailedPayIn } from '@/lib/pay-in'
 
 export function useRetryPayIn (payInId, mutationOptions = {}) {
   const { restOptions, cachePhases } = splitMutationOptions(mutationOptions)
@@ -40,21 +42,20 @@ export function useRetryPayInByType (payInId, payInType, mutationOptions = {}) {
   return retryPayIn
 }
 
-export function getRetryPayInFailureUpdate (error, data) {
+// the FAILED view of a retry mutation's successor for cache writes when paying it failed
+export function getFailedRetryPayIn (error, data) {
   const retryResult = Object.values(data ?? {})[0]
   if (!retryResult?.id) return null
 
-  return {
-    retryPayInId: retryResult.id,
-    failureData: {
-      payInState: 'FAILED',
-      payInStateChangedAt: new Date().toISOString(),
-      payerPrivates: {
-        __typename: 'PayerPrivates',
-        payInFailureReason: error instanceof InvoiceCanceledError ? 'USER_CANCELLED' : 'EXECUTION_FAILED'
-      }
-    }
-  }
+  return toFailedPayIn(retryResult, error instanceof InvoiceCanceledError ? 'USER_CANCELLED' : 'EXECUTION_FAILED')
+}
+
+// retry() (api/payIn/index.js) rejects with an E_PAY_IN_RETRY_RACE-coded error when the lineage
+// already advanced, the successor isn't FAILED yet, or a concurrent retry won the successorId
+// lock. These races are expected under rapid clicks / multiple tabs and are swallowed by the
+// background auto-retry too — so a manual retry shouldn't surface them as an error.
+export function isBenignRetryRaceError (error) {
+  return [error, ...(error?.errors ?? [])].some(e => e?.extensions?.code === E_PAY_IN_RETRY_RACE)
 }
 
 function splitMutationOptions (mutationOptions = {}) {

@@ -46,7 +46,7 @@ export function useAutoRetryPayIns () {
         if (error) throw error
         failedPayIns = data.failedPayIns
       } catch (err) {
-        console.error('failed to fetch invoices to retry:', err)
+        console.warn('failed to fetch invoices to retry:', err)
         return
       }
 
@@ -58,7 +58,7 @@ export function useAutoRetryPayIns () {
         } catch (err) {
           // some retries are expected to fail since only one client at a time is allowed to retry
           // these should show up as 'invoice not found' errors
-          console.error('retry failed:', err)
+          console.warn('retry failed:', err)
         }
       }
     }
@@ -70,7 +70,7 @@ export function useAutoRetryPayIns () {
         } catch (err) {
           // every error should already be handled in retryPoll
           // but this catch is a safety net to not trigger an unhandled promise rejection
-          console.error('retry poll failed:', err)
+          console.warn('retry poll failed:', err)
         }
         if (!stopped) queuePoll()
       }, NORMAL_POLL_INTERVAL_MS)
@@ -113,7 +113,7 @@ async function retryFailedPayIn (payIn, {
   const hasBolt11 = !!newPayIn.payerPrivates.payInBolt11
   const releaseAttempt = async () => {
     await payInHelper.cancel(newPayIn).catch(err => {
-      console.error('failed to cancel successor payIn:', err)
+      console.warn('failed to cancel successor payIn:', err)
     })
   }
   if (isStopped()) {

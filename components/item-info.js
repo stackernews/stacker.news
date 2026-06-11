@@ -28,7 +28,7 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
-import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
+import { getFailedRetryPayIn, isBenignRetryRaceError, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { gql } from '@apollo/client'
 import { useBranding } from './territory-branding'
@@ -321,11 +321,11 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
   const toaster = useToast()
 
   const revertPayIn = useCallback((error, cache, { data }) => {
-    const retryFailureUpdate = getRetryPayInFailureUpdate(error, data)
-    if (!retryFailureUpdate) return
-    const { retryPayInId, failureData } = retryFailureUpdate
+    const failedRetryPayIn = getFailedRetryPayIn(error, data)
+    if (!failedRetryPayIn) return
     cache.writeFragment({
-      id: `PayIn:${retryPayInId}`,
+      // PayIn normalizes by ['id', 'isSend'] (lib/apollo.js), so a raw `PayIn:${id}` writes to an orphan entity
+      id: cache.identify({ __typename: 'PayIn', id: failedRetryPayIn.id, isSend: true }),
       fragment: gql`
         fragment PayInInfoRevert on PayIn {
           payInState
@@ -335,10 +335,7 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
           }
         }
       `,
-      data: {
-        __typename: 'PayIn',
-        ...failureData
-      }
+      data: failedRetryPayIn
     })
   }, [])
 
@@ -382,7 +379,8 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
           const { error } = await retryPayIn()
           if (error) throw error
         } catch (error) {
-          toaster.danger(error.message)
+          // benign retry race (lineage advanced / concurrent retry) — don't surface it; see notifications.js
+          if (!isBenignRetryRaceError(error)) toaster.danger(error.message)
         } finally {
           setDisableDualRetry(false)
         }

@@ -63,13 +63,18 @@ async function createPayOutBolt11FromWalletProtocols (walletProtocols, bolt11Arg
   throw new NoReceiveWalletError('no wallet to receive available')
 }
 
-export async function payOutBolt11Replacement (models, genesisId, { payOutType, userId, msats }, testBolt11) {
+export async function payOutBolt11Replacement (models, genesisId, { payOutType, userId, msats }, testBolt11, { keepRetryingWallets = false } = {}) {
   const walletProtocols = await getLeastFailedWalletProtocols(models, { genesisId, userId })
-  const leastFailedWalletProtocols = walletProtocols.filter(wp => wp.failedCount < 2)
-  if (leastFailedWalletProtocols.length === 0) {
-    throw new NoReceiveWalletError('least failed wallet has failed at least twice, falling back to custodial tokens')
+  // Credit-payable payments stop using a wallet once it has failed twice and fall back to custodial
+  // tokens. P2P-only payments (bounty/proxy) have no custodial fallback, so rather than give up they
+  // keep retrying all wallets (least-failed first)
+  const candidateWalletProtocols = keepRetryingWallets
+    ? walletProtocols
+    : walletProtocols.filter(wp => wp.failedCount < 2)
+  if (!keepRetryingWallets && candidateWalletProtocols.length === 0) {
+    throw new NoReceiveWalletError('least failed wallet has failed at least twice')
   }
-  return await createPayOutBolt11FromWalletProtocols(leastFailedWalletProtocols, { msats }, { payOutType, userId }, { models }, testBolt11)
+  return await createPayOutBolt11FromWalletProtocols(candidateWalletProtocols, { msats }, { payOutType, userId }, { models }, testBolt11)
 }
 
 export async function payOutBolt11Prospect (models, bolt11Args, { payOutType, userId }, testBolt11) {

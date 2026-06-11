@@ -348,6 +348,16 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
       canvas: false
     }
 
+    // the SSRF guard (lib/ssrf.js) imports `dns` for server-side lookups and is reached
+    // by the client bundle through the wallet config validators; `dns` is never called
+    // client-side, so stub it out (Next polyfills http/https but not dns)
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        dns: false
+      }
+    }
+
     return config
   }
 })

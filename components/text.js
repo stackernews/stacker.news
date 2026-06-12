@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useMemo, useEffect, useSyncExternalStore } from 'react'
 import reactStringReplace from 'react-string-replace'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
@@ -19,19 +19,38 @@ export function SearchText ({ text }) {
   )
 }
 
-export function useOverflow ({ containerRef, truncated = false }) {
+export function useOverflow ({ containerRef, itemId, truncated = false }) {
   const router = useRouter()
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
-  // should we show the full text?
-  const [show, setShow] = useState(false)
-  const showOverflow = useCallback(() => setShow(true), [setShow])
 
-  // if we are navigating to a hash, show the full text
+  // did the user expand the text (show full text button, hash navigation)?
+  const [expanded, setExpanded] = useState(false)
+
+  const storageKey = itemId && `showFullText:${itemId}`
+
+  // read-on-mount, not reactive: no same-tab storage event, so subscribe never fires.
+  // getSnapshot runs during render so scroll restoration sees the right height.
+  const subscribeNever = useCallback(() => () => {}, [])
+  const storedShow = useSyncExternalStore(
+    subscribeNever,
+    () => (!!storageKey && window.sessionStorage.getItem(storageKey) === 'true') || window.location.hash !== '',
+    () => false
+  )
+
+  const show = expanded || storedShow
+
+  const showOverflow = useCallback(() => {
+    // remember the expanded state for the rest of the tab session
+    if (storageKey) window.sessionStorage.setItem(storageKey, 'true')
+    setExpanded(true)
+  }, [storageKey])
+
+  // once we navigate to a hash, keep the full text shown for the rest of this mount,
+  // even if the hash is later removed from the URL
   useEffect(() => {
-    setShow(router.asPath.includes('#'))
-    const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#'))
+    const handleRouteChange = (url) => {
+      if (url.includes('#')) setExpanded(true)
     }
 
     router.events.on('hashChangeStart', handleRouteChange)
@@ -39,7 +58,7 @@ export function useOverflow ({ containerRef, truncated = false }) {
     return () => {
       router.events.off('hashChangeStart', handleRouteChange)
     }
-  }, [router.asPath, router.events])
+  }, [router.events])
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
@@ -95,9 +114,9 @@ export function useOverflow ({ containerRef, truncated = false }) {
       )
     }
     return null
-  }, [showOverflow, overflowing, show, setShow])
+  }, [showOverflow, overflowing, show])
 
-  return { overflowing, show, setShow, Overflow }
+  return { overflowing, show, setShow: setExpanded, Overflow }
 }
 
 /**
@@ -121,9 +140,9 @@ export default function Text (props) {
   return <TextBody {...props} />
 }
 
-export function TextBody ({ topLevel, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
+export function TextBody ({ topLevel, itemId, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
   const containerRef = useRef(null)
-  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
+  const { overflowing, show, Overflow } = useOverflow({ containerRef, itemId, truncated: !!children })
   const carousel = useCarousel()
 
   const textClassNames = useMemo(() => {

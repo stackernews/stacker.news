@@ -11,6 +11,7 @@ import { Form, SubmitButton } from './form'
 import { PAY_BOUNTY_MUTATION } from '@/fragments/payIn'
 import usePayInMutation from './payIn/hooks/use-pay-in-mutation'
 import { useHasSendWallet } from '@/wallets/client/hooks'
+import { InvoiceCanceledError } from '@/wallets/client/errors'
 
 const addBountyPaidToCache = (cache, { data }, { optimistic = true } = {}) => {
   const response = Object.values(data)[0]
@@ -82,11 +83,20 @@ export default function PayBounty ({ children, item }) {
       onClose?.()
     }
 
-    const options = {}
+    // bounty payments are always optimistic clientside, so failures never surface through the
+    // returned error/payError — toast them here. e is undefined for cache-revert-only calls,
+    // and a user-canceled QR isn't news
+    const onPayError = (e) => {
+      if (e && !(e instanceof InvoiceCanceledError)) {
+        toaster.danger(e?.message || e?.toString?.())
+      }
+    }
+
+    const options = { cachePhases: { onPayError } }
     if (hasSendWallet) {
       onPaid()
     } else {
-      options.cachePhases = { onPaid }
+      options.cachePhases.onPaid = onPaid
     }
 
     try {

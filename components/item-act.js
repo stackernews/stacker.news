@@ -10,7 +10,9 @@ import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { meAnonSats } from '@/lib/apollo'
 import { useHasSendWallet } from '@/wallets/client/hooks'
+import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { useAnimation } from '@/components/animation'
+import { useToast } from '@/components/toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { satsToMsats } from '@/lib/format'
 import { composeCallbacks } from '@/lib/compose-callbacks'
@@ -57,6 +59,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   const inputRef = useRef(null)
   const { me } = useMe()
   const hasReadySendWallet = useHasSendWallet()
+  const toaster = useToast()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -84,12 +87,20 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       if (!me) setItemMeAnonSats({ id: item.id, amount })
     }
 
-    const options = {}
+    // onPayError only fires for failures that won't be auto-retried; e is undefined when it's
+    // invoked purely to revert a retry successor's cache, and a user-canceled QR isn't news
+    const onPayError = (e) => {
+      if (e && !(e instanceof InvoiceCanceledError)) {
+        toaster.danger(e?.message || e?.toString?.())
+      }
+    }
+
+    const options = { cachePhases: { onPayError } }
     if (hasReadySendWallet || me?.privates?.sats > Number(amount)) {
       onPaid()
     } else {
       // we want to close the modal only after paid so the modal can stack
-      options.cachePhases = { onPaid }
+      options.cachePhases.onPaid = onPaid
     }
 
     const { error } = await actor({
@@ -112,7 +123,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     })
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, hasReadySendWallet, act, item.id, onClose, abortSignal, animate])
+  }, [me, actor, hasReadySendWallet, act, item.id, onClose, abortSignal, animate, toaster])
 
   return (
     <Form

@@ -21,6 +21,7 @@ import { useMemo } from 'react'
 import { CompactLongCountdown } from '@/components/countdown'
 import { DONATE } from '@/fragments/payIn'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { throwUnlessUserCancel } from '@/wallets/client/errors'
 import { payTypeShortName } from '@/lib/pay-in'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
@@ -122,7 +123,7 @@ export function DonateButton () {
             }}
             schema={amountSchema}
             onSubmit={async ({ amount }) => {
-              const { error } = await donateToRewards({
+              const { error, payError } = await donateToRewards({
                 variables: {
                   sats: Number(amount)
                 },
@@ -133,6 +134,9 @@ export function DonateButton () {
               })
               onClose()
               if (error) throw error
+              // donations are pessimistic, so a terminal payment failure comes back in payError —
+              // but a user-canceled QR isn't news
+              throwUnlessUserCancel(payError)
             }}
           >
             <Input

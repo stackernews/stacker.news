@@ -14,6 +14,9 @@ export function PayInContext ({ payIn }) {
     case 'BOOST':
     case 'POLL_VOTE':
     case 'BOUNTY_PAYMENT':
+      if (!payIn.item) {
+        return <small className='text-muted d-flex justify-content-center w-100'>item unavailable</small>
+      }
       return (
         <>
           {(!payIn.item.title && <CommentFlat item={payIn.item} includeParent noReply truncate />) ||
@@ -45,7 +48,7 @@ export function PayInContext ({ payIn }) {
     case 'WITHDRAWAL':
     case 'AUTO_WITHDRAWAL':
       return (
-        <Bolt11Info {...toBolt11InfoProps(payIn.payeePrivates.payOutBolt11)} />
+        <Bolt11Info {...toBolt11InfoProps(payIn.payeePrivates?.payOutBolt11)} />
       )
     case 'DONATE':
       return <small className='text-muted d-flex justify-content-center w-100'>Praise be, you donated to the rewards pool.</small>

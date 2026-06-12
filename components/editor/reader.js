@@ -17,6 +17,7 @@ import theme from '@/lib/lexical/theme'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { withDOM } from '@/lib/lexical/server/dom'
 import { generateHTML } from '@/lib/lexical/server/html'
+import { SSR } from '@/lib/constants'
 
 // on the server, generate HTML from the editor state in a fake DOM
 // server-resolved HTML never reaches this branch on the server,
@@ -25,7 +26,7 @@ import { generateHTML } from '@/lib/lexical/server/html'
 // fallback: if editor/genHTML errors, return html prop or ''
 const initialContentEditable = (editor, html) => {
   try {
-    if (typeof window === 'undefined') {
+    if (SSR) {
       return withDOM(() => generateHTML(editor))
     }
     return html || generateHTML(editor)
@@ -131,7 +132,7 @@ export default function Reader ({ topLevel, state, text, html, readerRef, innerC
   const effectiveHTML = text ? undefined : html
 
   // instantly paint the server-resolved HTML
-  if (typeof window === 'undefined' && effectiveHTML) {
+  if (SSR && effectiveHTML) {
     return <ServerHTMLReader html={effectiveHTML} innerClassName={innerClassName} />
   }
 

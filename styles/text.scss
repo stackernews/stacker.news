@@ -16,6 +16,11 @@
   }
 }
 
+[data-sn-reader='true'] {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .sn-text > [data-sn-reader='true'] {
   font-size: 94%;
 }

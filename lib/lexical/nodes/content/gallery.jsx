@@ -6,6 +6,15 @@ function $convertGalleryElement (domNode) {
   return { node }
 }
 
+/** base element shared by createDOM and exportDOM; the data attribute lets
+ * the node be reconstructed from HTML into Lexical (see $convertGalleryElement) */
+function createGalleryElement () {
+  const div = document.createElement('div')
+  div.setAttribute('class', 'sn-gallery')
+  div.setAttribute('data-lexical-gallery', 'true')
+  return div
+}
+
 export class GalleryNode extends ElementNode {
   $config () {
     return this.config('gallery', {
@@ -18,17 +27,13 @@ export class GalleryNode extends ElementNode {
   }
 
   createDOM (config) {
-    const div = document.createElement('div')
-    div.setAttribute('class', 'sn-gallery')
+    const div = createGalleryElement()
     div.contentEditable = 'false'
     return div
   }
 
   exportDOM () {
-    const div = document.createElement('div')
-    div.setAttribute('class', 'sn-gallery')
-    div.setAttribute('data-lexical-gallery', 'true')
-    return { element: div }
+    return { element: createGalleryElement() }
   }
 
   static importDOM () {

@@ -14,7 +14,10 @@ function backrefDOM (config, identifier) {
 
 function $convertFootnoteBackrefElement (domNode) {
   const identifier = domNode.getAttribute('data-lexical-footnote-backref-id')
-  return identifier ? { node: $createFootnoteBackrefNode({ identifier }) } : null
+  if (identifier) {
+    return { node: $createFootnoteBackrefNode({ identifier }) }
+  }
+  return null
 }
 
 export class FootnoteBackrefNode extends DecoratorNode {

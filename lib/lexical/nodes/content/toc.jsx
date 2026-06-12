@@ -11,6 +11,14 @@ function $convertTableOfContentsElement (domNode) {
   return null
 }
 
+/** base element shared by createDOM and exportDOM; the data attribute lets
+ * the node be reconstructed from HTML into Lexical (see $convertTableOfContentsElement) */
+function createTocElement () {
+  const div = document.createElement('div')
+  div.setAttribute('data-lexical-toc', 'true')
+  return div
+}
+
 export class TableOfContentsNode extends DecoratorBlockNode {
   static getType () {
     return 'table-of-contents'
@@ -31,16 +39,13 @@ export class TableOfContentsNode extends DecoratorBlockNode {
     }
   }
 
-  createDOM (config) {
-    const domNode = document.createElement('div')
-    domNode.setAttribute('data-lexical-toc', 'true')
-    return domNode
+  createDOM () {
+    return createTocElement()
   }
 
   exportDOM (editor) {
     return editor.getEditorState().read(() => {
-      const div = document.createElement('div')
-      div.setAttribute('data-lexical-toc', 'true')
+      const div = createTocElement()
       const details = document.createElement('details')
       details.setAttribute('class', 'sn-collapsible sn-toc')
 
@@ -55,13 +60,12 @@ export class TableOfContentsNode extends DecoratorBlockNode {
       if (structure.length === 0) {
         const emptyDiv = document.createElement('div')
         emptyDiv.setAttribute('class', 'text-muted fst-italic')
-        emptyDiv.textContent = 'No headings found'
+        emptyDiv.textContent = 'no headings'
         details.appendChild(emptyDiv)
-        return { element: details }
+      } else {
+        details.appendChild(buildHtmlFromStructure(structure))
       }
 
-      const tocList = buildHtmlFromStructure(structure)
-      details.appendChild(tocList)
       div.appendChild(details)
       return { element: div }
     })

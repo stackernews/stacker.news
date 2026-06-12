@@ -2,8 +2,8 @@ import { DecoratorNode, $applyNodeReplacement } from 'lexical'
 
 function $convertItemMentionElement (domNode) {
   const id = domNode.getAttribute('data-lexical-item-mention-id')
-  const text = domNode.querySelector('a')?.textContent
-  const url = domNode.querySelector('a')?.getAttribute('href')
+  const text = domNode.getAttribute('data-lexical-item-mention-text') ?? domNode.querySelector('a')?.textContent
+  const url = domNode.getAttribute('data-lexical-item-mention-url') ?? domNode.querySelector('a')?.getAttribute('href')
 
   if (id) {
     const node = $createItemMentionNode({ id, text, url })
@@ -72,6 +72,9 @@ export class ItemMentionNode extends DecoratorNode {
     }
     domNode.setAttribute('data-lexical-item-mention', true)
     domNode.setAttribute('data-lexical-item-mention-id', this.__itemMentionId)
+    // text/url aren't derivable from id alone, so serialize them for hydration
+    this.__text && domNode.setAttribute('data-lexical-item-mention-text', this.__text)
+    this.__url && domNode.setAttribute('data-lexical-item-mention-url', this.__url)
     return domNode
   }
 

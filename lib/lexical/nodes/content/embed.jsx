@@ -23,6 +23,18 @@ export function $convertEmbedElement (domNode) {
   return { node }
 }
 
+/** writes embed fields as data attributes so the node can be losslessly
+ * reconstructed from HTML into Lexical (see $convertEmbedElement) */
+function setEmbedHydrationAttributes (node, el) {
+  const id = node.getId()
+  const src = node.getSrc()
+  const meta = node.getMeta()
+  el.setAttribute('data-lexical-embed-provider', node.getProvider() || '')
+  if (id) el.setAttribute('data-lexical-embed-id', id)
+  if (src) el.setAttribute('data-lexical-embed-src', src)
+  if (meta) el.setAttribute('data-lexical-embed-meta', JSON.stringify(meta))
+}
+
 export class EmbedNode extends DecoratorBlockNode {
   __provider
   __id
@@ -112,15 +124,18 @@ export class EmbedNode extends DecoratorBlockNode {
     }
     container.classList.add(...classes.filter(Boolean))
 
-    container.setAttribute('data-lexical-embed-provider', this.__provider || '')
-    this.__id && container.setAttribute('data-lexical-embed-id', this.__id)
-    this.__src && container.setAttribute('data-lexical-embed-src', this.__src)
-    this.__meta && container.setAttribute('data-lexical-embed-meta', JSON.stringify(this.__meta))
+    setEmbedHydrationAttributes(this, container)
 
     wrapper.append(container)
     decorator.append(wrapper)
 
     return { element: decorator }
+  }
+
+  createDOM (config) {
+    const div = super.createDOM(config)
+    setEmbedHydrationAttributes(this, div)
+    return div
   }
 
   updateDOM () {

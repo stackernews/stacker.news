@@ -3,6 +3,8 @@ import { slug } from 'github-slugger'
 import { setNodeIndentFromDOM, $applyNodeReplacement, $createParagraphNode } from 'lexical'
 
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+// identifies the decorative anchor link; the sn-heading__link class is styling only
+const HEADING_LINK_ATTRIBUTE = 'data-lexical-heading-link'
 
 function $convertSNHeadingElement (element) {
   const tag = element.nodeName.toLowerCase()
@@ -28,6 +30,7 @@ function isGoogleDocsTitle (domNode) {
 function createHeadingAnchorLink (domElement, headingId, textContent) {
   const doc = domElement.ownerDocument
   const link = doc.createElement('a')
+  link.setAttribute(HEADING_LINK_ATTRIBUTE, 'true')
   link.className = 'sn-heading__link'
   link.setAttribute('href', `#${headingId}`)
   link.textContent = textContent
@@ -41,7 +44,7 @@ function setHeadingId (domElement, headingId) {
 
 function tryUpdateHeadingAnchorLink (domElement, headingId, textContent) {
   const first = domElement.firstChild
-  if (first && first.nodeName === 'A' && first.classList?.contains('sn-heading__link')) {
+  if (first && first.nodeName === 'A' && first.hasAttribute(HEADING_LINK_ATTRIBUTE)) {
     first.setAttribute('href', `#${headingId}`)
     first.textContent = textContent
     return true
@@ -153,6 +156,17 @@ export class SNHeadingNode extends HeadingNode {
 
     return {
       ...headingConverters,
+      // the reader renders a decorative anchor link inside headings (createDOM,
+      // read-only) that is not part of the editor state. Skip it (and its text)
+      // so importing from HTML doesn't import it as a duplicate link.
+      // runs regardless of which heading converter created the parent.
+      a: node => {
+        if (!node.hasAttribute(HEADING_LINK_ATTRIBUTE)) return null
+        return {
+          conversion: () => ({ node: null, forChild: () => null }),
+          priority: 3
+        }
+      },
       p: node => {
         const paragraph = node
         const firstChild = paragraph.firstChild

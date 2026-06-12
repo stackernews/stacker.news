@@ -1,0 +1,138 @@
+.root {
+  --thunderstorm-fog-height: 170px;
+  --thunderstorm-fog-opacity: 0.55;
+  --thunderstorm-fog-blur: 18px;
+  --thunderstorm-fog-drift: 34s;
+  --thunderstorm-clear-duration: 2500ms;
+  --thunderstorm-z-index: 0;
+
+  position: fixed;
+  inset: 0;
+  z-index: var(--thunderstorm-z-index);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.clearing .canvas {
+  animation: stormDissipate var(--thunderstorm-clear-duration) ease-out forwards;
+  transform-origin: top center;
+  will-change: transform, opacity, filter;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.fog {
+  position: absolute;
+  top: -20px;
+  left: -12%;
+  width: 124%;
+  height: calc(var(--thunderstorm-fog-height) + 20px);
+  opacity: var(--thunderstorm-fog-opacity);
+  backdrop-filter: blur(var(--thunderstorm-fog-blur));
+  -webkit-backdrop-filter: blur(var(--thunderstorm-fog-blur));
+  background:
+    radial-gradient(ellipse at 18% 5%, rgba(255, 255, 255, 0.34), transparent 34%),
+    radial-gradient(ellipse at 58% 2%, rgba(190, 196, 208, 0.28), transparent 38%),
+    radial-gradient(ellipse at 88% 10%, rgba(255, 255, 255, 0.2), transparent 32%),
+    linear-gradient(to bottom, rgba(88, 94, 110, 0.48), rgba(88, 94, 110, 0.18) 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 38%, transparent 100%);
+  animation: fogDrift var(--thunderstorm-fog-drift) ease-in-out infinite alternate;
+}
+
+.fog::before,
+.fog::after {
+  content: "";
+  position: absolute;
+  inset: -30% -10%;
+  background:
+    radial-gradient(ellipse at 28% 45%, rgba(255, 255, 255, 0.18), transparent 34%),
+    radial-gradient(ellipse at 70% 38%, rgba(180, 188, 202, 0.18), transparent 42%);
+}
+
+.fog::after {
+  transform: translateX(9%);
+  opacity: 0.7;
+}
+
+.clearing .fog {
+  animation: fogDissipate var(--thunderstorm-clear-duration) ease-out forwards;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes fogDrift {
+  from {
+    transform: translateX(-2%);
+  }
+
+  to {
+    transform: translateX(2%);
+  }
+}
+
+@keyframes stormDissipate {
+  0% {
+    filter: blur(0);
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  35% {
+    filter: blur(1px);
+    opacity: 0.82;
+    transform: translate3d(0, 0, 0) scale(1.01);
+  }
+
+  72% {
+    filter: blur(5px);
+    opacity: 0.36;
+    transform: translate3d(0, 0, 0) scale(1.025);
+  }
+
+  100% {
+    filter: blur(12px);
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+}
+
+@keyframes fogDissipate {
+  0% {
+    filter: blur(0);
+    opacity: var(--thunderstorm-fog-opacity);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  45% {
+    filter: blur(8px);
+    opacity: calc(var(--thunderstorm-fog-opacity) * 0.55);
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+
+  100% {
+    filter: blur(18px);
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clearing .canvas,
+  .clearing .fog {
+    animation: stormReduceMotionClear 180ms linear forwards;
+  }
+
+  .fog {
+    animation: none;
+  }
+}
+
+@keyframes stormReduceMotionClear {
+  to {
+    opacity: 0;
+  }
+}

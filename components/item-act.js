@@ -275,6 +275,14 @@ export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }, {
   }
 }
 
+// the inverse of an act response: the same response with the result's sats negated, for
+// reverting whatever modifyActCache applied. null when there's no result to negate.
+export function negateActResponse (response) {
+  const result = response?.payerPrivates?.result
+  if (!result) return null
+  return { ...response, payerPrivates: { ...response.payerPrivates, result: { ...result, sats: -1 * result.sats } } }
+}
+
 export function getActCachePhases (me) {
   return {
     // runs as Apollo update() callback — optimistic: true (default) is correct
@@ -290,10 +298,8 @@ export function getActCachePhases (me) {
       modifyActCache(cache, response, me, { optimistic: false })
     },
     onPayError: (e, cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response?.payerPrivates?.result) return
-      const { payerPrivates: { result: { sats } } } = response
-      const negate = { ...response, payerPrivates: { ...response.payerPrivates, result: { ...response.payerPrivates.result, sats: -1 * sats } } }
+      const negate = negateActResponse(Object.values(data)[0])
+      if (!negate) return
       modifyActCache(cache, negate, me, { optimistic: false })
     },
     onPaid: (cache, { data }) => {

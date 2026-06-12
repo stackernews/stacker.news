@@ -72,6 +72,10 @@ function withBountyCachePhases (userCachePhases) {
   })
 }
 
+// the act phases add unconditionally: act retries only happen from the notifications page,
+// whose responses reconcile item counters to server truth (reconcileNotificationsLink in
+// lib/apollo.js), and the retry button only renders once the server stopped counting the
+// failed lineage in the payer's item sats — so the cache never holds the sats this re-adds
 function withActCachePhases (actCachePhases, userCachePhases) {
   return withComposedCachePhases(actCachePhases, userCachePhases, {
     // runs outside update() context — use the dedicated onPaidMissingResult (optimistic:false)

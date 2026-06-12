@@ -6,12 +6,25 @@ export const $decodeMath = (math) => Buffer.from(math, 'base64').toString('utf-8
 const MAX_MATH_LENGTH = 10000
 
 function $validateMathContent (math) {
-  if (!math) return math
+  // __math must always be a string: Buffer.from and katex.render throw on other types
+  if (typeof math !== 'string') return ''
   if (math.length > MAX_MATH_LENGTH) {
     console.warn('math too big, truncating')
     return math.slice(0, MAX_MATH_LENGTH)
   }
   return math
+}
+
+// serialize the math so the node can be reconstructed when importing from HTML
+function setMathAttributes (element, math, inline) {
+  try {
+    element.setAttribute('data-lexical-math', $encodeMath(math))
+    element.setAttribute('data-lexical-inline', inline)
+    return true
+  } catch (error) {
+    console.error('error encoding math', error)
+    return false
+  }
 }
 
 function $convertMathElement (domNode) {
@@ -65,27 +78,18 @@ export class MathNode extends DecoratorNode {
   createDOM (_config) {
     const element = document.createElement(this.__inline ? 'span' : 'div')
     element.className = _config.theme.math
-    // serialize the math so the node can be reconstructed when importing from HTML
-    try {
-      element.setAttribute('data-lexical-math', $encodeMath(this.__math))
-      element.setAttribute('data-lexical-inline', this.__inline)
-    } catch (error) {
-      console.error('error encoding math', error)
-    }
+    // on failure the decorator still renders, the element just can't be reimported
+    setMathAttributes(element, this.__math, this.__inline)
     return element
   }
 
   exportDOM () {
     const element = document.createElement(this.__inline ? 'span' : 'div')
-    let math = this.__math
-    try {
-      math = $encodeMath(math)
-    } catch (error) {
-      console.error('error encoding math', error)
-      return null
+    if (!setMathAttributes(element, this.__math, this.__inline)) {
+      // @lexical/html destructures the export result, so a bare null fails the
+      // whole document export; { element: null } skips just this node
+      return { element: null }
     }
-    element.setAttribute('data-lexical-math', math)
-    element.setAttribute('data-lexical-inline', this.__inline)
     katex.render(this.__math, element, {
       displayMode: !this.__inline,
       errorColor: '#cc0000',

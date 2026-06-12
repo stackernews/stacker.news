@@ -1,0 +1,92 @@
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0 0.25rem;
+  color: var(--theme-grey);
+  line-height: 1.25;
+}
+
+.amount {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  color: var(--bs-body-color);
+  font-family: var(--bs-font-monospace);
+  line-height: 1;
+}
+
+.amount span:first-child {
+  font-size: clamp(1.8rem, 5vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.amount span:last-child {
+  color: var(--theme-grey);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.detailPill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 100%;
+}
+
+.detailPillButton {
+  box-sizing: border-box;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 70%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--theme-grey);
+  font-family: var(--bs-font-monospace);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.detailPillIndicator {
+  flex: 0 0 auto;
+  margin-left: 0.15rem;
+}
+
+.detailPillLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailPillButton:hover,
+.detailPillButton:focus-visible,
+.detailPillOpen .detailPillButton {
+  border-color: var(--bs-body-color);
+  color: var(--bs-body-color);
+}
+
+.detailPillButton:focus-visible {
+  outline: 2px solid var(--theme-borderColor);
+  outline-offset: 2px;
+}
+
+.detailPillBody {
+  max-width: min(100%, 36rem);
+  padding-top: 0.45rem;
+  color: var(--theme-grey);
+  font-size: 0.875rem;
+}

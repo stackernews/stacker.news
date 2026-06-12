@@ -67,9 +67,11 @@
     "graphql-scalar": "^0.1.0",
     "graphql-tag": "^2.12.6",
     "graphql-type-json": "^0.3.2",
+    "ipaddr.js": "^2.4.0",
     "isomorphic-ws": "^5.0.0",
     "katex": "^0.16.22",
     "lexical": "^0.45.0",
+    "light-bolt11-decoder": "^3.2.0",
     "linkedom": "^0.18.12",
     "ln-service": "^57.22.0",
     "macaroon": "^3.0.4",
@@ -161,6 +163,7 @@
     "bn.js": ">=4.12.3",
     "react-is": "19.2.6",
     "uuid": "^14.0.0",
-    "postcss": "^8.5.10"
+    "postcss": "^8.5.10",
+    "@grpc/grpc-js": "^1.14.4"
   }
 }

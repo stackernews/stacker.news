@@ -153,8 +153,8 @@ const isMediaURL = async (url, { forceFetch }) => {
   try {
     // https://stackoverflow.com/a/68118683
     const res = await snFetch(url, { timeout: 1000, method: 'HEAD' })
-    const buf = await res.blob()
-    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
+    const type = (res.headers.get('content-type') ?? '').toLowerCase()
+    isMedia = type.startsWith('image/') || type.startsWith('video/')
   } catch (err) {
     console.log(url, err)
   }
@@ -169,8 +169,9 @@ const isMediaURL = async (url, { forceFetch }) => {
   // if not known yet, run GET request with longer timeout
   try {
     const res = await snFetch(url, { timeout: 10000 })
-    const buf = await res.blob()
-    isMedia = buf.type.startsWith('image/') || buf.type.startsWith('video/')
+    const type = (res.headers.get('content-type') ?? '').toLowerCase()
+    res.body?.destroy?.() // we only needed the header; release the socket
+    isMedia = type.startsWith('image/') || type.startsWith('video/')
   } catch (err) {
     console.log(url, err)
   }

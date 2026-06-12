@@ -14,7 +14,6 @@ import { isTemplate, isWallet } from '@/wallets/lib/util'
 import { useWeblnEvents } from '@/wallets/lib/protocols/webln'
 import { useWalletsQuery } from '@/wallets/client/hooks/query'
 import { readOrCreateVaultKeyRecord, useGenerateRandomKey, useSetKey, useIsWrongKey, useVaultLocalStore } from '@/wallets/client/hooks/crypto'
-import { useWalletLogger } from '@/wallets/client/hooks/logger'
 import { useAutoRetryPayIns } from '@/components/payIn/hooks/use-auto-retry-pay-ins'
 
 const WalletDataContext = createContext(null)
@@ -149,8 +148,6 @@ function useKeyInit () {
   const wrongKey = useIsWrongKey()
   const keySyncInProgress = useKeySyncInProgress()
 
-  const logger = useWalletLogger()
-
   // browsers only expose window.crypto.subtle in secure contexts (HTTPS, localhost, *.localhost).
   // dev custom domains served over plain HTTP fail this check, which would otherwise crash
   // PBKDF2 key derivation in deriveKey().
@@ -205,15 +202,13 @@ function useKeyInit () {
         // because we can't run async code in a transaction because it will close the transaction
         // see https://javascript.info/indexeddb#transactions-autocommit
         const { key, hash, updatedAt } = await readOrCreateVaultKeyRecord(db, {
-          createKey: generateRandomKey,
-          logger
+          createKey: generateRandomKey
         })
 
         if (cancelled) return
         await setKey({ key, hash, updatedAt }, { updateDb: false })
       } catch (err) {
         if (cancelled) return
-        logger.debug('key init: error: ' + err)
         console.error('key init: error:', err)
       }
     }
@@ -222,7 +217,7 @@ function useKeyInit () {
     return () => {
       cancelled = true
     }
-  }, [me?.id, db, generateRandomKey, setKey, logger])
+  }, [me?.id, db, generateRandomKey, setKey])
 }
 
 function useDeleteLocalWallets () {

@@ -1,0 +1,109 @@
+/* Wallet configure page: 2-column grid (cards + aside), sticky save bar, and
+   the danger zone. */
+
+.page {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 1.25rem;
+}
+.main {
+  min-width: 0;
+}
+.asideCard {
+  gap: var(--wt-gap-md);
+  padding: 1rem;
+  border: 1px solid rgba(var(--theme-color-rgb), 0.08);
+  border-radius: var(--wt-radius-md);
+  background: color-mix(in srgb, var(--theme-toolbarHover) 35%, transparent);
+}
+.saveBar {
+  grid-column: 1 / -1;
+}
+.saveBlocker {
+  color: var(--theme-grey);
+  line-height: 1.2;
+}
+.saveButton {
+  min-width: 220px;
+}
+.dangerZone {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--wt-gap-lg);
+  margin-top: 1.25rem;
+  padding: 1.5rem 2rem;
+  border: 1px solid rgba(var(--bs-danger-rgb), 0.28);
+  border-radius: var(--wt-radius-lg);
+  background: rgba(var(--bs-danger-rgb), 0.035);
+}
+.dangerZone p {
+  margin: 0.35rem 0 0;
+  color: var(--theme-grey);
+}
+.deleteButton {
+  --text-button-gap: 0.4rem;
+  margin-top: 1.25rem;
+}
+.dangerZone .deleteButton {
+  flex-shrink: 0;
+  margin-top: 0;
+  padding: 0.8rem 1.25rem;
+  border: 1px solid var(--bs-danger);
+  border-radius: var(--wt-radius-md);
+  background: var(--bs-danger);
+  color: #fff;
+  white-space: nowrap;
+}
+.dangerZone .deleteButton svg {
+  /* beats global svg fill rules so the icon stays white on the danger button */
+  color: inherit !important;
+  fill: currentColor !important;
+}
+.dangerZone .deleteButton:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 767px) {
+  .page {
+    min-height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  .main {
+    flex: 1;
+    padding-bottom: 1.25rem;
+  }
+  .dangerZone {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: var(--wt-gap-md);
+    padding: 1.25rem 1.35rem 1.35rem;
+  }
+  .aside {
+    /* beats Bootstrap's .d-flex display utility (itself !important) */
+    display: none !important;
+  }
+  .saveBar {
+    margin: 0;
+  }
+  .saveBlocker {
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+    color: var(--theme-grey);
+  }
+  .saveButton {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: min(180px, 48vw);
+  }
+}

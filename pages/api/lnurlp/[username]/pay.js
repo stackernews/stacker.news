@@ -1,11 +1,11 @@
 import models from '@/api/models'
-import { lnurlPayMetadata } from '@/lib/lnurl'
+import { lnurlPayMetadata, lnurlpVerifyUrl, sanitizeLud18PayerData } from '@/lib/lnurl'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
-import { LNURLP_COMMENT_MAX_LENGTH } from '@/lib/constants'
+import { LNURLP_COMMENT_MAX_LENGTH, PROXY_PAYER_MIN_MSATS, PROXY_PAYER_MAX_MSATS } from '@/lib/constants'
 import { formatMsats, toPositiveBigInt } from '@/lib/format'
 import assertGofacYourself from '@/api/resolvers/ofac'
-import { validateSchema, lud18PayerDataSchema } from '@/lib/validate'
+import { characterLength } from '@/lib/validate'
 import { walletLogger } from '@/wallets/server'
 import pay from '@/api/payIn'
 
@@ -15,8 +15,15 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
-  if (!amount || amount < 1000) {
-    return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
+  const amountMsats = Number(amount)
+  if (!Number.isFinite(amountMsats) || amountMsats < Number(PROXY_PAYER_MIN_MSATS)) {
+    return res.status(400).json({ status: 'ERROR', reason: `amount must be >= ${PROXY_PAYER_MIN_MSATS} msats` })
+  }
+  if (amountMsats > Number(PROXY_PAYER_MAX_MSATS)) {
+    return res.status(400).json({ status: 'ERROR', reason: `amount must be <= ${PROXY_PAYER_MAX_MSATS} msats` })
+  }
+  if (amountMsats % 1000 !== 0) {
+    return res.status(400).json({ status: 'ERROR', reason: 'amount must be a whole number of sats' })
   }
 
   const logger = walletLogger({ models, userId: user.id })
@@ -28,6 +35,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     // if nostr, decode, validate sig, check tags, set description hash
     let { description, descriptionHash } = lnurlPayMetadata(username)
     let noteStr
+    let lud18Data
     if (nostr) {
       noteStr = decodeURIComponent(nostr)
       const note = JSON.parse(noteStr)
@@ -44,19 +52,10 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
         res.status(400).json({ status: 'ERROR', reason: 'invalid NIP-57 note' })
         return
       }
-    }
-
-    if (comment?.length > LNURLP_COMMENT_MAX_LENGTH) {
-      return res.status(400).json({
-        status: 'ERROR',
-        reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length`
-      })
-    }
-
-    let parsedPayerData
-    if (payerData) {
+    } else if (payerData) {
+      let rawLud18Data
       try {
-        parsedPayerData = JSON.parse(payerData)
+        rawLud18Data = JSON.parse(payerData)
       } catch (err) {
         console.error('failed to parse payerdata', err)
         return res.status(400).json({
@@ -66,14 +65,20 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       }
 
       try {
-        await validateSchema(lud18PayerDataSchema, parsedPayerData)
+        lud18Data = await sanitizeLud18PayerData(rawLud18Data)
       } catch (err) {
         console.error('error validating payer data', err)
         return res.status(400).json({ status: 'ERROR', reason: err.toString() })
       }
 
-      // Update description hash to include the passed payer data
       descriptionHash = createHash('sha256').update(lnurlPayMetadata(username).metadata + payerData).digest('hex')
+    }
+
+    if (comment && characterLength(comment) > LNURLP_COMMENT_MAX_LENGTH) {
+      return res.status(400).json({
+        status: 'ERROR',
+        reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length`
+      })
     }
 
     // generate invoice
@@ -82,7 +87,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       description,
       descriptionHash,
       comment: comment || '',
-      lud18Data: parsedPayerData,
+      lud18Data,
       noteStr
     }, { models, me: user })
 
@@ -91,7 +96,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     return res.status(200).json({
       pr: payInBolt11.bolt11,
       routes: [],
-      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${payInBolt11.hash}`
+      verify: lnurlpVerifyUrl(username, payInBolt11.hash)
     })
   } catch (error) {
     console.log(error)

@@ -18,6 +18,14 @@ const noCacheHeader = {
   key: 'Cache-Control',
   value: 'no-cache, max-age=0, must-revalidate'
 }
+const immutableCacheHeader = {
+  key: 'Cache-Control',
+  value: 'public, max-age=31536000, immutable'
+}
+const walletImageCacheHeader = {
+  key: 'Cache-Control',
+  value: 'public, max-age=86400, stale-while-revalidate=604800'
+}
 
 const getGitCommit = (env) => {
   return env === 'aws'
@@ -139,14 +147,16 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
           noCacheHeader
         ]
       },
+      // Only cache image files in public/wallets; /wallets app routes must stay uncached.
+      ...['jpg', 'png', 'svg', 'webp'].map(ext => ({
+        source: `/wallets/:file([^/]+\\.${ext})`,
+        headers: [walletImageCacheHeader]
+      })),
       ...['woff', 'woff2'].map(ext => ({
         source: `/Lightningvolt-xoqm.${ext}`,
         headers: [
           ...corsHeaders,
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
+          immutableCacheHeader
         ]
       }))
     ]
@@ -205,6 +215,16 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
       {
         source: '/statistics',
         destination: '/satistics',
+        permanent: true
+      },
+      {
+        source: '/credits',
+        destination: '/wallets/cowboy-credits',
+        permanent: true
+      },
+      {
+        source: '/withdraw',
+        destination: '/wallets/reward-sats/send',
         permanent: true
       },
       {
@@ -326,6 +346,16 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       canvas: false
+    }
+
+    // the SSRF guard (lib/ssrf.js) imports `dns` for server-side lookups and is reached
+    // by the client bundle through the wallet config validators; `dns` is never called
+    // client-side, so stub it out (Next polyfills http/https but not dns)
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        dns: false
+      }
     }
 
     return config

@@ -1,6 +1,11 @@
 import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, request } from '@/wallets/lib/protocols/blink'
+import { WalletPaymentRejectedError, WalletPermissionsError } from '@/wallets/client/errors'
+import { abortableSleep } from '@/lib/time'
+import { walletBalance, pollUntilSettled } from './util'
 
 export const name = 'BLINK'
+// Blink's lnInvoicePaymentSend does not expose a per-call fee cap.
+export const enforcesMaxFee = false
 
 export async function sendPayment (bolt11, { apiKey, currency }, { signal }) {
   const wallet = await getWallet({ apiKey, currency }, { signal })
@@ -10,14 +15,21 @@ export async function sendPayment (bolt11, { apiKey, currency }, { signal }) {
 export async function testSendPayment ({ apiKey, currency }, { signal }) {
   const scopes = await getScopes({ apiKey }, { signal })
   if (!scopes.includes(SCOPE_READ)) {
-    throw new Error('missing READ scope')
+    throw new WalletPermissionsError('missing READ scope')
   }
   if (!scopes.includes(SCOPE_WRITE)) {
-    throw new Error('missing WRITE scope')
+    throw new WalletPermissionsError('missing WRITE scope')
   }
 
   currency = currency ? currency.toUpperCase() : 'BTC'
   await getWallet({ apiKey, currency }, { signal })
+}
+
+export async function getBalance ({ apiKey, currency }, { signal } = {}) {
+  currency = currency ? currency.toUpperCase() : 'BTC'
+  const wallet = await getWallet({ apiKey, currency }, { signal })
+  // Blink returns wallet.balance in the minor unit for the selected wallet currency.
+  return walletBalance(wallet.balance, currency)
 }
 
 async function payInvoice (bolt11, { apiKey, wallet }, { signal }) {
@@ -55,101 +67,83 @@ async function payInvoice (bolt11, { apiKey, wallet }, { signal }) {
   const status = out.data.lnInvoicePaymentSend.status
   const errors = out.data.lnInvoicePaymentSend.errors
   if (errors && errors.length > 0) {
-    throw new Error('failed to pay invoice ' + errors.map(e => e.code + ' ' + e.message).join(', '))
+    throw new WalletPaymentRejectedError('failed to pay invoice ' + errors.map(e => e.code + ' ' + e.message).join(', '))
   }
 
-  // payment was settled immediately
+  // payment was settled immediately. A missing preimage is settled-unknown, not a
+  // failure: return it and let sendWalletPayment flag it via the proof check.
   if (status === 'SUCCESS') {
-    const preimage = out.data.lnInvoicePaymentSend.transaction.settlementVia.preImage
-    if (!preimage) throw new Error('no preimage')
-    return preimage
+    return out.data.lnInvoicePaymentSend.transaction.settlementVia.preImage
   }
 
   // payment failed immediately
   if (status === 'FAILED') {
-    throw new Error('failed to pay invoice')
+    throw new WalletPaymentRejectedError('failed to pay invoice')
   }
 
   // payment couldn't be settled (or fail) immediately, so we wait for a result
   if (status === 'PENDING') {
-    while (true) {
-      // at some point it should either be settled or fail on the backend, so the loop will exit
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      const txInfo = await getTxInfo(bolt11, { apiKey, wallet }, { signal })
-      // settled
-      if (txInfo.status === 'SUCCESS') {
-        if (!txInfo.preImage) throw new Error('no preimage')
-        return txInfo.preImage
-      }
-      // failed
-      if (txInfo.status === 'FAILED') {
-        throw new Error(txInfo.error || 'failed to pay invoice')
-      }
-      // still pending
-      // retry later
-    }
+    // preserve the original sleep-before-first-probe timing
+    await abortableSleep(100, signal)
+    return await pollUntilSettled(
+      () => getTxInfo(bolt11, { apiKey, wallet }, { signal }),
+      // a SUCCESS without preImage is settled-unknown: return it and let
+      // sendWalletPayment flag it via the proof check (like clink/lnbits)
+      tx => tx?.status === 'SUCCESS'
+        ? { value: tx.preImage }
+        : tx?.status === 'FAILED'
+          ? { error: tx.error || 'failed to pay invoice' }
+          : null,
+      { intervalMs: 100, signal }
+    )
   }
 
   // this should never happen
   throw new Error('unexpected error')
 }
 
+// Reads the SEND transaction's status; throws on read failure for the caller's poll loop to classify.
 async function getTxInfo (bolt11, { apiKey, wallet }, { signal }) {
-  let out
-  try {
-    out = await request({
-      apiKey,
-      query: `
-        query GetTxInfo($walletId: WalletId!, $paymentRequest: LnPaymentRequest!) {
-          me {
-            defaultAccount {
-              walletById(walletId: $walletId) {
-                transactionsByPaymentRequest(paymentRequest: $paymentRequest) {
-                  status
-                  direction
-                  settlementVia {
-                    ... on SettlementViaIntraLedger {
-                      preImage
-                    }
-                    ... on SettlementViaLn {
-                      preImage
-                    }
+  const out = await request({
+    apiKey,
+    query: `
+      query GetTxInfo($walletId: WalletId!, $paymentRequest: LnPaymentRequest!) {
+        me {
+          defaultAccount {
+            walletById(walletId: $walletId) {
+              transactionsByPaymentRequest(paymentRequest: $paymentRequest) {
+                status
+                direction
+                settlementVia {
+                  ... on SettlementViaIntraLedger {
+                    preImage
+                  }
+                  ... on SettlementViaLn {
+                    preImage
                   }
                 }
               }
             }
           }
-        }`,
-      variables: {
-        paymentRequest: bolt11,
-        walletId: wallet.Id
-      }
-    }, { signal })
-  } catch (e) {
-    // something went wrong during the query,
-    // maybe the connection was lost, so we just return
-    // a pending status, the caller can retry later
-    return {
-      status: 'PENDING',
-      preImage: null,
-      error: ''
+        }
+      }`,
+    variables: {
+      paymentRequest: bolt11,
+      walletId: wallet.id
     }
-  }
+  }, { signal })
+
   const tx = out.data.me.defaultAccount.walletById.transactionsByPaymentRequest.find(t => t.direction === 'SEND')
   if (!tx) {
-    // the transaction was not found, something went wrong
-    return {
-      status: 'FAILED',
-      preImage: null,
-      error: 'transaction not found'
-    }
+    // not yet indexed: transactionsByPaymentRequest is eventually consistent right
+    // after submit, so report still-pending rather than fabricating a failure for
+    // an in-flight payment. If it never appears, the caller's timeout classifies
+    // the send as settled-unknown.
+    return null
   }
-  const status = tx.status
-  const preImage = tx.settlementVia.preImage
   return {
-    status,
-    preImage,
+    status: tx.status,
+    preImage: tx.settlementVia?.preImage,
     error: ''
   }
 }

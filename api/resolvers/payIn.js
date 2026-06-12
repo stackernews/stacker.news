@@ -7,8 +7,8 @@ import { payInTypesSql } from '../payIn/lib/sql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getItem, getItemsById } from './item'
 import { getSub } from './sub'
+import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { Prisma } from '@prisma/client'
-import { parsePaymentRequest } from 'ln-service'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -33,18 +33,6 @@ function payInResultType (payInType) {
 function isMine (payIn, { me }) {
   const meId = me?.id ?? USER_ID.anon
   return Number(meId) === Number(payIn.userId)
-}
-
-function invoiceDescription (bolt11) {
-  if (!bolt11) {
-    return null
-  }
-
-  try {
-    return parsePaymentRequest({ request: bolt11 }).description ?? null
-  } catch {
-    return null
-  }
 }
 
 async function hydratePayInItems (payIns, { me, models }) {
@@ -85,14 +73,76 @@ export async function getPayIn (parent, { id }, { me, models }) {
 export default {
   Query: {
     payIn: getPayIn,
-    satistics: async (parent, { cursor }, { models, me }) => {
+    satistics: async (parent, { cursor, walletId }, { models, me }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
       const userId = me.id
+      const walletIdNumber = walletId != null ? parseWalletId(walletId) : null
+
+      // When filtering by wallet, pre-resolve the wallet's protocol IDs once
+      // (with explicit ownership)
+      let authorizedProtocolIds = null
+      if (walletIdNumber !== null) {
+        const protocols = await models.walletProtocol.findMany({
+          where: { walletId: walletIdNumber, wallet: { userId } },
+          select: { id: true }
+        })
+        if (protocols.length === 0) {
+          // Wallet does not exist, is not owned by the caller, or has no
+          // protocols. Either way, there is no activity to surface.
+          return { payIns: [], cursor: null }
+        }
+        authorizedProtocolIds = protocols.map(p => p.id)
+      }
+
       const decodedCursor = decodeCursor(cursor)
       const offset = decodedCursor.offset
       const limit = LIMIT
+      const walletSendFilter = authorizedProtocolIds
+        ? Prisma.sql`
+            AND EXISTS (
+              SELECT 1
+              FROM "PayInBolt11"
+              WHERE "PayInBolt11"."payInId" = "PayIn"."id"
+              AND "PayInBolt11"."protocolId" IN (${Prisma.join(authorizedProtocolIds)})
+            )`
+        : Prisma.empty
+      const walletReceiveFilter = authorizedProtocolIds
+        ? Prisma.sql`
+            AND EXISTS (
+              SELECT 1
+              FROM "PayOutBolt11"
+              WHERE "PayOutBolt11"."payInId" = "PayIn"."id"
+              AND "PayOutBolt11"."protocolId" IN (${Prisma.join(authorizedProtocolIds)})
+            )`
+        : Prisma.empty
+
+      // Receive-side ownership for the activity branch: a row qualifies only when
+      // the user is the payee in one of three tables.
+      const isMyReceiveSql = Prisma.sql`(
+        EXISTS (
+          SELECT 1
+          FROM "RefundCustodialToken"
+          WHERE "RefundCustodialToken"."payInId" = "PayIn"."id" AND "PayIn"."userId" = ${userId}
+        ) OR
+        EXISTS (
+          SELECT 1
+          FROM "PayOutBolt11"
+          WHERE "PayOutBolt11"."payInId" = "PayIn"."id" AND "PayOutBolt11"."userId" = ${userId}
+          AND "PayIn"."payInState" = 'PAID'
+        ) OR
+        EXISTS (
+          SELECT 1
+          FROM "PayOutCustodialToken"
+          WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id" AND "PayOutCustodialToken"."userId" = ${userId}
+          AND "PayIn"."payInState" = 'PAID'
+        )
+      )`
+
+      const receivePredicate = authorizedProtocolIds
+        ? Prisma.sql`AND "PayIn"."payInState" = 'PAID'`
+        : Prisma.sql`AND ${isMyReceiveSql}`
 
       // why we need the union:
       // if we are paying in, we want a row for that when it's created, regardless of whether it's succeeded, pending, or failed
@@ -111,6 +161,7 @@ export default {
             AND "PayIn"."mcost" > 0
             AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT')
             AND "PayIn"."created_at" <= ${decodedCursor.time}
+            ${walletSendFilter}
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
           )
@@ -121,25 +172,8 @@ export default {
             WHERE "PayIn"."benefactorId" IS NULL
             AND "PayIn"."mcost" > 0
             AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
-            AND (
-              EXISTS (
-                SELECT 1
-                FROM "RefundCustodialToken"
-                WHERE "RefundCustodialToken"."payInId" = "PayIn"."id" AND "PayIn"."userId" = ${userId}
-              ) OR
-              EXISTS (
-                SELECT 1
-                FROM "PayOutBolt11"
-                WHERE "PayOutBolt11"."payInId" = "PayIn"."id" AND "PayOutBolt11"."userId" = ${userId}
-                AND "PayIn"."payInState" = 'PAID'
-              ) OR
-              EXISTS (
-                SELECT 1
-                FROM "PayOutCustodialToken"
-                WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id" AND "PayOutCustodialToken"."userId" = ${userId}
-                AND "PayIn"."payInState" = 'PAID'
-              )
-            )
+            ${walletReceiveFilter}
+            ${receivePredicate}
             ORDER BY "sortTime" DESC
             LIMIT ${limit + offset}
           )
@@ -357,14 +391,6 @@ export default {
         return null
       }
       return payInBolt11.preimage
-    },
-    description: (payInBolt11) => {
-      return invoiceDescription(payInBolt11.bolt11)
-    }
-  },
-  PayOutBolt11: {
-    description: (payOutBolt11) => {
-      return invoiceDescription(payOutBolt11.bolt11)
     }
   },
   PayOutCustodialToken: {

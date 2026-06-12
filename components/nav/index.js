@@ -5,7 +5,7 @@ import StickyBar from './sticky-bar'
 import { PriceCarouselProvider } from './price-carousel'
 import { usePrefix, useNavKeys } from '../territory-domains'
 
-export default function Navigation ({ sub }) {
+export default function Navigation ({ sub, hideMobileNav = false }) {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
   const prefix = usePrefix(sub)
@@ -22,8 +22,8 @@ export default function Navigation ({ sub }) {
   return (
     <PriceCarouselProvider>
       <DesktopHeader {...props} />
-      <MobileHeader {...props} />
-      <StickyBar {...props} />
+      {!hideMobileNav && <MobileHeader {...props} />}
+      <StickyBar {...props} hideMobileNav={hideMobileNav} />
     </PriceCarouselProvider>
   )
 }

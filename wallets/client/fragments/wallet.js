@@ -207,6 +207,32 @@ export const DELETE_WALLET = gql`
     deleteWallet(id: $id)
   }`
 
+export const SAVE_WALLET_PROTOCOLS = gql`
+  ${USER_WALLET_FIELDS}
+  mutation SaveWalletProtocols(
+    $walletId: ID
+    $templateName: ID
+    $upserts: [WalletProtocolUpsertInput!]!
+    $removeIds: [ID!]!
+  ) {
+    saveWalletProtocols(
+      walletId: $walletId
+      templateName: $templateName
+      upserts: $upserts
+      removeIds: $removeIds
+    ) {
+      ...WalletFields
+    }
+  }
+`
+
+export const CREATE_WALLET_INVOICE = gql`
+  mutation createWalletInvoice($walletId: ID!, $amount: Int!, $description: String) {
+    createWalletInvoice(walletId: $walletId, amount: $amount, description: $description) {
+      bolt11
+    }
+  }`
+
 export const DISABLE_PASSPHRASE_EXPORT = gql`
   mutation DisablePassphraseExport {
     disablePassphraseExport
@@ -244,21 +270,15 @@ export const ADD_WALLET_LOG = gql`
 `
 
 export const WALLET_LOGS = gql`
-  query WalletLogs($protocolId: Int, $payInId: Int, $cursor: String, $debug: Boolean) {
-    walletLogs(protocolId: $protocolId, payInId: $payInId, cursor: $cursor, debug: $debug) {
-      entries {
+  query WalletLogs($walletId: ID, $payInId: Int, $cursor: String) {
+    walletLogs(walletId: $walletId, payInId: $payInId, cursor: $cursor) {
+      logs {
         id
         level
         message
         createdAt
         wallet {
-          id
           name
-        }
-        protocol {
-          id
-          name
-          send
         }
         context
       }
@@ -268,7 +288,7 @@ export const WALLET_LOGS = gql`
 `
 
 export const DELETE_WALLET_LOGS = gql`
-  mutation DeleteWalletLogs($protocolId: Int, $debug: Boolean) {
-    deleteWalletLogs(protocolId: $protocolId, debug: $debug)
+  mutation DeleteWalletLogs($walletId: ID) {
+    deleteWalletLogs(walletId: $walletId)
   }
 `

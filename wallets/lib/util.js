@@ -22,6 +22,17 @@ export function walletLud16Domain (name) {
   return typeof url === 'string' ? new URL(url).hostname : url.lud16Domain
 }
 
+export function stripLightningAddressDomain (address, domain) {
+  if (!address || !domain) return address
+  const suffix = `@${domain}`
+  return address.endsWith(suffix) ? address.slice(0, -suffix.length) : address
+}
+
+export function appendLightningAddressDomain (address, domain) {
+  if (!address || !domain || address.includes('@')) return address
+  return `${address}@${domain}`
+}
+
 export function walletGuideUrl (name) {
   return walletJson(name)?.guide
 }
@@ -46,29 +57,26 @@ export function reverseProtocolRelationName (relationName) {
   return protocols.find(protocol => protocol.relationName.toLowerCase() === relationName.toLowerCase())
 }
 
-export function protocolClientSchema ({ name, send }) {
+// Encrypted fields are persisted Vault entries and must carry the active vault
+// keyHash. Plaintext receive probes can omit keyHash only because their protocol
+// fields are not encrypted.
+export function protocolServerSchema ({ name, send }, { keyHash } = {}) {
   const fields = protocolFields({ name, send })
-  const schema = yup.object(fields.reduce((acc, field) =>
-    ({
-      ...acc,
-      [field.name]: field.required ? field.validate.required('required') : field.validate
-    }), {}))
-  return schema
-}
+  const hasEncryptedFields = fields.some(field => field.encrypt)
+  if (hasEncryptedFields && !keyHash) {
+    throw new Error('vault keyHash required for encrypted protocol fields')
+  }
 
-export function protocolServerSchema ({ name, send }, { keyHash, ignoreKeyHash }) {
-  const fields = protocolFields({ name, send })
   const schema = yup.object(fields.reduce((acc, field) => {
     if (field.encrypt) {
-      const ivSchema = yup.string().hex().length(24)
-      const valueSchema = yup.string().hex()
+      const encryptedSchema = yup.object({
+        iv: yup.string().required('required').hex().length(24),
+        value: yup.string().required('required').hex(),
+        keyHash: yup.string().required('required').equals([keyHash], `must be ${keyHash}`)
+      })
       return {
         ...acc,
-        [field.name]: yup.object({
-          iv: field.required ? ivSchema.required('required') : ivSchema,
-          value: field.required ? valueSchema.required('required') : valueSchema,
-          ...(!ignoreKeyHash ? { keyHash: yup.string().required('required').equals([keyHash], `must be ${keyHash}`) } : {})
-        })
+        [field.name]: encryptedSchema.default(undefined).required('required')
       }
     }
 
@@ -78,16 +86,6 @@ export function protocolServerSchema ({ name, send }, { keyHash, ignoreKeyHash }
     }
   }, {}))
   return schema
-}
-
-export function protocolMutationName ({ name, send }) {
-  const relationName = protocolRelationName({ name, send })
-  return `upsert${relationName.charAt(0).toUpperCase() + relationName.slice(1)}`
-}
-
-export function protocolTestMutationName ({ name, send }) {
-  const relationName = protocolRelationName({ name, send })
-  return `test${relationName.charAt(0).toUpperCase() + relationName.slice(1)}`
 }
 
 export function protocolFields ({ name, send }) {
@@ -104,17 +102,29 @@ export function protocolAvailable ({ name, send }) {
   return true
 }
 
+export function orderedSendProtocols (wallet) {
+  const configuredSendProtocols = wallet.protocols.filter(protocol => protocol.send && protocol.enabled)
+  const configuredByName = new Map(configuredSendProtocols.map(protocol => [protocol.name, protocol]))
+  const templateOrderedProtocols = (wallet.template?.protocols || [])
+    .filter(protocol => protocol.send)
+    .map(protocol => configuredByName.get(protocol.name))
+    .filter(Boolean)
+  const remainingProtocols = configuredSendProtocols
+    .filter(protocol => !templateOrderedProtocols.some(ordered => ordered.id === protocol.id))
+  return [...templateOrderedProtocols, ...remainingProtocols]
+}
+
 export function isEncryptedField (protocol, key) {
   const fields = protocolFields(protocol)
   return fields.find(field => field.name === key && field.encrypt)
 }
 
-export function urlify (name) {
+export function templateNameToPathSegment (name) {
   return name.toLowerCase().replace(/_/g, '-')
 }
 
-export function unurlify (urlName) {
-  return urlName.toUpperCase().replace(/-/g, '_')
+export function templatePathSegmentToName (pathSegment) {
+  return pathSegment.toUpperCase().replace(/-/g, '_')
 }
 
 function titleCase (name) {
@@ -129,9 +139,9 @@ export function isTemplate (obj) {
   return obj.__typename.endsWith('Template')
 }
 
-export function protocolFormId ({ name, send }) {
-  // we don't use the protocol id as the form id because then we can't find the
-  // complementary protocol to share fields between templates and non-templates
-  // by simply flipping send to recv and vice versa
+export function protocolKey ({ name, send }) {
+  // a protocol's stable identity is name+side, not its DB id: the id differs
+  // between a template and its configured instance, but name+side lets us find
+  // the complementary protocol by simply flipping send to recv and vice versa
   return `${name}-${send ? 'send' : 'recv'}`
 }

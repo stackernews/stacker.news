@@ -809,14 +809,6 @@ export default {
         await models.mute.create({ data: { ...lookupData } })
       }
       return { id }
-    },
-    setDiagnostics: async (parent, { diagnostics }, { me, models }) => {
-      if (!me) {
-        throw new GqlAuthenticationError()
-      }
-
-      await models.user.update({ where: { id: me.id }, data: { diagnostics } })
-      return diagnostics
     }
   },
 
@@ -930,7 +922,8 @@ export default {
       if (!me || me.id !== user.id) {
         return 0
       }
-      return msatsToSats(user.msats + user.mcredits)
+      // floor each bucket once so `sats - credits === msatsToSats(user.msats)`
+      return msatsToSats(user.msats) + msatsToSats(user.mcredits)
     },
     credits: async (user, args, { models, me }) => {
       if (!me || me.id !== user.id) {

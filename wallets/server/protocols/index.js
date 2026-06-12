@@ -10,7 +10,7 @@ import * as clink from './clink'
 export * from './util'
 
 /**
- * @typedef {@import('@/wallets/lib/protocols').ProtocolName} ProtocolName
+ * @typedef {import('@/wallets/lib/protocols').ProtocolName} ProtocolName
  */
 
 /**
@@ -32,12 +32,14 @@ export * from './util'
  * @typedef {Object} CreateInvoiceArgs
  * @property {number} msats - payment amount in millisatoshis
  * @property {string} description - payment description
+ * @property {string} [descriptionHash] - optional description hash (BOLT11 `h` tag)
  * @property {number} expiry - expiry time in seconds
  */
 
 /**
  * @typedef {Object} CreateInvoiceOptions
- * @property {AbortSignal} signal - signal to abort the request
+ * @property {AbortSignal} signal - required cancellation signal; adapters must
+ *   reject promptly when it aborts, including during SDK calls and polling loops
  */
 
 /**

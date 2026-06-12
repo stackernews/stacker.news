@@ -66,26 +66,28 @@ export default [
         type: 'text',
         placeholder: '55.5.555.55:3010',
         required: true,
-        validate: socketValidator(),
+        // send wallet: dialed by the user's browser, so private/LAN addresses are allowed
+        validate: socketValidator({ allowPrivate: true }),
         share: true
       },
       {
         name: 'rune',
-        label: 'pay only rune',
+        label: 'pay rune',
         type: 'password',
         help: [
-          'We only accept runes that *only* allow `method=pay`.',
-          'Run this to generate one if you are on v24.11 or later:',
-          '```lightning-cli createrune restrictions=\'[["method=pay"]]\'```',
+          'We only accept runes that allow `method=pay`. Add `method=bkpr-listbalances` to show balances.',
+          'Run this to generate a send and balance rune if you are on v24.11 or later:',
+          '```lightning-cli createrune restrictions=\'[["method=pay","method=bkpr-listbalances"]]\'```',
           'Or this if you are on an earlier version:',
-          '```lightning-cli createrune restrictions=\'["method=pay"]\'```',
+          '```lightning-cli createrune restrictions=\'["method=pay|method=bkpr-listbalances"]\'```',
+          'For send only, omit `method=bkpr-listbalances`.',
           '[see `createrune` documentation](https://docs.corelightning.org/reference/createrune#restriction-format)'
         ],
         placeholder: 'S34KtUW-6gqS_hD_9cc_PNhfF-NinZyBOCgr1aIrark9NCZtZXRob2Q9aW52b2ljZQ==',
-        validate: runeValidator({ method: 'pay' }),
+        validate: runeValidator({ method: 'pay', optionalMethods: ['bkpr-listbalances'] }),
         required: true,
         encrypt: true,
-        hint: 'must be restricted to method=pay'
+        hint: 'must be restricted to method=pay and method=bkpr-listbalances (optional)'
       }
       // XXX we don't ask for the CA certificate because the browser's fetch API doesn't support http agents to override it.
       // Therefore, CLNRest send will only work with common CA certificates.

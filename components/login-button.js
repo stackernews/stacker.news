@@ -86,7 +86,9 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
             {accounts.map(account => (
               <Dropdown.Item
                 key={account.id}
-                onClick={() => setPointerCookie(account.id, cookieOptions({ httpOnly: false }))}
+                onClick={() => {
+                  setPointerCookie(account.id, cookieOptions({ httpOnly: false }))
+                }}
                 className={classNames(styles.dropdownExtraItem, Number(account.id) === Number(pointerCookie) && styles.active)}
               >
                 <span className={styles.dropdownExtraItemText}>{account.name}</span>

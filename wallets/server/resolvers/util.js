@@ -1,39 +1,26 @@
-export function mapWalletResolveTypes (wallet) {
-  const resolveTypeOfProtocolConfig = ({ name, send }) => {
-    switch (name) {
-      case 'NWC':
-        return send ? 'WalletSendNWC' : 'WalletRecvNWC'
-      case 'LNBITS':
-        return send ? 'WalletSendLNbits' : 'WalletRecvLNbits'
-      case 'PHOENIXD':
-        return send ? 'WalletSendPhoenixd' : 'WalletRecvPhoenixd'
-      case 'BLINK':
-        return send ? 'WalletSendBlink' : 'WalletRecvBlink'
-      case 'WEBLN':
-        return 'WalletSendWebLN'
-      case 'LN_ADDR':
-        return 'WalletRecvLightningAddress'
-      case 'LNC':
-        return 'WalletSendLNC'
-      case 'CLN_REST':
-        return send ? 'WalletSendCLNRest' : 'WalletRecvCLNRest'
-      case 'LND_GRPC':
-        return 'WalletRecvLNDGRPC'
-      case 'CLINK':
-        return send ? 'WalletSendClink' : 'WalletRecvClink'
-      default:
-        return null
-    }
-  }
+import { protocolRelationName } from '@/wallets/lib/util'
+import { GqlInputError } from '@/lib/error'
 
+export function parseWalletId (walletId) {
+  const id = Number(walletId)
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw new GqlInputError('invalid wallet id')
+  }
+  return id
+}
+
+export function mapWalletResolveTypes (wallet) {
+  // GraphQL union member types (e.g. WalletSendNWC) are the protocol's
+  // relationName (walletSendNWC) with a capitalized first letter.
   return {
     ...wallet,
     protocols: wallet.protocols.map(({ config, ...p }) => {
+      const relationName = protocolRelationName(p)
       return {
         ...p,
         config: {
           ...config,
-          __resolveType: resolveTypeOfProtocolConfig(p)
+          __resolveType: relationName ? relationName[0].toUpperCase() + relationName.slice(1) : null
         }
       }
     }),

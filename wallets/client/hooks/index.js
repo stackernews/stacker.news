@@ -24,12 +24,9 @@ export * from './image'
 export * from './indicator'
 export * from './wallet'
 export * from './crypto'
-export * from './diagnostics'
 export * from './dnd'
 export * from './singleFlight'
 export {
-  useWalletProtocolUpsert,
-  useLightningAddressUpsert,
   useWalletEncryptionUpdate,
   useWalletReset,
   useDisablePassphraseExport,

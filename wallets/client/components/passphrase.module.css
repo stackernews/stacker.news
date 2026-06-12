@@ -1,0 +1,75 @@
+/* Wallet passphrase manager: setup notice, word list, and action buttons. */
+
+.regenerateButton {
+  --focus-ring-offset: 4px;
+  --text-button-gap: 0;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.25rem;
+  cursor: pointer;
+}
+.resetButton {
+  --text-button-color: var(--bs-danger);
+  --text-button-hover-color: var(--bs-danger);
+  --focus-ring-offset: 4px;
+}
+.resetButton:hover {
+  opacity: 0.85;
+}
+.regenerateButton:disabled,
+.resetButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.section,
+.setup {
+  display: flex;
+  flex-direction: column;
+}
+.section {
+  gap: var(--wt-gap-md);
+}
+.setup {
+  gap: var(--wt-gap-xl);
+}
+.words {
+  display: grid;
+  gap: var(--wt-gap-sm);
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  container-type: inline-size;
+  margin: 2rem 0;
+}
+.sectionTitle {
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.notice {
+  background-color: var(--theme-toolbarHover);
+  border: 1px solid var(--theme-borderColor);
+  border-radius: var(--wt-radius-sm);
+  padding: 1rem;
+}
+.managerInput {
+  letter-spacing: 0.01em;
+}
+.inputHint {
+  margin-top: 0.35rem;
+  line-height: 1.2;
+  font-size: 0.875rem;
+  color: var(--theme-grey);
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wt-gap-md);
+  align-items: flex-end;
+}
+.buttons {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--wt-gap-md);
+}

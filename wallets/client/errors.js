@@ -120,3 +120,17 @@ export class WalletStaleConfigError extends WalletConfigurationError {
     this.name = 'WalletStaleConfigError'
   }
 }
+
+// payError helpers: a user-canceled QR (closing the invoice modal) is an intentional abort, not a
+// failure to surface, so callers suppress it.
+export const isUserCancelError = (e) => e instanceof InvoiceCanceledError
+
+// toast a payIn error unless it's absent or a user cancel (used by the act/bounty onPayError phases)
+export const toastPayError = (toaster, e) => {
+  if (e && !isUserCancelError(e)) toaster.danger(e?.message || e?.toString?.())
+}
+
+// rethrow a pessimistic flow's payError unless it's absent or a user cancel
+export const throwUnlessUserCancel = (payError) => {
+  if (payError && !isUserCancelError(payError)) throw payError
+}

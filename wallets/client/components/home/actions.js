@@ -5,6 +5,7 @@ import { Form, Input, SubmitButton } from '@/components/form'
 import { useShowModal } from '@/components/modal'
 import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { throwUnlessUserCancel } from '@/wallets/client/errors'
 import PyramidButton from '@/components/pyramid-button'
 import { amountSchema } from '@/lib/validate'
 import { BUY_CREDITS } from '@/fragments/payIn'
@@ -96,7 +97,7 @@ function BuyCreditsAction () {
           initial={{ amount: 10000 }}
           schema={amountSchema}
           onSubmit={async ({ amount }) => {
-            const { error } = await buyCredits({
+            const { error, payError } = await buyCredits({
               variables: {
                 credits: Number(amount)
               },
@@ -106,6 +107,9 @@ function BuyCreditsAction () {
             })
             onClose()
             if (error) throw error
+            // credit purchases are pessimistic, so a terminal payment failure comes back in payError —
+            // but a user-canceled QR isn't news
+            throwUnlessUserCancel(payError)
           }}
         >
           <Input

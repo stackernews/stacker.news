@@ -119,7 +119,6 @@ export default function useItemSubmit (mutation,
 }
 
 function saveItemInvoiceHmac (mutationData) {
-  console.log('saveItemInvoiceHmac', mutationData)
   const response = Object.values(mutationData)[0]
 
   if (!response?.payerPrivates?.payInBolt11) return

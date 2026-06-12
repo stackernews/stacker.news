@@ -348,8 +348,11 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
     payInId,
     fromStates: 'PENDING_HELD',
     toState: 'FORWARDING',
-    transitionFunc: async ({ tx, payIn, lndPayInBolt11 }) => {
-      if (!lndPayInBolt11.is_held) {
+    transitionFunc: async ({ tx, payIn }) => {
+      // a racing payInCancel may have canceled the invoice but rolled back,
+      // leaving us with stale invoice reading 'held' but the LND invoice is 'canceled'
+      const fresh = await getInvoice({ id: payIn.payInBolt11.hash, lnd })
+      if (!fresh.is_held) {
         throw new Error('invoice is not held')
       }
 
@@ -357,7 +360,7 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
         throw new Error('invoice is not associated with a forward')
       }
 
-      const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(lndPayInBolt11)
+      const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(fresh)
       const invoice = await parsePaymentRequest({ request: payIn.payOutBolt11.bolt11 })
       // maxTimeoutDelta is the number of blocks left for the outgoing payment to settle
       const maxTimeoutDelta = toPositiveNumber(expiryHeight) - toPositiveNumber(acceptHeight) - MIN_SETTLEMENT_CLTV_DELTA
@@ -381,7 +384,7 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
       return {
         payInBolt11: {
           update: {
-            msatsReceived: BigInt(lndPayInBolt11.received_mtokens),
+            msatsReceived: BigInt(fresh.received_mtokens),
             expiryHeight,
             acceptHeight
           }
@@ -512,7 +515,7 @@ export async function payInFailedForward ({ data, models, lnd, boss, ...args }) 
     fromStates: 'FORWARDING',
     toState: 'FAILED_FORWARD',
     transitionFunc: async ({ tx, payIn, lndPayInBolt11, lndPayOutBolt11 }) => {
-      if (!(lndPayInBolt11.is_held || lndPayInBolt11.is_cancelled)) {
+      if (!(lndPayInBolt11.is_held || lndPayInBolt11.is_canceled)) {
         throw new Error('invoice is not held')
       }
 

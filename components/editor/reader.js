@@ -18,13 +18,55 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { withDOM } from '@/lib/lexical/server/dom'
 import { generateHTML } from '@/lib/lexical/server/html'
 
-// prioritize server-resolved HTML, otherwise generate it from the editor state
-// in SSR we generate it in a fake DOM
+// on the server, generate HTML from the editor state in a fake DOM
+// server-resolved HTML never reaches this branch on the server,
+// the Reader dispatcher short-circuits it.
+// on the client, prioritize resolved HTML so hydration adopts the server-painted div.
+// fallback: if editor/genHTML errors, return html prop or ''
 const initialContentEditable = (editor, html) => {
-  if (typeof window === 'undefined') {
-    return html || withDOM(() => generateHTML(editor))
+  try {
+    if (typeof window === 'undefined') {
+      return withDOM(() => generateHTML(editor))
+    }
+    return html || generateHTML(editor)
+  } catch (e) {
+    return html || ''
   }
-  return html || generateHTML(editor)
+}
+
+// server-resolved HTML needs no editor: paint it directly.
+// attributes must mirror HydratableContentEditable's output, hydration won't patch mismatches.
+// data-lexical-editor is an exception, Lexical sets it at attach but CSS needs it at first paint
+function ServerHTMLReader ({ html, innerClassName }) {
+  return (
+    <div
+      aria-autocomplete='none'
+      aria-readonly='true'
+      className={innerClassName}
+      contentEditable={false}
+      role='textbox'
+      spellCheck
+      data-sn-reader='true'
+      data-lexical-editor='true'
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
+
+function HydratableContentEditable ({ html, ...props }) {
+  const [editor] = useLexicalComposerContext()
+
+  const initialHTML = useMemo(() => initialContentEditable(editor, html), [editor, html])
+
+  return (
+    <ContentEditable
+      {...props}
+      suppressHydrationWarning
+      // server HTML is preserved until ContentEditable attaches the root element,
+      // which repaints it from the editor state before the browser paints
+      dangerouslySetInnerHTML={{ __html: initialHTML }}
+    />
+  )
 }
 
 const initiateEditorState = (editor, state, text) => {
@@ -46,23 +88,7 @@ const initiateEditorState = (editor, state, text) => {
   }
 }
 
-function SSRContentEditable ({ html, ...props }) {
-  const [editor] = useLexicalComposerContext()
-
-  const initialHTML = useMemo(() => initialContentEditable(editor, html), [editor, html])
-
-  return (
-    <ContentEditable
-      {...props}
-      suppressHydrationWarning
-      // server HTML is preserved until ContentEditable attaches the root element,
-      // which repaints it from the editor state before the browser paints
-      dangerouslySetInnerHTML={{ __html: initialHTML }}
-    />
-  )
-}
-
-export default function Reader ({ topLevel, state, text, html, readerRef, innerClassName }) {
+function ComposedReader ({ topLevel, state, text, html, readerRef, innerClassName }) {
   const reader = useMemo(() =>
     defineExtension({
       name: 'reader',
@@ -81,15 +107,13 @@ export default function Reader ({ topLevel, state, text, html, readerRef, innerC
         ...theme,
         topLevel: topLevel && 'topLevel'
       },
-      $initialEditorState: (editor) => {
-        if (typeof window === 'undefined' && html) return
-        initiateEditorState(editor, state, text)
-      },
+      $initialEditorState: (editor) => initiateEditorState(editor, state, text),
       onError: (error) => console.error('reader has encountered an error:', error)
-    }), [topLevel, state, html, text])
+    }), [topLevel, state, text])
 
+  // paints resolved HTML or generates it, see initialContentEditable
   const contentEditable = useMemo(() => (
-    <SSRContentEditable html={html} data-sn-reader='true' className={innerClassName} />
+    <HydratableContentEditable html={html} data-sn-reader='true' className={innerClassName} />
   ), [html, innerClassName])
 
   return (
@@ -98,5 +122,27 @@ export default function Reader ({ topLevel, state, text, html, readerRef, innerC
       <CodeThemePlugin />
       <NextLinkPlugin />
     </LexicalExtensionComposer>
+  )
+}
+
+export default function Reader ({ topLevel, state, text, html, readerRef, innerClassName }) {
+  // text is the supplied or truncated markdown,
+  // it overrides html, so the server paints the same content the client builds from text
+  const effectiveHTML = text ? undefined : html
+
+  // instantly paint the server-resolved HTML
+  if (typeof window === 'undefined' && effectiveHTML) {
+    return <ServerHTMLReader html={effectiveHTML} innerClassName={innerClassName} />
+  }
+
+  return (
+    <ComposedReader
+      topLevel={topLevel}
+      state={state}
+      text={text}
+      html={effectiveHTML}
+      readerRef={readerRef}
+      innerClassName={innerClassName}
+    />
   )
 }

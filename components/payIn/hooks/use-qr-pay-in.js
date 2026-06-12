@@ -73,7 +73,9 @@ function QrPayIn ({
     return <div>{error.message}</div>
   }
 
-  if (!payIn) {
+  // a creation-/wrap-failed payIn has no bolt11 to render (see isInvoiceSetupPending),
+  // and item-info's 'pending' link can open this modal with one
+  if (!payIn || !payIn.payerPrivates?.payInBolt11) {
     return <QrSkeleton description />
   }
 

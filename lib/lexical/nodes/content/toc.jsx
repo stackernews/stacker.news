@@ -11,6 +11,14 @@ function $convertTableOfContentsElement (domNode) {
   return null
 }
 
+/** base element shared by createDOM and exportDOM; the data attribute lets
+ * the node be reconstructed from HTML into Lexical (see $convertTableOfContentsElement) */
+function createTocElement () {
+  const div = document.createElement('div')
+  div.setAttribute('data-lexical-toc', 'true')
+  return div
+}
+
 export class TableOfContentsNode extends DecoratorBlockNode {
   static getType () {
     return 'table-of-contents'
@@ -32,15 +40,12 @@ export class TableOfContentsNode extends DecoratorBlockNode {
   }
 
   createDOM () {
-    const domNode = document.createElement('div')
-    domNode.setAttribute('data-lexical-toc', 'true')
-    return domNode
+    return createTocElement()
   }
 
   exportDOM (editor) {
     return editor.getEditorState().read(() => {
-      const div = document.createElement('div')
-      div.setAttribute('data-lexical-toc', 'true')
+      const div = createTocElement()
       const details = document.createElement('details')
       details.setAttribute('class', 'sn-collapsible sn-toc')
 

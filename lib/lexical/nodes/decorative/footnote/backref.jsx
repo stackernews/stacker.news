@@ -15,8 +15,6 @@ function backrefDOM (config, identifier) {
 function $convertFootnoteBackrefElement (domNode) {
   const identifier = domNode.getAttribute('data-lexical-footnote-backref-id')
   if (identifier) {
-    // the arrow glyph is decorative, clear it so importing from HTML doesn't import it as a child
-    domNode.textContent = ''
     return { node: $createFootnoteBackrefNode({ identifier }) }
   }
   return null

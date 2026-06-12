@@ -12,6 +12,13 @@ function $convertTerritoryMentionElement (domNode) {
   return null
 }
 
+/** writes territory mention fields as data attributes so the node can be losslessly
+ * reconstructed from HTML into Lexical (see $convertTerritoryMentionElement) */
+function setTerritoryMentionHydrationAttributes (node, el) {
+  el.setAttribute('data-lexical-territory-mention', true)
+  el.setAttribute('data-lexical-territory-mention-name', node.getName())
+}
+
 // TODO: support path like item and user mentions
 export class TerritoryMentionNode extends DecoratorNode {
   __name
@@ -52,21 +59,19 @@ export class TerritoryMentionNode extends DecoratorNode {
     if (className !== undefined) {
       domNode.className = className
     }
-    domNode.setAttribute('data-lexical-territory-mention', true)
-    domNode.setAttribute('data-lexical-territory-mention-name', this.__name)
+    setTerritoryMentionHydrationAttributes(this, domNode)
     return domNode
   }
 
   // we need to find a way to allow display name changes
   exportDOM (editor) {
     const wrapper = document.createElement('span')
-    wrapper.setAttribute('data-lexical-territory-mention', true)
     const theme = editor._config.theme
     const className = theme.territoryMention
     if (className !== undefined) {
       wrapper.className = className
     }
-    wrapper.setAttribute('data-lexical-territory-mention-name', this.__name)
+    setTerritoryMentionHydrationAttributes(this, wrapper)
     const a = document.createElement('a')
     a.setAttribute('href', '/~' + encodeURIComponent(this.__name.toString()))
     a.textContent = '~' + this.__name

@@ -7,6 +7,7 @@ import {
   WalletPaymentRejectedError, WalletValidationError, WalletConfigurationError
 } from '@/wallets/client/errors'
 import { timeoutSignal } from '@/lib/time'
+import { isInvoiceSetupPending } from '@/lib/pay-in'
 import { useMe } from '@/components/me'
 import { formatSats, msatsToSats } from '@/lib/format'
 import usePayInHelper from '@/components/payIn/hooks/use-pay-in-helper'
@@ -105,6 +106,12 @@ export function useWalletPayment () {
         }
 
         aggregateError = new WalletAggregateError([aggregateError, paymentError], latestPayIn)
+
+        // if the successor's invoice creation/wrap failed, it has no bolt11 for the next
+        // attempt to pay — bail like the loop exhausting instead of passing null to a wallet
+        if (isInvoiceSetupPending(latestPayIn)) {
+          throw new WalletPaymentAggregateError([aggregateError], latestPayIn)
+        }
 
         continue
       } finally {

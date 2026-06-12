@@ -19,8 +19,11 @@ export default function usePayPayIn () {
       walletError = null
       if (err instanceof WalletError) {
         walletError = err
-        // get the last invoice that was attempted but failed and was canceled
-        if (err.payIn) payIn = err.payIn
+        // aggregate wallet errors carry the lineage's latest payIn (the last attempted,
+        // possibly retried, payIn) as `invoice` — adopt it so the retry/QR fallback below
+        // works on the lineage tail instead of an already-superseded payIn. The payInState
+        // check excludes errors whose `invoice` is a bolt11 row (sender/receiver errors).
+        if (err.invoice?.payInState) payIn = err.invoice
       }
 
       const invoiceError = err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError
@@ -40,6 +43,10 @@ export default function usePayPayIn () {
 
     const paymentAttempted = walletError instanceof WalletPaymentError
     if (paymentAttempted) {
+      // the wallet loop may have bailed with a bolt11-less successor (its invoice
+      // creation/wrap failed; it's being driven to FAILED and auto-retried) — it isn't
+      // FAILED yet so it can't be retried, and there's no invoice to show a QR for
+      if (isInvoiceSetupPending(payIn)) throw walletError
       // QR/manual fallback should not keep attributing the successor invoice
       // to the wallet protocol that already failed to pay it.
       payIn = await payInHelper.retry(payIn, { sendProtocolId: null, update: onRetry })

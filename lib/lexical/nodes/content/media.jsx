@@ -26,10 +26,10 @@ const bestResSrcState = createState('bestResSrc', {
 })
 
 function $convertMediaElement (domNode) {
-  let src, alt, title, width, height, kind, srcSet, bestResSrc, maxWidth
+  let src, alt, title, width, height, kind, srcSet, bestResSrc, maxWidth, autolink
 
   if (domNode instanceof window.HTMLImageElement || domNode instanceof window.HTMLVideoElement) {
-    ({ alt, title, src, width, height, srcSet, bestResSrc } = domNode)
+    ({ alt, title, src, width, height, srcset: srcSet } = domNode)
     kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
   } else if (domNode instanceof window.HTMLSpanElement && domNode.hasAttribute('data-sn-media-src')) {
     src = domNode.getAttribute('data-sn-media-src')
@@ -40,6 +40,7 @@ function $convertMediaElement (domNode) {
     bestResSrc = domNode.getAttribute('data-sn-media-bestres') || null
     const maxWidthAttr = domNode.getAttribute('data-sn-media-maxwidth')
     maxWidth = maxWidthAttr ? parseInt(maxWidthAttr, 10) : undefined
+    autolink = domNode.getAttribute('data-sn-media-autolink') === 'true'
     const style = domNode.style
     width = style.getPropertyValue('--width')
     height = style.getPropertyValue('--height')
@@ -49,7 +50,7 @@ function $convertMediaElement (domNode) {
     return null
   }
 
-  const node = $createMediaNode({ src, alt, title, width, height, srcSet, bestResSrc, maxWidth })
+  const node = $createMediaNode({ src, alt, title, width, height, srcSet, bestResSrc, maxWidth, autolink })
   $setState(node, kindState, kind)
   $setState(node, statusState, 'done')
   return { node }
@@ -67,6 +68,7 @@ function setMediaHydrationAttributes (node, el) {
   if (srcSet) el.setAttribute('data-sn-media-srcset', srcSet)
   if (bestResSrc) el.setAttribute('data-sn-media-bestres', bestResSrc)
   if (node.__maxWidth != null) el.setAttribute('data-sn-media-maxwidth', String(node.__maxWidth))
+  if (node.__autolink) el.setAttribute('data-sn-media-autolink', 'true')
 }
 
 export class MediaNode extends DecoratorNode {
@@ -147,10 +149,6 @@ export class MediaNode extends DecoratorNode {
         priority: 0
       }),
       video: () => ({
-        conversion: $convertMediaElement,
-        priority: 0
-      }),
-      a: () => ({
         conversion: $convertMediaElement,
         priority: 0
       }),

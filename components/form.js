@@ -33,7 +33,6 @@ import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 import { SNEditor } from './editor'
 import { isAbortError } from '@/lib/error'
-import { shouldSuppressFormSubmitToast } from '@/lib/form'
 import QrScanner from './qr-scanner'
 export { MultiSelect } from './multi-select'
 export class SessionRequiredError extends Error {
@@ -857,6 +856,7 @@ export const StorageKeyPrefixContext = createContext()
 export function Form ({
   initial, validate, schema, onSubmit, children, initialError, validateImmediately,
   storageKeyPrefix, validateOnChange = true, requireSession, innerRef, enableReinitialize,
+  suppressErrorToast,
   ...props
 }) {
   const toaster = useToast()
@@ -896,7 +896,7 @@ export function Form ({
       }
     } catch (err) {
       console.log(err.message, err)
-      if (!shouldSuppressFormSubmitToast(err)) {
+      if (!suppressErrorToast?.(err)) {
         toaster.danger(err.message ?? err.toString?.())
       }
       return
@@ -904,7 +904,7 @@ export function Form ({
 
     if (!storageKeyPrefix) return
     clearLocalStorage(values)
-  }, [me, onSubmit, clearLocalStorage, storageKeyPrefix])
+  }, [me, onSubmit, clearLocalStorage, storageKeyPrefix, suppressErrorToast])
 
   return (
     <Formik

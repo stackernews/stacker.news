@@ -11,6 +11,7 @@ import { Form, SubmitButton } from './form'
 import { PAY_BOUNTY_MUTATION } from '@/fragments/payIn'
 import usePayInMutation from './payIn/hooks/use-pay-in-mutation'
 import { useHasSendWallet } from '@/wallets/client/hooks'
+import { shouldSuppressPayInTimeoutToast } from '@/lib/pay-in'
 
 const addBountyPaidToCache = (cache, { data }, { optimistic = true } = {}) => {
   const response = Object.values(data)[0]
@@ -94,7 +95,9 @@ export default function PayBounty ({ children, item }) {
       if (error) throw error
     } catch (error) {
       const reason = error?.message || error?.toString?.()
-      toaster.danger(reason)
+      if (!shouldSuppressPayInTimeoutToast(error)) {
+        toaster.danger(reason)
+      }
     }
   }
 

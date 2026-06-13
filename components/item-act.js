@@ -14,6 +14,7 @@ import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { satsToMsats } from '@/lib/format'
 import { composeCallbacks } from '@/lib/compose-callbacks'
+import { shouldSuppressPayInTimeoutToast } from '@/lib/pay-in'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -121,6 +122,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       }}
       schema={amountSchema}
       onSubmit={onSubmit}
+      suppressErrorToast={shouldSuppressPayInTimeoutToast}
     >
       <Input
         label='amount'

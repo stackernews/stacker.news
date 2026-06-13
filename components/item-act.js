@@ -1,6 +1,7 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useApolloClient } from '@apollo/client/react'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
@@ -14,7 +15,6 @@ import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { useAnimation } from '@/components/animation'
 import { useToast } from '@/components/toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
-import { satsToMsats } from '@/lib/format'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
@@ -60,6 +60,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   const { me } = useMe()
   const hasReadySendWallet = useHasSendWallet()
   const toaster = useToast()
+  const client = useApolloClient()
   const [oValue, setOValue] = useState()
 
   useEffect(() => {
@@ -103,27 +104,32 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       options.cachePhases.onPaid = onPaid
     }
 
-    const { error } = await actor({
-      variables: {
-        id: item.id,
-        sats: Number(amount),
-        act
-      },
-      optimisticResponse: me
-        ? {
-            payInType: act === 'DONT_LIKE_THIS' ? 'DOWN_ZAP' : act === 'BOOST' ? 'BOOST' : 'ZAP',
-            mcost: satsToMsats(Number(amount)),
-            payerPrivates: {
-              result: { path: item.path, id: item.id, sats: Number(amount), act, __typename: 'ItemAct' }
-            }
-          }
-        : undefined,
-      // don't close modal immediately because we want the QR modal to stack
-      ...options
-    })
+    // instant feedback: bump the item's counters directly in the root cache (assume p2p — the act
+    // cache phases add credits later if the response says otherwise). this is the same root bump
+    // the bolt uses; it survives navigation (maxMerge) and is reverted on terminal payment failure
+    // by getActCachePhases.onPayError, or here if the mutation never creates a payIn.
+    const result = { id: item.id, sats: Number(amount), act, path: item.path }
+    bumpActCache(client.cache, result, me)
+
+    let error
+    try {
+      ({ error } = await actor({
+        variables: {
+          id: item.id,
+          sats: Number(amount),
+          act
+        },
+        // don't close modal immediately because we want the QR modal to stack
+        ...options
+      }))
+    } catch (mutationError) {
+      // the mutation failed before creating a payIn — no cache phase will revert, so undo the bump
+      revertActBump(client.cache, result, me)
+      throw mutationError
+    }
     if (error) throw error
     addCustomTip(Number(amount))
-  }, [me, actor, hasReadySendWallet, act, item.id, onClose, abortSignal, animate, toaster])
+  }, [me, actor, client, hasReadySendWallet, act, item.id, item.path, onClose, abortSignal, animate, toaster])
 
   return (
     <Form
@@ -158,7 +164,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   )
 }
 
-export function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me, { optimistic = true } = {}) {
+function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me) {
   const result = payerPrivates?.result
   if (!result) return
   const { id, sats, act } = result
@@ -209,14 +215,16 @@ export function modifyActCache (cache, { payerPrivates, payOutBolt11Public }, me
         }
         return existingBoost
       }
-    },
-    optimistic
+    }
+    // cache.modify writes the root cache by default (optimistic: false) — act bumps (genesis and
+    // retry alike) are written at click time to the root cache, so they survive navigation under
+    // maxMerge and never need an optimistic layer
   })
 }
 
 // doing this onPaid fixes issue #1695 because optimistically updating all ancestors
 // conflicts with the writeQuery on navigation from SSR
-export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }, { optimistic = true } = {}) {
+function updateAncestors (cache, { payerPrivates, payOutBolt11Public }) {
   const result = payerPrivates?.result
   if (!result) return
   const { id, sats, act, path } = result
@@ -238,8 +246,7 @@ export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }, {
           commentSats (existingCommentSats = 0) {
             return existingCommentSats + sats
           }
-        },
-        optimistic
+        }
       })
     })
   }
@@ -253,8 +260,7 @@ export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }, {
           commentDownSats (existingCommentDownSats = 0) {
             return existingCommentDownSats + sats
           }
-        },
-        optimistic
+        }
       })
     })
   }
@@ -268,44 +274,52 @@ export function updateAncestors (cache, { payerPrivates, payOutBolt11Public }, {
           commentBoost (existingCommentBoost = 0) {
             return existingCommentBoost + sats
           }
-        },
-        optimistic
+        }
       })
     })
   }
 }
 
-// the inverse of an act response: the same response with the result's sats negated, for
-// reverting whatever modifyActCache applied. null when there's no result to negate.
-export function negateActResponse (response) {
-  const result = response?.payerPrivates?.result
-  if (!result) return null
-  return { ...response, payerPrivates: { ...response.payerPrivates, result: { ...result, sats: -1 * result.sats } } }
+// the optimistic act bump: write an item's counters to the ROOT cache (survives navigation under
+// maxMerge), assuming p2p so credits are skipped — getActCachePhases.onMutationResult adds them if
+// the response turns out non-p2p. both the modal (item-act) and the bolt (use-zap) use this.
+export function bumpActCache (cache, result, me) {
+  modifyActCache(cache, { payerPrivates: { result }, payOutBolt11Public: true }, me)
 }
 
+// reverse a bump. payOutBolt11Public defaults to the bump's p2p assumption (no credits were added);
+// pass the response's real value when reverting after the credit reconcile below may have run.
+export function revertActBump (cache, result, me, payOutBolt11Public = true) {
+  modifyActCache(cache, { payerPrivates: { result: { ...result, sats: -result.sats } }, payOutBolt11Public }, me)
+}
+
+// the bump already wrote sats/meSats to the root cache; these phases only reconcile what the bump
+// couldn't know up front: credits (if the act turned out non-p2p), ancestors (on payment), and the
+// reversal (on terminal failure). there is no onMutationResult bump and no onPaidMissingResult —
+// the bump is client-driven at action time, not derived from the mutation response.
 export function getActCachePhases (me) {
   return {
-    // runs as Apollo update() callback — optimistic: true (default) is correct
     onMutationResult: (cache, { data }) => {
       const response = Object.values(data)[0]
-      if (!response) return
-      modifyActCache(cache, response, me)
-    },
-    // runs outside update() context — write to root cache
-    onPaidMissingResult: (cache, { data }) => {
-      const response = Object.values(data)[0]
-      if (!response) return
-      modifyActCache(cache, response, me, { optimistic: false })
+      const result = response?.payerPrivates?.result
+      if (!result || response.payOutBolt11Public) return // no result, or actually p2p — credit skip was correct
+      cache.modify({
+        id: `Item:${result.id}`,
+        fields: {
+          credits: (existing = 0) => existing + result.sats,
+          meCredits: (existing = 0) => me ? existing + result.sats : existing
+        }
+      })
     },
     onPayError: (e, cache, { data }) => {
-      const negate = negateActResponse(Object.values(data)[0])
-      if (!negate) return
-      modifyActCache(cache, negate, me, { optimistic: false })
+      const response = Object.values(data)[0]
+      const result = response?.payerPrivates?.result
+      if (result) revertActBump(cache, result, me, response.payOutBolt11Public)
     },
     onPaid: (cache, { data }) => {
       const response = Object.values(data)[0]
       if (!response) return
-      updateAncestors(cache, response, { optimistic: false })
+      updateAncestors(cache, response)
     }
   }
 }
@@ -327,9 +341,6 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
     cachePhases: {
       ...callerCachePhases,
       onMutationResult: composeCallbacks(phases.onMutationResult, callerCachePhases.onMutationResult),
-      // If the initial mutation response had no result payload, run the direct-item
-      // cache modification now so optimistic and pessimistic paths converge.
-      onPaidMissingResult: composeCallbacks(phases.onPaidMissingResult, callerCachePhases.onPaidMissingResult),
       onPayError: composeCallbacks(phases.onPayError, callerCachePhases.onPayError),
       onPaid: composeCallbacks(phases.onPaid, callerCachePhases.onPaid)
     }

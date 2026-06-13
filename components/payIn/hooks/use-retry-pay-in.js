@@ -67,9 +67,7 @@ function splitMutationOptions (mutationOptions = {}) {
 }
 
 function withBountyCachePhases (userCachePhases) {
-  return withComposedCachePhases(payBountyCachePhases, userCachePhases, {
-    onPaidMissingResult: payBountyCachePhases.onPaidMissingResult
-  })
+  return withComposedCachePhases(payBountyCachePhases, userCachePhases)
 }
 
 // the genesis act already bumped the item counters optimistically and that bump persists through

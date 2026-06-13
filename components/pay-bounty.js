@@ -29,11 +29,11 @@ const addBountyPaidToCache = (cache, { data }, { optimistic = true } = {}) => {
   })
 }
 
+// bounty payments are never pessimistic (payer is always logged-in and BOUNTY_PAYMENT is
+// optimistic), so the genesis response always carries the result
 export const payBountyCachePhases = {
   // runs as Apollo update() callback — optimistic: true (default) is correct
   onMutationResult: addBountyPaidToCache,
-  // runs outside update() context — write to root cache
-  onPaidMissingResult: (cache, args) => addBountyPaidToCache(cache, args, { optimistic: false }),
   onPayError: (_e, cache, { data }) => {
     const response = Object.values(data)[0]
     if (!response?.payerPrivates.result) return

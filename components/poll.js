@@ -7,6 +7,7 @@ import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
 import { useToast } from './toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
+import { throwUnlessUserCancel } from '@/wallets/client/errors'
 import { POLL_VOTE } from '@/fragments/payIn'
 import { useState } from 'react'
 import classNames from 'classnames'
@@ -27,10 +28,13 @@ const PollButton = ({ v, item }) => {
             setIsSubmitting(true)
             const variables = { id: v.id }
             try {
-              const { error } = await pollVote({
+              const { error, payError } = await pollVote({
                 variables
               })
               if (error) throw error
+              // poll votes are pessimistic, so a terminal payment failure (expired/canceled
+              // invoice) comes back in payError, never error — but a user-canceled QR isn't news
+              throwUnlessUserCancel(payError)
             } catch (error) {
               const reason = error?.message || error?.toString?.()
               toaster.danger(reason)

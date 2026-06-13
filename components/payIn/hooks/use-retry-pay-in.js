@@ -7,81 +7,82 @@ import { useHasSendWallet } from '@/wallets/client/hooks'
 import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { PAY_IN_ACT_TYPES } from '@/lib/constants'
+import { E_PAY_IN_RETRY_RACE } from '@/lib/error'
+import { actWaitFor, getPayIn, toFailedPayIn } from '@/lib/pay-in'
 
-export function useRetryPayIn (payInId, mutationOptions = {}) {
-  const { restOptions, cachePhases } = splitMutationOptions(mutationOptions)
-  const [retryPayIn] = usePayInMutation(RETRY_PAY_IN, { ...restOptions, cachePhases, variables: { payInId } })
-  return retryPayIn
-}
-
-export function useRetryPayInByType (payInId, payInType, mutationOptions = {}) {
+export function useRetryPayIn (payInId, payInType, mutationOptions = {}) {
   const { me } = useMe()
   const hasSendWallet = useHasSendWallet()
-  const { restOptions, cachePhases: userCachePhases } = splitMutationOptions(mutationOptions)
+  const { cachePhases: userCachePhases = {}, ...restOptions } = mutationOptions
 
   const isAct = PAY_IN_ACT_TYPES.includes(payInType)
-  const isBounty = payInType === 'BOUNTY_PAYMENT'
-  const cachePhases = isBounty
-    ? withBountyCachePhases(userCachePhases)
-    : isAct
-      ? withActCachePhases(getActCachePhases(me), userCachePhases)
-      : userCachePhases
+  const cachePhases = composeRetryCachePhases(retryBaseCachePhases(payInType, me), userCachePhases)
 
   const options = { ...restOptions, cachePhases }
 
   if (isAct) {
-    options.waitFor = payIn =>
-      hasSendWallet
-        ? payIn?.payInState === 'PAID'
-        : ['FORWARDING', 'PAID'].includes(payIn?.payInState)
+    options.waitFor = actWaitFor(hasSendWallet)
   }
 
   const [retryPayIn] = usePayInMutation(RETRY_PAY_IN, { ...options, variables: { payInId } })
   return retryPayIn
 }
 
-export function getRetryPayInFailureUpdate (error, data) {
-  const retryResult = Object.values(data ?? {})[0]
+// the FAILED view of a retry mutation's successor for cache writes when paying it failed
+export function getFailedRetryPayIn (error, data) {
+  const retryResult = getPayIn(data)
   if (!retryResult?.id) return null
 
-  return {
-    retryPayInId: retryResult.id,
-    failureData: {
-      payInState: 'FAILED',
-      payInStateChangedAt: new Date().toISOString(),
-      payerPrivates: {
-        __typename: 'PayerPrivates',
-        payInFailureReason: error instanceof InvoiceCanceledError ? 'USER_CANCELLED' : 'EXECUTION_FAILED'
-      }
-    }
+  return toFailedPayIn(retryResult, error instanceof InvoiceCanceledError ? 'USER_CANCELLED' : 'EXECUTION_FAILED')
+}
+
+// retry() (api/payIn/index.js) rejects with an E_PAY_IN_RETRY_RACE-coded error when the lineage
+// already advanced, the successor isn't FAILED yet, or a concurrent retry won the successorId
+// lock. These races are expected under rapid clicks / multiple tabs and are swallowed by the
+// background auto-retry too — so a manual retry shouldn't surface them as an error.
+export function isBenignRetryRaceError (error) {
+  return [error, ...(error?.errors ?? [])].some(e => e?.extensions?.code === E_PAY_IN_RETRY_RACE)
+}
+
+// the shared manual-retry click handler for the notifications and item-info retry buttons: disable
+// the button, run the retry, surface non-benign errors, re-enable. `retry` returns { error } or
+// throws; a benign retry race (lineage advanced / concurrent retry) is expected and not surfaced.
+export async function runManualRetry (retry, { setDisable, toaster }) {
+  setDisable(true)
+  try {
+    const { error } = await retry()
+    if (error) throw error
+  } catch (error) {
+    if (!isBenignRetryRaceError(error)) toaster.danger(error?.message || error?.toString?.())
+  } finally {
+    setDisable(false)
   }
 }
 
-function splitMutationOptions (mutationOptions = {}) {
-  const { cachePhases = {}, ...restOptions } = mutationOptions
-  return {
-    restOptions,
-    cachePhases
+// the per-type cache phases for a retry, composed on top of the caller's phases (e.g. the
+// notification's payIn-state writes).
+// - acts: identical to the genesis act phases. the retry button bumps the item at click time
+//   (notifications.js, same as the modal/bolt), so these only reconcile credits (onMutationResult),
+//   reverse on terminal failure (onPayError, gated by usePayInMutation to non-retryable failures),
+//   and bump ancestors on success (onPaid). the notifications reconcile link had already removed
+//   the failed lineage's bump, so the click-time re-bump is exact.
+// - bounty: re-running the full phases is harmless — onMutationResult appends to a set, onPayError
+//   filters it.
+// - everything else contributes no base phases.
+function retryBaseCachePhases (payInType, me) {
+  if (PAY_IN_ACT_TYPES.includes(payInType)) {
+    return getActCachePhases(me)
   }
+  if (payInType === 'BOUNTY_PAYMENT') return payBountyCachePhases
+  return {}
 }
 
-function withBountyCachePhases (userCachePhases) {
-  return withComposedCachePhases(payBountyCachePhases, userCachePhases, {
-    onPaidMissingResult: payBountyCachePhases.onPaidMissingResult
-  })
-}
-
-function withActCachePhases (actCachePhases, userCachePhases) {
-  return withComposedCachePhases(actCachePhases, userCachePhases, {
-    // runs outside update() context — use the dedicated onPaidMissingResult (optimistic:false)
-    onPaidMissingResult: actCachePhases.onPaidMissingResult
-  })
-}
-
-function withComposedCachePhases (baseCachePhases, userCachePhases, { onPaidMissingResult } = {}) {
+function composeRetryCachePhases (baseCachePhases, userCachePhases) {
+  // compose all four phases uniformly so a caller's onPaidMissingResult isn't silently dropped
+  // (act/bounty retries don't currently supply one, but a future ITEM_CREATE retry might)
   return {
     onMutationResult: composeCallbacks(baseCachePhases.onMutationResult, userCachePhases.onMutationResult),
-    onPaidMissingResult: composeCallbacks(onPaidMissingResult, userCachePhases.onPaidMissingResult),
+    onPaidMissingResult: composeCallbacks(baseCachePhases.onPaidMissingResult, userCachePhases.onPaidMissingResult),
     onPaid: composeCallbacks(baseCachePhases.onPaid, userCachePhases.onPaid),
     onPayError: composeCallbacks(baseCachePhases.onPayError, userCachePhases.onPayError)
   }

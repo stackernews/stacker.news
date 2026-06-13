@@ -7,6 +7,7 @@ import useWatchPayIn from './use-watch-pay-in'
 import Qr, { QrSkeleton } from '@/components/qr'
 import PayInError from '../error'
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import { paidWaitFor } from '@/lib/pay-in'
 import { PayInStatus } from '../status'
 
 export default function useQrPayIn () {
@@ -18,7 +19,7 @@ export default function useQrPayIn () {
       keepOpen = true,
       cancelOnClose = true,
       persistOnNavigate = false,
-      waitFor = payIn => payIn?.payInState === 'PAID'
+      waitFor = paidWaitFor
     } = {}
   ) => {
     // if anon user and webln is available, try to pay with webln
@@ -29,8 +30,28 @@ export default function useQrPayIn () {
       let updatedPayIn
       const cancelAndReject = async (onClose) => {
         if (!updatedPayIn && cancelOnClose) {
-          const updatedPayIn = await payInHelper.cancel(payIn, { userCancel: true })
-          reject(new InvoiceCanceledError(updatedPayIn?.payerPrivates.payInBolt11))
+          // always settle the promise, even if the cancel mutation throws (e.g. offline),
+          // else the submitting form awaits forever
+          try {
+            const cancelledPayIn = await payInHelper.cancel(payIn, { userCancel: true })
+            if (cancelledPayIn) {
+              reject(new InvoiceCanceledError(cancelledPayIn.payerPrivates.payInBolt11))
+              return
+            }
+            // cancel no-oped because the payIn already reached a terminal state — it may have
+            // been PAID in the instant before the close, in which case the action committed and
+            // the payer was charged, so reporting a cancel would invite a double pay. check()
+            // throws for the terminal failure states (expired/cancelled/receiver failure).
+            const { payIn: latestPayIn, check } = await payInHelper.check(payIn.id, waitFor)
+            if (check) {
+              resolve(latestPayIn)
+              return
+            }
+            reject(new InvoiceCanceledError(latestPayIn?.payerPrivates?.payInBolt11 ?? payIn.payerPrivates.payInBolt11))
+          } catch (err) {
+            reject(err)
+          }
+          return
         }
         resolve(updatedPayIn)
       }
@@ -57,7 +78,7 @@ export default function useQrPayIn () {
         />,
       { keepOpen, persistOnNavigate, onClose: cancelAndReject })
     })
-  }, [payInHelper])
+  }, [payInHelper, showModal])
 
   return waitForQrPayIn
 }
@@ -73,7 +94,9 @@ function QrPayIn ({
     return <div>{error.message}</div>
   }
 
-  if (!payIn) {
+  // a creation-/wrap-failed payIn has no bolt11 to render (see isInvoiceSetupPending),
+  // and item-info's 'pending' link can open this modal with one
+  if (!payIn || !payIn.payerPrivates?.payInBolt11) {
     return <QrSkeleton description />
   }
 

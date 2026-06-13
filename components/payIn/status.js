@@ -17,8 +17,8 @@ export function PayInStatus ({ payIn }) {
     <div className='d-flex align-items-center'>
       {(payIn.payInState === 'PAID' && <><Check width={statusIconSize} height={statusIconSize} className='fill-success' /><StatusText color='success'>{payIn.mcost > 0 ? 'paid' : 'free'}</StatusText></>) ||
         (FAILED_PAY_IN_STATES.includes(payIn.payInState) && <><ThumbDown width={statusIconSize} height={statusIconSize} className='fill-danger' /><StatusText color='danger'>failed</StatusText></>) ||
-        ((payIn.payInState === 'FORWARDING' || payIn.payInState === 'FORWARDED' || !payIn.payerPrivates.payInBolt11) && <><Moon width={statusIconSize} height={statusIconSize} className='spin fill-grey' /><StatusText color='muted'>settling</StatusText></>) ||
-        (<CompactLongCountdown className='text-muted' date={payIn.payerPrivates.payInBolt11.expiresAt} />)}
+        ((payIn.payInState === 'FORWARDING' || payIn.payInState === 'FORWARDED' || !payIn.payerPrivates?.payInBolt11) && <><Moon width={statusIconSize} height={statusIconSize} className='spin fill-grey' /><StatusText color='muted'>settling</StatusText></>) ||
+        (<CompactLongCountdown className='text-muted' date={payIn.payerPrivates?.payInBolt11?.expiresAt} />)}
     </div>
   )
 }

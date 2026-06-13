@@ -9,6 +9,7 @@ import { getOperationAST } from 'graphql'
 import { useMe } from '@/components/me'
 import { USER_ID } from '@/lib/constants'
 import { isAutoRetryEligiblePayIn } from './use-auto-retry-pay-ins'
+import { isInvoiceSetupPending, paidWaitFor } from '@/lib/pay-in'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
 
@@ -16,8 +17,7 @@ import { usePreferredSendProtocolId } from '@/wallets/client/hooks'
 this is just like useMutation with a few changes:
 1. pays an invoice returned by the mutation
 2. takes grouped cachePhases callbacks and additional options for payment behavior
-  - namely forceWaitForPayment which will always wait for the invoice to be paid
-  - and persistOnNavigate which will keep the invoice in the cache after navigation
+  - namely persistOnNavigate which will keep the invoice in the cache after navigation
 3. onCompleted behaves a little differently, but analogously to useMutation, ie clientside side effects
   of completion can still rely on it. It's composed like other callbacks (hook-level + call-site both run).
   a. it's called before the invoice is paid for optimistic updates
@@ -69,8 +69,8 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
       update: composeCallbacks(mergedOptions.update, onMutationResult)
     })
     const {
-      forceWaitForPayment, persistOnNavigate,
-      waitFor = payIn => payIn?.payInState === 'PAID', protocolLimit
+      persistOnNavigate,
+      waitFor = paidWaitFor, protocolLimit
     } = mergedOptions
 
     const payIn = data[mutationName]
@@ -90,8 +90,15 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
 
     // if the mutation returns in a pending state, it has an invoice we need to pay
     let payError
-    if (payIn.payInState === 'PENDING' || payIn.payInState === 'PENDING_HELD') {
-      if (isClientPessimisticPayIn(payIn, me, forceWaitForPayment)) {
+    if (isInvoiceSetupPending(payIn)) {
+      // the optimistic action already happened (onBegin ran); invoice creation/wrap failed and is
+      // being auto-retried in the background. Treat as success-with-pending-payment: complete
+      // optimistically and keep the optimistic cache (already written by onMutationResult). There's
+      // no invoice to pay, and nothing to surface — pessimistic payIns never reach here because
+      // afterBegin throws for them.
+      ourOnCompleted?.(data)
+    } else if (payIn.payInState === 'PENDING' || payIn.payInState === 'PENDING_HELD') {
+      if (isClientPessimisticPayIn(payIn, me)) {
         // the action is pessimistic
         try {
           // wait for the invoice to be paid
@@ -138,9 +145,8 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
   return [innerMutate, innerResult]
 }
 
-function isClientPessimisticPayIn (payIn, me, forceWaitForPayment) {
-  return forceWaitForPayment ||
-    !me ||
+function isClientPessimisticPayIn (payIn, me) {
+  return !me ||
     (payIn.payInState === 'PENDING_HELD' && payIn.payInType !== 'ZAP' && payIn.payInType !== 'BOUNTY_PAYMENT')
 }
 

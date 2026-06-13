@@ -15,7 +15,7 @@ import { createHmac } from '../resolvers/wallet'
 import createPrisma from '@/lib/create-prisma'
 import { PayInFailureReasonError } from './errors'
 import { payInReplacePayOuts } from './lib/payInFailed'
-import { GqlInputError } from '@/lib/error'
+import { GqlInputError, GqlPayInRetryRaceError } from '@/lib/error'
 const models = createPrisma({ connectionParams: { connection_limit: 2 } })
 
 export default async function pay (payInType, payInArgs, { me, custodialOnly, sendProtocolId } = {}) {
@@ -227,10 +227,13 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me, send
     }
   } catch (e) {
     queuePayInFailed(models, payIn.id, e.payInFailureReason).catch(console.error)
-    // if invoice creation or wrapping failed, we want to return the payIn to the client
-    // so that their view is optimistic while we retry
-    // unless it's a payIn that was retried, or it's a pessimistic payIn
-    if (!(e instanceof PayInFailureReasonError) || payIn.pessimisticEnv || payIn.genesisId) {
+    // if invoice creation or wrapping failed, we want to return the (bolt11-less) payIn to the
+    // client so that their view stays optimistic while we retry in the background. This holds for
+    // a retried payIn too: its successor is already durably committed, so returning it (rather
+    // than throwing) lets the client advance the retry lineage instead of stranding it; the
+    // queued payInFailed job above marks it FAILED. Pessimistic payIns still throw — they have no
+    // optimistic view and the user is waiting on the (now-impossible) invoice.
+    if (!(e instanceof PayInFailureReasonError) || payIn.pessimisticEnv) {
       throw e
     }
   }
@@ -398,7 +401,7 @@ export async function retry (payInId, { me, sendProtocolId }) {
       include: { ...include, beneficiaries: { include } }
     })
     if (!payInFailedInitial) {
-      throw new Error('PayIn with id ' + payInId + ' not found')
+      throw new GqlPayInRetryRaceError('PayIn with id ' + payInId + ' not found')
     }
     if (isWithdrawal(payInFailedInitial)) {
       throw new Error('Withdrawal payIns cannot be retried')
@@ -428,7 +431,7 @@ export async function retry (payInId, { me, sendProtocolId }) {
       // use an optimistic lock on successorId on the payIn
       const rows = await tx.$queryRaw`UPDATE "PayIn" SET "successorId" = ${payIn.id} WHERE "id" = ${payInFailed.id} AND "successorId" IS NULL RETURNING id`
       if (rows.length === 0) {
-        throw new Error('PayIn with id ' + payInFailed.id + ' is already being retried')
+        throw new GqlPayInRetryRaceError('PayIn with id ' + payInFailed.id + ' is already being retried')
       }
 
       // run the onRetry hook for the payIn and its beneficiaries

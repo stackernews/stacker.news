@@ -6,7 +6,8 @@ import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { ZAP_DEBOUNCE_MS } from '@/lib/constants'
 import { useHasSendWallet } from '@/wallets/client/hooks'
-import { ActCanceledError, modifyActCache, updateAncestors, zapUndo, zapUndoTrigger } from './item-act'
+import { ActCanceledError, bumpActCache, getActCachePhases, revertActBump, zapUndo, zapUndoTrigger } from './item-act'
+import { actWaitFor } from '@/lib/pay-in'
 
 const ZAP_ME_SATS_FRAGMENT = gql`
   fragment ZapMeSats on Item { meSats }
@@ -33,74 +34,23 @@ export function useZap ({ nextTip }) {
   // fire the accumulated zap mutation for a buffer entry
   fireZapRef.current = async (entry) => {
     const { totalSats, item, me: entryMe } = entry
+    // the per-click bumps already wrote sats to the root cache; the act phases reconcile credits,
+    // ancestors, and the reversal off the response (its result.sats equals totalSats). entryMe is
+    // the click-time identity. no optimisticResponse — the bump is the optimistic write.
+    const result = { id: item.id, sats: totalSats, act: 'TIP', path: item.path }
     try {
       const { error } = await sendZap({
         variables: { id: item.id, sats: totalSats, act: 'TIP' },
-        // pass waitFor per-call so debounce timer always uses latest send-wallet availability
-        waitFor: payIn =>
-          hasSendWallet
-            ? payIn?.payInState === 'PAID'
-            : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
-        // no optimisticResponse — cache is already updated via modifyActCache
-        cachePhases: {
-          // sats/meSats already correct from per-click modifyActCache.
-          // Pre-mutation write assumed P2P (skipped credits). If actually non-P2P, add credits now.
-          onMutationResult: (cache, { data }) => {
-            const response = data && Object.values(data)[0]
-            if (!response) return
-            if (response.payOutBolt11Public) return // actually P2P — credits correctly skipped
-            // non-P2P — add the credit increment
-            cache.modify({
-              id: `Item:${item.id}`,
-              fields: {
-                credits: (existing = 0) => existing + totalSats,
-                meCredits: (existing = 0) => existing + totalSats
-              },
-              optimistic: true // inside update() context
-            })
-          },
-          onPaid: (cache, { data }) => {
-            const response = Object.values(data)[0]
-            if (!response) return
-            // build a synthetic response with our accumulated sats for ancestor updates
-            updateAncestors(cache, {
-              ...response,
-              payerPrivates: {
-                ...response.payerPrivates,
-                result: { id: item.id, sats: totalSats, act: 'TIP', path: item.path, __typename: 'ItemAct' }
-              }
-            }, { optimistic: false })
-          },
-          onPayError: (e, cache, { data }) => {
-            // revert using real payOutBolt11Public so credit rollback is symmetric:
-            // if non-P2P, onMutationResult added credits → need to subtract them
-            // if P2P, credits were never added → skip credit subtraction
-            const response = data && Object.values(data)[0]
-            const payOutBolt11Public = response ? response.payOutBolt11Public : true
-            modifyActCache(cache, {
-              payerPrivates: { result: { id: item.id, sats: -totalSats, act: 'TIP' } },
-              payOutBolt11Public
-            }, entryMe, { optimistic: false })
-          }
-        }
+        // waitFor passed per-call so the debounce timer uses the latest send-wallet availability
+        waitFor: actWaitFor(hasSendWallet),
+        cachePhases: getActCachePhases(entryMe)
       })
-      if (error) {
-        // mutation returned an error (GraphQL-level) — revert cache
-        // mirror initial P2P assumption (credits were never added)
-        console.error('debounced zap error:', error)
-        modifyActCache(client.cache, {
-          payerPrivates: { result: { id: item.id, sats: -totalSats, act: 'TIP', path: item.path } },
-          payOutBolt11Public: true
-        }, entryMe, { optimistic: false })
-      }
+      // a returned error has a payIn (getActCachePhases.onPayError reverted it); just log
+      if (error) console.error('debounced zap error:', error)
     } catch (error) {
-      // mutation threw (network error, etc.) — revert cache
-      // mirror initial P2P assumption (credits were never added)
+      // mutation threw before creating a payIn — no phase reverts, so undo the bump here
       console.error('debounced zap failed:', error)
-      modifyActCache(client.cache, {
-        payerPrivates: { result: { id: item.id, sats: -totalSats, act: 'TIP', path: item.path } },
-        payOutBolt11Public: true
-      }, entryMe, { optimistic: false })
+      revertActBump(client.cache, result, entryMe)
     }
   }
   const fireZap = useCallback((entry) => fireZapRef.current(entry), [])
@@ -136,12 +86,9 @@ export function useZap ({ nextTip }) {
     const meSats = cached?.meSats ?? item?.meSats ?? 0
     const sats = nextTip(meSats, { ...meProp?.privates })
 
-    // instant visual feedback — write directly to root cache (not an optimistic layer)
-    // pass payOutBolt11Public truthy to assume P2P (skip credits) — reconciled in onMutationResult
-    modifyActCache(client.cache, {
-      payerPrivates: { result: { id: item.id, sats, act: 'TIP', path: item.path } },
-      payOutBolt11Public: true
-    }, meProp, { optimistic: false })
+    // instant visual feedback — bump the root cache (survives navigation; credits reconciled by
+    // the act phases on the mutation response)
+    bumpActCache(client.cache, { id: item.id, sats, act: 'TIP', path: item.path }, meProp)
 
     animate()
 
@@ -171,12 +118,8 @@ export function useZap ({ nextTip }) {
           await zapUndo(controller.signal, totalSats)
         } catch (error) {
           if (error instanceof ActCanceledError) {
-            // user canceled — revert all accumulated cache changes
-            // mirror initial P2P assumption (credits were never added)
-            modifyActCache(client.cache, {
-              payerPrivates: { result: { id: savedItem.id, sats: -totalSats, act: 'TIP', path: savedItem.path } },
-              payOutBolt11Public: true
-            }, meProp, { optimistic: false })
+            // user canceled before the mutation fired — undo the accumulated bump
+            revertActBump(client.cache, { id: savedItem.id, sats: totalSats, act: 'TIP', path: savedItem.path }, meProp)
             if (mountedRef.current) setUndoPending(0)
             undoControllerRef.current = null
             return
@@ -200,14 +143,10 @@ export function useZap ({ nextTip }) {
       undoControllerRef.current = null
     }
 
-    // clear all debounce timers and revert cache — use entry.me (click-time identity)
-    // mirror initial P2P assumption (credits were never added)
+    // clear all debounce timers and undo each pending bump — use entry.me (click-time identity)
     for (const [, entry] of bufferRef.current) {
       clearTimeout(entry.timer)
-      modifyActCache(client.cache, {
-        payerPrivates: { result: { id: entry.item.id, sats: -entry.totalSats, act: 'TIP', path: entry.item.path } },
-        payOutBolt11Public: true
-      }, entry.me, { optimistic: false })
+      revertActBump(client.cache, { id: entry.item.id, sats: entry.totalSats, act: 'TIP', path: entry.item.path }, entry.me)
     }
     bufferRef.current.clear()
 

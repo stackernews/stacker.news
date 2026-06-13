@@ -10,10 +10,13 @@ import { useToast } from './toast'
 import { Form, SubmitButton } from './form'
 import { PAY_BOUNTY_MUTATION } from '@/fragments/payIn'
 import usePayInMutation from './payIn/hooks/use-pay-in-mutation'
+import { getPayIn } from '@/lib/pay-in'
 import { useHasSendWallet } from '@/wallets/client/hooks'
+import { toastPayError } from '@/wallets/client/errors'
 
-const addBountyPaidToCache = (cache, { data }, { optimistic = true } = {}) => {
-  const response = Object.values(data)[0]
+// add (or, on revert, remove) the paid beneficiary to the root item's bountyPaidTo list
+const modifyBountyPaidTo = (cache, { data }, { add, optimistic }) => {
+  const response = getPayIn(data)
   if (!response?.payerPrivates.result) return
   const { id, path } = response.payerPrivates.result
   const root = path.split('.')[0]
@@ -21,34 +24,22 @@ const addBountyPaidToCache = (cache, { data }, { optimistic = true } = {}) => {
     id: `Item:${root}`,
     fields: {
       bountyPaidTo (existingPaidTo = []) {
-        return [...(existingPaidTo || []), Number(id)]
+        const paidTo = existingPaidTo || []
+        return add ? [...paidTo, Number(id)] : paidTo.filter(i => i !== Number(id))
       }
     },
     optimistic
   })
 }
 
+// bounty payments are never pessimistic (payer is always logged-in and BOUNTY_PAYMENT is
+// optimistic), so the genesis response always carries the result — there is no onPaidMissingResult.
 export const payBountyCachePhases = {
-  // runs as Apollo update() callback — optimistic: true (default) is correct
-  onMutationResult: addBountyPaidToCache,
-  // runs outside update() context — write to root cache
-  onPaidMissingResult: (cache, args) => addBountyPaidToCache(cache, args, { optimistic: false }),
-  onPayError: (_e, cache, { data }) => {
-    const response = Object.values(data)[0]
-    if (!response?.payerPrivates.result) return
-    const { id, path } = response.payerPrivates.result
-    const root = path.split('.')[0]
-    // runs outside update() context — write to root cache
-    cache.modify({
-      id: `Item:${root}`,
-      fields: {
-        bountyPaidTo (existingPaidTo = []) {
-          return (existingPaidTo || []).filter(i => i !== Number(id))
-        }
-      },
-      optimistic: false
-    })
-  }
+  // runs in Apollo update() under the bounty optimisticResponse (so twice) — optimistic:true writes
+  // the optimistic layer on the optimistic pass and root on the real pass, netting one append
+  onMutationResult: (cache, args) => modifyBountyPaidTo(cache, args, { add: true, optimistic: true }),
+  // runs outside update() context — write to the root cache
+  onPayError: (_e, cache, args) => modifyBountyPaidTo(cache, args, { add: false, optimistic: false })
 }
 
 export default function PayBounty ({ children, item }) {
@@ -82,19 +73,23 @@ export default function PayBounty ({ children, item }) {
       onClose?.()
     }
 
-    const options = {}
+    // bounty payments are always optimistic clientside, so failures never surface through the
+    // returned error/payError — toast them here. e is undefined for cache-revert-only calls,
+    // and a user-canceled QR isn't news
+    const onPayError = (e) => toastPayError(toaster, e)
+
+    const options = { cachePhases: { onPayError } }
     if (hasSendWallet) {
       onPaid()
     } else {
-      options.cachePhases = { onPaid }
+      options.cachePhases.onPaid = onPaid
     }
 
     try {
       const { error } = await payBounty(options)
       if (error) throw error
     } catch (error) {
-      const reason = error?.message || error?.toString?.()
-      toaster.danger(reason)
+      toastPayError(toaster, error)
     }
   }
 

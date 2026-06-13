@@ -1,6 +1,6 @@
 import { useApolloClient, useMutation } from '@apollo/client/react'
 import { useCallback, useMemo } from 'react'
-import { PAY_IN_RECEIVER_FAILURE_REASONS } from '@/lib/pay-in'
+import { PAY_IN_RECEIVER_FAILURE_REASONS, paidWaitFor } from '@/lib/pay-in'
 import { InvoiceCanceledError, InvoiceExpiredError, WalletReceiverError } from '@/wallets/client/errors'
 import { GET_PAY_IN_RESULT, CANCEL_PAY_IN_BOLT11, RETRY_PAY_IN } from '@/fragments/payIn'
 import { FAST_POLL_INTERVAL_MS } from '@/lib/constants'
@@ -73,7 +73,7 @@ export class WaitCheckControllerAbortedError extends Error {
 function waitCheckPayInController (payInId, check) {
   const controller = new AbortController()
   const signal = controller.signal
-  controller.wait = async (waitFor = payIn => payIn?.payInState === 'PAID', options) => {
+  controller.wait = async (waitFor = paidWaitFor, options) => {
     console.log('waitCheckPayInController: wait', payInId)
     let result
     return await new Promise((resolve, reject) => {

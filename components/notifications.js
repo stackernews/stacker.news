@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { gql } from '@apollo/client'
-import { useQuery } from '@apollo/client/react'
+import { useQuery, useApolloClient } from '@apollo/client/react'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
@@ -40,8 +40,10 @@ import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
-import { getRetryPayInFailureUpdate, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
+import { getFailedRetryPayIn, runManualRetry, useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
+import { withActBump } from './item-act'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
+import { isInvoiceSetupPending, toFailedPayIn } from '@/lib/pay-in'
 import MapIcon from '@/svgs/map.svg'
 
 function Notification ({ n, fresh }) {
@@ -418,8 +420,17 @@ function PayInProxyPayment ({ n }) {
 function PayInFailed ({ n }) {
   const [disableRetry, setDisableRetry] = useState(false)
   const toaster = useToast()
+  const { me } = useMe()
+  const client = useApolloClient()
   const { payIn, payInItem: item } = n
   const updatePayIn = useCallback((cache, { data }) => {
+    // a wrap-/creation-failed retry returns a bolt11-less successor in a transient
+    // PENDING_INVOICE_* state. It's a guaranteed failure (queuePayInFailed is already enqueued
+    // server-side), so show it as FAILED now rather than a stale 'pending' that only clears on a
+    // refetch — this lets the user recognize the failure and (once auto-retries exhaust) retry again.
+    const retryPayIn = isInvoiceSetupPending(data.retryPayIn)
+      ? toFailedPayIn(data.retryPayIn, 'EXECUTION_FAILED')
+      : data.retryPayIn
     cache.writeFragment({
       id: `PayInification:${n.id}`,
       fragment: gql`
@@ -438,15 +449,14 @@ function PayInFailed ({ n }) {
         }
       `,
       data: {
-        payIn: data.retryPayIn
+        payIn: retryPayIn
       }
     })
   }, [n.id])
 
   const revertPayIn = useCallback((error, cache, { data }) => {
-    const retryFailureUpdate = getRetryPayInFailureUpdate(error, data)
-    if (!retryFailureUpdate) return
-    const { retryPayInId, failureData } = retryFailureUpdate
+    const failedRetryPayIn = getFailedRetryPayIn(error, data)
+    if (!failedRetryPayIn) return
     cache.writeFragment({
       id: `PayInification:${n.id}`,
       fragment: gql`
@@ -462,25 +472,26 @@ function PayInFailed ({ n }) {
         }
       `,
       data: {
-        payIn: {
-          __typename: 'PayIn',
-          id: retryPayInId,
-          ...failureData
-        }
+        payIn: failedRetryPayIn
       }
     })
   }, [n.id])
 
-  // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
-  const optimisticPayInTypes = PAY_IN_ACT_TYPES
-  const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
-  const actOptimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
-  const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, path: item.path, __typename: 'Item' } } }
+  // acts re-bump the item at click time (like the modal/bolt) rather than via an optimisticResponse,
+  // so no act optimisticResponse here; bounty still bumps bountyPaidTo optimistically.
+  const isAct = PAY_IN_ACT_TYPES.includes(payIn.payInType)
+  const actResult = isAct
+    ? {
+        id: item.id,
+        sats: msatsToSats(payIn.mcost),
+        act: payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST',
+        path: item.path
+      }
+    : null
   const optimisticResponse = payIn.payInType === 'BOUNTY_PAYMENT'
-    ? bountyOptimisticResponse
-    : optimisticPayInTypes.includes(payIn.payInType)
-      ? actOptimisticResponse
-      : undefined
+    ? { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, path: item.path, __typename: 'Item' } } }
+    : undefined
+  // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
   const mutationOptions = {
     onRetry: updatePayIn,
     cachePhases: {
@@ -491,7 +502,7 @@ function PayInFailed ({ n }) {
     protocolLimit: 1,
     ...(optimisticResponse ? { optimisticResponse } : {})
   }
-  const retryPayIn = useRetryPayInByType(payIn.id, payIn.payInType, mutationOptions)
+  const retryPayIn = useRetryPayIn(payIn.id, payIn.payInType, mutationOptions)
 
   const [actionString, colorClass, retry] = useMemo(() => {
     const retry = retryPayIn
@@ -538,17 +549,14 @@ function PayInFailed ({ n }) {
             size='sm' variant={classNames('outline-warning ms-2 border-1 rounded py-0', disableRetry && 'pulse')}
             style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
             disabled={disableRetry}
-            onClick={async () => {
+            onClick={() => {
               if (disableRetry) return
-              setDisableRetry(true)
-              try {
-                const { error } = await retry()
-                if (error) throw error
-              } catch (error) {
-                toaster.danger(error?.message || error?.toString?.())
-              } finally {
-                setDisableRetry(false)
-              }
+              // for acts, bump the item at click time (same root bump the modal/bolt use, assuming
+              // p2p — the act phases add credits if not — reverted by getActCachePhases.onPayError on
+              // terminal failure, or by withActBump if the mutation never creates a payIn).
+              return runManualRetry(
+                isAct ? () => withActBump(client.cache, actResult, me, retry) : retry,
+                { setDisable: setDisableRetry, toaster })
             }}
           >
             retry

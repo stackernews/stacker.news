@@ -33,6 +33,7 @@ import { useIsClient } from './use-client'
 import PageLoading from './page-loading'
 import { SNEditor } from './editor'
 import { isAbortError } from '@/lib/error'
+import { shouldSuppressFormSubmitToast } from '@/lib/form'
 import QrScanner from './qr-scanner'
 export { MultiSelect } from './multi-select'
 export class SessionRequiredError extends Error {
@@ -895,7 +896,9 @@ export function Form ({
       }
     } catch (err) {
       console.log(err.message, err)
-      toaster.danger(err.message ?? err.toString?.())
+      if (!shouldSuppressFormSubmitToast(err)) {
+        toaster.danger(err.message ?? err.toString?.())
+      }
       return
     }
 

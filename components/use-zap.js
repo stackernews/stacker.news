@@ -7,6 +7,7 @@ import { ACT_MUTATION } from '@/fragments/payIn'
 import { ZAP_DEBOUNCE_MS } from '@/lib/constants'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { ActCanceledError, bumpActCache, getActCachePhases, revertActBump, zapUndo, zapUndoTrigger } from './item-act'
+import { actWaitFor } from '@/lib/pay-in'
 
 const ZAP_ME_SATS_FRAGMENT = gql`
   fragment ZapMeSats on Item { meSats }
@@ -40,11 +41,8 @@ export function useZap ({ nextTip }) {
     try {
       const { error } = await sendZap({
         variables: { id: item.id, sats: totalSats, act: 'TIP' },
-        // pass waitFor per-call so debounce timer always uses latest send-wallet availability
-        waitFor: payIn =>
-          hasSendWallet
-            ? payIn?.payInState === 'PAID'
-            : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
+        // waitFor passed per-call so the debounce timer uses the latest send-wallet availability
+        waitFor: actWaitFor(hasSendWallet),
         cachePhases: getActCachePhases(entryMe)
       })
       // a returned error has a payIn (getActCachePhases.onPayError reverted it); just log

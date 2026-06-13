@@ -9,9 +9,10 @@ import { amountSchema } from '@/lib/validate'
 import { defaultTipIncludingRandom } from './upvote'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { ACT_MUTATION } from '@/fragments/payIn'
+import { actWaitFor, getPayIn } from '@/lib/pay-in'
 import { meAnonSats } from '@/lib/apollo'
 import { useHasSendWallet } from '@/wallets/client/hooks'
-import { InvoiceCanceledError } from '@/wallets/client/errors'
+import { toastPayError } from '@/wallets/client/errors'
 import { useAnimation } from '@/components/animation'
 import { useToast } from '@/components/toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
@@ -90,11 +91,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
 
     // onPayError only fires for failures that won't be auto-retried; e is undefined when it's
     // invoked purely to revert a retry successor's cache, and a user-canceled QR isn't news
-    const onPayError = (e) => {
-      if (e && !(e instanceof InvoiceCanceledError)) {
-        toaster.danger(e?.message || e?.toString?.())
-      }
-    }
+    const onPayError = (e) => toastPayError(toaster, e)
 
     const options = { cachePhases: { onPayError } }
     if (hasReadySendWallet || me?.privates?.sats > Number(amount)) {
@@ -105,28 +102,11 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     }
 
     // instant feedback: bump the item's counters directly in the root cache (assume p2p — the act
-    // cache phases add credits later if the response says otherwise). this is the same root bump
-    // the bolt uses; it survives navigation (maxMerge) and is reverted on terminal payment failure
-    // by getActCachePhases.onPayError, or here if the mutation never creates a payIn.
+    // cache phases add credits later if the response says otherwise)
     const result = { id: item.id, sats: Number(amount), act, path: item.path }
-    bumpActCache(client.cache, result, me)
-
-    let error
-    try {
-      ({ error } = await actor({
-        variables: {
-          id: item.id,
-          sats: Number(amount),
-          act
-        },
-        // don't close modal immediately because we want the QR modal to stack
-        ...options
-      }))
-    } catch (mutationError) {
-      // the mutation failed before creating a payIn — no cache phase will revert, so undo the bump
-      revertActBump(client.cache, result, me)
-      throw mutationError
-    }
+    const { error } = await withActBump(client.cache, result, me, () =>
+      // don't close modal immediately because we want the QR modal to stack
+      actor({ variables: { id: item.id, sats: Number(amount), act }, ...options }))
     if (error) throw error
     addCustomTip(Number(amount))
   }, [me, actor, client, hasReadySendWallet, act, item.id, item.path, onClose, abortSignal, animate, toaster])
@@ -290,16 +270,31 @@ export function revertActBump (cache, result, me, payOutBolt11Public = true) {
   modifyActCache(cache, { payerPrivates: { result: { ...result, sats: -result.sats } }, payOutBolt11Public }, me)
 }
 
+// bump an item's counters at click time, run the act attempt, and revert the bump if the attempt
+// throws before a payIn exists (no cache phase reverts then). returns the attempt's result; a
+// returned (non-thrown) error is left for getActCachePhases.onPayError. used by the modal and the
+// notifications retry (the bolt bumps at click and reverts in its deferred fire, so it can't share).
+export async function withActBump (cache, result, me, attempt) {
+  bumpActCache(cache, result, me)
+  try {
+    return await attempt()
+  } catch (e) {
+    revertActBump(cache, result, me)
+    throw e
+  }
+}
+
 // the bump already wrote sats/meSats to the root cache; these phases only reconcile what the bump
 // couldn't know up front: credits (if the act turned out non-p2p), ancestors (on payment), and the
-// reversal (on terminal failure). there is no onMutationResult bump and no onPaidMissingResult —
-// the bump is client-driven at action time, not derived from the mutation response.
+// reversal (on terminal failure).
 export function getActCachePhases (me) {
   return {
     onMutationResult: (cache, { data }) => {
-      const response = Object.values(data)[0]
+      const response = getPayIn(data)
       const result = response?.payerPrivates?.result
-      if (!result || response.payOutBolt11Public) return // no result, or actually p2p — credit skip was correct
+      // only TIP credits the item; boost/downzap are non-p2p but never touch item credits, so gate
+      // on act === 'TIP'
+      if (!result || result.act !== 'TIP' || response.payOutBolt11Public) return
       cache.modify({
         id: `Item:${result.id}`,
         fields: {
@@ -309,12 +304,12 @@ export function getActCachePhases (me) {
       })
     },
     onPayError: (e, cache, { data }) => {
-      const response = Object.values(data)[0]
+      const response = getPayIn(data)
       const result = response?.payerPrivates?.result
       if (result) revertActBump(cache, result, me, response.payOutBolt11Public)
     },
     onPaid: (cache, { data }) => {
-      const response = Object.values(data)[0]
+      const response = getPayIn(data)
       if (!response) return
       updateAncestors(cache, response)
     }
@@ -328,12 +323,7 @@ export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   const { cachePhases: callerCachePhases = {}, ...restOptions } = options
 
   const [act] = usePayInMutation(query, {
-    waitFor: payIn =>
-      // if we have attached wallets, we might be paying a wrapped invoice in which case we need to make sure
-      // we don't prematurely consider the payment as successful (important for receiver fallbacks)
-      hasSendWallet
-        ? payIn?.payInState === 'PAID'
-        : ['FORWARDING', 'PAID'].includes(payIn?.payInState),
+    waitFor: actWaitFor(hasSendWallet),
     ...restOptions,
     cachePhases: {
       ...callerCachePhases,

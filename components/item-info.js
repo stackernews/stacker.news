@@ -28,7 +28,7 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
-import { getFailedRetryPayIn, isBenignRetryRaceError, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
+import { getFailedRetryPayIn, isBenignRetryRaceError, useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { gql } from '@apollo/client'
 import { useBranding } from './territory-branding'
@@ -339,7 +339,7 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
     })
   }, [])
 
-  const retryPayIn = useRetryPayInByType(item.payIn.id, item.payIn.payInType, {
+  const retryPayIn = useRetryPayIn(item.payIn.id, item.payIn.payInType, {
     onRetry: updatePayIn,
     cachePhases: {
       onMutationResult: updatePayIn,

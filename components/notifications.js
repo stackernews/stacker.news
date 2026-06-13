@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { gql } from '@apollo/client'
-import { useQuery } from '@apollo/client/react'
+import { useQuery, useApolloClient } from '@apollo/client/react'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
@@ -40,7 +40,8 @@ import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
 import CCInfo from './info/cc'
 import { useMe } from './me'
-import { getFailedRetryPayIn, isBenignRetryRaceError, useRetryPayInByType } from './payIn/hooks/use-retry-pay-in'
+import { getFailedRetryPayIn, isBenignRetryRaceError, useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
+import { bumpActCache, revertActBump } from './item-act'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { isInvoiceSetupPending, toFailedPayIn } from '@/lib/pay-in'
 import MapIcon from '@/svgs/map.svg'
@@ -419,6 +420,8 @@ function PayInProxyPayment ({ n }) {
 function PayInFailed ({ n }) {
   const [disableRetry, setDisableRetry] = useState(false)
   const toaster = useToast()
+  const { me } = useMe()
+  const client = useApolloClient()
   const { payIn, payInItem: item } = n
   const updatePayIn = useCallback((cache, { data }) => {
     // a wrap-/creation-failed retry returns a bolt11-less successor in a transient
@@ -474,16 +477,15 @@ function PayInFailed ({ n }) {
     })
   }, [n.id])
 
-  // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
-  const optimisticPayInTypes = PAY_IN_ACT_TYPES
+  // acts re-bump the item at click time (like the modal/bolt) rather than via an optimisticResponse,
+  // so no act optimisticResponse here; bounty still bumps bountyPaidTo optimistically.
+  const isAct = PAY_IN_ACT_TYPES.includes(payIn.payInType)
   const act = payIn.payInType === 'ZAP' ? 'TIP' : payIn.payInType === 'DOWN_ZAP' ? 'DONT_LIKE_THIS' : 'BOOST'
-  const actOptimisticResponse = { payInType: payIn.payInType, mcost: payIn.mcost, payerPrivates: { result: { id: item.id, sats: msatsToSats(payIn.mcost), path: item.path, act, __typename: 'ItemAct', payIn } } }
-  const bountyOptimisticResponse = { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, path: item.path, __typename: 'Item' } } }
+  const actResult = { id: item.id, sats: msatsToSats(payIn.mcost), act, path: item.path }
   const optimisticResponse = payIn.payInType === 'BOUNTY_PAYMENT'
-    ? bountyOptimisticResponse
-    : optimisticPayInTypes.includes(payIn.payInType)
-      ? actOptimisticResponse
-      : undefined
+    ? { payInType: 'BOUNTY_PAYMENT', mcost: payIn.mcost, payerPrivates: { result: { id: item.id, path: item.path, __typename: 'Item' } } }
+    : undefined
+  // only retry once (protocolLimit = 1) with wallets since we want to show the QR code on failures that end up in the notifications
   const mutationOptions = {
     onRetry: updatePayIn,
     cachePhases: {
@@ -494,7 +496,7 @@ function PayInFailed ({ n }) {
     protocolLimit: 1,
     ...(optimisticResponse ? { optimisticResponse } : {})
   }
-  const retryPayIn = useRetryPayInByType(payIn.id, payIn.payInType, mutationOptions)
+  const retryPayIn = useRetryPayIn(payIn.id, payIn.payInType, mutationOptions)
 
   const [actionString, colorClass, retry] = useMemo(() => {
     const retry = retryPayIn
@@ -544,10 +546,17 @@ function PayInFailed ({ n }) {
             onClick={async () => {
               if (disableRetry) return
               setDisableRetry(true)
+              // instant feedback: bump the item at click time (same root bump the modal/bolt use,
+              // reverted on terminal payment failure by getActCachePhases.onPayError). assume p2p —
+              // the act phases add credits if the response says otherwise.
+              if (isAct) bumpActCache(client.cache, actResult, me)
               try {
                 const { error } = await retry()
                 if (error) throw error
               } catch (error) {
+                // the mutation never advanced the lineage (benign race) or otherwise failed before a
+                // payIn existed, so no cache phase will revert — undo the click-time bump here.
+                if (isAct) revertActBump(client.cache, actResult, me)
                 // a manual retry can race the lineage advancing / a concurrent retry — that's
                 // expected (the auto-retry swallows it too), so don't surface it as a payment error.
                 if (!isBenignRetryRaceError(error)) toaster.danger(error?.message || error?.toString?.())

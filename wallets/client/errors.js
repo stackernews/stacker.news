@@ -125,9 +125,16 @@ export class WalletStaleConfigError extends WalletConfigurationError {
 // failure to surface, so callers suppress it.
 export const isUserCancelError = (e) => e instanceof InvoiceCanceledError
 
-// toast a payIn error unless it's absent or a user cancel (used by the act/bounty onPayError phases)
+// a gateway/timeout response (502/503/504 — e.g. the zap recipient's wallet was slow to invoice, so
+// the request blew past the load balancer's timeout) didn't return a normal GraphQL result. the
+// action's outcome is unknown, but optimistic acts are still processed server-side (the zap falls
+// back to credits or persists and auto-retries), so callers shouldn't surface it as a failure.
+export const isTransientNetworkError = (e) => e?.statusCode >= 502 && e?.statusCode <= 504
+
+// toast a payIn error unless it's absent, a user cancel, or a transient gateway timeout (used by
+// the act/bounty onPayError phases)
 export const toastPayError = (toaster, e) => {
-  if (e && !isUserCancelError(e)) toaster.danger(e?.message || e?.toString?.())
+  if (e && !isUserCancelError(e) && !isTransientNetworkError(e)) toaster.danger(e?.message || e?.toString?.())
 }
 
 // rethrow a pessimistic flow's payError unless it's absent or a user cancel

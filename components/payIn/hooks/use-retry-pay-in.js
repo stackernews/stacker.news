@@ -4,7 +4,7 @@ import { getActCachePhases } from '@/components/item-act'
 import { payBountyCachePhases } from '@/components/pay-bounty'
 import { useMe } from '@/components/me'
 import { useHasSendWallet } from '@/wallets/client/hooks'
-import { InvoiceCanceledError } from '@/wallets/client/errors'
+import { InvoiceCanceledError, isTransientNetworkError } from '@/wallets/client/errors'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { PAY_IN_ACT_TYPES } from '@/lib/constants'
 import { E_PAY_IN_RETRY_RACE } from '@/lib/error'
@@ -53,7 +53,10 @@ export async function runManualRetry (retry, { setDisable, toaster }) {
     const { error } = await retry()
     if (error) throw error
   } catch (error) {
-    if (!isBenignRetryRaceError(error)) toaster.danger(error?.message || error?.toString?.())
+    // benign retry races and gateway timeouts (the retry is still being processed) aren't surfaced
+    if (!isBenignRetryRaceError(error) && !isTransientNetworkError(error)) {
+      toaster.danger(error?.message || error?.toString?.())
+    }
   } finally {
     setDisable(false)
   }

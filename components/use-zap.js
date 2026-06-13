@@ -6,6 +6,7 @@ import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { ACT_MUTATION } from '@/fragments/payIn'
 import { ZAP_DEBOUNCE_MS } from '@/lib/constants'
 import { useHasSendWallet } from '@/wallets/client/hooks'
+import { isTransientNetworkError } from '@/wallets/client/errors'
 import { ActCanceledError, bumpActCache, getActCachePhases, revertActBump, zapUndo, zapUndoTrigger } from './item-act'
 import { actWaitFor } from '@/lib/pay-in'
 
@@ -48,9 +49,15 @@ export function useZap ({ nextTip }) {
       // a returned error has a payIn (getActCachePhases.onPayError reverted it); just log
       if (error) console.error('debounced zap error:', error)
     } catch (error) {
-      // mutation threw before creating a payIn — no phase reverts, so undo the bump here
-      console.error('debounced zap failed:', error)
-      revertActBump(client.cache, result, entryMe)
+      if (isTransientNetworkError(error)) {
+        // a gateway timeout means the zap is likely still being processed (it falls back to credits
+        // or persists and auto-retries) — keep the optimistic bump instead of reverting it
+        console.warn('debounced zap timed out (still processing):', error)
+      } else {
+        // mutation threw before creating a payIn — no phase reverts, so undo the bump here
+        console.error('debounced zap failed:', error)
+        revertActBump(client.cache, result, entryMe)
+      }
     }
   }
   const fireZap = useCallback((entry) => fireZapRef.current(entry), [])

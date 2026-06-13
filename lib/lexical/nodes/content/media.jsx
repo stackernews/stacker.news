@@ -26,16 +26,21 @@ const bestResSrcState = createState('bestResSrc', {
 })
 
 function $convertMediaElement (domNode) {
-  let src, alt, title, width, height, kind, srcSet, bestResSrc
+  let src, alt, title, width, height, kind, srcSet, bestResSrc, maxWidth, autolink
 
   if (domNode instanceof window.HTMLImageElement || domNode instanceof window.HTMLVideoElement) {
-    ({ alt, title, src, width, height, srcSet, bestResSrc } = domNode)
+    ({ alt, title, src, width, height, srcset: srcSet } = domNode)
     kind = domNode instanceof window.HTMLImageElement ? 'image' : 'video'
   } else if (domNode instanceof window.HTMLSpanElement && domNode.hasAttribute('data-sn-media-src')) {
     src = domNode.getAttribute('data-sn-media-src')
     kind = domNode.getAttribute('data-sn-media-kind') || 'unknown'
-    alt = ''
-    title = ''
+    alt = domNode.getAttribute('data-sn-media-alt') || ''
+    title = domNode.getAttribute('data-sn-media-title') || ''
+    srcSet = domNode.getAttribute('data-sn-media-srcset') || null
+    bestResSrc = domNode.getAttribute('data-sn-media-bestres') || null
+    const maxWidthAttr = domNode.getAttribute('data-sn-media-maxwidth')
+    maxWidth = maxWidthAttr ? parseInt(maxWidthAttr, 10) : undefined
+    autolink = domNode.getAttribute('data-sn-media-autolink') === 'true'
     const style = domNode.style
     width = style.getPropertyValue('--width')
     height = style.getPropertyValue('--height')
@@ -45,10 +50,39 @@ function $convertMediaElement (domNode) {
     return null
   }
 
-  const node = $createMediaNode({ src, alt, title, width, height, srcSet, bestResSrc })
+  const node = $createMediaNode({ src, alt, title, width, height, srcSet, bestResSrc, maxWidth, autolink })
   $setState(node, kindState, kind)
   $setState(node, statusState, 'done')
   return { node }
+}
+
+/** builds the media wrapper span shared by createDOM/exportDOM — every
+ * attribute $convertMediaElement reads to losslessly reconstruct the node
+ * from HTML is written here */
+function createMediaSpan (node, theme) {
+  const kind = node.getKind()
+  const span = document.createElement('span')
+  span.className = theme?.media
+  span.setAttribute('data-sn-media-kind', kind)
+  span.setAttribute('data-sn-media-src', node.getSrc())
+  const alt = node.getAlt()
+  const title = node.getTitle()
+  const srcSet = node.getSrcSet()
+  const bestResSrc = node.getBestResSrc()
+  if (alt) span.setAttribute('data-sn-media-alt', alt)
+  if (title) span.setAttribute('data-sn-media-title', title)
+  if (srcSet) span.setAttribute('data-sn-media-srcset', srcSet)
+  if (bestResSrc) span.setAttribute('data-sn-media-bestres', bestResSrc)
+  if (node.__maxWidth != null) span.setAttribute('data-sn-media-maxwidth', String(node.__maxWidth))
+  if (node.__autolink) span.setAttribute('data-sn-media-autolink', 'true')
+  // dimensions are only meaningful once the media check has resolved the kind;
+  // unknown exports render as links
+  if (kind !== 'unknown') {
+    const { width, height } = node.getWidthAndHeight() || {}
+    width && span.style.setProperty('--width', width)
+    height && span.style.setProperty('--height', height)
+  }
+  return span
 }
 
 export class MediaNode extends DecoratorNode {
@@ -132,10 +166,6 @@ export class MediaNode extends DecoratorNode {
         conversion: $convertMediaElement,
         priority: 0
       }),
-      a: () => ({
-        conversion: $convertMediaElement,
-        priority: 0
-      }),
       span: (domNode) => {
         if (!domNode.hasAttribute('data-sn-media-src')) {
           return null
@@ -149,14 +179,9 @@ export class MediaNode extends DecoratorNode {
   }
 
   exportDOM (editor) {
-    const kind = $getState(this, kindState)
+    const span = createMediaSpan(this, editor._config.theme)
 
-    const span = document.createElement('span')
-    span.className = editor._config.theme?.media
-    span.setAttribute('data-sn-media-kind', kind)
-    span.setAttribute('data-sn-media-src', this.__src)
-
-    if (kind === 'unknown') {
+    if (this.getKind() === 'unknown') {
       // export a link instead of media if we don't know the type
       const link = document.createElement('a')
       link.setAttribute('href', this.__src)
@@ -168,10 +193,6 @@ export class MediaNode extends DecoratorNode {
       return { element: span }
     }
 
-    const { width, height } = this.getWidthAndHeight() || {}
-    width && span.style.setProperty('--width', width)
-    height && span.style.setProperty('--height', height)
-
     const loading = document.createElement('span')
     loading.className = 'sn-media__loading'
     span.appendChild(loading)
@@ -180,14 +201,7 @@ export class MediaNode extends DecoratorNode {
   }
 
   createDOM (config) {
-    const span = document.createElement('span')
-    span.className = config.theme?.media
-    span.setAttribute('data-sn-media-kind', this.getKind())
-    span.setAttribute('data-sn-media-src', this.__src)
-    const { width, height } = this.getWidthAndHeight() || {}
-    width && span.style.setProperty('--width', width)
-    height && span.style.setProperty('--height', height)
-    return span
+    return createMediaSpan(this, config.theme)
   }
 
   updateDOM () {

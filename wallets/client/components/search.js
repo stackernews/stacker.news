@@ -1,39 +1,45 @@
-import { useCallback, useState } from 'react'
-import { Form, InputGroup, Button } from 'react-bootstrap'
-import SearchIcon from '@/svgs/search-line.svg'
+import { Form } from 'react-bootstrap'
 
-function fuzzySearch (query) {
+function searchKey (value) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function searchTokens (value) {
+  return value.toLowerCase().split(/[^a-z0-9]+/g).filter(Boolean)
+}
+
+function fuzzyMatch (needle, haystack) {
+  let index = 0
+  for (const char of haystack) {
+    if (char === needle[index]) index += 1
+    if (index === needle.length) return true
+  }
+
+  return false
+}
+
+export function fuzzySearch (query) {
+  const needles = searchTokens(query)
+
   return (text) => {
-    const pattern = query.toLowerCase().split('').join('.*')
-    const regex = new RegExp(pattern)
-    return regex.test(text.toLowerCase())
+    if (needles.length === 0) return true
+
+    const haystack = searchKey(text)
+    return needles.every(needle => fuzzyMatch(needle, haystack))
   }
 }
 
-export function WalletSearch ({ setSearchFilter }) {
-  const [searchQuery, setSearchQuery] = useState('')
-
-  const onChange = useCallback((e) => {
-    const query = e.target.value
-    setSearchQuery(query)
-    setSearchFilter(() => fuzzySearch(query))
-  }, [])
-
+export function WalletSearch ({ query, onQueryChange }) {
   return (
     <div className='d-flex justify-content-center mb-4 mt-4'>
       <div className='w-100' style={{ maxWidth: '400px' }}>
         <div className='position-relative'>
-          <InputGroup>
-            <Form.Control
-              type='text'
-              placeholder='Search wallets...'
-              value={searchQuery}
-              onChange={onChange}
-            />
-            <Button variant='primary' className='border-start-0'>
-              <SearchIcon width='16' height='16' />
-            </Button>
-          </InputGroup>
+          <Form.Control
+            type='text'
+            placeholder='Search wallets...'
+            value={query}
+            onChange={e => onQueryChange(e.target.value)}
+          />
         </div>
       </div>
     </div>

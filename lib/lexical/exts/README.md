@@ -89,13 +89,18 @@ This ensures that multiple consecutive images/videos are automatically grouped i
 
 ## `CodeShikiSNExtension`
 
-used by: **Reader**
+used by: **Editor; Reader**
 
-Like the original `CodeHighlighterShikiExtension` it registers code highlighting via Shiki. We added the `UPDATE_CODE_THEME_COMMAND` listener to re-register the Shiki Highlighter with a new default theme.
+Thin wrapper that declares `CodeShikiExtension` (from `@lexical/code-shiki`) as a dependency, pre-configured with our custom tokenizer (`defaultLanguage: 'text'`, `defaultTheme: 'github-dark-default'`).
 
-It's paired with `CodeThemePlugin` that listens to the `useDarkMode` hook and calls `UPDATE_CODE_THEME_COMMAND` whenever SN's theme changes.
+`CodeShikiExtension` itself pulls in `CodeExtension` and `CodeIndentExtension` automatically, which is where Lexical registers `CodeNode`, `CodeHighlightNode`, the Tab/Shift+Tab indent handlers, and (since 0.44) the `KEY_ENTER_COMMAND` listener that lets the user exit a code block by pressing Enter three times.
 
-If we move from dark mode to light mode, it will re-register the highlighter with the `github-light-default` theme, and viceversa.
+We add a `UPDATE_CODE_THEME_COMMAND` listener that:
+
+1. Calls `setTheme(newTheme)` on every existing `CodeNode` so the highlight transform reruns and repaints them.
+2. Mutates the `tokenizer` signal on the underlying `CodeShikiExtension` output (`getExtensionDependencyFromEditor(editor, CodeShikiExtension).output.tokenizer.value = ...`) so any new `CodeNode` picks up the new `defaultTheme`. Signal writes are cheap and avoid the unregister / re-register dance the older `registerCodeHighlighting` API required.
+
+It's paired with `CodeThemePlugin` which listens to the `useDarkMode` hook and dispatches `UPDATE_CODE_THEME_COMMAND` with `github-light-default` or `github-dark-default` whenever SN's theme changes.
 
 
 

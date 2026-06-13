@@ -6,7 +6,7 @@ import { useMe } from '@/components/me'
 import classNames from 'classnames'
 import { CommentsNavigator, useCommentsNavigatorContext } from '../use-comments-navigator'
 
-export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey }) {
+export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, hideMobileNav = false }) {
   const ref = useRef()
   const { me } = useMe()
   const { navigator, commentCount } = useCommentsNavigatorContext()
@@ -44,19 +44,21 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
           </Nav>
         </Navbar>
       </Container>
-      <Container className='px-sm-0 d-block d-md-none'>
-        <Navbar className='py-0'>
-          <Nav
-            className={classNames(styles.navbarNav)}
-            activeKey={topNavKey}
-          >
-            <Back />
-            <NavPrice className='flex-shrink-1' />
-            <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
-            {me ? <NavWalletSummary className='px-2' /> : <SignUpButton className='ms-auto' width='fit-content' />}
-          </Nav>
-        </Navbar>
-      </Container>
+      {!hideMobileNav && (
+        <Container className='px-sm-0 d-block d-md-none'>
+          <Navbar className='py-0'>
+            <Nav
+              className={classNames(styles.navbarNav)}
+              activeKey={topNavKey}
+            >
+              <Back />
+              <NavPrice className='flex-shrink-1' />
+              <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
+              {me ? <NavWalletSummary className='px-2' /> : <SignUpButton className='ms-auto' width='fit-content' />}
+            </Nav>
+          </Navbar>
+        </Container>
+      )}
     </div>
   )
 }

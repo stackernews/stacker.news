@@ -38,7 +38,7 @@ export async function payInBolt11Prospect (models, payIn, { msats, description }
   }
 }
 
-export async function payInBolt11WrapProspect (models, payIn, { msats, description }) {
+export async function payInBolt11WrapProspect (models, payIn, { msats, description, descriptionHash }) {
   try {
     const { mtokens: maxRoutingFeeMsats } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
     const bolt11 = await wrapBolt11({
@@ -46,7 +46,8 @@ export async function payInBolt11WrapProspect (models, payIn, { msats, descripti
       maxRoutingFeeMsats,
       bolt11: payIn.payOutBolt11.bolt11,
       hideInvoiceDesc: payIn.user.hideInvoiceDesc,
-      description
+      description,
+      descriptionHash
     })
     return payInBolt11FromBolt11(bolt11, null, payIn.user.id)
   } catch (e) {

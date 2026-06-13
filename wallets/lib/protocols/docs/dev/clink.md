@@ -24,3 +24,14 @@ receiving:
 4. Go to https://my.shockwallet.app/offers
 5. Reload page to make sure the offer is correctly updated
 6. Copy offer and paste into SN
+
+## Cancellation
+
+The CLINK adapter must honor the wallet shell's `AbortSignal`. `SendNdebitRequest`
+does not accept a signal, so the adapter uses `raceAbort` around the SDK call and
+closes the nostr pool in `finally`.
+
+The SDK also receives a `timeout` option and treats it as its own upper bound,
+but that is not a replacement for `signal`. Direct sends may still settle after
+the UI gives up; the "may still be in flight" warning in `send-form.js` is the
+user-facing safeguard against double-pay.

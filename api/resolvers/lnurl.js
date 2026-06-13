@@ -1,14 +1,12 @@
 import { randomBytes } from 'crypto'
-import { bech32 } from 'bech32'
 import assertApiKeyNotPermitted from './apiKey'
+import { encodeLnurl } from '@/lib/lnurl'
 
 function encodedUrl (iurl, tag, k1) {
   const url = new URL(iurl)
   url.searchParams.set('tag', tag)
   url.searchParams.set('k1', k1)
-  // bech32 encode url
-  const words = bech32.toWords(Buffer.from(url.toString(), 'utf8'))
-  return bech32.encode('lnurl', words, 1023)
+  return encodeLnurl(url)
 }
 
 function k1 () {

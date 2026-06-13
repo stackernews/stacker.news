@@ -6,14 +6,15 @@ import { hexValidator, urlValidator } from '@/wallets/lib/validate'
 export default [
   {
     name: 'LNBITS',
-    displayName: 'API',
+    displayName: 'LNbits',
     send: true,
     fields: [
       {
         name: 'url',
         label: 'url',
         type: 'text',
-        validate: urlValidator('clearnet'),
+        // send wallet: dialed by the user's browser, so private/LAN addresses are allowed
+        validate: urlValidator('clearnet', { allowPrivate: true }),
         required: true,
         share: true
       },
@@ -30,7 +31,7 @@ export default [
   },
   {
     name: 'LNBITS',
-    displayName: 'API',
+    displayName: 'LNbits',
     send: false,
     fields: [
       {

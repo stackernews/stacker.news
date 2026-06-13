@@ -1,6 +1,7 @@
 import { string } from 'yup'
 import { snFetch } from '@/lib/fetch'
 import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import { WalletPermissionsError } from '@/wallets/client/errors'
 
 // Blink
 // http://blink.sv/
@@ -18,7 +19,7 @@ const blinkCurrencyValidator = string().oneOf(['BTC', 'USD'])
 export default [
   {
     name: 'BLINK',
-    displayName: 'API',
+    displayName: 'Blink',
     send: true,
     fields: [
       {
@@ -49,7 +50,7 @@ export default [
   },
   {
     name: 'BLINK',
-    displayName: 'API',
+    displayName: 'Blink',
     send: false,
     fields: [
       {
@@ -88,6 +89,7 @@ export async function getWallet ({ apiKey, currency }, { signal }) {
             wallets {
               id
               walletCurrency
+              balance
             }
           }
         }
@@ -119,7 +121,26 @@ export async function request ({ apiKey, query, variables = {} }, { signal }) {
   assertResponseOk(res, { method })
   assertContentTypeJson(res, { method })
 
-  return res.json()
+  const body = await res.json()
+  const authError = body.errors?.find(isAuthGraphQLError)
+  if (authError) {
+    throw new WalletPermissionsError(authError.message || 'blink authorization failed')
+  }
+
+  return body
+}
+
+function isAuthGraphQLError (err) {
+  const text = [
+    err?.message,
+    err?.code,
+    err?.extensions?.code,
+    err?.extensions?.error,
+    err?.extensions?.classification
+  ].filter(Boolean).join(' ').toLowerCase()
+
+  return ['auth', 'unauthorized', 'unauthorised', 'forbidden', 'permission', 'scope']
+    .some(term => text.includes(term))
 }
 
 export async function getScopes ({ apiKey }, { signal }) {

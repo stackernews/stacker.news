@@ -253,9 +253,10 @@ services:
       - '-listen=1'
       - '-listenonion=0'
       - '-fallbackfee=0.0002'
-      - '-blockfilterindex=1'
-      - '-peerblockfilters=1'
       - '-maxmempool=5'
+      - '-dbcache=20'
+      - '-par=1'
+      - '-maxconnections=10'
     expose:
       - "${RPC_PORT}"
       - "${P2P_PORT}"

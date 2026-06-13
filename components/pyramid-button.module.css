@@ -1,0 +1,62 @@
+.pyramid {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--aspect, 1);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pyramid:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pyramid:focus-visible {
+  outline: 2px solid var(--bs-body-color);
+  outline-offset: 3px;
+}
+
+.layer {
+  position: absolute;
+  inset: var(--inset-y) var(--inset-x);
+  background: oklch(var(--l) 0 0);
+  box-shadow: var(--shadow);
+  transition:
+    inset 220ms cubic-bezier(.2, .7, .2, 1),
+    background 220ms ease;
+}
+
+.pyramid:not(:disabled):hover .layer,
+.pyramid:focus-visible .layer {
+  inset: calc(var(--inset-y) * 0.85) calc(var(--inset-x) * 0.85);
+}
+
+.label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  text-transform: uppercase;
+  pointer-events: none;
+  transition: color 220ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer,
+  .label {
+    transition: none;
+  }
+
+  .pyramid:not(:disabled):hover .layer,
+  .pyramid:focus-visible .layer {
+    inset: var(--inset-y) var(--inset-x);
+  }
+}

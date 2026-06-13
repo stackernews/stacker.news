@@ -1,0 +1,87 @@
+@keyframes walletBalancePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.row {
+  justify-self: end;
+  align-self: center;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  color: var(--theme-grey);
+  font-family: var(--bs-font-monospace);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  text-align: right;
+}
+.rowLoading,
+.heroLoading .heroAmount {
+  animation: walletBalancePulse 1.4s ease-in-out infinite;
+}
+.hero,
+.heroUnavailable {
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+  margin: auto 0;
+  padding: 4rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--bs-font-monospace);
+  line-height: 1;
+  text-align: center;
+}
+.heroAmount {
+  max-width: 100%;
+  font-size: min(clamp(4rem, 10vw, 7.5rem), calc(92cqw / (var(--balance-chars, 1) * 0.62)));
+  line-height: 1;
+  white-space: nowrap;
+}
+.heroUnit,
+.heroMessage,
+.heroMessageSecondary {
+  margin-top: 0.75rem;
+  font-family: var(--bs-body-font-family);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.heroUnavailable,
+.heroUnit,
+.heroMessageSecondary {
+  color: var(--theme-grey);
+}
+.heroDash {
+  font-size: clamp(4rem, 10vw, 7.5rem);
+  line-height: 1;
+}
+.heroMessage,
+.heroMessageSecondary {
+  max-width: min(100%, 24rem);
+}
+.heroMessageSecondary {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rowLoading,
+  .heroLoading .heroAmount {
+    animation: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero,
+  .heroUnavailable {
+    padding: 3.5rem 0;
+  }
+}

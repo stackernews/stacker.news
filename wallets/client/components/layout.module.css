@@ -1,0 +1,184 @@
+/* Wallet layout shell: page chrome, sidebar grid, and mobile top bar. */
+
+.walletPageHeading {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wt-gap-xs);
+}
+.walletPageHeading h1 {
+  margin: 0;
+  color: var(--bs-body-color);
+  font-size: clamp(2rem, 3.5vw, 2.9rem);
+  font-weight: 800;
+  line-height: 0.95;
+}
+
+.mobileWalletHeader {
+  display: none;
+}
+.walletMobileTopBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--wt-gap-md);
+}
+.walletMobileAccount {
+  min-width: 0;
+}
+.walletShell {
+  width: 100%;
+  min-height: calc(100svh - 5rem);
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 2rem;
+}
+.walletShellNoSidebar {
+  grid-template-columns: minmax(0, 1fr);
+}
+.walletMain {
+  min-width: 0;
+  padding: 1.75rem 0;
+}
+/* Intentionally empty marker: tags a .walletMain child to opt out of the
+   `.walletMain > :not(.walletMainFlushChild)` flush rule below (applied in home/panel.js).
+   The empty ruleset is what makes CSS Modules emit a local name for it. */
+.walletMainFlushChild {
+}
+.walletDetailPage {
+  width: min(100%, 1120px);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wt-gap-xl);
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* Send/receive action-page chrome: wrapper, scroll body, header row with the
+   wallet identity + available-balance readout, and the destination textarea.
+   walletDestinationInput lives here (not in send.module.css) because its
+   min-height rule is a compound selector with .walletActionBody — CSS Modules
+   only match the two local classes when both are hashed in the same file. */
+.walletActionPage {
+  width: min(100%, 1120px);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  background: var(--bs-body-bg);
+}
+.walletActionBody {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  gap: 3rem;
+  padding: 0;
+  overflow-y: auto;
+}
+.walletActionBody :global(form) {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+.walletActionBody :global(textarea.form-control) {
+  min-height: 8rem;
+}
+.walletActionBody :global(textarea.form-control).walletDestinationInput {
+  min-height: 86px;
+  max-height: 12rem;
+  resize: vertical;
+}
+.walletActionWalletRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--wt-gap-xl);
+  width: 100%;
+  min-height: 2.25rem;
+}
+.walletActionAvailable {
+  flex: 0 0 auto;
+  justify-self: end;
+  min-width: max-content;
+  min-height: 2.25rem;
+}
+.walletActionAvailableAmount {
+  color: var(--bs-body-color);
+  font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+.walletActionAvailableLabel {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+  margin-top: 0.18rem;
+  text-transform: uppercase;
+}
+.walletActionWallet {
+  gap: var(--wt-gap-sm);
+  min-width: 0;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 767px) {
+  .walletPageHeading h1 {
+    font-size: clamp(1.8rem, 9vw, 2.45rem);
+  }
+  .walletContain {
+    /* full-bleed on mobile: beats Bootstrap .container max-width/padding (equal specificity, source-order dependent) */
+    width: 100%;
+    max-width: none !important;
+    margin: 0;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+  .walletShell {
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    min-height: 0;
+    gap: 0;
+  }
+  .mobileWalletHeader {
+    display: flex;
+    flex-direction: column;
+    gap: var(--wt-gap-lg);
+    padding: calc(env(safe-area-inset-top) + 0.85rem) 1.25rem 0;
+  }
+  .walletMain {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    padding: 1rem 0 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .walletMain > :not(.walletMainFlushChild) {
+    max-width: calc(100% - 2.5rem);
+    margin-right: 1.25rem;
+    margin-left: 1.25rem;
+  }
+  .walletDetailPage {
+    min-height: 100%;
+    padding: 0;
+  }
+  .walletActionPage {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+  }
+  .walletActionBody {
+    padding: 0;
+  }
+  .walletActionBody :global(form) {
+    width: 100%;
+    max-width: 100%;
+  }
+}

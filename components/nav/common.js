@@ -149,7 +149,7 @@ export function NavWalletSummary ({ className }) {
 
   return (
     <Nav.Item className={className}>
-      <Nav.Link as={Link} href='/credits' eventKey='credits' className='text-success text-monospace px-0 text-nowrap'>
+      <Nav.Link as={Link} href='/wallets' eventKey='wallets' className='text-success text-monospace px-0 text-nowrap'>
         <WalletSummary me={me} />
       </Nav.Link>
     </Nav.Item>
@@ -173,10 +173,10 @@ export const Indicator = ({ show, top = '0px', right = '0px', variant = 'seconda
 }
 
 export function MeDropdown ({ me, dropNavKey }) {
+  const walletIndicator = useWalletIndicator()
   if (!me) return null
 
   const profileIndicator = !me.bioId
-  const walletIndicator = useWalletIndicator()
   const indicator = profileIndicator || walletIndicator
 
   return (
@@ -198,7 +198,6 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Dropdown.Item as={Link} href='/wallets' eventKey='wallets'>
             <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
           </Dropdown.Item>
-          <Dropdown.Item as={Link} href='/credits' eventKey='credits'>credits</Dropdown.Item>
           <Dropdown.Item as={Link} href='/satistics' eventKey='satistics'>satistics</Dropdown.Item>
           <Dropdown.Divider />
           <Dropdown.Item as={Link} href='/invites' eventKey='invites'>invites</Dropdown.Item>

@@ -1,0 +1,105 @@
+/* Capability card: the send/receive/fallback configuration card, its header,
+   the method (protocol) picker, and the embedded protocol form's field chrome. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wt-gap-xl);
+  padding: 1.5rem 2rem;
+  border: 1px solid rgba(var(--theme-color-rgb), 0.12);
+  border-radius: var(--wt-radius-lg);
+  background: color-mix(in srgb, var(--theme-toolbarHover) 22%, var(--bs-body-bg));
+}
+.cardOptional {
+  border-style: dashed;
+  background: color-mix(in srgb, rgba(var(--bs-warning-rgb), 0.08) 45%, var(--bs-body-bg));
+}
+.header {
+  min-width: 0;
+}
+.titleBlock {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.titleRow {
+  gap: 0.7rem;
+  min-width: 0;
+}
+.icon {
+  color: var(--theme-grey);
+}
+.cardSend .icon,
+.cardFallback .icon {
+  color: var(--bs-warning);
+}
+.cardReceive .icon {
+  color: var(--bs-success);
+}
+.titleRow h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  min-width: 0;
+}
+.subtitle {
+  margin-top: 0.2rem;
+  line-height: 1.2;
+}
+.method {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(var(--theme-color-rgb), 0.1);
+  border-radius: var(--wt-radius-md);
+  background: color-mix(in srgb, var(--bs-body-bg) 72%, var(--theme-toolbarHover));
+}
+.method .protocolSelector {
+  --chip-padding: 0.55rem 1rem;
+  grid-column: 1 / -1;
+}
+.methodButton {
+  white-space: nowrap;
+}
+.form :global(.form-group),
+.form :global(.mb-3) {
+  /* required: Bootstrap .mb-3 sets margin-bottom: 1rem !important */
+  margin-bottom: 0 !important;
+}
+.form :global(.input-group) {
+  width: 100%;
+}
+.form :global(.form-control),
+.form :global(.input-group-text) {
+  min-height: 54px;
+}
+.form :global(.form-control) {
+  border-radius: var(--wt-radius-md);
+}
+.form :global(.input-group:has(.input-group-text) .form-control),
+.form :global(.input-group:has(button) .form-control) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.form :global(.input-group .input-group-text) {
+  border-top-right-radius: var(--wt-radius-md);
+  border-bottom-right-radius: var(--wt-radius-md);
+}
+
+@media (max-width: 767px) {
+  .card {
+    min-width: 0;
+    padding: 1.25rem;
+  }
+  .header {
+    min-width: 0;
+  }
+  .method .methodButton {
+    justify-self: end;
+  }
+  .titleRow h2 {
+    font-size: 1.35rem;
+  }
+}

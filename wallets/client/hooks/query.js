@@ -3,46 +3,20 @@ import { timeoutSignal } from '@/lib/time'
 import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
-import { requestPersistentStorage } from '@/components/use-indexeddb'
 import {
-  UPSERT_WALLET_RECEIVE_BLINK,
-  UPSERT_WALLET_RECEIVE_CLN_REST,
-  UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS,
-  UPSERT_WALLET_RECEIVE_LNBITS,
-  UPSERT_WALLET_RECEIVE_LND_GRPC,
-  UPSERT_WALLET_RECEIVE_NWC,
-  UPSERT_WALLET_RECEIVE_PHOENIXD,
-  UPSERT_WALLET_RECEIVE_CLINK,
-  UPSERT_WALLET_SEND_BLINK,
-  UPSERT_WALLET_SEND_LNBITS,
-  UPSERT_WALLET_SEND_LNC,
-  UPSERT_WALLET_SEND_NWC,
-  UPSERT_WALLET_SEND_PHOENIXD,
-  UPSERT_WALLET_SEND_WEBLN,
-  UPSERT_WALLET_SEND_CLN_REST,
-  UPSERT_WALLET_SEND_CLINK,
   WALLETS,
   UPDATE_WALLET_ENCRYPTION,
   RESET_WALLETS,
   DISABLE_PASSPHRASE_EXPORT,
   SET_WALLET_PRIORITIES,
   UPDATE_KEY_HASH,
-  TEST_WALLET_RECEIVE_LNBITS,
-  TEST_WALLET_RECEIVE_PHOENIXD,
-  TEST_WALLET_RECEIVE_BLINK,
-  TEST_WALLET_RECEIVE_LIGHTNING_ADDRESS,
-  TEST_WALLET_RECEIVE_NWC,
-  TEST_WALLET_RECEIVE_CLN_REST,
-  TEST_WALLET_RECEIVE_LND_GRPC,
-  TEST_WALLET_RECEIVE_CLINK,
+  TEST_WALLET_RECV_PROTOCOL,
   DELETE_WALLET
 } from '@/wallets/client/fragments'
 import { ME } from '@/fragments/users'
-import { gql } from '@apollo/client'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
 import {
   SET_KEY,
-  useTemplates,
   useWallets,
   useWalletsDispatch,
   useWalletSendReady,
@@ -58,10 +32,10 @@ import {
 } from '@/wallets/client/hooks/crypto'
 import { useWalletsUpdatedAt, WalletStatus } from '@/wallets/client/hooks/wallet'
 import {
-  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolLogName, reverseProtocolRelationName, walletLud16Domain
+  isEncryptedField, isTemplate, isWallet, protocolAvailable, protocolRelationName
 } from '@/wallets/lib/util'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
-import { useWalletLoggerFactory } from './logger'
+import { clearWalletBalanceCache } from '@/wallets/client/balance'
 
 const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
@@ -265,69 +239,6 @@ function server2Client (wallet) {
   return wallet ? undoFieldAlias(checkProtocolAvailability(wallet)) : wallet
 }
 
-export function useWalletProtocolUpsert () {
-  const client = useApolloClient()
-  const loggerFactory = useWalletLoggerFactory()
-  const { encryptConfig } = useEncryptConfig()
-
-  return useCallback(async (wallet, protocol, values) => {
-    const logger = loggerFactory(protocol)
-    const mutation = protocolUpsertMutation(protocol)
-    const name = `${protocolLogName(protocol)} ${protocol.send ? 'send' : 'receive'}`
-
-    logger.info(`saving ${name} ...`)
-
-    const encrypted = await encryptConfig(values, { protocol })
-
-    const variables = encrypted
-    if (isWallet(wallet)) {
-      variables.walletId = wallet.id
-    } else {
-      variables.templateName = wallet.name
-    }
-
-    let updatedWallet
-    try {
-      const { data } = await client.mutate({ mutation, variables })
-      logger.ok(`${name} saved`)
-      updatedWallet = Object.values(data)[0]
-    } catch (err) {
-      logger.error(err.message)
-      throw err
-    }
-
-    requestPersistentStorage()
-
-    return updatedWallet
-  }, [client, loggerFactory, encryptConfig])
-}
-
-export function useLightningAddressUpsert () {
-  const protocol = useMemo(() => ({ name: 'LN_ADDR', send: false, __typename: 'WalletProtocolTemplate' }), [])
-  const upsert = useWalletProtocolUpsert()
-  const testCreateInvoice = useTestCreateInvoice(protocol)
-  const mapper = useLightningAddressToWalletMapper()
-
-  return useCallback(async (address) => {
-    await testCreateInvoice({ address })
-    const wallet = mapper(address)
-    return await upsert(wallet, protocol, { address, enabled: true })
-  }, [testCreateInvoice, mapper, upsert, protocol])
-}
-
-function useLightningAddressToWalletMapper () {
-  const templates = useTemplates()
-  return useCallback((address) => {
-    return templates
-      .filter(t => t.protocols.some(p => p.name === 'LN_ADDR'))
-      .find(t => {
-        const domain = walletLud16Domain(t.name)
-        // the LN_ADDR wallet supports lightning addresses but does not have a domain because it's a generic wallet for any LN address
-        return domain && address.endsWith(domain)
-      }) ?? { name: 'LN_ADDR', __typename: 'WalletTemplate' }
-  }, [templates])
-}
-
 export function useWalletEncryptionUpdate () {
   const wallets = useWallets()
   const walletSendReady = useWalletSendReady()
@@ -355,11 +266,7 @@ export function useWalletEncryptionUpdate () {
 
     const data = encrypted.map(wallet => ({
       id: wallet.id,
-      protocols: wallet.protocols.map(protocol => {
-        const { id, __typename: relationName, ...config } = protocol
-        const { name, send } = reverseProtocolRelationName(relationName)
-        return { name, send, config }
-      })
+      protocols: wallet.protocols.map(walletProtocolConfigInputBranch)
     }))
 
     await withKeySync(async () => {
@@ -377,6 +284,9 @@ export function useWalletEncryptionUpdate () {
       })
 
       dispatch({ type: SET_KEY, key, hash, updatedAt })
+      // Encryption key change invalidates any balance cached against the old
+      // protocol configs.
+      clearWalletBalanceCache()
       updateVaultRemoteMetadata(client, {
         showPassphrase: false,
         vaultKeyHash: hash,
@@ -385,6 +295,14 @@ export function useWalletEncryptionUpdate () {
       await client.refetchQueries({ include: [ME] })
     })
   }, [wallets, walletSendReady, dispatch, client, deleteKey, readKey, writeKey, mutate, encryptConfig, withKeySync])
+}
+
+function walletProtocolConfigInputBranch (protocol) {
+  const { id, __typename, ...config } = protocol
+  const branch = __typename.charAt(0).toLowerCase() + __typename.slice(1)
+  return {
+    [branch]: Object.keys(config).length === 0 ? true : config
+  }
 }
 
 export function useWalletReset () {
@@ -408,6 +326,9 @@ export function useWalletReset () {
       })
 
       dispatch({ type: SET_KEY, key, hash: newKeyHash, updatedAt })
+      // Resetting wallets wipes server-side configs; any cached balances
+      // are stale and must not be served.
+      clearWalletBalanceCache()
       updateVaultRemoteMetadata(client, {
         showPassphrase: true,
         vaultKeyHash: newKeyHash,
@@ -450,71 +371,6 @@ export function useSetWalletPriorities () {
   }, [mutate, toaster])
 }
 
-// we only have test mutations for receive protocols and useMutation throws if we pass null to it,
-// so we use this placeholder mutation in such cases to respect the rules of hooks.
-// (the mutation would throw if called but we make sure to never call it.)
-const NOOP_MUTATION = gql`mutation noop { noop }`
-
-const UPSERT_PROTOCOL_MUTATIONS = {
-  LNBITS: {
-    send: UPSERT_WALLET_SEND_LNBITS,
-    receive: UPSERT_WALLET_RECEIVE_LNBITS
-  },
-  PHOENIXD: {
-    send: UPSERT_WALLET_SEND_PHOENIXD,
-    receive: UPSERT_WALLET_RECEIVE_PHOENIXD
-  },
-  BLINK: {
-    send: UPSERT_WALLET_SEND_BLINK,
-    receive: UPSERT_WALLET_RECEIVE_BLINK
-  },
-  LN_ADDR: {
-    receive: UPSERT_WALLET_RECEIVE_LIGHTNING_ADDRESS
-  },
-  NWC: {
-    send: UPSERT_WALLET_SEND_NWC,
-    receive: UPSERT_WALLET_RECEIVE_NWC
-  },
-  CLN_REST: {
-    send: UPSERT_WALLET_SEND_CLN_REST,
-    receive: UPSERT_WALLET_RECEIVE_CLN_REST
-  },
-  LND_GRPC: {
-    receive: UPSERT_WALLET_RECEIVE_LND_GRPC
-  },
-  LNC: {
-    send: UPSERT_WALLET_SEND_LNC
-  },
-  WEBLN: {
-    send: UPSERT_WALLET_SEND_WEBLN
-  },
-  CLINK: {
-    send: UPSERT_WALLET_SEND_CLINK,
-    receive: UPSERT_WALLET_RECEIVE_CLINK
-  }
-}
-
-const RECEIVE_TEST_MUTATIONS = {
-  LNBITS: TEST_WALLET_RECEIVE_LNBITS,
-  PHOENIXD: TEST_WALLET_RECEIVE_PHOENIXD,
-  BLINK: TEST_WALLET_RECEIVE_BLINK,
-  LN_ADDR: TEST_WALLET_RECEIVE_LIGHTNING_ADDRESS,
-  NWC: TEST_WALLET_RECEIVE_NWC,
-  CLN_REST: TEST_WALLET_RECEIVE_CLN_REST,
-  LND_GRPC: TEST_WALLET_RECEIVE_LND_GRPC,
-  CLINK: TEST_WALLET_RECEIVE_CLINK
-}
-
-function protocolUpsertMutation (protocol) {
-  const mutationType = protocol.send ? 'send' : 'receive'
-  return UPSERT_PROTOCOL_MUTATIONS[protocol.name]?.[mutationType] ?? NOOP_MUTATION
-}
-
-function protocolTestMutation (protocol) {
-  if (protocol.send) return NOOP_MUTATION
-  return RECEIVE_TEST_MUTATIONS[protocol.name] ?? NOOP_MUTATION
-}
-
 export function useTestSendPayment (protocol) {
   return useCallback(async (values) => {
     return await protocolTestSendPayment(
@@ -526,20 +382,25 @@ export function useTestSendPayment (protocol) {
 }
 
 export function useTestCreateInvoice (protocol) {
-  const mutation = protocolTestMutation(protocol)
-  const [testCreateInvoice] = useMutation(mutation)
+  const [testCreateInvoice] = useMutation(TEST_WALLET_RECV_PROTOCOL)
 
   return useCallback(async (values) => {
-    return await testCreateInvoice({ variables: values })
-  }, [testCreateInvoice])
+    if (protocol.send) throw new Error('testCreateInvoice is receive-only')
+    const { enabled, ...config } = values
+    return await testCreateInvoice({
+      variables: { config: { [protocolRelationName(protocol)]: config } }
+    })
+  }, [testCreateInvoice, protocol])
 }
 
 export function useWalletDelete (wallet) {
+  const client = useApolloClient()
   const [mutate] = useMutation(DELETE_WALLET)
 
   return useCallback(async () => {
     await mutate({ variables: { id: wallet.id } })
-  }, [mutate, wallet.id])
+    await client.refetchQueries({ include: [ME, WALLETS] })
+  }, [client, mutate, wallet.id])
 }
 
 function useWalletDecryption () {

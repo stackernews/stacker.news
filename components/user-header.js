@@ -14,7 +14,7 @@ import { useMe } from './me'
 import { NAME_MUTATION } from '@/fragments/users'
 import { QRCodeSVG } from 'qrcode.react'
 import LightningIcon from '@/svgs/bolt.svg'
-import { encodeLNUrl } from '@/lib/lnurl'
+import { encodeLnurl, lnurlpUrl } from '@/lib/lnurl'
 import Avatar from './avatar'
 import { userSchema } from '@/lib/validate'
 import { useShowModal } from './modal'
@@ -253,7 +253,7 @@ function HeaderHeader ({ user }) {
       </div>
   )
 
-  const lnurlp = encodeLNUrl(new URL(`${process.env.NEXT_PUBLIC_URL}/.well-known/lnurlp/${user.name}`))
+  const lnurlp = encodeLnurl(lnurlpUrl(user.name))
   return (
     <div className='d-flex mt-2 flex-wrap flex-column flex-sm-row'>
       <HeaderPhoto user={user} isMe={isMe} />

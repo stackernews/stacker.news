@@ -5,13 +5,13 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import {
   PASTE_COMMAND, SELECTION_CHANGE_COMMAND,
   $getSelection, $isNodeSelection, $isRangeSelection,
-  COMMAND_PRIORITY_HIGH, COMMAND_PRIORITY_LOW
+  COMMAND_PRIORITY_HIGH, COMMAND_PRIORITY_LOW, $createTextNode
 } from 'lexical'
 import LinkEditor from './editor'
 import { getSelectedNode } from '@/lib/lexical/commands/utils'
 import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
 import { ensureProtocol, removeTracking, URL_REGEXP } from '@/lib/url'
-import { $isCodeNode } from '@lexical/code'
+import { $isCodeNode } from '@lexical/code-core'
 
 export default function LinkEditorPlugin ({ anchorElem }) {
   const [isLinkEditable, setIsLinkEditable] = useState(false)
@@ -109,7 +109,7 @@ export default function LinkEditorPlugin ({ anchorElem }) {
             return true
           }
 
-          const autolink = $createAutoLinkNode(href)
+          const autolink = $createAutoLinkNode(href).append($createTextNode(href))
           selection.insertNodes([autolink])
           return true
         }, COMMAND_PRIORITY_HIGH

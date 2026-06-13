@@ -4,34 +4,25 @@ import { useWalletLogs, useDeleteWalletLogs } from '@/wallets/client/hooks/logge
 import { useCallback, useEffect, useState, Fragment } from 'react'
 import { timeSince } from '@/lib/time'
 import classNames from 'classnames'
-import { isTemplate } from '@/wallets/lib/util'
+import MoreFooter from '@/components/more-footer'
 
-// TODO(wallet-v2):
-//   when we delete logs for a protocol, the cache is not updated
-//   so when we go to all wallet logs, we still see the deleted logs until the query is refetched
-
-export function WalletLogs ({ protocol, payInId, className, debug, poll = true, pollInterval }) {
-  const { logs, loadMore, hasMore, loading, clearLogs } = useWalletLogs(protocol, debug, payInId, { poll, pollInterval })
-  const deleteLogs = useDeleteWalletLogs(protocol, debug)
+export function WalletLogs ({ wallet, payInId, className, poll = true, pollInterval }) {
+  const { logs, loadMore, cursor, hasMore, loading, clearLogs } = useWalletLogs(payInId, {
+    poll,
+    pollInterval,
+    walletId: wallet ? Number(wallet.id) : undefined
+  })
+  const deleteLogs = useDeleteWalletLogs(wallet)
 
   const onDelete = useCallback(() => {
     deleteLogs({ onSuccess: clearLogs })
   }, [deleteLogs, clearLogs])
 
-  const embedded = !!protocol || payInId !== undefined
-  const transaction = payInId !== undefined && !protocol
-
-  // avoid unnecessary clutter when attaching new wallet
-  const hideLogs = logs.length === 0 && protocol && isTemplate(protocol)
-  if (hideLogs) return null
-
-  // showing delete button and logs footer for temporary template logs is unnecessary clutter
-  const template = protocol && isTemplate(protocol)
-  const canDelete = !template && payInId === undefined
+  const transaction = payInId !== undefined
 
   return (
     <div className={className}>
-      {canDelete && (
+      {!transaction && (
         <div className='d-flex w-100 align-items-center mb-3'>
           <span
             style={{ cursor: 'pointer' }}
@@ -40,32 +31,44 @@ export function WalletLogs ({ protocol, payInId, className, debug, poll = true, 
           </span>
         </div>
       )}
-      <div className={classNames(styles.container, embedded && styles.embedded, transaction && styles.transaction)}>
+      <div className={classNames(styles.container, transaction && styles.embedded, transaction && styles.transaction)}>
         {logs.map((log, i) => (
           <LogMessage
             key={log.id ?? i}
-            tag={protocol ? null : log.wallet?.name}
+            tag={log.wallet?.name}
             level={log.level}
             message={log.message}
             context={log.context}
             ts={log.createdAt}
           />
         ))}
-        {!template && <WalletLogsFooter empty={logs.length === 0} loading={loading} hasMore={hasMore} loadMore={loadMore} transaction={transaction} />}
+        {transaction
+          ? <WalletLogsFooter empty={logs.length === 0} loading={loading} hasMore={hasMore} loadMore={loadMore} />
+          : <WalletLogsPageFooter loading={loading} cursor={cursor} count={logs.length} loadMore={loadMore} />}
       </div>
     </div>
   )
 }
 
-function WalletLogsFooter ({ empty, loading, hasMore, loadMore, transaction }) {
+function WalletLogsPageFooter ({ loading, cursor, count, loadMore }) {
+  if (loading && count === 0) {
+    return <div className='w-100 text-center'>loading...</div>
+  }
+
+  return <MoreFooter cursor={cursor} count={count} fetchMore={loadMore} Skeleton={WalletLogsLoading} noMoreText='START' />
+}
+
+function WalletLogsLoading () {
+  return <div className='w-100 text-center'>loading...</div>
+}
+
+function WalletLogsFooter ({ empty, loading, hasMore, loadMore }) {
   return (
     <>
       {loading
         ? <div className='w-100 text-center'>loading...</div>
-        : empty && <div className='w-100 text-center'>{transaction ? 'no activity' : 'empty'}</div>}
-      {hasMore
-        ? <div className='w-100 text-center'><Button onClick={loadMore} size='sm' className='mt-3'>more</Button></div>
-        : !transaction && <div className='w-100 text-center'>------ start of logs ------</div>}
+        : empty && <div className='w-100 text-center'>no activity</div>}
+      {hasMore && <div className='w-100 text-center'><Button onClick={loadMore} size='sm' className='mt-3'>more</Button></div>}
     </>
   )
 }
@@ -93,9 +96,9 @@ export function LogMessage ({ tag, level, message, context, ts }) {
       <div className={styles.row} onClick={handleClick} style={style}>
         <TimeSince timestamp={ts} />
         <Level level={level} />
-        {tag !== null && <Tag tag={tag?.toLowerCase() ?? 'system'} />}
+        <Tag tag={tag === null ? null : tag?.toLowerCase() ?? 'system'} />
         <Message message={message} />
-        {hasContext && <Indicator show={showContext} />}
+        <Indicator show={showContext} visible={hasContext} />
       </div>
       {hasContext && showContext && <Context context={filtered} />}
     </>
@@ -117,7 +120,7 @@ function TimeSince ({ timestamp }) {
 }
 
 function Tag ({ tag }) {
-  return <div className={styles.tag}>{`[${tag}]`}</div>
+  return <div className={styles.tag}>{tag ? `[${tag}]` : null}</div>
 }
 
 function Level ({ level }) {
@@ -135,7 +138,6 @@ function Level ({ level }) {
       className = 'text-warning'; break
     case 'info':
       className = 'text-info'; break
-    case 'debug':
     default:
       className = 'text-muted'; break
   }
@@ -147,8 +149,8 @@ function Message ({ message }) {
   return <div className={styles.message}>{message}</div>
 }
 
-function Indicator ({ show }) {
-  return <div className={styles.indicator}>{show ? '-' : '+'}</div>
+function Indicator ({ show, visible }) {
+  return <div className={styles.indicator}>{visible ? (show ? '-' : '+') : null}</div>
 }
 
 function Context ({ context }) {

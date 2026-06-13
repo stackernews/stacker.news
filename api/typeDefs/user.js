@@ -49,7 +49,6 @@ export default gql`
     toggleMute(id: ID): User
     generateApiKey(id: ID!): String
     deleteApiKey(id: ID!): User
-    setDiagnostics(diagnostics: Boolean!): Boolean
   }
 
   type User {
@@ -140,7 +139,7 @@ export default gql`
     hasInvites: Boolean!
     apiKeyEnabled: Boolean!
     showPassphrase: Boolean!
-    diagnostics: Boolean!
+    diagnostics: Boolean! @deprecated(reason: "Compatibility shim")
 
     """
     mirrors SettingsInput

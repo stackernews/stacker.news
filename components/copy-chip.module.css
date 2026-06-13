@@ -1,0 +1,77 @@
+.chip {
+  box-sizing: border-box;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.3rem 0.75rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 70%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--theme-grey);
+  font-family: var(--bs-font-monospace);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prefix {
+  flex: 0 0 auto;
+}
+
+.prefix svg,
+.prefix svg path {
+  fill: currentColor;
+}
+
+.middleEllipsis {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.head {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tail {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.chipFull {
+  width: 100%;
+  min-height: 40px;
+  justify-content: center;
+}
+
+.truncateChip {
+  flex: 1 1 min(18rem, 100%);
+  min-width: min(14rem, 100%);
+}
+
+.truncateChip .middleEllipsis {
+  flex: 1 1 auto;
+}
+
+button.chip:hover,
+button.chip:focus-visible {
+  border-color: var(--bs-body-color);
+  color: var(--bs-body-color);
+}
+
+button.chip:focus-visible {
+  outline: 2px solid var(--theme-borderColor);
+  outline-offset: 2px;
+}
+
+.danger {
+  border-color: color-mix(in srgb, var(--bs-danger) 80%, transparent);
+  color: var(--bs-danger);
+}

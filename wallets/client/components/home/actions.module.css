@@ -1,0 +1,33 @@
+/* Selected-wallet action bar (send/receive/buy pyramid buttons). */
+
+.bar {
+  width: calc(100% + 4rem);
+  min-height: 170px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0;
+  align-self: stretch;
+  margin: auto -2rem -2rem;
+}
+.button {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  font-weight: 700;
+}
+.compact {
+  min-height: auto;
+  justify-content: center;
+  padding: 1rem 0 1.25rem;
+}
+
+@media (max-width: 767px) {
+  .bar {
+    width: 100%;
+    margin: auto 0 0;
+  }
+  /* .compact/.button here only restated base values that already apply at all widths */
+  .button:disabled {
+    opacity: 0.45;
+  }
+}

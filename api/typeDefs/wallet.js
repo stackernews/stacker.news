@@ -1,159 +1,34 @@
 import { gql } from 'graphql-tag'
 
-const shared = 'walletId: ID, templateName: ID, enabled: Boolean!'
-
 const typeDefs = gql`
   extend type Query {
     numBolt11s: Int!
     connectAddress: String!
     wallets: [WalletOrTemplate!]!
     walletSettings: WalletSettings!
-    walletLogs(protocolId: Int, payInId: Int, cursor: String, debug: Boolean): WalletLogs!
+    walletLogs(walletId: ID, payInId: Int, cursor: String): WalletLogs!
   }
 
   extend type Mutation {
     createWithdrawl(invoice: String!, maxFee: Int!): PayIn!
+    createWalletInvoice(walletId: ID!, amount: Int!, description: String): WalletExternalInvoice!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): PayIn!
     dropBolt11(hash: String!): Boolean
     buyCredits(credits: Int!, sendProtocolId: Int): PayIn!
 
-    # upserts
-    upsertWalletSendLNbits(
-      ${shared},
-      url: String!,
-      apiKey: VaultEntryInput!
-    ): WalletSendLNbits!
-
-    upsertWalletRecvLNbits(
-      ${shared},
-      url: String!,
-      apiKey: String!
-    ): WalletRecvLNbits!
-
-    upsertWalletSendPhoenixd(
-      ${shared},
-      url: String!,
-      apiKey: VaultEntryInput!
-    ): WalletSendPhoenixd!
-
-    upsertWalletRecvPhoenixd(
-      ${shared},
-      url: String!,
-      apiKey: String!
-    ): WalletRecvPhoenixd!
-
-    upsertWalletSendBlink(
-      ${shared},
-      currency: VaultEntryInput!,
-      apiKey: VaultEntryInput!
-    ): WalletSendBlink!
-
-    upsertWalletSendCLNRest(
-      ${shared},
-      socket: String!,
-      rune: VaultEntryInput!,
-    ): WalletSendCLNRest!
-
-    upsertWalletRecvBlink(
-      ${shared},
-      currency: String!,
-      apiKey: String!
-    ): WalletRecvBlink!
-
-    upsertWalletRecvLightningAddress(
-      ${shared},
-      address: String!
-    ): WalletRecvLightningAddress!
-
-    upsertWalletSendNWC(
-      ${shared},
-      url: VaultEntryInput!
-    ): WalletSendNWC!
-
-    upsertWalletRecvNWC(
-      ${shared},
-      url: String!
-    ): WalletRecvNWC!
-
-    upsertWalletRecvCLNRest(
-      ${shared},
-      socket: String!,
-      rune: String!,
-      cert: String
-    ): WalletRecvCLNRest!
-
-    upsertWalletRecvLNDGRPC(
-      ${shared},
-      socket: String!,
-      macaroon: String!,
-      cert: String
-    ): WalletRecvLNDGRPC!
-
-    upsertWalletSendLNC(
-      ${shared},
-      pairingPhrase: VaultEntryInput!,
-      localKey: VaultEntryInput!,
-      remoteKey: VaultEntryInput!,
-      serverHost: VaultEntryInput!
-    ): WalletSendLNC!
-
-    upsertWalletSendWebLN(
-      ${shared}
-    ): WalletSendWebLN!
-
-    upsertWalletSendClink(
-      ${shared},
-      ndebit: VaultEntryInput!
-      secretKey: VaultEntryInput!
-    ): WalletSendClink!
-
-    upsertWalletRecvClink(
-      ${shared},
-      noffer: String!
-    ): WalletRecvClink!
-
-    # tests
-    testWalletRecvNWC(
-      url: String!
-    ): Boolean!
-
-    testWalletRecvLightningAddress(
-      address: String!
-    ): Boolean!
-
-    testWalletRecvCLNRest(
-      socket: String!,
-      rune: String!,
-      cert: String
-    ): Boolean!
-
-    testWalletRecvLNDGRPC(
-      socket: String!,
-      macaroon: String!,
-      cert: String
-    ): Boolean!
-
-    testWalletRecvPhoenixd(
-      url: String!
-      apiKey: String!
-    ): Boolean!
-
-    testWalletRecvLNbits(
-      url: String!
-      apiKey: String!
-    ): Boolean!
-
-    testWalletRecvBlink(
-      currency: String!
-      apiKey: String!
-    ): Boolean!
-
-    testWalletRecvClink(
-      noffer: String!
-    ): Boolean!
+    # test a receive protocol by asking it to mint a probe invoice
+    testWalletRecvProtocol(config: WalletRecvProtocolTestInput!): Boolean!
 
     # delete
     deleteWallet(id: ID!): Boolean
+
+    # atomic configure-save
+    saveWalletProtocols(
+      walletId: ID,
+      templateName: ID,
+      upserts: [WalletProtocolUpsertInput!]!,
+      removeIds: [ID!]!
+    ): Wallet
 
     # crypto
     updateWalletEncryption(keyHash: String!, wallets: [WalletEncryptionUpdate!]!): Boolean
@@ -167,7 +42,7 @@ const typeDefs = gql`
 
     # logs
     addWalletLog(protocolId: Int, level: WalletLogLevel!, message: String!, timestamp: Date!, payInId: Int, updateStatus: Boolean): Boolean
-    deleteWalletLogs(protocolId: Int, debug: Boolean): Boolean
+    deleteWalletLogs(walletId: ID): Boolean
   }
 
   union WalletOrTemplate = Wallet | WalletTemplate
@@ -217,6 +92,10 @@ const typeDefs = gql`
     id: ID!
     name: String!
     send: Boolean!
+  }
+
+  type WalletExternalInvoice {
+    bolt11: String!
   }
 
   union WalletProtocolConfig =
@@ -355,13 +234,7 @@ const typeDefs = gql`
 
   input WalletEncryptionUpdate {
     id: ID!
-    protocols: [WalletEncryptionUpdateProtocol!]!
-  }
-
-  input WalletEncryptionUpdateProtocol {
-    name: String!
-    send: Boolean!
-    config: JSONObject!
+    protocols: [WalletProtocolConfigInput!]!
   }
 
   input WalletPriorityUpdate {
@@ -369,8 +242,71 @@ const typeDefs = gql`
     priority: Int!
   }
 
+  input WalletProtocolUpsertInput {
+    enabled: Boolean!
+    config: WalletProtocolConfigInput!
+  }
+
+  # Discriminated config input for a single wallet protocol. Exactly one branch
+  # must be set; @oneOf enforces this at variable validation time and the branch
+  # name identifies which protocol the resolver is saving or rotating.
+  input WalletProtocolConfigInput @oneOf {
+    walletSendNWC: WalletSendNWCConfigInput
+    walletRecvNWC: WalletRecvNWCConfigInput
+    walletSendLNbits: WalletSendLNbitsConfigInput
+    walletRecvLNbits: WalletRecvLNbitsConfigInput
+    walletSendPhoenixd: WalletSendPhoenixdConfigInput
+    walletRecvPhoenixd: WalletRecvPhoenixdConfigInput
+    walletSendBlink: WalletSendBlinkConfigInput
+    walletRecvBlink: WalletRecvBlinkConfigInput
+    walletSendLNC: WalletSendLNCConfigInput
+    walletSendCLNRest: WalletSendCLNRestConfigInput
+    walletRecvCLNRest: WalletRecvCLNRestConfigInput
+    walletRecvLNDGRPC: WalletRecvLNDGRPCConfigInput
+    walletRecvLightningAddress: WalletRecvLightningAddressConfigInput
+    walletSendClink: WalletSendClinkConfigInput
+    walletRecvClink: WalletRecvClinkConfigInput
+    # WebLN has no fields; the boolean is a sentinel and must be true.
+    walletSendWebLN: Boolean
+  }
+
+  # Discriminated input for the receive-protocol probe mutation. Reuses the
+  # save-side recv config inputs since the recv configs are plaintext and
+  # already match the fields the test resolver needs.
+  input WalletRecvProtocolTestInput @oneOf {
+    walletRecvNWC: WalletRecvNWCConfigInput
+    walletRecvLNbits: WalletRecvLNbitsConfigInput
+    walletRecvPhoenixd: WalletRecvPhoenixdConfigInput
+    walletRecvBlink: WalletRecvBlinkConfigInput
+    walletRecvLightningAddress: WalletRecvLightningAddressConfigInput
+    walletRecvCLNRest: WalletRecvCLNRestConfigInput
+    walletRecvLNDGRPC: WalletRecvLNDGRPCConfigInput
+    walletRecvClink: WalletRecvClinkConfigInput
+  }
+
+  input WalletSendNWCConfigInput { url: VaultEntryInput! }
+  input WalletRecvNWCConfigInput { url: String! }
+  input WalletSendLNbitsConfigInput { url: String!, apiKey: VaultEntryInput! }
+  input WalletRecvLNbitsConfigInput { url: String!, apiKey: String! }
+  input WalletSendPhoenixdConfigInput { url: String!, apiKey: VaultEntryInput! }
+  input WalletRecvPhoenixdConfigInput { url: String!, apiKey: String! }
+  input WalletSendBlinkConfigInput { currency: VaultEntryInput!, apiKey: VaultEntryInput! }
+  input WalletRecvBlinkConfigInput { currency: String!, apiKey: String! }
+  input WalletSendLNCConfigInput {
+    pairingPhrase: VaultEntryInput!
+    localKey: VaultEntryInput!
+    remoteKey: VaultEntryInput!
+    serverHost: VaultEntryInput!
+  }
+  input WalletSendCLNRestConfigInput { socket: String!, rune: VaultEntryInput! }
+  input WalletRecvCLNRestConfigInput { socket: String!, rune: String!, cert: String }
+  input WalletRecvLNDGRPCConfigInput { socket: String!, macaroon: String!, cert: String }
+  input WalletRecvLightningAddressConfigInput { address: String! }
+  input WalletSendClinkConfigInput { ndebit: VaultEntryInput!, secretKey: VaultEntryInput! }
+  input WalletRecvClinkConfigInput { noffer: String! }
+
   type WalletLogs {
-    entries: [WalletLogEntry!]!
+    logs: [WalletLogEntry!]!
     cursor: String
   }
 

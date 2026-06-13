@@ -1,7 +1,7 @@
 import { getPublicKey } from 'nostr'
 import models from '@/api/models'
-import { lnurlPayMetadata } from '@/lib/lnurl'
-import { LNURLP_COMMENT_MAX_LENGTH, PROXY_RECEIVE_FEE_PERCENT } from '@/lib/constants'
+import { lnurlPayMetadata, lnurlpCallbackUrl } from '@/lib/lnurl'
+import { LNURLP_COMMENT_MAX_LENGTH, PROXY_PAYER_MIN_MSATS, PROXY_PAYER_MAX_MSATS } from '@/lib/constants'
 
 export default async ({ query: { username } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -9,14 +9,12 @@ export default async ({ query: { username } }, res) => {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
-  const minSendable = 1000n * PROXY_RECEIVE_FEE_PERCENT / 100n
-
   const url = process.env.NODE_ENV === 'development' ? process.env.SELF_URL : process.env.NEXT_PUBLIC_URL
   const { metadata } = lnurlPayMetadata(user.name)
   return res.status(200).json({
-    callback: `${url}/api/lnurlp/${user.name}/pay`, // The URL from LN SERVICE which will accept the pay request parameters
-    minSendable: Number(minSendable), // Min amount LN SERVICE is willing to receive, can not be less than 1 or more than `maxSendable`
-    maxSendable: 1000000000,
+    callback: lnurlpCallbackUrl(user.name, url), // The URL from LN SERVICE which will accept the pay request parameters
+    minSendable: Number(PROXY_PAYER_MIN_MSATS), // Min amount LN SERVICE is willing to receive, can not be less than 1 or more than `maxSendable`
+    maxSendable: Number(PROXY_PAYER_MAX_MSATS), // Max amount LN SERVICE is willing to receive: the largest payer amount whose post-fee payout the wrap pipeline accepts
     metadata, // Metadata json which must be presented as raw string here, this is required to pass signature verification at a later step
     commentAllowed: LNURLP_COMMENT_MAX_LENGTH, // LUD-12 Comments for payRequests https://github.com/lnurl/luds/blob/luds/12.md
     payerData: { // LUD-18 payer data for payRequests https://github.com/lnurl/luds/blob/luds/18.md

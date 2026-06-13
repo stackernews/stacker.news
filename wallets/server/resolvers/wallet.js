@@ -1,6 +1,8 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { mapWalletResolveTypes } from '@/wallets/server/resolvers/util'
-import { removeWalletProtocol, upsertWalletProtocol, updateWalletBadges } from './protocol'
+import { decodeProtocolConfig, updateExistingProtocolConfigInTransaction } from '@/wallets/server/persist'
+import { assertRotationPayloadCoversSendProtocols, getVaultMetadata, initializeVaultKeyHash, setVaultShowPassphrase, updateVaultMetadata } from '@/wallets/server/vault'
+import { commitWithBadgeNotifications, updateWalletBadges } from '@/wallets/server/badges'
 import { validateSchema, walletSettingsSchema } from '@/lib/validate'
 
 const WalletOrTemplate = {
@@ -60,53 +62,6 @@ export const resolvers = {
   }
 }
 
-async function getVaultMetadata (models, userId) {
-  return await models.user.findUnique({
-    where: { id: userId },
-    select: {
-      vaultKeyHash: true,
-      vaultKeyHashUpdatedAt: true,
-      showPassphrase: true
-    }
-  })
-}
-
-async function setVaultShowPassphrase (tx, { userId, showPassphrase }) {
-  return await tx.user.update({
-    where: { id: userId },
-    data: { showPassphrase }
-  })
-}
-
-async function updateVaultMetadata (tx, { userId, currentKeyHash, keyHash, showPassphrase, updatedAt = new Date() }) {
-  if (currentKeyHash === undefined) {
-    throw new TypeError('currentKeyHash required')
-  }
-  if (!keyHash) {
-    throw new TypeError('keyHash required')
-  }
-
-  return await tx.user.update({
-    where: { id: userId, vaultKeyHash: currentKeyHash },
-    data: {
-      vaultKeyHash: keyHash,
-      showPassphrase,
-      vaultKeyHashUpdatedAt: updatedAt
-    }
-  })
-}
-
-async function initializeVaultKeyHash (models, { userId, keyHash }) {
-  const count = await models.$executeRaw`
-    UPDATE users
-    SET "vaultKeyHash" = ${keyHash}, "vaultKeyHashUpdatedAt" = NOW()
-    WHERE id = ${userId}
-    AND "vaultKeyHash" = ''
-  `
-
-  return count > 0
-}
-
 async function wallets (parent, args, { me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
@@ -139,15 +94,12 @@ async function wallets (parent, args, { me, models }) {
 function walletStatus (wallet, type) {
   const protocols = wallet.protocols.filter(protocol => type === 'send' ? protocol.send : !protocol.send)
 
-  const disabled = protocols.every(protocol => !protocol.enabled)
-  if (disabled) return 'DISABLED'
-
-  const ok = protocols.every(protocol => protocol.status === 'OK')
-  if (ok) return 'OK'
-
-  const error = protocols.every(protocol => protocol.status === 'ERROR')
-  if (error) return 'ERROR'
-
+  // Roll up over enabled protocols only: a disabled protocol's stale status must
+  // not drag an otherwise-OK side to WARNING.
+  const active = protocols.filter(protocol => protocol.enabled)
+  if (active.length === 0) return 'DISABLED'
+  if (active.every(protocol => protocol.status === 'OK')) return 'OK'
+  if (active.every(protocol => protocol.status === 'ERROR')) return 'ERROR'
   return 'WARNING'
 }
 
@@ -157,24 +109,6 @@ async function walletSettings (parent, args, { me, models }) {
   return await models.user.findUnique({ where: { id: me.id } })
 }
 
-async function assertNoServerSendProtocols (tx, { userId, wallets }) {
-  const hasPayloadSendProtocols = wallets.some(({ protocols }) => protocols.some(({ send }) => send))
-  if (hasPayloadSendProtocols) return
-
-  const existingSendProtocols = await tx.walletProtocol.count({
-    where: {
-      send: true,
-      wallet: {
-        userId
-      }
-    }
-  })
-
-  if (existingSendProtocols > 0) {
-    throw new GqlInputError('unlock or reset existing sending wallets before changing passphrase')
-  }
-}
-
 async function updateWalletEncryption (parent, { keyHash, wallets }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
   if (!keyHash) throw new GqlInputError('hash required')
@@ -182,14 +116,25 @@ async function updateWalletEncryption (parent, { keyHash, wallets }, { me, model
   const { vaultKeyHash: oldKeyHash } = await getVaultMetadata(models, me.id)
 
   return await models.$transaction(async tx => {
-    await assertNoServerSendProtocols(tx, { userId: me.id, wallets })
+    const updatedSendProtocolIds = new Set()
 
     for (const { id: walletId, protocols } of wallets) {
-      for (const { name, send, config } of protocols) {
-        const mutation = upsertWalletProtocol({ name, send })
-        await mutation(parent, { walletId, ignoreKeyHash: true, ...config }, { me, models: tx, tx })
+      for (const wrapper of protocols) {
+        const { protocol, config } = decodeProtocolConfig(wrapper)
+        const { id: protocolId } = await updateExistingProtocolConfigInTransaction({
+          tx,
+          walletId,
+          userId: me.id,
+          name: protocol.name,
+          send: protocol.send,
+          config,
+          keyHash
+        })
+        if (protocol.send) updatedSendProtocolIds.add(protocolId)
       }
     }
+
+    await assertRotationPayloadCoversSendProtocols(tx, { userId: me.id, updatedSendProtocolIds })
 
     // optimistic concurrency control:
     // make sure the user's vault key didn't change while we were updating the protocols
@@ -214,9 +159,9 @@ async function updateKeyHash (parent, { keyHash }, { me, models }) {
 async function deleteWallet (parent, { id }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
-  await models.$transaction(async tx => {
+  await commitWithBadgeNotifications(models, async tx => {
     await tx.wallet.delete({ where: { id: Number(id), userId: me.id } })
-    await updateWalletBadges({ userId: me.id, tx })
+    return { value: null, notifications: await updateWalletBadges({ userId: me.id, tx }) }
   })
 
   return true
@@ -228,19 +173,19 @@ async function resetWallets (parent, { newKeyHash }, { me, models }) {
 
   const { vaultKeyHash: oldHash } = await getVaultMetadata(models, me.id)
 
-  await models.$transaction(async tx => {
-    const protocols = await tx.walletProtocol.findMany({
-      where: {
-        send: true,
-        wallet: {
-          userId: me.id
-        }
-      }
+  await commitWithBadgeNotifications(models, async tx => {
+    // vaults are deleted via trigger
+    await tx.walletProtocol.deleteMany({
+      where: { send: true, wallet: { userId: me.id } }
     })
 
-    for (const protocol of protocols) {
-      await removeWalletProtocol(parent, { id: protocol.id }, { me, tx })
-    }
+    // Drop any wallets that lost their last protocol so the user is not left
+    // with empty stubs after a reset.
+    await tx.wallet.deleteMany({
+      where: { userId: me.id, protocols: { none: {} } }
+    })
+
+    const notifications = await updateWalletBadges({ userId: me.id, tx })
 
     // TODO(wallet-v2): nullable vaultKeyHash column
     await updateVaultMetadata(tx, {
@@ -249,6 +194,8 @@ async function resetWallets (parent, { newKeyHash }, { me, models }) {
       keyHash: newKeyHash,
       showPassphrase: true
     })
+
+    return { value: null, notifications }
   })
 
   return true

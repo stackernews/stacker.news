@@ -13,6 +13,14 @@ function $convertUserMentionElement (domNode) {
   return null
 }
 
+/** writes user mention fields as data attributes so the node can be losslessly
+ * reconstructed from HTML into Lexical (see $convertUserMentionElement) */
+function setUserMentionHydrationAttributes (node, el) {
+  el.setAttribute('data-lexical-user-mention', true)
+  el.setAttribute('data-lexical-user-mention-name', node.getUserMentionName())
+  el.setAttribute('data-lexical-user-mention-path', node.getPath())
+}
+
 export class UserMentionNode extends DecoratorNode {
   __userMentionName = ''
   __path = ''
@@ -59,23 +67,19 @@ export class UserMentionNode extends DecoratorNode {
     if (className !== undefined) {
       domNode.className = className
     }
-    domNode.setAttribute('data-lexical-user-mention', true)
-    domNode.setAttribute('data-lexical-user-mention-name', this.__userMentionName)
-    domNode.setAttribute('data-lexical-user-mention-path', this.__path)
+    setUserMentionHydrationAttributes(this, domNode)
     return domNode
   }
 
   // we need to find a way to allow display name changes
   exportDOM (editor) {
     const wrapper = document.createElement('span')
-    wrapper.setAttribute('data-lexical-user-mention', true)
     const theme = editor._config.theme
     const className = theme.userMention
     if (className !== undefined) {
       wrapper.className = className
     }
-    wrapper.setAttribute('data-lexical-user-mention-name', this.__userMentionName)
-    wrapper.setAttribute('data-lexical-user-mention-path', this.__path)
+    setUserMentionHydrationAttributes(this, wrapper)
     const a = document.createElement('a')
     const href = '/' + encodeURIComponent(this.__userMentionName.toString()) + this.__path.toString()
     a.setAttribute('href', href)

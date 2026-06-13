@@ -1,15 +1,26 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { validateSchema } from '@/lib/validate'
-import protocols from '@/wallets/lib/protocols'
-import { protocolRelationName, isEncryptedField, protocolMutationName, protocolServerSchema, protocolTestMutationName } from '@/wallets/lib/util'
-import { mapWalletResolveTypes } from '@/wallets/server/resolvers/util'
+import { utf8ByteLength } from '@/lib/validate'
+import { protocolRelationName } from '@/wallets/lib/util'
+import { mapWalletResolveTypes, parseWalletId } from '@/wallets/server/resolvers/util'
 import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
-import { timeoutSignal, withTimeout } from '@/lib/time'
+import { commitWithBadgeNotifications, updateWalletBadges } from '@/wallets/server/badges'
+import {
+  applyRemoves,
+  assertVaultKeyUnchanged,
+  decodeProtocolConfig,
+  deleteWalletIfEmpty,
+  hasEncryptedField,
+  resolveWalletForSave,
+  upsertProtocolInTransaction,
+  validateProtocolConfig
+} from '@/wallets/server/persist'
+import { timeoutSignal } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
-import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import { walletLogger } from '@/wallets/server/logger'
+import { writeWalletLog } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/client/errors'
+
+const MAX_WALLET_LOG_MESSAGE_BYTES = 4096
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -21,231 +32,120 @@ export const resolvers = {
     walletLogs
   },
   Mutation: {
-    ...Object.fromEntries(
-      protocols.reduce((acc, protocol) => {
-        return [
-          ...acc,
-          [
-            protocolMutationName(protocol),
-            upsertWalletProtocol(protocol)
-          ],
-          ...(protocol.send
-            ? []
-            : [
-                [
-                  protocolTestMutationName(protocol),
-                  testWalletProtocol(protocol)
-                ]
-              ])
-        ]
-      }, [])
-    ),
     addWalletLog,
+    saveWalletProtocols,
+    testWalletRecvProtocol,
     deleteWalletLogs
   }
 }
 
-export function testWalletProtocol (protocol) {
-  return async (parent, args, { me, models, tx }) => {
-    if (!me) {
-      throw new GqlAuthenticationError()
-    }
+// Probe a receive protocol by asking it to mint a small invoice. The @oneOf
+// `WalletRecvProtocolTestInput` guarantees exactly one branch is set and only
+// lists recv branches, so we decode the relation name and forward the plaintext
+// config to the provider probe.
+export async function testWalletRecvProtocol (parent, { config: wrapper }, { me }) {
+  if (!me) throw new GqlAuthenticationError()
 
-    if (protocol.send) {
-      throw new GqlInputError('can only test receive protocols')
-    }
-
-    let invoice
-    try {
-      invoice = await withTimeout(
-        protocolTestCreateInvoice(
-          protocol,
-          args,
-          { signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) }
-        ),
-        WALLET_CREATE_INVOICE_TIMEOUT_MS
-      )
-    } catch (e) {
-      if (e instanceof WalletValidationError) {
-        throw new GqlInputError(e.message)
-      }
-      throw new GqlInputError('failed to create invoice: ' + e.message)
-    }
-
-    if (!invoice || !invoice.startsWith('lnbc')) {
-      throw new GqlInputError('wallet returned invalid invoice')
-    }
-
-    return true
+  const { protocol, config } = decodeProtocolConfig(wrapper)
+  if (protocol.send) {
+    throw new GqlInputError(`unknown receive protocol: ${protocolRelationName(protocol)}`)
   }
-}
+  await validateProtocolConfig(protocol, config)
 
-export function upsertWalletProtocol (protocol) {
-  return async (parent, {
-    walletId,
-    templateName,
-    enabled,
-    ignoreKeyHash = false,
-    ...args
-  }, { me, models, tx }) => {
-    if (!me) {
-      throw new GqlAuthenticationError()
-    }
-
-    if (!walletId && !templateName) {
-      throw new GqlInputError('walletId or templateName is required')
-    }
-
-    const { vaultKeyHash: existingKeyHash } = await models.user.findUnique({ where: { id: me.id } })
-
-    const schema = protocolServerSchema(protocol, { keyHash: existingKeyHash, ignoreKeyHash })
-    try {
-      await validateSchema(schema, args)
-    } catch (e) {
-      // TODO(wallet-v2): on length errors, error message includes path twice like this:
-      //   "apiKey.iv: apiKey.iv must be exactly 32 characters"
+  let invoice
+  try {
+    invoice = await protocolTestCreateInvoice(
+      protocol,
+      config,
+      { signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) }
+    )
+  } catch (e) {
+    if (e instanceof WalletValidationError) {
       throw new GqlInputError(e.message)
     }
-
-    const relation = protocolRelationName(protocol)
-
-    function dataFragment (args, type) {
-      return Object.fromEntries(
-        Object.entries(args).map(
-          ([key, value]) => {
-            if (isEncryptedField(protocol, key)) {
-              return [key, { [type]: { value: value.value, iv: value.iv } }]
-            }
-            return [key, value]
-          }
-        )
-      )
-    }
-
-    // Prisma does not support nested transactions so we need to check manually if we were given a transaction
-    // https://github.com/prisma/prisma/issues/15212
-    async function transaction (tx) {
-      if (templateName) {
-        const { id: newWalletId } = await tx.wallet.create({
-          data: {
-            templateName,
-            userId: me.id
-          }
-        })
-        walletId = newWalletId
-      }
-
-      const wallet = await tx.wallet.update({
-        where: {
-          id: Number(walletId),
-          // this makes sure that users can only update their own wallets
-          // (the update will fail in this case and abort the transaction)
-          userId: me.id
-        },
-        data: {
-          protocols: {
-            upsert: {
-              where: {
-                WalletProtocol_walletId_send_name_key: {
-                  walletId: Number(walletId),
-                  send: protocol.send,
-                  name: protocol.name
-                }
-              },
-              update: {
-                enabled,
-                [relation]: {
-                  update: dataFragment(args, 'update')
-                }
-              },
-              create: {
-                enabled,
-                send: protocol.send,
-                name: protocol.name,
-                [relation]: {
-                  create: dataFragment(args, 'create')
-                }
-              }
-            }
-          }
-        },
-        include: {
-          protocols: true
-        }
-      })
-      // XXX Prisma seems to run the vault update AFTER the update of the table that points to it
-      //   which means our trigger to set the jsonb column in the WalletProtocol table does not see
-      //   the updated vault entry.
-      //   To fix this, we run another update to force the trigger to run again.
-      // TODO(wallet-v2): fix this in a better way?
-      await tx.walletProtocol.update({
-        where: {
-          WalletProtocol_walletId_send_name_key: {
-            walletId: Number(walletId),
-            send: protocol.send,
-            name: protocol.name
-          }
-        },
-        data: {
-          [relation]: {
-            update: {
-              updatedAt: new Date()
-            }
-          }
-        }
-      })
-
-      await updateWalletBadges({ userId: me.id, tx })
-
-      return mapWalletResolveTypes(wallet)
-    }
-
-    return await (tx ? transaction(tx) : models.$transaction(transaction))
+    throw new GqlInputError('failed to create invoice: ' + e.message)
   }
+
+  if (!invoice || !invoice.startsWith('lnbc')) {
+    throw new GqlInputError('wallet returned invalid invoice')
+  }
+
+  return true
 }
 
-// not exposed to the client via GraphQL API, but used when resetting wallets
-export async function removeWalletProtocol (parent, { id }, { me, models, tx }) {
-  if (!me) {
-    throw new GqlAuthenticationError()
+// Atomic configure-save: validate every upsert, then apply upserts + removes
+// + last-protocol wallet deletion + badge updates inside a single transaction
+// so the wallet can never land in a partially-saved state. The write mechanics
+// live in @/wallets/server/persist.
+export async function saveWalletProtocols (parent, { walletId, templateName, upserts = [], removeIds = [] }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  if (!walletId === !templateName) {
+    throw new GqlInputError('exactly one of walletId and templateName is required')
+  }
+  if (upserts.length === 0 && removeIds.length === 0) {
+    throw new GqlInputError('nothing to save')
+  }
+  if (templateName && removeIds.length > 0) {
+    throw new GqlInputError('cannot remove protocols from a wallet that does not exist yet')
   }
 
-  async function transaction (tx) {
-    // vault is deleted via trigger
-    const protocol = await tx.walletProtocol.delete({
-      where: {
-        id: Number(id),
-        wallet: {
-          userId: me.id
-        }
-      }
-    })
+  const { vaultKeyHash } = await models.user.findUnique({ where: { id: me.id } })
 
-    const wallet = await tx.wallet.findUnique({
-      where: {
-        id: protocol.walletId
-      },
-      include: {
-        protocols: true
-      }
-    })
-    if (wallet.protocols.length === 0) {
-      await tx.wallet.delete({
-        where: {
-          id: wallet.id
-        }
-      })
+  // Pre-validate every upsert so we fail fast before any DB writes. GraphQL
+  // @oneOf already guaranteed shape; this catches yup-level rules like
+  // hex/length constraints and keyHash mismatches.
+  const validatedUpserts = upserts.map(({ enabled, config: wrapper }) => {
+    const { protocol, config } = decodeProtocolConfig(wrapper)
+    return { protocol, enabled, config }
+  })
+  for (const { protocol, config } of validatedUpserts) {
+    await validateProtocolConfig(protocol, config, { keyHash: vaultKeyHash })
+  }
+
+  // Only upserts that persist a vault-encrypted secret depend on the current vault key.
+  const usesVaultKey = validatedUpserts.some(({ protocol, config }) => hasEncryptedField(protocol, config))
+
+  const removeIdNumbers = removeIds.map(Number)
+
+  const savedWalletId = await commitWithBadgeNotifications(models, async (tx) => {
+    const resolvedWalletId = await resolveWalletForSave(tx, { walletId, templateName, userId: me.id })
+
+    for (const { protocol, enabled, config } of validatedUpserts) {
+      await upsertProtocolInTransaction({ tx, walletId: resolvedWalletId, userId: me.id, protocol, enabled, config })
     }
+    await applyRemoves(tx, { removeIds: removeIdNumbers, walletId: resolvedWalletId, userId: me.id })
 
-    await updateWalletBadges({ userId: me.id, tx })
+    // Guard against a passphrase rotation committing mid-save.
+    if (usesVaultKey) await assertVaultKeyUnchanged(tx, me.id, vaultKeyHash)
 
-    return true
-  }
+    const deleted = await deleteWalletIfEmpty(tx, resolvedWalletId)
+    return {
+      value: deleted ? null : resolvedWalletId,
+      notifications: await updateWalletBadges({ userId: me.id, tx })
+    }
+  })
 
-  return await (tx ? transaction(tx) : models.$transaction(transaction))
+  if (!savedWalletId) return null
+
+  // Re-hydrate after the write transaction so callers receive the
+  // materialized config produced by wallet_to_jsonb.
+  const wallet = await models.wallet.findUnique({
+    where: { id: savedWalletId, userId: me.id },
+    include: {
+      template: true,
+      protocols: {
+        orderBy: {
+          id: 'asc'
+        }
+      }
+    }
+  })
+
+  return wallet ? mapWalletResolveTypes(wallet) : null
 }
 
-async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me, models }) {
+async function walletLogs (parent, { walletId, payInId, cursor }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   const decodedCursor = decodeCursor(cursor)
@@ -254,11 +154,17 @@ async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me,
     createdAt: {
       lt: decodedCursor.time
     },
-    level: debug ? 'DEBUG' : { not: 'DEBUG' }
+    level: { not: 'DEBUG' }
   }
 
-  if (protocolId !== undefined) {
-    where.protocolId = protocolId
+  if (walletId !== undefined) {
+    const walletIdNumber = parseWalletId(walletId)
+    where.protocol = {
+      walletId: walletIdNumber,
+      wallet: {
+        userId: me.id
+      }
+    }
   }
   if (payInId !== undefined) {
     where.payInId = payInId
@@ -285,7 +191,7 @@ async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me,
   })
 
   return {
-    entries: logs.map(log => {
+    logs: logs.map(log => {
       const protocol = log.protocol && Number(log.protocol.wallet.userId) === Number(me.id)
         ? log.protocol
         : null
@@ -309,6 +215,10 @@ async function walletLogs (parent, { protocolId, payInId, cursor, debug }, { me,
 
 async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId, updateStatus }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
+
+  if (utf8ByteLength(message) > MAX_WALLET_LOG_MESSAGE_BYTES) {
+    throw new GqlInputError('wallet log message is too long')
+  }
 
   if (protocolId != null) {
     const protocol = await models.walletProtocol.findFirst({
@@ -343,107 +253,44 @@ async function addWalletLog (parent, { protocolId, level, message, timestamp, pa
     }
   }
 
-  const logger = walletLogger({ models, protocolId, userId: me.id, payInId })
-  switch (level) {
-    case 'OK':
-      await logger.ok(message, { createdAt: timestamp, updateStatus })
-      break
-    case 'INFO':
-      await logger.info(message, { createdAt: timestamp, updateStatus })
-      break
-    case 'WARNING':
-      await logger.warn(message, { createdAt: timestamp, updateStatus })
-      break
-    case 'ERROR':
-      await logger.error(message, { createdAt: timestamp, updateStatus })
-      break
-    case 'DEBUG':
-      await logger.debug(message, { createdAt: timestamp, updateStatus })
-      break
-    default:
-      throw new GqlInputError('invalid log level')
-  }
+  await writeWalletLog({ models, protocolId, userId: me.id, payInId, level, message, createdAt: timestamp, updateStatus })
 
   return true
 }
 
-async function deleteWalletLogs (parent, { protocolId, debug }, { me, models }) {
+async function deleteWalletLogs (parent, { walletId }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
-  await models.walletLog.deleteMany({
-    where: {
-      userId: me.id,
-      protocolId,
-      level: debug ? 'DEBUG' : { not: 'DEBUG' }
+  const where = {
+    userId: me.id
+  }
+
+  if (walletId != null) {
+    const walletIdNumber = parseWalletId(walletId)
+
+    const wallet = await models.wallet.findFirst({
+      where: {
+        id: walletIdNumber,
+        userId: me.id
+      },
+      select: {
+        id: true
+      }
+    })
+
+    if (!wallet) throw new GqlInputError('wallet not found')
+
+    where.protocol = {
+      walletId: walletIdNumber,
+      wallet: {
+        userId: me.id
+      }
     }
+  }
+
+  await models.walletLog.deleteMany({
+    where
   })
 
   return true
-}
-
-export async function updateWalletBadges ({ userId, tx }) {
-  const pushNotifications = []
-
-  const wallets = await tx.wallet.findMany({
-    where: {
-      userId
-    },
-    include: {
-      protocols: true
-    }
-  })
-
-  const { hasRecvWallet: oldHasRecvWallet, hasSendWallet: oldHasSendWallet } = await tx.user.findUnique({ where: { id: userId } })
-
-  const newHasRecvWallet = wallets.some(({ protocols }) => protocols.some(({ send, enabled }) => !send && enabled))
-  const newHasSendWallet = wallets.some(({ protocols }) => protocols.some(({ send, enabled }) => send && enabled))
-
-  await tx.user.update({
-    where: { id: userId },
-    data: {
-      hasRecvWallet: newHasRecvWallet,
-      hasSendWallet: newHasSendWallet
-    }
-  })
-
-  const startStreak = async (type) => {
-    const streak = await tx.streak.create({
-      data: { userId, type, startedAt: new Date() }
-    })
-    return streak.id
-  }
-
-  const endStreak = async (type) => {
-    const [streak] = await tx.$queryRaw`
-        UPDATE "Streak"
-        SET "endedAt" = now(), updated_at = now()
-        WHERE "userId" = ${userId}
-        AND "type" = ${type}::"StreakType"
-        AND "endedAt" IS NULL
-        RETURNING "id"
-      `
-    return streak?.id
-  }
-
-  if (!oldHasRecvWallet && newHasRecvWallet) {
-    const streakId = await startStreak('HORSE')
-    if (streakId) pushNotifications.push(() => notifyNewStreak(userId, { type: 'HORSE', id: streakId }))
-  }
-  if (!oldHasSendWallet && newHasSendWallet) {
-    const streakId = await startStreak('GUN')
-    if (streakId) pushNotifications.push(() => notifyNewStreak(userId, { type: 'GUN', id: streakId }))
-  }
-
-  if (oldHasRecvWallet && !newHasRecvWallet) {
-    const streakId = await endStreak('HORSE')
-    if (streakId) pushNotifications.push(() => notifyStreakLost(userId, { type: 'HORSE', id: streakId }))
-  }
-  if (oldHasSendWallet && !newHasSendWallet) {
-    const streakId = await endStreak('GUN')
-    if (streakId) pushNotifications.push(() => notifyStreakLost(userId, { type: 'GUN', id: streakId }))
-  }
-
-  // run all push notifications at the end to make sure we don't
-  // accidentally send push notifications even if transaction fails
-  Promise.all(pushNotifications.map(notify => notify())).catch(console.error)
 }

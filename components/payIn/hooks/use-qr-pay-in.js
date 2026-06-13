@@ -7,6 +7,7 @@ import useWatchPayIn from './use-watch-pay-in'
 import Qr, { QrSkeleton } from '@/components/qr'
 import PayInError from '../error'
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import { paidWaitFor } from '@/lib/pay-in'
 import { PayInStatus } from '../status'
 
 export default function useQrPayIn () {
@@ -18,7 +19,7 @@ export default function useQrPayIn () {
       keepOpen = true,
       cancelOnClose = true,
       persistOnNavigate = false,
-      waitFor = payIn => payIn?.payInState === 'PAID'
+      waitFor = paidWaitFor
     } = {}
   ) => {
     // if anon user and webln is available, try to pay with webln
@@ -77,7 +78,7 @@ export default function useQrPayIn () {
         />,
       { keepOpen, persistOnNavigate, onClose: cancelAndReject })
     })
-  }, [payInHelper])
+  }, [payInHelper, showModal])
 
   return waitForQrPayIn
 }

@@ -72,15 +72,18 @@ function withBountyCachePhases (userCachePhases) {
   })
 }
 
-// the act phases add unconditionally: act retries only happen from the notifications page,
-// whose responses reconcile item counters to server truth (reconcileNotificationsLink in
-// lib/apollo.js), and the retry button only renders once the server stopped counting the
-// failed lineage in the payer's item sats — so the cache never holds the sats this re-adds
+// the genesis act already bumped the item counters optimistically and that bump persists through
+// the lineage, so a retry must NOT re-apply it (there's no reconcile to undo a double-add). it
+// keeps only the act's onPayError (reverse the bump on terminal failure — usePayInMutation gates
+// this to non-retryable failures) and onPaid (bump ancestors on success); the caller's own phases
+// (e.g. the notification's payIn-state writes) compose as usual.
 function withActCachePhases (actCachePhases, userCachePhases) {
-  return withComposedCachePhases(actCachePhases, userCachePhases, {
-    // runs outside update() context — use the dedicated onPaidMissingResult (optimistic:false)
-    onPaidMissingResult: actCachePhases.onPaidMissingResult
-  })
+  return {
+    onMutationResult: userCachePhases.onMutationResult,
+    onPaidMissingResult: userCachePhases.onPaidMissingResult,
+    onPaid: composeCallbacks(actCachePhases.onPaid, userCachePhases.onPaid),
+    onPayError: composeCallbacks(actCachePhases.onPayError, userCachePhases.onPayError)
+  }
 }
 
 function withComposedCachePhases (baseCachePhases, userCachePhases, { onPaidMissingResult } = {}) {

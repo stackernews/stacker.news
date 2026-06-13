@@ -14,7 +14,7 @@ import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
 import { CHAIN_FEE } from '@/fragments/chainFee'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
-import { NOFOLLOW_LIMIT } from '@/lib/constants'
+import { NOFOLLOW_LIMIT, RESERVED_USER_NAMES } from '@/lib/constants'
 import { satsToMsats } from '@/lib/format'
 import { MULTI_AUTH_ANON, MULTI_AUTH_LIST, MULTI_AUTH_POINTER, multiAuthMiddleware } from '@/lib/auth'
 import { lexicalStateLoader } from '@/lib/lexical/server/loader'
@@ -105,12 +105,7 @@ function oneDayReferral (request, { me }) {
     } else if (referrer.startsWith('profile-')) {
       const name = referrer.slice(8)
       // exclude all pages that are not user profiles
-      if (['api', 'auth', 'day', 'invites', 'invoices', 'referrals', 'rewards',
-        'satistics', 'settings', 'stackers', 'wallet', 'withdrawals', '404', '500',
-        'email', 'live', 'login', 'notifications', 'offline', 'search', 'share',
-        'signup', 'territory', 'new', 'top', 'edit', 'post', 'rss', 'saloon',
-        'faq', 'story', 'privacy', 'copyright', 'tos', 'changes', 'guide', 'daily',
-        'anon', 'ad'].includes(name)) continue
+      if (RESERVED_USER_NAMES.includes(name)) continue
 
       prismaPromise = models.user.findUnique({ where: { name } })
       getData = user => ({

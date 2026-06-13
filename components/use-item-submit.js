@@ -6,6 +6,7 @@ import { useCallback } from 'react'
 import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { USER_ID } from '@/lib/constants'
 import { composeCallbacks } from '@/lib/compose-callbacks'
+import { getPayIn } from '@/lib/pay-in'
 import { useMe } from './me'
 import { useBranding } from './territory-branding'
 
@@ -50,20 +51,13 @@ export default function useItemSubmit (mutation,
       } = payInMutationOptions
       const mergedCachePhases = {
         ...payInCachePhases,
-        // If the initial mutation response had no result payload, rerun mutation-phase
-        // cache work in paid-phase so the UI still updates. We wrap the cache to force
-        // optimistic:false since onPaidMissingResult runs outside Apollo's update() context.
+        // a pessimistic item create/update has no genesis result, so the mutation-phase cache work
+        // (comment injection, ncomments...) must be deferred to the paid phase. re-run it then, but
+        // against the root cache — onPaidMissingResult runs outside Apollo's update() context.
         onPaidMissingResult: composeCallbacks(
           payInCachePhases.onPaidMissingResult,
           payInCachePhases.onMutationResult
-            ? (cache, ...args) => {
-                const nonOptimisticCache = Object.create(cache, {
-                  modify: {
-                    value: (options) => cache.modify({ ...options, optimistic: false })
-                  }
-                })
-                payInCachePhases.onMutationResult(nonOptimisticCache, ...args)
-              }
+            ? (cache, ...args) => payInCachePhases.onMutationResult(nonOptimisticCache(cache), ...args)
             : undefined
         )
       }
@@ -95,7 +89,7 @@ export default function useItemSubmit (mutation,
       if (payError) return
 
       // we don't know the mutation name, so we have to extract the result
-      const response = Object.values(data)[0]
+      const response = getPayIn(data)
       const postId = response?.payerPrivates.result?.id
 
       if (crosspost && postId) {
@@ -118,8 +112,16 @@ export default function useItemSubmit (mutation,
   )
 }
 
+// a cache whose .modify forces optimistic:false, so a mutation-phase cache write can be re-run in
+// a paid phase (outside Apollo's update() context) without leaking into an optimistic layer
+function nonOptimisticCache (cache) {
+  return Object.create(cache, {
+    modify: { value: (options) => cache.modify({ ...options, optimistic: false }) }
+  })
+}
+
 function saveItemInvoiceHmac (mutationData) {
-  const response = Object.values(mutationData)[0]
+  const response = getPayIn(mutationData)
 
   if (!response?.payerPrivates?.payInBolt11) return
 

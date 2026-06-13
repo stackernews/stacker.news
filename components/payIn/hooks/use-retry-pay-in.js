@@ -8,7 +8,7 @@ import { InvoiceCanceledError } from '@/wallets/client/errors'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 import { PAY_IN_ACT_TYPES } from '@/lib/constants'
 import { E_PAY_IN_RETRY_RACE } from '@/lib/error'
-import { toFailedPayIn } from '@/lib/pay-in'
+import { actWaitFor, getPayIn, toFailedPayIn } from '@/lib/pay-in'
 
 export function useRetryPayIn (payInId, payInType, mutationOptions = {}) {
   const { me } = useMe()
@@ -21,10 +21,7 @@ export function useRetryPayIn (payInId, payInType, mutationOptions = {}) {
   const options = { ...restOptions, cachePhases }
 
   if (isAct) {
-    options.waitFor = payIn =>
-      hasSendWallet
-        ? payIn?.payInState === 'PAID'
-        : ['FORWARDING', 'PAID'].includes(payIn?.payInState)
+    options.waitFor = actWaitFor(hasSendWallet)
   }
 
   const [retryPayIn] = usePayInMutation(RETRY_PAY_IN, { ...options, variables: { payInId } })
@@ -33,7 +30,7 @@ export function useRetryPayIn (payInId, payInType, mutationOptions = {}) {
 
 // the FAILED view of a retry mutation's successor for cache writes when paying it failed
 export function getFailedRetryPayIn (error, data) {
-  const retryResult = Object.values(data ?? {})[0]
+  const retryResult = getPayIn(data)
   if (!retryResult?.id) return null
 
   return toFailedPayIn(retryResult, error instanceof InvoiceCanceledError ? 'USER_CANCELLED' : 'EXECUTION_FAILED')
@@ -45,6 +42,21 @@ export function getFailedRetryPayIn (error, data) {
 // background auto-retry too — so a manual retry shouldn't surface them as an error.
 export function isBenignRetryRaceError (error) {
   return [error, ...(error?.errors ?? [])].some(e => e?.extensions?.code === E_PAY_IN_RETRY_RACE)
+}
+
+// the shared manual-retry click handler for the notifications and item-info retry buttons: disable
+// the button, run the retry, surface non-benign errors, re-enable. `retry` returns { error } or
+// throws; a benign retry race (lineage advanced / concurrent retry) is expected and not surfaced.
+export async function runManualRetry (retry, { setDisable, toaster }) {
+  setDisable(true)
+  try {
+    const { error } = await retry()
+    if (error) throw error
+  } catch (error) {
+    if (!isBenignRetryRaceError(error)) toaster.danger(error?.message || error?.toString?.())
+  } finally {
+    setDisable(false)
+  }
 }
 
 // the per-type cache phases for a retry, composed on top of the caller's phases (e.g. the
@@ -66,6 +78,8 @@ function retryBaseCachePhases (payInType, me) {
 }
 
 function composeRetryCachePhases (baseCachePhases, userCachePhases) {
+  // compose all four phases uniformly so a caller's onPaidMissingResult isn't silently dropped
+  // (act/bounty retries don't currently supply one, but a future ITEM_CREATE retry might)
   return {
     onMutationResult: composeCallbacks(baseCachePhases.onMutationResult, userCachePhases.onMutationResult),
     onPaidMissingResult: composeCallbacks(baseCachePhases.onPaidMissingResult, userCachePhases.onPaidMissingResult),

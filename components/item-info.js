@@ -28,7 +28,7 @@ import { useShowModal } from './modal'
 import classNames from 'classnames'
 import SubPopover from './sub-popover'
 import useCanEdit from './use-can-edit'
-import { getFailedRetryPayIn, isBenignRetryRaceError, useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
+import { getFailedRetryPayIn, runManualRetry, useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { gql } from '@apollo/client'
 import { useBranding } from './territory-branding'
@@ -372,18 +372,9 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
       Component = () => <span className={classNames('text-info')}>pending</span>
     } else if (item.payIn.payInState === 'FAILED') {
       Component = () => <span className={classNames('text-warning', disableDualRetry ? 'pulse' : 'pointer')}>retry payment</span>
-      onClick = async () => {
+      onClick = () => {
         if (disableDualRetry) return
-        setDisableDualRetry(true)
-        try {
-          const { error } = await retryPayIn()
-          if (error) throw error
-        } catch (error) {
-          // benign retry race (lineage advanced / concurrent retry) — don't surface it; see notifications.js
-          if (!isBenignRetryRaceError(error)) toaster.danger(error.message)
-        } finally {
-          setDisableDualRetry(false)
-        }
+        return runManualRetry(retryPayIn, { setDisable: setDisableDualRetry, toaster })
       }
     } else {
       Component = () => (

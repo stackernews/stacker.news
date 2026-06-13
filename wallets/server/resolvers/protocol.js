@@ -14,13 +14,31 @@ import {
   upsertProtocolInTransaction,
   validateProtocolConfig
 } from '@/wallets/server/persist'
-import { timeoutSignal } from '@/lib/time'
+import { datePivot, raceAbort, timeoutSignal } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { writeWalletLog } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/client/errors'
+import { createInvoice as lndCreateInvoice } from 'ln-service'
+import { assertMatchingBolt11Networks, bolt11Network } from '@/wallets/server/bolt11-network'
 
 const MAX_WALLET_LOG_MESSAGE_BYTES = 4096
+const TEST_INVOICE_MSATS = 1000
+const TEST_INVOICE_EXPIRY_SECS = 1
+
+async function stackerNodeInvoice ({ lnd, signal }) {
+  const invoice = await raceAbort(
+    lndCreateInvoice({
+      lnd,
+      description: 'SN wallet network check',
+      mtokens: String(TEST_INVOICE_MSATS),
+      expires_at: datePivot(new Date(), { seconds: TEST_INVOICE_EXPIRY_SECS })
+    }),
+    signal
+  )
+
+  return invoice.request
+}
 
 const WalletProtocolConfig = {
   __resolveType: config => config.__resolveType
@@ -43,7 +61,7 @@ export const resolvers = {
 // `WalletRecvProtocolTestInput` guarantees exactly one branch is set and only
 // lists recv branches, so we decode the relation name and forward the plaintext
 // config to the provider probe.
-export async function testWalletRecvProtocol (parent, { config: wrapper }, { me }) {
+export async function testWalletRecvProtocol (parent, { config: wrapper }, { me, lnd }) {
   if (!me) throw new GqlAuthenticationError()
 
   const { protocol, config } = decodeProtocolConfig(wrapper)
@@ -66,9 +84,16 @@ export async function testWalletRecvProtocol (parent, { config: wrapper }, { me 
     throw new GqlInputError('failed to create invoice: ' + e.message)
   }
 
-  if (!invoice || !invoice.startsWith('lnbc')) {
-    throw new GqlInputError('wallet returned invalid invoice')
+  if (!bolt11Network(invoice)) throw new GqlInputError('wallet returned invalid invoice')
+
+  const signal = timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS)
+  let snInvoice
+  try {
+    snInvoice = await stackerNodeInvoice({ lnd, signal })
+  } catch (e) {
+    throw new GqlInputError('failed to verify SN node network: ' + e.message)
   }
+  assertMatchingBolt11Networks(invoice, snInvoice)
 
   return true
 }

@@ -909,10 +909,13 @@ model PushSubscription {
   endpoint  String
   p256dh    String
   auth      String
+  domainId  Int?
   createdAt DateTime @default(now()) @map("created_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domain    Domain?  @relation(fields: [domainId], references: [id], onDelete: SetNull)
 
   @@index([userId], map: "PushSubscription.userId_index")
+  @@index([domainId])
 }
 
 model TerritoryTransfer {
@@ -952,6 +955,7 @@ model Domain {
   tokenVersion            Int                         @default(0)
 
   sub                     Sub                         @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  pushSubscriptions       PushSubscription[]
   attempts                DomainVerificationAttempt[]
   records                 DomainVerificationRecord[]
   authRequests            DomainAuthRequest[]

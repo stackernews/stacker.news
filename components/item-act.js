@@ -12,7 +12,7 @@ import { ACT_MUTATION } from '@/fragments/payIn'
 import { actWaitFor, getPayIn } from '@/lib/pay-in'
 import { meAnonSats } from '@/lib/apollo'
 import { useHasSendWallet } from '@/wallets/client/hooks'
-import { toastPayError } from '@/wallets/client/errors'
+import { toastPayError, isTransientNetworkError } from '@/wallets/client/errors'
 import { useAnimation } from '@/components/animation'
 import { useToast } from '@/components/toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
@@ -104,11 +104,17 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
     // instant feedback: bump the item's counters directly in the root cache (assume p2p — the act
     // cache phases add credits later if the response says otherwise)
     const result = { id: item.id, sats: Number(amount), act, path: item.path }
-    const { error } = await withActBump(client.cache, result, me, () =>
-      // don't close modal immediately because we want the QR modal to stack
-      actor({ variables: { id: item.id, sats: Number(amount), act }, ...options }))
-    if (error) throw error
-    addCustomTip(Number(amount))
+    try {
+      const { error } = await withActBump(client.cache, result, me, () =>
+        // don't close modal immediately because we want the QR modal to stack
+        actor({ variables: { id: item.id, sats: Number(amount), act }, ...options }))
+      if (error) throw error
+      addCustomTip(Number(amount))
+    } catch (e) {
+      // a gateway timeout (e.g. the recipient's wallet was slow to invoice) doesn't mean the zap
+      // failed — it's processed server-side and the bump (kept by withActBump) reconciles. don't toast.
+      if (!isTransientNetworkError(e)) throw e
+    }
   }, [me, actor, client, hasReadySendWallet, act, item.id, item.path, onClose, abortSignal, animate, toaster])
 
   return (
@@ -279,7 +285,9 @@ export async function withActBump (cache, result, me, attempt) {
   try {
     return await attempt()
   } catch (e) {
-    revertActBump(cache, result, me)
+    // a gateway timeout means the act is likely still being processed server-side — keep the
+    // optimistic bump
+    if (!isTransientNetworkError(e)) revertActBump(cache, result, me)
     throw e
   }
 }

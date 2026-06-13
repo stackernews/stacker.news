@@ -33,6 +33,19 @@ import { BOUNTY_ALREADY_PAID_ERROR, BOUNTY_IN_PROGRESS_ERROR, getBountyPaymentTa
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 import { resolveItemComments } from './comment-tree'
 
+function isYoutubePlaceholderTitle (url, title) {
+  if (!title) return false
+
+  try {
+    const { hostname } = new URL(ensureProtocol(url))
+    if (!['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'].includes(hostname)) return false
+  } catch {
+    return false
+  }
+
+  return /^-?\s*youtube$/i.test(title.trim())
+}
+
 export async function getItem (parent, { id }, { me, models }) {
   const [item] = await getItemsById([id], { me, models })
   return item
@@ -561,8 +574,10 @@ export default {
         const dateHint = ` (${metadata.publicationDate?.getFullYear()})`
         const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
 
-        res.title = metadata?.title
-        if (moreThanOneYearAgo) res.title += dateHint
+        if (metadata?.title && !isYoutubePlaceholderTitle(url, metadata.title)) {
+          res.title = metadata?.title
+          if (moreThanOneYearAgo) res.title += dateHint
+        }
       } catch { }
 
       try {

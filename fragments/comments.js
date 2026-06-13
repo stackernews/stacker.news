@@ -62,6 +62,7 @@ export const COMMENT_FIELDS = gql`
     otsHash
     ncomments
     nDirectComments
+    lastCommentAt
     live @client
     imgproxyUrls
     rel
@@ -119,6 +120,7 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     commentBoost
     mine
     otsHash
+    lastCommentAt
     live @client
     imgproxyUrls
     rel

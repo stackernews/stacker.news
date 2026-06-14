@@ -19,6 +19,8 @@ import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { writeWalletLog } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/client/errors'
+import { getWalletInfo } from 'ln-service'
+import { assertBolt11MatchesChains } from '@/lib/bolt11'
 
 const MAX_WALLET_LOG_MESSAGE_BYTES = 4096
 
@@ -43,7 +45,7 @@ export const resolvers = {
 // `WalletRecvProtocolTestInput` guarantees exactly one branch is set and only
 // lists recv branches, so we decode the relation name and forward the plaintext
 // config to the provider probe.
-export async function testWalletRecvProtocol (parent, { config: wrapper }, { me }) {
+export async function testWalletRecvProtocol (parent, { config: wrapper }, { me, lnd }) {
   if (!me) throw new GqlAuthenticationError()
 
   const { protocol, config } = decodeProtocolConfig(wrapper)
@@ -66,8 +68,11 @@ export async function testWalletRecvProtocol (parent, { config: wrapper }, { me 
     throw new GqlInputError('failed to create invoice: ' + e.message)
   }
 
-  if (!invoice || !invoice.startsWith('lnbc')) {
-    throw new GqlInputError('wallet returned invalid invoice')
+  try {
+    const { chains } = await getWalletInfo({ lnd })
+    assertBolt11MatchesChains(invoice, chains)
+  } catch (e) {
+    throw new GqlInputError(e.message || 'wallet returned invalid invoice')
   }
 
   return true

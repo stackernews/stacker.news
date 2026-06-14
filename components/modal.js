@@ -36,11 +36,16 @@ export default function useModal () {
     return modalStack.current[modalStack.current.length - 1]
   }, [])
 
+  // back steps to the previous modal in the stack. we pop (unmounting the current modal — and, for
+  // a QR, stopping its payment watcher) BEFORE running its onClose, so cancelling the invoice can't
+  // escalate into a full-stack close via the watcher's onPaymentError. net: back returns to the
+  // previous step (e.g. the amount form) and still cancels the invoice so it doesn't dangle.
   const onBack = useCallback(() => {
-    getCurrentContent()?.options?.onClose?.()
+    const current = getCurrentContent()
     modalStack.current.pop()
     forceUpdate()
-  }, [])
+    current?.options?.onClose?.()
+  }, [getCurrentContent])
 
   const setOptions = useCallback(options => {
     const current = getCurrentContent()

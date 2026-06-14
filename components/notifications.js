@@ -44,6 +44,7 @@ import { getFailedRetryPayIn, runManualRetry, useRetryPayIn } from './payIn/hook
 import { withActBump } from './item-act'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
 import { isInvoiceSetupPending, toFailedPayIn } from '@/lib/pay-in'
+import { reconcileNotificationItemCounters } from '@/lib/apollo'
 import MapIcon from '@/svgs/map.svg'
 
 function Notification ({ n, fresh }) {
@@ -834,8 +835,17 @@ const nid = n => n.__typename + n.id + n.sortTime
 
 export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)
+  const client = useApolloClient()
   const router = useRouter()
   const dat = useData(data, ssrData)
+
+  // a failed pay-in optimistically bumped an item's counters; its PayInification notification
+  // carries the server's truth. reconcile here (not in an ApolloLink) because the feed arrives
+  // via SSR + cache-first, so no client-link request ever fires. covers the SSR first page and
+  // fetchMore pages since dat is the merged, displayed list.
+  useEffect(() => {
+    reconcileNotificationItemCounters(client.cache, dat?.notifications?.notifications)
+  }, [client, dat])
 
   const { notifications, lastChecked, cursor } = useMemo(() => {
     if (!dat?.notifications) return {}

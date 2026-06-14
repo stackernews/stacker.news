@@ -19,7 +19,7 @@ import {
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
 import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
-import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
+import { defaultCommentSort, isJob, deleteItemByAuthor, itemOrderByClause } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { uploadIdsFromText } from './upload'
 import assertGofacYourself from './ofac'
@@ -57,19 +57,6 @@ export async function getItemsById (ids, { me, models }) {
   })
 
   return items.map(({ rank, ...item }) => item)
-}
-
-const orderByClause = (by, me, models, type, sub) => {
-  switch (by) {
-    case 'comments':
-      return 'ORDER BY "Item".ncomments DESC'
-    case 'sats':
-      return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
-    case 'downsats':
-      return 'ORDER BY "Item"."downMsats" DESC'
-    default:
-      return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
-  }
 }
 
 // this grabs all the stuff we need to display the item list and only
@@ -431,10 +418,10 @@ export default {
                 typeClause(type),
                 by === 'downsats' && '"Item"."downMsats" > 0',
                 whenClause(when || 'forever', table))}
-              ${orderByClause(by, me, models, type)}
+              ${itemOrderByClause({ by, sort, type })}
               OFFSET $4
               LIMIT $5`,
-            orderBy: orderByClause(by, me, models, type)
+            orderBy: itemOrderByClause({ by, sort, type })
           }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
         case 'new':
@@ -479,10 +466,10 @@ export default {
                 by === 'downsats' && '"Item"."downMsats" > 0',
                 await filterClause(type, sub, 'top', ctx, by),
                 muteClause(me))}
-              ${orderByClause(by || 'sats', me, models, type, sub)}
+              ${itemOrderByClause({ by: by || 'sats', sort, type })}
               OFFSET $3
               LIMIT $4`,
-            orderBy: orderByClause(by || 'sats', me, models, type, sub)
+            orderBy: itemOrderByClause({ by: by || 'sats', sort, type })
           }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           break
         default:

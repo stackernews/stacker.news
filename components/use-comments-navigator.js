@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useState, startTransition, createContext, useContext } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition, createContext, useContext } from 'react'
 import styles from './comment.module.css'
 import LongPressable from './long-pressable'
 import { useFavicon } from './favicon'
+import { useRouter } from 'next/router'
 
 const CommentsNavigatorContext = createContext({
   navigator: {
     trackNewComment: () => {},
+    trackNewCommentTarget: () => {},
     untrackNewComment: () => {},
     scrollToComment: () => {},
     clearCommentRefs: () => {}
@@ -28,12 +30,12 @@ export function useCommentsNavigatorContext () {
 
 export function useCommentsNavigator () {
   const { setHasNewComments } = useFavicon()
+  const router = useRouter()
   const [commentCount, setCommentCount] = useState(0)
   // refs in ref to not re-render on tracking
   const commentRefs = useRef([])
   // ref to track if the comment count is being updated
   const frameRef = useRef(null)
-  const navigatorRef = useRef(null)
 
   // batch updates to the comment count
   const throttleCountUpdate = useCallback(() => {
@@ -43,7 +45,7 @@ export function useCommentsNavigator () {
     window.requestAnimationFrame(() => {
       // filter out disconnected refs before counting
       commentRefs.current = commentRefs.current.filter(item =>
-        item.ref?.current?.isConnected
+        item.targetId || item.ref?.current?.isConnected
       )
       const next = commentRefs.current.length
       // transition to the new comment count
@@ -57,7 +59,7 @@ export function useCommentsNavigator () {
     commentRefs.current = []
     startTransition?.(() => setCommentCount(0))
     setHasNewComments(false)
-  }, [])
+  }, [setHasNewComments])
 
   // track a new comment, returns true if the ref was actually inserted
   const trackNewComment = useCallback((commentRef, createdAt) => {
@@ -77,6 +79,28 @@ export function useCommentsNavigator () {
       commentRefs.current.push(newItem)
     } else {
       // insert at the correct position to maintain sort order
+      commentRefs.current.splice(insertIndex, 0, newItem)
+    }
+
+    setHasNewComments(true)
+    throttleCountUpdate()
+    return true
+  }, [throttleCountUpdate, setHasNewComments])
+
+  const trackNewCommentTarget = useCallback(({ id, createdAt }) => {
+    if (!id) return false
+
+    const targetId = String(id)
+    const existing = commentRefs.current.some(item => item.targetId === targetId)
+    if (existing) return false
+
+    const createdAtMs = new Date(createdAt).getTime()
+    const insertIndex = commentRefs.current.findIndex(item => item.createdAt > createdAtMs)
+    const newItem = { targetId, createdAt: createdAtMs }
+
+    if (insertIndex === -1) {
+      commentRefs.current.push(newItem)
+    } else {
       commentRefs.current.splice(insertIndex, 0, newItem)
     }
 
@@ -123,7 +147,7 @@ export function useCommentsNavigator () {
       commentRefs.current = commentRefs.current.filter(item => !toRemove.includes(item))
     }
     throttleCountUpdate()
-  }, [throttleCountUpdate])
+  }, [throttleCountUpdate, setHasNewComments])
 
   // scroll to the next new comment
   const scrollToComment = useCallback(() => {
@@ -132,6 +156,19 @@ export function useCommentsNavigator () {
 
     const ref = list[0]?.ref
     const node = ref?.current
+    const targetId = list[0]?.targetId
+    if (!node && targetId) {
+      commentRefs.current.shift()
+      throttleCountUpdate()
+      if (commentRefs.current.length === 0) setHasNewComments(false)
+      const id = router.query.id
+      router.push({
+        pathname: '/items/[id]',
+        query: { ...router.query, id, commentId: targetId }
+      }, `/items/${id}?commentId=${targetId}`, { scroll: false })
+      return
+    }
+
     if (!node) {
       // update the comment count, the ref may be disconnected
       throttleCountUpdate()
@@ -156,19 +193,22 @@ export function useCommentsNavigator () {
 
     // if we reached the end, reset the navigator
     if (list.length === 1) clearCommentRefs()
-  }, [clearCommentRefs, untrackNewComment, throttleCountUpdate])
+  }, [clearCommentRefs, untrackNewComment, throttleCountUpdate, router, setHasNewComments])
 
-  // create the navigator object once
-  if (!navigatorRef.current) {
-    navigatorRef.current = { trackNewComment, untrackNewComment, scrollToComment, clearCommentRefs }
-  }
+  const navigator = useMemo(() => ({
+    trackNewComment,
+    trackNewCommentTarget,
+    untrackNewComment,
+    scrollToComment,
+    clearCommentRefs
+  }), [trackNewComment, trackNewCommentTarget, untrackNewComment, scrollToComment, clearCommentRefs])
 
   // clear the navigator on unmount
   useEffect(() => {
     return () => clearCommentRefs()
   }, [clearCommentRefs])
 
-  return { navigator: navigatorRef.current, commentCount }
+  return { navigator, commentCount }
 }
 
 export function CommentsNavigator ({ navigator, commentCount, className }) {
@@ -190,7 +230,7 @@ export function CommentsNavigator ({ navigator, commentCount, className }) {
     if (!commentCount) return
     document.addEventListener('keydown', onNext)
     return () => document.removeEventListener('keydown', onNext)
-  }, [onNext])
+  }, [commentCount, onNext])
 
   return (
     <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>

@@ -181,12 +181,12 @@ export const ITEM_FULL = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
   ${COMMENTS}
-  query Item($id: ID!, $sort: String, $cursor: String) {
+  query Item($id: ID!, $sort: String, $cursor: String, $commentId: ID) {
     item(id: $id) {
       ...ItemFullFields
       prior
       ...PollFields
-      comments(sort: $sort, cursor: $cursor) {
+      comments(sort: $sort, cursor: $cursor, commentId: $commentId) {
         cursor
         comments {
           ...CommentsRecursive

@@ -1166,7 +1166,7 @@ export default {
         }
       })
     },
-    comments: async (item, { sort, cursor }, ctx) => {
+    comments: async (item, { sort, cursor, commentId }, ctx) => {
       const { me } = ctx
       if (typeof item.comments !== 'undefined') {
         if (Array.isArray(item.comments)) {
@@ -1186,7 +1186,7 @@ export default {
         }
       }
 
-      return await resolveItemComments(item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor, { ...ctx, itemQueryWithMeta, payInJoinFilter, select: SELECT })
+      return await resolveItemComments(item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor, commentId, { ...ctx, itemQueryWithMeta, payInJoinFilter, select: SELECT })
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0

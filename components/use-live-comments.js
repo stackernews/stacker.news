@@ -5,6 +5,7 @@ import preserveScroll from './preserve-scroll'
 import { GET_NEW_COMMENTS } from '../fragments/comments'
 import { injectComment } from '../lib/comments'
 import useCommentsView from './use-comments-view'
+import { useCommentsNavigatorContext } from './use-comments-navigator'
 
 // live comments polling interval
 const POLL_INTERVAL = 1000 * 5
@@ -19,13 +20,16 @@ const readStoredLatest = (key, latest) => {
 
 // cache new comments and return the most recent timestamp between current latest and new comment
 // regardless of whether the comments were injected or not
-function cacheNewComments (cache, latest, itemId, newComments, markCommentViewedAt) {
+function cacheNewComments (cache, latest, itemId, newComments, markCommentViewedAt, navigator) {
   let injected = 0
 
   const injectedLatest = newComments.reduce((latestTimestamp, newComment) => {
     const result = injectComment(cache, newComment, { live: true, rootId: itemId, optimistic: false })
     // if any comment was injected, increment injected
     injected = result ? injected + 1 : injected
+    if (result === 'hidden') {
+      navigator?.trackNewCommentTarget(newComment)
+    }
     return new Date(newComment.createdAt) > new Date(latestTimestamp)
       ? newComment.createdAt
       : latestTimestamp
@@ -44,17 +48,19 @@ export default function useLiveComments (itemId, after) {
   const latestKey = `liveCommentsLatest:${itemId}`
   const { cache } = useApolloClient()
   const { markCommentViewedAt } = useCommentsView(itemId)
+  const { navigator } = useCommentsNavigatorContext()
   const [disableLiveComments] = useLiveCommentsToggle()
 
   const [latest, setLatest] = useState(after)
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLatest(readStoredLatest(latestKey, after))
     // Apollo might update the cache before the page has fully rendered, causing reads of stale cached data
     // this prevents GET_NEW_COMMENTS from producing results before the page has fully rendered
     setInitialized(true)
-  }, [itemId, after])
+  }, [itemId, after, latestKey])
 
   const { data } = useQuery(GET_NEW_COMMENTS, {
     pollInterval: POLL_INTERVAL,
@@ -70,16 +76,17 @@ export default function useLiveComments (itemId, after) {
 
     // directly inject new comments into the cache, preserving scroll position
     // quirk: scroll is preserved even if we are not injecting new comments due to dedupe
-    const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, itemId, newComments, markCommentViewedAt))
+    const injectedLatest = preserveScroll(() => cacheNewComments(cache, latest, itemId, newComments, markCommentViewedAt, navigator))
 
     // if we didn't process any newer comments, bail
     if (new Date(injectedLatest).getTime() <= new Date(latest).getTime()) return
 
     // update latest timestamp to the latest comment created at
     // save it to session storage, to persist between client-side navigations
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLatest(injectedLatest)
     window.sessionStorage.setItem(latestKey, injectedLatest)
-  }, [data, cache, itemId, latest, markCommentViewedAt])
+  }, [data, cache, itemId, latest, latestKey, markCommentViewedAt, navigator])
 }
 
 export function useLiveCommentsToggle () {

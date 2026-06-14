@@ -1,6 +1,6 @@
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
 import { snFetch } from '@/lib/fetch'
-import { decodeCursor, nextCursorEncoded } from '@/lib/cursor'
+import { decodeCursor, itemCursorIds, itemCursorOffset, nextItemCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
@@ -214,6 +214,9 @@ export const whereClause = (...clauses) => {
   return clause ? ` WHERE ${clause} ` : ''
 }
 
+const seenItemClause = (ids, num) =>
+  ids.length > 0 ? `NOT ("Item".id = ANY($${num}::INTEGER[]))` : ''
+
 function whenClause (when, table) {
   return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
 }
@@ -379,6 +382,9 @@ export default {
     items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit }, ctx) => {
       const { me, models, userLoader } = ctx
       const decodedCursor = decodeCursor(cursor)
+      const seenItemIds = itemCursorIds(decodedCursor)
+      const seenItemArgs = seenItemIds.length > 0 ? [seenItemIds] : []
+      const offset = itemCursorOffset(decodedCursor)
       let items, user, pins, table
 
       // special authorization for bookmarks depending on owning users' privacy settings
@@ -430,12 +436,13 @@ export default {
                 activeOrMine(me),
                 typeClause(type),
                 by === 'downsats' && '"Item"."downMsats" > 0',
+                seenItemClause(seenItemIds, 6),
                 whenClause(when || 'forever', table))}
               ${orderByClause(by, me, models, type)}
               OFFSET $4
               LIMIT $5`,
             orderBy: orderByClause(by, me, models, type)
-          }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
+          }, ...whenRange(when, from, to || decodedCursor.time), user.id, offset, limit, ...seenItemArgs)
           break
         case 'new':
           items = await itemQueryWithMeta({
@@ -452,13 +459,14 @@ export default {
                 activeOrMine(me),
                 await filterClause(type, sub, 'new', ctx),
                 typeClause(type),
-                muteClause(me)
+                muteClause(me),
+                seenItemClause(seenItemIds, 4 + subArr.length)
               )}
               ORDER BY "PayIn"."payInStateChangedAt" DESC
               OFFSET $2
               LIMIT $3`,
             orderBy: 'ORDER BY "PayIn"."payInStateChangedAt" DESC'
-          }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+          }, decodedCursor.time, offset, limit, ...subArr, ...seenItemArgs)
           break
         case 'top':
           items = await itemQueryWithMeta({
@@ -478,12 +486,13 @@ export default {
                 '"Item".status = \'ACTIVE\'',
                 by === 'downsats' && '"Item"."downMsats" > 0',
                 await filterClause(type, sub, 'top', ctx, by),
-                muteClause(me))}
+                muteClause(me),
+                seenItemClause(seenItemIds, 5 + subArr.length))}
               ${orderByClause(by || 'sats', me, models, type, sub)}
               OFFSET $3
               LIMIT $4`,
             orderBy: orderByClause(by || 'sats', me, models, type, sub)
-          }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
+          }, ...whenRange(when, from, to || decodedCursor.time), offset, limit, ...subArr, ...seenItemArgs)
           break
         default:
           if (decodedCursor.offset === 0) {
@@ -530,16 +539,17 @@ export default {
                   '"Item".status = \'ACTIVE\'',
                   await filterClause(type, sub, 'lit', ctx),
                   subClause(sub, 3, 'Item', me, showNsfw),
-                  muteClause(me))}
+                  muteClause(me),
+                  seenItemClause(seenItemIds, 3 + subArr.length))}
                 ORDER BY ranklit DESC, "Item".id DESC
                 OFFSET $1
                 LIMIT $2`,
             orderBy: 'ORDER BY ranklit DESC, "Item".id DESC'
-          }, decodedCursor.offset, limit, ...subArr)
+          }, offset, limit, ...subArr, ...seenItemArgs)
           break
       }
       return {
-        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        cursor: items.length === limit ? nextItemCursorEncoded(decodedCursor, items, limit) : null,
         items,
         pins
       }

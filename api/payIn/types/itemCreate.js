@@ -1,6 +1,7 @@
 import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior, getSubs } from '../lib/item'
+import { extractMentions } from '@/lib/lexical/server/mentions'
 import { msatsToSats, satsToMsats } from '@/lib/format'
 import { GqlInputError } from '@/lib/error'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
@@ -124,8 +125,9 @@ export async function onBegin (tx, payInId, args) {
   const { parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], subNames = [], ...data } = args
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
-  const mentions = await getMentions(tx, { ...args, userId: payIn.userId })
-  const itemMentions = await getItemMentions(tx, { ...args, userId: payIn.userId })
+  const { userNames, itemIds } = extractMentions(args.text)
+  const mentions = await getMentions(tx, { names: userNames, userId: payIn.userId })
+  const itemMentions = await getItemMentions(tx, { itemIds, userId: payIn.userId })
 
   // start with median vote
   if (payIn.userId !== USER_ID.anon) {

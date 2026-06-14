@@ -1,6 +1,7 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
 import { uploadFees } from '../../resolvers/upload'
 import { getItemMentions, getMentions, getSubs, performBotBehavior } from '../lib/item'
+import { extractMentions } from '@/lib/lexical/server/mentions'
 import { notifyItemMention, notifyMention } from '@/lib/webPush'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import { satsToMsats, msatsToSats } from '@/lib/format'
@@ -109,8 +110,9 @@ export async function onBegin (tx, payInId, args) {
   const intersectionMerge = (a = [], b = [], key) => a.filter(x => b.find(y => y.userId === x.userId))
     .map(x => ({ [key]: x[key], ...b.find(y => y.userId === x.userId) }))
 
-  const mentions = await getMentions(tx, args)
-  const itemMentions = await getItemMentions(tx, args)
+  const { userNames, itemIds } = extractMentions(args.text)
+  const mentions = await getMentions(tx, { names: userNames, userId: args.userId })
+  const itemMentions = await getItemMentions(tx, { itemIds, userId: args.userId })
   const itemUploads = uploadIds.map(id => ({ uploadId: id }))
 
   const newUploadIds = difference(itemUploads, old.itemUploads, 'uploadId').map(({ uploadId }) => uploadId)

@@ -9,10 +9,11 @@ export default async ({ query: { username } }, res) => {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
+  const canonicalUsername = user.name
   const url = process.env.NODE_ENV === 'development' ? process.env.SELF_URL : process.env.NEXT_PUBLIC_URL
-  const { metadata } = lnurlPayMetadata(username)
+  const { metadata } = lnurlPayMetadata(canonicalUsername)
   return res.status(200).json({
-    callback: lnurlpCallbackUrl(username, url), // The URL from LN SERVICE which will accept the pay request parameters
+    callback: lnurlpCallbackUrl(canonicalUsername, url), // The URL from LN SERVICE which will accept the pay request parameters
     minSendable: Number(PROXY_PAYER_MIN_MSATS), // Min amount LN SERVICE is willing to receive, can not be less than 1 or more than `maxSendable`
     maxSendable: Number(PROXY_PAYER_MAX_MSATS), // Max amount LN SERVICE is willing to receive: the largest payer amount whose post-fee payout the wrap pipeline accepts
     metadata, // Metadata json which must be presented as raw string here, this is required to pass signature verification at a later step

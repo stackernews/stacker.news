@@ -32,6 +32,7 @@ import pay, { retry as retryPayIn } from '../payIn'
 import { BOUNTY_ALREADY_PAID_ERROR, BOUNTY_IN_PROGRESS_ERROR, getBountyPaymentTail } from '../payIn/lib/bountyPayment'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 import { resolveItemComments } from './comment-tree'
+import { cleanPageTitle, fetchYouTubeOEmbedTitle } from '@/lib/page-title'
 
 export async function getItem (parent, { id }, { me, models }) {
   const [item] = await getItemsById([id], { me, models })
@@ -561,8 +562,8 @@ export default {
         const dateHint = ` (${metadata.publicationDate?.getFullYear()})`
         const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
 
-        res.title = metadata?.title
-        if (moreThanOneYearAgo) res.title += dateHint
+        res.title = cleanPageTitle(metadata?.title, url) || await fetchYouTubeOEmbedTitle(url, snFetch)
+        if (res.title && moreThanOneYearAgo) res.title += dateHint
       } catch { }
 
       try {

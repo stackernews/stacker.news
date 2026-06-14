@@ -26,6 +26,13 @@ import { WalletsProvider } from '@/wallets/client/hooks'
 import FaviconProvider from '@/components/favicon'
 import { CookiesProvider } from '@/components/use-cookie'
 import { patchDOMTranslations } from '@/lib/patch-dom-translate'
+import {
+  createPWAResumeEntry,
+  getPWAResumePath,
+  isPWAStartPath,
+  isStandalonePWA,
+  PWA_RESUME_STORAGE_KEY
+} from '@/lib/pwa-resume'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -98,6 +105,31 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       window.localStorage.setItem('iosPwaPrompt', JSON.stringify({ isiOS: false, visits: 0 }))
     }
   }, [router?.query?.disablePrompt])
+
+  useEffect(() => {
+    if (!isStandalonePWA() || !isPWAStartPath(router.asPath)) return
+
+    const resumePath = getPWAResumePath(window.localStorage.getItem(PWA_RESUME_STORAGE_KEY))
+    if (!resumePath) return
+
+    router.replace(resumePath).catch((e) => {
+      if (!e.cancelled) console.log(e)
+    })
+  }, [router])
+
+  useEffect(() => {
+    if (!isStandalonePWA()) return
+
+    const recordResumePath = (asPath) => {
+      const entry = createPWAResumeEntry(asPath)
+      if (entry) window.localStorage.setItem(PWA_RESUME_STORAGE_KEY, entry)
+    }
+
+    recordResumePath(router.asPath)
+    router.events.on('routeChangeComplete', recordResumePath)
+
+    return () => router.events.off('routeChangeComplete', recordResumePath)
+  }, [router.asPath, router.events])
 
   /*
     If we are on the client, we populate the apollo cache with the

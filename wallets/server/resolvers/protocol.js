@@ -1,8 +1,10 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { utf8ByteLength } from '@/lib/validate'
+import lnd from '@/api/lnd'
 import { protocolRelationName } from '@/wallets/lib/util'
 import { mapWalletResolveTypes, parseWalletId } from '@/wallets/server/resolvers/util'
 import { protocolTestCreateInvoice } from '@/wallets/server/protocols'
+import { assertSameBolt11Network } from '@/wallets/server/bolt11-network'
 import { commitWithBadgeNotifications, updateWalletBadges } from '@/wallets/server/badges'
 import {
   applyRemoves,
@@ -14,11 +16,12 @@ import {
   upsertProtocolInTransaction,
   validateProtocolConfig
 } from '@/wallets/server/persist'
-import { timeoutSignal } from '@/lib/time'
+import { datePivot, raceAbort, timeoutSignal } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { writeWalletLog } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/client/errors'
+import { createInvoice as lndCreateInvoice } from 'ln-service'
 
 const MAX_WALLET_LOG_MESSAGE_BYTES = 4096
 
@@ -66,11 +69,35 @@ export async function testWalletRecvProtocol (parent, { config: wrapper }, { me 
     throw new GqlInputError('failed to create invoice: ' + e.message)
   }
 
-  if (!invoice || !invoice.startsWith('lnbc')) {
-    throw new GqlInputError('wallet returned invalid invoice')
+  let localInvoice
+  try {
+    localInvoice = await localTestCreateInvoice({ signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) })
+  } catch (e) {
+    throw new GqlInputError('failed to create local invoice: ' + e.message)
+  }
+
+  try {
+    assertSameBolt11Network({ actual: invoice, expected: localInvoice })
+  } catch (e) {
+    if (e instanceof WalletValidationError) {
+      throw new GqlInputError(e.message)
+    }
+    throw e
   }
 
   return true
+}
+
+async function localTestCreateInvoice ({ signal } = {}) {
+  const { request } = await raceAbort(
+    lndCreateInvoice({
+      lnd,
+      mtokens: '1000',
+      expires_at: datePivot(new Date(), { seconds: 1 })
+    }),
+    signal
+  )
+  return request
 }
 
 // Atomic configure-save: validate every upsert, then apply upserts + removes

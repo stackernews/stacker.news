@@ -6,6 +6,7 @@ import { useRouter } from 'next/router'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'
 import { SNReader } from './editor'
+import { fullTextAsPath, shouldShowFullTextForPath } from '@/lib/full-text'
 
 export function SearchText ({ text }) {
   return (
@@ -19,27 +20,38 @@ export function SearchText ({ text }) {
   )
 }
 
-export function useOverflow ({ containerRef, truncated = false }) {
+export function useOverflow ({ containerRef, truncated = false, itemId }) {
   const router = useRouter()
   // would the text overflow on the current screen size?
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?
   const [show, setShow] = useState(false)
-  const showOverflow = useCallback(() => setShow(true), [setShow])
+  const showOverflow = useCallback(() => {
+    setShow(true)
 
-  // if we are navigating to a hash, show the full text
+    if (!itemId) return
+
+    const nextAsPath = fullTextAsPath(router.asPath, itemId)
+    if (nextAsPath !== router.asPath) {
+      router.replace(nextAsPath, undefined, { shallow: true, scroll: false })
+    }
+  }, [itemId, router])
+
+  // if the route targets hidden text, show the full text
   useEffect(() => {
-    setShow(router.asPath.includes('#'))
-    const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#'))
+    setShow(shouldShowFullTextForPath(router.asPath, itemId))
+    const handleRouteChange = (url) => {
+      setShow(shouldShowFullTextForPath(url, itemId))
     }
 
     router.events.on('hashChangeStart', handleRouteChange)
+    router.events.on('routeChangeComplete', handleRouteChange)
 
     return () => {
       router.events.off('hashChangeStart', handleRouteChange)
+      router.events.off('routeChangeComplete', handleRouteChange)
     }
-  }, [router.asPath, router.events])
+  }, [itemId, router.asPath, router.events])
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {
@@ -121,9 +133,9 @@ export default function Text (props) {
   return <TextBody {...props} />
 }
 
-export function TextBody ({ topLevel, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
+export function TextBody ({ itemId, topLevel, children, className, innerClassName, state, html, imgproxyUrls, rel, name, readerRef }) {
   const containerRef = useRef(null)
-  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children })
+  const { overflowing, show, Overflow } = useOverflow({ containerRef, truncated: !!children, itemId })
   const carousel = useCarousel()
 
   const textClassNames = useMemo(() => {

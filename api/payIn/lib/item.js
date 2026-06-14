@@ -1,6 +1,5 @@
 import { USER_ID } from '@/lib/constants'
 import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
-import { parseInternalLinks } from '@/lib/url'
 
 export async function getSubs (models, { subNames, parentId }) {
   if (!subNames && !parentId) {
@@ -29,47 +28,28 @@ export async function getItemResult (tx, { id }) {
   )[0]
 }
 
-export async function getMentions (tx, { text, userId }) {
-  const mentionPattern = /\B@[\w_]+/gi
-  const names = text.match(mentionPattern)?.map(m => m.slice(1))
-  if (names?.length > 0) {
-    const users = await tx.user.findMany({
-      where: {
-        name: {
-          in: names
-        },
-        id: {
-          not: userId || USER_ID.anon
-        }
-      }
-    })
-    return users.map(user => ({ userId: user.id }))
-  }
-  return []
+export async function getMentions (tx, { names, userId }) {
+  if (!names?.length) return []
+
+  const users = await tx.user.findMany({
+    where: {
+      name: { in: names },
+      id: { not: userId || USER_ID.anon }
+    }
+  })
+  return users.map(user => ({ userId: user.id }))
 }
 
-export const getItemMentions = async (tx, { text, userId }) => {
-  const linkPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+[a-zA-Z0-9/?=]*`, 'gi')
-  const refs = text.match(linkPattern)?.map(m => {
-    try {
-      const { itemId, commentId } = parseInternalLinks(m)
-      return Number(commentId || itemId)
-    } catch (err) {
-      return null
+export const getItemMentions = async (tx, { itemIds, userId }) => {
+  if (!itemIds?.length) return []
+
+  const referee = await tx.item.findMany({
+    where: {
+      id: { in: itemIds },
+      userId: { not: userId || USER_ID.anon }
     }
-  }).filter(r => !!r)
-
-  if (refs?.length > 0) {
-    const referee = await tx.item.findMany({
-      where: {
-        id: { in: refs },
-        userId: { not: userId || USER_ID.anon }
-      }
-    })
-    return referee.map(r => ({ refereeId: r.id }))
-  }
-
-  return []
+  })
+  return referee.map(r => ({ refereeId: r.id }))
 }
 
 export async function performBotBehavior (tx, { text, id, userId = USER_ID.anon }) {

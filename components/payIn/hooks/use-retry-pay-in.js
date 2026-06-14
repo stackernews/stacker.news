@@ -18,7 +18,9 @@ export function useRetryPayIn (payInId, payInType, mutationOptions = {}) {
   const isAct = PAY_IN_ACT_TYPES.includes(payInType)
   const cachePhases = composeRetryCachePhases(retryBaseCachePhases(payInType, me), userCachePhases)
 
-  const options = { ...restOptions, cachePhases }
+  // a manual retry's fresh invoice creation/wrap failure is terminal — debump and show FAILED. (a
+  // genesis failure instead keeps its optimistic bump and auto-retries in the background.)
+  const options = { ...restOptions, cachePhases, failOnInvoiceSetupPending: true }
 
   if (isAct) {
     options.waitFor = actWaitFor(hasSendWallet)

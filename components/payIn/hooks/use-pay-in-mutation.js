@@ -70,7 +70,8 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
     })
     const {
       persistOnNavigate,
-      waitFor = paidWaitFor, protocolLimit
+      waitFor = paidWaitFor, protocolLimit,
+      failOnInvoiceSetupPending
     } = mergedOptions
 
     const payIn = data[mutationName]
@@ -91,11 +92,21 @@ export default function usePayInMutation (mutation, { onCompleted, ...options } 
     // if the mutation returns in a pending state, it has an invoice we need to pay
     let payError
     if (isInvoiceSetupPending(payIn)) {
-      // the optimistic action already happened (onBegin ran); invoice creation/wrap failed and is
-      // being auto-retried in the background. Treat as success-with-pending-payment: complete
-      // optimistically and keep the optimistic cache (already written by onMutationResult). There's
-      // no invoice to pay, and nothing to surface
-      ourOnCompleted?.(data)
+      if (failOnInvoiceSetupPending) {
+        // a manual retry whose fresh invoice creation/wrap failed is terminal: the successor is
+        // bolt11-less and the server has already enqueued its failure, so surface it instead of
+        // keeping it optimistic. onPayError reverts the optimistic bump and flips the notification to
+        // FAILED — matching how the retry already renders this successor. onMutationResult reconciled
+        // credits first, so onPayError's response-keyed revert is exact.
+        payError = new Error('invoice setup failed')
+        onPayError?.(payError, client.cache, { data })
+      } else {
+        // genesis: the optimistic action already happened (onBegin ran); invoice creation/wrap failed
+        // and is being auto-retried in the background. Treat as success-with-pending-payment: complete
+        // optimistically and keep the optimistic cache (already written by onMutationResult). There's
+        // no invoice to pay, and nothing to surface
+        ourOnCompleted?.(data)
+      }
     } else if (payIn.payInState === 'PENDING' || payIn.payInState === 'PENDING_HELD') {
       if (isClientPessimisticPayIn(payIn, me)) {
         // the action is pessimistic

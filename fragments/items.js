@@ -222,6 +222,33 @@ export const RELATED_ITEMS_WITH_ITEM = gql`
   }
 `
 
+export const ITEM_REFERENCES = gql`
+  ${ITEM_FIELDS}
+  query ItemReferences($id: ID!, $cursor: String, $limit: Limit) {
+    references(id: $id, cursor: $cursor, limit: $limit) {
+      cursor
+      items {
+        ...ItemFields
+      }
+    }
+  }
+`
+
+export const ITEM_REFERENCES_WITH_ITEM = gql`
+  ${ITEM_FIELDS}
+  query ItemReferences($id: ID!, $cursor: String, $limit: Limit) {
+    item(id: $id) {
+      ...ItemFields
+    }
+    references(id: $id, cursor: $cursor, limit: $limit) {
+      cursor
+      items {
+        ...ItemFields
+      }
+    }
+  }
+`
+
 export const UPDATE_ITEM_USER_VIEW = gql`
   mutation updateCommentsViewAt($id: ID!, $meCommentsViewedAt: Date!) {
     updateCommentsViewAt(id: $id, meCommentsViewedAt: $meCommentsViewedAt)

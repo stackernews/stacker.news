@@ -12,6 +12,7 @@ import Button from 'react-bootstrap/Button'
 import { useEffect } from 'react'
 import Poll from './poll'
 import Related from './related'
+import References from './references'
 import PastBounties from './past-bounties'
 import Check from '@/svgs/check-double-line.svg'
 import Share from './share'
@@ -155,6 +156,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
             <Related title={item.title} itemId={item.id} show={item.ncomments === 0} />
           }
           {item.bounty > 0 && <PastBounties item={item} />}
+          {!item.deletedAt && <References itemId={item.id} />}
         </>}
     </ItemComponent>
   )

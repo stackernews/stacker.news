@@ -366,6 +366,50 @@ function typeClause (type) {
   }
 }
 
+export async function getItemReferences (parent, { id, cursor, limit }, ctx) {
+  const { me, models } = ctx
+  const itemId = Number(id)
+  if (!Number.isInteger(itemId) || itemId <= 0) {
+    return { cursor: null, items: [] }
+  }
+
+  const decodedCursor = decodeCursor(cursor)
+  const [currentUser, itemFilterClause] = await Promise.all([
+    me ? ctx.userLoader.load(me.id) : null,
+    filterClause(null, null, null, ctx)
+  ])
+  const showNsfw = currentUser ? currentUser.nsfwMode : false
+  const items = await itemQueryWithMeta({
+    me,
+    models,
+    query: `
+      ${SELECT}, "ItemMention".created_at AS "sortTime"
+      FROM "ItemMention"
+      JOIN "Item" ON "ItemMention"."referrerId" = "Item".id
+      ${payInJoinFilter(me)}
+      ${whereClause(
+        '"ItemMention"."refereeId" = $1',
+        '"ItemMention".created_at <= $2',
+        '"Item"."deletedAt" IS NULL',
+        '"Item"."parentId" IS NULL',
+        '"Item".bio = false',
+        subClause(null, 5, 'Item', me, showNsfw),
+        activeOrMine(me),
+        itemFilterClause,
+        muteClause(me)
+      )}
+      ORDER BY "ItemMention".created_at DESC, "Item".id DESC
+      OFFSET $3
+      LIMIT $4`,
+    orderBy: 'ORDER BY "sortTime" DESC, "Item".id DESC'
+  }, itemId, decodedCursor.time, decodedCursor.offset, limit)
+
+  return {
+    cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+    items
+  }
+}
+
 export default {
   Query: {
     itemRepetition: async (parent, { parentId }, { me, models }) => {
@@ -545,6 +589,7 @@ export default {
       }
     },
     item: getItem,
+    references: getItemReferences,
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {
       const res = {}
       try {

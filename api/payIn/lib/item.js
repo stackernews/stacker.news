@@ -1,5 +1,6 @@
 import { USER_ID } from '@/lib/constants'
 import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
+import { extractUserMentions } from '@/lib/md'
 import { parseInternalLinks } from '@/lib/url'
 
 export async function getSubs (models, { subNames, parentId }) {
@@ -30,8 +31,7 @@ export async function getItemResult (tx, { id }) {
 }
 
 export async function getMentions (tx, { text, userId }) {
-  const mentionPattern = /\B@[\w_]+/gi
-  const names = text.match(mentionPattern)?.map(m => m.slice(1))
+  const names = extractUserMentions(text)
   if (names?.length > 0) {
     const users = await tx.user.findMany({
       where: {

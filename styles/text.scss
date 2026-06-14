@@ -667,10 +667,8 @@ span + .sn-link {
 
 .sn-list__item--checked, .sn-list__item--unchecked {
   position: relative;
-  margin-left: 0.5em;
-  margin-right: 0.5em;
-  padding-left: 1.5em;
-  padding-right: 1.5em;
+  padding-left: 0;
+  padding-right: 0;
   list-style-type: none;
   outline: none;
   display: block;
@@ -678,7 +676,7 @@ span + .sn-link {
 }
 
 .sn-list__item--checked > *, .sn-list__item--unchecked > * {
-  margin-left: 0.01em;
+  margin-left: 0;
 }
 
 .sn-list__item--checked:before, .sn-list__item--unchecked:before {
@@ -686,7 +684,7 @@ span + .sn-link {
   width: 0.9em;
   height: 0.9em;
   top: 0.25em;
-  left: 0;
+  left: -1.5em;
   cursor: pointer;
   display: block;
   background-size: cover;
@@ -719,7 +717,7 @@ span + .sn-link {
   display: block;
   top: 45%;
   width: 0.2em;
-  left: 0.35em;
+  left: -1.15em;
   height: 0.4em;
   transform: translateY(-50%) rotate(45deg);
   border-width: 0 0.1em 0.1em 0;

@@ -655,9 +655,8 @@ span + .sn-link {
   }
 }
 
-// Lexical applies the nested-item class to the parent <li> that owns a child list.
-// Keep the marker when that parent also has inline content, but hide empty wrappers.
-.sn-list__nested-item:not(:has(> span)) {
+// Lexical applies the nested-item class to list items that own a child list.
+.sn-list__nested-item {
   list-style-type: none;
 }
 
@@ -667,14 +666,11 @@ span + .sn-link {
 
 .sn-list__item--checked, .sn-list__item--unchecked {
   position: relative;
-  margin-left: 0.5em;
-  margin-right: 0.5em;
-  padding-left: 1.5em;
-  padding-right: 1.5em;
+  margin-left: -1.25em;
+  padding-left: 1.25em;
   list-style-type: none;
   outline: none;
   display: block;
-  min-height: 1.5em;
 }
 
 .sn-list__item--checked > *, .sn-list__item--unchecked > * {
@@ -685,12 +681,13 @@ span + .sn-link {
   content: '\200B';
   width: 0.9em;
   height: 0.9em;
-  top: 0.25em;
+  top: 50%;
   left: 0;
   cursor: pointer;
   display: block;
   background-size: cover;
   position: absolute;
+  transform: translateY(-50%);
 }
 
 .sn-list__item--checked:focus:before, .sn-list__item--unchecked:focus:before {
@@ -723,6 +720,11 @@ span + .sn-link {
   height: 0.4em;
   transform: translateY(-50%) rotate(45deg);
   border-width: 0 0.1em 0.1em 0;
+}
+
+.sn-list__nested-item:before,
+.sn-list__nested-item:after {
+  display: none;
 }
 
 [contenteditable="false"] .sn-list__item--checked:before,

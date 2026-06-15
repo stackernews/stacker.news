@@ -935,7 +935,8 @@ span + .sn-link {
   outline: 2px solid rgb(60, 132, 244);
 }
 .sn-table__cell {
-  border: 1px solid var(--theme-borderColor);
+  // override table hard coded border color
+  border: 1px solid var(--theme-borderColor) !important;
   min-width: 75px;
   vertical-align: top;
   text-align: start;
@@ -944,6 +945,12 @@ span + .sn-link {
   outline: none;
   overflow: auto;
   line-height: 1.2;
+}
+
+.sn-table__cell:empty::after {
+  // createDOM places a <br> while exportDOM doesn't
+  // we make sure to have a line box at line-height, like the <br>
+  content: '\00a0';
 }
 
 /*
@@ -964,11 +971,14 @@ span + .sn-link {
   top: 0;
 }
 .sn-table__cell--header {
-  background-color: var(--theme-commentBg);
+  // override table hard coded background color
+  background-color: var(--theme-commentBg) !important;
   text-align: start;
 }
 .sn-table__cell--selected {
   caret-color: transparent;
+  // can't see the highlight in dark mode, so we add a solid border
+  border: 1px solid rgb(60, 132, 244) !important;
 }
 .sn-table__cell--selected::after {
   position: absolute;

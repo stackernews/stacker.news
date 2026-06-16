@@ -21,59 +21,6 @@ function TweetSkeleton ({ className }) {
   )
 }
 
-export const NostrEmbed = memo(function NostrEmbed ({ className, darkMode, id }) {
-  const [show, setShow] = useState(false)
-  const iframeRef = useRef(null)
-
-  useEffect(() => {
-    if (!iframeRef.current) return
-
-    const setHeightFromIframe = (e) => {
-      if (e.origin !== 'https://njump.me' || !e?.data?.height || e.source !== iframeRef.current.contentWindow) return
-      iframeRef.current.height = `${e.data.height}px`
-    }
-
-    window?.addEventListener('message', setHeightFromIframe)
-
-    const handleIframeLoad = () => {
-      iframeRef.current.contentWindow.postMessage({ setDarkMode: darkMode }, '*')
-    }
-
-    if (iframeRef.current.complete) {
-      handleIframeLoad()
-    } else {
-      iframeRef.current.addEventListener('load', handleIframeLoad)
-    }
-
-    // https://github.com/vercel/next.js/issues/39451
-    iframeRef.current.src = `https://njump.me/${id}?embed=yes`
-
-    return () => {
-      window?.removeEventListener('message', setHeightFromIframe)
-      iframeRef.current?.removeEventListener('load', handleIframeLoad)
-    }
-  }, [iframeRef.current, darkMode])
-
-  return (
-    <div className={classNames('sn-nostr-container', !show && 'sn-embed-contained', className)}>
-      <iframe
-        ref={iframeRef}
-        width='100%'
-        style={{ maxWidth: '100%' }}
-        height={iframeRef.current?.height || '100%'}
-        frameBorder='0'
-        sandbox='allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox'
-        allow=''
-      />
-      {!show &&
-        <Button size='md' variant='info' className='sn-embed-show-full' onClick={() => setShow(true)}>
-          <div>show full note</div>
-          <small className='fw-normal fst-italic'>or other stuff</small>
-        </Button>}
-    </div>
-  )
-})
-
 const SpotifyEmbed = function SpotifyEmbed ({ src, className }) {
   const iframeRef = useRef(null)
 
@@ -140,12 +87,6 @@ const Embed = memo(function Embed ({ src, provider, id, meta, className, topLeve
             </Button>}
         </div>
       </>
-    )
-  }
-
-  if (provider === 'nostr') {
-    return (
-      <NostrEmbed src={src} className={embedClass} id={id} darkMode={darkMode} />
     )
   }
 

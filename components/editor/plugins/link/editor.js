@@ -75,7 +75,7 @@ export default function LinkEditor ({ nodeKey, anchorElem, onDismiss }) {
     const newUrl = linkNode.getURL()
     setLinkUrl(newUrl)
 
-    if (!isLinkEditMode && (newUrl.trim() === '')) {
+    if (!isLinkEditMode && (newUrl.trim() === 'https://')) {
       setEditedLinkUrl('')
       setIsLinkEditMode(true)
     }

@@ -354,7 +354,14 @@ From the [postgres source docs](https://git.postgresql.org/gitweb/?p=postgresql.
 
 # `IMPORTANT: deadlocks`
 
-Deadlocks can occur when two transactions are waiting for each other to release locks. This can happen when two transactions lock rows in different orders whether explicit or implicit.
+Deadlocks can occur when two transactions are waiting for each other to release locks.
+
+This can happen when:
+
+1. two transactions lock the same rows in different orders whether explicit or implicit.
+2. two transactions lock the same row with compatible locks but interleave upgraded incompatible locks on that row.
+
+## Locking the same rows in different orders
 
 If both transactions lock the rows in the same order, the deadlock is avoided.
 
@@ -411,6 +418,51 @@ UPDATE users
     "stackedMsats" = users."stackedMsats" + forwardees.msats
     FROM forwardees
     WHERE users.id = forwardees."userId";
+```
+
+## Locking the same row with compatible locks then taking interleaved incompatible locks
+
+## Incorrect
+
+```sql
+-- transaction 1 (payIn): obtainRowLevelLocks
+BEGIN;
+SELECT 1 FROM users WHERE id = 1 FOR NO KEY UPDATE;   -- holds NO KEY UPDATE
+
+-- transaction 2 (wallet logger): INSERT walletLog FK-locks the user row
+BEGIN;
+INSERT INTO "WalletLog" ("userId", ...) VALUES (1, ...);  -- holds KEY SHARE
+-- ^ does NOT block: KEY SHARE is compatible with NO KEY UPDATE
+
+-- transaction 1: upgrades NO KEY UPDATE -> FOR UPDATE
+SELECT 1 FROM users WHERE id = 1 FOR UPDATE;  -- blocks: FOR UPDATE conflicts with T2's KEY SHARE
+
+-- transaction 2: upgrades KEY SHARE -> NO KEY UPDATE
+UPDATE users SET "walletsUpdatedAt" = now() WHERE id = 1;  -- blocks: NO KEY UPDATE conflicts with T1's NO KEY UPDATE
+-- deadlock: each waits for the other to release
+```
+
+## Correct
+
+```sql
+-- transaction 1 (payIn): obtainRowLevelLocks
+BEGIN;
+SELECT 1 FROM users WHERE id = 1 FOR NO KEY UPDATE;   -- holds NO KEY UPDATE
+
+-- transaction 2 (wallet logger): INSERT walletLog FK-locks the user row
+BEGIN;
+INSERT INTO "WalletLog" ("userId", ...) VALUES (1, ...);  -- holds KEY SHARE
+
+-- transaction 1: stays compatible with T2's KEY SHARE
+UPDATE users SET msats = msats + 1 WHERE id = 1;
+
+-- transaction 2: waits for T1 to commit
+UPDATE users SET "walletsUpdatedAt" = now() WHERE id = 1;
+
+-- transaction 1: commits
+COMMIT;
+-- transaction 2: commits
+COMMIT;
 ```
 
 ## More resources

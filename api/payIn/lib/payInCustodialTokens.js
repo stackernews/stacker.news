@@ -26,7 +26,9 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
         (${mCustodialCost} - LEAST(mcredits, ${mCreditPayable})) % 1000 as max_mcredits_modulo_1000
       FROM users
       WHERE id = ${me.id}
-      FOR UPDATE
+      -- this only updates non-key balance columns, so FOR NO KEY UPDATE is the
+      -- appropriate lock — and it matches the lock obtainRowLevelLocks already
+      FOR NO KEY UPDATE
     ),
     user_spending AS (
       SELECT

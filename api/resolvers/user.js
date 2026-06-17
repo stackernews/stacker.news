@@ -258,7 +258,9 @@ export default {
           SET "foundNotesAt" = now(), "lastSeenAt" = now()
           WHERE "id" = (
             SELECT "id" FROM users WHERE "id" = ${me.id}
-            FOR UPDATE SKIP LOCKED
+            -- non-key best-effort update: NO KEY UPDATE skips only on real writers,
+            -- not on benign KEY SHARE FK-insert locks, and never blocks (SKIP LOCKED)
+            FOR NO KEY UPDATE SKIP LOCKED
           )`.catch(console.error)
       }
 
@@ -591,7 +593,9 @@ export default {
         SET "checkedNotesAt" = now(), "lastSeenAt" = now()
         WHERE "id" = (
           SELECT "id" FROM users WHERE "id" = ${me.id}
-          FOR UPDATE SKIP LOCKED
+          -- non-key best-effort update: NO KEY UPDATE skips only on real writers,
+          -- not on benign KEY SHARE FK-insert locks, and never blocks (SKIP LOCKED)
+          FOR NO KEY UPDATE SKIP LOCKED
         )`.catch(console.error)
 
       return false

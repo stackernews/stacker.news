@@ -27,9 +27,12 @@ export async function updateWalletBadges ({ userId, tx }) {
   // Lock the user row before reading the old badge state so concurrent saves for
   // the same user serialize here. Otherwise both read the pre-transition value and
   // each start a duplicate, never-reaped HORSE/GUN streak (no open-streak unique
-  // constraint exists). Mirrors assertVaultKeyUnchanged's FOR UPDATE on users.
+  // constraint exists). Mirrors assertVaultKeyUnchanged's FOR NO KEY UPDATE on users.
+  // FOR NO KEY UPDATE (not FOR UPDATE): only non-key columns are read/updated, so this
+  // still serializes concurrent saves without upgrading the user-row lock and
+  // deadlocking (e.g. with the wallet logger's status write via wallet_updated_at).
   const [{ hasRecvWallet: oldHasRecvWallet, hasSendWallet: oldHasSendWallet }] = await tx.$queryRaw`
-    SELECT "hasRecvWallet", "hasSendWallet" FROM users WHERE id = ${userId} FOR UPDATE`
+    SELECT "hasRecvWallet", "hasSendWallet" FROM users WHERE id = ${userId} FOR NO KEY UPDATE`
 
   const wallets = await tx.wallet.findMany({
     where: {

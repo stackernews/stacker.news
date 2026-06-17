@@ -214,7 +214,11 @@ export async function deleteWalletIfEmpty (tx, walletId) {
 // conditional key *write* via updateVaultMetadata — since they rotate the key.)
 export async function assertVaultKeyUnchanged (tx, userId, expectedHash) {
   const [current] = await tx.$queryRaw`
-    SELECT "vaultKeyHash" FROM users WHERE id = ${userId} FOR UPDATE`
+    -- FOR NO KEY UPDATE (not FOR UPDATE): this is a non-key read/guard, so it still
+    -- serializes against the passphrase rotation (a non-key vaultKeyHash write) but
+    -- doesn't upgrade the user-row lock this tx already holds — which would deadlock
+    -- with another tx escalating its own lock on the same row.
+    SELECT "vaultKeyHash" FROM users WHERE id = ${userId} FOR NO KEY UPDATE`
   if (current?.vaultKeyHash !== expectedHash) {
     throw new GqlInputError('passphrase changed, please retry')
   }

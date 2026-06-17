@@ -1,4 +1,5 @@
 import { DecoratorNode, $applyNodeReplacement } from 'lexical'
+import { parseItemUrl } from '@/lib/url'
 
 function $convertItemMentionElement (domNode) {
   const id = domNode.getAttribute('data-lexical-item-mention-id')
@@ -36,6 +37,16 @@ export class ItemMentionNode extends DecoratorNode {
 
   getURL () {
     return this.__url
+  }
+
+  getDisplayText () {
+    if (this.__text) return this.__text
+    try {
+      // derive the label straight from the url's path
+      const { linkText } = parseItemUrl(new URL(this.__url))
+      if (linkText) return linkText
+    } catch {}
+    return `#${this.__itemMentionId}`
   }
 
   static clone (node) {
@@ -90,7 +101,7 @@ export class ItemMentionNode extends DecoratorNode {
     wrapper.setAttribute('data-lexical-item-mention-id', this.__itemMentionId)
     const a = document.createElement('a')
     a.setAttribute('href', this.__url)
-    a.textContent = this.__text || `#${this.__itemMentionId}`
+    a.textContent = this.getDisplayText()
     wrapper.appendChild(a)
     return { element: wrapper }
   }
@@ -113,7 +124,7 @@ export class ItemMentionNode extends DecoratorNode {
   }
 
   getTextContent () {
-    return this.__text || `#${this.__itemMentionId}`
+    return this.getDisplayText()
   }
 
   decorate () {
@@ -121,7 +132,7 @@ export class ItemMentionNode extends DecoratorNode {
     const MentionsComponent = require('@/components/editor/nodes/mentions').default
     const id = this.__itemMentionId
     const href = this.__url
-    const text = this.__text || `#${this.__itemMentionId}`
+    const text = this.getDisplayText()
     return (
       <ItemPopover id={id}>
         <MentionsComponent nodeKey={this.getKey()} href={href} text={text} />

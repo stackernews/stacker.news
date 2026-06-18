@@ -290,3 +290,5 @@ sir-opti,issue,,#2803,easy,,,,10k,???,???
 Scroogey-SN,pr,#2843,,good-first-issue,,,,20k,Scroogey@coinos.io,2026-03-08
 riccardobl,security,,,,,,account switch csrf,100k,???,???
 riccardobl,security,,,,,,invite metadata,100k,???,???
+riccardobl,security,,,,,,email linking,200k,???,???
+felipebueno,pr,#3002,,good-first-issue,,,,20k,felipebueno@getalby.com,???

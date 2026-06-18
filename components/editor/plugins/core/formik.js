@@ -33,9 +33,9 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
     })
   }, 500, [editor, textHelpers, disableSubmit])
 
-  const syncFormik = useCallback((flush = false) => {
+  const syncFormik = useCallback(({ switchMode = false, flush = false } = {}) => {
     editor.getEditorState().read(() => {
-      if ($isTextEmpty()) {
+      if ($isTextEmpty() && !switchMode) {
         textHelpers.setValue('')
         disableSubmit(false) // always enable submit if text is empty
         return
@@ -69,7 +69,7 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
     return editor.registerCommand(
       BLUR_COMMAND,
       () => {
-        syncFormik(true)
+        syncFormik({ flush: true })
         return false
       },
       COMMAND_PRIORITY_HIGH
@@ -79,8 +79,8 @@ export default function FormikBridgePlugin ({ name = 'text' }) {
   useEffect(() => {
     return editor.registerCommand(
       SYNC_FORMIK_COMMAND,
-      (flush = true) => {
-        syncFormik(flush)
+      ({ switchMode = false, flush = true }) => {
+        syncFormik({ switchMode, flush })
         return true
       },
       COMMAND_PRIORITY_HIGH

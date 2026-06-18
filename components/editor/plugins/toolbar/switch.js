@@ -37,7 +37,7 @@ export default function ModeSwitchPlugin ({ name }) {
 
         if (newMode === (isMarkdownMode(editor) ? MARKDOWN_MODE : RICH_MODE)) return false
 
-        editor.dispatchCommand(SYNC_FORMIK_COMMAND)
+        editor.dispatchCommand(SYNC_FORMIK_COMMAND, { switchMode: true })
 
         // toggle mode
         if (newMode) {

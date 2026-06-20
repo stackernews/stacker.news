@@ -10,7 +10,9 @@ import { walletLogger } from '@/wallets/server'
 import pay from '@/api/payIn'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
-  const user = await models.user.findUnique({ where: { name: username } })
+  // Case-insensitive username lookup (the `name` column is Citext) so that
+  // mixed-case LNURL-pay addresses like SwapMarket@ resolve correctly. (#3058)
+  const user = await models.user.findFirst({ where: { name: { equals: username, mode: 'insensitive' } } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }

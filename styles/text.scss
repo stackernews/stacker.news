@@ -127,7 +127,6 @@
   margin-top: 0.75rem;
   margin-bottom: 0.5rem;
   font-size: 1rem;
-  position: relative;
 }
 
 .topLevel h1.sn-heading {
@@ -146,19 +145,14 @@
   font-size: 1.15rem;
 }
 
-/* stays on top of the heading */
+/* the heading text itself is the permalink; look like a heading, hint on hover */
 .sn-heading__link {
-  width: fit-content;
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  z-index: 1;
-  user-select: text;
+  color: inherit;
+  text-decoration: none;
 }
 
-.sn-heading__link:has(~ .sn-link),
-.sn-link ~ .sn-heading__link {
-  display: none;
+.sn-heading__link:hover {
+  color: inherit;
 }
 
 /* blocks */
@@ -173,6 +167,7 @@
     margin-bottom: 0;
   }
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
 }

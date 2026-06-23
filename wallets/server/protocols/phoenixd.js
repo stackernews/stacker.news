@@ -1,7 +1,12 @@
-import { snFetch } from '@/lib/fetch'
 import { msatsToSats, msatsSatsFloor } from '@/lib/format'
+import { walletAmountToMsatsOrUndefined } from '@/wallets/lib/amount'
 import { truncateToCharLength } from '@/lib/validate'
-import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import {
+  getIncomingPayment,
+  phoenixdCompletedAt,
+  phoenixdFormBody,
+  phoenixdRequest
+} from '@/wallets/lib/phoenixd'
 
 export const name = 'PHOENIXD'
 // phoenixd only invoices whole sats, so it can receive a request snapped down to the sat grid
@@ -15,29 +20,37 @@ export async function createInvoice (
   { signal }
 ) {
   // https://phoenix.acinq.co/server/api#create-bolt11-invoice
-  const headers = new Headers()
-  headers.set('Authorization', 'Basic ' + Buffer.from(':' + apiKey).toString('base64'))
-  headers.set('Content-type', 'application/x-www-form-urlencoded')
-
-  const body = new URLSearchParams()
-  body.append('description', description)
-  body.append('amountSat', msatsToSats(msats))
-  body.append('expirySeconds', expiry)
-
-  const method = 'POST'
-  const res = await snFetch(url, {
+  const payment = await phoenixdRequest({
+    url,
+    apiKey,
     path: '/createinvoice',
-    method,
-    headers,
-    body,
+    method: 'POST',
+    body: phoenixdFormBody({
+      description,
+      amountSat: msatsToSats(msats),
+      expirySeconds: expiry
+    }),
     signal
   })
 
-  assertResponseOk(res, { method })
-  assertContentTypeJson(res, { method })
-
-  const payment = await res.json()
   return payment.serialized
+}
+
+export async function checkInvoice ({ hash }, { url, apiKey }, { signal }) {
+  const payment = await getIncomingPayment({ paymentHash: hash }, { url, apiKey }, { signal })
+  if (!payment) return { status: 'PENDING' }
+
+  if (payment.isPaid) {
+    return {
+      status: 'SETTLED',
+      preimage: payment.preimage,
+      actualFeeMsats: walletAmountToMsatsOrUndefined(payment.fees),
+      settledAt: phoenixdCompletedAt(payment)
+    }
+  }
+  // phoenixd's incoming-payment response has no expiry flag, so we can't self-report expiry here; the
+  // worker force-fails the row once the bolt11 expiry + grace window passes.
+  return { status: 'PENDING' }
 }
 
 export async function testCreateInvoice ({ url, apiKey }, { signal }) {

@@ -17,6 +17,7 @@ export * from './util'
  * @typedef {Object} ServerWalletProtocol
  * @property {ProtocolName} name - must match a protocol name in the database
  * @property {ProtocolCreateInvoice} createInvoice - create a new invoice
+ * @property {ProtocolCheckInvoice} [checkInvoice] - checks a created invoice without creating another one
  * @property {ProtocolTestCreateInvoice} testCreateInvoice - create a test invoice
  */
 
@@ -25,7 +26,15 @@ export * from './util'
  * @param {CreateInvoiceArgs} args - arguments for the invoice
  * @param {Object} config - current protocol configuration
  * @param {CreateInvoiceOptions} opts - additional options for the invoice request
- * @returns {Promise<Bolt11>} - bolt11 invoice
+ * @returns {Promise<Bolt11|{bolt11: Bolt11, verificationContext?: Object}>} - bolt11 invoice and optional settlement verification data
+ */
+
+/**
+ * @callback ProtocolCheckInvoice
+ * @param {Object} transaction - stored external wallet transaction details, including its invoice hash
+ * @param {Object} config - current protocol configuration
+ * @param {CreateInvoiceOptions} opts - additional options for the lookup
+ * @returns {Promise<{status: 'PENDING'|'SETTLED'|'FAILED'|'UNKNOWN', preimage?: string, msats?: bigint|string, actualFeeMsats?: bigint|string, settledAt?: Date, unknownReason?: string, error?: string}|null>} - msats is the received amount; actualFeeMsats any receiver-side fee
  */
 
 /**

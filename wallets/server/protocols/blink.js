@@ -1,4 +1,4 @@
-import { getScopes, SCOPE_READ, SCOPE_RECEIVE, SCOPE_WRITE, getWallet, request } from '@/wallets/lib/protocols/blink'
+import { getScopes, getTransactionByPaymentHash, SCOPE_READ, SCOPE_RECEIVE, SCOPE_WRITE, getWallet, request } from '@/wallets/lib/protocols/blink'
 import { msatsToSats, msatsSatsFloor } from '@/lib/format'
 import { WalletPermissionsError } from '@/wallets/client/errors'
 
@@ -47,6 +47,27 @@ export async function createInvoice (
   }
 
   return res.invoice.paymentRequest
+}
+
+export async function checkInvoice ({ hash }, { apiKey, currency }, { signal }) {
+  currency = currency ? currency.toUpperCase() : 'BTC'
+  const wallet = await getWallet({ apiKey, currency }, { signal })
+  const tx = await getTransactionByPaymentHash(hash, { apiKey, wallet, direction: 'RECEIVE' }, { signal })
+
+  if (tx?.status === 'SUCCESS') {
+    return {
+      status: 'SETTLED',
+      preimage: tx.preImage
+    }
+  }
+  if (tx?.status === 'FAILURE') {
+    return {
+      status: 'FAILED',
+      error: tx.error || 'blink invoice failed'
+    }
+  }
+
+  return { status: 'PENDING' }
 }
 
 export async function testCreateInvoice ({ apiKey, currency }, { signal }) {

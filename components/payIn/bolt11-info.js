@@ -25,14 +25,16 @@ export default function Bolt11Info ({
   nostrNote,
   lud18Data,
   comment,
+  showAmount = true,
+  extraChips = [],
   children
 }) {
   const [expanded, setExpanded] = useState(false)
   const showRelativeTimes = useIsClient()
   const details = bolt11Details({ bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes })
-  if (!details && !children) return null
+  const chips = [...(details?.chips ?? []), ...extraChips].filter(Boolean)
+  if (!details && chips.length === 0 && !children) return null
 
-  const chips = details?.chips ?? []
   const showMoreToggle = chips.length > DEFAULT_CHIP_COUNT
   const visibleChips = expanded ? chips : chips.slice(0, DEFAULT_CHIP_COUNT)
   const hiddenChipCount = chips.length - DEFAULT_CHIP_COUNT
@@ -40,7 +42,7 @@ export default function Bolt11Info ({
 
   return (
     <div className={styles.details}>
-      {details?.amount && (
+      {showAmount && details?.amount && (
         <div className={styles.amount}>
           <span>{details.amount.amount}</span>
           <span>{details.amount.unit}</span>

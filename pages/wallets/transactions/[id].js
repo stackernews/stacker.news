@@ -1,52 +1,61 @@
 import { useQuery } from '@apollo/client/react'
 import { useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { Alert } from 'react-bootstrap'
-import AccordianItem from '@/components/accordian-item'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { formatSats, msatsToSatsDecimal } from '@/lib/format'
+import { formatMsatsToSats } from '@/lib/format'
 import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
-import { timeSince } from '@/lib/time'
+import { bolt11QrTransform } from '@/lib/bolt11'
 import { useData } from '@/components/use-data'
-import { GET_EXTERNAL_WALLET_TRANSACTION } from '@/wallets/client/fragments'
-import { WalletErrorShell, WalletLogs, WalletShellMain } from '@/wallets/client/components'
-import { externalTransactionDiagnosticMessage } from '@/wallets/lib/external-transactions'
-
-const TERMINAL_EXTERNAL_TRANSACTION_STATUSES = new Set(['SETTLED', 'FAILED'])
+import Qr from '@/components/qr'
+import Bolt11Info, { toBolt11InfoProps } from '@/components/payIn/bolt11-info'
+import { ExternalTransactionStatus } from '@/components/payIn/external-transaction-status'
+import { GET_EXTERNAL_TRANSACTION } from '@/wallets/client/fragments'
+import {
+  TransactionDetailHeading,
+  TransactionDetailPage,
+  TransactionDetailSection,
+  TransactionHeadingTitle,
+  WalletErrorShell,
+  WalletLogs,
+  transactionDetailStyles
+} from '@/wallets/client/components'
+import { externalTransactionDiagnosticMessage, externalTransactionBolt11InfoProps, externalTransactionCheckStopped, TERMINAL_STATUSES } from '@/wallets/lib/external-transactions'
 
 // a transaction stops changing once it's terminal, or once it's a "stopped" UNKNOWN (SN has given up
-// rescheduling checks: nextStatusCheckAt null) — no point polling its logs after that.
+// checking — past the polling deadline or a permanent stop-reason) — no point polling its logs after.
 function externalTransactionDone (transaction) {
-  if (TERMINAL_EXTERNAL_TRANSACTION_STATUSES.has(transaction.settlementStatus)) return true
-  return transaction.settlementStatus === 'UNKNOWN' && transaction.nextStatusCheckAt == null
+  if (TERMINAL_STATUSES.has(transaction.settlementStatus)) return true
+  return transaction.settlementStatus === 'UNKNOWN' && externalTransactionCheckStopped(transaction)
 }
 
 export const getServerSideProps = getGetServerSideProps({
-  query: GET_EXTERNAL_WALLET_TRANSACTION,
+  query: GET_EXTERNAL_TRANSACTION,
   variables: ({ id }) => ({ id: Number(id) }),
   authRequired: true
 })
 
-export default function ExternalWalletTransactionPage ({ ssrData }) {
+export default function ExternalTransactionPage ({ ssrData }) {
   const router = useRouter()
   const id = Number(router.query.id)
-  const { data, error, startPolling, stopPolling } = useQuery(GET_EXTERNAL_WALLET_TRANSACTION, {
+  const { data, error, startPolling, stopPolling } = useQuery(GET_EXTERNAL_TRANSACTION, {
     variables: { id },
     skip: !id
   })
   const dat = useData(data, ssrData)
-  const transaction = dat?.externalWalletTransaction
+  const transaction = dat?.externalTransaction
 
+  // done is derived (deadline-based), so recompute each render; the poll re-renders until it flips true
+  const done = !transaction || externalTransactionDone(transaction)
   useEffect(() => {
-    if (!transaction || externalTransactionDone(transaction)) {
+    if (done) {
       stopPolling()
       return
     }
 
     startPolling(NORMAL_POLL_INTERVAL_MS)
     return () => stopPolling()
-  }, [startPolling, stopPolling, transaction?.id, transaction?.settlementStatus, transaction?.nextStatusCheckAt])
+  }, [startPolling, stopPolling, transaction?.id, done])
 
   if (error) {
     return <WalletErrorShell title='transaction unavailable' message={error.message} />
@@ -56,71 +65,58 @@ export default function ExternalWalletTransactionPage ({ ssrData }) {
     return <WalletErrorShell title='transaction not found' message='this wallet transaction could not be found' />
   }
 
+  const isReceive = transaction.direction === 'RECEIVE'
+  // The receive flow lands here, so the QR must show for any still-PAYABLE receive — including a
+  // verification-less protocol (e.g. CLINK) whose row is a terminal-intent UNKNOWN (so we can't gate on
+  // externalTransactionDone, which would hide a brand-new unverifiable invoice). "Payable" = not yet
+  // SETTLED/FAILED and not past the bolt11 expiry; without the expiry check a CLINK receive stays
+  // UNKNOWN forever and would keep showing a scannable QR for a long-dead invoice.
+  const invoiceExpired = transaction.invoiceExpiresAt != null && new Date(transaction.invoiceExpiresAt) < new Date()
+  const showReceiveQr = isReceive && transaction.bolt11 &&
+    !TERMINAL_STATUSES.has(transaction.settlementStatus) && !invoiceExpired
+
   return (
-    <WalletShellMain>
-      <div className='py-3 w-100'>
-        <div className='d-flex justify-content-between align-items-start gap-3'>
-          <div>
-            <h2 className='mb-1'>{transaction.direction === 'SEND' ? 'external send' : 'external receive'}</h2>
-            <div className='text-muted'>
-              {transaction.walletInfo
-                ? (
-                  <>
-                    <Link href={`/wallets/${transaction.walletInfo.walletId}`}>{transaction.walletInfo.walletName}</Link>{' '}
-                    via {transaction.walletInfo.protocolName}
-                  </>
-                  )
-                : 'external wallet'}
-            </div>
-          </div>
-          <div className='text-end'>
-            <div className='fw-bold'>{transaction.settlementStatus.toLowerCase()}</div>
-            <small className='text-muted' title={transaction.settlementStatusChangedAt} suppressHydrationWarning>
-              {timeSince(new Date(transaction.settlementStatusChangedAt))}
-            </small>
-          </div>
-        </div>
+    <TransactionDetailPage>
+      <TransactionDetailHeading
+        title={
+          <TransactionHeadingTitle amount={formatMsatsToSats(transaction.amountMsats)}>
+            {isReceive ? 'receive' : 'send'}
+          </TransactionHeadingTitle>
+        }
+        walletInfo={transaction.walletInfo}
+        identity={transaction.walletInfo ? undefined : 'external wallet'}
+        status={<ExternalTransactionStatus transaction={transaction} className='justify-content-end' />}
+        timestamp={transaction.settlementStatusChangedAt}
+      />
 
-        <UnknownDiagnostic transaction={transaction} />
-
-        <div className='mt-4 d-grid gap-2'>
-          <Detail label='amount'>
-            {transaction.amountMsats != null ? formatSats(msatsToSatsDecimal(transaction.amountMsats)) : 'N/A'}
-          </Detail>
-          {transaction.feeMsats != null && (
-            <Detail label='fee'>
-              {formatSats(msatsToSatsDecimal(transaction.feeMsats))}
-            </Detail>
-          )}
-          <Detail label='hash'>
-            <span className='text-monospace text-break'>{transaction.hash ?? 'hash deleted'}</span>
-          </Detail>
-          {transaction.sourceValue && <Detail label={transaction.sourceType?.toLowerCase() ?? 'source'}>{transaction.sourceValue}</Detail>}
-          {transaction.providerTxId && <Detail label='provider tx'>{transaction.providerTxId}</Detail>}
-          {transaction.settledAt && <Detail label='settled'>{new Date(transaction.settledAt).toLocaleString()}</Detail>}
-          {transaction.invoiceExpiresAt && <Detail label='expires'>{new Date(transaction.invoiceExpiresAt).toLocaleString()}</Detail>}
-          {!transaction.bolt11 && <Detail label='invoice'>invoice deleted</Detail>}
-        </div>
-
-        {transaction.bolt11 && (
-          <div className='mt-4'>
-            <AccordianItem
-              header='lightning invoice'
-              body={<div className='text-monospace text-break'>{transaction.bolt11}</div>}
+      {showReceiveQr && (
+        <TransactionDetailSection>
+          <div className={transactionDetailStyles.qrContext}>
+            <Qr
+              value={transaction.bolt11}
+              qrTransform={bolt11QrTransform}
+              description={formatMsatsToSats(transaction.amountMsats)}
             />
           </div>
-        )}
+        </TransactionDetailSection>
+      )}
 
-        <div className='mt-4'>
-          <h5 className='mb-3'>wallet logs</h5>
-          <WalletLogs
-            externalWalletTransactionId={Number(transaction.id)}
-            poll={!externalTransactionDone(transaction)}
-            pollInterval={NORMAL_POLL_INTERVAL_MS}
-          />
-        </div>
-      </div>
-    </WalletShellMain>
+      <UnknownDiagnostic transaction={transaction} />
+
+      {(transaction.bolt11 || transaction.hash) && (
+        <TransactionDetailSection title='invoice details'>
+          <ExternalTransactionInvoiceDetails transaction={transaction} />
+        </TransactionDetailSection>
+      )}
+
+      <TransactionDetailSection title='logs'>
+        <WalletLogs
+          externalTransactionId={Number(transaction.id)}
+          poll={!externalTransactionDone(transaction)}
+          pollInterval={NORMAL_POLL_INTERVAL_MS}
+        />
+      </TransactionDetailSection>
+    </TransactionDetailPage>
   )
 }
 
@@ -129,7 +125,7 @@ function UnknownDiagnostic ({ transaction }) {
   if (!message) return null
 
   return (
-    <Alert variant='warning' className='mt-3 mb-0'>
+    <Alert variant='warning' className='mb-0'>
       <div className='fw-bold'>status unknown</div>
       <div>{message}</div>
       {transaction.error && <small className='d-block mt-2 text-muted'>wallet detail: {transaction.error}</small>}
@@ -137,11 +133,27 @@ function UnknownDiagnostic ({ transaction }) {
   )
 }
 
-function Detail ({ label, children }) {
+function ExternalTransactionInvoiceDetails ({ transaction }) {
   return (
-    <div className='d-flex flex-column flex-sm-row gap-1 gap-sm-3'>
-      <div className='text-muted' style={{ minWidth: '7rem' }}>{label}</div>
-      <div className='min-w-0'>{children}</div>
-    </div>
+    <Bolt11Info
+      showAmount={false}
+      extraChips={externalTransactionMetadataChips(transaction)}
+      {...toBolt11InfoProps(externalTransactionBolt11InfoProps(transaction))}
+    />
   )
+}
+
+function externalTransactionMetadataChips (transaction) {
+  return [
+    transaction.feeMsats != null && { key: 'fee', label: `fee ${formatMsatsToSats(transaction.feeMsats)}` },
+    transaction.sourceValue && {
+      key: 'source',
+      prefix: externalTransactionSourcePrefix(transaction.sourceType),
+      value: transaction.sourceValue
+    }
+  ].filter(Boolean)
+}
+
+function externalTransactionSourcePrefix (sourceType) {
+  return sourceType?.toLowerCase().replace(/_/g, ' ') ?? 'source'
 }

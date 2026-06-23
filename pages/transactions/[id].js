@@ -1,5 +1,4 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import Layout from '@/components/layout'
 import PayIn from '@/components/payIn'
 import { GET_PAY_IN_FULL_WITH_WALLET_INFO } from '@/fragments/payIn'
 import { useRouter } from 'next/router'
@@ -13,9 +12,5 @@ export const getServerSideProps = getGetServerSideProps({
 export default function Transaction ({ ssrData }) {
   const router = useRouter()
 
-  return (
-    <Layout>
-      <PayIn id={Number(router.query.id)} ssrData={ssrData} />
-    </Layout>
-  )
+  return <PayIn id={Number(router.query.id)} ssrData={ssrData} />
 }

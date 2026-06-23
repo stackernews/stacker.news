@@ -1,0 +1,41 @@
+.page {
+  width: min(100%, 1120px);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.headingAmount {
+  margin-left: 0.5rem;
+  color: var(--theme-grey);
+  font-size: 1rem;
+  font-weight: 400;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.section h5 {
+  margin: 0;
+}
+
+.qrContext {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 3rem 0;
+}
+
+@media (max-width: 767px) {
+  .page {
+    padding: 0;
+  }
+}

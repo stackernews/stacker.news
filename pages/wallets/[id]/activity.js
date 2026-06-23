@@ -28,20 +28,20 @@ function WalletActivity ({ wallet, ssrData }) {
   const variables = useMemo(() => ({ walletId: wallet.id }), [wallet.id])
   const { data, fetchMore } = useQuery(SATISTICS, { variables })
   const dat = useData(data, ssrData)
+  const items = dat?.satistics?.txs
   const fetchMoreActivity = useCallback(({ variables: nextVariables }) => {
     return fetchMore({ variables: { ...variables, ...nextVariables } })
   }, [fetchMore, variables])
 
   if (!dat) return <PayInSkeleton header />
 
-  const payIns = dat.satistics?.payIns
   const cursor = dat.satistics?.cursor
 
-  return payIns?.length > 0
+  return items?.length > 0
     ? (
       <>
-        <PayInTable payIns={payIns} />
-        <MoreFooter cursor={cursor} count={payIns?.length} fetchMore={fetchMoreActivity} Skeleton={PayInSkeleton} />
+        <PayInTable items={items} />
+        <MoreFooter cursor={cursor} count={items?.length} fetchMore={fetchMoreActivity} Skeleton={PayInSkeleton} />
       </>
       )
     : <p className='text-muted mb-0'>no activity</p>

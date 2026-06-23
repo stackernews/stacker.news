@@ -9,6 +9,7 @@ import { getItem, getItemsById } from './item'
 import { getSub } from './sub'
 import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { Prisma } from '@prisma/client'
+import { externalTransactionInclude } from '@/wallets/server/external-transactions'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -48,6 +49,149 @@ async function hydratePayInItems (payIns, { me, models }) {
 
   for (const payIn of visibleItemPayIns) {
     payIn.item = itemMap.get(Number(payIn.itemPayIn.itemId)) || null
+  }
+}
+
+// The PayIn timeline used by `satistics`: a send branch (rows created at pay-in) UNION a receive
+// branch (rows the user is paid out on). It emits only timeline keys; full rows are hydrated after
+// Postgres merges and pages the combined wallet activity stream.
+function walletPayInTimelineKeyQuery ({ userId, time, limit, authorizedProtocolIds }) {
+  const walletSendFilter = authorizedProtocolIds
+    ? Prisma.sql`
+        AND EXISTS (
+          SELECT 1
+          FROM "PayInBolt11"
+          WHERE "PayInBolt11"."payInId" = "PayIn"."id"
+          AND "PayInBolt11"."protocolId" IN (${Prisma.join(authorizedProtocolIds)})
+        )`
+    : Prisma.empty
+  const walletReceiveFilter = authorizedProtocolIds
+    ? Prisma.sql`
+        AND EXISTS (
+          SELECT 1
+          FROM "PayOutBolt11"
+          WHERE "PayOutBolt11"."payInId" = "PayIn"."id"
+          AND "PayOutBolt11"."protocolId" IN (${Prisma.join(authorizedProtocolIds)})
+        )`
+    : Prisma.empty
+  const receivePredicate = authorizedProtocolIds
+    ? Prisma.sql`AND "PayIn"."payInState" = 'PAID'`
+    : Prisma.sql`AND ${myReceivePredicate({ userId })}`
+
+  return Prisma.sql`
+    SELECT 'PAYIN' AS src, p.id, p."sortTime", p."isSend"
+    FROM (
+      (
+        SELECT "PayIn".id, "PayIn"."created_at" as "sortTime", true as "isSend"
+        FROM "PayIn"
+        WHERE "PayIn"."userId" = ${userId}
+        AND "PayIn"."benefactorId" IS NULL
+        AND "PayIn"."mcost" > 0
+        AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT')
+        AND "PayIn"."created_at" <= ${time}
+        ${walletSendFilter}
+        ORDER BY "sortTime" DESC, "PayIn"."id" DESC
+        LIMIT ${limit}
+      )
+      UNION ALL
+      (
+        SELECT "PayIn".id, "PayIn"."payInStateChangedAt" as "sortTime", false as "isSend"
+        FROM "PayIn"
+        WHERE "PayIn"."benefactorId" IS NULL
+        AND "PayIn"."mcost" > 0
+        AND "PayIn"."payInStateChangedAt" <= ${time}
+        ${walletReceiveFilter}
+        ${receivePredicate}
+        ORDER BY "sortTime" DESC, "PayIn"."id" DESC
+        LIMIT ${limit}
+      )
+      -- "id" DESC is a unique tiebreak so the LIMIT/OFFSET cutoff is deterministic
+      -- (otherwise tied-timestamp rows at a page boundary can be skipped or duplicated across pages).
+      ORDER BY "sortTime" DESC, "isSend" ASC, "id" DESC
+      LIMIT ${limit}
+    ) p`
+}
+
+function myReceivePredicate ({ userId }) {
+  return Prisma.sql`(
+    EXISTS (
+      SELECT 1
+      FROM "RefundCustodialToken"
+      WHERE "RefundCustodialToken"."payInId" = "PayIn"."id" AND "PayIn"."userId" = ${userId}
+    ) OR
+    EXISTS (
+      SELECT 1
+      FROM "PayOutBolt11"
+      WHERE "PayOutBolt11"."payInId" = "PayIn"."id" AND "PayOutBolt11"."userId" = ${userId}
+      AND "PayIn"."payInState" = 'PAID'
+    ) OR
+    EXISTS (
+      SELECT 1
+      FROM "PayOutCustodialToken"
+      WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id" AND "PayOutCustodialToken"."userId" = ${userId}
+      AND "PayIn"."payInState" = 'PAID'
+    )
+  )`
+}
+
+function externalTransactionTimelineKeyQuery ({ userId, time, limit, walletIdNumber }) {
+  const walletFilter = walletIdNumber !== null
+    ? Prisma.sql`AND "walletId" = ${walletIdNumber}`
+    : Prisma.empty
+
+  return Prisma.sql`
+    SELECT 'EXT' AS src, "ExternalTransaction".id,
+           "created_at" AS "sortTime", "direction" = 'SEND' AS "isSend"
+    FROM "ExternalTransaction"
+    WHERE "userId" = ${userId}
+      ${walletFilter}
+      AND "created_at" <= ${time}
+    ORDER BY "created_at" DESC, ("direction" = 'SEND') ASC, "id" DESC
+    LIMIT ${limit}`
+}
+
+// Hydrate a page of wallet-activity sort keys into full, ordered rows. PayIn and
+// ExternalTransaction live in separate tables (the union merges only their sort keys), so each
+// is fetched by id, indexed by `src:id`, then the keys are walked in order to re-interleave the two.
+// One PayIn can surface under two keys (its send and receive rows), so it's spread fresh per key.
+async function hydrateWalletActivity (keys, { me, models }) {
+  const idsFor = src => keys.filter(k => k.src === src).map(k => Number(k.id))
+  const payInIds = idsFor('PAYIN')
+  const extIds = idsFor('EXT')
+
+  const [payIns, exts] = await Promise.all([
+    // Prisma.join throws on an empty list, so skip the query when the page has no PayIn keys
+    payInIds.length
+      ? getPayInFull({ models, query: Prisma.sql`SELECT * FROM "PayIn" WHERE "id" IN (${Prisma.join(payInIds)})` })
+      : [],
+    extIds.length
+      ? models.externalTransaction.findMany({ where: { id: { in: extIds } }, include: externalTransactionInclude() })
+      : []
+  ])
+
+  // attach items to the fetched PayIns (one batched getItemsById) before indexing, so the spreads
+  // below carry `.item` into every copy — including a PayIn that surfaces under both its send/receive keys
+  await hydratePayInItems(payIns, { me, models })
+
+  const rowByKey = new Map()
+  for (const payIn of payIns) rowByKey.set(`PAYIN:${Number(payIn.id)}`, { ...payIn, __typename: 'PayIn' })
+  for (const tx of exts) rowByKey.set(`EXT:${Number(tx.id)}`, { ...tx, __typename: 'ExternalTransaction' })
+
+  return keys
+    .map(({ src, id, sortTime, isSend }) => {
+      const row = rowByKey.get(`${src}:${Number(id)}`)
+      return row && { ...row, sortTime, isSend }
+    })
+    .filter(Boolean)
+}
+
+function walletInfoFromProtocol (protocol, role) {
+  return {
+    walletId: protocol.wallet.id,
+    walletName: protocol.wallet.template.name,
+    protocolId: protocol.id,
+    protocolName: protocol.name,
+    role
   }
 }
 
@@ -91,7 +235,7 @@ export default {
         if (protocols.length === 0) {
           // Wallet does not exist, is not owned by the caller, or has no
           // protocols. Either way, there is no activity to surface.
-          return { payIns: [], cursor: null }
+          return { txs: [], cursor: null }
         }
         authorizedProtocolIds = protocols.map(p => p.id)
       }
@@ -99,94 +243,40 @@ export default {
       const decodedCursor = decodeCursor(cursor)
       const offset = decodedCursor.offset
       const limit = LIMIT
-      const walletSendFilter = authorizedProtocolIds
-        ? Prisma.sql`
-            AND EXISTS (
-              SELECT 1
-              FROM "PayInBolt11"
-              WHERE "PayInBolt11"."payInId" = "PayIn"."id"
-              AND "PayInBolt11"."protocolId" IN (${Prisma.join(authorizedProtocolIds)})
-            )`
-        : Prisma.empty
-      const walletReceiveFilter = authorizedProtocolIds
-        ? Prisma.sql`
-            AND EXISTS (
-              SELECT 1
-              FROM "PayOutBolt11"
-              WHERE "PayOutBolt11"."payInId" = "PayIn"."id"
-              AND "PayOutBolt11"."protocolId" IN (${Prisma.join(authorizedProtocolIds)})
-            )`
-        : Prisma.empty
+      const queryLimit = limit + offset
+      const time = decodedCursor.time
 
-      // Receive-side ownership for the activity branch: a row qualifies only when
-      // the user is the payee in one of three tables.
-      const isMyReceiveSql = Prisma.sql`(
-        EXISTS (
-          SELECT 1
-          FROM "RefundCustodialToken"
-          WHERE "RefundCustodialToken"."payInId" = "PayIn"."id" AND "PayIn"."userId" = ${userId}
-        ) OR
-        EXISTS (
-          SELECT 1
-          FROM "PayOutBolt11"
-          WHERE "PayOutBolt11"."payInId" = "PayIn"."id" AND "PayOutBolt11"."userId" = ${userId}
-          AND "PayIn"."payInState" = 'PAID'
-        ) OR
-        EXISTS (
-          SELECT 1
-          FROM "PayOutCustodialToken"
-          WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id" AND "PayOutCustodialToken"."userId" = ${userId}
-          AND "PayIn"."payInState" = 'PAID'
-        )
-      )`
-
-      const receivePredicate = authorizedProtocolIds
-        ? Prisma.sql`AND "PayIn"."payInState" = 'PAID'`
-        : Prisma.sql`AND ${isMyReceiveSql}`
-
-      // why we need the union:
-      // if we are paying in, we want a row for that when it's created, regardless of whether it's succeeded, pending, or failed
-      //    that's because payInCustodialTokens are created when the payIn is created
-      // if we are paid out, we want a row for that too if the payIn is paid or it failed and we are refunded
-      //    that's because payOutCustodialTokens and refundCustodialTokens are created when the payIn is paid and refunded respectively
-      // this helps provide a linear timeline of custodial token changes (ie mtokensAfter changes)
-      const payIns = await getPayInFull({
-        models,
-        query: Prisma.sql`
+      const keys = await models.$queryRaw`
+        SELECT src, id, "sortTime", "isSend"
+        FROM (
           (
-            SELECT "PayIn".*, created_at as "sortTime", true as "isSend"
-            FROM "PayIn"
-            WHERE "PayIn"."userId" = ${userId}
-            AND "PayIn"."benefactorId" IS NULL
-            AND "PayIn"."mcost" > 0
-            AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT')
-            AND "PayIn"."created_at" <= ${decodedCursor.time}
-            ${walletSendFilter}
-            ORDER BY "sortTime" DESC
-            LIMIT ${limit + offset}
+            ${walletPayInTimelineKeyQuery({
+              userId,
+              time,
+              limit: queryLimit,
+              authorizedProtocolIds
+            })}
           )
           UNION ALL
           (
-            SELECT "PayIn".*, "payInStateChangedAt" as "sortTime", false as "isSend"
-            FROM "PayIn"
-            WHERE "PayIn"."benefactorId" IS NULL
-            AND "PayIn"."mcost" > 0
-            AND "PayIn"."payInStateChangedAt" <= ${decodedCursor.time}
-            ${walletReceiveFilter}
-            ${receivePredicate}
-            ORDER BY "sortTime" DESC
-            LIMIT ${limit + offset}
+            ${externalTransactionTimelineKeyQuery({
+              userId,
+              time,
+              limit: queryLimit,
+              walletIdNumber
+            })}
           )
-          ORDER BY "sortTime" DESC, "isSend" ASC
-          OFFSET ${offset}
-          LIMIT ${limit}`,
-        orderBy: Prisma.sql`ORDER BY "sortTime" DESC, "isSend" ASC`
-      })
-      await hydratePayInItems(payIns, { me, models })
+        ) merged
+        ORDER BY "sortTime" DESC, "isSend" ASC, id DESC, src DESC
+        OFFSET ${offset} LIMIT ${limit}`
+
+      const txs = await hydrateWalletActivity(keys, { me, models })
 
       return {
-        payIns,
-        cursor: payIns.length === LIMIT ? nextCursorEncoded(decodedCursor) : null
+        txs,
+        // page-fullness comes from the sort-key page, not the hydrated rows: stitching drops any key
+        // whose row vanished between the two queries, which must not prematurely end pagination
+        cursor: keys.length === LIMIT ? nextCursorEncoded(decodedCursor) : null
       }
     },
     failedPayIns: async (parent, args, { me, models }) => {
@@ -240,6 +330,22 @@ export default {
     },
     retryPayIn: async (parent, { payInId, sendProtocolId }, { models, me }) => {
       return await retry(payInId, { me, sendProtocolId })
+    }
+  },
+  WalletActivityItem: {
+    // satistics stamps __typename on every item it returns
+    __resolveType: item => item.__typename
+  },
+  ExternalTransaction: {
+    walletInfo: (transaction, args, { me }) => {
+      if (!me || Number(me.id) === USER_ID.anon) {
+        return null
+      }
+      // protocol (with wallet + template) is always loaded via externalTransactionInclude()
+      const { protocol } = transaction
+      if (!protocol) return null
+
+      return walletInfoFromProtocol(protocol, transaction.direction)
     }
   },
   PayIn: {
@@ -319,13 +425,7 @@ export default {
         const protocol = protocols.find(protocol => protocol.id === protocolId)
         if (!protocol) continue
 
-        return {
-          walletId: protocol.wallet.id,
-          walletName: protocol.wallet.template.name,
-          protocolId: protocol.id,
-          protocolName: protocol.name,
-          role
-        }
+        return walletInfoFromProtocol(protocol, role)
       }
 
       return null

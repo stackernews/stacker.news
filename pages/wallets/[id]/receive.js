@@ -114,7 +114,9 @@ function WalletReceive ({ wallet }) {
             description={numWithUnits(invoice.sats, { abbreviate: false })}
           />
           <div className='text-muted text-center'>
-            We do not track receive success. Check your external wallet.
+            {invoice.transaction
+              ? <Link href={`/wallets/transactions/${invoice.transaction.id}`}>invoice saved to activity</Link>
+              : 'invoice created'}
           </div>
           <Link href={`/wallets/${wallet.id}`} className='btn btn-secondary'>
             back to wallet

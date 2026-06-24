@@ -750,6 +750,17 @@ export default {
       }
       return { id }
     },
+    unsubscribeThread: async (parent, { id }, { me, models }) => {
+      if (!me) throw new GqlAuthenticationError()
+      await models.$executeRaw`
+        DELETE FROM "ThreadSubscription" ts
+        USING "Item" i
+        WHERE ts."userId" = ${me.id}
+        AND i.path @> (SELECT path FROM "Item" WHERE id = ${Number(id)})
+        AND ts."itemId" = i.id
+      `
+      return { id }
+    },
     deleteItem: async (parent, { id }, { me, models }) => {
       const old = await models.item.findUnique({ where: { id: Number(id) } })
       if (Number(old.userId) !== Number(me?.id)) {

@@ -58,7 +58,7 @@ export default function Badges ({ user, badge, bot, showWalletBadges, className 
   if (badges.length === 0) return null
 
   return (
-    <span className={classNames(className, 'd-inline-flex align-items-center justify-content-center')}>
+    <span className={classNames(className, 'align-items-center justify-content-center')}>
       {badges.map(({ icon, overlayText, sizeDelta, style }, i) => (
         <SNBadge
           key={i}
@@ -88,7 +88,7 @@ function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, heig
 
   return (
     <Wrapper>
-      <span className='d-inline-flex align-items-center justify-content-center' style={style}><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
+      <span className='align-items-center justify-content-center' style={style}><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
     </Wrapper>
   )
 }

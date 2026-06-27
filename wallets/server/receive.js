@@ -1,9 +1,14 @@
 import { parsePaymentRequest } from 'ln-service'
+import { errorMessage } from '@/lib/error'
 import { formatMsats, formatSats, msatsToSats, msatsSatsFloor, toPositiveNumber } from '@/lib/format'
 import { MIN_RECEIVE_MSATS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { timeoutSignal } from '@/lib/time'
 import { walletLogger } from '@/wallets/server/logger'
-import { protocolCreateInvoice, protocolReceivableMsats, protocolReceivableDescription } from '@/wallets/server/protocols'
+import {
+  protocolCreateInvoice,
+  protocolReceivableDescription,
+  protocolReceivableMsats
+} from '@/wallets/server/protocols'
 
 const MAX_PENDING_INVOICES_PER_WALLET = 25
 
@@ -28,6 +33,7 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
         })
 
       let bolt11
+      let verificationContext
       try {
         if (limitPending) {
           // check for pending payouts
@@ -47,11 +53,13 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
           }
         }
 
-        bolt11 = await protocolCreateInvoice(
+        const result = await protocolCreateInvoice(
           protocol,
           { msats: receivableMsatsNum, description: receivableDescription, descriptionHash, expiry },
           protocol.config,
           { signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) })
+        bolt11 = result.bolt11
+        verificationContext = result.verificationContext
       } catch (err) {
         throw new Error('failed to create invoice: ' + errorMessage(err))
       }
@@ -70,14 +78,10 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
         updateStatus: true
       })
 
-      yield { bolt11, invoice, protocol, logger }
+      yield { bolt11, invoice, protocol, logger, verificationContext }
     } catch (err) {
       console.error('failed to create user invoice:', err)
       logger.error(errorMessage(err), { updateStatus: true })
     }
   }
-}
-
-function errorMessage (err) {
-  return err?.message || err?.toString?.() || 'unknown error'
 }

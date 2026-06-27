@@ -1,7 +1,8 @@
 import { datePivot, isAbortLike, raceAbort } from '@/lib/time'
 import { authenticatedLndGrpc } from '@/lib/lnd'
-import { createInvoice as lndCreateInvoice } from 'ln-service'
+import { createInvoice as lndCreateInvoice, getInvoice } from 'ln-service'
 import { TOR_REGEXP } from '@/lib/url'
+import { WalletPermissionsError } from '@/wallets/client/errors'
 
 export const name = 'LND_GRPC'
 
@@ -39,6 +40,56 @@ export const createInvoice = async (
   }
 }
 
+export const checkInvoice = async (
+  { hash },
+  { cert, macaroon, socket },
+  { signal } = {}
+) => {
+  const isOnion = TOR_REGEXP.test(socket)
+  const { lnd } = authenticatedLndGrpc({
+    cert,
+    macaroon,
+    socket
+  }, isOnion)
+  let invoice
+  try {
+    invoice = await raceAbort(getInvoice({ id: hash, lnd }), signal)
+  } catch (err) {
+    if (isAbortLike(err)) throw err
+    // a macaroon lacking invoices:read surfaces as a gRPC PERMISSION_DENIED(7)/UNAUTHENTICATED(16);
+    // LND has no HTTP status for the central classifier to read, so raise the typed error here (like
+    // blink/nwc) so the reconciler flags it as a permission problem with the "fix permissions" hint.
+    if (isLndPermissionError(err)) throw new WalletPermissionsError('lnd macaroon cannot read invoices')
+    throw err
+  }
+
+  if (invoice.is_confirmed) {
+    return {
+      status: 'SETTLED',
+      preimage: invoice.secret,
+      settledAt: invoice.confirmed_at ? new Date(invoice.confirmed_at) : undefined,
+      msats: invoice.received_mtokens
+    }
+  }
+  if (invoice.is_canceled) {
+    return {
+      status: 'FAILED',
+      error: 'lnd invoice canceled'
+    }
+  }
+
+  return { status: 'PENDING' }
+}
+
 export const testCreateInvoice = async ({ cert, macaroon, socket }, { signal } = {}) => {
   return await createInvoice({ msats: 1000, expiry: 1 }, { cert, macaroon, socket }, { signal })
+}
+
+// LND errors arrive as [code, type, { err: { code, details } }] (or a plain Error); a permission
+// failure is gRPC code 7 (PERMISSION_DENIED) / 16 (UNAUTHENTICATED), or says so in its details
+function isLndPermissionError (err) {
+  const grpcCode = Array.isArray(err) ? err[2]?.err?.code : err?.code
+  if (grpcCode === 7 || grpcCode === 16) return true
+  const details = (Array.isArray(err) ? err[2]?.err?.details : null) || err?.message || ''
+  return /permission denied|unauthenticated|not authorized/i.test(details)
 }

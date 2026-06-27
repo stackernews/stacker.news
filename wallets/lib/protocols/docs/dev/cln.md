@@ -9,4 +9,5 @@ to attach sending:
 to attach receiving:
 
 - socket: `cln:3010` or onion via `sndev onion cln`
-- rune: `sndev cli cln --regtest createrune restrictions='[["method=invoice"]]'`
+- rune with proof recovery: `sndev cli cln --regtest createrune restrictions='[["method=invoice","method=listinvoices"]]'`
+- receive-only rune: `sndev cli cln --regtest createrune restrictions='[["method=invoice"]]'`

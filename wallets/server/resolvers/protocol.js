@@ -145,7 +145,7 @@ export async function saveWalletProtocols (parent, { walletId, templateName, ups
   return wallet ? mapWalletResolveTypes(wallet) : null
 }
 
-async function walletLogs (parent, { walletId, payInId, cursor }, { me, models }) {
+async function walletLogs (parent, { walletId, payInId, externalTransactionId, cursor }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   const decodedCursor = decodeCursor(cursor)
@@ -168,6 +168,9 @@ async function walletLogs (parent, { walletId, payInId, cursor }, { me, models }
   }
   if (payInId !== undefined) {
     where.payInId = payInId
+  }
+  if (externalTransactionId !== undefined) {
+    where.externalTransactionId = Number(externalTransactionId)
   }
 
   const logs = await models.walletLog.findMany({
@@ -213,7 +216,7 @@ async function walletLogs (parent, { walletId, payInId, cursor }, { me, models }
   }
 }
 
-async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId, updateStatus }, { me, models }) {
+async function addWalletLog (parent, { protocolId, level, message, timestamp, payInId, externalTransactionId, updateStatus }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
   if (utf8ByteLength(message) > MAX_WALLET_LOG_MESSAGE_BYTES) {
@@ -252,8 +255,23 @@ async function addWalletLog (parent, { protocolId, level, message, timestamp, pa
       throw new GqlInputError('payIn not found')
     }
   }
+  if (externalTransactionId != null) {
+    const transaction = await models.externalTransaction.findFirst({
+      where: {
+        id: Number(externalTransactionId),
+        userId: me.id
+      },
+      select: {
+        id: true
+      }
+    })
 
-  await writeWalletLog({ models, protocolId, userId: me.id, payInId, level, message, createdAt: timestamp, updateStatus })
+    if (!transaction) {
+      throw new GqlInputError('external wallet transaction not found')
+    }
+  }
+
+  await writeWalletLog({ models, protocolId, userId: me.id, payInId, externalTransactionId, level, message, createdAt: timestamp, updateStatus })
 
   return true
 }

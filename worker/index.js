@@ -40,6 +40,10 @@ import { payWeeklyPostBounty, weeklyPost } from './weeklyPosts'
 import { autoDropBolt11s } from './autoDropBolt11'
 import { postToSocial } from './socialPoster'
 import {
+  checkExternalTransactionJob,
+  checkPendingExternalTransactions
+} from './externalTransactions'
+import {
   domainVerification,
   deleteCertificateExternal,
   checkActiveDomainsDNS,
@@ -128,6 +132,8 @@ async function work () {
     await boss.work('checkPendingPayOutBolt11s', jobWrapper(checkPendingPayOutBolt11s))
     await boss.work('checkPayInBolt11', jobWrapper(checkPayInBolt11))
     await boss.work('checkPayOutBolt11', jobWrapper(checkPayOutBolt11))
+    await boss.work('checkExternalTransaction', jobWrapper(checkExternalTransactionJob))
+    await boss.work('checkPendingExternalTransactions', jobWrapper(checkPendingExternalTransactions))
   }
   if (isServiceEnabled('search')) {
     await boss.work('indexItem', jobWrapper(indexItem))

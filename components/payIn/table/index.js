@@ -3,9 +3,10 @@ import classNames from 'classnames'
 import { PayInType } from './type'
 import { PayInContext } from '../context'
 import { PayInMoney } from './money'
+import { ExternalTransactionRow } from './external'
 import LinkToContext from '@/components/link-to-context'
 
-export default function PayInTable ({ payIns }) {
+export function PayInTableShell ({ children }) {
   return (
     <div className={styles.table}>
       <div className={classNames(styles.row, styles.header)}>
@@ -13,14 +14,22 @@ export default function PayInTable ({ payIns }) {
         <div>context</div>
         <div>sats</div>
       </div>
-      {payIns?.map(payIn => (
-        <PayInRow key={`${payIn.id}-${payIn.isSend}`} payIn={payIn} />
-      ))}
+      {children}
     </div>
   )
 }
 
-function PayInRow ({ payIn }) {
+export default function PayInTable ({ items }) {
+  return (
+    <PayInTableShell>
+      {items?.map(item => item.__typename === 'ExternalTransaction'
+        ? <ExternalTransactionRow key={`external-${item.id}`} transaction={item} />
+        : <PayInRow key={`${item.id}-${item.isSend}`} payIn={item} />)}
+    </PayInTableShell>
+  )
+}
+
+export function PayInRow ({ payIn }) {
   return (
     <div
       className={classNames(styles.row, {

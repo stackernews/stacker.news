@@ -2,6 +2,7 @@ import Nostr from '@/lib/nostr'
 import { NDKNWCWallet } from '@nostr-dev-kit/ndk-wallet'
 import { nwcUrlValidator, parseNwcUrl } from '@/wallets/lib/validate'
 import { msatsToSats } from '@/lib/format'
+import { walletAmountToMsats } from '@/wallets/lib/amount'
 import { isAbortLike, raceAbort } from '@/lib/time'
 import { WalletPermissionsError } from '@/wallets/client/errors'
 
@@ -129,16 +130,14 @@ export async function getBalance (url, { signal } = {}) {
 }
 
 function nwcMsatsToSats (msats) {
-  const amount = nwcAmountToBigInt(msats)
-  if (amount == null || amount === UINT64_MAX_MSATS) return null
+  let amount
+  try {
+    amount = walletAmountToMsats(msats)
+  } catch {
+    return null
+  }
+  if (amount === UINT64_MAX_MSATS) return null
   return msatsToSats(amount)
-}
-
-function nwcAmountToBigInt (amount) {
-  if (typeof amount === 'bigint') return amount
-  if (typeof amount === 'string' && /^\d+$/.test(amount)) return BigInt(amount)
-  if (typeof amount === 'number' && Number.isSafeInteger(amount) && amount >= 0) return BigInt(amount)
-  return null
 }
 
 function nwcSupportedMethods (info) {

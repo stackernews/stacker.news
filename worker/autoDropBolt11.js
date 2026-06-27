@@ -2,7 +2,6 @@ import { deletePayment } from 'ln-service'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
 
-// TODO: test this
 export async function dropBolt11 ({ userId, hash } = {}, { models, lnd }) {
   const retention = `${INVOICE_RETENTION_DAYS} days`
 
@@ -35,8 +34,22 @@ export async function dropBolt11 ({ userId, hash } = {}, { models, lnd }) {
       }
     }
   }
+
+  await dropExternalTransactionBolt11s({ userId, hash }, { models, retention })
 }
 
 export async function autoDropBolt11s ({ models, lnd }) {
   await dropBolt11(undefined, { models, lnd })
+}
+
+async function dropExternalTransactionBolt11s ({ userId, hash } = {}, { models, retention }) {
+  await models.$executeRaw`
+    UPDATE "ExternalTransaction"
+    SET hash = NULL, bolt11 = NULL, preimage = NULL
+    WHERE "userId" ${userId ? Prisma.sql`= ${userId}` : Prisma.sql`IN (SELECT id FROM users WHERE "autoDropBolt11s")`}
+      AND now() > created_at + ${retention}::INTERVAL
+      AND hash ${hash ? Prisma.sql`= ${hash}` : Prisma.sql`IS NOT NULL`}
+      -- any row this old (retention ≫ the 24h polling deadline) has definitively stopped being checked
+      -- and a non-PENDING status is enough
+      AND "settlementStatus" IN ('SETTLED', 'FAILED', 'UNKNOWN')`
 }

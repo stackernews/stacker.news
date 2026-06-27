@@ -14,7 +14,7 @@ extend type Mutation {
 }
 
 type Satistics {
-  payIns: [PayIn!]!
+  txs: [WalletActivityItem!]!
   cursor: String
 }
 

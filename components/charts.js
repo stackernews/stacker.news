@@ -107,7 +107,7 @@ export function WhenAreaChart ({ data }) {
           tick={{ fill: 'var(--theme-grey)' }}
         />
         <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)', opacity: 1, zIndex: -1 }} />
+        <Tooltip labelFormatter={labelFormatter(when, from, to)} wrapperStyle={{ zIndex: 1 }} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)', opacity: 1 }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Area key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={getColor(i)} fill={getColor(i)} />)}
@@ -144,7 +144,7 @@ export function WhenLineChart ({ data }) {
           tick={{ fill: 'var(--theme-grey)' }}
         />
         <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
+        <Tooltip labelFormatter={labelFormatter(when, from, to)} wrapperStyle={{ zIndex: 1 }} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Line key={v} type='monotone' dataKey={v} name={v} stroke={getColor(i)} fill={getColor(i)} />)}
@@ -187,7 +187,7 @@ export function WhenComposedChart ({
         />
         <YAxis yAxisId='left' orientation='left' allowDecimals={false} stroke='var(--theme-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
         <YAxis yAxisId='right' orientation='right' allowDecimals={false} stroke='var(--theme-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
+        <Tooltip labelFormatter={labelFormatter(when, from, to)} wrapperStyle={{ zIndex: 1 }} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {barNames?.map((v, i) =>
           <Bar yAxisId={barAxis} key={v} stackId={barStackId} type='monotone' dataKey={v} name={v} stroke={getColor(i)} fill={getColor(i)} />)}

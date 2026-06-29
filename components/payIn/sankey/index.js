@@ -9,6 +9,7 @@ export function PayInSankey ({ payIn }) {
     <div className='position-relative' style={{ width: '100%', maxWidth: '600px', height: '460px' }}>
       <ResponsiveSankey
         data={data}
+        valueFormat={formatSankeyValue}
         margin={{ top: 60, right: 60, bottom: 160, left: 60 }}
         align='justify'
         labelPosition='outside'
@@ -34,6 +35,10 @@ export function PayInSankey ({ payIn }) {
       />
     </div>
   )
+}
+
+function formatSankeyValue (value) {
+  return new Intl.NumberFormat().format(value)
 }
 
 export function PayInSankeySkeleton () {

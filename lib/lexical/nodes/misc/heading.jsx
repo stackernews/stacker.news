@@ -1,6 +1,6 @@
 import { HeadingNode } from '@lexical/rich-text'
 import { slug } from 'github-slugger'
-import { setNodeIndentFromDOM, $applyNodeReplacement, $createParagraphNode } from 'lexical'
+import { setNodeIndentFromDOM, $applyNodeReplacement, $createParagraphNode, $isTextNode, $isLineBreakNode } from 'lexical'
 
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 // identifies the decorative anchor link; the sn-heading__link class is styling only
@@ -27,13 +27,14 @@ function isGoogleDocsTitle (domNode) {
   return false
 }
 
-function createHeadingAnchorLink (domElement, headingId, textContent) {
+// empty anchor; the reconciler (getDOMSlot) / exportDOM (append) fill it with the
+// heading's children so the whole heading becomes a permalink
+function createHeadingAnchorLink (domElement, headingId) {
   const doc = domElement.ownerDocument
   const link = doc.createElement('a')
   link.setAttribute(HEADING_LINK_ATTRIBUTE, 'true')
   link.className = 'sn-heading__link'
   link.setAttribute('href', `#${headingId}`)
-  link.textContent = textContent
   return link
 }
 
@@ -42,20 +43,17 @@ function setHeadingId (domElement, headingId) {
   else domElement.removeAttribute('id')
 }
 
-function tryUpdateHeadingAnchorLink (domElement, headingId, textContent) {
+// returns the anchor element if this heading is rendered as a permalink, null otherwise
+function getHeadingAnchorLink (domElement) {
   const first = domElement.firstChild
-  if (first && first.nodeName === 'A' && first.hasAttribute(HEADING_LINK_ATTRIBUTE)) {
-    first.setAttribute('href', `#${headingId}`)
-    first.textContent = textContent
-    return true
-  }
-  return false
+  return first && first.nodeName === 'A' && first.hasAttribute(HEADING_LINK_ATTRIBUTE) ? first : null
 }
 
-function upsertHeadingAnchorLink (domElement, headingId, textContent) {
-  if (tryUpdateHeadingAnchorLink(domElement, headingId, textContent)) return
-  domElement.insertBefore(createHeadingAnchorLink(domElement, headingId, textContent), domElement.firstChild)
+// a heading is only wrapped in an anchor when its content is plain text
+function $headingHasOnlyTextContent (node) {
+  return node.getChildren().every(child => $isTextNode(child) || $isLineBreakNode(child))
 }
+
 // re-implements HeadingNode with slug support
 export class SNHeadingNode extends HeadingNode {
   static getType () {
@@ -73,7 +71,6 @@ export class SNHeadingNode extends HeadingNode {
   // headings are not links by default, because lexical creates a span
   // so if we were to append a link to the element, it would render as sibling
   // instead of wrapping the text in a link.
-  // the workaround used here is to use CSS to make this clickable.
   createDOM (config, editor) {
     const element = super.createDOM(config, editor)
     // anchor navigation
@@ -81,21 +78,31 @@ export class SNHeadingNode extends HeadingNode {
     if (headingId) {
       setHeadingId(element, headingId)
 
-      if (editor && !editor.isEditable()) {
-        upsertHeadingAnchorLink(element, headingId, this.getTextContent())
+      // in read mode, wrap the heading text in a real anchor (filled by getDOMSlot)
+      if (editor && !editor.isEditable() && $headingHasOnlyTextContent(this)) {
+        element.appendChild(createHeadingAnchorLink(element, headingId))
       }
     }
 
     return element
   }
 
+  // route the heading's children into the anchor wrapper when present, so the
+  // reconciler reconciles them inside the <a> instead of directly in the <hN>
+  getDOMSlot (element) {
+    const link = getHeadingAnchorLink(element)
+    const slot = super.getDOMSlot(element)
+    return link ? slot.withElement(link) : slot
+  }
+
+  // update ID (and the anchor href) on content changes
   updateDOM (prevNode, dom, config) {
-    // update ID on content changes
     const prevSlug = prevNode.getSlug()
     const currentSlug = this.getSlug()
     if (prevSlug !== currentSlug) {
       setHeadingId(dom, currentSlug)
-      tryUpdateHeadingAnchorLink(dom, currentSlug, this.getTextContent())
+      const link = getHeadingAnchorLink(dom)
+      if (link) link.setAttribute('href', `#${currentSlug}`)
     }
     return super.updateDOM(prevNode, dom, config)
   }
@@ -104,12 +111,14 @@ export class SNHeadingNode extends HeadingNode {
     const { element } = super.exportDOM(editor)
     const headingId = this.getSlug()
 
-    if (headingId) {
-      setHeadingId(element, headingId)
-      upsertHeadingAnchorLink(element, headingId, this.getTextContent())
-    }
+    if (!headingId) return { element }
+    setHeadingId(element, headingId)
 
-    return { element }
+    // keep the SSR HTML placeholder aligned with the reader
+    if (!$headingHasOnlyTextContent(this)) return { element }
+    const link = createHeadingAnchorLink(element, headingId)
+    element.appendChild(link)
+    return { element, append: (fragment) => link.append(fragment) }
   }
 
   // override
@@ -156,14 +165,15 @@ export class SNHeadingNode extends HeadingNode {
 
     return {
       ...headingConverters,
-      // the reader renders a decorative anchor link inside headings (createDOM,
-      // read-only) that is not part of the editor state. Skip it (and its text)
-      // so importing from HTML doesn't import it as a duplicate link.
+      // the reader wraps heading text in a decorative permalink anchor (createDOM,
+      // read-only) that is not part of the editor state. Unwrap it on import, drop
+      // the <a> but keep its text children (they hoist into the heading), so HTML
+      // doesn't round-trip into a real link node.
       // runs regardless of which heading converter created the parent.
       a: node => {
         if (!node.hasAttribute(HEADING_LINK_ATTRIBUTE)) return null
         return {
-          conversion: () => ({ node: null, forChild: () => null }),
+          conversion: () => ({ node: null }),
           priority: 3
         }
       },

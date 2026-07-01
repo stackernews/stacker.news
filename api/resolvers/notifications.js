@@ -423,22 +423,27 @@ export default {
     }
   },
   Mutation: {
-    savePushSubscription: async (parent, { endpoint, p256dh, auth, oldEndpoint }, { me, models }) => {
+    savePushSubscription: async (parent, { endpoint, p256dh, auth, oldEndpoint }, { me, models, getDomain }) => {
       if (!me) {
         throw new GqlAuthenticationError()
       }
 
       await validateSchema(pushSubscriptionSchema, { endpoint, p256dh, auth })
 
+      // the origin the browser subscribed from determines the subscription's branding.
+      // null domainId means the subscription belongs to Stacker News.
+      const domainMapping = await getDomain()
+      const domainId = domainMapping?.id ?? null
+
       let dbPushSubscription
       if (oldEndpoint) {
         dbPushSubscription = await models.pushSubscription.update({
-          data: { userId: me.id, endpoint, p256dh, auth }, where: { endpoint: oldEndpoint }
+          data: { userId: me.id, endpoint, p256dh, auth, domainId }, where: { endpoint: oldEndpoint }
         })
         console.log(`[webPush] updated subscription of user ${me.id}: old=${oldEndpoint} new=${endpoint}`)
       } else {
         dbPushSubscription = await models.pushSubscription.create({
-          data: { userId: me.id, endpoint, p256dh, auth }
+          data: { userId: me.id, endpoint, p256dh, auth, domainId }
         })
         console.log(`[webPush] created subscription for user ${me.id}: endpoint=${endpoint}`)
       }

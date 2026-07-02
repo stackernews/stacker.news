@@ -31,22 +31,28 @@ export function useWalletLoggerFactory () {
     })
   }, [addWalletLog])
 
-  return useCallback((protocol, payIn) => {
+  return useCallback((protocol, payIn, boundContext = {}) => {
     const payInId = payIn ? Number(payIn.id) : null
-    return {
-      ok: (message, context = {}) => {
-        log({ protocol, level: 'OK', message, payInId, externalTransactionId: context.externalTransactionId, updateStatus: context.updateStatus })
-      },
-      info: (message, context = {}) => {
-        log({ protocol, level: 'INFO', message, payInId, externalTransactionId: context.externalTransactionId, updateStatus: context.updateStatus })
-      },
-      error: (message, context = {}) => {
-        log({ protocol, level: 'ERROR', message, payInId, externalTransactionId: context.externalTransactionId, updateStatus: context.updateStatus })
-      },
-      warn: (message, context = {}) => {
-        log({ protocol, level: 'WARNING', message, payInId, externalTransactionId: context.externalTransactionId, updateStatus: context.updateStatus })
+    const createLogger = (baseContext = {}) => {
+      const write = level => (message, context = {}) => {
+        log({
+          protocol,
+          level,
+          message,
+          payInId,
+          externalTransactionId: context.externalTransactionId ?? baseContext.externalTransactionId,
+          updateStatus: context.updateStatus ?? baseContext.updateStatus
+        })
+      }
+      return {
+        ok: write('OK'),
+        info: write('INFO'),
+        error: write('ERROR'),
+        warn: write('WARNING'),
+        withContext: context => createLogger({ ...baseContext, ...context })
       }
     }
+    return createLogger(boundContext)
   }, [log])
 }
 

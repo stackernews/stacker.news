@@ -151,17 +151,21 @@ export const runeValidator = ({ method, methods, optionalMethods = [] }) => {
       test: (v, context) => {
         const decoded = decodeRune(v)
         if (!decoded) return context.createError({ message: 'invalid rune' })
-        if (decoded.restrictions.length === 0) {
+        // Non-method restrictions harden the rune; do not reject them.
+        const methodRestrictions = decoded.restrictions.filter(
+          restriction => restriction.alternatives.some(alternative => alternative.startsWith('method'))
+        )
+        if (methodRestrictions.length === 0) {
           return context.createError({ message: `rune must be restricted to ${expectedRestriction}` })
         }
-        if (decoded.restrictions.length !== 1) {
-          return context.createError({ message: `rune must be restricted to ${expectedRestriction} only` })
+        if (methodRestrictions.length !== 1) {
+          return context.createError({ message: `rune must have exactly one method restriction (${expectedRestriction})` })
         }
 
-        const alternatives = new Set(decoded.restrictions[0].alternatives)
+        const alternatives = new Set(methodRestrictions[0].alternatives)
         if (
           !requiredAlternatives.every(alternative => alternatives.has(alternative)) ||
-          !decoded.restrictions[0].alternatives.every(alternative => allowedAlternatives.includes(alternative))
+          !methodRestrictions[0].alternatives.every(alternative => allowedAlternatives.includes(alternative))
         ) {
           return context.createError({ message: `rune must be restricted to ${expectedRestriction} only` })
         }

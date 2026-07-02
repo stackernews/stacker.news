@@ -1,4 +1,4 @@
-import { getScopes, SCOPE_READ, SCOPE_RECEIVE, SCOPE_WRITE, getWallet, request } from '@/wallets/lib/protocols/blink'
+import { blinkTransactionCheckResult, getInvoiceStatusByPaymentHash, getScopes, getTransactionByPaymentHash, SCOPE_READ, SCOPE_RECEIVE, SCOPE_WRITE, getWallet, normalizeBlinkCurrency, request } from '@/wallets/lib/protocols/blink'
 import { msatsToSats, msatsSatsFloor } from '@/lib/format'
 import { WalletPermissionsError } from '@/wallets/client/errors'
 
@@ -10,7 +10,7 @@ export async function createInvoice (
   { msats, description, expiry },
   { apiKey, currency },
   { signal }) {
-  currency = currency ? currency.toUpperCase() : 'BTC'
+  currency = normalizeBlinkCurrency(currency)
   if (currency !== 'BTC') {
     throw new Error('unsupported currency ' + currency)
   }
@@ -47,6 +47,21 @@ export async function createInvoice (
   }
 
   return res.invoice.paymentRequest
+}
+
+export async function checkInvoice ({ hash }, { apiKey, currency }, { signal }) {
+  currency = normalizeBlinkCurrency(currency)
+  const wallet = await getWallet({ apiKey, currency }, { signal })
+  const tx = await getTransactionByPaymentHash(hash, { apiKey, wallet, direction: 'RECEIVE' }, { signal })
+
+  const result = blinkTransactionCheckResult(tx, { failureError: 'blink invoice failed' })
+  if (result.status !== 'PENDING') return result
+
+  const invoiceStatus = await getInvoiceStatusByPaymentHash(hash, { apiKey, wallet }, { signal })
+  if (invoiceStatus === 'EXPIRED') {
+    return { status: 'FAILED', error: 'invoice expired' }
+  }
+  return result
 }
 
 export async function testCreateInvoice ({ apiKey, currency }, { signal }) {

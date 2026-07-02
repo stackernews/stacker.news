@@ -1,9 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Form, Input, SubmitButton } from '@/components/form'
-import Qr from '@/components/qr'
 import { utf8ByteLength, walletInvoiceSchema } from '@/lib/validate'
-import { numWithUnits } from '@/lib/format'
-import { bolt11QrTransform } from '@/lib/bolt11'
 import { CREATE_WALLET_INVOICE } from '@/wallets/client/fragments'
 import { WalletActionEmpty, WalletActionShell, WalletBottomBar, WalletRoutePage } from '@/wallets/client/components'
 import { useRouteWallet, useWalletCapabilities } from '@/wallets/client/hooks'
@@ -13,8 +10,7 @@ import sendStyles from '@/wallets/client/components/send/send.module.css'
 import classNames from 'classnames'
 import { useMutation } from '@apollo/client/react'
 import { InputGroup } from 'react-bootstrap'
-import Link from 'next/link'
-import { useState } from 'react'
+import { useRouter } from 'next/router'
 import { FormikConsumer } from 'formik'
 const styles = { ...sharedStyles, ...sendStyles }
 
@@ -32,8 +28,8 @@ export default function WalletReceivePage () {
 
 function WalletReceive ({ wallet }) {
   const { canReceive } = useWalletCapabilities(wallet)
-  const [invoice, setInvoice] = useState()
   const [createWalletInvoice] = useMutation(CREATE_WALLET_INVOICE)
+  const router = useRouter()
 
   if (!canReceive) {
     return (
@@ -49,7 +45,6 @@ function WalletReceive ({ wallet }) {
   return (
     <WalletActionShell wallet={wallet} title='receive'>
       <Form
-        style={{ display: invoice ? 'none' : undefined }}
         initial={{
           amount: 10000,
           description: ''
@@ -64,7 +59,8 @@ function WalletReceive ({ wallet }) {
               description: normalizedDescription || undefined
             }
           })
-          setInvoice({ ...data.createWalletInvoice, sats: Number(amount) })
+          // the QR + live settlement status now live on the transaction page
+          await router.push(`/wallets/transactions/${data.createWalletInvoice.transaction.id}`)
         }}
       >
         <div className={classNames(styles.fields, styles.formResponsiveReset, 'd-flex flex-column')}>
@@ -106,21 +102,6 @@ function WalletReceive ({ wallet }) {
           </SubmitButton>
         </WalletBottomBar>
       </Form>
-      {invoice && (
-        <div className={classNames(styles.result, 'd-flex flex-column align-items-center gap-3')}>
-          <Qr
-            value={invoice.bolt11}
-            qrTransform={bolt11QrTransform}
-            description={numWithUnits(invoice.sats, { abbreviate: false })}
-          />
-          <div className='text-muted text-center'>
-            We do not track receive success. Check your external wallet.
-          </div>
-          <Link href={`/wallets/${wallet.id}`} className='btn btn-secondary'>
-            back to wallet
-          </Link>
-        </div>
-      )}
     </WalletActionShell>
   )
 }

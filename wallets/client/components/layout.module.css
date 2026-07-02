@@ -92,13 +92,14 @@
   max-height: 12rem;
   resize: vertical;
 }
-.walletActionWalletRow {
+/* Two-column heading row: title + identity stacked on the left, the aside (available balance,
+   or status/time) on the right. Top-aligned so the aside's first line sits level with the title. */
+.walletPageHeadingRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: end;
   gap: var(--wt-gap-xl);
   width: 100%;
-  min-height: 2.25rem;
 }
 .walletActionAvailable {
   flex: 0 0 auto;

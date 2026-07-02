@@ -32,6 +32,24 @@ export async function pollUntilSettled (probe, classify, { intervalMs, signal })
   }
 }
 
+export async function pollPaymentCheckUntilSettled (probe, { intervalMs, signal }) {
+  return await pollUntilSettled(
+    probe,
+    result => {
+      if (result?.status === 'SETTLED') {
+        return { value: result }
+      }
+      if (result?.status === 'FAILED') {
+        return {
+          error: result.error || 'provider reports payment failed'
+        }
+      }
+      return null
+    },
+    { intervalMs, signal }
+  )
+}
+
 /**
  * Build a protocol balance from an amount already normalized to the display
  * minor unit for its currency. For BTC this is sats; for fiat currencies this

@@ -4,9 +4,9 @@ import Moon from '@/svgs/moon-fill.svg'
 import Check from '@/svgs/check-double-line.svg'
 import ThumbDown from '@/svgs/thumb-down-fill.svg'
 
-const statusIconSize = 16
+export const statusIconSize = 16
 
-function StatusText ({ color, children }) {
+export function StatusText ({ color, children }) {
   return (
     <small className={`ms-1 text-${color}`} style={{ fontWeight: '600' }}>{children}</small>
   )

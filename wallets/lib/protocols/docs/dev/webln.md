@@ -20,3 +20,9 @@ interaction with it, are still the only things that can stop the provider call
 itself. Direct sends may still settle after the wallet shell gives up; the "may
 still be in flight" warning in `send-form.js` is the user-facing safeguard
 against double-pay.
+
+## Proof/status
+
+WebLN `sendPayment` returns a `preimage` on success. The WebLN client API does
+not expose a later payment-status lookup method, so SN can only record proof
+from the immediate `sendPayment` response.

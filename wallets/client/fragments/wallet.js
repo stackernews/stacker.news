@@ -207,6 +207,36 @@ export const DELETE_WALLET = gql`
     deleteWallet(id: $id)
   }`
 
+export const EXTERNAL_TRANSACTION_FIELDS = gql`
+  fragment ExternalTransactionFields on ExternalTransaction {
+    id
+    createdAt
+    direction
+    settlementStatus
+    settlementStatusChangedAt
+    walletId
+    protocolId
+    bolt11
+    hash
+    preimage
+    amountMsats
+    feeMsats
+    invoiceExpiresAt
+    settledAt
+    error
+    unknownReason
+    sourceType
+    sourceValue
+    walletInfo {
+      walletId
+      walletName
+      protocolId
+      protocolName
+      role
+    }
+  }
+`
+
 export const SAVE_WALLET_PROTOCOLS = gql`
   ${USER_WALLET_FIELDS}
   mutation SaveWalletProtocols(
@@ -227,11 +257,42 @@ export const SAVE_WALLET_PROTOCOLS = gql`
 `
 
 export const CREATE_WALLET_INVOICE = gql`
+  ${EXTERNAL_TRANSACTION_FIELDS}
   mutation createWalletInvoice($walletId: ID!, $amount: Int!, $description: String) {
     createWalletInvoice(walletId: $walletId, amount: $amount, description: $description) {
       bolt11
+      transaction {
+        ...ExternalTransactionFields
+      }
     }
   }`
+
+export const GET_EXTERNAL_TRANSACTION = gql`
+  ${EXTERNAL_TRANSACTION_FIELDS}
+  query ExternalTransaction($id: Int!) {
+    externalTransaction(id: $id) {
+      ...ExternalTransactionFields
+    }
+  }
+`
+
+export const CREATE_EXTERNAL_TRANSACTION = gql`
+  ${EXTERNAL_TRANSACTION_FIELDS}
+  mutation CreateExternalTransaction($input: ExternalTransactionCreateInput!) {
+    createExternalTransaction(input: $input) {
+      ...ExternalTransactionFields
+    }
+  }
+`
+
+export const UPDATE_EXTERNAL_TRANSACTION = gql`
+  ${EXTERNAL_TRANSACTION_FIELDS}
+  mutation UpdateExternalTransaction($input: ExternalTransactionUpdateInput!) {
+    updateExternalTransaction(input: $input) {
+      ...ExternalTransactionFields
+    }
+  }
+`
 
 export const DISABLE_PASSPHRASE_EXPORT = gql`
   mutation DisablePassphraseExport {
@@ -264,19 +325,20 @@ export const SET_WALLET_SETTINGS = gql`
 `
 
 export const ADD_WALLET_LOG = gql`
-  mutation AddWalletLog($protocolId: Int, $level: WalletLogLevel!, $message: String!, $timestamp: Date!, $payInId: Int, $updateStatus: Boolean) {
-    addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, payInId: $payInId, updateStatus: $updateStatus)
+  mutation AddWalletLog($protocolId: Int, $level: WalletLogLevel!, $message: String!, $timestamp: Date!, $payInId: Int, $externalTransactionId: Int, $updateStatus: Boolean) {
+    addWalletLog(protocolId: $protocolId, level: $level, message: $message, timestamp: $timestamp, payInId: $payInId, externalTransactionId: $externalTransactionId, updateStatus: $updateStatus)
   }
 `
 
 export const WALLET_LOGS = gql`
-  query WalletLogs($walletId: ID, $payInId: Int, $cursor: String) {
-    walletLogs(walletId: $walletId, payInId: $payInId, cursor: $cursor) {
+  query WalletLogs($walletId: ID, $payInId: Int, $externalTransactionId: Int, $cursor: String) {
+    walletLogs(walletId: $walletId, payInId: $payInId, externalTransactionId: $externalTransactionId, cursor: $cursor) {
       logs {
         id
         level
         message
         createdAt
+        externalTransactionId
         wallet {
           name
         }

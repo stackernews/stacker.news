@@ -11,7 +11,7 @@ import { isTemplate } from '@/wallets/lib/util'
 export function useWalletLoggerFactory () {
   const [addWalletLog] = useMutation(ADD_WALLET_LOG)
 
-  const log = useCallback(({ protocol, level, message, payInId, updateStatus = false }) => {
+  const log = useCallback(({ protocol, level, message, payInId, externalTransactionId, updateStatus = false }) => {
     console[mapLevelToConsole(level)](`[${protocol ? protocol.name : 'system'}] ${message}`)
 
     if (protocol && isTemplate(protocol)) return
@@ -23,6 +23,7 @@ export function useWalletLoggerFactory () {
         message,
         timestamp: new Date(),
         payInId,
+        externalTransactionId,
         updateStatus
       }
     }).catch(err => {
@@ -30,22 +31,28 @@ export function useWalletLoggerFactory () {
     })
   }, [addWalletLog])
 
-  return useCallback((protocol, payIn) => {
+  return useCallback((protocol, payIn, boundContext = {}) => {
     const payInId = payIn ? Number(payIn.id) : null
-    return {
-      ok: (message, context = {}) => {
-        log({ protocol, level: 'OK', message, payInId, updateStatus: context.updateStatus })
-      },
-      info: (message, context = {}) => {
-        log({ protocol, level: 'INFO', message, payInId, updateStatus: context.updateStatus })
-      },
-      error: (message, context = {}) => {
-        log({ protocol, level: 'ERROR', message, payInId, updateStatus: context.updateStatus })
-      },
-      warn: (message, context = {}) => {
-        log({ protocol, level: 'WARNING', message, payInId, updateStatus: context.updateStatus })
+    const createLogger = (baseContext = {}) => {
+      const write = level => (message, context = {}) => {
+        log({
+          protocol,
+          level,
+          message,
+          payInId,
+          externalTransactionId: context.externalTransactionId ?? baseContext.externalTransactionId,
+          updateStatus: context.updateStatus ?? baseContext.updateStatus
+        })
+      }
+      return {
+        ok: write('OK'),
+        info: write('INFO'),
+        error: write('ERROR'),
+        warn: write('WARNING'),
+        withContext: context => createLogger({ ...baseContext, ...context })
       }
     }
+    return createLogger(boundContext)
   }, [log])
 }
 
@@ -54,11 +61,11 @@ export function useWalletLogger (protocol) {
   return useMemo(() => loggerFactory(protocol), [loggerFactory, protocol])
 }
 
-export function useWalletLogs (payInId, { poll = true, pollInterval = WALLET_LOG_POLL_INTERVAL_MS, walletId } = {}) {
+export function useWalletLogs (payInId, { poll = true, pollInterval = WALLET_LOG_POLL_INTERVAL_MS, walletId, externalTransactionId } = {}) {
   const [cursor, setCursor] = useState(null)
   const [logs, setLogs] = useState([])
 
-  const logFilters = useMemo(() => ({ walletId, payInId }), [walletId, payInId])
+  const logFilters = useMemo(() => ({ walletId, payInId, externalTransactionId }), [walletId, payInId, externalTransactionId])
 
   const [prevFilters, setPrevFilters] = useState(logFilters)
   if (prevFilters !== logFilters) {

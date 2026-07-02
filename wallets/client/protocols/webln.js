@@ -26,11 +26,24 @@ export async function sendPayment (bolt11, _config, { signal } = {}) {
     throw new WalletError('sendPayment returned no response')
   }
 
+  // resolution does not always mean settlement: Alby's galoy/Blink connector resolves on a
+  // still-PENDING payment with the literal string 'No preimage, payment still pending' in
+  // the preimage field. Downstream verifyPreimage rejects any such value, so the send is
+  // recorded UNKNOWN/PROOF_UNAVAILABLE rather than trusted as settled.
   return response.preimage
 }
 
-export async function testSendPayment () {
+export async function testSendPayment (_config, { signal } = {}) {
   if (typeof window.webln === 'undefined') {
     throw new WalletError('lightning browser extension not found')
+  }
+  // presence alone doesn't prove capability: a locked wallet or a rejected origin passes
+  // the check but fails every payment. enable() is the one method every provider must
+  // implement, so it doubles as the spec-standard capability probe.
+  try {
+    await raceAbort(window.webln.enable(), signal)
+  } catch (err) {
+    if (isAbortLike(err)) throw err
+    throw new WalletConfigurationError(err.message || 'wallet did not grant permission')
   }
 }

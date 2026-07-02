@@ -42,8 +42,12 @@ export async function createInvoice (
   }
 
   if (response.code === ERR_INVALID_AMOUNT) {
-    const { min, max } = response.range
-    throw new Error(`invalid amount: amount must be between ${min} and ${max} sats`)
+    // `range` is only SHOULD-provided.
+    const { min, max } = response.range ?? {}
+    if (min != null && max != null) {
+      throw new Error(`invalid amount: amount must be between ${min} and ${max} sats`)
+    }
+    throw new Error(response.error ?? 'clink reports invalid amount')
   }
 
   throw new Error(response.error ?? 'clink invoice failed')

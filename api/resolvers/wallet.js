@@ -14,6 +14,13 @@ import { getNodeSockets } from '../lnd'
 import pay from '../payIn'
 import { dropBolt11 } from '@/worker/autoDropBolt11'
 import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
+import {
+  createExternalReceiveTransaction,
+  createExternalSendTransaction,
+  externalTransactionInclude,
+  pokeExternalTransactionCheck,
+  updateExternalTransaction as updateExternalTransactionRow
+} from '@/wallets/server/external-transactions'
 
 export function createHmac (hash) {
   if (!hash) throw new GqlInputError('hash required to create hmac')
@@ -46,11 +53,51 @@ const resolvers = {
     },
     connectAddress: async (parent, args, { lnd }) => {
       return process.env.LND_CONNECT_ADDRESS
+    },
+    externalTransaction: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const transaction = await models.externalTransaction.findFirst({
+        where: {
+          id: Number(id),
+          userId: me.id
+        },
+        include: externalTransactionInclude()
+      })
+      // reading a live receive is the demand signal for its next provider check
+      await pokeExternalTransactionCheck(models, transaction)
+      return transaction
     }
   },
   Mutation: {
     createWithdrawl: createWithdrawal,
     createWalletInvoice,
+    createExternalTransaction: async (parent, { input }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      assertApiKeyNotPermitted({ me })
+
+      return await createExternalSendTransaction(models, {
+        ...input,
+        direction: 'SEND',
+        userId: me.id,
+        walletId: parseWalletId(input.walletId)
+      })
+    },
+    updateExternalTransaction: async (parent, { input }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      assertApiKeyNotPermitted({ me })
+
+      return await updateExternalTransactionRow(models, {
+        ...input,
+        userId: me.id
+      })
+    },
     sendToLnAddr,
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {
@@ -168,11 +215,25 @@ async function createWalletInvoice (parent, { walletId, amount, description }, {
   )
   const { value } = await invoices.next()
 
-  if (value) {
-    return { bolt11: value.bolt11 }
+  if (!value) {
+    throw new GqlInputError('wallet could not create a receive invoice')
   }
 
-  throw new GqlInputError('wallet could not create a receive invoice')
+  const transaction = await createExternalReceiveTransaction(models, {
+    userId: me.id,
+    walletId: walletIdNumber,
+    protocolId: value.protocol.id,
+    direction: 'RECEIVE',
+    bolt11: value.bolt11,
+    verificationContext: value.verificationContext
+  })
+
+  await value.logger.ok('saved receive invoice to activity', {
+    externalTransactionId: transaction.id,
+    bolt11: value.bolt11
+  })
+
+  return { bolt11: value.bolt11, transaction }
 }
 
 async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },

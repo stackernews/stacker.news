@@ -1,7 +1,6 @@
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
-import { snFetch } from '@/lib/fetch'
 import { msatsToSats, msatsSatsFloor } from '@/lib/format'
-import { assertContentTypeJson } from '@/lib/url'
+import { lnbitsPaymentCheckResult, lnbitsRequest } from '@/wallets/lib/lnbits'
 
 export const name = 'LNBITS'
 // lnbits only invoices whole sats, so it can receive a request snapped down to the sat grid
@@ -11,11 +10,6 @@ export async function createInvoice (
   { msats, description, descriptionHash, expiry },
   { url, apiKey },
   { signal }) {
-  const headers = new Headers()
-  headers.append('Accept', 'application/json')
-  headers.append('Content-Type', 'application/json')
-  headers.append('X-Api-Key', apiKey)
-
   // lnbits doesn't support msats so we have to floor to nearest sat
   const sats = msatsToSats(msats)
 
@@ -27,6 +21,35 @@ export async function createInvoice (
     out: false
   })
 
+  const { baseUrl, protocol } = lnbitsBaseUrl(url)
+  const payment = await lnbitsRequest({
+    url: baseUrl,
+    protocol,
+    apiKey,
+    path: '/api/v1/payments',
+    method: 'POST',
+    body,
+    signal,
+    timeout: WALLET_CREATE_INVOICE_TIMEOUT_MS
+  })
+
+  return payment?.payment_request || payment?.bolt11
+}
+
+export async function checkInvoice ({ hash }, { url, apiKey }, { signal }) {
+  const { baseUrl, protocol } = lnbitsBaseUrl(url)
+  const payment = await lnbitsRequest({
+    url: baseUrl,
+    protocol,
+    apiKey,
+    path: `/api/v1/payments/${hash}`,
+    signal,
+    notFoundOk: true
+  })
+  return lnbitsPaymentCheckResult(payment, { failedError: 'lnbits invoice failed' })
+}
+
+function lnbitsBaseUrl (url) {
   let baseUrl = url
   let protocol
   if (process.env.NODE_ENV !== 'production') {
@@ -39,26 +62,7 @@ export async function createInvoice (
       protocol = 'http'
     }
   }
-
-  const method = 'POST'
-  const res = await snFetch(baseUrl, {
-    path: '/api/v1/payments',
-    protocol,
-    method,
-    headers,
-    body,
-    signal,
-    timeout: WALLET_CREATE_INVOICE_TIMEOUT_MS
-  })
-
-  assertContentTypeJson(res, { method })
-  if (!res.ok) {
-    const errBody = await res.json()
-    throw new Error(errBody.detail)
-  }
-
-  const payment = await res.json()
-  return payment?.payment_request || payment?.bolt11
+  return { baseUrl, protocol }
 }
 
 export async function testCreateInvoice ({ url, apiKey }, { signal }) {

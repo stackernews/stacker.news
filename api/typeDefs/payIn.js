@@ -6,6 +6,7 @@ extend type Query {
   payIn(id: Int!): PayIn
   satistics(cursor: String, walletId: ID): Satistics
   failedPayIns: [PayIn!]!
+  pendingExternalSendTransactions: [ExternalTransaction!]!
 }
 
 extend type Mutation {
@@ -14,7 +15,7 @@ extend type Mutation {
 }
 
 type Satistics {
-  payIns: [PayIn!]!
+  txs: [WalletActivityItem!]!
   cursor: String
 }
 

@@ -1,13 +1,14 @@
 import { useCallback } from 'react'
-import { sha256 } from '@noble/hashes/sha2.js'
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
   WalletPaymentError, WalletError, WalletReceiverError, WalletSendStateNotReadyError,
   WalletPaymentRejectedError, WalletValidationError, WalletConfigurationError
 } from '@/wallets/client/errors'
-import { timeoutSignal } from '@/lib/time'
+import { withTimeoutSignal } from '@/lib/time'
+import { errorMessage } from '@/lib/error'
 import { isInvoiceSetupPending } from '@/lib/pay-in'
+import { verifyPreimage } from '@/wallets/lib/preimage'
 import { useMe } from '@/components/me'
 import { formatSats, msatsToSats } from '@/lib/format'
 import usePayInHelper from '@/components/payIn/hooks/use-pay-in-helper'
@@ -86,7 +87,7 @@ export function useWalletPayment () {
           i -= 1
         } else if (paymentError instanceof WalletPaymentError) {
           // only log payment errors, not configuration errors
-          if (paymentError.settledUnknown) {
+          if (paymentError instanceof WalletSenderError && classifyWalletPaymentError(paymentError).status === 'UNKNOWN') {
             logger.warn(`payment outcome unknown: ${paymentErrorMessage(paymentError)}`, { updateStatus: true })
           } else {
             logger.error(`payment failed: ${paymentErrorMessage(paymentError)}`, { updateStatus: true })
@@ -125,53 +126,60 @@ export function useWalletPayment () {
 }
 
 // payment is the minimal BOLT11 shape used by both PayIn rows and direct wallet sends.
-// `requirePreimage` opts callers (direct sends) into throwing on missing/invalid
-// preimage so the UI can surface "may still be in flight". The PayIn flow leaves it
-// false because `controller.wait` polls server state and cancelling its invoice on
-// every silent-success wallet would risk losing funds when the wallet really did pay.
-export async function sendWalletPayment (protocol, payment, logger, { amountText, maxFee, timeout = WALLET_SEND_PAYMENT_TIMEOUT_MS, requirePreimage = false } = {}) {
+// This helper normalizes successful sends to the same result shape as checkPayment.
+export async function sendWalletPayment (protocol, payment, logger, { amountText, maxFee, timeout = WALLET_SEND_PAYMENT_TIMEOUT_MS } = {}) {
   if (!payment.hash) throw new Error('sendWalletPayment requires payment.hash')
 
   const label = amountText ?? formatSats(msatsToSats(payment.msatsRequested))
   try {
     logger.info(`↗ sending payment: ${label}`)
-    const preimage = await protocol.sendPayment(
-      payment.bolt11,
-      protocol.config,
-      { signal: timeoutSignal(timeout), maxFee, timeout }
-    )
+    const result = normalizePaymentResult(await withTimeoutSignal(timeout, signal =>
+      protocol.sendPayment(payment.bolt11, protocol.config, { signal, maxFee, timeout })))
+    const { preimage } = result
 
     // some wallets like Coinos will always immediately return success without providing the preimage
     let proofIssue
     if (!preimage) proofIssue = 'wallet returned success without proof of payment'
     else if (!verifyPreimage(payment.hash, preimage)) proofIssue = 'wallet returned success with invalid proof of payment'
 
-    if (proofIssue) {
-      // direct sends have no server-side poll backstop; without proof the payment
-      // may have settled, so throw — the catch below classifies it settled-unknown.
-      if (requirePreimage) throw new Error(proofIssue)
-      return logger.warn(proofIssue, { updateStatus: true })
-    }
-    logger.ok(`↗ payment sent: ${label}`, { updateStatus: true })
+    if (proofIssue) logger.warn(proofIssue, { updateStatus: true })
+    else logger.ok(`↗ payment sent: ${label}`, { updateStatus: true })
+    return result
   } catch (err) {
     // we don't log the error here since callers decide whether to retry or surface it directly
-    const message = err.message || err.toString?.()
-    const error = new WalletSenderError(protocol.name, payment, message, { cause: err })
-    // "definitively failed" needs proof: only a provider-reported rejection or a
-    // pre-payment validation/configuration error is safe to retry — anything else
-    // (transport errors, SDK throws, aborts) may have left the payment in flight.
-    error.settledUnknown = !(err instanceof WalletPaymentRejectedError ||
-      err instanceof WalletValidationError ||
-      err instanceof WalletConfigurationError)
-    throw error
+    throw new WalletSenderError(protocol.name, payment, errorMessage(err), { cause: err })
   }
-}
-
-function verifyPreimage (hash, preimage) {
-  const preimageHash = Buffer.from(sha256(Buffer.from(preimage, 'hex'))).toString('hex')
-  return hash === preimageHash
 }
 
 export function paymentErrorMessage (err) {
   return err?.reason ?? err?.message ?? err?.toString?.() ?? 'unknown error'
+}
+
+export function classifyWalletPaymentError (err) {
+  return walletPaymentErrorResult(err?.cause ?? err, paymentErrorMessage(err))
+}
+
+function normalizePaymentResult (proof) {
+  if (typeof proof === 'string' || proof == null) {
+    return {
+      status: 'SETTLED',
+      preimage: proof
+    }
+  }
+  // pass through bare proofs and already-normalized checkPayment results alike,
+  // so adapter metadata survives without a mirrored field whitelist
+  return { ...proof, status: 'SETTLED' }
+}
+
+function walletPaymentErrorResult (err, message) {
+  // "definitively failed" needs proof: only a provider-reported rejection or a
+  // pre-payment validation/configuration error is safe to retry — anything else
+  // (transport errors, SDK throws, aborts) may have left the payment in flight.
+  if (err instanceof WalletPaymentRejectedError ||
+    err instanceof WalletValidationError ||
+    err instanceof WalletConfigurationError) {
+    return { status: 'FAILED', error: message }
+  }
+
+  return { status: 'UNKNOWN', error: message }
 }

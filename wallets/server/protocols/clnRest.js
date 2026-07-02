@@ -1,7 +1,7 @@
 import { createInvoice as clnCreateInvoice, getInvoice as clnGetInvoice, runeMayAllowMethod } from '@/lib/cln'
 import { walletAmountToMsatsOrUndefined } from '@/wallets/lib/amount'
 import { WalletPermissionsError } from '@/wallets/client/errors'
-import { EXTERNAL_TRANSACTION_UNKNOWN_REASONS } from '@/wallets/lib/external-transactions'
+import { verificationUnsupportedResult } from '@/wallets/lib/external-transactions'
 
 export const name = 'CLN_REST'
 
@@ -35,11 +35,7 @@ export const checkInvoice = async (
   // can never be verified for it — classify as unsupported (stop polling, benign message) rather than
   // PERMISSION_REQUIRED, which would re-poll for 24h with a misleading "update wallet permissions" notice
   if (!runeMayAllowMethod(rune, 'listinvoices')) {
-    return {
-      status: 'UNKNOWN',
-      unknownReason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED,
-      error: 'cln rune does not allow listinvoices'
-    }
+    return verificationUnsupportedResult('cln rune does not allow listinvoices')
   }
 
   const invoice = await clnGetInvoice({ paymentHash: hash }, { socket, rune, cert }, { signal })

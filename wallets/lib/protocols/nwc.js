@@ -2,7 +2,7 @@ import Nostr from '@/lib/nostr'
 import { NDKNWCWallet } from '@nostr-dev-kit/ndk-wallet'
 import { nwcUrlValidator, parseNwcUrl } from '@/wallets/lib/validate'
 import { msatsToSats } from '@/lib/format'
-import { walletAmountToMsats } from '@/wallets/lib/amount'
+import { walletAmountToMsatsOrUndefined } from '@/wallets/lib/amount'
 import { isAbortLike, raceAbort } from '@/lib/time'
 import { WalletPermissionsError } from '@/wallets/client/errors'
 
@@ -13,8 +13,10 @@ import { WalletPermissionsError } from '@/wallets/client/errors'
 // We treat 2^64-1 as "unknown/no limit" for any msat field we read.
 const UINT64_MAX_MSATS = 18446744073709551615n
 export const NWC_PAY_INVOICE_METHOD = 'pay_invoice'
+export const NWC_LOOKUP_INVOICE_METHOD = 'lookup_invoice'
 const NWC_GET_BALANCE_METHOD = 'get_balance'
-const NWC_ACCESS_DENIED_CODES = new Set(['UNAUTHORIZED', 'RESTRICTED'])
+// Alby Hub returns EXPIRED for every scoped method on an expired connection.
+const NWC_ACCESS_DENIED_CODES = new Set(['UNAUTHORIZED', 'RESTRICTED', 'EXPIRED'])
 
 // Nostr Wallet Connect (NIP-47)
 // https://github.com/nostr-protocol/nips/blob/master/47.md
@@ -33,6 +35,7 @@ export default [
         type: 'password',
         help: [
           'The connection must allow `pay_invoice` to send payments.',
+          'Allow `lookup_invoice` too if you want Stacker News to recover proof/status after uncertain sends.',
           'Allow `get_balance` too if you want Stacker News to show this wallet balance.'
         ],
         required: true,
@@ -54,6 +57,10 @@ export default [
         label: 'url',
         placeholder: 'nostr+walletconnect://',
         type: 'password',
+        help: [
+          'The connection must allow `make_invoice`. Allow `lookup_invoice` too if you want Stacker News to verify receive status.',
+          'It must NOT allow spending (`pay_invoice`, `pay_keysend`, `multi_pay_invoice`, `multi_pay_keysend`): this secret is stored on our server, so attach a receive-only connection.'
+        ],
         required: true,
         validate: nwcUrlValidator()
       }
@@ -130,13 +137,8 @@ export async function getBalance (url, { signal } = {}) {
 }
 
 function nwcMsatsToSats (msats) {
-  let amount
-  try {
-    amount = walletAmountToMsats(msats)
-  } catch {
-    return null
-  }
-  if (amount === UINT64_MAX_MSATS) return null
+  const amount = walletAmountToMsatsOrUndefined(msats)
+  if (amount == null || amount === UINT64_MAX_MSATS) return null
   return msatsToSats(amount)
 }
 

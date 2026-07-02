@@ -3,6 +3,7 @@ import { authenticatedLndGrpc } from '@/lib/lnd'
 import { createInvoice as lndCreateInvoice, getInvoice } from 'ln-service'
 import { TOR_REGEXP } from '@/lib/url'
 import { WalletPermissionsError } from '@/wallets/client/errors'
+import { walletAmountToMsatsOrUndefined } from '@/wallets/lib/amount'
 
 export const name = 'LND_GRPC'
 
@@ -56,9 +57,6 @@ export const checkInvoice = async (
     invoice = await raceAbort(getInvoice({ id: hash, lnd }), signal)
   } catch (err) {
     if (isAbortLike(err)) throw err
-    // a macaroon lacking invoices:read surfaces as a gRPC PERMISSION_DENIED(7)/UNAUTHENTICATED(16);
-    // LND has no HTTP status for the central classifier to read, so raise the typed error here (like
-    // blink/nwc) so the reconciler flags it as a permission problem with the "fix permissions" hint.
     if (isLndPermissionError(err)) throw new WalletPermissionsError('lnd macaroon cannot read invoices')
     throw err
   }
@@ -68,7 +66,7 @@ export const checkInvoice = async (
       status: 'SETTLED',
       preimage: invoice.secret,
       settledAt: invoice.confirmed_at ? new Date(invoice.confirmed_at) : undefined,
-      msats: invoice.received_mtokens
+      msats: walletAmountToMsatsOrUndefined(invoice.received_mtokens)
     }
   }
   if (invoice.is_canceled) {
@@ -85,11 +83,8 @@ export const testCreateInvoice = async ({ cert, macaroon, socket }, { signal } =
   return await createInvoice({ msats: 1000, expiry: 1 }, { cert, macaroon, socket }, { signal })
 }
 
-// LND errors arrive as [code, type, { err: { code, details } }] (or a plain Error); a permission
-// failure is gRPC code 7 (PERMISSION_DENIED) / 16 (UNAUTHENTICATED), or says so in its details
+// Native LND macaroon failures surface in details, not stable gRPC codes.
 function isLndPermissionError (err) {
-  const grpcCode = Array.isArray(err) ? err[2]?.err?.code : err?.code
-  if (grpcCode === 7 || grpcCode === 16) return true
   const details = (Array.isArray(err) ? err[2]?.err?.details : null) || err?.message || ''
   return /permission denied|unauthenticated|not authorized/i.test(details)
 }

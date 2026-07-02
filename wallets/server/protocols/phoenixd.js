@@ -1,4 +1,4 @@
-import { msatsToSats, msatsSatsFloor } from '@/lib/format'
+import { msatsToSats, msatsSatsFloor, satsToMsats } from '@/lib/format'
 import { walletAmountToMsatsOrUndefined } from '@/wallets/lib/amount'
 import { truncateToCharLength } from '@/lib/validate'
 import {
@@ -19,7 +19,6 @@ export async function createInvoice (
   { url, apiKey },
   { signal }
 ) {
-  // https://phoenix.acinq.co/server/api#create-bolt11-invoice
   const payment = await phoenixdRequest({
     url,
     apiKey,
@@ -44,12 +43,14 @@ export async function checkInvoice ({ hash }, { url, apiKey }, { signal }) {
     return {
       status: 'SETTLED',
       preimage: payment.preimage,
+      msats: Number.isFinite(Number(payment.receivedSat)) ? satsToMsats(Number(payment.receivedSat)) : undefined,
       actualFeeMsats: walletAmountToMsatsOrUndefined(payment.fees),
       settledAt: phoenixdCompletedAt(payment)
     }
   }
-  // phoenixd's incoming-payment response has no expiry flag, so we can't self-report expiry here; the
-  // worker force-fails the row once the bolt11 expiry + grace window passes.
+  if (payment.isExpired) {
+    return { status: 'FAILED', error: 'invoice expired' }
+  }
   return { status: 'PENDING' }
 }
 

@@ -17,6 +17,7 @@ export * from './util'
  * @typedef {Object} ClientWalletProtocol
  * @property {ProtocolName} name - must match a protocol name in the database
  * @property {ProtocolSendPayment} sendPayment - pays a bolt11 invoice
+ * @property {ProtocolCheckPayment} [checkPayment] - checks a submitted payment without resending it
  * @property {ProtocolTestSendPayment} testSendPayment - test if configuration can pay
  * @property {ProtocolGetBalance} [getBalance] - fetches wallet balance when supported
  * @property {boolean} enforcesMaxFee - true if the wallet/server hard-caps routing
@@ -28,7 +29,16 @@ export * from './util'
  * @param {string} bolt11 - the bolt11 invoice the wallet should pay
  * @param {Object} config - current protocol configuration
  * @param {ProtocolRequestOptions} opts - additional options for the payment
- * @returns {Promise<Preimage>} - preimage
+ * @returns {Promise<Preimage|{preimage?: Preimage, actualFeeMsats?: bigint|string, settledAt?: Date}>} - payment proof;
+ *   a full checkPayment-shaped SETTLED result is also a valid proof
+ */
+
+/**
+ * @callback ProtocolCheckPayment
+ * @param {{hash: string}} payment - payment identity for provider lookup
+ * @param {Object} config - current protocol configuration
+ * @param {ProtocolRequestOptions} opts - additional options for the lookup
+ * @returns {Promise<{status: 'PENDING'|'SETTLED'|'FAILED'|'UNKNOWN', preimage?: string, actualFeeMsats?: bigint|string, settledAt?: Date, unknownReason?: string, error?: string}|null>}
  */
 
 /**
@@ -54,7 +64,7 @@ export * from './util'
 /**
  * Adapter failure-classification contract:
  * "This payment definitively failed" is the claim that needs proof. Unless an
- * adapter proves it, `sendWalletPayment` classifies an error as settled-unknown
+ * adapter proves it, `classifyWalletPaymentError` treats send errors as UNKNOWN
  * and the direct-send shell warns "may still be in flight" instead of inviting
  * a retry that double-pays. To prove a failure is safe to retry:
  * - throw `WalletPaymentRejectedError` exactly where the provider itself
@@ -62,10 +72,10 @@ export * from './util'
  *   a terminal `{ error }` from `pollUntilSettled`'s classify)
  * - throw `WalletValidationError`/`WalletConfigurationError` (or subclasses)
  *   for problems that occur before any payment is attempted
- * Everything else — transport errors, SDK throws, aborts/timeouts — is treated
- * as settled-unknown automatically; never convert one into a definitive failure.
+ * Everything else — transport errors, SDK throws, aborts/timeouts — remains
+ * UNKNOWN automatically; never convert one into a definitive failure.
  * Return a missing/undefined preimage on an unprovable settlement (e.g.
- * intra-ledger) so `sendWalletPayment`'s proof check surfaces it.
+ * intra-ledger) so the external transaction classifier records it as UNKNOWN.
  */
 
 /**

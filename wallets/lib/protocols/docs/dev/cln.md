@@ -3,7 +3,7 @@
 to attach sending:
 
 - socket: `localhost:9092`
-- rune with balance: `sndev cli cln --regtest createrune restrictions='[["method=pay","method=bkpr-listbalances"]]'`
+- rune with proof recovery and balance: `sndev cli cln --regtest createrune restrictions='[["method=pay","method=listpays","method=bkpr-listbalances"]]'`
 - rune without balance: `sndev cli cln --regtest createrune restrictions='[["method=pay"]]'`
 
 to attach receiving:

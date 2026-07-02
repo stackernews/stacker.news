@@ -2,16 +2,28 @@ import { decodeBech32, generateSecretKey, newNdebitPaymentRequest, SendNdebitReq
 import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { WalletPaymentRejectedError } from '@/wallets/client/errors'
 import { raceAbort } from '@/lib/time'
+import { bolt11ToPayment } from '@/lib/bolt11'
+import { msatsToSats } from '@/lib/format'
 
 export const name = 'CLINK'
 // ndebit/CLINK has no protocol-level routing fee cap.
 export const enforcesMaxFee = false
 
+// GFY codes that can only occur before payment attempt.
+const CLINK_PREFLIGHT_GFY_CODES = new Set([
+  3, // Expired Request
+  4, // Rate Limited
+  5, // Invalid Amount
+  6 // Invalid Request
+])
+
 export async function sendPayment (bolt11, { ndebit, secretKey }, { signal, timeout = WALLET_SEND_PAYMENT_TIMEOUT_MS } = {}) {
   const { data: { pubkey, relay, pointer } } = decodeBech32(ndebit)
 
   const pool = new SimplePool()
-  const request = newNdebitPaymentRequest(bolt11, undefined, pointer)
+  // Some services reject requests without amount_sats, even for fixed invoices.
+  const { msatsRequested } = bolt11ToPayment(bolt11)
+  const request = newNdebitPaymentRequest(bolt11, msatsRequested != null ? msatsToSats(msatsRequested) : undefined, pointer)
 
   let response
   try {
@@ -27,13 +39,16 @@ export async function sendPayment (bolt11, { ndebit, secretKey }, { signal, time
   }
 
   if (response.res === 'GFY') {
-    // the service rejected the payment request: terminally failed, safe to retry
-    throw new WalletPaymentRejectedError(response.error)
+    // Codes 1/2 can arrive after approval, while the payment may still settle.
+    if (CLINK_PREFLIGHT_GFY_CODES.has(response.code)) {
+      throw new WalletPaymentRejectedError(response.error)
+    }
+    throw new Error(response.error || 'clink service reported an ambiguous failure')
   }
 
   // No preimage means an intra-ledger settlement: the payment settled but we
-  // can't prove it. Return it and let sendWalletPayment flag it as
-  // settled-unknown via the proof check, rather than reporting a hard failure.
+  // can't prove it. Return it so the external transaction classifier records
+  // UNKNOWN rather than reporting a hard failure.
   return response.preimage
 }
 

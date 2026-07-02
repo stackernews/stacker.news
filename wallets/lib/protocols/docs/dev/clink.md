@@ -35,3 +35,14 @@ The SDK also receives a `timeout` option and treats it as its own upper bound,
 but that is not a replacement for `signal`. Direct sends may still settle after
 the UI gives up; the "may still be in flight" warning in `send-form.js` is the
 user-facing safeguard against double-pay.
+
+## Proof/status
+
+CLINK Debits return an immediate response to a direct payment request. For
+standard Lightning settlement, that response can include `preimage`; for
+internal settlement, it can acknowledge success without one.
+
+CLINK Offers also define an optional payment receipt event after the invoice is
+paid. That is an async Nostr receipt, not a later lookup endpoint. Supporting it
+for receives would require persisting the original request identity and running
+a subscription until payment or expiry.

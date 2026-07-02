@@ -1,7 +1,6 @@
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
-import { snFetch } from '@/lib/fetch'
 import { msatsToSats, msatsSatsFloor } from '@/lib/format'
-import { assertContentTypeJson, assertWalletAuthorized } from '@/lib/url'
+import { lnbitsPaymentCheckResult, lnbitsRequest } from '@/wallets/lib/lnbits'
 
 export const name = 'LNBITS'
 // lnbits only invoices whole sats, so it can receive a request snapped down to the sat grid
@@ -23,13 +22,12 @@ export async function createInvoice (
   })
 
   const { baseUrl, protocol } = lnbitsBaseUrl(url)
-  const method = 'POST'
   const payment = await lnbitsRequest({
-    baseUrl,
+    url: baseUrl,
     protocol,
     apiKey,
     path: '/api/v1/payments',
-    method,
+    method: 'POST',
     body,
     signal,
     timeout: WALLET_CREATE_INVOICE_TIMEOUT_MS
@@ -41,58 +39,14 @@ export async function createInvoice (
 export async function checkInvoice ({ hash }, { url, apiKey }, { signal }) {
   const { baseUrl, protocol } = lnbitsBaseUrl(url)
   const payment = await lnbitsRequest({
-    baseUrl,
+    url: baseUrl,
     protocol,
     apiKey,
     path: `/api/v1/payments/${hash}`,
-    method: 'GET',
     signal,
     notFoundOk: true
   })
-  if (!payment) return { status: 'PENDING' }
-
-  if (payment?.paid === true) {
-    return {
-      status: 'SETTLED',
-      preimage: payment.preimage
-    }
-  }
-  if (payment?.status === 'failed') {
-    return {
-      status: 'FAILED',
-      error: 'lnbits invoice failed'
-    }
-  }
-
-  return { status: 'PENDING' }
-}
-
-async function lnbitsRequest ({ baseUrl, protocol, apiKey, path, method, body, signal, timeout, notFoundOk = false }) {
-  const headers = new Headers()
-  headers.append('Accept', 'application/json')
-  headers.append('Content-Type', 'application/json')
-  headers.append('X-Api-Key', apiKey)
-
-  const res = await snFetch(baseUrl, {
-    path,
-    protocol,
-    method,
-    headers,
-    body,
-    signal,
-    timeout
-  })
-
-  if (notFoundOk && res.status === 404) return null
-
-  assertWalletAuthorized(res)
-  assertContentTypeJson(res, { method })
-  if (!res.ok) {
-    const errBody = await res.json()
-    throw Object.assign(new Error(errBody.detail), { status: res.status })
-  }
-
-  return await res.json()
+  return lnbitsPaymentCheckResult(payment, { failedError: 'lnbits invoice failed' })
 }
 
 function lnbitsBaseUrl (url) {

@@ -1,4 +1,5 @@
 import { WalletPermissionsError } from '@/wallets/client/errors'
+import { verificationUnsupportedResult } from '@/wallets/lib/external-transactions'
 import { NWC_PAY_INVOICE_METHOD, nwcTryRun, supportedMethods } from '@/wallets/lib/protocols/nwc'
 import { walletAmountToMsatsOrUndefined } from '@/wallets/lib/amount'
 
@@ -14,11 +15,20 @@ export async function createInvoice ({ msats, description, expiry }, { url }, { 
 }
 
 export async function checkInvoice ({ hash }, { url }, { signal }) {
-  const result = await nwcTryRun(
-    nwc => nwc.req('lookup_invoice', { payment_hash: hash }),
-    { url },
-    { signal }
-  )
+  let result
+  try {
+    result = await nwcTryRun(
+      nwc => nwc.req('lookup_invoice', { payment_hash: hash }),
+      { url },
+      { signal }
+    )
+  } catch (err) {
+    if (err?.nwcError?.code === 'NOT_IMPLEMENTED') {
+      return verificationUnsupportedResult(err.message || 'nwc wallet does not support lookup_invoice')
+    }
+    if (err?.nwcError?.code === 'NOT_FOUND') return { status: 'PENDING', error: 'nwc invoice not found' }
+    throw err
+  }
   const invoice = result.result
 
   if (!invoice) return { status: 'PENDING', error: 'nwc invoice not found' }

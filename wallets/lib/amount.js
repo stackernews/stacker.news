@@ -24,6 +24,14 @@ export function walletAmountToSats (amount) {
   return toPositiveNumber(nonNegativeBigInt(amount))
 }
 
+export function walletAmountToSatsOrUndefined (amount) {
+  try {
+    return walletAmountToSats(amount)
+  } catch {
+    return undefined
+  }
+}
+
 function isMsatDenominated (amount) {
   return amount?.msat != null || (typeof amount === 'string' && amount.endsWith('msat'))
 }

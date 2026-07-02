@@ -1,4 +1,4 @@
-import { timeoutSignal } from '@/lib/time'
+import { withTimeoutSignal } from '@/lib/time'
 import { stableObjectHash } from '@/wallets/lib/config'
 
 const TTL_MS = 30_000
@@ -43,11 +43,12 @@ export async function readCachedWalletBalance (protocol, { signal } = {}) {
   // One timeout mechanism only: the abort signal. Adapters that honor it fail
   // fast as TimeoutError instead of racing a separate timeout promise against
   // the abort (which used to leave the UI stuck on `loading`).
-  const fetchSignal = signal ?? timeoutSignal(READ_TIMEOUT_MS)
   const entry = {}
   entry.promise = (async () => {
     try {
-      const balance = await protocol.getBalance(protocol.config, { signal: fetchSignal })
+      const balance = signal
+        ? await protocol.getBalance(protocol.config, { signal })
+        : await withTimeoutSignal(READ_TIMEOUT_MS, s => protocol.getBalance(protocol.config, { signal: s }))
       const result = { balance: balance ?? null }
       // Identity guard: an invalidate/clear or newer read may have replaced this
       // entry while we awaited, so only write back if it's still ours.

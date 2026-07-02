@@ -1,5 +1,6 @@
 import { snFetch } from '@/lib/fetch'
-import { assertContentTypeJson, assertResponseOk, assertWalletAuthorized } from '@/lib/url'
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import { assertWalletAuthorized } from '@/wallets/client/errors'
 
 export async function phoenixdRequest ({
   url,
@@ -47,6 +48,17 @@ export async function getIncomingPayment ({ paymentHash }, { url, apiKey }, { si
     url,
     apiKey,
     path: `/payments/incoming/${paymentHash}`,
+    method: 'GET',
+    signal,
+    notFoundOk: true
+  })
+}
+
+export async function getOutgoingPayment ({ paymentHash }, { url, apiKey }, { signal }) {
+  return await phoenixdRequest({
+    url,
+    apiKey,
+    path: `/payments/outgoingbyhash/${paymentHash}`,
     method: 'GET',
     signal,
     notFoundOk: true

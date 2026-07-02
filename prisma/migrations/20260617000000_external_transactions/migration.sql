@@ -37,7 +37,6 @@ CREATE TABLE "ExternalTransaction" (
     "settledAt" TIMESTAMP(3),
     "error" TEXT,
     "unknownReason" "ExternalTransactionUnknownReason",
-    "unknownMessage" TEXT,
     "sourceType" "ExternalTransactionSourceType",
     "sourceValue" TEXT,
     "verificationContext" JSONB,

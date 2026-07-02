@@ -1,57 +1,75 @@
 import { Prisma } from '@prisma/client'
 import { bolt11ToPayment, bolt11ExpiresAt } from '@/lib/bolt11'
 import { GqlInputError } from '@/lib/error'
-import { externalTransactionUnknown, externalTransactionUnknownMessage, externalTransactionNextCheckDelayMs, externalTransactionCheckStopped, EXTERNAL_TRANSACTION_UNKNOWN_REASONS, TERMINAL_STATUSES } from '@/wallets/lib/external-transactions'
+import { externalTransactionUnknown, externalTransactionVerificationUnsupported, externalTransactionFinal, externalTransactionResolvesLocally, EXPIRY_GRACE_MS, EXTERNAL_TRANSACTION_UNKNOWN_REASONS, MAX_CHECK_AGE_MS, STOP_CHECK_REASONS, TERMINAL_STATUSES } from '@/wallets/lib/external-transactions'
 import { verifyPreimage } from '@/wallets/lib/preimage'
 import { protocolCanCheckInvoice } from '@/wallets/server/protocols/util'
+import { explainSendDuplicateConflict, requireNoRecentSettledLnAddrRepeat } from './external-transaction-duplicates'
 
-// A receive is a plain insert (no prior read, so no transaction needed) and is reconciled later by
-// polling the provider, so it's the only path that schedules a status check.
+const SEND_PREIMAGE_REPAIR_STATUSES = ['PENDING', 'UNKNOWN', 'FAILED']
+// statuses covered by the unconfirmed same-hash unique index
+// (ExternalTransaction_send_hash_unconfirmed_key)
+export const SEND_HASH_UNIQUE_STATUSES = ['PENDING', 'UNKNOWN', 'SETTLED']
+
+// The partial unique indexes are the duplicate guard: insert first, and on
+// conflict explain what the database refused.
+export async function createExternalSendTransaction (models, args) {
+  const protocol = await resolveExternalWalletProtocol(models, args)
+  const invoice = parseExternalTransactionBolt11(args.bolt11)
+  const source = { userId: args.userId, invoice, sourceType: args.sourceType, sourceValue: args.sourceValue }
+
+  // the unique indexes ignore confirmed rows, so the already-paid block needs a
+  // read either way: this invoice's settlement may live on a confirmed row
+  const settled = await models.externalTransaction.findFirst({
+    where: { userId: args.userId, direction: 'SEND', hash: invoice.hash, settlementStatus: 'SETTLED' },
+    select: { id: true }
+  })
+  if (settled) throw new GqlInputError('invoice already paid in wallet activity')
+
+  if (!args.duplicateConfirmed) {
+    await requireNoRecentSettledLnAddrRepeat(models, source)
+  }
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await models.externalTransaction.create(
+        externalTransactionCreateArgs(args, protocol, invoice, null)
+      )
+    } catch (err) {
+      if (err?.code !== 'P2002') throw err
+      // throws the already-paid block or a confirmation prompt; returns
+      // { duplicateConfirmed: true } when only stale unresolved rows hold the key
+      args = { ...args, ...(await explainSendDuplicateConflict(models, source)) }
+    }
+  }
+  throw new GqlInputError('wallet activity changed while starting send; try the send again')
+}
+
 export async function createExternalReceiveTransaction (models, args) {
   const protocol = await resolveExternalWalletProtocol(models, args)
   const invoice = parseExternalTransactionBolt11(args.bolt11)
 
-  // a protocol that can't verify settlement (noffer/CLINK) can never be reconciled by the poller, so
-  // record a clean terminal UNKNOWN at create instead of scheduling a doomed PENDING poll
-  if (!protocolCanCheckInvoice(protocol)) {
-    return await models.externalTransaction.create(
-      externalTransactionCreateArgs(args, protocol, invoice, externalTransactionUnknown({
-        reason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED,
-        error: 'wallet protocol cannot verify invoice status'
-      }))
-    )
-  }
-
-  const settlementStatus = args.settlementStatus ?? 'PENDING'
-  const transaction = await models.externalTransaction.create(
-    externalTransactionCreateArgs(args, protocol, invoice, { settlementStatus })
+  // Protocols without status checks get their terminal-intent diagnosis up front.
+  const lifecycle = protocolCanCheckInvoice(protocol) ? null : externalTransactionVerificationUnsupported('RECEIVE')
+  return await models.externalTransaction.create(
+    externalTransactionCreateArgs(args, protocol, invoice, lifecycle)
   )
-
-  // schedule the first provider status check; each check then re-arms the next until the hot window is
-  // spent, after which the every-minute reaper drives the tail (rearm self-guards on stopped/non-pending).
-  await rearmExternalTransactionCheck(models, transaction)
-
-  return transaction
 }
 
-// schedule the next provider status check for a tx, unless polling has stopped (terminal / stop-reason /
-// past deadline) or the hot window is spent — in which case the reaper drives the tail from here.
-export async function rearmExternalTransactionCheck (models, transaction) {
-  if (!transaction || externalTransactionCheckStopped(transaction)) return
-  const delayMs = externalTransactionNextCheckDelayMs(transaction.createdAt)
-  if (delayMs == null) return
-  await scheduleExternalTransactionCheck(models, transaction.id, new Date(Date.now() + delayMs))
-    .catch(err => console.error('failed to schedule external wallet transaction check', transaction.id, err))
-}
+// A watched receive is the only case that needs sub-minute checks: the transaction
+// page polls while the row is live, so each read enqueues one. The singleton key
+// collapses concurrent pokes and the every-minute reaper covers unwatched rows.
+export async function pokeExternalTransactionCheck (models, transaction) {
+  if (transaction?.direction !== 'RECEIVE') return
+  if (externalTransactionFinal(transaction) && !externalTransactionResolvesLocally(transaction)) return
+  // debounce to roughly one check per page poll
+  if (new Date(transaction.updatedAt).getTime() > Date.now() - 10_000) return
 
-// low-level enqueue of a provider status check at startAfter (a Date). The singletonkey is keyed on the
-// scheduled fire time so each re-arm is unique: a re-arm fires inside the still-active job, so a fixed
-// per-tx key would collide with pg-boss's active-job singleton index (exactly what blocked self-re-arm).
-async function scheduleExternalTransactionCheck (models, id, startAfter) {
-  const singletonKey = `checkExternalTransaction:${id}:${startAfter.getTime()}`
-  return models.$executeRaw`
-    INSERT INTO pgboss.job (name, data, startafter, priority, singletonkey)
-    VALUES ('checkExternalTransaction', jsonb_build_object('id', ${id}::INTEGER), ${startAfter}, 1000, ${singletonKey})`
+  await models.$executeRaw`
+    INSERT INTO pgboss.job (name, data, singletonkey)
+    VALUES ('checkExternalTransaction', jsonb_build_object('id', ${transaction.id}::INTEGER), ${`checkExternalTransaction:${transaction.id}`})
+    ON CONFLICT DO NOTHING`
+    .catch(err => console.error('failed to poke external wallet transaction check', transaction.id, err))
 }
 
 async function resolveExternalWalletProtocol (models, { protocolId, walletId, userId, direction }) {
@@ -69,8 +87,6 @@ async function resolveExternalWalletProtocol (models, { protocolId, walletId, us
 }
 
 function externalTransactionCreateArgs (args, protocol, invoice, lifecycle) {
-  // lifecycle: { settlementStatus?, unknownReason?, unknownMessage?, error? }.
-  // coerce null too (callers may pass an empty/partial lifecycle) so it never derefs null.
   lifecycle = lifecycle ?? {}
   return {
     data: {
@@ -79,43 +95,99 @@ function externalTransactionCreateArgs (args, protocol, invoice, lifecycle) {
       settlementStatus: lifecycle.settlementStatus ?? 'PENDING',
       settlementStatusChangedAt: new Date(),
       unknownReason: lifecycle.unknownReason ?? null,
-      unknownMessage: lifecycle.unknownMessage ?? null,
       userId: args.userId,
       walletId: protocol.walletId,
       protocolId: protocol.id,
       sourceType: args.sourceType,
-      sourceValue: args.sourceValue,
+      // BOLT11 sourceValue would duplicate the invoice verbatim and defeat the
+      // retention purge; only LN_ADDR uses it (post-drop display + dedupe)
+      sourceValue: args.sourceType === 'LN_ADDR' ? args.sourceValue : null,
+      duplicateConfirmed: Boolean(args.duplicateConfirmed),
       maxFeeLimitMsats: optionalBigInt(args.maxFeeLimitMsats),
-      error: lifecycle.error ?? args.error,
-      verificationContext: jsonInput(args.verificationContext)
+      error: lifecycle.error ?? null,
+      // Prisma needs an explicit DbNull to write SQL NULL into a nullable Json column
+      verificationContext: args.verificationContext === null ? Prisma.DbNull : args.verificationContext
     },
     include: externalTransactionInclude()
   }
 }
 
+export async function updateExternalTransaction (models, { id, userId, ...change }) {
+  const tx = await models.externalTransaction.findFirst({
+    where: {
+      id: Number(id),
+      userId
+    }
+  })
+  if (!tx) throw new GqlInputError('external transaction not found')
+  if (tx.direction === 'RECEIVE') {
+    throw new GqlInputError('external receive transactions are reconciled by the server')
+  }
+
+  return await applyExternalTransactionChange(models, tx, change)
+}
+
 export async function applyExternalTransactionChange (models, tx, change) {
-  // Receive status checks trust the user's wallet/provider: if it says the receive settled, mark it
-  // settled even when the provider cannot return usable proof. Send settlements still require proof.
+  // Receives trust provider settlement; sends require proof.
   const hasPreimage = !!change.preimage
   const invalidPreimage = hasPreimage && !verifyPreimage(tx.hash, change.preimage)
   if (change.settlementStatus === 'SETTLED' && (invalidPreimage || !hasPreimage)) {
+    const proofError = invalidPreimage ? 'invalid payment preimage' : 'settled external wallet transaction requires proof of payment'
     if (tx.direction === 'SEND') {
-      throw new GqlInputError(invalidPreimage ? 'invalid payment preimage' : 'settled external wallet transaction requires proof of payment')
+      change = externalTransactionUnknown({
+        reason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.PROOF_UNAVAILABLE,
+        error: proofError
+      })
+    } else {
+      // Provider-confirmed receive settlement wins; discard unusable proof.
+      change = { ...change, preimage: undefined }
     }
-    // provider-confirmed receive settlement wins; never persist an unusable proof value
-    change = { ...change, preimage: undefined }
   } else if (invalidPreimage) {
     throw new GqlInputError('invalid payment preimage')
   }
 
-  const { settlementStatus, unknownReason } = change
+  // a send SETTLED change here always carries verified proof: unproven settles
+  // were normalized to UNKNOWN above
+  if (tx.direction !== 'SEND' || change.settlementStatus !== 'SETTLED') {
+    return await writeExternalTransactionChange(models, tx, change)
+  }
 
-  // settled/failed rows are terminal and immutable
-  if (TERMINAL_STATUSES.has(tx.settlementStatus)) {
-    return await models.externalTransaction.findUnique({
-      where: { id: tx.id },
-      include: externalTransactionInclude()
-    })
+  // Settle sends inside a serializable transaction, like the create path: the
+  // sibling read and the write share one snapshot, so concurrent same-hash
+  // settles can't both pass the one-SETTLED-per-hash guard — SSI aborts one
+  // writer, and its retry sees the winner and records a FAILED attempt instead.
+  try {
+    return await retrySerializableSendSettle(models, db => writeExternalTransactionChange(db, tx, change))
+  } catch (err) {
+    // a unique violation aborts the whole transaction, so diagnose outside it: an
+    // unconfirmed same-hash sibling explains the conflict, and the settle is (or
+    // will be) recorded on that sibling's row instead
+    if (!(await sendSettlementDuplicateExists(models, tx, err))) throw err
+    return await currentExternalTransaction(models, tx)
+  }
+}
+
+async function writeExternalTransactionChange (db, tx, change) {
+  // One SETTLED row per (user, hash): after a confirmed "send anyway", both rows'
+  // checks resolve to the same underlying payment, so a proof already recorded on
+  // a sibling terminalizes this attempt instead of double-counting the spend. For
+  // an already-FAILED row this also keeps the preimage repair out (terminal guard
+  // below), preserving its original diagnosis.
+  if (tx.direction === 'SEND' && change.settlementStatus === 'SETTLED' &&
+    await sendHashSiblingExists(db, tx, { settlementStatus: 'SETTLED' })) {
+    change = {
+      settlementStatus: 'FAILED',
+      error: 'payment already recorded by another send of this invoice'
+    }
+  }
+
+  const { settlementStatus, unknownReason } = change
+  const verifiedSendSettlement = tx.direction === 'SEND' && settlementStatus === 'SETTLED'
+  const verifiedFailedSendSettlement = verifiedSendSettlement && tx.settlementStatus === 'FAILED'
+
+  // A valid send preimage may repair an earlier FAILED diagnosis from a race.
+  if (TERMINAL_STATUSES.has(tx.settlementStatus) && !verifiedFailedSendSettlement) {
+    return await currentExternalTransaction(db, tx)
   }
 
   const now = new Date()
@@ -125,37 +197,114 @@ export async function applyExternalTransactionChange (models, tx, change) {
     ? unknownReason ?? tx.unknownReason ?? EXTERNAL_TRANSACTION_UNKNOWN_REASONS.STATUS_UNAVAILABLE
     : undefined
 
-  // Prisma skips undefined keys (leave the column alone) and writes null (clear it); the coercion
-  // helpers preserve that distinction, and preimage is forced to undefined so a stray null can't wipe one.
+  // Prisma skips undefined and writes null; keep that distinction explicit.
   const data = {
     settlementStatus: settlementStatus ?? undefined,
     settlementStatusChangedAt: settlementStatusChanged ? now : undefined,
     preimage: change.preimage ?? undefined,
     amountMsats: optionalBigInt(change.amountMsats),
     feeMsats: optionalBigInt(change.feeMsats),
-    // settling clears any failure/diagnostic text the row carried while it was unresolved
+    // Settling clears unresolved-state diagnostics.
     error: settlementStatus === 'SETTLED' ? change.error ?? null : change.error,
-    // every change carries a settlementStatus, so a non-UNKNOWN status always clears the diagnostic fields
+    // Non-UNKNOWN statuses clear diagnostic fields.
     unknownReason: unknownStatus ? nextUnknownReason : null,
-    unknownMessage: unknownStatus ? change.unknownMessage ?? externalTransactionUnknownMessage(nextUnknownReason) : null,
-    verificationContext: jsonInput(change.verificationContext),
     settledAt: settlementStatus === 'SETTLED' ? change.settledAt ?? now : undefined
   }
 
-  // compare-and-swap on the status we read: concurrent pollers (per-tx job, batch reaper, client
-  // refresh) can race the same row, so a stale writer no-ops instead of clobbering a newer status
-  await models.externalTransaction.updateMany({
+  // Compare-and-swap on the status we read so stale pollers no-op.
+  const updated = await db.externalTransaction.updateMany({
     where: {
       id: tx.id,
       settlementStatus: tx.settlementStatus
     },
     data
   })
+  if (updated.count === 0 && verifiedSendSettlement) {
+    // A valid send preimage wins over any unresolved diagnosis written after our read.
+    await db.externalTransaction.updateMany({
+      where: {
+        id: tx.id,
+        settlementStatus: { in: SEND_PREIMAGE_REPAIR_STATUSES }
+      },
+      data
+    })
+  }
 
-  return await models.externalTransaction.findUnique({
+  return await currentExternalTransaction(db, tx)
+}
+
+async function retrySerializableSendSettle (models, fn) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await models.$transaction(fn, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable
+      })
+    } catch (err) {
+      if (err?.code !== 'P2034' || attempt) throw err
+    }
+  }
+}
+
+function currentExternalTransaction (db, tx) {
+  return db.externalTransaction.findUnique({
     where: { id: tx.id },
     include: externalTransactionInclude()
   })
+}
+
+// A send-settle write can only violate the unconfirmed same-hash unique index, so
+// any unconfirmed sibling the index covers explains the conflict. Skipping the
+// write is safe: the payment is (or will be) recorded by a sibling's own check.
+async function sendSettlementDuplicateExists (models, tx, err) {
+  if (err?.code !== 'P2002') return false
+  return await sendHashSiblingExists(models, tx, {
+    duplicateConfirmed: false,
+    settlementStatus: { in: SEND_HASH_UNIQUE_STATUSES }
+  })
+}
+
+async function sendHashSiblingExists (models, tx, where) {
+  // retention nulls hash on old rows; a null match would hit unrelated rows
+  if (!tx.hash) return false
+  const sibling = await models.externalTransaction.findFirst({
+    where: {
+      userId: tx.userId,
+      direction: 'SEND',
+      hash: tx.hash,
+      id: { not: tx.id },
+      ...where
+    },
+    select: { id: true }
+  })
+  return !!sibling
+}
+
+// SQL mirror of externalTransactionCheckStopped: rows whose status can still change.
+// PENDING rows are not bounded by the age wall: they stay selectable past their
+// polling deadline so they get the one final check that classifies them terminal
+// (expired -> FAILED 'invoice expired', or a gave-up UNKNOWN).
+export function externalTransactionCheckableWhere ({ now = Date.now(), pending = {}, includeLocallyResolvable = false } = {}) {
+  return {
+    OR: [
+      { settlementStatus: 'PENDING', ...pending },
+      {
+        settlementStatus: 'UNKNOWN',
+        createdAt: { gt: new Date(now - MAX_CHECK_AGE_MS) },
+        NOT: { unknownReason: { in: [...STOP_CHECK_REASONS] } },
+        // expired-unpaid receives can still terminalize locally
+        // (externalTransactionResolvesLocally), so the reaper keeps them
+        // selectable; client-polled sends stop at expiry + grace
+        ...(includeLocallyResolvable
+          ? {}
+          : {
+              OR: [
+                { invoiceExpiresAt: null },
+                { invoiceExpiresAt: { gt: new Date(now - EXPIRY_GRACE_MS) } }
+              ]
+            })
+      }
+    ]
+  }
 }
 
 export function externalTransactionInclude () {
@@ -173,8 +322,7 @@ export function externalTransactionInclude () {
 }
 
 function parseExternalTransactionBolt11 (bolt11) {
-  // external receives are display/activity-only, so reuse the shared (isomorphic) bolt11 decoder rather
-  // than ln-service; the payment path still validates authoritatively via ln-service elsewhere.
+  // External receives are display/activity-only, so the shared decoder is enough.
   const { hash, msatsRequested } = bolt11ToPayment(bolt11)
   if (!hash) throw new GqlInputError('could not decode invoice')
 
@@ -190,6 +338,3 @@ function parseExternalTransactionBolt11 (bolt11) {
 function optionalBigInt (value) {
   return value == null ? value : BigInt(value)
 }
-
-// Prisma needs an explicit DbNull to write SQL NULL into a nullable Json column
-function jsonInput (value) { return value === null ? Prisma.DbNull : value }

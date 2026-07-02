@@ -1466,12 +1466,12 @@ model ExternalTransaction {
   settledAt          DateTime?
   error              String?
   unknownReason      ExternalTransactionUnknownReason?
-  unknownMessage     String?
 
-  sourceType          ExternalTransactionSourceType?
-  sourceValue         String?
-  verificationContext Json?                                @db.JsonB
-  walletLogs          WalletLog[]
+  sourceType           ExternalTransactionSourceType?
+  sourceValue          String?
+  duplicateConfirmed   Boolean                           @default(false)
+  verificationContext  Json?                              @db.JsonB
+  walletLogs           WalletLog[]
 
   @@index([createdAt])
   @@index([userId, createdAt])

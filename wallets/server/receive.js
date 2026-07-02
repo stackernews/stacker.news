@@ -2,7 +2,7 @@ import { parsePaymentRequest } from 'ln-service'
 import { errorMessage } from '@/lib/error'
 import { formatMsats, formatSats, msatsToSats, msatsSatsFloor, toPositiveNumber } from '@/lib/format'
 import { MIN_RECEIVE_MSATS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
-import { timeoutSignal } from '@/lib/time'
+import { withTimeoutSignal } from '@/lib/time'
 import { walletLogger } from '@/wallets/server/logger'
 import {
   protocolCreateInvoice,
@@ -53,11 +53,12 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
           }
         }
 
-        const result = await protocolCreateInvoice(
-          protocol,
-          { msats: receivableMsatsNum, description: receivableDescription, descriptionHash, expiry },
-          protocol.config,
-          { signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) })
+        const result = await withTimeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS, signal =>
+          protocolCreateInvoice(
+            protocol,
+            { msats: receivableMsatsNum, description: receivableDescription, descriptionHash, expiry },
+            protocol.config,
+            { signal }))
         bolt11 = result.bolt11
         verificationContext = result.verificationContext
       } catch (err) {

@@ -211,11 +211,9 @@ export const EXTERNAL_TRANSACTION_FIELDS = gql`
   fragment ExternalTransactionFields on ExternalTransaction {
     id
     createdAt
-    updatedAt
     direction
     settlementStatus
     settlementStatusChangedAt
-    userId
     walletId
     protocolId
     bolt11
@@ -223,15 +221,12 @@ export const EXTERNAL_TRANSACTION_FIELDS = gql`
     preimage
     amountMsats
     feeMsats
-    maxFeeLimitMsats
     invoiceExpiresAt
     settledAt
     error
     unknownReason
-    unknownMessage
     sourceType
     sourceValue
-    verificationContext
     walletInfo {
       walletId
       walletName
@@ -276,6 +271,24 @@ export const GET_EXTERNAL_TRANSACTION = gql`
   ${EXTERNAL_TRANSACTION_FIELDS}
   query ExternalTransaction($id: Int!) {
     externalTransaction(id: $id) {
+      ...ExternalTransactionFields
+    }
+  }
+`
+
+export const CREATE_EXTERNAL_TRANSACTION = gql`
+  ${EXTERNAL_TRANSACTION_FIELDS}
+  mutation CreateExternalTransaction($input: ExternalTransactionCreateInput!) {
+    createExternalTransaction(input: $input) {
+      ...ExternalTransactionFields
+    }
+  }
+`
+
+export const UPDATE_EXTERNAL_TRANSACTION = gql`
+  ${EXTERNAL_TRANSACTION_FIELDS}
+  mutation UpdateExternalTransaction($input: ExternalTransactionUpdateInput!) {
+    updateExternalTransaction(input: $input) {
       ...ExternalTransactionFields
     }
   }

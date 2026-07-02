@@ -16,6 +16,8 @@ const typeDefs = gql`
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): PayIn!
     dropBolt11(hash: String!): Boolean
     buyCredits(credits: Int!, sendProtocolId: Int): PayIn!
+    createExternalTransaction(input: ExternalTransactionCreateInput!): ExternalTransaction!
+    updateExternalTransaction(input: ExternalTransactionUpdateInput!): ExternalTransaction!
 
     # test a receive protocol by asking it to mint a probe invoice
     testWalletRecvProtocol(config: WalletRecvProtocolTestInput!): Boolean!
@@ -94,11 +96,30 @@ const typeDefs = gql`
     settledAt: Date
     error: String
     unknownReason: ExternalTransactionUnknownReason
-    unknownMessage: String
     sourceType: ExternalTransactionSourceType
     sourceValue: String
     verificationContext: JSONObject
     walletInfo: PayInWalletInfo
+  }
+
+  input ExternalTransactionCreateInput {
+    walletId: ID!
+    protocolId: Int!
+    bolt11: String!
+    sourceType: ExternalTransactionSourceType
+    sourceValue: String
+    maxFeeLimitMsats: BigInt
+    duplicateConfirmed: Boolean
+  }
+
+  input ExternalTransactionUpdateInput {
+    id: Int!
+    settlementStatus: ExternalTransactionSettlementStatus
+    preimage: String
+    feeMsats: BigInt
+    settledAt: Date
+    error: String
+    unknownReason: ExternalTransactionUnknownReason
   }
 
   enum WalletStatus {

@@ -16,7 +16,10 @@ import { dropBolt11 } from '@/worker/autoDropBolt11'
 import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
 import {
   createExternalReceiveTransaction,
-  externalTransactionInclude
+  createExternalSendTransaction,
+  externalTransactionInclude,
+  pokeExternalTransactionCheck,
+  updateExternalTransaction as updateExternalTransactionRow
 } from '@/wallets/server/external-transactions'
 
 export function createHmac (hash) {
@@ -56,18 +59,45 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
-      return await models.externalTransaction.findFirst({
+      const transaction = await models.externalTransaction.findFirst({
         where: {
           id: Number(id),
           userId: me.id
         },
         include: externalTransactionInclude()
       })
+      // reading a live receive is the demand signal for its next provider check
+      await pokeExternalTransactionCheck(models, transaction)
+      return transaction
     }
   },
   Mutation: {
     createWithdrawl: createWithdrawal,
     createWalletInvoice,
+    createExternalTransaction: async (parent, { input }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      assertApiKeyNotPermitted({ me })
+
+      return await createExternalSendTransaction(models, {
+        ...input,
+        direction: 'SEND',
+        userId: me.id,
+        walletId: parseWalletId(input.walletId)
+      })
+    },
+    updateExternalTransaction: async (parent, { input }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      assertApiKeyNotPermitted({ me })
+
+      return await updateExternalTransactionRow(models, {
+        ...input,
+        userId: me.id
+      })
+    },
     sendToLnAddr,
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {

@@ -1,4 +1,4 @@
-import { USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_EXTERNAL_SEND_POLL_AFTER_MS, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { verifyHmac } from './wallet'
 import { payInCancel, payInFailed } from '../payIn/transitions'
@@ -9,7 +9,7 @@ import { getItem, getItemsById } from './item'
 import { getSub } from './sub'
 import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { Prisma } from '@prisma/client'
-import { externalTransactionInclude } from '@/wallets/server/external-transactions'
+import { externalTransactionCheckableWhere, externalTransactionInclude } from '@/wallets/server/external-transactions'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -169,8 +169,7 @@ async function hydrateWalletActivity (keys, { me, models }) {
       : []
   ])
 
-  // attach items to the fetched PayIns (one batched getItemsById) before indexing, so the spreads
-  // below carry `.item` into every copy — including a PayIn that surfaces under both its send/receive keys
+  // Hydrate items before indexing so each spread copy carries `.item`.
   await hydratePayInItems(payIns, { me, models })
 
   const rowByKey = new Map()
@@ -297,6 +296,26 @@ export default {
           AND "PayIn"."payInStateChangedAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
           AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}
           ORDER BY "PayIn"."payInStateChangedAt" ASC`
+    },
+    pendingExternalSendTransactions: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+      const now = Date.now()
+      const inlineSendBefore = new Date(now - WALLET_EXTERNAL_SEND_POLL_AFTER_MS)
+
+      // Client-polled external SENDs. Skip brand-new PENDING rows while inline
+      // send may still be running, and stop returning UNKNOWN rows past deadline.
+      return await models.externalTransaction.findMany({
+        where: {
+          userId: me.id,
+          direction: 'SEND',
+          bolt11: { not: null },
+          hash: { not: null },
+          ...externalTransactionCheckableWhere({ now, pending: { createdAt: { lte: inlineSendBefore } } })
+        },
+        orderBy: { createdAt: 'asc' }
+      })
     }
   },
   Mutation: {

@@ -277,6 +277,23 @@ export const FAILED_PAY_INS = gql`
   }
 `
 
+export const PENDING_EXTERNAL_SEND_TRANSACTIONS = gql`
+  query pendingExternalSendTransactions {
+    pendingExternalSendTransactions {
+      id
+      direction
+      settlementStatus
+      unknownReason
+      error
+      createdAt
+      invoiceExpiresAt
+      walletId
+      protocolId
+      hash
+    }
+  }
+`
+
 export const CANCEL_PAY_IN_BOLT11 = gql`
   ${PAY_IN_FIELDS}
   mutation cancelPayInBolt11($hash: String!, $hmac: String, $userCancel: Boolean) {

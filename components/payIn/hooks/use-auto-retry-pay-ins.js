@@ -3,8 +3,9 @@ import usePayInHelper from './use-pay-in-helper'
 import { useApolloClient } from '@apollo/client/react'
 import { FAILED_PAY_INS } from '@/fragments/payIn'
 import { useMe } from '@/components/me'
-import { useEffect } from 'react'
-import { NORMAL_POLL_INTERVAL_MS, PAY_IN_AUTO_RETRY_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
+import { useCallback } from 'react'
+import { usePollLoop } from '@/components/use-poll-loop'
+import { PAY_IN_AUTO_RETRY_TYPES, WALLET_MAX_RETRIES, WALLET_RETRY_BEFORE_MS } from '@/lib/constants'
 import { WalletConfigurationError, WalletSendStateNotReadyError } from '@/wallets/client/errors'
 
 export function useAutoRetryPayIns () {
@@ -14,76 +15,44 @@ export function useAutoRetryPayIns () {
   const client = useApolloClient()
   const { me } = useMe()
 
-  useEffect(() => {
-    // we always retry failed invoices, even if the user has no wallets on any client
-    // to make sure that failed payments will always show up in notifications eventually
+  // we always retry failed invoices, even if the user has no wallets on any client
+  // to make sure that failed payments will always show up in notifications eventually
+  const poll = useCallback(async (signal) => {
+    const isStopped = () => signal.aborted
 
-    if (!me) return
-
-    let timeout
-    let stopped = false
-    const isStopped = () => stopped
-
-    const retry = async (payIn) => {
-      await retryFailedPayIn(payIn, {
-        sendProtocolId,
-        payInHelper,
-        waitForWalletPayment,
-        isStopped
+    let failedPayIns
+    try {
+      const { data, error } = await client.query({
+        query: FAILED_PAY_INS,
+        fetchPolicy: 'network-only',
+        errorPolicy: 'all'
       })
+      if (error) throw error
+      failedPayIns = data.failedPayIns
+    } catch (err) {
+      console.warn('failed to fetch invoices to retry:', err)
+      return
     }
 
-    const retryPoll = async () => {
+    for (const payIn of failedPayIns) {
       if (isStopped()) return
 
-      let failedPayIns
       try {
-        const { data, error } = await client.query({
-          query: FAILED_PAY_INS,
-          fetchPolicy: 'network-only',
-          errorPolicy: 'all'
+        await retryFailedPayIn(payIn, {
+          sendProtocolId,
+          payInHelper,
+          waitForWalletPayment,
+          isStopped
         })
-        if (error) throw error
-        failedPayIns = data.failedPayIns
       } catch (err) {
-        console.warn('failed to fetch invoices to retry:', err)
-        return
-      }
-
-      for (const payIn of failedPayIns) {
-        if (isStopped()) return
-
-        try {
-          await retry(payIn)
-        } catch (err) {
-          // some retries are expected to fail since only one client at a time is allowed to retry
-          // these should show up as 'invoice not found' errors
-          console.warn('retry failed:', err)
-        }
+        // some retries are expected to fail since only one client at a time is allowed to retry
+        // these should show up as 'invoice not found' errors
+        console.warn('retry failed:', err)
       }
     }
+  }, [sendProtocolId, client, payInHelper, waitForWalletPayment])
 
-    const queuePoll = () => {
-      timeout = setTimeout(async () => {
-        try {
-          await retryPoll()
-        } catch (err) {
-          // every error should already be handled in retryPoll
-          // but this catch is a safety net to not trigger an unhandled promise rejection
-          console.warn('retry poll failed:', err)
-        }
-        if (!stopped) queuePoll()
-      }, NORMAL_POLL_INTERVAL_MS)
-    }
-
-    const stopPolling = () => {
-      stopped = true
-      clearTimeout(timeout)
-    }
-
-    queuePoll()
-    return stopPolling
-  }, [me?.id, sendProtocolId, client, payInHelper, waitForWalletPayment])
+  usePollLoop(poll, { enabled: !!me, name: 'auto retry' })
 }
 
 export function isAutoRetryEligiblePayIn (payIn) {

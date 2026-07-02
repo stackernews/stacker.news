@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { formatSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
 import { bolt11Section, safeDecodeBolt11 } from '@/lib/bolt11'
 import { timeLeft, timeSince } from '@/lib/time'
@@ -31,7 +31,9 @@ export default function Bolt11Info ({
 }) {
   const [expanded, setExpanded] = useState(false)
   const showRelativeTimes = useIsClient()
-  const details = bolt11Details({ bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes })
+  // memoize the decode only: the details' relative time labels depend on the current time
+  const decoded = useMemo(() => safeDecodeBolt11(bolt11), [bolt11])
+  const details = bolt11Details({ decoded, bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes })
   const chips = [...(details?.chips ?? []), ...extraChips].filter(Boolean)
   if (!details && chips.length === 0 && !children) return null
 
@@ -183,8 +185,7 @@ function NostrZapRequest ({ zap }) {
   )
 }
 
-function bolt11Details ({ bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes } = {}) {
-  const decoded = safeDecodeBolt11(bolt11)
+function bolt11Details ({ decoded, bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes } = {}) {
   const decodedTimestamp = bolt11Section(decoded, 'timestamp')?.value
   const decodedExpiry = bolt11Section(decoded, 'expiry')?.value
   const decodedExpiresAt = decodedTimestamp && decodedExpiry ? new Date((decodedTimestamp + decodedExpiry) * 1000) : null

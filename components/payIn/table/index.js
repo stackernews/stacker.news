@@ -6,7 +6,7 @@ import { PayInMoney } from './money'
 import { ExternalTransactionRow } from './external'
 import LinkToContext from '@/components/link-to-context'
 
-export function PayInTableShell ({ children }) {
+export default function PayInTable ({ items }) {
   return (
     <div className={styles.table}>
       <div className={classNames(styles.row, styles.header)}>
@@ -14,22 +14,14 @@ export function PayInTableShell ({ children }) {
         <div>context</div>
         <div>sats</div>
       </div>
-      {children}
+      {items?.map(item => item.__typename === 'ExternalTransaction'
+        ? <ExternalTransactionRow key={`external-${item.id}`} transaction={item} />
+        : <PayInRow key={`${item.id}-${item.isSend}`} payIn={item} />)}
     </div>
   )
 }
 
-export default function PayInTable ({ items }) {
-  return (
-    <PayInTableShell>
-      {items?.map(item => item.__typename === 'ExternalTransaction'
-        ? <ExternalTransactionRow key={`external-${item.id}`} transaction={item} />
-        : <PayInRow key={`${item.id}-${item.isSend}`} payIn={item} />)}
-    </PayInTableShell>
-  )
-}
-
-export function PayInRow ({ payIn }) {
+function PayInRow ({ payIn }) {
   return (
     <div
       className={classNames(styles.row, {

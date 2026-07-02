@@ -6,7 +6,7 @@ import Qr from '../qr'
 import Bolt11Info, { toBolt11InfoProps } from './bolt11-info'
 import useWatchPayIn from './hooks/use-watch-pay-in'
 import { PayInStatus, PayInStatusSkeleton } from './status'
-import { PayInContext } from './context'
+import { PayInContext, payInContextIsInvoiceDetails } from './context'
 import { GET_PAY_IN_FULL_WITHOUT_WALLET_INFO } from '@/fragments/payIn'
 import { PayInSankey, PayInSankeySkeleton } from './sankey'
 import { useMe } from '@/components/me'
@@ -21,7 +21,6 @@ import {
 } from '@/wallets/client/components'
 
 const TERMINAL_PAY_IN_STATES = new Set(['PAID', 'FAILED'])
-const PAY_IN_INVOICE_CONTEXT_TYPES = new Set(['PROXY_PAYMENT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL'])
 
 export default function PayIn ({ id, ssrData }) {
   const { me } = useMe()
@@ -117,10 +116,6 @@ function PayInFailureMessage ({ payIn }) {
       {showDetail && <small className='d-block'>{failure.detail}</small>}
     </div>
   )
-}
-
-function payInContextIsInvoiceDetails (payIn) {
-  return PAY_IN_INVOICE_CONTEXT_TYPES.has(payIn.payInType)
 }
 
 function PayInWalletSection ({ payIn }) {

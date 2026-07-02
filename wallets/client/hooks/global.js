@@ -15,6 +15,7 @@ import { useWeblnEvents } from '@/wallets/lib/protocols/webln'
 import { useWalletsQuery } from '@/wallets/client/hooks/query'
 import { readOrCreateVaultKeyRecord, useGenerateRandomKey, useSetKey, useIsWrongKey, useVaultLocalStore } from '@/wallets/client/hooks/crypto'
 import { useAutoRetryPayIns } from '@/components/payIn/hooks/use-auto-retry-pay-ins'
+import { useExternalSendChecks } from './use-external-send-checks'
 
 const WalletDataContext = createContext(null)
 const WalletsContext = createContext(null)
@@ -107,6 +108,7 @@ export function WalletsProvider ({ children }) {
 
 function WalletHooks ({ children }) {
   useAutoRetryPayIns()
+  useExternalSendChecks()
   useKeyInit()
   useDeleteLocalWallets()
   useWeblnEvents()

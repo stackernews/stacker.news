@@ -1,0 +1,78 @@
+/*
+ * Transitional Tailwind entry while Bootstrap still owns element defaults.
+ * Important Tailwind utilities beat Bootstrap utilities during the conversion.
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none) important;
+
+/* Scan only directories that produce application class names. */
+@source '../components';
+@source '../pages';
+@source '../lib';
+@source '../wallets';
+@source '../svgs';
+
+/* These names still belong to React Bootstrap components in this stage. */
+@source not inline('container');
+@source not inline('collapse');
+@source not inline('table');
+
+/* :where() keeps the dark variant at zero specificity. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Bridge Tailwind utilities to the live theme and territory variables. */
+:root {
+  /* runtime territory brand */
+  --sn-primary: var(--bs-primary);
+  --sn-secondary: var(--bs-secondary);
+
+  /* active light or dark theme */
+  --sn-muted: var(--theme-grey);
+
+  /* fixed palette */
+  --sn-danger: #c03221;
+  --sn-warning: #f6911d;
+  --sn-info: #007cbe;
+  --sn-success: #5c8001;
+  --sn-boost: #8c25f4;
+  --sn-nostr: #8d45dd;
+  --sn-twitter: #1da1f2;
+
+  --sn-radius: .4rem;
+}
+
+@theme {
+  /* existing application layout thresholds */
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1400px;
+
+  --font-weight-bolder: bolder;
+
+  /* application monospace stack */
+  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* Utilities read live theme and territory values directly. */
+@theme inline {
+  --color-primary: var(--sn-primary);
+  --color-secondary: var(--sn-secondary);
+  --color-danger: var(--sn-danger);
+  --color-info: var(--sn-info);
+  --color-success: var(--sn-success);
+  --color-boost: var(--sn-boost);
+  --color-nostr: var(--sn-nostr);
+  --color-muted: var(--sn-muted);
+
+  --radius-sn: var(--sn-radius);
+}
+
+/* Let a child inherit its surrounding text color. */
+@utility text-reset {
+  color: inherit;
+}

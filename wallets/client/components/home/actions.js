@@ -118,10 +118,10 @@ function BuyCreditsAction () {
             type='number'
             required
             autoFocus
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
           />
-          <div className='d-flex'>
-            <SubmitButton variant='secondary' className='ms-auto mt-1 px-4'>buy</SubmitButton>
+          <div className='flex'>
+            <SubmitButton variant='secondary' className='ms-auto mt-1 px-6'>buy</SubmitButton>
           </div>
         </Form>
       ))}

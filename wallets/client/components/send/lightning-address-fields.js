@@ -51,14 +51,14 @@ export function LightningAddressFields ({ service, maxFee }) {
         min={service.min}
         max={service.max}
         required
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
       />
       {mandatoryFields.map(field => <LightningAddressField key={field} name={field} service={service} values={values} me={me} required />)}
       {maxFee}
       {optionalFields.length > 0 && (
         <div className={classNames(styles.stackSection, styles.toggleChipSection)}>
           <div className={classNames(styles.toggleChipLabel, 'text-muted')}>optional</div>
-          <div className='d-flex flex-wrap gap-2'>
+          <div className='flex flex-wrap gap-2'>
             {optionalFields.map(field => (
               <FieldChip
                 key={field}

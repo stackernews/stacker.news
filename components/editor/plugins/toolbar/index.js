@@ -288,7 +288,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
             arrow={false}
           >
             <div className={styles.separator}>
-              <span className='text-muted small fw-bold text-uppercase ps-1 pe-1'>inserts</span>
+              <span className='text-muted small font-bold uppercase ps-1 pe-1'>inserts</span>
             </div>
             <DropdownMenuItem option={{ id: 'math', name: 'math', icon: <MathIcon />, type: 'math' }} onAction={() => handleInsertMath()} />
             <DropdownMenuItem option={{ id: 'inlineMath', name: 'inline math', icon: <MathOperationsIcon />, type: 'inlineMath' }} onAction={() => handleInsertMath(true)} />

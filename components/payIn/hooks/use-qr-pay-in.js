@@ -110,7 +110,7 @@ function QrPayIn ({
         qrTransform={bolt11QrTransform}
         description={formatMsatsToSats(payIn.payerPrivates.payInBolt11.msatsRequested)}
       />
-      <div className='d-flex justify-content-center'>
+      <div className='flex justify-center'>
         <PayInStatus payIn={payIn} />
       </div>
     </>

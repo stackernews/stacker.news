@@ -95,7 +95,7 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         ref={ref}
         type='file'
         multiple={multiple}
-        className='d-none'
+        className='hidden'
         accept={accept.join(', ')}
         onChange={async (e) => {
           const fileList = e.target.files

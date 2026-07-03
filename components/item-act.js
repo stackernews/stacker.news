@@ -134,14 +134,14 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         step={step}
         required
         autoFocus
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
       />
 
-      <div className='d-flex flex-wrap gap-2'>
+      <div className='flex flex-wrap gap-2'>
         <Tips setOValue={setOValue} />
       </div>
-      <div className='d-flex mt-3'>
-        <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>
+      <div className='flex mt-4'>
+        <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-6' value={act}>
           {act === 'DONT_LIKE_THIS' ? 'downzap' : act === 'BOOST' ? 'boost' : 'zap'}
         </SubmitButton>
       </div>

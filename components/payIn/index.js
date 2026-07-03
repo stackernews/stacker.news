@@ -63,9 +63,9 @@ export default function PayIn ({ id, ssrData }) {
       <PayInFailureMessage payIn={payIn} />
 
       <TransactionDetailSection>
-        <div className='d-flex flex-column gap-3'>
+        <div className='flex flex-col gap-4'>
           {payerBolt11Pending && (
-            <div className='w-100 mx-auto py-5' style={{ maxWidth: '560px' }}>
+            <div className='w-full mx-auto py-12' style={{ maxWidth: '560px' }}>
               <Qr
                 value={payerBolt11.bolt11}
                 qrTransform={bolt11QrTransform}
@@ -79,7 +79,7 @@ export default function PayIn ({ id, ssrData }) {
 
       {payIn.mcost > 0 && (
         <TransactionDetailSection title='diagram'>
-          <div className='d-flex justify-content-center' style={{ marginRight: '-15px', marginLeft: '-15px' }}>
+          <div className='flex justify-center' style={{ marginRight: '-15px', marginLeft: '-15px' }}>
             <PayInSankey payIn={payIn} />
           </div>
         </TransactionDetailSection>
@@ -113,8 +113,8 @@ function PayInFailureMessage ({ payIn }) {
 
   return (
     <div className='text-muted'>
-      <small className='d-block'>{failure.summary}</small>
-      {showDetail && <small className='d-block'>{failure.detail}</small>}
+      <small className='block'>{failure.summary}</small>
+      {showDetail && <small className='block'>{failure.detail}</small>}
     </div>
   )
 }
@@ -138,20 +138,20 @@ export function PayInSkeleton () {
   return (
     <TransactionDetailPage>
       <TransactionDetailHeading
-        title={<span className='clouds px-5'>loading</span>}
+        title={<span className='clouds px-12'>loading</span>}
         status={<PayInStatusSkeleton />}
       />
       <TransactionDetailSection>
-        <div className='w-100 p-5 h-25' />
+        <div className='w-full p-12 h-1/4' />
       </TransactionDetailSection>
       <TransactionDetailSection title='diagram'>
-        <div className='d-flex justify-content-center'>
+        <div className='flex justify-center'>
           <PayInSankeySkeleton />
         </div>
       </TransactionDetailSection>
       <TransactionDetailSection title='logs'>
-        <div className='clouds rounded-2 mb-3' style={{ height: '1.5rem', maxWidth: '24rem' }} />
-        <div className='clouds rounded-3 w-100' style={{ height: '10rem' }} />
+        <div className='clouds rounded-md mb-4' style={{ height: '1.5rem', maxWidth: '24rem' }} />
+        <div className='clouds rounded-lg w-full' style={{ height: '10rem' }} />
       </TransactionDetailSection>
     </TransactionDetailPage>
   )

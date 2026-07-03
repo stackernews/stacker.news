@@ -12,9 +12,9 @@ export default function MyMutedUsers ({ ssrData }) {
   const muteUserContextValue = useMemo(() => ({ refetchQueries: ['MyMutedUsers'] }), [])
   return (
     <Layout>
-      <div className='pb-3 w-100 mt-2'>
+      <div className='pb-4 w-full mt-2'>
         <SettingsHeader />
-        <div className='mb-4 text-muted'>Well now, reckon these here are the folks you've gone and silenced.</div>
+        <div className='mb-6 text-muted'>Well now, reckon these here are the folks you've gone and silenced.</div>
         <MuteUserContextProvider value={muteUserContextValue}>
           <UserList
             ssrData={ssrData} query={MY_MUTED_USERS}

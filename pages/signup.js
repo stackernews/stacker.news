@@ -6,10 +6,10 @@ export { getServerSideProps } from './login'
 function SignUpHeader ({ domainData }) {
   return (
     <>
-      <h3 className='w-100 pb-2'>
+      <h3 className='w-full pb-2'>
         Sign up {domainData && ` to ${domainData.title}`}
       </h3>
-      <div className='fw-bold text-muted w-100 text-start pb-4 line-height-md'>We saved you a seat, pardner.</div>
+      <div className='font-bold text-muted w-full text-start pb-6 leading-normal'>We saved you a seat, pardner.</div>
     </>
   )
 }
@@ -18,7 +18,7 @@ function SignUpFooter ({ callbackUrl, domain }) {
   const query = { ...(domain && { domain }), callbackUrl }
 
   return (
-    <small className='fw-bold text-muted pt-4'>Been here before? <Link href={{ pathname: '/login', query }}>log in</Link></small>
+    <small className='font-bold text-muted pt-6'>Been here before? <Link href={{ pathname: '/login', query }}>log in</Link></small>
   )
 }
 

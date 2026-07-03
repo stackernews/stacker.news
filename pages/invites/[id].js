@@ -76,7 +76,7 @@ function InviteHeader ({ invite }) {
   }
 
   return (
-    <h3 className='text-center pb-3'>
+    <h3 className='text-center pb-4'>
       <Inner />
     </h3>
   )

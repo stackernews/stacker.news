@@ -63,7 +63,7 @@ function WalletReceive ({ wallet }) {
           await router.push(`/wallets/transactions/${data.createWalletInvoice}`)
         }}
       >
-        <div className={classNames(styles.fields, styles.formResponsiveReset, 'd-flex flex-column')}>
+        <div className={classNames(styles.fields, styles.formResponsiveReset, 'flex flex-col')}>
           <Input
             label='amount'
             name='amount'
@@ -72,7 +72,7 @@ function WalletReceive ({ wallet }) {
             max={MAX_WALLET_INVOICE_SATS}
             required
             autoFocus
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
           />
           <FormikConsumer>
             {({ values }) => {

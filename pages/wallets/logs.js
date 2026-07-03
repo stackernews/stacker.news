@@ -6,7 +6,7 @@ export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 export default function WalletLogsPage () {
   return (
     <WalletShellMain>
-      <div className='py-5'>
+      <div className='py-12'>
         <WalletLayoutHeader>wallet logs</WalletLayoutHeader>
         <WalletLogs />
       </div>

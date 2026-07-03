@@ -34,8 +34,6 @@ export class WalletSenderError extends WalletPaymentError {
     this.wallet = name
     this.invoice = invoice
     this.reason = message
-    // settledUnknown is owned by sendWalletPayment, which assigns it at the sole
-    // construction site based on what the cause proves about the payment outcome.
   }
 }
 
@@ -49,7 +47,7 @@ export class WalletReceiverError extends WalletPaymentError {
 
 // the wallet/provider reported the payment terminally failed: it is safe to retry.
 // adapters throw this only where the provider itself says FAILED — anything less
-// is classified as settled-unknown by sendWalletPayment.
+// is classified as UNKNOWN by classifyWalletPaymentError.
 export class WalletPaymentRejectedError extends WalletPaymentError {
   constructor (message) {
     super(message)
@@ -140,4 +138,15 @@ export const toastPayError = (toaster, e) => {
 // rethrow a pessimistic flow's payError unless it's absent or a user cancel
 export const throwUnlessUserCancel = (payError) => {
   if (payError && !isUserCancelError(payError)) throw payError
+}
+
+const WALLET_ACCESS_DENIED_STATUSES = new Set([401, 403])
+
+// like assertResponseOk, but first turns an auth rejection (401/403) into the wallet domain's
+// WalletPermissionsError so wallet adapters surface "fix your credentials" by error TYPE and the
+// receive reconciler never sniffs transport status. `.status` is preserved for callers that read it.
+export function assertWalletAuthorized (res) {
+  if (WALLET_ACCESS_DENIED_STATUSES.has(res.status)) {
+    throw Object.assign(new WalletPermissionsError(`${res.status} ${res.statusText}`), { status: res.status })
+  }
 }

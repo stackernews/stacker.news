@@ -6,7 +6,7 @@ import {
   WalletPaymentError, WalletError, WalletReceiverError, WalletSendStateNotReadyError,
   WalletPaymentRejectedError, WalletValidationError, WalletConfigurationError
 } from '@/wallets/client/errors'
-import { timeoutSignal } from '@/lib/time'
+import { withTimeoutSignal } from '@/lib/time'
 import { isInvoiceSetupPending } from '@/lib/pay-in'
 import { useMe } from '@/components/me'
 import { formatSats, msatsToSats } from '@/lib/format'
@@ -135,11 +135,12 @@ export async function sendWalletPayment (protocol, payment, logger, { amountText
   const label = amountText ?? formatSats(msatsToSats(payment.msatsRequested))
   try {
     logger.info(`↗ sending payment: ${label}`)
-    const preimage = await protocol.sendPayment(
-      payment.bolt11,
-      protocol.config,
-      { signal: timeoutSignal(timeout), maxFee, timeout }
-    )
+    const preimage = await withTimeoutSignal(timeout, signal =>
+      protocol.sendPayment(
+        payment.bolt11,
+        protocol.config,
+        { signal, maxFee, timeout }
+      ))
 
     // some wallets like Coinos will always immediately return success without providing the preimage
     let proofIssue

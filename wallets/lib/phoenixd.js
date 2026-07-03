@@ -1,5 +1,6 @@
 import { snFetch } from '@/lib/fetch'
-import { assertContentTypeJson, assertResponseOk, assertWalletAuthorized } from '@/lib/url'
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import { assertWalletAuthorized } from '@/wallets/client/errors'
 
 export async function phoenixdRequest ({
   url,

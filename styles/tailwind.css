@@ -1,0 +1,122 @@
+/*
+ * Tailwind CSS v4 — PR1 parity layer (coexists with Bootstrap).
+ *
+ * Cascade contract: Bootstrap's utilities are UNLAYERED with `!important`.
+ * We import Tailwind's utilities into an `@layer` WITH the `important` flag.
+ * Per CSS Cascade 5, important layer order is inverted, so the precedence is:
+ *   layered !important  >  unlayered !important  >  unlayered normal  >  layered normal
+ * i.e. a Tailwind utility beats the same-named Bootstrap utility. This
+ * reproduces Bootstrap's "utilities always win" contract during coexistence,
+ * and is why the codemod (PR1 commits 3–5) can rename Bootstrap spacing classes
+ * to their Tailwind equivalents and have the new value take effect.
+ *
+ * NOTE: we import theme + utilities only — NO preflight. Bootstrap's reboot owns
+ * base element styles until PR3.
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none) important;
+
+/*
+ * `source(none)` above disables automatic content detection; we enumerate the
+ * dirs that carry className strings explicitly. `svgs` is included because SN
+ * icon components spread className onto their <svg>.
+ */
+@source '../components';
+@source '../pages';
+@source '../lib';
+@source '../wallets';
+@source '../svgs';
+
+/*
+ * Blocklist utilities whose Tailwind versions would clobber react-bootstrap
+ * while both stylesheets are live:
+ *   .container — Tailwind's has no max-widths, breaking the Container component
+ *   .collapse  — Tailwind sets `visibility: collapse`, which hides Navbars/Collapse
+ *   .table     — Tailwind sets `display: table`, breaking react-bootstrap Table
+ */
+@source not inline('container');
+@source not inline('collapse');
+@source not inline('table');
+
+/*
+ * Dark mode keys off `[data-theme=dark]`, set alongside `data-bs-theme` by the
+ * _document.js init script + dark-mode.js (PR1 commit 2). `:where()` keeps the
+ * variant at zero specificity so utilities still layer cleanly.
+ */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/*
+ * Token bridge — alias-flip step 1.
+ * `--sn-*` point AT the live Bootstrap / theme vars, so territory branding
+ * (custom-css.js overrides --bs-primary/-rgb at runtime) and dark mode keep
+ * working untouched. PR3 flips these to canonical literals.
+ */
+:root {
+  /* runtime-overridable brand — territory custom-css.js retints --bs-primary/secondary */
+  --sn-primary: var(--bs-primary);
+  --sn-secondary: var(--bs-secondary);
+
+  /* theme-dependent: globals.scss overrides .text-muted to --theme-grey (#707070 / #969696) */
+  --sn-muted: var(--theme-grey);
+
+  /* fixed palette — static across themes, not territory-overridable.
+     Values copied from the $theme-colors map so they equal Bootstrap's --bs-* output. */
+  --sn-danger: #c03221;
+  --sn-warning: #f6911d;
+  --sn-info: #007cbe;
+  --sn-success: #5c8001;
+  --sn-boost: #8c25f4;
+  --sn-nostr: #8d45dd;
+  --sn-twitter: #1da1f2;
+
+  --sn-radius: .4rem;
+}
+
+/*
+ * Static theme tokens — emitted as real custom properties + matching utilities.
+ */
+@theme {
+  /* Bootstrap breakpoints exactly, so `md:flex` ≡ `d-md-flex` (BS xxl → TW 2xl). */
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1400px;
+
+  /* fw-bolder → the CSS keyword, not the numeric 800 */
+  --font-weight-bolder: bolder;
+
+  /* Bootstrap's monospace stack (no `ui-monospace` prefix) for font-mono parity */
+  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/*
+ * Runtime-var tokens — `inline` so utilities reference `var(--sn-*)` directly
+ * (no intermediate --color-* property), letting territory/dark overrides flow
+ * through to text-/bg-/border-/fill- utilities.
+ *
+ * Only colors that resolve IDENTICALLY across every property variant are wired
+ * here. Deliberately excluded so Bootstrap keeps ownership (their fill- override
+ * diverges from text/bg): `warning` (.fill-warning → --bs-warning-text-emphasis)
+ * and the `grey` family (.fill-grey → --theme-grey, ≠ --bs-grey).
+ */
+@theme inline {
+  --color-primary: var(--sn-primary);
+  --color-secondary: var(--sn-secondary);
+  --color-danger: var(--sn-danger);
+  --color-info: var(--sn-info);
+  --color-success: var(--sn-success);
+  --color-boost: var(--sn-boost);
+  --color-nostr: var(--sn-nostr);
+  --color-muted: var(--sn-muted);
+
+  --radius-sn: var(--sn-radius);
+}
+
+/* Bootstrap `.text-reset` parity (`!important` comes from the utilities flag). */
+@utility text-reset {
+  color: inherit;
+}

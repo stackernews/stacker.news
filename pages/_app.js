@@ -1,4 +1,9 @@
 import '@/styles/globals.scss'
+import '@/styles/tailwind.css'
+// hoisted out of styles/text.scss: @tailwindcss/postcss's bail-out heuristic
+// would otherwise inline katex and break its relative font URLs. Kept before
+// text.scss to preserve the original katex-before-.sn-text ordering.
+import 'katex/dist/katex.min.css'
 import '@/styles/text.scss'
 import { gql } from '@apollo/client'
 import { ApolloProvider } from '@apollo/client/react'

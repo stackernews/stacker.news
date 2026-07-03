@@ -25,25 +25,25 @@ function Passphrase ({
   const words = passphrase.trim().split(/\s+/)
   return (
     <div className={styles.section}>
-      <div className='d-flex justify-content-between align-items-start gap-3'>
+      <div className='flex justify-between items-start gap-4'>
         <div>
           <div className={classNames(styles.sectionTitle, 'text-muted')}>{title}</div>
           {hint && (
-            <p className='text-muted mb-0 line-height-md'>
+            <p className='text-muted mb-0 leading-normal'>
               {hint}
             </p>
           )}
         </div>
         {showCopyButton && (
-          <CopyButton className='rounded flex-shrink-0' value={passphrase} variant='grey-medium' />
+          <CopyButton className='rounded-md shrink-0' value={passphrase} variant='grey-medium' />
         )}
       </div>
       <div className={styles.words}>
         {words.map((word, index) => (
-          <div className='d-flex' key={index}>
+          <div className='flex' key={index}>
             <span className='text-muted me-2'>{index + 1}.</span>
             <wbr />
-            <span className='font-monospace text-break'>{word}</span>
+            <span className='font-mono break-words'>{word}</span>
           </div>
         ))}
       </div>
@@ -61,15 +61,15 @@ function ResetPassphraseDialog ({ hasSparkWallet, onCancel, onConfirm }) {
   return (
     <div>
       <h4>Reset Stacker News wallet passphrase</h4>
-      <p className='line-height-md fw-bold mt-3'>
+      <p className='leading-normal font-bold mt-4'>
         This will delete all your sending wallet configurations. Your account will not be affected otherwise.
       </p>
-      <p className='line-height-md'>
+      <p className='leading-normal'>
         After the reset, you will be issued a new Stacker News wallet passphrase.
       </p>
       <WalletDeletionBarrier fundLossRisk={hasSparkWallet} acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
-      <div className='mt-3 d-flex justify-content-end align-items-center'>
-        <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={onCancel}>cancel</Button>
+      <div className='mt-4 flex justify-end items-center'>
+        <Button className='me-4 text-muted nav-link font-bold' variant='link' onClick={onCancel}>cancel</Button>
         <Button variant='danger' onClick={onConfirm} disabled={!acknowledged}>reset</Button>
       </div>
     </div>
@@ -129,21 +129,21 @@ export function WalletPassphrasePrompt ({
   return (
     <div>
       <h4>Enter your Stacker News wallet passphrase</h4>
-      <p className='line-height-md mt-3'>
+      <p className='leading-normal mt-4'>
         Enter the passphrase you saved when you first set up wallets on another device.
       </p>
       <Form
-        className='mt-4'
+        className='mt-6'
         schema={passphraseSchema}
         initial={{ passphrase: '' }}
         onSubmit={onSubmit}
       >
         <div className={styles.setup}>
           <div className={styles.notice}>
-            <p className='fw-bold mb-2 line-height-md'>
+            <p className='font-bold mb-2 leading-normal'>
               Enter your Stacker News wallet passphrase to access your wallets on this device.
             </p>
-            <p className='text-muted mb-0 line-height-md'>
+            <p className='text-muted mb-0 leading-normal'>
               If you stored it in your password manager, it may be available to fill below.
             </p>
           </div>
@@ -160,11 +160,11 @@ export function WalletPassphrasePrompt ({
             required
             autoFocus
             groupClassName='mb-0'
-            className={classNames(styles.managerInput, 'font-monospace')}
+            className={classNames(styles.managerInput, 'font-mono')}
           />
 
           <div className={styles.actions}>
-            <p className='text-muted mb-0 line-height-md'>
+            <p className='text-muted mb-0 leading-normal'>
               If you no longer have the saved passphrase, you can reset wallets instead.
             </p>
             <div className={styles.buttons}>
@@ -175,9 +175,9 @@ export function WalletPassphrasePrompt ({
               >
                 reset wallets
               </button>
-              <div className='d-flex align-items-center gap-3 flex-wrap justify-content-end'>
+              <div className='flex items-center gap-4 flex-wrap justify-end'>
                 {showCancel && !!onCancel && (
-                  <Button type='button' className='text-muted nav-link fw-bold p-0' variant='link' onClick={onCancel}>cancel</Button>
+                  <Button type='button' className='text-muted nav-link font-bold p-0' variant='link' onClick={onCancel}>cancel</Button>
                 )}
                 <SubmitButton variant='primary' submittingText='unlocking...'>unlock</SubmitButton>
               </div>
@@ -266,12 +266,12 @@ export function WalletPassphraseSetup () {
   return (
     <div className={candidate ? undefined : 'text-center'}>
       <h4>Save your Stacker News wallet passphrase</h4>
-      <p className='line-height-md mt-3'>
+      <p className='leading-normal mt-4'>
         Before you can continue, save this passphrase somewhere safe.
       </p>
       {candidate
         ? (
-          <form autoComplete='on' className='mt-4' onSubmit={onSaveSubmit}>
+          <form autoComplete='on' className='mt-6' onSubmit={onSaveSubmit}>
             <input
               type='hidden'
               name='username'
@@ -281,10 +281,10 @@ export function WalletPassphraseSetup () {
             />
             <div className={styles.setup}>
               <div className={styles.notice}>
-                <p className='fw-bold mb-2 line-height-md'>
+                <p className='font-bold mb-2 leading-normal'>
                   Save this passphrase before you continue.
                 </p>
-                <p className='text-muted mb-0 line-height-md'>
+                <p className='text-muted mb-0 leading-normal'>
                   A password manager is usually the easiest place to keep it.
                 </p>
               </div>
@@ -302,7 +302,7 @@ export function WalletPassphraseSetup () {
                 readOnly
                 value={candidate.passphrase}
                 groupClassName='mb-0'
-                className={classNames(styles.managerInput, 'font-monospace')}
+                className={classNames(styles.managerInput, 'font-mono')}
               />
               <Passphrase
                 passphrase={candidate.passphrase}
@@ -310,7 +310,7 @@ export function WalletPassphraseSetup () {
                 hint='Use the same passphrase on every device where you want to decrypt your wallets.'
               />
               <div className={styles.actions}>
-                <p className='text-muted mb-0 line-height-md'>
+                <p className='text-muted mb-0 leading-normal'>
                   After you continue, we will stop showing this passphrase and open your wallets.
                 </p>
                 <div className={styles.buttons}>
@@ -339,16 +339,16 @@ export function WalletPassphraseSetup () {
         : generationError
           ? (
             <>
-              <p className='line-height-md text-muted mt-4'>
+              <p className='leading-normal text-muted mt-6'>
                 We could not generate a passphrase right now.
               </p>
-              <div className='d-flex justify-content-end mt-3'>
+              <div className='flex justify-end mt-4'>
                 <Button variant='secondary' onClick={onRetry}>try again</Button>
               </div>
             </>
             )
           : (
-            <p className='line-height-md text-muted mt-4'>generating passphrase...</p>
+            <p className='leading-normal text-muted mt-6'>generating passphrase...</p>
             )}
     </div>
   )

@@ -22,7 +22,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   }
 
   return (
-    <Navbar className='pt-1 pb-0 px-3'>
+    <Navbar className='pt-1 pb-0 px-4'>
       <Nav
         className={styles.navbarNav}
         activeKey={sort}
@@ -30,7 +30,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         <Nav.Item className='text-muted' title={`${numWithUnits(commentSats + commentCost + commentBoost)} (${commentSats} stacked \\ ${commentCost} cost \\ ${commentBoost} boost)`}>
           {numWithUnits(commentSats + commentCost + commentBoost)}
         </Nav.Item>
-        <div className='ms-auto d-flex'>
+        <div className='ms-auto flex'>
           <Nav.Item>
             <Nav.Link
               eventKey='lit'

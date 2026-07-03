@@ -50,9 +50,9 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
   const previewUrl = freshUrl || (field.value ? `${PUBLIC_MEDIA_URL}/${field.value}` : defaultAsset)
 
   return (
-    <div className='mb-3'>
+    <div className='mb-4'>
       <label className='form-label'>{label}</label>
-      <div className='d-flex align-items-end gap-3'>
+      <div className='flex items-end gap-4'>
         <div className={styles.preview}>
           {previewUrl
             ? (
@@ -74,8 +74,8 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
                 )
               : null}
         </div>
-        <div className='d-flex flex-column gap-2'>
-          <div className='d-flex align-items-center gap-2'>
+        <div className='flex flex-col gap-2'>
+          <div className='flex items-center gap-2'>
             <FileUpload
               allow={accept}
               subName={subName} // by passing the subName, we're opting into the free upload path
@@ -121,7 +121,7 @@ const normalizeColorOverride = (value, fallback) =>
 // section label
 const SectionHeading = ({ children, className = '' }) => (
   <div
-    className={`text-muted text-uppercase mt-4 mb-2 ${className}`}
+    className={`text-muted uppercase mt-6 mb-2 ${className}`}
     style={{ fontWeight: 'bold', fontSize: '82%', letterSpacing: '0.04em' }}
   >
     {children}
@@ -236,7 +236,7 @@ export function TerritoryBrandingForm ({ sub, branding }) {
         placeholder={truncateDesc(sub?.desc, 120)}
         hint='the page description of your territory, defaults to the territory description if left blank'
       />
-      <div className='mt-3 d-flex justify-content-end'>
+      <div className='mt-4 flex justify-end'>
         <SubmitButton variant='primary' disabled={uploading}>save branding</SubmitButton>
       </div>
     </Form>
@@ -261,7 +261,7 @@ export default function TerritoryBranding ({ sub }) {
   })
 
   return (
-    <div className='w-100'>
+    <div className='w-full'>
       <AccordianItem
         show={hasDomain}
         header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}

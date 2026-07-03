@@ -63,7 +63,7 @@ export function authErrorMessage (error, signin) {
       <>
         {message}
         <br />
-        If you are new to Stacker News, please <Link className='fw-bold' href='/signup'>sign up</Link> first.
+        If you are new to Stacker News, please <Link className='font-bold' href='/signup'>sign up</Link> first.
       </>
     )
   }
@@ -138,9 +138,9 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
                 overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
                 trigger={['hover', 'focus']}
               >
-                <div className='w-100' key={provider.id}>
+                <div className='w-full' key={provider.id}>
                   <EmailLoginForm text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
-                  <div className='my-3 mt-4 text-center text-muted fw-bold'>or</div>
+                  <div className='my-4 mt-6 text-center text-muted font-bold'>or</div>
                 </div>
               </OverlayTrigger>
             )
@@ -170,7 +170,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
                 overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
                 trigger={['hover', 'focus']}
               >
-                <div className='w-100'>
+                <div className='w-full'>
                   <LoginButton
                     className={`mt-2 ${styles.providerButton}`}
                     type={provider.id.toLowerCase()}

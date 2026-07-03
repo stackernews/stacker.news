@@ -39,7 +39,7 @@ function BioItem ({ item, handleClick }) {
     <>
       <ItemText item={item} readerRef={onReaderRef} />
       {me?.name === item.user.name &&
-        <div className='d-flex'>
+        <div className='flex'>
           <Button
             className='ms-auto'
             onClick={handleClick}
@@ -56,7 +56,7 @@ function ItemEmbed ({ url, imgproxyUrls }) {
   const provider = parseEmbedUrl(url)
   if (provider) {
     return (
-      <div className='mt-3'>
+      <div className='mt-4'>
         <Embed src={url} {...provider} topLevel />
       </div>
     )
@@ -66,7 +66,7 @@ function ItemEmbed ({ url, imgproxyUrls }) {
     const src = IMGPROXY_URL_REGEXP.test(url) ? decodeProxyUrl(url) : url
     const srcSet = imgproxyUrls?.[url]
     return (
-      <div className='mt-3'>
+      <div className='mt-4'>
         <MediaOrLink src={src} srcSetIntital={srcSet} topLevel linkFallback={false} />
       </div>
     )
@@ -119,15 +119,15 @@ function TopLevelItem ({ item, noReply, ...props }) {
         {item.url && !isBelowFilter && <ItemEmbed url={item.url} imgproxyUrls={item.imgproxyUrls} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
-          <div className='fw-bold mt-2'>
+          <div className='font-bold mt-2'>
             {item.bountyPaidTo?.length
               ? (
-                <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
+                <div className='px-4 py-1 inline-block bg-grey-medium rounded-sn text-success'>
                   <Check className='fill-success' /> {numWithUnits(item.bounty, { abbreviate: false, format: true })} paid
-                  {item.bountyPaidTo.length > 1 && <small className='fw-light'> {new Set(item.bountyPaidTo).size} times</small>}
+                  {item.bountyPaidTo.length > 1 && <small className='font-light'> {new Set(item.bountyPaidTo).size} times</small>}
                 </div>)
               : (
-                <div className='px-3 py-1 d-inline-block bg-grey-darkmode rounded text-light'>
+                <div className='px-4 py-1 inline-block bg-grey-darkmode rounded-sn text-light'>
                   {numWithUnits(item.bounty, { abbreviate: false, format: true })} bounty
                 </div>)}
           </div>}
@@ -178,7 +178,7 @@ export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props
     <>
       {rank
         ? (
-          <div className={`${itemStyles.rank} pt-2 align-self-start`}>
+          <div className={`${itemStyles.rank} pt-2 self-start`}>
             {rank}
           </div>)
         : <div />}

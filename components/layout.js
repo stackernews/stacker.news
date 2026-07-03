@@ -18,7 +18,7 @@ export default function Layout ({
       <Navigation sub={sub} hideMobileNav={hideMobileNav} />
       {contain
         ? (
-          <Container as={PullToRefresh} className={`px-sm-0 ${styles.contain} ${containClassName}`}>
+          <Container as={PullToRefresh} className={`sm:px-0 ${styles.contain} ${containClassName}`}>
             {children}
           </Container>
           )
@@ -44,7 +44,7 @@ export function StaticLayout ({ children, footer = true, footerLinks = false, ..
     <>
       <NavStatic />
       <div className={styles.page}>
-        <main className={`${styles.content} ${styles.contain} py-3`}>
+        <main className={`${styles.content} ${styles.contain} py-4`}>
           {children}
         </main>
       </div>

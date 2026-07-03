@@ -24,12 +24,12 @@ export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNa
         className={styles.navbarNav}
         activeKey={topNavKey}
       >
-        <Back className='d-flex d-md-none' />
+        <Back className='flex md:hidden' />
         {hasNavSelect({ path, pathname })
-          ? <NavSelect sub={sub} className='w-100' />
+          ? <NavSelect sub={sub} className='w-full' />
           : (
             <>
-              <NavPrice className='flex-shrink-1' />
+              <NavPrice className='shrink' />
               <CommentsNavigator navigator={navigator} commentCount={commentCount} className='px-2' />
               {me ? <NavWalletSummary /> : <SignUpButton width='fit-content' />}
             </>)}

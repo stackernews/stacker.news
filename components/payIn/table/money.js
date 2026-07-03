@@ -20,7 +20,7 @@ export function PayInMoney ({ payIn }) {
 
 export function Bolt11Money ({ mtokens }) {
   return (
-    <div className='d-flex align-items-center gap-1 justify-content-end'>
+    <div className='flex items-center gap-1 justify-end'>
       {formatMsatsToSats(mtokens)}<Plug className='fill-muted' width={10} height={10} />
     </div>
   )
@@ -28,7 +28,7 @@ export function Bolt11Money ({ mtokens }) {
 
 function Money ({ mtokens, mtokensAfter, format }) {
   return (
-    <div className='d-grid'>
+    <div className='grid'>
       <div>{format(mtokens)}</div>
       {isNumber(mtokensAfter) && <small className='text-muted'>{format(mtokensAfter)}</small>}
     </div>

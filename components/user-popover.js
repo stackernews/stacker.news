@@ -11,7 +11,7 @@ import { useCallback } from 'react'
 
 function StackingSince ({ since }) {
   return (
-    <small className='text-muted d-flex-inline'>
+    <small className='text-muted'>
       stacking since:{' '}
       {since
         ? (

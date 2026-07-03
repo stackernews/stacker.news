@@ -24,7 +24,7 @@ export function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {
 
   return (
     <div className='text-center'>
-      <h4 className='mb-3'>Delete wallet</h4>
+      <h4 className='mb-4'>Delete wallet</h4>
       <WalletDeletionBarrier fundLossRisk={fundLossRisk} acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
       <ObstacleButtons
         onClose={onClose}
@@ -40,9 +40,9 @@ export function WalletDeletionBarrier ({ fundLossRisk = false, acknowledged, set
   return (
     <>
       {fundLossRisk && (
-        <p className='text-danger fw-bold'>You are deleting a Spark wallet. Without a backup, you will permanently lose access to its funds.</p>
+        <p className='text-danger font-bold'>You are deleting a Spark wallet. Without a backup, you will permanently lose access to its funds.</p>
       )}
-      <label className='d-flex align-items-start gap-2 text-start mt-3'>
+      <label className='flex items-start gap-2 text-start mt-4'>
         <input
           type='checkbox'
           className='mt-2'
@@ -67,8 +67,8 @@ export function WalletSaveDeleteObstacle ({ wallet, onClose, onConfirm }) {
 
   return (
     <div className='text-center'>
-      <h4 className='mb-3'>Delete wallet</h4>
-      <p className='fw-bold'>
+      <h4 className='mb-4'>Delete wallet</h4>
+      <p className='font-bold'>
         Saving will delete this wallet because no capabilities remain.
       </p>
       <p className='text-muted'>

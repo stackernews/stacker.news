@@ -13,10 +13,10 @@ export default function TopBar ({ prefix, sub, path, topNavKey, dropNavKey }) {
       >
         <Back />
         <Brand className='me-1' />
-        <SearchItem prefix={prefix} className='me-0 ms-2 d-none d-md-flex' />
-        <NavPrice className='ms-auto me-0 mx-md-auto d-none d-md-flex' />
+        <SearchItem prefix={prefix} className='me-0 ms-2 hidden md:flex' />
+        <NavPrice className='ms-auto me-0 md:mx-auto hidden md:flex' />
         <CommentsNavigator navigator={navigator} commentCount={commentCount} />
-        <RightCorner dropNavKey={dropNavKey} path={path} className='d-none d-md-flex' />
+        <RightCorner dropNavKey={dropNavKey} path={path} className='hidden md:flex' />
       </Nav>
     </Navbar>
   )

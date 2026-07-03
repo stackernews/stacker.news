@@ -29,7 +29,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, h
 
   return (
     <div className={classNames(styles.hide, styles.sticky)} ref={ref}>
-      <Container className='px-0 d-none d-md-block'>
+      <Container className='px-0 hidden md:block'>
         <Navbar className='py-0'>
           <Nav
             className={styles.navbarNav}
@@ -39,21 +39,21 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, h
             <Brand className='me-1' />
             <SearchItem className='me-0 ms-2' />
             <NavPrice />
-            <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
-            <RightCorner dropNavKey={dropNavKey} path={path} className='d-flex' />
+            <CommentsNavigator navigator={navigator} commentCount={commentCount} className='flex' />
+            <RightCorner dropNavKey={dropNavKey} path={path} className='flex' />
           </Nav>
         </Navbar>
       </Container>
       {!hideMobileNav && (
-        <Container className='px-sm-0 d-block d-md-none'>
+        <Container className='sm:px-0 block md:hidden'>
           <Navbar className='py-0'>
             <Nav
               className={classNames(styles.navbarNav)}
               activeKey={topNavKey}
             >
               <Back />
-              <NavPrice className='flex-shrink-1' />
-              <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
+              <NavPrice className='shrink' />
+              <CommentsNavigator navigator={navigator} commentCount={commentCount} className='flex' />
               {me ? <NavWalletSummary className='px-2' /> : <SignUpButton className='ms-auto' width='fit-content' />}
             </Nav>
           </Navbar>

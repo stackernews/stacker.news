@@ -40,7 +40,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
     <>
       {rank
         ? (
-          <div className={`${styles.rank} pb-2 align-self-center`}>
+          <div className={`${styles.rank} pb-2 self-center`}>
             {rank}
           </div>)
         : <div />}
@@ -52,8 +52,8 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
               <CompanyImage item={item} />
             </div>)
           : <CompanyImage item={item} />}
-        <div className={`${styles.hunk} align-self-center mb-0`}>
-          <div className={`${styles.main} flex-wrap d-inline`}>
+        <div className={`${styles.hunk} self-center mb-0`}>
+          <div className={`${styles.main} flex-wrap inline`}>
             <Link href={`/items/${item.id}`} className={`${styles.title} text-reset me-2`}>
               {item.searchTitle
                 ? <SearchTitle title={item.searchTitle} />
@@ -78,7 +78,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
             <wbr />
             <span> \ </span>
             <span>
-              <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
+              <Link href={`/${item.user.name}`} className='inline-flex items-center'>
                 @{item.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={item.user} />
               </Link>
               <span> </span>
@@ -100,7 +100,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
                 <>
                   <wbr />
                   <span> \ </span>
-                  <Link href={`/items/${item.id}/edit`} className='text-reset fw-bold'>
+                  <Link href={`/items/${item.id}/edit`} className='text-reset font-bold'>
                     edit
                   </Link>
                   <PayInInfo item={item} {...props} />
@@ -128,13 +128,13 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
       </div>
       {children && (
         <div className={styles.children} style={{ marginLeft: 'calc(42px + .8rem)' }}>
-          <div className='mb-3 d-flex'>
+          <div className='mb-4 flex'>
             <Button
               target='_blank' href={isEmail ? `mailto:${item.url}?subject=${encodeURIComponent(item.title)} via Stacker News` : item.url}
             >
               apply {isEmail && <EmailIcon className='ms-1' />}
             </Button>
-            {isEmail && <div className='ms-3 align-self-center text-muted fw-bold'>{item.url}</div>}
+            {isEmail && <div className='ms-4 self-center text-muted font-bold'>{item.url}</div>}
           </div>
           {children}
         </div>

@@ -195,7 +195,7 @@ export function CommentsNavigator ({ navigator, commentCount, className }) {
   return (
     <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
       <aside
-        className={`${styles.commentNavigator} fw-bold nav-link ${className}`}
+        className={`${styles.commentNavigator} font-bold nav-link ${className}`}
         style={{ visibility: commentCount ? 'visible' : 'hidden' }}
       >
         <span aria-label='next comment' className={styles.navigatorButton}>

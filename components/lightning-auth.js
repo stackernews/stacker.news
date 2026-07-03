@@ -51,18 +51,18 @@ function LightningExplainer ({ text, children, backButton, md = 12, lg = 6 }) {
   return (
     <Container>
       <div className={styles.login}>
-        {backButton && <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>}
-        <h3 className='w-100 pb-2'>
+        {backButton && <div className='w-full mb-4 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>}
+        <h3 className='w-full pb-2'>
           {text || 'Login'} with Lightning
         </h3>
-        <div className='fw-bold text-muted pb-4'>This is the most private way to use Stacker News. Just open your Lightning wallet and scan the QR code.</div>
-        <Row className='w-100 text-muted'>
-          <Col className='ps-0 mb-4' md={md} lg={lg}>
+        <div className='font-bold text-muted pb-6'>This is the most private way to use Stacker News. Just open your Lightning wallet and scan the QR code.</div>
+        <Row className='w-full text-muted'>
+          <Col className='ps-0 mb-6' md={md} lg={lg}>
             <AccordianItem
               header='Which wallets support lnurl-auth?'
               body={
                 <>
-                  <Row className='mb-3 no-gutters'>
+                  <Row className='mb-4'>
                     You can use any wallet that supports lnurl-auth. These are some wallets that claim to support it:
                   </Row>
                   <Row>

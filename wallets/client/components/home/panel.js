@@ -19,21 +19,21 @@ export function SelectedWalletPanel ({ entry, templates }) {
   const spec = kindSpec(entry)
 
   return (
-    <div className={classNames(styles.panel, styles.walletMainFlushChild, 'd-flex flex-column align-items-center')}>
-      <div className='w-100 d-none d-md-flex align-items-start justify-content-between gap-4'>
-        <div className={classNames(styles.selectedWalletIdentity, 'd-inline-flex align-items-center text-body fw-bold')}>
+    <div className={classNames(styles.panel, styles.walletMainFlushChild, 'flex flex-col items-center')}>
+      <div className='w-full hidden md:flex items-start justify-between gap-6'>
+        <div className={classNames(styles.selectedWalletIdentity, 'inline-flex items-center text-body font-bold')}>
           <WalletIcon entry={entry} />
           {spec.showName && <span>{entry.name}</span>}
         </div>
         {spec.detailTabs && (
-          <nav className='d-none d-md-flex justify-content-end gap-4'>
+          <nav className='hidden md:flex justify-end gap-6'>
             {spec.detailItems(entry).map(item => (
               <Link key={item.key} href={item.href} className={styles.textButton}>{item.label}</Link>
             ))}
           </nav>
         )}
       </div>
-      <div className='w-100 d-none d-md-flex justify-content-start text-start mt-2'>
+      <div className='w-full hidden md:flex justify-start text-start mt-2'>
         <SparkCustodyNotice wallet={entry.wallet} />
       </div>
       <SelectedWalletBalance entry={entry} />
@@ -54,7 +54,7 @@ export function WalletDetailsList ({ entry, onSelect }) {
   return (
     <div className={styles.stackSection}>
       {items.map(item => (
-        <Link key={item.key} href={item.href} className={classNames(styles.surfaceRow, styles.surfaceRowHover, 'd-flex align-items-center fw-bold')} onClick={onSelect}>
+        <Link key={item.key} href={item.href} className={classNames(styles.surfaceRow, styles.surfaceRowHover, 'flex items-center font-bold')} onClick={onSelect}>
           {item.label}
         </Link>
       ))}

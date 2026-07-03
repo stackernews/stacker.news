@@ -18,7 +18,7 @@ export function ObstacleButtons ({
 }) {
   const [confirm, inFlight] = useSingleFlight(onConfirm)
   return (
-    <div className='d-flex justify-content-around align-items-center mt-3'>
+    <div className='flex justify-around items-center mt-4'>
       <Button variant='grey-medium' onClick={onClose} disabled={inFlight}>{cancelText}</Button>
       <Button variant={confirmVariant} onClick={onConfirm ? confirm : undefined} type={type} disabled={confirmDisabled || inFlight}>{inFlight && confirmingText ? confirmingText : confirmText}</Button>
     </div>

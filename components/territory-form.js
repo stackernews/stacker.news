@@ -28,7 +28,7 @@ function SatFilterRanges () {
   return (
     <Range
       label={
-        <div className='d-flex align-items-center'>posts sat filter
+        <div className='flex items-center'>posts sat filter
           <Info>
             <ul>
               <li>minimum net investment (cost + zaps + boost - downzaps) for posts to appear in lit/top</li>
@@ -136,7 +136,7 @@ export default function TerritoryForm ({ sub }) {
         }}
         schema={schema}
         onSubmit={onSubmit}
-        className='mb-5'
+        className='mb-12'
         storageKeyPrefix={sub ? undefined : 'territory'}
       >
         <Input
@@ -146,10 +146,10 @@ export default function TerritoryForm ({ sub }) {
           autoFocus
           clear
           maxLength={32}
-          prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
+          prepend={<InputGroup.Text className='font-[monospace]'>~</InputGroup.Text>}
           onChange={onNameChange}
           warn={archived && (
-            <div className='d-flex align-items-center'>this territory is archived
+            <div className='flex items-center'>this territory is archived
               <Info>
                 <ul>
                   <li>This territory got archived because the previous founder did not pay for the upkeep</li>
@@ -172,7 +172,7 @@ export default function TerritoryForm ({ sub }) {
           name='baseCost'
           type='number'
           required
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
         />
         <CheckboxGroup label='post types' name='postTypes'>
           <Row>
@@ -222,7 +222,7 @@ export default function TerritoryForm ({ sub }) {
           <>
             <CheckboxGroup
               label={
-                <span className='d-flex align-items-center'>billing
+                <span className='flex items-center'>billing
                   {sub && sub.billingType !== 'ONCE' &&
                     <Info>
                       You will be credited what you paid for your current billing period when you change your billing period to a longer duration.
@@ -277,14 +277,14 @@ export default function TerritoryForm ({ sub }) {
                 name='replyCost'
                 type='number'
                 required
-                append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+                append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
               />
               <SatFilterRanges />
               <BootstrapForm.Label>nsfw</BootstrapForm.Label>
               <Checkbox
                 inline
                 label={
-                  <div className='d-flex align-items-center'>mark as nsfw
+                  <div className='flex items-center'>mark as nsfw
                     <Info>
                       <ol>
                         <li>Let stackers know that your territory may contain explicit content</li>
@@ -300,7 +300,7 @@ export default function TerritoryForm ({ sub }) {
 
 }
         />
-        <div className='mt-3 d-flex justify-content-end'>
+        <div className='mt-4 flex justify-end'>
           <FeeButton
             text={sub ? 'save' : 'found it'}
             variant='secondary'
@@ -311,7 +311,7 @@ export default function TerritoryForm ({ sub }) {
       {DOMAIN_BETA_IDS.includes(Number(me?.id)) &&
         <>
           {sub && !branding && <TerritoryBranding sub={sub} />}
-          {sub && branding && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain and branding settings on stacker.news <LinkExternal width={16} height={16} /></Link>}
+          {sub && branding && <Link className='text-muted w-full' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain and branding settings on stacker.news <LinkExternal width={16} height={16} /></Link>}
         </>}
     </FeeButtonProvider>
   )

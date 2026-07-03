@@ -56,15 +56,15 @@ function HideToggle ({ hidden, onToggle }) {
 
 function ResetPassphraseDialog ({ onCancel, onConfirm }) {
   return (
-    <div className='line-height-md'>
+    <div className='leading-normal'>
       <h4>Reset wallets</h4>
-      <p className='fw-bold mt-3'>
+      <p className='font-bold mt-4'>
         This will delete your sending wallet configurations. Your account, rewards, and CC balance will not be affected otherwise.
       </p>
       <p>
         After the reset, you will be issued a new passphrase.
       </p>
-      <p className='text-danger fw-bold'>If you have a Spark wallet, resetting without a backup will permanently lose access to its funds.</p>
+      <p className='text-danger font-bold'>If you have a Spark wallet, resetting without a backup will permanently lose access to its funds.</p>
       <WalletDeletionConfirmation onClose={onCancel} onConfirm={onConfirm} confirmText='reset' />
     </div>
   )
@@ -96,7 +96,7 @@ function PassphraseConfirmation ({
   }
 
   return (
-    <div className={classNames('w-100', shared.formStack, styles.passphraseFlow)}>
+    <div className={classNames('w-full', shared.formStack, styles.passphraseFlow)}>
       <div className='text-center'>
         <h3 className={styles.headline}>Prove you wrote them down</h3>
         <p className={styles.subcopy}>Tap the word that belongs at each position.</p>
@@ -140,7 +140,7 @@ function PassphraseConfirmation ({
         )}
       </div>
 
-      <div className='d-flex flex-wrap gap-2'>
+      <div className='flex flex-wrap gap-2'>
         {challenge.bank.map(word => {
           const used = confirmedWords.includes(word)
           const unavailable = used || done
@@ -333,7 +333,7 @@ export function WalletPassphrasePrompt ({ onSuccess }) {
   }
 
   return (
-    <form className={classNames('w-100', shared.formStack, styles.passphraseFlow)} onSubmit={onSubmit}>
+    <form className={classNames('w-full', shared.formStack, styles.passphraseFlow)} onSubmit={onSubmit}>
       <div className='text-center'>
         <h3 className={styles.headline}>Enter your passphrase</h3>
         <p className={styles.subcopy}>
@@ -488,7 +488,7 @@ export function WalletPassphraseSetup ({
   }
 
   return (
-    <div className={classNames('w-100', shared.formStack, styles.passphraseFlow)}>
+    <div className={classNames('w-full', shared.formStack, styles.passphraseFlow)}>
       <div className='text-center'>
         <h3 className={styles.headline}>Your passphrase is shown once</h3>
         <p className={styles.subcopy}>
@@ -530,7 +530,7 @@ export function WalletPassphraseSetup ({
           </WalletBottomBar>
           )
         : (
-          <div className='d-flex justify-content-center'>
+          <div className='flex justify-center'>
             <Button type='button' variant='primary' onClick={() => setConfirming(true)}>
               I've saved them - continue
             </Button>

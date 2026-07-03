@@ -29,12 +29,12 @@ function MaxFeeField () {
   return (
     <div className={classNames(styles.stackSection, styles.maxFee)}>
       <div className={styles.maxFeeSummary}>
-        <span className={classNames(styles.maxFeeLabel, 'text-muted font-monospace')}>
+        <span className={classNames(styles.maxFeeLabel, 'text-muted font-mono')}>
           max fee
         </span>
         <button
           type='button'
-          className={classNames(styles.chip, styles.maxFeeControl, showMaxFee && styles.chipActive, 'font-monospace')}
+          className={classNames(styles.chip, styles.maxFeeControl, showMaxFee && styles.chipActive, 'font-mono')}
           onClick={() => setShowMaxFee(show => !show)}
           aria-expanded={showMaxFee}
         >
@@ -50,7 +50,7 @@ function MaxFeeField () {
           type='number'
           step={10}
           required
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
         />
       )}
     </div>

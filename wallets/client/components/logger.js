@@ -24,10 +24,10 @@ export function WalletLogs ({ wallet, payInId, externalTransactionId, className,
   return (
     <div className={className}>
       {!transaction && (
-        <div className='d-flex w-100 align-items-center mb-3'>
+        <div className='flex w-full items-center mb-4'>
           <span
             style={{ cursor: 'pointer' }}
-            className='text-muted fw-bold nav-link ms-auto' onClick={onDelete}
+            className='text-muted font-bold nav-link ms-auto' onClick={onDelete}
           >clear logs
           </span>
         </div>
@@ -53,23 +53,23 @@ export function WalletLogs ({ wallet, payInId, externalTransactionId, className,
 
 function WalletLogsPageFooter ({ loading, cursor, count, loadMore }) {
   if (loading && count === 0) {
-    return <div className='w-100 text-center'>loading...</div>
+    return <div className='w-full text-center'>loading...</div>
   }
 
   return <MoreFooter cursor={cursor} count={count} fetchMore={loadMore} Skeleton={WalletLogsLoading} noMoreText='START' />
 }
 
 function WalletLogsLoading () {
-  return <div className='w-100 text-center'>loading...</div>
+  return <div className='w-full text-center'>loading...</div>
 }
 
 function WalletLogsFooter ({ empty, loading, hasMore, loadMore }) {
   return (
     <>
       {loading
-        ? <div className='w-100 text-center'>loading...</div>
-        : empty && <div className='w-100 text-center'>no activity</div>}
-      {hasMore && <div className='w-100 text-center'><Button onClick={loadMore} size='sm' className='mt-3'>more</Button></div>}
+        ? <div className='w-full text-center'>loading...</div>
+        : empty && <div className='w-full text-center'>no activity</div>}
+      {hasMore && <div className='w-full text-center'><Button onClick={loadMore} size='sm' className='mt-4'>more</Button></div>}
     </>
   )
 }
@@ -162,7 +162,7 @@ function Context ({ context }) {
           return (
             <Fragment key={i}>
               <div>{key}:</div>
-              <div className='text-break'>{value}</div>
+              <div className='break-words'>{value}</div>
             </Fragment>
           )
         })}

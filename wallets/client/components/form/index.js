@@ -149,15 +149,15 @@ function WalletConfigureFormLayout ({ protocols }) {
         {!isTemplate(wallet) && <WalletConfigureDangerZone wallet={wallet} />}
       </main>
 
-      <aside className={classNames(styles.aside, 'd-flex flex-column gap-3')}>
-        <div className={classNames(styles.asideCard, 'd-flex flex-column')}>
+      <aside className={classNames(styles.aside, 'flex flex-col gap-4')}>
+        <div className={classNames(styles.asideCard, 'flex flex-col')}>
           <p className='text-muted mb-0'>
             Set up this wallet&apos;s capabilities, then test them before saving.
           </p>
           <WalletGuide name={wallet.name} />
         </div>
-        <div className={classNames(styles.asideCard, 'd-flex flex-column')}>
-          <div className='fw-bold'>save status</div>
+        <div className={classNames(styles.asideCard, 'flex flex-col')}>
+          <div className='font-bold'>save status</div>
           <p className='text-muted mb-0'>
             {saveState.saveStatus}
           </p>
@@ -172,7 +172,7 @@ function WalletConfigureFormLayout ({ protocols }) {
               {saveState.willDeleteWallet && <div className={styles.saveBlocker}>{saveState.saveStatus}</div>}
               <button
                 type='button'
-                className={classNames('btn btn-primary fw-bold', styles.saveButton, inFlight && 'pulse')}
+                className={classNames('btn btn-primary font-bold', styles.saveButton, inFlight && 'pulse')}
                 disabled={inFlight}
                 onClick={onSaveClick}
               >
@@ -192,7 +192,7 @@ function WalletConfigureDangerZone ({ wallet }) {
   return (
     <section className={styles.dangerZone}>
       <div>
-        <h2 className='m-0 text-danger fs-5'>danger zone</h2>
+        <h2 className='m-0 text-danger text-[1.1625rem]'>danger zone</h2>
         <p>Delete this wallet and its saved send/receive configuration.</p>
       </div>
       <button

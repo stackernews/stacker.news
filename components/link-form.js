@@ -192,7 +192,7 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
       </AdvPostForm>
       <ItemButtonBar itemId={item?.id} disable={postDisabled}>
         {!item && postDisabled &&
-          <div className='d-flex align-items-center small'>
+          <div className='flex items-center small'>
             <Moon className='spin fill-grey' height={16} width={16} />
             <div className='ms-2 text-muted'>searching for dupes</div>
           </div>}
@@ -200,7 +200,7 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
       {!item &&
         <>
           {dupes?.length > 0 &&
-            <div className='mt-3'>
+            <div className='mt-4'>
               <AccordianItem
                 show
                 headerColor='#c03221'

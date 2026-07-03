@@ -7,7 +7,7 @@ import { StatusText, statusIconSize } from './status'
 export function ExternalTransactionStatus ({ transaction, className }) {
   const { Icon, fill, color, label, spin } = externalStatusPresentation(transaction)
   return (
-    <div className={['d-flex align-items-center', className].filter(Boolean).join(' ')}>
+    <div className={['flex items-center', className].filter(Boolean).join(' ')}>
       <Icon width={statusIconSize} height={statusIconSize} className={`fill-${fill}${spin ? ' spin' : ''}`} />
       <StatusText color={color}>{label}</StatusText>
     </div>

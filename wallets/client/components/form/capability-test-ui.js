@@ -16,8 +16,8 @@ export function CapabilityTestRow ({ protocol, onTest }) {
   if (cap?.enabled === false) return null
 
   return (
-    <div className={classNames(styles.testRow, 'd-flex align-items-center justify-content-between gap-2 mt-1')}>
-      <span className='text-truncate'>
+    <div className={classNames(styles.testRow, 'flex items-center justify-between gap-2 mt-1')}>
+      <span className='truncate'>
         {protocol.send
           ? 'Test that this wallet can send payments.'
           : 'Test that this wallet can create invoices.'}
@@ -40,11 +40,11 @@ export function CapabilityStateRow ({ protocol, onRemove, onCancel }) {
   if (!showToggle && !onRemove && !onCancel) return null
 
   return (
-    <div className='d-flex align-items-center justify-content-between gap-3 mt-1'>
+    <div className='flex items-center justify-between gap-4 mt-1'>
       {onRemove && (
         <button
           type='button'
-          className={classNames(styles.textButton, styles.dangerTextButton, 'align-self-center lh-1')}
+          className={classNames(styles.textButton, styles.dangerTextButton, 'self-center leading-none')}
           onClick={onRemove}
         >
           remove {protocol.send ? 'send' : 'receive'}
@@ -53,7 +53,7 @@ export function CapabilityStateRow ({ protocol, onRemove, onCancel }) {
       {onCancel && (
         <button
           type='button'
-          className={classNames(styles.textButton, 'align-self-center lh-1')}
+          className={classNames(styles.textButton, 'self-center leading-none')}
           onClick={onCancel}
         >
           cancel {protocol.send ? 'send' : 'receive'}
@@ -85,7 +85,7 @@ export function CapabilityError ({ message, details }) {
         title='copy error details'
         aria-label='copy error details'
       />
-      <div className='text-danger fw-bold line-height-sm'>{message}</div>
+      <div className='text-danger font-bold leading-tight'>{message}</div>
       {details && (
         <AccordianItem
           header='details'

@@ -87,27 +87,27 @@ export function PostForm ({ type, subs, children }) {
     }
 
     postButtons = postButtons.reduce((acc, cur) => {
-      if (acc.length) acc.push(<span key='OR-post-buttons' className='mx-3 fw-bold text-muted'>or</span>)
+      if (acc.length) acc.push(<span key='OR-post-buttons' className='mx-4 font-bold text-muted'>or</span>)
       acc.push(cur)
       return acc
     }, [])
 
     morePostButtons = morePostButtons.reduce((acc, cur) => {
-      if (acc.length) acc.push(<span key='OR-more-post-buttons' className='mx-3 fw-bold text-muted'>or</span>)
+      if (acc.length) acc.push(<span key='OR-more-post-buttons' className='mx-4 font-bold text-muted'>or</span>)
       acc.push(cur)
       return acc
     }, [])
 
     return (
-      <div className='position-relative d-flex flex-column align-items-start'>
+      <div className='relative flex flex-col items-start'>
         {errorMessage &&
-          <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
+          <Alert className='absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
         {subs.length > 0 && (
           <SubMultiSelect
             placeholder='pick territories'
-            className='d-flex'
+            className='flex'
             noForm
             size='medium'
             subs={subNames(subs)}
@@ -116,14 +116,14 @@ export function PostForm ({ type, subs, children }) {
         <div>
           {postButtons}
         </div>
-        <div className='d-flex mt-4'>
+        <div className='flex mt-6'>
           <AccordianItem
             headerColor='#6c757d'
-            header={<div className='fw-bold text-muted'>more types</div>}
+            header={<div className='font-bold text-muted'>more types</div>}
             body={
-              <div className='align-items-center'>
+              <div className='items-center'>
                 {morePostButtons}
-                <div className='mt-3 d-flex justify-content-center'>
+                <div className='mt-4 flex justify-center'>
                   <Link href='/~jobs/post'>
                     <Button onClick={checkSession} variant='info'>job</Button>
                   </Link>
@@ -172,7 +172,7 @@ export default function Post ({ subs }) {
           subs={subNames(subs)}
           placeholder='pick territories'
           filterSubs={s => s.postTypes?.includes(type.toUpperCase())}
-          className='d-flex'
+          className='flex'
           size='medium'
           label='territory'
         />
@@ -190,7 +190,7 @@ export function ItemButtonBar ({
 
   return (
     <div className={`mt-3 ${className}`}>
-      <div className='d-flex justify-content-between'>
+      <div className='flex justify-between'>
         <FreebieCheckbox />
         {itemId && canDelete &&
           <Delete
@@ -200,7 +200,7 @@ export function ItemButtonBar ({
             <Button variant='grey-medium'>{deleteText}</Button>
           </Delete>}
         {children}
-        <div className='d-flex align-items-center ms-auto'>
+        <div className='flex items-center ms-auto'>
           {hasCancel && <CancelButton onClick={onCancel} />}
           <FeeButton
             text={itemId ? editText : createText}

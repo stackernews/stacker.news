@@ -77,7 +77,7 @@ export function CommentFlat ({ item, rank, siblingComments, search, ...props }) 
     <>
       {rank
         ? (
-          <div className={`${itemStyles.rank} pt-2 align-self-start`}>
+          <div className={`${itemStyles.rank} pt-2 self-start`}>
             {rank}
           </div>)
         : <div />}
@@ -233,7 +233,7 @@ export default function Comment ({
               ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
               : <UpVote item={item} className={styles.upvote} collapsed={collapse === 'yep'} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'
               ? (
                 <span
@@ -258,7 +258,7 @@ export default function Comment ({
                       {includeParent && <Parent item={item} rootText={rootText} />}
                       {bountyPaid &&
                         <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
-                          <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
+                          <BountyIcon className={`${styles.bountyIcon} ${'fill-success'}`} height={16} width={16} />
                         </ActionTooltip>}
                     </>
                   }
@@ -281,7 +281,7 @@ export default function Comment ({
                   }}
                 />)}
             {topLevel && (
-              <span className='d-flex ms-auto align-items-center'>
+              <span className='flex ms-auto items-center'>
                 <Share title={item?.title} path={`/items/${item?.id}`} />
               </span>
             )}
@@ -309,7 +309,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-3 pb-2')}><ViewMoreReplies item={item} threadContext /></div></div>
+          ? <div className={styles.children}><div className={classNames(styles.comment, 'mt-4 pb-2')}><ViewMoreReplies item={item} threadContext /></div></div>
           : (
             <div className={styles.children}>
               {!noReply &&
@@ -325,7 +325,7 @@ export default function Comment ({
                         <Comment depth={depth + 1} key={item.id} item={item} navigator={navigator} />
                       ))}
                       {item.comments.comments.length < item.nDirectComments && (
-                        <div className={`d-block ${styles.comment} pb-2 ps-3`}>
+                        <div className={`block ${styles.comment} pb-2 ps-4`}>
                           <ViewMoreReplies item={item} />
                         </div>
                       )}
@@ -357,7 +357,7 @@ export function ViewMoreReplies ({ item, threadContext = false }) {
     <Link
       href={href}
       as={`/items/${id}`}
-      className='fw-bold d-flex align-items-center gap-2 text-muted'
+      className='font-bold flex items-center gap-2 text-muted'
     >
       {text}
     </Link>
@@ -383,7 +383,7 @@ export function CommentSkeleton ({ skeletonChildren }) {
         <div className={styles.replyPadder}>
           <div className={`${itemStyles.other} ${styles.reply} clouds`} />
         </div>
-        <div className={`${styles.comments} ms-sm-1 ms-md-3`}>
+        <div className={`${styles.comments} sm:ms-1 md:ms-4`}>
           {skeletonChildren
             ? <CommentSkeleton skeletonChildren={skeletonChildren - 1} />
             : null}

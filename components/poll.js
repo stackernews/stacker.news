@@ -81,7 +81,7 @@ function PollResult ({ v, progress }) {
   return (
     <div className={styles.pollResult}>
       <span className={styles.pollOption}>{v.option}</span>
-      <span className='ms-auto me-2 align-self-center'>{progress}%</span>
+      <span className='ms-auto me-2 self-center'>{progress}%</span>
       <div className={styles.pollProgress} style={{ width: `${progress}%` }} />
     </div>
   )

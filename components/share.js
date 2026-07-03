@@ -43,7 +43,7 @@ export default function Share ({ path, title = '', className = '' }) {
   const url = referrurl(path, me)
 
   return (
-    <div className='ms-auto pointer d-flex align-items-center'>
+    <div className='ms-auto pointer flex items-center'>
       <ShareIcon
         width={20} height={20}
         className={`mx-2 fill-grey theme ${className}`}

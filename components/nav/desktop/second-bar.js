@@ -14,10 +14,10 @@ export default function SecondBar (props) {
         activeKey={topNavKey}
       >
         {!branding && <NavSelect sub={sub} size='medium' className='me-1' />}
-        <div className={`${!branding ? 'ms-2 d-flex' : 'd-flex'}`}>
+        <div className={`${!branding ? 'ms-2 flex' : 'flex'}`}>
           <Sorts {...props} className={!branding ? 'ms-1' : undefined} />
         </div>
-        <PostItem className='ms-auto me-0 d-none d-md-flex' prefix={prefix} />
+        <PostItem className='ms-auto me-0 hidden md:flex' prefix={prefix} />
       </Nav>
     </Navbar>
   )

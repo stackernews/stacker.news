@@ -30,8 +30,8 @@ export function SubAnalyticsHeader ({ pathname = null }) {
   const subs = useSubs({ prependSubs: ['all'], sub, appendSubs: [], filterSubs: () => true })
 
   return (
-    <div className='text-muted fw-bold my-0 d-flex align-items-center flex-wrap'>
-      <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
+    <div className='text-muted font-bold my-0 flex items-center flex-wrap'>
+      <div className='text-muted font-bold mb-2 flex items-center'>
         stacker analytics in
         <Select
           groupClassName='mb-0 mx-2'

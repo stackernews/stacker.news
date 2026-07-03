@@ -69,8 +69,8 @@ export function DeleteConfirm ({ onConfirm, type }) {
   return (
     <>
       {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
-      <p className='fw-bolder'>Are you sure? This is a gone forever kind of delete.</p>
-      <div className='d-flex justify-content-end'>
+      <p className='font-bolder'>Are you sure? This is a gone forever kind of delete.</p>
+      <div className='flex justify-end'>
         <Button
           variant='danger' onClick={async () => {
             try {

@@ -26,7 +26,7 @@ export function WalletProtocolFormField ({ protocol, type, onNwcLud16, ...props 
     () => makeFieldValidator(fieldSchema({ name: fieldProps.name, required: fieldProps.required, validate: fieldValidate })),
     [fieldProps.name, fieldProps.required, fieldValidate])
   const label = (
-    <div className='d-flex align-items-center'>
+    <div className='flex items-center'>
       {fieldProps.label}
       {parsedHelp && (
         <Info label={parsedHelp.label}>
@@ -49,7 +49,7 @@ export function WalletProtocolFormField ({ protocol, type, onNwcLud16, ...props 
     ? walletLud16Domain(wallet?.name)
     : undefined
   if (lnAddrDomain) {
-    append = <InputGroup.Text className='text-monospace'>@{lnAddrDomain}</InputGroup.Text>
+    append = <InputGroup.Text className='font-[monospace]'>@{lnAddrDomain}</InputGroup.Text>
     value = stripLightningAddressDomain(formik.values[key]?.[fieldProps.name] ?? '', lnAddrDomain)
     onChange = (_formik, e) => formik.setFieldValue(name, appendLightningAddressDomain(e.target.value, lnAddrDomain))
   }

@@ -118,7 +118,7 @@ export const ToastProvider = ({ children }) => {
 
   return (
     <ToastContext.Provider value={toaster}>
-      <ToastContainer className={`pb-3 px-3 ${styles.toastContainer}`} position='bottom-end' containerPosition='fixed'>
+      <ToastContainer className={`pb-4 px-4 ${styles.toastContainer}`} position='bottom-end' containerPosition='fixed'>
         {visibleToasts.map(toast => {
           const textStyle = toast.variant === 'warning' ? 'text-dark' : ''
           const onClose = () => {
@@ -138,8 +138,8 @@ export const ToastProvider = ({ children }) => {
               delay={toast.delay} className={`${styles.toast} ${styles[toast.variant]} ${textStyle}`} onClose={() => removeToast(toast)}
             >
               <ToastBody>
-                <div className='d-flex align-items-center'>
-                  <div className='flex-grow-1 overflow-hidden'>{toast.body}</div>
+                <div className='flex items-center'>
+                  <div className='grow overflow-hidden'>{toast.body}</div>
                   <Button
                     variant={null}
                     className='p-0 ps-2'

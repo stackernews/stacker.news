@@ -68,7 +68,7 @@ function TerritoryTransferForm ({ sub, onClose }) {
       onSubmit={onSubmit}
     >
       <h2 className='text-center'>transfer territory</h2>
-      <div className='d-flex align-items-center mb-2'>
+      <div className='flex items-center mb-2'>
         <InputUserSuggest
           label='stacker'
           name='userName'

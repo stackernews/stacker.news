@@ -48,7 +48,7 @@ function AccessibleButton ({ id, description, children, ...props }) {
   return (
     <div>
       <button {...props} aria-describedby={id}>{children}</button>
-      <div id={id} className='visually-hidden'>{description}</div>
+      <div id={id} className='sr-only'>{description}</div>
     </div>
   )
 }

@@ -25,7 +25,7 @@ export default function Avatar ({ onSuccess }) {
     const ref = useRef()
 
     return (
-      <div className='text-end mt-1 p-4'>
+      <div className='text-end mt-1 p-6'>
         <AvatarEditor
           ref={ref} width={200} height={200}
           image={file}
@@ -118,7 +118,7 @@ export default function Avatar ({ onSuccess }) {
         setUploading(true)
       }}
     >
-      <div className='position-absolute p-1 bg-dark pointer' style={{ bottom: '0', right: '0' }}>
+      <div className='absolute p-1 bg-dark pointer' style={{ bottom: '0', right: '0' }}>
         {uploading
           ? <Moon className='fill-white spin' />
           : <EditImage className='fill-white' />}

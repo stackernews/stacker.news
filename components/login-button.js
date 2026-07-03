@@ -41,7 +41,7 @@ export default function LoginButton ({ text, type, className, onClick, disabled 
     <Button className={className} variant={variant} onClick={onClick} disabled={disabled}>
       <Icon
         width={20}
-        height={20} className='me-3'
+        height={20} className='me-4'
       />
       {text} {name}
     </Button>
@@ -59,7 +59,7 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
   const title = account ? `Log in with @${account.name}` : 'Log in with @nym'
 
   return (
-    <Dropdown className='mb-4 w-100' as={ButtonGroup}>
+    <Dropdown className='mb-6 w-full' as={ButtonGroup}>
       <Button
         variant='success'
         onClick={() => account && router.push(callbackUrl)}
@@ -68,8 +68,8 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
         title={title}
         style={{ minWidth: 0 }}
       >
-        <SNIcon width={20} height={20} className='me-3 flex-shrink-0' />
-        <span className='text-truncate' style={{ minWidth: 0 }}>{title}</span>
+        <SNIcon width={20} height={20} className='me-4 shrink-0' />
+        <span className='truncate' style={{ minWidth: 0 }}>{title}</span>
       </Button>
       {(accounts.length > 1 || !account) && (
         <>

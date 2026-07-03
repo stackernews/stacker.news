@@ -23,29 +23,29 @@ import { useLiveCommentsToggle } from './use-live-comments'
 const RssPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <div className='d-flex justify-content-center'>
-        <a href='/rss' className='nav-link p-0 d-inline-flex'>
+      <div className='flex justify-center'>
+        <a href='/rss' className='nav-link p-0 inline-flex'>
           home
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~bitcoin/rss' className='nav-link p-0 d-inline-flex'>
+        <a href='/~bitcoin/rss' className='nav-link p-0 inline-flex'>
           bitcoin
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~nostr/rss' className='nav-link p-0 d-inline-flex'>
+        <a href='/~nostr/rss' className='nav-link p-0 inline-flex'>
           nostr
         </a>
       </div>
-      <div className='d-flex justify-content-center'>
-        <a href='/~tech/rss' className='nav-link p-0 d-inline-flex'>
+      <div className='flex justify-center'>
+        <a href='/~tech/rss' className='nav-link p-0 inline-flex'>
           tech
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~meta/rss' className='nav-link p-0 d-inline-flex'>
+        <a href='/~meta/rss' className='nav-link p-0 inline-flex'>
           meta
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~jobs/rss' className='nav-link p-0 d-inline-flex'>
+        <a href='/~jobs/rss' className='nav-link p-0 inline-flex'>
           jobs
         </a>
       </div>
@@ -56,38 +56,38 @@ const RssPopover = (
 const SocialsPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <div className='d-flex justify-content-center'>
+      <div className='flex justify-center'>
         <a
-          href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
+          href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 inline-flex'
           target='_blank' rel='noreferrer'
         >
           nostr
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
-          href='https://twitter.com/stacker_news' className='nav-link p-0 d-inline-flex'
+          href='https://twitter.com/stacker_news' className='nav-link p-0 inline-flex'
           target='_blank' rel='noreferrer'
         >
           twitter
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
-          href='https://www.youtube.com/@stackernews' className='nav-link p-0 d-inline-flex'
+          href='https://www.youtube.com/@stackernews' className='nav-link p-0 inline-flex'
           target='_blank' rel='noreferrer'
         >
           youtube
         </a>
       </div>
-      <div className='d-flex justify-content-center'>
+      <div className='flex justify-center'>
         <a
-          href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className='nav-link p-0 d-inline-flex'
+          href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className='nav-link p-0 inline-flex'
           target='_blank' rel='noreferrer'
         >
           pod
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
-          href='https://www.plebpoet.com/zines.html' className='nav-link p-0 d-inline-flex'
+          href='https://www.plebpoet.com/zines.html' className='nav-link p-0 inline-flex'
           target='_blank' rel='noreferrer'
         >
           zines
@@ -101,14 +101,14 @@ const ChatPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <a
-        href='https://t.me/k00bideh' className='nav-link p-0 d-inline-flex'
+        href='https://t.me/k00bideh' className='nav-link p-0 inline-flex'
         target='_blank' rel='noreferrer'
       >
         telegram
       </a>
       <span className='mx-2 text-muted'> \ </span>
       <a
-        href='https://signal.group/#CjQKIEt57YiluJoTW3lZqaqAq6echCekEYFfg7eIua2X91nLEhA__6ALI9pkaY_McQqX0jm1' className='nav-link p-0 d-inline-flex'
+        href='https://signal.group/#CjQKIEt57YiluJoTW3lZqaqAq6echCekEYFfg7eIua2X91nLEhA__6ALI9pkaY_McQqX0jm1' className='nav-link p-0 inline-flex'
         target='_blank' rel='noreferrer'
       >
         signal
@@ -120,17 +120,17 @@ const ChatPopover = (
 const LegalPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <div className='d-flex justify-content-center'>
-        <Link href='/tos' className='nav-link p-0 d-inline-flex'>
+      <div className='flex justify-center'>
+        <Link href='/tos' className='nav-link p-0 inline-flex'>
           terms of service
         </Link>
         <span className='mx-2 text-muted'> \ </span>
-        <Link href='/privacy' className='nav-link p-0 d-inline-flex'>
+        <Link href='/privacy' className='nav-link p-0 inline-flex'>
           privacy policy
         </Link>
       </div>
-      <div className='d-flex justify-content-center'>
-        <Link href='/copyright' className='nav-link p-0 d-inline-flex'>
+      <div className='flex justify-center'>
+        <Link href='/copyright' className='nav-link p-0 inline-flex'>
           copyright policy
         </Link>
       </div>
@@ -153,7 +153,7 @@ export default function Footer ({ links = true }) {
 
   return (
     <footer>
-      <Container className='mb-3'>
+      <Container className='mb-4'>
         {links &&
           <>
             <div className='mb-1'>
@@ -171,43 +171,43 @@ export default function Footer ({ links = true }) {
               <Rewards />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <Link href='/stackers/all/day' className='nav-link p-0 p-0 d-inline-flex'>
+              <Link href='/stackers/all/day' className='nav-link p-0 p-0 inline-flex'>
                 analytics
               </Link>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
-                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                <div className='nav-link p-0 p-0 inline-flex' style={{ cursor: 'pointer' }}>
                   chat
                 </div>
               </OverlayTrigger>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={SocialsPopover} rootClose>
-                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                <div className='nav-link p-0 p-0 inline-flex' style={{ cursor: 'pointer' }}>
                   socials
                 </div>
               </OverlayTrigger>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={RssPopover} rootClose>
-                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                <div className='nav-link p-0 p-0 inline-flex' style={{ cursor: 'pointer' }}>
                   rss
                 </div>
               </OverlayTrigger>
             </div>
             <div className='mb-2' style={{ fontWeight: 500 }}>
-              <Link href='/faq' className='nav-link p-0 p-0 d-inline-flex'>
+              <Link href='/faq' className='nav-link p-0 p-0 inline-flex'>
                 faq
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/guide' className='nav-link p-0 p-0 d-inline-flex'>
+              <Link href='/guide' className='nav-link p-0 p-0 inline-flex'>
                 guide
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/story' className='nav-link p-0 p-0 d-inline-flex'>
+              <Link href='/story' className='nav-link p-0 p-0 inline-flex'>
                 story
               </Link>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={LegalPopover} rootClose>
-                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                <div className='nav-link p-0 p-0 inline-flex' style={{ cursor: 'pointer' }}>
                   legal
                 </div>
               </OverlayTrigger>
@@ -215,12 +215,12 @@ export default function Footer ({ links = true }) {
           </>}
         {process.env.NEXT_PUBLIC_LND_CONNECT_ADDRESS &&
           <div
-            className={`text-small mx-auto mb-2 ${styles.connect}`}
+            className={`mx-auto mb-2 ${styles.connect}`}
           >
             <small className='nav-item text-muted me-2'>connect:</small>
             <CopyInput
               size='sm'
-              groupClassName='mb-0 w-100'
+              groupClassName='mb-0 w-full'
               readOnly
               noForm
               placeholder={process.env.NEXT_PUBLIC_LND_CONNECT_ADDRESS}
@@ -238,8 +238,8 @@ export default function Footer ({ links = true }) {
               <Mempool className='ms-2' width={20} height={20} />
             </a>
           </div>}
-        <small className='d-flex justify-content-center align-items-center text-muted flex-wrap'>
-          <a className={`${styles.contrastLink} d-flex align-items-center`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>
+        <small className='flex justify-center items-center text-muted flex-wrap'>
+          <a className={`${styles.contrastLink} flex items-center`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>
             FOSS <Github width={20} height={20} className='mx-1' />
           </a>
           made in Austin<Texas className='ms-1' width={20} height={20} />

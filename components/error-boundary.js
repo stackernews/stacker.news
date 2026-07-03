@@ -72,5 +72,5 @@ const CopyErrorButton = ({ errorDetails }) => {
       toaster?.danger?.('failed to copy')
     }
   }
-  return <Button className='mt-3' onClick={onClick}>copy error information</Button>
+  return <Button className='mt-4' onClick={onClick}>copy error information</Button>
 }

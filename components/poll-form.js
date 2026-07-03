@@ -57,11 +57,11 @@ export function PollForm ({ item, subs, EditInfo, children }) {
           isClearable
           label='poll expiration'
           name='pollExpiresAt'
-          className='pr-4'
+          className=''
           groupClassName='mb-0'
         />
         <Checkbox
-          label={<div className='d-flex align-items-center'>randomize order of poll choices</div>}
+          label={<div className='flex items-center'>randomize order of poll choices</div>}
           name='randPollOptions'
         />
       </AdvPostForm>

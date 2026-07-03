@@ -19,7 +19,7 @@ export function BalanceRow ({ balanceState }) {
     } else {
       content = (
         <span
-          className={classNames('fw-bold text-warning', error === 'permanent' && 'text-danger')}
+          className={classNames('font-bold text-warning', error === 'permanent' && 'text-danger')}
           title={message}
         >!
         </span>
@@ -28,7 +28,7 @@ export function BalanceRow ({ balanceState }) {
   }
 
   return (
-    <div className={classNames(styles.row, 'text-truncate')} title={title}>
+    <div className={classNames(styles.row, 'truncate')} title={title}>
       {content}
     </div>
   )

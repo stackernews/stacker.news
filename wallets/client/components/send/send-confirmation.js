@@ -23,8 +23,8 @@ export function confirmDuplicateExternalSend (showModal, { message, amountText, 
 
     showModal(onClose => (
       <div className='text-center'>
-        <h4 className='mb-3'>Confirm repeat payment</h4>
-        <p className='fw-bold'>{message}</p>
+        <h4 className='mb-4'>Confirm repeat payment</h4>
+        <p className='font-bold'>{message}</p>
         <p className='text-muted mb-0'>{amountText} to {to}</p>
         <ObstacleButtons
           onClose={() => { resolveOnce(false); onClose() }}

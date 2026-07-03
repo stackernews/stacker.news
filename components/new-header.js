@@ -41,7 +41,7 @@ export default function NewHeader ({ type, sub }) {
 
   return (
     <div className='flex-wrap'>
-      <div className='text-muted fw-bold my-1 d-flex justify-content-start align-items-center'>
+      <div className='text-muted font-bold my-1 flex justify-start items-center'>
         <Select
           groupClassName='mb-2'
           className='w-auto'

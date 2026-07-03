@@ -37,9 +37,9 @@ CREATE TABLE "ExternalTransaction" (
     "settledAt" TIMESTAMP(3),
     "error" TEXT,
     "unknownReason" "ExternalTransactionUnknownReason",
-    "unknownMessage" TEXT,
     "sourceType" "ExternalTransactionSourceType",
     "sourceValue" TEXT,
+    "duplicateConfirmed" BOOLEAN NOT NULL DEFAULT false,
     "verificationContext" JSONB,
 
     CONSTRAINT "ExternalTransaction_pkey" PRIMARY KEY ("id")
@@ -62,29 +62,6 @@ CREATE INDEX "ExternalTransaction_protocolId_created_at_idx" ON "ExternalTransac
 
 -- CreateIndex
 CREATE INDEX "ExternalTransaction_hash_idx" ON "ExternalTransaction"("hash");
-
--- CreateIndex
-CREATE INDEX "ExternalTransaction_send_hash_lookup_idx"
-ON "ExternalTransaction"("userId", "walletId", "protocolId", "hash", "settlementStatus")
-WHERE "direction" = 'SEND'::"ExternalTransactionDirection"
-  AND "settlementStatus" IN (
-    'PENDING'::"ExternalTransactionSettlementStatus",
-    'UNKNOWN'::"ExternalTransactionSettlementStatus",
-    'SETTLED'::"ExternalTransactionSettlementStatus"
-  );
-
--- CreateIndex
-CREATE INDEX "ExternalTransaction_send_lnaddr_lookup_idx"
-ON "ExternalTransaction"("userId", "walletId", "protocolId", "sourceType", lower("sourceValue"), "amountMsats", "settlementStatus")
-WHERE "direction" = 'SEND'::"ExternalTransactionDirection"
-  AND "sourceType" = 'LN_ADDR'::"ExternalTransactionSourceType"
-  AND "sourceValue" IS NOT NULL
-  AND "amountMsats" IS NOT NULL
-  AND "settlementStatus" IN (
-    'PENDING'::"ExternalTransactionSettlementStatus",
-    'UNKNOWN'::"ExternalTransactionSettlementStatus",
-    'SETTLED'::"ExternalTransactionSettlementStatus"
-  );
 
 -- CreateIndex
 CREATE INDEX "ExternalTransaction_direction_settlementStatus_updated_at_idx" ON "ExternalTransaction"("direction", "settlementStatus", "updated_at");

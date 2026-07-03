@@ -81,23 +81,23 @@ function GrowthTotals ({ totals, sub }) {
   if (!totals) return null
 
   return (
-    <Row className='my-4'>
-      <Col xs={6} md={3} className='text-center mb-3'>
+    <Row className='my-6'>
+      <Col xs={6} md={3} className='text-center mb-4'>
         <div className='text-muted small'>total stacked</div>
-        <div className='fw-bold fs-5'>{numWithUnits(Math.floor(totals.stacking))}</div>
+        <div className='font-bold text-[1.1625rem]'>{numWithUnits(Math.floor(totals.stacking))}</div>
       </Col>
-      <Col xs={6} md={3} className='text-center mb-3'>
+      <Col xs={6} md={3} className='text-center mb-4'>
         <div className='text-muted small'>total spent</div>
-        <div className='fw-bold fs-5'>{numWithUnits(Math.floor(totals.spending))}</div>
+        <div className='font-bold text-[1.1625rem]'>{numWithUnits(Math.floor(totals.spending))}</div>
       </Col>
-      <Col xs={6} md={3} className='text-center mb-3'>
+      <Col xs={6} md={3} className='text-center mb-4'>
         <div className='text-muted small'>spend actions</div>
-        <div className='fw-bold fs-5'>{new Intl.NumberFormat().format(totals.items)}</div>
+        <div className='font-bold text-[1.1625rem]'>{new Intl.NumberFormat().format(totals.items)}</div>
       </Col>
       {sub === 'all' && totals.registrations !== null && (
-        <Col xs={6} md={3} className='text-center mb-3'>
+        <Col xs={6} md={3} className='text-center mb-4'>
           <div className='text-muted small'>registrations</div>
-          <div className='fw-bold fs-5'>{new Intl.NumberFormat().format(totals.registrations)}</div>
+          <div className='font-bold text-[1.1625rem]'>{new Intl.NumberFormat().format(totals.registrations)}</div>
         </Col>
       )}
     </Row>
@@ -126,32 +126,32 @@ export default function Growth ({ ssrData }) {
       <SubAnalyticsHeader />
       <GrowthTotals totals={growthTotals} sub={sub} />
       <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>sats stacked</div>
+        <Col className='mt-4'>
+          <div className='text-center text-muted font-bold'>sats stacked</div>
           <WhenAreaChart data={stackingGrowth} />
         </Col>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>sats spent</div>
+        <Col className='mt-4'>
+          <div className='text-center text-muted font-bold'>sats spent</div>
           <WhenAreaChart data={spendingGrowth} />
         </Col>
       </Row>
       <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>unique stackers</div>
+        <Col className='mt-4'>
+          <div className='text-center text-muted font-bold'>unique stackers</div>
           <WhenLineChart data={stackerGrowth} />
         </Col>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>unique spenders</div>
+        <Col className='mt-4'>
+          <div className='text-center text-muted font-bold'>unique spenders</div>
           <WhenLineChart data={spenderGrowth} />
         </Col>
       </Row>
       <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>spend counts</div>
+        <Col className='mt-4'>
+          <div className='text-center text-muted font-bold'>spend counts</div>
           <WhenLineChart data={itemGrowth} />
         </Col>
-        <Col className='mt-3'>
-          {sub === 'all' && <div className='text-center text-muted fw-bold'>registrations</div>}
+        <Col className='mt-4'>
+          {sub === 'all' && <div className='text-center text-muted font-bold'>registrations</div>}
           <WhenAreaChart data={registrationGrowth} />
         </Col>
       </Row>

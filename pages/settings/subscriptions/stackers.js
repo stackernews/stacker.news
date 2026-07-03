@@ -18,7 +18,7 @@ export function SubscriptionLayout ({ subType, children }) {
 
   return (
     <Layout>
-      <div className='pb-3 w-100 mt-2'>
+      <div className='pb-4 w-full mt-2'>
         <SettingsHeader />
         <Select
           name='subscriptionType'

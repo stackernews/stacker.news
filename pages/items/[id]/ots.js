@@ -38,7 +38,7 @@ function Ots ({ item }) {
         ? <div>item was deleted by author - original preimage is lost</div>
         : (
           <pre
-            className='mb-2 p-2 rounded'
+            className='mb-2 p-2 rounded-sn'
             style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', border: '1px solid var(--theme-borderColor)', color: 'var(--bs-body-color)' }}
           >{itemString}
           </pre>)}

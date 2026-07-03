@@ -31,7 +31,7 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <CenterLayout footerLinks>
-      <div className='mw-100'>
+      <div className='max-w-full'>
         {rewards.map(({ total, sources, time }, i) => (
           <RewardDay key={time} total={total} sources={sources} time={time} meRewards={meRewards?.[i]} />
         ))}
@@ -45,17 +45,17 @@ function RewardDay ({ total, sources, time, meRewards }) {
     return sources.map(({ name, value }) => ({ name: payTypeShortName(name), value: msatsToSats(value) }))
   }, [sources])
   return (
-    <div className='py-3 w-100 d-grid' key={time} style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
-      <h4 className='fw-bold text-muted ps-0'>
-        {time && <div className='text-muted fst-italic fs-6 fw-normal pb-1'>On {dayMonthYear(time)} at 12a CT</div>}
+    <div className='py-4 w-full grid' key={time} style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
+      <h4 className='font-bold text-muted ps-0'>
+        {time && <div className='text-muted italic text-[0.93rem] font-normal pb-1'>On {dayMonthYear(time)} at 12a CT</div>}
         {total} sats were rewarded
       </h4>
-      <div className='my-3 w-100 justify-self-center'>
+      <div className='my-4 w-full justify-self-center'>
         <GrowthPieChart data={sourcesData} />
       </div>
       {meRewards &&
-        <div className='justify-self-center mw-100'>
-          <h4 className='fw-bold text-muted'>
+        <div className='justify-self-center max-w-full'>
+          <h4 className='font-bold text-muted'>
             you earned {meRewards.total} sats ({fixedDecimal(meRewards.total * 100 / total, 2)}%)
           </h4>
           <div>

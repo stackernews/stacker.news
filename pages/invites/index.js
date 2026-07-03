@@ -69,7 +69,7 @@ function InviteForm () {
       <Input
         label='gift'
         name='gift'
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
         required
       />
       <Input
@@ -89,7 +89,7 @@ function InviteForm () {
             <Input
               label={
                 <>
-                  <div className='d-flex align-items-center'>
+                  <div className='flex items-center'>
                     description <small className='text-muted ms-2'>optional</small>
                     <Info>
                       <Text>
@@ -107,7 +107,7 @@ function InviteForm () {
       }
       />
       <SubmitButton
-        className='mt-4'
+        className='mt-6'
         variant='secondary'
       >create
       </SubmitButton>
@@ -117,7 +117,7 @@ function InviteForm () {
 
 function InviteList ({ name, invites }) {
   return (
-    <div className='mt-4'>
+    <div className='mt-6'>
       <AccordianItem
         show
         headerColor='#6c757d'
@@ -157,10 +157,10 @@ export default function Invites () {
   return (
     <Layout>
       <div className='text-center'>
-        <h2 className='mt-3 mb-0'>
+        <h2 className='mt-4 mb-0'>
           invite links
         </h2>
-        <small className='d-block text-muted fw-bold mx-5'>send these to people you trust, e.g. group chats or DMs</small>
+        <small className='block text-muted font-bold mx-12'>send these to people you trust, e.g. group chats or DMs</small>
       </div>
       <InviteForm />
       {active.length > 0 && <InviteList name='active' invites={active} />}

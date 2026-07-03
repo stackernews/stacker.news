@@ -19,7 +19,7 @@ function SearchSuggestion ({ data }) {
     <div className='text-muted mb-2 ms-1'>
       Did you mean{' '}
       <a
-        href='#' className='text-reset fw-bold'
+        href='#' className='text-reset font-bold'
         onClick={(e) => {
           e.preventDefault()
           router.replace({

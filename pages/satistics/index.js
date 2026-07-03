@@ -42,7 +42,7 @@ export default function Satistics ({ ssrData }) {
       <Layout>
         <div className='mt-2'>
           <SatisticsHeader />
-          <div className='py-2 px-0 mb-0 mw-100'>
+          <div className='py-2 px-0 mb-0 max-w-full'>
             <PayInSkeleton header />
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function Satistics ({ ssrData }) {
     <Layout>
       <div className='mt-2'>
         <SatisticsHeader />
-        <div className='py-2 px-0 mb-0 mw-100'>
+        <div className='py-2 px-0 mb-0 max-w-full'>
           <PayInTable items={items} />
         </div>
         <MoreFooter cursor={cursor} count={items?.length} fetchMore={fetchMore} Skeleton={PayInSkeleton} />

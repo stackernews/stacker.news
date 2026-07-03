@@ -51,7 +51,7 @@ export default function PostEdit ({ ssrData }) {
 
   const [,, editThreshold] = useCanEdit(item)
   const EditInfo = editThreshold && item.paidAt && !item.bio && !item.isJob
-    ? <div className='text-muted fw-bold font-monospace mt-1'><Countdown date={editThreshold} /></div>
+    ? <div className='text-muted font-bold font-mono mt-1'><Countdown date={editThreshold} /></div>
     : null
 
   let FormType = DiscussionForm
@@ -77,7 +77,7 @@ export default function PostEdit ({ ssrData }) {
           {!item.isJob &&
             <SubMultiSelect
               placeholder='pick territories'
-              className='d-flex'
+              className='flex'
               size='md'
               label='territory'
               filterSubs={s => s.name !== 'jobs' && s.postTypes?.includes(itemType)}

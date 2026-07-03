@@ -59,18 +59,18 @@ function UserGrowthTotals ({ totals }) {
   if (!totals) return null
 
   return (
-    <Row className='my-4'>
-      <Col xs={6} md={4} className='text-center mb-3'>
+    <Row className='my-6'>
+      <Col xs={6} md={4} className='text-center mb-4'>
         <div className='text-muted small'>total stacked</div>
-        <div className='fw-bold fs-5'>{numWithUnits(Math.floor(totals.stacking))}</div>
+        <div className='font-bold text-[1.1625rem]'>{numWithUnits(Math.floor(totals.stacking))}</div>
       </Col>
-      <Col xs={6} md={4} className='text-center mb-3'>
+      <Col xs={6} md={4} className='text-center mb-4'>
         <div className='text-muted small'>total spent</div>
-        <div className='fw-bold fs-5'>{numWithUnits(Math.floor(totals.spending))}</div>
+        <div className='font-bold text-[1.1625rem]'>{numWithUnits(Math.floor(totals.spending))}</div>
       </Col>
-      <Col xs={6} md={4} className='text-center mb-3'>
+      <Col xs={6} md={4} className='text-center mb-4'>
         <div className='text-muted small'>spend actions</div>
-        <div className='fw-bold fs-5'>{new Intl.NumberFormat().format(totals.items)}</div>
+        <div className='font-bold text-[1.1625rem]'>{new Intl.NumberFormat().format(totals.items)}</div>
       </Col>
     </Row>
   )
@@ -96,21 +96,21 @@ export default function Growth ({ ssrData }) {
       <UserAnalyticsHeader pathname='satistics/graphs' />
       <UserGrowthTotals totals={growthTotals} />
       <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>sats stacked</div>
+        <Col className='mt-4'>
+          <div className='text-center text-muted font-bold'>sats stacked</div>
           <WhenAreaChart data={stackingGrowth} />
         </Col>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>sats spent</div>
+        <Col className='mt-4'>
+          <div className='text-center text-muted font-bold'>sats spent</div>
           <WhenAreaChart data={spendingGrowth} />
         </Col>
       </Row>
       <Row>
-        <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>spend counts</div>
+        <Col className='mt-4'>
+          <div className='text-center text-muted font-bold'>spend counts</div>
           <WhenLineChart data={itemGrowth} />
         </Col>
-        <Col className='mt-3' />
+        <Col className='mt-4' />
       </Row>
     </Layout>
   )

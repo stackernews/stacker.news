@@ -77,7 +77,7 @@ function WalletReceive ({ wallet, defaultProxyReceive }) {
             : `/wallets/transactions/${data.createWalletInvoice}`)
         }}
       >
-        <div className={classNames(styles.fields, styles.formResponsiveReset, 'd-flex flex-column')}>
+        <div className={classNames(styles.fields, styles.formResponsiveReset, 'flex flex-col')}>
           <FormikConsumer>
             {({ values }) => {
               const bytes = utf8ByteLength((values.description || '').trim())

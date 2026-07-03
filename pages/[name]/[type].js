@@ -66,8 +66,8 @@ function UserItemsHeader ({ type, name }) {
       initial={{ type, by, when, from: '', to: '' }}
       onSubmit={select}
     >
-      <div className='text-muted fw-bold d-flex align-items-center flex-wrap'>
-        <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
+      <div className='text-muted font-bold flex items-center flex-wrap'>
+        <div className='text-muted font-bold mb-2 flex items-center'>
           <Select
             groupClassName='mb-0 me-2'
             name='type'

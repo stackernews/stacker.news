@@ -132,7 +132,7 @@ export default function ItemInfo ({
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={`${numWithUnits(item.commentSats + item.commentCost + item.commentBoost)} (${item.commentSats} stacked \\ ${item.commentCost} cost \\ ${item.commentBoost} boost)`} className='text-reset position-relative'
+        }} title={`${numWithUnits(item.commentSats + item.commentCost + item.commentBoost)} (${item.commentSats} stacked \\ ${item.commentCost} cost \\ ${item.commentBoost} boost)`} className='text-reset relative'
       >
         {numWithUnits(item.ncomments, {
           abbreviate: false,
@@ -149,7 +149,7 @@ export default function ItemInfo ({
         {showUser &&
           <Link href={`/${item.user.name}`}>
             <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
-            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} bot={item.apiKey} />
+            <Badges badgeClassName='fill-grey' spacingClassName='ms-0.5' height={12} width={12} user={item.user} bot={item.apiKey} />
             {embellishUser}
           </Link>}
         <span> </span>
@@ -393,7 +393,7 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
     <>
       <span> \ </span>
       <span
-        className='text-reset fw-bold'
+        className='text-reset font-bold'
         onClick={onClick}
       >
         <Component />
@@ -410,7 +410,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
       <>
         <span> \ </span>
         <span
-          className='text-reset pointer fw-bold font-monospace'
+          className='text-reset pointer font-bold font-mono'
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
@@ -431,7 +431,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
       <>
         <span> \ </span>
         <span
-          className='text-reset pointer fw-bold font-monospace'
+          className='text-reset pointer font-bold font-mono'
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}`)}
         >
           <span>cancel </span>

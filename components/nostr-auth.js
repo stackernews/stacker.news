@@ -28,8 +28,8 @@ const sanitizeURL = (s) => {
 function NostrError ({ message }) {
   return (
     <>
-      <h4 className='fw-bold text-danger pb-1'>error</h4>
-      <div className='text-muted pb-4'>{message}</div>
+      <h4 className='font-bold text-danger pb-1'>error</h4>
+      <div className='text-muted pb-6'>{message}</div>
     </>
   )
 }
@@ -175,13 +175,13 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
       {status.loading
         ? (
           <>
-            <div className='text-muted py-4 w-100 line-height-1 d-flex align-items-center gap-2'>
-              <Moon className='spin fill-grey flex-shrink-0' width='30' height='30' />
+            <div className='text-muted py-6 w-full leading-none flex items-center gap-2'>
+              <Moon className='spin fill-grey shrink-0' width='30' height='30' />
               {status.msg}
             </div>
             {status.button && (
               <Button
-                className='w-100' variant='primary'
+                className='w-full' variant='primary'
                 onClick={() => status.button.action()}
               >
                 {status.button.label}
@@ -196,7 +196,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
           <>
             <Button
               variant='nostr'
-              className='line-height-md'
+              className='leading-normal'
               type='submit'
               onClick={async () => {
                 try {
@@ -208,7 +208,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
             >
               {text || 'Login'} with browser extension
             </Button>
-            <div className='text-center text-muted fw-bold my-3'>or</div>
+            <div className='text-center text-muted font-bold my-4'>or</div>
             <Form
               initial={{ token: '' }}
               onSubmit={values => {
@@ -227,7 +227,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
                 autoFocus
               />
               <div className='mt-2'>
-                <SubmitButton className='w-100' variant='primary'>
+                <SubmitButton className='w-full' variant='primary'>
                   {text || 'Login'} with token or NIP-05
                 </SubmitButton>
               </div>
@@ -243,12 +243,12 @@ function NostrExplainer ({ text, children }) {
   return (
     <Container>
       <div className={styles.login}>
-        <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
-        <h3 className='w-100 pb-2'>
+        <div className='w-full mb-4 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
+        <h3 className='w-full pb-2'>
           {text || 'Login'} with Nostr
         </h3>
-        <Row className='w-100 text-muted'>
-          <Col className='ps-0 mb-4' md>
+        <Row className='w-full text-muted'>
+          <Col className='ps-0 mb-6' md>
             <AccordianItem
               header='Which extensions can I use?'
               body={

@@ -63,7 +63,7 @@ export function WalletHome ({ routeWalletId }) {
         />
       )}
     >
-      <aside className={classNames(styles.sidebar, 'd-flex flex-column gap-3')}>
+      <aside className={classNames(styles.sidebar, 'flex flex-col gap-4')}>
         <h2 className={styles.title}>wallets</h2>
         <WalletList
           entries={entries}
@@ -90,7 +90,7 @@ export function WalletHome ({ routeWalletId }) {
           ordering={ordering}
           onReorder={handleWalletReorder}
         />
-        <WalletOrderingControls wallets={wallets} ordering={ordering} onToggle={toggleOrdering} className='mt-3' hintClassName='mt-2' />
+        <WalletOrderingControls wallets={wallets} ordering={ordering} onToggle={toggleOrdering} className='mt-4' hintClassName='mt-2' />
       </WalletBottomSheet>
 
       <WalletBottomSheet show={showDetails} onHide={() => setShowDetails(false)} title='details'>
@@ -104,12 +104,12 @@ function WalletMobileHeader ({ selectedEntry, onShowSwitcher, onShowDetails }) {
   if (selectedEntry.kind === 'add') return null
 
   return (
-    <div className='d-flex flex-column gap-2'>
+    <div className='flex flex-col gap-2'>
       <button className={classNames(styles.surfaceRow, styles.mobileWalletSelector, selectedEntry.kind === 'external' && styles.externalWalletRow)} onClick={onShowSwitcher}>
         <WalletRow entry={selectedEntry} />
         <CaretDown width={18} height={18} className={styles.mobileWalletCaret} />
       </button>
-      <div className='d-flex align-items-center'>
+      <div className='flex items-center'>
         <SparkCustodyNotice wallet={selectedEntry.wallet} />
         <button className={classNames(styles.textButton, 'ms-auto')} onClick={onShowDetails}>details</button>
       </div>

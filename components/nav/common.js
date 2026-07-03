@@ -66,7 +66,7 @@ export function Back () {
         }
       }}
     >
-      <BackArrow className='theme me-1 me-md-2' width={24} height={24} />
+      <BackArrow className='theme me-1 md:me-2' width={24} height={24} />
     </a>
   )
 }
@@ -80,7 +80,7 @@ export function BackOrBrand ({ className }) {
   }, [router.asPath])
 
   return (
-    <div className='d-flex align-items-center'>
+    <div className='flex items-center'>
       {back ? <Back /> : <Brand className={className} />}
     </div>
   )
@@ -97,7 +97,7 @@ export function SearchItem ({ prefix, className }) {
 export function NavPrice ({ className }) {
   return (
     <Nav.Item className={classNames(styles.price, className)}>
-      <Price className='nav-link text-monospace' />
+      <Price className='nav-link font-[monospace]' />
     </Nav.Item>
   )
 }
@@ -136,7 +136,7 @@ export function WalletSummary () {
   if (!me || me.privates?.sats === 0) return null
   return (
     <span
-      className='text-monospace'
+      className='font-[monospace]'
       title={`${numWithUnits(me.privates?.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`}
     >
       {`${abbrNum(me.privates?.sats)}`}
@@ -149,7 +149,7 @@ export function NavWalletSummary ({ className }) {
 
   return (
     <Nav.Item className={className}>
-      <Nav.Link as={Link} href='/wallets' eventKey='wallets' className='text-success text-monospace px-0 text-nowrap'>
+      <Nav.Link as={Link} href='/wallets' eventKey='wallets' className='text-success font-[monospace] px-0 whitespace-nowrap'>
         <WalletSummary me={me} />
       </Nav.Link>
     </Nav.Item>
@@ -158,11 +158,11 @@ export function NavWalletSummary ({ className }) {
 
 export const Indicator = ({ show, top = '0px', right = '0px', variant = 'secondary', children }) => {
   return (
-    <div className='w-fit-content position-relative'>
+    <div className='w-fit relative'>
       {children}
       {show && (
         <span
-          className={`position-absolute p-1 bg-${variant}`}
+          className={`absolute p-1 bg-${variant}`}
           style={{ top, right, height: '5px', width: '5px', border: '1px solid var(--bs-body-bg)' }}
         >
           <span className='invisible'>{' '}</span>
@@ -182,8 +182,8 @@ export function MeDropdown ({ me, dropNavKey }) {
   return (
     <div className='ms-2'>
       <Dropdown className={styles.dropdown} align='end'>
-        <Dropdown.Toggle className='nav-link nav-item fw-normal' id='profile' variant='custom'>
-          <div className='d-flex align-items-center'>
+        <Dropdown.Toggle className='nav-link nav-item font-normal' id='profile' variant='custom'>
+          <div className='flex items-center'>
             <Nav.Link eventKey={me.name} as='span' className='p-0'>
               <Indicator show={indicator} top='2px' right='-5px'>@{me.name}</Indicator>
             </Nav.Link>
@@ -202,7 +202,7 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Dropdown.Divider />
           <Dropdown.Item as={Link} href='/invites' eventKey='invites'>invites</Dropdown.Item>
           <Dropdown.Divider />
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             <Dropdown.Item as={Link} href='/settings' eventKey='settings'>settings</Dropdown.Item>
           </div>
           <Dropdown.Divider />
@@ -225,7 +225,7 @@ export function SignUpButton ({ className, width }) {
 
   return (
     <Button
-      className={classNames('align-items-center ps-2 pe-3 py-0', className)}
+      className={classNames('items-center ps-2 pe-4 py-0', className)}
       // 161px is the width of the 'switch account' button
       style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
@@ -249,7 +249,7 @@ export default function LoginButton () {
 
   return (
     <Button
-      className='align-items-center px-3 py-1'
+      className='items-center px-4 py-1'
       id='login'
       style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
@@ -285,7 +285,7 @@ function LogoutObstacle ({ onClose }) {
 
   return (
     <div className='text-center'>
-      <h4 className='mb-3'>I reckon you want to logout?</h4>
+      <h4 className='mb-4'>I reckon you want to logout?</h4>
       <ObstacleButtons
         onClose={onClose}
         onConfirm={handleLogout}
@@ -326,7 +326,7 @@ function SwitchAccountButton ({ handleClose }) {
 
   return (
     <Button
-      className='align-items-center px-3 py-1'
+      className='items-center px-4 py-1'
       variant='outline-grey-darkmode'
       style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       onClick={() => {
@@ -359,14 +359,14 @@ export function LoginButtons ({ handleClose }) {
 
 export function AnonDropdown ({ path }) {
   return (
-    <div className='position-relative'>
+    <div className='relative'>
       <Dropdown className={classNames(styles.dropdown, 'pe-0')} align='end' autoClose>
         <Dropdown.Toggle className='nav-link nav-item pe-0' id='profile' variant='custom'>
-          <Nav.Link eventKey='anon' as='span' className='p-0 fw-normal'>
+          <Nav.Link eventKey='anon' as='span' className='p-0 font-normal'>
             @anon<Badges user={{ id: USER_ID.anon }} />
           </Nav.Link>
         </Dropdown.Toggle>
-        <Dropdown.Menu className='p-3'>
+        <Dropdown.Menu className='p-4'>
           <LoginButtons />
         </Dropdown.Menu>
       </Dropdown>
@@ -397,13 +397,13 @@ export function PostItem ({ className, prefix }) {
   // otherwise we use the default text-black
   const textOverride = branding?.primaryColor ? '' : 'text-black'
   return (
-    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-${isLurker ? 'grey' : 'primary'} ${textOverride} py-md-1`}>
+    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-${isLurker ? 'grey' : 'primary'} ${textOverride} md:py-1`}>
       post
     </Link>
   )
 }
 
-export function RightCorner ({ dropNavKey, path, className = 'd-none d-md-flex' }) {
+export function RightCorner ({ dropNavKey, path, className = 'hidden md:flex' }) {
   const { me } = useMe()
   const isLurker = useIsLurker()
   return (
@@ -422,7 +422,7 @@ export function MeCorner ({ dropNavKey, me, className }) {
     <div className={className}>
       <NavNotifications />
       <MeDropdown me={me} dropNavKey={dropNavKey} />
-      <NavWalletSummary className='d-inline-block ms-1' />
+      <NavWalletSummary className='inline-block ms-1' />
     </div>
   )
 }

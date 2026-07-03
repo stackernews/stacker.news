@@ -207,8 +207,8 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
       <div className={`${styles.item} ${styles.skeleton}`}>
         {showUpvote && <UpVote className={styles.upvote} />}
         <div className={styles.hunk}>
-          <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
-            <span className={`${styles.title} clouds text-reset flex-md-fill flex-md-shrink-0 me-2`} />
+          <div className={`${styles.main} flex-wrap md:flex-nowrap`}>
+            <span className={`${styles.title} clouds text-reset md:flex-auto md:shrink-0 me-2`} />
             <span className={`${styles.link} clouds`} />
           </div>
           <div className={styles.other}>

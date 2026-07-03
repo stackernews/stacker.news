@@ -32,7 +32,7 @@ export function TerritoryDetails ({ sub, children, className, show, truncated })
       className={className}
       show={show}
       header={
-        <small className='text-muted fw-bold align-items-center d-flex'>
+        <small className='text-muted font-bold items-center flex'>
           {sub.name}
           {sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}
           {(sub.nsfw) && <Badge className='ms-2' bg='secondary'>nsfw</Badge>}
@@ -59,7 +59,7 @@ export function TerritoryInfoSkeleton ({ children, className }) {
 export function TerritoryInfo ({ sub, includeLink, truncated }) {
   return (
     <>
-      {includeLink && <Link className='fw-bold' href={`/~${sub.name}`}>~{sub.name}</Link>}
+      {includeLink && <Link className='font-bold' href={`/~${sub.name}`}>~{sub.name}</Link>}
       <div className='py-2'>
         <Text state={sub.lexicalState} html={sub.html}>{truncated ? sub.desc : undefined}</Text>
       </div>
@@ -71,17 +71,17 @@ export function TerritoryInfo ({ sub, includeLink, truncated }) {
               @{sub.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
             </Link>
             <span> on </span>
-            <span className='fw-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
+            <span className='font-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
           </div>}
-        <div className='d-flex'>
+        <div className='flex'>
           <div className='text-muted'>
             <span>post cost </span>
-            <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
+            <span className='font-bold'>{numWithUnits(sub.baseCost)}</span>
           </div>
           <span className='px-1'> \ </span>
           <div className='text-muted'>
             <span>reply cost </span>
-            <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
+            <span className='font-bold'>{numWithUnits(sub.replyCost)}</span>
           </div>
         </div>
         {/* TODO: Show custom domain if it exists */}
@@ -120,19 +120,19 @@ export default function TerritoryHeader ({ sub }) {
       <div className='mb-2 mt-1'>
         <div>
           <TerritoryDetails sub={sub}>
-            <div className='d-flex my-2 justify-content-end'>
+            <div className='flex my-2 justify-end'>
               {sub.name}
               <Share path={`${prefix}/`} title={`~${sub.name} stacker news territory`} className='mx-1' />
               {me &&
                 <>
                   {(isMine
                     ? (
-                      <Link href={`${prefix}/edit`} className='d-flex align-items-center'>
-                        <Button variant='outline-grey border-2 rounded py-0' size='sm'>edit territory</Button>
+                      <Link href={`${prefix}/edit`} className='flex items-center'>
+                        <Button variant='outline-grey border-2 rounded-sn py-0' size='sm'>edit territory</Button>
                       </Link>)
                     : (
                       <Button
-                        variant='outline-grey border-2 py-0 rounded'
+                        variant='outline-grey border-2 py-0 rounded-sn'
                         size='sm'
                         onClick={async () => {
                           try {

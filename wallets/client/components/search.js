@@ -31,9 +31,9 @@ export function fuzzySearch (query) {
 
 export function WalletSearch ({ query, onQueryChange }) {
   return (
-    <div className='d-flex justify-content-center mb-4 mt-4'>
-      <div className='w-100' style={{ maxWidth: '400px' }}>
-        <div className='position-relative'>
+    <div className='flex justify-center mb-6 mt-6'>
+      <div className='w-full' style={{ maxWidth: '400px' }}>
+        <div className='relative'>
           <Form.Control
             type='text'
             placeholder='Search wallets...'

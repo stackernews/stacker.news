@@ -65,7 +65,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                   <Dropdown.Divider />
                   <Dropdown.Item as={Link} href='/invites' eventKey='invites'>invites</Dropdown.Item>
                   <Dropdown.Divider />
-                  <div className='d-flex align-items-center'>
+                  <div className='flex items-center'>
                     <Dropdown.Item as={Link} href='/settings' eventKey='settings'>settings</Dropdown.Item>
                   </div>
                   <Dropdown.Divider />
@@ -74,9 +74,9 @@ export default function OffCanvas ({ me, dropNavKey }) {
                 )
               : <LoginButtons handleClose={handleClose} />}
             <div className={classNames(styles.footerPadding, 'mt-auto')}>
-              <Navbar className={classNames('container d-flex flex-row px-0 text-muted')}>
+              <Navbar className={classNames('container flex flex-row px-0 text-muted')}>
                 <Nav>
-                  <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
+                  <Link href={`/${me?.name || 'anon'}`} className='flex flex-row p-2 mt-auto text-muted'>
                     <MeImage me={me} />
                     <div className='ms-2'>
                       <Indicator show={indicator} top='2px' right='-5px'>@{me?.name || 'anon'}</Indicator>

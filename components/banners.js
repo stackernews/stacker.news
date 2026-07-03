@@ -38,7 +38,7 @@ export function MadnessBanner ({ handleClose }) {
 export function AuthBanner () {
   return (
     <Alert className={`${styles.banner} mt-0`} key='info' variant='danger'>
-      Please add more than one <Link className='text-reset fw-bold text-decoration-underline' href='/settings/logins'>login method</Link> to avoid losing access to your account.
+      Please add more than one <Link className='text-reset font-bold underline' href='/settings/logins'>login method</Link> to avoid losing access to your account.
     </Alert>
   )
 }

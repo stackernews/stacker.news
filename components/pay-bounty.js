@@ -113,14 +113,14 @@ export default function PayBounty ({ children, item }) {
       className={styles.pay} onClick={() => {
         showModal(onClose => (
           <>
-            <div className='text-center fw-bold text-muted'>
+            <div className='text-center font-bold text-muted'>
               Pay this bounty to {item.user.name}?
             </div>
             <div className='text-center text-muted mt-2'>
               {numWithUnits(bounty)} + {numWithUnits(proxyFee)} proxy fee
             </div>
             <Form className='text-center' onSubmit={() => handlePayBounty(onClose)} initial={{ id: item.id }}>
-              <SubmitButton className='mt-4' variant='primary' submittingText='paying...' appendText={numWithUnits(totalCost)}>
+              <SubmitButton className='mt-6' variant='primary' submittingText='paying...' appendText={numWithUnits(totalCost)}>
                 pay
               </SubmitButton>
             </Form>

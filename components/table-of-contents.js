@@ -19,7 +19,7 @@ export default function Toc ({ text, readerRef }) {
   }
 
   return (
-    <Dropdown align='end' className='d-flex align-items-center mb-1'>
+    <Dropdown align='end' className='flex items-center mb-1'>
       <Dropdown.Toggle as={CustomToggle} id='dropdown-custom-components'>
         <TocIcon width={20} height={20} className='mx-2 fill-grey theme' />
       </Dropdown.Toggle>
@@ -28,7 +28,7 @@ export default function Toc ({ text, readerRef }) {
         {toc.map(v => {
           return (
             <Dropdown.Item
-              className={v.depth === 1 ? 'fw-bold' : ''}
+              className={v.depth === 1 ? 'font-bold' : ''}
               style={{
                 marginLeft: `${(v.depth - 1) * 5}px`
               }}
@@ -71,7 +71,7 @@ const CustomMenu = React.forwardRef(
         aria-labelledby={labeledBy}
       >
         <FormControl
-          className='mx-3 my-2 w-auto'
+          className='mx-4 my-2 w-auto'
           placeholder='filter'
           onChange={(e) => setValue(e.target.value)}
           value={value}

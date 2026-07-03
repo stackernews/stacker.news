@@ -53,7 +53,7 @@ export function DestinationActions ({ onValue }) {
 
   return (
     <>
-      <div className={classNames(styles.invoiceActions, 'd-inline-flex align-items-center gap-3 w-fit-content mt-2')}>
+      <div className={classNames(styles.invoiceActions, 'inline-flex items-center gap-4 w-fit mt-2')}>
         <button
           type='button'
           className={styles.textButton}

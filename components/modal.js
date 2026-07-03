@@ -101,7 +101,7 @@ export default function useModal () {
         dialogClassName={className}
         contentClassName={className}
       >
-        <div className='d-flex flex-row'>
+        <div className='flex flex-row'>
           {overflow &&
             <div className={'modal-btn modal-overflow ' + className}>
               <ActionDropdown>

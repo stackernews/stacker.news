@@ -137,7 +137,7 @@ export default function User ({ ssrData }) {
                         size='md' variant='secondary'
                       >create bio
                       </Button>
-                      <small className='d-block mt-3 text-muted'>your bio is also a post introducing yourself to other stackers</small>
+                      <small className='block mt-4 text-muted'>your bio is also a post introducing yourself to other stackers</small>
                     </div>
                 )}
           </div>)}

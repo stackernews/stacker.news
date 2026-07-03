@@ -67,7 +67,7 @@ function WalletReceive ({ wallet }) {
           setInvoice({ ...data.createWalletInvoice, sats: Number(amount) })
         }}
       >
-        <div className={classNames(styles.fields, styles.formResponsiveReset, 'd-flex flex-column')}>
+        <div className={classNames(styles.fields, styles.formResponsiveReset, 'flex flex-col')}>
           <Input
             label='amount'
             name='amount'
@@ -76,7 +76,7 @@ function WalletReceive ({ wallet }) {
             max={MAX_WALLET_INVOICE_SATS}
             required
             autoFocus
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
           />
           <FormikConsumer>
             {({ values }) => {
@@ -107,7 +107,7 @@ function WalletReceive ({ wallet }) {
         </WalletBottomBar>
       </Form>
       {invoice && (
-        <div className={classNames(styles.result, 'd-flex flex-column align-items-center gap-3')}>
+        <div className={classNames(styles.result, 'flex flex-col items-center gap-4')}>
           <Qr
             value={invoice.bolt11}
             qrTransform={bolt11QrTransform}

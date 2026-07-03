@@ -22,8 +22,8 @@ export function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {
 
   return (
     <div className='text-center'>
-      <h4 className='mb-3'>Delete wallet</h4>
-      <p className='fw-bold'>
+      <h4 className='mb-4'>Delete wallet</h4>
+      <p className='font-bold'>
         Are you sure you want to delete this wallet?
       </p>
       <ObstacleButtons onClose={onClose} onConfirm={handleConfirm} confirmText='delete' />
@@ -41,8 +41,8 @@ export function WalletSaveDeleteObstacle ({ onClose, onConfirm }) {
 
   return (
     <div className='text-center'>
-      <h4 className='mb-3'>Delete wallet</h4>
-      <p className='fw-bold'>
+      <h4 className='mb-4'>Delete wallet</h4>
+      <p className='font-bold'>
         Saving will delete this wallet because no capabilities remain.
       </p>
       <p className='text-muted'>

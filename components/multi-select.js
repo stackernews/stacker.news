@@ -103,7 +103,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
 
   return (
     <FormGroup label={label} className={groupClassName}>
-      <span className='d-flex align-items-center'>
+      <span className='flex items-center'>
         <ReactSelect
           maxMenuHeight={432}
           menuPlacement='auto'
@@ -131,7 +131,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
         />
         {info && <Info>{info}</Info>}
       </span>
-      <BootstrapForm.Control.Feedback type='invalid' className={meta.touched && meta.error ? 'd-block' : ''}>
+      <BootstrapForm.Control.Feedback type='invalid' className={meta.touched && meta.error ? 'block' : ''}>
         {meta.touched && meta.error}
       </BootstrapForm.Control.Feedback>
       {hint &&

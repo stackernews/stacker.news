@@ -668,10 +668,10 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
             <>
               {options?.map((_, i) => {
                 const AppendColumn = ({ className }) => (
-                  <Col className={`d-flex ps-0 ${className}`} xs='auto'>
+                  <Col className={`flex ps-0 ${className}`} xs='auto'>
                     {options.length - 1 === i && options.length !== max
                       // onMouseDown is used to prevent the blur event on text inputs from overriding the click event
-                      ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onMouseDown={() => fieldArrayHelpers.push(emptyItem)} />
+                      ? <AddIcon className='fill-grey self-center justify-self-center pointer' onMouseDown={() => fieldArrayHelpers.push(emptyItem)} />
                       // filler div for col alignment across rows
                       : <div style={{ width: '24px', height: '24px' }} />}
                   </Col>
@@ -689,7 +689,7 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
                         <>
                           {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
                           {form.touched[name] && typeof form.errors[name] === 'string' &&
-                            <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
+                            <div className='invalid-feedback block'>{form.errors[name]}</div>}
                         </>}
                     </Row>
                   </div>
@@ -725,8 +725,8 @@ export function Checkbox ({
             handleChange && handleChange(e.target.checked, helpers.setValue)
           }}
         />
-        <BootstrapForm.Check.Label className={'d-inline-flex flex-nowrap align-items-center' + (disabled ? ' text-muted' : '')}>
-          <div className='flex-grow-1'>{label}</div>
+        <BootstrapForm.Check.Label className={'inline-flex flex-nowrap items-center' + (disabled ? ' text-muted' : '')}>
+          <div className='grow'>{label}</div>
           {extra &&
             <div className={styles.checkboxExtra}>
               {extra}
@@ -743,7 +743,7 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
     <FormGroup label={label} className={groupClassName}>
       {children}
       {/* force the feedback to display with d-block */}
-      <BootstrapForm.Control.Feedback className='d-block' type='invalid'>
+      <BootstrapForm.Control.Feedback className='block' type='invalid'>
         {meta.touched && meta.error}
       </BootstrapForm.Control.Feedback>
     </FormGroup>
@@ -773,7 +773,7 @@ export function Range ({
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', columnGap: '1rem', alignItems: 'center' }}>
         {allOption
           ? <span className='text-muted' style={{ whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
-          : <small className='text-muted text-monospace'>{min}</small>}
+          : <small className='text-muted font-[monospace]'>{min}</small>}
         <BootstrapForm.Range
           {...field}
           {...props}
@@ -791,7 +791,7 @@ export function Range ({
             onChange && onChange(e)
           }}
         />
-        <small className='text-muted text-monospace'>{max}</small>
+        <small className='text-muted font-[monospace]'>{max}</small>
         <InputGroup className='flex-nowrap' style={{ width: 'auto' }}>
           {isAll
             ? <span className='form-control px-2' style={{ width: '4rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25em' }}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
@@ -821,7 +821,7 @@ export function Range ({
           {suffix && <InputGroup.Text>{suffix.trim()}</InputGroup.Text>}
         </InputGroup>
         {labels?.length > 0 && (
-          <div className='position-relative' style={{ gridColumn: 2, height: '1.2em' }}>
+          <div className='relative' style={{ gridColumn: 2, height: '1.2em' }}>
             {labels.map(({ value, label: tickLabel }) => {
               const pct = ((value - sliderMin) / (max - sliderMin)) * 100
               return (
@@ -844,7 +844,7 @@ export function Range ({
         )}
       </div>
       {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
-      <BootstrapForm.Control.Feedback className='d-block' type='invalid'>
+      <BootstrapForm.Control.Feedback className='block' type='invalid'>
         {meta.touched && meta.error}
       </BootstrapForm.Control.Feedback>
     </FormGroup>
@@ -937,7 +937,7 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
 
   return (
     <FormGroup label={label} className={groupClassName}>
-      <span className='d-flex align-items-center'>
+      <span className='flex items-center'>
         <BootstrapForm.Select
           {...field} {...props}
           onChange={(e) => {
@@ -1082,7 +1082,7 @@ export function DateTimeInput ({ label, groupClassName, name, ...props }) {
     <FormGroup label={label} className={groupClassName}>
       <div>
         <DateTimePicker name={name} {...props} />
-        <BootstrapForm.Control.Feedback type='invalid' className='d-block'>
+        <BootstrapForm.Control.Feedback type='invalid' className='block'>
           {meta.error}
         </BootstrapForm.Control.Feedback>
       </div>
@@ -1160,7 +1160,7 @@ function PasswordScanner ({ onScan, text }) {
         showModal(onClose => {
           return (
             <div>
-              {text && <h5 className='line-height-md mb-4 text-center'>{text}</h5>}
+              {text && <h5 className='leading-normal mb-6 text-center'>{text}</h5>}
               <QrScanner
                 loading={<PageLoading />}
                 onScan={([{ rawValue: result }]) => {
@@ -1278,7 +1278,7 @@ function PasswordInputBase ({ newPass, qr, copy, readOnly, append, under, value,
         props.as === 'textarea'
           ? (
             <>
-              <div className='mt-2 d-flex justify-content-end' style={{ gap: '8px' }}>
+              <div className='mt-2 flex justify-end' style={{ gap: '8px' }}>
                 {Append}
               </div>
               {under}
@@ -1371,7 +1371,7 @@ export function MultiInput ({
 
   return (
     <FormGroup label={label} className={groupClassName}>
-      <div className='d-flex flex-row justify-content-center gap-2'>
+      <div className='flex flex-row justify-center gap-2'>
         {inputs.map((value, index) => (
           <InputInner
             inputGroupClassName='w-auto'
@@ -1395,7 +1395,7 @@ export function MultiInput ({
       </div>
       <div>
         {hideError && formik.submitCount > 0 && meta.touched && meta.error && ( // custom error message is showed if hideError is true
-          <BootstrapForm.Control.Feedback type='invalid' className='d-block'>
+          <BootstrapForm.Control.Feedback type='invalid' className='block'>
             {meta.error}
           </BootstrapForm.Control.Feedback>
         )}

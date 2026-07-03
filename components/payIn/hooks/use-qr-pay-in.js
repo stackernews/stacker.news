@@ -109,7 +109,7 @@ function QrPayIn ({
         qrTransform={value => 'lightning:' + value.toUpperCase()}
         description={numWithUnits(msatsToSats(payIn.payerPrivates.payInBolt11.msatsRequested), { abbreviate: false })}
       />
-      <div className='d-flex justify-content-center'>
+      <div className='flex justify-center'>
         <PayInStatus payIn={payIn} />
       </div>
     </>

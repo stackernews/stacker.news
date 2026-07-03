@@ -20,7 +20,7 @@ export function PayInMoney ({ payIn }) {
       {isNumber(CREDITS?.mtokens) && CREDITS.mtokens !== 0 && <Money mtokens={CREDITS.mtokens} mtokensAfter={CREDITS.mtokensAfter} singular='CC' plural='CCs' />}
       {isNumber(bolt11Cost) && (payIn.payInType === 'PROXY_PAYMENT' || (payIn.isSend && bolt11Cost < 0) || (!payIn.isSend && bolt11Cost > 0)) &&
         <div
-          className={classNames('d-flex align-items-center gap-1 justify-content-end',
+          className={classNames('flex items-center gap-1 justify-end',
             { [styles.strikethrough]: payIn.payInState === 'FAILED' })}
         >{formatCost(bolt11Cost, 'sat', 'sats')}<Plug className='fill-muted' width={10} height={10} />
         </div>}
@@ -30,7 +30,7 @@ export function PayInMoney ({ payIn }) {
 
 function Money ({ mtokens, mtokensAfter, singular, plural }) {
   return (
-    <div className='d-grid'>
+    <div className='grid'>
       <div>{formatCost(mtokens, singular, plural)}</div>
       {isNumber(mtokensAfter) && <small className='text-muted'>{numWithUnits(msatsToSatsDecimal(mtokensAfter), { unitSingular: singular, unitPlural: plural, abbreviate: false })}</small>}
     </div>

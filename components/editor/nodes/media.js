@@ -40,7 +40,7 @@ function MediaError ({ className, width, height, src, rel }) {
           <p>
             content not available
             <br />
-            <span className='fw-medium'>
+            <span className='font-medium'>
               {src}
             </span>
           </p>

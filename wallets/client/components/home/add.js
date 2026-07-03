@@ -26,7 +26,7 @@ export function AddWalletPanel ({ templates }) {
       <h2>add wallet</h2>
       <p className='text-muted'>Choose a wallet to connect.</p>
       <WalletSearch query={query} onQueryChange={setQuery} />
-      <div className='d-flex flex-column gap-3'>
+      <div className='flex flex-col gap-4'>
         {templateMatches.map(({ template, visible }) => (
           <Link
             key={template.name}
@@ -39,7 +39,7 @@ export function AddWalletPanel ({ templates }) {
           </Link>
         ))}
         {!hasVisibleTemplate && (
-          <div className='d-flex flex-column align-items-center justify-content-center text-center text-muted py-5 px-3'>
+          <div className='flex flex-col items-center justify-center text-center text-muted py-12 px-4'>
             no wallets found
           </div>
         )}
@@ -49,7 +49,7 @@ export function AddWalletPanel ({ templates }) {
 }
 
 function AddWalletTemplateLabel ({ template }) {
-  return <WalletLogo name={template.name} fallback='name' className={styles.logo} fallbackClassName='d-inline fw-bold' />
+  return <WalletLogo name={template.name} fallback='name' className={styles.logo} fallbackClassName='inline font-bold' />
 }
 
 function TemplateWalletSupport ({ template }) {

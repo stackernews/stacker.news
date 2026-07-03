@@ -15,7 +15,7 @@ export function PayInContext ({ payIn }) {
     case 'POLL_VOTE':
     case 'BOUNTY_PAYMENT':
       if (!payIn.item) {
-        return <small className='text-muted d-flex justify-content-center w-100'>item unavailable</small>
+        return <small className='text-muted flex justify-center w-full'>item unavailable</small>
       }
       return (
         <>
@@ -25,16 +25,16 @@ export function PayInContext ({ payIn }) {
         </>
       )
     case 'DOWN_ZAP':
-      return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
+      return <small className='text-muted flex justify-center w-full'>N/A</small>
     case 'TERRITORY_CREATE':
     case 'TERRITORY_UPDATE':
     case 'TERRITORY_BILLING':
     case 'TERRITORY_UNARCHIVE':
-      if (!payIn.payerPrivates?.sub) return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
+      if (!payIn.payerPrivates?.sub) return <small className='text-muted flex justify-center w-full'>N/A</small>
       // note: we're drilling truncated down to the TerritoryInfo component, TODO: revise
-      return <TerritoryDetails truncated sub={{ ...payIn.payerPrivates.sub, desc: truncateString(payIn.payerPrivates.sub.desc, 280) }} className='w-100' show={false} />
+      return <TerritoryDetails truncated sub={{ ...payIn.payerPrivates.sub, desc: truncateString(payIn.payerPrivates.sub.desc, 280) }} className='w-full' show={false} />
     case 'INVITE_GIFT':
-      if (!payIn.payerPrivates?.invite) return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
+      if (!payIn.payerPrivates?.invite) return <small className='text-muted flex justify-center w-full'>N/A</small>
       return (
         <Invite
           invite={payIn.payerPrivates.invite}
@@ -51,9 +51,9 @@ export function PayInContext ({ payIn }) {
         <Bolt11Info {...toBolt11InfoProps(payIn.payeePrivates?.payOutBolt11)} />
       )
     case 'DONATE':
-      return <small className='text-muted d-flex justify-content-center w-100'>Praise be, you donated to the rewards pool.</small>
+      return <small className='text-muted flex justify-center w-full'>Praise be, you donated to the rewards pool.</small>
     case 'BUY_CREDITS':
-      return <small className='text-muted d-flex justify-content-center w-100'>You topped up your cowboy credits.</small>
+      return <small className='text-muted flex justify-center w-full'>You topped up your cowboy credits.</small>
   }
-  return <small className='text-muted d-flex justify-content-center w-100'>N/A</small>
+  return <small className='text-muted flex justify-center w-full'>N/A</small>
 }

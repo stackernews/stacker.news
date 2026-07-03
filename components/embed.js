@@ -68,7 +68,7 @@ export const NostrEmbed = memo(function NostrEmbed ({ className, darkMode, id })
       {!show &&
         <Button size='md' variant='info' className='sn-embed-show-full' onClick={() => setShow(true)}>
           <div>show full note</div>
-          <small className='fw-normal fst-italic'>or other stuff</small>
+          <small className='font-normal italic'>or other stuff</small>
         </Button>}
     </div>
   )

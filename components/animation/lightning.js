@@ -67,7 +67,7 @@ export function Lightning ({ onDone }) {
     canvas.bolt.draw()
   }, [])
 
-  return <canvas className='position-fixed' ref={canvasRef} style={{ zIndex: 100, pointerEvents: 'none' }} />
+  return <canvas className='fixed' ref={canvasRef} style={{ zIndex: 100, pointerEvents: 'none' }} />
 }
 
 function Bolt (ctx, options) {

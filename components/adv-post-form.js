@@ -117,12 +117,12 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
           >
             {({ index, AppendColumn }) => {
               return (
-                <div key={index} className='d-flex flex-row'>
+                <div key={index} className='flex flex-row'>
                   <InputUserSuggest
                     name={`forward[${index}].nym`}
                     prepend={<InputGroup.Text>@</InputGroup.Text>}
                     showValid
-                    groupClassName={`${styles.name} me-3 mb-0`}
+                    groupClassName={`${styles.name} me-4 mb-0`}
                   />
                   <Input
                     name={`forward[${index}].pct`}
@@ -130,7 +130,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
                     step={5}
                     min={1}
                     max={100}
-                    append={<InputGroup.Text className='text-monospace'>%</InputGroup.Text>}
+                    append={<InputGroup.Text className='font-[monospace]'>%</InputGroup.Text>}
                     groupClassName={`${styles.percent} mb-0`}
                     AppendColumn={AppendColumn}
                   />
@@ -141,7 +141,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
           {me && itemType &&
             <Checkbox
               label={
-                <div className='d-flex align-items-center'>crosspost to nostr
+                <div className='flex items-center'>crosspost to nostr
                   <Info>
                     <ul>
                       {renderCrosspostDetails(itemType)}

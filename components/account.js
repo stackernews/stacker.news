@@ -25,7 +25,7 @@ export default function SwitchAccountList () {
   return (
     <>
       <div className='my-2'>
-        <div className='d-flex flex-column flex-wrap mt-2 mb-3'>
+        <div className='flex flex-col flex-wrap mt-2 mb-4'>
           <h4 className='text-muted'>Accounts</h4>
           <AccountListRow
             account={{ id: USER_ID.anon, name: 'anon' }}
@@ -47,7 +47,7 @@ export default function SwitchAccountList () {
             pathname: '/login',
             query: { callbackUrl: window.location.origin + router.asPath, multiAuth: true }
           }}
-          className='text-reset fw-bold'
+          className='text-reset font-bold'
         >
           <AddIcon height={20} width={20} /> existing account
         </Link>
@@ -81,10 +81,10 @@ const AccountListRow = ({ account, selected, ...props }) => {
   }
 
   return (
-    <div className='d-flex flex-row'>
+    <div className='flex flex-row'>
       <UserListRow
         user={{ ...account, photoId, name }}
-        className='d-flex align-items-center me-2'
+        className='flex items-center me-2'
         selected={selected}
         {...props}
         onNymClick={onClick}

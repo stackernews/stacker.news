@@ -228,7 +228,6 @@ export const EXTERNAL_TRANSACTION_FIELDS = gql`
     settledAt
     error
     unknownReason
-    unknownMessage
     sourceType
     sourceValue
     verificationContext

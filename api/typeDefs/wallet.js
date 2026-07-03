@@ -94,7 +94,6 @@ const typeDefs = gql`
     settledAt: Date
     error: String
     unknownReason: ExternalTransactionUnknownReason
-    unknownMessage: String
     sourceType: ExternalTransactionSourceType
     sourceValue: String
     verificationContext: JSONObject

@@ -62,6 +62,16 @@
   /* theme-dependent: globals.scss overrides .text-muted to --theme-grey (#707070 / #969696) */
   --sn-muted: var(--theme-grey);
 
+  /* text-on-brand contrast (#000/#fff defaults; territory overrides YIQ-computed in lib/color.js) */
+  --sn-primary-text: var(--theme-primary-text);
+  --sn-secondary-text: var(--theme-secondary-text);
+
+  /* Bootstrap's live link pair (theme-flipped by Bootstrap; NOT territory-branded —
+     that's --theme-link, a different var). Consumed by the button `link` variant.
+     Named -color/-hover-color so the PR3 rename --theme-link → --sn-link can't collide. */
+  --sn-link-color: var(--bs-link-color);
+  --sn-link-hover-color: var(--bs-link-hover-color);
+
   /* fixed palette — static across themes, not territory-overridable.
      Values copied from the $theme-colors map so they equal Bootstrap's --bs-* output. */
   --sn-danger: #c03221;
@@ -73,6 +83,22 @@
   --sn-twitter: #1da1f2;
 
   --sn-radius: .4rem;
+
+  /*
+   * z-index ladder (PR2 C0) — Bootstrap's compiled $zindex-* scale, with SN's
+   * $zindex-sticky: 900 override. Base UI portals every popup to <body>, so
+   * this ladder is the single stacking authority; popup-chrome module.css
+   * consumes these vars, never literal z-index values.
+   */
+  --sn-z-sticky: 900;
+  --sn-z-dropdown: 1000;
+  --sn-z-drawer-backdrop: 1040;
+  --sn-z-drawer: 1045;
+  --sn-z-backdrop: 1050;
+  --sn-z-modal: 1055;
+  --sn-z-popover: 1070;
+  --sn-z-tooltip: 1080;
+  --sn-z-toast: 1090;
 }
 
 /*

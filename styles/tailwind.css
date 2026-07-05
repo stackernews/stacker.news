@@ -32,6 +32,14 @@
   /* active light or dark theme */
   --sn-muted: var(--theme-grey);
 
+  /* territory-aware text contrast */
+  --sn-primary-text: var(--theme-primary-text);
+  --sn-secondary-text: var(--theme-secondary-text);
+
+  /* Fixed UI links; content links remain territory-aware. */
+  --sn-link-color: var(--bs-link-color);
+  --sn-link-hover-color: var(--bs-link-hover-color);
+
   /* fixed palette */
   --sn-danger: #c03221;
   --sn-warning: #f6911d;
@@ -42,6 +50,17 @@
   --sn-twitter: #1da1f2;
 
   --sn-radius: .4rem;
+
+  /* Portaled overlays share this stacking ladder. */
+  --sn-z-sticky: 900;
+  --sn-z-dropdown: 1000;
+  --sn-z-drawer-backdrop: 1040;
+  --sn-z-drawer: 1045;
+  --sn-z-backdrop: 1050;
+  --sn-z-modal: 1055;
+  --sn-z-popover: 1070;
+  --sn-z-tooltip: 1080;
+  --sn-z-toast: 1090;
 }
 
 @theme {

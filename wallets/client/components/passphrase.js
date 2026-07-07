@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import classNames from 'classnames'
 import { useMe } from '@/components/me'
 import { CopyButton, PasswordVisibilityIcon } from '@/components/form'

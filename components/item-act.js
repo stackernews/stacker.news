@@ -134,7 +134,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         step={step}
         required
         autoFocus
-        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
       />
 
       <div className='flex flex-wrap gap-2'>

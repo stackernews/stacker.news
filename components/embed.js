@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import classNames from 'classnames'
 import useDarkMode from './dark-mode'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import LiteYouTubeEmbed from 'react-lite-youtube-embed'
 import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css'

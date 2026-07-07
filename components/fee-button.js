@@ -1,5 +1,4 @@
 import { useEffect, useContext, createContext, useState, useCallback, useId, useMemo } from 'react'
-import Table from 'react-bootstrap/Table'
 import BootstrapForm from 'react-bootstrap/Form'
 import ActionTooltip from './action-tooltip'
 import Info from './info'
@@ -261,7 +260,7 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
 
 function Receipt ({ lines, total }) {
   return (
-    <Table className={styles.receipt} borderless size='sm'>
+    <table className={styles.receipt}>
       <tbody>
         {Object.entries(lines).sort(([, a], [, b]) => sortHelper(a, b)).map(([key, { term, label, omit }]) => (
           !omit &&
@@ -276,7 +275,7 @@ function Receipt ({ lines, total }) {
           <td align='right' className=''>total fee</td>
         </tr>
       </tfoot>
-    </Table>
+    </table>
   )
 }
 

@@ -1,4 +1,4 @@
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 import { useSingleFlight } from '@/components/use-single-flight'
 
 /**

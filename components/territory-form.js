@@ -1,5 +1,6 @@
 import AccordianItem from './accordian-item'
-import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
+import { InputGroup, Form as BootstrapForm } from 'react-bootstrap'
+import Badge from '@/components/ui/badge'
 import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
 import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
@@ -146,7 +147,7 @@ export default function TerritoryForm ({ sub }) {
           autoFocus
           clear
           maxLength={32}
-          prepend={<InputGroup.Text className='font-[monospace]'>~</InputGroup.Text>}
+          prepend={<InputGroup.Text className='font-mono'>~</InputGroup.Text>}
           onChange={onNameChange}
           warn={archived && (
             <div className='flex items-center'>this territory is archived
@@ -172,11 +173,11 @@ export default function TerritoryForm ({ sub }) {
           name='baseCost'
           type='number'
           required
-          append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+          append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
         />
         <CheckboxGroup label='post types' name='postTypes'>
-          <Row>
-            <Col xs={4} sm='auto'>
+          <div className='grid grid-cols-3 sm:flex sm:flex-wrap sm:gap-x-8'>
+            <div>
               <Checkbox
                 inline
                 label='links'
@@ -185,8 +186,8 @@ export default function TerritoryForm ({ sub }) {
                 id='links-checkbox'
                 groupClassName='ms-1 mb-0'
               />
-            </Col>
-            <Col xs={4} sm='auto'>
+            </div>
+            <div>
               <Checkbox
                 inline
                 label='discussions'
@@ -195,8 +196,8 @@ export default function TerritoryForm ({ sub }) {
                 id='discussions-checkbox'
                 groupClassName='ms-1 mb-0'
               />
-            </Col>
-            <Col xs={4} sm='auto'>
+            </div>
+            <div>
               <Checkbox
                 inline
                 label='bounties'
@@ -205,8 +206,8 @@ export default function TerritoryForm ({ sub }) {
                 id='bounties-checkbox'
                 groupClassName='ms-1 mb-0'
               />
-            </Col>
-            <Col xs={4} sm='auto'>
+            </div>
+            <div>
               <Checkbox
                 inline
                 label='polls'
@@ -215,8 +216,8 @@ export default function TerritoryForm ({ sub }) {
                 id='polls-checkbox'
                 groupClassName='ms-1 mb-0'
               />
-            </Col>
-          </Row>
+            </div>
+          </div>
         </CheckboxGroup>
         {sub?.billingType !== 'ONCE' &&
           <>
@@ -277,7 +278,7 @@ export default function TerritoryForm ({ sub }) {
                 name='replyCost'
                 type='number'
                 required
-                append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+                append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
               />
               <SatFilterRanges />
               <BootstrapForm.Label>nsfw</BootstrapForm.Label>
@@ -288,7 +289,7 @@ export default function TerritoryForm ({ sub }) {
                     <Info>
                       <ol>
                         <li>Let stackers know that your territory may contain explicit content</li>
-                        <li>Your territory will get a <Badge bg='secondary'>nsfw</Badge> badge</li>
+                        <li>Your territory will get a <Badge variant='secondary'>nsfw</Badge> badge</li>
                       </ol>
                     </Info>
                   </div>

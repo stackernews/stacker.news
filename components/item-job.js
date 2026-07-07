@@ -1,7 +1,6 @@
 import { string } from 'yup'
 import Toc from './table-of-contents'
-import Button from 'react-bootstrap/Button'
-import Image from 'react-bootstrap/Image'
+import { buttonClasses } from '@/components/ui/button'
 import { SearchTitle } from './item'
 import styles from './item.module.css'
 import Link from 'next/link'
@@ -10,7 +9,7 @@ import EmailIcon from '@/svgs/mail-open-line.svg'
 import Share, { CopyLinkDropdownItem } from './share'
 import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
-import { Badge } from 'react-bootstrap'
+import Badge from '@/components/ui/badge'
 import SubPopover from './sub-popover'
 import { numWithUnits } from '@/lib/format'
 import { PayInInfo, InfoDropdownItem } from './item-info'
@@ -25,7 +24,7 @@ import { useMe } from './me'
 function CompanyImage ({ item }) {
   return (
     <Link href={`/items/${item.id}`}>
-      <Image
+      <img
         src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
       />
     </Link>
@@ -89,12 +88,12 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
             {item.subNames?.map(subName => (
               <SubPopover key={subName} sub={subName}>
                 <Link href={`/~${subName}`}>
-                  {' '}<Badge className={styles.newComment} bg={null}>{subName}</Badge>
+                  {' '}<Badge variant='grey' className='align-middle ms-0.5'>{subName}</Badge>
                 </Link>
               </SubPopover>
             ))}
             {item.status === 'STOPPED' &&
-              <>{' '}<Badge bg='info' className={styles.badge}>stopped</Badge></>}
+              <>{' '}<Badge variant='info' className='align-middle ms-0.5'>stopped</Badge></>}
             {item.mine && !item.deletedAt &&
               (
                 <>
@@ -129,11 +128,12 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
       {children && (
         <div className={styles.children} style={{ marginLeft: 'calc(42px + .8rem)' }}>
           <div className='mb-4 flex'>
-            <Button
-              target='_blank' href={isEmail ? `mailto:${item.url}?subject=${encodeURIComponent(item.title)} via Stacker News` : item.url}
+            <a
+              target='_blank' rel='noreferrer' href={isEmail ? `mailto:${item.url}?subject=${encodeURIComponent(item.title)} via Stacker News` : item.url}
+              className={buttonClasses()}
             >
               apply {isEmail && <EmailIcon className='ms-1' />}
-            </Button>
+            </a>
             {isEmail && <div className='ms-4 self-center text-muted font-bold'>{item.url}</div>}
           </div>
           {children}

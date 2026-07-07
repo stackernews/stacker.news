@@ -1,7 +1,7 @@
 import { useQuery } from '@apollo/client/react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
-import { Alert } from 'react-bootstrap'
+import Alert from '@/components/ui/alert'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { formatMsatsToSats } from '@/lib/format'
 import { FASTISH_POLL_INTERVAL_MS, NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'

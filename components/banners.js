@@ -1,4 +1,4 @@
-import Alert from 'react-bootstrap/Alert'
+import Alert from '@/components/ui/alert'
 import styles from './banners.module.css'
 import { useMe } from '@/components/me'
 import Link from 'next/link'

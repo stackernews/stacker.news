@@ -16,7 +16,7 @@ import ActionTooltip from './action-tooltip'
 import { numWithUnits } from '@/lib/format'
 import Share from './share'
 import ItemInfo from './item-info'
-import Badge from 'react-bootstrap/Badge'
+import Badge from '@/components/ui/badge'
 import { RootProvider, useRoot } from './root'
 import { useMe } from './me'
 import { useQuoteReply } from './use-quote-reply'
@@ -51,7 +51,7 @@ function Parent ({ item, rootText }) {
       </Link>
       {root.subNames?.map(subName => (
         <Link key={subName} href={`/~${subName}`}>
-          {' '}<Badge className={itemStyles.newComment} bg={null}>{subName}</Badge>
+          {' '}<Badge variant='grey' className='align-middle ms-0.5'>{subName}</Badge>
         </Link>
       ))}
     </>
@@ -249,7 +249,7 @@ export default function Comment ({
                   commentsText='replies'
                   commentTextSingular='reply'
                   className={`${itemStyles.other} ${styles.other}`}
-                  embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
+                  embellishUser={op && <><span> </span><Badge variant={op === 'fwd' ? 'secondary' : 'boost'} className='align-text-top [--sn-badge-opacity:0.75]'>{op}</Badge></>}
                   onQuoteReply={quoteReply}
                   nested={!includeParent}
                   {...props}

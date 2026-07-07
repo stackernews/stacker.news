@@ -1,4 +1,4 @@
-import Alert from 'react-bootstrap/Alert'
+import Alert from '@/components/ui/alert'
 import YouTube from '@/svgs/youtube-line.svg'
 import { useEffect, useState } from 'react'
 import { gql } from '@apollo/client'

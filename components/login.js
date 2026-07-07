@@ -2,13 +2,13 @@ import { signIn } from 'next-auth/react'
 import styles from './login.module.css'
 import { Form, Input, SubmitButton } from '@/components/form'
 import { useState, useEffect, useMemo } from 'react'
-import Alert from 'react-bootstrap/Alert'
+import Alert from '@/components/ui/alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer } from './lightning-auth'
 import { NostrAuthWithExplainer } from './nostr-auth'
 import LoginButton, { LoginWithNymButton } from './login-button'
 import { emailSchema } from '@/lib/validate'
-import { OverlayTrigger, Tooltip } from 'react-bootstrap'
+import Tooltip from '@/components/ui/tooltip'
 import * as cookie from 'cookie'
 import { cookieOptions, MULTI_AUTH_ANON, MULTI_AUTH_POINTER } from '@/lib/auth'
 import Link from 'next/link'
@@ -132,17 +132,12 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
         switch (provider.name) {
           case 'Email':
             return (
-              <OverlayTrigger
-                key={provider.id}
-                placement='bottom'
-                overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
-                trigger={['hover', 'focus']}
-              >
-                <div className='w-full' key={provider.id}>
+              <Tooltip key={provider.id} content='not available for account switching yet' disabled={!multiAuth}>
+                <div className='w-full'>
                   <EmailLoginForm text={text} callbackUrl={callbackUrl} multiAuth={multiAuth} />
                   <div className='my-4 mt-6 text-center text-muted font-bold'>or</div>
                 </div>
-              </OverlayTrigger>
+              </Tooltip>
             )
           case 'Lightning':
           case 'Slashtags':
@@ -164,12 +159,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
             )
           default:
             return (
-              <OverlayTrigger
-                key={provider.id}
-                placement='bottom'
-                overlay={multiAuth ? <Tooltip>not available for account switching yet</Tooltip> : <></>}
-                trigger={['hover', 'focus']}
-              >
+              <Tooltip key={provider.id} content='not available for account switching yet' disabled={!multiAuth}>
                 <div className='w-full'>
                   <LoginButton
                     className={`mt-2 ${styles.providerButton}`}
@@ -179,7 +169,7 @@ export default function Login ({ providers, callbackUrl, multiAuth, error, text,
                     disabled={multiAuth}
                   />
                 </div>
-              </OverlayTrigger>
+              </Tooltip>
             )
         }
       })}

@@ -18,6 +18,7 @@ import { ShowModalProvider } from '@/components/modal'
 import ErrorBoundary from '@/components/error-boundary'
 import { AnimationProvider } from '@/components/animation'
 import { ToastProvider } from '@/components/toast'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { ServiceWorkerProvider } from '@/components/serviceworker'
 import { SSR } from '@/lib/constants'
 import NProgress from 'nprogress'
@@ -118,40 +119,42 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
         <meta name='viewport' content='initial-scale=1.0, width=device-width, viewport-fit=cover' />
       </Head>
       <ErrorBoundary>
-        <PlausibleProvider>
-          <ApolloProvider client={client}>
-            <BrandingProvider branding={branding}>
-              <MeProvider me={me}>
-                <CookiesProvider ssrPublicCookies={ssrPublicCookies}>
-                  <WalletsProvider>
-                    <HasNewNotesProvider>
-                      <FaviconProvider>
-                        <ServiceWorkerProvider>
-                          <PriceProvider price={price}>
-                            <BlockHeightProvider blockHeight={blockHeight}>
-                              <AnimationProvider>
-                                <ToastProvider>
-                                  <ShowModalProvider>
-                                    <ChainFeeProvider chainFee={chainFee}>
-                                      <ErrorBoundary>
-                                        <Component ssrData={ssrData} {...otherProps} />
-                                        {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
-                                      </ErrorBoundary>
-                                    </ChainFeeProvider>
-                                  </ShowModalProvider>
-                                </ToastProvider>
-                              </AnimationProvider>
-                            </BlockHeightProvider>
-                          </PriceProvider>
-                        </ServiceWorkerProvider>
-                      </FaviconProvider>
-                    </HasNewNotesProvider>
-                  </WalletsProvider>
-                </CookiesProvider>
-              </MeProvider>
-            </BrandingProvider>
-          </ApolloProvider>
-        </PlausibleProvider>
+        <TooltipProvider>
+          <PlausibleProvider>
+            <ApolloProvider client={client}>
+              <BrandingProvider branding={branding}>
+                <MeProvider me={me}>
+                  <CookiesProvider ssrPublicCookies={ssrPublicCookies}>
+                    <WalletsProvider>
+                      <HasNewNotesProvider>
+                        <FaviconProvider>
+                          <ServiceWorkerProvider>
+                            <PriceProvider price={price}>
+                              <BlockHeightProvider blockHeight={blockHeight}>
+                                <AnimationProvider>
+                                  <ToastProvider>
+                                    <ShowModalProvider>
+                                      <ChainFeeProvider chainFee={chainFee}>
+                                        <ErrorBoundary>
+                                          <Component ssrData={ssrData} {...otherProps} />
+                                          {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                        </ErrorBoundary>
+                                      </ChainFeeProvider>
+                                    </ShowModalProvider>
+                                  </ToastProvider>
+                                </AnimationProvider>
+                              </BlockHeightProvider>
+                            </PriceProvider>
+                          </ServiceWorkerProvider>
+                        </FaviconProvider>
+                      </HasNewNotesProvider>
+                    </WalletsProvider>
+                  </CookiesProvider>
+                </MeProvider>
+              </BrandingProvider>
+            </ApolloProvider>
+          </PlausibleProvider>
+        </TooltipProvider>
       </ErrorBoundary>
     </>
   )

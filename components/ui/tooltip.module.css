@@ -1,0 +1,44 @@
+/* SN tooltip chrome (keystone 6: state/color/motion live here;
+   layout/typography ride the recipe's utility string in tooltip.js) */
+
+.positioner {
+  z-index: var(--sn-z-tooltip);   /* portals to <body>; ladder is the only z authority */
+}
+
+.popup {
+  --sn-tooltip-bg: #5c8001;       /* $tooltip-bg (globals:85); theme-invariant today — no dark block */
+  background-color: var(--sn-tooltip-bg);
+  color: #fff;
+  transform-origin: var(--transform-origin);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* keystone 5, first application */
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.98);         /* Base UI docs demo value (pre-flight 3, 2026-07-07) */
+}
+
+.popup[data-instant] {
+  transition: none;               /* provider grouping / dismiss / focus opens skip the animation */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup {
+    transition: none;
+  }
+}
+
+/* diamond arrow: rotated square, half-protruding; shares the bg var.
+   8px ⇒ 4px protrusion ≈ today's .4rem triangle; data-side = popup side,
+   so side='bottom' puts the arrow on the popup's TOP edge */
+.arrow {
+  width: 8px;
+  height: 8px;
+  background-color: var(--sn-tooltip-bg);
+  transform: rotate(45deg);
+}
+.arrow[data-side='top'] { bottom: -4px; }
+.arrow[data-side='bottom'] { top: -4px; }
+.arrow[data-side='left'] { right: -4px; }
+.arrow[data-side='right'] { left: -4px; }

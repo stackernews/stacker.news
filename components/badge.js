@@ -1,6 +1,5 @@
 import { Fragment } from 'react'
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
+import Tooltip from '@/components/ui/tooltip'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import GunIcon from '@/svgs/revolver.svg'
@@ -95,16 +94,8 @@ function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, heig
 
 export function BadgeTooltip ({ children, overlayText, placement }) {
   return (
-    <OverlayTrigger
-      placement={placement || 'bottom'}
-      overlay={
-        <Tooltip style={{ position: 'fixed' }}>
-          {overlayText}
-        </Tooltip>
-      }
-      trigger={['hover', 'focus']}
-    >
+    <Tooltip content={overlayText} side={placement || 'bottom'}>
       {children}
-    </OverlayTrigger>
+    </Tooltip>
   )
 }

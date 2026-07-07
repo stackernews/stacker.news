@@ -1,4 +1,4 @@
-import Container from 'react-bootstrap/Container'
+import Container from '@/components/ui/container'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Popover from 'react-bootstrap/Popover'
 import { CopyInput } from './form'

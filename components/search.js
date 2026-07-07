@@ -1,4 +1,4 @@
-import Container from 'react-bootstrap/Container'
+import Container from '@/components/ui/container'
 import styles from './search.module.css'
 import SearchIcon from '@/svgs/search-line.svg'
 import { useMemo, useRef, useCallback } from 'react'
@@ -82,7 +82,7 @@ export default function Search ({ sub }) {
                 groupClassName='me-4 mb-0 grow'
                 className='grow'
               />
-              <SubmitButton variant='primary' className={styles.search}>
+              <SubmitButton variant='primary' className={`${styles.search} rounded-full p-0 flex items-center justify-center`}>
                 <SearchIcon width={22} height={22} />
               </SubmitButton>
             </div>

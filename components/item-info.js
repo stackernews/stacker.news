@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useState } from 'react'
-import Badge from 'react-bootstrap/Badge'
+import Badge from '@/components/ui/badge'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '@/lib/format'
@@ -172,22 +172,22 @@ export default function ItemInfo ({
         return (
           <SubPopover key={subName} sub={subName}>
             <Link href={href} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined}>
-              {' '}<Badge className={styles.newComment} bg={null}>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
+              {' '}<Badge variant='grey' className='align-middle ms-0.5'>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
             </Link>
           </SubPopover>
         )
       })}
       {sub?.nsfw &&
-        <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
+        <Badge variant='grey' className='align-middle ms-0.5'>nsfw</Badge>}
       {item.freebie && !item.position &&
         <Link href='/new/freebies'>
-          {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
+          {' '}<Badge variant='grey' className='align-middle ms-0.5'>freebie</Badge>
         </Link>}
       {isDesperado &&
         <span
           role='button' onClick={() => showModal((onClose) => <ItemDetails item={item} me={me} />)}
         >
-          {' '}<Badge className={styles.newComment} bg={null}>-{abbrNum(item.downSats)} sats</Badge>
+          {' '}<Badge variant='grey' className='align-middle ms-0.5'>-{abbrNum(item.downSats)} sats</Badge>
         </span>}
       {extraBadges}
       {

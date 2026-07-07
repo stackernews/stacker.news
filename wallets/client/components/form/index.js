@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import classNames from 'classnames'
+import { buttonClasses } from '@/components/ui/button'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import configureStyles from './configure.module.css'
 import { Form } from '@/components/form'
@@ -159,7 +160,7 @@ function WalletConfigureFormLayout ({ protocols }) {
               {saveState.willDeleteWallet && <div className={styles.saveBlocker}>{saveState.saveStatus}</div>}
               <button
                 type='button'
-                className={classNames('btn btn-primary font-bold', styles.saveButton, inFlight && 'pulse')}
+                className={buttonClasses({ className: classNames(styles.saveButton, inFlight && 'pulse') })}
                 disabled={inFlight}
                 onClick={onSaveClick}
               >
@@ -179,7 +180,7 @@ function WalletConfigureDangerZone ({ wallet }) {
   return (
     <section className={styles.dangerZone}>
       <div>
-        <h2 className='m-0 text-danger text-[1.1625rem]'>danger zone</h2>
+        <h2 className='m-0 text-danger text-lg'>danger zone</h2>
         <p>Delete this wallet and its saved send/receive configuration.</p>
       </div>
       <button

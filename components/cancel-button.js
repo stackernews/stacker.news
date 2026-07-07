@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 
 export default function CancelButton ({ onClick }) {
   const router = useRouter()

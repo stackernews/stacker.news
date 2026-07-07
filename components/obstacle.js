@@ -1,4 +1,4 @@
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 
 /**
  * Shared button row for obstacles. Provides consistent styling.

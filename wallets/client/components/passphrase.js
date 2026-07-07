@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { CopyButton, Form, PasswordInput, SubmitButton } from '@/components/form'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import classNames from 'classnames'
 import { object, string } from 'yup'
 import { useMe } from '@/components/me'
@@ -33,7 +33,7 @@ function Passphrase ({
           )}
         </div>
         {showCopyButton && (
-          <CopyButton className='rounded-sn shrink-0' value={passphrase} variant='grey-medium' />
+          <CopyButton className='rounded-md shrink-0' value={passphrase} variant='grey-medium' />
         )}
       </div>
       <div className={styles.words}>

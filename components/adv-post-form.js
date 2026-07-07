@@ -130,7 +130,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
                     step={5}
                     min={1}
                     max={100}
-                    append={<InputGroup.Text className='font-[monospace]'>%</InputGroup.Text>}
+                    append={<InputGroup.Text className='font-mono'>%</InputGroup.Text>}
                     groupClassName={`${styles.percent} mb-0`}
                     AppendColumn={AppendColumn}
                   />

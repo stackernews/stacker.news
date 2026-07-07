@@ -18,7 +18,7 @@ import BaldIcon from '@/svgs/bald.svg'
 import GunIcon from '@/svgs/revolver.svg'
 import HorseIcon from '@/svgs/horse.svg'
 import { RootProvider } from './root'
-import Alert from 'react-bootstrap/Alert'
+import Alert from '@/components/ui/alert'
 import styles from './notifications.module.css'
 import { useServiceWorker } from './serviceworker'
 import { Checkbox, Form } from './form'
@@ -33,7 +33,8 @@ import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
-import { Badge, Button } from 'react-bootstrap'
+import Badge from '@/components/ui/badge'
+import Button from '@/components/ui/button'
 import { useToast } from './toast'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
@@ -546,8 +547,9 @@ function PayInFailed ({ n }) {
         <span className='ms-1 text-muted font-light'> {numWithUnits(msatsToSats(payIn.mcost))}</span>
         <span className={['FAILED'].includes(payIn.payInState) && !isAutoRetryEligiblePayIn(payIn) ? 'visible' : 'invisible'}>
           <Button
-            size='sm' variant={classNames('outline-warning ms-2 border-1 rounded-sn py-0', disableRetry && 'pulse')}
-            style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
+            size='sm' variant='outline-warning'
+            className={classNames('ms-2 border rounded-md py-0', disableRetry && 'pulse')}
+            style={{ '--sn-btn-hover-color': '#fff' }}
             disabled={disableRetry}
             onClick={() => {
               if (disableRetry) return
@@ -581,7 +583,7 @@ function PayInWithdrawal ({ n }) {
       {numWithUnits(amount, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
       {actionString}
       <small className='text-muted ms-1 font-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {n.payIn.payInType === 'AUTO_WITHDRAWAL' && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
+      {n.payIn.payInType === 'AUTO_WITHDRAWAL' && <Badge variant='grey' className='align-middle ms-2'>autowithdraw</Badge>}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import Navigation from './nav'
 import NavFooter from './nav/mobile/footer'
 import NavStatic from './nav/static'
-import Container from 'react-bootstrap/Container'
+import Container from '@/components/ui/container'
 import Footer from './footer'
 import Seo, { SeoSearch } from './seo'
 import Search from './search'

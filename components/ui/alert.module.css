@@ -1,0 +1,76 @@
+/* skin only, what an alert looks like in each theme
+   arrangement overrides (absolute, mb-0, ...) come from call sites via className
+*/
+
+.alert {
+  position: relative;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  /* $alert-border-radius; $alert-border-width: 0 so no border rule at all */
+  border-radius: 33% 2% / 11% 74%;
+  /*
+   * Bootstrap's baked math, verified value-exact against the compiled CSS
+   * (2026-07-06): text = shade-color($c, 60%), bg = tint-color($c, 80%)
+   */
+  color: color-mix(in srgb, #000 60%, var(--sn-alert-base));
+  background-color: color-mix(in srgb, #fff 80%, var(--sn-alert-base));
+}
+
+/* dark tokens flip the mix: text = tint-color($c, 40%), bg = shade-color($c, 80%) */
+:global([data-bs-theme='dark']) .alert {
+  color: color-mix(in srgb, #fff 40%, var(--sn-alert-base));
+  background-color: color-mix(in srgb, #000 80%, var(--sn-alert-base));
+}
+
+.info {
+  --sn-alert-base: var(--sn-info);
+}
+
+.danger {
+  --sn-alert-base: var(--sn-danger);
+}
+
+.warning {
+  --sn-alert-base: var(--sn-warning);
+}
+
+.dismissible {
+  padding-right: 3rem;
+}
+
+/*
+ * replicates today's painted .btn-close: $btn-close-bg: none killed Bootstrap's
+ * svg, so the paint is only the lightning X at .btn-close's .5/.75 opacities
+ * ($close-color in globals is a dead Bootstrap-4 var — the emitted color is #000)
+ */
+.close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  padding: 1.25rem 1rem;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: #000;
+  opacity: .5;
+  font-family: lightning;
+  font-weight: 300;
+  font-size: 150%;
+  line-height: 1;
+}
+
+.close:hover {
+  opacity: .75;
+}
+
+.close:focus {
+  outline: 0;
+  box-shadow: 0 0 0 .25rem rgba(250, 218, 94, .25);
+  opacity: 1;
+}
+
+/* today's dark paint is filter: invert(1) over #000 — i.e. white */
+:global([data-bs-theme='dark']) .close {
+  color: #fff;
+}

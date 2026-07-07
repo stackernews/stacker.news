@@ -1,4 +1,4 @@
-import Container from 'react-bootstrap/Container'
+import Container from '@/components/ui/container'
 import styles from './search.module.css'
 import SearchIcon from '@/svgs/search-line.svg'
 import { useMemo, useRef, useCallback } from 'react'

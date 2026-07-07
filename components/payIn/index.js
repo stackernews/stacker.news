@@ -154,7 +154,7 @@ export function PayInSkeleton () {
         </div>
       </div>
       <div className='mt-4'>
-        <div className='clouds rounded-sn mb-4' style={{ height: '1.5rem', maxWidth: '24rem' }} />
+        <div className='clouds rounded-md mb-4' style={{ height: '1.5rem', maxWidth: '24rem' }} />
         <div className='clouds rounded-lg w-full' style={{ height: '10rem' }} />
       </div>
     </div>

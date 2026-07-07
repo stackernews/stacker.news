@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import classNames from 'classnames'
+import { buttonClasses } from '@/components/ui/button'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import sendStyles from './send.module.css'
 const styles = { ...sharedStyles, ...sendStyles }
@@ -18,7 +19,7 @@ export function SendSuccess ({ sent, backHref }) {
             to <span className={styles.sentDest} title={sent.to}>{sent.to}</span>
           </div>
         </div>
-        <Link href={backHref} className='btn btn-secondary'>
+        <Link href={backHref} className={buttonClasses({ variant: 'secondary' })}>
           back to wallet
         </Link>
       </div>

@@ -1,4 +1,5 @@
-import { Badge, Button } from 'react-bootstrap'
+import Badge from '@/components/ui/badge'
+import Button from '@/components/ui/button'
 import { Form, Input, SubmitButton, CopyButton } from './form'
 import { useMutation } from '@apollo/client/react'
 import { customDomainSchema } from '@/lib/validate'
@@ -29,9 +30,9 @@ export function useNavKeys (path, sub) {
 const getStatusBadge = (type, status) => {
   switch (status) {
     case 'VERIFIED':
-      return <Badge bg='success'>{type} verified</Badge>
+      return <Badge variant='success'>{type} verified</Badge>
     default:
-      return <Badge bg='warning'>{type} pending</Badge>
+      return <Badge variant='warning'>{type} pending</Badge>
   }
 }
 
@@ -51,8 +52,8 @@ const DomainLabel = ({ domain, polling }) => {
               </>
               )
             : status === 'HOLD'
-              ? <Badge bg='secondary'>HOLD</Badge>
-              : <Badge bg='success'>active</Badge>}
+              ? <Badge variant='secondary'>HOLD</Badge>
+              : <Badge variant='success'>active</Badge>}
           {polling && <Moon className={`spin fill-grey ${styles.statusIcon}`} />}
         </div>
       )}

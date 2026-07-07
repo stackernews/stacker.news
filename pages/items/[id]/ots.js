@@ -2,7 +2,7 @@ import Layout from '@/components/layout'
 import { ITEM_OTS } from '@/fragments/items'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import stringifyCanon from 'canonical-json'
-import Button from 'react-bootstrap/Button'
+import { buttonClasses } from '@/components/ui/button'
 import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
@@ -38,13 +38,13 @@ function Ots ({ item }) {
         ? <div>item was deleted by author - original preimage is lost</div>
         : (
           <pre
-            className='mb-2 p-2 rounded-sn'
+            className='mb-2 p-2 rounded-md'
             style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', border: '1px solid var(--theme-borderColor)', color: 'var(--bs-body-color)' }}
           >{itemString}
           </pre>)}
-      <Button href={`/api/ots/preimage/${item.id}`} className='mt-1' variant='grey-medium'>download preimage</Button>
+      <a href={`/api/ots/preimage/${item.id}`} className={buttonClasses({ variant: 'grey-medium', className: 'mt-1' })}>download preimage</a>
       <div className='form-label mt-2'>merkle proof</div>
-      <Button href={`/api/ots/proof/${item.id}`} className='mt-1' variant='grey-medium'>download ots file</Button>
+      <a href={`/api/ots/proof/${item.id}`} className={buttonClasses({ variant: 'grey-medium', className: 'mt-1' })}>download ots file</a>
     </>
   )
 }

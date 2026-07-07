@@ -82,8 +82,6 @@
   --sn-nostr: #8d45dd;
   --sn-twitter: #1da1f2;
 
-  --sn-radius: .4rem;
-
   /*
    * z-index ladder (PR2 C0) — Bootstrap's compiled $zindex-* scale, with SN's
    * $zindex-sticky: 900 override. Base UI portals every popup to <body>, so
@@ -115,6 +113,12 @@
   /* fw-bolder → the CSS keyword, not the numeric 800 */
   --font-weight-bolder: bolder;
 
+  /* SN type identity (2026-07-06 native-first revision): body/fs-6 size lives as
+     the native `text-base` token — the ONE deliberate type token; every other
+     size uses the stock scale (text-xs/sm/lg/xl…). */
+  --text-base: .93rem;
+  --text-base--line-height: 1.75;
+
   /* Bootstrap's monospace stack (no `ui-monospace` prefix) for font-mono parity */
   --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
@@ -138,8 +142,6 @@
   --color-boost: var(--sn-boost);
   --color-nostr: var(--sn-nostr);
   --color-muted: var(--sn-muted);
-
-  --radius-sn: var(--sn-radius);
 }
 
 /* Bootstrap `.text-reset` parity (`!important` comes from the utilities flag). */

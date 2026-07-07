@@ -61,13 +61,6 @@
     margin-right: 0 !important;
 }
 
-.badge {
-    color: var(--theme-grey) !important;
-    background: var(--theme-clickToContextColor) !important;
-    vertical-align: middle;
-    margin-left: 0.5rem;
-}
-
 .noteHeader {
     display: inline-block;
     font-weight: 800;

@@ -4,6 +4,7 @@ import { PriceCarouselProvider } from '@/components/nav/price-carousel'
 import { walletGuideUrl } from '@/wallets/lib/util'
 import { WalletLogo } from './wallet-logo'
 import Link from 'next/link'
+import { buttonClasses } from '@/components/ui/button'
 import InfoIcon from '@/svgs/information-fill.svg'
 import styles from '@/wallets/client/components/layout.module.css'
 import classNames from 'classnames'
@@ -118,10 +119,10 @@ export function WalletActionShell ({ wallet, title, identity, available, childre
 
 export function WalletActionEmpty ({ message, backHref, backLabel = 'back to wallet' }) {
   return (
-    <div className='flex flex-col items-center justify-center gap-6 flex-auto text-[clamp(1.2645rem,_1.2645rem_+_0.174vw,_1.395rem)] text-center text-muted'>
+    <div className='flex flex-col items-center justify-center gap-6 flex-auto text-xl text-center text-muted'>
       <div>{message}</div>
       {backHref && (
-        <Link href={backHref} className='btn btn-secondary'>
+        <Link href={backHref} className={buttonClasses({ variant: 'secondary' })}>
           {backLabel}
         </Link>
       )}

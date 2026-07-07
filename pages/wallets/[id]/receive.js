@@ -1,5 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Form, Input, SubmitButton } from '@/components/form'
+import { buttonClasses } from '@/components/ui/button'
 import Qr from '@/components/qr'
 import { utf8ByteLength, walletInvoiceSchema } from '@/lib/validate'
 import { numWithUnits } from '@/lib/format'
@@ -76,7 +77,7 @@ function WalletReceive ({ wallet }) {
             max={MAX_WALLET_INVOICE_SATS}
             required
             autoFocus
-            append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
           />
           <FormikConsumer>
             {({ values }) => {
@@ -116,7 +117,7 @@ function WalletReceive ({ wallet }) {
           <div className='text-muted text-center'>
             We do not track receive success. Check your external wallet.
           </div>
-          <Link href={`/wallets/${wallet.id}`} className='btn btn-secondary'>
+          <Link href={`/wallets/${wallet.id}`} className={buttonClasses({ variant: 'secondary' })}>
             back to wallet
           </Link>
         </div>

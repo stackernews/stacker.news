@@ -177,19 +177,18 @@ const MAP = {
   'lh-lg': 'leading-loose',
 
   // -------------------------------------------------------------------------
-  // Font sizes — SN compiles with $font-size-base: .93rem + RFS, so values come
-  // from the compiled CSS (docs/dev/bootstrap-tailwind-tokens.md), NOT stock
-  // Bootstrap. fs-1..4 are RFS-fluid: calc + capped @1200px ≡ clamp().
-  // Underscores inside [...] become spaces at Tailwind build time — required,
-  // calc arithmetic needs spaces around `+`.
-  // Arbitrary values set font-size only (no line-height) — exactly like fs-*.
+  // Font sizes — 2026-07-06 native-first revision: nearest native steps replace
+  // the RFS clamps / Bootstrap-exact arbitrary values (fs-1..4 matched on their
+  // desktop caps; text-base is SN's .93rem @theme token in styles/tailwind.css).
+  // Unlike the old arbitrary values, named steps also carry their paired
+  // line-height token — an intended delta.
   // -------------------------------------------------------------------------
-  'fs-1': 'text-[clamp(1.3575rem,_1.3575rem_+_1.29vw,_2.325rem)]',
-  'fs-2': 'text-[clamp(1.311rem,_1.311rem_+_0.732vw,_1.86rem)]',
-  'fs-3': 'text-[clamp(1.28775rem,_1.28775rem_+_0.453vw,_1.6275rem)]',
-  'fs-4': 'text-[clamp(1.2645rem,_1.2645rem_+_0.174vw,_1.395rem)]',
-  'fs-5': 'text-[1.1625rem]',
-  'fs-6': 'text-[0.93rem]',
+  'fs-1': 'text-4xl',
+  'fs-2': 'text-3xl',
+  'fs-3': 'text-2xl',
+  'fs-4': 'text-xl',
+  'fs-5': 'text-lg',
+  'fs-6': 'text-base',
 
   // -------------------------------------------------------------------------
   // Text — note text-nowrap must NOT map to Tailwind's text-nowrap
@@ -238,17 +237,18 @@ const MAP = {
   'sticky-bottom': 'sticky bottom-0 z-[900]',
 
   // -------------------------------------------------------------------------
-  // Border radius — SN overrides $border-radius to .4rem (= --radius-sn token);
-  // $border-radius-sm (.25rem) and -lg (.5rem) are stock and match Tailwind's
-  // rounded-sm/rounded-lg exactly. Tailwind v4 has no bare `rounded`.
+  // Border radius — SN's $border-radius override is .4rem; rounded-md (.375rem)
+  // is the nearest native step (2026-07-06 revision — the --radius-sn token is
+  // gone). $border-radius-sm (.25rem) and -lg (.5rem) are stock and match
+  // Tailwind's rounded-sm/rounded-lg exactly. Tailwind v4 has no bare `rounded`.
   // -------------------------------------------------------------------------
-  rounded: 'rounded-sn',
+  rounded: 'rounded-md',
   'rounded-0': 'rounded-none',
   'rounded-1': 'rounded-sm',
-  'rounded-2': 'rounded-sn',
+  'rounded-2': 'rounded-md',
   'rounded-3': 'rounded-lg',
-  'rounded-4': 'rounded-[1rem]', // BS $border-radius-xl 1rem ≠ TW rounded-xl .75rem
-  'rounded-5': 'rounded-[2rem]', // BS $border-radius-xxl 2rem
+  'rounded-4': 'rounded-2xl', // BS $border-radius-xl 1rem = TW rounded-2xl exactly
+  'rounded-5': 'rounded-4xl', // BS $border-radius-xxl 2rem = TW rounded-4xl exactly
   'rounded-circle': 'rounded-full',
   'rounded-pill': 'rounded-full',
 
@@ -276,7 +276,7 @@ const MAP = {
   'line-height-sm': 'leading-tight', // 1.25
   'line-height-md': 'leading-normal', // 1.5
   'w-fit-content': 'w-fit',
-  'text-monospace': 'font-[monospace]', // globals uses plain `monospace`, NOT the font-mono stack
+  'text-monospace': 'font-mono', // native stack adopted 2026-07-06 (globals' bare `monospace` parity dropped)
   'text-underline': 'underline'
 }
 

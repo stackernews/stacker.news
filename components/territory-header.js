@@ -1,5 +1,7 @@
 import { createContext, useContext } from 'react'
-import { Badge, Button, CardFooter, Dropdown } from 'react-bootstrap'
+import { Dropdown } from 'react-bootstrap'
+import Badge from '@/components/ui/badge'
+import Button, { buttonClasses } from '@/components/ui/button'
 import { AccordianCard } from './accordian-item'
 import TerritoryPaymentDue, { TerritoryBillingLine } from './territory-payment-due'
 import Link from 'next/link'
@@ -34,8 +36,8 @@ export function TerritoryDetails ({ sub, children, className, show, truncated })
       header={
         <small className='text-muted font-bold items-center flex'>
           {sub.name}
-          {sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}
-          {(sub.nsfw) && <Badge className='ms-2' bg='secondary'>nsfw</Badge>}
+          {sub.status === 'STOPPED' && <Badge variant='danger' className='ms-2'>archived</Badge>}
+          {(sub.nsfw) && <Badge variant='secondary' className='ms-2'>nsfw</Badge>}
         </small>
       }
     >
@@ -63,7 +65,7 @@ export function TerritoryInfo ({ sub, includeLink, truncated }) {
       <div className='py-2'>
         <Text state={sub.lexicalState} html={sub.html}>{truncated ? sub.desc : undefined}</Text>
       </div>
-      <CardFooter className={`py-1 ${styles.other}`}>
+      <div className={`py-1 ${styles.other}`}>
         {sub.user &&
           <div className='text-muted'>
             <span>founded by </span>
@@ -86,7 +88,7 @@ export function TerritoryInfo ({ sub, includeLink, truncated }) {
         </div>
         {/* TODO: Show custom domain if it exists */}
         <TerritoryBillingLine sub={sub} />
-      </CardFooter>
+      </div>
     </>
   )
 }
@@ -127,12 +129,13 @@ export default function TerritoryHeader ({ sub }) {
                 <>
                   {(isMine
                     ? (
-                      <Link href={`${prefix}/edit`} className='flex items-center'>
-                        <Button variant='outline-grey border-2 rounded-sn py-0' size='sm'>edit territory</Button>
+                      <Link href={`${prefix}/edit`} className={buttonClasses({ variant: 'outline-grey', size: 'sm', className: 'flex items-center border-2 rounded-md py-0' })}>
+                        edit territory
                       </Link>)
                     : (
                       <Button
-                        variant='outline-grey border-2 py-0 rounded-sn'
+                        variant='outline-grey'
+                        className='border-2 rounded-md py-0'
                         size='sm'
                         onClick={async () => {
                           try {

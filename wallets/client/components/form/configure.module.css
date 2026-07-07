@@ -88,10 +88,6 @@
     gap: var(--wt-gap-md);
     padding: 1.25rem 1.35rem 1.35rem;
   }
-  .aside {
-    /* beats Bootstrap's .d-flex display utility (itself !important) */
-    display: none !important;
-  }
   .saveBar {
     margin: 0;
   }

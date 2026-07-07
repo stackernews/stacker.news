@@ -1,4 +1,4 @@
-import { Container } from 'react-bootstrap'
+import Container from '@/components/ui/container'
 import TopBar from './top-bar'
 import SecondBar from './second-bar'
 

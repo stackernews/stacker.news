@@ -49,8 +49,6 @@
   --sn-nostr: #8d45dd;
   --sn-twitter: #1da1f2;
 
-  --sn-radius: .4rem;
-
   /* Portaled overlays share this stacking ladder. */
   --sn-z-sticky: 900;
   --sn-z-dropdown: 1000;
@@ -73,6 +71,10 @@
 
   --font-weight-bolder: bolder;
 
+  /* Application body type; other sizes use the stock scale. */
+  --text-base: .93rem;
+  --text-base--line-height: 1.75;
+
   /* application monospace stack */
   --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
@@ -87,8 +89,6 @@
   --color-boost: var(--sn-boost);
   --color-nostr: var(--sn-nostr);
   --color-muted: var(--sn-muted);
-
-  --radius-sn: var(--sn-radius);
 }
 
 /* Let a child inherit its surrounding text color. */

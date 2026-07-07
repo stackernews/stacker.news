@@ -2,9 +2,7 @@ import { gql } from '@apollo/client'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { signIn } from 'next-auth/react'
 import { useEffect } from 'react'
-import Col from 'react-bootstrap/Col'
-import Container from 'react-bootstrap/Container'
-import Row from 'react-bootstrap/Row'
+import Container from '@/components/ui/container'
 import AccordianItem from './accordian-item'
 import Qr, { QrSkeleton } from './qr'
 import styles from './lightning-auth.module.css'
@@ -46,7 +44,7 @@ function QrAuth ({ k1, encodedUrl, callbackUrl, multiAuth }) {
   )
 }
 
-function LightningExplainer ({ text, children, backButton, md = 12, lg = 6 }) {
+function LightningExplainer ({ text, children, backButton, stacked }) {
   const router = useRouter()
   return (
     <Container>
@@ -56,50 +54,46 @@ function LightningExplainer ({ text, children, backButton, md = 12, lg = 6 }) {
           {text || 'Login'} with Lightning
         </h3>
         <div className='font-bold text-muted pb-6'>This is the most private way to use Stacker News. Just open your Lightning wallet and scan the QR code.</div>
-        <Row className='w-full text-muted'>
-          <Col className='ps-0 mb-6' md={md} lg={lg}>
+        <div className={`grid grid-cols-1 gap-8 w-full text-muted${stacked ? '' : ' lg:grid-cols-2'}`}>
+          <div className='mb-6'>
             <AccordianItem
               header='Which wallets support lnurl-auth?'
               body={
                 <>
-                  <Row className='mb-4'>
+                  <div className='mb-4'>
                     You can use any wallet that supports lnurl-auth. These are some wallets that claim to support it:
-                  </Row>
-                  <Row>
-                    <Col xs>
-                      <ul className='mb-0'>
-                        <li>Alby</li>
-                        <li>Balance of Satoshis</li>
-                        <li>Blixt</li>
-                        <li>Breez</li>
-                        <li>Coinos</li>
-                        <li>LNBits</li>
-                      </ul>
-                    </Col>
-                    <Col xs>
-                      <ul>
-                        <li>Phoenix</li>
-                        <li>ThunderHub</li>
-                        <li>Zeus</li>
-                      </ul>
-                    </Col>
-                  </Row>
+                  </div>
+                  <div className='grid grid-cols-2 gap-8'>
+                    <ul className='mb-0'>
+                      <li>Alby</li>
+                      <li>Balance of Satoshis</li>
+                      <li>Blixt</li>
+                      <li>Breez</li>
+                      <li>Coinos</li>
+                      <li>LNBits</li>
+                    </ul>
+                    <ul>
+                      <li>Phoenix</li>
+                      <li>ThunderHub</li>
+                      <li>Zeus</li>
+                    </ul>
+                  </div>
                 </>
-          }
+              }
             />
-          </Col>
-          <Col md={md} lg={lg} className='mx-auto' style={{ maxWidth: '300px' }}>
+          </div>
+          <div className='w-full max-w-75 mx-auto'>
             {children}
-          </Col>
-        </Row>
+          </div>
+        </div>
       </div>
     </Container>
   )
 }
 
-export function LightningAuthWithExplainer ({ text, callbackUrl, multiAuth, backButton = true, md = 12, lg = 6 }) {
+export function LightningAuthWithExplainer ({ text, callbackUrl, multiAuth, backButton = true, stacked }) {
   return (
-    <LightningExplainer text={text} backButton={backButton} md={md} lg={lg}>
+    <LightningExplainer text={text} backButton={backButton} stacked={stacked}>
       <LightningAuth callbackUrl={callbackUrl} multiAuth={multiAuth} />
     </LightningExplainer>
   )

@@ -2,15 +2,14 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { gql } from '@apollo/client'
 import { useMutation } from '@apollo/client/react'
 import { signIn } from 'next-auth/react'
-import Col from 'react-bootstrap/Col'
-import Row from 'react-bootstrap/Row'
 import { useRouter } from 'next/router'
 import AccordianItem from './accordian-item'
 import BackIcon from '@/svgs/arrow-left-line.svg'
 import Nostr from '@/lib/nostr'
 import { NDKNip46Signer } from '@nostr-dev-kit/ndk'
 import { useToast } from '@/components/toast'
-import { Button, Container } from 'react-bootstrap'
+import Container from '@/components/ui/container'
+import Button from '@/components/ui/button'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Moon from '@/svgs/moon-fill.svg'
 import styles from './lightning-auth.module.css'
@@ -196,7 +195,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
           <>
             <Button
               variant='nostr'
-              className='leading-normal'
+              className='leading-normal w-full'
               type='submit'
               onClick={async () => {
                 try {
@@ -247,82 +246,70 @@ function NostrExplainer ({ text, children }) {
         <h3 className='w-full pb-2'>
           {text || 'Login'} with Nostr
         </h3>
-        <Row className='w-full text-muted'>
-          <Col className='ps-0 mb-6' md>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-8 w-full text-muted'>
+          <div className='mb-6'>
             <AccordianItem
               header='Which extensions can I use?'
               body={
-                <>
-                  <Row>
-                    <Col>
-                      <ul>
-                        <li>
-                          <a href='https://getalby.com'>Alby</a>
-                          <ul>
-                            <li>available for: chrome, firefox, and safari</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://www.getflamingo.org/'>Flamingo</a>
-                          <ul>
-                            <li>available for: chrome</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://github.com/fiatjaf/nos2x'>nos2x</a>
-                          <ul>
-                            <li>available for: chrome</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://diegogurpegui.com/nos2x-fox/'>nos2x-fox</a>
-                          <ul>
-                            <li>available for: firefox</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://github.com/fiatjaf/horse'>horse</a>
-                          <ul>
-                            <li>available for: chrome</li>
-                            <li>supports hardware signing</li>
-                          </ul>
-                        </li>
-                      </ul>
-                    </Col>
-                  </Row>
-                </>
-          }
+                <ul>
+                  <li>
+                    <a href='https://getalby.com'>Alby</a>
+                    <ul>
+                      <li>available for: chrome, firefox, and safari</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://www.getflamingo.org/'>Flamingo</a>
+                    <ul>
+                      <li>available for: chrome</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://github.com/fiatjaf/nos2x'>nos2x</a>
+                    <ul>
+                      <li>available for: chrome</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://diegogurpegui.com/nos2x-fox/'>nos2x-fox</a>
+                    <ul>
+                      <li>available for: firefox</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://github.com/fiatjaf/horse'>horse</a>
+                    <ul>
+                      <li>available for: chrome</li>
+                      <li>supports hardware signing</li>
+                    </ul>
+                  </li>
+                </ul>
+              }
             />
             <AccordianItem
               header='Which NIP-46 signers can I use?'
               body={
-                <>
-                  <Row>
-                    <Col xs>
-                      <ul>
-                        <li>
-                          <a href='https://nsec.app/'>Nsec.app</a>
-                          <ul>
-                            <li>available for: chrome, firefox, and safari</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://app.nsecbunker.com/'>nsecBunker</a>
-                          <ul>
-                            <li>available as: SaaS or self-hosted</li>
-                          </ul>
-                        </li>
-                      </ul>
-                    </Col>
-                  </Row>
-                </>
-          }
+                <ul>
+                  <li>
+                    <a href='https://nsec.app/'>Nsec.app</a>
+                    <ul>
+                      <li>available for: chrome, firefox, and safari</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://app.nsecbunker.com/'>nsecBunker</a>
+                    <ul>
+                      <li>available as: SaaS or self-hosted</li>
+                    </ul>
+                  </li>
+                </ul>
+              }
             />
-          </Col>
-          <Col md className='mx-auto' style={{ maxWidth: '300px' }}>
+          </div>
+          <div className='w-full max-w-75 mx-auto'>
             {children}
-          </Col>
-        </Row>
+          </div>
+        </div>
       </div>
     </Container>
   )

@@ -1,4 +1,4 @@
-import { Alert } from 'react-bootstrap'
+import Alert from '@/components/ui/alert'
 import { useMe } from './me'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { TERRITORY_BILLING_OPTIONS } from '@/lib/constants'

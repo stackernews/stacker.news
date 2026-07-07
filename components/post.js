@@ -1,7 +1,7 @@
 import JobForm from './job-form'
 import Link from 'next/link'
-import Button from 'react-bootstrap/Button'
-import Alert from 'react-bootstrap/Alert'
+import Button, { buttonClasses } from '@/components/ui/button'
+import Alert from '@/components/ui/alert'
 import AccordianItem from './accordian-item'
 import { useMe } from './me'
 import { useRouter } from 'next/router'
@@ -36,16 +36,16 @@ export function PostForm ({ type, subs, children }) {
     if (subs.length) {
       if (subsAllSupport(subs, 'LINK')) {
         postButtons.push(
-          <Link key='LINK' href={prefix + '/post?type=link'}>
-            <Button variant='secondary'>link</Button>
+          <Link key='LINK' href={prefix + '/post?type=link'} className={buttonClasses({ variant: 'secondary' })}>
+            link
           </Link>
         )
       }
 
       if (subsAllSupport(subs, 'DISCUSSION')) {
         postButtons.push(
-          <Link key='DISCUSSION' href={prefix + '/post?type=discussion'}>
-            <Button variant='secondary'>discussion</Button>
+          <Link key='DISCUSSION' href={prefix + '/post?type=discussion'} className={buttonClasses({ variant: 'secondary' })}>
+            discussion
           </Link>
         )
       }
@@ -53,8 +53,8 @@ export function PostForm ({ type, subs, children }) {
       if (subsAllSupport(subs, 'POLL')) {
         const array = postButtons.length < 2 ? postButtons : morePostButtons
         array.push(
-          <Link key='POLL' href={prefix + '/post?type=poll'}>
-            <Button variant={postButtons.length < 2 ? 'secondary' : 'info'}>poll</Button>
+          <Link key='POLL' href={prefix + '/post?type=poll'} className={buttonClasses({ variant: postButtons.length < 2 ? 'secondary' : 'info' })}>
+            poll
           </Link>
         )
       }
@@ -62,26 +62,26 @@ export function PostForm ({ type, subs, children }) {
       if (subsAllSupport(subs, 'BOUNTY')) {
         const array = postButtons.length < 2 ? postButtons : morePostButtons
         array.push(
-          <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
-            <Button onClick={checkSession} variant={postButtons.length < 2 ? 'secondary' : 'info'}>bounty</Button>
+          <Link key='BOUNTY' href={prefix + '/post?type=bounty'} onClick={checkSession} className={buttonClasses({ variant: postButtons.length < 2 ? 'secondary' : 'info' })}>
+            bounty
           </Link>
         )
       }
     } else {
       postButtons = [
-        <Link key='LINK' href={prefix + '/post?type=link'}>
-          <Button variant='secondary'>link</Button>
+        <Link key='LINK' href={prefix + '/post?type=link'} className={buttonClasses({ variant: 'secondary' })}>
+          link
         </Link>,
-        <Link key='DISCUSSION' href={prefix + '/post?type=discussion'}>
-          <Button variant='secondary'>discussion</Button>
+        <Link key='DISCUSSION' href={prefix + '/post?type=discussion'} className={buttonClasses({ variant: 'secondary' })}>
+          discussion
         </Link>
       ]
       morePostButtons = [
-        <Link key='POLL' href={prefix + '/post?type=poll'}>
-          <Button variant='info'>poll</Button>
+        <Link key='POLL' href={prefix + '/post?type=poll'} className={buttonClasses({ variant: 'info' })}>
+          poll
         </Link>,
-        <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
-          <Button onClick={checkSession} variant='info'>bounty</Button>
+        <Link key='BOUNTY' href={prefix + '/post?type=bounty'} onClick={checkSession} className={buttonClasses({ variant: 'info' })}>
+          bounty
         </Link>
       ]
     }
@@ -124,8 +124,8 @@ export function PostForm ({ type, subs, children }) {
               <div className='items-center'>
                 {morePostButtons}
                 <div className='mt-4 flex justify-center'>
-                  <Link href='/~jobs/post'>
-                    <Button onClick={checkSession} variant='info'>job</Button>
+                  <Link href='/~jobs/post' onClick={checkSession} className={buttonClasses({ variant: 'info' })}>
+                    job
                   </Link>
                 </div>
               </div>

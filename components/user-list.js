@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'react-bootstrap/Image'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
 import userStyles from './user-header.module.css'
@@ -38,7 +37,7 @@ export function UserListRow ({ user, stats, className, onNymClick, showHat = tru
   return (
     <div className={`${styles.item} mb-2`} key={user.name}>
       <Link href={`/${user.name}`}>
-        <Image
+        <img
           src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
           className={`${userStyles.userimg} me-2`}
         />
@@ -66,7 +65,7 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
   return (
     <div className={classNames(styles.item, className)}>
       <Link href={`/${user.name}`}>
-        <Image
+        <img
           src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
           className={`${userStyles.userimg} me-2`}
         />
@@ -117,7 +116,7 @@ function UserHidden ({ rank, user, Embellish }) {
         : <div />}
       <div className={`${styles.item} mb-2`}>
         <span>
-          <Image
+          <img
             src='/dorian400.jpg' width='32' height='32'
             className={`${userStyles.userimg} me-2 opacity-50`}
           />
@@ -201,7 +200,7 @@ export function UsersSkeleton () {
 export function UserSkeleton ({ children, className }) {
   return (
     <div className={`${styles.item} ${styles.skeleton} ${className}`}>
-      <Image
+      <img
         src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/clouds.jpeg`}
         width='32' height='32'
         className={`${userStyles.userimg} clouds me-2`}

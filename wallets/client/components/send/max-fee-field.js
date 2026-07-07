@@ -50,7 +50,7 @@ function MaxFeeField () {
           type='number'
           step={10}
           required
-          append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+          append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
         />
       )}
     </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Button, Dropdown, Nav, Navbar } from 'react-bootstrap'
+import { Dropdown, Nav, Navbar } from 'react-bootstrap'
+import Button, { buttonClasses } from '@/components/ui/button'
 import styles from '../header.module.css'
 import { useRouter } from 'next/router'
 import BackArrow from '../../svgs/arrow-left-line.svg'
@@ -97,7 +98,7 @@ export function SearchItem ({ prefix, className }) {
 export function NavPrice ({ className }) {
   return (
     <Nav.Item className={classNames(styles.price, className)}>
-      <Price className='nav-link font-[monospace]' />
+      <Price className='nav-link font-mono' />
     </Nav.Item>
   )
 }
@@ -136,7 +137,7 @@ export function WalletSummary () {
   if (!me || me.privates?.sats === 0) return null
   return (
     <span
-      className='font-[monospace]'
+      className='font-mono'
       title={`${numWithUnits(me.privates?.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`}
     >
       {`${abbrNum(me.privates?.sats)}`}
@@ -149,7 +150,7 @@ export function NavWalletSummary ({ className }) {
 
   return (
     <Nav.Item className={className}>
-      <Nav.Link as={Link} href='/wallets' eventKey='wallets' className='text-success font-[monospace] px-0 whitespace-nowrap'>
+      <Nav.Link as={Link} href='/wallets' eventKey='wallets' className='text-success font-mono px-0 whitespace-nowrap'>
         <WalletSummary me={me} />
       </Nav.Link>
     </Nav.Item>
@@ -393,11 +394,11 @@ export function Sorts ({ prefix, className }) {
 export function PostItem ({ className, prefix }) {
   const branding = useBranding()
   const isLurker = useIsLurker()
-  // when a custom primary color is set we let the button text follow --bs-btn-color
-  // otherwise we use the default text-black
+  // when a custom primary color is set we let the button text follow the skin's
+  // --sn-btn-color (YIQ-computed --sn-primary-text); otherwise force text-black
   const textOverride = branding?.primaryColor ? '' : 'text-black'
   return (
-    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-${isLurker ? 'grey' : 'primary'} ${textOverride} md:py-1`}>
+    <Link href={prefix + '/post'} className={buttonClasses({ variant: isLurker ? 'grey' : 'primary', className: [className, textOverride, 'md:py-1'] })}>
       post
     </Link>
   )

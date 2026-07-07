@@ -4,6 +4,7 @@
     margin: auto;
     table-layout: auto;
     width: 100%;
+    border-collapse: collapse;
 }
 
 .feeButton {
@@ -19,6 +20,8 @@
     padding: .25rem .1rem;
     background-color: var(--theme-inputBg);
     color: var(--bs-body-color);
+    line-height: 1.2rem;
+    vertical-align: top;
 }
 
 .receipt tfoot {

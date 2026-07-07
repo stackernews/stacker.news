@@ -14,7 +14,6 @@ import dynamic from 'next/dynamic'
 import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useAnimation } from '@/components/animation'
-import { Col, Row } from 'react-bootstrap'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
@@ -52,7 +51,7 @@ export function RewardLine ({ total, time }) {
       {time &&
         <small style={{ whiteSpace: 'nowrap' }}>
           <CompactLongCountdown
-            className='font-[monospace]'
+            className='font-mono'
             date={time}
           />
         </small>}
@@ -82,27 +81,25 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      <Row className='pb-4'>
-        <Col>
-          <div
-            className='flex flex-col lg:sticky lg:top-0 lg:z-[900] py-12'
-          >
-            <h3 className='text-center text-muted'>
-              <div>
-                <RewardLine total={total} time={time} />
-              </div>
-              <Link href='/faq#how-do-i-earn-sats-on-stacker-news' className='text-info font-normal'>
-                <small><small><small>learn about rewards</small></small></small>
-              </Link>
-            </h3>
-            {sources?.length > 0 &&
-              <div className='my-4 w-full'>
-                <GrowthPieChart data={sources} />
-              </div>}
-            <DonateButton />
-          </div>
-        </Col>
-      </Row>
+      <div className='pb-4'>
+        <div
+          className='flex flex-col lg:sticky lg:top-0 lg:z-[900] py-12'
+        >
+          <h3 className='text-center text-muted'>
+            <div>
+              <RewardLine total={total} time={time} />
+            </div>
+            <Link href='/faq#how-do-i-earn-sats-on-stacker-news' className='text-info font-normal'>
+              <small><small><small>learn about rewards</small></small></small>
+            </Link>
+          </h3>
+          {sources?.length > 0 &&
+            <div className='my-4 w-full'>
+              <GrowthPieChart data={sources} />
+            </div>}
+          <DonateButton />
+        </div>
+      </div>
     </Layout>
   )
 }
@@ -145,7 +142,7 @@ export function DonateButton () {
               type='number'
               required
               autoFocus
-              append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+              append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
             />
             <div className='flex'>
               <SubmitButton variant='success' className='ms-auto mt-1 px-6' value='TIP'>donate</SubmitButton>

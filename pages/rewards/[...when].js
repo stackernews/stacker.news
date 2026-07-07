@@ -47,7 +47,7 @@ function RewardDay ({ total, sources, time, meRewards }) {
   return (
     <div className='py-4 w-full grid' key={time} style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
       <h4 className='font-bold text-muted ps-0'>
-        {time && <div className='text-muted italic text-[0.93rem] font-normal pb-1'>On {dayMonthYear(time)} at 12a CT</div>}
+        {time && <div className='text-muted italic text-base font-normal pb-1'>On {dayMonthYear(time)} at 12a CT</div>}
         {total} sats were rewarded
       </h4>
       <div className='my-4 w-full justify-self-center'>

@@ -1,6 +1,5 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
-import Image from 'react-bootstrap/Image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
@@ -99,7 +98,7 @@ function HeaderPhoto ({ user, isMe }) {
 
   return (
     <div className='relative self-start' style={{ width: 'fit-content' }}>
-      <Image
+      <img
         src={src} width='135' height='135'
         className={styles.userimg}
       />

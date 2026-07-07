@@ -4,6 +4,7 @@ import { PriceCarouselProvider } from '@/components/nav/price-carousel'
 import { walletGuideUrl } from '@/wallets/lib/util'
 import { WalletLogo } from './wallet-logo'
 import Link from 'next/link'
+import { buttonClasses } from '@/components/ui/button'
 import InfoIcon from '@/svgs/information-fill.svg'
 import styles from '@/wallets/client/components/layout.module.css'
 import classNames from 'classnames'
@@ -11,7 +12,7 @@ import classNames from 'classnames'
 export function WalletShell ({ children, mobileHeader, noSidebar, mobileTopBar = true }) {
   return (
     // Wallet pages replace the global mobile footer with app-like wallet chrome.
-    <Layout className='py-12' containClassName={classNames(styles.walletContain, 'pb-0')} footer={false} hideMobileNav>
+    <Layout className='py-12' containClassName={classNames('pb-0 max-md:px-0 max-md:max-w-none')} footer={false} hideMobileNav>
       <div className={classNames(styles.walletShell, noSidebar && styles.walletShellNoSidebar)}>
         {(mobileTopBar || mobileHeader) && (
           <div className={styles.mobileWalletHeader}>
@@ -135,7 +136,7 @@ export function WalletActionEmpty ({ message, backHref, backLabel = 'back to wal
     <div className='flex flex-col items-center justify-center gap-6 flex-auto text-xl text-center text-muted'>
       <div>{message}</div>
       {backHref && (
-        <Link href={backHref} className='btn btn-secondary'>
+        <Link href={backHref} className={buttonClasses({ variant: 'secondary' })}>
           {backLabel}
         </Link>
       )}

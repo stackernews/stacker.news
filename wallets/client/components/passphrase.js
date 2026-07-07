@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { CopyButton, Form, PasswordInput, SubmitButton } from '@/components/form'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import classNames from 'classnames'
 import { object, string } from 'yup'
 import { useMe } from '@/components/me'

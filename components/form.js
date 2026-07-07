@@ -4,9 +4,7 @@ import BootstrapForm from 'react-bootstrap/Form'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
-import Col from 'react-bootstrap/Col'
 import Dropdown from 'react-bootstrap/Dropdown'
-import Row from 'react-bootstrap/Row'
 import styles from './form.module.css'
 import AddIcon from '@/svgs/add-fill.svg'
 import CloseIcon from '@/svgs/close-line.svg'
@@ -392,8 +390,8 @@ function InputInner ({
 
   return (
     <>
-      <Row>
-        <Col>
+      <div className='flex gap-4'>
+        <div className='grow basis-0'>
           <InputGroup hasValidation className={inputGroupClassName}>
             {prepend}
             <BootstrapForm.Control
@@ -426,9 +424,9 @@ function InputInner ({
               {meta.touched && meta.error}
             </BootstrapForm.Control.Feedback>
           </InputGroup>
-        </Col>
+        </div>
         {AppendColumn && <AppendColumn className={meta.touched && meta.error ? 'invisible' : ''} />}
-      </Row>
+      </div>
       {hint && (
         <BootstrapForm.Text>
           {hint}
@@ -668,30 +666,26 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
             <>
               {options?.map((_, i) => {
                 const AppendColumn = ({ className }) => (
-                  <Col className={`flex ps-0 ${className}`} xs='auto'>
+                  <div className={`flex ${className}`}>
                     {options.length - 1 === i && options.length !== max
                       // onMouseDown is used to prevent the blur event on text inputs from overriding the click event
                       ? <AddIcon className='fill-grey self-center justify-self-center pointer' onMouseDown={() => fieldArrayHelpers.push(emptyItem)} />
                       // filler div for col alignment across rows
                       : <div style={{ width: '24px', height: '24px' }} />}
-                  </Col>
+                  </div>
                 )
                 return (
-                  <div key={i}>
-                    <Row className='mb-2'>
-                      <Col>
-                        {children
-                          ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined, AppendColumn })
-                          : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} AppendColumn={AppendColumn} />}
-                      </Col>
+                  <div key={i} className='mb-2'>
+                    {children
+                      ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined, AppendColumn })
+                      : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} AppendColumn={AppendColumn} />}
 
-                      {options.length - 1 === i &&
-                        <>
-                          {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
-                          {form.touched[name] && typeof form.errors[name] === 'string' &&
-                            <div className='invalid-feedback block'>{form.errors[name]}</div>}
-                        </>}
-                    </Row>
+                    {options.length - 1 === i &&
+                      <>
+                        {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+                        {form.touched[name] && typeof form.errors[name] === 'string' &&
+                          <div className='invalid-feedback block'>{form.errors[name]}</div>}
+                      </>}
                   </div>
                 )
               })}
@@ -773,7 +767,7 @@ export function Range ({
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', columnGap: '1rem', alignItems: 'center' }}>
         {allOption
           ? <span className='text-muted' style={{ whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
-          : <small className='text-muted font-[monospace]'>{min}</small>}
+          : <small className='text-muted font-mono'>{min}</small>}
         <BootstrapForm.Range
           {...field}
           {...props}
@@ -791,7 +785,7 @@ export function Range ({
             onChange && onChange(e)
           }}
         />
-        <small className='text-muted font-[monospace]'>{max}</small>
+        <small className='text-muted font-mono'>{max}</small>
         <InputGroup className='flex-nowrap' style={{ width: 'auto' }}>
           {isAll
             ? <span className='form-control px-2' style={{ width: '4rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25em' }}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>

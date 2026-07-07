@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Dropdown, Image, Nav, Navbar, Offcanvas } from 'react-bootstrap'
+import { Dropdown, Nav, Navbar, Offcanvas } from 'react-bootstrap'
 import { MEDIA_URL } from '@/lib/constants'
 import Link from 'next/link'
 import { Indicator, LoginButtons, LogoutDropdownItem, NavWalletSummary } from '../common'
@@ -15,7 +15,7 @@ function MeImage ({ me, onClick }) {
     return <span className='text-muted pointer'><AnonIcon onClick={onClick} width='22' height='22' /></span>
   }
   return (
-    <Image
+    <img
       src={src} width='28' height='28'
       className={canvasStyles.meimg}
       onClick={onClick}

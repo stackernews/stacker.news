@@ -88,7 +88,7 @@ function AutowithdrawSettings () {
         label='desired balance'
         name='autoWithdrawThreshold'
         hint={isNumber(sendThreshold) ? `will attempt autowithdrawal when your balance exceeds ${sendThreshold * 11} sats` : undefined}
-        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
         required
         type='number'
         min={0}
@@ -127,7 +127,7 @@ function AutowithdrawSettings () {
           </div>
         }
         name='autoWithdrawMaxFeeTotal'
-        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
         required
         type='number'
         min={0}
@@ -154,7 +154,7 @@ function CowboyCreditsSettings () {
         }
         name='receiveCreditsBelowSats'
         required
-        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
         type='number'
         min={0}
       />
@@ -172,7 +172,7 @@ function CowboyCreditsSettings () {
         }
         name='sendCreditsBelowSats'
         required
-        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
         type='number'
         min={0}
       />

@@ -1,7 +1,7 @@
 import Layout from '@/components/layout'
 import { useQuery } from '@apollo/client/react'
 import UserHeader from '@/components/user-header'
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 import styles from '@/styles/user.module.css'
 import { useState } from 'react'
 import ItemFull from '@/components/item-full'

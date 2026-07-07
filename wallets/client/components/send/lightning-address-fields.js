@@ -51,7 +51,7 @@ export function LightningAddressFields ({ service, maxFee }) {
         min={service.min}
         max={service.max}
         required
-        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
       />
       {mandatoryFields.map(field => <LightningAddressField key={field} name={field} service={service} values={values} me={me} required />)}
       {maxFee}

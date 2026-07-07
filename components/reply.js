@@ -6,7 +6,7 @@ import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineIt
 import { commentSchema } from '@/lib/validate'
 import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import { useRoot } from './root'
 import { CREATE_COMMENT } from '@/fragments/payIn'
 import { injectComment } from '@/lib/comments'

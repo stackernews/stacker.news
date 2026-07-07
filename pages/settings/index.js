@@ -183,7 +183,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
             required
             autoFocus
-            append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
             hint={<small className='text-muted'>note: you can also press and hold the lightning bolt to zap custom amounts</small>}
           />
           <div className='pb-6'>
@@ -591,7 +591,7 @@ const ZapUndosField = () => {
       {checkboxField.value &&
         <Input
           name='zapUndos'
-          append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+          append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
           hint={<small className='text-muted'>threshold at which undos will be possible</small>}
           groupClassName='mt-1'
         />}
@@ -632,7 +632,7 @@ const TipRandomField = () => {
             required
             autoFocus
             max={tipRandomMaxField.value ? tipRandomMaxField.value - 1 : undefined}
-            append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
           />
           <Input
             type='number'
@@ -642,7 +642,7 @@ const TipRandomField = () => {
             required
             autoFocus
             min={tipRandomMinField.value ? tipRandomMinField.value + 1 : undefined}
-            append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
           />
         </>}
     </>

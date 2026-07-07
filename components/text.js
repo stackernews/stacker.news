@@ -1,7 +1,7 @@
 import styles from './text.module.css'
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import reactStringReplace from 'react-string-replace'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import { useRouter } from 'next/router'
 import classNames from 'classnames'
 import { CarouselProvider, useCarousel } from './carousel'

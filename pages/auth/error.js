@@ -1,7 +1,7 @@
 import { StaticLayout } from '@/components/layout'
 import styles from '@/styles/error.module.css'
 import { useRouter } from 'next/router'
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 import LoopVideo from '@/components/loop-video'
 
 export function getServerSideProps ({ query }) {

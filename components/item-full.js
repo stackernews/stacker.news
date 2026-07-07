@@ -8,7 +8,7 @@ import Comments from './comments'
 import styles from '@/styles/item.module.css'
 import itemStyles from './item.module.css'
 import { useMe } from './me'
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 import { useEffect } from 'react'
 import Poll from './poll'
 import Related from './related'
@@ -122,12 +122,12 @@ function TopLevelItem ({ item, noReply, ...props }) {
           <div className='font-bold mt-2'>
             {item.bountyPaidTo?.length
               ? (
-                <div className='px-4 py-1 inline-block bg-grey-medium rounded-sn text-success'>
+                <div className='px-4 py-1 inline-block bg-grey-medium rounded-md text-success'>
                   <Check className='fill-success' /> {numWithUnits(item.bounty, { abbreviate: false, format: true })} paid
                   {item.bountyPaidTo.length > 1 && <small className='font-light'> {new Set(item.bountyPaidTo).size} times</small>}
                 </div>)
               : (
-                <div className='px-4 py-1 inline-block bg-grey-darkmode rounded-sn text-light'>
+                <div className='px-4 py-1 inline-block bg-grey-darkmode rounded-md text-light'>
                   {numWithUnits(item.bounty, { abbreviate: false, format: true })} bounty
                 </div>)}
           </div>}

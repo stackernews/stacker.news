@@ -49,7 +49,7 @@ export function WalletProtocolFormField ({ protocol, type, onNwcLud16, ...props 
     ? walletLud16Domain(wallet?.name)
     : undefined
   if (lnAddrDomain) {
-    append = <InputGroup.Text className='font-[monospace]'>@{lnAddrDomain}</InputGroup.Text>
+    append = <InputGroup.Text className='font-mono'>@{lnAddrDomain}</InputGroup.Text>
     value = stripLightningAddressDomain(formik.values[key]?.[fieldProps.name] ?? '', lnAddrDomain)
     onChange = (_formik, e) => formik.setFieldValue(name, appendLightningAddressDomain(e.target.value, lnAddrDomain))
   }

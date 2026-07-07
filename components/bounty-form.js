@@ -48,7 +48,7 @@ export function BountyForm ({
       />
       <Input
         label={bountyLabel} name='bounty' required
-        append={<InputGroup.Text className='font-[monospace]'>sats</InputGroup.Text>}
+        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
       />
       <SNInput
         topLevel

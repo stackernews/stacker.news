@@ -59,20 +59,6 @@ a.title:visited {
     margin-bottom: .15rem;
 }
 
-.badge {
-    vertical-align: middle;
-    margin-top: -1px;
-    margin-left: 0.1rem;
-}
-
-.newComment {
-    color: var(--theme-grey) !important;
-    background: var(--theme-clickToContextColor) !important;
-    vertical-align: middle;
-    margin-top: -1px;
-    margin-left: 0.1rem;
-}
-
 .pin {
     fill: #a5a5a5;
     margin-right: .4rem;

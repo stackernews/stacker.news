@@ -1,4 +1,4 @@
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 import { fixedDecimal, numWithUnits } from '@/lib/format'
 import { timeLeft } from '@/lib/time'
 import { useMe } from './me'

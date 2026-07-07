@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import AvatarEditor from 'react-avatar-editor'
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 import BootstrapForm from 'react-bootstrap/Form'
 import EditImage from '@/svgs/image-edit-fill.svg'
 import Moon from '@/svgs/moon-fill.svg'

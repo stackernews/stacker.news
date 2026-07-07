@@ -1,7 +1,4 @@
 import { Checkbox, Form, Input, SNInput, SubmitButton } from './form'
-import Row from 'react-bootstrap/Row'
-import Col from 'react-bootstrap/Col'
-import Image from 'react-bootstrap/Image'
 import { useState } from 'react'
 import styles from '@/styles/post.module.css'
 import Avatar from './avatar'
@@ -42,8 +39,8 @@ export default function JobForm ({ item, subs }) {
         <div className='form-group'>
           <label className='form-label'>logo</label>
           <div className='relative' style={{ width: 'fit-content' }}>
-            <Image
-              src={logoId ? `${MEDIA_URL}/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
+            <img
+              src={logoId ? `${MEDIA_URL}/${logoId}` : '/jobs-default.png'} width='135' height='135' className='rounded-full'
             />
             <Avatar onSuccess={setLogoId} />
           </div>
@@ -62,21 +59,21 @@ export default function JobForm ({ item, subs }) {
           required
           clear
         />
-        <Row className='me-0'>
-          <Col>
+        <div className='flex gap-4'>
+          <div className='grow basis-0'>
             <Input
               label='location'
               name='location'
               clear
             />
-          </Col>
-          <Col className='flex ps-0' xs='auto'>
+          </div>
+          <div className='flex'>
             <Checkbox
               label={<div className='font-bold'>remote</div>} name='remote' hiddenLabel
               groupClassName={styles.inlineCheckGroup}
             />
-          </Col>
-        </Row>
+          </div>
+        </div>
         <SNInput
           topLevel
           label='description'

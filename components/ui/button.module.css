@@ -1,0 +1,193 @@
+/* skin only, what the button looks like in each state
+   layout settings live in button.js
+*/
+
+.btn {
+  color: var(--sn-btn-color);
+  background-color: var(--sn-btn-bg);
+}
+
+/*
+ * hover/active follow Bootstrap's baked math, verified value-exact against the
+ * compiled CSS (2026-07-05): hover mixes 15% of --sn-btn-mix into the base bg,
+ * active mixes 20%. White-text variants mix toward #000 (shade — the default);
+ * black-text variants set --sn-btn-mix: #fff (tint). primary/secondary keep
+ * #000: SN's brand-button-filled() mixin shades regardless of text color.
+ * Variants the formula doesn't fit (outlines, link) pin the explicit vars,
+ * which win through the fallback chain.
+ */
+.btn:hover,
+.btn:active {
+  color: var(--sn-btn-hover-color, var(--sn-btn-color));
+}
+
+.btn:hover {
+  background-color: var(--sn-btn-hover-bg, color-mix(in srgb, var(--sn-btn-bg) 85%, var(--sn-btn-mix, #000)));
+}
+
+.btn:active {
+  background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
+}
+
+.btn[data-disabled] {
+  color: var(--sn-btn-disabled-color, var(--sn-btn-color));
+  background-color: var(--sn-btn-disabled-bg, var(--sn-btn-bg));
+  opacity: .65;
+  pointer-events: none;
+}
+
+/*
+ * territory-brandable pair — bg chases the LIVE var (custom-css.js retints
+ * --sn-primary/-secondary at runtime), so the hover color-mix recomputes at
+ * paint time; copied from brand-button-filled() in globals.scss
+ */
+.primary {
+  --sn-btn-color: var(--sn-primary-text);
+  --sn-btn-bg: var(--sn-primary);
+}
+
+.secondary {
+  --sn-btn-color: var(--sn-secondary-text);
+  --sn-btn-bg: var(--sn-secondary);
+}
+
+.primary svg,
+.secondary svg {
+  fill: var(--sn-btn-color);
+}
+
+/* static filled variants — base colors from the $theme-colors map */
+.danger {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #c03221;
+}
+
+.info {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #007cbe;
+}
+
+.success {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #5c8001;
+}
+
+.grey {
+  --sn-btn-color: #000;
+  --sn-btn-bg: #e9ecef;
+  --sn-btn-mix: #fff;
+}
+
+.grey-medium {
+  --sn-btn-color: #000;
+  --sn-btn-bg: #d2d2d2;
+  --sn-btn-mix: #fff;
+}
+
+.grey svg,
+.grey-medium svg {
+  fill: #212529;
+}
+
+/* !important preserved from globals.scss:478 — the icon's own fill/stroke
+   classes must lose in every state, exactly as today */
+.nostr {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #8d45dd;
+}
+
+.nostr,
+.nostr:hover,
+.nostr:active {
+  fill: #fff !important;
+  stroke: #fff !important;
+  stroke-miterlimit: 10;
+  stroke-width: 6px;
+}
+
+.nostr svg {
+  fill: #fff;
+  stroke: #fff;
+  stroke-miterlimit: 10;
+  stroke-width: 6px;
+}
+
+/* outlines — transparent base that fills on hover; the mix formula doesn't
+   apply, so hover/active/disabled are pinned explicitly */
+.outline-secondary {
+  --sn-btn-color: var(--sn-secondary);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: var(--sn-secondary-text);
+  --sn-btn-hover-bg: var(--sn-secondary);
+  --sn-btn-active-bg: var(--sn-secondary);
+  --sn-btn-disabled-color: var(--sn-secondary);
+  --sn-btn-disabled-bg: transparent;
+}
+
+.outline-info {
+  --sn-btn-color: #007cbe;
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: #007cbe;
+  --sn-btn-active-bg: #007cbe;
+  --sn-btn-disabled-color: #007cbe;
+  --sn-btn-disabled-bg: transparent;
+}
+
+/* --sn-muted aliases --theme-grey, the exact var the compiled .btn-outline-grey
+   uses (globals.scss:275 explicit block wins over the map-generated one);
+   border-color pinned for all states — both consumers (territory-header.js)
+   add a border-2 width utility */
+.outline-grey {
+  --sn-btn-color: var(--sn-muted);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: var(--sn-muted);
+  --sn-btn-active-bg: var(--sn-muted);
+  --sn-btn-disabled-color: var(--sn-muted);
+  --sn-btn-disabled-bg: transparent;
+  border-color: var(--sn-muted);
+}
+
+/* border-color pinned for all states (compiled: #F6911D throughout) — the only
+   consumer (notifications.js retry) adds a border-1 width utility; width is
+   utility-owned, color is skin-owned */
+.outline-warning {
+  --sn-btn-color: #F6911D;
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #000;
+  --sn-btn-hover-bg: #F6911D;
+  --sn-btn-active-bg: #F6911D;
+  --sn-btn-disabled-color: #F6911D;
+  --sn-btn-disabled-bg: transparent;
+  border-color: #F6911D;
+}
+
+/* hover/active text is #fff via the late !important override at
+   globals.scss:485 — NOT the #000 the compiled variant block claims */
+.outline-grey-darkmode {
+  --sn-btn-color: #8c8c8c;
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: #8c8c8c;
+  --sn-btn-active-bg: #8c8c8c;
+  --sn-btn-disabled-color: #8c8c8c;
+  --sn-btn-disabled-bg: transparent;
+}
+
+/* font-weight 400 (not bold) is the recipe's job — button.js swaps font-bold
+   for font-normal on this variant; font-weight is recipe-owned */
+.link {
+  --sn-btn-color: var(--sn-link-color);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: var(--sn-link-hover-color);
+  --sn-btn-hover-bg: transparent;
+  --sn-btn-active-bg: transparent;
+  --sn-btn-disabled-color: #6c757d;
+  text-decoration: none;
+}
+
+.link:hover,
+.link:focus-visible {
+  text-decoration: none;
+}

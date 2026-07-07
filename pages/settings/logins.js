@@ -1,6 +1,6 @@
 import { Form, Input, SubmitButton, CopyInput } from '@/components/form'
-import Alert from 'react-bootstrap/Alert'
-import Button from 'react-bootstrap/Button'
+import Alert from '@/components/ui/alert'
+import Button from '@/components/ui/button'
 import Layout from '@/components/layout'
 import { useState } from 'react'
 import { gql } from '@apollo/client'
@@ -60,7 +60,7 @@ function QRLinkButton ({ provider, unlink, status }) {
     ? unlink
     : () => showModal(onClose =>
       <div className='flex flex-col items-center'>
-        <LightningAuthWithExplainer callbackUrl='/settings/logins' backButton={false} md={12} lg={12} />
+        <LightningAuthWithExplainer callbackUrl='/settings/logins' backButton={false} stacked />
       </div>)
 
   return (
@@ -361,7 +361,7 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
           <Info>
             <ul>
               <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
-              <li>you need to add the API key to the <span className='font-[monospace]'>X-API-Key</span> header of your requests</li>
+              <li>you need to add the API key to the <span className='font-mono'>X-API-Key</span> header of your requests</li>
               <li>you can currently only generate API keys if we enabled it for your account</li>
               <li>
                 you can{' '}
@@ -396,7 +396,7 @@ function ApiKeyModal ({ apiKey }) {
         Make sure to copy your API key now.<br />
         This is the only time we will show it to you.
       </p>
-      <CopyInput readOnly noForm placeholder={apiKey} hint={<>use the <span className='font-[monospace]'>X-API-Key</span> header to include this key in your requests</>} />
+      <CopyInput readOnly noForm placeholder={apiKey} hint={<>use the <span className='font-mono'>X-API-Key</span> header to include this key in your requests</>} />
     </>
   )
 }

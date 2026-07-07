@@ -1,0 +1,38 @@
+.badge {
+  color: var(--sn-badge-color, #fff);
+  background-color: var(--sn-badge-bg, transparent);
+}
+
+/* Bootstrap parity */
+.badge:empty {
+  display: none;
+}
+
+.grey {
+  --sn-badge-color: var(--theme-grey);
+  --sn-badge-bg: var(--theme-clickToContextColor);
+}
+
+.secondary {
+  --sn-badge-bg: rgba(var(--bs-secondary-rgb), var(--sn-badge-opacity, 1));
+}
+
+.boost {
+  --sn-badge-bg: rgba(var(--bs-boost-rgb), var(--sn-badge-opacity, 1));
+}
+
+.danger {
+  --sn-badge-bg: var(--sn-danger);
+}
+
+.success {
+  --sn-badge-bg: var(--sn-success);
+}
+
+.warning {
+  --sn-badge-bg: var(--sn-warning);
+}
+
+.info {
+  --sn-badge-bg: var(--sn-info);
+}

@@ -42,11 +42,6 @@ export function useWalletsError () {
   return walletsError
 }
 
-export function useHasSparkWallet () {
-  const { hasSparkWallet } = useContext(WalletDataContext)
-  return hasSparkWallet
-}
-
 export function useWalletsDispatch () {
   return useContext(WalletsDispatchContext)
 }
@@ -141,12 +136,11 @@ function WalletDataProvider ({ children }) {
 
     return {
       wallets,
-      hasSparkWallet: query.data?.wallets?.some(wallet => wallet.name === 'SPARK') ?? false,
       walletSendReady: query.walletSendReady,
       walletsError: query.walletsError ?? null,
       templates
     }
-  }, [query.data?.wallets, query.walletsData, query.walletSendReady, query.walletsError])
+  }, [query.walletsData, query.walletSendReady, query.walletsError])
 
   return (
     <WalletDataContext.Provider value={value}>

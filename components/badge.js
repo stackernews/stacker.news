@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import Tooltip from '@/components/ui/tooltip'
+import Popover from '@/components/ui/popover'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import GunIcon from '@/svgs/revolver.svg'
@@ -92,10 +92,19 @@ function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, heig
   )
 }
 
+// a hint that must open on tap is a Popover, not a Tooltip (Base UI vocabulary;
+// pr2 doc §13.6). all defaults: hover opens instantly and closes on hover-out,
+// tap opens and pins (outside tap / second tap / Escape close), desktop click
+// pins — intended; nativeButton={false} adds role='button'/tabIndex, so badges
+// are keyboard-reachable for the first time (Enter pins, Escape closes)
 export function BadgeTooltip ({ children, overlayText, placement }) {
   return (
-    <Tooltip content={overlayText} side={placement || 'bottom'}>
-      {children}
-    </Tooltip>
+    <Popover>
+      <Popover.Trigger render={children} nativeButton={false} openOnHover delay={0} />
+      {/* initialFocus={false}: a text-only hint must not yank focus on press */}
+      <Popover.Content side={placement || 'bottom'} initialFocus={false} className='py-1 px-2 text-center'>
+        {overlayText}
+      </Popover.Content>
+    </Popover>
   )
 }

@@ -72,6 +72,14 @@
   --sn-link-color: var(--bs-link-color);
   --sn-link-hover-color: var(--bs-link-hover-color);
 
+  /* popup body chrome (PR2 C4, popover.module.css). PR3 makes these canonical:
+     the body pair falls out of the --bs- sweep name-for-name; --sn-borderColor
+     is the camelCase --theme- rename (NOT --sn-border-color — the --bs- sweep
+     owns that name). */
+  --sn-body-bg: var(--bs-body-bg);
+  --sn-body-color: var(--bs-body-color);
+  --sn-borderColor: var(--theme-borderColor);
+
   /* fixed palette — static across themes, not territory-overridable.
      Values copied from the $theme-colors map so they equal Bootstrap's --bs-* output. */
   --sn-danger: #c03221;

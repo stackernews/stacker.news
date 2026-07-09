@@ -1,6 +1,7 @@
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip'
 import { cn } from '@/lib/cn'
 import styles from './tooltip.module.css'
+import arrowStyles from './arrow.module.css'
 
 // _app.js mounts this once for grouping only (adjacent triggers swap
 // instantly, 400ms native timeout). Deliberately NO delay props: a Provider
@@ -24,7 +25,7 @@ export default function Tooltip ({ children, content, side = 'bottom', delay, cl
       <BaseTooltip.Portal>
         <BaseTooltip.Positioner side={side} sideOffset={6} className={styles.positioner}>
           <BaseTooltip.Popup className={cn(styles.popup, 'px-2 py-1 text-sm leading-none text-center wrap-break-word max-w-48 rounded-md', className)}>
-            <BaseTooltip.Arrow className={styles.arrow} />
+            <BaseTooltip.Arrow className={arrowStyles.arrow} />
             {content}
           </BaseTooltip.Popup>
         </BaseTooltip.Positioner>

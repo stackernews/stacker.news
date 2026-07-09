@@ -21,12 +21,12 @@ import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
-import UserPopover from './user-popover'
+import UserPreviewCard from './user-preview-card'
 import useQrPayIn from './payIn/hooks/use-qr-pay-in'
 import { useToast } from './toast'
 import { useShowModal } from './modal'
 import classNames from 'classnames'
-import SubPopover from './sub-popover'
+import SubPreviewCard from './sub-preview-card'
 import useCanEdit from './use-can-edit'
 import { getFailedRetryPayIn, runManualRetry, useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
@@ -148,7 +148,7 @@ export default function ItemInfo ({
       <span>
         {showUser &&
           <Link href={`/${item.user.name}`}>
-            <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
+            <UserPreviewCard name={item.user.name}>@{item.user.name}</UserPreviewCard>
             <Badges badgeClassName='fill-grey' spacingClassName='ms-0.5' height={12} width={12} user={item.user} bot={item.apiKey} />
             {embellishUser}
           </Link>}
@@ -170,11 +170,11 @@ export default function ItemInfo ({
         const href = branding ? (isExternal ? `${process.env.NEXT_PUBLIC_URL}/~${subName}` : '/') : `/~${subName}`
 
         return (
-          <SubPopover key={subName} sub={subName}>
+          <SubPreviewCard key={subName} sub={subName}>
             <Link href={href} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined}>
               {' '}<Badge variant='grey' className='align-middle ms-0.5'>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
             </Link>
-          </SubPopover>
+          </SubPreviewCard>
         )
       })}
       {sub?.nsfw &&

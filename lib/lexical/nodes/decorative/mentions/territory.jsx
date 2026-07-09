@@ -103,7 +103,7 @@ export class TerritoryMentionNode extends DecoratorNode {
   decorate () {
     const name = this.__name
     const href = '/~' + name
-    const SubPopover = require('@/components/sub-popover').default
+    const SubPopover = require('@/components/sub-preview-card').default
     const MentionsComponent = require('@/components/editor/nodes/mentions').default
     const text = '~' + name
     return (

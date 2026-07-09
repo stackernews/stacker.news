@@ -12,13 +12,15 @@
 // must die with C11/PR3 — the rb-zero and utility-checker gates grep pages/
 // too. strip the left column then, or delete the page along with it.
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
 import BsAlert from 'react-bootstrap/Alert'
 import BsBadge from 'react-bootstrap/Badge'
 import BsButton from 'react-bootstrap/Button'
 import BsContainer from 'react-bootstrap/Container'
 import BsTooltip from 'react-bootstrap/Tooltip'
+import BsPopover from 'react-bootstrap/Popover'
+import Overlay from 'react-bootstrap/Overlay'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Layout from '@/components/layout'
 import Button, { buttonClasses } from '@/components/ui/button'
@@ -26,6 +28,10 @@ import Badge from '@/components/ui/badge'
 import Alert from '@/components/ui/alert'
 import Container from '@/components/ui/container'
 import Tooltip from '@/components/ui/tooltip'
+import Popover from '@/components/ui/popover'
+import PreviewCard from '@/components/ui/preview-card'
+import { BadgeTooltip } from '@/components/badge'
+import CowboyHatIcon from '@/svgs/cowboy.svg'
 import useDarkMode from '@/components/dark-mode'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 
@@ -73,7 +79,6 @@ const RETINT_VARS = {
 
 // docs/dev/pr2-base-ui-components.md §8 — add a section above as each lands
 const ROADMAP = [
-  ['Popover / PreviewCard', 'C4'],
   ['Dropdown (Menu)', 'C5'],
   ['Modal (Dialog)', 'C6'],
   ['Toast', 'C7'],
@@ -167,6 +172,109 @@ function BsTooltipB ({ text, placement = 'bottom', children }) {
     <OverlayTrigger placement={placement} overlay={<BsTooltip>{text}</BsTooltip>} trigger={['hover', 'focus']}>
       {children}
     </OverlayTrigger>
+  )
+}
+
+// the deleted rb hover-card machinery verbatim (500ms show timeout, 300ms
+// hide grace, popup :hover check, position:fixed hack — pr2 doc §13.3), for
+// the left column only — dies with C11/PR3
+function BsHoverCard ({ trigger, body }) {
+  const [show, setShow] = useState(false)
+  const popRef = useRef(null)
+  const timeoutId = useRef(null)
+
+  const onToggle = show => {
+    clearTimeout(timeoutId.current)
+    if (show) {
+      timeoutId.current = setTimeout(() => setShow(true), 500)
+    } else {
+      timeoutId.current = setTimeout(() => setShow(!!popRef.current?.matches(':hover')), 300)
+    }
+  }
+
+  return (
+    <OverlayTrigger
+      placement='bottom'
+      trigger={['hover', 'focus']}
+      show={show}
+      onToggle={onToggle}
+      transition
+      rootClose
+      overlay={
+        <BsPopover style={{ position: 'fixed' }} onPointerLeave={() => onToggle(false)}>
+          <BsPopover.Body ref={popRef}>
+            {body}
+          </BsPopover.Body>
+        </BsPopover>
+      }
+    >
+      <span>{trigger}</span>
+    </OverlayTrigger>
+  )
+}
+
+// footer.js FooterPopover shape (trigger press toggles, outside-press +
+// Escape close, keyboard-reachable div trigger)
+function ClickPopover ({ label, side = 'top', children }) {
+  return (
+    <Popover>
+      <Popover.Trigger nativeButton={false} render={<div className='nav-link p-0 inline-flex cursor-pointer'>{label}</div>} />
+      <Popover.Content initialFocus={false} side={side}>
+        <Popover.Body className='font-medium'>{children}</Popover.Body>
+      </Popover.Content>
+    </Popover>
+  )
+}
+
+// upvote.js WalkthroughPopover shape — controlled, no Trigger, anchored to a
+// detached element, ignores outside-press (parity: a stray click must not
+// mark the walkthrough seen)
+function WalkthroughCompare () {
+  const bsRef = useRef()
+  const snRef = useRef()
+  const [showBs, setShowBs] = useState(false)
+  const [showSn, setShowSn] = useState(false)
+  return (
+    <Compare
+      label='walkthrough'
+      note="upvote shape: controlled, anchor ref, side='right', header + lightning X. outside click does NOT dismiss on either side (parity); Escape dismisses the new side (deliberate a11y add)"
+      bs={
+        <div className='flex items-center'>
+          <BsButton size='sm' variant='grey' onClick={() => setShowBs(s => !s)}>toggle</BsButton>
+          <span ref={bsRef} className='ms-2'>⚡️</span>
+          <Overlay show={showBs} target={bsRef.current} placement='right'>
+            <BsPopover id='popover-basic'>
+              <BsPopover.Header className='flex justify-between alert-dismissible' as='h4'>Zapping
+                <button type='button' className='btn-close' onClick={() => setShowBs(false)}><span className='sr-only focus-within:not-sr-only'>Close alert</span></button>
+              </BsPopover.Header>
+              <BsPopover.Body>
+                <div className='mb-2'>Press the bolt again to zap 1 more sat.</div>
+                <div>Repeatedly press the bolt to zap more sats.</div>
+              </BsPopover.Body>
+            </BsPopover>
+          </Overlay>
+        </div>
+      }
+      sn={
+        <div className='flex items-center'>
+          <Button size='sm' variant='grey' onClick={() => setShowSn(s => !s)}>toggle</Button>
+          <span ref={snRef} className='ms-2'>⚡️</span>
+          <Popover
+            open={showSn} onOpenChange={(open, details) => {
+              if (!open && (details.reason === 'close-press' || details.reason === 'escape-key')) setShowSn(false)
+            }}
+          >
+            <Popover.Content anchor={snRef} side='right' initialFocus={false}>
+              <Popover.Header>Zapping<Popover.Close /></Popover.Header>
+              <Popover.Body>
+                <div className='mb-2'>Press the bolt again to zap 1 more sat.</div>
+                <div>Repeatedly press the bolt to zap more sats.</div>
+              </Popover.Body>
+            </Popover.Content>
+          </Popover>
+        </div>
+      }
+    />
   )
 }
 
@@ -357,7 +465,7 @@ export default function Playground () {
 
         <Section
           title='Tooltip'
-          note='ui/tooltip.js — Base UI Tooltip portaled onto the --sn-z ladder; 150ms ease-out fade + scale(.98), keystone 5&apos;s first application. intended deltas: the ActionTooltip population gains the fade and full opacity (was a snap at .9), the pointer can move onto the popup (WCAG 1.4.13), and every tooltip flip+shifts to stay in the viewport (QA decision — the old ActionTooltip config clipped at edges). green is theme-invariant — same in dark mode'
+          note='ui/tooltip.js — Base UI Tooltip portaled onto the --sn-z ladder; 150ms ease-out fade + scale(.98), keystone 5&apos;s first application. intended deltas: the ActionTooltip population gains the fade (was a snap; its .9 opacity stays — restored 2026-07-09, C3 had unified on 1; login drops to .9 with it, badges don&apos;t — they render a Popover now, opacity 1), the pointer can move onto the popup (WCAG 1.4.13), and every tooltip flip+shifts to stay in the viewport (QA decision — the old ActionTooltip config clipped at edges). green is theme-invariant — same in dark mode. arrow now rides the shared ui/arrow.module.css at 12px/borderless — 12×6 tip ≈ BS&apos;s native .8rem × .4rem, C3&apos;s drew 11.3×5.7 (C4 QA fix; also no longer morphs during open)'
         >
           <CompareGrid>
             <Compare
@@ -411,6 +519,125 @@ export default function Playground () {
               note='login.js pattern (Root disabled) — nothing should open on either side'
               bs={<OverlayTrigger placement='bottom' overlay={<></>} trigger={['hover', 'focus']}><span className='cursor-help underline decoration-dotted'>account switching</span></OverlayTrigger>}
               sn={<Tooltip content='not available for account switching yet' disabled><span className='cursor-help underline decoration-dotted'>account switching</span></Tooltip>}
+            />
+          </CompareGrid>
+        </Section>
+
+        <Section
+          title='Popover / Preview Card'
+          note='ui/popover.js + ui/preview-card.js — body-bg chrome on the --sn-z ladder, shared clip-window arrow (ui/arrow.module.css), 150ms fade+scale (was: snap). intended deltas: body font text-sm 14px vs 13.02px painted (footer bodies 14.4px), shadow-lg (today paints none — pre-flight 1; judge by eye), click/keyboard affordances called out per row. chrome is body-vars — theme-flips and territory-retints for free'
+        >
+          <CompareGrid>
+            <Compare
+              label='click popover'
+              note="footer shape: press toggles, outside press + Escape close, side='top'. new: the div trigger is keyboard-reachable (Tab + Enter/Space)"
+              bs={
+                <OverlayTrigger
+                  trigger='click' placement='top' rootClose overlay={
+                    <BsPopover>
+                      <BsPopover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
+                        <a href='https://t.me/k00bideh' className='nav-link p-0 inline-flex' target='_blank' rel='noreferrer'>telegram</a>
+                        <span className='mx-2 text-muted'> \ </span>
+                        <a href='https://signal.group/#CjQKIEt57YiluJoTW3lZqaqAq6echCekEYFfg7eIua2X91nLEhA__6ALI9pkaY_McQqX0jm1' className='nav-link p-0 inline-flex' target='_blank' rel='noreferrer'>signal</a>
+                      </BsPopover.Body>
+                    </BsPopover>
+                  }
+                >
+                  <div className='nav-link p-0 inline-flex' style={{ cursor: 'pointer' }}>chat</div>
+                </OverlayTrigger>
+              }
+              sn={
+                <ClickPopover label='chat'>
+                  <a href='https://t.me/k00bideh' className='nav-link p-0 inline-flex' target='_blank' rel='noreferrer'>telegram</a>
+                  <span className='mx-2 text-muted'> \ </span>
+                  <a href='https://signal.group/#CjQKIEt57YiluJoTW3lZqaqAq6echCekEYFfg7eIua2X91nLEhA__6ALI9pkaY_McQqX0jm1' className='nav-link p-0 inline-flex' target='_blank' rel='noreferrer'>signal</a>
+                </ClickPopover>
+              }
+            />
+            <Compare
+              label='hover card'
+              note='500ms open / 300ms close grace on both sides; pointer can move into the card; focus opens; Escape closes'
+              bs={
+                <BsHoverCard
+                  trigger={<Link href='#'>@satoshi</Link>}
+                  body={
+                    <div>
+                      <div className='font-bold'>@satoshi</div>
+                      <small className='text-muted'>stacking since: <Link href='#'>#1</Link></small>
+                    </div>
+                  }
+                />
+              }
+              sn={
+                <PreviewCard
+                  trigger={<Link href='#'>@satoshi</Link>}
+                  body={
+                    <div>
+                      <div className='font-bold'>@satoshi</div>
+                      <small className='text-muted'>stacking since: <Link href='#'>#1</Link></small>
+                    </div>
+                  }
+                />
+              }
+            />
+            <Compare
+              label='nested hover card'
+              note='user-preview-card hosts an item-preview-card trigger in its body ("stacking since") — hover the inner #1 with the outer card open (risk 1)'
+              bs={
+                <BsHoverCard
+                  trigger={<Link href='#'>@satoshi</Link>}
+                  body={
+                    <div>
+                      <div className='font-bold'>@satoshi</div>
+                      <small className='text-muted'>stacking since: <BsHoverCard trigger={<Link href='#'>#1</Link>} body={<div>an item summary</div>} /></small>
+                    </div>
+                  }
+                />
+              }
+              sn={
+                <PreviewCard
+                  trigger={<Link href='#'>@satoshi</Link>}
+                  body={
+                    <div>
+                      <div className='font-bold'>@satoshi</div>
+                      <small className='text-muted'>stacking since: <PreviewCard trigger={<Link href='#'>#1</Link>} body={<div>an item summary</div>} /></small>
+                    </div>
+                  }
+                />
+              }
+            />
+            <WalkthroughCompare />
+            <Compare
+              label='badge hint'
+              note="left = C3's green tooltip (what badges render before this commit; login.js keeps it). right = the badge Popover: hover opens instantly, click PINS until outside click/Escape (intended), tap works on touch, Tab + Enter reaches it (all new)"
+              bs={
+                <Tooltip content='50 days'>
+                  <span className='inline-flex items-center justify-center'><CowboyHatIcon className='fill-grey align-middle' height={16} width={16} /></span>
+                </Tooltip>
+              }
+              sn={
+                <BadgeTooltip overlayText='50 days'>
+                  <span className='inline-flex items-center justify-center'><CowboyHatIcon className='fill-grey align-middle' height={16} width={16} /></span>
+                </BadgeTooltip>
+              }
+            />
+            <Compare
+              label='arrow, four sides'
+              note="C4 QA fix: the popup is position:relative now, so the arrow's containing block survives the open/close transform (it used to re-anchor to the positioner when the transition ended — the shape-shift sox caught); shape is the Base UI docs clip-window diamond from the new shared ui/arrow.module.css at 16px (16×7 tip ≈ BS's native 1rem × .5rem popover arrow; the old 12px rotated square drew 17×8.5). Watch it open: no morph/jump, notch stays crisp, popup border must not cut across it"
+              bs={
+                <div className='flex gap-4'>
+                  {['top', 'right', 'bottom', 'left'].map(p =>
+                    <OverlayTrigger key={p} trigger='click' placement={p} rootClose overlay={<BsPopover><BsPopover.Body>{p}</BsPopover.Body></BsPopover>}>
+                      <div className='nav-link p-0 inline-flex cursor-pointer'>{p}</div>
+                    </OverlayTrigger>)}
+                </div>
+              }
+              sn={
+                <div className='flex gap-4'>
+                  {['top', 'right', 'bottom', 'left'].map(s =>
+                    <ClickPopover key={s} label={s} side={s}>{s}</ClickPopover>)}
+                </div>
+              }
             />
           </CompareGrid>
         </Section>

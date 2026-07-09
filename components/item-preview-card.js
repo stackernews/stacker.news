@@ -3,11 +3,11 @@ import { isAbortError } from '@/lib/error'
 import errorStyles from '@/styles/error.module.css'
 import { useLazyQuery } from '@apollo/client/react'
 import classNames from 'classnames'
-import HoverablePopover from './hoverable-popover'
+import PreviewCard from './ui/preview-card'
 import { ItemSkeleton, ItemSummary } from './item'
 import { useCallback } from 'react'
 
-export default function ItemPopover ({ id, children }) {
+export default function ItemPreviewCard ({ id, children }) {
   const [execute, { loading, data }] = useLazyQuery(ITEM, {
     fetchPolicy: 'cache-first'
   })
@@ -17,7 +17,7 @@ export default function ItemPopover ({ id, children }) {
   }, [execute, id])
 
   return (
-    <HoverablePopover
+    <PreviewCard
       onShow={getItem}
       trigger={children}
       body={!data || loading

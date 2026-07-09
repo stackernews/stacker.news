@@ -1,0 +1,68 @@
+/* popover.module.css — chrome shared by Popover and Preview Card popups */
+.positioner {
+  z-index: var(--sn-z-popover);   /* portals to <body>; ladder is the only z authority */
+}
+
+.popup {
+  /* pins the absolute arrow's containing block to the popup. Without it the
+     block FLIPS mid-animation: while the open/close transition runs, the
+     scale transform makes .popup a containing block, and the instant
+     transform returns to none the arrow re-anchors to the positioner — the
+     C4-QA arrow morph. Docs demos carry the same rule */
+  position: relative;
+  background-color: var(--sn-body-bg);
+  color: var(--sn-body-color);
+  border: 1px solid var(--sn-borderColor);
+  transform-origin: var(--transform-origin);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;  /* keystone 5 */
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup {
+    transition: none;
+  }
+}
+
+.header {
+  border-bottom: 1px solid var(--sn-borderColor);
+}
+
+/* arrow lives in arrow.module.css (shared with tooltip; C4 QA fix 2026-07-09) —
+   popover/preview-card ride its defaults: 16px, body bg, 1px border */
+
+/* today's paint: globals :753 (lightning font) + :768 (.5rem padding) + .btn-close opacities */
+/* stale comment above I changed the margin to do symmetry*/
+.close {
+  margin-top: 0.25rem;
+  margin-right: -0.5rem;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: #000;
+  opacity: .5;
+  font-family: lightning;
+  font-weight: 300;
+  font-size: 150%;
+  line-height: 1;
+}
+
+.close:hover {
+  opacity: .75;
+}
+
+.close:focus {
+  outline: 0;
+  box-shadow: 0 0 0 .25rem rgba(250, 218, 94, .25);
+  opacity: 1;
+}
+
+/* today's dark paint is Bootstrap's invert(1) filter over #000 — i.e. white */
+:global([data-bs-theme='dark']) .close {
+  color: #fff;
+}

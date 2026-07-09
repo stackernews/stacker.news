@@ -7,8 +7,20 @@
 
 .popup {
   --sn-tooltip-bg: #5c8001;       /* $tooltip-bg (globals:85); theme-invariant today — no dark block */
+  /* arrow theme, inherited by the popup-child arrow (ui/arrow.module.css):
+     smaller + borderless. 12px ⇒ 12×6 tip ≈ BS's native $tooltip-arrow
+     .8rem × .4rem; C3's 8px pre-rotation square drew 11.3×5.7 (size means
+     the drawn base since the clip-window construction) */
+  --arrow-size: 12px;
+  --arrow-bg: var(--sn-tooltip-bg);
+  --arrow-border-width: 0px;
+  position: relative;             /* pins the arrow's containing block through the
+                                     open/close transform — see popover.module.css */
   background-color: var(--sn-tooltip-bg);
   color: #fff;
+  opacity: 0.9;                   /* $tooltip-opacity — on the popup, not the bg, so text+arrow
+                                     dim too (BS put it on the whole .tooltip); starting/ending
+                                     styles below animate 0 → .9 */
   transform-origin: var(--transform-origin);
   transition: opacity 150ms ease-out, transform 150ms ease-out;   /* keystone 5, first application */
 }
@@ -28,17 +40,3 @@
     transition: none;
   }
 }
-
-/* diamond arrow: rotated square, half-protruding; shares the bg var.
-   8px ⇒ 4px protrusion ≈ today's .4rem triangle; data-side = popup side,
-   so side='bottom' puts the arrow on the popup's TOP edge */
-.arrow {
-  width: 8px;
-  height: 8px;
-  background-color: var(--sn-tooltip-bg);
-  transform: rotate(45deg);
-}
-.arrow[data-side='top'] { bottom: -4px; }
-.arrow[data-side='bottom'] { top: -4px; }
-.arrow[data-side='left'] { right: -4px; }
-.arrow[data-side='right'] { left: -4px; }

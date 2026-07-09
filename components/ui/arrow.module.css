@@ -1,0 +1,59 @@
+/* arrow.module.css — the one popup arrow, shared by ui/tooltip, ui/popover and
+   ui/preview-card (C5 menu next). Base UI docs construction (popover.md demo,
+   pulled 2026-07-09 — supersedes §12.6 pre-flight 3's "docs arrow is an SVG"):
+   the element is a half-height clip window and the diamond is a ::before square
+   with a FULL border rotated through it — only the two outward faces show, so
+   every side rule is just offset + rotate of one shape (the old version instead
+   bordered two faces and rotated a different amount per side).
+   Offsets are the docs' plain values — DON'T add border terms: the popup is
+   position:relative, so they resolve against its PADDING box, one border-width
+   inside the visible edge. A bordered popup therefore gets the fill overlapping
+   its border in the notch automatically (no hairline), a borderless one
+   (tooltip) sits flush.
+   Themed via custom props; defaults = popover/preview-card chrome, tooltip
+   overrides in tooltip.module.css:
+     --arrow-size          drawn base width; tip height = size/2 − popup border
+     --arrow-bg            diamond fill
+     --arrow-border-width  0px turns the border off
+     --arrow-border-color
+   Size semantics changed with the construction (C4-QA catch 2026-07-09): the
+   old 12px was the PRE-rotation square, which drew a 17×8.5 tip (×√2); here
+   size IS the drawn base. 16px ⇒ 16×7 ≈ BS's native $popover-arrow-width/
+   -height 1rem × .5rem. data-side = popup side: side='bottom' ⇒ TOP edge. */
+.arrow {
+  width: var(--arrow-size, 16px);
+  height: calc(var(--arrow-size, 16px) / 2);
+  overflow: clip;
+}
+
+.arrow::before {
+  content: '';
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  box-sizing: border-box;
+  width: calc(var(--arrow-size, 16px) / 2 * sqrt(2));
+  height: calc(var(--arrow-size, 16px) / 2 * sqrt(2));
+  background-color: var(--arrow-bg, var(--sn-body-bg));
+  border: var(--arrow-border-width, 1px) solid var(--arrow-border-color, var(--sn-borderColor));
+  transform: translate(-50%, 50%) rotate(45deg);
+}
+
+.arrow[data-side='top'] {
+  bottom: calc(var(--arrow-size, 16px) / -2);
+  rotate: 180deg;
+}
+.arrow[data-side='bottom'] {
+  top: calc(var(--arrow-size, 16px) / -2);
+}
+/* rotate keeps the size × size/2 LAYOUT box, so flush is -(w/2 + h/2) = -¾size,
+   not -½size — the docs' -9px for their 12px arrow */
+.arrow[data-side='left'] {
+  right: calc(var(--arrow-size, 16px) * -0.75);
+  rotate: 90deg;
+}
+.arrow[data-side='right'] {
+  left: calc(var(--arrow-size, 16px) * -0.75);
+  rotate: -90deg;
+}

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { ObstacleButtons } from '@/components/obstacle'
 import { useToast } from '@/components/toast'
-import { useSingleFlight, useWalletDelete } from '@/wallets/client/hooks'
+import { useWalletDelete } from '@/wallets/client/hooks'
 
 export function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {
   const deletePersistedWallet = useWalletDelete(wallet)
@@ -20,17 +20,16 @@ export function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {
     }
   }, [deletePersistedWallet, onClose, onSuccess, toaster])
 
-  const [handleConfirm, deleting] = useSingleFlight(onConfirm)
-
   return (
     <div className='text-center'>
       <h4 className='mb-3'>Delete wallet</h4>
       <WalletDeletionBarrier fundLossRisk={fundLossRisk} acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
       <ObstacleButtons
         onClose={onClose}
-        onConfirm={handleConfirm}
-        confirmText={deleting ? 'deleting...' : 'delete'}
-        confirmDisabled={deleting || !acknowledged}
+        onConfirm={onConfirm}
+        confirmText='delete'
+        confirmingText='deleting...'
+        confirmDisabled={!acknowledged}
       />
     </div>
   )
@@ -57,9 +56,8 @@ export function WalletDeletionBarrier ({ fundLossRisk = false, acknowledged, set
 
 // Shown when a save would delete the wallet (no remaining capabilities) so the
 // user gets an explicit chance to confirm or back out before destroying data.
-export function WalletSaveDeleteObstacle ({ wallet, onClose, onConfirm }) {
+export function WalletSaveDeleteObstacle ({ onClose, onConfirm }) {
   const [acknowledged, setAcknowledged] = useState(false)
-  const fundLossRisk = wallet?.name === 'SPARK'
   const handleConfirm = async () => {
     const success = await onConfirm()
     if (success) onClose()
@@ -74,7 +72,7 @@ export function WalletSaveDeleteObstacle ({ wallet, onClose, onConfirm }) {
       <p className='text-muted'>
         This removes the saved send and receive configuration on the server.
       </p>
-      <WalletDeletionBarrier fundLossRisk={fundLossRisk} acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
+      <WalletDeletionBarrier acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
       <ObstacleButtons
         onClose={onClose}
         onConfirm={handleConfirm}

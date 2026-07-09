@@ -7,7 +7,8 @@ import { useFormikContext } from 'formik'
 import { isTemplate, protocolKey } from '@/wallets/lib/util'
 import { WalletGuide } from '../layout'
 import { WalletDeleteObstacle, WalletSaveDeleteObstacle } from './wallet-delete'
-import { useWalletSupport, useSingleFlight } from '@/wallets/client/hooks'
+import { useWalletSupport } from '@/wallets/client/hooks'
+import { useSingleFlight } from '@/components/use-single-flight'
 import ArrowUpRight from '@/svgs/arrow-right-up-line.svg'
 import ArrowDownLeft from '@/svgs/arrow-left-down-line.svg'
 import { WalletBottomBar } from '@/wallets/client/components/bottom-bar'
@@ -88,12 +89,12 @@ function WalletConfigureFormLayout ({ protocols }) {
     if (!canSave) return
     if (saveState.willDeleteWallet) {
       showModal(onClose => (
-        <WalletSaveDeleteObstacle wallet={wallet} onClose={onClose} onConfirm={onSave} />
+        <WalletSaveDeleteObstacle onClose={onClose} onConfirm={onSave} />
       ))
       return
     }
     onSave()
-  }, [canSave, saveState.willDeleteWallet, onSave, showModal, wallet])
+  }, [canSave, saveState.willDeleteWallet, onSave, showModal])
 
   return (
     <>

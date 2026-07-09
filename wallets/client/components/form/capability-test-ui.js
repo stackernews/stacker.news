@@ -80,7 +80,7 @@ export function CapabilityError ({ message, details }) {
     <div className={styles.error}>
       <CopyButton
         value={details || message}
-        className={classNames(styles.textButton, styles.errorCopy)}
+        className={classNames(styles.textButton, styles.dangerTextButton, styles.errorCopy)}
         append={<ClipboardIcon width={16} height={16} />}
         title='copy error details'
         aria-label='copy error details'

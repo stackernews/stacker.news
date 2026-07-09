@@ -5,10 +5,6 @@ export function tokenizePassphrase (passphrase) {
 }
 
 export async function deriveKey (passphrase, salt) {
-  // own the canonical phrase form (lowercase, single-space-joined) here so
-  // callers can pass raw user input; generated phrases are already canonical,
-  // so existing key hashes are unaffected
-  passphrase = tokenizePassphrase(passphrase).join(' ')
   const enc = new TextEncoder()
 
   const keyMaterial = await window.crypto.subtle.importKey(

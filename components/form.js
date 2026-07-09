@@ -77,7 +77,7 @@ export function SubmitButton ({
   )
 }
 
-export function CopyButton ({ value, icon, append, ...props }) {
+export function CopyButton ({ value, icon, append, className, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
@@ -102,14 +102,20 @@ export function CopyButton ({ value, icon, append, ...props }) {
 
   if (append) {
     return (
-      <span className={styles.appendButton} {...props} onClick={handleClick}>
+      <button
+        type='button'
+        aria-label='copy'
+        className={classNames(styles.inlineCopyButton, className)}
+        {...props}
+        onClick={handleClick}
+      >
         {append}
-      </span>
+      </button>
     )
   }
 
   return (
-    <Button className={styles.appendButton} {...props} onClick={handleClick}>
+    <Button className={classNames(styles.appendButton, className)} {...props} onClick={handleClick}>
       {copied ? <Thumb width={18} height={18} /> : 'copy'}
     </Button>
   )
@@ -1132,19 +1138,23 @@ function Client (Component) {
   }
 }
 
+export function PasswordVisibilityIcon ({ visible, ...props }) {
+  const Icon = visible ? EyeClose : Eye
+  return <Icon {...props} />
+}
+
 function PasswordHider ({ onClick, showPass }) {
   return (
     <InputGroup.Text
       style={{ cursor: 'pointer' }}
       onClick={onClick}
     >
-      {!showPass
-        ? <Eye
-            fill='var(--bs-body-color)' height={16} width={16}
-          />
-        : <EyeClose
-            fill='var(--bs-body-color)' height={16} width={16}
-          />}
+      <PasswordVisibilityIcon
+        visible={showPass}
+        fill='var(--bs-body-color)'
+        height={16}
+        width={16}
+      />
     </InputGroup.Text>
   )
 }

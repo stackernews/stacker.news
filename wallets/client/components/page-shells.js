@@ -16,7 +16,7 @@ import {
 function CenteredPrompt ({ children }) {
   return (
     <WalletShellMain>
-      <div className='py-5 px-3 px-md-0 w-100 d-flex flex-column align-items-center justify-content-center flex-grow-1 mx-auto' style={{ maxWidth: '500px' }}>
+      <div className='py-5 px-3 px-md-0 w-100 d-flex flex-column align-items-center justify-content-center flex-grow-1 mx-auto' style={{ maxWidth: '680px' }}>
         {children}
       </div>
     </WalletShellMain>
@@ -123,7 +123,7 @@ export function WalletRouteGate ({ children, walletsRequired = true }) {
     }
     return (
       <CenteredPrompt>
-        <WalletPassphrasePrompt showCancel={false} onSuccess={() => setJustUnlocked(true)} />
+        <WalletPassphrasePrompt onSuccess={() => setJustUnlocked(true)} />
       </CenteredPrompt>
     )
   }

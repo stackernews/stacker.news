@@ -40,6 +40,11 @@
   --sn-link-color: var(--bs-link-color);
   --sn-link-hover-color: var(--bs-link-hover-color);
 
+  /* popup paint follows the active theme */
+  --sn-body-bg: var(--bs-body-bg);
+  --sn-body-color: var(--bs-body-color);
+  --sn-borderColor: var(--theme-borderColor);
+
   /* fixed palette */
   --sn-danger: #c03221;
   --sn-warning: #f6911d;

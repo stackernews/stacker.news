@@ -20,7 +20,7 @@ import { timeLeft } from '@/lib/time'
 import classNames from 'classnames'
 import removeMd from 'remove-markdown'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
-import ItemPopover from './item-popover'
+import ItemPreviewCard from './item-preview-card'
 import { useMe } from './me'
 import Boost from './boost-button'
 import { SearchText } from './text'
@@ -64,9 +64,9 @@ function ItemLink ({ url, rel }) {
     const { linkText } = parseInternalLinks(url)
     if (linkText) {
       return (
-        <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+        <ItemPreviewCard id={linkText.replace('#', '').split('/')[0]}>
           <Link href={url} className={styles.link}>{linkText}</Link>
-        </ItemPopover>
+        </ItemPreviewCard>
       )
     }
 

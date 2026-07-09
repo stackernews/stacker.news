@@ -1,6 +1,14 @@
 import bip39Words from '@/lib/bip39-words'
 
+export function tokenizePassphrase (passphrase) {
+  return passphrase.toLowerCase().split(/\s+/).filter(Boolean)
+}
+
 export async function deriveKey (passphrase, salt) {
+  // own the canonical phrase form (lowercase, single-space-joined) here so
+  // callers can pass raw user input; generated phrases are already canonical,
+  // so existing key hashes are unaffected
+  passphrase = tokenizePassphrase(passphrase).join(' ')
   const enc = new TextEncoder()
 
   const keyMaterial = await window.crypto.subtle.importKey(
@@ -76,8 +84,10 @@ export async function decrypt (key, { iv, value }) {
   return JSON.parse(decoded)
 }
 
+export const PASSPHRASE_WORD_COUNT = 12
+
 export function generateRandomPassphrase () {
-  const rand = new Uint32Array(12)
+  const rand = new Uint32Array(PASSPHRASE_WORD_COUNT)
   window.crypto.getRandomValues(rand)
   return Array.from(rand).map(i => bip39Words[i % bip39Words.length]).join(' ')
 }

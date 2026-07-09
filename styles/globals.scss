@@ -187,8 +187,8 @@ $zindex-sticky: 900;
   --theme-note-fresh: rgba(0, 124, 190, 0.75);
 }
 
-// Wallet design tokens: 1:1 named aliases for the radii and gaps that recur across
-// the wallet UI, so the scale stays consistent and is adjustable in one place.
+// Wallet design tokens: 1:1 named aliases for the radii, gaps, and surfaces that recur
+// across the wallet UI, so the scale stays consistent and is adjustable in one place.
 // Defined at :root (not a wallet-scoped class) so they also reach portaled wallet
 // UI rendered outside the wallet DOM (the offcanvas sheet, the fullscreen scanner).
 :root {
@@ -202,6 +202,7 @@ $zindex-sticky: 900;
   --wt-gap-md: 0.75rem;
   --wt-gap-lg: 1rem;
   --wt-gap-xl: 1.25rem;
+  --wt-surface-bg: color-mix(in srgb, var(--theme-toolbarHover) 38%, var(--bs-body-bg));
 }
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';

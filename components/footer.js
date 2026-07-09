@@ -1,6 +1,5 @@
 import Container from '@/components/ui/container'
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Popover from 'react-bootstrap/Popover'
+import Popover from '@/components/ui/popover'
 import { CopyInput } from './form'
 import styles from './footer.module.css'
 import Texas from '@/svgs/texas.svg'
@@ -20,9 +19,23 @@ import ActionTooltip from './action-tooltip'
 import { useAnimationEnabled } from '@/components/animation'
 import { useLiveCommentsToggle } from './use-live-comments'
 
-const RssPopover = (
-  <Popover>
-    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
+// trigger press toggles, outside-press + Escape close ≡ the old
+// trigger='click' rootClose; nativeButton={false} makes Base UI decorate the
+// div with role='button'/tabIndex — footer popovers become keyboard-reachable
+function FooterPopover ({ label, children }) {
+  return (
+    <Popover>
+      <Popover.Trigger nativeButton={false} render={<div className='nav-link p-0 inline-flex cursor-pointer'>{label}</div>} />
+      <Popover.Content side='top'>
+        <Popover.Body className='font-medium'>{children}</Popover.Body>
+      </Popover.Content>
+    </Popover>
+  )
+}
+
+function RssPopover () {
+  return (
+    <FooterPopover label='rss'>
       <div className='flex justify-center'>
         <a href='/rss' className='nav-link p-0 inline-flex'>
           home
@@ -49,13 +62,13 @@ const RssPopover = (
           jobs
         </a>
       </div>
-    </Popover.Body>
-  </Popover>
-)
+    </FooterPopover>
+  )
+}
 
-const SocialsPopover = (
-  <Popover>
-    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
+function SocialsPopover () {
+  return (
+    <FooterPopover label='socials'>
       <div className='flex justify-center'>
         <a
           href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 inline-flex'
@@ -93,13 +106,13 @@ const SocialsPopover = (
           zines
         </a>
       </div>
-    </Popover.Body>
-  </Popover>
-)
+    </FooterPopover>
+  )
+}
 
-const ChatPopover = (
-  <Popover>
-    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
+function ChatPopover () {
+  return (
+    <FooterPopover label='chat'>
       <a
         href='https://t.me/k00bideh' className='nav-link p-0 inline-flex'
         target='_blank' rel='noreferrer'
@@ -113,13 +126,13 @@ const ChatPopover = (
       >
         signal
       </a>
-    </Popover.Body>
-  </Popover>
-)
+    </FooterPopover>
+  )
+}
 
-const LegalPopover = (
-  <Popover>
-    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
+function LegalPopover () {
+  return (
+    <FooterPopover label='legal'>
       <div className='flex justify-center'>
         <Link href='/tos' className='nav-link p-0 inline-flex'>
           terms of service
@@ -134,9 +147,9 @@ const LegalPopover = (
           copyright policy
         </Link>
       </div>
-    </Popover.Body>
-  </Popover>
-)
+    </FooterPopover>
+  )
+}
 
 export default function Footer ({ links = true }) {
   const [darkMode, darkModeToggle] = useDarkMode()
@@ -175,23 +188,11 @@ export default function Footer ({ links = true }) {
                 analytics
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
-                <div className='nav-link p-0 p-0 inline-flex' style={{ cursor: 'pointer' }}>
-                  chat
-                </div>
-              </OverlayTrigger>
+              <ChatPopover />
               <span className='mx-2 text-muted'> \ </span>
-              <OverlayTrigger trigger='click' placement='top' overlay={SocialsPopover} rootClose>
-                <div className='nav-link p-0 p-0 inline-flex' style={{ cursor: 'pointer' }}>
-                  socials
-                </div>
-              </OverlayTrigger>
+              <SocialsPopover />
               <span className='mx-2 text-muted'> \ </span>
-              <OverlayTrigger trigger='click' placement='top' overlay={RssPopover} rootClose>
-                <div className='nav-link p-0 p-0 inline-flex' style={{ cursor: 'pointer' }}>
-                  rss
-                </div>
-              </OverlayTrigger>
+              <RssPopover />
             </div>
             <div className='mb-2' style={{ fontWeight: 500 }}>
               <Link href='/faq' className='nav-link p-0 p-0 inline-flex'>
@@ -206,11 +207,7 @@ export default function Footer ({ links = true }) {
                 story
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <OverlayTrigger trigger='click' placement='top' overlay={LegalPopover} rootClose>
-                <div className='nav-link p-0 p-0 inline-flex' style={{ cursor: 'pointer' }}>
-                  legal
-                </div>
-              </OverlayTrigger>
+              <LegalPopover />
             </div>
           </>}
         {process.env.NEXT_PUBLIC_LND_CONNECT_ADDRESS &&

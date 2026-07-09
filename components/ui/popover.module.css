@@ -1,0 +1,67 @@
+/* chrome shared by the Popover and Preview Card popups */
+.positioner {
+  z-index: var(--sn-z-popover);   /* portals to <body>; ladder is the only z authority */
+}
+
+.popup {
+  /* keeps the popup as the arrow's containing block. Without it the block
+     flips mid-animation: the scale transform holds it while the transition
+     runs, and when the transform returns to none the arrow re-anchors to the
+     positioner and jumps. The docs demos carry the same rule */
+  position: relative;
+  background-color: var(--sn-body-bg);
+  color: var(--sn-body-color);
+  border: 1px solid var(--sn-borderColor);
+  transform-origin: var(--transform-origin);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup {
+    transition: none;
+  }
+}
+
+.header {
+  border-bottom: 1px solid var(--sn-borderColor);
+}
+
+/* the arrow lives in arrow.module.css, shared with the tooltip; popover and
+   preview card ride its defaults: 16px, body bg, 1px border */
+
+/* globals' lightning close recipe at the .btn-close opacities; margins
+   adjusted for symmetry */
+.close {
+  margin-top: 0.25rem;
+  margin-right: -0.5rem;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: #000;
+  opacity: .5;
+  font-family: lightning;
+  font-weight: 300;
+  font-size: 150%;
+  line-height: 1;
+}
+
+.close:hover {
+  opacity: .75;
+}
+
+.close:focus {
+  outline: 0;
+  box-shadow: 0 0 0 .25rem rgba(250, 218, 94, .25);
+  opacity: 1;
+}
+
+/* the dark paint was Bootstrap's invert(1) filter over #000, which is white */
+:global([data-bs-theme='dark']) .close {
+  color: #fff;
+}

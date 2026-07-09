@@ -1,22 +1,33 @@
-/* SN tooltip chrome (keystone 6: state/color/motion live here;
-   layout/typography ride the recipe's utility string in tooltip.js) */
+/* SN tooltip chrome: state, color and motion live here; layout and
+   typography ride the recipe in tooltip.js */
 
 .positioner {
   z-index: var(--sn-z-tooltip);   /* portals to <body>; ladder is the only z authority */
 }
 
 .popup {
-  --sn-tooltip-bg: #5c8001;       /* $tooltip-bg (globals:85); theme-invariant today — no dark block */
+  --sn-tooltip-bg: #5c8001;       /* $tooltip-bg in globals; theme-invariant, so no dark block */
+  /* arrow theme, inherited by the popup-child arrow (ui/arrow.module.css):
+     smaller and borderless. 12px draws a 12 by 6 tip, close to Bootstrap's
+     native .8rem by .4rem */
+  --arrow-size: 12px;
+  --arrow-bg: var(--sn-tooltip-bg);
+  --arrow-border-width: 0px;
+  position: relative;             /* pins the arrow's containing block through the
+                                     open and close transform, see popover.module.css */
   background-color: var(--sn-tooltip-bg);
   color: #fff;
+  opacity: 0.9;                   /* $tooltip-opacity, on the popup rather than the bg so the
+                                     text and arrow dim too (Bootstrap put it on the whole
+                                     .tooltip); the starting and ending styles animate 0 to .9 */
   transform-origin: var(--transform-origin);
-  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* keystone 5, first application */
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
 }
 
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
-  transform: scale(0.98);         /* Base UI docs demo value (pre-flight 3, 2026-07-07) */
+  transform: scale(0.98);         /* Base UI docs demo value */
 }
 
 .popup[data-instant] {
@@ -28,17 +39,3 @@
     transition: none;
   }
 }
-
-/* diamond arrow: rotated square, half-protruding; shares the bg var.
-   8px ⇒ 4px protrusion ≈ today's .4rem triangle; data-side = popup side,
-   so side='bottom' puts the arrow on the popup's TOP edge */
-.arrow {
-  width: 8px;
-  height: 8px;
-  background-color: var(--sn-tooltip-bg);
-  transform: rotate(45deg);
-}
-.arrow[data-side='top'] { bottom: -4px; }
-.arrow[data-side='bottom'] { top: -4px; }
-.arrow[data-side='left'] { right: -4px; }
-.arrow[data-side='right'] { left: -4px; }

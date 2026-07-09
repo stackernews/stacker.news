@@ -4,8 +4,8 @@ import errorStyles from '@/styles/error.module.css'
 import { useLazyQuery } from '@apollo/client/react'
 import classNames from 'classnames'
 import Link from 'next/link'
-import HoverablePopover from './hoverable-popover'
-import ItemPopover from './item-popover'
+import PreviewCard from './ui/preview-card'
+import ItemPreviewCard from './item-preview-card'
 import { UserBase, UserSkeleton } from './user-list'
 import { useCallback } from 'react'
 
@@ -15,16 +15,16 @@ function StackingSince ({ since }) {
       stacking since:{' '}
       {since
         ? (
-          <ItemPopover id={since}>
+          <ItemPreviewCard id={since}>
             <Link href={`/items/${since}`}>#{since}</Link>
-          </ItemPopover>
+          </ItemPreviewCard>
           )
         : <span>never</span>}
     </small>
   )
 }
 
-export default function UserPopover ({ name, children }) {
+export default function UserPreviewCard ({ name, children }) {
   const [execute, { loading, data }] = useLazyQuery(
     USER,
     {
@@ -37,7 +37,7 @@ export default function UserPopover ({ name, children }) {
   }, [execute, name])
 
   return (
-    <HoverablePopover
+    <PreviewCard
       onShow={getUser}
       trigger={children}
       body={!data || loading

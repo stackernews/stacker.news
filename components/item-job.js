@@ -10,7 +10,7 @@ import Share, { CopyLinkDropdownItem } from './share'
 import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
 import Badge from '@/components/ui/badge'
-import SubPopover from './sub-popover'
+import SubPreviewCard from './sub-preview-card'
 import { numWithUnits } from '@/lib/format'
 import { PayInInfo, InfoDropdownItem } from './item-info'
 import Boost from './boost-button'
@@ -86,11 +86,11 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
               </Link>
             </span>
             {item.subNames?.map(subName => (
-              <SubPopover key={subName} sub={subName}>
+              <SubPreviewCard key={subName} sub={subName}>
                 <Link href={`/~${subName}`}>
                   {' '}<Badge variant='grey' className='align-middle ms-0.5'>{subName}</Badge>
                 </Link>
-              </SubPopover>
+              </SubPreviewCard>
             ))}
             {item.status === 'STOPPED' &&
               <>{' '}<Badge variant='info' className='align-middle ms-0.5'>stopped</Badge></>}

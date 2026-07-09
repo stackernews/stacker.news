@@ -3,12 +3,12 @@ import { isAbortError } from '@/lib/error'
 import errorStyles from '@/styles/error.module.css'
 import { useLazyQuery } from '@apollo/client/react'
 import classNames from 'classnames'
-import HoverablePopover from './hoverable-popover'
+import PreviewCard from './ui/preview-card'
 import { TerritoryInfo, TerritoryInfoSkeleton } from './territory-header'
 import { truncateString } from '@/lib/format'
 import { useCallback } from 'react'
 
-export default function SubPopover ({ sub, children }) {
+export default function SubPreviewCard ({ sub, children }) {
   const [execute, { loading, data }] = useLazyQuery(
     SUB_FULL,
     {
@@ -21,7 +21,7 @@ export default function SubPopover ({ sub, children }) {
   }, [execute, sub])
 
   return (
-    <HoverablePopover
+    <PreviewCard
       onShow={getSub}
       trigger={children}
       body={!data || loading

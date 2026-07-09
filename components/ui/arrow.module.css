@@ -1,0 +1,45 @@
+/* Shared popup arrow for popover, preview card and tooltip. The element is a
+   half-height clip window and the diamond is a rotated square drawn by the
+   ::before, see docs/dev/styling.md for the construction. Offsets resolve
+   against the popup's padding box, so don't add border terms to them.
+   Themed with custom props, defaults here, tooltip overrides its own:
+   --arrow-size is the drawn base width, tip height is half of it minus the
+   popup border, and --arrow-border-width: 0 turns the border off. data-side
+   matches the popup side, so side="bottom" means the arrow sits on top. */
+.arrow {
+  width: var(--arrow-size, 16px);
+  height: calc(var(--arrow-size, 16px) / 2);
+  overflow: clip;
+}
+
+.arrow::before {
+  content: '';
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  box-sizing: border-box;
+  width: calc(var(--arrow-size, 16px) / 2 * sqrt(2));
+  height: calc(var(--arrow-size, 16px) / 2 * sqrt(2));
+  background-color: var(--arrow-bg, var(--sn-body-bg));
+  border: var(--arrow-border-width, 1px) solid var(--arrow-border-color, var(--sn-borderColor));
+  transform: translate(-50%, 50%) rotate(45deg);
+}
+
+.arrow[data-side='top'] {
+  bottom: calc(var(--arrow-size, 16px) / -2);
+  rotate: 180deg;
+}
+.arrow[data-side='bottom'] {
+  top: calc(var(--arrow-size, 16px) / -2);
+}
+/* the rotated square keeps its unrotated layout box, so flush against the edge
+   is minus three quarters of the size, not half */
+.arrow[data-side='left'] {
+  right: calc(var(--arrow-size, 16px) * -0.75);
+  rotate: 90deg;
+}
+.arrow[data-side='right'] {
+  left: calc(var(--arrow-size, 16px) * -0.75);
+  rotate: -90deg;
+}

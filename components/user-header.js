@@ -30,7 +30,7 @@ import NostrIcon from '@/svgs/nostr.svg'
 import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
-import ItemPopover from './item-popover'
+import ItemPreviewCard from './item-preview-card'
 
 const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL || `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}`
 
@@ -286,9 +286,9 @@ function HeaderHeader ({ user }) {
         <div className='flex flex-col mt-1 ms-0'>
           <small className='text-muted'>stacking since: {user.since
             ? (
-              <ItemPopover id={user.since}>
+              <ItemPreviewCard id={user.since}>
                 <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
-              </ItemPopover>
+              </ItemPreviewCard>
               )
             : <span>never</span>}
           </small>

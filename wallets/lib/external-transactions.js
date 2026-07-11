@@ -1,4 +1,5 @@
 import { verifyPreimage } from '@/wallets/lib/preimage'
+import { LEDGER_TYPE } from '@/wallets/lib/external-transaction-ledger'
 import { errorMessage } from '@/lib/error'
 
 export const TERMINAL_STATUSES = new Set(['SETTLED', 'FAILED'])
@@ -50,10 +51,13 @@ export function externalTransactionUnknown ({ reason, error = null }) {
 // single home for the "protocol has no checker" policy; VERIFICATION_UNSUPPORTED
 // is a permanent stop (STOP_CHECK_REASONS), so only these two may hand it out
 export function externalTransactionVerificationUnsupported (direction) {
-  return externalTransactionUnknown({
-    reason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED,
-    error: `wallet protocol cannot verify ${direction === 'RECEIVE' ? 'invoice' : 'payment'} status`
-  })
+  return {
+    ...externalTransactionUnknown({
+      reason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED,
+      error: `wallet protocol cannot verify ${direction === 'RECEIVE' ? 'invoice' : 'payment'} status`
+    }),
+    ledgerType: LEDGER_TYPE.UNKNOWN
+  }
 }
 
 export function protocolCanCheckPayment (protocol) {
@@ -65,7 +69,8 @@ export function verificationUnsupportedResult (error) {
   return {
     status: 'UNKNOWN',
     unknownReason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED,
-    error
+    error,
+    ledgerType: LEDGER_TYPE.UNKNOWN
   }
 }
 
@@ -83,13 +88,15 @@ export function classifyExternalTransactionCheck (transaction, {
     if (proofIssue) {
       return externalTransactionUnknown({
         reason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.PROOF_UNAVAILABLE,
-        error: proofIssue
+        error: proofIssue,
+        ledgerType: LEDGER_TYPE.UNKNOWN
       })
     }
 
     const change = {
       settlementStatus: 'SETTLED',
-      preimage: result.preimage
+      preimage: result.preimage,
+      ledgerType: LEDGER_TYPE.FULFILLMENT
     }
     if (result.settledAt != null) change.settledAt = result.settledAt instanceof Date ? result.settledAt.toISOString() : result.settledAt
     if (direction === 'RECEIVE' && result.msats != null) change.amountMsats = String(result.msats)
@@ -101,7 +108,8 @@ export function classifyExternalTransactionCheck (transaction, {
   if (result?.status === 'FAILED') {
     return {
       settlementStatus: 'FAILED',
-      error: result.error || (direction === 'SEND' ? 'provider reports payment failed' : undefined)
+      error: result.error || (direction === 'SEND' ? 'provider reports payment failed' : undefined),
+      ledgerType: LEDGER_TYPE.ERROR
     }
   }
 
@@ -109,7 +117,7 @@ export function classifyExternalTransactionCheck (transaction, {
   // even when this check errored or was indeterminate
   const pastDeadline = stopped || Date.now() >= externalTransactionPollingDeadline(transaction)
   if (pastDeadline && direction === 'RECEIVE' && externalTransactionExpiredUnpaid(transaction)) {
-    return { settlementStatus: 'FAILED', error: 'invoice expired' }
+    return { settlementStatus: 'FAILED', error: 'invoice expired', ledgerType: LEDGER_TYPE.TIMEOUT }
   }
 
   if (result?.status === 'UNKNOWN') {
@@ -118,21 +126,24 @@ export function classifyExternalTransactionCheck (transaction, {
         (!canCheck
           ? EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED
           : error ? externalTransactionUnknownReasonForError(error) : EXTERNAL_TRANSACTION_UNKNOWN_REASONS.STATUS_UNAVAILABLE),
-      error: result.error ?? (error ? errorMessage(error) : null)
+      error: result.error ?? (error ? errorMessage(error) : null),
+      ledgerType: LEDGER_TYPE.UNKNOWN
     })
   }
 
   if (error) {
     return externalTransactionUnknown({
       reason: externalTransactionUnknownReasonForError(error),
-      error: errorMessage(error)
+      error: errorMessage(error),
+      ledgerType: LEDGER_TYPE.ERROR
     })
   }
 
   if (pastDeadline) {
     return externalTransactionUnknown({
       reason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.STATUS_UNAVAILABLE,
-      error: `gave up confirming ${direction === 'SEND' ? 'send' : 'receive'} before a definitive status`
+      error: `gave up confirming ${direction === 'SEND' ? 'send' : 'receive'} before a definitive status`,
+      ledgerType: LEDGER_TYPE.UNKNOWN
     })
   }
 
@@ -140,7 +151,7 @@ export function classifyExternalTransactionCheck (transaction, {
   if (!canCheck) return externalTransactionVerificationUnsupported(direction)
 
   if (direction === 'SEND' && transaction?.settlementStatus === 'UNKNOWN') {
-    return { settlementStatus: 'UNKNOWN' }
+    return { settlementStatus: 'UNKNOWN', ledgerType: LEDGER_TYPE.UNKNOWN }
   }
 
   return {

@@ -119,6 +119,7 @@ model User {
   Replies                   Reply[]
   walletLogs                WalletLog[]
   externalTransactions ExternalTransaction[]
+  externalTransactionLedgerEntries ExternalTransactionLedger[]
   Reminder                  Reminder[]
   ItemUserAgg               ItemUserAgg[]
   oneDayReferrals           OneDayReferral[]       @relation("OneDayReferral_referrer")
@@ -1196,6 +1197,7 @@ model Wallet {
 
   protocols WalletProtocol[]
   externalTransactions ExternalTransaction[]
+  externalTransactionLedgerEntries ExternalTransactionLedger[]
 
   @@index([userId])
   @@index([templateName])
@@ -1221,6 +1223,7 @@ model WalletProtocol {
 
   logs WalletLog[]
   externalTransactions ExternalTransaction[]
+  externalTransactionLedgerEntries ExternalTransactionLedger[]
 
   walletSendNWC      WalletSendNWC?
   walletSendLNbits   WalletSendLNbits?
@@ -1472,6 +1475,7 @@ model ExternalTransaction {
   duplicateConfirmed  Boolean                             @default(false)
   verificationContext Json?                                @db.JsonB
   walletLogs          WalletLog[]
+  ledgerEntries       ExternalTransactionLedger[]
 
   @@index([createdAt])
   @@index([userId, createdAt])
@@ -1479,6 +1483,52 @@ model ExternalTransaction {
   @@index([protocolId, createdAt])
   @@index([hash])
   @@index([direction, settlementStatus, updatedAt])
+}
+
+enum ExternalTransactionLedgerType {
+  OBLIGATION
+  FULFILLMENT
+  UNKNOWN
+  ERROR
+  TIMEOUT
+  CORRECTION
+}
+
+enum ExternalTransactionLedgerSide {
+  DEBIT
+  CREDIT
+}
+
+enum ExternalTransactionLedgerSource {
+  ACCRUAL
+  SETTLEMENT
+}
+
+model ExternalTransactionLedger {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  externalTransactionId Int
+  userId                Int
+  walletId              Int
+  protocolId            Int
+
+  direction   ExternalTransactionDirection
+  type        ExternalTransactionLedgerType
+  side        ExternalTransactionLedgerSide
+  source      ExternalTransactionLedgerSource
+  amountMsats BigInt
+
+  externalTransaction ExternalTransaction @relation(fields: [externalTransactionId], references: [id], onDelete: Cascade)
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet              Wallet              @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  protocol            WalletProtocol      @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+
+  @@index([externalTransactionId])
+  @@index([userId, createdAt])
+  @@index([walletId, createdAt])
+  @@index([protocolId, createdAt])
+  @@index([type])
 }
 
 // payIn playground

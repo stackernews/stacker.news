@@ -4,6 +4,8 @@ import { GqlInputError } from '@/lib/error'
 import { externalTransactionVerificationUnsupported, externalTransactionFinal, externalTransactionResolvesLocally, EXPIRY_GRACE_MS, EXTERNAL_TRANSACTION_UNKNOWN_REASONS, MAX_CHECK_AGE_MS, STOP_CHECK_REASONS, TERMINAL_STATUSES } from '@/wallets/lib/external-transactions'
 import { verifyPreimage } from '@/wallets/lib/preimage'
 import { protocolCanCheckInvoice } from '@/wallets/server/protocols/util'
+import { obligationEntry, terminalEntries, obligationMsats, LEDGER_TYPE } from '@/wallets/lib/external-transaction-ledger'
+import { insertLedgerEntries, fulfilledMsats } from '@/wallets/server/external-transaction-ledger'
 
 export async function createExternalReceiveTransaction (models, args) {
   const protocol = await resolveExternalWalletProtocol(models, args)
@@ -11,9 +13,23 @@ export async function createExternalReceiveTransaction (models, args) {
 
   // Protocols without status checks get their terminal-intent diagnosis up front.
   const lifecycle = protocolCanCheckInvoice(protocol) ? null : externalTransactionVerificationUnsupported('RECEIVE')
-  return await models.externalTransaction.create(
-    externalTransactionCreateArgs(args, protocol, invoice, lifecycle)
-  )
+
+  return await models.$transaction(async tx => {
+    const created = await tx.externalTransaction.create(
+      externalTransactionCreateArgs(args, protocol, invoice, lifecycle)
+    )
+
+    let ledgerEntries = [obligationEntry(created)]
+    if (lifecycle != null) {
+      // book the receivable OBLIGATION and the terminal UNKNOWN atomically with
+      // the externalTransaction record, so a non-checkable receive is born
+      // fully accounted (net balance 0)
+      ledgerEntries = [...ledgerEntries, ...terminalEntries({ transaction: created, ledgerType: LEDGER_TYPE.UNKNOWN, openMsats: obligationMsats(created) })]
+    }
+
+    await insertLedgerEntries(tx, ledgerEntries)
+    return created
+  })
 }
 
 // A watched receive is the only case that needs sub-minute checks: the transaction
@@ -117,13 +133,30 @@ export async function applyExternalTransactionChange (models, tx, change) {
   }
 
   // compare-and-swap on the status we read: concurrent pollers (per-tx job, batch reaper, client
-  // refresh) can race the same row, so a stale writer no-ops instead of clobbering a newer status
-  await models.externalTransaction.updateMany({
-    where: {
-      id: tx.id,
-      settlementStatus: tx.settlementStatus
-    },
-    data
+  // refresh) can race the same row, so a stale writer no-ops instead of clobbering a newer status.
+  await models.$transaction(async trx => {
+    const { count } = await trx.externalTransaction.updateMany({
+      where: {
+        id: tx.id,
+        settlementStatus: tx.settlementStatus
+      },
+      data
+    })
+
+    // The ledger closer rides on this CAS's atomicity: we book the closing entries in the SAME transaction,
+    // and only when (a) this call is the writer that actually flipped the row (count === 1) and (b) the
+    // outcome closes the obligation.
+    if (count === 1 && change.ledgerType) {
+      // remaining open = the receivable/payable obligation minus what has already been fulfilled. `tx` is
+      // the row as read before the update, so tx.amountMsats is still the original invoice amount.
+      const openMsats = obligationMsats(tx) - await fulfilledMsats(trx, tx.id)
+      await insertLedgerEntries(trx, terminalEntries({
+        transaction: tx,
+        ledgerType: change.ledgerType,
+        settledMsats: change.amountMsats ?? tx.amountMsats,
+        openMsats
+      }))
+    }
   })
 
   return await models.externalTransaction.findUnique({

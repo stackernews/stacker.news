@@ -39,3 +39,55 @@
     padding: 0;
   }
 }
+
+.ledger {
+  display: grid;
+  grid-template-columns: auto auto 1fr 1fr 1fr;
+  align-items: baseline;
+  column-gap: 1rem;
+  row-gap: 0.5rem;
+  overflow-x: auto; /* scroll rather than overlap if the signed amounts get too wide for a narrow screen */
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+.ledgerHeading {
+  color: var(--theme-grey);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ledgerTimestamp {
+  color: var(--theme-grey);
+  white-space: nowrap;
+}
+
+.ledgerType {
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+.ledgerAmount {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledgerTotalLabel {
+  grid-column: 1 / 5;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ledgerTotalLabel,
+.ledgerTotal {
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--theme-borderColor);
+  padding-top: 0.5rem;
+  font-weight: bold;
+}
+
+.ledgerEmpty {
+  grid-column: 1 / -1;
+  text-align: center;
+}

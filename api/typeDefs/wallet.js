@@ -74,6 +74,36 @@ const typeDefs = gql`
     STATUS_UNAVAILABLE
   }
 
+  enum ExternalTransactionLedgerType {
+    OBLIGATION
+    FULFILLMENT
+    UNKNOWN
+    ERROR
+    TIMEOUT
+    CORRECTION
+  }
+
+  enum ExternalTransactionLedgerSide {
+    DEBIT
+    CREDIT
+  }
+
+  enum ExternalTransactionLedgerSource {
+    ACCRUAL
+    SETTLEMENT
+  }
+
+  type ExternalTransactionLedgerEntry {
+    id: Int!
+    createdAt: Date!
+    type: ExternalTransactionLedgerType!
+    side: ExternalTransactionLedgerSide!
+    source: ExternalTransactionLedgerSource!
+    amountMsats: BigInt!
+    balanceMsats: BigInt!
+    direction: ExternalTransactionDirection!
+  }
+
   type ExternalTransaction {
     id: Int!
     createdAt: Date!
@@ -98,6 +128,8 @@ const typeDefs = gql`
     sourceValue: String
     verificationContext: JSONObject
     walletInfo: PayInWalletInfo
+    ledgerEntries: [ExternalTransactionLedgerEntry!]!
+    currentBalanceMsats: BigInt!
   }
 
   enum WalletStatus {

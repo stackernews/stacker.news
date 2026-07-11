@@ -10,6 +10,7 @@ import { getSub } from './sub'
 import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { Prisma } from '@prisma/client'
 import { externalTransactionInclude } from '@/wallets/server/external-transactions'
+import { ledgerEntriesWithBalance, ledgerCurrentBalanceMsats } from '@/wallets/lib/external-transaction-ledger'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -346,7 +347,9 @@ export default {
       if (!protocol) return null
 
       return walletInfoFromProtocol(protocol, transaction.direction)
-    }
+    },
+    ledgerEntries: (transaction) => ledgerEntriesWithBalance(transaction.ledgerEntries), // annotate running sum
+    currentBalanceMsats: (transaction) => ledgerCurrentBalanceMsats(transaction.ledgerEntries)
   },
   PayIn: {
     payerPrivates: (payIn, args, { models, me }) => {

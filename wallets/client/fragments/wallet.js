@@ -238,6 +238,17 @@ export const EXTERNAL_TRANSACTION_FIELDS = gql`
       protocolName
       role
     }
+    ledgerEntries {
+      id
+      createdAt
+      type
+      side
+      source
+      amountMsats
+      balanceMsats
+      direction
+    }
+    currentBalanceMsats
   }
 `
 

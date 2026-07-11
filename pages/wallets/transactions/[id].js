@@ -7,6 +7,7 @@ import { formatMsatsToSats } from '@/lib/format'
 import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
 import { bolt11QrTransform } from '@/lib/bolt11'
 import { useData } from '@/components/use-data'
+import AccordianItem from '@/components/accordian-item'
 import Qr from '@/components/qr'
 import Bolt11Info, { toBolt11InfoProps } from '@/components/payIn/bolt11-info'
 import { ExternalTransactionStatus } from '@/components/payIn/external-transaction-status'
@@ -16,6 +17,7 @@ import {
   TransactionDetailPage,
   TransactionDetailSection,
   TransactionHeadingTitle,
+  ExternalTransactionLedger,
   WalletErrorShell,
   WalletLogs,
   transactionDetailStyles
@@ -114,6 +116,13 @@ export default function ExternalTransactionPage ({ ssrData }) {
           externalTransactionId={Number(transaction.id)}
           poll={!externalTransactionDone(transaction)}
           pollInterval={NORMAL_POLL_INTERVAL_MS}
+        />
+      </TransactionDetailSection>
+
+      <TransactionDetailSection>
+        <AccordianItem
+          header={<div className='fw-bold'>accounting</div>}
+          body={<ExternalTransactionLedger entries={transaction.ledgerEntries} currentBalanceMsats={transaction.currentBalanceMsats} />}
         />
       </TransactionDetailSection>
     </TransactionDetailPage>

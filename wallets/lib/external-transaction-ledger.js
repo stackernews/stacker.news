@@ -128,3 +128,27 @@ export function terminalEntries ({ transaction, ledgerType, settledMsats, openMs
     amountMsats: BigInt(openMsats ?? 0)
   }]
 }
+
+// transform side+magniture into a signed BigInt
+export function entryNetMsats ({ side, amountMsats }) {
+  const magnitude = BigInt(amountMsats)
+  return side === LEDGER_SIDE.CREDIT ? magnitude : -magnitude
+}
+
+// annotate ledger entries with the accumulated open balance up to and
+// including each entry, chronologically. This can be done on api calls where
+// the scope is a single ExternalTransaction, as the number of entries is 2-3
+export function ledgerEntriesWithBalance (entries = []) {
+  let balanceMsats = 0n
+  return [...entries]
+    .sort((a, b) => (new Date(a.createdAt) - new Date(b.createdAt)) || (a.id - b.id))
+    .map(entry => {
+      balanceMsats += entryNetMsats(entry)
+      return { ...entry, balanceMsats }
+    })
+}
+
+// the current open balance for an ExternalTransaction
+export function ledgerCurrentBalanceMsats (entries = []) {
+  return entries.reduce((sum, entry) => sum + entryNetMsats(entry), 0n)
+}

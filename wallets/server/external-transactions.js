@@ -203,6 +203,10 @@ export function externalTransactionInclude () {
           }
         }
       }
+    },
+    // eagerly load the ledger audit trail - these are just a few rows
+    ledgerEntries: {
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }]
     }
   }
 }

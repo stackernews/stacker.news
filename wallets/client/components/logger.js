@@ -1,8 +1,8 @@
 import { Button } from 'react-bootstrap'
 import styles from '@/styles/logger.module.css'
 import { useWalletLogs, useDeleteWalletLogs } from '@/wallets/client/hooks/logger'
-import { useCallback, useEffect, useState, Fragment } from 'react'
-import { timeSince } from '@/lib/time'
+import { useCallback, useState, Fragment } from 'react'
+import { useTimeSince } from '@/components/use-time-since'
 import classNames from 'classnames'
 import MoreFooter from '@/components/more-footer'
 
@@ -107,15 +107,7 @@ export function LogMessage ({ tag, level, message, context, ts }) {
 }
 
 function TimeSince ({ timestamp }) {
-  const [time, setTime] = useState(timeSince(new Date(timestamp)))
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(timeSince(new Date(timestamp)))
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [timestamp])
+  const time = useTimeSince(timestamp)
 
   return <div className={styles.timestamp}>{time}</div>
 }

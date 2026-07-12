@@ -86,13 +86,14 @@ export function classifyExternalTransactionCheck (transaction, {
   if (result?.status === 'SETTLED') {
     const proofIssue = externalTransactionProofIssue({ direction, hash, result })
     if (proofIssue) {
+      // transient UNKNOWN
       return externalTransactionUnknown({
         reason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.PROOF_UNAVAILABLE,
-        error: proofIssue,
-        ledgerType: LEDGER_TYPE.UNKNOWN
+        error: proofIssue
       })
     }
 
+    // terminal SETTLED
     const change = {
       settlementStatus: 'SETTLED',
       preimage: result.preimage,
@@ -105,6 +106,7 @@ export function classifyExternalTransactionCheck (transaction, {
     return change
   }
 
+  // terminal FAILED
   if (result?.status === 'FAILED') {
     return {
       settlementStatus: 'FAILED',
@@ -120,40 +122,56 @@ export function classifyExternalTransactionCheck (transaction, {
     return { settlementStatus: 'FAILED', error: 'invoice expired', ledgerType: LEDGER_TYPE.TIMEOUT }
   }
 
+  // could be terminal if the reason is listed in STOP_CHECK_REASONS
+  // otherwise this is transient
   if (result?.status === 'UNKNOWN') {
-    return externalTransactionUnknown({
-      reason: result.unknownReason ??
-        (!canCheck
-          ? EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED
-          : error ? externalTransactionUnknownReasonForError(error) : EXTERNAL_TRANSACTION_UNKNOWN_REASONS.STATUS_UNAVAILABLE),
-      error: result.error ?? (error ? errorMessage(error) : null),
-      ledgerType: LEDGER_TYPE.UNKNOWN
-    })
+    const reason = result.unknownReason ??
+      (!canCheck
+        ? EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED
+        : error ? externalTransactionUnknownReasonForError(error) : EXTERNAL_TRANSACTION_UNKNOWN_REASONS.STATUS_UNAVAILABLE)
+    return {
+      ...externalTransactionUnknown({
+        reason,
+        error: result.error ?? (error ? errorMessage(error) : null)
+      }),
+      ledgerType: STOP_CHECK_REASONS.has(reason) ? LEDGER_TYPE.UNKNOWN : null
+    }
   }
 
+  // could be terminal if the reason is listed in STOP_CHECK_REASONS,
+  // otherwise this is transient
   if (error) {
-    return externalTransactionUnknown({
-      reason: externalTransactionUnknownReasonForError(error),
-      error: errorMessage(error),
-      ledgerType: LEDGER_TYPE.ERROR
-    })
+    const reason = externalTransactionUnknownReasonForError(error)
+    return {
+      ...externalTransactionUnknown({
+        reason,
+        error: errorMessage(error)
+      }),
+      ledgerType: STOP_CHECK_REASONS.has(reason) ? LEDGER_TYPE.ERROR : null
+    }
   }
 
+  // terminal UNKNOWN
   if (pastDeadline) {
-    return externalTransactionUnknown({
-      reason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.STATUS_UNAVAILABLE,
-      error: `gave up confirming ${direction === 'SEND' ? 'send' : 'receive'} before a definitive status`,
+    return {
+      ...externalTransactionUnknown({
+        reason: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.STATUS_UNAVAILABLE,
+        error: `gave up confirming ${direction === 'SEND' ? 'send' : 'receive'} before a definitive status`
+      }),
       ledgerType: LEDGER_TYPE.UNKNOWN
-    })
+    }
   }
 
   // after the deadline checks so a stopped no-checker row still reads as "gave up"
+  // terminal UNKNOWN
   if (!canCheck) return externalTransactionVerificationUnsupported(direction)
 
+  // transient UNKNOWN, fallen back to based on previous status
   if (direction === 'SEND' && transaction?.settlementStatus === 'UNKNOWN') {
-    return { settlementStatus: 'UNKNOWN', ledgerType: LEDGER_TYPE.UNKNOWN }
+    return { settlementStatus: 'UNKNOWN' }
   }
 
+  // transient PENDING
   return {
     settlementStatus: 'PENDING',
     error: null,

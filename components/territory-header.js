@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import { Dropdown } from 'react-bootstrap'
+import Menu from '@/components/ui/menu'
 import Badge from '@/components/ui/badge'
 import Button, { buttonClasses } from '@/components/ui/button'
 import { AccordianCard } from './accordian-item'
@@ -153,7 +153,7 @@ export default function TerritoryHeader ({ sub }) {
                     <ToggleSubSubscriptionDropdownItem sub={sub} />
                     {isMine && (
                       <>
-                        <Dropdown.Divider />
+                        <Menu.Separator />
                         <TerritoryTransferDropdownItem sub={sub} />
                       </>
                     )}
@@ -190,7 +190,7 @@ export function MuteSubDropdownItem ({ item, sub }) {
   )
 
   return (
-    <Dropdown.Item
+    <Menu.Item
       onClick={async () => {
         try {
           await toggleMuteSub({ variables: { name: sub.name } })
@@ -201,7 +201,7 @@ export function MuteSubDropdownItem ({ item, sub }) {
         toaster.success(`${sub.meMuteSub ? 'joined' : 'muted'} territory`)
       }}
     >{sub.meMuteSub ? 'unmute' : 'mute'} ~{sub.name}
-    </Dropdown.Item>
+    </Menu.Item>
   )
 }
 
@@ -219,7 +219,7 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
     }
   )
   return (
-    <Dropdown.Item
+    <Menu.Item
       onClick={async () => {
         try {
           await pinItem({ variables: { id } })
@@ -230,7 +230,7 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
       }}
     >
       {position ? 'unpin item' : 'pin item'}
-    </Dropdown.Item>
+    </Menu.Item>
   )
 }
 
@@ -255,7 +255,7 @@ export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription
     }
   )
   return (
-    <Dropdown.Item
+    <Menu.Item
       onClick={async () => {
         try {
           await toggleSubSubscription({ variables: { name } })
@@ -267,6 +267,6 @@ export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription
       }}
     >
       {meSubscription ? `unsubscribe from ~${name}` : `subscribe to ~${name}`}
-    </Dropdown.Item>
+    </Menu.Item>
   )
 }

@@ -56,7 +56,7 @@
 
   /* Portaled overlays share this stacking ladder. */
   --sn-z-sticky: 900;
-  --sn-z-dropdown: 1000;
+  --sn-z-dropdown: 1060; /* was Bootstrap's 1000; our menus portal to <body> so they must clear the modal pair, and they sit below popover 1070 because no menu opens from a popover */
   --sn-z-drawer-backdrop: 1040;
   --sn-z-drawer: 1045;
   --sn-z-backdrop: 1050;

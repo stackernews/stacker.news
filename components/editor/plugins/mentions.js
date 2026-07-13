@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import Dropdown from 'react-bootstrap/Dropdown'
+import { menuClasses, itemClasses } from '@/components/ui/menu'
+import { cn } from '@/lib/cn'
 import { useApolloClient } from '@apollo/client/react'
 import { LexicalTypeaheadMenuPlugin, MenuOption } from '@lexical/react/LexicalTypeaheadMenuPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -157,21 +158,22 @@ export default function MentionsPlugin () {
       ) =>
         anchorElementRef.current && suggestions?.length
           ? createPortal(
-            <Dropdown show style={{ zIndex: 1000 }}>
-              <Dropdown.Menu className={styles.suggestionsMenu} onMouseDown={e => e.preventDefault()}>
-                {options.map((o, i) =>
-                  <Dropdown.Item
-                    key={o.key}
-                    active={selectedIndex === i}
-                    onClick={() => {
-                      setHighlightedIndex(i)
-                      selectOptionAndCleanUp(o)
-                    }}
-                  >
-                    {o.name}
-                  </Dropdown.Item>)}
-              </Dropdown.Menu>
-            </Dropdown>, anchorElementRef.current)
+            // a plain listbox on the menu chrome, Lexical owns the keyboard;
+            // .suggestionsMenu only carries the z-index
+            <div role='listbox' className={cn(menuClasses(), styles.suggestionsMenu)} onMouseDown={e => e.preventDefault()}>
+              {options.map((o, i) => (
+                <div
+                  key={o.key} role='option' aria-selected={selectedIndex === i}
+                  className={itemClasses({ active: selectedIndex === i })}
+                  onClick={() => {
+                    setHighlightedIndex(i)
+                    selectOptionAndCleanUp(o)
+                  }}
+                >
+                  {o.name}
+                </div>
+              ))}
+            </div>, anchorElementRef.current)
           : null}
     />
   )

@@ -17,10 +17,15 @@
   text-wrap: wrap;
 }
 
-.dropdownExtraItem:hover {
+/* [data-highlighted] twins the :hover rule so Base UI keyboard highlight paints
+   like hover (C5); ADD-ONLY here — the C8b toolbar still consumes these skins
+   through react-bootstrap, no deletions/renames until then */
+.dropdownExtraItem:hover,
+.dropdownExtraItem[data-highlighted] {
   background-color: var(--theme-toolbarActive);
   opacity: 1;
   border-radius: 0.3rem;
+  outline: none;
 }
 
 .dropdownExtraItem.active {

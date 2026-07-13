@@ -1,0 +1,34 @@
+.positioner { z-index: var(--sn-z-dropdown); }
+
+.popup {
+  background-color: var(--theme-inputBg);
+  border: 1px solid var(--theme-borderColor);
+  outline: 0;
+  max-width: 90vw;          /* SN one-off guard from globals' .dropdown-menu, kept verbatim */
+  overflow: auto;
+  transform-origin: var(--transform-origin);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+.popup[data-starting-style],
+.popup[data-ending-style] { opacity: 0; transform: scale(0.98); }
+@media (prefers-reduced-motion: reduce) { .popup { transition: none; } }
+
+.item {
+  /* class beats element specificity here, so no !important is needed against
+     the global anchor rules, unlike the .dropdown-item originals */
+  color: var(--theme-dropdownItemColor);
+  cursor: pointer;
+}
+.item:hover,
+.item[data-highlighted] {
+  color: var(--theme-dropdownItemColorHover);
+  outline: none;            /* the highlight paint replaces the focus ring, the docs pattern */
+}
+.active,
+.active:hover,
+.active[data-highlighted] {
+  color: var(--theme-brandColor);
+  text-shadow: 0 0 10px var(--bs-primary);   /* PR3: rename to the --sn token */
+}
+
+.divider { border-top: 1px solid var(--theme-borderColor); }

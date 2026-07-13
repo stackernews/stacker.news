@@ -4,7 +4,7 @@ import ArrowLeft from '@/svgs/arrow-left-line.svg'
 import ArrowRight from '@/svgs/arrow-right-line.svg'
 import styles from './carousel.module.css'
 import { useShowModal } from './modal'
-import { Dropdown } from 'react-bootstrap'
+import Menu from '@/components/ui/menu'
 
 function useSwiping ({ moveLeft, moveRight }) {
   const [touchStartX, setTouchStartX] = useState(null)
@@ -108,7 +108,7 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
 const CarouselContext = createContext()
 
 function CarouselOverflow ({ originalSrc, rel }) {
-  return <Dropdown.Item href={originalSrc} rel={rel} target='_blank'>view original</Dropdown.Item>
+  return <Menu.Item href={originalSrc} rel={rel} target='_blank'>view original</Menu.Item>
 }
 
 export function CarouselProvider ({ children }) {

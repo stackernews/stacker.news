@@ -2,15 +2,17 @@ import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import LightningIcon from '@/svgs/bolt.svg'
 import NostrIcon from '@/svgs/nostr.svg'
-import Button from 'react-bootstrap/Button'
+import Button, { buttonClasses } from '@/components/ui/button'
+import Menu from '@/components/ui/menu'
+import { Menu as BaseMenu } from '@base-ui/react/menu'
 import useCookie from './use-cookie'
 import { cookieOptions, MULTI_AUTH_POINTER } from '@/lib/auth'
 import { useAccounts } from './account'
 import SNIcon from '@/svgs/sn.svg'
-import { ButtonGroup, Dropdown } from 'react-bootstrap'
 import styles from '@/components/dropdown.module.css'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
 import classNames from 'classnames'
+import { cn } from '@/lib/cn'
 import { useRouter } from 'next/router'
 
 export default function LoginButton ({ text, type, className, onClick, disabled }) {
@@ -59,32 +61,35 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
   const title = account ? `Log in with @${account.name}` : 'Log in with @nym'
 
   return (
-    <Dropdown className='mb-6 w-full' as={ButtonGroup}>
+    <div className='inline-flex w-full mb-6'>
       <Button
         variant='success'
         onClick={() => account && router.push(callbackUrl)}
         disabled={disabled || !account}
-        className={className}
+        className={cn('min-w-0 grow rounded-e-none', className)}
         title={title}
-        style={{ minWidth: 0 }}
       >
         <SNIcon width={20} height={20} className='me-4 shrink-0' />
-        <span className='truncate' style={{ minWidth: 0 }}>{title}</span>
+        <span className='truncate min-w-0'>{title}</span>
       </Button>
       {(accounts.length > 1 || !account) && (
-        <>
-          <Dropdown.Toggle
-            split
-            variant='success'
-            onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
+        <Menu className='flex shrink-0'>
+          <Menu.Trigger
             title='select account'
-            style={{ maxWidth: '42px' }}
+            className={cn(buttonClasses({ variant: 'success' }), 'rounded-s-none w-10 px-0 shrink-0 flex items-center justify-center')}
           >
             <ArrowDownIcon width={16} height={16} />
-          </Dropdown.Toggle>
-          <Dropdown.Menu className={styles.dropdownExtra} style={{ width: '150px' }}>
+          </Menu.Trigger>
+          {/* utilities carry the metrics, they would beat the skin's
+              declarations anyway: w-40 is the painted width (the old inline
+              150px lost to Bootstrap's 160px min-width), p-2 and rounded-md
+              approximate the skin's values. The skin lines go inert here but
+              stay for the editor toolbar */}
+          <Menu.Popup align='end' className={cn(styles.dropdownExtra, 'w-40 p-2 rounded-md')}>
             {accounts.map(account => (
-              <Dropdown.Item
+              // raw Base UI Item on the legacy dropdownExtra* skins, not
+              // itemClasses, whose padding utilities would beat the skin
+              <BaseMenu.Item
                 key={account.id}
                 onClick={() => {
                   setPointerCookie(account.id, cookieOptions({ httpOnly: false }))
@@ -92,11 +97,11 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
                 className={classNames(styles.dropdownExtraItem, Number(account.id) === Number(pointerCookie) && styles.active)}
               >
                 <span className={styles.dropdownExtraItemText}>{account.name}</span>
-              </Dropdown.Item>
+              </BaseMenu.Item>
             ))}
-          </Dropdown.Menu>
-        </>
+          </Menu.Popup>
+        </Menu>
       )}
-    </Dropdown>
+    </div>
   )
 }

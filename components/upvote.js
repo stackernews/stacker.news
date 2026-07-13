@@ -12,15 +12,15 @@ import LongPressable from './long-pressable'
 import Popover from './ui/popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
-import { Dropdown } from 'react-bootstrap'
+import Menu from '@/components/ui/menu'
 import classNames from 'classnames'
 
 const WalkthroughPopover = ({ anchor, show, handleClose, title, children }) => (
   <Popover
     open={show} onOpenChange={(open, details) => {
-      // parity: today's Overlay has no rootClose — outside-press must NOT dismiss
-      // (handleClose fires the setWalkthrough mutation and marks the walkthrough
-      // seen forever; a stray click would eat it). Escape is a deliberate a11y add.
+      // the old Overlay had no rootClose, so outside press must not dismiss:
+      // handleClose fires the setWalkthrough mutation and marks the walkthrough
+      // seen forever, and a stray click would eat it. Escape is a deliberate add.
       if (!open && (details.reason === 'close-press' || details.reason === 'escape-key')) handleClose()
     }}
   >
@@ -53,14 +53,14 @@ export function DropdownItemUpVote ({ item }) {
   const showModal = useShowModal()
 
   return (
-    <Dropdown.Item
+    <Menu.Item
       onClick={async () => {
         showModal(onClose =>
           <ItemAct onClose={onClose} item={item} />)
       }}
     >
       <span className='text-success'>zap</span>
-    </Dropdown.Item>
+    </Menu.Item>
   )
 }
 

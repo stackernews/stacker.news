@@ -1,4 +1,4 @@
-import Dropdown from 'react-bootstrap/Dropdown'
+import Menu from '@/components/ui/menu'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
 import ItemAct from './item-act'
@@ -63,7 +63,7 @@ function DownZapper ({ item, As, children }) {
 export default function DontLikeThisDropdownItem ({ item }) {
   return (
     <DownZapper
-      As={Dropdown.Item}
+      As={Menu.Item}
       item={item}
     >
       <span className='text-danger'>downzap</span>

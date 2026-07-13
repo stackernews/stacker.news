@@ -89,6 +89,26 @@
   fill: #212529;
 }
 
+/* login-provider variants (C5 — login-button.js left C1's deferred list; its two
+   variants were hidden from the census the same way the stuffed props were).
+   twitter: $theme-colors map + globals.scss:474 pins #fff text in every state.
+   dark: compiled .btn-dark TINTS on hover/active (#424649/#4d5154) — exactly the
+   85/15 + 80/20 formula with --sn-btn-mix: #fff, verified value-exact */
+.twitter {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #1da1f2;
+}
+
+.twitter svg {
+  fill: #fff;
+}
+
+.dark {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #212529;
+  --sn-btn-mix: #fff;
+}
+
 /* !important preserved from globals.scss:478 — the icon's own fill/stroke
    classes must lose in every state, exactly as today */
 .nostr {

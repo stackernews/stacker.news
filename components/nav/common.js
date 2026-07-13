@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { Dropdown, Nav, Navbar } from 'react-bootstrap'
+import { Nav, Navbar } from 'react-bootstrap'
 import Button, { buttonClasses } from '@/components/ui/button'
+import Menu from '@/components/ui/menu'
 import styles from '../header.module.css'
 import { useRouter } from 'next/router'
 import BackArrow from '../../svgs/arrow-left-line.svg'
@@ -179,37 +180,42 @@ export function MeDropdown ({ me, dropNavKey }) {
 
   const profileIndicator = !me.bioId
   const indicator = profileIndicator || walletIndicator
+  // topNavKey ≡ dropNavKey.split('/')[0] by construction (useNavKeys derives both
+  // from the same path offset) — replaces rb's NavContext eventKey resolution
+  const topKey = dropNavKey?.split('/')[0]
 
   return (
     <div className='ms-2'>
-      <Dropdown className={styles.dropdown} align='end'>
-        <Dropdown.Toggle className='nav-link nav-item font-normal' id='profile' variant='custom'>
+      <Menu className={styles.dropdown}>
+        {/* ps-0 pe-2 py-0.5 replicate today's painted 0/8px/1.6px (§14.6 pre-flight 7)
+            now that the dead .btn/.btn-custom classes are gone */}
+        <Menu.Trigger className='nav-link nav-item font-normal ps-0 pe-2 py-0.5'>
           <div className='flex items-center'>
             <Nav.Link eventKey={me.name} as='span' className='p-0'>
               <Indicator show={indicator} top='2px' right='-5px'>@{me.name}</Indicator>
             </Nav.Link>
             <Badges user={me} className='ms-1' height={16} width={14} />
           </div>
-        </Dropdown.Toggle>
-        <Dropdown.Menu>
-          <Dropdown.Item as={Link} href={'/' + me.name} active={me.name === dropNavKey}>
+        </Menu.Trigger>
+        <Menu.Popup align='end'>
+          <Menu.Item href={'/' + me.name} active={me.name === dropNavKey}>
             <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
-          </Dropdown.Item>
-          <Dropdown.Item as={Link} href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
-          <Dropdown.Item as={Link} href='/wallets' eventKey='wallets'>
+          </Menu.Item>
+          <Menu.Item href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Menu.Item>
+          <Menu.Item href='/wallets' active={topKey === 'wallets'}>
             <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
-          </Dropdown.Item>
-          <Dropdown.Item as={Link} href='/satistics' eventKey='satistics'>satistics</Dropdown.Item>
-          <Dropdown.Divider />
-          <Dropdown.Item as={Link} href='/invites' eventKey='invites'>invites</Dropdown.Item>
-          <Dropdown.Divider />
+          </Menu.Item>
+          <Menu.Item href='/satistics' active={topKey === 'satistics'}>satistics</Menu.Item>
+          <Menu.Separator />
+          <Menu.Item href='/invites' active={topKey === 'invites'}>invites</Menu.Item>
+          <Menu.Separator />
           <div className='flex items-center'>
-            <Dropdown.Item as={Link} href='/settings' eventKey='settings'>settings</Dropdown.Item>
+            <Menu.Item href='/settings' active={topKey === 'settings'}>settings</Menu.Item>
           </div>
-          <Dropdown.Divider />
+          <Menu.Separator />
           <LogoutDropdownItem />
-        </Dropdown.Menu>
-      </Dropdown>
+        </Menu.Popup>
+      </Menu>
     </div>
   )
 }
@@ -297,24 +303,29 @@ function LogoutObstacle ({ onClose }) {
   )
 }
 
-export function LogoutDropdownItem ({ handleClose }) {
+// dual-mode (§14.5): in-menu in MeDropdown, plain elements in the offcanvas drawer —
+// the drawer passes className='px-0' (its items painted padding-x 0 via the drawer's
+// now-dead inline dropdown var writes); menu sites pass nothing, keeping recipe padding
+export function LogoutDropdownItem ({ handleClose, className }) {
   const showModal = useShowModal()
 
   return (
     <>
-      <Dropdown.Item onClick={() => {
-        handleClose?.()
-        showModal(onClose => <SwitchAccountList onClose={onClose} />)
-      }}
+      <Menu.Item
+        className={className} onClick={() => {
+          handleClose?.()
+          showModal(onClose => <SwitchAccountList onClose={onClose} />)
+        }}
       >switch account
-      </Dropdown.Item>
-      <Dropdown.Item
+      </Menu.Item>
+      <Menu.Item
+        className={className}
         onClick={async () => {
           handleClose?.()
           showModal(onClose => <LogoutObstacle onClose={onClose} />)
         }}
       >logout
-      </Dropdown.Item>
+      </Menu.Item>
     </>
   )
 }
@@ -342,18 +353,21 @@ function SwitchAccountButton ({ handleClose }) {
   )
 }
 
-export function LoginButtons ({ handleClose }) {
+// dual-mode like LogoutDropdownItem: in-menu items in AnonDropdown (closeOnClick
+// closes the menu before the button's navigation/modal — rb behavior), plain divs
+// in the drawer (className='px-0' from there)
+export function LoginButtons ({ handleClose, className }) {
   return (
     <>
-      <Dropdown.Item className='py-1'>
+      <Menu.Item className={classNames('py-1', className)}>
         <LoginButton />
-      </Dropdown.Item>
-      <Dropdown.Item className='py-1'>
+      </Menu.Item>
+      <Menu.Item className={classNames('py-1', className)}>
         <SignUpButton className='py-1' />
-      </Dropdown.Item>
-      <Dropdown.Item className='py-1'>
+      </Menu.Item>
+      <Menu.Item className={classNames('py-1', className)}>
         <SwitchAccountButton handleClose={handleClose} />
-      </Dropdown.Item>
+      </Menu.Item>
     </>
   )
 }
@@ -361,16 +375,18 @@ export function LoginButtons ({ handleClose }) {
 export function AnonDropdown ({ path }) {
   return (
     <div className='relative'>
-      <Dropdown className={classNames(styles.dropdown, 'pe-0')} align='end' autoClose>
-        <Dropdown.Toggle className='nav-link nav-item pe-0' id='profile' variant='custom'>
+      {/* rb's inert bare autoClose (≡ default true) dropped; padding utilities per
+          §14.6 pre-flight 7, as on MeDropdown's trigger */}
+      <Menu className={classNames(styles.dropdown, 'pe-0')}>
+        <Menu.Trigger className='nav-link nav-item ps-0 pe-0 py-0.5'>
           <Nav.Link eventKey='anon' as='span' className='p-0 font-normal'>
             @anon<Badges user={{ id: USER_ID.anon }} />
           </Nav.Link>
-        </Dropdown.Toggle>
-        <Dropdown.Menu className='p-4'>
+        </Menu.Trigger>
+        <Menu.Popup align='end' className='p-4'>
           <LoginButtons />
-        </Dropdown.Menu>
-      </Dropdown>
+        </Menu.Popup>
+      </Menu>
     </div>
   )
 }

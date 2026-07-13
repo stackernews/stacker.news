@@ -3,7 +3,7 @@ import { gql } from 'graphql-tag'
 import { useState } from 'react'
 import Alert from '@/components/ui/alert'
 import Button from '@/components/ui/button'
-import Dropdown from 'react-bootstrap/Dropdown'
+import Menu from '@/components/ui/menu'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
 
@@ -90,9 +90,9 @@ export function DeleteConfirm ({ onConfirm, type }) {
 export function DeleteDropdownItem (props) {
   return (
     <Delete {...props}>
-      <Dropdown.Item>
+      <Menu.Item>
         delete
-      </Dropdown.Item>
+      </Menu.Item>
     </Delete>
   )
 }

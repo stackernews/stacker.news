@@ -1,4 +1,4 @@
-import Dropdown from 'react-bootstrap/Dropdown'
+import Menu from '@/components/ui/menu'
 import ShareIcon from '@/svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import useCrossposter from './use-crossposter'
@@ -69,13 +69,13 @@ export function CopyLinkDropdownItem ({ item }) {
   }
 
   return (
-    <Dropdown.Item
+    <Menu.Item
       onClick={async () => {
         await share(item.title || '', url, toaster)
       }}
     >
       copy link
-    </Dropdown.Item>
+    </Menu.Item>
   )
 }
 
@@ -93,8 +93,8 @@ export function CrosspostDropdownItem ({ item }) {
   }
 
   return (
-    <Dropdown.Item onClick={handleCrosspostClick}>
+    <Menu.Item onClick={handleCrosspostClick}>
       crosspost to nostr
-    </Dropdown.Item>
+    </Menu.Item>
   )
 }

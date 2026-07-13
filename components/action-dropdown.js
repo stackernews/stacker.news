@@ -1,4 +1,4 @@
-import Dropdown from 'react-bootstrap/Dropdown'
+import Menu from '@/components/ui/menu'
 import styles from './item.module.css'
 import MoreIcon from '@/svgs/more-fill.svg'
 
@@ -7,13 +7,11 @@ export default function ActionDropdown ({ children }) {
     return null
   }
   return (
-    <Dropdown className={`pointer ${styles.dropdown}`} as='span'>
-      <Dropdown.Toggle variant='success' as='a' onPointerDown={e => e.preventDefault()}>
-        <MoreIcon className='fill-grey ms-1' height={16} width={16} />
-      </Dropdown.Toggle>
-      <Dropdown.Menu>
-        {children}
-      </Dropdown.Menu>
-    </Dropdown>
+    <Menu className={`pointer ${styles.dropdown}`}>
+      {/* the old anchor toggle had no href and was untabbable;
+          nativeButton={false} decorates the span with role and tabIndex */}
+      <Menu.Trigger nativeButton={false} render={<span><MoreIcon className='fill-grey ms-1' height={16} width={16} /></span>} />
+      <Menu.Popup>{children}</Menu.Popup>
+    </Menu>
   )
 }

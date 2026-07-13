@@ -610,10 +610,12 @@
   --switcher-clip: inset(-0.2rem -0.2rem -0.005rem -0.2rem);
 }
 
-/* https://github.com/react-bootstrap/react-bootstrap/issues/5475 */
+/* mentions listbox (C5, D4): the old opacity/pointer-events !important workaround
+   died with the rb Dropdown shell it fought; the class now only lifts the listbox
+   onto the ladder (was an inline zIndex: 1000) — position so the z-index applies */
 .suggestionsMenu {
-  opacity: 1 !important;
-  pointer-events: unset !important;
+  position: relative;
+  z-index: var(--sn-z-dropdown);
 }
 
 

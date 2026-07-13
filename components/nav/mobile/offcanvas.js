@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Dropdown, Nav, Navbar, Offcanvas } from 'react-bootstrap'
+import { Nav, Navbar, Offcanvas } from 'react-bootstrap'
+import Menu from '@/components/ui/menu'
 import { MEDIA_URL } from '@/lib/constants'
 import Link from 'next/link'
 import { Indicator, LoginButtons, LogoutDropdownItem, NavWalletSummary } from '../common'
@@ -41,38 +42,34 @@ export default function OffCanvas ({ me, dropNavKey }) {
           <Offcanvas.Title><NavWalletSummary /></Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body className='pb-0'>
-          <div style={{
-            '--bs-dropdown-item-padding-y': '.5rem',
-            '--bs-dropdown-item-padding-x': 0,
-            '--bs-dropdown-divider-bg': '#ced4da',
-            '--bs-dropdown-divider-margin-y': '0.5rem',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-          >
+          {/* the 4 inline Bootstrap dropdown var writes died with rb: px-0 replicates
+              item-padding-x 0, the recipe's py-2/my-2 ≡ the .5rem paddings, and the
+              divider-bg was already dead (globals' border-top wins — §14.6 pre-flight 8).
+              Items here are plain-mode (no menu — drawer body); the eventKey items were
+              never active in the drawer (no Nav context), so those props just die */}
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             {me
               ? (
                 <>
-                  <Dropdown.Item as={Link} href={'/' + me.name} active={me.name === dropNavKey}>
+                  <Menu.Item className='px-0' href={'/' + me.name} active={me.name === dropNavKey}>
                     <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
-                  </Dropdown.Item>
-                  <Dropdown.Item as={Link} href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
-                  <Dropdown.Item as={Link} href='/wallets' eventKey='wallets'>
+                  </Menu.Item>
+                  <Menu.Item className='px-0' href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Menu.Item>
+                  <Menu.Item className='px-0' href='/wallets'>
                     <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
-                  </Dropdown.Item>
-                  <Dropdown.Item as={Link} href='/satistics' eventKey='satistics'>satistics</Dropdown.Item>
-                  <Dropdown.Divider />
-                  <Dropdown.Item as={Link} href='/invites' eventKey='invites'>invites</Dropdown.Item>
-                  <Dropdown.Divider />
+                  </Menu.Item>
+                  <Menu.Item className='px-0' href='/satistics'>satistics</Menu.Item>
+                  <Menu.Separator />
+                  <Menu.Item className='px-0' href='/invites'>invites</Menu.Item>
+                  <Menu.Separator />
                   <div className='flex items-center'>
-                    <Dropdown.Item as={Link} href='/settings' eventKey='settings'>settings</Dropdown.Item>
+                    <Menu.Item className='px-0' href='/settings'>settings</Menu.Item>
                   </div>
-                  <Dropdown.Divider />
-                  <LogoutDropdownItem handleClose={handleClose} />
+                  <Menu.Separator />
+                  <LogoutDropdownItem handleClose={handleClose} className='px-0' />
                 </>
                 )
-              : <LoginButtons handleClose={handleClose} />}
+              : <LoginButtons handleClose={handleClose} className='px-0' />}
             <div className={classNames(styles.footerPadding, 'mt-auto')}>
               <Navbar className={classNames('container flex flex-row px-0 text-muted')}>
                 <Nav>

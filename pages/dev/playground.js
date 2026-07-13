@@ -20,8 +20,11 @@ import BsButton from 'react-bootstrap/Button'
 import BsContainer from 'react-bootstrap/Container'
 import BsTooltip from 'react-bootstrap/Tooltip'
 import BsPopover from 'react-bootstrap/Popover'
+import BsDropdown from 'react-bootstrap/Dropdown'
+import BsButtonGroup from 'react-bootstrap/ButtonGroup'
 import Overlay from 'react-bootstrap/Overlay'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import { Menu as BaseMenu } from '@base-ui/react/menu'
 import Layout from '@/components/layout'
 import Button, { buttonClasses } from '@/components/ui/button'
 import Badge from '@/components/ui/badge'
@@ -30,8 +33,13 @@ import Container from '@/components/ui/container'
 import Tooltip from '@/components/ui/tooltip'
 import Popover from '@/components/ui/popover'
 import PreviewCard from '@/components/ui/preview-card'
+import Menu, { menuClasses, itemClasses } from '@/components/ui/menu'
 import { BadgeTooltip } from '@/components/badge'
+import dropdownStyles from '@/components/dropdown.module.css'
+import { cn } from '@/lib/cn'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
+import MoreIcon from '@/svgs/more-fill.svg'
+import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
 import useDarkMode from '@/components/dark-mode'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 
@@ -40,9 +48,11 @@ export const getServerSideProps = process.env.NODE_ENV === 'development'
   ? getGetServerSideProps({ query: null })
   : async () => ({ notFound: true })
 
+// twitter/dark joined at C5 — login-button.js's variants sat out C1's census
+// inside the deferred file
 const BUTTON_VARIANTS = [
   'primary', 'secondary', 'danger', 'info', 'success', 'grey', 'grey-medium',
-  'nostr', 'outline-secondary', 'outline-info', 'outline-grey',
+  'nostr', 'twitter', 'dark', 'outline-secondary', 'outline-info', 'outline-grey',
   'outline-warning', 'outline-grey-darkmode', 'link'
 ]
 
@@ -79,7 +89,6 @@ const RETINT_VARS = {
 
 // docs/dev/pr2-base-ui-components.md §8 — add a section above as each lands
 const ROADMAP = [
-  ['Dropdown (Menu)', 'C5'],
   ['Modal (Dialog)', 'C6'],
   ['Toast', 'C7'],
   ['editor Tabs / Toolbar / link Popover', 'C8a–c'],
@@ -275,6 +284,82 @@ function WalkthroughCompare () {
         </div>
       }
     />
+  )
+}
+
+// login-button.js split-group shape, both sides with static accounts
+// (the real LoginWithNymButton needs multi_auth cookies)
+const SPLIT_ACCOUNTS = [{ id: 1, name: 'alice' }, { id: 2, name: 'bob_the_long_named' }, { id: 3, name: 'carol' }]
+
+function BsSplitLogin () {
+  const [pointer, setPointer] = useState(1)
+  return (
+    <BsDropdown className='mb-0 w-full' as={BsButtonGroup}>
+      <BsButton variant='success' title='Log in with @alice' style={{ minWidth: 0 }}>
+        <span className='truncate' style={{ minWidth: 0 }}>Log in with @alice</span>
+      </BsButton>
+      <BsDropdown.Toggle split variant='success' title='select account' style={{ maxWidth: '42px' }}>
+        <ArrowDownIcon width={16} height={16} />
+      </BsDropdown.Toggle>
+      <BsDropdown.Menu className={dropdownStyles.dropdownExtra} style={{ width: '150px' }}>
+        {SPLIT_ACCOUNTS.map(a => (
+          <BsDropdown.Item
+            key={a.id} onClick={() => setPointer(a.id)}
+            className={cn(dropdownStyles.dropdownExtraItem, a.id === pointer && dropdownStyles.active)}
+          >
+            <span className={dropdownStyles.dropdownExtraItemText}>{a.name}</span>
+          </BsDropdown.Item>
+        ))}
+      </BsDropdown.Menu>
+    </BsDropdown>
+  )
+}
+
+function SnSplitLogin () {
+  const [pointer, setPointer] = useState(1)
+  return (
+    <div className='inline-flex w-full'>
+      <Button variant='success' title='Log in with @alice' className='min-w-0 grow rounded-e-none'>
+        <span className='truncate min-w-0'>Log in with @alice</span>
+      </Button>
+      <Menu className='flex shrink-0'>
+        <Menu.Trigger
+          title='select account'
+          className={cn(buttonClasses({ variant: 'success' }), 'rounded-s-none w-10 px-0 shrink-0 flex items-center justify-center')}
+        >
+          <ArrowDownIcon width={16} height={16} />
+        </Menu.Trigger>
+        <Menu.Popup align='end' className={cn(dropdownStyles.dropdownExtra, 'w-40 p-2 rounded-md')}>
+          {SPLIT_ACCOUNTS.map(a => (
+            <BaseMenu.Item
+              key={a.id} onClick={() => setPointer(a.id)}
+              className={cn(dropdownStyles.dropdownExtraItem, a.id === pointer && dropdownStyles.active)}
+            >
+              <span className={dropdownStyles.dropdownExtraItemText}>{a.name}</span>
+            </BaseMenu.Item>
+          ))}
+        </Menu.Popup>
+      </Menu>
+    </div>
+  )
+}
+
+// mentions.js listbox shape (D4) — static replica, click moves the selection
+function MentionsListboxReplica () {
+  const [selected, setSelected] = useState(0)
+  const names = ['satoshi', 'sox', 'k00b']
+  return (
+    <div role='listbox' className={cn(menuClasses(), 'inline-block')}>
+      {names.map((name, i) => (
+        <div
+          key={name} role='option' aria-selected={selected === i}
+          className={itemClasses({ active: selected === i })}
+          onClick={() => setSelected(i)}
+        >
+          {name}
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -637,6 +722,112 @@ export default function Playground () {
                   {['top', 'right', 'bottom', 'left'].map(s =>
                     <ClickPopover key={s} label={s} side={s}>{s}</ClickPopover>)}
                 </div>
+              }
+            />
+          </CompareGrid>
+        </Section>
+
+        <Section
+          title='Menu (Dropdown)'
+          note='ui/menu.js — Base UI Menu at rb-Dropdown ergonomics, modal={false} BAKED (Menu.Root is the one popup primitive that scroll-locks by default — Popover does not). intended deltas: items unify at py-2 (nav/modal/territory menus grow .25rem per item; item-"..." menus already painted it), shadow-lg (today paints none), rounded-md 6px vs 6.4px, 150ms fade+scale (was: snap), split caret w-10 40px vs 42px. new behaviors: typeahead letter-jump, keyboard highlight paints like hover, "..." and split triggers are focusable'
+        >
+          <CompareGrid>
+            <Compare
+              label='link menu'
+              note='MeDropdown shape: link items, active glow + dividers, end-aligned at 2px gap. arrows/Enter/typeahead on the new side; Tab returns to the trigger'
+              bs={
+                <BsDropdown align='end'>
+                  <BsDropdown.Toggle variant='custom' className='nav-link nav-item font-normal'>@satoshi</BsDropdown.Toggle>
+                  <BsDropdown.Menu>
+                    <BsDropdown.Item as={Link} href='#'>profile</BsDropdown.Item>
+                    <BsDropdown.Item as={Link} href='#' active>wallets</BsDropdown.Item>
+                    <BsDropdown.Divider />
+                    <BsDropdown.Item as={Link} href='#'>settings</BsDropdown.Item>
+                  </BsDropdown.Menu>
+                </BsDropdown>
+              }
+              sn={
+                <Menu>
+                  <Menu.Trigger className='nav-link nav-item font-normal ps-0 pe-2 py-0.5'>@satoshi</Menu.Trigger>
+                  <Menu.Popup align='end'>
+                    <Menu.Item href='#'>profile</Menu.Item>
+                    <Menu.Item href='#' active>wallets</Menu.Item>
+                    <Menu.Separator />
+                    <Menu.Item href='#'>settings</Menu.Item>
+                  </Menu.Popup>
+                </Menu>
+              }
+            />
+            <Compare
+              label='action "..."'
+              note='ActionDropdown shape: span trigger with the more icon (new: role=button + tabIndex — the old as="a" toggle was untabbable); action items + separator; items at py-2 on both sides here (the item-".." menus painted .5rem already)'
+              bs={
+                <BsDropdown className='pointer' as='span'>
+                  <BsDropdown.Toggle variant='success' as='a'>
+                    <MoreIcon className='fill-grey ms-1' height={16} width={16} />
+                  </BsDropdown.Toggle>
+                  <BsDropdown.Menu>
+                    <BsDropdown.Item onClick={() => {}}>copy link</BsDropdown.Item>
+                    <BsDropdown.Item onClick={() => {}}>details</BsDropdown.Item>
+                    <BsDropdown.Divider />
+                    <BsDropdown.Item onClick={() => {}}><span className='text-danger'>downzap</span></BsDropdown.Item>
+                  </BsDropdown.Menu>
+                </BsDropdown>
+              }
+              sn={
+                <Menu className='pointer'>
+                  <Menu.Trigger nativeButton={false} render={<span><MoreIcon className='fill-grey ms-1' height={16} width={16} /></span>} />
+                  <Menu.Popup>
+                    <Menu.Item onClick={() => {}}>copy link</Menu.Item>
+                    <Menu.Item onClick={() => {}}>details</Menu.Item>
+                    <Menu.Separator />
+                    <Menu.Item onClick={() => {}}><span className='text-danger'>downzap</span></Menu.Item>
+                  </Menu.Popup>
+                </Menu>
+              }
+            />
+            <Compare
+              label='split login'
+              note="login-button.js group: caret opens the end-aligned menu on the dropdownExtra skins (raw Base UI items — itemClasses' utilities would out-!important the skin, §11.0); menu width 160px on both sides (the old inline 150px always lost to Bootstrap's min-width); current account keeps the .active skin; keyboard highlight = the new [data-highlighted] hover twin"
+              bs={<BsSplitLogin />}
+              sn={<SnSplitLogin />}
+            />
+            <Compare
+              label='mentions listbox'
+              note='editor @/~ suggestions (D4): plain listbox on menuClasses/itemClasses — Lexical owns the keyboard, selection paints the active glow; the rb Dropdown shell (and the opacity !important workaround it needed) is gone. left = static rb lookalike'
+              bs={
+                <div className='dropdown-menu show relative inline-block'>
+                  <a className='dropdown-item active' href='#satoshi' onClick={e => e.preventDefault()}>satoshi</a>
+                  <a className='dropdown-item' href='#sox' onClick={e => e.preventDefault()}>sox</a>
+                  <a className='dropdown-item' href='#k00b' onClick={e => e.preventDefault()}>k00b</a>
+                </div>
+              }
+              sn={<MentionsListboxReplica />}
+            />
+            <Compare
+              label='scroll lock (modal)'
+              note="pre-flight 4's receipt — left is NOT rb: it's a raw Base UI Menu at the DEFAULT modal, which LOCKS document scroll while open (body overflow:hidden). right is ui/menu with the baked modal={false}: the page keeps scrolling, matching every rb menu today. this asymmetry is why the wrapper bakes it (Popover.Root defaults false; Menu.Root defaults true)"
+              bs={
+                <BaseMenu.Root>
+                  <BaseMenu.Trigger className={buttonClasses({ variant: 'grey', size: 'sm' })}>default modal — locks</BaseMenu.Trigger>
+                  <BaseMenu.Portal>
+                    <BaseMenu.Positioner sideOffset={2} className='z-(--sn-z-dropdown)'>
+                      <BaseMenu.Popup className={menuClasses()}>
+                        <BaseMenu.Item className={itemClasses()}>try scrolling</BaseMenu.Item>
+                        <BaseMenu.Item className={itemClasses()}>the page is locked</BaseMenu.Item>
+                      </BaseMenu.Popup>
+                    </BaseMenu.Positioner>
+                  </BaseMenu.Portal>
+                </BaseMenu.Root>
+              }
+              sn={
+                <Menu>
+                  <Menu.Trigger className={buttonClasses({ variant: 'grey', size: 'sm' })}>modal={'{false}'} baked — scrolls</Menu.Trigger>
+                  <Menu.Popup>
+                    <Menu.Item>try scrolling</Menu.Item>
+                    <Menu.Item>the page still scrolls</Menu.Item>
+                  </Menu.Popup>
+                </Menu>
               }
             />
           </CompareGrid>

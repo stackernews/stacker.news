@@ -12,7 +12,7 @@ import LongPressable from './long-pressable'
 import Popover from './ui/popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
-import { Dropdown } from 'react-bootstrap'
+import Menu from '@/components/ui/menu'
 import classNames from 'classnames'
 
 const WalkthroughPopover = ({ anchor, show, handleClose, title, children }) => (
@@ -53,14 +53,14 @@ export function DropdownItemUpVote ({ item }) {
   const showModal = useShowModal()
 
   return (
-    <Dropdown.Item
+    <Menu.Item
       onClick={async () => {
         showModal(onClose =>
           <ItemAct onClose={onClose} item={item} />)
       }}
     >
       <span className='text-success'>zap</span>
-    </Dropdown.Item>
+    </Menu.Item>
   )
 }
 

@@ -3,7 +3,8 @@ import { useApolloClient, useMutation } from '@apollo/client/react'
 import { useShowModal } from './modal'
 import { ObstacleButtons } from './obstacle'
 import { useToast } from './toast'
-import { Dropdown, InputGroup } from 'react-bootstrap'
+import { InputGroup } from 'react-bootstrap'
+import Menu from '@/components/ui/menu'
 import { Form, InputUserSuggest, SubmitButton } from './form'
 import { territoryTransferSchema } from '@/lib/validate'
 import { useCallback } from 'react'
@@ -85,11 +86,11 @@ function TerritoryTransferForm ({ sub, onClose }) {
 export function TerritoryTransferDropdownItem ({ sub }) {
   const showModal = useShowModal()
   return (
-    <Dropdown.Item onClick={async () =>
+    <Menu.Item onClick={async () =>
       showModal(onClose =>
         <TerritoryTransferForm sub={sub} onClose={onClose} />)}
     >
       transfer
-    </Dropdown.Item>
+    </Menu.Item>
   )
 }

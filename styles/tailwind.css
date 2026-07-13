@@ -97,7 +97,7 @@
    * consumes these vars, never literal z-index values.
    */
   --sn-z-sticky: 900;
-  --sn-z-dropdown: 1000;
+  --sn-z-dropdown: 1060; /* was BS's 1000 — our menus PORTAL to <body> (BS dropdowns never did) so they must clear modal 1055/backdrop 1050, like BS's own portaling popups; below popover 1070 — no menu opens from a popover (C6, PR2 doc §15.0-3) */
   --sn-z-drawer-backdrop: 1040;
   --sn-z-drawer: 1045;
   --sn-z-backdrop: 1050;

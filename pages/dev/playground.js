@@ -22,6 +22,7 @@ import BsTooltip from 'react-bootstrap/Tooltip'
 import BsPopover from 'react-bootstrap/Popover'
 import BsDropdown from 'react-bootstrap/Dropdown'
 import BsButtonGroup from 'react-bootstrap/ButtonGroup'
+import BsModal from 'react-bootstrap/Modal'
 import Overlay from 'react-bootstrap/Overlay'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import { Menu as BaseMenu } from '@base-ui/react/menu'
@@ -34,11 +35,14 @@ import Tooltip from '@/components/ui/tooltip'
 import Popover from '@/components/ui/popover'
 import PreviewCard from '@/components/ui/preview-card'
 import Menu, { menuClasses, itemClasses } from '@/components/ui/menu'
+import { useShowModal } from '@/components/modal'
+import ActionDropdown from '@/components/action-dropdown'
 import { BadgeTooltip } from '@/components/badge'
 import dropdownStyles from '@/components/dropdown.module.css'
 import { cn } from '@/lib/cn'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import MoreIcon from '@/svgs/more-fill.svg'
+import BackArrow from '@/svgs/arrow-left-line.svg'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
 import useDarkMode from '@/components/dark-mode'
 import { getGetServerSideProps } from '@/api/ssrApollo'
@@ -89,7 +93,6 @@ const RETINT_VARS = {
 
 // docs/dev/pr2-base-ui-components.md §8 — add a section above as each lands
 const ROADMAP = [
-  ['Modal (Dialog)', 'C6'],
   ['Toast', 'C7'],
   ['editor Tabs / Toolbar / link Popover', 'C8a–c'],
   ['form: Field, Input, Checkbox, InputGroup, select', 'C9a'],
@@ -344,6 +347,109 @@ function SnSplitLogin () {
   )
 }
 
+// shared modal guts so both columns paint identical content — the ul/li rows
+// exercise the .modal-body li spacing (globals:403, now module-side on the right)
+function ModalGuts () {
+  return (
+    <>
+      <p className='font-bold'>modal body</p>
+      <p>bg/border ride --theme-inputBg/--theme-borderColor — dark mode flips for free</p>
+      <ul>
+        <li>li line-height 1.25</li>
+        <li>li margin-top .5rem</li>
+      </ul>
+    </>
+  )
+}
+
+// the old modal.js (pre-C6) replicated for the left column: rb Modal, the
+// stack machinery, the literal modal-* chrome strings (globals.scss paints
+// them until PR3) — dies with C11/PR3 like every rb import here
+function BsModalReplica ({ label, keepOpen, fullScreen, overflow, stackable, children }) {
+  const [depth, setDepth] = useState(0)
+  const close = () => setDepth(0)
+  const cls = fullScreen ? 'fullscreen' : ''
+  return (
+    <>
+      <BsButton size='sm' variant='grey' onClick={() => setDepth(1)}>{label}</BsButton>
+      {depth > 0 &&
+        <BsModal
+          onHide={keepOpen ? undefined : close} show
+          className={cls} dialogClassName={cls} contentClassName={cls}
+        >
+          <div className='flex flex-row'>
+            {overflow &&
+              <div className={'modal-btn modal-overflow ' + cls}>
+                <ActionDropdown>{overflow}</ActionDropdown>
+              </div>}
+            {depth > 1 ? <div className='modal-btn modal-back' onClick={() => setDepth(d => d - 1)}><BackArrow width={18} height={18} /></div> : null}
+            <div className={'modal-btn modal-close ' + cls} onClick={close}>X</div>
+          </div>
+          <BsModal.Body className={cls}>
+            {depth > 1
+              ? <div><p>modal B (top of stack)</p><input placeholder='focusable input' /></div>
+              : (
+                <div>
+                  {children}
+                  {stackable && <BsButton size='sm' variant='grey' onClick={() => setDepth(2)}>push modal B</BsButton>}
+                </div>
+                )}
+          </BsModal.Body>
+        </BsModal>}
+    </>
+  )
+}
+
+// stack content for the new side — pushes B through the real useShowModal
+function SnStackGuts ({ showModal }) {
+  return (
+    <div>
+      <p>modal A (bottom of stack)</p>
+      <Button
+        size='sm' variant='grey' onClick={() =>
+          showModal(() => <div><p>modal B (top of stack)</p><input placeholder='focusable input' /></div>)}
+      >
+        push modal B
+      </Button>
+    </div>
+  )
+}
+
+// the C5 ⚠️ regression preserved as a receipt: the overflow menu pinned at the
+// OLD ladder value (inline z 1000) opens BEHIND the fullscreen modal (1055) —
+// §15.5 pre-flight 8's failing check. the right column rides the fixed
+// --sn-z-dropdown (1060) and paints above. same-PR fix: the regression never ships
+function BsZRegressionModal () {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <BsButton size='sm' variant='grey' onClick={() => setOpen(true)}>menu at old z 1000</BsButton>
+      {open &&
+        <BsModal onHide={() => setOpen(false)} show className='fullscreen' dialogClassName='fullscreen' contentClassName='fullscreen'>
+          <div className='flex flex-row'>
+            <div className='modal-btn modal-overflow fullscreen'>
+              <BaseMenu.Root modal={false}>
+                <BaseMenu.Trigger nativeButton={false} render={<span className='pointer'><MoreIcon className='fill-grey ms-1' height={16} width={16} /></span>} />
+                <BaseMenu.Portal>
+                  <BaseMenu.Positioner sideOffset={2} style={{ zIndex: 1000 }}>
+                    <BaseMenu.Popup className={menuClasses()}>
+                      <BaseMenu.Item className={itemClasses()}>menu z 1000</BaseMenu.Item>
+                      <BaseMenu.Item className={itemClasses()}>behind modal 1055</BaseMenu.Item>
+                    </BaseMenu.Popup>
+                  </BaseMenu.Positioner>
+                </BaseMenu.Portal>
+              </BaseMenu.Root>
+            </div>
+            <div className='modal-btn modal-close fullscreen' onClick={() => setOpen(false)}>X</div>
+          </div>
+          <BsModal.Body className='fullscreen'>
+            <p className='text-center pt-8'>the "…" up top opens a menu pinned at the pre-C6 z — it paints BEHIND this modal (you won't see it)</p>
+          </BsModal.Body>
+        </BsModal>}
+    </>
+  )
+}
+
 // mentions.js listbox shape (D4) — static replica, click moves the selection
 function MentionsListboxReplica () {
   const [selected, setSelected] = useState(0)
@@ -366,6 +472,7 @@ function MentionsListboxReplica () {
 export default function Playground () {
   const [dark, toggleDark] = useDarkMode()
   const [retint, setRetint] = useState(false)
+  const showModal = useShowModal()
 
   return (
     <Layout contain={false} footer={false}>
@@ -828,6 +935,76 @@ export default function Playground () {
                     <Menu.Item>the page still scrolls</Menu.Item>
                   </Menu.Popup>
                 </Menu>
+              }
+            />
+          </CompareGrid>
+        </Section>
+
+        <Section
+          title='Modal (Dialog)'
+          note="modal.js internals on ONE controlled Dialog.Root — the stack/back/keepOpen/fullScreen machinery is unchanged (D1) and useShowModal's 24 consumer files didn't move; the right column IS the real modal. Dialog KEEPS Base UI's modal default (scroll lock + focus trap are the contract here) — the deliberate pair to Menu's baked modal={false}. NO motion: open and close snap on BOTH sides (deliberate keystone-5 exception — an exit fade needs deferred-unmount machinery inside the stack logic, parked in §15.8-1). intended deltas: max-w-lg 512px vs 500px, the X is a Dialog.Close (Tab reaches it, Enter/Space close — D8; rb's div was untabbable), the popup itself takes focus on open (rb focused the container — no focus ring, no mobile keyboard on either)"
+        >
+          <CompareGrid>
+            <Compare
+              label='plain chrome'
+              note='census row: inputBg/borderColor chrome, 1px border, radius 8px (rounded-lg, exact), body padding 32px (p-8, exact), 28px top margin ≥576px (sm:my-7), lightning X at 160% with hover opacity .7, li spacing from the module'
+              bs={<BsModalReplica label='plain modal'><ModalGuts /></BsModalReplica>}
+              sn={<Button size='sm' variant='grey' onClick={() => showModal(() => <div><ModalGuts /></div>)}>plain modal</Button>}
+            />
+            <Compare
+              label='2-deep stack'
+              note="push B → the back arrow appears; back pops ONE level (B's onClose fires after the pop — the modal.js:39–42 ordering that keeps a QR cancel from nuking the stack); X closes everything from any depth"
+              bs={<BsModalReplica label='open stack' stackable><p>modal A (bottom of stack)</p></BsModalReplica>}
+              sn={<Button size='sm' variant='grey' onClick={() => showModal(() => <SnStackGuts showModal={showModal} />)}>open stack</Button>}
+            />
+            <Compare
+              label='keepOpen'
+              note="QR/ApiKeyModal shape: Escape and backdrop-click no-op on both sides; the X always closes — 'close-press' routes around the keepOpen gate exactly like rb's direct onClick did (onHide={undefined} only ever killed light dismiss)"
+              bs={<BsModalReplica label='keepOpen modal' keepOpen><p>Escape/backdrop do nothing — only the X closes me</p></BsModalReplica>}
+              sn={<Button size='sm' variant='grey' onClick={() => showModal(() => <p>Escape/backdrop do nothing — only the X closes me</p>, { keepOpen: true })}>keepOpen modal</Button>}
+            />
+            <Compare
+              label='fullScreen + overflow'
+              note='carousel shape: viewport tint (66% inputBg) over the black backdrop, borderless transparent popup, body 100svh − 6.8rem at padding 0, close/overflow chrome at 1.25rem with the −10px overflow nudge'
+              bs={
+                <BsModalReplica
+                  label='fullScreen' fullScreen
+                  overflow={<Menu.Item href='https://example.com' target='_blank' rel='noreferrer'>view original</Menu.Item>}
+                >
+                  <p className='text-center pt-8'>fullScreen content</p>
+                </BsModalReplica>
+              }
+              sn={
+                <Button
+                  size='sm' variant='grey' onClick={() =>
+                    showModal(() => <p className='text-center pt-8'>fullScreen content</p>, {
+                      fullScreen: true,
+                      overflow: <Menu.Item href='https://example.com' target='_blank' rel='noreferrer'>view original</Menu.Item>
+                    })}
+                >
+                  fullScreen
+                </Button>
+              }
+            />
+            <Compare
+              label='overflow menu z'
+              note="the C5 ⚠️ regression receipt (extends the Menu scroll-lock receipt family): the ONE menu that opens from inside a modal is the carousel's overflow — left pins its positioner at the old ladder value 1000, so it opens BEHIND the modal (§15.5 pre-flight 8's failing check); right rides the fixed --sn-z-dropdown 1060 → visibly on top. same PR, so the regression never ships"
+              bs={<BsZRegressionModal />}
+              sn={
+                <Button
+                  size='sm' variant='grey' onClick={() =>
+                    showModal(() => <p className='text-center pt-8'>open the "…" up top — the menu paints ABOVE this modal (1060 &gt; 1055)</p>, {
+                      fullScreen: true,
+                      overflow: (
+                        <>
+                          <Menu.Item onClick={() => {}}>menu z 1060</Menu.Item>
+                          <Menu.Item onClick={() => {}}>above modal 1055</Menu.Item>
+                        </>
+                      )
+                    })}
+                >
+                  menu at fixed z 1060
+                </Button>
               }
             />
           </CompareGrid>

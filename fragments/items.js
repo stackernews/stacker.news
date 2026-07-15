@@ -37,6 +37,7 @@ export const ITEM_FIELDS = gql`
     }
     payIn {
       id
+      isSend
       payInState
       payInType
       payInStateChangedAt

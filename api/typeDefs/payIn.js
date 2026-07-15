@@ -14,7 +14,7 @@ extend type Mutation {
 }
 
 type Satistics {
-  payIns: [PayIn!]!
+  txs: [WalletActivityItem!]!
   cursor: String
 }
 
@@ -160,7 +160,7 @@ type PayIn {
   createdAt: Date!
   updatedAt: Date!
   mcost: BigInt!
-  isSend: Boolean
+  isSend: Boolean!
   payInBolt11Public: PayInBolt11Public
   payOutBolt11Public: PayOutBolt11Public
   payInType: PayInType!

@@ -215,6 +215,7 @@ function addOptimisticResponseExtras (mutation, payInOptimisticResponse, me) {
     [mutationName]: {
       __typename: 'PayIn',
       id: 'temp-pay-in-id',
+      isSend: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       payInState: 'PENDING',

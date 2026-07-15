@@ -3,6 +3,7 @@ import { ITEM_FULL_FIELDS } from './items'
 import { SUB_FULL_FIELDS } from './subs'
 import { COMMENTS } from './comments'
 import { INVITE_FIELDS } from './invites'
+import { EXTERNAL_TRANSACTION_FIELDS } from '@/wallets/client/fragments/wallet'
 
 const HASH_HMAC_INPUT_1 = '$hash: String, $hmac: String'
 const HASH_HMAC_INPUT_2 = 'hash: $hash, hmac: $hmac'
@@ -10,6 +11,7 @@ const HASH_HMAC_INPUT_2 = 'hash: $hash, hmac: $hmac'
 export const PAY_IN_LINK_FIELDS = gql`
   fragment PayInLinkFields on PayIn {
     id
+    isSend
     mcost
     payInType
     payInState
@@ -68,6 +70,7 @@ export const PAY_IN_FIELDS = gql`
   ${PAY_IN_BOLT11_FIELDS}
   fragment PayInFields on PayIn {
     id
+    isSend
     createdAt
     updatedAt
     mcost
@@ -209,10 +212,18 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
 
 export const SATISTICS = gql`
   ${PAY_IN_STATISTICS_FIELDS}
+  ${EXTERNAL_TRANSACTION_FIELDS}
   query Satistics($cursor: String, $walletId: ID) {
     satistics(cursor: $cursor, walletId: $walletId) {
-      payIns {
-        ...PayInStatisticsFields
+      txs {
+        __typename
+        ... on PayIn {
+          ...PayInStatisticsFields
+        }
+        ... on ExternalTransaction {
+          ...ExternalTransactionFields
+          createdAt
+        }
       }
       cursor
     }
@@ -265,6 +276,7 @@ export const FAILED_PAY_INS = gql`
   query failedPayIns {
     failedPayIns {
       id
+      isSend
     }
   }
 `

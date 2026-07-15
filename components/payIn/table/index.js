@@ -3,9 +3,11 @@ import classNames from 'classnames'
 import { PayInType } from './type'
 import { PayInContext } from '../context'
 import { PayInMoney } from './money'
+import { ExternalTransactionRow } from './external'
 import LinkToContext from '@/components/link-to-context'
+import { FAILED_PAY_IN_STATES } from '@/lib/pay-in'
 
-export default function PayInTable ({ payIns }) {
+export default function PayInTable ({ items }) {
   return (
     <div className={styles.table}>
       <div className={classNames(styles.row, styles.header)}>
@@ -13,20 +15,20 @@ export default function PayInTable ({ payIns }) {
         <div>context</div>
         <div>sats</div>
       </div>
-      {payIns?.map(payIn => (
-        <PayInRow key={`${payIn.id}-${payIn.isSend}`} payIn={payIn} />
-      ))}
+      {items?.map(item => item.__typename === 'ExternalTransaction'
+        ? <ExternalTransactionRow key={`external-${item.id}`} transaction={item} />
+        : <PayInRow key={`${item.id}-${item.isSend}`} payIn={item} />)}
     </div>
   )
 }
 
 function PayInRow ({ payIn }) {
+  const failed = FAILED_PAY_IN_STATES.includes(payIn.payInState)
   return (
     <div
       className={classNames(styles.row, {
-        [styles.failed]: payIn.payInState === 'FAILED',
-        [styles.spending]: !!payIn?.payerPrivates,
-        [styles.stacking]: !payIn?.payerPrivates
+        [styles.failed]: failed,
+        [styles.stacking]: !payIn.isSend && payIn.payInState === 'PAID'
       })}
     >
       <LinkToContext className={styles.type} href={`/transactions/${payIn.id}`}>

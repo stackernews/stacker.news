@@ -30,6 +30,7 @@ export const COMMENT_FIELDS = gql`
     }
     payIn {
       id
+      isSend
       payInState
       payInType
       payInStateChangedAt
@@ -89,6 +90,7 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     }
     payIn {
       id
+      isSend
       payInState
       payInType
       payInStateChangedAt

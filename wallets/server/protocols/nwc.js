@@ -1,4 +1,4 @@
-import { WalletPermissionsError } from '@/wallets/client/errors'
+import { WalletPermissionsError, WalletVerificationUnsupportedError } from '@/wallets/lib/errors'
 import { NWC_PAY_INVOICE_METHOD, nwcTryRun, supportedMethods } from '@/wallets/lib/protocols/nwc'
 import { msatsSatsFloor } from '@/lib/format'
 
@@ -14,6 +14,56 @@ export async function createInvoice ({ msats, description, expiry }, { url }, { 
     { signal }
   )
   return result.result.invoice
+}
+
+export async function checkInvoice ({ hash }, { url }, { signal }) {
+  let result
+  try {
+    result = await nwcTryRun(
+      nwc => nwc.req('lookup_invoice', { payment_hash: hash }),
+      { url },
+      { signal }
+    )
+  } catch (err) {
+    if (err?.nwcError?.code === 'NOT_IMPLEMENTED') {
+      throw new WalletVerificationUnsupportedError(err.message || 'nwc wallet does not support lookup_invoice')
+    }
+    if (err?.nwcError?.code === 'NOT_FOUND') return { status: 'PENDING', detail: 'nwc invoice not found' }
+    throw err
+  }
+  const invoice = result.result
+
+  if (!invoice) return { status: 'PENDING', detail: 'nwc invoice not found' }
+  if (invoice.type !== 'incoming') {
+    return {
+      status: 'UNKNOWN',
+      detail: 'nwc lookup_invoice did not return an incoming invoice'
+    }
+  }
+
+  // settlement is signaled by a non-null settled_at; `state` is a later NIP-47 addition that many
+  // wallets (and the NDK response type) omit, so relying on it alone leaves settled receives PENDING
+  if (invoice.state === 'settled' || invoice.settled_at) {
+    return {
+      status: 'SETTLED',
+      preimage: invoice.preimage,
+      settledAt: { seconds: invoice.settled_at },
+      // lookup_invoice.fees_paid on an incoming invoice is payer/routing fees, not a fee the
+      // receiver paid — don't record it as the receive transaction's actualFeeMsats.
+      msats: invoice.amount
+    }
+  }
+  if (invoice.state === 'expired') {
+    return { status: 'EXPIRED' }
+  }
+  if (invoice.state === 'failed') {
+    return {
+      status: 'FAILED',
+      detail: 'nwc invoice failed'
+    }
+  }
+
+  return { status: 'PENDING' }
 }
 
 export async function testCreateInvoice ({ url }, { signal }) {

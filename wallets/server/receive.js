@@ -1,11 +1,14 @@
 import { parsePaymentRequest } from 'ln-service'
+import { errorMessage } from '@/lib/error'
 import { formatMsats, formatSats, msatsToSats, msatsSatsFloor, toPositiveNumber } from '@/lib/format'
-import { MIN_RECEIVE_MSATS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
-import { timeoutSignal } from '@/lib/time'
+import { WALLET_MAX_PENDING_PAYOUT_INVOICES, MIN_RECEIVE_MSATS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { withTimeoutSignal } from '@/lib/time'
 import { walletLogger } from '@/wallets/server/logger'
-import { protocolCreateInvoice, protocolReceivableMsats, protocolReceivableDescription } from '@/wallets/server/protocols'
-
-const MAX_PENDING_INVOICES_PER_WALLET = 25
+import {
+  protocolCreateInvoice,
+  protocolReceivableDescription,
+  protocolReceivableMsats
+} from '@/wallets/server/protocols'
 
 export async function * createBolt11FromWalletProtocols (walletProtocols, { msats, description, descriptionHash, expiry = 360 }, { models, limitPending = true }) {
   msats = toPositiveNumber(msats)
@@ -28,9 +31,9 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
         })
 
       let bolt11
+      let verificationContext
       try {
         if (limitPending) {
-          // check for pending payouts
           const pendingPayOutBolt11Count = await models.payOutBolt11.count({
             where: {
               protocolId: protocol.id,
@@ -41,22 +44,30 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
             }
           })
 
-          if (pendingPayOutBolt11Count >= MAX_PENDING_INVOICES_PER_WALLET) {
-            logger.warn(`too many pending invoices: has ${pendingPayOutBolt11Count}, max ${MAX_PENDING_INVOICES_PER_WALLET}`, { updateStatus: true })
+          if (pendingPayOutBolt11Count >= WALLET_MAX_PENDING_PAYOUT_INVOICES) {
+            logger.warn(`too many pending invoices: has ${pendingPayOutBolt11Count}, max ${WALLET_MAX_PENDING_PAYOUT_INVOICES}`, { updateStatus: true })
             continue
           }
         }
 
-        bolt11 = await protocolCreateInvoice(
-          protocol,
-          { msats: receivableMsatsNum, description: receivableDescription, descriptionHash, expiry },
-          protocol.config,
-          { signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) })
+        const result = await withTimeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS, signal =>
+          protocolCreateInvoice(
+            protocol,
+            { msats: receivableMsatsNum, description: receivableDescription, descriptionHash, expiry },
+            protocol.config,
+            { signal }))
+        bolt11 = result.bolt11
+        verificationContext = result.verificationContext
       } catch (err) {
         throw new Error('failed to create invoice: ' + errorMessage(err))
       }
 
       const invoice = await parsePaymentRequest({ request: bolt11 })
+      if (!invoice.id) throw new Error('wallet returned invoice without payment hash')
+      const invoiceExpiresAt = new Date(invoice.expires_at)
+      if (Number.isNaN(invoiceExpiresAt.getTime()) || invoiceExpiresAt <= new Date()) {
+        throw new Error('wallet returned invoice without a valid future expiry')
+      }
 
       // Reject only over-minting or a shortfall larger than the sub-sat remainder
       const invoiceMsats = BigInt(invoice.mtokens)
@@ -70,14 +81,10 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
         updateStatus: true
       })
 
-      yield { bolt11, invoice, protocol, logger }
+      yield { bolt11, invoice, protocol, logger, verificationContext }
     } catch (err) {
       console.error('failed to create user invoice:', err)
       logger.error(errorMessage(err), { updateStatus: true })
     }
   }
-}
-
-function errorMessage (err) {
-  return err?.message || err?.toString?.() || 'unknown error'
 }

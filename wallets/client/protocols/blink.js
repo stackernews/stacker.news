@@ -1,4 +1,4 @@
-import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, request } from '@/wallets/lib/protocols/blink'
+import { getScopes, SCOPE_READ, SCOPE_WRITE, getWallet, normalizeBlinkCurrency, request } from '@/wallets/lib/protocols/blink'
 import { WalletPaymentRejectedError, WalletPermissionsError } from '@/wallets/client/errors'
 import { abortableSleep } from '@/lib/time'
 import { walletBalance, pollUntilSettled } from './util'
@@ -8,7 +8,7 @@ export const name = 'BLINK'
 export const enforcesMaxFee = false
 
 export async function sendPayment (bolt11, { apiKey, currency }, { signal }) {
-  const wallet = await getWallet({ apiKey, currency }, { signal })
+  const wallet = await getWallet({ apiKey, currency: normalizeBlinkCurrency(currency) }, { signal })
   return await payInvoice(bolt11, { apiKey, wallet }, { signal })
 }
 
@@ -21,12 +21,12 @@ export async function testSendPayment ({ apiKey, currency }, { signal }) {
     throw new WalletPermissionsError('missing WRITE scope')
   }
 
-  currency = currency ? currency.toUpperCase() : 'BTC'
+  currency = normalizeBlinkCurrency(currency)
   await getWallet({ apiKey, currency }, { signal })
 }
 
 export async function getBalance ({ apiKey, currency }, { signal } = {}) {
-  currency = currency ? currency.toUpperCase() : 'BTC'
+  currency = normalizeBlinkCurrency(currency)
   const wallet = await getWallet({ apiKey, currency }, { signal })
   // Blink returns wallet.balance in the minor unit for the selected wallet currency.
   return walletBalance(wallet.balance, currency)

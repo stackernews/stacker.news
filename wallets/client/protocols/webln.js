@@ -29,8 +29,17 @@ export async function sendPayment (bolt11, _config, { signal } = {}) {
   return response.preimage
 }
 
-export async function testSendPayment () {
+export async function testSendPayment (_config, { signal } = {}) {
   if (typeof window.webln === 'undefined') {
     throw new WalletError('lightning browser extension not found')
+  }
+  // presence alone doesn't prove capability: a locked wallet or a rejected origin passes
+  // the check but fails every payment. enable() is the one method every provider must
+  // implement, so it doubles as the spec-standard capability probe.
+  try {
+    await raceAbort(window.webln.enable(), signal)
+  } catch (err) {
+    if (isAbortLike(err)) throw err
+    throw new WalletConfigurationError(err.message || 'wallet did not grant permission')
   }
 }

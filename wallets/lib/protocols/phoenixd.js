@@ -1,4 +1,8 @@
-import { hexValidator, urlValidator } from '@/wallets/lib/validate'
+import { urlValidator } from '@/wallets/lib/validate'
+import { string } from '@/lib/yup'
+
+// phoenix.conf accepts custom http-password strings too.
+const phoenixdPasswordValidator = string().max(1024)
 
 // Phoenixd
 // https://phoenix.acinq.co/server
@@ -27,7 +31,7 @@ export default [
           'The default location is ~/.phoenix/phoenix.conf.',
           'Read the [official documentation](https://phoenix.acinq.co/server/api#security) for more details.'
         ],
-        validate: hexValidator(64),
+        validate: phoenixdPasswordValidator,
         required: true,
         encrypt: true
       }
@@ -57,7 +61,7 @@ export default [
           'The default location is ~/.phoenix/phoenix.conf.',
           'Read the [official documentation](https://phoenix.acinq.co/server/api#security) for more details.'
         ],
-        validate: hexValidator(64),
+        validate: phoenixdPasswordValidator,
         required: true
       }
     ],

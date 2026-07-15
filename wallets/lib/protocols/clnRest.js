@@ -21,20 +21,21 @@ export default [
       },
       {
         name: 'rune',
-        label: 'invoice only rune',
+        label: 'invoice rune',
         type: 'password',
         help: [
-          'We only accept runes that *only* allow `method=invoice`.',
-          'Run this to generate one if you are on v24.11 or later:',
-          '```lightning-cli createrune restrictions=\'[["method=invoice"]]\'```',
+          'We accept runes that allow `method=invoice`. Add `method=listinvoices` to track settlement in activity.',
+          'Run this to generate a receive and tracking rune if you are on v24.11 or later:',
+          '```lightning-cli createrune restrictions=\'[["method=invoice","method=listinvoices"]]\'```',
           'Or this if you are on an earlier version:',
-          '```lightning-cli createrune restrictions=\'["method=invoice"]\'```',
+          '```lightning-cli createrune restrictions=\'["method=invoice|method=listinvoices"]\'```',
+          'For receive only, omit `method=listinvoices`.',
           '[see `createrune` documentation](https://docs.corelightning.org/reference/createrune#restriction-format)'
         ],
         placeholder: 'S34KtUW-6gqS_hD_9cc_PNhfF-NinZyBOCgr1aIrark9NCZtZXRob2Q9aW52b2ljZQ==',
-        validate: runeValidator({ method: 'invoice' }),
+        validate: runeValidator({ method: 'invoice', optionalMethods: ['listinvoices'] }),
         required: true,
-        hint: 'must be restricted to method=invoice'
+        hint: 'must allow method=invoice; listinvoices optional'
       },
       {
         name: 'cert',

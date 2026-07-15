@@ -12,18 +12,14 @@ export const createInvoice = async (
   { signal }
 ) => {
   const service = await fetchLnAddrService(address, { signal })
-  // min is already validated as a safe integer >= 1 by lnAddrSatsLimits inside fetchLnAddrService
   const { min } = service
 
   if (!msats) {
-    // use min sendable amount by default
     msats = 1_000 * min
   }
 
-  // create invoices with a minimum amount of 1 sat
   msats = Math.max(msats, 1_000)
 
-  // most lnurl providers suck nards so we have to floor to nearest sat
   msats = msatsSatsFloor(msats)
 
   // LUD-12 measures comments in characters; keep as much memo as allowed
@@ -35,9 +31,19 @@ export const createInvoice = async (
     { msats, comment }
   ), { signal })
 
+  if (!body.pr) {
+    throw new Error('lightning address did not return a bolt11 invoice')
+  }
+
+  if (body.verify) {
+    return {
+      bolt11: body.pr,
+      verificationContext: { lnurlVerifyUrl: body.verify }
+    }
+  }
+
   return body.pr
 }
-
 export const testCreateInvoice = async ({ address }, { signal }) => {
   return await createInvoice({ msats: undefined }, { address }, { signal })
 }

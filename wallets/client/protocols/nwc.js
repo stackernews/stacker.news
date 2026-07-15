@@ -7,8 +7,10 @@ export const name = 'NWC'
 // their own daily/transaction budgets. We do not pretend to cap fees here.
 export const enforcesMaxFee = false
 
+// NIP-47 calls PAYMENT_FAILED terminal, but deployed wallets have emitted it for
+// hold/in-flight payments (for example, ZeusLN/zeus#4146). Keep it ambiguous
+// rather than risk making a second payment while the first can still settle.
 const NWC_TERMINAL_PAYMENT_ERROR_CODES = new Set([
-  'PAYMENT_FAILED',
   'INSUFFICIENT_BALANCE',
   'QUOTA_EXCEEDED',
   'NOT_FOUND',

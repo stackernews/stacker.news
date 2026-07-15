@@ -6,7 +6,8 @@ import { sendPayment as weblnSendPayment } from '@/wallets/client/protocols/webl
 import useWatchPayIn from './use-watch-pay-in'
 import Qr, { QrSkeleton } from '@/components/qr'
 import PayInError from '../error'
-import { msatsToSats, numWithUnits } from '@/lib/format'
+import { formatMsatsToSats } from '@/lib/format'
+import { bolt11QrTransform } from '@/lib/bolt11'
 import { paidWaitFor } from '@/lib/pay-in'
 import { PayInStatus } from '../status'
 
@@ -106,8 +107,8 @@ function QrPayIn ({
       <PayInError error={walletError} />
       <Qr
         value={bolt11}
-        qrTransform={value => 'lightning:' + value.toUpperCase()}
-        description={numWithUnits(msatsToSats(payIn.payerPrivates.payInBolt11.msatsRequested), { abbreviate: false })}
+        qrTransform={bolt11QrTransform}
+        description={formatMsatsToSats(payIn.payerPrivates.payInBolt11.msatsRequested)}
       />
       <div className='d-flex justify-content-center'>
         <PayInStatus payIn={payIn} />

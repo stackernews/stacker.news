@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { formatSats, msatsToSatsDecimal, satsToMsats } from '@/lib/format'
-import { bolt11Section, safeDecodeBolt11 } from '@/lib/bolt11'
+import { useMemo, useState } from 'react'
+import { formatSats, msatsToSatsDecimal } from '@/lib/format'
+import { bolt11ExpiresAtFromDecoded, bolt11Section, safeDecodeBolt11 } from '@/lib/bolt11'
 import { timeLeft, timeSince } from '@/lib/time'
 import CopyChip, { Chip } from '@/components/copy-chip'
 import Link from 'next/link'
@@ -25,11 +25,14 @@ export default function Bolt11Info ({
   nostrNote,
   lud18Data,
   comment,
+  showAmount = true,
   children
 }) {
   const [expanded, setExpanded] = useState(false)
   const showRelativeTimes = useIsClient()
-  const details = bolt11Details({ bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes })
+  // memoize the decode only: the details' relative time labels depend on the current time
+  const decoded = useMemo(() => safeDecodeBolt11(bolt11), [bolt11])
+  const details = bolt11Details({ decoded, bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes })
   if (!details && !children) return null
 
   const chips = details?.chips ?? []
@@ -40,7 +43,7 @@ export default function Bolt11Info ({
 
   return (
     <div className={styles.details}>
-      {details?.amount && (
+      {showAmount && details?.amount && (
         <div className={styles.amount}>
           <span>{details.amount.amount}</span>
           <span>{details.amount.unit}</span>
@@ -72,13 +75,16 @@ export function toBolt11InfoProps (info) {
     bolt11,
     hash,
     preimage,
-    confirmedPreimage,
     description,
     msats,
+    amountMsats,
     msatsRequested,
-    satsRequested,
     expiresAt,
+    invoiceExpiresAt,
     confirmedAt,
+    settledAt,
+    status,
+    statusChangedAt,
     nostr,
     nostrNote,
     lud18Data,
@@ -88,11 +94,11 @@ export function toBolt11InfoProps (info) {
   return {
     bolt11,
     hash,
-    preimage: preimage ?? confirmedPreimage,
+    preimage,
     description,
-    msats: msats ?? msatsRequested ?? (satsRequested != null ? satsToMsats(satsRequested) : undefined),
-    expiresAt,
-    confirmedAt,
+    msats: msats ?? amountMsats ?? msatsRequested,
+    expiresAt: expiresAt ?? invoiceExpiresAt,
+    confirmedAt: confirmedAt ?? settledAt ?? (status === 'SETTLED' ? statusChangedAt : undefined),
     nostr,
     nostrNote,
     lud18Data,
@@ -181,11 +187,10 @@ function NostrZapRequest ({ zap }) {
   )
 }
 
-function bolt11Details ({ bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes } = {}) {
-  const decoded = safeDecodeBolt11(bolt11)
-  const decodedTimestamp = bolt11Section(decoded, 'timestamp')?.value
-  const decodedExpiry = bolt11Section(decoded, 'expiry')?.value
-  const decodedExpiresAt = decodedTimestamp && decodedExpiry ? new Date((decodedTimestamp + decodedExpiry) * 1000) : null
+function bolt11Details ({ decoded, bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes } = {}) {
+  // the one owner of invoice-expiry semantics, so the preview and the recorded
+  // invoiceExpiresAt can never disagree
+  const decodedExpiresAt = bolt11ExpiresAtFromDecoded(decoded)
   const decodedDescription = bolt11Section(decoded, 'description')?.value
   const amountMsats = msats ?? bolt11Section(decoded, 'amount')?.value
   const invoiceExpiresAt = expiresAt ? new Date(expiresAt) : decodedExpiresAt

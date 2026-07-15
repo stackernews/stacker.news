@@ -85,8 +85,7 @@ export async function createExternalReceiveTransaction (models, args) {
       walletId: protocol.walletId,
       protocolId: protocol.id,
       verificationContext: verificationContext ?? Prisma.DbNull
-    },
-    include: externalTransactionInclude()
+    }
   })
 
   await logExternalTransactionTransition(models, transaction)

@@ -118,6 +118,7 @@ model User {
   AncestorReplies           Reply[]                @relation("AncestorReplyUser")
   Replies                   Reply[]
   walletLogs                WalletLog[]
+  externalTransactions ExternalTransaction[]
   Reminder                  Reminder[]
   ItemUserAgg               ItemUserAgg[]
   oneDayReferrals           OneDayReferral[]       @relation("OneDayReferral_referrer")
@@ -247,7 +248,11 @@ model WalletLog {
   payInId Int?
   payIn   PayIn? @relation(fields: [payInId], references: [id], onDelete: Cascade)
 
+  externalTransactionId Int?
+  externalTransaction   ExternalTransaction? @relation(fields: [externalTransactionId], references: [id], onDelete: Cascade)
+
   @@index([payInId])
+  @@index([externalTransactionId])
   @@index([userId, createdAt])
   @@index([createdAt])
   @@index([protocolId])
@@ -1190,6 +1195,7 @@ model Wallet {
   template     WalletTemplate @relation(fields: [templateName], references: [name], onDelete: Cascade)
 
   protocols WalletProtocol[]
+  externalTransactions ExternalTransaction[]
 
   @@index([userId])
   @@index([templateName])
@@ -1214,6 +1220,7 @@ model WalletProtocol {
   status   WalletProtocolStatus @default(OK)
 
   logs WalletLog[]
+  externalTransactions ExternalTransaction[]
 
   walletSendNWC      WalletSendNWC?
   walletSendLNbits   WalletSendLNbits?
@@ -1407,6 +1414,70 @@ model WalletRecvClink {
   protocolId Int            @unique
   protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
   noffer     String
+}
+
+enum ExternalTransactionDirection {
+  SEND
+  RECEIVE
+}
+
+enum ExternalTransactionOutcome {
+  SETTLED
+  FAILED
+  EXPIRED
+  UNKNOWN
+}
+
+enum ExternalTransactionSourceType {
+  BOLT11
+  LN_ADDR
+}
+
+enum ExternalTransactionUnknownReason {
+  TRANSIENT_CHECK_FAILED
+  PERMISSION_REQUIRED
+  VERIFICATION_UNSUPPORTED
+  STATUS_UNAVAILABLE
+  RETENTION
+}
+
+model ExternalTransaction {
+  id        Int                          @id @default(autoincrement())
+  createdAt DateTime                     @default(now()) @map("created_at")
+  updatedAt DateTime                     @default(now()) @updatedAt @map("updated_at")
+  direction ExternalTransactionDirection
+
+  // A NULL outcome means reconciliation is still open. nextCheckAt is the
+  // complete schedule and lease; terminal writes NULL it atomically.
+  outcome     ExternalTransactionOutcome?
+  nextCheckAt DateTime?                   @default(now())
+
+  userId     Int
+  walletId   Int
+  protocolId Int
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet     Wallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+
+  bolt11           String?
+  hash             String?
+  preimage         String?
+  amountMsats      BigInt?
+  settledMsats     BigInt?
+  actualFeeMsats   BigInt?
+  maxFeeLimitMsats BigInt?
+  invoiceExpiresAt DateTime
+  unknownReason    ExternalTransactionUnknownReason?
+
+  sourceType          ExternalTransactionSourceType?
+  sourceValue         String?
+  verificationContext Json?                          @db.JsonB
+  walletLogs          WalletLog[]
+
+  @@index([userId, createdAt, id])
+  @@index([walletId, createdAt, id])
+  @@index([protocolId])
+  @@index([hash])
 }
 
 // payIn playground

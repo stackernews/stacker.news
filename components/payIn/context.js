@@ -6,7 +6,16 @@ import { truncateString } from '@/lib/format'
 import Invite from '../invite'
 import Bolt11Info, { toBolt11InfoProps } from './bolt11-info'
 
+export const PAY_IN_INVOICE_CONTEXT_TYPES = new Set(['PROXY_PAYMENT', 'WITHDRAWAL', 'AUTO_WITHDRAWAL'])
+
 export function PayInContext ({ payIn }) {
+  if (PAY_IN_INVOICE_CONTEXT_TYPES.has(payIn.payInType)) {
+    const invoice = payIn.payInType === 'PROXY_PAYMENT'
+      ? payIn.payerPrivates?.payInBolt11
+      : payIn.payeePrivates?.payOutBolt11
+    return <Bolt11Info showAmount={false} {...toBolt11InfoProps(invoice)} />
+  }
+
   switch (payIn.payInType) {
     case 'ITEM_CREATE':
     case 'ITEM_UPDATE':
@@ -40,15 +49,6 @@ export function PayInContext ({ payIn }) {
           invite={payIn.payerPrivates.invite}
           active={!payIn.payerPrivates.invite.revoked && !payIn.payerPrivates.invite.full}
         />
-      )
-    case 'PROXY_PAYMENT':
-      return (
-        <Bolt11Info {...toBolt11InfoProps(payIn.payerPrivates?.payInBolt11)} />
-      )
-    case 'WITHDRAWAL':
-    case 'AUTO_WITHDRAWAL':
-      return (
-        <Bolt11Info {...toBolt11InfoProps(payIn.payeePrivates?.payOutBolt11)} />
       )
     case 'DONATE':
       return <small className='text-muted d-flex justify-content-center w-100'>Praise be, you donated to the rewards pool.</small>

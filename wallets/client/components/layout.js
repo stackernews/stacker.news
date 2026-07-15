@@ -79,10 +79,10 @@ export function WalletShellMain ({ children, mobileTopBar }) {
   )
 }
 
-export function WalletDetailPage ({ wallet, title, children }) {
+export function WalletDetailPage ({ wallet, title, children, className }) {
   return (
     <WalletShellMain>
-      <div className={styles.walletDetailPage}>
+      <div className={classNames(styles.walletDetailPage, className)}>
         {title && <WalletDetailHeader wallet={wallet} title={title} />}
         {children}
       </div>
@@ -90,25 +90,39 @@ export function WalletDetailPage ({ wallet, title, children }) {
   )
 }
 
+// Shared wallet page heading: a two-column row with the title + wallet logo (or a custom
+// `identity` node) stacked on the left, and an optional right-aligned `aside` node on the right.
+// `aside` is a caller-supplied node so each page styles it itself — the balance readout on the
+// send pages, the status/time on the transaction detail page — without sharing one look.
+export function WalletPageHeading ({ title, wallet, identity, aside, href }) {
+  const identityNode = identity ?? (wallet ? <WalletLayoutImageOrName name={wallet.name} height='24px' /> : null)
+  return (
+    <div className={styles.walletPageHeadingRow}>
+      <div className={styles.walletPageHeading}>
+        <h1>{title}</h1>
+        {identityNode && (
+          <div className={classNames(styles.walletActionWallet, 'd-inline-flex align-items-center text-muted fw-bold')}>
+            {href ? <Link href={href} className='text-reset'>{identityNode}</Link> : identityNode}
+          </div>
+        )}
+      </div>
+      {aside && <div className={classNames(styles.walletActionAvailable, 'text-end')}>{aside}</div>}
+    </div>
+  )
+}
+
 export function WalletActionShell ({ wallet, title, identity, available, children }) {
+  const aside = available && (
+    <>
+      <div className={styles.walletActionAvailableAmount}>{available.amount}</div>
+      <div className={classNames(styles.walletActionAvailableLabel, 'text-muted')}>{available.label ?? 'available'}</div>
+    </>
+  )
   return (
     <WalletShellMain>
       <div className={styles.walletActionPage}>
         <div className={classNames(styles.walletActionBody, 'd-flex flex-column')}>
-          <div className={styles.walletPageHeading}>
-            <h1>{title}</h1>
-            <div className={styles.walletActionWalletRow}>
-              <div className={classNames(styles.walletActionWallet, 'd-inline-flex align-items-center text-muted fw-bold')}>
-                {identity ?? <WalletLayoutImageOrName name={wallet.name} height='24px' />}
-              </div>
-              {available && (
-                <div className={classNames(styles.walletActionAvailable, 'text-end')}>
-                  <div className={styles.walletActionAvailableAmount}>{available.amount}</div>
-                  <div className={classNames(styles.walletActionAvailableLabel, 'text-muted')}>{available.label ?? 'available'}</div>
-                </div>
-              )}
-            </div>
-          </div>
+          <WalletPageHeading title={title} wallet={wallet} identity={identity} aside={aside} />
           {children}
         </div>
       </div>

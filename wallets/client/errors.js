@@ -1,3 +1,17 @@
+import {
+  WalletConfigurationError,
+  WalletError
+} from '@/wallets/lib/errors'
+
+export {
+  assertWalletAuthorized,
+  WalletConfigurationError,
+  WalletError,
+  WalletPermissionsError,
+  WalletValidationError,
+  WalletVerificationUnsupportedError
+} from '@/wallets/lib/errors'
+
 export class InvoiceError extends Error {
   constructor (invoice, message) {
     super(message)
@@ -21,10 +35,7 @@ export class InvoiceExpiredError extends InvoiceError {
   }
 }
 
-export class WalletError extends Error {}
 export class WalletPaymentError extends WalletError {}
-export class WalletConfigurationError extends WalletError {}
-export class WalletValidationError extends WalletError {}
 export class WalletBalanceProbeSkipped extends WalletError {}
 
 export class WalletSenderError extends WalletPaymentError {
@@ -34,8 +45,6 @@ export class WalletSenderError extends WalletPaymentError {
     this.wallet = name
     this.invoice = invoice
     this.reason = message
-    // settledUnknown is owned by sendWalletPayment, which assigns it at the sole
-    // construction site based on what the cause proves about the payment outcome.
   }
 }
 
@@ -104,13 +113,6 @@ export class WalletPaymentAggregateError extends WalletPaymentError {
     this.name = 'WalletPaymentAggregateError'
     this.errors = flattenWalletErrors(errors).filter(e => e instanceof WalletPaymentError)
     this.invoice = invoice
-  }
-}
-
-export class WalletPermissionsError extends WalletValidationError {
-  constructor (message) {
-    super('wrong permissions: ' + message)
-    this.name = 'WalletPermissionsError'
   }
 }
 

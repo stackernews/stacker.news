@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { timeoutSignal } from '@/lib/time'
+import { withTimeoutSignal } from '@/lib/time'
 import { FAST_POLL_INTERVAL_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useMe } from '@/components/me'
@@ -373,11 +373,8 @@ export function useSetWalletPriorities () {
 
 export function useTestSendPayment (protocol) {
   return useCallback(async (values) => {
-    return await protocolTestSendPayment(
-      protocol,
-      values,
-      { signal: timeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS) }
-    )
+    return await withTimeoutSignal(WALLET_SEND_PAYMENT_TIMEOUT_MS, signal =>
+      protocolTestSendPayment(protocol, values, { signal }))
   }, [protocol])
 }
 

@@ -1,5 +1,5 @@
 import { Mutex } from 'async-mutex'
-import { msatsToSats } from '@/lib/format'
+import { walletAmountToSats } from '@/wallets/lib/amount'
 import { isAbortLike, raceAbort, throwIfAborted } from '@/lib/time'
 import { WalletPaymentRejectedError, WalletPermissionsError, WalletBalanceProbeSkipped } from '@/wallets/client/errors'
 import { walletBalance } from './util'
@@ -279,13 +279,9 @@ class LncCredentialStore {
 
 function lndAmountToSats (amount) {
   // LND Amount nests as { sat, msat }; prefer sat, then msat, else the raw value.
-  while (amount?.sat != null) amount = amount.sat
-  if (amount?.msat != null) {
-    try {
-      return msatsToSats(amount.msat)
-    } catch {
-      return null
-    }
+  try {
+    return walletAmountToSats(amount)
+  } catch {
+    return null
   }
-  return amount
 }

@@ -14,7 +14,7 @@ import {
   upsertProtocolInTransaction,
   validateProtocolConfig
 } from '@/wallets/server/persist'
-import { timeoutSignal } from '@/lib/time'
+import { withTimeoutSignal } from '@/lib/time'
 import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { writeWalletLog } from '@/wallets/server/logger'
@@ -54,11 +54,8 @@ export async function testWalletRecvProtocol (parent, { config: wrapper }, { me 
 
   let invoice
   try {
-    invoice = await protocolTestCreateInvoice(
-      protocol,
-      config,
-      { signal: timeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS) }
-    )
+    invoice = await withTimeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS, signal =>
+      protocolTestCreateInvoice(protocol, config, { signal }))
   } catch (e) {
     if (e instanceof WalletValidationError) {
       throw new GqlInputError(e.message)

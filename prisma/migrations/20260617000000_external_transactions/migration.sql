@@ -34,6 +34,7 @@ CREATE TABLE "ExternalTransaction" (
     "preimage" TEXT,
     "amountMsats" BIGINT,
     "settledMsats" BIGINT,
+    "settledAt" TIMESTAMP(3),
     "actualFeeMsats" BIGINT,
     "maxFeeLimitMsats" BIGINT,
     "invoiceExpiresAt" TIMESTAMP(3) NOT NULL,
@@ -62,6 +63,9 @@ CREATE TABLE "ExternalTransaction" (
     ),
     CONSTRAINT "ExternalTransaction_settled_amount_check" CHECK (
       "settledMsats" IS NULL OR "outcome" IS NOT DISTINCT FROM 'SETTLED'::"ExternalTransactionOutcome"
+    ),
+    CONSTRAINT "ExternalTransaction_settled_at_check" CHECK (
+      "settledAt" IS NULL OR "outcome" IS NOT DISTINCT FROM 'SETTLED'::"ExternalTransactionOutcome"
     ),
     CONSTRAINT "ExternalTransaction_actual_fee_check" CHECK (
       "actualFeeMsats" IS NULL

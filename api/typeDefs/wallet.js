@@ -6,12 +6,13 @@ const typeDefs = gql`
     connectAddress: String!
     wallets: [WalletOrTemplate!]!
     walletSettings: WalletSettings!
-    walletLogs(walletId: ID, payInId: Int, cursor: String): WalletLogs!
+    walletLogs(walletId: ID, payInId: Int, externalTransactionId: Int, cursor: String): WalletLogs!
+    externalTransaction(id: Int!): ExternalTransaction
   }
 
   extend type Mutation {
     createWithdrawl(invoice: String!, maxFee: Int!): PayIn!
-    createWalletInvoice(walletId: ID!, amount: Int!, description: String): WalletExternalInvoice!
+    createWalletInvoice(walletId: ID!, amount: Int!, description: String): ExternalTransaction!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): PayIn!
     dropBolt11(hash: String!): Boolean
     buyCredits(credits: Int!, sendProtocolId: Int): PayIn!
@@ -41,11 +42,57 @@ const typeDefs = gql`
     setWalletPriorities(priorities: [WalletPriorityUpdate!]!): Boolean
 
     # logs
-    addWalletLog(protocolId: Int, level: WalletLogLevel!, message: String!, timestamp: Date!, payInId: Int, updateStatus: Boolean): Boolean
+    addWalletLog(protocolId: Int, level: WalletLogLevel!, message: String!, timestamp: Date!, payInId: Int, externalTransactionId: Int, updateStatus: Boolean): Boolean
     deleteWalletLogs(walletId: ID): Boolean
   }
 
   union WalletOrTemplate = Wallet | WalletTemplate
+
+  enum ExternalTransactionDirection {
+    SEND
+    RECEIVE
+  }
+
+  enum ExternalTransactionStatus {
+    PENDING
+    SETTLED
+    FAILED
+    EXPIRED
+    UNKNOWN
+  }
+
+  enum ExternalTransactionSourceType {
+    BOLT11
+    LN_ADDR
+  }
+
+  enum ExternalTransactionUnknownReason {
+    TRANSIENT_CHECK_FAILED
+    PERMISSION_REQUIRED
+    VERIFICATION_UNSUPPORTED
+    STATUS_UNAVAILABLE
+    RETENTION
+  }
+
+  type ExternalTransaction {
+    id: Int!
+    createdAt: Date!
+    direction: ExternalTransactionDirection!
+    status: ExternalTransactionStatus!
+    statusChangedAt: Date!
+    walletId: Int!
+    protocolId: Int!
+    bolt11: String
+    hash: String
+    preimage: String
+    amountMsats: BigInt
+    settledMsats: BigInt
+    invoiceExpiresAt: Date!
+    unknownReason: ExternalTransactionUnknownReason
+    sourceType: ExternalTransactionSourceType
+    sourceValue: String
+    walletInfo: PayInWalletInfo
+  }
 
   enum WalletStatus {
     OK
@@ -92,10 +139,6 @@ const typeDefs = gql`
     id: ID!
     name: String!
     send: Boolean!
-  }
-
-  type WalletExternalInvoice {
-    bolt11: String!
   }
 
   union WalletProtocolConfig =
@@ -318,6 +361,7 @@ const typeDefs = gql`
     level: WalletLogLevel!
     message: String!
     context: JSONObject
+    externalTransactionId: Int
   }
 
   type VaultEntry {

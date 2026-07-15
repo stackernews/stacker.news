@@ -6,11 +6,12 @@ import { timeSince } from '@/lib/time'
 import classNames from 'classnames'
 import MoreFooter from '@/components/more-footer'
 
-export function WalletLogs ({ wallet, payInId, className, poll = true, pollInterval }) {
+export function WalletLogs ({ wallet, payInId, externalTransactionId, className, poll = true, pollInterval }) {
   const { logs, loadMore, cursor, hasMore, loading, clearLogs } = useWalletLogs(payInId, {
     poll,
     pollInterval,
-    walletId: wallet ? Number(wallet.id) : undefined
+    walletId: wallet ? Number(wallet.id) : undefined,
+    externalTransactionId
   })
   const deleteLogs = useDeleteWalletLogs(wallet)
 
@@ -18,7 +19,7 @@ export function WalletLogs ({ wallet, payInId, className, poll = true, pollInter
     deleteLogs({ onSuccess: clearLogs })
   }, [deleteLogs, clearLogs])
 
-  const transaction = payInId !== undefined
+  const transaction = payInId !== undefined || externalTransactionId !== undefined
 
   return (
     <div className={className}>

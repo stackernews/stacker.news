@@ -51,6 +51,16 @@ async function hydratePayInItems (payIns, { me, models }) {
   }
 }
 
+function walletInfoFromProtocol (protocol, role) {
+  return {
+    walletId: protocol.wallet.id,
+    walletName: protocol.wallet.template.name,
+    protocolId: protocol.id,
+    protocolName: protocol.name,
+    role
+  }
+}
+
 export async function getPayIn (parent, { id }, { me, models }) {
   const payIn = (await getPayInFull({
     models,
@@ -240,6 +250,34 @@ export default {
     },
     retryPayIn: async (parent, { payInId, sendProtocolId }, { models, me }) => {
       return await retry(payInId, { me, sendProtocolId })
+    }
+  },
+  ExternalTransaction: {
+    status: transaction => transaction.outcome ?? (
+      transaction.direction !== 'SEND' &&
+        Date.now() >= new Date(transaction.invoiceExpiresAt).getTime()
+        ? 'EXPIRED'
+        : 'PENDING'
+    ),
+    statusChangedAt: transaction => {
+      if (transaction.outcome == null) {
+        return transaction.direction !== 'SEND' &&
+          Date.now() >= new Date(transaction.invoiceExpiresAt).getTime()
+          ? transaction.invoiceExpiresAt
+          : transaction.createdAt
+      }
+      return transaction.outcome === 'EXPIRED'
+        ? transaction.invoiceExpiresAt
+        : transaction.updatedAt
+    },
+    walletInfo: (transaction, args, { me }) => {
+      if (!me || Number(me.id) === USER_ID.anon) {
+        return null
+      }
+      const { protocol } = transaction
+      if (!protocol) return null
+
+      return walletInfoFromProtocol(protocol, transaction.direction)
     }
   },
   PayIn: {

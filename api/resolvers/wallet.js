@@ -4,6 +4,7 @@ import {
 import crypto, { timingSafeEqual } from 'crypto'
 import { validateSchema, withdrawlSchema, walletInvoiceSchema } from '@/lib/validate'
 import { satsToMsats } from '@/lib/format'
+import { WALLET_MAX_PENDING_EXTERNAL_RECEIVES } from '@/lib/constants'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { fetchLnAddrInvoice } from '@/lib/lnurl'
@@ -14,6 +15,10 @@ import { getNodeSockets } from '../lnd'
 import pay from '../payIn'
 import { dropBolt11 } from '@/worker/autoDropBolt11'
 import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
+import {
+  createExternalReceiveTransaction,
+  externalTransactionInclude
+} from '@/wallets/server/external-transactions'
 
 export function createHmac (hash) {
   if (!hash) throw new GqlInputError('hash required to create hmac')
@@ -46,6 +51,20 @@ const resolvers = {
     },
     connectAddress: async (parent, args, { lnd }) => {
       return process.env.LND_CONNECT_ADDRESS
+    },
+    externalTransaction: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GqlAuthenticationError()
+      }
+
+      const transaction = await models.externalTransaction.findFirst({
+        where: {
+          id: Number(id),
+          userId: me.id
+        },
+        include: externalTransactionInclude()
+      })
+      return transaction
     }
   },
   Mutation: {
@@ -131,6 +150,26 @@ async function createWalletInvoice (parent, { walletId, amount, description }, {
 
   const walletIdNumber = parseWalletId(walletId)
 
+  // Check before asking a provider to mint another real invoice. Count invoices
+  // created in the last hour that are still payable and not known settled/failed;
+  // this includes a checkless receive born UNKNOWN until its invoice expires.
+  const now = new Date()
+  const recentUnpaidReceives = await models.externalTransaction.count({
+    where: {
+      userId: me.id,
+      direction: 'RECEIVE',
+      createdAt: { gt: new Date(now.getTime() - 60 * 60_000) },
+      invoiceExpiresAt: { gt: now },
+      OR: [
+        { outcome: null },
+        { outcome: 'UNKNOWN' }
+      ]
+    }
+  })
+  if (recentUnpaidReceives >= WALLET_MAX_PENDING_EXTERNAL_RECEIVES) {
+    throw new GqlInputError('too many unpaid invoices created recently; try again later')
+  }
+
   const validated = await validateSchema(walletInvoiceSchema, { amount, description })
 
   const sats = Number(validated.amount)
@@ -168,11 +207,18 @@ async function createWalletInvoice (parent, { walletId, amount, description }, {
   )
   const { value } = await invoices.next()
 
-  if (value) {
-    return { bolt11: value.bolt11 }
+  if (!value) {
+    throw new GqlInputError('wallet could not create a receive invoice')
   }
 
-  throw new GqlInputError('wallet could not create a receive invoice')
+  const transaction = await createExternalReceiveTransaction(models, {
+    userId: me.id,
+    protocol: value.protocol,
+    bolt11: value.bolt11,
+    invoice: value.invoice,
+    verificationContext: value.verificationContext
+  })
+  return transaction
 }
 
 async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },

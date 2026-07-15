@@ -2,14 +2,13 @@ import { deletePayment } from 'ln-service'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
 
-// TODO: test this
 export async function dropBolt11 ({ userId, hash } = {}, { models, lnd }) {
   const retention = `${INVOICE_RETENTION_DAYS} days`
 
   // This query will update the withdrawls and return what the hash and bol11 values were before the update
   const payOutBolt11s = await models.$queryRaw`
     WITH to_be_updated AS (
-      SELECT id, hash, bolt11
+      SELECT id, hash, bolt11, preimage
       FROM "PayOutBolt11"
       WHERE "userId" ${userId ? Prisma.sql`= ${userId}` : Prisma.sql`IN (SELECT id FROM users WHERE "autoDropBolt11s")`}
       AND now() > created_at + ${retention}::INTERVAL
@@ -35,8 +34,28 @@ export async function dropBolt11 ({ userId, hash } = {}, { models, lnd }) {
       }
     }
   }
+
+  await dropExternalTransactionBolt11s({ userId, hash }, { models, retention })
 }
 
 export async function autoDropBolt11s ({ models, lnd }) {
   await dropBolt11(undefined, { models, lnd })
+}
+
+// Configured retention is an explicit terminal boundary: any row still open
+// past it closes as UNKNOWN/RETENTION so its payment material can drop.
+async function dropExternalTransactionBolt11s ({ userId, hash } = {}, { models, retention }) {
+  await models.$executeRaw`
+    UPDATE "ExternalTransaction"
+    SET "unknownReason" = CASE WHEN "outcome" IS NULL
+          THEN 'RETENTION'::"ExternalTransactionUnknownReason" ELSE "unknownReason" END,
+        "updated_at" = CASE WHEN "outcome" IS NULL THEN CURRENT_TIMESTAMP ELSE "updated_at" END,
+        "outcome" = COALESCE("outcome", 'UNKNOWN'::"ExternalTransactionOutcome"),
+        "nextCheckAt" = NULL,
+        hash = NULL, bolt11 = NULL, preimage = NULL,
+        "verificationContext" = NULL,
+        "sourceValue" = CASE WHEN "sourceType" = 'BOLT11' THEN NULL ELSE "sourceValue" END
+    WHERE "userId" ${userId ? Prisma.sql`= ${userId}` : Prisma.sql`IN (SELECT id FROM users WHERE "autoDropBolt11s")`}
+      AND now() > created_at + ${retention}::INTERVAL
+      AND hash ${hash ? Prisma.sql`= ${hash}` : Prisma.sql`IS NOT NULL`}`
 }

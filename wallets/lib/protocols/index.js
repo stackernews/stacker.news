@@ -12,6 +12,7 @@ import clinkSuite from './clink'
 /**
  * Protocol names as used in the database
  * @typedef {'NWC'|'LNBITS'|'PHOENIXD'|'BLINK'|'WEBLN'|'LN_ADDR'|'LNC'|'CLN_REST'|'LND_GRPC'|'CLINK'} ProtocolName
+ * @typedef {Date|string|{seconds: number|string}|{milliseconds: number|string}} WalletSettledAt
  * @typedef {'text'|'password'} InputType
  */
 

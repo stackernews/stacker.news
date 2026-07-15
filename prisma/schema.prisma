@@ -1464,6 +1464,7 @@ model ExternalTransaction {
   preimage         String?
   amountMsats      BigInt?
   settledMsats     BigInt?
+  settledAt        DateTime?
   actualFeeMsats   BigInt?
   maxFeeLimitMsats BigInt?
   invoiceExpiresAt DateTime

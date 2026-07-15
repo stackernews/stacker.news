@@ -1,5 +1,4 @@
 import { createInvoice as clnCreateInvoice, getInvoice as clnGetInvoice, runeMayAllowMethod } from '@/lib/cln'
-import { epochSecondsToDate } from '@/lib/time'
 import { WalletPermissionsError } from '@/wallets/lib/errors'
 
 export const name = 'CLN_REST'
@@ -42,7 +41,7 @@ export const checkInvoice = async (
     return {
       status: 'SETTLED',
       preimage: invoice.payment_preimage,
-      settledAt: epochSecondsToDate(invoice.paid_at),
+      settledAt: { seconds: invoice.paid_at },
       msats: invoice.amount_received_msat
     }
   }

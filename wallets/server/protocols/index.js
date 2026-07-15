@@ -11,6 +11,7 @@ export * from './util'
 
 /**
  * @typedef {import('@/wallets/lib/protocols').ProtocolName} ProtocolName
+ * @typedef {import('@/wallets/lib/protocols').WalletSettledAt} WalletSettledAt
  */
 
 /**
@@ -34,7 +35,7 @@ export * from './util'
  * @param {Object} transaction - stored external wallet transaction details, including its invoice hash
  * @param {Object} config - current protocol configuration
  * @param {CreateInvoiceOptions} opts - additional options for the lookup
- * @returns {Promise<{status: 'PENDING'|'SETTLED'|'FAILED'|'EXPIRED'|'UNKNOWN', preimage?: string, msats?: bigint|string, actualFeeMsats?: bigint|string, settledAt?: Date, detail?: string}>} - msats is the received amount; actualFeeMsats any receiver-side fee
+ * @returns {Promise<{status: 'PENDING'|'SETTLED'|'FAILED'|'EXPIRED'|'UNKNOWN', preimage?: string, msats?: bigint|string, actualFeeMsats?: bigint|string, settledAt?: WalletSettledAt, detail?: string}>} - msats is the received amount; actualFeeMsats any receiver-side fee
  */
 
 /**

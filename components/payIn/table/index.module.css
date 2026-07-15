@@ -82,7 +82,3 @@
   display: grid;
   align-items: center;
 }
-
-.strikethrough {
-  text-decoration: line-through;
-}

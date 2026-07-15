@@ -47,6 +47,7 @@ const typeDefs = gql`
   }
 
   union WalletOrTemplate = Wallet | WalletTemplate
+  union WalletActivityItem = PayIn | ExternalTransaction
 
   enum ExternalTransactionDirection {
     SEND

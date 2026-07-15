@@ -437,6 +437,7 @@ function PayInFailed ({ n }) {
         fragment _ on PayInification {
           payIn {
             id
+            isSend
             mcost
             payInType
             payInState
@@ -463,6 +464,7 @@ function PayInFailed ({ n }) {
         fragment __ on PayInification {
           payIn {
             id
+            isSend
             payInState
             payInStateChangedAt
             payerPrivates {

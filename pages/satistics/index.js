@@ -50,16 +50,16 @@ export default function Satistics ({ ssrData }) {
     )
   }
 
-  const { satistics: { payIns, cursor } } = dat
+  const { satistics: { txs: items, cursor } } = dat
 
   return (
     <Layout>
       <div className='mt-2'>
         <SatisticsHeader />
         <div className='py-2 px-0 mb-0 mw-100'>
-          <PayInTable payIns={payIns} />
+          <PayInTable items={items} />
         </div>
-        <MoreFooter cursor={cursor} count={payIns?.length} fetchMore={fetchMore} Skeleton={PayInSkeleton} />
+        <MoreFooter cursor={cursor} count={items?.length} fetchMore={fetchMore} Skeleton={PayInSkeleton} />
       </div>
     </Layout>
   )

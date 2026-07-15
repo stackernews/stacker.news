@@ -243,9 +243,7 @@ export const SAVE_WALLET_PROTOCOLS = gql`
 
 export const CREATE_WALLET_INVOICE = gql`
   mutation createWalletInvoice($walletId: ID!, $amount: Int!, $description: String) {
-    createWalletInvoice(walletId: $walletId, amount: $amount, description: $description) {
-      id
-    }
+    createWalletInvoice(walletId: $walletId, amount: $amount, description: $description)
   }`
 
 export const GET_EXTERNAL_TRANSACTION = gql`

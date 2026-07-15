@@ -218,7 +218,7 @@ async function createWalletInvoice (parent, { walletId, amount, description }, {
     invoice: value.invoice,
     verificationContext: value.verificationContext
   })
-  return transaction
+  return transaction.id
 }
 
 async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },

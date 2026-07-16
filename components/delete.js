@@ -5,7 +5,7 @@ import Alert from '@/components/ui/alert'
 import Button from '@/components/ui/button'
 import Menu from '@/components/ui/menu'
 import { useShowModal } from './modal'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 
 export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
   const showModal = useShowModal()

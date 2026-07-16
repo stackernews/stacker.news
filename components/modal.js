@@ -117,12 +117,6 @@ export default function useModal () {
               // default — first tabbable — would paint focus rings / open mobile keyboards
               // where today none appear, §15.2). finalFocus default ≈ body via showModal's blur
               initialFocus={() => popupRef.current}
-              // rb parity: arrow/Home/End keys must keep bubbling to document-level listeners
-              // (the carousel's slide nav died without this, §15.5 pre-flight 14). Base UI's
-              // popup stopPropagation()s composite keys; preventBaseUIHandler skips exactly that
-              onKeyDown={e => {
-                if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') e.preventBaseUIHandler()
-              }}
               className={cn(styles.popup, fullScreen ? styles.fullScreen : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg')}
             >
               <div className='flex flex-row'>

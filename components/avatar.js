@@ -8,7 +8,7 @@ import { useShowModal } from './modal'
 import { FileUpload } from './file-upload'
 import { gql } from '@apollo/client'
 import { useMutation } from '@apollo/client/react'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 
 export default function Avatar ({ onSuccess }) {
   const [cropPhoto] = useMutation(gql`

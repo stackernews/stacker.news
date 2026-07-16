@@ -12,8 +12,9 @@
 // must die with C11/PR3 — the rb-zero and utility-checker gates grep pages/
 // too. strip the left column then, or delete the page along with it.
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import BsAlert from 'react-bootstrap/Alert'
 import BsBadge from 'react-bootstrap/Badge'
 import BsButton from 'react-bootstrap/Button'
@@ -23,6 +24,9 @@ import BsPopover from 'react-bootstrap/Popover'
 import BsDropdown from 'react-bootstrap/Dropdown'
 import BsButtonGroup from 'react-bootstrap/ButtonGroup'
 import BsModal from 'react-bootstrap/Modal'
+import BsToast from 'react-bootstrap/Toast'
+import BsToastBody from 'react-bootstrap/ToastBody'
+import BsToastContainer from 'react-bootstrap/ToastContainer'
 import Overlay from 'react-bootstrap/Overlay'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import { Menu as BaseMenu } from '@base-ui/react/menu'
@@ -36,6 +40,7 @@ import Popover from '@/components/ui/popover'
 import PreviewCard from '@/components/ui/preview-card'
 import Menu, { menuClasses, itemClasses } from '@/components/ui/menu'
 import { useShowModal } from '@/components/modal'
+import { useToast } from '@/components/ui/toast'
 import ActionDropdown from '@/components/action-dropdown'
 import { BadgeTooltip } from '@/components/badge'
 import dropdownStyles from '@/components/dropdown.module.css'
@@ -93,7 +98,6 @@ const RETINT_VARS = {
 
 // docs/dev/pr2-base-ui-components.md §8 — add a section above as each lands
 const ROADMAP = [
-  ['Toast', 'C7'],
   ['editor Tabs / Toolbar / link Popover', 'C8a–c'],
   ['form: Field, Input, Checkbox, InputGroup, select', 'C9a'],
   ['form: Slider + NumberField, CheckboxGroup, OTP Field', 'C9b'],
@@ -466,6 +470,239 @@ function MentionsListboxReplica () {
         </div>
       ))}
     </div>
+  )
+}
+
+// the old toast.js (pre-C7) replicated for the left column: rb Toast/ToastBody/
+// ToastContainer plus the state machine the port killed — tag-dedup reducer
+// ("(N) body"), rb autohide timers, X-only options-onClose, slide-in keyframe,
+// the dead progressBar option, always-expanded vertical stack, no limit — dies
+// with C11/PR3 like every rb import here. anchored bottom-LEFT so both stacks
+// can fire side by side (the real thing sat bottom-right like the new side)
+const BS_TOAST_REPLICA_CSS = `
+.bs-toast-replica {
+  font-size: small;
+  width: fit-content;
+  color: #fff;
+  border-width: 1px;
+  border-style: solid;
+  animation: bs-toast-slide ease-out 0.2s;
+}
+@keyframes bs-toast-slide {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
+}
+.bs-toast-replica.bs-success { border-color: var(--bs-success-border-subtle); }
+.bs-toast-replica.bs-danger { border-color: var(--bs-danger-border-subtle); }
+.bs-toast-replica.bs-warning { border-color: var(--bs-warning-border-subtle); }
+.bs-toast-close {
+  color: #fff;
+  font-family: "lightning";
+  font-size: 150%;
+  line-height: 1rem;
+  margin-bottom: -0.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.bs-toast-close:hover { opacity: 0.7; }
+.bs-toast-progress {
+  width: 0;
+  height: 5px;
+  filter: brightness(66%);
+  animation: bs-toast-progress linear 1;
+}
+.bs-toast-progress.bs-success { background-color: var(--bs-success); }
+.bs-toast-progress.bs-danger { background-color: var(--bs-danger); }
+.bs-toast-progress.bs-warning { background-color: var(--bs-warning); }
+@keyframes bs-toast-progress {
+  0% { width: 0; }
+  100% { width: 100%; }
+}
+`
+
+function ToastCompares () {
+  const toaster = useToast()
+  const router = useRouter()
+  const [bsToasts, setBsToasts] = useState([])
+  const bsId = useRef(0)
+
+  // the old removeToast: drop by id AND every same-tag sibling
+  const bsRemove = toast => {
+    setBsToasts(ts => ts.filter(t => t.id !== toast.id && !(toast.tag && t.tag === toast.tag)))
+  }
+
+  const bsAdd = (variant, body, options = {}) => {
+    const toast = {
+      body,
+      variant,
+      autohide: variant !== 'danger',
+      delay: 5000,
+      tag: options?.tag || body, // JSX bodies become their own tag — reference equality never merges (old behavior)
+      ...options,
+      id: bsId.current++
+    }
+    setBsToasts(ts => [...ts, toast])
+    return () => bsRemove(toast)
+  }
+  const bs = {
+    success: (body, options) => bsAdd('success', body, options),
+    warning: (body, options) => bsAdd('warning', body, options),
+    danger: (body, options) => bsAdd('danger', body, options)
+  }
+
+  // the old routeChangeStart effect: unflagged toasts close on navigation
+  useEffect(() => {
+    const handler = () => setBsToasts(ts => ts.filter(t => t.persistOnNavigate))
+    router.events.on('routeChangeStart', handler)
+    return () => router.events.off('routeChangeStart', handler)
+  }, [router.events])
+
+  // the old tagReducer: same-tag toasts merge into one "(N) body"; the merged
+  // toast takes the newest id, so rb remounts it and its autohide timer restarts
+  const visible = bsToasts.reduce((acc, toast) => {
+    const idx = toast.tag ? acc.findIndex(t => t.tag === toast.tag) : -1
+    if (idx === -1) return [...acc, toast]
+    const amount = (acc[idx].amount ?? 1) + 1
+    return [
+      ...acc.slice(0, idx),
+      { ...toast, amount, body: `(${amount}) ${toast.body}` },
+      ...acc.slice(idx + 1)
+    ]
+  }, [])
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: BS_TOAST_REPLICA_CSS }} />
+      <CompareGrid>
+        <Compare
+          label='variant trio'
+          note='success/warning autohide at 5s, danger persists until X; warning keeps dark text + dark X on both sides. new-side deltas: no border + tighter shadow, danger announces assertively (role=alertdialog)'
+          bs={
+            <div className='flex gap-2 flex-wrap'>
+              <BsButton size='sm' variant='grey' onClick={() => bs.success('rb success toast')}>success</BsButton>
+              <BsButton size='sm' variant='grey' onClick={() => bs.warning('rb warning toast')}>warning</BsButton>
+              <BsButton size='sm' variant='grey' onClick={() => bs.danger('rb danger toast')}>danger</BsButton>
+            </div>
+          }
+          sn={
+            <div className='flex gap-2 flex-wrap'>
+              <Button size='sm' variant='grey' onClick={() => toaster.success('success toast')}>success</Button>
+              <Button size='sm' variant='grey' onClick={() => toaster.warning('warning toast')}>warning</Button>
+              <Button size='sm' variant='grey' onClick={() => toaster.danger('danger toast')}>danger</Button>
+            </div>
+          }
+        />
+        <Compare
+          label='dedup ×3'
+          note='fired 3× in one click → ONE toast "(3) zap pending" (tag defaults to the string body). the timer refreshes on both sides (old: the merged toast remounts under the newest id; new: native upsert resetTimer) — the new side also pulses per upsert'
+          bs={<BsButton size='sm' variant='grey' onClick={() => { bs.success('rb zap pending'); bs.success('rb zap pending'); bs.success('rb zap pending') }}>fire ×3</BsButton>}
+          sn={<Button size='sm' variant='grey' onClick={() => { toaster.success('zap pending'); toaster.success('zap pending'); toaster.success('zap pending') }}>fire ×3</Button>}
+        />
+        <Compare
+          label='JSX body (crossposter)'
+          note='the whole-contract exerciser: JSX body with working buttons, autohide false, captured cancel fn — Retry cancels after 1s, Skip cancels now. JSX bodies never dedup on either side. new: swipe also dismisses (reads as skip)'
+          bs={
+            <BsButton
+              size='sm' variant='grey' onClick={() => {
+                const removeToast = bs.warning(
+                  <>
+                    Crossposting failed for wss://relay.example<br />
+                    <BsButton variant='link' className='p-0' onClick={() => setTimeout(() => removeToast(), 1000)}>Retry</BsButton>
+                    {' | '}
+                    <BsButton variant='link' className='p-0' onClick={() => removeToast()}>Skip</BsButton>
+                  </>,
+                  { autohide: false }
+                )
+              }}
+            >
+              crosspost failure
+            </BsButton>
+          }
+          sn={
+            <Button
+              size='sm' variant='grey' onClick={() => {
+                const removeToast = toaster.warning(
+                  <>
+                    Crossposting failed for wss://relay.example<br />
+                    <Button variant='link' className='p-0' onClick={() => setTimeout(() => removeToast(), 1000)}>Retry</Button>
+                    {' | '}
+                    <Button variant='link' className='p-0' onClick={() => removeToast()}>Skip</Button>
+                  </>,
+                  { autohide: false }
+                )
+              }}
+            >
+              crosspost failure
+            </Button>
+          }
+        />
+        <Compare
+          label='4-at-once stack'
+          note='old: full-size vertical stack, all 4 painted. new: collapsed peek-stack (12px peeks, −5% scale per index) — hover/focus fans it out, mouse-out re-collapses; with limit 3 the oldest is already hidden and its fan slot stays blank (known cosmetic, §16.8-7)'
+          bs={<BsButton size='sm' variant='grey' onClick={() => { bs.success('rb stack 1'); bs.success('rb stack 2'); bs.danger('rb stack 3'); bs.warning('rb stack 4') }}>fire 4</BsButton>}
+          sn={<Button size='sm' variant='grey' onClick={() => { toaster.success('stack 1'); toaster.success('stack 2'); toaster.danger('stack 3'); toaster.warning('stack 4') }}>fire 4</Button>}
+        />
+        <Compare
+          label='countdown (progressBar)'
+          note='dead option — zero passers in the app, kept honored. old: 5px variant-tinted bar filling 0→100%. new: 3px white bar draining under the body; it pauses while the stack is hovered (Base UI pauses the real timer too) and restarts when a dedup upsert refreshes the timer'
+          bs={<BsButton size='sm' variant='grey' onClick={() => bs.success('rb progress', { progressBar: true })}>fire</BsButton>}
+          sn={<Button size='sm' variant='grey' onClick={() => toaster.success('progress', { progressBar: true })}>fire</Button>}
+        />
+        <Compare
+          label='swipe-dismiss'
+          note='new gesture (Base UI native, pointer + touch): drag the toast right or down past the threshold — the exit continues the gesture direction. danger persists, so it waits for you'
+          bs={<span className='text-muted text-sm'>no swipe — X or timeout only</span>}
+          sn={<Button size='sm' variant='grey' onClick={() => toaster.danger('swipe me right or down')}>fire persistent</Button>}
+        />
+        <Compare
+          label='persistOnNavigate'
+          note='fire the pair, then navigate (same-page query push → routeChangeStart): the flagged toast survives, the plain one closes — the wrapper kept the old routeChangeStart effect'
+          bs={
+            <div className='flex gap-2 flex-wrap'>
+              <BsButton size='sm' variant='grey' onClick={() => { bs.success('rb survives nav', { persistOnNavigate: true, autohide: false }); bs.success('rb closes on nav', { autohide: false }) }}>fire pair</BsButton>
+              <BsButton size='sm' variant='grey' onClick={() => router.push({ query: { nav: Date.now() } })}>navigate</BsButton>
+            </div>
+          }
+          sn={
+            <div className='flex gap-2 flex-wrap'>
+              <Button size='sm' variant='grey' onClick={() => { toaster.success('survives nav', { persistOnNavigate: true, autohide: false }); toaster.success('closes on nav', { autohide: false }) }}>fire pair</Button>
+              <Button size='sm' variant='grey' onClick={() => router.push({ query: { nav: Date.now() } })}>navigate</Button>
+            </div>
+          }
+        />
+        <Compare
+          label='limit 3'
+          note='fire 5 distinct bodies: old paints all 5 full-size; new keeps 3 visible — the oldest 2 get data-limited (opacity 0, still in state) and resurface as the front ones close'
+          bs={<BsButton size='sm' variant='grey' onClick={() => [1, 2, 3, 4, 5].forEach(n => bs.success(`rb limit probe ${n}`))}>fire 5</BsButton>}
+          sn={<Button size='sm' variant='grey' onClick={() => [1, 2, 3, 4, 5].forEach(n => toaster.success(`limit probe ${n}`))}>fire 5</Button>}
+        />
+      </CompareGrid>
+      <BsToastContainer position='bottom-start' containerPosition='fixed' className='pb-4 px-4' style={{ display: 'grid', zIndex: 1090 }}>
+        {visible.map(toast => {
+          const textStyle = toast.variant === 'warning' ? 'text-dark' : ''
+          return (
+            <BsToast
+              key={toast.id} bg={toast.variant} show autohide={toast.autohide} delay={toast.delay}
+              className={cn('bs-toast-replica', `bs-${toast.variant}`, textStyle)} onClose={() => bsRemove(toast)}
+            >
+              <BsToastBody>
+                <div className='flex items-center'>
+                  <div className='grow overflow-hidden'>{toast.body}</div>
+                  <BsButton
+                    variant={null} className='p-0 ps-2' aria-label='close'
+                    onClick={() => { toast.onClose?.(); bsRemove(toast) }}
+                  >
+                    <div className={cn('bs-toast-close', textStyle)}>X</div>
+                  </BsButton>
+                </div>
+              </BsToastBody>
+              {toast.progressBar && <div className={cn('bs-toast-progress', `bs-${toast.variant}`)} style={{ animationDuration: `${toast.delay}ms` }} />}
+            </BsToast>
+          )
+        })}
+      </BsToastContainer>
+    </>
   )
 }
 
@@ -1008,6 +1245,13 @@ export default function Playground () {
               }
             />
           </CompareGrid>
+        </Section>
+
+        <Section
+          title='Toast'
+          note="toast.js internals on Base UI Toast (Provider + portaled Viewport) — the hand-rolled state machine died (upsert-by-id covers dedup/timer-refresh/countdown natively) and useToast's 42 consumer files didn't move. left column = pre-C7 replica firing bottom-LEFT so both stacks run side by side (the real thing sat bottom-right like the new side). intended deltas (keystone-5 revision, GO 2026-07-16): 250ms peek-stack + hover fan-out + swipe-dismiss + upsert pulse + pausing countdown replace the 0.2s slide-in/fade and the always-expanded vertical stack; shadow-only chrome (the 1px border dies; 0 2px 8px 25% vs 0 8px 16px 15%); radius 6px vs 6.4px; limit 3; toasts are tab-reachable and F6 jumps to the stack; reduced-motion disables all of it (rb animated under reduce)"
+        >
+          <ToastCompares />
         </Section>
 
         <Section

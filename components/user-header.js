@@ -24,7 +24,7 @@ import ActionDropdown from './action-dropdown'
 import CodeIcon from '@/svgs/terminal-box-fill.svg'
 import MuteDropdownItem from './mute'
 import copy from 'clipboard-copy'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import { hexToBech32 } from '@/lib/nostr'
 import NostrIcon from '@/svgs/nostr.svg'
 import GithubIcon from '@/svgs/github-fill.svg'
@@ -265,7 +265,7 @@ function HeaderHeader ({ user }) {
               .then(() => {
                 toaster.success(`copied ${user.name}@stacker.news to clipboard`)
               }).catch(() => {
-                toaster.error(`failed to copy ${user.name}@stacker.news to clipboard`)
+                toaster.danger(`failed to copy ${user.name}@stacker.news to clipboard`)
               })
             showModal(({ onClose }) => (
               <>

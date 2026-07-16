@@ -1,6 +1,6 @@
 import { Fragment, useCallback, forwardRef, useRef } from 'react'
 import { UPLOAD_TYPES_ALLOW, MEDIA_URL } from '@/lib/constants'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client/react'
 import piexif from 'piexifjs'

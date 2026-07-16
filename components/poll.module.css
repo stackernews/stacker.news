@@ -1,12 +1,11 @@
+/* display, radius, padding and line-height are recipe-owned on a Button, so
+   they live as call-site utilities in poll.js (twMerge drops the recipe's);
+   only declarations the recipe never emits belong here */
 .pollButton {
     margin-top: .25rem;
-    display: block;
     border: 2px solid var(--bs-info);
-    border-radius: 2rem;
     width: 100%;
     max-width: 600px;
-    padding: .4rem 1.1rem;
-    line-height: 1rem;
     text-transform: uppercase;
 }
 

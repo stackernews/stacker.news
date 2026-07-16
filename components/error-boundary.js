@@ -3,7 +3,7 @@ import { StaticLayout } from './layout'
 import styles from '@/styles/error.module.css'
 import copy from 'clipboard-copy'
 import Button from '@/components/ui/button'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import { decodeMinifiedStackTrace } from '@/lib/stacktrace'
 import LoopVideo from './loop-video'
 class ErrorBoundary extends Component {

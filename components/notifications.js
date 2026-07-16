@@ -35,7 +35,7 @@ import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import Badge from '@/components/ui/badge'
 import Button from '@/components/ui/button'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
@@ -814,6 +814,7 @@ export function NotificationAlert () {
           <Alert variant='info' dismissible onClose={close}>
             <span className='align-middle'>Enable push notifications?</span>
             <button
+              type='button'
               className={`${styles.alertBtn} mx-1`}
               onClick={async () => {
                 await sw.requestNotificationPermission()
@@ -822,7 +823,7 @@ export function NotificationAlert () {
               }}
             >Yes
             </button>
-            <button className={styles.alertBtn} onClick={close}>No</button>
+            <button type='button' className={styles.alertBtn} onClick={close}>No</button>
           </Alert>
           )
         : (

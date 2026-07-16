@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import Button from '@/components/ui/button'
 import Nostr, { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { gql } from '@apollo/client'

@@ -1,5 +1,5 @@
 import QrScanner from '@/components/qr-scanner'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import sendStyles from './send.module.css'
 import CameraIcon from '@/svgs/camera-line.svg'

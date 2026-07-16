@@ -20,7 +20,7 @@ import { useProtocolSelection } from './hooks/selection'
 import { useSaveWallet } from './hooks/save-wallet'
 import { initialDrafts } from './hooks/draft'
 import { CapabilityCard } from './capability-card'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { useShowModal } from '@/components/modal'
 import { useRouter } from 'next/router'
 import { WalletStaleConfigError } from '@/wallets/client/errors'
@@ -150,7 +150,7 @@ function WalletConfigureFormLayout ({ protocols }) {
         {!isTemplate(wallet) && <WalletConfigureDangerZone wallet={wallet} />}
       </main>
 
-      <aside className={classNames(styles.aside, 'flex flex-col gap-4')}>
+      <aside className={classNames(styles.aside, 'hidden md:flex flex-col gap-4')}>
         <div className={classNames(styles.asideCard, 'flex flex-col')}>
           <p className='text-muted mb-0'>
             Set up this wallet&apos;s capabilities, then test them before saving.

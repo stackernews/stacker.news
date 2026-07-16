@@ -1,7 +1,7 @@
 import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
 import Menu from '@/components/ui/menu'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 
 export default function SubscribeDropdownItem ({ item: { id, meSubscription } }) {
   const toaster = useToast()

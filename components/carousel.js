@@ -38,7 +38,12 @@ function useSwiping ({ moveLeft, moveRight }) {
   }, [onTouchStart, onTouchEnd])
 }
 
-function useArrowKeys ({ moveLeft, moveRight }) {
+// arrow keys bind to the carousel's own container, not document: inside a Base UI
+// Dialog.Popup the popup stopPropagation()s composite keys (Arrow/Home/End) at the
+// popup level as its roving-focus contract, so a document listener never sees them.
+// the container owns focus (below) so the keydown fires on it directly, with no
+// reaching past the popup, and the modal shell needs no key-passthrough escape hatch.
+function useArrowKeys (ref, { moveLeft, moveRight }) {
   const onKeyDown = useCallback((e) => {
     if (e.key === 'ArrowLeft') {
       moveLeft()
@@ -48,9 +53,10 @@ function useArrowKeys ({ moveLeft, moveRight }) {
   }, [moveLeft, moveRight])
 
   useEffect(() => {
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onKeyDown])
+    const el = ref.current
+    el?.addEventListener('keydown', onKeyDown)
+    return () => el?.removeEventListener('keydown', onKeyDown)
+  }, [ref, onKeyDown])
 }
 
 function Carousel ({ close, mediaArr, src, setOptions }) {
@@ -75,11 +81,16 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
     setIndex(i => Math.min(mediaArr.length - 1, i + 1))
   }, [setIndex, mediaArr.length])
 
+  // the carousel owns its own focus so arrow keys land on the container (see useArrowKeys);
+  // tabIndex=-1 keeps it out of the tab order, focus() paints no ring on programmatic focus
+  const containerRef = useRef(null)
+  useEffect(() => { containerRef.current?.focus() }, [])
+
   useSwiping({ moveLeft, moveRight })
-  useArrowKeys({ moveLeft, moveRight })
+  useArrowKeys(containerRef, { moveLeft, moveRight })
 
   return (
-    <div className={styles.fullScreenContainer} onClick={close}>
+    <div ref={containerRef} tabIndex={-1} className={styles.fullScreenContainer} onClick={close}>
       <img className={styles.fullScreen} src={currentSrc} />
       <div className={styles.fullScreenNavContainer}>
         <div

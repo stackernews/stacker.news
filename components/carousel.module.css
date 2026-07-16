@@ -28,6 +28,7 @@ img.fullScreen {
     display: grid;
     width: 100%;
     height: 100%;
+    outline: none; /* focused programmatically to own arrow keys, never paint a ring */
 }
 
 div.fullScreenNav:hover > svg {

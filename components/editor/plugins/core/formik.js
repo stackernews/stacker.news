@@ -6,7 +6,7 @@ import { COMMAND_PRIORITY_HIGH, createCommand, BLUR_COMMAND } from 'lexical'
 import { useFeeButton } from '@/components/fee-button'
 import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import useDebounceCallback from '@/components/use-debounce-callback'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 
 /** instantly syncs Formik with the latest markdown resulting from the editor */
 export const SYNC_FORMIK_COMMAND = createCommand('SYNC_FORMIK_COMMAND')

@@ -34,6 +34,19 @@ export default function useModal () {
   const modalStack = useRef([])
   const [render, forceUpdate] = useReducer(x => x + 1, 0)
   const popupRef = useRef(null)
+  const lastPointerDownAtRef = useRef(0)
+  const shownAtRef = useRef(0)
+
+  // a long press can straddle the mount: pointerdown before the dialog exists, release
+  // after. the browser composes both halves into a click outside the popup, which Base UI
+  // dismisses as an outside-press (rb keyed mousedown, so pre-mount presses never counted).
+  // the composed click doesn't carry its pointerdown's time, so a document listener has to
+  // witness every press for the dismissal gate below to compare against
+  useEffect(() => {
+    const stamp = e => { lastPointerDownAtRef.current = e.timeStamp }
+    document.addEventListener('pointerdown', stamp, true)
+    return () => document.removeEventListener('pointerdown', stamp, true)
+  }, [])
 
   const getCurrentContent = useCallback(() => {
     return modalStack.current[modalStack.current.length - 1]
@@ -98,13 +111,19 @@ export default function useModal () {
 
     return (
       <Dialog.Root
-        open // mounted ⟺ open: stack empty ⇒ null above (unmount = today's instant close, §15.0-4)
+        open // mounted means open: an empty stack returns null above, and unmount is the instant close
         onOpenChange={(open, details) => {
           if (open) return
-          // X (Dialog.Close ⇒ 'close-press') always closes — even under keepOpen (rb parity:
-          // onHide={undefined} only ever killed light dismiss; the X called onClose directly)
+          // the X (Dialog.Close, reason 'close-press') always closes, even under
+          // keepOpen: the old onHide={undefined} only ever killed light dismiss,
+          // the X called onClose directly
           if (details.reason === 'close-press') return onClose()
-          // light dismiss ('escape-key' / 'outside-press'): gated exactly like rb's onHide
+          // a press that began before the modal showed can't mean "dismiss it";
+          // this exempts the long-press release and the territory hover-card
+          // race. A fresh press stamps later than shownAt, so real outside
+          // clicks still close
+          if (details.reason === 'outside-press' && lastPointerDownAtRef.current < shownAtRef.current) return
+          // light dismiss (escape key or outside press) is gated exactly like the old onHide
           if (!keepOpen) onClose()
         }}
       >
@@ -113,16 +132,11 @@ export default function useModal () {
           <Dialog.Viewport className={cn(styles.viewport, fullScreen && styles.fullScreen)}>
             <Dialog.Popup
               ref={popupRef}
-              // rb parity: focus the popup itself (rb focused the .modal container; Base UI's
-              // default — first tabbable — would paint focus rings / open mobile keyboards
-              // where today none appear, §15.2). finalFocus default ≈ body via showModal's blur
+              // focus the popup itself like the old .modal container was focused;
+              // Base UI's first-tabbable default would paint focus rings and open
+              // mobile keyboards where none appeared before. finalFocus lands on
+              // body via showModal's blur
               initialFocus={() => popupRef.current}
-              // rb parity: arrow/Home/End keys must keep bubbling to document-level listeners
-              // (the carousel's slide nav died without this, §15.5 pre-flight 14). Base UI's
-              // popup stopPropagation()s composite keys; preventBaseUIHandler skips exactly that
-              onKeyDown={e => {
-                if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') e.preventBaseUIHandler()
-              }}
               className={cn(styles.popup, fullScreen ? styles.fullScreen : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg')}
             >
               <div className='flex flex-row'>
@@ -153,6 +167,9 @@ export default function useModal () {
   const showModal = useCallback(
     (getContent, options) => {
       document.activeElement?.blur()
+      // performance.now() shares event.timeStamp's clock; stamping here (before the actual
+      // mount) only widens the exemption toward presses that are strictly pre-mount
+      shownAtRef.current = performance.now()
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]

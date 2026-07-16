@@ -8,7 +8,7 @@ import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import { SYNC_FORMIK_COMMAND } from '@/components/editor/plugins/core/formik'
 import { useFeeButton } from '@/components/fee-button'
 import { UPLOAD_SUBMIT_DISABLED_REASON } from '@/components/editor/plugins/upload'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 
 /** command to toggle between markdown and rich mode
  * @param {string} [newMode] - the new mode to switch to, if not provided, the current mode will be toggled

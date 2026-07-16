@@ -14,7 +14,7 @@ import { meAnonSats } from '@/lib/apollo'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { toastPayError, isTransientNetworkError } from '@/wallets/client/errors'
 import { useAnimation } from '@/components/animation'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 

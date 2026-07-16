@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { ObstacleButtons } from '@/components/obstacle'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { useWalletDelete } from '@/wallets/client/hooks'
 
 export function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {

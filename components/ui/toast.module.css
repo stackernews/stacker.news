@@ -1,0 +1,218 @@
+/* Base UI stacked toasts. The --toast-* custom props are Base UI's inline
+   contract (index, offsets, swipe movement, measured heights); the [data-*]
+   attributes are its state. */
+.viewport {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: var(--sn-z-toast);
+  width: 20rem;
+  max-width: calc(100vw - 2rem);
+}
+
+.root {
+  --sn-toast-bg: var(--theme-grey);  /* default; per-type overrides below (never paints via useToast) */
+  --sn-toast-color: #fff;
+  --sn-toast-gap: 0.75rem;                   /* vertical space between toasts when expanded */
+  --sn-toast-peek: 0.75rem;                  /* visible sliver of each behind-toast while collapsed */
+  --sn-toast-scale: calc(max(0, 1 - var(--toast-index) * 0.05));
+  --sn-toast-shrink: calc(1 - var(--sn-toast-scale));
+  /* collapsed: clamp to the frontmost toast's height so a tall toast behind
+     a short one doesn't stick out; own height until Base UI has measured */
+  --sn-toast-height: var(--toast-frontmost-height, var(--toast-height));
+  /* expanded vertical position: undo Base UI's bottom-anchored cumulative
+     offset and add a per-index gap; reused by the swipe-exit transforms */
+  --sn-toast-offset-y: calc(
+    var(--toast-swipe-movement-y)
+    - var(--toast-offset-y)
+    - var(--toast-index) * var(--sn-toast-gap)
+  );
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: fit-content;
+  background: var(--sn-toast-bg);
+  color: var(--sn-toast-color);
+  border-radius: 0.375rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+  transform-origin: bottom right;    /* keep the anchored corner fixed while scaling */
+  height: var(--sn-toast-height);
+  transform:
+    translateX(var(--toast-swipe-movement-x))
+    translateY(calc(
+      var(--toast-swipe-movement-y)
+      - var(--toast-index) * var(--sn-toast-peek)
+      - var(--sn-toast-shrink) * var(--sn-toast-height)
+    ))
+    scale(var(--sn-toast-scale));
+  /* movement: strong ease-out (settled early, glides to rest); height resizes
+     faster and up front so the box-clamp finishes before the eye tracks it */
+  transition:
+    transform 250ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 250ms ease,
+    height 150ms ease;
+  z-index: calc(1000 - var(--toast-index)); /* local to the viewport's stacking context */
+}
+
+/* expanded (viewport hovered/focused): fan out vertically at natural height */
+.root[data-expanded] {
+  height: var(--toast-height);
+  transform:
+    translateX(var(--toast-swipe-movement-x))
+    translateY(var(--sn-toast-offset-y));
+}
+
+.root[data-limited] {
+  opacity: 0;
+}
+
+/* bridge the expanded gaps so cursor travel between toasts keeps the stack open */
+.root::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: calc(var(--sn-toast-gap) + 1px);
+}
+
+.root[data-starting-style] {
+  opacity: 0;
+  transform: translateY(150%);
+}
+
+/* exit: drop-down for timeout/close; continue the gesture when swipe-dismissed */
+.root[data-ending-style] {
+  opacity: 0;
+  transform: translateY(150%);
+}
+
+.root[data-ending-style][data-swipe-direction='down'] {
+  transform: translateY(calc(var(--toast-swipe-movement-y) + 150%));
+}
+
+.root[data-ending-style][data-swipe-direction='right'] {
+  transform: translateX(calc(var(--toast-swipe-movement-x) + 150%)) translateY(var(--sn-toast-offset-y));
+}
+
+/* per-type skins, the button and badge data-attribute pattern */
+.root[data-type='success'] {
+  --sn-toast-bg: var(--sn-success);
+}
+
+.root[data-type='danger'] {
+  --sn-toast-bg: var(--sn-danger);
+}
+
+.root[data-type='warning'] {
+  --sn-toast-bg: var(--sn-warning);
+  --sn-toast-color: #212529; /* dark text on the warning orange, as before */
+}
+
+/* upsert pulse: two identical keyframes with distinct names, browsers won't
+   restart an animation whose name is unchanged, so parity alternates them */
+.pulseEven {
+  animation: pulse-even 0.28s ease;
+}
+
+.pulseOdd {
+  animation: pulse-odd 0.28s ease;
+}
+
+@keyframes pulse-even {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.04; }
+}
+
+@keyframes pulse-odd {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.04; }
+}
+
+.content {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  height: 100%;                      /* fill the clamped Root; clip taller content */
+  overflow: hidden;
+  transition: opacity 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.content[data-behind] {
+  opacity: 0;                        /* hidden while collapsed behind the frontmost */
+}
+
+.content[data-expanded] {
+  opacity: 1;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;                      /* long bodies wrap instead of overflowing */
+  font-size: small;
+}
+
+.description {
+  margin-bottom: 0;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.close {
+  /* "lightning" is an icon font; a generic fallback would break the glyph */
+  /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
+  font-family: lightning;
+  font-size: 150%;
+  line-height: 1rem;
+  margin-bottom: -0.25rem;
+  margin-right: -0.25rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: currentcolor;               /* follows --sn-toast-color, so warning's X goes dark too */
+  background: none;
+  border: none;
+}
+
+.close:hover {
+  opacity: 0.7;
+}
+
+.countdown {
+  /* pinned to the bottom edge so it stays put regardless of Content's clamp */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgb(255 255 255 / 50%);
+  border-radius: 0 0 0.375rem 0.375rem;
+  transform-origin: left;
+  animation: countdown var(--toast-timeout) linear forwards;
+}
+
+@keyframes countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* hover = timers paused (Base UI pauses the real timer too) */
+.viewport[data-expanded] .countdown {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root,
+  .content,
+  .countdown,
+  .pulseEven,
+  .pulseOdd {
+    transition: none;
+    animation: none;
+  }
+}

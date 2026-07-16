@@ -5,7 +5,7 @@ import { useMe } from './me'
 import styles from './poll.module.css'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { throwUnlessUserCancel } from '@/wallets/client/errors'
 import { POLL_VOTE } from '@/fragments/payIn'
@@ -22,7 +22,10 @@ const PollButton = ({ v, item }) => {
     <ActionTooltip placement='left' notForm overlayText='1 sat'>
       <Button
         disabled={isSubmitting}
-        variant='outline-info' className={classNames(styles.pollButton, isSubmitting && 'pulse')}
+        variant='outline-info'
+        // the pill geometry rides call-site utilities so twMerge drops the
+        // recipe's rounded-md, px-4, py-1.5 and inline-block
+        className={classNames(styles.pollButton, 'block rounded-4xl px-[1.1rem] py-[.4rem] leading-4', isSubmitting && 'pulse')}
         onClick={me
           ? async () => {
             setIsSubmitting(true)

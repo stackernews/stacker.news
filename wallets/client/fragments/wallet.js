@@ -210,8 +210,12 @@ export const DELETE_WALLET = gql`
 export const EXTERNAL_TRANSACTION_FIELDS = gql`
   fragment ExternalTransactionFields on ExternalTransaction {
     id
+    createdAt
+    direction
     status
     statusChangedAt
+    walletId
+    protocolId
     bolt11
     hash
     preimage
@@ -219,6 +223,15 @@ export const EXTERNAL_TRANSACTION_FIELDS = gql`
     settledMsats
     invoiceExpiresAt
     unknownReason
+    sourceType
+    sourceValue
+    walletInfo {
+      walletId
+      walletName
+      protocolId
+      protocolName
+      role
+    }
   }
 `
 
@@ -251,11 +264,19 @@ export const GET_EXTERNAL_TRANSACTION = gql`
   query ExternalTransaction($id: Int!) {
     externalTransaction(id: $id) {
       ...ExternalTransactionFields
-      walletInfo {
-        walletId
-        walletName
-      }
     }
+  }
+`
+
+export const CREATE_EXTERNAL_SEND = gql`
+  mutation CreateExternalSend($input: ExternalSendCreateInput!) {
+    createExternalSend(input: $input)
+  }
+`
+
+export const REPORT_EXTERNAL_SEND_OBSERVATION = gql`
+  mutation ReportExternalSendObservation($input: ExternalSendObservationInput!) {
+    reportExternalSendObservation(input: $input)
   }
 `
 

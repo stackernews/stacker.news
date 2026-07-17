@@ -1,22 +1,70 @@
 import { Prisma } from '@prisma/client'
-import { errorMessage } from '@/lib/error'
-import { RECONCILIATION_GRACE_MS } from '@/lib/constants'
+import { bolt11ExpiresAt, bolt11ToPayment } from '@/lib/bolt11'
+import { E_TRANSIENT, errorMessage, GqlInputError } from '@/lib/error'
 import {
+  RECONCILIATION_GRACE_MS,
+  WALLET_EXTERNAL_SEND_POLL_AFTER_MS,
+  WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS
+} from '@/lib/constants'
+import { withTimeoutSignal } from '@/lib/time'
+import {
+  toExternalTransactionObservation,
   externalTransactionDiagnosticMessage,
   EXTERNAL_TRANSACTION_UNKNOWN_REASONS
 } from '@/wallets/lib/external-transactions'
 import { walletAmountToMsatsOrUndefined } from '@/wallets/lib/amount'
 import { verifyPreimage } from '@/wallets/lib/preimage'
 import { protocolHasInvoiceChecker } from '@/wallets/server/protocols/util'
+import { checkLnurlVerifyInvoice } from '@/wallets/server/protocols/lnurlVerify'
 import { truncateToCharLength } from '@/lib/validate'
 import { TOR_REGEXP } from '@/lib/url'
 import { walletLogger } from './logger'
+import { requireExternalSendConfirmationIfNeeded } from './external-transaction-duplicates'
 
 const EXTERNAL_TX_CHECK_BATCH_SIZE = 25
 
-// Selection, lease renewal, and protocol materialization share one statement.
-// The database clock owns the schedule.
 export async function claimExternalTransactionChecks (models) {
+  return await claimExternalTransactions(models, Prisma.sql`
+    (
+      "direction" = 'RECEIVE'::"ExternalTransactionDirection"
+      OR (
+        "direction" = 'SEND'::"ExternalTransactionDirection"
+        AND "invoiceExpiresAt" +
+          ${RECONCILIATION_GRACE_MS}::bigint * interval '1 millisecond' <= now()
+      )
+    )
+  `, Prisma.sql`
+    SELECT
+      claimed.*,
+      jsonb_build_object(
+        'name', protocol."name",
+        'config', protocol."config"
+      ) AS "checkProtocol"
+    FROM claimed
+    JOIN "WalletProtocol" AS protocol
+      ON protocol."id" = claimed."protocolId"
+    ORDER BY claimed."id" ASC
+  `)
+}
+
+export async function claimDueExternalSendChecks (models, {
+  userId
+}) {
+  return await claimExternalTransactions(models, Prisma.sql`
+    "userId" = ${userId}
+    AND "direction" = 'SEND'::"ExternalTransactionDirection"
+    AND "invoiceExpiresAt" +
+      ${RECONCILIATION_GRACE_MS}::bigint * interval '1 millisecond' > now()
+  `, Prisma.sql`
+    SELECT claimed.*
+    FROM claimed
+    ORDER BY claimed."id" ASC
+  `)
+}
+
+// Selection and lease renewal share one statement. The database clock owns the
+// schedule; each caller selects only the data it consumes.
+async function claimExternalTransactions (models, predicate, selection) {
   return await models.$queryRaw`
     WITH candidates AS (
       SELECT
@@ -29,7 +77,7 @@ export async function claimExternalTransactionChecks (models) {
         AND "nextCheckAt" <= now()
         AND "bolt11" IS NOT NULL
         AND "hash" IS NOT NULL
-        AND "direction" = 'RECEIVE'::"ExternalTransactionDirection"
+        AND (${predicate})
       ORDER BY "nextCheckAt" ASC, "id" ASC
       LIMIT ${EXTERNAL_TX_CHECK_BATCH_SIZE}
       FOR UPDATE SKIP LOCKED
@@ -52,16 +100,72 @@ export async function claimExternalTransactionChecks (models) {
       WHERE tx."id" = candidates."id"
       RETURNING tx.*, tx."created_at" AS "createdAt", tx."updated_at" AS "updatedAt"
     )
-    SELECT
-      claimed.*,
-      jsonb_build_object(
-        'name', protocol."name",
-        'config', protocol."config"
-      ) AS "checkProtocol"
-    FROM claimed
-    JOIN "WalletProtocol" AS protocol
-      ON protocol."id" = claimed."protocolId"
-    ORDER BY claimed."id" ASC`
+    ${selection}`
+}
+
+export async function createExternalSendTransaction (models, args) {
+  const { hash, msatsRequested: amountMsats } = bolt11ToPayment(args.bolt11)
+  const invoiceExpiresAt = bolt11ExpiresAt(args.bolt11)
+  if (!hash || !invoiceExpiresAt) {
+    throw new GqlInputError('could not decode invoice')
+  }
+  const invoice = { bolt11: args.bolt11, hash, amountMsats, invoiceExpiresAt }
+  const sourceValue = args.sourceType === 'LN_ADDR' && args.sourceValue
+    ? truncateToCharLength(args.sourceValue, 320)
+    : null
+
+  return await retrySerializableSend(models, async db => {
+    const protocol = await db.walletProtocol.findFirst({
+      where: {
+        id: Number(args.protocolId),
+        walletId: Number(args.walletId),
+        send: true,
+        wallet: { userId: args.userId }
+      },
+      select: { id: true, walletId: true }
+    })
+    if (!protocol) throw new GqlInputError('wallet protocol not found')
+    await requireExternalSendConfirmationIfNeeded(db, {
+      userId: args.userId,
+      invoice,
+      sourceType: args.sourceType,
+      sourceValue,
+      duplicateConfirmed: args.duplicateConfirmed
+    })
+    return await db.externalTransaction.create({
+      data: {
+        ...invoice,
+        direction: 'SEND',
+        nextCheckAt: new Date(Date.now() + WALLET_EXTERNAL_SEND_POLL_AFTER_MS),
+        userId: args.userId,
+        walletId: protocol.walletId,
+        protocolId: protocol.id,
+        sourceType: args.sourceType ?? 'BOLT11',
+        sourceValue,
+        maxFeeLimitMsats: args.maxFeeLimitMsats == null
+          ? args.maxFeeLimitMsats
+          : BigInt(args.maxFeeLimitMsats),
+        verificationContext: sanitizeVerificationContext(args.verificationContext) ?? Prisma.DbNull
+      }
+    })
+  }, 2)
+}
+
+async function retrySerializableSend (models, fn, attempts) {
+  const retryCodes = ['P2034', 'P2002', 'P2028']
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await models.$transaction(fn, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable
+      })
+    } catch (err) {
+      if (!retryCodes.includes(err?.code)) throw err
+    }
+  }
+  throw new GqlInputError(
+    'wallet activity changed while starting send; try the send again',
+    E_TRANSIENT
+  )
 }
 
 export async function createExternalReceiveTransaction (models, args) {
@@ -140,6 +244,60 @@ function outcomeForObservation (transaction, {
   return { outcome: 'UNKNOWN', unknownReason }
 }
 
+export async function acceptClientExternalSendObservation (models, {
+  id,
+  userId,
+  ...observation
+}) {
+  const transaction = await models.externalTransaction.findFirst({
+    where: { id, userId }
+  })
+  if (!transaction) throw new GqlInputError('external transaction not found')
+  if (transaction.direction !== 'SEND') {
+    throw new GqlInputError('external receive transactions are reconciled by the server')
+  }
+  // Outcomes are first-write-wins. Consume later facts so durable clients stop replaying them.
+  if (transaction.outcome != null) return true
+
+  const needsLnurlCheck = transaction.verificationContext?.lnurlVerifyUrl &&
+    (observation.status === 'UNKNOWN' ||
+      observation.errorType ||
+      (observation.status === 'SETTLED' &&
+        !verifyPreimage(transaction.hash, observation.preimage)))
+
+  if (needsLnurlCheck) {
+    try {
+      const verificationResult = await withTimeoutSignal(
+        WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS,
+        signal => checkLnurlVerifyInvoice(transaction, null, { signal })
+      )
+      observation = observation.status === 'SETTLED'
+        ? {
+            ...observation,
+            preimage: verificationResult?.preimage ?? observation.preimage
+          }
+        : toExternalTransactionObservation({
+          ...verificationResult,
+          detail: verificationResult?.detail ?? observation.detail
+        })
+    } catch (err) {
+      if (observation.status !== 'SETTLED') {
+        observation = toExternalTransactionObservation(
+          { ...observation, errorType: undefined },
+          { error: err }
+        )
+      }
+    }
+  }
+
+  await recordExternalTransactionObservation(
+    models,
+    transaction,
+    observation
+  )
+  return true
+}
+
 export async function recordExternalTransactionObservation (
   models,
   transaction,
@@ -177,23 +335,30 @@ export async function recordExternalTransactionObservation (
 async function logExternalTransactionTransition (models, after, { detail } = {}) {
   if (!after?.outcome) return
   const status = after.outcome
+  const direction = after.direction === 'SEND' ? 'send' : 'receive'
   const providerDetail = detail
     ? truncateToCharLength(errorMessage(detail), 500)
     : undefined
   let log
   if (status === 'SETTLED') {
-    log = { method: 'ok', message: 'receive settled' }
+    log = after.direction === 'SEND' && !after.preimage
+      ? {
+          method: 'warn',
+          message: 'send settled without matching proof',
+          context: { proof_unavailable: true }
+        }
+      : { method: 'ok', message: `${direction} settled` }
   } else if (status === 'FAILED') {
     log = {
       method: 'error',
-      message: providerDetail ? `receive failed: ${providerDetail}` : 'receive failed'
+      message: providerDetail ? `${direction} failed: ${providerDetail}` : `${direction} failed`
     }
   } else if (status === 'EXPIRED') {
     log = { method: 'warn', message: 'receive expired unpaid before settlement could be confirmed' }
   } else {
     log = {
       method: 'warn',
-      message: `receive status unknown: ${externalTransactionDiagnosticMessage({ ...after, status })}`,
+      message: `${direction} status unknown: ${externalTransactionDiagnosticMessage({ ...after, status })}`,
       context: { unknown_reason: after.unknownReason }
     }
   }
@@ -209,14 +374,12 @@ async function logExternalTransactionTransition (models, after, { detail } = {})
   })[log.method](log.message, log.context)
 }
 
-export function externalTransactionInclude () {
-  return {
-    protocol: {
-      include: {
-        wallet: {
-          include: {
-            template: true
-          }
+export const EXTERNAL_TRANSACTION_INCLUDE = {
+  protocol: {
+    include: {
+      wallet: {
+        include: {
+          template: true
         }
       }
     }

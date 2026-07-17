@@ -39,7 +39,8 @@ export default function ExternalTransactionPage ({ ssrData }) {
   const transaction = dat?.externalTransaction
   // Derived expiry ends live page polling; the worker can still reconcile a late settlement.
   const done = dat ? (!transaction || transaction.status !== 'PENDING') : false
-  const fastPoll = transaction?.status === 'PENDING'
+  const fastPoll = transaction?.status === 'PENDING' &&
+    transaction.direction !== 'SEND'
   const [expiredTransactionId, setExpiredTransactionId] = useState()
 
   useEffect(() => {
@@ -65,16 +66,17 @@ export default function ExternalTransactionPage ({ ssrData }) {
   }
 
   const { invoiceExpiresAt } = transaction
+  const isSend = transaction.direction === 'SEND'
   const invoiceExpired = expiredTransactionId === transaction.id ||
     new Date(invoiceExpiresAt) <= new Date()
-  const showReceiveQr = transaction.bolt11 &&
+  const showReceiveQr = !isSend && transaction.bolt11 &&
     ['PENDING', 'UNKNOWN'].includes(transaction.status) && !invoiceExpired
   const diagnostic = externalTransactionDiagnosticMessage(transaction)
 
   return (
     <TransactionDetailPage>
       <TransactionDetailHeading
-        title='receive'
+        title={isSend ? 'send' : 'receive'}
         amount={formatMsatsToSats(transaction.settledMsats ?? transaction.amountMsats)}
         walletInfo={transaction.walletInfo}
         identity={transaction.walletInfo ? undefined : 'external wallet'}
@@ -103,7 +105,11 @@ export default function ExternalTransactionPage ({ ssrData }) {
 
       {diagnostic && (
         <Alert variant='warning' className='mb-0'>
-          <div className='fw-bold'>settlement unconfirmed</div>
+          <div className='fw-bold'>
+            {transaction.status === 'UNKNOWN'
+              ? (isSend ? 'status unknown' : 'settlement unconfirmed')
+              : 'proof unavailable'}
+          </div>
           <div>{diagnostic}</div>
         </Alert>
       )}
@@ -113,7 +119,13 @@ export default function ExternalTransactionPage ({ ssrData }) {
           <Bolt11Info
             showAmount={false}
             {...toBolt11InfoProps(transaction)}
-          />
+          >
+            {transaction.sourceType === 'LN_ADDR' && transaction.sourceValue && (
+              <div className='d-flex flex-column mt-2'>
+                <small className='text-muted text-truncate' title={transaction.sourceValue}>to {transaction.sourceValue}</small>
+              </div>
+            )}
+          </Bolt11Info>
         </TransactionDetailSection>
       )}
 

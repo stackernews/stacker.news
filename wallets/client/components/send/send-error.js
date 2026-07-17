@@ -14,21 +14,3 @@ export function WalletSendError ({ error, onDismiss }) {
     </Alert>
   )
 }
-
-export function sendErrorDisplay (err) {
-  // sendWalletPayment sets settledUnknown unless the error proves the payment
-  // didn't happen (provider rejection or pre-payment validation/config error);
-  // only proven failures render as a clean, safe-to-retry failure.
-  if (err?.settledUnknown) {
-    return {
-      variant: 'warning',
-      title: 'payment may still be in flight',
-      message: 'your wallet did not respond in time. check your wallet and balance before retrying to avoid double-paying.'
-    }
-  }
-  return {
-    variant: 'danger',
-    title: 'payment failed',
-    message: err?.message || err?.toString?.() || 'try again or check this wallet\'s logs'
-  }
-}

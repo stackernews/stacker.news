@@ -1,19 +1,10 @@
 /* Wallet send flow: destination input, detected invoice, QR scanner, max-fee,
-   toggle chips, submit/footer, and the sent-success summary. */
+   toggle chips, and submit/footer. */
 
-.fields,
-.result {
-  width: min(100%, 560px);
-}
 .fields {
+  width: min(100%, 560px);
   margin-right: auto;
   gap: 2rem;
-}
-.result {
-  margin-right: auto;
-  margin-left: auto;
-  padding-top: 1rem;
-  padding-bottom: 2rem;
 }
 .fields :global(.form-group),
 .toggleChipSection :global(.form-group),
@@ -218,49 +209,6 @@
   margin-top: auto;
 }
 
-.result :global(.input-group) {
-  margin-right: auto;
-  margin-left: auto;
-  max-width: 420px;
-}
-.success {
-  position: absolute;
-  inset: 0;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-}
-.sentSummary {
-  gap: var(--wt-gap-xs);
-}
-.sentLabel {
-  font-size: 1rem;
-  font-weight: 700;
-  text-transform: lowercase;
-  letter-spacing: 0.02em;
-}
-.sentAmount {
-  gap: var(--wt-gap-xs);
-  font-size: clamp(2.25rem, 7vw, 3.5rem);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-.sentAmountUnit {
-  font-size: 0.3em;
-  font-weight: 700;
-  letter-spacing: 0;
-  padding-bottom: 0.5em;
-}
-.sentTo {
-  max-width: 100%;
-  font-size: 1rem;
-  font-weight: 700;
-}
-.sentDest {
-  color: var(--bs-body-color);
-  overflow-wrap: anywhere;
-}
 .internalIcon {
   width: 22px;
   height: 22px;
@@ -277,12 +225,8 @@
 }
 
 @media (max-width: 767px) {
-  .result,
   .fields {
     width: 100%;
     max-width: 100%;
-  }
-  .result {
-    padding-top: 1.5rem;
   }
 }

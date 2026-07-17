@@ -123,6 +123,10 @@ export class WalletStaleConfigError extends WalletConfigurationError {
   }
 }
 
+// Apollo surfaces GraphQL errors on `errors` (CombinedGraphQLErrors); `graphQLErrors` is the
+// cross-version fallback.
+export const graphQLErrors = err => err?.errors ?? err?.graphQLErrors ?? []
+
 // payError helpers: a user-canceled QR (closing the invoice modal) is an intentional abort, not a
 // failure to surface, so callers suppress it.
 export const isUserCancelError = (e) => e instanceof InvoiceCanceledError

@@ -12,8 +12,7 @@ import { DestinationType, isLnAddrActive, parseDestination } from './destination
 import { LightningAddressFields } from './lightning-address-fields'
 import { FeeControl } from './max-fee-field'
 import { SendFooter } from './send-footer'
-import { SendSuccess } from './send-success'
-import { WalletSendError, sendErrorDisplay } from './send-error'
+import { WalletSendError } from './send-error'
 import { useExternalSubmit, useRewardSatsSubmit } from './send-submit'
 import { sendFormSchema } from './schema'
 const styles = { ...sharedStyles, ...sendStyles }
@@ -53,14 +52,10 @@ export function RewardSatsSendForm ({ rewardSatsAvailable }) {
 }
 
 export function ExternalSendForm ({ wallet, protocol }) {
-  const [sent, setSent] = useState(null)
   const logger = useWalletLogger(protocol)
-  const submit = useExternalSubmit({ protocol, logger, onSent: setSent })
+  const submit = useExternalSubmit({ wallet, protocol, logger })
   const controller = useSendFormController({ submit })
   const enforcesMaxFee = !!protocol?.enforcesMaxFee
-  const backHref = `/wallets/${wallet.id}`
-
-  if (sent) return <SendSuccess sent={sent} backHref={backHref} />
 
   const schema = sendFormSchema({ enforcesMaxFee, lnAddrLookup: controller.lnAddrLookup })
 
@@ -88,7 +83,11 @@ function useSendFormController ({ submit, allowLnAddrServerFallback = false }) {
       await submit(values, { lnAddrService: lnAddrLookup.service })
     } catch (err) {
       console.warn('failed to send wallet payment:', err)
-      setSendError(sendErrorDisplay(err))
+      setSendError({
+        variant: 'danger',
+        title: 'payment failed',
+        message: err?.message || err?.toString?.() || 'try again or check this wallet\'s logs'
+      })
     }
   }, [lnAddrLookup.service, submit])
 

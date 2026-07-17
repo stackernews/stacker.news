@@ -114,13 +114,17 @@ function outcomeForObservation (transaction, {
     }
     const normalizedActualFeeMsats = walletAmountToMsatsOrUndefined(actualFeeMsats)
     if (normalizedActualFeeMsats != null) outcome.actualFeeMsats = normalizedActualFeeMsats
-    const normalizedSettledMsats = walletAmountToMsatsOrUndefined(msats)
-    if (normalizedSettledMsats != null) outcome.settledMsats = normalizedSettledMsats
+    if (transaction.direction !== 'SEND') {
+      const normalizedSettledMsats = walletAmountToMsatsOrUndefined(msats)
+      if (normalizedSettledMsats != null) outcome.settledMsats = normalizedSettledMsats
+    }
     return outcome
   }
 
   if (status === 'FAILED') return { outcome: 'FAILED' }
-  if (status === 'EXPIRED') return { outcome: 'EXPIRED' }
+  if (status === 'EXPIRED' && transaction.direction !== 'SEND') {
+    return { outcome: 'EXPIRED' }
+  }
 
   const unknownReason = [
     EXTERNAL_TRANSACTION_UNKNOWN_REASONS.TRANSIENT_CHECK_FAILED,

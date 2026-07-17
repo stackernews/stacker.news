@@ -13,6 +13,7 @@ import { WalletPermissionsError } from '@/wallets/lib/errors'
 // We treat 2^64-1 as "unknown/no limit" for any msat field we read.
 const UINT64_MAX_MSATS = 18446744073709551615n
 export const NWC_PAY_INVOICE_METHOD = 'pay_invoice'
+export const NWC_LOOKUP_INVOICE_METHOD = 'lookup_invoice'
 const NWC_GET_BALANCE_METHOD = 'get_balance'
 // Alby Hub returns EXPIRED for every scoped method on an expired connection.
 const NWC_ACCESS_DENIED_CODES = new Set(['UNAUTHORIZED', 'RESTRICTED', 'EXPIRED'])
@@ -34,6 +35,7 @@ export default [
         type: 'password',
         help: [
           'The connection must allow `pay_invoice` to send payments.',
+          'Allow `lookup_invoice` too if you want Stacker News to recover proof/status after uncertain sends.',
           'Allow `get_balance` too if you want Stacker News to show this wallet balance.'
         ],
         required: true,
@@ -101,6 +103,23 @@ export async function getNwc (nostr, url) {
     relayUrls,
     secret
   })
+}
+
+export async function nwcLookupInvoice (hash, { url }, { signal }) {
+  const res = await nwcTryRun(
+    nwc => nwc.req(NWC_LOOKUP_INVOICE_METHOD, { payment_hash: hash }),
+    { url },
+    { signal }
+  )
+  return res.result
+}
+
+export function nwcLookupUnsupported (err) {
+  return err?.nwcError?.code === 'NOT_IMPLEMENTED'
+}
+
+export function nwcLookupNotFound (err) {
+  return err?.nwcError?.code === 'NOT_FOUND'
 }
 
 export async function supportedMethods (url, { signal }) {

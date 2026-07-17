@@ -1,4 +1,5 @@
-import { getBalance as clnGetBalance, runeMayAllowMethod, sendPayment as clnSendPayment } from '@/lib/cln'
+import { clnPaymentFeeMsats, getBalance as clnGetBalance, getPayment as clnGetPayment, runeMayAllowMethod, sendPayment as clnSendPayment } from '@/lib/cln'
+import { verificationUnsupportedResult } from '@/wallets/lib/external-transactions'
 import { msatsWalletBalance } from './util'
 
 export const name = 'CLN_REST'
@@ -6,8 +7,36 @@ export const name = 'CLN_REST'
 // user-supplied max fee through to the wallet and trust it.
 export const enforcesMaxFee = true
 
-export const sendPayment = async (bolt11, config, { signal, maxFee }) => {
-  return await clnSendPayment(bolt11, config, { signal, maxFee })
+export const sendPayment = clnSendPayment
+
+export const checkPayment = async ({ hash }, config, { signal }) => {
+  // a send-only rune deliberately omits listpays (the field help endorses this), so settlement
+  // can never be verified for it — classify as unsupported (stop polling, benign message) rather than
+  // PERMISSION_REQUIRED, which would re-poll for 24h with a misleading "update wallet permissions" notice
+  if (!runeMayAllowMethod(config.rune, 'listpays')) {
+    return verificationUnsupportedResult('cln rune does not allow listpays')
+  }
+
+  const payment = await clnGetPayment({ paymentHash: hash }, config, { signal })
+  // Missing records may be pruned or never written; the shared deadline bounds PENDING.
+  if (!payment) return { status: 'PENDING' }
+
+  if (payment.status === 'complete') {
+    return {
+      status: 'SETTLED',
+      preimage: payment.preimage,
+      actualFeeMsats: clnPaymentFeeMsats(payment),
+      settledAt: { seconds: payment.completed_at }
+    }
+  }
+  if (payment.status === 'failed') {
+    return {
+      status: 'FAILED',
+      detail: 'cln reports payment failed'
+    }
+  }
+
+  return { status: 'PENDING' }
 }
 
 export const getBalance = async (config, { signal } = {}) => {

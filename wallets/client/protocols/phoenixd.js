@@ -1,6 +1,6 @@
-import { snFetch } from '@/lib/fetch'
-import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 import { WalletPaymentRejectedError } from '@/wallets/client/errors'
+import { walletAmountToMsatsOrUndefined } from '@/wallets/lib/amount'
+import { phoenixdRequest } from '@/wallets/lib/protocols/phoenixd'
 import { walletBalance } from './util'
 
 export const name = 'PHOENIXD'
@@ -9,55 +9,64 @@ export const name = 'PHOENIXD'
 export const enforcesMaxFee = false
 
 export async function sendPayment (bolt11, { url, apiKey }, { signal }) {
-  // https://phoenix.acinq.co/server/api#pay-bolt11-invoice
-  const headers = new Headers()
-  headers.set('Authorization', 'Basic ' + Buffer.from(':' + apiKey).toString('base64'))
-  headers.set('Content-type', 'application/x-www-form-urlencoded')
-
   const body = new URLSearchParams()
   body.append('invoice', bolt11)
 
-  const method = 'POST'
-  const res = await snFetch(url, {
+  const payment = await phoenixdRequest({
+    url,
+    apiKey,
     path: '/payinvoice',
-    method,
-    headers,
+    method: 'POST',
     body,
     signal
   })
-
-  assertResponseOk(res, { method })
-  assertContentTypeJson(res, { method })
-
-  const payment = await res.json()
-  const preimage = payment.paymentPreimage
+  const preimage = payment?.paymentPreimage
   if (!preimage) {
-    // phoenixd reports why a payment failed; without a reason or preimage the
-    // outcome is unprovable, so let sendWalletPayment's proof check flag it.
-    if (payment.reason) throw new WalletPaymentRejectedError(payment.reason)
-    return undefined
+    if (payment?.reason) throw new WalletPaymentRejectedError(payment.reason)
+    // phoenixd success includes paymentPreimage. A 2xx JSON response without
+    // either success or failure fields is only a transport acknowledgement;
+    // checkPayment owns the eventual provider status.
+    return { status: 'PENDING' }
   }
 
-  return preimage
+  return {
+    status: 'SETTLED',
+    preimage,
+    actualFeeMsats: walletAmountToMsatsOrUndefined({ sat: payment.routingFeeSat }),
+    settledAt: { milliseconds: payment.completedAt }
+  }
+}
+
+export async function checkPayment ({ hash }, { url, apiKey }, { signal }) {
+  const payment = await phoenixdRequest({
+    url,
+    apiKey,
+    path: `/payments/outgoingbyhash/${hash}`,
+    signal,
+    notFoundOk: true
+  })
+  if (!payment) return { status: 'PENDING' }
+  if (payment.isPaid) {
+    return {
+      status: 'SETTLED',
+      preimage: payment.preimage,
+      actualFeeMsats: payment.fees,
+      settledAt: { milliseconds: payment.completedAt }
+    }
+  }
+  if (payment.isPaid === false && payment.completedAt != null) {
+    return { status: 'FAILED', detail: 'phoenixd reports payment failed' }
+  }
+  return { status: 'PENDING' }
 }
 
 export async function getBalance ({ url, apiKey }, { signal } = {}) {
-  const headers = new Headers()
-  headers.set('Accept', 'application/json')
-  headers.set('Authorization', 'Basic ' + Buffer.from(':' + apiKey).toString('base64'))
-
-  const method = 'GET'
-  const res = await snFetch(url, {
+  const balance = await phoenixdRequest({
+    url,
+    apiKey,
     path: '/getbalance',
-    method,
-    headers,
     signal
   })
-
-  assertResponseOk(res, { method })
-  assertContentTypeJson(res, { method })
-
-  const balance = await res.json()
   return walletBalance(balance.balanceSat)
 }
 

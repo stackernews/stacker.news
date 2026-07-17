@@ -1,13 +1,15 @@
 import { useCallback } from 'react'
-import { WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
-import { verifyPreimage } from '@/wallets/lib/preimage'
+import { FAST_POLL_INTERVAL_MS, WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
   WalletPaymentError, WalletError, WalletReceiverError, WalletSendStateNotReadyError,
   WalletPaymentRejectedError, WalletValidationError, WalletConfigurationError
 } from '@/wallets/client/errors'
-import { withTimeoutSignal } from '@/lib/time'
+import { abortableSleep, TimeoutError, withTimeoutSignal } from '@/lib/time'
+import { errorMessage } from '@/lib/error'
 import { isInvoiceSetupPending } from '@/lib/pay-in'
+import { verifyPreimage } from '@/wallets/lib/preimage'
+import { toExternalTransactionObservation } from '@/wallets/lib/external-transactions'
 import { useMe } from '@/components/me'
 import { formatSats, msatsToSats } from '@/lib/format'
 import usePayInHelper from '@/components/payIn/hooks/use-pay-in-helper'
@@ -46,7 +48,12 @@ export function useWalletPayment () {
       const controller = payInHelper.waitCheckController(latestPayIn.id)
 
       const logger = loggerFactory(protocol, latestPayIn)
-      const paymentPromise = sendWalletPayment(protocol, latestPayIn.payerPrivates.payInBolt11, logger)
+      const paymentPromise = sendWalletPayment(
+        protocol,
+        latestPayIn.payerPrivates.payInBolt11,
+        logger,
+        { parentSignal: controller.signal }
+      )
       const pollPromise = controller.wait(waitFor)
 
       try {
@@ -86,7 +93,7 @@ export function useWalletPayment () {
           i -= 1
         } else if (paymentError instanceof WalletPaymentError) {
           // only log payment errors, not configuration errors
-          if (paymentError.settledUnknown) {
+          if (paymentError instanceof WalletSenderError && classifyWalletPaymentError(paymentError).status === 'UNKNOWN') {
             logger.warn(`payment outcome unknown: ${paymentErrorMessage(paymentError)}`, { updateStatus: true })
           } else {
             logger.error(`payment failed: ${paymentErrorMessage(paymentError)}`, { updateStatus: true })
@@ -125,49 +132,103 @@ export function useWalletPayment () {
 }
 
 // payment is the minimal BOLT11 shape used by both PayIn rows and direct wallet sends.
-// `requirePreimage` opts callers (direct sends) into throwing on missing/invalid
-// preimage so the UI can surface "may still be in flight". The PayIn flow leaves it
-// false because `controller.wait` polls server state and cancelling its invoice on
-// every silent-success wallet would risk losing funds when the wallet really did pay.
-export async function sendWalletPayment (protocol, payment, logger, { amountText, maxFee, timeout = WALLET_SEND_PAYMENT_TIMEOUT_MS, requirePreimage = false } = {}) {
+// This helper normalizes send results to the same result shape as checkPayment.
+export async function sendWalletPayment (protocol, payment, logger, {
+  amountText,
+  maxFee,
+  timeout = WALLET_SEND_PAYMENT_TIMEOUT_MS,
+  updateStatus = true,
+  waitForTerminal = true,
+  parentSignal
+} = {}) {
   if (!payment.hash) throw new Error('sendWalletPayment requires payment.hash')
 
   const label = amountText ?? formatSats(msatsToSats(payment.msatsRequested))
   try {
     logger.info(`↗ sending payment: ${label}`)
-    const preimage = await withTimeoutSignal(timeout, signal =>
-      protocol.sendPayment(
+    // for some wallets, sendPayment returns immediately with a PENDING status
+    // without checking, we might miss a failed payment and not fall back to the next protocol.
+    const providerResult = await withTimeoutSignal(timeout, async signal => {
+      let result = await protocol.sendPayment(
         payment.bolt11,
         protocol.config,
         { signal, maxFee, timeout }
-      ))
+      )
+      if (!waitForTerminal) return result
+
+      let checkErrorLogged = false
+
+      while ((result?.status === 'PENDING' ||
+        (result?.status === 'UNKNOWN' && result.errorType == null)) &&
+        typeof protocol.checkPayment === 'function') {
+        try {
+          await abortableSleep(FAST_POLL_INTERVAL_MS, signal)
+          const check = await withTimeoutSignal(
+            WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS,
+            checkSignal => protocol.checkPayment(
+              { hash: payment.hash },
+              protocol.config,
+              { signal: checkSignal }
+            ),
+            { parentSignal: signal }
+          )
+          if (['SETTLED', 'FAILED', 'UNKNOWN', 'EXPIRED'].includes(check?.status)) result = check
+        } catch (err) {
+          // Once submission was accepted, the overall timeout is still PENDING
+          // rather than proof of failure. Caller reconciliation remains authoritative.
+          if (signal.reason instanceof TimeoutError) return result
+          if (signal.aborted) throw err
+          if (!checkErrorLogged) {
+            logger.warn(`payment status check failed: ${errorMessage(err)}`)
+            checkErrorLogged = true
+          }
+        }
+      }
+
+      return result
+    }, { parentSignal })
+    const result = toExternalTransactionObservation(providerResult, {
+      canCheck: typeof protocol.checkPayment === 'function'
+    })
+    if (result.status === 'FAILED') {
+      throw new WalletPaymentRejectedError(result.detail || 'provider reports payment failed')
+    }
+    if (waitForTerminal && result.status !== 'SETTLED') {
+      throw new Error(result.detail || `payment remained ${result.status.toLowerCase()}`)
+    }
+    if (result.status !== 'SETTLED') return result
+
+    const { preimage } = result
 
     // some wallets like Coinos will always immediately return success without providing the preimage
     let proofIssue
     if (!preimage) proofIssue = 'wallet returned success without proof of payment'
     else if (!verifyPreimage(payment.hash, preimage)) proofIssue = 'wallet returned success with invalid proof of payment'
 
-    if (proofIssue) {
-      // direct sends have no server-side poll backstop; without proof the payment
-      // may have settled, so throw — the catch below classifies it settled-unknown.
-      if (requirePreimage) throw new Error(proofIssue)
-      return logger.warn(proofIssue, { updateStatus: true })
-    }
-    logger.ok(`↗ payment sent: ${label}`, { updateStatus: true })
+    if (proofIssue) logger.warn(proofIssue, { updateStatus })
+    else logger.ok(`↗ payment sent: ${label}`, { updateStatus })
+    return result
   } catch (err) {
     // we don't log the error here since callers decide whether to retry or surface it directly
-    const message = err.message || err.toString?.()
-    const error = new WalletSenderError(protocol.name, payment, message, { cause: err })
-    // "definitively failed" needs proof: only a provider-reported rejection or a
-    // pre-payment validation/configuration error is safe to retry — anything else
-    // (transport errors, SDK throws, aborts) may have left the payment in flight.
-    error.settledUnknown = !(err instanceof WalletPaymentRejectedError ||
-      err instanceof WalletValidationError ||
-      err instanceof WalletConfigurationError)
-    throw error
+    throw new WalletSenderError(protocol.name, payment, errorMessage(err), { cause: err })
   }
 }
 
 export function paymentErrorMessage (err) {
-  return err?.reason ?? err?.message ?? err?.toString?.() ?? 'unknown error'
+  return err?.reason ?? errorMessage(err)
+}
+
+export function classifyWalletPaymentError (err) {
+  const cause = err?.cause ?? err
+  const message = paymentErrorMessage(err)
+  // "definitively failed" needs proof: only a provider-reported rejection or a
+  // pre-payment validation/configuration error is safe to retry — anything else
+  // (transport errors, SDK throws, aborts) may have left the payment in flight.
+  if (cause instanceof WalletPaymentRejectedError ||
+    cause instanceof WalletValidationError ||
+    cause instanceof WalletConfigurationError) {
+    return { status: 'FAILED', error: message }
+  }
+
+  return { status: 'UNKNOWN', error: message }
 }

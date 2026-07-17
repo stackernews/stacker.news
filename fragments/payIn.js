@@ -222,7 +222,6 @@ export const SATISTICS = gql`
         }
         ... on ExternalTransaction {
           ...ExternalTransactionFields
-          createdAt
         }
       }
       cursor
@@ -277,6 +276,17 @@ export const FAILED_PAY_INS = gql`
     failedPayIns {
       id
       isSend
+    }
+  }
+`
+
+export const PENDING_EXTERNAL_SEND_TRANSACTIONS = gql`
+  query pendingExternalSendTransactions {
+    pendingExternalSendTransactions {
+      id
+      walletId
+      protocolId
+      hash
     }
   }
 `

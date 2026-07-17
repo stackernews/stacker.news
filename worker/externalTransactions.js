@@ -1,6 +1,7 @@
 import { WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS } from '@/lib/constants'
 import { withTimeoutSignal, sleep } from '@/lib/time'
 import { protocolCheckInvoice } from '@/wallets/server/protocols'
+import { checkLnurlVerifyInvoice } from '@/wallets/server/protocols/lnurlVerify'
 import {
   claimExternalTransactionChecks,
   recordExternalTransactionObservation
@@ -38,8 +39,17 @@ export async function checkExternalTransaction ({ models, tx }) {
   let result
   let providerError
   try {
-    result = await withTimeoutSignal(WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS, signal =>
-      protocolCheckInvoice(tx.checkProtocol, tx, tx.checkProtocol?.config, { signal }))
+    if (tx.direction === 'SEND') {
+      if (tx.verificationContext?.lnurlVerifyUrl) {
+        result = await withTimeoutSignal(
+          WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS,
+          signal => checkLnurlVerifyInvoice(tx, null, { signal })
+        )
+      }
+    } else {
+      result = await withTimeoutSignal(WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS, signal =>
+        protocolCheckInvoice(tx.checkProtocol, tx, tx.checkProtocol?.config, { signal }))
+    }
   } catch (err) {
     providerError = err
   }

@@ -9,14 +9,26 @@ export const EXTERNAL_TRANSACTION_UNKNOWN_REASONS = {
   RETENTION: 'RETENTION'
 }
 
+export function verificationUnsupportedResult (detail) {
+  return {
+    status: 'UNKNOWN',
+    errorType: EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED,
+    detail
+  }
+}
+
 const OBSERVATION_ERROR_TYPES = new Set([
   EXTERNAL_TRANSACTION_UNKNOWN_REASONS.TRANSIENT_CHECK_FAILED,
   EXTERNAL_TRANSACTION_UNKNOWN_REASONS.PERMISSION_REQUIRED,
   EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED
 ])
 
-// Normalize provider facts without deciding the row's terminal outcome.
-export function toExternalTransactionObservation (provider = {}, { error } = {}) {
+// Normalize provider facts into one flat, serializable observation without
+// deciding the row's outcome. The server owns terminal-transition policy.
+export function toExternalTransactionObservation (provider = {}, {
+  error,
+  canCheck = true
+} = {}) {
   const status = ['PENDING', 'SETTLED', 'FAILED', 'EXPIRED', 'UNKNOWN'].includes(provider?.status)
     ? provider.status
     : 'UNKNOWN'
@@ -37,7 +49,9 @@ export function toExternalTransactionObservation (provider = {}, { error } = {})
   if (detail) observation.detail = String(detail)
 
   if (!['SETTLED', 'FAILED', 'EXPIRED'].includes(status)) {
-    if (OBSERVATION_ERROR_TYPES.has(provider?.errorType)) {
+    if (!canCheck) {
+      observation.errorType = EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED
+    } else if (OBSERVATION_ERROR_TYPES.has(provider?.errorType)) {
       observation.errorType = provider.errorType
     } else if (error instanceof WalletVerificationUnsupportedError) {
       observation.errorType = EXTERNAL_TRANSACTION_UNKNOWN_REASONS.VERIFICATION_UNSUPPORTED
@@ -65,31 +79,27 @@ function walletSettledAtToDateOrUndefined (settledAt) {
 
   let value = settledAt
   if (typeof settledAt === 'object' && !(settledAt instanceof Date)) {
-    let multiplier
-    if (settledAt.seconds != null) {
-      value = settledAt.seconds
-      multiplier = 1000
-    } else if (settledAt.milliseconds != null) {
-      value = settledAt.milliseconds
-      multiplier = 1
-    } else {
-      return undefined
-    }
-
+    const seconds = settledAt.seconds
+    value = seconds ?? settledAt.milliseconds
     if (!['number', 'string'].includes(typeof value) ||
         (typeof value === 'string' && value.trim() === '')) return undefined
-    value = Number(value) * multiplier
+    value = Number(value) * (seconds != null ? 1000 : 1)
   }
 
-  try {
-    const date = new Date(value)
-    return Number.isFinite(date.getTime()) && date.getTime() > 0 ? date : undefined
-  } catch {
-    return undefined
-  }
+  const date = new Date(value)
+  return Number.isFinite(date.getTime()) && date.getTime() > 0 ? date : undefined
 }
 
-export function externalTransactionDiagnosticMessage ({ status, unknownReason, direction }) {
+export function externalTransactionDiagnosticMessage ({
+  direction,
+  status,
+  unknownReason,
+  hash,
+  preimage
+}) {
+  if (direction === 'SEND' && status === 'SETTLED' && hash && !preimage) {
+    return 'Wallet reports this payment settled, but no matching preimage was available.'
+  }
   if (status !== 'UNKNOWN') return null
   if (direction === 'RECEIVE' &&
     unknownReason === EXTERNAL_TRANSACTION_UNKNOWN_REASONS.STATUS_UNAVAILABLE) {

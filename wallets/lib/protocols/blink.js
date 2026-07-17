@@ -123,7 +123,7 @@ export const BLINK_TX_PENDING = 'PENDING'
 export const BLINK_TX_FAILURE = 'FAILURE'
 export const BLINK_TX_ALREADY_PAID = 'ALREADY_PAID'
 
-export function blinkTransactionCheckResult (tx) {
+export function blinkTransactionCheckResult (tx, { failureError = 'blink transaction failed' } = {}) {
   if (tx?.status === BLINK_TX_SUCCESS) {
     return {
       status: 'SETTLED',
@@ -135,7 +135,9 @@ export function blinkTransactionCheckResult (tx) {
       settledAt: { seconds: tx.createdAt }
     }
   }
-  if (tx?.status === BLINK_TX_FAILURE) return { status: 'FAILED' }
+  if (tx?.status === BLINK_TX_FAILURE) {
+    return { status: 'FAILED', detail: tx.error || failureError }
+  }
   return { status: 'PENDING' }
 }
 
@@ -170,19 +172,15 @@ const TX_BY_PAYMENT_HASH_FIELDS = `
     }
   }`
 
-// Without a wallet, the Wallet interface exposes the lookup on every wallet, so one
-// request searches them all and skips the id-resolving round trip.
-export async function getTransactionByPaymentHash (paymentHash, { apiKey, wallet, currency, direction }, { signal }) {
+// The Wallet interface exposes this lookup on every wallet, so one request can
+// search the account without a wallet-id-resolving round trip.
+export async function getTransactionByPaymentHash (paymentHash, { apiKey, currency, direction }, { signal }) {
   const out = await request({
     apiKey,
-    query: wallet
-      ? `query GetTxInfo($walletId: WalletId!, $paymentHash: PaymentHash!) {
-          me { defaultAccount { walletById(walletId: $walletId) { ${TX_BY_PAYMENT_HASH_FIELDS} } } }
-        }`
-      : `query GetTxInfo($paymentHash: PaymentHash!) {
-          me { defaultAccount { wallets { ${TX_BY_PAYMENT_HASH_FIELDS} } } }
-        }`,
-    variables: wallet ? { paymentHash, walletId: wallet.id } : { paymentHash }
+    query: `query GetTxInfo($paymentHash: PaymentHash!) {
+      me { defaultAccount { wallets { ${TX_BY_PAYMENT_HASH_FIELDS} } } }
+    }`,
+    variables: { paymentHash }
   }, { signal })
 
   // A payment hash can have multiple transactions in the requested direction (e.g. a
@@ -193,21 +191,16 @@ export async function getTransactionByPaymentHash (paymentHash, { apiKey, wallet
   // failure carrying the provider's message; an absent list without errors is "no matching tx yet".
   if (out?.errors?.length) throw new Error(blinkErrorsMessage(out.errors, 'blink transaction lookup failed'))
   const account = out?.data?.me?.defaultAccount
-  const wallets = wallet
-    ? (account?.walletById ? [account.walletById] : null)
-    : account?.wallets
+  const wallets = account?.wallets
   if (!Array.isArray(wallets)) {
     return { transaction: null, wallet: null }
   }
   const list = wallets.flatMap(w => w?.transactionsByPaymentHash ?? [])
   const txs = list.filter(t => t.direction === direction)
   const tx = [...txs].sort((a, b) => transactionRank(b) - transactionRank(a))[0] ?? null
-  let resolvedWallet = wallet
-  if (currency) {
-    resolvedWallet = wallets.find(w => w?.walletCurrency === currency)
-  } else if (!resolvedWallet && tx) {
-    resolvedWallet = wallets.find(w => w?.transactionsByPaymentHash?.includes(tx))
-  }
+  const resolvedWallet = currency
+    ? wallets.find(w => w?.walletCurrency === currency)
+    : tx && wallets.find(w => w?.transactionsByPaymentHash?.includes(tx))
 
   return {
     transaction: tx

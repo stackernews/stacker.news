@@ -76,19 +76,19 @@ export default [
         label: 'pay rune',
         type: 'password',
         help: [
-          'We only accept runes that allow `method=pay`. Add `method=bkpr-listbalances` to show balances.',
-          'Run this to generate a send and balance rune if you are on v24.11 or later:',
-          '```lightning-cli createrune restrictions=\'[["method=pay","method=bkpr-listbalances"]]\'```',
+          'We only accept runes that allow `method=pay`. Add `method=listpays` to recover proof/status after uncertain sends, and `method=bkpr-listbalances` to show balances.',
+          'Run this to generate a send, proof, and balance rune if you are on v24.11 or later:',
+          '```lightning-cli createrune restrictions=\'[["method=pay","method=listpays","method=bkpr-listbalances"]]\'```',
           'Or this if you are on an earlier version:',
-          '```lightning-cli createrune restrictions=\'["method=pay|method=bkpr-listbalances"]\'```',
-          'For send only, omit `method=bkpr-listbalances`.',
+          '```lightning-cli createrune restrictions=\'["method=pay|method=listpays|method=bkpr-listbalances"]\'```',
+          'For send only, omit `method=listpays` and `method=bkpr-listbalances`.',
           '[see `createrune` documentation](https://docs.corelightning.org/reference/createrune#restriction-format)'
         ],
         placeholder: 'S34KtUW-6gqS_hD_9cc_PNhfF-NinZyBOCgr1aIrark9NCZtZXRob2Q9aW52b2ljZQ==',
-        validate: runeValidator({ method: 'pay', optionalMethods: ['bkpr-listbalances'] }),
+        validate: runeValidator({ method: 'pay', optionalMethods: ['listpays', 'bkpr-listbalances'] }),
         required: true,
         encrypt: true,
-        hint: 'must be restricted to method=pay and method=bkpr-listbalances (optional)'
+        hint: 'must allow method=pay; listpays and bkpr-listbalances optional'
       }
       // XXX we don't ask for the CA certificate because the browser's fetch API doesn't support http agents to override it.
       // Therefore, CLNRest send will only work with common CA certificates.

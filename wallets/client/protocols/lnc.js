@@ -1,40 +1,62 @@
 import { Mutex } from 'async-mutex'
-import { walletAmountToSats } from '@/wallets/lib/amount'
+import { walletAmountToMsatsOrUndefined, walletAmountToSats } from '@/wallets/lib/amount'
 import { isAbortLike, raceAbort, throwIfAborted } from '@/lib/time'
 import { WalletPaymentRejectedError, WalletPermissionsError, WalletBalanceProbeSkipped } from '@/wallets/client/errors'
+import { verificationUnsupportedResult } from '@/wallets/lib/external-transactions'
 import { walletBalance } from './util'
 
 export const name = 'LNC'
-// LND enforces routing fee caps via the fee_limit oneof on SendPaymentSync.
+// LND enforces routing fee caps via the feeLimit oneof on SendPaymentSync.
 export const enforcesMaxFee = true
 
 const serverHost = 'mailbox.terminal.lightning.today:443'
 const LNC_SEND_PAYMENT_PERMISSION = 'lnrpc.Lightning.SendPaymentSync'
 const LNC_CHANNEL_BALANCE_PERMISSION = 'lnrpc.Lightning.ChannelBalance'
+const LNC_TRACK_PAYMENT_PERMISSION = 'routerrpc.Router.TrackPaymentV2'
 const LNC_SEND_COINS_PERMISSION = 'lnrpc.Lightning.SendCoins'
 // Disconnect an idle instance this long after the last call.
 const IDLE_DISCONNECT_MS = 4000
+// These SendPaymentSync payment_error values do not prove failure ("invoice is already
+// paid" actually SETTLED); TrackPaymentV2 resolves the true outcome.
+const LNC_NON_TERMINAL_PAYMENT_ERRORS = /payment is in transition|payment already exists|invoice is already paid|router shutting down|payment lifecycle exiting/
 
 export async function sendPayment (bolt11, credentials, { logger, maxFee, signal }) {
   return await connection.use(credentials, { logger, signal }, async lnc => {
-    const request = { payment_request: bolt11 }
+    const request = { paymentRequest: bolt11 }
     if (maxFee != null) {
       if (!Number.isSafeInteger(maxFee) || maxFee < 0) {
         throw new Error(`invalid maxFee: ${maxFee}`)
       }
       // LND FeeLimit accepts fixed sats via the `fixed` oneof field; serialize
       // as a string to avoid the 53-bit int safety ceiling.
-      request.fee_limit = { fixed: String(maxFee) }
+      request.feeLimit = { fixed: String(maxFee) }
     }
     // a transport drop after the RPC was transmitted may leave the payment in
-    // flight; sendWalletPayment classifies such errors as settled-unknown by default
+    // flight; classifyWalletPaymentError treats such errors as UNKNOWN by default
     const result = await connection.call(lnc.lnd.lightning.sendPaymentSync(request), { logger, signal })
     const { paymentError, paymentPreimage: preimage } = result
-    if (paymentError) throw new WalletPaymentRejectedError(paymentError) // LND reported a routing failure -> definitive
-    // a missing preimage on an otherwise-OK response is settled-unknown; return it
-    // and let sendWalletPayment flag it via the proof check.
-    if (!preimage) return preimage
-    return Buffer.from(preimage, 'base64').toString('hex')
+    if (paymentError) {
+      // recorded as UNKNOWN; checkPayment/TrackPaymentV2 resolves the true outcome
+      if (LNC_NON_TERMINAL_PAYMENT_ERRORS.test(paymentError)) {
+        return { status: 'UNKNOWN', detail: paymentError }
+      }
+      throw new WalletPaymentRejectedError(paymentError) // all HTLC attempts resolved -> definitive
+    }
+    // A successful provider response is authoritative even without proof.
+    if (!preimage) {
+      return {
+        status: 'SETTLED',
+        actualFeeMsats: lndPaymentFeeMsats(result)
+      }
+    }
+    // downstream verifyPreimage does the shape check plus sha256 verification;
+    // a malformed value should surface as "invalid proof of payment", not be dropped here
+    const preimageHex = Buffer.from(preimage, 'base64').toString('hex')
+    return {
+      status: 'SETTLED',
+      preimage: preimageHex,
+      actualFeeMsats: lndPaymentFeeMsats(result)
+    }
   })
 }
 
@@ -47,6 +69,38 @@ export async function testSendPayment (credentials, { logger, signal }) {
   })
 }
 
+export async function checkPayment ({ hash }, credentials, { logger, signal }) {
+  return await connection.use(credentials, { logger, signal }, async lnc => {
+    // a send-only session deliberately omits TrackPaymentV2 (the field help endorses this), so
+    // settlement can never be verified for it — classify as unsupported (stop polling, benign message)
+    // rather than PERMISSION_REQUIRED, which would re-poll with a misleading "update wallet permissions" notice
+    if (!lnc.hasPerms(LNC_TRACK_PAYMENT_PERMISSION)) {
+      return verificationUnsupportedResult(`missing permission: ${LNC_TRACK_PAYMENT_PERMISSION}`)
+    }
+
+    const payment = await trackPayment(lnc, hash, { signal })
+    if (!payment) return { status: 'PENDING' }
+
+    if (lndPaymentSucceeded(payment)) {
+      const { paymentPreimage: preimage } = payment
+      return {
+        status: 'SETTLED',
+        preimage,
+        actualFeeMsats: lndPaymentFeeMsats(payment)
+      }
+    }
+    if (lndPaymentFailed(payment)) {
+      const reason = payment.failureReason && String(payment.failureReason)
+      return {
+        status: 'FAILED',
+        detail: reason && reason !== 'FAILURE_REASON_NONE' ? reason : 'lnd reports payment failed'
+      }
+    }
+
+    return { status: 'PENDING' }
+  })
+}
+
 export async function getBalance (credentials, { signal, logger } = {}) {
   // If a send is in progress, skip the probe so we don't keep `sendPayment`
   // waiting.
@@ -56,8 +110,42 @@ export async function getBalance (credentials, { signal, logger } = {}) {
 
     const balance = await connection.call(lnc.lnd.lightning.channelBalance(), { logger, signal })
     // LND may return sat or msat shapes depending on the bridge version.
-    return walletBalance(lndAmountToSats(balance.localBalance ?? balance.local_balance ?? balance.balance))
+    return walletBalance(lndAmountToSats(balance.localBalance ?? balance.balance))
   })
+}
+
+async function trackPayment (lnc, hash, { signal }) {
+  throwIfAborted(signal)
+
+  // raceAbort owns cancellation, so the caller's timeout diagnosis propagates
+  // instead of a fabricated bare 'aborted' error
+  return await raceAbort(new Promise((resolve, reject) => {
+    let done = false
+    const paymentHash = Buffer.from(hash, 'hex').toString('base64')
+    const request = {
+      paymentHash,
+      // in-flight updates make an existing payment answer immediately: the first
+      // event resolves, and checkPayment maps non-terminal statuses to PENDING
+      // instead of hanging until the caller's timeout aborts
+      noInflightUpdates: false
+    }
+
+    const finish = (err, payment) => {
+      if (done) return
+      done = true
+      if (err) {
+        const message = err?.message ?? err?.details ?? String(err)
+        if (message.includes("payment isn't initiated") || message.includes('SentPaymentNotFound')) return resolve(null)
+        return reject(err)
+      }
+      resolve(payment)
+    }
+    try {
+      lnc.lnd.router.trackPaymentV2(request, payment => finish(null, payment), err => finish(err))
+    } catch (err) {
+      finish(err)
+    }
+  }), signal)
 }
 
 // Sole owner of the LNC connection lifecycle. lnc-web wraps a single global
@@ -118,7 +206,9 @@ class LncConnection {
       this.instance = new LNC({
         credentialStore: new LncCredentialStore({
           ...credentials,
-          serverHost
+          // litd sessions are only reachable through the mailbox they were created for;
+          // prefer a stored custom mailbox over the Lightning Labs default
+          serverHost: credentials.serverHost || serverHost
         })
       })
 
@@ -136,7 +226,7 @@ class LncConnection {
       this.instance.credentials.credentials = {
         ...this.instance.credentials.credentials,
         ...credentials,
-        serverHost
+        serverHost: credentials.serverHost || serverHost
       }
     }
 
@@ -277,11 +367,23 @@ class LncCredentialStore {
   }
 }
 
+// LND PaymentStatus: numeric enum from the gRPC bridge or string from lnc-web
+const lndPaymentSucceeded = payment =>
+  payment?.status === 2 || String(payment?.status).toUpperCase() === 'SUCCEEDED'
+const lndPaymentFailed = payment =>
+  payment?.status === 3 || String(payment?.status).toUpperCase() === 'FAILED'
+
 function lndAmountToSats (amount) {
-  // LND Amount nests as { sat, msat }; prefer sat, then msat, else the raw value.
   try {
     return walletAmountToSats(amount)
   } catch {
     return null
   }
+}
+
+function lndPaymentFeeMsats (payment) {
+  const route = payment.paymentRoute
+  // two chained calls so a present-but-malformed msat field still falls back to sats
+  return walletAmountToMsatsOrUndefined(payment.feeMsat ?? route?.totalFeesMsat) ??
+    walletAmountToMsatsOrUndefined({ sat: payment.feeSat ?? payment.fee ?? route?.totalFees })
 }

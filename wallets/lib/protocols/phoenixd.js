@@ -1,5 +1,8 @@
 import { urlValidator } from '@/wallets/lib/validate'
 import { string } from '@/lib/yup'
+import { snFetch } from '@/lib/fetch'
+import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
+import { assertWalletAuthorized } from '@/wallets/lib/errors'
 
 // phoenix.conf accepts custom http-password strings too.
 const phoenixdPasswordValidator = string().max(1024)
@@ -68,3 +71,36 @@ export default [
     relationName: 'walletRecvPhoenixd'
   }
 ]
+
+export async function phoenixdRequest ({
+  url,
+  apiKey,
+  path,
+  method = 'GET',
+  body,
+  signal,
+  timeout,
+  notFoundOk = false
+}) {
+  const headers = new Headers()
+  headers.set('Accept', 'application/json')
+  headers.set('Authorization', 'Basic ' + Buffer.from(':' + apiKey).toString('base64'))
+  if (body) headers.set('Content-Type', 'application/x-www-form-urlencoded')
+
+  const res = await snFetch(url, {
+    path,
+    method,
+    headers,
+    body,
+    signal,
+    timeout
+  })
+
+  if (notFoundOk && res.status === 404) return null
+
+  assertWalletAuthorized(res)
+  assertResponseOk(res, { method })
+  assertContentTypeJson(res, { method })
+
+  return await res.json()
+}

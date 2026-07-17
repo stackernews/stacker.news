@@ -1,5 +1,12 @@
 import { WalletPermissionsError, WalletVerificationUnsupportedError } from '@/wallets/lib/errors'
-import { NWC_PAY_INVOICE_METHOD, nwcTryRun, supportedMethods } from '@/wallets/lib/protocols/nwc'
+import {
+  NWC_PAY_INVOICE_METHOD,
+  nwcLookupInvoice,
+  nwcLookupNotFound,
+  nwcLookupUnsupported,
+  nwcTryRun,
+  supportedMethods
+} from '@/wallets/lib/protocols/nwc'
 import { msatsSatsFloor } from '@/lib/format'
 
 export const name = 'NWC'
@@ -17,21 +24,16 @@ export async function createInvoice ({ msats, description, expiry }, { url }, { 
 }
 
 export async function checkInvoice ({ hash }, { url }, { signal }) {
-  let result
+  let invoice
   try {
-    result = await nwcTryRun(
-      nwc => nwc.req('lookup_invoice', { payment_hash: hash }),
-      { url },
-      { signal }
-    )
+    invoice = await nwcLookupInvoice(hash, { url }, { signal })
   } catch (err) {
-    if (err?.nwcError?.code === 'NOT_IMPLEMENTED') {
+    if (nwcLookupUnsupported(err)) {
       throw new WalletVerificationUnsupportedError(err.message || 'nwc wallet does not support lookup_invoice')
     }
-    if (err?.nwcError?.code === 'NOT_FOUND') return { status: 'PENDING', detail: 'nwc invoice not found' }
+    if (nwcLookupNotFound(err)) return { status: 'PENDING', detail: 'nwc invoice not found' }
     throw err
   }
-  const invoice = result.result
 
   if (!invoice) return { status: 'PENDING', detail: 'nwc invoice not found' }
   if (invoice.type !== 'incoming') {

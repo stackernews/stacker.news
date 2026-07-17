@@ -78,11 +78,12 @@ export function useWalletCapabilities (wallet) {
   }), [receiveProtocol, sendProtocol, support.receive, support.send, wallet.protocols.length])
 }
 
-function withClientSendProtocol (walletProtocol) {
+export function withClientSendProtocol (walletProtocol) {
   const clientProtocol = protocols.find(protocol => protocol.name === walletProtocol.name)
   return {
     ...walletProtocol,
     sendPayment: clientProtocol?.sendPayment,
+    checkPayment: clientProtocol?.checkPayment,
     enforcesMaxFee: clientProtocol?.enforcesMaxFee
   }
 }

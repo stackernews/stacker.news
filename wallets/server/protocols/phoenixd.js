@@ -1,9 +1,7 @@
-import { snFetch } from '@/lib/fetch'
 import { msatsToSats, msatsSatsFloor } from '@/lib/format'
-import { assertContentTypeJson, assertResponseOk } from '@/lib/url'
 import { truncateToCharLength } from '@/lib/validate'
-import { assertWalletAuthorized } from '@/wallets/lib/errors'
 import { walletAmountToMsatsOrUndefined } from '@/wallets/lib/amount'
+import { phoenixdRequest } from '@/wallets/lib/protocols/phoenixd'
 
 export const name = 'PHOENIXD'
 // phoenixd only invoices whole sats, so it can receive a request snapped down to the sat grid
@@ -53,39 +51,6 @@ export async function checkInvoice ({ hash }, { url, apiKey }, { signal }) {
     }
   }
   return { status: 'PENDING' }
-}
-
-async function phoenixdRequest ({
-  url,
-  apiKey,
-  path,
-  method = 'GET',
-  body,
-  signal,
-  timeout,
-  notFoundOk = false
-}) {
-  const headers = new Headers()
-  headers.set('Accept', 'application/json')
-  headers.set('Authorization', 'Basic ' + Buffer.from(':' + apiKey).toString('base64'))
-  if (body) headers.set('Content-Type', 'application/x-www-form-urlencoded')
-
-  const res = await snFetch(url, {
-    path,
-    method,
-    headers,
-    body,
-    signal,
-    timeout
-  })
-
-  if (notFoundOk && res.status === 404) return null
-
-  assertWalletAuthorized(res)
-  assertResponseOk(res, { method })
-  assertContentTypeJson(res, { method })
-
-  return await res.json()
 }
 
 export async function testCreateInvoice ({ url, apiKey }, { signal }) {

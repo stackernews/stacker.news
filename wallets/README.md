@@ -308,19 +308,22 @@ settled-unknown and the direct-send UI warns "may still be in flight" instead
 of inviting a retry that double-pays. A forgotten case over-warns; it never
 loses money. To prove a failure is safe to retry:
 
-- Throw `WalletPaymentRejectedError` exactly where the provider itself reports
-  the payment terminally failed — an error response, a `FAILED` status, or a
-  terminal `{ error }` returned by your `pollUntilSettled` classify callback
-  (`pollUntilSettled` throws it for you).
+- Return `{ status: 'FAILED', detail }` when a provider result explicitly
+  reports terminal failure; `sendWalletPayment` converts it into a
+  `WalletPaymentRejectedError`.
+- If the provider reports terminal failure by throwing instead of returning a
+  result, throw `WalletPaymentRejectedError` at that exact boundary.
 - Throw `WalletValidationError`/`WalletConfigurationError` (or subclasses) for
   problems that occur before any payment is attempted, such as missing
   permissions or a missing browser extension.
 
 Everything else — transport errors, SDK throws, abort/timeout rejections — is
 classified as settled-unknown automatically; never convert one into a
-definitive failure. When the payment settled but is unprovable (e.g. an
-intra-ledger settlement), return a missing/`undefined` preimage and
-`sendWalletPayment`'s proof check surfaces it as settled-unknown.
+definitive failure. After an accepted but unresolved submission, return
+`{ status: 'PENDING' }` and implement `checkPayment` when the provider supports
+status lookup. When the provider reports settlement without a preimage (e.g. an
+intra-ledger settlement), return `SETTLED` without one; the settlement remains
+authoritative and `sendWalletPayment` logs the missing proof.
 
 <details>
 <summary>Example: JS code to add Spark</summary>

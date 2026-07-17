@@ -8,19 +8,20 @@ import { ExternalTransactionStatus } from '../external-transaction-status'
 import { Bolt11Money } from './money'
 
 export function ExternalTransactionRow ({ transaction }) {
+  const isSend = transaction.direction === 'SEND'
   const href = `/wallets/transactions/${transaction.id}`
   const diagnostic = externalTransactionDiagnosticMessage(transaction)
   const failed = ['FAILED', 'EXPIRED'].includes(transaction.status)
   return (
     <div
       className={classNames(styles.row, {
-        [styles.stacking]: transaction.status === 'SETTLED',
+        [styles.stacking]: !isSend && transaction.status === 'SETTLED',
         [styles.failed]: failed
       })}
     >
       <LinkToContext className={styles.type} href={href}>
         <small className='text-muted' title={transaction.createdAt} suppressHydrationWarning>{timeSince(new Date(transaction.createdAt))}</small>
-        <small className='text-muted'>receive</small>
+        <small className='text-muted'>{isSend ? 'send' : 'receive'}</small>
         <ExternalTransactionStatus transaction={transaction} />
       </LinkToContext>
       <LinkToContext className={styles.context} href={href}>
@@ -37,6 +38,8 @@ function ExternalTransactionContext ({ transaction, diagnostic }) {
   if (transaction.bolt11 || transaction.hash) {
     return (
       <div className='mw-100'>
+        {transaction.sourceType === 'LN_ADDR' && transaction.sourceValue &&
+          <small className='d-block text-muted text-truncate' title={transaction.sourceValue}>to {transaction.sourceValue}</small>}
         <div className='d-none d-sm-block'>
           <Bolt11Info
             showAmount={false}
@@ -58,6 +61,12 @@ function ExternalTransactionContext ({ transaction, diagnostic }) {
 }
 
 function ExternalTransactionMoney ({ transaction }) {
+  const mtokens = externalTransactionMtokens(transaction)
+  return mtokens != null ? <Bolt11Money mtokens={mtokens} /> : <div>N/A</div>
+}
+
+export function externalTransactionMtokens (transaction) {
   const msats = transaction.settledMsats ?? transaction.amountMsats
-  return msats != null ? <Bolt11Money mtokens={msats} /> : <div>N/A</div>
+  if (msats == null) return null
+  return transaction.direction === 'SEND' ? -BigInt(msats) : BigInt(msats)
 }

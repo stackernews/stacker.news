@@ -9,7 +9,7 @@ import { getItem, getItemsById } from './item'
 import { getSub } from './sub'
 import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { Prisma } from '@prisma/client'
-import { externalTransactionInclude, serveDueExternalSendChecks } from '@/wallets/server/external-transactions'
+import { claimDueExternalSendChecks, EXTERNAL_TRANSACTION_INCLUDE } from '@/wallets/server/external-transactions'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -109,40 +109,34 @@ function walletActivityTimelineQuery ({
     ? Prisma.sql`AND "walletId" = ${walletIdNumber}`
     : Prisma.empty
 
+  // Each leg's ORDER BY must match the merged ORDER BY restricted to that leg,
+  // or its LIMIT can cut a row that belonged on the page.
   return Prisma.sql`
     SELECT src, id, "sortTime", "isSend"
     FROM (
       (
-        SELECT 'PAYIN' AS src, p.id, p."sortTime", p."isSend"
-        FROM (
-          (
-            SELECT "PayIn".id, "PayIn"."created_at" AS "sortTime", true AS "isSend"
-            FROM "PayIn"
-            WHERE "PayIn"."userId" = ${userId}
-              AND "PayIn"."benefactorId" IS NULL
-              AND "PayIn"."mcost" > 0
-              AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT')
-              AND "PayIn"."created_at" <= ${time}
-              ${walletSendFilter}
-            ORDER BY "sortTime" DESC, "PayIn"."id" DESC
-            LIMIT ${sourceLimit}
-          )
-          UNION ALL
-          (
-            SELECT "PayIn".id, "PayIn"."payInStateChangedAt" AS "sortTime", false AS "isSend"
-            FROM "PayIn"
-            WHERE "PayIn"."benefactorId" IS NULL
-              AND "PayIn"."mcost" > 0
-              AND "PayIn"."payInStateChangedAt" <= ${time}
-              ${walletReceiveFilter}
-              ${receivePredicate}
-            ORDER BY "sortTime" DESC, "PayIn"."id" DESC
-            LIMIT ${sourceLimit}
-          )
-          -- id is the unique tiebreak at a page boundary.
-          ORDER BY "sortTime" DESC, "isSend" ASC, "id" DESC
-          LIMIT ${sourceLimit}
-        ) p
+        SELECT 'PAYIN' AS src, "PayIn".id, "PayIn"."created_at" AS "sortTime", true AS "isSend"
+        FROM "PayIn"
+        WHERE "PayIn"."userId" = ${userId}
+          AND "PayIn"."benefactorId" IS NULL
+          AND "PayIn"."mcost" > 0
+          AND "PayIn"."payInType" NOT IN ('PROXY_PAYMENT')
+          AND "PayIn"."created_at" <= ${time}
+          ${walletSendFilter}
+        ORDER BY "sortTime" DESC, "PayIn"."id" DESC
+        LIMIT ${sourceLimit}
+      )
+      UNION ALL
+      (
+        SELECT 'PAYIN' AS src, "PayIn".id, "PayIn"."payInStateChangedAt" AS "sortTime", false AS "isSend"
+        FROM "PayIn"
+        WHERE "PayIn"."benefactorId" IS NULL
+          AND "PayIn"."mcost" > 0
+          AND "PayIn"."payInStateChangedAt" <= ${time}
+          ${walletReceiveFilter}
+          ${receivePredicate}
+        ORDER BY "sortTime" DESC, "PayIn"."id" DESC
+        LIMIT ${sourceLimit}
       )
       UNION ALL
       (
@@ -152,7 +146,7 @@ function walletActivityTimelineQuery ({
         WHERE "userId" = ${userId}
           ${externalWalletFilter}
           AND "created_at" <= ${time}
-        ORDER BY "sortTime" DESC, "id" DESC
+        ORDER BY "sortTime" DESC, "isSend" ASC, "id" DESC
         LIMIT ${sourceLimit}
       )
     ) merged
@@ -171,7 +165,7 @@ async function hydrateWalletActivity (keys, { me, models }) {
       ? getPayInFull({ models, query: Prisma.sql`SELECT * FROM "PayIn" WHERE "id" IN (${Prisma.join(payInIds)})` })
       : [],
     extIds.length
-      ? models.externalTransaction.findMany({ where: { id: { in: extIds } }, include: externalTransactionInclude() })
+      ? models.externalTransaction.findMany({ where: { id: { in: extIds } }, include: EXTERNAL_TRANSACTION_INCLUDE })
       : []
   ])
 
@@ -281,11 +275,10 @@ export default {
           AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}
           ORDER BY "PayIn"."payInStateChangedAt" ASC`
     },
-    pendingExternalSendTransactions: async (parent, { checkableProtocolIds }, { me, models }) => {
+    pendingExternalSendTransactions: async (parent, args, { me, models }) => {
       if (!me) throw new GqlAuthenticationError()
-      return await serveDueExternalSendChecks(models, {
-        userId: me.id,
-        checkableProtocolIds
+      return await claimDueExternalSendChecks(models, {
+        userId: me.id
       })
     }
   },

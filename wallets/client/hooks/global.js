@@ -15,6 +15,7 @@ import { useWeblnEvents } from '@/wallets/lib/protocols/webln'
 import { useWalletsQuery } from '@/wallets/client/hooks/query'
 import { readOrCreateVaultKeyRecord, useGenerateRandomKey, useSetKey, useIsWrongKey, useVaultLocalStore } from '@/wallets/client/hooks/crypto'
 import { useAutoRetryPayIns } from '@/components/payIn/hooks/use-auto-retry-pay-ins'
+import { useExternalSendChecks } from './use-external-send-checks'
 
 const WalletDataContext = createContext(null)
 const WalletsContext = createContext(null)
@@ -107,8 +108,8 @@ export function WalletsProvider ({ children }) {
 
 function WalletHooks ({ children }) {
   useAutoRetryPayIns()
+  useExternalSendChecks()
   useKeyInit()
-  useDeleteLocalWallets()
   useWeblnEvents()
 
   return children
@@ -218,20 +219,6 @@ function useKeyInit () {
       cancelled = true
     }
   }, [me?.id, db, generateRandomKey, setKey])
-}
-
-function useDeleteLocalWallets () {
-  const { me } = useMe()
-
-  useEffect(() => {
-    if (!me?.id) return
-
-    // we used to store wallets locally so this makes sure we delete them if there are any left over
-    Object.keys(window.localStorage)
-      .filter((key) => key.startsWith('wallet:'))
-      .filter((key) => key.split(':').length < 3 || key.endsWith(me.id))
-      .forEach((key) => window.localStorage.removeItem(key))
-  }, [me?.id])
 }
 
 // wallet actions

@@ -13,6 +13,8 @@ const typeDefs = gql`
   extend type Mutation {
     createWithdrawl(invoice: String!, maxFee: Int!): PayIn!
     createWalletInvoice(walletId: ID!, amount: Int!, description: String): Int!
+    createExternalSend(input: ExternalSendCreateInput!): Int!
+    reportExternalSendObservation(input: ExternalSendObservationInput!): Boolean!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): PayIn!
     dropBolt11(hash: String!): Boolean
     buyCredits(credits: Int!, sendProtocolId: Int): PayIn!
@@ -93,6 +95,41 @@ const typeDefs = gql`
     sourceType: ExternalTransactionSourceType
     sourceValue: String
     walletInfo: PayInWalletInfo
+  }
+
+  input ExternalSendCreateInput {
+    walletId: ID!
+    protocolId: Int!
+    bolt11: String!
+    sourceType: ExternalTransactionSourceType
+    sourceValue: String
+    maxFeeLimitMsats: BigInt
+    duplicateConfirmed: Boolean
+    verificationContext: JSONObject
+  }
+
+  enum ExternalSendObservationError {
+    TRANSIENT_CHECK_FAILED
+    PERMISSION_REQUIRED
+    VERIFICATION_UNSUPPORTED
+  }
+
+  enum ExternalSendObservationStatus {
+    PENDING
+    SETTLED
+    FAILED
+    UNKNOWN
+  }
+
+  input ExternalSendObservationInput {
+    id: Int!
+    status: ExternalSendObservationStatus!
+    preimage: String
+    msats: BigInt
+    settledAt: Date
+    actualFeeMsats: BigInt
+    detail: String
+    errorType: ExternalSendObservationError
   }
 
   enum WalletStatus {

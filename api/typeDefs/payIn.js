@@ -6,6 +6,7 @@ extend type Query {
   payIn(id: Int!): PayIn
   satistics(cursor: String, walletId: ID): Satistics
   failedPayIns: [PayIn!]!
+  pendingExternalSendTransactions(checkableProtocolIds: [Int!]!): [ExternalTransaction!]!
 }
 
 extend type Mutation {

@@ -16,9 +16,12 @@ import pay from '../payIn'
 import { dropBolt11 } from '@/worker/autoDropBolt11'
 import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
 import {
+  acceptClientExternalSendObservation,
   createExternalReceiveTransaction,
-  externalTransactionInclude
+  createExternalSendTransaction,
+  EXTERNAL_TRANSACTION_INCLUDE
 } from '@/wallets/server/external-transactions'
+import { requireNoConflictingExternalSend } from '@/wallets/server/external-transaction-duplicates'
 
 export function createHmac (hash) {
   if (!hash) throw new GqlInputError('hash required to create hmac')
@@ -62,7 +65,7 @@ const resolvers = {
           id: Number(id),
           userId: me.id
         },
-        include: externalTransactionInclude()
+        include: EXTERNAL_TRANSACTION_INCLUDE
       })
       return transaction
     }
@@ -70,6 +73,24 @@ const resolvers = {
   Mutation: {
     createWithdrawl: createWithdrawal,
     createWalletInvoice,
+    createExternalSend: async (parent, { input }, { me, models }) => {
+      if (!me) throw new GqlAuthenticationError()
+      assertApiKeyNotPermitted({ me })
+      const transaction = await createExternalSendTransaction(models, {
+        ...input,
+        userId: me.id,
+        walletId: parseWalletId(input.walletId)
+      })
+      return transaction.id
+    },
+    reportExternalSendObservation: async (parent, { input }, { me, models }) => {
+      if (!me) throw new GqlAuthenticationError()
+      assertApiKeyNotPermitted({ me })
+      return await acceptClientExternalSendObservation(models, {
+        ...input,
+        userId: me.id
+      })
+    },
     sendToLnAddr,
     dropBolt11: async (parent, { hash }, { me, models, lnd }) => {
       if (!me) {
@@ -88,6 +109,7 @@ const resolvers = {
 export default resolvers
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, protocol, logger }) {
+  if (!me) throw new GqlAuthenticationError()
   assertApiKeyNotPermitted({ me })
   await validateSchema(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
@@ -138,6 +160,14 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   if (selfPayment) {
     throw new GqlInputError('SN cannot pay an invoice that SN is proxying')
   }
+
+  // This guard is intentionally not serialized with external-send creation:
+  // exploiting the narrow race requires the same user to submit the same
+  // invoice through both payment paths concurrently.
+  await requireNoConflictingExternalSend(models, {
+    userId: me.id,
+    hash: decoded.id
+  })
 
   return await pay('WITHDRAWAL', { bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models })
 }

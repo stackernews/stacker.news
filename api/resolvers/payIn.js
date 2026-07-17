@@ -9,7 +9,7 @@ import { getItem, getItemsById } from './item'
 import { getSub } from './sub'
 import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { Prisma } from '@prisma/client'
-import { externalTransactionInclude } from '@/wallets/server/external-transactions'
+import { externalTransactionInclude, serveDueExternalSendChecks } from '@/wallets/server/external-transactions'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -147,7 +147,7 @@ function walletActivityTimelineQuery ({
       UNION ALL
       (
         SELECT 'EXT' AS src, "ExternalTransaction".id,
-               "created_at" AS "sortTime", false AS "isSend"
+               "created_at" AS "sortTime", "direction" = 'SEND' AS "isSend"
         FROM "ExternalTransaction"
         WHERE "userId" = ${userId}
           ${externalWalletFilter}
@@ -280,6 +280,13 @@ export default {
           AND "PayIn"."payInStateChangedAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
           AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}
           ORDER BY "PayIn"."payInStateChangedAt" ASC`
+    },
+    pendingExternalSendTransactions: async (parent, { checkableProtocolIds }, { me, models }) => {
+      if (!me) throw new GqlAuthenticationError()
+      return await serveDueExternalSendChecks(models, {
+        userId: me.id,
+        checkableProtocolIds
+      })
     }
   },
   Mutation: {

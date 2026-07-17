@@ -1472,7 +1472,7 @@ model ExternalTransaction {
 
   sourceType          ExternalTransactionSourceType?
   sourceValue         String?
-  verificationContext Json?                          @db.JsonB
+  verificationContext Json?                         @db.JsonB
   walletLogs          WalletLog[]
 
   @@index([userId, createdAt, id])

@@ -6,8 +6,8 @@ import { useRouteWallet, useWalletCapabilities } from '@/wallets/client/hooks'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
-// external wallet sends are not live yet; flip to false to re-enable
-const SEND_COMING_SOON = true
+// flip to true to gate external sends behind the coming-soon shell
+const SEND_COMING_SOON = false
 
 export default function WalletSendPage () {
   const { wallet, ready } = useRouteWallet()

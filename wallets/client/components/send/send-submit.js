@@ -2,14 +2,19 @@ import { useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useMutation } from '@apollo/client/react'
 import { useMe } from '@/components/me'
+import { useShowModal } from '@/components/modal'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/withdrawal'
 import { bolt11Description, bolt11ToPayment } from '@/lib/bolt11'
-import { formatSats, msatsToSats, toPositiveNumber } from '@/lib/format'
+import { formatSats, msatsToSats, satsToMsats, toPositiveNumber } from '@/lib/format'
 import { fetchLnAddrInvoice, SUPPORTED_PAYER_DATA_FIELDS } from '@/lib/lnurl'
 import { WALLET_SHELL_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
-import { paymentErrorMessage, sendWalletPayment } from '@/wallets/client/hooks'
+import { classifyWalletPaymentError, sendWalletPayment } from '@/wallets/client/hooks'
+import { errorMessage } from '@/lib/error'
 import { invalidateWalletBalanceCache } from '@/wallets/client/balance'
 import { DestinationType, parseDestination } from './destination'
+import { confirmDuplicateExternalSend, externalSendConfirmation } from './send-confirmation'
+import { CREATE_EXTERNAL_SEND, REPORT_EXTERNAL_SEND_OBSERVATION } from '@/wallets/client/fragments'
+import { toExternalTransactionObservation } from '@/wallets/lib/external-transactions'
 
 // Custodial send via GraphQL mutations. No success state — navigation is the success.
 export function useRewardSatsSubmit () {
@@ -20,14 +25,12 @@ export function useRewardSatsSubmit () {
   return useCallback(async (values, { lnAddrService } = {}) => {
     const destination = parseDestination(values.destination)
 
+    let id
     if (destination.type === DestinationType.BOLT11) {
       assertInvoiceAmount(destination)
       const { data } = await createWithdrawl({ variables: { invoice: destination.value, maxFee: toPositiveNumber(values.maxFee) } })
-      await router.push(`/transactions/${data.createWithdrawl.id}`)
-      return
-    }
-
-    if (destination.type === DestinationType.LN_ADDR) {
+      id = data.createWithdrawl.id
+    } else if (destination.type === DestinationType.LN_ADDR) {
       const { data } = await sendToLnAddr({
         variables: {
           addr: destination.value,
@@ -36,23 +39,32 @@ export function useRewardSatsSubmit () {
           maxFee: toPositiveNumber(values.maxFee)
         }
       })
-      await router.push(`/transactions/${data.sendToLnAddr.id}`)
-      return
+      id = data.sendToLnAddr.id
+    } else {
+      throw new Error('enter a bolt11 invoice or lightning address')
     }
 
-    throw new Error('enter a bolt11 invoice or lightning address')
+    await router.push(`/transactions/${id}`)
   }, [createWithdrawl, router, sendToLnAddr])
 }
 
-// External send: resolves to a bolt11 and pays through the wallet's protocol;
-// reports via onSent so the form can show the sent state.
-export function useExternalSubmit ({ protocol, logger, onSent }) {
+// External send: resolve to a bolt11, persist the attempt, pay it, then open its
+// activity detail.
+export function useExternalSubmit ({ wallet, protocol, logger }) {
   const { me } = useMe()
   const meName = me?.name
+  const router = useRouter()
+  const [createExternalSend] = useMutation(CREATE_EXTERNAL_SEND)
+  const [reportExternalSendObservation] = useMutation(REPORT_EXTERNAL_SEND_OBSERVATION)
+  const showModal = useShowModal()
 
+  // The server's unique indexes are the duplicate guard.
+  // Formik's isSubmitting handles the local double-click case.
   return useCallback(async (values, { lnAddrService } = {}) => {
     const destination = parseDestination(values.destination)
+
     let bolt11, sats, to
+    let verificationContext = null
 
     if (destination.type === DestinationType.BOLT11) {
       const msats = assertInvoiceAmount(destination)
@@ -68,14 +80,45 @@ export function useExternalSubmit ({ protocol, logger, onSent }) {
         amount: sats
       }, { me: { name: meName }, service: lnAddrService })
       bolt11 = invoice.pr
+      // LUD-21: a credential-free settlement checker even checkerless wallets get
+      verificationContext = typeof invoice.verify === 'string' ? { lnurlVerifyUrl: invoice.verify } : null
       to = destination.value
     } else {
       throw new Error('enter a bolt11 invoice or lightning address')
     }
 
-    await sendExternalPayment({ protocol, bolt11, values, logger, amountText: formatSats(sats) })
-    onSent({ sats, to })
-  }, [logger, meName, onSent, protocol])
+    const maxFee = protocol?.enforcesMaxFee
+      ? toPositiveNumber(values.maxFee)
+      : undefined
+    const transactionId = await sendExternalPayment({
+      wallet,
+      protocol,
+      bolt11,
+      verificationContext,
+      destination,
+      maxFee,
+      logger,
+      createExternalSend,
+      reportExternalSendObservation,
+      confirmDuplicate: message => confirmDuplicateExternalSend(showModal, {
+        message,
+        amountText: formatSats(sats),
+        to
+      })
+    })
+    if (transactionId == null) return
+
+    // The payment is recorded; navigation is best-effort and must never read
+    // as a payment failure. Skip it if the user already moved on mid-send.
+    if (router.pathname === '/wallets/[id]/send') {
+      try {
+        // the sent amount + live status live on the transaction page
+        await router.push(`/wallets/transactions/${transactionId}`)
+      } catch (err) {
+        console.error('failed to navigate to transaction page:', err)
+      }
+    }
+  }, [createExternalSend, logger, meName, protocol, reportExternalSendObservation, router, showModal, wallet])
 }
 
 // Only send descriptor-backed fields; hidden values can be leftovers from a
@@ -96,27 +139,72 @@ function assertInvoiceAmount (destination) {
   return destination.invoiceMsats
 }
 
-async function sendExternalPayment ({ protocol, bolt11, values, logger, amountText }) {
-  const supportsMaxFee = !!protocol?.enforcesMaxFee
+export async function sendExternalPayment ({
+  verificationContext,
+  wallet,
+  protocol,
+  bolt11,
+  destination,
+  maxFee,
+  logger,
+  createExternalSend,
+  reportExternalSendObservation,
+  confirmDuplicate
+}) {
+  const input = {
+    walletId: wallet.id,
+    protocolId: Number(protocol.id),
+    bolt11,
+    sourceType: destination.type === DestinationType.LN_ADDR ? 'LN_ADDR' : 'BOLT11',
+    // BOLT11 destinations already send the invoice as bolt11; the server only
+    // persists sourceValue for LN_ADDR
+    sourceValue: destination.type === DestinationType.LN_ADDR ? destination.value : null,
+    ...(maxFee != null ? { maxFeeLimitMsats: String(satsToMsats(maxFee)) } : {}),
+    ...(verificationContext ? { verificationContext } : {})
+  }
+  let response
   try {
-    await sendWalletPayment(protocol, bolt11ToPayment(bolt11), logger, {
-      ...(supportsMaxFee ? { maxFee: toPositiveNumber(values.maxFee) } : {}),
-      amountText,
-      timeout: WALLET_SHELL_SEND_PAYMENT_TIMEOUT_MS,
-      // direct send has no server-side poll backstop, so a missing/invalid
-      // preimage must surface as an error rather than a silent success.
-      requirePreimage: true
-    })
+    response = await createExternalSend({ variables: { input } })
   } catch (err) {
-    if (err?.settledUnknown) {
-      logger.warn(`payment outcome unknown: ${paymentErrorMessage(err)}`, { updateStatus: true })
-    } else {
-      logger.error(`payment failed: ${paymentErrorMessage(err)}`, { updateStatus: true })
+    const confirmation = externalSendConfirmation(err)
+    if (!confirmation || !confirmDuplicate) throw err
+    if (!(await confirmDuplicate(confirmation))) return null
+    response = await createExternalSend({
+      variables: { input: { ...input, duplicateConfirmed: true } }
+    })
+  }
+  const transactionId = response.data.createExternalSend
+  const payment = bolt11ToPayment(bolt11)
+  const transactionLogger = logger.withContext({ externalTransactionId: transactionId })
+
+  try {
+    let observation
+    try {
+      observation = await sendWalletPayment(protocol, payment, transactionLogger, {
+        maxFee,
+        timeout: WALLET_SHELL_SEND_PAYMENT_TIMEOUT_MS,
+        updateStatus: false,
+        waitForTerminal: false
+      })
+    } catch (err) {
+      observation = toExternalTransactionObservation(classifyWalletPaymentError(err), {
+        error: err,
+        canCheck: typeof protocol?.checkPayment === 'function'
+      })
     }
-    throw err
+
+    try {
+      await reportExternalSendObservation({
+        variables: { input: { id: transactionId, ...observation } }
+      })
+    } catch (err) {
+      // Navigation still goes to the durable attempt. When supported, the
+      // global reconciler checks the provider again.
+      transactionLogger.warn(`payment observation update failed: ${errorMessage(err)}`)
+    }
+    return transactionId
   } finally {
-    // Always refresh the balance: if the wallet settled after our timeout
-    // fired, the user must see the updated balance to know not to retry.
+    // The wallet may settle after our timeout; refresh before showing retry UI.
     invalidateWalletBalanceCache(protocol)
   }
 }

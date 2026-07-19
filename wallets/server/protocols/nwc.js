@@ -1,7 +1,11 @@
 import { WalletPermissionsError } from '@/wallets/client/errors'
 import { NWC_PAY_INVOICE_METHOD, nwcTryRun, supportedMethods } from '@/wallets/lib/protocols/nwc'
+import { msatsSatsFloor } from '@/lib/format'
 
 export const name = 'NWC'
+
+// AlbyHub's NWC only invoices whole sats as of https://github.com/getAlby/hub/commit/64afc2227f128cf4cd90daf0d844af48e3513166
+export const receivableMsats = msatsSatsFloor
 
 export async function createInvoice ({ msats, description, expiry }, { url }, { signal }) {
   const result = await nwcTryRun(

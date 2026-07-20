@@ -96,7 +96,6 @@
   touch-action: manipulation;
 }
 
-.toolbar :global(.dropdown-toggle::after),
 .bottomBar :global(.dropdown-toggle::after),
 .tableCellActionButtonContainer :global(.dropdown-toggle::after) {
   display: none;
@@ -119,11 +118,6 @@
   border-radius: 0.4rem;
   margin: 0 4px;
   opacity: 0.3;
-
-  /* extra space when divider follows a dropdown */
-  :global(.dropdown) + & {
-    margin-left: 1.25rem;
-  }
 }
 
 .toolbarFormatting {
@@ -156,6 +150,8 @@
   padding: 0.2rem;
   border-radius: 0.4rem;
   opacity: 0.6;
+  background: none; /* items are <button>s, neutralize the UA chrome */
+  border: 0;
   -webkit-touch-callout: none;
   touch-action: manipulation;
 }
@@ -303,9 +299,9 @@
   }
 }
 
-/* editor mode tabs — Tabs.Tab renders <button>; the color/weight/metrics that
-   used to ride the dying .nav-link/.nav-tabs classes (globals + compiled BS)
-   live here now, the background/border resets double as UA-button neutralizers */
+/* editor mode tabs. Tabs.Tab renders a <button>; the color, weight and metrics
+   that used to ride the dying .nav-link and .nav-tabs classes live here now,
+   and the background and border resets double as UA button neutralizers */
 .modeTab {
   --tab-border-color: var(--theme-borderColor);
   --tab-bg: var(--theme-inputBg);
@@ -593,9 +589,8 @@
   box-shadow: 0 0 10px var(--bs-info);
 }
 
-/* mentions listbox (C5, D4): the old opacity/pointer-events !important workaround
-   died with the rb Dropdown shell it fought; the class now only lifts the listbox
-   onto the ladder (was an inline zIndex: 1000) — position so the z-index applies */
+/* mentions listbox: the class only lifts it onto the z ladder; position so the
+   z-index applies */
 .suggestionsMenu {
   position: relative;
   z-index: var(--sn-z-dropdown);

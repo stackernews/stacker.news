@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import styles from '@/lib/lexical/theme/editor.module.css'
-import Nav from 'react-bootstrap/Nav'
+import { Tabs } from '@base-ui/react/tabs'
 import { useEditorMode, MARKDOWN_MODE, RICH_MODE } from '@/components/editor/contexts/mode'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_HIGH } from 'lexical'
@@ -51,32 +51,21 @@ export default function ModeSwitchPlugin ({ name }) {
     )
   }, [editor, changeMode, toggleMode, disabledReasons, toaster])
 
-  const handleTabSelect = useCallback((eventKey) => {
-    editor.dispatchCommand(TOGGLE_MODE_COMMAND, eventKey)
+  const handleTabSelect = useCallback((value) => {
+    editor.dispatchCommand(TOGGLE_MODE_COMMAND, value)
   }, [editor])
 
+  // panel-less Tabs: value is controlled by useEditorMode and only moves when the
+  // TOGGLE_MODE_COMMAND handler above accepts the switch (upload guard, same-mode
+  // no-op), so a refused command leaves the tabs where they are. clicking the
+  // active tab fires nothing in Tabs source — no disabled={active} hack needed.
+  // mousedown preventDefault keeps the Lexical selection on tab click
   return (
-    <Nav variant='tabs' activeKey={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onSelect={handleTabSelect} onMouseDown={(e) => e.preventDefault()}>
-      <Nav.Item>
-        <Nav.Link
-          className={styles.modeTab}
-          eventKey={MARKDOWN_MODE}
-          title='markdown'
-          disabled={isMarkdown}
-        >
-          write
-        </Nav.Link>
-      </Nav.Item>
-      <Nav.Item>
-        <Nav.Link
-          className={styles.modeTab}
-          eventKey={RICH_MODE}
-          title='rich text'
-          disabled={!isMarkdown}
-        >
-          compose
-        </Nav.Link>
-      </Nav.Item>
-    </Nav>
+    <Tabs.Root value={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onValueChange={handleTabSelect}>
+      <Tabs.List className='flex flex-nowrap' onMouseDown={(e) => e.preventDefault()}>
+        <Tabs.Tab value={MARKDOWN_MODE} title='markdown' className={styles.modeTab}>write</Tabs.Tab>
+        <Tabs.Tab value={RICH_MODE} title='rich text' className={styles.modeTab}>compose</Tabs.Tab>
+      </Tabs.List>
+    </Tabs.Root>
   )
 }

@@ -303,11 +303,9 @@
   }
 }
 
-.toolbar :global(.nav-tabs) {
-  flex-wrap: nowrap;
-}
-
-/* editor mode tabs */
+/* editor mode tabs — Tabs.Tab renders <button>; the color/weight/metrics that
+   used to ride the dying .nav-link/.nav-tabs classes (globals + compiled BS)
+   live here now, the background/border resets double as UA-button neutralizers */
 .modeTab {
   --tab-border-color: var(--theme-borderColor);
   --tab-bg: var(--theme-inputBg);
@@ -316,9 +314,24 @@
 
   padding: 0.25rem 0.5rem;
   position: relative;
+  font-size: 80%;
+  font-weight: 500;
+  color: var(--theme-navLink);
+  background: none;
+  border: 0;
+  border-radius: 0.4rem 0.4rem 0 0;
+  margin-bottom: -1px;
+  cursor: pointer;
 }
 
-.modeTab:global(.nav-link.active) {
+.modeTab:not([data-active]):hover {
+  color: var(--theme-navLinkFocus);
+}
+
+.modeTab[data-active] {
+  color: var(--theme-navLinkActive);
+  font-weight: bold;
+  cursor: default;
   border: 1px solid var(--tab-border-color);
   border-bottom: 0;
   background-color: var(--tab-bg);
@@ -578,36 +591,6 @@
 
 .dragOver {
   box-shadow: 0 0 10px var(--bs-info);
-}
-
-.modeSwitcherContainer {
-  --switcher-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
-  --switcher-shadow: none;
-  --switcher-clip: none;
-
-  margin-bottom: -0.05rem;
-}
-
-.modeSwitcherContainer :global(.nav-tabs .nav-link) {
-  color: var(--theme-dropdownItemColor);
-  font-size: 12px;
-  padding-bottom: 0.25rem;
-  padding-top: 0.25rem;
-}
-
-.modeSwitcherContainer :global(.nav-tabs .nav-link.active) {
-  border: 1px solid var(--switcher-border-color);
-  border-bottom: 0;
-  background-color: var(--theme-commentBg);
-  box-shadow: var(--switcher-shadow);
-  clip-path: var(--switcher-clip);
-}
-
-/* focus state for mode switcher */
-.toolbar:has(~ .editor .editorContent:focus-within) .modeSwitcherContainer {
-  --switcher-border-color: var(--bs-primary);
-  --switcher-shadow: 0 0 0 0.2rem rgb(240 218 94 / 25%);
-  --switcher-clip: inset(-0.2rem -0.2rem -0.005rem -0.2rem);
 }
 
 /* mentions listbox (C5, D4): the old opacity/pointer-events !important workaround

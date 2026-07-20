@@ -30,7 +30,10 @@ import BsToastContainer from 'react-bootstrap/ToastContainer'
 import Overlay from 'react-bootstrap/Overlay'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import { Menu as BaseMenu } from '@base-ui/react/menu'
+import { Formik } from 'formik'
 import Layout from '@/components/layout'
+import { SNEditor } from '@/components/editor'
+import { FeeButtonProvider } from '@/components/fee-button'
 import Button, { buttonClasses } from '@/components/ui/button'
 import Badge from '@/components/ui/badge'
 import Alert from '@/components/ui/alert'
@@ -98,7 +101,7 @@ const RETINT_VARS = {
 
 // docs/dev/pr2-base-ui-components.md §8 — add a section above as each lands
 const ROADMAP = [
-  ['editor Tabs / Toolbar / link Popover', 'C8a–c'],
+  ['editor Toolbar + Menu / link Popover (Editor section below is the QA surface)', 'C8b–c'],
   ['form: Field, Input, Checkbox, InputGroup, select', 'C9a'],
   ['form: Slider + NumberField, CheckboxGroup, OTP Field', 'C9b'],
   ['Nav / Navbar + Drawer', 'C10'],
@@ -1252,6 +1255,28 @@ export default function Playground () {
           note="toast.js internals on Base UI Toast (Provider + portaled Viewport) — the hand-rolled state machine died (upsert-by-id covers dedup/timer-refresh/countdown natively) and useToast's 42 consumer files didn't move. left column = pre-C7 replica firing bottom-LEFT so both stacks run side by side (the real thing sat bottom-right like the new side). intended deltas (keystone-5 revision, GO 2026-07-16): 250ms peek-stack + hover fan-out + swipe-dismiss + upsert pulse + pausing countdown replace the 0.2s slide-in/fade and the always-expanded vertical stack; shadow-only chrome (the 1px border dies; 0 2px 8px 25% vs 0 8px 16px 15%); radius 6px vs 6.4px; limit 3; toasts are tab-reachable and F6 jumps to the stack; reduced-motion disables all of it (rb animated under reduce)"
         >
           <ToastCompares />
+        </Section>
+
+        <Section
+          title='Editor'
+          note="the real SNEditor, no rb replica (a compare pair would need a second Lexical editor — §17.0-4): whatever is swapped paints here. C8a: mode switch = inline Base UI Tabs (real <button role='tab'> tablist, roving tabindex, arrows move focus / Enter–Space activates through the upload guard; the active tab no-ops natively, no disabled hack). intended deltas: keyboard tab nav is new (D8-adjacent); active tab is clickable-but-inert instead of pointer-events: none"
+        >
+          <Formik initialValues={{ pgEditorTop: '', pgEditorComment: '' }} onSubmit={() => {}}>
+            {() => (
+              <FeeButtonProvider>
+                <div className='flex flex-col gap-4'>
+                  <div>
+                    <div className='text-muted text-sm mb-1'>topLevel (post form)</div>
+                    <SNEditor name='pgEditorTop' topLevel placeholder='top-level editor' minRows={3} />
+                  </div>
+                  <div>
+                    <div className='text-muted text-sm mb-1'>comment-level (reply form)</div>
+                    <SNEditor name='pgEditorComment' placeholder='comment-level editor' minRows={2} />
+                  </div>
+                </div>
+              </FeeButtonProvider>
+            )}
+          </Formik>
         </Section>
 
         <Section

@@ -96,7 +96,6 @@
   touch-action: manipulation;
 }
 
-.toolbar :global(.dropdown-toggle::after),
 .bottomBar :global(.dropdown-toggle::after),
 .tableCellActionButtonContainer :global(.dropdown-toggle::after) {
   display: none;
@@ -119,11 +118,6 @@
   border-radius: 0.4rem;
   margin: 0 4px;
   opacity: 0.3;
-
-  /* extra space when divider follows a dropdown */
-  :global(.dropdown) + & {
-    margin-left: 1.25rem;
-  }
 }
 
 .toolbarFormatting {
@@ -156,6 +150,8 @@
   padding: 0.2rem;
   border-radius: 0.4rem;
   opacity: 0.6;
+  background: none; /* items are <button>s since C8b — neutralize UA chrome (§17.8-1) */
+  border: 0;
   -webkit-touch-callout: none;
   touch-action: manipulation;
 }

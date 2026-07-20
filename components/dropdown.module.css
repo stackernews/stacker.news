@@ -2,7 +2,6 @@
   padding: 0.45rem 0.35rem;
   width: 240px;
   border-radius: 0.4rem;
-  z-index: 2000;
 }
 
 .dropdownExtraItem {
@@ -26,6 +25,10 @@
   opacity: 1;
   border-radius: 0.3rem;
   outline: none;
+}
+
+.dropdownExtraItem svg {
+  fill: var(--theme-dropdownItemColor);
 }
 
 .dropdownExtraItem.active {

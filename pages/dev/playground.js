@@ -101,7 +101,6 @@ const RETINT_VARS = {
 
 // docs/dev/pr2-base-ui-components.md §8 — add a section above as each lands
 const ROADMAP = [
-  ['editor Toolbar + Menu / link Popover (Editor section below is the QA surface)', 'C8b–c'],
   ['form: Field, Input, Checkbox, InputGroup, select', 'C9a'],
   ['form: Slider + NumberField, CheckboxGroup, OTP Field', 'C9b'],
   ['Nav / Navbar + Drawer', 'C10'],
@@ -1259,7 +1258,7 @@ export default function Playground () {
 
         <Section
           title='Editor'
-          note="the real SNEditor, no rb replica (a compare pair would need a second Lexical editor — §17.0-4): whatever is swapped paints here. C8a: mode switch = inline Base UI Tabs (real <button role='tab'> tablist, roving tabindex, arrows move focus / Enter–Space activates through the upload guard; the active tab no-ops natively, no disabled hack). intended deltas: keyboard tab nav is new (D8-adjacent); active tab is clickable-but-inert instead of pointer-events: none"
+          note="the real SNEditor, no rb replica (a compare pair would need a second Lexical editor — §17.0-4): whatever is swapped paints here. C8a: mode switch = inline Base UI Tabs (real <button role='tab'> tablist, roving tabindex, arrows move focus / Enter–Space activates through the upload guard; the active tab no-ops natively). C8b: Toolbar + Menu — intended deltas: ~150ms menu motion, shadow-lg on the popups, the popup takes focus while open (format still applies to the original selection, focus returns after — ⚠️ iOS keyboard may retract, device QA), toolbar roving arrows. C8c: link editor = controlled Popover at ladder z 1070 (house popover chrome replaces the old composite bg; scroll-tracking native; Tab-out alone no longer closes it — selection tracking unmounts on caret-leave)"
         >
           <Formik initialValues={{ pgEditorTop: '', pgEditorComment: '' }} onSubmit={() => {}}>
             {() => (

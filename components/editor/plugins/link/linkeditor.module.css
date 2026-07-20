@@ -1,28 +1,11 @@
-.linkEditorContainer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 600;
-  max-width: 100%;
-  opacity: 0;
-  box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--theme-floating-toolbar-shadow-opacity));
-  will-change: transform;
-  border-radius: 0.4rem;
-  background-color: var(--theme-forceCommentBg);
-}
-
-.linkEditorContainer:hover {
-  opacity: 1;
-}
-
+/* positioning/z/chrome live on the Base UI Popover popup since C8c
+   (ui/popover.module.css + popoverClasses) — this file is layout + input +
+   icon skins only */
 .linkEditor {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   max-width: min(400px, 100%);
-  border-radius: 0.4rem;
-  background-color: var(--theme-commentBg);
-  border: 1px solid var(--theme-borderColor);
 }
 
 .linkInput,

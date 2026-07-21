@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { Button, InputGroup } from 'react-bootstrap'
 import classNames from 'classnames'
-import { Form, Input, SubmitButton } from '@/components/form'
+import { Form, Input, InputGroup, SubmitButton } from '@/components/form'
+import { buttonClasses } from '@/components/ui/button'
 import { useShowModal } from '@/components/modal'
 import { useAnimation } from '@/components/animation'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
@@ -52,7 +52,7 @@ function ExternalWalletActions ({ wallet }) {
     <div className={styles.bar}>
       {receiveProtocol && <WalletPyramidAction href={walletDetailRoute(wallet.id, 'receive')} label='RECV' ariaLabel='receive' tone='receive' disabled={!canReceive} singleAction={singleAction} />}
       {sendProtocol && <WalletPyramidAction href={walletDetailRoute(wallet.id, 'send')} label='send' tone='send' disabled={!canSend} singleAction={singleAction} />}
-      {!receiveProtocol && !sendProtocol && <Button as={Link} href={walletDetailRoute(wallet.id, 'configure')} variant='outline-secondary' className={styles.button}>configure</Button>}
+      {!receiveProtocol && !sendProtocol && <Link href={walletDetailRoute(wallet.id, 'configure')} className={buttonClasses({ variant: 'outline-secondary', className: styles.button })}>configure</Link>}
     </div>
   )
 }

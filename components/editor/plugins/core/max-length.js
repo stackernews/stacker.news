@@ -4,6 +4,7 @@ import { $getSelection, $isRangeSelection, RootNode, $getRoot } from 'lexical'
 import { $trimTextContentFromAnchor } from '@lexical/selection'
 import { $restoreEditorState } from '@lexical/utils'
 import { MAX_POST_TEXT_LENGTH } from '@/lib/constants'
+import { hintClasses } from '@/components/form'
 
 function getRemaining (editor, maxLength) {
   return editor.getEditorState().read(() => {
@@ -84,7 +85,7 @@ export function MaxLengthPlugin ({ lengthOptions = {} }) {
 
   if (show || remaining < 10) {
     return (
-      <div className='text-muted form-text'>{remaining} characters remaining</div>
+      <div className={hintClasses({ className: 'text-muted' })}>{remaining} characters remaining</div>
     )
   }
 

@@ -1,4 +1,4 @@
-import { Checkbox, Input } from '@/components/form'
+import { Checkbox, Input, InputGroup } from '@/components/form'
 import { useMe } from '@/components/me'
 import { characterLength } from '@/lib/validate'
 import { lnAddrFormFields } from '@/lib/lnurl'
@@ -9,7 +9,6 @@ import CloseIcon from '@/svgs/close-line.svg'
 import classNames from 'classnames'
 import { useFormikContext } from 'formik'
 import { useCallback, useMemo, useState } from 'react'
-import { InputGroup } from 'react-bootstrap'
 const styles = { ...sharedStyles, ...sendStyles }
 
 export function LightningAddressFields ({ service, maxFee }) {
@@ -46,6 +45,7 @@ export function LightningAddressFields ({ service, maxFee }) {
       <Input
         label='amount'
         name='amount'
+        groupClassName='mb-0'
         type='number'
         step={10}
         min={service.min}
@@ -101,6 +101,7 @@ function LightningAddressField ({ name, service, values, me, required }) {
         as='textarea'
         label={label}
         name='comment'
+        groupClassName='mb-0'
         hint={`characters remaining: ${remaining}`}
       />
     )
@@ -112,6 +113,7 @@ function LightningAddressField ({ name, service, values, me, required }) {
         name='identifier'
         required={required}
         label={label}
+        groupClassName='mb-0'
       />
     )
   }
@@ -121,6 +123,7 @@ function LightningAddressField ({ name, service, values, me, required }) {
       name={name}
       required={required}
       label={label}
+      groupClassName='mb-0'
     />
   )
 }

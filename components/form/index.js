@@ -1,0 +1,18 @@
+// the C9a barrel (§18.3-a): 23 surviving legacy exports (InputTerritorySuggest +
+// ClientCheckbox died — zero references, §18.6-OQ2) + InputGroup + the class builders
+export { Form, StorageKeyPrefixContext, SessionRequiredError } from './form'
+export { Input, ClientInput } from './input'
+export { default as InputGroup } from './input-group'
+export { inputClasses, labelClasses, hintClasses, errorClasses } from './field'
+export { SubmitButton } from './submit-button'
+export { CopyButton, CopyInput } from './copy'
+export { Checkbox, CheckboxGroup } from './checkbox'
+export { Select } from './select'
+export { BaseSuggest, InputUserSuggest, useDualAutocomplete, DualAutocompleteWrapper } from './suggest'
+export { SNInput } from './sn-input'
+export { VariableInput } from './variable-input'
+export { Range } from './range'
+export { DatePicker, DateTimeInput } from './date-picker'
+export { PasswordInput, PasswordVisibilityIcon } from './password-input'
+export { MultiInput } from './multi-input'
+export { MultiSelect } from './multi-select'

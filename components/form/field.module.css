@@ -1,0 +1,143 @@
+/* shared form-field chrome. Colors and state live here; border-radius and the
+   group margin are deliberately module-side too, because consumer module skins
+   override them (the wallets capability card) and a recipe utility would be
+   unbeatable from module CSS */
+
+.group {
+    margin-bottom: 1rem;
+}
+
+.label {
+    font-size: 92%;
+    font-weight: bold;
+}
+
+.label :global(.text-muted) {
+    font-weight: normal;
+}
+
+.hint {
+    color: var(--bs-secondary-color);
+    font-size: .875em;
+    margin-top: .25rem;
+}
+
+.error {
+    width: 100%;
+    color: #c03221;
+    font-size: .875em;
+    margin-top: .25rem;
+}
+
+.control {
+    background-color: var(--theme-inputBg);
+    border: 1px solid var(--theme-borderColor);
+    color: var(--bs-body-color);
+    border-radius: var(--sn-input-radius, .375rem);
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.control::placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+.control:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 .2rem rgb(250 218 94 / 25%);
+    outline: 0;
+}
+
+.control:disabled,
+.control[readonly] {
+    background-color: var(--theme-inputDisabledBg);
+    color: var(--theme-borderColor);
+    opacity: 1;
+}
+
+/* the SN-branded thumbs validation icons, carried verbatim from globals'
+   $form-feedback-icon-* values */
+/* the icon inset padding is a conditional pe-10 utility in input.js: a module
+   padding-right here would lose to the recipe's px-4 */
+.control[data-invalid] {
+    border-color: #c03221;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M22 15h-3V3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zm-5.293 1.293l-6.4 6.4a.5.5 0 0 1-.654.047L8.8 22.1a1.5 1.5 0 0 1-.553-1.57L9.4 16H3a2 2 0 0 1-2-2v-2.104a2 2 0 0 1 .15-.762L4.246 3.62A1 1 0 0 1 5.17 3H16a1 1 0 0 1 1 1v11.586a1 1 0 0 1-.293.707z' fill='rgba%28192,50,33,1%29'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right calc(.4375em + .21rem) center;
+    background-size: calc(.875em + .42rem) calc(.875em + .42rem);
+}
+
+.control[data-invalid]:focus {
+    border-color: #c03221;
+    box-shadow: 0 0 0 .25rem rgb(192 50 33 / 25%);
+}
+
+.control.valid {
+    border-color: #5c8001;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M2 9h3v12H2a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1zm5.293-1.293l6.4-6.4a.5.5 0 0 1 .654-.047l.853.64a1.5 1.5 0 0 1 .553 1.57L14.6 8H21a2 2 0 0 1 2 2v2.104a2 2 0 0 1-.15.762l-3.095 7.515a1 1 0 0 1-.925.619H8a1 1 0 0 1-1-1V8.414a1 1 0 0 1 .293-.707z' fill='rgba%2892, 128, 1, 1%29'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right calc(.4375em + .21rem) center;
+    background-size: calc(.875em + .42rem) calc(.875em + .42rem);
+}
+
+.control.valid:focus {
+    border-color: #5c8001;
+    box-shadow: 0 0 0 .25rem rgb(92 128 1 / 25%);
+}
+
+/* globals painted textarea.form-control at line-height 1rem */
+textarea.control {
+    line-height: 1rem;
+}
+
+textarea.passwordInput {
+    resize: none;
+}
+
+.addon {
+    background-color: var(--theme-clickToContextColor);
+    border: 1px solid var(--theme-borderColor);
+    color: var(--bs-body-color);
+    border-radius: var(--sn-input-radius, .375rem);
+}
+
+/* structural corner-joining: every group member's radius is a plain module
+   declaration, so these rules win on specificity alone with no layer fight.
+   React fragments don't make DOM nodes, so first-child and last-child see the
+   flattened members as real siblings. Members must not carry radius utilities;
+   corner overrides happen at the call site, like the CopyInput button.
+   See docs/dev/styling.md for the full input group system. */
+.inputGroup > :not(:first-child) {
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+}
+
+.inputGroup > :not(:last-child) {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+}
+
+/* rest-state seam for the clear button against the input's right edge
+   (the radius-zeroing that used to live here moved to .inputGroup above) */
+.appendButton {
+    border-left: 0 !important;
+}
+
+.clearButton {
+    background-color: var(--theme-inputBg);
+    border: 1px solid var(--theme-borderColor);
+    border-radius: var(--sn-input-radius, .375rem);
+    padding: 0rem 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.clearButton:hover, .clearButton:active {
+    background-color: var(--theme-inputBg) !important;
+    border: 1px solid var(--theme-borderColor) !important;
+    border-left: 0 !important;
+}
+
+.clearButton.isInvalid {
+    border-color: #c03221;
+}

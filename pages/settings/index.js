@@ -1,6 +1,5 @@
-import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, Range } from '@/components/form'
-import Button from 'react-bootstrap/Button'
-import InputGroup from 'react-bootstrap/InputGroup'
+import { Checkbox, Form, Input, InputGroup, SubmitButton, Select, VariableInput, Range, labelClasses } from '@/components/form'
+import Button from '@/components/ui/button'
 import Nav from 'react-bootstrap/Nav'
 import Layout from '@/components/layout'
 import { useMemo } from 'react'
@@ -233,7 +232,7 @@ export default function Settings ({ ssrData }) {
             required
             className='mb-2'
           />
-          <div className='form-label'>notify me when ...</div>
+          <div className={labelClasses()}>notify me when ...</div>
           <Checkbox
             label='I stack sats from posts and comments'
             name='noteItemSats'
@@ -284,7 +283,7 @@ export default function Settings ({ ssrData }) {
             name='noteCowboyHat'
             groupClassName='mb-4'
           />
-          <div className='form-label'>wallet</div>
+          <div className={labelClasses()}>wallet</div>
           <Checkbox
             label={
               <div className='flex items-center'>use blank invoice descriptions
@@ -316,7 +315,7 @@ export default function Settings ({ ssrData }) {
             }
             name='autoDropBolt11s'
           />
-          <div className='form-label'>privacy</div>
+          <div className={labelClasses()}>privacy</div>
           <Checkbox
             label={<>hide me from  <Link href='/top/stackers/day'>top stackers</Link></>}
             name='hideFromTopUsers'

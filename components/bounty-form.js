@@ -1,6 +1,5 @@
-import { Form, Input, SNInput } from '@/components/form'
+import { Form, Input, InputGroup, SNInput } from '@/components/form'
 import AdvPostForm from './adv-post-form'
-import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '@/lib/validate'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { ItemButtonBar } from './post'

@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { Input } from '@/components/form'
+import { Input, InputGroup } from '@/components/form'
 import CloseIcon from '@/svgs/close-line.svg'
 import EditIcon from '@/svgs/edit-line.svg'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import sendStyles from './send.module.css'
 import classNames from 'classnames'
 import { useField } from 'formik'
-import { InputGroup } from 'react-bootstrap'
 import { DestinationType } from './destination'
 const styles = { ...sharedStyles, ...sendStyles }
 
@@ -47,6 +46,7 @@ function MaxFeeField () {
         <Input
           label='max fee'
           name='maxFee'
+          groupClassName='mb-0'
           type='number'
           step={10}
           required

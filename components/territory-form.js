@@ -1,7 +1,6 @@
 import AccordianItem from './accordian-item'
-import { InputGroup, Form as BootstrapForm } from 'react-bootstrap'
 import Badge from '@/components/ui/badge'
-import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
+import { Checkbox, CheckboxGroup, Form, Input, InputGroup, SNInput, Range, labelClasses } from './form'
 import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql } from '@apollo/client'
@@ -281,7 +280,7 @@ export default function TerritoryForm ({ sub }) {
                 append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
               />
               <SatFilterRanges />
-              <BootstrapForm.Label>nsfw</BootstrapForm.Label>
+              <label className={labelClasses()}>nsfw</label>
               <Checkbox
                 inline
                 label={

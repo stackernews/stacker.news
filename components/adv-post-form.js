@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import AccordianItem from './accordian-item'
-import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
-import InputGroup from 'react-bootstrap/InputGroup'
+import { Input, InputGroup, InputUserSuggest, VariableInput, Checkbox } from './form'
 import { MAX_FORWARDS } from '@/lib/constants'
 import { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import Info from './info'

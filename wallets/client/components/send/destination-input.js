@@ -1,4 +1,4 @@
-import { Input } from '@/components/form'
+import { Input, errorClasses } from '@/components/form'
 import { MiddleEllipsis } from '@/components/copy-chip'
 import { bolt11Description } from '@/lib/bolt11'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
@@ -57,6 +57,7 @@ function DestinationTextInput ({ onDestinationChange, checkDestination, destinat
     <Input
       label='invoice or lightning address'
       name='destination'
+      groupClassName='mb-0'
       as='textarea'
       rows={3}
       required
@@ -87,7 +88,7 @@ function DetectedDestinationRow ({ value, error, onReplace }) {
   const description = bolt11Description(value)
   return (
     <>
-      <div className={classNames(styles.surfaceRow, styles.detectedRow, error && 'is-invalid')}>
+      <div className={classNames(styles.surfaceRow, styles.detectedRow)}>
         <div className={styles.detectedIdentity}>
           <div className={classNames(styles.detectedValue, 'font-mono')} title={value}>
             <MiddleEllipsis value={description || value} />
@@ -100,7 +101,7 @@ function DetectedDestinationRow ({ value, error, onReplace }) {
           replace
         </button>
       </div>
-      {error && <div className='invalid-feedback block'>{error}</div>}
+      {error && <div className={errorClasses()}>{error}</div>}
     </>
   )
 }

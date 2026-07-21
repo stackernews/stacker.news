@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
-import { InputGroup } from 'react-bootstrap'
 import classNames from 'classnames'
-import { Input, PasswordInput } from '@/components/form'
+import { Input, InputGroup, PasswordInput } from '@/components/form'
 import Text from '@/components/text'
 import Info from '@/components/info'
 import { parseNwcUrl } from '@/wallets/lib/validate'

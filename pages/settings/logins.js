@@ -1,4 +1,4 @@
-import { Form, Input, SubmitButton, CopyInput } from '@/components/form'
+import { Form, Input, SubmitButton, CopyInput, labelClasses } from '@/components/form'
 import Alert from '@/components/ui/alert'
 import Button from '@/components/ui/button'
 import Layout from '@/components/layout'
@@ -336,7 +336,7 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
 
   return (
     <>
-      <div className='form-label mt-6'>api key</div>
+      <div className={labelClasses({ className: 'mt-6' })}>api key</div>
       <div className='mt-2 flex items-center'>
         <Button
           variant={apiKey ? 'danger' : 'secondary'}

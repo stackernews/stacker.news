@@ -2,11 +2,13 @@ import { Button as BaseButton } from '@base-ui/react/button'
 import { cn } from '@/lib/cn'
 import styles from './button.module.css'
 
-// text-base is SN's body-size token (.93rem/1.75, styles/tailwind.css @theme),
-// so no explicit line-height; sm/lg carry their native paired line-heights
-const BASE = 'inline-block text-center align-middle select-none cursor-pointer border-0 text-base rounded-md'
+// text-base is SN's body-size token, so no explicit line-height; sm and lg carry
+// their native pairs. No border utility here: the module's 1px transparent border
+// is load-bearing height, and a width utility would beat the outline color pins.
+const BASE = 'inline-block text-center align-middle select-none cursor-pointer text-base rounded-md'
 
-// inputs must use the same md metrics (px-4 py-1.5) or InputGroups misalign
+// metrics pair with the inputClasses sizes in form/field.js: both sides of an
+// InputGroup must use the same size or the row misaligns
 const SIZES = {
   sm: 'px-2 py-1 text-sm rounded-sm',
   md: 'px-4 py-1.5',
@@ -25,7 +27,7 @@ export function buttonClasses ({ variant = 'primary', size = 'md', className } =
     styles.btn,
     styles[variant],
     BASE,
-    // compiled .btn-link is weight 400; every other variant is bold ($btn-font-weight)
+    // the compiled .btn-link is weight 400; every other variant is bold
     variant === 'link' ? 'font-normal' : 'font-bold',
     SIZES[size],
     className
@@ -33,23 +35,19 @@ export function buttonClasses ({ variant = 'primary', size = 'md', className } =
 }
 
 /**
- * SN Button component
+ * SN Button component, always a real <button>; link-shaped buttons use
+ * a Link or <a> with buttonClasses() instead
  * @param {string} variant - The variant of the button
  * @param {string} size - The size of the button
- * @param {string} as - The component to render the button as
- * @param {string} href - The href for the button (will render an <a> tag)
  * @param {string} type - The type of the button
  * @param {string} className - The extra class name for the button
  * @param {boolean} focusableWhenDisabled - Whether the button should be focusable when disabled, useful for buttons with loading states
  * @param {Object} props - The props for the button
  */
-export default function Button ({ variant = 'primary', size = 'md', as: As, href, type = 'button', className, ...props }) {
-  const render = As ? <As href={href} /> : href ? <a href={href} /> : undefined
-
+export default function Button ({ variant = 'primary', size = 'md', type = 'button', className, ...props }) {
   return (
     <BaseButton
-      render={render}
-      type={render ? undefined : type}
+      type={type}
       className={buttonClasses({ variant, size, className })}
       {...props}
     />

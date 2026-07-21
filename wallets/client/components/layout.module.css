@@ -84,10 +84,11 @@
   flex-direction: column;
   gap: 2rem;
 }
-.walletActionBody :global(textarea.form-control) {
+/* element-keyed because the .form-control class left the DOM */
+.walletActionBody :global(textarea) {
   min-height: 8rem;
 }
-.walletActionBody :global(textarea.form-control).walletDestinationInput {
+.walletActionBody :global(textarea).walletDestinationInput {
   min-height: 86px;
   max-height: 12rem;
   resize: vertical;
@@ -131,14 +132,6 @@
 @media (max-width: 767px) {
   .walletPageHeading h1 {
     font-size: clamp(1.8rem, 9vw, 2.45rem);
-  }
-  .walletContain {
-    /* full-bleed on mobile: beats Bootstrap .container max-width/padding (equal specificity, source-order dependent) */
-    width: 100%;
-    max-width: none !important;
-    margin: 0;
-    padding-right: 0 !important;
-    padding-left: 0 !important;
   }
   .walletShell {
     display: flex;

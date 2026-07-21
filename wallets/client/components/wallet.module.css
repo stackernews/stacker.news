@@ -105,10 +105,12 @@
 }
 
 @media (max-width: 767px) {
-  .formResponsiveReset :global(.col),
-  .formResponsiveReset :global(.input-group),
-  .formResponsiveReset :global(.form-control),
-  .formResponsiveReset :global(.input-group-text) {
+  /* element-keyed because the old .col and input-group classes left the DOM;
+     the new controls carry min-w-0 themselves, this is belt and suspenders
+     for nested native controls */
+  .formResponsiveReset :global(input),
+  .formResponsiveReset :global(textarea),
+  .formResponsiveReset :global(select) {
     min-width: 0;
   }
   .formResponsiveReset :global(.row) {

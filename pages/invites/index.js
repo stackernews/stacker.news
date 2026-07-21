@@ -1,6 +1,5 @@
 import Layout from '@/components/layout'
-import { Form, Input, SubmitButton } from '@/components/form'
-import InputGroup from 'react-bootstrap/InputGroup'
+import { Form, Input, InputGroup, SubmitButton } from '@/components/form'
 import { gql } from '@apollo/client'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { INVITE_FIELDS } from '@/fragments/invites'

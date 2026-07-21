@@ -1,4 +1,4 @@
-import { Form } from 'react-bootstrap'
+import { inputClasses } from '@/components/form'
 
 function searchKey (value) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -34,11 +34,12 @@ export function WalletSearch ({ query, onQueryChange }) {
     <div className='flex justify-center mb-6 mt-6'>
       <div className='w-full' style={{ maxWidth: '400px' }}>
         <div className='relative'>
-          <Form.Control
+          <input
             type='text'
             placeholder='Search wallets...'
             value={query}
             onChange={e => onQueryChange(e.target.value)}
+            className={inputClasses()}
           />
         </div>
       </div>

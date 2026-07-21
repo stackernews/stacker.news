@@ -15,11 +15,8 @@
   padding-top: 1rem;
   padding-bottom: 2rem;
 }
-.fields :global(.form-group),
-.toggleChipSection :global(.form-group),
-.maxFee :global(.form-group) {
-  margin-bottom: 0;
-}
+/* C9a: the .form-group class left the DOM — the margin kill moved to the call
+   sites (groupClassName='mb-0' on the send-flow fields; §11.0 bucket 3) */
 
 .detectedRow {
   display: grid;

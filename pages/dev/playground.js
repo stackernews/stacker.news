@@ -29,8 +29,15 @@ import BsToastBody from 'react-bootstrap/ToastBody'
 import BsToastContainer from 'react-bootstrap/ToastContainer'
 import Overlay from 'react-bootstrap/Overlay'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import BsForm from 'react-bootstrap/Form'
+import BsInputGroup from 'react-bootstrap/InputGroup'
 import { Menu as BaseMenu } from '@base-ui/react/menu'
 import { Formik } from 'formik'
+import {
+  Form as SnForm, Input as SnInput, Checkbox as SnCheckbox, Select as SnSelect,
+  CopyInput as SnCopyInput, PasswordInput as SnPasswordInput, InputUserSuggest as SnInputUserSuggest,
+  SubmitButton as SnSubmitButton, InputGroup as SnInputGroup
+} from '@/components/form'
 import Layout from '@/components/layout'
 import { SNEditor } from '@/components/editor'
 import { FeeButtonProvider } from '@/components/fee-button'
@@ -101,19 +108,25 @@ const RETINT_VARS = {
 
 // docs/dev/pr2-base-ui-components.md §8 — add a section above as each lands
 const ROADMAP = [
-  ['form: Field, Input, Checkbox, InputGroup, select', 'C9a'],
   ['form: Slider + NumberField, CheckboxGroup, OTP Field', 'C9b'],
   ['Nav / Navbar + Drawer', 'C10'],
   ['Collapsible', 'C11'],
   ['Switch, Toggle Group', 'C12']
 ]
 
-function Section ({ title, note, children }) {
+// note: one-sentence lead (what the component is, where it lives).
+// details: bullet list for the longer story — intended deltas, receipts,
+// what to poke at during QA
+function Section ({ title, note, details, children }) {
   return (
     <section className='mb-5'>
       <h2 className='text-lg font-bold mb-0'>{title}</h2>
-      {note && <p className='text-muted text-sm mb-3'>{note}</p>}
-      {children}
+      {note && <p className='text-muted text-sm mb-0 max-w-prose'>{note}</p>}
+      {details?.length > 0 &&
+        <ul className='text-muted text-sm list-disc ps-5 mt-1 mb-0 max-w-prose space-y-1'>
+          {details.map((d, i) => <li key={i}>{d}</li>)}
+        </ul>}
+      <div className='mt-3'>{children}</div>
     </section>
   )
 }
@@ -129,15 +142,15 @@ function CompareGrid ({ children }) {
   )
 }
 
+// the note paints as a caption under the compared pair (full content width)
+// instead of wrapping inside the 8rem label column
 function Compare ({ label, note, bs, sn }) {
   return (
     <>
-      <div className='text-sm font-mono text-muted'>
-        {label}
-        {note && <div className='text-xs opacity-75 font-sans'>{note}</div>}
-      </div>
+      <div className='text-sm font-mono text-muted'>{label}</div>
       <div className='min-w-0'>{bs}</div>
       <div className='min-w-0'>{sn}</div>
+      {note && <div className='col-start-2 col-span-2 -mt-2 text-xs text-muted max-w-prose'>{note}</div>}
     </>
   )
 }
@@ -255,7 +268,7 @@ function WalkthroughCompare () {
   return (
     <Compare
       label='walkthrough'
-      note="upvote shape: controlled, anchor ref, side='right', header + lightning X. outside click does NOT dismiss on either side (parity); Escape dismisses the new side (deliberate a11y add)"
+      note="upvote shape: controlled, anchor ref, side='right', header + lightning X. outside click does NOT dismiss on either side — parity, a stray click must not mark the walkthrough seen. Escape dismisses the new side (deliberate a11y add)."
       bs={
         <div className='flex items-center'>
           <BsButton size='sm' variant='grey' onClick={() => setShowBs(s => !s)}>toggle</BsButton>
@@ -523,6 +536,145 @@ const BS_TOAST_REPLICA_CSS = `
 }
 `
 
+function FormCompares () {
+  return (
+    <SnForm
+      initial={{ pgBasic: '', pgGrouped: '', pgReq: '', pgCheck: true, pgKind: 'apples', pgPostTypes: ['LINK'], pgSel: 'b', pgNym: '', pgClear: 'clear me', pgPw: 'hunter2hunter2' }}
+      validate={values => values.pgReq ? {} : { pgReq: 'required' }}
+      onSubmit={() => {}}
+    >
+      <CompareGrid>
+        <Compare
+          label='input'
+          bs={
+            <BsForm.Group className='form-group'>
+              <BsForm.Label>label</BsForm.Label>
+              <BsInputGroup hasValidation>
+                <BsForm.Control placeholder='placeholder' />
+              </BsInputGroup>
+              <BsForm.Text>a hint below</BsForm.Text>
+            </BsForm.Group>
+            }
+          sn={<SnInput label='label' name='pgBasic' placeholder='placeholder' hint='a hint below' />}
+        />
+        <Compare
+          label='addon group'
+          note='intended deltas: height 41.5→40px (py 6.72→6px), padding-x 13.4→16px, radius 6.4→6px'
+          bs={
+            <BsInputGroup>
+              <BsInputGroup.Text>@</BsInputGroup.Text>
+              <BsForm.Control defaultValue='100' />
+              <BsInputGroup.Text className='font-mono'>sats</BsInputGroup.Text>
+            </BsInputGroup>
+            }
+          sn={
+            <SnInput
+              name='pgGrouped' groupClassName='mb-0'
+              prepend={<SnInputGroup.Text>@</SnInputGroup.Text>}
+              append={<SnInputGroup.Text className='font-mono'>sats</SnInputGroup.Text>}
+            />
+            }
+        />
+        <Compare
+          label='invalid'
+          note='left = forced paint; right is LIVE — submit empty to trip the submit-gated invalid, then type to clear it'
+          bs={
+            <div>
+              <BsInputGroup hasValidation>
+                <BsForm.Control isInvalid defaultValue='forced invalid' />
+                <BsForm.Control.Feedback type='invalid'>required</BsForm.Control.Feedback>
+              </BsInputGroup>
+            </div>
+            }
+          sn={
+            <div className='flex items-start gap-2'>
+              <div className='grow'><SnInput name='pgReq' groupClassName='mb-0' placeholder='required — submit me empty' /></div>
+              <SnSubmitButton variant='secondary' size='sm' className='mt-1'>submit</SnSubmitButton>
+            </div>
+            }
+        />
+        <Compare
+          label='clear / copy / password'
+          bs={<BsForm.Control readOnly defaultValue='rb had SN-custom addons here' />}
+          sn={
+            <div className='flex flex-col gap-2'>
+              <SnInput name='pgClear' clear groupClassName='mb-0' />
+              <SnCopyInput placeholder='copy this value' readOnly noForm groupClassName='mb-0' />
+              <SnPasswordInput name='pgPw' groupClassName='mb-0' />
+            </div>
+            }
+        />
+        <Compare
+          label='checkbox + radio'
+          note='array-membership checkbox (postTypes shape) + native radios; checked bg rides --bs-primary (territory-tintable)'
+          bs={
+            <div>
+              <BsForm.Check id='pg-bs-check' label='checkbox' defaultChecked />
+              <BsForm.Check id='pg-bs-radio-a' type='radio' name='pgBsKind' label='apples' defaultChecked />
+              <BsForm.Check id='pg-bs-radio-b' type='radio' name='pgBsKind' label='bananas' />
+            </div>
+            }
+          sn={
+            <div>
+              <SnCheckbox name='pgCheck' label='checkbox' groupClassName='mb-0' />
+              <SnCheckbox name='pgPostTypes' value='LINK' label='array member (LINK)' groupClassName='mb-0' />
+              <SnCheckbox type='radio' name='pgKind' value='apples' id='pg-radio-a' label='apples' groupClassName='mb-0' />
+              <SnCheckbox type='radio' name='pgKind' value='bananas' id='pg-radio-b' label='bananas' groupClassName='mb-0' />
+            </div>
+            }
+        />
+        <Compare
+          label='select'
+          note="rb's error text under a Select NEVER displayed (sibling-selector dead paint) — the new Select shows it: an intended bugfix delta"
+          bs={
+            <BsForm.Select className='form-select w-auto'>
+              <option>a</option>
+              <optgroup label='group'>
+                <option>b</option>
+                <option>c</option>
+              </optgroup>
+            </BsForm.Select>
+            }
+          sn={<SnSelect name='pgSel' items={['a', { label: 'group', items: ['b', 'c'] }]} groupClassName='mb-0' className='w-auto' />}
+        />
+        <Compare
+          label='user suggest (D3)'
+          note='left = static rb replica (the dead-shell shape with the opacity workaround); right is LIVE — type k0, arrows/Enter/Tab/Escape; deltas: menu chrome joins C5 (py-2 items, shadow-lg, z-ladder 1060, radius 6px)'
+          bs={<BsSuggestReplica />}
+          sn={<SnInputUserSuggest name='pgNym' autoComplete='off' groupClassName='mb-0' />}
+        />
+      </CompareGrid>
+    </SnForm>
+  )
+}
+
+// the pre-C9a BaseSuggest shell verbatim (form.js:526-540 at its death): a
+// show-forced rb Dropdown with no Toggle + the #5475 opacity workaround inlined
+function BsSuggestReplica () {
+  const [show, setShow] = useState(false)
+  const [index, setIndex] = useState(0)
+  const items = ['k00b', 'k00b2', 'k00b4']
+  return (
+    <div>
+      <BsForm.Control
+        placeholder='type to open the static replica'
+        onChange={e => setShow(e.target.value.length > 0)}
+        onKeyDown={e => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); setIndex(i => Math.min(i + 1, items.length - 1)) }
+          if (e.key === 'ArrowUp') { e.preventDefault(); setIndex(i => Math.max(i - 1, 0)) }
+          if (e.key === 'Escape') setShow(false)
+        }}
+      />
+      <BsDropdown show={show}>
+        <BsDropdown.Menu style={{ opacity: 1, pointerEvents: 'unset' }}>
+          {items.map((v, i) =>
+            <BsDropdown.Item key={v} active={index === i} onClick={() => setShow(false)}>{v}</BsDropdown.Item>)}
+        </BsDropdown.Menu>
+      </BsDropdown>
+    </div>
+  )
+}
+
 function ToastCompares () {
   const toaster = useToast()
   const router = useRouter()
@@ -597,7 +749,7 @@ function ToastCompares () {
         />
         <Compare
           label='dedup ×3'
-          note='fired 3× in one click → ONE toast "(3) zap pending" (tag defaults to the string body). the timer refreshes on both sides (old: the merged toast remounts under the newest id; new: native upsert resetTimer) — the new side also pulses per upsert'
+          note='fired 3× in one click → ONE toast "(3) zap pending", because the tag defaults to the string body. the timer refreshes on both sides: old remounts the merged toast under the newest id, new uses native upsert resetTimer. the new side also pulses per upsert.'
           bs={<BsButton size='sm' variant='grey' onClick={() => { bs.success('rb zap pending'); bs.success('rb zap pending'); bs.success('rb zap pending') }}>fire ×3</BsButton>}
           sn={<Button size='sm' variant='grey' onClick={() => { toaster.success('zap pending'); toaster.success('zap pending'); toaster.success('zap pending') }}>fire ×3</Button>}
         />
@@ -641,13 +793,13 @@ function ToastCompares () {
         />
         <Compare
           label='4-at-once stack'
-          note='old: full-size vertical stack, all 4 painted. new: collapsed peek-stack (12px peeks, −5% scale per index) — hover/focus fans it out, mouse-out re-collapses; with limit 3 the oldest is already hidden and its fan slot stays blank (known cosmetic, §16.8-7)'
+          note='old: full-size vertical stack, all 4 painted. new: collapsed peek-stack (12px peeks, −5% scale per index) — hover/focus fans it out, mouse-out re-collapses. with limit 3 the oldest is already hidden and its fan slot stays blank (known cosmetic, §16.8-7).'
           bs={<BsButton size='sm' variant='grey' onClick={() => { bs.success('rb stack 1'); bs.success('rb stack 2'); bs.danger('rb stack 3'); bs.warning('rb stack 4') }}>fire 4</BsButton>}
           sn={<Button size='sm' variant='grey' onClick={() => { toaster.success('stack 1'); toaster.success('stack 2'); toaster.danger('stack 3'); toaster.warning('stack 4') }}>fire 4</Button>}
         />
         <Compare
           label='countdown (progressBar)'
-          note='dead option — zero passers in the app, kept honored. old: 5px variant-tinted bar filling 0→100%. new: 3px white bar draining under the body; it pauses while the stack is hovered (Base UI pauses the real timer too) and restarts when a dedup upsert refreshes the timer'
+          note='dead option — zero passers in the app, kept honored. old: 5px variant-tinted bar filling 0→100%. new: 3px white bar draining under the body. it pauses while the stack is hovered (Base UI pauses the real timer too) and restarts when a dedup upsert refreshes the timer.'
           bs={<BsButton size='sm' variant='grey' onClick={() => bs.success('rb progress', { progressBar: true })}>fire</BsButton>}
           sn={<Button size='sm' variant='grey' onClick={() => toaster.success('progress', { progressBar: true })}>fire</Button>}
         />
@@ -737,7 +889,11 @@ export default function Playground () {
         <div style={retint ? RETINT_VARS : undefined}>
           <Section
             title='Button'
-            note='ui/button.js — 14 variants on Base UI Button; hover mixes 15% toward --sn-btn-mix, active 20%. native metrics since C2.5 (text-base token, md px-4 py-1.5, rounded-md) — expect ~1px size deltas vs BS'
+            note='ui/button.js — every variant on Base UI Button.'
+            details={[
+              'hover mixes 15% toward --sn-btn-mix, active mixes 20%',
+              'native metrics since C2.5: text-base token, md padding px-4 py-1.5, rounded-md. expect ~1px size deltas vs the BS side'
+            ]}
           >
             <CompareGrid>
               {BUTTON_VARIANTS.map(v =>
@@ -792,7 +948,11 @@ export default function Playground () {
 
           <Section
             title='Badge'
-            note='ui/badge.js — no default variant; native fixed metrics since C2.5 (px-2 py-0.5 text-xs rounded-md) — badges no longer em-scale with surrounding font size (intended)'
+            note='ui/badge.js — no default variant.'
+            details={[
+              'native fixed metrics since C2.5: px-2 py-0.5 text-xs rounded-md',
+              'intended delta: badges no longer em-scale with the surrounding font size — the "in text" row shows it'
+            ]}
           >
             <CompareGrid>
               {BADGE_VARIANTS.map(v =>
@@ -825,7 +985,10 @@ export default function Playground () {
 
           <Section
             title='Alert'
-            note='ui/alert.js — color-mix skins verified value-exact against compiled sass, light + dark. Heading is text-xl since C2.5 (was the fs-4 fluid clamp) — the compound row shows the size delta'
+            note='ui/alert.js — color-mix skins verified value-exact against compiled sass, light + dark.'
+            details={[
+              'intended delta: Heading is text-xl since C2.5 (was the fs-4 fluid clamp) — the compound row shows the size difference'
+            ]}
           >
             <CompareGrid>
               {ALERT_VARIANTS.map(v =>
@@ -858,7 +1021,10 @@ export default function Playground () {
 
         <Section
           title='Container'
-          note='ui/container.js — single max-w-4xl (896px) since C2.5, replacing the 540/720/900 tiers; resize between 576–992px to see the intended width gain on the new side'
+          note='ui/container.js — single max-w-4xl (896px) since C2.5, replacing the 540/720/900 tiers.'
+          details={[
+            'resize the window between 576–992px to see the intended width gain on the new side'
+          ]}
         >
           <div className='flex flex-col gap-2'>
             <BsContainer className='bg-info/10 py-1 text-center text-sm'>react-bootstrap Container — 540/720/900 tiers</BsContainer>
@@ -868,7 +1034,11 @@ export default function Playground () {
 
         <Section
           title='native scale'
-          note='C2.5 — the codemod map emits native steps now; the BS side of fs-1..4 is RFS-fluid (resize the window to watch it move), the new side is static. text-base carries SN&apos;s type identity as an @theme token (.93rem / 1.75)'
+          note='C2.5 — the codemod map emits native steps now.'
+          details={[
+            'the BS side of fs-1..4 is RFS-fluid (resize the window to watch it move); the new side is static',
+            'text-base carries SN’s type identity as an @theme token (.93rem / 1.75)'
+          ]}
         >
           <CompareGrid>
             {TYPE_SCALE.map(([bs, tw, note]) =>
@@ -896,7 +1066,14 @@ export default function Playground () {
 
         <Section
           title='Tooltip'
-          note='ui/tooltip.js — Base UI Tooltip portaled onto the --sn-z ladder; 150ms ease-out fade + scale(.98), keystone 5&apos;s first application. intended deltas: the ActionTooltip population gains the fade (was a snap; its .9 opacity stays — restored 2026-07-09, C3 had unified on 1; login drops to .9 with it, badges don&apos;t — they render a Popover now, opacity 1), the pointer can move onto the popup (WCAG 1.4.13), and every tooltip flip+shifts to stay in the viewport (QA decision — the old ActionTooltip config clipped at edges). green is theme-invariant — same in dark mode. arrow now rides the shared ui/arrow.module.css at 12px/borderless — 12×6 tip ≈ BS&apos;s native .8rem × .4rem, C3&apos;s drew 11.3×5.7 (C4 QA fix; also no longer morphs during open)'
+          note='ui/tooltip.js — Base UI Tooltip portaled onto the --sn-z ladder. 150ms ease-out fade + scale(.98) is keystone 5&apos;s first application.'
+          details={[
+            'intended delta: the ActionTooltip population gains the fade (was a snap). its .9 opacity stays — restored 2026-07-09, C3 had unified on 1. login drops to .9 with it; badges don’t, they render a Popover now at opacity 1',
+            'intended delta: the pointer can move onto the popup (WCAG 1.4.13)',
+            'intended delta: every tooltip flip+shifts to stay in the viewport — QA decision; the old ActionTooltip config clipped at edges',
+            'green is theme-invariant — same in dark mode',
+            'arrow rides the shared ui/arrow.module.css at 12px, borderless. the 12×6 tip ≈ BS’s native .8rem × .4rem; C3’s drew 11.3×5.7 (C4 QA fix). it no longer morphs during open either'
+          ]}
         >
           <CompareGrid>
             <Compare
@@ -956,7 +1133,13 @@ export default function Playground () {
 
         <Section
           title='Popover / Preview Card'
-          note='ui/popover.js + ui/preview-card.js — body-bg chrome on the --sn-z ladder, shared clip-window arrow (ui/arrow.module.css), 150ms fade+scale (was: snap). intended deltas: body font text-sm 14px vs 13.02px painted (footer bodies 14.4px), shadow-lg (today paints none — pre-flight 1; judge by eye), click/keyboard affordances called out per row. chrome is body-vars — theme-flips and territory-retints for free'
+          note='ui/popover.js + ui/preview-card.js — body-bg chrome on the --sn-z ladder, shared clip-window arrow (ui/arrow.module.css), 150ms fade+scale (was: snap).'
+          details={[
+            'intended delta: body font is text-sm 14px vs 13.02px painted today (footer bodies 14.4px)',
+            'intended delta: shadow-lg — today paints none (pre-flight 1; judge by eye)',
+            'new click/keyboard affordances are called out per row',
+            'chrome is body-vars — theme-flips and territory-retints for free'
+          ]}
         >
           <CompareGrid>
             <Compare
@@ -1040,7 +1223,7 @@ export default function Playground () {
             <WalkthroughCompare />
             <Compare
               label='badge hint'
-              note="left = C3's green tooltip (what badges render before this commit; login.js keeps it). right = the badge Popover: hover opens instantly, click PINS until outside click/Escape (intended), tap works on touch, Tab + Enter reaches it (all new)"
+              note="left = C3's green tooltip — what badges render before this commit; login.js keeps it. right = the badge Popover. hover opens instantly; click PINS until outside click/Escape (intended); tap works on touch; Tab + Enter reaches it (all new)."
               bs={
                 <Tooltip content='50 days'>
                   <span className='inline-flex items-center justify-center'><CowboyHatIcon className='fill-grey align-middle' height={16} width={16} /></span>
@@ -1054,7 +1237,7 @@ export default function Playground () {
             />
             <Compare
               label='arrow, four sides'
-              note="C4 QA fix: the popup is position:relative now, so the arrow's containing block survives the open/close transform (it used to re-anchor to the positioner when the transition ended — the shape-shift sox caught); shape is the Base UI docs clip-window diamond from the new shared ui/arrow.module.css at 16px (16×7 tip ≈ BS's native 1rem × .5rem popover arrow; the old 12px rotated square drew 17×8.5). Watch it open: no morph/jump, notch stays crisp, popup border must not cut across it"
+              note="C4 QA fix: the popup is position:relative now, so the arrow's containing block survives the open/close transform. it used to re-anchor to the positioner when the transition ended — the shape-shift sox caught. the shape is the Base UI docs clip-window diamond from the shared ui/arrow.module.css at 16px; the 16×7 tip ≈ BS's native 1rem × .5rem popover arrow, where the old 12px rotated square drew 17×8.5. watch it open: no morph/jump, the notch stays crisp, and the popup border must not cut across it."
               bs={
                 <div className='flex gap-4'>
                   {['top', 'right', 'bottom', 'left'].map(p =>
@@ -1075,7 +1258,12 @@ export default function Playground () {
 
         <Section
           title='Menu (Dropdown)'
-          note='ui/menu.js — Base UI Menu at rb-Dropdown ergonomics, modal={false} BAKED (Menu.Root is the one popup primitive that scroll-locks by default — Popover does not). intended deltas: items unify at py-2 (nav/modal/territory menus grow .25rem per item; item-"..." menus already painted it), shadow-lg (today paints none), rounded-md 6px vs 6.4px, 150ms fade+scale (was: snap), split caret w-10 40px vs 42px. new behaviors: typeahead letter-jump, keyboard highlight paints like hover, "..." and split triggers are focusable'
+          note='ui/menu.js — Base UI Menu at rb-Dropdown ergonomics, with modal={false} BAKED: Menu.Root is the one popup primitive that scroll-locks by default (Popover does not).'
+          details={[
+            'intended delta: items unify at py-2 — nav/modal/territory menus grow .25rem per item; the item-"..." menus already painted it',
+            'intended deltas: shadow-lg (today paints none), rounded-md 6px vs 6.4px, 150ms fade+scale (was: snap), split caret w-10 40px vs 42px',
+            'new behaviors: typeahead letter-jump, keyboard highlight paints like hover, the "..." and split triggers are focusable'
+          ]}
         >
           <CompareGrid>
             <Compare
@@ -1106,7 +1294,7 @@ export default function Playground () {
             />
             <Compare
               label='action "..."'
-              note='ActionDropdown shape: span trigger with the more icon (new: role=button + tabIndex — the old as="a" toggle was untabbable); action items + separator; items at py-2 on both sides here (the item-".." menus painted .5rem already)'
+              note='ActionDropdown shape: span trigger with the more icon — new side adds role=button + tabIndex, the old as="a" toggle was untabbable. action items + separator; items at py-2 on both sides here (the item-"…" menus painted .5rem already).'
               bs={
                 <BsDropdown className='pointer' as='span'>
                   <BsDropdown.Toggle variant='success' as='a'>
@@ -1134,13 +1322,13 @@ export default function Playground () {
             />
             <Compare
               label='split login'
-              note="login-button.js group: caret opens the end-aligned menu on the dropdownExtra skins (raw Base UI items — itemClasses' utilities would out-!important the skin, §11.0); menu width 160px on both sides (the old inline 150px always lost to Bootstrap's min-width); current account keeps the .active skin; keyboard highlight = the new [data-highlighted] hover twin"
+              note="login-button.js group: the caret opens an end-aligned menu on the dropdownExtra skins — raw Base UI items, because itemClasses' utilities would out-!important the skin (§11.0). menu width is 160px on both sides (the old inline 150px always lost to Bootstrap's min-width). the current account keeps the .active skin; keyboard highlight is the new [data-highlighted] hover twin."
               bs={<BsSplitLogin />}
               sn={<SnSplitLogin />}
             />
             <Compare
               label='mentions listbox'
-              note='editor @/~ suggestions (D4): plain listbox on menuClasses/itemClasses — Lexical owns the keyboard, selection paints the active glow; the rb Dropdown shell (and the opacity !important workaround it needed) is gone. left = static rb lookalike'
+              note='editor @/~ suggestions (D4): a plain listbox on menuClasses/itemClasses. Lexical owns the keyboard; selection paints the active glow. the rb Dropdown shell (and the opacity !important workaround it needed) is gone. left = static rb lookalike.'
               bs={
                 <div className='dropdown-menu show relative inline-block'>
                   <a className='dropdown-item active' href='#satoshi' onClick={e => e.preventDefault()}>satoshi</a>
@@ -1152,7 +1340,7 @@ export default function Playground () {
             />
             <Compare
               label='scroll lock (modal)'
-              note="pre-flight 4's receipt — left is NOT rb: it's a raw Base UI Menu at the DEFAULT modal, which LOCKS document scroll while open (body overflow:hidden). right is ui/menu with the baked modal={false}: the page keeps scrolling, matching every rb menu today. this asymmetry is why the wrapper bakes it (Popover.Root defaults false; Menu.Root defaults true)"
+              note="pre-flight 4's receipt. left is NOT rb — it's a raw Base UI Menu at the DEFAULT modal, which LOCKS document scroll while open (body overflow:hidden). right is ui/menu with the baked modal={false}: the page keeps scrolling, matching every rb menu today. this asymmetry is why the wrapper bakes it — Popover.Root defaults false, Menu.Root defaults true."
               bs={
                 <BaseMenu.Root>
                   <BaseMenu.Trigger className={buttonClasses({ variant: 'grey', size: 'sm' })}>default modal — locks</BaseMenu.Trigger>
@@ -1181,7 +1369,14 @@ export default function Playground () {
 
         <Section
           title='Modal (Dialog)'
-          note="modal.js internals on ONE controlled Dialog.Root — the stack/back/keepOpen/fullScreen machinery is unchanged (D1) and useShowModal's 24 consumer files didn't move; the right column IS the real modal. Dialog KEEPS Base UI's modal default (scroll lock + focus trap are the contract here) — the deliberate pair to Menu's baked modal={false}. NO motion: open and close snap on BOTH sides (deliberate keystone-5 exception — an exit fade needs deferred-unmount machinery inside the stack logic, parked in §15.8-1). intended deltas: max-w-lg 512px vs 500px, the X is a Dialog.Close (Tab reaches it, Enter/Space close — D8; rb's div was untabbable), the popup itself takes focus on open (rb focused the container — no focus ring, no mobile keyboard on either)"
+          note="modal.js internals on ONE controlled Dialog.Root — the stack/back/keepOpen/fullScreen machinery is unchanged (D1) and useShowModal's 24 consumer files didn't move. the right column IS the real modal."
+          details={[
+            'Dialog KEEPS Base UI’s modal default — scroll lock + focus trap are the contract here. the deliberate pair to Menu’s baked modal={false}',
+            'NO motion: open and close snap on BOTH sides. deliberate keystone-5 exception — an exit fade needs deferred-unmount machinery inside the stack logic, parked in §15.8-1',
+            'intended delta: max-w-lg 512px vs 500px',
+            'intended delta: the X is a Dialog.Close — Tab reaches it, Enter/Space close (D8). rb’s div was untabbable',
+            'intended delta: the popup itself takes focus on open (rb focused the container) — no focus ring, no mobile keyboard on either side'
+          ]}
         >
           <CompareGrid>
             <Compare
@@ -1192,13 +1387,13 @@ export default function Playground () {
             />
             <Compare
               label='2-deep stack'
-              note="push B → the back arrow appears; back pops ONE level (B's onClose fires after the pop — the modal.js:39–42 ordering that keeps a QR cancel from nuking the stack); X closes everything from any depth"
+              note="push B → the back arrow appears. back pops ONE level; B's onClose fires after the pop — the modal.js:39–42 ordering that keeps a QR cancel from nuking the stack. X closes everything from any depth."
               bs={<BsModalReplica label='open stack' stackable><p>modal A (bottom of stack)</p></BsModalReplica>}
               sn={<Button size='sm' variant='grey' onClick={() => showModal(() => <SnStackGuts showModal={showModal} />)}>open stack</Button>}
             />
             <Compare
               label='keepOpen'
-              note="QR/ApiKeyModal shape: Escape and backdrop-click no-op on both sides; the X always closes — 'close-press' routes around the keepOpen gate exactly like rb's direct onClick did (onHide={undefined} only ever killed light dismiss)"
+              note="QR/ApiKeyModal shape: Escape and backdrop-click no-op on both sides, the X always closes. 'close-press' routes around the keepOpen gate exactly like rb's direct onClick did — onHide={undefined} only ever killed light dismiss."
               bs={<BsModalReplica label='keepOpen modal' keepOpen><p>Escape/backdrop do nothing — only the X closes me</p></BsModalReplica>}
               sn={<Button size='sm' variant='grey' onClick={() => showModal(() => <p>Escape/backdrop do nothing — only the X closes me</p>, { keepOpen: true })}>keepOpen modal</Button>}
             />
@@ -1227,7 +1422,7 @@ export default function Playground () {
             />
             <Compare
               label='overflow menu z'
-              note="the C5 ⚠️ regression receipt (extends the Menu scroll-lock receipt family): the ONE menu that opens from inside a modal is the carousel's overflow — left pins its positioner at the old ladder value 1000, so it opens BEHIND the modal (§15.5 pre-flight 8's failing check); right rides the fixed --sn-z-dropdown 1060 → visibly on top. same PR, so the regression never ships"
+              note="the C5 ⚠️ regression receipt (extends the Menu scroll-lock receipt family). the ONE menu that opens from inside a modal is the carousel's overflow. left pins its positioner at the old ladder value 1000, so it opens BEHIND the modal — §15.5 pre-flight 8's failing check. right rides the fixed --sn-z-dropdown 1060 and paints visibly on top. same PR, so the regression never ships."
               bs={<BsZRegressionModal />}
               sn={
                 <Button
@@ -1251,14 +1446,25 @@ export default function Playground () {
 
         <Section
           title='Toast'
-          note="toast.js internals on Base UI Toast (Provider + portaled Viewport) — the hand-rolled state machine died (upsert-by-id covers dedup/timer-refresh/countdown natively) and useToast's 42 consumer files didn't move. left column = pre-C7 replica firing bottom-LEFT so both stacks run side by side (the real thing sat bottom-right like the new side). intended deltas (keystone-5 revision, GO 2026-07-16): 250ms peek-stack + hover fan-out + swipe-dismiss + upsert pulse + pausing countdown replace the 0.2s slide-in/fade and the always-expanded vertical stack; shadow-only chrome (the 1px border dies; 0 2px 8px 25% vs 0 8px 16px 15%); radius 6px vs 6.4px; limit 3; toasts are tab-reachable and F6 jumps to the stack; reduced-motion disables all of it (rb animated under reduce)"
+          note="toast.js internals on Base UI Toast (Provider + portaled Viewport) — the hand-rolled state machine died (upsert-by-id covers dedup, timer refresh and countdown natively) and useToast's 42 consumer files didn't move."
+          details={[
+            'left column = pre-C7 replica firing bottom-LEFT so both stacks run side by side (the real thing sat bottom-right like the new side)',
+            'intended deltas (keystone-5 revision, GO 2026-07-16): 250ms peek-stack + hover fan-out + swipe-dismiss + upsert pulse + pausing countdown replace the 0.2s slide-in/fade and the always-expanded vertical stack',
+            'intended deltas: shadow-only chrome — the 1px border dies, shadow 0 2px 8px 25% vs 0 8px 16px 15%; radius 6px vs 6.4px; limit 3',
+            'new behaviors: toasts are tab-reachable and F6 jumps to the stack; reduced-motion disables all motion (rb animated under reduce)'
+          ]}
         >
           <ToastCompares />
         </Section>
 
         <Section
           title='Editor'
-          note="the real SNEditor, no rb replica (a compare pair would need a second Lexical editor — §17.0-4): whatever is swapped paints here. C8a: mode switch = inline Base UI Tabs (real <button role='tab'> tablist, roving tabindex, arrows move focus / Enter–Space activates through the upload guard; the active tab no-ops natively). C8b: Toolbar + Menu — intended deltas: ~150ms menu motion, shadow-lg on the popups, the popup takes focus while open (format still applies to the original selection, focus returns after — ⚠️ iOS keyboard may retract, device QA), toolbar roving arrows. C8c: link editor = controlled Popover at ladder z 1070 (house popover chrome replaces the old composite bg; scroll-tracking native; Tab-out alone no longer closes it — selection tracking unmounts on caret-leave)"
+          note='the real SNEditor, no rb replica — a compare pair would need a second Lexical editor (§17.0-4). whatever is swapped paints here.'
+          details={[
+            "C8a mode switch: inline Base UI Tabs — a real <button role='tab'> tablist with roving tabindex. arrows move focus, Enter/Space activates through the upload guard, the active tab no-ops natively",
+            'C8b Toolbar + Menu — intended deltas: ~150ms menu motion, shadow-lg on the popups, toolbar roving arrows. the popup takes focus while open; format still applies to the original selection and focus returns after — ⚠️ iOS keyboard may retract, device QA',
+            'C8c link editor: controlled Popover at ladder z 1070 — house popover chrome replaces the old composite bg, scroll-tracking is native. Tab-out alone no longer closes it; selection tracking unmounts on caret-leave'
+          ]}
         >
           <Formik initialValues={{ pgEditorTop: '', pgEditorComment: '' }} onSubmit={() => {}}>
             {() => (
@@ -1276,6 +1482,19 @@ export default function Playground () {
               </FeeButtonProvider>
             )}
           </Formik>
+        </Section>
+
+        <Section
+          title='Form'
+          note='components/form.js became a barrel over components/form/ — Input/Field on Base UI Field+Input, Checkbox on Base UI Checkbox.Root, radios native, select native on the SN pill skin, InputGroup is SN-composed (consumers only ever passed .Text addons). Formik owns all state; Base UI Form was deliberately NOT adopted.'
+          details={[
+            'invalid stays submit-gated (Field.Root invalid + Field.Error match — the documented external-library hooks); Checkbox/Select invalid are deliberately ungated, as today',
+            'intended deltas: input height 41.5→40px, padding-x 13.4→16px, radius 6.4→6px; suggest menus join the C5 chrome (py-2 items, shadow-lg, ladder z 1060, gap stays 0); select shows its error text (rb never displayed it — dead sibling selector); select gains the mobile 16px iOS-zoom guard (rb zoomed)',
+            "corner-joining is clone-injected utilities now (rounded-e-none/rounded-none/rounded-s-none by position) — module CSS can't flatten a layered-!important radius (§11.0)",
+            'drafts (storageKeyPrefix), Ctrl/Cmd+Enter submit, maxLength counter, clear-X, copy/password addons all ride along unchanged'
+          ]}
+        >
+          <FormCompares />
         </Section>
 
         <Section

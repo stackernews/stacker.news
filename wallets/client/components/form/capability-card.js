@@ -173,7 +173,7 @@ function CapabilityProtocolFields ({ protocol, onNwcLud16, onRemove, onCancel })
           No configuration needed for {protocolDisplayName(protocol)}.
         </p>
       )}
-      {fields.map(field => <WalletProtocolFormField key={field.name} protocol={protocol} onNwcLud16={onNwcLud16} {...field} />)}
+      {fields.map(field => <WalletProtocolFormField key={field.name} protocol={protocol} onNwcLud16={onNwcLud16} groupClassName='mb-0' {...field} />)}
 
       {error && <CapabilityError message={error} details={details} protocol={protocol} />}
 

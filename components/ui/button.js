@@ -33,23 +33,19 @@ export function buttonClasses ({ variant = 'primary', size = 'md', className } =
 }
 
 /**
- * SN Button component
+ * SN Button component — always a real <button>; link-shaped buttons use
+ * a Link/<a> with buttonClasses() instead (§4c pattern)
  * @param {string} variant - The variant of the button
  * @param {string} size - The size of the button
- * @param {string} as - The component to render the button as
- * @param {string} href - The href for the button (will render an <a> tag)
  * @param {string} type - The type of the button
  * @param {string} className - The extra class name for the button
  * @param {boolean} focusableWhenDisabled - Whether the button should be focusable when disabled, useful for buttons with loading states
  * @param {Object} props - The props for the button
  */
-export default function Button ({ variant = 'primary', size = 'md', as: As, href, type = 'button', className, ...props }) {
-  const render = As ? <As href={href} /> : href ? <a href={href} /> : undefined
-
+export default function Button ({ variant = 'primary', size = 'md', type = 'button', className, ...props }) {
   return (
     <BaseButton
-      render={render}
-      type={render ? undefined : type}
+      type={type}
       className={buttonClasses({ variant, size, className })}
       {...props}
     />

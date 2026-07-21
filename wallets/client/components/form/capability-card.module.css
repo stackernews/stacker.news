@@ -63,29 +63,20 @@
 .methodButton {
   white-space: nowrap;
 }
-.form :global(.form-group),
+/* C9a retarget (§18.4-g): the .form-group/.input-group/.form-control classes left
+   the DOM. Margins die at the call site instead (capability-card.js passes
+   groupClassName='mb-0' — §11.0 bucket 3); the group's items-stretch covers the
+   old addon min-height; inner-corner flattening is owned by the group's injected
+   utilities now (same zero the :has rules wrote). !important on the radius beats
+   the field module's plain declaration deliberately (§11.0 bucket 1). */
 .form :global(.mb-3) {
   /* required: Bootstrap .mb-3 sets margin-bottom: 1rem !important */
   margin-bottom: 0 !important;
 }
-.form :global(.input-group) {
-  width: 100%;
-}
-.form :global(.form-control),
-.form :global(.input-group-text) {
+.form :global(input:not([type='checkbox']):not([type='radio'])),
+.form :global(textarea) {
   min-height: 54px;
-}
-.form :global(.form-control) {
-  border-radius: var(--wt-radius-md);
-}
-.form :global(.input-group:has(.input-group-text) .form-control),
-.form :global(.input-group:has(button) .form-control) {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.form :global(.input-group .input-group-text) {
-  border-top-right-radius: var(--wt-radius-md);
-  border-bottom-right-radius: var(--wt-radius-md);
+  border-radius: var(--wt-radius-md) !important;
 }
 
 @media (max-width: 767px) {

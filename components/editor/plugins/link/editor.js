@@ -33,7 +33,10 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
   // itself. The input only renders in edit mode, so mount ⇒ steal
   const inputRef = useCallback((el) => {
     if (el) {
-      el.focus()
+      // preventScroll: the ref fires at DOM insertion, BEFORE floating-ui
+      // positions the popup — a plain focus() scroll-into-views the popup
+      // while it still sits at the document origin (page jumps to top)
+      el.focus({ preventScroll: true })
       el.select()
     }
   }, [])
@@ -137,7 +140,19 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
       open
       modal={false}
       onOpenChange={(open, details) => {
-        if (!open && (details.reason === 'outside-press' || details.reason === 'escape-key')) handleCancel()
+        if (open) return
+        if (details.reason === 'outside-press') {
+          // presses inside the editor just move the caret — the selection
+          // tracker in link/index.js owns that lifecycle (rb parity: editor
+          // clicks never blur-closed the old floating editor). Without this
+          // a click on the link itself opens the popover on pointerdown and
+          // the same click's tail end dismisses it (open/close flash)
+          const target = details.event?.target
+          if (target instanceof window.Node && editor.getRootElement()?.contains(target)) return
+          handleCancel()
+        } else if (details.reason === 'escape-key') {
+          handleCancel()
+        }
       }}
     >
       <BasePopover.Portal>

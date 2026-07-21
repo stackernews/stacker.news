@@ -1,4 +1,5 @@
-import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { ANON_FEE_MULTIPLIER, ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, PAID_ACTION_PAYMENT_METHODS, UNPAID_ITEM_SPAM_WINDOW_HOURS, USER_ID } from '@/lib/constants'
+import { datePivot } from '@/lib/time'
 import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers, notifyThreadSubscribers } from '@/lib/webPush'
 import { getItemMentions, getMentions, performBotBehavior, getSubs } from '../lib/item'
 import { extractMentions } from '@/lib/lexical/server/mentions'
@@ -98,7 +99,10 @@ export async function validateBeforeCreate (tx, payInProspect, payInArgs, { me }
   }
 
   const recentItems = await tx.item.findMany({
-    where: { userId: me.id },
+    where: {
+      userId: me.id,
+      createdAt: { gt: datePivot(new Date(), { hours: -UNPAID_ITEM_SPAM_WINDOW_HOURS }) }
+    },
     orderBy: { createdAt: 'desc' },
     take: 3,
     select: {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
 import { randInRange } from '@/lib/rand'
 
-import { ThunderstormProvider, useThunderstrike } from '@/components/thunderstorm/provider'
+import { ThunderstormProvider, useThunderstorm } from '@/components/thunderstorm/provider'
 
 export function AnimationProvider ({ children }) {
   return (
@@ -15,13 +15,13 @@ export function AnimationProvider ({ children }) {
 }
 
 export function useAnimation () {
-  const strike = useThunderstrike()
+  const start = useThunderstorm()
 
-  return useCallback(() => {
+  return useCallback((type = 'strike') => {
     if (!getAnimationDefault()) return false
-    strike()
+    start(type)
     return true
-  }, [strike])
+  }, [start])
 }
 
 function getAnimationDefault () {

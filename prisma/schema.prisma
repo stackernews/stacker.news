@@ -501,6 +501,7 @@ model Item {
   @@index([downMsats])
   @@index([ncomments])
   @@index([userId, createdAt])
+  @@index([userId, msats, id])
   @@index([userId, ranktop])
   @@index([userId, downMsats])
   @@index([userId, ncomments])

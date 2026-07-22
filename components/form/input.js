@@ -10,7 +10,6 @@ import { cn } from '@/lib/cn'
 import { useFormikField } from './use-formik-field'
 import { useFieldDraft } from './use-field-draft'
 import { FormGroup, inputClasses, hintClasses, errorClasses } from './field'
-import { flattenAddons, joinCorners } from './input-group'
 import styles from './field.module.css'
 
 export function InputInner ({
@@ -88,57 +87,52 @@ export function InputInner ({
   const remaining = maxLength && maxLength - (field.value || '').length
   const isValid = showValid && meta.initialValue !== meta.value && meta.touched && !meta.error
 
-  // the group members get first/middle/last corner utilities injected (§18.0-4);
-  // the error div is skipped — it wraps to its own line (w-full in a flex-wrap group)
   const { as, ...inputProps } = props
-  const members = joinCorners([
-    ...flattenAddons(prepend),
-    <BaseInput
-      key='control'
-      ref={innerRef}
-      {...field}
-      {...inputProps}
-      render={as === 'textarea' ? <textarea /> : undefined}
-      onKeyDown={onKeyDownInner}
-      onChange={onChangeInner}
-      onBlur={onBlurInner}
-      className={inputClasses({
-        valid: isValid,
-        // pe-10 insets the text off the validation icon — must be a utility, the
-        // module's padding-right loses to px-4 (§11.0; v4 receipt)
-        className: cn('flex-1 w-auto min-w-0', ((!hideError && invalid) || isValid) && 'pe-10')
-      })}
-    />,
-    (isClient && clear && field.value && !props.readOnly) && (
-      <button
-        key='clear'
-        type='button'
-        onClick={(e) => {
-          helpers.setValue('')
-          if (storageKey) {
-            window.localStorage.removeItem(storageKey)
-          }
-          if (onChange) {
-            onChange(formik, { target: { value: '' } })
-          }
-        }}
-        className={cn(styles.clearButton, styles.appendButton, invalid && styles.isInvalid)}
-      >
-        <CloseIcon className='fill-grey' height={20} width={20} />
-      </button>
-    ),
-    ...flattenAddons(append)
-  ])
 
   return (
     <>
       <div className='flex gap-4'>
         <div className='grow basis-0'>
-          <Field.Root
-            invalid={!!(!hideError && invalid)}
-            className={cn('flex flex-wrap items-stretch', inputGroupClassName)}
-          >
-            {members}
+          {/* Field.Root is a plain wrapper so the error sits OUTSIDE the flex row —
+              the .inputGroup corner rules key on :first/:last-child (§18.0-4 as
+              revised: structural CSS replaced the clone-injection) */}
+          <Field.Root invalid={!!(!hideError && invalid)}>
+            <div className={cn(styles.inputGroup, 'flex items-stretch', inputGroupClassName)}>
+              {prepend}
+              <BaseInput
+                ref={innerRef}
+                {...field}
+                {...inputProps}
+                render={as === 'textarea' ? <textarea /> : undefined}
+                onKeyDown={onKeyDownInner}
+                onChange={onChangeInner}
+                onBlur={onBlurInner}
+                className={inputClasses({
+                  valid: isValid,
+                  // pe-10 insets the text off the validation icon — must be a utility, the
+                  // module's padding-right loses to px-4 (§11.0; v4 receipt)
+                  className: cn('flex-1 w-auto min-w-0', ((!hideError && invalid) || isValid) && 'pe-10')
+                })}
+              />
+              {(isClient && clear && field.value && !props.readOnly) && (
+                <button
+                  type='button'
+                  onClick={(e) => {
+                    helpers.setValue('')
+                    if (storageKey) {
+                      window.localStorage.removeItem(storageKey)
+                    }
+                    if (onChange) {
+                      onChange(formik, { target: { value: '' } })
+                    }
+                  }}
+                  className={cn(styles.clearButton, styles.appendButton, invalid && styles.isInvalid)}
+                >
+                  <CloseIcon className='fill-grey' height={20} width={20} />
+                </button>
+              )}
+              {append}
+            </div>
             {!hideError && invalid &&
               <Field.Error match className={errorClasses()}>
                 {meta.touched && meta.error}

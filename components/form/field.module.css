@@ -101,10 +101,26 @@ textarea.passwordInput {
     border-radius: .375rem;
 }
 
+/* corner-joining, structural (supersedes the C9a clone-injection): every real
+   group member's radius is a PLAIN module declaration (.control/.addon/
+   .clearButton — §18.0-5), so these 0-1-1 rules win on specificity, no layer
+   fight. React fragments don't make DOM nodes, so :first/:last-child see the
+   flattened members natively. Members must NOT carry radius utilities —
+   corner overrides are call-site (the CopyInput button, §11.0 bucket 3). */
+.inputGroup > :not(:first-child) {
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+}
+
+.inputGroup > :not(:last-child) {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+}
+
+/* rest-state seam for the clear button against the input's right edge
+   (the radius-zeroing that used to live here moved to .inputGroup above) */
 .appendButton {
     border-left: 0 !important;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
 }
 
 .clearButton {

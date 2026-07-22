@@ -9,7 +9,7 @@ import InputGroup from './input-group'
 import { Input } from './input'
 import styles from './field.module.css'
 
-export function CopyButton ({ value, icon, append, ...props }) {
+export function CopyButton ({ value, icon, append, className, ...props }) {
   const toaster = useToast()
   const [copied, setCopied] = useState(false)
 
@@ -41,7 +41,7 @@ export function CopyButton ({ value, icon, append, ...props }) {
   }
 
   return (
-    <Button className={cn(styles.appendButton, props.className)} {...props} onClick={handleClick}>
+    <Button className={cn(styles.appendButton, className)} {...props} onClick={handleClick}>
       {copied ? <Thumb width={18} height={18} /> : 'copy'}
     </Button>
   )
@@ -51,7 +51,9 @@ export function CopyInput (props) {
   return (
     <Input
       append={
-        <CopyButton value={props.placeholder} size={props.size} />
+        // rounded-s-none is the call-site corner override (§11.0 bucket 3): the ui
+        // Button's rounded-md is layered-!important, the .inputGroup CSS can't win
+        <CopyButton value={props.placeholder} size={props.size} className='rounded-s-none' />
       }
       {...props}
     />

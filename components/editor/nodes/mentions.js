@@ -25,7 +25,7 @@ export default function MentionsComponent ({ nodeKey, href, text }) {
         const displayText = node.getText()
         const { target, rel } = getLinkAttributes(url)
         newNode = $createLinkNode(url, { target, rel })
-          .append($createTextNode(displayText || url))
+          .append($createTextNode(displayText || url).setFormat(node.getFormat()))
       } else {
         // other mention types become plain text
         // cursor will land on the text node triggering mentions menu

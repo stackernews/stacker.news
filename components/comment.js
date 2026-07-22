@@ -29,6 +29,7 @@ import { gql } from '@apollo/client'
 import { useApolloClient } from '@apollo/client/react'
 import classNames from 'classnames'
 import useCallbackRef from './use-callback-ref'
+import { shouldTrackNewComment } from '@/lib/comment-navigation'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -166,7 +167,7 @@ export default function Comment ({
 
   useEffect(() => {
     // checking navigator because outlining should happen only on item pages
-    if (!navigator || me?.id === item.user?.id) return
+    if (!shouldTrackNewComment({ hasNavigator: Boolean(navigator), viewerId: me?.id, item })) return
     // bail if we already registered this comment
     if (didTrackRef.current) return
 

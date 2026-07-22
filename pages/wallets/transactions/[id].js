@@ -1,5 +1,5 @@
 import { useQuery } from '@apollo/client/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import { Alert } from 'react-bootstrap'
 import { getGetServerSideProps } from '@/api/ssrApollo'
@@ -21,6 +21,9 @@ import {
   WalletLogs
 } from '@/wallets/client/components'
 import { externalTransactionDiagnosticMessage } from '@/wallets/lib/external-transactions'
+import { useAnimation } from '@/components/animation'
+
+const RECENT_SETTLEMENT_WINDOW_MS = 60 * 60 * 1000
 
 export const getServerSideProps = getGetServerSideProps({
   query: GET_EXTERNAL_TRANSACTION,
@@ -30,6 +33,7 @@ export const getServerSideProps = getGetServerSideProps({
 
 export default function ExternalTransactionPage ({ ssrData }) {
   const router = useRouter()
+  const animate = useAnimation()
   const id = Number(router.query.id)
   const { data, error, startPolling, stopPolling } = useQuery(GET_EXTERNAL_TRANSACTION, {
     variables: { id },
@@ -42,6 +46,15 @@ export default function ExternalTransactionPage ({ ssrData }) {
   const fastPoll = transaction?.status === 'PENDING' &&
     transaction.direction !== 'SEND'
   const [expiredTransactionId, setExpiredTransactionId] = useState()
+  const animatedTransactionIdRef = useRef()
+
+  useEffect(() => {
+    if (animatedTransactionIdRef.current === transaction?.id ||
+        !isRecentSettlement(transaction)) return
+
+    animatedTransactionIdRef.current = transaction.id
+    animate('settlement')
+  }, [animate, transaction?.id, transaction?.status, transaction?.statusChangedAt])
 
   useEffect(() => {
     if (!id || done) {
@@ -138,4 +151,11 @@ export default function ExternalTransactionPage ({ ssrData }) {
       </TransactionDetailSection>
     </TransactionDetailPage>
   )
+}
+
+function isRecentSettlement (transaction, now = Date.now()) {
+  if (transaction?.status !== 'SETTLED') return false
+
+  const age = now - new Date(transaction.statusChangedAt).getTime()
+  return age >= 0 && age <= RECENT_SETTLEMENT_WINDOW_MS
 }

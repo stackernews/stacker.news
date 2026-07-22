@@ -1,30 +1,33 @@
 import { createContext, useCallback, useContext, useState } from 'react'
 import Thunderstorm from './index'
 
-const ThunderstrikeContext = createContext(() => {})
+const ThunderstormContext = createContext(() => {})
 
 export function ThunderstormProvider ({ children }) {
-  const [bolts, setBolts] = useState([])
+  const [storms, setStorms] = useState([])
 
-  const strike = useCallback(() => {
+  const start = useCallback((type = 'strike') => {
     const id = Date.now() + Math.random()
-    setBolts(prev => [...prev, id])
-  }, [])
-
-  const remove = useCallback((id) => {
-    setBolts(prev => prev.filter(b => b !== id))
+    setStorms(prev => [...prev, {
+      id,
+      type: type === 'settlement' ? 'settlement' : 'strike'
+    }])
   }, [])
 
   return (
-    <ThunderstrikeContext.Provider value={strike}>
-      {bolts.map(id => (
-        <Thunderstorm key={id} intensity='strike' onDone={() => remove(id)} />
+    <ThunderstormContext.Provider value={start}>
+      {storms.map(({ id, type }) => (
+        <Thunderstorm
+          key={id}
+          type={type}
+          onDone={() => setStorms(prev => prev.filter(storm => storm.id !== id))}
+        />
       ))}
       {children}
-    </ThunderstrikeContext.Provider>
+    </ThunderstormContext.Provider>
   )
 }
 
-export function useThunderstrike () {
-  return useContext(ThunderstrikeContext)
+export function useThunderstorm () {
+  return useContext(ThunderstormContext)
 }

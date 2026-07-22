@@ -1,14 +1,13 @@
 .root {
-  --thunderstorm-fog-height: 170px;
-  --thunderstorm-fog-opacity: 0.55;
-  --thunderstorm-fog-blur: 18px;
-  --thunderstorm-fog-drift: 34s;
+  --thunderstorm-fog-height: 110px;
+  --thunderstorm-fog-opacity: 0.35;
+  --thunderstorm-fog-blur: 12px;
+  --thunderstorm-fog-drift: 42s;
   --thunderstorm-clear-duration: 2500ms;
-  --thunderstorm-z-index: 0;
 
   position: fixed;
   inset: 0;
-  z-index: var(--thunderstorm-z-index);
+  z-index: 0;
   pointer-events: none;
   overflow: hidden;
 }

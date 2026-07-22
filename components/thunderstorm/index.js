@@ -1,62 +1,17 @@
 /* global Path2D */
-import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState } from 'react'
 import classNames from 'classnames'
 import { randInRange } from '@/lib/rand'
 import styles from './thunderstorm.module.css'
 
-const FOG = {
-  light: {
-    '--thunderstorm-fog-height': '110px',
-    '--thunderstorm-fog-opacity': 0.35,
-    '--thunderstorm-fog-blur': '12px',
-    '--thunderstorm-fog-drift': '42s'
-  },
-  medium: {
-    '--thunderstorm-fog-height': '170px',
-    '--thunderstorm-fog-opacity': 0.55,
-    '--thunderstorm-fog-blur': '18px',
-    '--thunderstorm-fog-drift': '34s'
-  },
-  heavy: {
-    '--thunderstorm-fog-height': '250px',
-    '--thunderstorm-fog-opacity': 0.78,
-    '--thunderstorm-fog-blur': '26px',
-    '--thunderstorm-fog-drift': '26s'
-  }
-}
+const SETTLEMENT_DURATION_MS = 2500
+const SETTLEMENT_CLEAR_DURATION_MS = 2500
 
-const INTENSITY = {
-  strike: {
-    cloudGap: null,
-    cloudSize: null,
-    strikeChance: 0,
-    wind: 0
-  },
-  light: {
-    cloudGap: [44, 70],
-    cloudSize: [24, 54],
-    strikeChance: 0.00006,
-    wind: 0.12
-  },
-  normal: {
-    cloudGap: [30, 54],
-    cloudSize: [32, 72],
-    strikeChance: 0.00014,
-    wind: 0.18
-  },
-  heavy: {
-    cloudGap: [20, 42],
-    cloudSize: [42, 92],
-    strikeChance: 0.00026,
-    wind: 0.26
-  },
-  extreme: {
-    cloudGap: [12, 30],
-    cloudSize: [58, 120],
-    strikeChance: 0.0006,
-    wind: 0.36
-  }
+const SETTLEMENT_STORM = {
+  cloudGap: [12, 30],
+  cloudSize: [58, 120],
+  strikeChance: 0.0006,
+  wind: 0.36
 }
 
 const BOLT_STORM = {
@@ -81,63 +36,38 @@ const BOLT_STRIKE = {
   childMaxBranches: 10
 }
 
-function Thunderstorm ({
-  intensity = 'normal',
-  fog: fogLevel = 'medium',
-  duration,
-  clearDuration = 2500,
-  onDone
-}) {
+function Thunderstorm ({ type = 'strike', onDone }) {
   const canvasRef = useRef(null)
   const clearingRef = useRef(false)
-  const isStrike = intensity === 'strike'
-  const fog = isStrike ? null : fogLevel
-  const fogStyle = fog ? FOG[fog] || FOG.medium : {}
+  const isStrike = type !== 'settlement'
 
-  const [showing, setShowing] = useState(true)
   const [clearing, setClearing] = useState(false)
+  const onDoneRef = useRef(onDone)
+  onDoneRef.current = onDone
 
   useEffect(() => {
-    if (!Number.isFinite(duration) || duration <= 0) return
+    if (isStrike) return
 
-    const exitDuration = Number.isFinite(clearDuration) && clearDuration > 0 ? clearDuration : 0
     const clearTimer = setTimeout(() => {
-      if (exitDuration > 0) {
-        clearingRef.current = true
-        setClearing(true)
-      } else {
-        setShowing(false)
-      }
-    }, duration)
-    const removeTimer = setTimeout(() => setShowing(false), duration + exitDuration)
+      clearingRef.current = true
+      setClearing(true)
+    }, SETTLEMENT_DURATION_MS)
+    const removeTimer = setTimeout(
+      () => onDoneRef.current?.(),
+      SETTLEMENT_DURATION_MS + SETTLEMENT_CLEAR_DURATION_MS
+    )
 
     return () => {
       clearTimeout(clearTimer)
       clearTimeout(removeTimer)
     }
-  }, [duration, clearDuration])
-
-  const onDoneRef = useRef(onDone)
-  onDoneRef.current = onDone
-  const mountedRef = useRef(false)
-  useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true
-      return
-    }
-    if (!showing) {
-      onDoneRef.current?.()
-    }
-  }, [showing])
+  }, [isStrike])
 
   useEffect(() => {
-    if (!showing) return
-
     const canvas = canvasRef.current
     const context = canvas?.getContext('2d')
     if (!canvas || !context) return
 
-    const settings = INTENSITY[intensity] || INTENSITY.normal
     let animationFrame
     let resizeFrame
     let clouds = []
@@ -152,7 +82,7 @@ function Thunderstorm ({
       canvas.style.width = `${window.innerWidth}px`
       canvas.style.height = `${window.innerHeight}px`
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
-      clouds = isStrike ? [] : makeClouds(settings)
+      clouds = isStrike ? [] : makeClouds()
       if (!isStrike) bolts = []
       drawFrame(context, clouds, bolts, isStrike)
     }
@@ -175,7 +105,7 @@ function Thunderstorm ({
 
     // strikeChance is tuned for 60fps; scale by deltaTime so behavior
     // is consistent across refresh rates
-    const strikeChancePerSecond = settings.strikeChance * 60
+    const strikeChancePerSecond = SETTLEMENT_STORM.strikeChance * 60
 
     const animate = (now) => {
       const deltaTime = Math.min((now - lastTime) / 1000, 0.05)
@@ -211,7 +141,7 @@ function Thunderstorm ({
       drawFrame(context, clouds, bolts, isStrike)
 
       if (isStrike && bolts.length === 0) {
-        setShowing(false)
+        onDoneRef.current?.()
         return
       }
 
@@ -233,23 +163,21 @@ function Thunderstorm ({
       window.removeEventListener('resize', onResize)
       context.clearRect(0, 0, canvas.width, canvas.height)
     }
-  }, [showing, intensity, isStrike])
-
-  if (!showing) return null
+  }, [isStrike])
 
   return (
     <div
       aria-hidden='true'
       className={classNames(styles.root, clearing && styles.clearing)}
-      style={{ ...fogStyle, '--thunderstorm-clear-duration': `${clearDuration}ms` }}
     >
       <canvas ref={canvasRef} className={styles.canvas} />
-      {fog && <div className={styles.fog} />}
+      {!isStrike && <div className={styles.fog} />}
     </div>
   )
 }
 
-function makeClouds (settings) {
+function makeClouds () {
+  const settings = SETTLEMENT_STORM
   const clouds = []
   let x = -settings.cloudSize[1]
 
@@ -433,4 +361,4 @@ class StormBolt {
   }
 }
 
-export default dynamic(() => Promise.resolve(Thunderstorm), { ssr: false })
+export default Thunderstorm

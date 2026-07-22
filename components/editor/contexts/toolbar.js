@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState, useCallback } from 'react'
+import { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react'
+import { EDITOR_TOOLBAR_STORAGE_KEY, readEditorToolbarVisibility, writeEditorSetting } from '@/lib/editor-settings'
 
 export const INITIAL_FORMAT_STATE = {
   blockType: 'paragraph',
@@ -28,11 +29,21 @@ const ToolbarContext = createContext()
 export function ToolbarContextProvider ({ topLevel, children }) {
   const [toolbarState, setToolbarState] = useState({ ...INITIAL_STATE, showToolbar: !!topLevel })
 
+  useEffect(() => {
+    setToolbarState(prev => ({
+      ...prev,
+      showToolbar: readEditorToolbarVisibility(window.localStorage, !!topLevel)
+    }))
+  }, [topLevel])
+
   const batchUpdateToolbarState = useCallback((updates) => {
     setToolbarState((prev) => ({ ...prev, ...updates }))
   }, [])
 
   const updateToolbarState = useCallback((key, value) => {
+    if (key === 'showToolbar') {
+      writeEditorSetting(window.localStorage, EDITOR_TOOLBAR_STORAGE_KEY, value)
+    }
     setToolbarState((prev) => ({
       ...prev,
       [key]: value

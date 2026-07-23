@@ -44,9 +44,9 @@ export function PayInSankeySkeleton () {
 
 function assetFormatted (msats, type) {
   if (type === 'CREDITS') {
-    return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false })
+    return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'CC', unitPlural: 'CCs', abbreviate: false, format: true })
   }
-  return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'sat', unitPlural: 'sats', abbreviate: false })
+  return numWithUnits(msatsToSatsDecimal(msats), { unitSingular: 'sat', unitPlural: 'sats', abbreviate: false, format: true })
 }
 
 function Tooltip ({ node, link }) {

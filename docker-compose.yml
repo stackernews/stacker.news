@@ -337,6 +337,8 @@ services:
       - '--tlsextradomain=sn_lnd'
       - '--tlsextradomain=host.docker.internal'
       - '--tlscertduration=87600h'
+      - '--tlscertpath=/etc/lnd/certs/tls.cert'
+      - '--tlskeypath=/etc/lnd/certs/tls.key'
       - '--listen=0.0.0.0:9735'
       - '--rpclisten=0.0.0.0:10009'
       - '--restlisten=0.0.0.0:8080'
@@ -364,10 +366,10 @@ services:
       - "${SN_LND_GRPC_PORT}:10009"
     volumes:
       - sn_lnd:/home/lnd/.lnd
-      - ./docker/lnd/sn/tls.cert:/home/lnd/.lnd/tls.cert:ro
-      - ./docker/lnd/sn/tls.key:/home/lnd/.lnd/tls.key:ro
+      - ./docker/lnd/sn/tls.cert:/etc/lnd/certs/tls.cert:ro
+      - ./docker/lnd/sn/tls.key:/etc/lnd/certs/tls.key:ro
     labels:
-      CERTDIR: "/home/lnd/.lnd"
+      CERTDIR: "/etc/lnd/certs"
       CLI: "lncli"
       CLI_USER: "lnd"
       ofelia.enabled: "true"
@@ -450,6 +452,8 @@ services:
       - '--tlsextradomain=host.docker.internal'
       - '--tlsextradomain=$${ONION_DOMAIN}'
       - '--tlscertduration=87600h'
+      - '--tlscertpath=/etc/lnd/certs/tls.cert'
+      - '--tlskeypath=/etc/lnd/certs/tls.key'
       - '--listen=0.0.0.0:9735'
       - '--rpclisten=0.0.0.0:10009'
       - '--rpcmiddleware.enable'
@@ -476,11 +480,11 @@ services:
     volumes:
       - lnd:/home/lnd/.lnd
       - tordata:/home/lnd/.tor
-      - ./docker/lnd/stacker/tls.cert:/home/lnd/.lnd/tls.cert:ro
-      - ./docker/lnd/stacker/tls.key:/home/lnd/.lnd/tls.key:ro
+      - ./docker/lnd/stacker/tls.cert:/etc/lnd/certs/tls.cert:ro
+      - ./docker/lnd/stacker/tls.key:/etc/lnd/certs/tls.key:ro
     labels:
       TORDIR: "/home/lnd/.tor"
-      CERTDIR: "/home/lnd/.lnd"
+      CERTDIR: "/etc/lnd/certs"
       CLI: "lncli"
       CLI_USER: "lnd"
       ofelia.enabled: "true"
@@ -681,6 +685,8 @@ services:
       - '--tlsextradomain=router_lnd'
       - '--tlsextradomain=host.docker.internal'
       - '--tlscertduration=87600h'
+      - '--tlscertpath=/etc/lnd/certs/tls.cert'
+      - '--tlskeypath=/etc/lnd/certs/tls.key'
       - '--listen=0.0.0.0:9735'
       - '--rpclisten=0.0.0.0:10009'
       - '--restlisten=0.0.0.0:8080'
@@ -706,10 +712,10 @@ services:
       - "${ROUTER_LND_GRPC_PORT}:10009"
     volumes:
       - router_lnd:/home/lnd/.lnd
-      - ./docker/lnd/router/tls.cert:/home/lnd/.lnd/tls.cert:ro
-      - ./docker/lnd/router/tls.key:/home/lnd/.lnd/tls.key:ro
+      - ./docker/lnd/router/tls.cert:/etc/lnd/certs/tls.cert:ro
+      - ./docker/lnd/router/tls.key:/etc/lnd/certs/tls.key:ro
     labels:
-      CERTDIR: "/home/lnd/.lnd"
+      CERTDIR: "/etc/lnd/certs"
       CLI: "lncli"
       CLI_USER: "lnd"
       ofelia.group: "payments"

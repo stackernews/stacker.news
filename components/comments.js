@@ -10,6 +10,7 @@ import MoreFooter from './more-footer'
 import { FULL_COMMENTS_THRESHOLD } from '@/lib/constants'
 import useLiveComments from './use-live-comments'
 import { useCommentsNavigatorContext } from './use-comments-navigator'
+import preserveScroll from './preserve-scroll'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats, commentCost, commentBoost }) {
   const router = useRouter()
@@ -86,13 +87,15 @@ export default function Comments ({
             pinned={pinned} bio={bio} handleSort={sort => {
               const { commentsViewedAt, commentId, ...query } = router.query
               delete query.nodata
-              router.push({
-                pathname: router.pathname,
-                query: { ...query, commentsViewedAt, sort }
-              }, {
-                pathname: `/items/${parentId}`,
-                query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
-              }, { scroll: false })
+              preserveScroll(() => {
+                router.push({
+                  pathname: router.pathname,
+                  query: { ...query, commentsViewedAt, sort }
+                }, {
+                  pathname: `/items/${parentId}`,
+                  query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
+                }, { scroll: false })
+              })
             }}
           />
         : null}

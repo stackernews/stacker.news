@@ -4,7 +4,12 @@ import { lnurlPayMetadata, lnurlpCallbackUrl } from '@/lib/lnurl'
 import { LNURLP_COMMENT_MAX_LENGTH, PROXY_PAYER_MIN_MSATS, PROXY_PAYER_MAX_MSATS } from '@/lib/constants'
 
 export default async ({ query: { username } }, res) => {
-  const user = await models.user.findUnique({ where: { name: username } })
+  let user = await models.user.findUnique({ where: { name: username } })
+  if (!user) {
+    user = await models.user.findFirst({
+      where: { name: { equals: username, mode: 'insensitive' } }
+    })
+  }
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }

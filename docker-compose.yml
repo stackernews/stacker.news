@@ -325,6 +325,9 @@ services:
       test: ["CMD-SHELL", "lncli", "getinfo"]
     depends_on: *depends_on_bitcoin
     env_file: *env_file
+    environment:
+      USERID: "${CURRENT_UID}"
+      GROUPID: "${CURRENT_GID}"
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -433,6 +436,9 @@ services:
         restart: true
       <<: *depends_on_bitcoin
     env_file: *env_file
+    environment:
+      USERID: "${CURRENT_UID}"
+      GROUPID: "${CURRENT_GID}"
     entrypoint: /tor-entrypoint
     command:
       - 'lnd'
@@ -663,6 +669,9 @@ services:
       test: ["CMD-SHELL", "lncli", "getinfo"]
     depends_on: *depends_on_bitcoin
     env_file: *env_file
+    environment:
+      USERID: "${CURRENT_UID}"
+      GROUPID: "${CURRENT_GID}"
     command:
       - 'lnd'
       - '--noseedbackup'

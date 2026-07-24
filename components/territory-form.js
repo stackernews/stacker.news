@@ -1,6 +1,6 @@
 import AccordianItem from './accordian-item'
 import Badge from '@/components/ui/badge'
-import { Checkbox, CheckboxGroup, Form, Input, InputGroup, SNInput, Range, labelClasses } from './form'
+import { Checkbox, CheckboxGroup, Form, Input, InputGroup, SNInput, Range, RadioGroup, Radio, labelClasses } from './form'
 import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql } from '@apollo/client'
@@ -220,7 +220,7 @@ export default function TerritoryForm ({ sub }) {
         </CheckboxGroup>
         {sub?.billingType !== 'ONCE' &&
           <>
-            <CheckboxGroup
+            <RadioGroup
               label={
                 <span className='flex items-center'>billing
                   {sub && sub.billingType !== 'ONCE' &&
@@ -230,37 +230,29 @@ export default function TerritoryForm ({ sub }) {
                     </Info>}
                 </span>
               }
-              name='billing'
+              name='billingType'
               groupClassName={billing !== 'once' ? 'mb-0' : ''}
+              onChange={(v) => setBilling(v.toLowerCase())}
             >
-              <Checkbox
-                type='radio'
+              <Radio
                 label={`${abbrNum(TERRITORY_PERIOD_COST('MONTHLY'))} sats/month`}
                 value='MONTHLY'
-                name='billingType'
                 id='monthly-checkbox'
-                handleChange={checked => checked && setBilling('monthly')}
                 groupClassName='ms-1 mb-0'
               />
-              <Checkbox
-                type='radio'
+              <Radio
                 label={`${abbrNum(TERRITORY_PERIOD_COST('YEARLY'))} sats/year`}
                 value='YEARLY'
-                name='billingType'
                 id='yearly-checkbox'
-                handleChange={checked => checked && setBilling('yearly')}
                 groupClassName='ms-1 mb-0'
               />
-              <Checkbox
-                type='radio'
+              <Radio
                 label={`${abbrNum(TERRITORY_PERIOD_COST('ONCE'))} sats once`}
                 value='ONCE'
-                name='billingType'
                 id='once-checkbox'
-                handleChange={checked => checked && setBilling('once')}
                 groupClassName='ms-1 mb-0'
               />
-            </CheckboxGroup>
+            </RadioGroup>
             {billing !== 'once' &&
               <Checkbox
                 label='auto-renew'

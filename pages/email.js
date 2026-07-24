@@ -3,7 +3,7 @@ import { StaticLayout } from '@/components/layout'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback } from 'react'
-import { Form, SubmitButton, MultiInput } from '@/components/form'
+import { Form, SubmitButton, OtpInput } from '@/components/form'
 import { emailTokenSchema } from '@/lib/validate'
 import ArrowRightLineIcon from '@/svgs/arrow-right-line.svg'
 import LoopVideo from '@/components/loop-video'
@@ -64,20 +64,16 @@ export const MagicCodeForm = ({ onSubmit, disabled }) => {
       }}
       schema={emailTokenSchema}
       onSubmit={(values) => {
-        onSubmit(values.token.toLowerCase()) // token is displayed in uppercase but we need to check it in lowercase
+        onSubmit(values.token)
       }}
     >
-      <MultiInput
+      <OtpInput
         length={6}
-        charLength={1}
         name='token'
         required
         autoFocus
         groupClassName='flex flex-col justify-center gap-2'
-        inputType='text'
-        hideError // hide error message on every input, allow custom error message
         disabled={disabled}
-        autoComplete='one-time-code'
       />
       <SubmitButton variant='primary' className='ps-6 pe-4' disabled={disabled}>enter <ArrowRightLineIcon height={20} width={20} className='ms-2' /></SubmitButton>
     </Form>

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import AvatarEditor from 'react-avatar-editor'
 import Button from '@/components/ui/button'
-import BootstrapForm from 'react-bootstrap/Form'
+import { Slider } from '@/components/form'
 import EditImage from '@/svgs/image-edit-fill.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import { useShowModal } from './modal'
@@ -35,13 +35,15 @@ export default function Avatar ({ onSuccess }) {
             height: 'auto'
           }}
         />
-        <BootstrapForm.Group controlId='formBasicRange'>
-          <BootstrapForm.Range
-            onChange={e => setScale(parseFloat(e.target.value))}
-            min={1} max={2} step='0.05'
-            // defaultValue={scale}
+        <div>
+          {/* defaultValue fixes the old mount mismatch, where the thumb mounted
+              at the native midpoint 1.5 while scale started at 1 */}
+          <Slider
+            min={1} max={2} step={0.05}
+            defaultValue={1}
+            onValueChange={setScale}
           />
-        </BootstrapForm.Group>
+        </div>
         <Button
           onClick={async () => {
             const rect = ref.current.getCroppingRect()

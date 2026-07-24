@@ -4,6 +4,7 @@
 .popup {
   background-color: var(--theme-inputBg);
   border: 1px solid var(--theme-borderColor);
+  outline: 0;
   max-width: 90vw;          /* SN one-off guard from globals .dropdown-menu — kept verbatim */
   overflow: auto;
   transform-origin: var(--transform-origin);

@@ -1,10 +1,24 @@
-// C9b carve-out (§18.3-a): verbatim move — Range/number-Control/InputGroup/Feedback
-// stay react-bootstrap until the Slider+NumberField commit (§6.6)
 import { useEffect } from 'react'
 import { useField } from 'formik'
-import BootstrapForm from 'react-bootstrap/Form'
-import InputGroup from 'react-bootstrap/InputGroup'
-import { FormGroup } from './field'
+import { Slider as BaseSlider } from '@base-ui/react/slider'
+import { NumberField } from '@base-ui/react/number-field'
+import { cn } from '@/lib/cn'
+import { FormGroup, inputClasses, hintClasses, errorClasses } from './field'
+import styles from './range.module.css'
+
+// the formik-less skinned primitive — avatar composes it bare (§19.0-5);
+// Range below wires it to formik
+export function Slider ({ className, ...props }) {
+  return (
+    <BaseSlider.Root {...props}>
+      <BaseSlider.Control className={cn('flex w-full items-center py-2 touch-none select-none', className)}>
+        <BaseSlider.Track className={cn(styles.track, 'w-full relative select-none')}>
+          <BaseSlider.Thumb className={cn(styles.thumb, 'select-none')} />
+        </BaseSlider.Track>
+      </BaseSlider.Control>
+    </BaseSlider.Root>
+  )
+}
 
 export function Range ({
   label, groupClassName, hint, min, max, step = 1, onChange,
@@ -24,58 +38,60 @@ export function Range ({
     }
   }, [min, max])
 
+  const numberField = (
+    <NumberField.Root
+      value={field.value}
+      min={min}
+      max={max}
+      step={step}
+      format={{ useGrouping: false }}
+      onValueChange={(v) => {
+        // Base UI parses empty text to null on change AND blur — never write
+        // the ∞ sentinel from the number field (§19.0-2)
+        if (v == null) return
+        helpers.setValue(v)
+        onChange && onChange(v)
+      }}
+    >
+      <NumberField.Input
+        onBlur={() => helpers.setTouched(true)}
+        className={inputClasses({ className: cn('w-16 px-2 text-end', suffix && 'rounded-e-none') })}
+      />
+    </NumberField.Root>
+  )
+
   return (
     <FormGroup label={label} className={groupClassName}>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', columnGap: '1rem', alignItems: 'center' }}>
         {allOption
-          ? <span className='text-muted' style={{ whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
+          ? <span className='text-muted' style={{ whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>
           : <small className='text-muted font-mono'>{min}</small>}
-        <BootstrapForm.Range
-          {...field}
-          {...props}
+        <Slider
+          value={isAll ? sliderMin : field.value}
           min={sliderMin}
           max={max}
           step={step}
-          value={isAll ? sliderMin : field.value}
-          onChange={(e) => {
-            const val = Number(e.target.value)
-            if (allOption && val <= sliderMin) {
+          onValueChange={(v) => {
+            if (allOption && v <= sliderMin) {
               helpers.setValue(null)
             } else {
-              helpers.setValue(val)
+              helpers.setValue(v)
             }
-            onChange && onChange(e)
+            onChange && onChange(v) // zero passers today (census) — number-shaped now
           }}
+          onBlur={() => helpers.setTouched(true)} // touched on blur, NOT per-commit (§19.0-1)
         />
         <small className='text-muted font-mono'>{max}</small>
-        <InputGroup className='flex-nowrap' style={{ width: 'auto' }}>
+        {/* number+suffix mini-group: a plain flex row with CALL-SITE corner
+            utilities — NOT the shared InputGroup, whose structural sibling rules
+            would flatten NumberField.Root's wrapper div instead of the input
+            (§19.0-8; be189dc7 contract) */}
+        <div className='flex flex-nowrap items-stretch' style={{ width: 'auto' }}>
           {isAll
-            ? <span className='form-control px-2' style={{ width: '4rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25em' }}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>{'\u221E'}</span></span>
-            : <BootstrapForm.Control
-                type='number'
-                min={min}
-                max={max}
-                step={step}
-                value={field.value}
-                className='text-end hide-spinners px-2'
-                style={{ width: '4rem' }}
-                onChange={(e) => {
-                  const val = Number(e.target.value)
-                  if (!isNaN(val)) {
-                    helpers.setValue(val)
-                  }
-                  onChange && onChange(e)
-                }}
-                onBlur={(e) => {
-                  const val = Number(e.target.value)
-                  if (!isNaN(val)) {
-                    helpers.setValue(Math.min(max, Math.max(min, val)))
-                  }
-                  field.onBlur(e)
-                }}
-              />}
-          {suffix && <InputGroup.Text>{suffix.trim()}</InputGroup.Text>}
-        </InputGroup>
+            ? <span className={inputClasses({ className: cn('flex w-16 items-center justify-end gap-1 px-2 whitespace-nowrap', suffix && 'rounded-e-none') })}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>
+            : numberField}
+          {suffix && <span className={cn(styles.addon, 'flex items-center px-4 py-1.5 text-base max-md:text-[1rem] rounded-s-none')}>{suffix.trim()}</span>}
+        </div>
         {labels?.length > 0 && (
           <div className='relative' style={{ gridColumn: 2, height: '1.2em' }}>
             {labels.map(({ value, label: tickLabel }) => {
@@ -99,10 +115,10 @@ export function Range ({
           </div>
         )}
       </div>
-      {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
-      <BootstrapForm.Control.Feedback className='block' type='invalid'>
+      {hint && <small className={hintClasses()}>{hint}</small>}
+      <div className={errorClasses({ className: 'block' })}>
         {meta.touched && meta.error}
-      </BootstrapForm.Control.Feedback>
+      </div>
     </FormGroup>
   )
 }

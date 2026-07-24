@@ -38,8 +38,7 @@
     box-shadow: 0 0 0 .25rem rgb(250 218 94 / 25%);
 }
 
-.checkInput[data-checked],
-.checkInput:checked {
+.checkInput[data-checked] {
     background-color: var(--bs-primary);
     border-color: var(--bs-primary);
 }
@@ -48,18 +47,16 @@
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
 }
 
-.radio:checked {
+.radio[data-checked] {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23000'/%3e%3c/svg%3e");
 }
 
-.checkInput[data-disabled],
-.checkInput:disabled {
+.checkInput[data-disabled] {
     pointer-events: none;
     opacity: .5;
 }
 
-.checkInput[data-disabled] ~ *,
-.checkInput:disabled ~ * {
+.checkInput[data-disabled] ~ * {
     opacity: .5;
 }
 
@@ -68,8 +65,7 @@
     border-color: #c03221;
 }
 
-.checkInput.invalid[data-checked],
-.checkInput.invalid:checked {
+.checkInput.invalid[data-checked] {
     background-color: #c03221;
     border-color: #c03221;
 }

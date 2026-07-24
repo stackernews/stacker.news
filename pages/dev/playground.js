@@ -36,7 +36,8 @@ import { Formik } from 'formik'
 import {
   Form as SnForm, Input as SnInput, Checkbox as SnCheckbox, Select as SnSelect,
   CopyInput as SnCopyInput, PasswordInput as SnPasswordInput, InputUserSuggest as SnInputUserSuggest,
-  SubmitButton as SnSubmitButton, InputGroup as SnInputGroup
+  SubmitButton as SnSubmitButton, InputGroup as SnInputGroup, CheckboxGroup as SnCheckboxGroup,
+  RadioGroup as SnRadioGroup, Radio as SnRadio, Range as SnRange, Slider as SnSlider, OtpInput as SnOtpInput
 } from '@/components/form'
 import Layout from '@/components/layout'
 import { SNEditor } from '@/components/editor'
@@ -108,7 +109,6 @@ const RETINT_VARS = {
 
 // docs/dev/pr2-base-ui-components.md §8 — add a section above as each lands
 const ROADMAP = [
-  ['form: Slider + NumberField, CheckboxGroup, OTP Field', 'C9b'],
   ['Nav / Navbar + Drawer', 'C10'],
   ['Collapsible', 'C11'],
   ['Switch, Toggle Group', 'C12']
@@ -539,7 +539,7 @@ const BS_TOAST_REPLICA_CSS = `
 function FormCompares () {
   return (
     <SnForm
-      initial={{ pgBasic: '', pgGrouped: '', pgReq: '', pgCheck: true, pgKind: 'apples', pgPostTypes: ['LINK'], pgSel: 'b', pgNym: '', pgClear: 'clear me', pgPw: 'hunter2hunter2' }}
+      initial={{ pgBasic: '', pgGrouped: '', pgReq: '', pgCheck: true, pgKind: 'apples', pgPostTypes: ['LINK'], pgSel: 'b', pgNym: '', pgClear: 'clear me', pgPw: 'hunter2hunter2', pgSats: null, pgOtp: '' }}
       validate={values => values.pgReq ? {} : { pgReq: 'required' }}
       onSubmit={() => {}}
     >
@@ -605,23 +605,72 @@ function FormCompares () {
             }
         />
         <Compare
-          label='checkbox + radio'
-          note='array-membership checkbox (postTypes shape) + native radios; checked bg rides --bs-primary (territory-tintable)'
+          label='checkbox + array group'
+          note='C9b: the group (Base UI CheckboxGroup) OWNS the postTypes-shaped array — children derive checked from containment, one write path; checked bg rides --bs-primary (territory-tintable)'
           bs={
             <div>
               <BsForm.Check id='pg-bs-check' label='checkbox' defaultChecked />
-              <BsForm.Check id='pg-bs-radio-a' type='radio' name='pgBsKind' label='apples' defaultChecked />
-              <BsForm.Check id='pg-bs-radio-b' type='radio' name='pgBsKind' label='bananas' />
+              <BsForm.Check id='pg-bs-array-a' label='array member (LINK)' defaultChecked />
+              <BsForm.Check id='pg-bs-array-b' label='array member (DISCUSSION)' />
             </div>
             }
           sn={
             <div>
               <SnCheckbox name='pgCheck' label='checkbox' groupClassName='mb-0' />
-              <SnCheckbox name='pgPostTypes' value='LINK' label='array member (LINK)' groupClassName='mb-0' />
-              <SnCheckbox type='radio' name='pgKind' value='apples' id='pg-radio-a' label='apples' groupClassName='mb-0' />
-              <SnCheckbox type='radio' name='pgKind' value='bananas' id='pg-radio-b' label='bananas' groupClassName='mb-0' />
+              <SnCheckboxGroup name='pgPostTypes' groupClassName='mb-0'>
+                <SnCheckbox name='pgPostTypes' value='LINK' label='array member (LINK)' groupClassName='mb-0' />
+                <SnCheckbox name='pgPostTypes' value='DISCUSSION' label='array member (DISCUSSION)' groupClassName='mb-0' />
+              </SnCheckboxGroup>
             </div>
             }
+        />
+        <Compare
+          label='radio group'
+          note='C9b: native radios → a true RadioGroup on the real field; arrow keys rove focus AND select (intended a11y betterment); the dot skin re-keyed :checked → [data-checked], values verbatim'
+          bs={
+            <div>
+              <BsForm.Check id='pg-bs-radio-a' type='radio' name='pgBsKind' label='apples' defaultChecked />
+              <BsForm.Check id='pg-bs-radio-b' type='radio' name='pgBsKind' label='bananas' />
+            </div>
+            }
+          sn={
+            <SnRadioGroup name='pgKind' groupClassName='mb-0'>
+              <SnRadio value='apples' id='pg-radio-a' label='apples' groupClassName='mb-0' />
+              <SnRadio value='bananas' id='pg-radio-b' label='bananas' groupClassName='mb-0' />
+            </SnRadioGroup>
+            }
+        />
+        <Compare
+          label='slider (bare)'
+          note='the formik-less Slider (avatar shape); C9b deltas: thumb rides var(--bs-primary) — territory-tintable (the compiled rb thumb was LITERAL #FADA5E); rb mounts at the native midpoint (the avatar bug defaultValue={1} fixes)'
+          bs={<BsForm.Range min={1} max={2} step='0.05' />}
+          sn={<SnSlider min={1} max={2} step={0.05} defaultValue={1} />}
+        />
+        <Compare
+          label='range allOption ∞'
+          note='left = the dead rb Range replica (compiled .form-range/form-control CSS survives until PR3) — slide to the far left for the ∞ chip; C9b deltas: the number twin live-clamps while typing, keeps the value on clear (rb wrote 0 live), canonicalizes text on blur; twin height 41.47→40.03'
+          bs={<BsRangeReplica />}
+          sn={
+            <SnRange
+              name='pgSats' min={-1000} max={1000} suffix=' sats' allOption groupClassName='mb-0'
+              labels={[
+                { value: -1060, label: 'wild west' },
+                { value: 125, label: '125' },
+                { value: 1060, label: 'tea & crumpets' }
+              ]}
+            />
+            }
+        />
+        <Compare
+          label='otp'
+          note='C9b: MultiInput died into OtpInput (Base UI OTP Field) — lowercase-normalizes typed AND pasted input, alphanumeric (bech32); cells px-4→px-0, paint-identical at 44px'
+          bs={
+            <div className='flex flex-row justify-center gap-2'>
+              {[...Array(6)].map((_, i) =>
+                <BsForm.Control key={i} type='text' className='text-center' style={{ maxWidth: '44px' }} />)}
+            </div>
+            }
+          sn={<SnOtpInput length={6} name='pgOtp' groupClassName='mb-0' />}
         />
         <Compare
           label='select'
@@ -645,6 +694,49 @@ function FormCompares () {
         />
       </CompareGrid>
     </SnForm>
+  )
+}
+
+// the pre-C9b rb Range verbatim (form/range.js at its death): .form-range +
+// number Control + InputGroup with the raw form-control ∞ chip, useState-driven
+function BsRangeReplica ({ min = -1000, max = 1000, step = 1, suffix = ' sats' }) {
+  const [value, setValue] = useState(null) // null = the allOption ∞ sentinel
+  const isAll = value == null
+  const sliderMin = min - step
+  const labels = [
+    { value: -1060, label: 'wild west' },
+    { value: 125, label: '125' },
+    { value: 1060, label: 'tea & crumpets' }
+  ]
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', columnGap: '1rem', alignItems: 'center' }}>
+      <span className='text-muted' style={{ whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>
+      <BsForm.Range
+        min={sliderMin} max={max} step={step}
+        value={isAll ? sliderMin : value}
+        onChange={e => {
+          const val = Number(e.target.value)
+          setValue(val <= sliderMin ? null : val)
+        }}
+      />
+      <small className='text-muted font-mono'>{max}</small>
+      <BsInputGroup className='flex-nowrap' style={{ width: 'auto' }}>
+        {isAll
+          ? <span className='form-control px-2' style={{ width: '4rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25em' }}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>
+          : <BsForm.Control
+              type='number' min={min} max={max} step={step} value={value}
+              className='text-end hide-spinners px-2' style={{ width: '4rem' }}
+              onChange={e => { const val = Number(e.target.value); if (!isNaN(val)) setValue(val) }}
+              onBlur={e => { const val = Number(e.target.value); if (!isNaN(val)) setValue(Math.min(max, Math.max(min, val))) }}
+            />}
+        {suffix && <BsInputGroup.Text>{suffix.trim()}</BsInputGroup.Text>}
+      </BsInputGroup>
+      <div className='relative' style={{ gridColumn: 2, height: '1.2em' }}>
+        {labels.map(({ value: v, label }) => (
+          <span key={v} className='text-muted' style={{ position: 'absolute', left: `${((v - sliderMin) / (max - sliderMin)) * 100}%`, transform: 'translateX(-50%)', fontSize: '80%', whiteSpace: 'nowrap' }}>{label}</span>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -1486,12 +1578,13 @@ export default function Playground () {
 
         <Section
           title='Form'
-          note='components/form.js became a barrel over components/form/ — Input/Field on Base UI Field+Input, Checkbox on Base UI Checkbox.Root, radios native, select native on the SN pill skin, InputGroup is SN-composed (consumers only ever passed .Text addons). Formik owns all state; Base UI Form was deliberately NOT adopted.'
+          note='components/form.js became a barrel over components/form/ — Input/Field on Base UI Field+Input, Checkbox on Base UI Checkbox.Root, radios a true Base UI RadioGroup (C9b), select native on the SN pill skin, InputGroup is SN-composed (consumers only ever passed .Text addons). Formik owns all state; Base UI Form was deliberately NOT adopted.'
           details={[
             'invalid stays submit-gated (Field.Root invalid + Field.Error match — the documented external-library hooks); Checkbox/Select invalid are deliberately ungated, as today',
             'intended deltas: input height 41.5→40px, padding-x 13.4→16px, radius 6.4→6px; suggest menus join the C5 chrome (py-2 items, shadow-lg, ladder z 1060, gap stays 0); select shows its error text (rb never displayed it — dead sibling selector); select gains the mobile 16px iOS-zoom guard (rb zoomed)',
             "corner-joining is clone-injected utilities now (rounded-e-none/rounded-none/rounded-s-none by position) — module CSS can't flatten a layered-!important radius (§11.0)",
-            'drafts (storageKeyPrefix), Ctrl/Cmd+Enter submit, maxLength counter, clear-X, copy/password addons all ride along unchanged'
+            'drafts (storageKeyPrefix), Ctrl/Cmd+Enter submit, maxLength counter, clear-X, copy/password addons all ride along unchanged',
+            'C9b: Range → Base UI Slider + NumberField (touched on blur, error ungated — verbatim); MultiInput → OtpInput (submit-gated error — verbatim); CheckboxGroup owns the array; billing → RadioGroup on the real billingType field (its error slot was reading a phantom field — inert)'
           ]}
         >
           <FormCompares />

@@ -1,0 +1,44 @@
+/* slider skin — values from the compiled .form-range paint census (§19.1):
+   track stays var(--bs-secondary-bg) (theme-aware today); the thumb rides
+   var(--bs-primary) — intended delta (§19.0-6): the compiled thumb was LITERAL
+   #FADA5E, so branded territories never retinted it. Active + focus ring stay
+   hardcoded (parity; PR4 ring-token candidates with the input rings, §18.9) */
+
+.track {
+    height: .5rem;
+    border-radius: 1rem;
+    background-color: var(--bs-secondary-bg);
+}
+
+/* Base UI owns the thumb's inline position (pre-offset insetInlineStart) —
+   a module transform would compound it (§19.8-1); center vertically via top */
+.thumb {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 1rem;
+    background-color: var(--bs-primary);
+    position: absolute;
+    top: calc(50% - .5rem);
+}
+
+.thumb:active {
+    background-color: #fef4cf;
+}
+
+/* the hidden range input inside the thumb holds focus (§19.2) */
+.thumb:focus-within {
+    outline: 0;
+    box-shadow: 0 0 0 1px #fcfcff, 0 0 0 .25rem rgb(250 218 94 / 25%);
+}
+
+.thumb[data-disabled] {
+    pointer-events: none;
+    background-color: var(--bs-secondary-color);
+}
+
+.addon {
+    background-color: var(--theme-clickToContextColor);
+    border: 1px solid var(--theme-borderColor);
+    border-inline-start: 0;
+    border-radius: .375rem;
+}

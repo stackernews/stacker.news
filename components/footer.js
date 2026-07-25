@@ -138,6 +138,18 @@ const LegalPopover = (
   </Popover>
 )
 
+const ToolsPopover = (
+  <Popover>
+    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
+      <div className='d-flex justify-content-center'>
+        <Link href='/bitcoin-config-generator' className='nav-link p-0 d-inline-flex'>
+          bitcoin config generator
+        </Link>
+      </div>
+    </Popover.Body>
+  </Popover>
+)
+
 export default function Footer ({ links = true }) {
   const [darkMode, darkModeToggle] = useDarkMode()
 
@@ -184,6 +196,12 @@ export default function Footer ({ links = true }) {
               <OverlayTrigger trigger='click' placement='top' overlay={SocialsPopover} rootClose>
                 <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
                   socials
+                </div>
+              </OverlayTrigger>
+              <span className='mx-2 text-muted'> \ </span>
+              <OverlayTrigger trigger='click' placement='top' overlay={ToolsPopover} rootClose>
+                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                  tools
                 </div>
               </OverlayTrigger>
               <span className='mx-2 text-muted'> \ </span>

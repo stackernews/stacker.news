@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Nav, Navbar } from 'react-bootstrap'
+import Nav, { navLinkClasses } from '@/components/ui/nav'
 import Button, { buttonClasses } from '@/components/ui/button'
 import Menu from '@/components/ui/menu'
 import styles from '../header.module.css'
@@ -32,11 +32,11 @@ export function Brand ({ className }) {
   const logoUrl = branding?.logoId ? `${PUBLIC_MEDIA_URL}/${branding.logoId}` : null
 
   return (
-    <Navbar.Brand as={Link} href='/' className={classNames(styles.brand, className)}>
+    <Link href='/' className={classNames(styles.brand, className)}>
       {logoUrl
         ? <img src={logoUrl} alt='site logo' width={36} height={36} className={styles.brandImage} loading='eager' decoding='async' />
         : <SnIcon width={36} height={36} />}
-    </Navbar.Brand>
+    </Link>
   )
 }
 
@@ -59,8 +59,10 @@ export function Back () {
   if (!back) return null
 
   return (
-    <a
-      role='button' tabIndex='0' className='nav-link p-0 me-2' onClick={() => {
+    <button
+      type='button'
+      className={navLinkClasses({ className: 'bg-transparent border-0 p-0 me-2' })}
+      onClick={() => {
         if (back) {
           router.back()
         } else {
@@ -69,7 +71,7 @@ export function Back () {
       }}
     >
       <BackArrow className='theme me-1 md:me-2' width={24} height={24} />
-    </a>
+    </button>
   )
 }
 
@@ -88,9 +90,9 @@ export function BackOrBrand ({ className }) {
   )
 }
 
-export function SearchItem ({ prefix, className }) {
+export function SearchItem ({ className }) {
   return (
-    <Nav.Link as={Link} href='/search' eventKey='search' className={className}>
+    <Nav.Link href='/search' eventKey='search' className={classNames('py-0.5 px-2', className)}>
       <SearchIcon className='theme' width={22} height={28} />
     </Nav.Link>
   )
@@ -99,7 +101,7 @@ export function SearchItem ({ prefix, className }) {
 export function NavPrice ({ className }) {
   return (
     <Nav.Item className={classNames(styles.price, className)}>
-      <Price className='nav-link font-mono' />
+      <Price className={navLinkClasses({ className: 'py-0.5 px-2 font-mono' })} />
     </Nav.Item>
   )
 }
@@ -124,7 +126,7 @@ export function NavNotifications ({ className }) {
 
   return (
     <>
-      <Nav.Link as={Link} href='/notifications' eventKey='notifications' className={className}>
+      <Nav.Link href='/notifications' eventKey='notifications' className={classNames('py-0.5 px-2', className)}>
         <Indicator show={hasNewNotes} top='2px' right='0px' variant='danger'>
           <NoteIcon height={28} width={20} className='theme' />
         </Indicator>
@@ -151,7 +153,7 @@ export function NavWalletSummary ({ className }) {
 
   return (
     <Nav.Item className={className}>
-      <Nav.Link as={Link} href='/wallets' eventKey='wallets' className='text-success font-mono px-0 whitespace-nowrap'>
+      <Nav.Link href='/wallets' eventKey='wallets' className='text-success font-mono py-0.5 px-0 whitespace-nowrap'>
         <WalletSummary me={me} />
       </Nav.Link>
     </Nav.Item>
@@ -164,7 +166,7 @@ export const Indicator = ({ show, top = '0px', right = '0px', variant = 'seconda
       {children}
       {show && (
         <span
-          className={`absolute p-1 bg-${variant}`}
+          className={`absolute p-1 ${variant === 'danger' ? 'bg-danger' : 'bg-secondary'}`}
           style={{ top, right, height: '5px', width: '5px', border: '1px solid var(--bs-body-bg)' }}
         >
           <span className='invisible'>{' '}</span>
@@ -180,20 +182,23 @@ export function MeDropdown ({ me, dropNavKey }) {
 
   const profileIndicator = !me.bioId
   const indicator = profileIndicator || walletIndicator
-  // topNavKey ≡ dropNavKey.split('/')[0] by construction (useNavKeys derives both
-  // from the same path offset) — replaces rb's NavContext eventKey resolution
+  // topNavKey equals dropNavKey.split('/')[0] by construction, useNavKeys
+  // derives both from the same path offset
   const topKey = dropNavKey?.split('/')[0]
 
   return (
     <div className='ms-2'>
       <Menu className={styles.dropdown}>
-        {/* ps-0 pe-2 py-0.5 replicate today's painted 0/8px/1.6px (§14.6 pre-flight 7)
-            now that the dead .btn/.btn-custom classes are gone */}
-        <Menu.Trigger className='nav-link nav-item font-normal ps-0 pe-2 py-0.5'>
+        {/* ps-0 pe-2 py-0.5 replicate the old painted padding now that the dead
+            .btn and .btn-custom classes are gone; the old nav-item's weight 500
+            was dead under font-normal, so it doesn't ride along */}
+        <Menu.Trigger className={navLinkClasses({ className: 'font-normal ps-0 pe-2 py-0.5' })}>
           <div className='flex items-center'>
-            <Nav.Link eventKey={me.name} as='span' className='p-0'>
+            {/* never interactive, the Menu.Trigger owns the semantics; active
+                resolves from topKey */}
+            <span className={navLinkClasses({ active: topKey === me.name, className: 'p-0' })}>
               <Indicator show={indicator} top='2px' right='-5px'>@{me.name}</Indicator>
-            </Nav.Link>
+            </span>
             <Badges user={me} className='ms-1' height={16} width={14} />
           </div>
         </Menu.Trigger>
@@ -303,9 +308,9 @@ function LogoutObstacle ({ onClose }) {
   )
 }
 
-// dual-mode (§14.5): in-menu in MeDropdown, plain elements in the offcanvas drawer —
-// the drawer passes className='px-0' (its items painted padding-x 0 via the drawer's
-// now-dead inline dropdown var writes); menu sites pass nothing, keeping recipe padding
+// dual-mode: in-menu in MeDropdown, plain elements in the drawer. The drawer
+// passes className='px-0' to keep its old zero side padding; menu sites pass
+// nothing and keep the recipe padding
 export function LogoutDropdownItem ({ handleClose, className }) {
   const showModal = useShowModal()
 
@@ -353,9 +358,9 @@ function SwitchAccountButton ({ handleClose }) {
   )
 }
 
-// dual-mode like LogoutDropdownItem: in-menu items in AnonDropdown (closeOnClick
-// closes the menu before the button's navigation/modal — rb behavior), plain divs
-// in the drawer (className='px-0' from there)
+// dual-mode like LogoutDropdownItem: in-menu items in AnonDropdown, where
+// closeOnClick closes the menu before the button's navigation or modal, and
+// plain divs in the drawer (className='px-0' from there)
 export function LoginButtons ({ handleClose, className }) {
   return (
     <>
@@ -372,16 +377,16 @@ export function LoginButtons ({ handleClose, className }) {
   )
 }
 
-export function AnonDropdown ({ path }) {
+export function AnonDropdown () {
   return (
     <div className='relative'>
-      {/* rb's inert bare autoClose (≡ default true) dropped; padding utilities per
-          §14.6 pre-flight 7, as on MeDropdown's trigger */}
+      {/* padding utilities as on MeDropdown's trigger; the old autoClose and
+          path wiring were both inert and got dropped */}
       <Menu className={classNames(styles.dropdown, 'pe-0')}>
-        <Menu.Trigger className='nav-link nav-item ps-0 pe-0 py-0.5'>
-          <Nav.Link eventKey='anon' as='span' className='p-0 font-normal'>
+        <Menu.Trigger className={navLinkClasses({ className: 'font-medium ps-0 pe-0 py-0.5' })}>
+          <span className={navLinkClasses({ className: 'p-0 font-normal' })}>
             @anon<Badges user={{ id: USER_ID.anon }} />
-          </Nav.Link>
+          </span>
         </Menu.Trigger>
         <Menu.Popup align='end' className='p-4'>
           <LoginButtons />
@@ -395,32 +400,32 @@ export function Sorts ({ prefix, className }) {
   return (
     <>
       <Nav.Item className={className}>
-        <Nav.Link as={Link} href={prefix + '/'} eventKey='' className={`${styles.navLink} ${styles.navSort}`}>lit</Nav.Link>
+        <Nav.Link href={prefix + '/'} eventKey='' className={`${styles.navSort} py-1 px-2`}>lit</Nav.Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Nav.Link as={Link} href={prefix + '/new'} eventKey='new' className={`${styles.navLink} ${styles.navSort}`}>new</Nav.Link>
+        <Nav.Link href={prefix + '/new'} eventKey='new' className={`${styles.navSort} py-1 px-2`}>new</Nav.Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Nav.Link as={Link} href={prefix + '/top/posts/day'} eventKey='top' className={`${styles.navLink} ${styles.navSort}`}>top</Nav.Link>
+        <Nav.Link href={prefix + '/top/posts/day'} eventKey='top' className={`${styles.navSort} py-1 px-2`}>top</Nav.Link>
       </Nav.Item>
     </>
   )
 }
 
-export function PostItem ({ className, prefix }) {
+export function PostItem ({ className, prefix, size }) {
   const branding = useBranding()
   const isLurker = useIsLurker()
   // when a custom primary color is set we let the button text follow the skin's
   // --sn-btn-color (YIQ-computed --sn-primary-text); otherwise force text-black
   const textOverride = branding?.primaryColor ? '' : 'text-black'
   return (
-    <Link href={prefix + '/post'} className={buttonClasses({ variant: isLurker ? 'grey' : 'primary', className: [className, textOverride, 'md:py-1'] })}>
+    <Link href={prefix + '/post'} className={buttonClasses({ variant: isLurker ? 'grey' : 'primary', size, className: [className, textOverride, 'md:py-1'] })}>
       post
     </Link>
   )
 }
 
-export function RightCorner ({ dropNavKey, path, className = 'hidden md:flex' }) {
+export function RightCorner ({ dropNavKey, className = 'flex' }) {
   const { me } = useMe()
   const isLurker = useIsLurker()
   return (
@@ -429,7 +434,7 @@ export function RightCorner ({ dropNavKey, path, className = 'hidden md:flex' })
         ? <MeCorner dropNavKey={dropNavKey} me={me} className={className} />
         : isLurker
           ? <LurkerCorner className={className} />
-          : <AnonCorner path={path} className={className} />}
+          : <AnonCorner className={className} />}
     </>
   )
 }
@@ -439,15 +444,15 @@ export function MeCorner ({ dropNavKey, me, className }) {
     <div className={className}>
       <NavNotifications />
       <MeDropdown me={me} dropNavKey={dropNavKey} />
-      <NavWalletSummary className='inline-block ms-1' />
+      <NavWalletSummary className='inline-flex items-center ms-1' />
     </div>
   )
 }
 
-export function AnonCorner ({ dropNavKey, className }) {
+export function AnonCorner ({ className }) {
   return (
     <div className={className}>
-      <AnonDropdown dropNavKey={dropNavKey} />
+      <AnonDropdown />
     </div>
   )
 }

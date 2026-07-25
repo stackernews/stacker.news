@@ -1,6 +1,6 @@
 import { Checkbox, Form, Input, InputGroup, SubmitButton, Select, VariableInput, Range, labelClasses } from '@/components/form'
 import Button from '@/components/ui/button'
-import Nav from 'react-bootstrap/Nav'
+import Nav from '@/components/ui/nav'
 import Layout from '@/components/layout'
 import { useMemo } from 'react'
 import { gql } from '@apollo/client'
@@ -49,19 +49,19 @@ export function SettingsHeader () {
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Nav.Link as={Link} href='/settings' eventKey='general'>general</Nav.Link>
+          <Nav.Link href='/settings' eventKey='general' className='py-0.5 pe-4 ps-0'>general</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Nav.Link as={Link} href='/settings/logins' eventKey='logins'>logins</Nav.Link>
+          <Nav.Link href='/settings/logins' eventKey='logins' className='py-0.5 pe-4 ps-0'>logins</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Nav.Link as={Link} href='/settings/wallets' eventKey='wallets'>wallets</Nav.Link>
+          <Nav.Link href='/settings/wallets' eventKey='wallets' className='py-0.5 pe-4 ps-0'>wallets</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Nav.Link as={Link} href='/settings/subscriptions/stackers' eventKey='subscriptions'>subscriptions</Nav.Link>
+          <Nav.Link href='/settings/subscriptions/stackers' eventKey='subscriptions' className='py-0.5 pe-4 ps-0'>subscriptions</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Nav.Link as={Link} href='/settings/mutes' eventKey='mutes'>mutes</Nav.Link>
+          <Nav.Link href='/settings/mutes' eventKey='mutes' className='py-0.5 pe-4 ps-0'>mutes</Nav.Link>
         </Nav.Item>
       </Nav>
     </>

@@ -1,6 +1,7 @@
 import { gql } from '@apollo/client'
 import { useQuery } from '@apollo/client/react'
 import Link from 'next/link'
+import { navLinkClasses } from '@/components/ui/nav'
 import { RewardLine } from '@/pages/rewards'
 import { LONG_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
 
@@ -17,7 +18,7 @@ export default function Rewards () {
   const total = data?.rewards?.[0]?.total
   const time = data?.rewards?.[0]?.time
   return (
-    <Link href='/rewards' className='nav-link p-0 p-0 inline-flex'>
+    <Link href='/rewards' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
       {total ? <span><RewardLine total={total} time={time} /></span> : 'rewards'}
     </Link>
   )

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, startTransition, createContext, useContext } from 'react'
 import styles from './comment.module.css'
+import { navLinkClasses } from '@/components/ui/nav'
 import LongPressable from './long-pressable'
 import { useFavicon } from './favicon'
 
@@ -195,7 +196,7 @@ export function CommentsNavigator ({ navigator, commentCount, className }) {
   return (
     <LongPressable onShortPress={scrollToComment} onLongPress={clearCommentRefs}>
       <aside
-        className={`${styles.commentNavigator} font-bold nav-link ${className}`}
+        className={navLinkClasses({ className: `${styles.commentNavigator} font-bold ${className}` })}
         style={{ visibility: commentCount ? 'visible' : 'hidden' }}
       >
         <span aria-label='next comment' className={styles.navigatorButton}>

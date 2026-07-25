@@ -6,8 +6,7 @@ import { SATISTICS } from '@/fragments/payIn'
 import PayInTable, { PayInSkeleton } from '@/components/payIn/table'
 import { useData } from '@/components/use-data'
 import navStyles from '@/styles/nav.module.css'
-import { Nav } from 'react-bootstrap'
-import Link from 'next/link'
+import Nav from '@/components/ui/nav'
 import { useRouter } from 'next/router'
 
 export const getServerSideProps = getGetServerSideProps({ query: SATISTICS, authRequired: true, variables: { } })
@@ -24,10 +23,10 @@ export function SatisticsHeader () {
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Nav.Link as={Link} href='/satistics' eventKey='history'>history</Nav.Link>
+          <Nav.Link href='/satistics' eventKey='history' className='py-0.5 pe-4 ps-0'>history</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Nav.Link as={Link} href='/satistics/graphs/day' eventKey='graphs'>graphs</Nav.Link>
+          <Nav.Link href='/satistics/graphs/day' eventKey='graphs' className='py-0.5 pe-4 ps-0'>graphs</Nav.Link>
         </Nav.Item>
       </Nav>
     </>

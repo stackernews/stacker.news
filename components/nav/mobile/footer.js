@@ -1,4 +1,3 @@
-import { Nav, Navbar } from 'react-bootstrap'
 import { Brand, NavNotifications, PostItem, SearchItem } from '../common'
 import { useMe } from '../../me'
 import styles from './footer.module.css'
@@ -53,15 +52,15 @@ export default function BottomBar ({ sub }) {
     <nav className='block md:hidden'>
       <div style={{ marginBottom: '53px' }} className={styles.footerPadding} />
       <div className={classNames(styles.footer, styles.footerPadding)}>
-        <Navbar className='container px-0'>
-          <Nav className={styles.footerNav}>
+        <div className='container flex items-center flex-nowrap px-0 py-2'>
+          <div className={styles.footerNav}>
             <Brand />
             <SearchItem {...props} />
             <PostItem {...props} className='btn-sm' />
             <NavNotifications />
             <Offcanvas me={me} {...props} />
-          </Nav>
-        </Navbar>
+          </div>
+        </div>
       </div>
     </nav>
   )

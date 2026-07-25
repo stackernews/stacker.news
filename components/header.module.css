@@ -13,74 +13,20 @@
     display: block;
 }
 
-.postAnon {
-    border-width: 2px;
-}
-
-.postAnon svg {
-    fill: var(--bs-grey-darkmode);
-}
-
-.postAnon:hover, .postAnon:active, .postAnon:focus-visible {
-    color: var(--bs-white) !important;
-}
-
-.postAnon:hover svg, .postAnon:active svg, .postAnon:focus-visible svg {
-    fill: var(--bs-white);
-}
-
-.navLinkButton {
-    border: 2px solid;
-    padding: 0.2rem .9rem !important;
-    border-radius: .4rem;
-}
-
-.navLink {
-    padding: 0.25rem 1rem;
-}
-
 .navSort {
     text-transform: uppercase;
     font-weight: normal;
     letter-spacing: 0.05em;
 }
 
-.navbar {
-    padding: .5rem 0;
-    background-color: transparent !important;
-}
-
-.navLink.active svg {
-    fill: var(--theme-navLinkActive);
-}
-
-.hide {
-    display: none;
-}
-
 .dropdown svg {
     vertical-align: text-top;
 }
 
-.jobIndicator {
-    position: absolute;
-    padding: .25rem;
-    background-color: var(--bs-primary);
-    top: 3px;
-    right: 0px;
-    border: 1px solid var(--bs-body-bg);
-}
-
-.notification {
-    position: absolute;
-    padding: .25rem;
-    background-color: var(--bs-danger);
-    top: 3px;
-    right: 8px;
-    border: 1px solid var(--bs-body-bg);
-}
-
+/* display: flex folded in from Bootstrap's .navbar-nav; the module owns the
+   whole bar-row layout */
 .navbarNav {
+    display: flex;
     width: 100%;
     align-items: center;
     height: 39px;
@@ -116,12 +62,32 @@
     padding-left: 0 !important;
 }
 
+/* sticky bar: an IntersectionObserver sentinel triggers it; 150ms translateY
+   slide in, instant snap out (the transition rides .visible only) so the
+   hidden bar is untabbable immediately, like display none would be. left and
+   right 0 instead of 100vw is scrollbar-safe. If a hairline seam ever shows
+   on-device, reinstate top: -1px with padding-top: 1px. */
 .sticky {
     position: fixed;
-    border-bottom: 1px solid var(--theme-toolbarActive);
-    width: 100vw;
-    top: -1px;
-    padding-top: 1px;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--sn-z-sticky);
     background-color: var(--bs-body-bg);
-    z-index: 1000;
+    border-bottom: 1px solid var(--theme-toolbarActive);
+    transform: translateY(-100%);
+    visibility: hidden;
+}
+
+.sticky.visible {
+    transform: none;
+    visibility: visible;
+    transition: transform 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sticky,
+    .sticky.visible {
+        transition: none;
+    }
 }

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { CopyButton, Form, PasswordInput, SubmitButton } from '@/components/form'
 import Button from '@/components/ui/button'
+import { navLinkClasses } from '@/components/ui/nav'
 import classNames from 'classnames'
 import { object, string } from 'yup'
 import { useMe } from '@/components/me'
@@ -69,7 +70,7 @@ function ResetPassphraseDialog ({ hasSparkWallet, onCancel, onConfirm }) {
       </p>
       <WalletDeletionBarrier fundLossRisk={hasSparkWallet} acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
       <div className='mt-4 flex justify-end items-center'>
-        <Button className='me-4 text-muted nav-link font-bold' variant='link' onClick={onCancel}>cancel</Button>
+        <Button className={navLinkClasses({ className: 'me-4 text-muted font-bold' })} variant='link' onClick={onCancel}>cancel</Button>
         <Button variant='danger' onClick={onConfirm} disabled={!acknowledged}>reset</Button>
       </div>
     </div>
@@ -177,7 +178,7 @@ export function WalletPassphrasePrompt ({
               </button>
               <div className='flex items-center gap-4 flex-wrap justify-end'>
                 {showCancel && !!onCancel && (
-                  <Button type='button' className='text-muted nav-link font-bold p-0' variant='link' onClick={onCancel}>cancel</Button>
+                  <Button type='button' className={navLinkClasses({ className: 'text-muted font-bold p-0' })} variant='link' onClick={onCancel}>cancel</Button>
                 )}
                 <SubmitButton variant='primary' submittingText='unlocking...'>unlock</SubmitButton>
               </div>

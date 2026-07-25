@@ -1,3 +1,44 @@
+/* the SN nav-link vocabulary, globals' .nav-link family re-homed: colors and
+   svg fills module-side, metrics ride utilities at call sites. The
+   :not(.text-success):not(.text-warning) guards carry over from globals so
+   wallet summaries keep their success green; the Bootstrap-era !important died
+   with the Bootstrap classes it out-shouted. */
+/* Bootstrap's .nav-link carried these resets so the class could sit on
+   <button>s (the corner menu triggers, comments sorts); the re-home keeps them */
+.link {
+    background: none;
+    border: 0;
+}
+
+.link:not(:global(.text-success)):not(:global(.text-warning)) {
+    color: var(--theme-navLink);
+}
+
+.link:not(:global(.text-success)):not(:global(.text-warning)):hover,
+.link:not(:global(.text-success)):not(:global(.text-warning)):focus-visible {
+    color: var(--theme-navLinkFocus);
+}
+
+/* two classes beat the single-class font-weight reset riding sorts (.navSort),
+   exactly as globals' .nav-link.active outweighed it */
+.link.active {
+    font-weight: bold;
+}
+
+.link.active:not(:global(.text-success)):not(:global(.text-warning)) {
+    color: var(--theme-navLinkActive);
+}
+
+.link svg {
+    fill: var(--theme-navLink);
+}
+
+.link:hover svg,
+.link.active svg {
+    fill: var(--theme-navLinkActive);
+}
+
+/* tab-nav container (settings / satistics / user-header) */
 .nav {
     display: flex;
     flex-wrap: nowrap;
@@ -11,10 +52,12 @@
     gap: 0 0.5rem;
 }
 
-.nav :global .nav-link {
-    padding-left: 0;
+.nav .link {
+    display: block;
 }
 
-.nav :global .active {
+/* retargeted to the local class; the old global .nav-link padding-left hook
+   died into ps-0 utilities at the tab sites */
+.nav .active {
     border-bottom: 2px solid var(--bs-primary);
 }

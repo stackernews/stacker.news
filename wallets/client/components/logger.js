@@ -1,4 +1,5 @@
 import Button from '@/components/ui/button'
+import { navLinkClasses } from '@/components/ui/nav'
 import styles from '@/styles/logger.module.css'
 import { useWalletLogs, useDeleteWalletLogs } from '@/wallets/client/hooks/logger'
 import { useCallback, useEffect, useState, Fragment } from 'react'
@@ -27,7 +28,7 @@ export function WalletLogs ({ wallet, payInId, externalTransactionId, className,
         <div className='flex w-full items-center mb-4'>
           <span
             style={{ cursor: 'pointer' }}
-            className='text-muted font-bold nav-link ms-auto' onClick={onDelete}
+            className={navLinkClasses({ className: 'text-muted font-bold ms-auto' })} onClick={onDelete}
           >clear logs
           </span>
         </div>

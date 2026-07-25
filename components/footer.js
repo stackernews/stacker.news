@@ -1,4 +1,5 @@
 import Container from '@/components/ui/container'
+import { navLinkClasses } from '@/components/ui/nav'
 import Popover from '@/components/ui/popover'
 import { CopyInput } from './form'
 import styles from './footer.module.css'
@@ -19,13 +20,13 @@ import ActionTooltip from './action-tooltip'
 import { useAnimationEnabled } from '@/components/animation'
 import { useLiveCommentsToggle } from './use-live-comments'
 
-// trigger press toggles, outside-press + Escape close ≡ the old
-// trigger='click' rootClose; nativeButton={false} makes Base UI decorate the
-// div with role='button'/tabIndex — footer popovers become keyboard-reachable
+// trigger press toggles, and outside press or Escape closes, same as the old
+// click trigger with rootClose. nativeButton={false} makes Base UI decorate
+// the div with role and tabIndex, so footer popovers are keyboard-reachable
 function FooterPopover ({ label, children }) {
   return (
     <Popover>
-      <Popover.Trigger nativeButton={false} render={<div className='nav-link p-0 inline-flex cursor-pointer'>{label}</div>} />
+      <Popover.Trigger nativeButton={false} render={<div className={navLinkClasses({ className: 'p-0 inline-flex cursor-pointer' })}>{label}</div>} />
       <Popover.Content side='top'>
         <Popover.Body className='font-medium'>{children}</Popover.Body>
       </Popover.Content>
@@ -37,28 +38,28 @@ function RssPopover () {
   return (
     <FooterPopover label='rss'>
       <div className='flex justify-center'>
-        <a href='/rss' className='nav-link p-0 inline-flex'>
+        <a href='/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
           home
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~bitcoin/rss' className='nav-link p-0 inline-flex'>
+        <a href='/~bitcoin/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
           bitcoin
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~nostr/rss' className='nav-link p-0 inline-flex'>
+        <a href='/~nostr/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
           nostr
         </a>
       </div>
       <div className='flex justify-center'>
-        <a href='/~tech/rss' className='nav-link p-0 inline-flex'>
+        <a href='/~tech/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
           tech
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~meta/rss' className='nav-link p-0 inline-flex'>
+        <a href='/~meta/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
           meta
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~jobs/rss' className='nav-link p-0 inline-flex'>
+        <a href='/~jobs/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
           jobs
         </a>
       </div>
@@ -71,21 +72,21 @@ function SocialsPopover () {
     <FooterPopover label='socials'>
       <div className='flex justify-center'>
         <a
-          href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 inline-flex'
+          href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className={navLinkClasses({ className: 'p-0 inline-flex' })}
           target='_blank' rel='noreferrer'
         >
           nostr
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
-          href='https://twitter.com/stacker_news' className='nav-link p-0 inline-flex'
+          href='https://twitter.com/stacker_news' className={navLinkClasses({ className: 'p-0 inline-flex' })}
           target='_blank' rel='noreferrer'
         >
           twitter
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
-          href='https://www.youtube.com/@stackernews' className='nav-link p-0 inline-flex'
+          href='https://www.youtube.com/@stackernews' className={navLinkClasses({ className: 'p-0 inline-flex' })}
           target='_blank' rel='noreferrer'
         >
           youtube
@@ -93,14 +94,14 @@ function SocialsPopover () {
       </div>
       <div className='flex justify-center'>
         <a
-          href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className='nav-link p-0 inline-flex'
+          href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className={navLinkClasses({ className: 'p-0 inline-flex' })}
           target='_blank' rel='noreferrer'
         >
           pod
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
-          href='https://www.plebpoet.com/zines.html' className='nav-link p-0 inline-flex'
+          href='https://www.plebpoet.com/zines.html' className={navLinkClasses({ className: 'p-0 inline-flex' })}
           target='_blank' rel='noreferrer'
         >
           zines
@@ -114,14 +115,14 @@ function ChatPopover () {
   return (
     <FooterPopover label='chat'>
       <a
-        href='https://t.me/k00bideh' className='nav-link p-0 inline-flex'
+        href='https://t.me/k00bideh' className={navLinkClasses({ className: 'p-0 inline-flex' })}
         target='_blank' rel='noreferrer'
       >
         telegram
       </a>
       <span className='mx-2 text-muted'> \ </span>
       <a
-        href='https://signal.group/#CjQKIEt57YiluJoTW3lZqaqAq6echCekEYFfg7eIua2X91nLEhA__6ALI9pkaY_McQqX0jm1' className='nav-link p-0 inline-flex'
+        href='https://signal.group/#CjQKIEt57YiluJoTW3lZqaqAq6echCekEYFfg7eIua2X91nLEhA__6ALI9pkaY_McQqX0jm1' className={navLinkClasses({ className: 'p-0 inline-flex' })}
         target='_blank' rel='noreferrer'
       >
         signal
@@ -134,16 +135,16 @@ function LegalPopover () {
   return (
     <FooterPopover label='legal'>
       <div className='flex justify-center'>
-        <Link href='/tos' className='nav-link p-0 inline-flex'>
+        <Link href='/tos' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
           terms of service
         </Link>
         <span className='mx-2 text-muted'> \ </span>
-        <Link href='/privacy' className='nav-link p-0 inline-flex'>
+        <Link href='/privacy' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
           privacy policy
         </Link>
       </div>
       <div className='flex justify-center'>
-        <Link href='/copyright' className='nav-link p-0 inline-flex'>
+        <Link href='/copyright' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
           copyright policy
         </Link>
       </div>
@@ -184,7 +185,7 @@ export default function Footer ({ links = true }) {
               <Rewards />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <Link href='/stackers/all/day' className='nav-link p-0 p-0 inline-flex'>
+              <Link href='/stackers/all/day' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
                 analytics
               </Link>
               <span className='mx-2 text-muted'> \ </span>
@@ -195,15 +196,15 @@ export default function Footer ({ links = true }) {
               <RssPopover />
             </div>
             <div className='mb-2' style={{ fontWeight: 500 }}>
-              <Link href='/faq' className='nav-link p-0 p-0 inline-flex'>
+              <Link href='/faq' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
                 faq
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/guide' className='nav-link p-0 p-0 inline-flex'>
+              <Link href='/guide' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
                 guide
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/story' className='nav-link p-0 p-0 inline-flex'>
+              <Link href='/story' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
                 story
               </Link>
               <span className='mx-2 text-muted'> \ </span>
@@ -214,10 +215,12 @@ export default function Footer ({ links = true }) {
           <div
             className={`mx-auto mb-2 ${styles.connect}`}
           >
-            <small className='nav-item text-muted me-2'>connect:</small>
+            <small className='font-medium text-muted me-2'>connect:</small>
+            {/* min-w-0: a flex-item FormGroup keeps min-width:auto and the input's
+                intrinsic width otherwise pushes the node links past the viewport */}
             <CopyInput
               size='sm'
-              groupClassName='mb-0 w-full'
+              groupClassName='mb-0 w-full min-w-0'
               readOnly
               noForm
               placeholder={process.env.NEXT_PUBLIC_LND_CONNECT_ADDRESS}

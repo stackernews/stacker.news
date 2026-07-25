@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import { Offcanvas } from 'react-bootstrap'
+import Drawer from '@/components/ui/drawer'
 import classNames from 'classnames'
 import { useSetWalletPriorities, useTemplates, useWallets, useWalletSendReady } from '@/wallets/client/hooks'
 import { WalletShell } from '@/wallets/client/components'
@@ -63,7 +63,7 @@ export function WalletHome ({ routeWalletId }) {
         />
       )}
     >
-      <aside className={classNames(styles.sidebar, 'flex flex-col gap-4')}>
+      <aside className={classNames(styles.sidebar, 'hidden md:flex flex-col gap-4')}>
         <h2 className={styles.title}>wallets</h2>
         <WalletList
           entries={entries}
@@ -131,14 +131,15 @@ function WalletOrderingControls ({ wallets, ordering, onToggle, className, hintC
 }
 
 function WalletBottomSheet ({ show, onHide, title, children }) {
+  // height, radius and the 85svh cap live on ui/drawer's bottom placement
   return (
-    <Offcanvas className={styles.sheet} show={show} onHide={onHide} placement='bottom'>
-      <Offcanvas.Header closeButton>
-        <Offcanvas.Title>{title}</Offcanvas.Title>
-      </Offcanvas.Header>
-      <Offcanvas.Body>
+    <Drawer show={show} onHide={onHide} placement='bottom'>
+      <Drawer.Header>
+        <Drawer.Title>{title}</Drawer.Title>
+      </Drawer.Header>
+      <Drawer.Body className='px-4'>
         {children}
-      </Offcanvas.Body>
-    </Offcanvas>
+      </Drawer.Body>
+    </Drawer>
   )
 }

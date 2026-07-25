@@ -1,14 +1,19 @@
 import { useMemo, useState } from 'react'
-import { Nav, Navbar, Offcanvas } from 'react-bootstrap'
-import Menu from '@/components/ui/menu'
+import Drawer from '@/components/ui/drawer'
+import Menu, { itemClasses } from '@/components/ui/menu'
 import { MEDIA_URL } from '@/lib/constants'
+import { cn } from '@/lib/cn'
 import Link from 'next/link'
 import { Indicator, LoginButtons, LogoutDropdownItem, NavWalletSummary } from '../common'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
-import canvasStyles from './offcanvas.module.css'
 import classNames from 'classnames'
 import { useWalletIndicator } from '@/wallets/client/hooks'
+
+// the drawer keeps its roomier 8px tap targets while the menu recipe
+// tightened to py-1.5; the call-site py-2 out-merges the recipe's value
+const drawerItemClasses = (opts = {}) =>
+  itemClasses({ ...opts, className: cn('px-0 py-2', opts.className) })
 
 function MeImage ({ me, onClick }) {
   const src = useMemo(() => me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg', [me?.photoId])
@@ -18,7 +23,7 @@ function MeImage ({ me, onClick }) {
   return (
     <img
       src={src} width='28' height='28'
-      className={canvasStyles.meimg}
+      className={styles.meimg}
       onClick={onClick}
     />
   )
@@ -36,55 +41,66 @@ export default function OffCanvas ({ me, dropNavKey }) {
 
   return (
     <>
-      <Indicator show={indicator}><MeImage me={me} onClick={handleShow} /></Indicator>
-      <Offcanvas className={canvasStyles.offcanvas} show={show} onHide={handleClose} placement='end'>
-        <Offcanvas.Header closeButton>
-          <Offcanvas.Title><NavWalletSummary /></Offcanvas.Title>
-        </Offcanvas.Header>
-        <Offcanvas.Body className='pb-0'>
-          {/* the 4 inline Bootstrap dropdown var writes died with rb: px-0 replicates
-              item-padding-x 0, the recipe's py-2/my-2 ≡ the .5rem paddings, and the
-              divider-bg was already dead (globals' border-top wins — §14.6 pre-flight 8).
-              Items here are plain-mode (no menu — drawer body); the eventKey items were
-              never active in the drawer (no Nav context), so those props just die */}
+      <Indicator show={indicator}>
+        <button
+          type='button'
+          className='bg-transparent border-0 p-0 pointer'
+          aria-label='open profile menu'
+          onClick={handleShow}
+        >
+          <MeImage me={me} />
+        </button>
+      </Indicator>
+      <Drawer show={show} onHide={handleClose} placement='end'>
+        <Drawer.Header>
+          <Drawer.Title><NavWalletSummary /></Drawer.Title>
+        </Drawer.Header>
+        <Drawer.Body className='pb-0'>
+          {/* the six nav rows are drawerItemClasses() on plain Links,
+              paint-identical to the plain-mode Menu.Items they replace;
+              LoginButtons and LogoutDropdownItem stay Menu.Item dual-mode,
+              shared with the corner menus. Close-on-nav needs no code, since
+              navigation remounts BottomBar and show resets. handleClose still
+              threads to the modal-triggering rows, modals must close the
+              drawer first */}
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             {me
               ? (
                 <>
-                  <Menu.Item className='px-0' href={'/' + me.name} active={me.name === dropNavKey}>
+                  <Link href={'/' + me.name} className={drawerItemClasses({ active: me.name === dropNavKey })}>
                     <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
-                  </Menu.Item>
-                  <Menu.Item className='px-0' href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Menu.Item>
-                  <Menu.Item className='px-0' href='/wallets'>
+                  </Link>
+                  <Link href={'/' + me.name + '/bookmarks'} className={drawerItemClasses({ active: me.name + '/bookmarks' === dropNavKey })}>bookmarks</Link>
+                  <Link href='/wallets' className={drawerItemClasses()}>
                     <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
-                  </Menu.Item>
-                  <Menu.Item className='px-0' href='/satistics'>satistics</Menu.Item>
+                  </Link>
+                  <Link href='/satistics' className={drawerItemClasses()}>satistics</Link>
                   <Menu.Separator />
-                  <Menu.Item className='px-0' href='/invites'>invites</Menu.Item>
+                  <Link href='/invites' className={drawerItemClasses()}>invites</Link>
                   <Menu.Separator />
                   <div className='flex items-center'>
-                    <Menu.Item className='px-0' href='/settings'>settings</Menu.Item>
+                    <Link href='/settings' className={drawerItemClasses()}>settings</Link>
                   </div>
                   <Menu.Separator />
-                  <LogoutDropdownItem handleClose={handleClose} className='px-0' />
+                  <LogoutDropdownItem handleClose={handleClose} className='px-0 py-2' />
                 </>
                 )
-              : <LoginButtons handleClose={handleClose} className='px-0' />}
+              : <LoginButtons handleClose={handleClose} className='px-0 py-2' />}
             <div className={classNames(styles.footerPadding, 'mt-auto')}>
-              <Navbar className={classNames('container flex flex-row px-0 text-muted')}>
-                <Nav>
+              <div className='container flex flex-row items-center py-2 px-0 text-muted'>
+                <div>
                   <Link href={`/${me?.name || 'anon'}`} className='flex flex-row p-2 mt-auto text-muted'>
                     <MeImage me={me} />
                     <div className='ms-2'>
                       <Indicator show={indicator} top='2px' right='-5px'>@{me?.name || 'anon'}</Indicator>
                     </div>
                   </Link>
-                </Nav>
-              </Navbar>
+                </div>
+              </div>
             </div>
           </div>
-        </Offcanvas.Body>
-      </Offcanvas>
+        </Drawer.Body>
+      </Drawer>
     </>
   )
 }

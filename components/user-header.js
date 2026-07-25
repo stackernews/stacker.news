@@ -1,7 +1,7 @@
 import Button from '@/components/ui/button'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import Nav from 'react-bootstrap/Nav'
+import Nav from '@/components/ui/nav'
 import { useState, useEffect } from 'react'
 import { Form, Input, InputGroup, SubmitButton } from './form'
 import { gql } from '@apollo/client'
@@ -48,10 +48,10 @@ export default function UserHeader ({ user }) {
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Nav.Link as={Link} href={'/' + user.name} eventKey='bio'>bio</Nav.Link>
+          <Nav.Link href={'/' + user.name} eventKey='bio' className='py-0.5 pe-4 ps-0'>bio</Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Nav.Link as={Link} href={'/' + user.name + '/all'} eventKey='items'>
+          <Nav.Link href={'/' + user.name + '/all'} eventKey='items' className='py-0.5 pe-4 ps-0'>
             {numWithUnits(user.nitems, {
               abbreviate: false,
               unitSingular: 'item',
@@ -61,7 +61,7 @@ export default function UserHeader ({ user }) {
         </Nav.Item>
         {showTerritoriesTab && (
           <Nav.Item>
-            <Nav.Link as={Link} href={'/' + user.name + '/territories'} eventKey='territories'>
+            <Nav.Link href={'/' + user.name + '/territories'} eventKey='territories' className='py-0.5 pe-4 ps-0'>
               {numWithUnits(user.nterritories, {
                 abbreviate: false,
                 unitSingular: 'territory',

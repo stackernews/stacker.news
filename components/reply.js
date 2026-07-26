@@ -105,7 +105,7 @@ export default forwardRef(function Reply ({
   return (
     <div>
       {replyOpen
-        ? <div className='p-3' />
+        ? (children ? <div className={styles.replyButtons}>{children}</div> : <div className='p-3' />)
         : (
           <div className={styles.replyButtons}>
             <div

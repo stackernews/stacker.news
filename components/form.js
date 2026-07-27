@@ -312,7 +312,7 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
+  prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, overrideKey, appendValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength, hideError,
   AppendColumn, ...props
 }) {
@@ -367,7 +367,10 @@ function InputInner ({
         onChange && onChange(formik, { target: { value: draft } })
       }
     }
-  }, [overrideValue])
+    // overrideKey is an optional nonce a caller can bump to force this effect to
+    // re-run even when overrideValue is unchanged (e.g. re-selecting the same
+    // preset amount button twice in a row shouldn't be a no-op)
+  }, [overrideValue, overrideKey])
 
   useEffect(() => {
     if (appendValue) {

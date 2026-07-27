@@ -63,6 +63,13 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   const toaster = useToast()
   const client = useApolloClient()
   const [oValue, setOValue] = useState()
+  // bumped alongside oValue so re-clicking the same preset amount still forces
+  // the amount input to re-sync (see Tips onClick below)
+  const [oValueKey, setOValueKey] = useState(0)
+  const handleOValue = useCallback((v) => {
+    setOValue(v)
+    setOValueKey(k => k + 1)
+  }, [])
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -131,6 +138,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         type='number'
         innerRef={inputRef}
         overrideValue={oValue}
+        overrideKey={oValueKey}
         step={step}
         required
         autoFocus
@@ -138,7 +146,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       />
 
       <div className='d-flex flex-wrap gap-2'>
-        <Tips setOValue={setOValue} />
+        <Tips setOValue={handleOValue} />
       </div>
       <div className='d-flex mt-3'>
         <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>

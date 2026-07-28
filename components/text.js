@@ -25,13 +25,17 @@ export function useOverflow ({ containerRef, truncated = false }) {
   const [overflowing, setOverflowing] = useState(false)
   // should we show the full text?
   const [show, setShow] = useState(false)
-  const showOverflow = useCallback(() => setShow(true), [setShow])
+  // persist the expanded state in the URL so it survives back/forward navigation
+  const showOverflow = useCallback(() => {
+    setShow(true)
+    router.replace({ pathname: router.pathname, query: { ...router.query, full: '1' } }, undefined, { shallow: true })
+  }, [router])
 
-  // if we are navigating to a hash, show the full text
+  // if we are navigating to a hash or the full param is set, show the full text
   useEffect(() => {
-    setShow(router.asPath.includes('#'))
+    setShow(router.asPath.includes('#') || router.query.full === '1')
     const handleRouteChange = (url, { shallow }) => {
-      setShow(url.includes('#'))
+      setShow(url.includes('#') || url.includes('full=1'))
     }
 
     router.events.on('hashChangeStart', handleRouteChange)
@@ -39,7 +43,7 @@ export function useOverflow ({ containerRef, truncated = false }) {
     return () => {
       router.events.off('hashChangeStart', handleRouteChange)
     }
-  }, [router.asPath, router.events])
+  }, [router.asPath, router.query.full, router.events])
 
   // clip item and give it a`show full text` button if we are overflowing
   useEffect(() => {

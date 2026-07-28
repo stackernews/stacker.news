@@ -407,7 +407,6 @@ span + .sn-link {
 
 // embed containers
 .sn-twitter-container,
-.sn-nostr-container,
 .sn-video-wrapper,
 .sn-wavlake-wrapper,
 .sn-spotify-wrapper {
@@ -416,20 +415,14 @@ span + .sn-link {
   background-color: var(--theme-bg);
 }
 
-// twitter and nostr
-.sn-twitter-container,
-.sn-nostr-container {
+// twitter
+.sn-twitter-container {
   position: relative;
   overflow: hidden;
 }
 
-.sn-twitter-container iframe,
-.sn-nostr-container iframe {
+.sn-twitter-container iframe {
   border-radius: 13px;
-}
-
-.sn-nostr-container {
-  margin-right: 15px;
 }
 
 /* Contained state (collapsed) */
@@ -437,13 +430,11 @@ span + .sn-link {
   overflow: hidden;
 }
 
-.sn-embed-contained.sn-embed--twitter,
-.sn-embed-contained.sn-embed--nostr {
+.sn-embed-contained.sn-embed--twitter {
   height: 150px;
 }
 
-.topLevel .sn-embed-contained.sn-embed--twitter,
-.topLevel .sn-embed-contained.sn-embed--nostr {
+.topLevel .sn-embed-contained.sn-embed--twitter {
   height: 200px;
 }
 
@@ -561,16 +552,6 @@ span + .sn-link {
 }
 
 .topLevel .sn-embed--twitter {
-  max-width: 550px;
-}
-
-// nostr embed
-.sn-embed--nostr {
-  width: 100%;
-  max-width: 350px;
-}
-
-.topLevel .sn-embed--nostr {
   max-width: 550px;
 }
 

@@ -164,13 +164,13 @@ function NostrZapRequest ({ zap }) {
     <ExpandableDetailPill label='Nostr zap request' icon={<NostrIcon width={16} height={16} className='fill-nostr' />}>
       <div className='fw-bold text-nostr small'>
         from{' '}
-        <Link className='text-reset text-underline' target='_blank' href={`https://njump.me/${npub}`} rel='noreferrer nofollow noopener'>
+        <Link className='text-reset text-underline' target='_blank' href={`https://damus.io/${npub}`} rel='noreferrer nofollow noopener'>
           {npub.slice(0, 10)}...
         </Link>
         {note && (
           <>
             {' '}on{' '}
-            <Link className='text-reset text-underline' target='_blank' href={`https://njump.me/${note}`} rel='noreferrer nofollow noopener'>
+            <Link className='text-reset text-underline' target='_blank' href={`https://damus.io/${note}`} rel='noreferrer nofollow noopener'>
               {note.slice(0, 12)}...
             </Link>
           </>

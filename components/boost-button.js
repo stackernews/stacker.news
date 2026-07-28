@@ -1,7 +1,7 @@
 import { useShowModal } from './modal'
 import { useToast } from '@/components/ui/toast'
 import ItemAct from './item-act'
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import { useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import BoostIcon from '@/svgs/arrow-up-double-line.svg'
@@ -60,7 +60,7 @@ function Booster ({ item, As, children }) {
         try {
           showModal(onClose =>
             <ItemAct onClose={onClose} item={item} act='BOOST' step={BOOST_MIN}>
-              <AccordianItem header='what is boost?' body={<BoostHelp />} />
+              <AccordionItem header='what is boost?' body={<BoostHelp />} />
             </ItemAct>)
         } catch (error) {
           toaster.danger('failed to boost item')

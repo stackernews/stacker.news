@@ -12,7 +12,7 @@ import { UPSERT_SUB_BRANDING } from '@/fragments/subs'
 import { GET_DOMAIN } from '@/fragments/domains'
 import SnIcon from '@/svgs/sn.svg'
 import { PUBLIC_MEDIA_URL, DOMAIN_POLL_INTERVAL_MS } from '@/lib/constants'
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import TerritoryDomains from './territory-domains'
 
 // shape: { subName, primaryColor?, secondaryColor?, linkColor?, logoId?, title, tagline, faviconId? } | null
@@ -262,7 +262,7 @@ export default function TerritoryBranding ({ sub }) {
 
   return (
     <div className='w-full'>
-      <AccordianItem
+      <AccordionItem
         show={hasDomain}
         header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
         body={

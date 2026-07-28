@@ -9,7 +9,7 @@ import styles from '@/styles/item.module.css'
 import itemStyles from './item.module.css'
 import { useMe } from './me'
 import Button from 'react-bootstrap/Button'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import Poll from './poll'
 import Related from './related'
 import PastBounties from './past-bounties'
@@ -26,6 +26,7 @@ import classNames from 'classnames'
 import { CarouselProvider } from './carousel'
 import Embed from './embed'
 import useCommentsView from './use-comments-view'
+import { useApolloClient } from '@apollo/client'
 import useCallbackRef from './use-callback-ref'
 
 function BioItem ({ item, handleClick }) {
@@ -169,10 +170,25 @@ function ItemText ({ item, readerRef }) {
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
   // no cache update here because we need to preserve the initial value
   const { markItemViewed } = useCommentsView(item.id, { updateCache: false })
+  const client = useApolloClient()
+  const viewedAtRef = useRef(null)
 
   useEffect(() => {
     markItemViewed(item)
+    const lastAt = item?.lastCommentAt || item?.createdAt
+    if (lastAt) viewedAtRef.current = new Date(lastAt).toISOString()
   }, [item.id, markItemViewed])
+
+  useEffect(() => {
+    return () => {
+      if (viewedAtRef.current && item.id) {
+        client.cache.modify({
+          id: `Item:${item.id}`,
+          fields: { meCommentsViewedAt: () => viewedAtRef.current }
+        })
+      }
+    }
+  }, [item.id, client])
 
   return (
     <>

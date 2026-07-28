@@ -2,7 +2,7 @@ import JobForm from './job-form'
 import Link from 'next/link'
 import Button, { buttonClasses } from '@/components/ui/button'
 import Alert from '@/components/ui/alert'
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import { useMe } from './me'
 import { useRouter } from 'next/router'
 import { DiscussionForm } from './discussion-form'
@@ -117,7 +117,7 @@ export function PostForm ({ type, subs, children }) {
           {postButtons}
         </div>
         <div className='flex mt-6'>
-          <AccordianItem
+          <AccordionItem
             headerColor='#6c757d'
             header={<div className='font-bold text-muted'>more types</div>}
             body={

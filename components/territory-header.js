@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react'
 import Menu from '@/components/ui/menu'
 import Badge from '@/components/ui/badge'
 import Button, { buttonClasses } from '@/components/ui/button'
-import { AccordianCard } from './accordian-item'
+import { AccordionCard } from './accordion-item'
 import TerritoryPaymentDue, { TerritoryBillingLine } from './territory-payment-due'
 import Link from 'next/link'
 import Text from '@/components/text'
@@ -30,7 +30,7 @@ export const useSubscribeTerritoryContext = () => useContext(SubscribeTerritoryC
 
 export function TerritoryDetails ({ sub, children, className, show, truncated }) {
   return (
-    <AccordianCard
+    <AccordionCard
       className={className}
       show={show}
       header={
@@ -43,7 +43,7 @@ export function TerritoryDetails ({ sub, children, className, show, truncated })
     >
       {children}
       <TerritoryInfo sub={sub} truncated={truncated} />
-    </AccordianCard>
+    </AccordionCard>
   )
 }
 
@@ -62,7 +62,7 @@ export function TerritoryInfo ({ sub, includeLink, truncated }) {
   return (
     <>
       {includeLink && <Link className='font-bold' href={`/~${sub.name}`}>~{sub.name}</Link>}
-      <div className='py-2'>
+      <div className='py-2 empty:hidden'>
         <Text state={sub.lexicalState} html={sub.html}>{truncated ? sub.desc : undefined}</Text>
       </div>
       <div className={`py-1 ${styles.other}`}>

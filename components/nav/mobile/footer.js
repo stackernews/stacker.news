@@ -56,7 +56,9 @@ export default function BottomBar ({ sub }) {
           <div className={styles.footerNav}>
             <Brand />
             <SearchItem {...props} />
-            <PostItem {...props} className='btn-sm' />
+            {/* size='sm' is master's btn-sm re-homed — the md button overfills
+                the 75px grid cell at 375 and crowds the icons beside it */}
+            <PostItem {...props} size='sm' />
             <NavNotifications />
             <Offcanvas me={me} {...props} />
           </div>

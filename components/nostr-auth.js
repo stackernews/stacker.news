@@ -3,7 +3,7 @@ import { gql } from '@apollo/client'
 import { useMutation } from '@apollo/client/react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import BackIcon from '@/svgs/arrow-left-line.svg'
 import Nostr from '@/lib/nostr'
 import { NDKNip46Signer } from '@nostr-dev-kit/ndk'
@@ -248,7 +248,7 @@ function NostrExplainer ({ text, children }) {
         </h3>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-8 w-full text-muted'>
           <div className='mb-6'>
-            <AccordianItem
+            <AccordionItem
               header='Which extensions can I use?'
               body={
                 <ul>
@@ -286,7 +286,7 @@ function NostrExplainer ({ text, children }) {
                 </ul>
               }
             />
-            <AccordianItem
+            <AccordionItem
               header='Which NIP-46 signers can I use?'
               body={
                 <ul>

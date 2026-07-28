@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, SNInput, SubmitButton, labelClasses } from './form'
+import { Checkbox, Form, FormGroup, Input, SNInput, SubmitButton } from './form'
 import { useState } from 'react'
 import styles from '@/styles/post.module.css'
 import Avatar from './avatar'
@@ -36,15 +36,14 @@ export default function JobForm ({ item, subs }) {
         requireSession
         onSubmit={onSubmit}
       >
-        <div className='form-group'>
-          <label className={labelClasses()}>logo</label>
+        <FormGroup label='logo'>
           <div className='relative' style={{ width: 'fit-content' }}>
             <img
               src={logoId ? `${MEDIA_URL}/${logoId}` : '/jobs-default.png'} width='135' height='135' className='rounded-full'
             />
             <Avatar onSuccess={setLogoId} />
           </div>
-        </div>
+        </FormGroup>
         <Input
           label='job title'
           name='title'

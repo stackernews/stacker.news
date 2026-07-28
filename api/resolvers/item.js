@@ -548,21 +548,27 @@ export default {
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {
       const res = {}
       try {
-        const response = await snFetch(url, { protocol: 'http', redirect: 'follow', size: 2 * 1024 * 1024 })
-        const html = await response.text()
-        const doc = domino.createWindow(html).document
-        const titleRuleSet = {
-          rules: [
-            ['h1 > yt-formatted-string.ytd-watch-metadata', el => el.getAttribute('title')],
-            ...metadataRuleSets.title.rules
-          ]
-        }
-        const metadata = getMetadata(doc, url, { title: titleRuleSet, publicationDate: publicationDateRuleSet })
-        const dateHint = ` (${metadata.publicationDate?.getFullYear()})`
-        const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
+        const urlObj = new URL(ensureProtocol(url))
+        const { hostname, pathname } = urlObj
+        const isYoutube = (hostname.endsWith('youtube.com') && (pathname === '/watch' || pathname.startsWith('/shorts/'))) ||
+          hostname.endsWith('youtu.be')
 
-        res.title = metadata?.title
-        if (moreThanOneYearAgo) res.title += dateHint
+        if (isYoutube) {
+          const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(urlObj.toString())}&format=json`
+          const oembedRes = await snFetch(oembedUrl, { protocol: 'http' })
+          const oembed = await oembedRes.json()
+          res.title = oembed.title
+        } else {
+          const response = await snFetch(url, { protocol: 'http', redirect: 'follow', size: 2 * 1024 * 1024 })
+          const html = await response.text()
+          const doc = domino.createWindow(html).document
+          const metadata = getMetadata(doc, url, { title: metadataRuleSets.title, publicationDate: publicationDateRuleSet })
+          const dateHint = ` (${metadata.publicationDate?.getFullYear()})`
+          const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
+
+          res.title = metadata?.title
+          if (moreThanOneYearAgo) res.title += dateHint
+        }
       } catch { }
 
       try {

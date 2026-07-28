@@ -1,5 +1,5 @@
 import { RELATED_ITEMS } from '@/fragments/items'
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import Items from './items'
 import { NavigateFooter } from './more-footer'
 
@@ -8,7 +8,7 @@ const LIMIT = 5
 export default function Related ({ title, itemId, ...props }) {
   const variables = { title, id: itemId, limit: LIMIT }
   return (
-    <AccordianItem
+    <AccordionItem
       header={<div className='font-bold'>related posts</div>}
       body={
         <Items

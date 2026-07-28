@@ -1,4 +1,4 @@
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import Badge from '@/components/ui/badge'
 import { Checkbox, CheckboxGroup, Form, Input, InputGroup, SNInput, Range, RadioGroup, Radio, labelClasses } from './form'
 import { useFormikContext } from 'formik'
@@ -260,7 +260,7 @@ export default function TerritoryForm ({ sub }) {
                 groupClassName='ms-1 mt-2'
               />}
           </>}
-        <AccordianItem
+        <AccordionItem
           header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
           body={
             <>

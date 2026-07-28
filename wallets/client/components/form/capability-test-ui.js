@@ -2,7 +2,7 @@ import classNames from 'classnames'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import testUiStyles from './capability-test-ui.module.css'
 import { CopyButton } from '@/components/form'
-import AccordianItem from '@/components/accordian-item'
+import AccordionItem from '@/components/accordion-item'
 import { isTemplate, protocolFields, protocolKey, protocolLogName } from '@/wallets/lib/util'
 import { useFormikContext } from 'formik'
 import { useProtocolStatus } from './hooks/context'
@@ -87,7 +87,7 @@ export function CapabilityError ({ message, details }) {
       />
       <div className='text-danger font-bold leading-tight'>{message}</div>
       {details && (
-        <AccordianItem
+        <AccordionItem
           header='details'
           body={<pre className={styles.errorDetails}>{details}</pre>}
         />

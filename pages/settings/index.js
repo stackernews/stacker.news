@@ -10,7 +10,7 @@ import { SETTINGS, SET_SETTINGS } from '@/fragments/users'
 import { useRouter } from 'next/router'
 import Info from '@/components/info'
 import Link from 'next/link'
-import AccordianItem from '@/components/accordian-item'
+import AccordionItem from '@/components/accordion-item'
 import { bech32 } from 'bech32'
 import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32, DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { settingsSchema } from '@/lib/validate'
@@ -186,7 +186,7 @@ export default function Settings ({ ssrData }) {
             hint={<small className='text-muted'>note: you can also press and hold the lightning bolt to zap custom amounts</small>}
           />
           <div className='pb-6'>
-            <AccordianItem
+            <AccordionItem
               show={settings?.turboTipping}
               header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
               body={

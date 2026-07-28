@@ -105,7 +105,6 @@
     "qrcode.react": "^4.2.0",
     "react": "19.2.6",
     "react-avatar-editor": "^15.1.0",
-    "react-bootstrap": "^2.10.10",
     "react-countdown": "^2.3.6",
     "react-datepicker": "^7.4.0",
     "react-dom": "19.2.6",

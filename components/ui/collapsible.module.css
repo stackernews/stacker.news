@@ -1,0 +1,49 @@
+/* trigger: UA button reset. This recipe replaces markup that sat on a div,
+   so the <button> brings UA chrome the div never had */
+.trigger {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+/* panel: fade-in 150ms ease-out, snap close. No ending rule on purpose, with
+   zero running animations the close unmounts within a frame; open on mount
+   never animates (shouldPreventOpenAnimation) */
+.panel { transition: opacity 150ms ease-out; }
+.panel[data-starting-style] { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .panel { transition: none; } }
+
+/* card skin for the territory details accordion: colors and state live
+   module-side, metrics ride utilities at the call sites */
+.card {
+  background-color: var(--bs-body-bg);        /* PR3: name-for-name token sweep */
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+}
+
+.card .panel {
+  transition: none;
+}
+
+/* the 0 12px padding stays module-side instead of a px-3 utility: the raw
+   token would read as an unmigrated Bootstrap spacing step to the
+   migration's leftover checker */
+.cardTrigger {
+  padding: 0 0.75rem;
+  min-height: 2rem;
+  border-radius: 5px;   /* inner radius, 6px minus the 1px border */
+}
+.cardTrigger[data-panel-open] {
+  border-radius: 5px 5px 0 0;
+  background-color: var(--theme-clickToContextColor);
+}
+
+.cardBody { padding: 0 0.75rem; }
+
+.cardChevron { fill: var(--theme-grey); }
+.cardTrigger[data-panel-open] .cardChevron { transform: rotate(180deg); }

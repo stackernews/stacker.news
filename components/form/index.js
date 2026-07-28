@@ -1,10 +1,7 @@
-// the C9b barrel (§19.3): 28 → 31 — MultiInput died into the purpose-built
-// OtpInput; the formik-less Slider (avatar) and the true RadioGroup/Radio
-// (territory billing) landed with the §19.0-4 group-ownership revision
 export { Form, StorageKeyPrefixContext, SessionRequiredError } from './form'
 export { Input, ClientInput } from './input'
 export { default as InputGroup } from './input-group'
-export { inputClasses, labelClasses, hintClasses, errorClasses } from './field'
+export { FormGroup, inputClasses, labelClasses, hintClasses, errorClasses } from './field'
 export { SubmitButton } from './submit-button'
 export { CopyButton, CopyInput } from './copy'
 export { Checkbox, CheckboxGroup } from './checkbox'

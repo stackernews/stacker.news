@@ -2,7 +2,7 @@ import { cn } from '@/lib/cn'
 import styles from './alert.module.css'
 
 /**
- * SN Alert component, drop-in for react-bootstrap's Alert
+ * SN Alert component, drop-in for the retired rb Alert
  * @param {string} variant - info | danger | warning
  * @param {boolean} dismissible - render an X close button
  * @param {function} onClose - called when the close button is clicked

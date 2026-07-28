@@ -1,14 +1,19 @@
+/* min-width: 0 on both row members: flex items floor at min-width auto (the
+   inputs' intrinsic width) and shove the forward row past a 375 viewport;
+   Bootstrap's .input-group width: 1% rule used to crush this globally */
 .name {
   display: flex;
   flex: 1 1 60%;
   height: fit-content;
   flex-flow: column;
+  min-width: 0;
 }
 
 .percent {
   display: flex;
   flex: 0 1 fit-content;
   height: fit-content;
+  min-width: 0;
 }
 
 .boostMax small {

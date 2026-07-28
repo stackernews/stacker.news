@@ -3,7 +3,7 @@ import { Form, Input, InputGroup, SubmitButton } from '@/components/form'
 import { gql } from '@apollo/client'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { INVITE_FIELDS } from '@/fragments/invites'
-import AccordianItem from '@/components/accordian-item'
+import AccordionItem from '@/components/accordion-item'
 import styles from '@/styles/invites.module.css'
 import Invite from '@/components/invite'
 import { inviteSchema } from '@/lib/validate'
@@ -75,7 +75,7 @@ function InviteForm () {
         label='invitee limit'
         name='limit'
       />
-      <AccordianItem
+      <AccordionItem
         headerColor='#6c757d' header='advanced' body={
           <>
             <Input
@@ -117,7 +117,7 @@ function InviteForm () {
 function InviteList ({ name, invites }) {
   return (
     <div className='mt-6'>
-      <AccordianItem
+      <AccordionItem
         show
         headerColor='#6c757d'
         header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>{name}</div>} body={

@@ -8,13 +8,14 @@ export function ObstacleButtons ({
   onConfirm,
   confirmText = 'confirm',
   confirmVariant = 'danger',
+  confirmDisabled = false,
   cancelText = 'cancel',
   type = 'button'
 }) {
   return (
     <div className='d-flex justify-content-around align-items-center mt-3'>
       <Button variant='grey-medium' onClick={onClose}>{cancelText}</Button>
-      <Button variant={confirmVariant} onClick={onConfirm} type={type}>{confirmText}</Button>
+      <Button variant={confirmVariant} onClick={onConfirm} disabled={confirmDisabled} type={type}>{confirmText}</Button>
     </div>
   )
 }

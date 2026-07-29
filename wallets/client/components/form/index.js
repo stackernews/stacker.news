@@ -88,12 +88,12 @@ function WalletConfigureFormLayout ({ protocols }) {
     if (!canSave) return
     if (saveState.willDeleteWallet) {
       showModal(onClose => (
-        <WalletSaveDeleteObstacle onClose={onClose} onConfirm={onSave} />
+        <WalletSaveDeleteObstacle wallet={wallet} onClose={onClose} onConfirm={onSave} />
       ))
       return
     }
     onSave()
-  }, [canSave, saveState.willDeleteWallet, onSave, showModal])
+  }, [canSave, saveState.willDeleteWallet, onSave, showModal, wallet])
 
   return (
     <>
@@ -186,7 +186,11 @@ function WalletConfigureDangerZone ({ wallet }) {
         type='button'
         className={classNames(styles.textButton, styles.dangerTextButton, styles.deleteButton)}
         onClick={() => showModal(onClose => (
-          <WalletDeleteObstacle wallet={wallet} onClose={onClose} onSuccess={() => router.push('/wallets')} />
+          <WalletDeleteObstacle
+            wallet={wallet}
+            onClose={onClose}
+            onSuccess={() => router.push('/wallets')}
+          />
         ))}
       >
         <TrashIcon width={16} height={16} /> delete wallet

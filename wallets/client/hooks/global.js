@@ -15,6 +15,7 @@ import { useWeblnEvents } from '@/wallets/lib/protocols/webln'
 import { useWalletsQuery } from '@/wallets/client/hooks/query'
 import { readOrCreateVaultKeyRecord, useGenerateRandomKey, useSetKey, useIsWrongKey, useVaultLocalStore } from '@/wallets/client/hooks/crypto'
 import { useAutoRetryPayIns } from '@/components/payIn/hooks/use-auto-retry-pay-ins'
+import { disposeClientProtocols } from '@/wallets/client/protocols'
 import { useExternalSendChecks } from './use-external-send-checks'
 
 const WalletDataContext = createContext(null)
@@ -39,6 +40,11 @@ export function useTemplates () {
 export function useWalletsError () {
   const { walletsError } = useContext(WalletDataContext)
   return walletsError
+}
+
+export function useHasSparkWallet () {
+  const { hasSparkWallet } = useContext(WalletDataContext)
+  return hasSparkWallet
 }
 
 export function useWalletsDispatch () {
@@ -107,6 +113,12 @@ export function WalletsProvider ({ children }) {
 }
 
 function WalletHooks ({ children }) {
+  const { me } = useMe()
+  const keyUpdatedAt = useKeyUpdatedAt()
+
+  useEffect(() => () => {
+    disposeClientProtocols()
+  }, [me?.id, me?.privates?.walletsUpdatedAt, keyUpdatedAt])
   useAutoRetryPayIns()
   useExternalSendChecks()
   useKeyInit()
@@ -129,11 +141,12 @@ function WalletDataProvider ({ children }) {
 
     return {
       wallets,
+      hasSparkWallet: query.data?.wallets?.some(wallet => wallet.name === 'SPARK') ?? false,
       walletSendReady: query.walletSendReady,
       walletsError: query.walletsError ?? null,
       templates
     }
-  }, [query.walletsData, query.walletSendReady, query.walletsError])
+  }, [query.data?.wallets, query.walletsData, query.walletSendReady, query.walletsError])
 
   return (
     <WalletDataContext.Provider value={value}>

@@ -173,18 +173,16 @@ async function touchProtocolRelationForMaterializedConfig ({ tx, walletId, proto
   })
 }
 
-// Resolve the target wallet for a save: create a new one from the template, or
-// verify ownership of an existing one. The explicit ownership check beats the
-// opaque "record not found" the following nested writes would otherwise raise.
+// Resolve the target wallet for a save and verify ownership. The database
+// trigger enforces that protocol upserts belong to the selected template.
 export async function resolveWalletForSave (tx, { walletId, templateName, userId }) {
-  if (templateName) {
-    const { id } = await tx.wallet.create({ data: { templateName, userId } })
-    return id
-  }
-  const id = Number(walletId)
-  const owned = await tx.wallet.findUnique({ where: { id, userId }, select: { id: true } })
-  if (!owned) throw new GqlInputError('wallet not found')
-  return id
+  const select = { id: true, template: { select: { name: true } } }
+  const wallet = templateName
+    ? await tx.wallet.create({ data: { templateName, userId }, select })
+    : await tx.wallet.findUnique({ where: { id: Number(walletId), userId }, select })
+  if (!wallet) throw new GqlInputError('wallet not found')
+
+  return wallet
 }
 
 export async function applyRemoves (tx, { removeIds, walletId, userId }) {

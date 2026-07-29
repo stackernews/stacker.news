@@ -42,6 +42,10 @@ export function CapabilityCard ({ title, subtitle, icon, tone, protocols, select
 
   if (!protocol) return null
 
+  // Spark's generated send and receive configs are one wallet. Either side can
+  // be disabled; deleting the wallet is a separate action.
+  const canRemove = hasConfiguredValues && protocol.name !== 'SPARK'
+
   const onRemove = () => {
     if (!hasConfiguredValues) return
     // Removal is just an emptied draft: a persisted protocol whose draft has no
@@ -106,8 +110,8 @@ export function CapabilityCard ({ title, subtitle, icon, tone, protocols, select
             <CapabilityProtocolFields
               protocol={protocol}
               onNwcLud16={onNwcLud16}
-              onRemove={hasConfiguredValues ? onRemove : null}
-              onCancel={!hasConfiguredValues ? onCancel : null}
+              onRemove={canRemove ? onRemove : null}
+              onCancel={protocol.name !== 'SPARK' && !hasConfiguredValues ? onCancel : null}
             />
           </>
           )

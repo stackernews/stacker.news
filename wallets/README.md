@@ -9,20 +9,27 @@
 
 **2. Update migration file**
 
-- append `COMMIT` to the `ALTER TYPE` statement in the migration
+- use `ADD VALUE IF NOT EXISTS` and commit enum additions before using their new values
+- wrap dependent inserts and DDL in a separate transaction
 - insert new row into `ẀalletTemplate`
 - run `npx prisma migrate dev`
 
 Example migration:
 
 ```sql
-ALTER TYPE "WalletName" ADD VALUE 'PHOENIX'; COMMIT;
+BEGIN;
+ALTER TYPE "WalletName" ADD VALUE IF NOT EXISTS 'PHOENIX';
+COMMIT;
+
+BEGIN;
 INSERT INTO "WalletTemplate" (name, "sendProtocols", "recvProtocols")
 VALUES (
     'PHOENIX',
     ARRAY[]::"WalletSendProtocolName"[],
     ARRAY['BOLT12']::"WalletRecvProtocolName"[]
-);
+)
+ON CONFLICT ("name") DO NOTHING;
+COMMIT;
 ```
 
 **3. Customize how the wallet looks on the client via [wallets/lib/wallets.json](/wallets/lib/wallets.json)**
@@ -74,7 +81,8 @@ That's it!
 
 **1.2 Update migration file**
 
-- add `COMMIT` after statements to add enum values
+- use `ADD VALUE IF NOT EXISTS` and commit enum additions before using their new values
+- wrap the dependent tables, constraints, and triggers in a separate transaction
 - add required triggers: `wallet_to_jsonb` and, if send protocol, also `wallet_clear_vault`
 - run `npx prisma migrate dev`
 
@@ -94,6 +102,9 @@ That's it!
   `updateExistingProtocolConfigInTransaction` unless you also preserve this
   post-write touch.
 
+Spark development and testing notes are in the
+[Spark protocol documentation](./lib/protocols/docs/dev/spark.md).
+
 <details>
 <summary>Example: DB schema changes to add Spark</summary>
 
@@ -102,20 +113,28 @@ diff --git a/prisma/migrations/<timestamp>_spark/migration.sql b/prisma/migratio
 new file mode 100644
 --- /dev/null
 +++ b/prisma/migrations/<timestamp>_spark/migration.sql
-+-- AlterEnum
-+ALTER TYPE "WalletName" ADD VALUE 'SPARK'; COMMIT;
++BEGIN;
 +
 +-- AlterEnum
-+ALTER TYPE "WalletProtocolName" ADD VALUE 'SPARK'; COMMIT;
++ALTER TYPE "WalletName" ADD VALUE IF NOT EXISTS 'SPARK';
 +
 +-- AlterEnum
-+ALTER TYPE "WalletRecvProtocolName" ADD VALUE 'SPARK'; COMMIT;
++ALTER TYPE "WalletProtocolName" ADD VALUE IF NOT EXISTS 'SPARK';
 +
 +-- AlterEnum
-+ALTER TYPE "WalletSendProtocolName" ADD VALUE 'SPARK'; COMMIT;
++ALTER TYPE "WalletRecvProtocolName" ADD VALUE IF NOT EXISTS 'SPARK';
++
++-- AlterEnum
++ALTER TYPE "WalletSendProtocolName" ADD VALUE IF NOT EXISTS 'SPARK';
++
++COMMIT;
++
++-- New enum values must be committed before they can be used.
++BEGIN;
 +
 +INSERT INTO "WalletTemplate" ("name", "sendProtocols", "recvProtocols")
-+VALUES ('SPARK', '{SPARK}', '{SPARK}');
++VALUES ('SPARK', '{SPARK}', '{SPARK}')
++ON CONFLICT ("name") DO NOTHING;
 +
 +-- CreateTable
 +CREATE TABLE "WalletSendSpark" (
@@ -134,7 +153,7 @@ new file mode 100644
 +    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 +    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 +    "protocolId" INTEGER NOT NULL,
-+    "address" TEXT NOT NULL,
++    "identityPubkey" TEXT NOT NULL,
 +
 +    CONSTRAINT "WalletRecvSpark_pkey" PRIMARY KEY ("id")
 +);
@@ -171,6 +190,8 @@ new file mode 100644
 +   AFTER DELETE ON "WalletSendSpark"
 +   FOR EACH ROW
 +   EXECUTE PROCEDURE wallet_clear_vault();
++
++COMMIT;
 diff --git a/prisma/schema.prisma b/prisma/schema.prisma
 index 4f3cb9e2..c25c0fc8 100644
 --- a/prisma/schema.prisma
@@ -259,7 +280,7 @@ index 4f3cb9e2..c25c0fc8 100644
 +  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
 +  protocolId Int            @unique
 +  protocol   WalletProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
-+  address    String
++  identityPubkey String
 +}
 
 ```
@@ -428,8 +449,8 @@ index 00000000..0c4ba2dd
 +    displayName: 'Spark',
 +    fields: [
 +      {
-+        name: 'address',
-+        label: 'address',
++        name: 'identityPubkey',
++        label: 'identity pubkey',
 +        type: 'text',
 +        required: true,
 +        validate: externalLightningAddressValidator
@@ -482,16 +503,16 @@ index 00000000..abc610ac
 +
 +export async function createInvoice (
 +  { msats, description, descriptionHash, expiry },
-+  { address },
++  { identityPubkey },
 +  { signal }
 +) {
 +  // TODO: implement
 +}
 +
-+export async function testCreateInvoice ({ address }, { signal }) {
++export async function testCreateInvoice ({ identityPubkey }, { signal }) {
 +  return await createInvoice(
 +    { msats: 1000, description: 'SN test invoice', expiry: 1 },
-+    { address },
++    { identityPubkey },
 +    { signal })
 +}
 
@@ -553,7 +574,7 @@ diff --git a/api/typeDefs/wallet.js b/api/typeDefs/wallet.js
 
 +  type WalletRecvSpark {
 +    id: ID!
-+    address: String!
++    identityPubkey: String!
 +  }
 
 @@ input WalletProtocolConfigInput @oneOf {
@@ -572,7 +593,7 @@ diff --git a/api/typeDefs/wallet.js b/api/typeDefs/wallet.js
 
 @@ input WalletRecvClinkConfigInput { noffer: String! }
 +  input WalletSendSparkConfigInput { mnemonic: VaultEntryInput! }
-+  input WalletRecvSparkConfigInput { address: String! }
++  input WalletRecvSparkConfigInput { identityPubkey: String! }
 
 diff --git a/wallets/client/fragments/wallet.js b/wallets/client/fragments/wallet.js
 --- a/wallets/client/fragments/wallet.js
@@ -593,7 +614,7 @@ diff --git a/wallets/client/fragments/wallet.js b/wallets/client/fragments/walle
        }
 +      ... on WalletRecvSpark {
 +        id
-+        address
++        identityPubkey
 +      }
      }
    }

@@ -32,8 +32,10 @@ export function CapabilityStateRow ({ protocol, onRemove, onCancel }) {
   const key = protocolKey(protocol)
   const enabled = useProtocolStatus(protocol)?.enabled !== false
   // Fieldless protocols (WebLN) use add/remove rather than an enable/disable
-  // toggle, so the toggle is only for configured (field-based) saved protocols.
-  const showToggle = !isTemplate(protocol) && protocolFields(protocol).length > 0
+  // toggle. Spark also exposes it during setup so either generated capability
+  // can be saved disabled when its test service is unavailable.
+  const showToggle = protocolFields(protocol).length > 0 &&
+    (!isTemplate(protocol) || protocol.name === 'SPARK')
 
   if (!showToggle && !onRemove && !onCancel) return null
 
@@ -99,9 +101,9 @@ function CapabilityTestButton ({ protocol, onTest }) {
   const cap = useProtocolStatus(protocol)
   const testing = cap?.status === TestStatus.TESTING
   const action = cap?.canSave ? 'test again' : 'test'
-  // Disable while required fields are empty so the user can't run a test that
-  // would either misleadingly noop or silently dispatch a validation failure.
-  const missingRequired = hasEmptyRequiredField(protocolFields(protocol), cap?.config)
+  // Generated fields are populated by the protocol test itself.
+  const userFields = protocolFields(protocol).filter(field => !field.generated)
+  const missingRequired = hasEmptyRequiredField(userFields, cap?.config)
 
   return (
     <button

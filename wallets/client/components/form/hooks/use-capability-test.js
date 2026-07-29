@@ -1,46 +1,43 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useFormikContext } from 'formik'
-import { protocolFields, protocolKey } from '@/wallets/lib/util'
-import { useTestSendPayment, useTestCreateInvoice } from '@/wallets/client/hooks'
-import { useProtocolStatus, useTestDispatch } from './context'
+import { isTemplate, protocolFields, protocolKey } from '@/wallets/lib/util'
+import { useSingleFlight, useTestSendPayment, useTestCreateInvoice } from '@/wallets/client/hooks'
+import { useProtocolStatus, useTestDispatch, useWallet } from './context'
 import { draftHash, draftConfig } from './draft'
 import { validateCapability } from './validation'
 import { firstValidationError, testErrorDetails } from '../test-status'
+import { TestStatus } from './tests'
 
-// Imperative test orchestration for one protocol, kept out of the render
-// component: validate the draft, run the protocol test, fold any enrichment
-// (e.g. LNC credentials) back into the form, and record the outcome. The
-// valuesRef + draftHash re-check guard a late ack from clobbering edits the
-// user made while the test was running. Returns the latest failure plus onTest.
 export function useCapabilityTest (protocol) {
   const dispatch = useTestDispatch()
-  const formik = useFormikContext()
+  const wallet = useWallet()
+  const { values, setFieldValue, setFieldTouched, setFieldError } = useFormikContext()
   const testSendPayment = useTestSendPayment(protocol)
   const testCreateInvoice = useTestCreateInvoice(protocol)
+  const testProtocol = protocol.send ? testSendPayment : testCreateInvoice
   const key = protocolKey(protocol)
   const fields = protocolFields(protocol)
-  const { error, details } = useProtocolStatus(protocol)?.testError ?? {}
+  const cap = useProtocolStatus(protocol)
+  const { error, details } = cap?.testError ?? {}
+  const autoTestedRef = useRef(false)
 
   // Read the latest draft inside the async test, not the snapshot captured when
   // onTest was created.
-  const valuesRef = useRef(formik.values)
-  useEffect(() => { valuesRef.current = formik.values }, [formik.values])
+  const valuesRef = useRef(values)
+  useEffect(() => { valuesRef.current = values }, [values])
 
-  const runTest = useCallback(async (draft) => {
-    if (draft.enabled === false) return {}
-    const values = { enabled: draft.enabled, ...draftConfig(protocol, draft) }
-    if (protocol.send) return (await testSendPayment(values)) ?? {}
-    await testCreateInvoice(values)
-    return {}
-  }, [protocol, testSendPayment, testCreateInvoice])
-
-  const onTest = useCallback(async () => {
+  const testCapability = useCallback(async () => {
     const draft = valuesRef.current[key]
-    const { ok, errors } = await validateCapability(protocol, draft)
-    for (const field of fields) formik.setFieldTouched(`${key}.${field.name}`, true, false)
     const testedHash = draftHash(protocol, draft)
+    // A fully generated configuration is created and validated by its test
+    // rather than entered by the user.
+    const allFieldsGenerated = fields.length > 0 && fields.every(field => field.generated)
+    const { ok, errors } = allFieldsGenerated
+      ? { ok: true, errors: {} }
+      : await validateCapability(protocol, draft)
+    for (const field of fields) setFieldTouched(`${key}.${field.name}`, true, false)
     if (!ok) {
-      for (const [path, message] of Object.entries(errors)) formik.setFieldError(path, message)
+      for (const [path, message] of Object.entries(errors)) setFieldError(path, message)
       const { message, details } = testErrorDetails(
         { message: firstValidationError(errors) || 'fix validation errors before testing' },
         protocol
@@ -51,19 +48,52 @@ export function useCapabilityTest (protocol) {
 
     dispatch({ type: 'TEST_STARTED', key, draftHash: testedHash })
     try {
-      const additional = await runTest(draft)
-      const committed = { ...draft, ...additional }
-      // Only write enrichment back if the form still matches what we tested, so
-      // a late ack can't clobber edits the user made while the test was running.
+      const additional = draft.enabled === false
+        ? {}
+        : (await testProtocol({ enabled: draft.enabled, ...draftConfig(protocol, draft) })) ?? {}
+      const sparkSend = protocol.name === 'SPARK' && protocol.send
+      const generated = Object.fromEntries(fields
+        .filter(field => field.generated && additional[field.name] !== undefined)
+        .map(field => [field.name, additional[field.name]]))
+      const committed = { ...draft, ...generated }
+
+      // A late result must not overwrite a draft edited while its test ran.
       if (Object.keys(additional).length && draftHash(protocol, valuesRef.current[key]) === testedHash) {
-        formik.setFieldValue(key, committed)
+        for (const [name, value] of Object.entries(generated)) {
+          setFieldValue(`${key}.${name}`, value, false)
+        }
+        if (sparkSend) {
+          const receiveKey = protocolKey({ name: 'SPARK', send: false })
+          if (additional.identityPubkey !== undefined) {
+            setFieldValue(`${receiveKey}.identityPubkey`, additional.identityPubkey, false)
+          }
+        }
       }
-      dispatch({ type: 'TEST_PASSED', key, testedDraftHash: testedHash, committedDraftHash: draftHash(protocol, committed) })
+      dispatch({
+        type: 'TEST_PASSED',
+        key,
+        testedDraftHash: testedHash,
+        committedDraftHash: draftHash(protocol, committed)
+      })
     } catch (err) {
       const { message, details } = testErrorDetails(err, protocol)
       dispatch({ type: 'TEST_FAILED', key, error: message, details, draftHash: testedHash })
     }
-  }, [dispatch, key, fields, protocol, runTest, formik])
+  }, [dispatch, key, fields, protocol, testProtocol, setFieldValue, setFieldTouched, setFieldError])
+  const [onTest] = useSingleFlight(testCapability)
+
+  // New Spark wallets generate from send once, then test the populated receive
+  // side once. Saved wallets only test when the user asks.
+  useEffect(() => {
+    if (!isTemplate(wallet) || protocol.name !== 'SPARK' || autoTestedRef.current) return
+    const shouldTest = protocol.send
+      ? cap?.status === TestStatus.NOT_SET
+      : cap?.status === TestStatus.NEEDS_TEST
+    if (!shouldTest) return
+
+    autoTestedRef.current = true
+    onTest()
+  }, [cap?.status, onTest, protocol.name, protocol.send, wallet])
 
   return { error, details, onTest }
 }

@@ -38,7 +38,8 @@ export default [
       },
       {
         name: 'secretKey',
-        encrypt: true
+        encrypt: true,
+        generated: true
       }
     ],
     relationName: 'walletSendClink'

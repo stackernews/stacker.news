@@ -22,9 +22,8 @@ export function CapabilityCard ({ title, subtitle, icon, tone, protocols, select
   const cap = useProtocolStatus(protocol)
   const status = cap?.status
   const hasConfiguredValues = cap?.meaningful ?? false
-  // A configured card is always open; `opened` only tracks the user explicitly
-  // expanding an empty one. Deriving `open` avoids re-opening via an effect.
-  const [opened, setOpened] = useState(false)
+  // Spark opens immediately because creating it starts automatic setup.
+  const [opened, setOpened] = useState(protocol.name === 'SPARK')
   const open = opened || hasConfiguredValues
 
   // Reset a discarded draft back to empty so its status becomes NOT_SET. A saved

@@ -46,7 +46,7 @@ export function protocolStatus (wallet, draft, protocol, tests) {
     canSave: SAVEABLE_TEST_STATUSES.has(status),
     // Kept independent of the status ladder: a freshly-failed test whose hash
     // matches the saved one derives SAVED, yet its error still surfaces.
-    testError: meaningful && tested && test.outcome === 'failed'
+    testError: tested && test.outcome === 'failed'
       ? { error: test.error, details: test.details }
       : null,
     isSaved: isSavedProtocol(protocol),

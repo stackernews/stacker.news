@@ -87,7 +87,7 @@ export * from './util'
  * @callback ProtocolTestSendPayment
  * @param {Object} config - current protocol configuration
  * @param {ProtocolRequestOptions} opts - additional options for the payment
- * @returns {Promise<Object|void>|Object|void} - additional values to persist, if the adapter generates them
+ * @returns {Promise<Object|void>|Object|void} - generated protocol fields to persist
  */
 
 /**

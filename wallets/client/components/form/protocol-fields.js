@@ -16,11 +16,11 @@ export function WalletProtocolFormField ({ protocol, type, onNwcLud16, ...props 
   const wallet = useWallet()
   const formik = useFormikContext()
   const key = protocolKey(protocol)
-  // encrypt/share are field-descriptor metadata, not DOM props — strip them.
-  const { validate: fieldValidate, encrypt, editable, help, share, ...fieldProps } = props
+  // encrypt/share/generated are field-descriptor metadata, not DOM props — strip them.
+  const { validate: fieldValidate, encrypt, editable, generated, help, share, ...fieldProps } = props
   const [upperHint, bottomHint] = Array.isArray(fieldProps.hint) ? fieldProps.hint : [null, fieldProps.hint]
   const parsedHelp = normalizeHelp(help)
-  const readOnly = !!protocol.config?.[fieldProps.name] && editable === false
+  const readOnly = generated || (editable === false && !!protocol.config?.[fieldProps.name])
   const name = `${key}.${fieldProps.name}`
   const validate = useMemo(
     () => makeFieldValidator(fieldSchema({ name: fieldProps.name, required: fieldProps.required, validate: fieldValidate })),

@@ -64,7 +64,7 @@ export function useExternalSubmit ({ wallet, protocol, logger }) {
     const destination = parseDestination(values.destination)
 
     let bolt11, sats, to
-    let verificationContext = null
+    let lnurlVerifyUrl
 
     if (destination.type === DestinationType.BOLT11) {
       const msats = assertInvoiceAmount(destination)
@@ -81,7 +81,7 @@ export function useExternalSubmit ({ wallet, protocol, logger }) {
       }, { me: { name: meName }, service: lnAddrService })
       bolt11 = invoice.pr
       // LUD-21: a credential-free settlement checker even checkerless wallets get
-      verificationContext = typeof invoice.verify === 'string' ? { lnurlVerifyUrl: invoice.verify } : null
+      lnurlVerifyUrl = typeof invoice.verify === 'string' ? invoice.verify : undefined
       to = destination.value
     } else {
       throw new Error('enter a bolt11 invoice or lightning address')
@@ -94,7 +94,7 @@ export function useExternalSubmit ({ wallet, protocol, logger }) {
       wallet,
       protocol,
       bolt11,
-      verificationContext,
+      lnurlVerifyUrl,
       destination,
       maxFee,
       logger,
@@ -140,7 +140,7 @@ function assertInvoiceAmount (destination) {
 }
 
 export async function sendExternalPayment ({
-  verificationContext,
+  lnurlVerifyUrl,
   wallet,
   protocol,
   bolt11,
@@ -160,7 +160,7 @@ export async function sendExternalPayment ({
     // persists sourceValue for LN_ADDR
     sourceValue: destination.type === DestinationType.LN_ADDR ? destination.value : null,
     ...(maxFee != null ? { maxFeeLimitMsats: String(satsToMsats(maxFee)) } : {}),
-    ...(verificationContext ? { verificationContext } : {})
+    ...(lnurlVerifyUrl ? { lnurlVerifyUrl } : {})
   }
   let response
   try {

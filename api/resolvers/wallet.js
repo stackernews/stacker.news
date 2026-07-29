@@ -246,7 +246,8 @@ async function createWalletInvoice (parent, { walletId, amount, description }, {
     protocol: value.protocol,
     bolt11: value.bolt11,
     invoice: value.invoice,
-    verificationContext: value.verificationContext
+    lnurlVerifyUrl: value.lnurlVerifyUrl,
+    providerRequestId: value.providerRequestId
   })
   return transaction.id
 }

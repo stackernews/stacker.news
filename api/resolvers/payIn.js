@@ -316,6 +316,9 @@ export default {
     }
   },
   ExternalTransaction: {
+    providerRequestId: transaction => transaction.direction === 'SEND'
+      ? transaction.verificationContext?.providerRequestId
+      : null,
     status: transaction => transaction.outcome ?? (
       transaction.direction !== 'SEND' &&
         Date.now() >= new Date(transaction.invoiceExpiresAt).getTime()

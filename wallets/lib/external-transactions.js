@@ -34,6 +34,9 @@ export function toExternalTransactionObservation (provider = {}, {
     : 'UNKNOWN'
   const observation = { status }
 
+  if (typeof provider?.providerRequestId === 'string') {
+    observation.providerRequestId = provider.providerRequestId
+  }
   if (provider?.preimage != null) observation.preimage = provider.preimage
   const msats = walletAmountToMsatsOrUndefined(provider?.msats)
   if (msats != null) observation.msats = String(msats)

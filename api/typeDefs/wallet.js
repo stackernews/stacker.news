@@ -94,6 +94,7 @@ const typeDefs = gql`
     unknownReason: ExternalTransactionUnknownReason
     sourceType: ExternalTransactionSourceType
     sourceValue: String
+    providerRequestId: String
     walletInfo: PayInWalletInfo
   }
 
@@ -105,7 +106,7 @@ const typeDefs = gql`
     sourceValue: String
     maxFeeLimitMsats: BigInt
     duplicateConfirmed: Boolean
-    verificationContext: JSONObject
+    lnurlVerifyUrl: String
   }
 
   enum ExternalSendObservationError {
@@ -130,6 +131,7 @@ const typeDefs = gql`
     actualFeeMsats: BigInt
     detail: String
     errorType: ExternalSendObservationError
+    providerRequestId: String
   }
 
   enum WalletStatus {

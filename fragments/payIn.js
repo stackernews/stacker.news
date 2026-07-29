@@ -287,6 +287,8 @@ export const PENDING_EXTERNAL_SEND_TRANSACTIONS = gql`
       walletId
       protocolId
       hash
+      bolt11
+      providerRequestId
     }
   }
 `

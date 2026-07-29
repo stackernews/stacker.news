@@ -36,6 +36,7 @@ export async function claimExternalTransactionChecks (models) {
   `, Prisma.sql`
     SELECT
       claimed.*,
+      claimed."verificationContext"->>'providerRequestId' AS "providerRequestId",
       jsonb_build_object(
         'name', protocol."name",
         'config', protocol."config"
@@ -113,6 +114,9 @@ export async function createExternalSendTransaction (models, args) {
   const sourceValue = args.sourceType === 'LN_ADDR' && args.sourceValue
     ? truncateToCharLength(args.sourceValue, 320)
     : null
+  const lnurlVerifyUrl = args.sourceType === 'LN_ADDR'
+    ? sanitizeLnurlVerifyUrl(args.lnurlVerifyUrl)
+    : null
 
   return await retrySerializableSend(models, async db => {
     const protocol = await db.walletProtocol.findFirst({
@@ -145,7 +149,7 @@ export async function createExternalSendTransaction (models, args) {
         maxFeeLimitMsats: args.maxFeeLimitMsats == null
           ? args.maxFeeLimitMsats
           : BigInt(args.maxFeeLimitMsats),
-        verificationContext: sanitizeVerificationContext(args.verificationContext) ?? Prisma.DbNull
+        verificationContext: lnurlVerifyUrl ? { lnurlVerifyUrl } : Prisma.DbNull
       }
     })
   }, 2)
@@ -170,7 +174,12 @@ async function retrySerializableSend (models, fn, attempts) {
 
 export async function createExternalReceiveTransaction (models, args) {
   const { userId, protocol, bolt11, invoice } = args
-  const verificationContext = sanitizeVerificationContext(args.verificationContext)
+  const lnurlVerifyUrl = sanitizeLnurlVerifyUrl(args.lnurlVerifyUrl)
+  const providerRequestId = sanitizeProviderRequestId(args.providerRequestId)
+  const verificationContext = {
+    ...(lnurlVerifyUrl && { lnurlVerifyUrl }),
+    ...(providerRequestId && { providerRequestId })
+  }
   const hasChecker = protocolHasInvoiceChecker(protocol, { verificationContext })
 
   const transaction = await models.externalTransaction.create({
@@ -188,7 +197,7 @@ export async function createExternalReceiveTransaction (models, args) {
       userId,
       walletId: protocol.walletId,
       protocolId: protocol.id,
-      verificationContext: verificationContext ?? Prisma.DbNull
+      verificationContext: Object.keys(verificationContext).length > 0 ? verificationContext : Prisma.DbNull
     }
   })
 
@@ -247,10 +256,12 @@ function outcomeForObservation (transaction, {
 export async function acceptClientExternalSendObservation (models, {
   id,
   userId,
+  providerRequestId,
   ...observation
 }) {
-  const transaction = await models.externalTransaction.findFirst({
-    where: { id, userId }
+  let transaction = await models.externalTransaction.findFirst({
+    where: { id, userId },
+    include: { protocol: { select: { name: true } } }
   })
   if (!transaction) throw new GqlInputError('external transaction not found')
   if (transaction.direction !== 'SEND') {
@@ -258,6 +269,22 @@ export async function acceptClientExternalSendObservation (models, {
   }
   // Outcomes are first-write-wins. Consume later facts so durable clients stop replaying them.
   if (transaction.outcome != null) return true
+
+  const requestId = transaction.protocol.name === 'SPARK'
+    ? sanitizeProviderRequestId(providerRequestId)
+    : null
+  if (requestId) {
+    const verificationContext = {
+      ...transaction.verificationContext,
+      providerRequestId: requestId
+    }
+    const { count } = await models.externalTransaction.updateMany({
+      where: { id: transaction.id, outcome: null },
+      data: { verificationContext }
+    })
+    if (count === 0) return true
+    transaction = { ...transaction, verificationContext }
+  }
 
   const needsLnurlCheck = transaction.verificationContext?.lnurlVerifyUrl &&
     (observation.status === 'UNKNOWN' ||
@@ -386,16 +413,20 @@ export const EXTERNAL_TRANSACTION_INCLUDE = {
   }
 }
 
-function sanitizeVerificationContext (value) {
-  const url = value?.lnurlVerifyUrl
-  if (typeof url !== 'string') return null
+function sanitizeLnurlVerifyUrl (value) {
+  if (typeof value !== 'string') return null
   try {
-    const parsed = new URL(url)
+    const parsed = new URL(value)
     const supportedProtocol = parsed.protocol === 'https:' ||
       (parsed.protocol === 'http:' &&
         (process.env.NODE_ENV === 'development' || TOR_REGEXP.test(parsed.hostname)))
-    return supportedProtocol ? { lnurlVerifyUrl: parsed.toString() } : null
+    return supportedProtocol ? parsed.toString() : null
   } catch {
     return null
   }
+}
+
+function sanitizeProviderRequestId (value) {
+  if (typeof value !== 'string') return null
+  return truncateToCharLength(value.trim(), 256) || null
 }

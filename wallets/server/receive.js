@@ -31,7 +31,8 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
         })
 
       let bolt11
-      let verificationContext
+      let lnurlVerifyUrl
+      let providerRequestId
       try {
         if (limitPending) {
           const pendingPayOutBolt11Count = await models.payOutBolt11.count({
@@ -57,7 +58,8 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
             protocol.config,
             { signal }))
         bolt11 = result.bolt11
-        verificationContext = result.verificationContext
+        lnurlVerifyUrl = result.lnurlVerifyUrl
+        providerRequestId = result.providerRequestId
       } catch (err) {
         throw new Error('failed to create invoice: ' + errorMessage(err))
       }
@@ -81,7 +83,7 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
         updateStatus: true
       })
 
-      yield { bolt11, invoice, protocol, logger, verificationContext }
+      yield { bolt11, invoice, protocol, logger, lnurlVerifyUrl, providerRequestId }
     } catch (err) {
       console.error('failed to create user invoice:', err)
       logger.error(errorMessage(err), { updateStatus: true })

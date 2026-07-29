@@ -166,7 +166,11 @@ export async function sendWalletPayment (protocol, payment, logger, {
           const check = await withTimeoutSignal(
             WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS,
             checkSignal => protocol.checkPayment(
-              { hash: payment.hash },
+              {
+                hash: payment.hash,
+                bolt11: payment.bolt11,
+                providerRequestId: result.providerRequestId
+              },
               protocol.config,
               { signal: checkSignal }
             ),

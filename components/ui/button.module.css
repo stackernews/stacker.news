@@ -5,17 +5,14 @@
 .btn {
   color: var(--sn-btn-color);
   background-color: var(--sn-btn-bg);
+  /* Bootstrap's load-bearing invisible border: buttons must measure the same
+     40px as bordered inputs or input groups misalign; outline variants recolor it */
+  border: 1px solid transparent;
 }
 
-/*
- * hover/active follow Bootstrap's baked math, verified value-exact against the
- * compiled CSS (2026-07-05): hover mixes 15% of --sn-btn-mix into the base bg,
- * active mixes 20%. White-text variants mix toward #000 (shade — the default);
- * black-text variants set --sn-btn-mix: #fff (tint). primary/secondary keep
- * #000: SN's brand-button-filled() mixin shades regardless of text color.
- * Variants the formula doesn't fit (outlines, link) pin the explicit vars,
- * which win through the fallback chain.
- */
+/* hover mixes 15% of --sn-btn-mix into the base bg and active mixes 20%,
+   matching Bootstrap's compiled output; the mix direction and the pinned
+   variant exceptions are explained in docs/dev/styling.md */
 .btn:hover,
 .btn:active {
   color: var(--sn-btn-hover-color, var(--sn-btn-color));
@@ -29,6 +26,12 @@
   background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
 }
 
+/* Base UI Toggle pressed state: the :active mix held as steady paint; no new
+   values, and it stays safe under territory branding since it reads the live vars */
+.btn[data-pressed] {
+  background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
+}
+
 .btn[data-disabled] {
   color: var(--sn-btn-disabled-color, var(--sn-btn-color));
   background-color: var(--sn-btn-disabled-bg, var(--sn-btn-bg));
@@ -36,11 +39,9 @@
   pointer-events: none;
 }
 
-/*
- * territory-brandable pair — bg chases the LIVE var (custom-css.js retints
- * --sn-primary/-secondary at runtime), so the hover color-mix recomputes at
- * paint time; copied from brand-button-filled() in globals.scss
- */
+/* territory-brandable pair: the bg reads the live var (custom-css.js retints it
+   at runtime), so the hover mix recomputes at paint time; copied from
+   globals.scss's brand-button-filled() mixin */
 .primary {
   --sn-btn-color: var(--sn-primary-text);
   --sn-btn-bg: var(--sn-primary);
@@ -56,7 +57,7 @@
   fill: var(--sn-btn-color);
 }
 
-/* static filled variants — base colors from the $theme-colors map */
+/* static filled variants, base colors from the $theme-colors map */
 .danger {
   --sn-btn-color: #fff;
   --sn-btn-bg: #c03221;
@@ -89,11 +90,9 @@
   fill: #212529;
 }
 
-/* login-provider variants (C5 — login-button.js left C1's deferred list; its two
-   variants were hidden from the census the same way the stuffed props were).
-   twitter: $theme-colors map + globals.scss:474 pins #fff text in every state.
-   dark: compiled .btn-dark TINTS on hover/active (#424649/#4d5154) — exactly the
-   85/15 + 80/20 formula with --sn-btn-mix: #fff, verified value-exact */
+/* login-provider variants. twitter: $theme-colors map, and globals.scss pins
+   #fff text in every state. dark: the compiled .btn-dark tints on hover and
+   active, which is the same mix formula with --sn-btn-mix: #fff */
 .twitter {
   --sn-btn-color: #fff;
   --sn-btn-bg: #1da1f2;
@@ -109,8 +108,8 @@
   --sn-btn-mix: #fff;
 }
 
-/* !important preserved from globals.scss:478 — the icon's own fill/stroke
-   classes must lose in every state, exactly as today */
+/* the !important is preserved from globals.scss: the icon's own fill and stroke
+   classes must lose in every state, as before */
 .nostr {
   --sn-btn-color: #fff;
   --sn-btn-bg: #8d45dd;
@@ -132,8 +131,10 @@
   stroke-width: 6px;
 }
 
-/* outlines — transparent base that fills on hover; the mix formula doesn't
-   apply, so hover/active/disabled are pinned explicitly */
+/* outlines: transparent base that fills on hover; the mix formula doesn't
+   apply, so hover, active and disabled are pinned explicitly */
+/* border-color is pinned like every compiled .btn-outline-*, constant across
+   states; hover fills with the same color so the border blends in */
 .outline-secondary {
   --sn-btn-color: var(--sn-secondary);
   --sn-btn-bg: transparent;
@@ -142,6 +143,7 @@
   --sn-btn-active-bg: var(--sn-secondary);
   --sn-btn-disabled-color: var(--sn-secondary);
   --sn-btn-disabled-bg: transparent;
+  border-color: var(--sn-secondary);
 }
 
 .outline-info {
@@ -152,12 +154,11 @@
   --sn-btn-active-bg: #007cbe;
   --sn-btn-disabled-color: #007cbe;
   --sn-btn-disabled-bg: transparent;
+  border-color: #007cbe;
 }
 
-/* --sn-muted aliases --theme-grey, the exact var the compiled .btn-outline-grey
-   uses (globals.scss:275 explicit block wins over the map-generated one);
-   border-color pinned for all states — both consumers (territory-header.js)
-   add a border-2 width utility */
+/* --sn-muted aliases --theme-grey, the var the compiled .btn-outline-grey used;
+   border-color pinned for all states, and both consumers add a border-2 utility */
 .outline-grey {
   --sn-btn-color: var(--sn-muted);
   --sn-btn-bg: transparent;
@@ -169,9 +170,9 @@
   border-color: var(--sn-muted);
 }
 
-/* border-color pinned for all states (compiled: #F6911D throughout) — the only
-   consumer (notifications.js retry) adds a border-1 width utility; width is
-   utility-owned, color is skin-owned */
+/* border-color pinned for all states, #F6911D throughout in the compiled CSS;
+   the only consumer adds a border-1 utility, width is utility-owned and color
+   is skin-owned */
 .outline-warning {
   --sn-btn-color: #F6911D;
   --sn-btn-bg: transparent;
@@ -183,8 +184,9 @@
   border-color: #F6911D;
 }
 
-/* hover/active text is #fff via the late !important override at
-   globals.scss:485 — NOT the #000 the compiled variant block claims */
+/* hover and active text is #fff via a late !important override in globals.scss,
+   not the #000 the compiled variant block claims. Border color stays pinned
+   here; the nav consumers size it to 2px with an inline borderWidth */
 .outline-grey-darkmode {
   --sn-btn-color: #8c8c8c;
   --sn-btn-bg: transparent;
@@ -193,10 +195,11 @@
   --sn-btn-active-bg: #8c8c8c;
   --sn-btn-disabled-color: #8c8c8c;
   --sn-btn-disabled-bg: transparent;
+  border-color: #8c8c8c;
 }
 
-/* font-weight 400 (not bold) is the recipe's job — button.js swaps font-bold
-   for font-normal on this variant; font-weight is recipe-owned */
+/* font-weight 400 is the recipe's job: button.js swaps font-bold for
+   font-normal on this variant */
 .link {
   --sn-btn-color: var(--sn-link-color);
   --sn-btn-bg: transparent;

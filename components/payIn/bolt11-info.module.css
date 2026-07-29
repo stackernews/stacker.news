@@ -42,7 +42,9 @@
   max-width: 100%;
 }
 
-.detailPillButton {
+/* the descendant pair beats ui/collapsible's .trigger UA reset on specificity;
+   cross-file module order is build-fragile, two classes win deterministically */
+.detailPill .detailPillButton {
   box-sizing: border-box;
   min-height: 32px;
   display: inline-flex;
@@ -65,6 +67,14 @@
   margin-left: 0.15rem;
 }
 
+.detailPillIndicator::before {
+  content: "+";
+}
+
+.detailPillButton[data-panel-open] .detailPillIndicator::before {
+  content: "-";
+}
+
 .detailPillLabel {
   min-width: 0;
   overflow: hidden;
@@ -72,9 +82,9 @@
   white-space: nowrap;
 }
 
-.detailPillButton:hover,
-.detailPillButton:focus-visible,
-.detailPillOpen .detailPillButton {
+.detailPill .detailPillButton:hover,
+.detailPill .detailPillButton:focus-visible,
+.detailPill .detailPillButton[data-panel-open] {
   border-color: var(--bs-body-color);
   color: var(--bs-body-color);
 }

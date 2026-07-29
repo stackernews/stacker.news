@@ -1,4 +1,5 @@
 import classNames from 'classnames'
+import { Switch } from '@base-ui/react/switch'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import testUiStyles from './capability-test-ui.module.css'
 import { CopyButton } from '@/components/form'
@@ -61,13 +62,13 @@ export function CapabilityStateRow ({ protocol, onRemove, onCancel }) {
       )}
       {showToggle && (
         <label className={styles.toggle}>
-          <input
-            type='checkbox'
-            role='switch'
+          <Switch.Root
             checked={enabled}
-            onChange={(e) => formik.setFieldValue(`${key}.enabled`, e.target.checked)}
-          />
-          <span className={styles.toggleTrack} aria-hidden='true' />
+            onCheckedChange={checked => formik.setFieldValue(`${key}.enabled`, checked)}
+            className={styles.toggleTrack}
+          >
+            <Switch.Thumb className={styles.toggleThumb} />
+          </Switch.Root>
           <span className={styles.toggleLabel}>{enabled ? 'enabled' : 'disabled'}</span>
         </label>
       )}

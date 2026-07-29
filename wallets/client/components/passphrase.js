@@ -10,6 +10,8 @@ import { useGenerateRandomKey, useKeySalt, useSetKey } from '@/wallets/client/ho
 import { deriveKey } from '@/wallets/lib/crypto'
 import { useSingleFlight } from '@/wallets/client/hooks/singleFlight'
 import { useDisablePassphraseExport, useWalletEncryptionUpdate, useWalletReset } from '@/wallets/client/hooks/query'
+import { useHasSparkWallet } from '@/wallets/client/hooks/global'
+import { WalletDeletionBarrier } from '@/wallets/client/components/form/wallet-delete'
 import shared from '@/wallets/client/components/wallet.module.css'
 import styles from './passphrase.module.css'
 import RefreshIcon from '@/svgs/refresh-line.svg'
@@ -53,7 +55,9 @@ const passphraseSchema = object().shape({
   passphrase: string().required('required')
 })
 
-function ResetPassphraseDialog ({ onCancel, onConfirm }) {
+function ResetPassphraseDialog ({ hasSparkWallet, onCancel, onConfirm }) {
+  const [acknowledged, setAcknowledged] = useState(false)
+
   return (
     <div>
       <h4>Reset Stacker News wallet passphrase</h4>
@@ -63,9 +67,10 @@ function ResetPassphraseDialog ({ onCancel, onConfirm }) {
       <p className='line-height-md'>
         After the reset, you will be issued a new Stacker News wallet passphrase.
       </p>
+      <WalletDeletionBarrier fundLossRisk={hasSparkWallet} acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
       <div className='mt-3 d-flex justify-content-end align-items-center'>
         <Button className='me-3 text-muted nav-link fw-bold' variant='link' onClick={onCancel}>cancel</Button>
-        <Button variant='danger' onClick={onConfirm}>reset</Button>
+        <Button variant='danger' onClick={onConfirm} disabled={!acknowledged}>reset</Button>
       </div>
     </div>
   )
@@ -81,6 +86,7 @@ export function WalletPassphrasePrompt ({
   const disablePassphraseExport = useDisablePassphraseExport()
   const generateRandomKey = useGenerateRandomKey()
   const walletReset = useWalletReset()
+  const hasSparkWallet = useHasSparkWallet()
   const hash = me?.privates?.vaultKeyHash ?? null
   const salt = useKeySalt()
   const showModal = useShowModal()
@@ -104,6 +110,7 @@ export function WalletPassphrasePrompt ({
   const showResetPassphraseModal = useCallback(() => {
     showModal(close => (
       <ResetPassphraseDialog
+        hasSparkWallet={hasSparkWallet}
         onCancel={close}
         onConfirm={async () => {
           try {
@@ -117,7 +124,7 @@ export function WalletPassphrasePrompt ({
         }}
       />
     ))
-  }, [showModal, generateRandomKey, walletReset, toaster])
+  }, [showModal, generateRandomKey, walletReset, toaster, hasSparkWallet])
 
   return (
     <div>

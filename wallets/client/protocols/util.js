@@ -1,9 +1,4 @@
 import { msatsToSats, toPositiveNumber } from '@/lib/format'
-import protocols from '@/wallets/client/protocols'
-
-function protocol (name) {
-  return protocols.find(protocol => protocol.name === name)
-}
 
 /**
  * Build a protocol balance from an amount already normalized to the display
@@ -20,8 +15,4 @@ export function walletBalance (amount, currency = 'BTC') {
  */
 export function msatsWalletBalance (amount, currency = 'BTC') {
   return walletBalance(msatsToSats(amount), currency)
-}
-
-export function protocolTestSendPayment ({ name }, config, opts) {
-  return protocol(name).testSendPayment(config, opts)
 }

@@ -124,7 +124,15 @@ export async function saveWalletProtocols (parent, { walletId, templateName, ups
   const removeIdNumbers = removeIds.map(Number)
 
   const savedWalletId = await commitWithBadgeNotifications(models, async (tx) => {
-    const resolvedWalletId = await resolveWalletForSave(tx, { walletId, templateName, userId: me.id })
+    const wallet = await resolveWalletForSave(tx, {
+      walletId,
+      templateName,
+      userId: me.id
+    })
+    const resolvedWalletId = wallet.id
+    if (wallet.template.name === 'SPARK' && removeIdNumbers.length > 0) {
+      throw new GqlInputError('delete the Spark wallet instead of removing one of its capabilities')
+    }
 
     for (const { protocol, enabled, config } of validatedUpserts) {
       await upsertProtocolInTransaction({ tx, walletId: resolvedWalletId, userId: me.id, protocol, enabled, config })

@@ -179,6 +179,16 @@ async function resetWallets (parent, { newKeyHash }, { me, models }) {
   const { vaultKeyHash: oldHash } = await getVaultMetadata(models, me.id)
 
   await commitWithBadgeNotifications(models, async tx => {
+    // A Spark receive identity is derived from the send-side mnemonic, so reset
+    // deletes the whole Spark-template wallet.
+    await tx.wallet.deleteMany({
+      where: {
+        userId: me.id,
+        templateName: 'SPARK'
+      }
+    })
+
+    // external transactions are deleted by the WalletProtocol foreign-key cascade
     // vaults are deleted via trigger
     await tx.walletProtocol.deleteMany({
       where: { send: true, wallet: { userId: me.id } }

@@ -22,6 +22,7 @@ export * from './util'
  * @property {ProtocolCheckPayment} [checkPayment] - checks a submitted payment without resending it
  * @property {ProtocolTestSendPayment} testSendPayment - test if configuration can pay
  * @property {ProtocolGetBalance} [getBalance] - fetches wallet balance when supported
+ * @property {() => Promise<void>} [dispose] - releases adapter-owned resources
  * @property {boolean} enforcesMaxFee - true if the wallet/server hard-caps routing
  *   fees at the user-supplied max; false if the protocol has no per-payment fee cap
  */
@@ -105,9 +106,8 @@ export * from './util'
  */
 
 /** @typedef {string} Preimage */
-
 /** @type {ClientWalletProtocol[]} */
-export default [
+const protocols = [
   nwc,
   lnbits,
   phoenixd,
@@ -118,3 +118,17 @@ export default [
   clink,
   spark
 ]
+
+export default protocols
+
+export async function disposeClientProtocols () {
+  await Promise.allSettled(
+    protocols
+      .filter(protocol => protocol.dispose)
+      .map(async protocol => protocol.dispose())
+  )
+}
+
+export function protocolTestSendPayment ({ name }, config, opts) {
+  return protocols.find(protocol => protocol.name === name).testSendPayment(config, opts)
+}

@@ -107,7 +107,7 @@ export function WhenAreaChart ({ data }) {
           tick={{ fill: 'var(--theme-grey)' }}
         />
         <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)', opacity: 1, zIndex: -1 }} />
+        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)', opacity: 1 }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Area key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={getColor(i)} fill={getColor(i)} />)}

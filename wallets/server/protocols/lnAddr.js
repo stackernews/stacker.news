@@ -38,7 +38,7 @@ export const createInvoice = async (
   if (body.verify) {
     return {
       bolt11: body.pr,
-      verificationContext: { lnurlVerifyUrl: body.verify }
+      lnurlVerifyUrl: body.verify
     }
   }
 

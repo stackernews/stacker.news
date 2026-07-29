@@ -99,7 +99,11 @@ export async function checkAndReportExternalSend ({
       result = await withTimeoutSignal(
         WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS,
         checkSignal => protocol.checkPayment(
-          { hash: transaction.hash },
+          {
+            hash: transaction.hash,
+            bolt11: transaction.bolt11,
+            providerRequestId: transaction.providerRequestId
+          },
           protocol.config,
           { signal: checkSignal }
         ),

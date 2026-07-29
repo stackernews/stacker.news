@@ -27,7 +27,7 @@ export * from './util'
  * @param {CreateInvoiceArgs} args - arguments for the invoice
  * @param {Object} config - current protocol configuration
  * @param {CreateInvoiceOptions} opts - additional options for the invoice request
- * @returns {Promise<Bolt11|{bolt11: Bolt11, verificationContext?: Object}>} - bolt11 invoice and optional settlement verification data
+ * @returns {Promise<Bolt11|{bolt11: Bolt11, lnurlVerifyUrl?: string, providerRequestId?: string}>} - bolt11 invoice and optional settlement verification data
  */
 
 /**

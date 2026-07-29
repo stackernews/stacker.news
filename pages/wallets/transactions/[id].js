@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import { Alert } from 'react-bootstrap'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { formatMsatsToSats } from '@/lib/format'
-import { FAST_POLL_INTERVAL_MS, NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
+import { FASTISH_POLL_INTERVAL_MS, NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
 import { bolt11QrTransform } from '@/lib/bolt11'
 import { useData } from '@/components/use-data'
 import PageLoading from '@/components/page-loading'
@@ -43,7 +43,7 @@ export default function ExternalTransactionPage ({ ssrData }) {
   const transaction = dat?.externalTransaction
   // Derived expiry ends live page polling; the worker can still reconcile a late settlement.
   const done = dat ? (!transaction || transaction.status !== 'PENDING') : false
-  const fastPoll = transaction?.status === 'PENDING' &&
+  const fastishPoll = transaction?.status === 'PENDING' &&
     transaction.direction !== 'SEND'
   const [expiredTransactionId, setExpiredTransactionId] = useState()
   const animatedTransactionIdRef = useRef()
@@ -62,9 +62,9 @@ export default function ExternalTransactionPage ({ ssrData }) {
       return
     }
 
-    startPolling(fastPoll ? FAST_POLL_INTERVAL_MS : NORMAL_POLL_INTERVAL_MS)
+    startPolling(fastishPoll ? FASTISH_POLL_INTERVAL_MS : NORMAL_POLL_INTERVAL_MS)
     return () => stopPolling()
-  }, [startPolling, stopPolling, id, done, fastPoll])
+  }, [startPolling, stopPolling, id, done, fastishPoll])
 
   if (!dat && error) {
     return <WalletErrorShell title='transaction unavailable' message={error.message} />

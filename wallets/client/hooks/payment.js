@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { FAST_POLL_INTERVAL_MS, WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
+import { FAST_POLL_INTERVAL_MS, FASTISH_POLL_INTERVAL_MS, WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS, WALLET_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
 import {
   AnonWalletError, WalletsNotAvailableError, WalletSenderError, WalletAggregateError, WalletPaymentAggregateError,
   WalletPaymentError, WalletError, WalletReceiverError, WalletSendStateNotReadyError,
@@ -157,12 +157,14 @@ export async function sendWalletPayment (protocol, payment, logger, {
       if (!waitForTerminal) return result
 
       let checkErrorLogged = false
+      let pollInterval = FAST_POLL_INTERVAL_MS
 
       while ((result?.status === 'PENDING' ||
         (result?.status === 'UNKNOWN' && result.errorType == null)) &&
         typeof protocol.checkPayment === 'function') {
         try {
-          await abortableSleep(FAST_POLL_INTERVAL_MS, signal)
+          await abortableSleep(pollInterval, signal)
+          pollInterval = FASTISH_POLL_INTERVAL_MS
           const check = await withTimeoutSignal(
             WALLET_EXTERNAL_TX_CHECK_TIMEOUT_MS,
             checkSignal => protocol.checkPayment(

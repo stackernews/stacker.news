@@ -30,15 +30,18 @@ export default {
     },
     {
       name: 'serverHost',
-      encrypt: true
+      encrypt: true,
+      generated: true
     },
     {
       name: 'localKey',
-      encrypt: true
+      encrypt: true,
+      generated: true
     },
     {
       name: 'remoteKey',
-      encrypt: true
+      encrypt: true,
+      generated: true
     }
   ],
   relationName: 'walletSendLNC'

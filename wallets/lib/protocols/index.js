@@ -37,6 +37,7 @@ import sparkSuite from './spark'
  * @property {string} [placeholder] - placeholder text shown in input field
  * @property {string} [hint] - hint text shown below field
  * @property {boolean} [share] - whether field can be used to prepopulate field of complementary send/receive protocol
+ * @property {boolean} [generated] - whether testing generates the field instead of the user entering it
  * @property {boolean} [editable] - whether the field is editable after it was saved
  */
 

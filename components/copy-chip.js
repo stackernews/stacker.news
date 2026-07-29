@@ -2,7 +2,7 @@ import copy from 'clipboard-copy'
 import { useToast } from '@/components/ui/toast'
 import styles from './copy-chip.module.css'
 
-function chipClassName ({ full, tone, truncate, className }) {
+export function chipClassName ({ full, tone, truncate, className }) {
   return [
     styles.chip,
     full ? styles.chipFull : null,

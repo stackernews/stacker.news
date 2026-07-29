@@ -27,10 +27,6 @@
   font-weight: 700;
   line-height: 1;
 }
-.toggle input {
-  position: absolute;
-  opacity: 0;
-}
 .toggleTrack {
   position: relative;
   display: inline-block;
@@ -41,11 +37,11 @@
   background: var(--theme-toolbarActive);
   transition: background-color 0.15s ease;
 }
-.toggleTrack::after {
-  content: "";
+.toggleThumb {
   position: absolute;
   top: 3px;
   left: 3px;
+  display: block;
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -53,13 +49,13 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   transition: transform 0.15s ease;
 }
-.toggle input:checked + .toggleTrack {
+.toggleTrack[data-checked] {
   background: var(--bs-success);
 }
-.toggle input:checked + .toggleTrack::after {
+.toggleThumb[data-checked] {
   transform: translateX(16px);
 }
-.toggle input:focus-visible + .toggleTrack {
+.toggleTrack:focus-visible {
   outline: 2px solid var(--theme-borderColor);
   outline-offset: 3px;
 }

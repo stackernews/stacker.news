@@ -6,8 +6,8 @@
   margin-right: auto;
   gap: 2rem;
 }
-/* C9a: the .form-group class left the DOM — the margin kill moved to the call
-   sites (groupClassName='mb-0' on the send-flow fields; §11.0 bucket 3) */
+/* the .form-group class left the DOM; the margin kill moved to the call sites
+   (groupClassName='mb-0' on the send-flow fields) */
 
 .detectedRow {
   display: grid;
@@ -172,7 +172,9 @@
   letter-spacing: 0.08em;
   line-height: 1;
 }
-.maxFeeControl {
+/* the descendant pair beats ui/collapsible's .trigger UA reset on specificity;
+   cross-file module order is build-fragile */
+.maxFeeSummary .maxFeeControl {
   --chip-padding: 0.35rem 0.65rem;
   --chip-radius: 6px;
   --chip-bg: transparent;
@@ -193,9 +195,10 @@
   fill: currentColor;
 }
 
+/* font-weight is recipe-owned on a Button, so it never applied here; the
+   paint is font-bold's 700 */
 .submit {
   min-width: 180px;
-  font-weight: 800;
 }
 .submit small {
   font-size: 0.875em;

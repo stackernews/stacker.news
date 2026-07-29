@@ -1,6 +1,9 @@
-import Button from '@/components/ui/button'
+import { buttonClasses } from '@/components/ui/button'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useApolloClient } from '@apollo/client/react'
+import { Toggle } from '@base-ui/react/toggle'
+import { ToggleGroup } from '@base-ui/react/toggle-group'
+import { useField } from 'formik'
 import { Form, Input, InputGroup, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
@@ -20,22 +23,24 @@ import { composeCallbacks } from '@/lib/compose-callbacks'
 const defaultTips = [100, 1000, 10_000, 100_000]
 
 const Tips = ({ setOValue }) => {
+  const [{ value: amount }] = useField('amount')
   const customTips = getCustomTips()
   const defaultNoCustom = defaultTips.filter(d => !customTips.includes(d))
   const tips = [...customTips, ...defaultNoCustom].slice(0, 7).sort((a, b) => a - b)
 
-  return tips.map((num, i) =>
-    <Button
-      size='sm'
-      key={num}
-      onClick={() => { setOValue(num) }}
+  return (
+    <ToggleGroup
+      value={tips.includes(Number(amount)) ? [String(Number(amount))] : []}
+      onValueChange={v => { if (v.length) setOValue(Number(v[0])) }}
+      className='flex flex-wrap gap-2'
     >
-      <UpBolt
-        className='me-1'
-        width={14}
-        height={14}
-      />{num}
-    </Button>)
+      {tips.map(num => (
+        <Toggle key={num} value={String(num)} render={<button className={buttonClasses({ size: 'sm' })} />}>
+          <UpBolt className='me-1' width={14} height={14} />{num}
+        </Toggle>
+      ))}
+    </ToggleGroup>
+  )
 }
 
 const getCustomTips = () => JSON.parse(window.localStorage.getItem('custom-tips')) || []
@@ -136,9 +141,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
       />
 
-      <div className='flex flex-wrap gap-2'>
-        <Tips setOValue={setOValue} />
-      </div>
+      <Tips setOValue={setOValue} />
       <div className='flex mt-4'>
         <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-6' value={act}>
           {act === 'DONT_LIKE_THIS' ? 'downzap' : act === 'BOOST' ? 'boost' : 'zap'}

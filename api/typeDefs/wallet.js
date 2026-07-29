@@ -190,6 +190,7 @@ const typeDefs = gql`
     | WalletSendLNC
     | WalletSendCLNRest
     | WalletSendClink
+    | WalletSendSpark
     | WalletRecvNWC
     | WalletRecvLNbits
     | WalletRecvPhoenixd
@@ -198,6 +199,7 @@ const typeDefs = gql`
     | WalletRecvCLNRest
     | WalletRecvLNDGRPC
     | WalletRecvClink
+    | WalletRecvSpark
 
   type WalletSettings {
     receiveCreditsBelowSats: Int!
@@ -262,6 +264,11 @@ const typeDefs = gql`
     secretKey: VaultEntry!
   }
 
+  type WalletSendSpark {
+    id: ID!
+    mnemonic: VaultEntry!
+  }
+
   type WalletRecvNWC {
     id: ID!
     url: String!
@@ -309,6 +316,11 @@ const typeDefs = gql`
     noffer: String!
   }
 
+  type WalletRecvSpark {
+    id: ID!
+    identityPubkey: String!
+  }
+
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!
     autoWithdrawMaxFeePercent: Float!
@@ -349,6 +361,8 @@ const typeDefs = gql`
     walletRecvLightningAddress: WalletRecvLightningAddressConfigInput
     walletSendClink: WalletSendClinkConfigInput
     walletRecvClink: WalletRecvClinkConfigInput
+    walletSendSpark: WalletSendSparkConfigInput
+    walletRecvSpark: WalletRecvSparkConfigInput
     # WebLN has no fields; the boolean is a sentinel and must be true.
     walletSendWebLN: Boolean
   }
@@ -365,6 +379,7 @@ const typeDefs = gql`
     walletRecvCLNRest: WalletRecvCLNRestConfigInput
     walletRecvLNDGRPC: WalletRecvLNDGRPCConfigInput
     walletRecvClink: WalletRecvClinkConfigInput
+    walletRecvSpark: WalletRecvSparkConfigInput
   }
 
   input WalletSendNWCConfigInput { url: VaultEntryInput! }
@@ -387,6 +402,8 @@ const typeDefs = gql`
   input WalletRecvLightningAddressConfigInput { address: String! }
   input WalletSendClinkConfigInput { ndebit: VaultEntryInput!, secretKey: VaultEntryInput! }
   input WalletRecvClinkConfigInput { noffer: String! }
+  input WalletSendSparkConfigInput { mnemonic: VaultEntryInput! }
+  input WalletRecvSparkConfigInput { identityPubkey: String! }
 
   type WalletLogs {
     logs: [WalletLogEntry!]!

@@ -1,4 +1,5 @@
 import bip39Words from '@/lib/bip39-words'
+import { validateMnemonic } from '@scure/bip39'
 import { decodeRune } from '@/lib/cln'
 import { B64_URL_REGEX } from '@/lib/format'
 import { isInvoicableMacaroon, isInvoiceMacaroon } from '@/lib/macaroon'
@@ -183,7 +184,7 @@ export const invoiceMacaroonValidator = () =>
       message: 'not an invoice macaroon or an invoicable macaroon'
     })
 
-export const bip39Validator = ({ min = 12, max = 24 } = {}) =>
+export const bip39Validator = ({ min = 12, max = 24, checksum = false } = {}) =>
   string()
     .test({
       name: 'bip39',
@@ -201,6 +202,9 @@ export const bip39Validator = ({ min = 12, max = 24 } = {}) =>
         }
         if (words.length > max) {
           return context.createError({ message: `max ${max} words` })
+        }
+        if (checksum && !validateMnemonic(words.join(' '), bip39Words)) {
+          return context.createError({ message: 'not a valid BIP-39 mnemonic' })
         }
         return true
       }

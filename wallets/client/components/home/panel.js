@@ -10,6 +10,7 @@ import { BalanceHero } from '@/wallets/client/components/balance'
 import { useWalletBalanceState } from './balance'
 import { WalletIcon } from './list'
 import { kindSpec } from './state'
+import { SparkCustodyNotice } from './spark-custody-notice'
 const styles = { ...sharedStyles, ...shellStyles, ...rowsStyles, ...panelStyles }
 
 export function SelectedWalletPanel ({ entry, templates }) {
@@ -31,6 +32,9 @@ export function SelectedWalletPanel ({ entry, templates }) {
             ))}
           </nav>
         )}
+      </div>
+      <div className='w-100 d-none d-md-flex justify-content-start text-start mt-2'>
+        <SparkCustodyNotice wallet={entry.wallet} />
       </div>
       <SelectedWalletBalance entry={entry} />
       <WalletActions entry={entry} />

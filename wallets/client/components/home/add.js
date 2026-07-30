@@ -10,6 +10,7 @@ import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import rowsStyles from './rows.module.css'
 import addStyles from './add.module.css'
 import { WalletStatusPills } from './status'
+import { SparkCustodyNotice } from './spark-custody-notice'
 const styles = { ...sharedStyles, ...rowsStyles, ...addStyles }
 
 export function AddWalletPanel ({ templates }) {
@@ -49,7 +50,12 @@ export function AddWalletPanel ({ templates }) {
 }
 
 function AddWalletTemplateLabel ({ template }) {
-  return <WalletLogo name={template.name} fallback='name' className={styles.logo} fallbackClassName='d-inline fw-bold' />
+  return (
+    <div className={styles.templateLabel}>
+      <WalletLogo name={template.name} fallback='name' className={styles.logo} fallbackClassName='d-inline fw-bold' />
+      <SparkCustodyNotice wallet={template} />
+    </div>
+  )
 }
 
 function TemplateWalletSupport ({ template }) {

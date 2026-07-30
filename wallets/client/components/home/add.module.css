@@ -35,6 +35,13 @@
   max-height: 28px;
   object-fit: contain;
 }
+.templateLabel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
 
 @media (max-width: 767px) {
   .panel {

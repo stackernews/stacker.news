@@ -13,6 +13,7 @@ import { walletRoute } from '@/wallets/lib/routes'
 import { WalletList, WalletRow } from './list'
 import { SelectedWalletPanel, WalletDetailsList } from './panel'
 import { defaultWalletHomeRouteId, selectedWalletHomeEntry, walletHomeEntries } from './state'
+import { SparkCustodyNotice } from './spark-custody-notice'
 const styles = { ...sharedStyles, ...shellStyles, ...rowsStyles, ...sidebarStyles }
 
 export function WalletHome ({ routeWalletId }) {
@@ -108,7 +109,10 @@ function WalletMobileHeader ({ selectedEntry, onShowSwitcher, onShowDetails }) {
         <WalletRow entry={selectedEntry} />
         <CaretDown width={18} height={18} className={styles.mobileWalletCaret} />
       </button>
-      <button className={classNames(styles.textButton, 'ms-auto')} onClick={onShowDetails}>details</button>
+      <div className='d-flex align-items-center'>
+        <SparkCustodyNotice wallet={selectedEntry.wallet} />
+        <button className={classNames(styles.textButton, 'ms-auto')} onClick={onShowDetails}>details</button>
+      </div>
     </div>
   )
 }

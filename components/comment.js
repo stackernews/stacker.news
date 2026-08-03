@@ -29,6 +29,8 @@ import { gql } from '@apollo/client'
 import { useApolloClient } from '@apollo/client/react'
 import classNames from 'classnames'
 import useCallbackRef from './use-callback-ref'
+import { useShowModal } from './modal'
+import { ObstacleButtons } from './obstacle'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -104,6 +106,8 @@ export default function Comment ({
   navigator, ...props
 }) {
   const [edit, setEdit] = useState()
+  const [dirty, setDirty] = useState(false)
+  const showModal = useShowModal()
   const { me } = useMe()
   // Collapse comments that don't meet the viewer's commentsSatsFilter threshold
   const commentsSatsFilter = me ? me.privates?.commentsSatsFilter : DEFAULT_COMMENTS_SATS_FILTER
@@ -263,7 +267,27 @@ export default function Comment ({
                     </>
                   }
                   edit={edit}
-                  toggleEdit={e => { setEdit(!edit) }}
+                  toggleEdit={() => {
+                    if (edit && dirty) {
+                      showModal(onClose => (
+                        <div>
+                          <p className='fw-bolder'>Discard your changes?</p>
+                          <ObstacleButtons
+                            onClose={onClose}
+                            onConfirm={() => {
+                              onClose()
+                              setEdit(false)
+                              setDirty(false)
+                            }}
+                            confirmText='discard'
+                            confirmVariant='danger'
+                          />
+                        </div>
+                      ))
+                      return
+                    }
+                    setEdit(!edit)
+                  }}
                   editText={edit ? 'cancel' : 'edit'}
                 />}
 
@@ -290,8 +314,10 @@ export default function Comment ({
             ? (
               <CommentEdit
                 comment={item}
+                onDirtyChange={setDirty}
                 onSuccess={() => {
                   setEdit(!edit)
+                  setDirty(false)
                 }}
               />
               )

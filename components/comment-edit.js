@@ -5,8 +5,21 @@ import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
 import { UPDATE_COMMENT } from '@/fragments/payIn'
 import useItemSubmit from './use-item-submit'
+import { useFormikContext } from 'formik'
+import { useEffect } from 'react'
 
-export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
+function DirtyTracker ({ original, onDirtyChange }) {
+  const { values } = useFormikContext()
+  const dirty = values.text?.trim() !== (original ?? '').trim()
+
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
+
+  return null
+}
+
+export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel, onDirtyChange }) {
   const onSubmit = useItemSubmit(UPDATE_COMMENT, {
     payInMutationOptions: {
       cachePhases: {
@@ -64,6 +77,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             autoFocus
             required
           />
+          <DirtyTracker original={comment.text} onDirtyChange={onDirtyChange} />
           <ItemButtonBar itemId={comment.id} onDelete={onSuccess} hasCancel={false} />
         </Form>
       </FeeButtonProvider>

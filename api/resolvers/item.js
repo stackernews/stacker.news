@@ -72,6 +72,10 @@ const orderByClause = (by, me, models, type, sub) => {
   }
 }
 
+// excludes items already returned in earlier pages of a ranked (lit/top) feed,
+// where rankings can shift between page loads and cause duplicates (see #147)
+const seenIdsClause = (ids) => ids?.length ? `"Item".id NOT IN (${ids.join(',')})` : undefined
+
 // this grabs all the stuff we need to display the item list and only
 // hits the db once ... orderBy needs to be duplicated on the outer query because
 // joining does not preserve the order of the inner query
@@ -477,6 +481,7 @@ export default {
                 activeOrMine(me),
                 '"Item".status = \'ACTIVE\'',
                 by === 'downsats' && '"Item"."downMsats" > 0',
+                seenIdsClause(decodedCursor.ids),
                 await filterClause(type, sub, 'top', ctx, by),
                 muteClause(me))}
               ${orderByClause(by || 'sats', me, models, type, sub)}
@@ -528,6 +533,7 @@ export default {
                   '"Item".bio = false',
                   activeOrMine(me),
                   '"Item".status = \'ACTIVE\'',
+                  seenIdsClause(decodedCursor.ids),
                   await filterClause(type, sub, 'lit', ctx),
                   subClause(sub, 3, 'Item', me, showNsfw),
                   muteClause(me))}
@@ -539,7 +545,7 @@ export default {
           break
       }
       return {
-        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit, items.map(i => i.id)) : null,
         items,
         pins
       }

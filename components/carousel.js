@@ -59,6 +59,19 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
     if (index === -1) return [src, false, false]
     return [mediaArr[index][0], index > 0, index < mediaArr.length - 1]
   }, [src, mediaArr, index])
+  const [navHidden, setNavHidden] = useState(false)
+  const navTimeoutRef = useRef()
+
+  const resetNavTimer = useCallback(() => {
+    setNavHidden(false)
+    clearTimeout(navTimeoutRef.current)
+    navTimeoutRef.current = setTimeout(() => setNavHidden(true), 3000)
+  }, [])
+
+  useEffect(() => {
+    resetNavTimer()
+    return () => clearTimeout(navTimeoutRef.current)
+  }, [resetNavTimer])
 
   useEffect(() => {
     if (index === -1) return
@@ -79,9 +92,9 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
   useArrowKeys({ moveLeft, moveRight })
 
   return (
-    <div className={styles.fullScreenContainer} onClick={close}>
+    <div className={styles.fullScreenContainer} onClick={close} onMouseMove={resetNavTimer} onTouchStart={resetNavTimer}>
       <img className={styles.fullScreen} src={currentSrc} />
-      <div className={styles.fullScreenNavContainer}>
+      <div className={classNames(styles.fullScreenNavContainer, navHidden && styles.navHidden)}>
         <div
           className={classNames(styles.fullScreenNav, !canGoLeft && 'invisible', styles.left)}
           onClick={(e) => {

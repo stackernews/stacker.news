@@ -9,6 +9,15 @@ div.fullScreenNavContainer {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: opacity .3s ease-in-out;
+}
+
+div.fullScreenNavContainer.navHidden {
+    opacity: 0;
+}
+
+div.fullScreenNavContainer.navHidden div.fullScreenNav {
+    pointer-events: none;
 }
 
 img.fullScreen {

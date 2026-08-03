@@ -1,5 +1,6 @@
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
 import { snFetch } from '@/lib/fetch'
+import { isYoutubeUrl, isUsefulYoutubeTitle, fetchYoutubeTitle } from '@/lib/youtube-title'
 import { decodeCursor, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
@@ -562,8 +563,15 @@ export default {
         const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
 
         res.title = metadata?.title
-        if (moreThanOneYearAgo) res.title += dateHint
+        if (res.title && moreThanOneYearAgo) res.title += dateHint
       } catch { }
+
+      // YouTube's server-rendered HTML often only has the generic
+      // "- YouTube" document title, so fall back to the oEmbed endpoint
+      // (no API key required) to get the actual video title.
+      if (isYoutubeUrl(url) && !isUsefulYoutubeTitle(res.title)) {
+        res.title = await fetchYoutubeTitle(url, snFetch)
+      }
 
       try {
         const unshorted = await uu().expand(url)

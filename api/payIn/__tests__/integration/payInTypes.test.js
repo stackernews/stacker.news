@@ -367,7 +367,7 @@ describe('Specific PayIn Types', () => {
   describe('BUY_CREDITS', () => {
     it('should purchase credits', async () => {
       const buyer = await createTestUser(models, {
-        msats: 0n,
+        msats: satsToMsats(2000),
         mcredits: 0n
       })
       testUsers.push(buyer)
@@ -381,8 +381,11 @@ describe('Specific PayIn Types', () => {
 
       expect(result.payInType).toBe('BUY_CREDITS')
 
-      // Should create invoice since user has no funds
+      // Buying credits must not spend reward sats; it should create an invoice instead.
       expect(['PENDING', 'PENDING_INVOICE_CREATION', 'PENDING_HELD']).toContain(result.payInState)
+      const updatedBuyer = await models.user.findUnique({ where: { id: buyer.id } })
+      expect(updatedBuyer.msats).toBe(satsToMsats(2000))
+      expect(await models.payInCustodialToken.count({ where: { payInId: result.id } })).toBe(0)
     })
   })
 

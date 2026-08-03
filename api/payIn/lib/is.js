@@ -17,6 +17,11 @@ export function isPayableWithCredits (payIn) {
   return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT)
 }
 
+export function isPayableWithRewardSats (payIn) {
+  const payInModule = payInTypeModules[payIn.payInType]
+  return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.REWARD_SATS)
+}
+
 export function isInvoiceable (payIn) {
   const payInModule = payInTypeModules[payIn.payInType]
   return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC) ||

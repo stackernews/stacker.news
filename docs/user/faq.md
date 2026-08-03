@@ -158,7 +158,7 @@ No. Even if you have CCs, we will only try to pay with sats from your wallet whe
 
 ### Can I pay only the remainder with sats?
 
-Yes. Anytime you pay Stacker News for something, we will spend the less desirable CCs first, and pay any remainder with Reward Sats, and pay any remainder of that with an attached wallet.
+Yes. For payments to Stacker News, we spend the less desirable CCs first, then Reward Sats, and then any remainder from an attached wallet. Buying CCs is the exception: it always uses an attached wallet and never spends your existing CCs or Reward Sats.
 
 ### Which wallet is used if I attached multiple wallets for send or receive?
 

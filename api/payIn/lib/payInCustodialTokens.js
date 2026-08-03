@@ -1,5 +1,5 @@
 import { ceilBigInt } from '@/lib/format'
-import { isP2P, isP2POnly, isPayableWithCredits, isSystemOnly, isWithdrawal } from './is'
+import { isP2P, isP2POnly, isPayableWithCredits, isPayableWithRewardSats, isSystemOnly, isWithdrawal } from './is'
 import { USER_ID } from '@/lib/constants'
 
 export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }) {
@@ -14,6 +14,7 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
   }
 
   const mCreditPayable = isPayableWithCredits(payIn) ? mCustodialCost : 0n
+  const mRewardSatsPayable = isPayableWithRewardSats(payIn) ? mCustodialCost : 0n
 
   // Calculate optimal spending to maximize custodial usage, preferring to spend mcredits,
   // while keeping any remainder as multiple of 1000 for invoice creation
@@ -22,6 +23,7 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
       SELECT
         id,
         msats,
+        LEAST(msats, ${mRewardSatsPayable}) as max_msats,
         LEAST(mcredits, ${mCreditPayable}) as max_mcredits,
         (${mCustodialCost} - LEAST(mcredits, ${mCreditPayable})) % 1000 as max_mcredits_modulo_1000
       FROM users
@@ -35,19 +37,19 @@ export async function getPayInCustodialTokens (tx, mCustodialCost, payIn, { me }
         id,
         (CASE
           -- Strategy 1: Can we pay everything custodially?
-          WHEN max_mcredits + msats >= ${mCustodialCost} THEN
+          WHEN max_mcredits + max_msats >= ${mCustodialCost} THEN
             -- [min(the mcredits we have, the mcost that can be paid with credits), what's left to pay with msats].sum() = mCustodialCost
             ARRAY[max_mcredits, ${mCustodialCost} - max_mcredits]
           -- Strategy 2: Can we spend all mcredits and maximize msats spending, but leaving a remainder of a multiple of 1000?
-          WHEN msats >= max_mcredits_modulo_1000 THEN
+          WHEN max_msats >= max_mcredits_modulo_1000 THEN
             -- [min(the mcredits we have, the mcost that can be paid with credits), the max msats we can spend that bring the remainder to a multiple of 1000].sum() < mCustodialCost
             ARRAY[max_mcredits,
                 max_mcredits_modulo_1000 +
-                  ((GREATEST(0, msats - max_mcredits_modulo_1000) / 1000) * 1000)]
+                  ((GREATEST(0, max_msats - max_mcredits_modulo_1000) / 1000) * 1000)]
           -- Strategy 3: Spend multiples of 1000 only for both mcredits and msats
           ELSE
             -- [mcredits floored to a multiple of 1000, msats floored to a multiple of 1000].sum() < mCustodialCost
-            ARRAY[(max_mcredits / 1000) * 1000, (msats / 1000) * 1000]
+            ARRAY[(max_mcredits / 1000) * 1000, (max_msats / 1000) * 1000]
         END)::BIGINT[] AS spending
       FROM payer
     )

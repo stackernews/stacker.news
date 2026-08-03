@@ -1,6 +1,7 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useRef, useEffect, useCallback } from 'react'
+import { useFormikContext } from 'formik'
 import { useApolloClient } from '@apollo/client/react'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
@@ -20,16 +21,18 @@ import { composeCallbacks } from '@/lib/compose-callbacks'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
-const Tips = ({ setOValue }) => {
+export const Tips = () => {
   const customTips = getCustomTips()
   const defaultNoCustom = defaultTips.filter(d => !customTips.includes(d))
   const tips = [...customTips, ...defaultNoCustom].slice(0, 7).sort((a, b) => a - b)
+
+  const formik = useFormikContext()
 
   return tips.map((num, i) =>
     <Button
       size='sm'
       key={num}
-      onClick={() => { setOValue(num) }}
+      onClick={() => { formik.setFieldValue('amount', num) }}
     >
       <UpBolt
         className='me-1'
@@ -62,7 +65,6 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
   const hasReadySendWallet = useHasSendWallet()
   const toaster = useToast()
   const client = useApolloClient()
-  const [oValue, setOValue] = useState()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -130,7 +132,6 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         name='amount'
         type='number'
         innerRef={inputRef}
-        overrideValue={oValue}
         step={step}
         required
         autoFocus
@@ -138,7 +139,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
       />
 
       <div className='d-flex flex-wrap gap-2'>
-        <Tips setOValue={setOValue} />
+        <Tips />
       </div>
       <div className='d-flex mt-3'>
         <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>

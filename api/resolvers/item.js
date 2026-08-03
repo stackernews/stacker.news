@@ -957,13 +957,19 @@ export default {
         throw new GqlAuthenticationError()
       }
 
-      const result = await models.commentsViewAt.upsert({
-        where: {
-          userId_itemId: { userId: Number(me.id), itemId: Number(id) }
-        },
-        update: { lastViewedAt: new Date(meCommentsViewedAt) },
-        create: { userId: Number(me.id), itemId: Number(id), lastViewedAt: new Date(meCommentsViewedAt) }
-      })
+      const userId = Number(me.id)
+      const itemId = Number(id)
+      const viewedAt = new Date(meCommentsViewedAt)
+      const where = { userId_itemId: { userId, itemId } }
+
+      const existing = await models.commentsViewAt.findUnique({ where })
+
+      // never move the viewed timestamp backwards
+      if (existing && existing.lastViewedAt >= viewedAt) return existing.lastViewedAt
+
+      const result = existing
+        ? await models.commentsViewAt.update({ where, data: { lastViewedAt: viewedAt } })
+        : await models.commentsViewAt.create({ data: { userId, itemId, lastViewedAt: viewedAt } })
 
       return result.lastViewedAt
     }

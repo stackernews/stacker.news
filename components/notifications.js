@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { gql } from '@apollo/client'
-import { useQuery, useApolloClient } from '@apollo/client/react'
+import { useQuery, useMutation, useApolloClient } from '@apollo/client/react'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
 import { NOTIFICATIONS } from '@/fragments/notifications'
+import { UPDATE_ITEM_USER_VIEW } from '@/fragments/items'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { dayMonthYear, timeSince } from '@/lib/time'
@@ -839,6 +840,16 @@ export default function Notifications ({ ssrData }) {
   const router = useRouter()
   const dat = useData(data, ssrData)
 
+  const [updateCommentsViewAt] = useMutation(UPDATE_ITEM_USER_VIEW, {
+    update (cache, { data: { updateCommentsViewAt }, variables }) {
+      const id = String(variables.id)
+      cache.modify({
+        id: `Item:${id}`,
+        fields: { meCommentsViewedAt: () => updateCommentsViewAt }
+      })
+    }
+  })
+
   // a failed pay-in optimistically bumped an item's counters; its PayInification notification
   // carries the server's truth. reconcile here (not in an ApolloLink) because the feed arrives
   // via SSR + cache-first, so no client-link request ever fires. covers the SSR first page and
@@ -857,6 +868,32 @@ export default function Notifications ({ ssrData }) {
     }
     return retDat
   }, [dat])
+
+  // reply/mention notifications render the comment inline, so reading them in the
+  // notifications list is viewing the thread: mark the root item's comments as
+  // viewed so the front-page "new comments" bubble clears (see #3150). The server
+  // never moves meCommentsViewedAt backwards, so stale/repeated notifications are safe.
+  useEffect(() => {
+    if (!notifications?.length || !lastChecked) return
+
+    const rootViewedAt = new Map()
+    notifications.forEach(n => {
+      if (!n.item?.parentId || !n.item.path) return
+      // only newly-seen notifications need marking
+      if (new Date(n.sortTime).getTime() <= new Date(lastChecked).getTime()) return
+
+      const rootId = Number(n.item.path.split('.')[0])
+      const sortTime = new Date(n.sortTime).getTime()
+      const prev = rootViewedAt.get(rootId)
+      if (!prev || sortTime > prev) rootViewedAt.set(rootId, sortTime)
+    })
+
+    rootViewedAt.forEach((sortTime, rootId) => {
+      updateCommentsViewAt({
+        variables: { id: rootId, meCommentsViewedAt: new Date(sortTime).toISOString() }
+      })
+    })
+  }, [notifications, lastChecked, updateCommentsViewAt])
 
   useEffect(() => {
     if (lastChecked && !router?.query?.checkedAt) {

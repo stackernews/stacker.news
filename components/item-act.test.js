@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @jest-environment ./jest.linkedom-env.js */
 /* eslint-env jest, browser */
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'

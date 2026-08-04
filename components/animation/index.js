@@ -1,27 +1,41 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMe } from '@/components/me'
 import { randInRange } from '@/lib/rand'
+import { useBlockHeight } from '@/components/block-height'
 
 import { ThunderstormProvider, useThunderstorm } from '@/components/thunderstorm/provider'
+import { ForkProvider, useFork } from './fork'
+import { isBip110ForkHeight } from './bip110'
 
 export function AnimationProvider ({ children }) {
   return (
     <ThunderstormProvider>
-      <AnimationHooks>
-        {children}
-      </AnimationHooks>
+      <ForkProvider>
+        <AnimationHooks>
+          {children}
+        </AnimationHooks>
+      </ForkProvider>
     </ThunderstormProvider>
   )
 }
 
 export function useAnimation () {
   const start = useThunderstorm()
+  const dropFork = useFork()
+  const { height } = useBlockHeight()
+  const forkHeight = isBip110ForkHeight(height, {
+    preview: process.env.NODE_ENV === 'development'
+  })
 
   return useCallback((type = 'strike') => {
     if (!getAnimationDefault()) return false
-    start(type)
+    if (forkHeight && type === 'strike') {
+      dropFork()
+    } else {
+      start(type)
+    }
     return true
-  }, [start])
+  }, [dropFork, forkHeight, start])
 }
 
 function getAnimationDefault () {

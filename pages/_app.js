@@ -126,20 +126,20 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                         <FaviconProvider>
                           <ServiceWorkerProvider>
                             <PriceProvider price={price}>
-                              <AnimationProvider>
-                                <ToastProvider>
-                                  <ShowModalProvider>
-                                    <BlockHeightProvider blockHeight={blockHeight}>
+                              <BlockHeightProvider blockHeight={blockHeight}>
+                                <AnimationProvider>
+                                  <ToastProvider>
+                                    <ShowModalProvider>
                                       <ChainFeeProvider chainFee={chainFee}>
                                         <ErrorBoundary>
                                           <Component ssrData={ssrData} {...otherProps} />
                                           {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
                                         </ErrorBoundary>
                                       </ChainFeeProvider>
-                                    </BlockHeightProvider>
-                                  </ShowModalProvider>
-                                </ToastProvider>
-                              </AnimationProvider>
+                                    </ShowModalProvider>
+                                  </ToastProvider>
+                                </AnimationProvider>
+                              </BlockHeightProvider>
                             </PriceProvider>
                           </ServiceWorkerProvider>
                         </FaviconProvider>

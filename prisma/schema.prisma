@@ -1116,6 +1116,7 @@ enum WalletProtocolName {
   CLN_REST
   LND_GRPC
   CLINK
+  SPARK
 }
 
 enum WalletSendProtocolName {
@@ -1127,6 +1128,7 @@ enum WalletSendProtocolName {
   LNC
   CLN_REST
   CLINK
+  SPARK
 }
 
 enum WalletRecvProtocolName {
@@ -1138,6 +1140,7 @@ enum WalletRecvProtocolName {
   CLN_REST
   LND_GRPC
   CLINK
+  SPARK
 }
 
 enum WalletProtocolStatus {
@@ -1173,6 +1176,7 @@ enum WalletName {
   LN_ADDR
   CASH_APP
   BLITZ
+  SPARK
 }
 
 model WalletTemplate {

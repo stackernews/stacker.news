@@ -9,6 +9,7 @@ import { useBlockHeight } from './block-height'
 import { useChainFee } from './chain-fee'
 import { CompactLongCountdown } from './countdown'
 import { usePriceCarousel } from './nav/price-carousel'
+import { getBip110Ticker } from './animation/bip110'
 
 export const PriceContext = React.createContext({
   price: null,
@@ -61,6 +62,18 @@ export default function Price ({ className }) {
   const { fee: chainFee } = useChainFee()
 
   const compClassName = (className || '') + ' text-reset pointer'
+
+  if (selection === 'bip110') {
+    const forkTicker = getBip110Ticker(blockHeight, {
+      preview: process.env.NODE_ENV === 'development'
+    })
+    if (!forkTicker) return null
+    return (
+      <AccessibleButton id='bip110-hint' description='Show fiat price' className={compClassName} onClick={handleClick} variant='link'>
+        {forkTicker.phase === 'countdown' ? `fork in ${forkTicker.blocksUntilFork}b` : 'forked!'}
+      </AccessibleButton>
+    )
+  }
 
   if (selection === 'yep') {
     if (!price || price < 0) return null

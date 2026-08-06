@@ -30,8 +30,16 @@ img.fullScreen {
     height: 100%;
 }
 
-div.fullScreenNav:hover > svg {
-    background-color: rgba(0, 0, 0, .5);
+div.fullScreenNav.navActive > svg {
+  background-color: rgba(0,0,0,0.60);
+  fill: rgba(255,255,255,0.95);
+  opacity: 1;
+}
+
+div.fullScreenNav.navIdle > svg {
+  background-color: rgba(0,0,0,0.28);
+  fill: rgba(255,255,255,0.75);
+  opacity: 0.85;
 }
 
 div.fullScreenNav  {
@@ -41,6 +49,8 @@ div.fullScreenNav  {
     height: 72px;
     display: flex;
     align-items: center;
+    opacity: 0.75;
+    transition: opacity 0.2s;
 }
 
 div.fullScreenNav.left {
@@ -53,9 +63,9 @@ div.fullScreenNav.right {
 
 div.fullScreenNav > svg {
     border-radius: 50%;
-    backdrop-filter: blur(4px);
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.25);
     fill: white;
+    transition: background-color 0.2s, fill 0.2s;
     max-height: 34px;
     max-width: 34px;
     padding: 0.35rem;

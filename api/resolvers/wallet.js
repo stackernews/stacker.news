@@ -1,6 +1,3 @@
-import {
-  parsePaymentRequest
-} from 'ln-service'
 import crypto, { timingSafeEqual } from 'crypto'
 import { validateSchema, withdrawlSchema, walletInvoiceSchema } from '@/lib/validate'
 import { satsToMsats } from '@/lib/format'
@@ -11,7 +8,7 @@ import { fetchLnAddrInvoice } from '@/lib/lnurl'
 import { normalizeBolt11PaymentRequest } from '@/lib/bolt11'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { parseWalletId } from '@/wallets/server/resolvers/util'
-import { getNodeSockets } from '../lnd'
+import { decodePaymentRequest, getNodeSockets } from '../lnd'
 import pay from '../payIn'
 import { dropBolt11 } from '@/worker/autoDropBolt11'
 import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
@@ -123,7 +120,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   // decode invoice to get amount
   let decoded, sockets
   try {
-    decoded = await parsePaymentRequest({ request: invoice })
+    decoded = await decodePaymentRequest({ request: invoice })
   } catch (error) {
     console.log(error)
     throw new GqlInputError('could not decode invoice')
@@ -279,7 +276,7 @@ async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer }
 async function validateLnAddrInvoice (bolt11, expectedMsats) {
   let decoded
   try {
-    decoded = await parsePaymentRequest({ request: bolt11 })
+    decoded = await decodePaymentRequest({ request: bolt11 })
   } catch (err) {
     throw new GqlInputError('could not decode invoice')
   }

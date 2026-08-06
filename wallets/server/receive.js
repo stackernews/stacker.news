@@ -1,4 +1,4 @@
-import { parsePaymentRequest } from 'ln-service'
+import { decodePaymentRequest } from '@/api/lnd'
 import { errorMessage } from '@/lib/error'
 import { formatMsats, formatSats, msatsToSats, msatsSatsFloor, toPositiveNumber } from '@/lib/format'
 import { WALLET_MAX_PENDING_PAYOUT_INVOICES, MIN_RECEIVE_MSATS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
@@ -64,7 +64,8 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
         throw new Error('failed to create invoice: ' + errorMessage(err))
       }
 
-      const invoice = await parsePaymentRequest({ request: bolt11 })
+      // Use LND's view for every invoice SN stores or hands to a customer.
+      const invoice = await decodePaymentRequest({ request: bolt11 })
       if (!invoice.id) throw new Error('wallet returned invoice without payment hash')
       const invoiceExpiresAt = new Date(invoice.expires_at)
       if (Number.isNaN(invoiceExpiresAt.getTime()) || invoiceExpiresAt <= new Date()) {

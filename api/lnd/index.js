@@ -2,12 +2,9 @@ import { cachedFetcher } from '@/lib/fetch'
 import { toPositiveNumber } from '@/lib/format'
 import { authenticatedLndGrpc } from '@/lib/lnd'
 import { getPayOutBolt11FailureDetail } from '@/lib/pay-in'
-import { randomBytes } from 'crypto'
-import { chanNumber } from 'bolt07'
-import { once } from 'events'
 import {
   getIdentity, getHeight, getWalletInfo, getNode, getPayment,
-  parsePaymentRequest, payViaPaymentRequest as lndPayViaPaymentRequest
+  payViaPaymentRequest as lndPayViaPaymentRequest
 } from 'ln-service'
 import { assertLndAvailable, isLndMaintenance } from './maintenance'
 
@@ -32,88 +29,39 @@ if (lnd) {
   })
 }
 
-// we create our own probe because estimateRouteFee is busted https://github.com/lightningnetwork/lnd/discussions/10427
-export async function estimateRouteFeeProbe ({ lnd, request, maxFeeMsat, timeoutSeconds, maxCltvDelta }) {
+// Decode with the singleton LND that will pay the invoice. This is deliberately
+// only an RPC-shape adapter: LND and protobuf are authoritative for validity.
+export async function decodePaymentRequest ({ request }) {
   assertLndAvailable()
-  if (!request) {
-    throw new Error('Payment request is required')
-  }
-  const inv = parsePaymentRequest({ request })
-  const params = {
-    allow_self_payment: true,
-    amt_msat: inv.mtokens,
-    cancelable: true,
-    cltv_limit: maxCltvDelta ? toPositiveNumber(maxCltvDelta) : undefined,
-    dest: Buffer.from(inv.destination, 'hex'),
-    dest_custom_records: undefined,
-    dest_features: inv.features.map(n => n.bit),
-    fee_limit_msat: maxFeeMsat ? toPositiveNumber(maxFeeMsat) : undefined,
-    final_cltv_delta: inv.cltv_delta,
-    last_hop_pubkey: undefined,
-    max_parts: 1,
-    max_shard_size_msat: undefined,
-    no_inflight_updates: true,
-    outgoing_chan_id: undefined,
-    outgoing_chan_ids: [],
-    payment_addr: Buffer.from(inv.payment, 'hex'),
-    payment_hash: randomBytes(32), // this is what makes it a probe
-    payment_request: undefined,
-    route_hints: inv.routes?.map(r => ({
-      hop_hints: r.slice(1).map((h, i) => ({
-        fee_base_msat: h.base_fee_mtokens,
-        fee_proportional_millionths: h.fee_rate,
-        chan_id: chanNumber({ channel: h.channel }).number,
-        cltv_expiry_delta: h.cltv_delta,
-        node_id: r[i].public_key
-      }))
-    })) ?? [],
-    time_pref: 1,
-    timeout_seconds: timeoutSeconds ? toPositiveNumber(timeoutSeconds) : undefined
-  }
-  const sub = lnd.router.sendPaymentV2(params)
-  const [probe] = await once(sub, 'data')
+  if (!lnd?.default?.decodePayReq) throw new Error('LND does not support payment request decoding')
 
-  // a successful probe returns FAILURE_REASON_INCORRECT_PAYMENT_DETAILS
-  if (probe.failure_reason === 'FAILURE_REASON_INCORRECT_PAYMENT_DETAILS') {
-    // there's only one htlc in the probe, because max_parts is 1
-    const { htlcs: [{ route: { total_fees_msat: routingFeeMsat, total_time_lock: timeLockDelay } }] } = probe
-    return {
-      routingFeeMsat: toPositiveNumber(routingFeeMsat),
-      // subtract the cltv delta of the invoice to emulate estimateRouteFee
-      timeLockDelay: toPositiveNumber(timeLockDelay - inv.cltv_delta)
-    }
-  }
+  const decoded = await new Promise((resolve, reject) => {
+    lnd.default.decodePayReq({ pay_req: request }, (err, response) => {
+      if (err) return reject(err)
+      if (!response) return reject(new Error('LND returned no decoded payment request'))
+      resolve(response)
+    })
+  })
 
-  throw new Error(`Unable to estimate route: ${probe.failure_reason || 'unknown reason'}`)
+  const createdAtMs = Number(decoded.timestamp) * 1000
+  const expiresAtMs = createdAtMs + Number(decoded.expiry) * 1000
+
+  return {
+    cltv_delta: Number(decoded.cltv_expiry) || undefined,
+    description: decoded.description,
+    description_hash: decoded.description_hash || undefined,
+    destination: decoded.destination,
+    expires_at: new Date(expiresAtMs).toISOString(),
+    features: Object.keys(decoded.features).map(bit => ({ bit: Number(bit) })),
+    id: decoded.payment_hash,
+    mtokens: String(decoded.num_msat),
+    payment_addr: decoded.payment_addr,
+    route_hints: decoded.route_hints
+  }
 }
 
 export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
   assertLndAvailable()
-  // if the payment request includes us as route hint, we needd to use the destination and amount
-  // otherwise, this will fail with a self-payment error
-  if (request) {
-    const inv = parsePaymentRequest({ request })
-    const ourPubkey = await getOurPubkey({ lnd })
-    if (Array.isArray(inv.routes)) {
-      for (const route of inv.routes) {
-        if (Array.isArray(route)) {
-          for (const hop of route) {
-            if (hop.public_key === ourPubkey) {
-              console.log('estimateRouteFee ignoring self-payment route')
-              request = false
-              break
-            }
-          }
-        }
-      }
-    }
-    // XXX we don't use the payment request anymore because it causes the channel to be marked as unusable
-    // and the real payment fails see: https://github.com/lightningnetwork/lnd/discussions/10427
-    // without the request, the estimate is a statistical estimate based on past payments
-    // NOTE: this should be fixed in v0.20.1-beta
-    request = false
-  }
-
   return await new Promise((resolve, reject) => {
     const params = {}
 

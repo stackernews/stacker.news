@@ -1,5 +1,5 @@
-import { createHodlInvoice, parsePaymentRequest } from 'ln-service'
-import lnd, { estimateRouteFeeProbe, getBlockHeight } from '@/api/lnd'
+import { createHodlInvoice } from 'ln-service'
+import lnd, { decodePaymentRequest, estimateRouteFee, getBlockHeight, getOurPubkey } from '@/api/lnd'
 import { toPositiveBigInt, toPositiveNumber } from '@/lib/format'
 import { PayInFailureReasonError } from '@/api/payIn/errors'
 import { MAX_OUTGOING_MSATS } from '@/lib/constants'
@@ -11,8 +11,6 @@ const INCOMING_EXPIRATION_BUFFER_MSECS = 120_000 // the buffer enforce for the i
 const MAX_OUTGOING_CLTV_DELTA = 1000 // the maximum cltv delta we'll allow for the outgoing invoice
 export const MIN_SETTLEMENT_CLTV_DELTA = 80 // the minimum blocks we'll leave for settling the incoming invoice
 const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
-// https://github.com/alexbosworth/lightning/issues/207 - ln service bug
-const XXX_CLTV_DELTA_BUFFER_FOR_LN_SERVICE_BUG = 46 // the buffer to add for the cltv delta to account for the ln service bug
 
 /*
   The wrapInvoice function is used to wrap an outgoing invoice with the necessary parameters for an incoming hold invoice.
@@ -52,8 +50,8 @@ async function wrapBolt11Params ({ msats, bolt11, maxRoutingFeeMsats, hideInvoic
     const wrapped = {}
     let outgoingMsat
 
-    // decode the invoice
-    const inv = await parsePaymentRequest({ request: bolt11 })
+    // LND is authoritative because it will also parse the invoice when paying.
+    const inv = await decodePaymentRequest({ request: bolt11 })
     if (!inv) {
       throw new Error('Unable to decode invoice')
     }
@@ -152,14 +150,21 @@ async function wrapBolt11Params ({ msats, bolt11, maxRoutingFeeMsats, hideInvoic
       wrapped.expires_at = new Date(new Date(inv.expires_at).getTime() - INCOMING_EXPIRATION_BUFFER_MSECS)
     }
 
+    // Estimating from the payment request fails when we appear in its route
+    // hints because LND's probe does not allow self-payments. Use LND's graph
+    // estimate only for that case.
+    const ourPubkey = inv.route_hints?.length ? await getOurPubkey({ lnd }) : undefined
+    const hasSelfRouteHint = inv.route_hints?.some(route =>
+      route.hop_hints.some(hop => hop.node_id === ourPubkey)) ?? false
+
     // get routing estimates
     const { routingFeeMsat, timeLockDelay } =
-      await estimateRouteFeeProbe({
+      await estimateRouteFee({
         lnd,
-        request: bolt11,
-        maxFeeMsat: maxRoutingFeeMsats,
-        timeoutSeconds: FEE_ESTIMATE_TIMEOUT_SECS,
-        maxCltvDelta: MAX_OUTGOING_CLTV_DELTA
+        ...(hasSelfRouteHint
+          ? { destination: inv.destination, mtokens: inv.mtokens }
+          : { request: bolt11 }),
+        timeout: FEE_ESTIMATE_TIMEOUT_SECS
       })
 
     const blockHeight = await getBlockHeight({ lnd })
@@ -174,7 +179,7 @@ async function wrapBolt11Params ({ msats, bolt11, maxRoutingFeeMsats, hideInvoic
     */
     wrapped.cltv_delta = toPositiveNumber(
       toPositiveNumber(timeLockDelay) + toPositiveNumber(inv.cltv_delta) -
-      toPositiveNumber(blockHeight) + MIN_SETTLEMENT_CLTV_DELTA + XXX_CLTV_DELTA_BUFFER_FOR_LN_SERVICE_BUG)
+      toPositiveNumber(blockHeight) + MIN_SETTLEMENT_CLTV_DELTA)
     console.log('routingFeeMsat', routingFeeMsat, 'wrapped cltv_delta', wrapped.cltv_delta,
       'timeLockDelay', timeLockDelay, 'inv.cltv_delta', inv.cltv_delta, 'blockHeight', blockHeight)
 

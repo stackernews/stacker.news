@@ -1,6 +1,6 @@
 import { PAID_ACTION_PAYMENT_METHODS } from '@/lib/constants'
-import { parsePaymentRequest } from 'ln-service'
 import { satsToMsats, numWithUnits, msatsToSats } from '@/lib/format'
+import { decodePaymentRequest } from '@/api/lnd'
 
 export const anonable = false
 export const lndMaintenanceBlocked = true
@@ -10,7 +10,7 @@ export const paymentMethods = [
 ]
 
 export async function getInitial (models, { bolt11, maxFee, protocolId }, { me }) {
-  const decodedBolt11 = parsePaymentRequest({ request: bolt11 })
+  const decodedBolt11 = await decodePaymentRequest({ request: bolt11 })
   return {
     payInType: 'WITHDRAWAL',
     userId: me?.id,

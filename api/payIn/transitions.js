@@ -2,8 +2,8 @@ import { datePivot } from '@/lib/time'
 import { Prisma, PayInState } from '@prisma/client'
 import { onBegin, onFail, onPaid, onPaidSideEffects } from '.'
 import { walletLogger } from '@/wallets/server/logger'
-import { getPaymentFailureStatus, getPaymentOrNotSent, hodlInvoiceCltvDetails, payViaPaymentRequest } from '../lnd'
-import { cancelHodlInvoice, parsePaymentRequest, settleHodlInvoice, getInvoice } from 'ln-service'
+import { decodePaymentRequest, getPaymentFailureStatus, getPaymentOrNotSent, hodlInvoiceCltvDetails, payViaPaymentRequest } from '../lnd'
+import { cancelHodlInvoice, settleHodlInvoice, getInvoice } from 'ln-service'
 import { toPositiveNumber, formatSats, msatsToSats, toPositiveBigInt } from '@/lib/format'
 import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/server/wrap'
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
@@ -86,8 +86,14 @@ async function transitionPayIn (jobName, data,
     }
 
     let lndPayOutBolt11
+    let decodedPayOutBolt11
     if (currentPayIn.payOutBolt11) {
-      lndPayOutBolt11 = withdrawal ?? await getPaymentOrNotSent({ id: currentPayIn.payOutBolt11.hash, lnd })
+      if (withdrawal) {
+        lndPayOutBolt11 = withdrawal
+      } else {
+        decodedPayOutBolt11 = await decodePaymentRequest({ request: currentPayIn.payOutBolt11.bolt11 })
+        lndPayOutBolt11 = await getPaymentOrNotSent({ id: decodedPayOutBolt11.id, lnd })
+      }
     }
 
     const transitionedPayIn = await models.$transaction(async tx => {
@@ -117,7 +123,7 @@ async function transitionPayIn (jobName, data,
         return
       }
 
-      const updateFields = await transitionFunc({ tx, payIn, lndPayInBolt11, lndPayOutBolt11 })
+      const updateFields = await transitionFunc({ tx, payIn, lndPayInBolt11, lndPayOutBolt11, decodedPayOutBolt11 })
 
       if (updateFields) {
         return await tx.payIn.update({
@@ -348,7 +354,7 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
     payInId,
     fromStates: 'PENDING_HELD',
     toState: 'FORWARDING',
-    transitionFunc: async ({ tx, payIn }) => {
+    transitionFunc: async ({ tx, payIn, decodedPayOutBolt11: invoice }) => {
       // a racing payInCancel may have canceled the invoice but rolled back,
       // leaving us with stale invoice reading 'held' but the LND invoice is 'canceled'
       const fresh = await getInvoice({ id: payIn.payInBolt11.hash, lnd })
@@ -361,7 +367,11 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
       }
 
       const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(fresh)
-      const invoice = await parsePaymentRequest({ request: payIn.payOutBolt11.bolt11 })
+      if (invoice.id !== payIn.payOutBolt11.hash) {
+        throw new PayInFailureReasonError(
+          'stored payout hash does not match LND-decoded invoice',
+          'INVOICE_FORWARDING_FAILED')
+      }
       // maxTimeoutDelta is the number of blocks left for the outgoing payment to settle
       const maxTimeoutDelta = toPositiveNumber(expiryHeight) - toPositiveNumber(acceptHeight) - MIN_SETTLEMENT_CLTV_DELTA
       if (maxTimeoutDelta - toPositiveNumber(invoice.cltv_delta) < 0) {
@@ -519,13 +529,18 @@ export async function payInFailedForward ({ data, models, lnd, boss, ...args }) 
         throw new Error('invoice is not held')
       }
 
-      if (!(lndPayOutBolt11.is_failed || lndPayOutBolt11.notSent)) {
+      const isConfirmedHashMismatch = lndPayOutBolt11.is_confirmed &&
+        lndPayOutBolt11.payment.id !== payIn.payOutBolt11.hash
+      if (!(lndPayOutBolt11.is_failed || lndPayOutBolt11.notSent || isConfirmedHashMismatch)) {
         throw new Error('payment is not failed')
       }
 
       // cancel to transition to FAILED ... this is really important we do not transition unless this call succeeds
       // which once it does succeed will ensure we will try to cancel the held invoice until it actually cancels
       await boss.send('payInCancel', { payInId, payInFailureReason: 'INVOICE_FORWARDING_FAILED' }, FINALIZE_OPTIONS)
+
+      // if the payment is confirmed and the hash mismatch, we keep the status null and let it cancel
+      if (isConfirmedHashMismatch) return
 
       receiveFailure = getReceiveWalletFailure(lndPayOutBolt11)
 
@@ -539,7 +554,7 @@ export async function payInFailedForward ({ data, models, lnd, boss, ...args }) 
     }
   }, { models, lnd, boss, ...args })
 
-  if (transitionedPayIn) {
+  if (transitionedPayIn && receiveFailure) {
     logPayInWalletFailure(transitionedPayIn, payInId, models, {
       level: 'warn',
       protocolId: transitionedPayIn.payOutBolt11?.protocolId,
@@ -631,17 +646,16 @@ export async function payInCancel ({ data, models, lnd, boss, ...args }) {
 
   if (transitionedPayIn) {
     if (transitionedPayIn.payOutBolt11) {
-      const { protocolId, userId, bolt11 } = transitionedPayIn.payOutBolt11
+      const { protocolId, userId, mtokens } = transitionedPayIn.payOutBolt11
       try {
-        const decoded = parsePaymentRequest({ request: bolt11 })
         logPayInWalletStatus(transitionedPayIn, payInId, models, {
           level: 'info',
-          message: `invoice for ${formatSats(msatsToSats(decoded.mtokens))} canceled by payer`,
+          message: `invoice for ${formatSats(msatsToSats(mtokens))} canceled by payer`,
           protocolId,
           userId
         })
       } catch (err) {
-        console.error('failed to decode bolt11 for canceled payIn wallet log:', err)
+        console.error('failed to write canceled payIn wallet log:', err)
       }
     }
   }

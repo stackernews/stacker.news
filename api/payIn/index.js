@@ -1,6 +1,6 @@
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, USER_ID } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
-import lnd, { payViaPaymentRequest } from '../lnd'
+import lnd, { decodePaymentRequest, payViaPaymentRequest } from '../lnd'
 import payInTypeModules from './types'
 import { msatsToSats } from '@/lib/format'
 import { payInBolt11Prospect, payInBolt11WrapProspect } from './lib/payInBolt11'
@@ -221,6 +221,16 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me, send
       })
     } else if (payIn.payInState === 'PENDING_WITHDRAWAL') {
       const { mtokens } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+      try {
+        const decoded = await decodePaymentRequest({ request: payIn.payOutBolt11.bolt11 })
+        if (decoded.id !== payIn.payOutBolt11.hash) {
+          throw new Error(`stored payment hash ${payIn.payOutBolt11.hash} does not match LND-decoded hash ${decoded.id}`)
+        }
+      } catch (err) {
+        console.error('refusing to dispatch withdrawal', { payInId: payIn.id, error: err.message })
+        await queuePayInWithdrawalFailed(models, payIn.id)
+        return { ...payIn, result }
+      }
       payViaPaymentRequest({
         lnd,
         request: payIn.payOutBolt11.bolt11,

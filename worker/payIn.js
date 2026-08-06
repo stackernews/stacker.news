@@ -2,7 +2,7 @@ import {
   getInvoice,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
-import { getPaymentOrNotSent } from '@/api/lnd'
+import { decodePaymentRequest, getPaymentOrNotSent } from '@/api/lnd'
 import { datePivot, sleep } from '@/lib/time'
 import retry from 'async-retry'
 import {
@@ -217,9 +217,17 @@ export async function checkPayOutBolt11 ({ data: { hash, withdrawal, invoice }, 
   // nothing to do if the withdrawl is already recorded and it isn't an invoiceForward
   if (!payIn) return
 
-  const wdrwl = withdrawal ?? await getPaymentOrNotSent({ id: hash, lnd })
+  const decoded = await decodePaymentRequest({ request: payIn.payOutBolt11.bolt11 })
+  const isHashMismatch = decoded.id !== payIn.payOutBolt11.hash
+  const wdrwl = !isHashMismatch && withdrawal
+    ? withdrawal
+    : await getPaymentOrNotSent({ id: decoded.id, lnd })
 
   console.log('wdrwl', hash, 'is_confirmed', wdrwl?.is_confirmed, 'is_failed', wdrwl?.is_failed, 'notSent', wdrwl?.notSent)
+
+  if (isHashMismatch && !isWithdrawal(payIn) && wdrwl.is_confirmed) {
+    return await payInFailedForward({ data: { payInId: payIn.id }, models, lnd, boss })
+  }
 
   if (wdrwl?.is_confirmed) {
     if (isWithdrawal(payIn)) {
@@ -314,7 +322,10 @@ export async function checkPendingPayOutBolt11s (args) {
   const pendingPayOuts = await models.payIn.findMany({
     where: {
       payInState: { in: PAY_IN_PENDING_STATES },
-      payOutBolt11: { isNot: null }
+      payOutBolt11: {
+        hash: { not: null },
+        bolt11: { not: null }
+      }
     },
     include: { payOutBolt11: true }
   })

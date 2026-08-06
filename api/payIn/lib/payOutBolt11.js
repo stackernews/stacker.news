@@ -1,4 +1,3 @@
-import { parsePaymentRequest } from 'ln-service'
 import { PAY_IN_RECEIVER_FAILURE_REASONS } from '@/lib/pay-in'
 import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
 import { payInFailureReasonsSql } from './sql'
@@ -40,13 +39,12 @@ export class NoReceiveWalletError extends Error {
 }
 
 async function createPayOutBolt11FromWalletProtocols (walletProtocols, bolt11Args, { payOutType, userId }, { models }, testBolt11) {
-  for await (const { bolt11, protocol } of createBolt11FromWalletProtocols(walletProtocols, bolt11Args, { models })) {
+  for await (const { bolt11, invoice, protocol } of createBolt11FromWalletProtocols(walletProtocols, bolt11Args, { models })) {
     try {
       if (testBolt11 && !(await testBolt11(bolt11))) {
         continue
       }
 
-      const invoice = await parsePaymentRequest({ request: bolt11 })
       return {
         payOutType,
         msats: BigInt(invoice.mtokens),

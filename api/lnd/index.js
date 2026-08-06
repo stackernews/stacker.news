@@ -5,27 +5,36 @@ import { getPayOutBolt11FailureDetail } from '@/lib/pay-in'
 import { randomBytes } from 'crypto'
 import { chanNumber } from 'bolt07'
 import { once } from 'events'
-import { getIdentity, getHeight, getWalletInfo, getNode, getPayment, parsePaymentRequest } from 'ln-service'
+import {
+  getIdentity, getHeight, getWalletInfo, getNode, getPayment,
+  parsePaymentRequest, payViaPaymentRequest as lndPayViaPaymentRequest
+} from 'ln-service'
+import { assertLndAvailable, isLndMaintenance } from './maintenance'
 
-const lnd = global.lnd || authenticatedLndGrpc({
-  cert: process.env.LND_CERT,
-  macaroon: process.env.LND_MACAROON,
-  socket: process.env.LND_SOCKET
-}).lnd
+const lnd = isLndMaintenance()
+  ? undefined
+  : global.lnd || authenticatedLndGrpc({
+    cert: process.env.LND_CERT,
+    macaroon: process.env.LND_MACAROON,
+    socket: process.env.LND_SOCKET
+  }).lnd
 
-if (process.env.NODE_ENV === 'development') global.lnd = lnd
+if (process.env.NODE_ENV === 'development' && lnd) global.lnd = lnd
 
-// Check LND GRPC connection
-getWalletInfo({ lnd }, (err, result) => {
-  if (err) {
-    console.error('LND GRPC connection error')
-    return
-  }
-  console.log('LND GRPC connection successful')
-})
+if (lnd) {
+  // Check LND GRPC connection
+  getWalletInfo({ lnd }, (err, result) => {
+    if (err) {
+      console.error('LND GRPC connection error')
+      return
+    }
+    console.log('LND GRPC connection successful')
+  })
+}
 
 // we create our own probe because estimateRouteFee is busted https://github.com/lightningnetwork/lnd/discussions/10427
 export async function estimateRouteFeeProbe ({ lnd, request, maxFeeMsat, timeoutSeconds, maxCltvDelta }) {
+  assertLndAvailable()
   if (!request) {
     throw new Error('Payment request is required')
   }
@@ -79,6 +88,7 @@ export async function estimateRouteFeeProbe ({ lnd, request, maxFeeMsat, timeout
 }
 
 export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
+  assertLndAvailable()
   // if the payment request includes us as route hint, we needd to use the destination and amount
   // otherwise, this will fail with a self-payment error
   if (request) {
@@ -231,6 +241,7 @@ export const getNodeSockets = cachedFetcher(async function fetchNodeSockets ({ l
 })
 
 export async function getPaymentOrNotSent ({ id, lnd }) {
+  assertLndAvailable()
   try {
     return await getPayment({ id, lnd })
   } catch (err) {
@@ -240,6 +251,11 @@ export async function getPaymentOrNotSent ({ id, lnd }) {
       throw err
     }
   }
+}
+
+export async function payViaPaymentRequest (args) {
+  assertLndAvailable()
+  return await lndPayViaPaymentRequest(args)
 }
 
 export default lnd

@@ -14,6 +14,9 @@ import { WalletList, WalletRow } from './list'
 import { SelectedWalletPanel, WalletDetailsList } from './panel'
 import { defaultWalletHomeRouteId, selectedWalletHomeEntry, walletHomeEntries } from './state'
 import { SparkCustodyNotice } from './spark-custody-notice'
+import { usePlatformLightning } from '@/components/platform-lightning'
+import { useToast } from '@/components/toast'
+import { WALLET_CREATION_MAINTENANCE_MESSAGE } from '@/wallets/lib/maintenance'
 const styles = { ...sharedStyles, ...shellStyles, ...rowsStyles, ...sidebarStyles }
 
 export function WalletHome ({ routeWalletId }) {
@@ -22,11 +25,15 @@ export function WalletHome ({ routeWalletId }) {
   const walletSendReady = useWalletSendReady()
   const setWalletPriorities = useSetWalletPriorities()
   const router = useRouter()
+  const toaster = useToast()
+  const { available: platformLightningAvailable } = usePlatformLightning()
   const [showSwitcher, setShowSwitcher] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const [ordering, setOrdering] = useState(false)
 
-  const entries = useMemo(() => walletHomeEntries(wallets), [wallets])
+  const entries = useMemo(() => walletHomeEntries(wallets, {
+    addWalletDisabled: !platformLightningAvailable
+  }), [wallets, platformLightningAvailable])
   const defaultRouteId = defaultWalletHomeRouteId(wallets)
   const selectedEntry = selectedWalletHomeEntry(entries, routeWalletId, defaultRouteId)
 
@@ -40,12 +47,16 @@ export function WalletHome ({ routeWalletId }) {
 
     const entry = entries.find(entry => entry.routeId === routeId)
     if (!entry) return
+    if (entry.disabled) {
+      toaster.danger(WALLET_CREATION_MAINTENANCE_MESSAGE)
+      return
+    }
     if (entry.kind === 'add') {
       router.push(walletRoute(entry))
     } else {
       router.replace(walletRoute(entry), undefined, { shallow: true })
     }
-  }, [entries, router])
+  }, [entries, router, toaster])
 
   const handleWalletReorder = useCallback(async (reorderedWallets) => {
     await setWalletPriorities(reorderedWallets)

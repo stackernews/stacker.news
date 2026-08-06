@@ -2,8 +2,13 @@ import { getPublicKey } from 'nostr'
 import models from '@/api/models'
 import { lnurlPayMetadata, lnurlpCallbackUrl } from '@/lib/lnurl'
 import { LNURLP_COMMENT_MAX_LENGTH, PROXY_PAYER_MIN_MSATS, PROXY_PAYER_MAX_MSATS } from '@/lib/constants'
+import { isLndMaintenance, LND_MAINTENANCE_MESSAGE } from '@/api/lnd/maintenance'
 
 export default async ({ query: { username } }, res) => {
+  if (isLndMaintenance()) {
+    return res.status(503).json({ status: 'ERROR', reason: LND_MAINTENANCE_MESSAGE })
+  }
+
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })

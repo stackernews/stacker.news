@@ -49,6 +49,7 @@ import {
   clearLongHeldDomains
 } from './domainVerification.js'
 import { untrackOldItems } from './untrackOldItems'
+import { isLndMaintenance } from '@/api/lnd/maintenance'
 
 // WebSocket polyfill
 import ws from 'isomorphic-ws'
@@ -81,11 +82,14 @@ async function work () {
     }
   })
 
-  const { lnd } = authenticatedLndGrpc({
-    cert: process.env.LND_CERT,
-    macaroon: process.env.LND_MACAROON,
-    socket: process.env.LND_SOCKET
-  })
+  const lndMaintenance = isLndMaintenance()
+  const lnd = lndMaintenance
+    ? undefined
+    : authenticatedLndGrpc({
+      cert: process.env.LND_CERT,
+      macaroon: process.env.LND_MACAROON,
+      socket: process.env.LND_SOCKET
+    }).lnd
 
   const args = { boss, models, apollo, lnd }
 
@@ -109,28 +113,35 @@ async function work () {
 
   await boss.start()
 
-  await boss.work('checkPayInInvoiceCreation', jobWrapper(checkPayInInvoiceCreation))
-  await boss.work('payInForwarding', jobWrapper(payInForwarding))
-  await boss.work('payInForwarded', jobWrapper(payInForwarded))
-  await boss.work('payInFailedForward', jobWrapper(payInFailedForward))
-  await boss.work('payInHeld', jobWrapper(payInHeld))
-  await boss.work('payInFailed', jobWrapper(payInFailed))
-  await boss.work('payInPaid', jobWrapper(payInPaid))
-  await boss.work('payInCancel', jobWrapper(payInCancel))
-  await boss.work('payInWithdrawalPaid', jobWrapper(payInWithdrawalPaid))
-  await boss.work('payInWithdrawalFailed', jobWrapper(payInWithdrawalFailed))
+  if (!lndMaintenance) {
+    // Do not register platform LND handlers during maintenance. pg-boss leaves their
+    // jobs queued with the original payloads until a worker registers them again.
+    await boss.work('checkPayInInvoiceCreation', jobWrapper(checkPayInInvoiceCreation))
+    await boss.work('payInForwarding', jobWrapper(payInForwarding))
+    await boss.work('payInForwarded', jobWrapper(payInForwarded))
+    await boss.work('payInFailedForward', jobWrapper(payInFailedForward))
+    await boss.work('payInHeld', jobWrapper(payInHeld))
+    await boss.work('payInFailed', jobWrapper(payInFailed))
+    await boss.work('payInPaid', jobWrapper(payInPaid))
+    await boss.work('payInCancel', jobWrapper(payInCancel))
+    await boss.work('payInWithdrawalPaid', jobWrapper(payInWithdrawalPaid))
+    await boss.work('payInWithdrawalFailed', jobWrapper(payInWithdrawalFailed))
+  }
 
   if (isServiceEnabled('payments')) {
-    await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
-    await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
+    if (!lndMaintenance) {
+      // platform LND jobs, subscriptions, and reconciliation
+      await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
+      await boss.work('autoWithdraw', jobWrapper(autoWithdraw))
+      await subscribeToBolt11s(args)
+      await boss.work('checkPendingPayInInvoiceCreations', jobWrapper(checkPendingPayInInvoiceCreations))
+      await boss.work('checkPendingPayInBolt11s', jobWrapper(checkPendingPayInBolt11s))
+      await boss.work('checkPendingPayOutBolt11s', jobWrapper(checkPendingPayOutBolt11s))
+      await boss.work('checkPayInBolt11', jobWrapper(checkPayInBolt11))
+      await boss.work('checkPayOutBolt11', jobWrapper(checkPayOutBolt11))
+    }
 
-    // payIn jobs
-    await subscribeToBolt11s(args)
-    await boss.work('checkPendingPayInInvoiceCreations', jobWrapper(checkPendingPayInInvoiceCreations))
-    await boss.work('checkPendingPayInBolt11s', jobWrapper(checkPendingPayInBolt11s))
-    await boss.work('checkPendingPayOutBolt11s', jobWrapper(checkPendingPayOutBolt11s))
-    await boss.work('checkPayInBolt11', jobWrapper(checkPayInBolt11))
-    await boss.work('checkPayOutBolt11', jobWrapper(checkPayOutBolt11))
+    // customer-owned wallet reconciliation does not depend on the platform LND
     await boss.work('checkPendingExternalTransactions', jobWrapper(checkPendingExternalTransactions))
   }
   if (isServiceEnabled('search')) {

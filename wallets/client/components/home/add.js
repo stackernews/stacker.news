@@ -11,10 +11,23 @@ import rowsStyles from './rows.module.css'
 import addStyles from './add.module.css'
 import { WalletStatusPills } from './status'
 import { SparkCustodyNotice } from './spark-custody-notice'
+import { usePlatformLightning } from '@/components/platform-lightning'
+import { WALLET_CREATION_MAINTENANCE_MESSAGE } from '@/wallets/lib/maintenance'
 const styles = { ...sharedStyles, ...rowsStyles, ...addStyles }
 
 export function AddWalletPanel ({ templates }) {
+  const { available } = usePlatformLightning()
   const [query, setQuery] = useState('')
+
+  if (!available) {
+    return (
+      <div className={styles.panel}>
+        <h2>add wallet</h2>
+        <p className='text-muted mb-0'>{WALLET_CREATION_MAINTENANCE_MESSAGE}</p>
+      </div>
+    )
+  }
+
   const searchFilter = fuzzySearch(query)
   const templateMatches = templates.map(template => ({
     template,

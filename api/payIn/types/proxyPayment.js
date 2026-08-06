@@ -4,6 +4,7 @@ import { notifyDeposit } from '@/lib/webPush'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 export const anonable = false
+export const lndMaintenanceBlocked = true
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.P2P

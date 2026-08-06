@@ -10,6 +10,7 @@ import { getSub } from './sub'
 import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { Prisma } from '@prisma/client'
 import { claimDueExternalSendChecks, EXTERNAL_TRANSACTION_INCLUDE } from '@/wallets/server/external-transactions'
+import { assertLndAvailable } from '@/api/lnd/maintenance'
 
 function payInResultType (payInType) {
   switch (payInType) {
@@ -284,6 +285,7 @@ export default {
   },
   Mutation: {
     cancelPayInBolt11: async (parent, { hash, hmac, userCancel }, { models, me, boss, lnd }) => {
+      assertLndAvailable()
       const payInBolt11 = await models.PayInBolt11.findUnique({ where: { hash } })
       if (me && !hmac) {
         if (!payInBolt11) throw new GqlInputError('bolt11 not found')

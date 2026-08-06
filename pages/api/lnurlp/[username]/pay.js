@@ -8,8 +8,13 @@ import assertGofacYourself from '@/api/resolvers/ofac'
 import { characterLength } from '@/lib/validate'
 import { walletLogger } from '@/wallets/server'
 import pay from '@/api/payIn'
+import { isLndMaintenance, LND_MAINTENANCE_MESSAGE } from '@/api/lnd/maintenance'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
+  if (isLndMaintenance()) {
+    return res.status(503).json({ status: 'ERROR', reason: LND_MAINTENANCE_MESSAGE })
+  }
+
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })

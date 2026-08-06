@@ -19,6 +19,8 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { writeWalletLog } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/lib/errors'
 import { parsePaymentRequest } from 'ln-service'
+import { isLndMaintenance } from '@/api/lnd/maintenance'
+import { WALLET_CREATION_MAINTENANCE_MESSAGE } from '@/wallets/lib/maintenance'
 
 const MAX_WALLET_LOG_MESSAGE_BYTES = 4096
 
@@ -85,6 +87,9 @@ export async function saveWalletProtocols (parent, { walletId, templateName, ups
 
   if (!walletId === !templateName) {
     throw new GqlInputError('exactly one of walletId and templateName is required')
+  }
+  if (templateName && isLndMaintenance()) {
+    throw new GqlInputError(WALLET_CREATION_MAINTENANCE_MESSAGE)
   }
   if (upserts.length === 0 && removeIds.length === 0) {
     throw new GqlInputError('nothing to save')

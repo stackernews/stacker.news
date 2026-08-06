@@ -1,11 +1,10 @@
 import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, USER_ID } from '@/lib/constants'
 import { Prisma } from '@prisma/client'
-import { payViaPaymentRequest } from 'ln-service'
-import lnd from '../lnd'
+import lnd, { payViaPaymentRequest } from '../lnd'
 import payInTypeModules from './types'
 import { msatsToSats } from '@/lib/format'
 import { payInBolt11Prospect, payInBolt11WrapProspect } from './lib/payInBolt11'
-import { isPessimistic, isProxyPayment, isWithdrawal } from './lib/is'
+import { isP2POnly, isPessimistic, isProxyPayment, isWithdrawal } from './lib/is'
 import { PAY_IN_INCLUDE, payInCreate } from './lib/payInCreate'
 import { payInClone } from './lib/payInPrisma'
 import { createHmac } from '../resolvers/wallet'
@@ -16,6 +15,7 @@ import createPrisma from '@/lib/create-prisma'
 import { PayInFailureReasonError } from './errors'
 import { payInReplacePayOuts } from './lib/payInFailed'
 import { GqlInputError, GqlPayInRetryRaceError } from '@/lib/error'
+import { isLndMaintenance, LND_MAINTENANCE_MESSAGE } from '@/api/lnd/maintenance'
 const models = createPrisma({ connectionParams: { connection_limit: 2 } })
 
 export default async function pay (payInType, payInArgs, { me, custodialOnly, sendProtocolId } = {}) {
@@ -25,6 +25,12 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly, se
     if (!payInModule) {
       throw new Error(`Invalid payIn type ${payInType}`)
     }
+
+    const lndMaintenance = isLndMaintenance()
+    if (lndMaintenance && payInModule.lndMaintenanceBlocked) {
+      throw new GqlInputError(LND_MAINTENANCE_MESSAGE)
+    }
+    custodialOnly ||= lndMaintenance
 
     if (!me && !payInModule.anonable) {
       throw new Error('You must be logged in to perform this action')
@@ -44,7 +50,7 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly, se
     sendProtocolId = await resolveRequestedSendProtocolId(sendProtocolId, { me })
     console.group('payIn', payInType, payInArgs)
 
-    const payIn = await payInModule.getInitial(models, payInArgs, { me, sendProtocolId })
+    const payIn = await payInModule.getInitial(models, payInArgs, { me, custodialOnly, sendProtocolId })
     return await begin(models, payIn, payInArgs, { me, custodialOnly, sendProtocolId })
   } catch (e) {
     console.error('payIn failed', e)
@@ -94,6 +100,9 @@ async function begin (models, payInInitial, payInArgs, { me, custodialOnly, send
     const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, payInArgs, { me })
 
     if (mCostRemaining > 0n && custodialOnly) {
+      if (isLndMaintenance()) {
+        throw new GqlInputError(LND_MAINTENANCE_MESSAGE)
+      }
       throw new Error('Insufficient funds')
     }
 
@@ -379,10 +388,14 @@ export async function onPaidSideEffects (models, payInId) {
 }
 
 export async function retry (payInId, { me, sendProtocolId }) {
+  const lndMaintenance = isLndMaintenance()
   let payInFailedInitial
   let shouldConsumeRetryAttempt = false
   try {
-    const requestedSendProtocolId = await resolveRequestedSendProtocolId(sendProtocolId, { me })
+    // Personal wallets cannot fund site actions during platform LND maintenance.
+    const requestedSendProtocolId = lndMaintenance
+      ? null
+      : await resolveRequestedSendProtocolId(sendProtocolId, { me })
     const include = {
       payInBolt11: true,
       payOutCustodialTokens: { include: { subPayOutCustodialToken: true } },
@@ -404,10 +417,15 @@ export async function retry (payInId, { me, sendProtocolId }) {
     if (isWithdrawal(payInFailedInitial)) {
       throw new Error('Withdrawal payIns cannot be retried')
     }
+    if (lndMaintenance && (payInTypeModules[payInFailedInitial.payInType].lndMaintenanceBlocked || isP2POnly(payInFailedInitial))) {
+      throw new GqlInputError(LND_MAINTENANCE_MESSAGE)
+    }
     const previousSendProtocolId = payInFailedInitial.payInBolt11?.protocolId
-    const retrySendProtocolId = sendProtocolId !== undefined
-      ? requestedSendProtocolId
-      : await findOwnedEnabledSendProtocolId(previousSendProtocolId, { me })
+    const retrySendProtocolId = lndMaintenance
+      ? null
+      : sendProtocolId !== undefined
+        ? requestedSendProtocolId
+        : await findOwnedEnabledSendProtocolId(previousSendProtocolId, { me })
     if (isPessimistic(payInFailedInitial, { me })) {
       // pessimistic payIns are fully re-executed without tracking
       return await pay(
@@ -417,14 +435,18 @@ export async function retry (payInId, { me, sendProtocolId }) {
       )
     }
     await payInTypeModules[payInFailedInitial.payInType].validateRetry?.(models, payInFailedInitial, { me })
-    shouldConsumeRetryAttempt = true
+    shouldConsumeRetryAttempt = !lndMaintenance
 
-    const payInFailed = await payInReplacePayOuts(models, payInFailedInitial)
+    const payInFailed = await payInReplacePayOuts(models, payInFailedInitial, { custodialOnly: lndMaintenance })
 
     const { payIn, result, mCostRemaining } = await models.$transaction(async tx => {
       const payInInitial = { ...payInClone(payInFailed), retryCount: payInFailed.retryCount + 1 }
       await obtainRowLevelLocks(tx, payInInitial)
       const { payIn, mCostRemaining } = await payInCreate(tx, payInInitial, undefined, { me })
+
+      if (lndMaintenance && mCostRemaining > 0n) {
+        throw new GqlInputError(LND_MAINTENANCE_MESSAGE)
+      }
 
       // use an optimistic lock on successorId on the payIn
       const rows = await tx.$queryRaw`UPDATE "PayIn" SET "successorId" = ${payIn.id} WHERE "id" = ${payInFailed.id} AND "successorId" IS NULL RETURNING id`

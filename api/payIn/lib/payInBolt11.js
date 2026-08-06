@@ -3,6 +3,7 @@ import { createHodlInvoice, createInvoice, parsePaymentRequest } from 'ln-servic
 import lnd from '@/api/lnd'
 import { wrapBolt11 } from '@/wallets/server'
 import { PayInFailureReasonError } from '../errors'
+import { assertLndAvailable } from '@/api/lnd/maintenance'
 
 const INVOICE_EXPIRE_SECS = 600
 
@@ -21,6 +22,7 @@ function payInBolt11FromBolt11 (bolt11, preimage, userId) {
 }
 
 export async function payInBolt11Prospect (models, payIn, { msats, description }) {
+  assertLndAvailable()
   try {
     const createLNDinvoice = payIn.pessimisticEnv ? createHodlInvoice : createInvoice
     const expiresAt = datePivot(new Date(), { seconds: INVOICE_EXPIRE_SECS })
@@ -39,6 +41,7 @@ export async function payInBolt11Prospect (models, payIn, { msats, description }
 }
 
 export async function payInBolt11WrapProspect (models, payIn, { msats, description, descriptionHash }) {
+  assertLndAvailable()
   try {
     const { mtokens: maxRoutingFeeMsats } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
     const bolt11 = await wrapBolt11({

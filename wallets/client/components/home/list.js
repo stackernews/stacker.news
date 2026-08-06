@@ -48,6 +48,7 @@ export function WalletList ({ entries, wallets, selectedRouteId, onSelect, varia
           <button
             type='button'
             className={rowClassName}
+            aria-disabled={entry.disabled || undefined}
             onClick={() => {
               if (!ordering) onSelect(entry.routeId)
             }}

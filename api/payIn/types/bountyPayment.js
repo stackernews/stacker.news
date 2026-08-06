@@ -13,6 +13,7 @@ import { getItemResult } from '../lib/item'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 
 export const anonable = false
+export const lndMaintenanceBlocked = true
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.P2P,

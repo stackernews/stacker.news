@@ -22,6 +22,7 @@ import {
   EXTERNAL_TRANSACTION_INCLUDE
 } from '@/wallets/server/external-transactions'
 import { requireNoConflictingExternalSend } from '@/wallets/server/external-transaction-duplicates'
+import { assertLndAvailable } from '@/api/lnd/maintenance'
 
 export function createHmac (hash) {
   if (!hash) throw new GqlInputError('hash required to create hmac')
@@ -97,6 +98,8 @@ const resolvers = {
         throw new GqlAuthenticationError()
       }
 
+      assertLndAvailable()
+
       await dropBolt11({ userId: me.id, hash }, { models, lnd })
       return true
     },
@@ -111,6 +114,7 @@ export default resolvers
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, protocol, logger }) {
   if (!me) throw new GqlAuthenticationError()
   assertApiKeyNotPermitted({ me })
+  assertLndAvailable()
   await validateSchema(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
 
@@ -258,6 +262,7 @@ async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer }
     throw new GqlAuthenticationError()
   }
   assertApiKeyNotPermitted({ me })
+  assertLndAvailable()
   if (maxFee < 0) {
     throw new GqlInputError('max fee must be at least 0')
   }

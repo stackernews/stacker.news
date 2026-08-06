@@ -13,6 +13,7 @@ import usePayInMutation from './payIn/hooks/use-pay-in-mutation'
 import { getPayIn } from '@/lib/pay-in'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { toastPayError } from '@/wallets/client/errors'
+import { usePlatformLightning } from '@/components/platform-lightning'
 
 // add (or, on revert, remove) the paid beneficiary to the root item's bountyPaidTo list
 const modifyBountyPaidTo = (cache, { data }, { add, optimistic }) => {
@@ -49,6 +50,7 @@ export default function PayBounty ({ children, item }) {
   const animate = useAnimation()
   const toaster = useToast()
   const hasSendWallet = useHasSendWallet()
+  const { available, message } = usePlatformLightning()
 
   const bounty = root.bounty
   const proxyFee = Math.ceil(bounty * 3 / 100)
@@ -95,6 +97,14 @@ export default function PayBounty ({ children, item }) {
 
   if (!me || item.mine || root.user.name !== me.name) {
     return null
+  }
+
+  if (!available) {
+    return (
+      <ActionTooltip notForm overlayText={message}>
+        <div className={styles.noWallet}>bounty payments unavailable</div>
+      </ActionTooltip>
+    )
   }
 
   if (!item.user.optional?.hasRecvWallet) {

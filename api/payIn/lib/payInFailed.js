@@ -3,12 +3,19 @@ import { NoReceiveWalletError, payOutBolt11Replacement } from './payOutBolt11'
 import { payOutCustodialTokenFromBolt11 } from './payOutCustodialTokens'
 import { isP2POnly } from './is'
 
-export async function payInReplacePayOuts (models, payInFailedInitial) {
+export async function payInReplacePayOuts (models, payInFailedInitial, { custodialOnly = false } = {}) {
   if (!payInFailedInitial.payOutBolt11) {
     return payInFailedInitial
   }
 
-  const payInFailed = { ...payInFailedInitial }
+  const payInFailed = {
+    ...payInFailedInitial,
+    payOutCustodialTokens: payInFailedInitial.payOutCustodialTokens.map(token => ({ ...token }))
+  }
+  if (custodialOnly) {
+    return payInReplacePayOutWithCustodialToken(payInFailed, payInFailedInitial.payOutBolt11)
+  }
+
   try {
     payInFailed.payOutBolt11 = await payOutBolt11Replacement(
       models, payInFailed.genesisId ?? payInFailed.id, payInFailed.payOutBolt11, undefined,
@@ -40,17 +47,21 @@ export async function payInReplacePayOuts (models, payInFailedInitial) {
     if (isP2POnly(payInFailedInitial)) {
       throw e
     }
-    // if we can no longer produce a payOutBolt11, we fallback to custodial tokens
-    // use the initial payOutBolt11: the "more msats" throw above happens after payInFailed's
-    // was reassigned to the oversized replacement, which would unbalance the payIn
-    payInFailed.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payInFailedInitial.payOutBolt11))
-    // convert the routing fee to another rewards pool output
-    const routingFee = payInFailed.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
-    if (routingFee) {
-      routingFee.payOutType = 'REWARDS_POOL'
-      routingFee.userId = USER_ID.rewards
-    }
-    payInFailed.payOutBolt11 = null
+    return payInReplacePayOutWithCustodialToken(payInFailed, payInFailedInitial.payOutBolt11)
   }
   return payInFailed
+}
+
+function payInReplacePayOutWithCustodialToken (payIn, payOutBolt11) {
+  // if we can no longer produce a payOutBolt11, we fallback to custodial tokens
+  // using the initial payOutBolt11 so the replacement remains balanced
+  payIn.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payOutBolt11))
+  // convert the routing fee to another rewards pool output
+  const routingFee = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+  if (routingFee) {
+    routingFee.payOutType = 'REWARDS_POOL'
+    routingFee.userId = USER_ID.rewards
+  }
+  payIn.payOutBolt11 = null
+  return payIn
 }

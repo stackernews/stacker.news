@@ -7,6 +7,7 @@ import { RewardSatsSendForm } from '@/wallets/client/components/send'
 import styles from '@/wallets/client/components/send/send.module.css'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import { selectedWalletRoute, REWARD_SATS_ROUTE_ID } from '@/wallets/lib/routes'
+import { usePlatformLightning } from '@/components/platform-lightning'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -20,6 +21,7 @@ export default function RewardSatsSendPage () {
 
 function RewardSatsSend () {
   const { me } = useMe()
+  const { available, message } = usePlatformLightning()
   const availableSats = rewardSatsBalance(me?.privates)
   const identity = (
     <>
@@ -27,6 +29,14 @@ function RewardSatsSend () {
       <span className={styles.walletName}>reward sats</span>
     </>
   )
+
+  if (!available) {
+    return (
+      <WalletActionShell title='send' identity={identity}>
+        <WalletActionEmpty message={message} backHref={selectedWalletRoute(REWARD_SATS_ROUTE_ID)} />
+      </WalletActionShell>
+    )
+  }
 
   if (availableSats <= 0) {
     return (

@@ -3,6 +3,7 @@ import lnd, { estimateRouteFeeProbe, getBlockHeight } from '@/api/lnd'
 import { toPositiveBigInt, toPositiveNumber } from '@/lib/format'
 import { PayInFailureReasonError } from '@/api/payIn/errors'
 import { MAX_OUTGOING_MSATS } from '@/lib/constants'
+import { assertLndAvailable } from '@/api/lnd/maintenance'
 
 const MIN_OUTGOING_MSATS = BigInt(700) // the minimum msats we'll allow for the outgoing invoice
 const MAX_EXPIRATION_INCOMING_MSECS = 600_000 // the maximum expiration time we'll allow for the incoming invoice
@@ -27,11 +28,13 @@ const XXX_CLTV_DELTA_BUFFER_FOR_LN_SERVICE_BUG = 46 // the buffer to add for the
   @returns bolt11 {string} the wrapped incoming invoice
 */
 export async function wrapBolt11 ({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description, descriptionHash }) {
+  assertLndAvailable()
   const wrapped = await wrapBolt11Params({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description, descriptionHash })
   return (await createHodlInvoice({ lnd, ...wrapped })).request
 }
 
 export async function canWrapBolt11 ({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description, descriptionHash }) {
+  assertLndAvailable()
   try {
     await wrapBolt11Params({ msats, bolt11, maxRoutingFeeMsats, hideInvoiceDesc, description, descriptionHash })
   } catch {

@@ -40,7 +40,7 @@ async function tryP2P (models, { sats }, { me, hasSendWallet }, item) {
 // if not sub
 //    if p2p, 27% to rewards pool, 3% to routing fee
 //    if not p2p, all 30% to rewards pool
-export async function getInitial (models, payInArgs, { me, sendProtocolId }) {
+export async function getInitial (models, payInArgs, { me, custodialOnly, sendProtocolId }) {
   const item = await models.item.findUnique({ where: { id: parseInt(payInArgs.id) }, include: { itemForwards: { include: { user: true } }, user: true } })
   const { subNames, parentId, itemForwards, userId, user } = item
   const subs = await getSubs(models, { subNames, parentId })
@@ -62,7 +62,7 @@ export async function getInitial (models, payInArgs, { me, sendProtocolId }) {
     .sort((a, b) => b.pct - a.pct)
 
   let p2pCandidateUserId = null
-  const p2p = await tryP2P(models, payInArgs, { me, hasSendWallet }, item)
+  const p2p = !custodialOnly && await tryP2P(models, payInArgs, { me, hasSendWallet }, item)
   if (p2p) {
     for (const c of candidates) {
       const candidateMtokens = zapMtokens * BigInt(c.pct) / 100n

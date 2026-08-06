@@ -3,6 +3,7 @@ import { parsePaymentRequest } from 'ln-service'
 import { satsToMsats, numWithUnits, msatsToSats } from '@/lib/format'
 
 export const anonable = false
+export const lndMaintenanceBlocked = true
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.REWARD_SATS

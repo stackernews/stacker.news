@@ -82,6 +82,11 @@
   border-style: dashed;
   box-shadow: none;
 }
+.addWalletRow[aria-disabled='true'],
+.mobileWalletRow.addWalletRow[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
 
 .walletRowLogo,
 .walletRowFallback,

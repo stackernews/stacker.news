@@ -1,4 +1,5 @@
 import { $applyNodeReplacement, createState, $getState, $setState, DecoratorNode } from 'lexical'
+import { sanitizeUrl } from '@/lib/url'
 
 // kind and status can change over time, so we need to store them in states
 const kindState = createState('kind', {
@@ -182,12 +183,14 @@ export class MediaNode extends DecoratorNode {
     const span = createMediaSpan(this, editor._config.theme)
 
     if (this.getKind() === 'unknown') {
-      // export a link instead of media if we don't know the type
+      // export a link instead of media if we don't know the type.
       const link = document.createElement('a')
-      link.setAttribute('href', this.__src)
+      link.setAttribute('href', sanitizeUrl(this.__src))
       link.setAttribute('target', '_blank')
       link.setAttribute('rel', 'noopener nofollow noreferrer')
       link.className = 'sn-media-autolink__loading'
+      // textContent is not sanitized
+      // keeping the original URL lets readers see which URL was rejected
       link.textContent = this.__src
       span.appendChild(link)
       return { element: span }

@@ -63,7 +63,6 @@
     "csv-parser": "^3.0.0",
     "dataloader": "^2.2.3",
     "domino": "^2.1.6",
-    "dompurify": "^3.2.6",
     "formik": "^2.4.6",
     "github-slugger": "^2.0.0",
     "graphql": "^16.13.2",

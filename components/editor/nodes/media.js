@@ -1,4 +1,4 @@
-import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP, sanitizeUrl, sanitizeMediaUrl } from '@/lib/url'
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getNodeByKey } from 'lexical'
@@ -20,7 +20,7 @@ function LinkRaw ({ className, children, src, rel }) {
       className={className}
       target='_blank'
       rel={rel ?? UNKNOWN_LINK_REL}
-      href={src}
+      href={sanitizeUrl(src)}
     >{isRawURL || !children ? src : children}
     </a>
   )
@@ -69,10 +69,10 @@ const Media = memo(function Media ({
         ? (
           <video
             className={`sn-media__video${sized ? ' sn-media__video--sized' : ''} ${className}`}
-            src={src}
+            src={sanitizeMediaUrl(src)}
             preload={bestResSrc !== src ? 'metadata' : undefined}
             controls
-            poster={bestResSrc !== src ? bestResSrc : undefined}
+            poster={bestResSrc !== src ? sanitizeMediaUrl(bestResSrc) : undefined}
             width={width}
             height={height}
             onError={onError}
@@ -84,7 +84,7 @@ const Media = memo(function Media ({
         : (
           <img
             className={`sn-media__img${sized ? ' sn-media__img--sized' : ''} ${className}`}
-            src={src}
+            src={sanitizeMediaUrl(src)}
             alt={alt}
             title={title}
             srcSet={srcSet}

@@ -89,17 +89,21 @@ export async function validateBeforeCreate (tx, payInProspect, args, { me }) {
     throw new AutoWithdrawIneligibleError('autowithdraw amount exceeds current excess')
   }
 
-  // once-per-hour pending/failed-withdrawal guard, now read transactionally under the lock.
-  // keyed on the actually-minted payOutBolt11.msats (post truncation), matching what gets persisted.
+  // Pending withdrawals block until they settle. Failed withdrawals block for an hour
+  // from their terminal transition, regardless of the next withdrawal amount.
   const [pendingOrFailed] = await tx.$queryRaw`
     SELECT EXISTS(
-      SELECT *
+      SELECT 1
       FROM "PayOutBolt11"
       WHERE "userId" = ${me.id}
-      AND status IS DISTINCT FROM 'CONFIRMED'
       AND "payOutType" = 'WITHDRAWAL'
-      AND created_at > now() - interval '1 hour'
-      AND "msats" >= ${satsToMsats(msatsToSats(payInProspect.payOutBolt11.msats))}
+      AND (
+        status IS NULL
+        OR (
+          status <> 'CONFIRMED'
+          AND updated_at > now() - interval '1 hour'
+        )
+      )
     )`
   if (pendingOrFailed.exists) {
     throw new AutoWithdrawIneligibleError('autowithdraw pending or recently attempted')

@@ -1,4 +1,4 @@
-import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP, sanitizeUrl, sanitizeMediaUrl } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP, sanitizeUrl, isSafeMediaUrl } from '@/lib/url'
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getNodeByKey } from 'lexical'
@@ -69,10 +69,10 @@ const Media = memo(function Media ({
         ? (
           <video
             className={`sn-media__video${sized ? ' sn-media__video--sized' : ''} ${className}`}
-            src={sanitizeMediaUrl(src)}
+            src={src}
             preload={bestResSrc !== src ? 'metadata' : undefined}
             controls
-            poster={bestResSrc !== src ? sanitizeMediaUrl(bestResSrc) : undefined}
+            poster={bestResSrc !== src ? bestResSrc : undefined}
             width={width}
             height={height}
             onError={onError}
@@ -84,7 +84,7 @@ const Media = memo(function Media ({
         : (
           <img
             className={`sn-media__img${sized ? ' sn-media__img--sized' : ''} ${className}`}
-            src={sanitizeMediaUrl(src)}
+            src={src}
             alt={alt}
             title={title}
             srcSet={srcSet}
@@ -342,6 +342,14 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
   const showMedia = useMemo(() => editable || me?.privates?.showImagesAndVideos !== false, [me?.privates?.showImagesAndVideos, editable])
 
   useEffect(() => {
+    // if the media url is not safe, convert to link or blank
+    if (!isSafeMediaUrl(src)) {
+      setIsImage(false)
+      setIsVideo(false)
+      setKind?.('unknown')
+      return
+    }
+
     // don't load media if user has disabled them
     // or if the user has disabled non-proxied media and media is not proxied or a video (can't proxy videos)
     if (!showMedia || (me?.privates?.imgproxyOnly && (!trusted || isVideo))) {

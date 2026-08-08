@@ -5,7 +5,6 @@ import ArrowRight from '@/svgs/arrow-right-line.svg'
 import styles from './carousel.module.css'
 import { useShowModal } from './modal'
 import { Dropdown } from 'react-bootstrap'
-import { sanitizeMediaUrl } from '@/lib/url'
 
 function useSwiping ({ moveLeft, moveRight }) {
   const [touchStartX, setTouchStartX] = useState(null)
@@ -81,7 +80,7 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
 
   return (
     <div className={styles.fullScreenContainer} onClick={close}>
-      <img className={styles.fullScreen} src={sanitizeMediaUrl(currentSrc)} />
+      <img className={styles.fullScreen} src={currentSrc} />
       <div className={styles.fullScreenNavContainer}>
         <div
           className={classNames(styles.fullScreenNav, !canGoLeft && 'invisible', styles.left)}
@@ -109,7 +108,7 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
 const CarouselContext = createContext()
 
 function CarouselOverflow ({ originalSrc, rel }) {
-  return <Dropdown.Item href={sanitizeMediaUrl(originalSrc)} rel={rel} target='_blank'>view original</Dropdown.Item>
+  return <Dropdown.Item href={originalSrc} rel={rel} target='_blank'>view original</Dropdown.Item>
 }
 
 export function CarouselProvider ({ children }) {

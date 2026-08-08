@@ -355,7 +355,11 @@ export const useMediaHelper = ({ src, srcSet, srcSetIntital, bestResSrc, width, 
     const checkMedia = async () => {
       try {
         const res = await fetch(`${PUBLIC_MEDIA_CHECK_URL}/${encodeURIComponent(src)}`, { signal: controller.signal })
-        if (!res.ok) return
+        // non-ok response: transform media into LinkNode
+        if (!res.ok) {
+          setKind?.('unknown')
+          return
+        }
 
         const data = await res.json()
 

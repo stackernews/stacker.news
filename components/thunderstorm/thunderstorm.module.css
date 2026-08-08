@@ -7,7 +7,7 @@
 
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: 100;
   pointer-events: none;
   overflow: hidden;
 }
@@ -21,6 +21,7 @@
 .canvas {
   position: absolute;
   inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
 }
@@ -29,6 +30,7 @@
   position: absolute;
   top: -20px;
   left: -12%;
+  z-index: 1;
   width: 124%;
   height: calc(var(--thunderstorm-fog-height) + 20px);
   opacity: var(--thunderstorm-fog-opacity);

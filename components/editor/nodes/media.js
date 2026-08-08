@@ -1,4 +1,4 @@
-import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP, sanitizeUrl, isSafeMediaUrl } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, decodeProxyUrl, MEDIA_DOMAIN_REGEXP, isSafeMediaUrl } from '@/lib/url'
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getNodeByKey } from 'lexical'
@@ -20,7 +20,7 @@ function LinkRaw ({ className, children, src, rel }) {
       className={className}
       target='_blank'
       rel={rel ?? UNKNOWN_LINK_REL}
-      href={sanitizeUrl(src)}
+      href={src}
     >{isRawURL || !children ? src : children}
     </a>
   )

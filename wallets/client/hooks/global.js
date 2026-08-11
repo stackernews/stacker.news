@@ -118,7 +118,7 @@ function WalletHooks ({ children }) {
 
   useEffect(() => () => {
     disposeClientProtocols()
-  }, [me?.id, me?.privates?.walletsUpdatedAt, keyUpdatedAt])
+  }, [me?.id, keyUpdatedAt])
   useAutoRetryPayIns()
   useExternalSendChecks()
   useKeyInit()

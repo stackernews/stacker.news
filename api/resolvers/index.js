@@ -98,7 +98,7 @@ const bigint = new GraphQLScalarType({
 const limit = createIntScalar({
   name: 'Limit',
   description: 'Limit custom scalar type',
-  maximum: 1000
+  maximum: 100
 })
 
 export default [user, item, message, walletV1, walletV2, lnurl, notifications, invite, sub,

@@ -266,7 +266,7 @@ const util = {
   async fetchUserItems (name) {
     const data = await gql(`
       query UserItems($name: String!) {
-        items(sort: "user", type: "all", limit: 999, name: $name) {
+        items(sort: "user", type: "all", limit: 100, name: $name) {
           items {
             id
             createdAt

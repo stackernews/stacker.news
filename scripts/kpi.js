@@ -61,7 +61,7 @@ const TERRITORY_REVENUE_TYPES = ['TERRITORY_BILLING', 'TERRITORY_CREATE', 'TERRI
 
 const TOP_SUBS_QUERY = gql`
   query TopSubs($when: String, $from: String, $to: String, $by: String) {
-    topSubs(when: $when, from: $from, to: $to, by: $by, limit: 200) {
+    topSubs(when: $when, from: $from, to: $to, by: $by, limit: 100) {
       subs {
         name
         status

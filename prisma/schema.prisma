@@ -507,6 +507,7 @@ model Item {
   @@index([downMsats])
   @@index([ncomments])
   @@index([userId, createdAt])
+  @@index([userId, lastZapAt])
   @@index([userId, ranktop])
   @@index([userId, downMsats])
   @@index([userId, ncomments])
@@ -782,18 +783,21 @@ model Mention {
 }
 
 model ItemMention {
-  id           Int      @id @default(autoincrement())
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
-  referrerId   Int
-  refereeId    Int
-  referrerItem Item     @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  refereeItem  Item     @relation("referee", fields: [refereeId], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+  referrerId    Int
+  refereeId     Int
+  // owner of the referenced (referee) item; denormalized for recipient-ordered notification lookups
+  refereeUserId Int
+  referrerItem  Item     @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  refereeItem   Item     @relation("referee", fields: [refereeId], references: [id], onDelete: Cascade)
 
   @@unique([referrerId, refereeId], map: "ItemMention.referrerId_refereeId_unique")
   @@index([createdAt], map: "ItemMention.created_at_index")
   @@index([referrerId], map: "ItemMention.referrerId_index")
   @@index([refereeId], map: "ItemMention.refereeId_index")
+  @@index([refereeUserId, createdAt])
 }
 
 model Account {

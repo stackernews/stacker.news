@@ -47,9 +47,10 @@ export const getItemMentions = async (tx, { itemIds, userId }) => {
     where: {
       id: { in: itemIds },
       userId: { not: userId || USER_ID.anon }
-    }
+    },
+    select: { id: true, userId: true }
   })
-  return referee.map(r => ({ refereeId: r.id }))
+  return referee.map(r => ({ refereeId: r.id, refereeUserId: r.userId }))
 }
 
 export async function performBotBehavior (tx, { text, id, userId = USER_ID.anon }) {

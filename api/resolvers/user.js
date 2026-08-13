@@ -391,12 +391,11 @@ export default {
         SELECT EXISTS(
           SELECT *
           FROM "ItemMention"
-          JOIN "Item" "Referee" ON "ItemMention"."refereeId" = "Referee".id
           JOIN "Item" ON "ItemMention"."referrerId" = "Item".id
           ${whereClause(
             '"ItemMention".created_at > $2',
             '"Item"."userId" <> $1',
-            '"Referee"."userId" = $1',
+            '"ItemMention"."refereeUserId" = $1',
             activeOrMine(me),
             await filterClause(null, null, null, ctx),
             muteClause(me)

@@ -118,13 +118,19 @@ export default {
       itemDrivenQueries.push(
         `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
           FROM "Item"
-          JOIN "SubSubscription" ON "Item"."subNames" @> ARRAY["SubSubscription"."subName"]::CITEXT[]
+          JOIN LATERAL (
+            SELECT 1
+            FROM "ItemSub"
+            JOIN "SubSubscription" ON "SubSubscription"."userId" = $1
+              AND "SubSubscription"."subName" = "ItemSub"."subName"
+            WHERE "ItemSub"."itemId" = "Item".id
+            AND "Item".created_at >= "SubSubscription".created_at
+            LIMIT 1
+          ) "SubscribedTerritory" ON true
           ${whereClause(
             '"Item".created_at < $2',
-            '"SubSubscription"."userId" = $1',
             '"Item"."userId" <> $1',
-            '"Item"."parentId" IS NULL',
-            '"Item".created_at >= "SubSubscription".created_at'
+            '"Item"."parentId" IS NULL'
           )}
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT}`
@@ -150,12 +156,11 @@ export default {
         itemDrivenQueries.push(
           `SELECT "Referrer".*, "ItemMention".created_at AS "sortTime", 'ItemMention' AS type
             FROM "ItemMention"
-            JOIN "Item" "Referee" ON "ItemMention"."refereeId" = "Referee".id
             JOIN "Item" "Referrer" ON "ItemMention"."referrerId" = "Referrer".id
             ${whereClause(
               '"ItemMention".created_at < $2',
               '"Referrer"."userId" <> $1',
-              '"Referee"."userId" = $1'
+              '"ItemMention"."refereeUserId" = $1'
             )}
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}`

@@ -160,7 +160,7 @@ export default function Footer ({ links = true }) {
               <ActionTooltip notForm overlayText={`${darkMode ? 'disable' : 'enable'} dark mode`}>
                 <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
               </ActionTooltip>
-              <ActionTooltip notForm overlayText={`${animationEnabled ? 'disable' : 'enable'} animations`}>
+              <ActionTooltip notForm overlayText={`${animationEnabled ? 'disable' : 'enable'} lightning animations`}>
                 <LnIcon onClick={toggleAnimation} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
               </ActionTooltip>
               <ActionTooltip notForm overlayText={`${disableLiveComments ? 'enable' : 'disable'} live comments`}>

@@ -437,9 +437,21 @@ export default {
 
       let dbPushSubscription
       if (oldEndpoint) {
-        dbPushSubscription = await models.pushSubscription.update({
-          data: { userId: me.id, endpoint, p256dh, auth }, where: { endpoint: oldEndpoint }
-        })
+        // look the row up by its unique id, scoped to the current user: endpoint is not a
+        // unique column, so passing it to update()'s where throws in Prisma; and scoping to
+        // me.id prevents re-pointing another user's subscription. fall back to create if the
+        // old subscription is already gone.
+        const existing = await models.pushSubscription.findFirst({ where: { endpoint: oldEndpoint, userId: Number(me.id) } })
+        if (existing) {
+          dbPushSubscription = await models.pushSubscription.update({
+            where: { id: existing.id },
+            data: { endpoint, p256dh, auth }
+          })
+        } else {
+          dbPushSubscription = await models.pushSubscription.create({
+            data: { userId: me.id, endpoint, p256dh, auth }
+          })
+        }
         console.log(`[webPush] updated subscription of user ${me.id}: old=${oldEndpoint} new=${endpoint}`)
       } else {
         dbPushSubscription = await models.pushSubscription.create({

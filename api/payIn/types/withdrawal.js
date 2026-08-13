@@ -3,7 +3,6 @@ import { satsToMsats, numWithUnits, msatsToSats } from '@/lib/format'
 import { decodePaymentRequest } from '@/api/lnd'
 
 export const anonable = false
-export const lndMaintenanceBlocked = true
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.REWARD_SATS

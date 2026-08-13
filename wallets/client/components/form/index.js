@@ -22,22 +22,9 @@ import { useToast } from '@/components/toast'
 import { useShowModal } from '@/components/modal'
 import { useRouter } from 'next/router'
 import { WalletStaleConfigError } from '@/wallets/client/errors'
-import { usePlatformLightning } from '@/components/platform-lightning'
-import { WALLET_CREATION_MAINTENANCE_MESSAGE } from '@/wallets/lib/maintenance'
 const styles = { ...sharedStyles, ...configureStyles }
 
 export function WalletConfigureForm ({ wallet }) {
-  const { available } = usePlatformLightning()
-
-  if (isTemplate(wallet) && !available) {
-    return (
-      <main className={styles.main}>
-        <h2>add wallet</h2>
-        <p className='text-muted mb-0'>{WALLET_CREATION_MAINTENANCE_MESSAGE}</p>
-      </main>
-    )
-  }
-
   return (
     <WalletConfigureFormProvider wallet={wallet}>
       <WalletConfigureFormBody />

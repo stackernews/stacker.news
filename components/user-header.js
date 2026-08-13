@@ -15,7 +15,6 @@ import { NAME_MUTATION } from '@/fragments/users'
 import { QRCodeSVG } from 'qrcode.react'
 import LightningIcon from '@/svgs/bolt.svg'
 import { encodeLnurl, lnurlpUrl } from '@/lib/lnurl'
-import { usePlatformLightning } from '@/components/platform-lightning'
 import Avatar from './avatar'
 import { userSchema } from '@/lib/validate'
 import { useShowModal } from './modal'
@@ -242,7 +241,6 @@ function SocialLink ({ name, id }) {
 
 function HeaderHeader ({ user }) {
   const { me } = useMe()
-  const { available: platformLightningAvailable, message: platformLightningMessage } = usePlatformLightning()
 
   const showModal = useShowModal()
   const toaster = useToast()
@@ -263,8 +261,6 @@ function HeaderHeader ({ user }) {
         <HeaderNym user={user} isMe={isMe} />
         <Satistics user={user} />
         <Button
-          disabled={!platformLightningAvailable}
-          title={platformLightningAvailable ? undefined : platformLightningMessage}
           className='fw-bold ms-0' onClick={() => {
             copy(`${user.name}@stacker.news`)
               .then(() => {

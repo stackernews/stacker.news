@@ -19,7 +19,6 @@ import blockHeight from './blockHeight'
 import chainFee from './chainFee'
 import domain from './domain'
 import payIn from './payIn'
-import platformLightning from './platformLightning'
 
 const common = gql`
   type Query {
@@ -41,5 +40,4 @@ const common = gql`
 `
 
 export default [common, user, item, itemForward, message, wallet, lnurl, notifications, invite,
-  sub, upload, growth, rewards, referrals, price, admin, blockHeight, chainFee, domain, payIn,
-  platformLightning]
+  sub, upload, growth, rewards, referrals, price, admin, blockHeight, chainFee, domain, payIn]

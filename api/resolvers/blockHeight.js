@@ -1,7 +1,6 @@
 import { isServiceEnabled } from '@/lib/sndev'
 import { cachedFetcher, snFetch } from '@/lib/fetch'
 import { getHeight } from 'ln-service'
-import { isLndMaintenance } from '@/api/lnd/maintenance'
 
 const getLndBlockHeight = cachedFetcher(async function fetchLndBlockHeight ({ lnd }) {
   try {
@@ -43,7 +42,7 @@ const getPublicBlockHeight = cachedFetcher(async function fetchPublicBlockHeight
 export default {
   Query: {
     blockHeight: async (parent, opts, { lnd }) => {
-      if (isServiceEnabled('payments') && !isLndMaintenance()) {
+      if (isServiceEnabled('payments') && lnd) {
         const height = await getLndBlockHeight({ lnd })
         if (height) return height
       }

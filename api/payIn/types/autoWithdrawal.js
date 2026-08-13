@@ -3,7 +3,6 @@ import { numWithUnits, msatsToSats, msatsSatsFloor, satsToMsats } from '@/lib/fo
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
 
 export const anonable = false
-export const lndMaintenanceBlocked = true
 
 export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.REWARD_SATS

@@ -49,7 +49,7 @@ const KIND_SPECS = {
   }
 }
 
-export function walletHomeEntries (wallets, { addWalletDisabled = false } = {}) {
+export function walletHomeEntries (wallets) {
   return [
     ...INTERNAL_WALLET_ENTRIES,
     ...wallets.map(wallet => ({
@@ -58,7 +58,7 @@ export function walletHomeEntries (wallets, { addWalletDisabled = false } = {}) 
       name: walletDisplayName(wallet.name),
       wallet
     })),
-    { kind: 'add', routeId: ADD_WALLET_ROUTE_ID, name: 'add wallet', disabled: addWalletDisabled }
+    { kind: 'add', routeId: ADD_WALLET_ROUTE_ID, name: 'add wallet' }
   ]
 }
 

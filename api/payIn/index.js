@@ -27,7 +27,7 @@ export default async function pay (payInType, payInArgs, { me, custodialOnly, se
     }
 
     const lndMaintenance = isLndMaintenance()
-    if (lndMaintenance && payInModule.lndMaintenanceBlocked) {
+    if (lndMaintenance && (isWithdrawal({ payInType }) || isP2POnly({ payInType }))) {
       throw new GqlInputError(LND_MAINTENANCE_MESSAGE)
     }
     custodialOnly ||= lndMaintenance
@@ -427,7 +427,7 @@ export async function retry (payInId, { me, sendProtocolId }) {
     if (isWithdrawal(payInFailedInitial)) {
       throw new Error('Withdrawal payIns cannot be retried')
     }
-    if (lndMaintenance && (payInTypeModules[payInFailedInitial.payInType].lndMaintenanceBlocked || isP2POnly(payInFailedInitial))) {
+    if (lndMaintenance && isP2POnly(payInFailedInitial)) {
       throw new GqlInputError(LND_MAINTENANCE_MESSAGE)
     }
     const previousSendProtocolId = payInFailedInitial.payInBolt11?.protocolId

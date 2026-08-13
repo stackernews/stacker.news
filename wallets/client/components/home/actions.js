@@ -13,7 +13,6 @@ import { useWalletCapabilities } from '@/wallets/client/hooks'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import actionsStyles from './actions.module.css'
 import { walletDetailRoute } from '@/wallets/lib/routes'
-import { usePlatformLightning } from '@/components/platform-lightning'
 const styles = { ...sharedStyles, ...actionsStyles }
 
 export function WalletActions ({ entry }) {
@@ -26,12 +25,11 @@ export function WalletActions ({ entry }) {
 
 function InternalWalletActions ({ entry }) {
   const action = entry.action
-  const { available } = usePlatformLightning()
 
   return (
     <div className={styles.bar}>
       {action === 'buy' && <BuyCreditsAction />}
-      {action === 'send' && <WalletPyramidAction href={walletDetailRoute(entry.routeId, 'send')} label='send' tone='send' disabled={!available} singleAction />}
+      {action === 'send' && <WalletPyramidAction href={walletDetailRoute(entry.routeId, 'send')} label='send' tone='send' singleAction />}
     </div>
   )
 }

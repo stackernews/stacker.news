@@ -12,7 +12,7 @@ import styles from './multi-select.module.css'
 import { cn } from '@/lib/cn'
 import { FormGroup, hintClasses, errorClasses, inputClasses } from './field'
 
-export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, onChange, noForm, overrideValue, hint, placeholder, onValueClick, ...props }) {
+export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, className, onChange, noForm, overrideValue, hint, placeholder, onValueClick, ...props }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
   const invalid = meta.touched && meta.error
@@ -23,8 +23,8 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
     }
   }, [overrideValue])
 
-  // useSubs' mixed array (strings plus the muted { label, items } group) is
-  // normalized to all groups: Base UI's isGroupedItems needs every entry to carry .items
+  // Base UI expects either every option or every group to expose the same
+  // shape, so plain options are collected into an unlabeled group.
   const options = useMemo(() => {
     const flat = []; const groups = []
     for (const item of items) {
@@ -35,6 +35,9 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
   }, [items])
 
   const currentValue = field.value || props.value || []
+  const controlSize = size === 'sm' ? 'sm' : 'md'
+  const triggerIconSize = size === 'sm' ? 16 : size === 'lg' ? 24 : 20
+  const clearIconSize = size === 'sm' ? 14 : size === 'lg' ? 20 : 16
 
   return (
     <FormGroup label={label} className={groupClassName}>
@@ -43,9 +46,8 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
           multiple name={field.name} items={options} value={currentValue}
           onValueChange={vals => { helpers?.setValue?.(vals); onChange?.(formik, vals) }}
         >
-          {/* react-select's control anatomy: the outer row never wraps, Chips is the
-              wrapping value container (flex-1), the indicators are a fixed right column */}
-          <Combobox.InputGroup className={cn(inputClasses(), 'flex items-center gap-1.5 cursor-text w-auto', styles.control, invalid && styles.isInvalid)}>
+          {/* Chips wrap while the clear and disclosure controls stay fixed. */}
+          <Combobox.InputGroup className={cn(inputClasses({ size: controlSize, className }), 'flex items-center gap-1.5 cursor-text w-auto', styles.control, invalid && styles.isInvalid)}>
             <Combobox.Chips className='flex flex-wrap items-center gap-1.5 flex-1 min-w-0'>
               <Combobox.Value>
                 {vals => (
@@ -59,7 +61,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
                           {v}
                         </span>
                         <Combobox.ChipRemove aria-label={`Remove ${v}`} className='px-1 cursor-pointer border-0 bg-transparent'>
-                          <CloseIcon width={14} height={14} className='fill-grey' />
+                          <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-grey' />
                         </Combobox.ChipRemove>
                       </Combobox.Chip>
                     ))}
@@ -68,20 +70,18 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
                 )}
               </Combobox.Value>
             </Combobox.Chips>
-            {/* Clear auto-unmounts at zero chips and bakes tabIndex -1 and a
-                focus-preserving mousedown; both buttons are click-only, like
-                the old react-select indicators */}
+            {/* Clear unmounts when no values are selected. */}
             <Combobox.Clear
               aria-label='Clear selection'
               className='flex items-center px-1 border-0 bg-transparent cursor-pointer max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
             >
-              <CloseIcon width={16} height={16} className='fill-grey' />
+              <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-grey' />
             </Combobox.Clear>
             <Combobox.Trigger
               aria-label='Open popup'
               className='flex items-center px-2 border-0 bg-transparent cursor-pointer max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
             >
-              <ArrowDownSFill width={20} height={20} className='fill-grey' />
+              <ArrowDownSFill width={triggerIconSize} height={triggerIconSize} className='fill-grey' />
             </Combobox.Trigger>
           </Combobox.InputGroup>
           <Combobox.Portal>

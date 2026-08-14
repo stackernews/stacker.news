@@ -3,8 +3,6 @@ import { useField, useFormikContext } from 'formik'
 import { OTPField } from '@base-ui/react/otp-field'
 import { FormGroup, inputClasses, errorClasses } from './field'
 
-// Base UI OTP Field owns focus management, the per-slot caret, paste fan-out,
-// Backspace retreat and arrow keys
 export function OtpInput ({ name, length = 6, label, groupClassName, disabled, autoFocus, onChange, ...props }) {
   const formik = useFormikContext()
   const [field, meta, helpers] = useField({ name })
@@ -24,12 +22,12 @@ export function OtpInput ({ name, length = 6, label, groupClassName, disabled, a
         value={field.value ?? ''}
         onValueChange={v => { helpers.setValue(v); onChange?.(v) }}
         onBlur={() => helpers.setTouched(true)}
-        normalizeValue={v => v.toLowerCase()} // idempotent; normalizes typed, pasted, controlled and autofilled values
-        validationType='alphanumeric' // the numeric default would reject bech32 letters
-        autoComplete='one-time-code' // the Base UI default, kept visible
+        normalizeValue={v => v.toLowerCase()}
+        validationType='alphanumeric'
+        autoComplete='one-time-code'
         required
         disabled={disabled}
-        name={name} // the hidden validation input carries it
+        name={name}
         className='flex flex-row justify-center gap-2'
         {...props}
       >

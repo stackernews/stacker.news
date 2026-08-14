@@ -8,8 +8,7 @@ export default function ActionDropdown ({ children }) {
   }
   return (
     <Menu className={`pointer ${styles.dropdown}`}>
-      {/* the old anchor toggle had no href and was untabbable;
-          nativeButton={false} decorates the span with role and tabIndex */}
+      {/* Base UI gives the rendered span button semantics. */}
       <Menu.Trigger nativeButton={false} render={<span><MoreIcon className='fill-grey ms-1' height={16} width={16} /></span>} />
       <Menu.Popup>{children}</Menu.Popup>
     </Menu>

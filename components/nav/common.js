@@ -189,9 +189,6 @@ export function MeDropdown ({ me, dropNavKey }) {
   return (
     <div className='ms-2'>
       <Menu className={styles.dropdown}>
-        {/* ps-0 pe-2 py-0.5 replicate the old painted padding now that the dead
-            .btn and .btn-custom classes are gone; the old nav-item's weight 500
-            was dead under font-normal, so it doesn't ride along */}
         <Menu.Trigger className={navLinkClasses({ className: 'font-normal ps-0 pe-2 py-0.5' })}>
           <div className='flex items-center'>
             {/* never interactive, the Menu.Trigger owns the semantics; active
@@ -308,9 +305,8 @@ function LogoutObstacle ({ onClose }) {
   )
 }
 
-// dual-mode: in-menu in MeDropdown, plain elements in the drawer. The drawer
-// passes className='px-0' to keep its old zero side padding; menu sites pass
-// nothing and keep the recipe padding
+// Items use popup semantics in MeDropdown and plain navigation semantics in
+// the mobile drawer.
 export function LogoutDropdownItem ({ handleClose, className }) {
   const showModal = useShowModal()
 
@@ -380,8 +376,6 @@ export function LoginButtons ({ handleClose, className }) {
 export function AnonDropdown () {
   return (
     <div className='relative'>
-      {/* padding utilities as on MeDropdown's trigger; the old autoClose and
-          path wiring were both inert and got dropped */}
       <Menu className={classNames(styles.dropdown, 'pe-0')}>
         <Menu.Trigger className={navLinkClasses({ className: 'font-medium ps-0 pe-0 py-0.5' })}>
           <span className={navLinkClasses({ className: 'p-0 font-normal' })}>

@@ -109,9 +109,7 @@
 }
 
 @media (max-width: 767px) {
-  /* element-keyed because the old .col and input-group classes left the DOM;
-     the new controls carry min-w-0 themselves, this is belt and suspenders
-     for nested native controls */
+  /* Nested native controls must be allowed to shrink on narrow screens. */
   .formResponsiveReset :global(input),
   .formResponsiveReset :global(textarea),
   .formResponsiveReset :global(select) {

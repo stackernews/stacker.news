@@ -15,8 +15,7 @@ export const menuClasses = ({ className } = {}) =>
 export const itemClasses = ({ active, className } = {}) =>
   cn(styles.item, active && styles.active, 'block w-full py-1.5 px-6 font-medium whitespace-nowrap', className)
 
-/** SN Menu, Base UI Menu at the old Dropdown ergonomics. modal={false} is
- *  baked because Menu.Root is the one popup primitive that scroll-locks by default */
+// Menus do not lock page scroll.
 function Root ({ className, children, ...props }) {
   return (
     <span className={className}>
@@ -37,11 +36,8 @@ function Popup ({ side = 'bottom', align = 'start', sideOffset = 2, className, c
   )
 }
 
-/** dual-mode Item: inside Menu.Popup it renders a Base UI Item or LinkItem,
- *  outside (the drawer nav) a plain styled element. href means link mode,
- *  next/link or a plain <a> when target is passed. closeOnClick is baked on
- *  links since LinkItem defaults it off. Extra props spread so Delete's
- *  injected onClick and dont-link-this's As={Menu.Item} keep working */
+// Items use Base UI semantics inside a popup and plain navigation semantics in
+// drawers. External targets use an anchor; internal routes use Next Link.
 function Item ({ href, target, rel, active, className, children, ...props }) {
   const inMenu = useContext(InMenuContext)
   const cls = itemClasses({ active, className })
@@ -49,9 +45,8 @@ function Item ({ href, target, rel, active, className, children, ...props }) {
     if (href) {
       return <Link href={href} target={target} rel={rel} className={cls} {...props}>{children}</Link>
     }
-    // interactive plain-mode items are real <button>s, a clickable div is
-    // keyboard-dead; passive wrappers nesting their own Buttons stay divs
-    // so we don't nest interactive elements
+    // Passive wrappers stay divs so nested controls do not become interactive
+    // elements inside a button.
     return props.onClick
       ? <button type='button' className={cn(cls, 'bg-transparent border-0 text-start pointer')} {...props}>{children}</button>
       : <div className={cls} {...props}>{children}</div>
@@ -66,7 +61,7 @@ function Item ({ href, target, rel, active, className, children, ...props }) {
 function Separator ({ className }) {
   const inMenu = useContext(InMenuContext)
   const cls = cn(styles.divider, 'my-2', className)
-  // div in both modes, a plain <hr> would inherit reboot's opacity .25 outside the menu
+  // A div keeps separators visually consistent inside and outside popups.
   return inMenu ? <BaseMenu.Separator className={cls} /> : <div role='separator' className={cls} />
 }
 

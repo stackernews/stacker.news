@@ -20,9 +20,7 @@ import ActionTooltip from './action-tooltip'
 import { useAnimationEnabled } from '@/components/animation'
 import { useLiveCommentsToggle } from './use-live-comments'
 
-// trigger press toggles, and outside press or Escape closes, same as the old
-// click trigger with rootClose. nativeButton={false} makes Base UI decorate
-// the div with role and tabIndex, so footer popovers are keyboard-reachable
+// Base UI gives the rendered div button semantics and manages light dismissal.
 function FooterPopover ({ label, children }) {
   return (
     <Popover>

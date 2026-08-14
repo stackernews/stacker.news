@@ -3,7 +3,7 @@
   background-color: var(--sn-badge-bg, transparent);
 }
 
-/* Bootstrap parity */
+/* Empty badges should not reserve inline space. */
 .badge:empty {
   display: none;
 }

@@ -71,8 +71,7 @@
     }
 }
 
-/* globals' .offcanvas-header .btn-close lightning chrome (alert-dismissible's
-   copy lives in alert.module.css); same recipe as the popover and alert close */
+/* Lightning supplies the shared close glyph. */
 .close {
     padding: .5rem;
     color: #000;
@@ -96,8 +95,6 @@
     opacity: 1;
 }
 
-/* the dark paint was Bootstrap's invert(1) filter over #000, which is white
-   (same as the popover and alert close) */
 :global([data-bs-theme='dark']) .close {
     color: #fff;
 }

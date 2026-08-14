@@ -1,13 +1,6 @@
 import { cn } from '@/lib/cn'
 import styles from './alert.module.css'
 
-/**
- * SN Alert component, drop-in for the retired rb Alert
- * @param {string} variant - info | danger | warning
- * @param {boolean} dismissible - render an X close button
- * @param {function} onClose - called when the close button is clicked
- * @param {string} className - extra class name(s) for the alert
- */
 export default function Alert ({ variant, dismissible, onClose, className, children, ...props }) {
   return (
     <div
@@ -26,7 +19,7 @@ function AlertHeading ({ className, ...props }) {
   return <div className={cn('text-reset font-medium text-xl leading-tight mb-2', className)} {...props} />
 }
 
-/* text-reset also beats globals' a:hover recolor, matching today: alert links keep the alert's text color */
+// Alert links retain the surrounding alert color in every state.
 function AlertLink ({ className, ...props }) {
   return <a className={cn('font-bold text-reset', className)} {...props} />
 }

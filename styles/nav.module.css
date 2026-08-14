@@ -1,10 +1,5 @@
-/* the SN nav-link vocabulary, globals' .nav-link family re-homed: colors and
-   svg fills module-side, metrics ride utilities at call sites. The
-   :not(.text-success):not(.text-warning) guards carry over from globals so
-   wallet summaries keep their success green; the Bootstrap-era !important died
-   with the Bootstrap classes it out-shouted. */
-/* Bootstrap's .nav-link carried these resets so the class could sit on
-   <button>s (the corner menu triggers, comments sorts); the re-home keeps them */
+/* Shared link paint also supports button-backed navigation actions. Success
+   and warning states keep their semantic colors. */
 .link {
     background: none;
     border: 0;
@@ -19,8 +14,7 @@
     color: var(--theme-navLinkFocus);
 }
 
-/* two classes beat the single-class font-weight reset riding sorts (.navSort),
-   exactly as globals' .nav-link.active outweighed it */
+/* Active state must beat the local sort-link weight reset. */
 .link.active {
     font-weight: bold;
 }
@@ -56,8 +50,6 @@
     display: block;
 }
 
-/* retargeted to the local class; the old global .nav-link padding-left hook
-   died into ps-0 utilities at the tab sites */
 .nav .active {
     border-bottom: 2px solid var(--bs-primary);
 }

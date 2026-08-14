@@ -84,10 +84,8 @@ export function BaseSuggest ({
     }
   }, [onSelect, resetSuggestions, suggestions])
 
-  // the old dropdown shell becomes a plain listbox on the menu chrome, the
-  // mentions shape. Two anchor modes, both matching the old paint: caret mode
-  // rides dropdownStyle's inline absolute position (search @/~), static mode
-  // is a zero-height relative wrapper right after the input
+  // Search mentions use an explicit caret position. Other suggestions anchor
+  // to the zero-height wrapper immediately after the input.
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions })}
@@ -131,7 +129,8 @@ function BaseInputSuggest ({
         filterItems={filterItems}
         selectWithTab={selectWithTab}
         onSelect={(v) => {
-          // HACK ... ovalue does not trigger onChange
+          // ovalue tracks display state, so selection updates the controlled
+          // field through onChange before syncing that local state.
           onChange && onChange(undefined, { target: { value: v } })
           setOValue(v)
         }}

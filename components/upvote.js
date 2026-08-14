@@ -18,9 +18,8 @@ import classNames from 'classnames'
 const WalkthroughPopover = ({ anchor, show, handleClose, title, children }) => (
   <Popover
     open={show} onOpenChange={(open, details) => {
-      // the old Overlay had no rootClose, so outside press must not dismiss:
-      // handleClose fires the setWalkthrough mutation and marks the walkthrough
-      // seen forever, and a stray click would eat it. Escape is a deliberate add.
+      // Outside press must not mark the walkthrough as seen. Only its close
+      // control and Escape finish it.
       if (!open && (details.reason === 'close-press' || details.reason === 'escape-key')) handleClose()
     }}
   >

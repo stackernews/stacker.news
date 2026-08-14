@@ -6,8 +6,7 @@ import { cn } from '@/lib/cn'
 import { FormGroup, labelClasses, errorClasses } from './field'
 import styles from './checkbox.module.css'
 
-// the explicit dual-mode flag: inside a CheckboxGroup the group owns the
-// formik array, so children skip their own write
+// CheckboxGroup owns the Formik array, so its children skip their own writes.
 const CheckboxGroupContext = createContext(false)
 
 export function Checkbox ({
@@ -15,9 +14,8 @@ export function Checkbox ({
   hiddenLabel, extra, handleChange, inline, disabled, ...props
 }) {
   const inGroup = useContext(CheckboxGroupContext)
-  // formik treats checkbox inputs specially: with `type` passed, useField
-  // returns the right bag of props (field.checked derives from array
-  // membership when a value prop is present)
+  // Passing type lets Formik derive checked from array membership when the
+  // checkbox also has a value.
   const [field, meta, helpers] = useField({ ...props, type })
   const invalid = meta.touched && meta.error // not submit-gated: checkboxes paint invalid immediately, inputs wait for a submit attempt
   const id = props.id || props.name
@@ -25,8 +23,7 @@ export function Checkbox ({
   return (
     <FormGroup className={groupClassName}>
       {hiddenLabel && <label className={cn(labelClasses(), 'invisible block')}>{label}</label>}
-      {/* the label wraps the control: Base UI's span isn't labelable, but the
-          hidden real input inside it is, and wrapping associates natively */}
+      {/* The hidden input keeps the wrapping label association native. */}
       <label className={cn(styles.check, 'mb-0.5', inline && 'inline-flex me-4')}>
         <BaseCheckbox.Root
           id={id}
@@ -35,8 +32,8 @@ export function Checkbox ({
           checked={!!field.checked}
           className={cn(styles.checkInput, styles.checkbox, invalid && styles.invalid)}
           onCheckedChange={(checked) => {
-            // group mode: containment already drives checked (CheckboxRoot.mjs:126)
-            // and the group writes the array, so there is one write path
+            // The group writes its array through onValueChange, leaving one
+            // write path for grouped checkboxes.
             if (!inGroup) helpers.setValue(checked)
             handleChange && handleChange(checked, helpers.setValue)
           }}

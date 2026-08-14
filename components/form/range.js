@@ -6,8 +6,7 @@ import { cn } from '@/lib/cn'
 import { FormGroup, inputClasses, hintClasses, errorClasses } from './field'
 import styles from './range.module.css'
 
-// the formik-less skinned primitive; avatar composes it bare and Range below
-// wires it to formik
+// Avatar uses the bare Slider while Range connects it to Formik.
 export function Slider ({ className, ...props }) {
   return (
     <BaseSlider.Root {...props}>
@@ -46,8 +45,8 @@ export function Range ({
       step={step}
       format={{ useGrouping: false }}
       onValueChange={(v) => {
-        // Base UI parses empty text to null on change and blur; never write
-        // the infinity sentinel from the number field
+        // Empty number input becomes null; null is reserved for the separate
+        // all-values option.
         if (v == null) return
         helpers.setValue(v)
         onChange && onChange(v)
@@ -79,13 +78,11 @@ export function Range ({
             }
             onChange && onChange(v)
           }}
-          onBlur={() => helpers.setTouched(true)} // touched on blur, not on every value commit
+          onBlur={() => helpers.setTouched(true)}
         />
         <small className='text-muted font-mono'>{max}</small>
-        {/* number plus suffix mini-group: a plain flex row with call-site
-            corner utilities, not the shared InputGroup, whose structural
-            sibling rules would flatten NumberField.Root's wrapper div instead
-            of the input */}
+        {/* NumberField adds a wrapper, so this pair joins its corners directly
+            instead of using InputGroup's sibling rules. */}
         <div className='flex flex-nowrap items-stretch' style={{ width: 'auto' }}>
           {isAll
             ? <span className={inputClasses({ className: cn('flex w-16 items-center justify-end gap-1 px-2 whitespace-nowrap', suffix && 'rounded-e-none') })}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>

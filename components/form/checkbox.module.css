@@ -1,6 +1,4 @@
-/* checkbox and radio skins, values from Bootstrap's compiled output: 1em box,
-   --bs-body-bg when unchecked (not inputBg), --bs-primary when checked
-   (territory-tintable), black glyph SVGs from globals' override */
+/* Shared checkbox and radio paint. Brand colors remain territory-aware. */
 
 .check {
     display: flex;

@@ -4,7 +4,7 @@
   background-color: var(--theme-inputBg);
   border: 1px solid var(--theme-borderColor);
   outline: 0;
-  max-width: 90vw;          /* SN one-off guard from globals' .dropdown-menu, kept verbatim */
+  max-width: 90vw;
   overflow: auto;
   transform-origin: var(--transform-origin);
   transition: opacity 150ms ease-out, transform 150ms ease-out;
@@ -14,15 +14,14 @@
 @media (prefers-reduced-motion: reduce) { .popup { transition: none; } }
 
 .item {
-  /* class beats element specificity here, so no !important is needed against
-     the global anchor rules, unlike the .dropdown-item originals */
+  /* The component class keeps menu paint above global anchor defaults. */
   color: var(--theme-dropdownItemColor);
   cursor: pointer;
 }
 .item:hover,
 .item[data-highlighted] {
   color: var(--theme-dropdownItemColorHover);
-  outline: none;            /* the highlight paint replaces the focus ring, the docs pattern */
+  outline: none;
 }
 .active,
 .active:hover,

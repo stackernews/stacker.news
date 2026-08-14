@@ -2,17 +2,8 @@ import { Drawer as BaseDrawer } from '@base-ui/react/drawer'
 import { cn } from '@/lib/cn'
 import styles from './drawer.module.css'
 
-/**
- * SN Drawer, Base UI Drawer (a Dialog underneath, plus gestures) at Offcanvas
- * ergonomics for the two consumers: the mobile nav drawer (end) and the
- * wallets bottom sheet (bottom). modal defaults on, so scroll lock and the
- * focus trap match the old behavior. Swipe to dismiss is native (right or
- * down); exit motion rides the primitive's deferred unmount, so a CSS
- * transition is all the machinery there is.
- * @param {boolean} show - whether the drawer is open (controlled)
- * @param {function} onHide - called on any close reason (Escape, backdrop, swipe, X)
- * @param {string} placement - 'end' (right panel) or 'bottom' (sheet)
- */
+// The mobile nav opens from the end and wallet sheets open from the bottom.
+// Both placements lock scroll, trap focus, and support directional dismissal.
 function Drawer ({ show, onHide, placement = 'end', className, children }) {
   return (
     <BaseDrawer.Root
@@ -40,7 +31,6 @@ function Drawer ({ show, onHide, placement = 'end', className, children }) {
   )
 }
 
-/* the X is baked in, both consumers passed closeButton */
 function Header ({ children }) {
   return (
     <div className='flex items-center p-8'>
@@ -54,14 +44,10 @@ function Header ({ children }) {
 }
 
 function Title ({ children }) {
-  // text-lg (18px) is nearest native to the old 18.6px offcanvas title;
-  // font-medium carries Bootstrap's $headings-font-weight: 500
   return <BaseDrawer.Title className='text-lg font-medium mb-0'>{children}</BaseDrawer.Title>
 }
 
-/* Content, not a bare div: it is the separator that keeps clicks and text
-   selection clean under the swipe layer. p-8 matches the old 32px; the nav
-   drawer passes pb-0, the sheet px-4 */
+// Content separates clicks and text selection from the swipe layer.
 function Body ({ className, children }) {
   return <BaseDrawer.Content className={cn('p-8 grow', className)}>{children}</BaseDrawer.Content>
 }

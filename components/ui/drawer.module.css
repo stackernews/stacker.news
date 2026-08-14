@@ -95,6 +95,6 @@
     opacity: 1;
 }
 
-:global([data-bs-theme='dark']) .close {
+:global([data-theme='dark']) .close {
     color: #fff;
 }

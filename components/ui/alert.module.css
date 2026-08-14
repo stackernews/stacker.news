@@ -13,7 +13,7 @@
 }
 
 /* Dark surfaces reverse the mix direction for contrast. */
-:global([data-bs-theme='dark']) .alert {
+:global([data-theme='dark']) .alert {
   color: color-mix(in srgb, #fff 40%, var(--sn-alert-base));
   background-color: color-mix(in srgb, #000 80%, var(--sn-alert-base));
 }
@@ -62,6 +62,6 @@
   opacity: 1;
 }
 
-:global([data-bs-theme='dark']) .close {
+:global([data-theme='dark']) .close {
   color: #fff;
 }

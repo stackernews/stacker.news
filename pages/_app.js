@@ -2,9 +2,9 @@ import '@/styles/globals.scss'
 import '@/styles/tokens.css'
 import '@/styles/tailwind.css'
 // Keep KaTeX separate so PostCSS does not rewrite its relative font URLs.
-// text.scss follows it because rendered content owns the final local rules.
+// text.css follows it so rendered content owns the final local rules.
 import 'katex/dist/katex.min.css'
-import '@/styles/text.scss'
+import '@/styles/text.css'
 import { gql } from '@apollo/client'
 import { ApolloProvider } from '@apollo/client/react'
 import { MeProvider } from '@/components/me'

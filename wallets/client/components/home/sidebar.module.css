@@ -15,7 +15,7 @@
 }
 .orderHint {
   margin: -0.35rem 0 0;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: 0.8rem;
   line-height: 1.2;
 }

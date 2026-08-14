@@ -5,7 +5,7 @@ import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowDown from '@/svgs/arrow-down-s-fill.svg'
 import { cn } from '@/lib/cn'
 
-export default function AccordionItem ({ header, body, className, headerColor = 'var(--theme-grey)', show }) {
+export default function AccordionItem ({ header, body, className, headerColor = 'var(--sn-grey)', show }) {
   const [open, setOpen] = useState(!!show)
 
   useEffect(() => {

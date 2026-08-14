@@ -4,7 +4,7 @@
 
 .other {
     font-size: 80%;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
 }
 
 @media only screen and (max-width: 600px) {

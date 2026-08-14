@@ -11,7 +11,7 @@
 .other {
     font-weight: 500;
     font-size: 70%;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
 }
 
 .revoke {

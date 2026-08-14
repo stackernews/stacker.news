@@ -16,7 +16,7 @@
 
 .dragOver {
   transform: scale(1.02);
-  outline: 2px dashed var(--bs-primary);
+  outline: 2px dashed var(--sn-primary);
   outline-offset: 4px;
   box-shadow: 0 0 0 4px rgba(250, 218, 94, 0.15);
 }

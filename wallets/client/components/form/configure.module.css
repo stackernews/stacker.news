@@ -15,15 +15,15 @@
 .asideCard {
   gap: var(--wt-gap-md);
   padding: 1rem;
-  border: 1px solid rgba(var(--theme-color-rgb), 0.08);
+  border: 1px solid rgba(var(--sn-color-rgb), 0.08);
   border-radius: var(--wt-radius-md);
-  background: color-mix(in srgb, var(--theme-toolbarHover) 35%, transparent);
+  background: color-mix(in srgb, var(--sn-toolbarHover) 35%, transparent);
 }
 .saveBar {
   grid-column: 1 / -1;
 }
 .saveBlocker {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   line-height: 1.2;
 }
 .saveButton {
@@ -36,13 +36,13 @@
   gap: var(--wt-gap-lg);
   margin-top: 1.25rem;
   padding: 1.5rem 2rem;
-  border: 1px solid rgba(var(--bs-danger-rgb), 0.28);
+  border: 1px solid rgba(var(--sn-danger-rgb), 0.28);
   border-radius: var(--wt-radius-lg);
-  background: rgba(var(--bs-danger-rgb), 0.035);
+  background: rgba(var(--sn-danger-rgb), 0.035);
 }
 .dangerZone p {
   margin: 0.35rem 0 0;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
 }
 .deleteButton {
   --text-button-gap: 0.4rem;
@@ -52,9 +52,9 @@
   flex-shrink: 0;
   margin-top: 0;
   padding: 0.8rem 1.25rem;
-  border: 1px solid var(--bs-danger);
+  border: 1px solid var(--sn-danger);
   border-radius: var(--wt-radius-md);
-  background: var(--bs-danger);
+  background: var(--sn-danger);
   color: #fff;
   white-space: nowrap;
 }
@@ -95,7 +95,7 @@
     flex: 1;
     min-width: 0;
     text-align: right;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
   }
   .saveButton {
     flex: 0 0 auto;

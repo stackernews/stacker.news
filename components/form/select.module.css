@@ -4,8 +4,8 @@
     appearance: none;
     display: inline-block;
     width: 100%;
-    background-color: var(--theme-clickToContextColor);
-    color: var(--theme-dropdownItemColor);
+    background-color: var(--sn-clickToContextColor);
+    color: var(--sn-dropdownItemColor);
     font-weight: bold;
     font-size: .7875rem;
     border: none;

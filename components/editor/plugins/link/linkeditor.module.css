@@ -19,7 +19,7 @@
   font-family: inherit;
   font-size: 12px;
   line-height: 1.2;
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
   outline: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -31,11 +31,11 @@
 }
 
 [data-bs-theme="light"] .linkInput {
-  border-right: 1px solid var(--theme-borderColor);
+  border-right: 1px solid var(--sn-borderColor);
 }
 
 .linkView {
-  color: var(--theme-link);
+  color: var(--sn-link);
   min-height: calc(1em * 1.2 + 1rem);
 }
 
@@ -67,7 +67,7 @@
 .linkEditIcon:hover,
 .linkRemoveIcon:hover {
   opacity: 0.85;
-  background-color: var(--theme-toolbarHoverBg, rgba(128, 128, 128, 0.1));
+  background-color: var(--sn-toolbarHoverBg, rgba(128, 128, 128, 0.1));
 }
 
 .linkConfirmIcon:hover {

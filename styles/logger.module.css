@@ -3,7 +3,7 @@
     padding-right: 1em;
     font-size: x-small;
     font-family: monospace;
-    color: var(--theme-grey) !important; /* .text-muted */
+    color: var(--sn-grey) !important; /* .text-muted */
 }
 
 /* Embedded contexts (inside a transaction card or a protocol panel) cap the log
@@ -35,7 +35,7 @@
     align-items: baseline;
     gap: 0.5rem;
     font-family: monospace;
-    color: var(--theme-grey) !important; /* .text-muted */
+    color: var(--sn-grey) !important; /* .text-muted */
 }
 
 .row:hover {

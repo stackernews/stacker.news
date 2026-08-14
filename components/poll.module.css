@@ -3,7 +3,7 @@
    only declarations the recipe never emits belong here */
 .pollButton {
     margin-top: .25rem;
-    border: 2px solid var(--bs-info);
+    border: 2px solid var(--sn-info);
     width: 100%;
     max-width: 600px;
     text-transform: uppercase;
@@ -31,7 +31,7 @@
     content: '\A';
     border-radius: .4rem 0rem 0rem .4rem;
     position: absolute;
-    background: var(--theme-clickToContextColor);
+    background: var(--sn-clickToContextColor);
     top: 0;
     bottom: 0;
     left: 0;

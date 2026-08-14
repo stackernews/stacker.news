@@ -1,8 +1,8 @@
 .positioner { z-index: var(--sn-z-dropdown); }
 
 .popup {
-  background-color: var(--theme-inputBg);
-  border: 1px solid var(--theme-borderColor);
+  background-color: var(--sn-inputBg);
+  border: 1px solid var(--sn-borderColor);
   outline: 0;
   max-width: 90vw;
   overflow: auto;
@@ -15,19 +15,19 @@
 
 .item {
   /* The component class keeps menu paint above global anchor defaults. */
-  color: var(--theme-dropdownItemColor);
+  color: var(--sn-dropdownItemColor);
   cursor: pointer;
 }
 .item:hover,
 .item[data-highlighted] {
-  color: var(--theme-dropdownItemColorHover);
+  color: var(--sn-dropdownItemColorHover);
   outline: none;
 }
 .active,
 .active:hover,
 .active[data-highlighted] {
-  color: var(--theme-brandColor);
-  text-shadow: 0 0 10px var(--bs-primary);   /* PR3: rename to the --sn token */
+  color: var(--sn-brandColor);
+  text-shadow: 0 0 10px var(--sn-primary);
 }
 
-.divider { border-top: 1px solid var(--theme-borderColor); }
+.divider { border-top: 1px solid var(--sn-borderColor); }

@@ -40,7 +40,7 @@ function Ots ({ item }) {
         : (
           <pre
             className='mb-2 p-2 rounded-md'
-            style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', border: '1px solid var(--theme-borderColor)', color: 'var(--bs-body-color)' }}
+            style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', border: '1px solid var(--sn-borderColor)', color: 'var(--sn-body-color)' }}
           >{itemString}
           </pre>)}
       <a href={`/api/ots/preimage/${item.id}`} className={buttonClasses({ variant: 'grey-medium', className: 'mt-1' })}>download preimage</a>

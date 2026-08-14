@@ -19,7 +19,7 @@
 }
 
 .pyramid:focus-visible {
-  outline: 2px solid var(--bs-body-color);
+  outline: 2px solid var(--sn-body-color);
   outline-offset: 3px;
 }
 

@@ -23,8 +23,8 @@ img.fullScreen {
 }
 
 .fullScreenContainer {
-    --bs-columns: 1;
-    --bs-rows: 1;
+    --sn-columns: 1;
+    --sn-rows: 1;
     display: grid;
     width: 100%;
     height: 100%;

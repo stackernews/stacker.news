@@ -6,13 +6,13 @@
   flex-direction: column;
   gap: var(--wt-gap-xl);
   padding: 1.5rem 2rem;
-  border: 1px solid rgba(var(--theme-color-rgb), 0.12);
+  border: 1px solid rgba(var(--sn-color-rgb), 0.12);
   border-radius: var(--wt-radius-lg);
-  background: color-mix(in srgb, var(--theme-toolbarHover) 22%, var(--bs-body-bg));
+  background: color-mix(in srgb, var(--sn-toolbarHover) 22%, var(--sn-body-bg));
 }
 .cardOptional {
   border-style: dashed;
-  background: color-mix(in srgb, rgba(var(--bs-warning-rgb), 0.08) 45%, var(--bs-body-bg));
+  background: color-mix(in srgb, rgba(var(--sn-warning-rgb), 0.08) 45%, var(--sn-body-bg));
 }
 .header {
   min-width: 0;
@@ -26,14 +26,14 @@
   min-width: 0;
 }
 .icon {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
 }
 .cardSend .icon,
 .cardFallback .icon {
-  color: var(--bs-warning);
+  color: var(--sn-warning);
 }
 .cardReceive .icon {
-  color: var(--bs-success);
+  color: var(--sn-success);
 }
 .titleRow h2 {
   margin: 0;
@@ -52,9 +52,9 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.85rem 1rem;
-  border: 1px solid rgba(var(--theme-color-rgb), 0.1);
+  border: 1px solid rgba(var(--sn-color-rgb), 0.1);
   border-radius: var(--wt-radius-md);
-  background: color-mix(in srgb, var(--bs-body-bg) 72%, var(--theme-toolbarHover));
+  background: color-mix(in srgb, var(--sn-body-bg) 72%, var(--sn-toolbarHover));
 }
 .method .protocolSelector {
   --chip-padding: 0.55rem 1rem;
@@ -69,7 +69,7 @@
   --sn-input-radius: var(--wt-radius-md);
 }
 .form :global(.mb-3) {
-  /* required: Bootstrap .mb-3 sets margin-bottom: 1rem !important */
+  /* Override the important global margin utility inside the card. */
   margin-bottom: 0 !important;
 }
 .form :global(input:not([type='checkbox']):not([type='radio'])),

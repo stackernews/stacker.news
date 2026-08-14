@@ -11,7 +11,7 @@
 }
 
 .root {
-  --sn-toast-bg: var(--theme-grey);  /* default; per-type overrides below (never paints via useToast) */
+  --sn-toast-bg: var(--sn-grey);  /* default; per-type overrides below (never paints via useToast) */
   --sn-toast-color: #fff;
   --sn-toast-gap: 0.75rem;                   /* vertical space between toasts when expanded */
   --sn-toast-peek: 0.75rem;                  /* visible sliver of each behind-toast while collapsed */

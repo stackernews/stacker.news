@@ -3,7 +3,7 @@
 .track {
     height: .5rem;
     border-radius: 1rem;
-    background-color: var(--bs-secondary-bg);
+    background-color: var(--sn-secondary-bg);
 }
 
 /* Base UI owns inline positioning, so top centers the thumb without adding a
@@ -12,7 +12,7 @@
     width: 1rem;
     height: 1rem;
     border-radius: 1rem;
-    background-color: var(--bs-primary);
+    background-color: var(--sn-primary);
     position: absolute;
     top: calc(50% - .5rem);
 }
@@ -29,12 +29,12 @@
 
 .thumb[data-disabled] {
     pointer-events: none;
-    background-color: var(--bs-secondary-color);
+    background-color: var(--sn-secondary-color);
 }
 
 .addon {
-    background-color: var(--theme-clickToContextColor);
-    border: 1px solid var(--theme-borderColor);
+    background-color: var(--sn-clickToContextColor);
+    border: 1px solid var(--sn-borderColor);
     border-inline-start: 0;
     border-radius: .375rem;
 }

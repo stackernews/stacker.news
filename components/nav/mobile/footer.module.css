@@ -3,8 +3,8 @@
     position: fixed;
     bottom: 0;
     width: 100%;
-    background-color: var(--bs-body-bg);
-    border-top: 1px solid var(--theme-toolbarActive);
+    background-color: var(--sn-body-bg);
+    border-top: 1px solid var(--sn-toolbarActive);
     z-index: var(--sn-z-fixed);
 }
 

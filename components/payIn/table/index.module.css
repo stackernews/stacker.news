@@ -15,7 +15,7 @@
   text-transform: uppercase;
   font-weight: 600;
   font-size: 0.8rem;
-  color: var(--theme-mutedTextColor);
+  color: var(--sn-mutedTextColor);
   text-align: center;
 }
 
@@ -28,7 +28,7 @@
 }
 
 .row:hover:not(.header) > * {
-  background-color: var(--theme-clickToContextColor);
+  background-color: var(--sn-clickToContextColor);
 }
 
 .row > * {

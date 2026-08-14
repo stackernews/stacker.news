@@ -4,8 +4,8 @@
 }
 
 .brand svg {
-    fill: var(--theme-brandColor);
-    filter: drop-shadow(0 0 6px var(--bs-primary));
+    fill: var(--sn-brandColor);
+    filter: drop-shadow(0 0 6px var(--sn-primary));
 }
 
 .brandImage {
@@ -72,8 +72,8 @@
     left: 0;
     right: 0;
     z-index: var(--sn-z-sticky);
-    background-color: var(--bs-body-bg);
-    border-bottom: 1px solid var(--theme-toolbarActive);
+    background-color: var(--sn-body-bg);
+    border-bottom: 1px solid var(--sn-toolbarActive);
     transform: translateY(-100%);
     visibility: hidden;
 }

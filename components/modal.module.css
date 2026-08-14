@@ -14,12 +14,12 @@
   overflow-x: hidden;
 }
 .viewport.fullScreen {
-  background-color: color-mix(in srgb, var(--theme-inputBg) 66%, transparent);
+  background-color: color-mix(in srgb, var(--sn-inputBg) 66%, transparent);
 }
 
 .popup {
-  background-color: var(--theme-inputBg);
-  border: 1px solid var(--theme-borderColor);
+  background-color: var(--sn-inputBg);
+  border: 1px solid var(--sn-borderColor);
   outline: 0;
 }
 .popup.fullScreen {

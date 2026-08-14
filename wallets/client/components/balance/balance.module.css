@@ -14,8 +14,8 @@
   min-height: 28px;
   display: flex;
   align-items: center;
-  color: var(--theme-grey);
-  font-family: var(--bs-font-monospace);
+  color: var(--sn-grey);
+  font-family: var(--sn-font-monospace);
   font-size: 0.8rem;
   line-height: 1.2;
   text-align: right;
@@ -34,7 +34,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-family: var(--bs-font-monospace);
+  font-family: var(--sn-font-monospace);
   line-height: 1;
   text-align: center;
 }
@@ -48,7 +48,7 @@
 .heroMessage,
 .heroMessageSecondary {
   margin-top: 0.75rem;
-  font-family: var(--bs-body-font-family);
+  font-family: var(--sn-font-sans-serif);
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.2;
@@ -56,7 +56,7 @@
 .heroUnavailable,
 .heroUnit,
 .heroMessageSecondary {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
 }
 .heroDash {
   font-size: clamp(4rem, 10vw, 7.5rem);

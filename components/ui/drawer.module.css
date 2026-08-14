@@ -27,7 +27,7 @@
 /* 150ms ease-out both ways, both placements; exit rides Base UI's deferred
    unmount, and swipe release goes instant so the panel tracks the finger */
 .popup {
-    background-color: var(--bs-body-bg);
+    background-color: var(--sn-body-bg);
     transition: transform 150ms ease-out;
     outline: 0;
 }
@@ -36,16 +36,16 @@
     transition-duration: 0ms;
 }
 
-/* edge fidelity: the translucent border, not --theme-borderColor, whose dark
+/* edge fidelity: the translucent border, not --sn-borderColor, whose dark
    value is a much harsher 50% white. The box-shadow is a bleed, not a shadow:
    rubber-banding on a reverse swipe pulls the panel off its resting edge and
    would show backdrop through the gap, so a same-bg slab trails the panel and
    covers it. The shadow is layout-inert, rides the transform, and overflow
    doesn't clip it */
 .end {
-    border-left: 1px solid var(--bs-border-color-translucent);
+    border-left: 1px solid var(--sn-border-color-translucent);
     transform: translateX(var(--drawer-swipe-movement-x));
-    box-shadow: 10rem 0 0 var(--bs-body-bg);
+    box-shadow: 10rem 0 0 var(--sn-body-bg);
 }
 
 .end[data-starting-style],
@@ -54,9 +54,9 @@
 }
 
 .bottom {
-    border-top: 1px solid var(--bs-border-color-translucent);
+    border-top: 1px solid var(--sn-border-color-translucent);
     transform: translateY(var(--drawer-swipe-movement-y));
-    box-shadow: 0 10rem 0 var(--bs-body-bg);
+    box-shadow: 0 10rem 0 var(--sn-body-bg);
 }
 
 .bottom[data-starting-style],

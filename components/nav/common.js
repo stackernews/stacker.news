@@ -167,7 +167,7 @@ export const Indicator = ({ show, top = '0px', right = '0px', variant = 'seconda
       {show && (
         <span
           className={`absolute p-1 ${variant === 'danger' ? 'bg-danger' : 'bg-secondary'}`}
-          style={{ top, right, height: '5px', width: '5px', border: '1px solid var(--bs-body-bg)' }}
+          style={{ top, right, height: '5px', width: '5px', border: '1px solid var(--sn-body-bg)' }}
         >
           <span className='invisible'>{' '}</span>
         </span>

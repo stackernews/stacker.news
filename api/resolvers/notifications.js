@@ -115,25 +115,38 @@ export default {
       )
 
       // Territory subscriptions
+      // Gate the time-ordered item scan on a non-empty subscription set and
+      // bound it to the oldest possible territory notification.
       itemDrivenQueries.push(
-        `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
-          FROM "Item"
-          JOIN LATERAL (
-            SELECT 1
-            FROM "ItemSub"
-            JOIN "SubSubscription" ON "SubSubscription"."userId" = $1
-              AND "SubSubscription"."subName" = "ItemSub"."subName"
-            WHERE "ItemSub"."itemId" = "Item".id
-            AND "Item".created_at >= "SubSubscription".created_at
-            LIMIT 1
-          ) "SubscribedTerritory" ON true
-          ${whereClause(
-            '"Item".created_at < $2',
-            '"Item"."userId" <> $1',
-            '"Item"."parentId" IS NULL'
-          )}
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}`
+        `SELECT "TerritoryItem".*, "TerritoryItem".created_at AS "sortTime", 'TerritoryPost' AS type
+          FROM (
+            SELECT MIN(created_at) AS "oldestCreatedAt"
+            FROM "SubSubscription"
+            WHERE "userId" = $1
+            HAVING COUNT(*) > 0
+          ) "TerritorySubscriptionBounds"
+          CROSS JOIN LATERAL (
+            SELECT "Item".*
+            FROM "Item"
+            JOIN LATERAL (
+              SELECT 1
+              FROM "ItemSub"
+              JOIN "SubSubscription"
+                ON "SubSubscription"."userId" = $1
+                AND "SubSubscription"."subName" = "ItemSub"."subName"
+              WHERE "ItemSub"."itemId" = "Item".id
+              AND "Item".created_at >= "SubSubscription".created_at
+              LIMIT 1
+            ) "SubscribedTerritory" ON true
+            ${whereClause(
+              '"Item".created_at < $2',
+              '"Item".created_at >= "TerritorySubscriptionBounds"."oldestCreatedAt"',
+              '"Item"."userId" <> $1',
+              '"Item"."parentId" IS NULL'
+            )}
+            ORDER BY "Item".created_at DESC
+            LIMIT ${LIMIT}
+          ) "TerritoryItem"`
       )
 
       // mentions

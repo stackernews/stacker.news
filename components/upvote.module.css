@@ -6,7 +6,7 @@
 }
 
 .boost {
-    fill: var(--theme-clickToContextColor);
+    fill: var(--sn-clickToContextColor);
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
@@ -50,7 +50,7 @@
 }
 
 .cover {
-    background: var(--bs-body-bg);
+    background: var(--sn-body-bg);
     width: 100%;
     overflow: hidden;
     mix-blend-mode: color;

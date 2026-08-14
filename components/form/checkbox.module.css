@@ -14,8 +14,8 @@
     width: 1em;
     height: 1em;
     margin-top: .375em;
-    border: 1px solid var(--bs-border-color);
-    background-color: var(--bs-body-bg);
+    border: 1px solid var(--sn-border-color);
+    background-color: var(--sn-body-bg);
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
@@ -37,8 +37,8 @@
 }
 
 .checkInput[data-checked] {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
+    background-color: var(--sn-primary);
+    border-color: var(--sn-primary);
 }
 
 .checkbox[data-checked] {

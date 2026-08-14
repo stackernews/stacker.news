@@ -62,7 +62,7 @@
   display: flex;
   align-items: center;
   margin-left: auto;
-  /* the lightning font renders the X glyph as SN's modal close bolt */
+  /* Lightning renders the close glyph. */
   font-family: "lightning";
   font-size: 160%;
   line-height: 1rem;
@@ -189,7 +189,7 @@
   --chip-padding: 0.35rem 0.65rem;
   --chip-radius: 6px;
   --chip-bg: transparent;
-  --chip-color: var(--bs-body-color);
+  --chip-color: var(--sn-body-color);
   min-height: 42px;
 }
 .maxFeeAmount {
@@ -206,11 +206,10 @@
   fill: currentColor;
 }
 
-/* font-weight is recipe-owned on a Button, so it never applied here; the
-   paint is font-bold's 700 */
 .submit {
   min-width: 180px;
 }
+/* Keep the secondary line normal beneath the bold button label. */
 .submit small {
   font-size: 0.875em;
   font-weight: 400;
@@ -225,14 +224,14 @@
   height: 22px;
   flex-shrink: 0;
   /* beats global svg/.fill-* rules so the icon uses the body color */
-  color: var(--bs-body-color) !important;
+  color: var(--sn-body-color) !important;
   fill: currentColor;
 }
 .internalIcon path {
   fill: currentColor;
 }
 .walletName {
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
 }
 
 @media (max-width: 767px) {

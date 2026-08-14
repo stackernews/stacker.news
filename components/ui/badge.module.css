@@ -9,16 +9,16 @@
 }
 
 .grey {
-  --sn-badge-color: var(--theme-grey);
-  --sn-badge-bg: var(--theme-clickToContextColor);
+  --sn-badge-color: var(--sn-grey);
+  --sn-badge-bg: var(--sn-clickToContextColor);
 }
 
 .secondary {
-  --sn-badge-bg: rgba(var(--bs-secondary-rgb), var(--sn-badge-opacity, 1));
+  --sn-badge-bg: rgba(var(--sn-secondary-rgb), var(--sn-badge-opacity, 1));
 }
 
 .boost {
-  --sn-badge-bg: rgba(var(--bs-boost-rgb), var(--sn-badge-opacity, 1));
+  --sn-badge-bg: rgba(var(--sn-boost-rgb), var(--sn-badge-opacity, 1));
 }
 
 .danger {

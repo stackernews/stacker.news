@@ -1,4 +1,5 @@
 import '@/styles/globals.scss'
+import '@/styles/tokens.css'
 import '@/styles/tailwind.css'
 // Keep KaTeX separate so PostCSS does not rewrite its relative font URLs.
 // text.scss follows it because rendered content owns the final local rules.

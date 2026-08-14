@@ -21,14 +21,14 @@
    and the login-button extras. PR3: fold or retire with the toolbar skins */
 .dropdownExtraItem:hover,
 .dropdownExtraItem[data-highlighted] {
-  background-color: var(--theme-toolbarActive);
+  background-color: var(--sn-toolbarActive);
   opacity: 1;
   border-radius: 0.3rem;
   outline: none;
 }
 
 .dropdownExtraItem svg {
-  fill: var(--theme-dropdownItemColor);
+  fill: var(--sn-dropdownItemColor);
 }
 
 .dropdownExtraItem.active {
@@ -38,7 +38,7 @@
 }
 
 .dropdownExtraItem.active .dropdownExtraItemText {
-  color: var(--theme-brandColor) !important;
-  filter: drop-shadow(0 0 6px var(--bs-primary));
+  color: var(--sn-brandColor) !important;
+  filter: drop-shadow(0 0 6px var(--sn-primary));
   font-weight: 500;
 }

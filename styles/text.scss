@@ -61,7 +61,7 @@
 }
 
 .sn-text[contenteditable="false"] {
-  background-color: var(--theme-body) !important;
+  background-color: var(--sn-body) !important;
 }
 
 .sn-text.topLevel {
@@ -86,7 +86,7 @@
   height: 50vh;
   pointer-events: none;
   z-index: 1;
-  background: linear-gradient(rgba(255, 255, 255, 0), var(--bs-body-bg) 200%);
+  background: linear-gradient(rgba(255, 255, 255, 0), var(--sn-body-bg) 200%);
 }
 
 .sn-text__show-full {
@@ -113,7 +113,7 @@
 }
 
 .sn-text hr, .sn-hr {
-  border-top: 3px solid var(--theme-quoteBar);
+  border-top: 3px solid var(--sn-quoteBar);
   caret-color: transparent;
 }
 
@@ -155,7 +155,7 @@
 
 /* blocks */
 .sn-quote {
-  border-left: 3px solid var(--theme-quoteBar);
+  border-left: 3px solid var(--sn-quoteBar);
   padding-left: .75rem;
   // nested elements don't need extra spacing (override the :where default)
   > *:first-child {
@@ -167,7 +167,7 @@
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
+  scrollbar-color: var(--sn-borderColor) var(--sn-commentBg);
 }
 
 .sn-media {
@@ -192,7 +192,7 @@
 }
 
 .sn-media-autolink__loading {
-  color: var(--theme-link);
+  color: var(--sn-link);
   text-decoration: none;
   animation: fadeInOut 1s ease-in-out infinite alternate;
 }
@@ -244,11 +244,11 @@
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
   font-size: 0.875rem;
   line-height: 1.5;
   padding: 0.5rem;
-  background-color: var(--theme-commentBg);
+  background-color: var(--sn-commentBg);
   border-radius: 0.4rem;
   width: 100%;
   height: 100%;
@@ -282,7 +282,7 @@
   align-items: center;
   width: 100%;
   height: 100%;
-  background-color: var(--theme-commentBg);
+  background-color: var(--sn-commentBg);
 }
 
 // image can load very fast, fade in to avoid flashing
@@ -296,7 +296,7 @@
 }
 
 .focused {
-  outline: 2px solid var(--bs-info);
+  outline: 2px solid var(--sn-info);
 }
 
 .sn-media.focused {
@@ -330,7 +330,7 @@
 }
 
 .sn-link {
-  color: var(--theme-link);
+  color: var(--sn-link);
   text-decoration: none;
 }
 
@@ -349,7 +349,7 @@ span + .sn-link {
   position: absolute;
   top: -2px;
   width: 20px;
-  border-top: 1px solid var(--bs-body-color);
+  border-top: 1px solid var(--sn-body-color);
   animation: CursorBlink 1.1s steps(2, start) infinite;
 }
 @keyframes CursorBlink {
@@ -363,7 +363,7 @@ span + .sn-link {
   user-select: none;
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
-  background-color: var(--theme-bg);
+  background-color: var(--sn-bg);
 }
 
 // work in progress loading state
@@ -383,7 +383,7 @@ span + .sn-link {
   height: 150px;
   width: 100%;
   padding: 1.5rem;
-  background-color: var(--theme-commentBg);
+  background-color: var(--sn-commentBg);
 }
 
 .sn-embed-wrapper__loading-message svg {
@@ -406,7 +406,7 @@ span + .sn-link {
 .sn-spotify-wrapper {
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
-  background-color: var(--theme-bg);
+  background-color: var(--sn-bg);
 }
 
 // twitter and nostr
@@ -514,7 +514,7 @@ span + .sn-link {
 
 .sn-tweet-skeleton {
   width: 100%;
-  border: 0.05rem solid var(--theme-borderColor);
+  border: 0.05rem solid var(--sn-borderColor);
   border-radius: 12px;
   height: 150px;
   padding: 1.5rem;
@@ -694,9 +694,9 @@ span + .sn-link {
 }
 
 .sn-list__item--checked:before {
-  border: 1px solid var(--bs-primary);
+  border: 1px solid var(--sn-primary);
   border-radius: 2px;
-  background-color: var(--bs-primary);
+  background-color: var(--sn-primary);
   background-repeat: no-repeat;
 }
 
@@ -742,8 +742,8 @@ span + .sn-link {
 
 /* shared collapsible for ToC and spoilers */
 .sn-collapsible {
-  background-color: var(--theme-commentBg);
-  border: 1px solid var(--theme-borderColor);
+  background-color: var(--sn-commentBg);
+  border: 1px solid var(--sn-borderColor);
   border-radius: 0.4rem;
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
@@ -756,12 +756,12 @@ span + .sn-link {
   width: 100%;
   padding: 0.5rem 0.5rem 0.5rem 0.25rem;
   cursor: pointer;
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
   transition: background-color 0.15s ease-in-out;
 }
 
 .sn-collapsible__header:hover {
-  background-color: var(--theme-clickToContextColor);
+  background-color: var(--sn-clickToContextColor);
 }
 
 /* svg is imported like this for 1:1 html-lexical compatibility */
@@ -770,7 +770,7 @@ span + .sn-link {
   width: 20px;
   height: 20px;
   display: inline-block;
-  background-color: var(--bs-body-color);
+  background-color: var(--sn-body-color);
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z'/%3E%3C/svg%3E") no-repeat center / contain;
   transform: rotate(-90deg);
   flex-shrink: 0;
@@ -862,7 +862,7 @@ span + .sn-link {
 .sn-text__highlight {
   background-color: #fada5e5e;
   padding: 0 0.2rem;
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
 }
 
 /* reset Bootstrap superscript and subscript styles for Lexical */
@@ -884,8 +884,8 @@ span + .sn-link {
 
 .sn-code-block {
   position: relative;
-  background-color: var(--theme-commentBg);
-  color: var(--bs-body-color);
+  background-color: var(--sn-commentBg);
+  color: var(--sn-body-color);
   font-family: Menlo, Consolas, Monaco, monospace;
   display: block;
   line-height: 1.53;
@@ -896,7 +896,7 @@ span + .sn-link {
   tab-size: 2;
   white-space: pre;
   scrollbar-width: thin;
-  scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
+  scrollbar-color: var(--sn-borderColor) var(--sn-commentBg);
   border-radius: 0.3rem;
 }
 
@@ -905,7 +905,7 @@ span + .sn-link {
   user-select: none;
   overflow-x: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--theme-borderColor) var(--theme-commentBg);
+  scrollbar-color: var(--sn-borderColor) var(--sn-commentBg);
 }
 
 .sn-math.focused {
@@ -931,7 +931,7 @@ span + .sn-link {
 }
 .sn-table__cell {
   // override table hard coded border color
-  border: 1px solid var(--theme-borderColor) !important;
+  border: 1px solid var(--sn-borderColor) !important;
   min-width: 75px;
   vertical-align: top;
   text-align: start;
@@ -967,7 +967,7 @@ span + .sn-link {
 }
 .sn-table__cell--header {
   // override table hard coded background color
-  background-color: var(--theme-commentBg) !important;
+  background-color: var(--sn-commentBg) !important;
   text-align: start;
 }
 .sn-table__cell--selected {
@@ -1021,7 +1021,7 @@ span + .sn-link {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--theme-borderColor) transparent;
+  scrollbar-color: var(--sn-borderColor) transparent;
 }
 
 .sn-table__scrollable-wrapper::-webkit-scrollbar {
@@ -1033,12 +1033,12 @@ span + .sn-link {
 }
 
 .sn-table__scrollable-wrapper::-webkit-scrollbar-thumb {
-  background-color: var(--theme-borderColor);
+  background-color: var(--sn-borderColor);
   border-radius: 4px;
 }
 
 .sn-table__scrollable-wrapper::-webkit-scrollbar-thumb:hover {
-  background-color: var(--theme-navLink);
+  background-color: var(--sn-navLink);
 }
 
 .sn-table__scrollable-wrapper > .sn-table {
@@ -1056,7 +1056,7 @@ span + .sn-link {
 /* footnotes */
 .sn-footnote-ref a {
   text-decoration: none;
-  color: var(--theme-link);
+  color: var(--sn-link);
 }
 
 .sn-footnotes {
@@ -1084,11 +1084,11 @@ span + .sn-link {
   // backref link
   a[href^="#fnref-"] {
     text-decoration: none;
-    color: var(--theme-link);
+    color: var(--sn-link);
   }
 }
 
 .sn-footnote-backref {
   text-decoration: none;
-  color: var(--theme-link);
+  color: var(--sn-link);
 }

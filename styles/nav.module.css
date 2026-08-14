@@ -6,12 +6,12 @@
 }
 
 .link:not(:global(.text-success)):not(:global(.text-warning)) {
-    color: var(--theme-navLink);
+    color: var(--sn-navLink);
 }
 
 .link:not(:global(.text-success)):not(:global(.text-warning)):hover,
 .link:not(:global(.text-success)):not(:global(.text-warning)):focus-visible {
-    color: var(--theme-navLinkFocus);
+    color: var(--sn-navLinkFocus);
 }
 
 /* Active state must beat the local sort-link weight reset. */
@@ -20,16 +20,16 @@
 }
 
 .link.active:not(:global(.text-success)):not(:global(.text-warning)) {
-    color: var(--theme-navLinkActive);
+    color: var(--sn-navLinkActive);
 }
 
 .link svg {
-    fill: var(--theme-navLink);
+    fill: var(--sn-navLink);
 }
 
 .link:hover svg,
 .link.active svg {
-    fill: var(--theme-navLinkActive);
+    fill: var(--sn-navLinkActive);
 }
 
 /* tab-nav container (settings / satistics / user-header) */
@@ -51,5 +51,5 @@
 }
 
 .nav .active {
-    border-bottom: 2px solid var(--bs-primary);
+    border-bottom: 2px solid var(--sn-primary);
 }

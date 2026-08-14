@@ -26,7 +26,7 @@ function PasswordHider ({ onClick, showPass }) {
     >
       <PasswordVisibilityIcon
         visible={showPass}
-        fill='var(--bs-body-color)'
+        fill='var(--sn-body-color)'
         height={16}
         width={16}
       />
@@ -76,7 +76,7 @@ function PasswordScanner ({ onScan, text }) {
       }}
     >
       <QrScanIcon
-        height={20} width={20} fill='var(--bs-body-color)'
+        height={20} width={20} fill='var(--sn-body-color)'
       />
     </InputGroup.Text>
   )

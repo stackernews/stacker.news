@@ -78,9 +78,9 @@ $nav-link-padding-y: .1rem;
 $nav-tabs-link-active-bg: #fff;
 $nav-tabs-link-hover-border-color: transparent;
 $nav-tabs-link-active-border-color: #ced4da #ced4da $nav-tabs-link-active-bg;
-$form-check-input-checked-color: var(--bs-primary);
-$form-check-input-checked-bg-color: var(--bs-primary);
-$popover-bg: var(--bs-body-bg);
+$form-check-input-checked-color: var(--sn-primary);
+$form-check-input-checked-bg-color: var(--sn-primary);
+$popover-bg: var(--sn-body-bg);
 $form-check-input-checked-color: #000;
 $tooltip-bg: #5c8001;
 $form-select-indicator-color: #808080;
@@ -90,7 +90,7 @@ $form-select-bg-position: right .25rem center;
 $form-select-bg-size: 1.5rem;
 $popover-body-padding-y: .5rem;
 $popover-max-width: 320px !default;
-$popover-border-color: var(--theme-borderColor);
+$popover-border-color: var(--sn-borderColor);
 $grid-gutter-width: 2rem;
 $toast-spacing: .5rem;
 $btn-close-bg: none;
@@ -121,8 +121,8 @@ $accordion-icon-color:                    $form-select-indicator-color;
 $accordion-icon-active-color:             $form-select-indicator-color;
 $accordion-icon-color-dark:               $form-select-indicator-color;
 $accordion-icon-active-color-dark:        $form-select-indicator-color;
-$accordion-button-active-bg:              var(--theme-clickToContextColor);
-$accordion-button-active-color:           var(--bs-body-color);
+$accordion-button-active-bg:              var(--sn-clickToContextColor);
+$accordion-button-active-color:           var(--sn-body-color);
 
 $accordion-button-icon:         url("data:image/svg+xml, %3Csvg fill='#{$form-select-indicator-color}' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath  d='M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z'%3E%3C/path%3E%3C/svg%3E%0A");
 $accordion-button-active-icon:  $accordion-button-icon;
@@ -133,99 +133,99 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
 $zindex-sticky: 900;
 
 :root, [data-bs-theme=light] {
-  --theme-navLink: rgba(0, 0, 0, 0.55);
-  --theme-navLinkFocus: rgba(0, 0, 0, 0.7);
-  --theme-navLinkActive: rgba(0, 0, 0, 0.9);
-  --theme-borderColor: #ced4da;
-  --theme-inputBg: #ffffff;
-  --theme-inputDisabledBg: #e9ecef;
-  --theme-dropdownItemColor: rgba(0, 0, 0, 0.7);
-  --theme-dropdownItemColorHover: rgba(0, 0, 0, 0.9);
-  --theme-commentBg: rgba(0, 0, 0, 0.03);
-  --theme-forceCommentBg: rgb(244, 244, 247);
-  --theme-clickToContextColor: rgba(0, 0, 0, 0.07);
-  --theme-brandColor: rgba(0, 0, 0, 0.9);
-  --theme-grey: #707070;
-  --theme-link: #007cbe;
-  --theme-toolbarActive: rgba(0, 0, 0, 0.10);
-  --theme-toolbarHover: rgba(0, 0, 0, 0.20);
-  --theme-quoteBar: rgb(206, 208, 212);
-  --theme-linkHover: #004a72;
-  --theme-linkVisited: #53758;
-  --theme-note-reply: rgba(0, 0, 0, 0.04);
-  --theme-note-fresh: rgba(0, 124, 190, 0.5);
-  // foreground used on top of --bs-primary / --bs-secondary; computed from
+  --sn-navLink: rgba(0, 0, 0, 0.55);
+  --sn-navLinkFocus: rgba(0, 0, 0, 0.7);
+  --sn-navLinkActive: rgba(0, 0, 0, 0.9);
+  --sn-borderColor: #ced4da;
+  --sn-inputBg: #ffffff;
+  --sn-inputDisabledBg: #e9ecef;
+  --sn-dropdownItemColor: rgba(0, 0, 0, 0.7);
+  --sn-dropdownItemColorHover: rgba(0, 0, 0, 0.9);
+  --sn-commentBg: rgba(0, 0, 0, 0.03);
+  --sn-forceCommentBg: rgb(244, 244, 247);
+  --sn-clickToContextColor: rgba(0, 0, 0, 0.07);
+  --sn-brandColor: rgba(0, 0, 0, 0.9);
+  --sn-grey: #707070;
+  --sn-link: #007cbe;
+  --sn-toolbarActive: rgba(0, 0, 0, 0.10);
+  --sn-toolbarHover: rgba(0, 0, 0, 0.20);
+  --sn-quoteBar: rgb(206, 208, 212);
+  --sn-linkHover: #004a72;
+  --sn-linkVisited: #53758;
+  --sn-note-reply: rgba(0, 0, 0, 0.04);
+  --sn-note-fresh: rgba(0, 124, 190, 0.5);
+  // foreground used on top of --sn-primary / --sn-secondary; computed from
   // contrast at request time when a territory overrides the brand colors.
-  --theme-primary-text: #000;
-  --theme-secondary-text: #fff;
+  --sn-primary-text: #000;
+  --sn-secondary-text: #fff;
 }
 
 [data-bs-theme=dark] {
   color-scheme: dark;
-  --theme-inputBg: #121211;
-  --theme-inputDisabledBg: #2d2d2d;
-  --theme-navLink: rgba(255, 255, 255, 0.55);
-  --theme-navLinkFocus: rgba(255, 255, 255, 0.75);
-  --theme-navLinkActive: rgba(255, 255, 255, 0.9);
-  --theme-borderColor: rgba(255, 255, 255, 0.5);
-  --theme-dropdownItemColor: rgba(255, 255, 255, 0.7);
-  --theme-dropdownItemColorHover: rgba(255, 255, 255, 0.9);
-  --theme-commentBg: rgba(255, 255, 255, 0.025);
-  --theme-forceCommentBg: rgb(24, 24, 26);
-  --theme-clickToContextColor: rgba(255, 255, 255, 0.1);
-  --theme-brandColor: var(--bs-primary);
-  --theme-grey: #969696;
-  --theme-link: #2e99d1;
-  --theme-toolbarActive: rgba(255, 255, 255, 0.10);
-  --theme-toolbarHover: rgba(255, 255, 255, 0.20);
-  --theme-toolbar: #3e3f3f;
-  --theme-quoteBar: rgb(158, 159, 163);
-  --theme-quoteColor: rgb(141, 144, 150);
-  --theme-linkHover: #007cbe;
-  --theme-linkVisited: #56798E;
-  --theme-note-reply: rgba(255, 255, 255, 0.05);
-  --theme-note-fresh: rgba(0, 124, 190, 0.75);
+  --sn-inputBg: #121211;
+  --sn-inputDisabledBg: #2d2d2d;
+  --sn-navLink: rgba(255, 255, 255, 0.55);
+  --sn-navLinkFocus: rgba(255, 255, 255, 0.75);
+  --sn-navLinkActive: rgba(255, 255, 255, 0.9);
+  --sn-borderColor: rgba(255, 255, 255, 0.5);
+  --sn-dropdownItemColor: rgba(255, 255, 255, 0.7);
+  --sn-dropdownItemColorHover: rgba(255, 255, 255, 0.9);
+  --sn-commentBg: rgba(255, 255, 255, 0.025);
+  --sn-forceCommentBg: rgb(24, 24, 26);
+  --sn-clickToContextColor: rgba(255, 255, 255, 0.1);
+  --sn-brandColor: var(--sn-primary);
+  --sn-grey: #969696;
+  --sn-link: #2e99d1;
+  --sn-toolbarActive: rgba(255, 255, 255, 0.10);
+  --sn-toolbarHover: rgba(255, 255, 255, 0.20);
+  --sn-toolbar: #3e3f3f;
+  --sn-quoteBar: rgb(158, 159, 163);
+  --sn-quoteColor: rgb(141, 144, 150);
+  --sn-linkHover: #007cbe;
+  --sn-linkVisited: #56798E;
+  --sn-note-reply: rgba(255, 255, 255, 0.05);
+  --sn-note-fresh: rgba(0, 124, 190, 0.75);
 }
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';
 
 // Rebind component variables to the runtime CSS custom
-// variables so a territory that overrides --bs-primary / --bs-secondary
+// variables so a territory that overrides --sn-primary / --sn-secondary
 // (see lib/domains/custom-css.js) also retints buttons, focus rings, etc.
 //
 // Bootstrap's button-variant() mixin bakes shade/tint at SCSS compile time,
 // so we recompute hover/active here with color-mix() against the *current*
-// value of var(--bs-#{$variant}). The contrast color ("text on $variant")
-// cannot be derived in CSS, so it comes in as --theme-#{$variant}-text
+// value of var(--sn-#{$variant}). The contrast color ("text on $variant")
+// cannot be derived in CSS, so it comes in as --sn-#{$variant}-text
 // (default #000, territory override computed via YIQ in lib/color.js).
 @mixin brand-button-filled($variant) {
-  --bs-btn-color: var(--theme-#{$variant}-text);
-  --bs-btn-bg: var(--bs-#{$variant});
-  --bs-btn-border-color: var(--bs-#{$variant});
-  --bs-btn-hover-color: var(--theme-#{$variant}-text);
-  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-#{$variant}) 85%, #000);
-  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-#{$variant}) 80%, #000);
-  --bs-btn-active-color: var(--theme-#{$variant}-text);
-  --bs-btn-active-bg: color-mix(in srgb, var(--bs-#{$variant}) 80%, #000);
-  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-#{$variant}) 75%, #000);
-  --bs-btn-disabled-color: var(--theme-#{$variant}-text);
-  --bs-btn-disabled-bg: var(--bs-#{$variant});
-  --bs-btn-disabled-border-color: var(--bs-#{$variant});
-  --bs-btn-focus-shadow-rgb: var(--bs-#{$variant}-rgb);
+  --sn-btn-color: var(--sn-#{$variant}-text);
+  --sn-btn-bg: var(--sn-#{$variant});
+  --sn-btn-border-color: var(--sn-#{$variant});
+  --sn-btn-hover-color: var(--sn-#{$variant}-text);
+  --sn-btn-hover-bg: color-mix(in srgb, var(--sn-#{$variant}) 85%, #000);
+  --sn-btn-hover-border-color: color-mix(in srgb, var(--sn-#{$variant}) 80%, #000);
+  --sn-btn-active-color: var(--sn-#{$variant}-text);
+  --sn-btn-active-bg: color-mix(in srgb, var(--sn-#{$variant}) 80%, #000);
+  --sn-btn-active-border-color: color-mix(in srgb, var(--sn-#{$variant}) 75%, #000);
+  --sn-btn-disabled-color: var(--sn-#{$variant}-text);
+  --sn-btn-disabled-bg: var(--sn-#{$variant});
+  --sn-btn-disabled-border-color: var(--sn-#{$variant});
+  --sn-btn-focus-shadow-rgb: var(--sn-#{$variant}-rgb);
 }
 
 @mixin brand-button-outline($variant) {
-  --bs-btn-color: var(--bs-#{$variant});
-  --bs-btn-border-color: var(--bs-#{$variant});
-  --bs-btn-hover-color: var(--theme-#{$variant}-text);
-  --bs-btn-hover-bg: var(--bs-#{$variant});
-  --bs-btn-hover-border-color: var(--bs-#{$variant});
-  --bs-btn-active-color: var(--theme-#{$variant}-text);
-  --bs-btn-active-bg: var(--bs-#{$variant});
-  --bs-btn-active-border-color: var(--bs-#{$variant});
-  --bs-btn-disabled-color: var(--bs-#{$variant});
-  --bs-btn-disabled-border-color: var(--bs-#{$variant});
-  --bs-btn-focus-shadow-rgb: var(--bs-#{$variant}-rgb);
+  --sn-btn-color: var(--sn-#{$variant});
+  --sn-btn-border-color: var(--sn-#{$variant});
+  --sn-btn-hover-color: var(--sn-#{$variant}-text);
+  --sn-btn-hover-bg: var(--sn-#{$variant});
+  --sn-btn-hover-border-color: var(--sn-#{$variant});
+  --sn-btn-active-color: var(--sn-#{$variant}-text);
+  --sn-btn-active-bg: var(--sn-#{$variant});
+  --sn-btn-active-border-color: var(--sn-#{$variant});
+  --sn-btn-disabled-color: var(--sn-#{$variant});
+  --sn-btn-disabled-border-color: var(--sn-#{$variant});
+  --sn-btn-focus-shadow-rgb: var(--sn-#{$variant}-rgb);
 }
 
 @each $variant in (primary, secondary) {
@@ -236,7 +236,7 @@ $zindex-sticky: 900;
 // SVG glyphs inside a primary button inherit the foreground text colour.
 .btn-primary svg,
 .btn-secondary svg {
-  fill: var(--bs-btn-color);
+  fill: var(--sn-btn-color);
 }
 
 @media screen and (min-width: 899px) {
@@ -256,20 +256,20 @@ $zindex-sticky: 900;
 }
 
 .btn-outline-grey {
-  --bs-btn-color: var(--theme-grey);
-  --bs-btn-border-color: var(--theme-grey);
-  --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: var(--theme-grey);
-  --bs-btn-hover-border-color: var(--theme-grey);
-  --bs-btn-focus-shadow-rgb: 233, 236, 239;
-  --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: var(--theme-grey);
-  --bs-btn-active-border-color: var(--theme-grey);
-  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
-  --bs-btn-disabled-color: var(--theme-grey);
-  --bs-btn-disabled-bg: transparent;
-  --bs-btn-disabled-border-color: var(--theme-grey);
-  --bs-gradient: none;
+  --sn-btn-color: var(--sn-grey);
+  --sn-btn-border-color: var(--sn-grey);
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: var(--sn-grey);
+  --sn-btn-hover-border-color: var(--sn-grey);
+  --sn-btn-focus-shadow-rgb: 233, 236, 239;
+  --sn-btn-active-color: #fff;
+  --sn-btn-active-bg: var(--sn-grey);
+  --sn-btn-active-border-color: var(--sn-grey);
+  --sn-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  --sn-btn-disabled-color: var(--sn-grey);
+  --sn-btn-disabled-bg: transparent;
+  --sn-btn-disabled-border-color: var(--sn-grey);
+  --sn-gradient: none;
 }
 
 html {
@@ -290,7 +290,7 @@ html {
 }
 
 #nprogress .bar {
-  background: var(--bs-primary) !important;
+  background: var(--sn-primary) !important;
   height: 2px !important;
 }
 
@@ -299,7 +299,7 @@ html {
 }
 
 #nprogress .peg {
-  box-shadow: 0 0 10px var(--bs-primary), 0 0 5px var(--bs-primary) !important;
+  box-shadow: 0 0 10px var(--sn-primary), 0 0 5px var(--sn-primary) !important;
 }
 
 .standalone {
@@ -343,15 +343,15 @@ html {
 }
 
 svg {
-  fill: var(--bs-body-color);
+  fill: var(--sn-body-color);
 }
 
 .fill-primary {
-  fill: var(--bs-primary);
+  fill: var(--sn-primary);
 }
 
 .text-primary svg {
-  fill: var(--bs-primary);
+  fill: var(--sn-primary);
 }
 
 .line-height-1 {
@@ -364,7 +364,7 @@ svg {
 
 .modal.fullscreen {
   padding-right: 0;
-  background-color: color-mix(in srgb, var(--theme-inputBg) 66%, transparent);
+  background-color: color-mix(in srgb, var(--sn-inputBg) 66%, transparent);
 }
 .modal-dialog.fullscreen {
   margin: 0;
@@ -424,7 +424,7 @@ svg {
 }
 
 .text-muted {
-  color: var(--theme-grey) !important;
+  color: var(--sn-grey) !important;
 }
 
 ol,
@@ -436,7 +436,7 @@ dl {
 mark {
   background-color: #fada5e99;
   padding: 0 0.2rem;
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
 }
 
 .table-sm th,
@@ -470,50 +470,50 @@ mark {
 }
 
 .table {
-  color: var(--bs-body-color);
-  background-color: var(--bs-body-bg);
+  color: var(--sn-body-color);
+  background-color: var(--sn-body-bg);
 }
 
 .table th,
 .table td,
 .table thead th {
-  border-color: var(--theme-borderColor);
+  border-color: var(--sn-borderColor);
 }
 
 .table-hover tbody tr:hover {
-  color: var(--bs-body-color);
-  background-color: var(--theme-clickToContextColor);
+  color: var(--sn-body-color);
+  background-color: var(--sn-clickToContextColor);
 }
 
 html, body {
-  background: var(--bs-body-bg) !important;
-  color: var(--bs-body-color) !important;
+  background: var(--sn-body-bg) !important;
+  color: var(--sn-body-color) !important;
   min-height: 100vh;
   min-height: 100svh;
 }
 
 a {
-  color: var(--theme-link);
+  color: var(--sn-link);
 }
 
 a:hover {
-  color: var(--theme-linkHover);
+  color: var(--sn-linkHover);
 }
 
 .nav-tabs .nav-link.active,
 .nav-tabs .nav-item.show .nav-link {
   color: inherit;
-  background-color: var(--theme-inputBg);
-  border-color: var(--theme-borderColor);
-  border-bottom-color: var(--theme-inputBg);
+  background-color: var(--sn-inputBg);
+  border-color: var(--sn-borderColor);
+  border-bottom-color: var(--sn-inputBg);
 }
 
 select,
 div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-editor] *, [data-lexical-editor] *),
 .form-control {
-  background-color: var(--theme-inputBg);
-  color: var(--bs-body-color);
-  border-color: var(--theme-borderColor);
+  background-color: var(--sn-inputBg);
+  color: var(--sn-body-color);
+  border-color: var(--sn-borderColor);
 }
 
 .form-group {
@@ -522,8 +522,8 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 
 
 select.form-select {
-  background-color: var(--theme-clickToContextColor);
-  color: var(--theme-dropdownItemColor);
+  background-color: var(--sn-clickToContextColor);
+  color: var(--sn-dropdownItemColor);
   font-weight: bold;
   border: none;
   display: inline-block;
@@ -553,8 +553,8 @@ select:focus {
 
 div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-editor] *, [data-lexical-editor] *):focus,
 .form-control:focus {
-  background-color: var(--theme-inputBg);
-  color: var(--bs-body-color);
+  background-color: var(--sn-inputBg);
+  color: var(--sn-body-color);
   outline: 0;
   box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
@@ -562,9 +562,9 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-editor] *, [data-lexical-editor] *):disabled,
 .form-control:disabled,
 .form-control[readonly] {
-  background-color: var(--theme-inputDisabledBg);
-  border-color: var(--theme-borderColor);
-  color: var(--theme-borderColor);
+  background-color: var(--sn-inputDisabledBg);
+  border-color: var(--sn-borderColor);
+  color: var(--sn-borderColor);
   opacity: 1;
 }
 
@@ -580,7 +580,7 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 }
 
 .clickToContext:hover {
-  background-color: var(--theme-clickToContextColor);
+  background-color: var(--sn-clickToContextColor);
 }
 
 .btn-grey svg {
@@ -592,8 +592,8 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 }
 
 .modal-content {
-  background-color: var(--theme-inputBg);
-  border-color: var(--theme-borderColor);
+  background-color: var(--sn-inputBg);
+  border-color: var(--sn-borderColor);
 }
 
 .modal-body:has(video) {
@@ -601,53 +601,53 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 }
 
 .nav-link:not(.text-success, .text-warning) {
-  color: var(--theme-navLink) !important;
+  color: var(--sn-navLink) !important;
 }
 
 .nav-link:not(.text-success, .text-warning):hover,
 .nav-link:not(.text-success, .text-warning):focus {
-  color: var(--theme-navLinkFocus) !important;
+  color: var(--sn-navLinkFocus) !important;
 }
 
 .nav-dropdown-toggle .btn-link {
-  color: var(--theme-navLink) !important;
+  color: var(--sn-navLink) !important;
 }
 
 .nav-dropdown-toggle .btn-link[aria-expanded="true"] {
-  color: var(--theme-navLinkFocus) !important;
+  color: var(--sn-navLinkFocus) !important;
 }
 
 .dropdown-menu {
-  background-color: var(--theme-inputBg);
-  border: 1px solid var(--theme-borderColor);
+  background-color: var(--sn-inputBg);
+  border: 1px solid var(--sn-borderColor);
   max-width: 90vw;
   overflow: auto;
 }
 
 .dropdown-item {
-  color: var(--theme-dropdownItemColor) !important;
+  color: var(--sn-dropdownItemColor) !important;
 }
 
 .dropdown-item:hover {
-  color: var(--theme-dropdownItemColorHover) !important;
+  color: var(--sn-dropdownItemColorHover) !important;
 }
 
 .dropdown-item.active {
-  color: var(--theme-brandColor) !important;
-  text-shadow: 0 0 10px var(--bs-primary);
+  color: var(--sn-brandColor) !important;
+  text-shadow: 0 0 10px var(--sn-primary);
 }
 
 .dropdown-divider {
-  border-top: 1px solid var(--theme-borderColor);
+  border-top: 1px solid var(--sn-borderColor);
 }
 
 .theme {
   cursor: pointer;
-  fill: var(--theme-dropdownItemColor);
+  fill: var(--sn-dropdownItemColor);
 }
 
 .theme:hover {
-  fill: var(--theme-dropdownItemColorHover);
+  fill: var(--sn-dropdownItemColorHover);
 }
 
 #__next {
@@ -676,7 +676,7 @@ footer {
 }
 
 .text-muted svg {
-  fill: var(--theme-grey);
+  fill: var(--sn-grey);
 }
 
 .pointer {
@@ -698,9 +698,9 @@ footer {
 }
 
 .input-group-text {
-  background-color: var(--theme-clickToContextColor);
-  border-color: var(--theme-borderColor);
-  color: var(--bs-body-color);
+  background-color: var(--sn-clickToContextColor);
+  border-color: var(--sn-borderColor);
+  color: var(--sn-body-color);
 }
 
 textarea.form-control,
@@ -753,17 +753,17 @@ header .navbar:not(:first-child) {
 }
 
 .popover {
-  color: var(--bs-body-color);
-  background-color: var(--bs-body-bg);
-  border-color: var(--theme-borderColor);
+  color: var(--sn-body-color);
+  background-color: var(--sn-body-bg);
+  border-color: var(--sn-borderColor);
 }
 
 .popover .arrow::before {
-  border-top-color: var(--theme-borderColor);
+  border-top-color: var(--sn-borderColor);
 }
 
 .popover .arrow::after {
-  border-top-color: var(--bs-body-bg);
+  border-top-color: var(--sn-body-bg);
 }
 
 
@@ -802,12 +802,12 @@ header .navbar:not(:first-child) {
 }
 
 .dropdown-item.active {
-  text-shadow: 0 0 10px var(--bs-primary);
+  text-shadow: 0 0 10px var(--sn-primary);
 }
 
 div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-editor] *, [data-lexical-editor] *):focus,
 .form-control:focus {
-  border-color: var(--bs-primary);
+  border-color: var(--sn-primary);
 }
 
 .btn-twitter svg {
@@ -830,24 +830,24 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 }
 
 .nav-link.active:not(.text-success, .text-warning) {
-  color: var(--theme-navLinkActive) !important;
+  color: var(--sn-navLinkActive) !important;
 }
 
 .nav-link svg {
-  fill: var(--theme-navLink);
+  fill: var(--sn-navLink);
 }
 
 .nav-link:hover svg,
 .nav-link.active svg {
-  fill: var(--theme-navLinkActive);
+  fill: var(--sn-navLinkActive);
 }
 
 .fill-grey, .fill-muted {
-  fill: var(--theme-grey);
+  fill: var(--sn-grey);
 }
 
 .fill-nostr {
-  fill: var(--bs-nostr);
+  fill: var(--sn-nostr);
 }
 
 .fill-lgrey {
@@ -855,11 +855,11 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 }
 
 .fill-secondary {
-  fill: var(--bs-secondary);
+  fill: var(--sn-secondary);
 }
 
 .fill-boost {
-  fill: var(--bs-boost);
+  fill: var(--sn-boost);
 }
 
 .fill-white {
@@ -871,23 +871,23 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 }
 
 .fill-success {
-  fill: var(--bs-success);
+  fill: var(--sn-success);
 }
 
 .fill-info {
-  fill: var(--bs-info);
+  fill: var(--sn-info);
 }
 
 .fill-danger {
-  fill: var(--bs-danger) !important;
+  fill: var(--sn-danger) !important;
 }
 
 .fill-theme-color {
-  fill: var(--bs-body-color);
+  fill: var(--sn-body-color);
 }
 
 .fill-warning {
-  fill: var(--bs-warning-text-emphasis);
+  fill: var(--sn-warning-text-emphasis);
 }
 
 .text-underline {
@@ -922,7 +922,7 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 
 .clouds {
   background-image: url('/clouds.jpeg') !important;
-  background-color: var(--theme-grey);
+  background-color: var(--sn-grey);
   background-repeat: repeat;
   background-origin: content-box;
   background-size: cover;
@@ -936,13 +936,13 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 
 @keyframes outline {
   from {
-    box-shadow: inset 0 0 1px 1px var(--bs-info);
+    box-shadow: inset 0 0 1px 1px var(--sn-info);
   }
   90% {
-    box-shadow: inset 0 0 1px 1px var(--bs-info);
+    box-shadow: inset 0 0 1px 1px var(--sn-info);
   }
   to {
-    box-shadow: inset 0 0 0px 0px var(--bs-info);
+    box-shadow: inset 0 0 0px 0px var(--sn-info);
   }
 }
 
@@ -986,7 +986,7 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 
 .static {
   background: url('/giphy.gif');
-  background-color: var(--theme-grey);
+  background-color: var(--sn-grey);
   background-repeat: repeat;
   background-origin: content-box;
   background-size: cover;
@@ -1062,11 +1062,11 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 
 .popover {
   .popover-header {
-    background-color: var(--bs-body-bg);
-    color: var(--bs-body-color);
+    background-color: var(--sn-body-bg);
+    color: var(--sn-body-color);
   }
   .popover-body {
-    color: var(--bs-body-color);
+    color: var(--sn-body-color);
   }
 }
 
@@ -1097,26 +1097,26 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 }
 
 .react-datepicker {
-  background-color: var(--theme-inputBg) !important;
+  background-color: var(--sn-inputBg) !important;
 }
 
 .react-datepicker__header {
-  background-color: var(--theme-inputDisabledBg) !important;
+  background-color: var(--sn-inputDisabledBg) !important;
 }
 
 .react-datepicker__day,
 .react-datepicker__current-month,
 .react-datepicker__day-name {
-  color: var(--bs-body-color) !important;
+  color: var(--sn-body-color) !important;
 }
 
 .react-datepicker__day--outside-month {
-  color: var(--theme-inputDisabledBg) !important;
+  color: var(--sn-inputDisabledBg) !important;
 }
 
 .react-datepicker-popper[data-placement^=bottom] .react-datepicker__triangle::before, .react-datepicker-popper[data-placement^=bottom] .react-datepicker__triangle::after {
   border-top: none;
-  border-bottom-color: var(--theme-inputDisabledBg) !important;
+  border-bottom-color: var(--sn-inputDisabledBg) !important;
 }
 
 .react-datepicker__day--selected, .react-datepicker__day--in-selecting-range, .react-datepicker__day--in-range,
@@ -1130,8 +1130,8 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 .react-datepicker__year-text--in-selecting-range,
 .react-datepicker__year-text--in-range {
   border-radius: 0.4rem !important;
-  background-color: var(--bs-info) !important;
-  color: var(--theme-inputDisabledBg) !important;
+  background-color: var(--sn-info) !important;
+  color: var(--sn-inputDisabledBg) !important;
 }
 .react-datepicker__day--selected:hover, .react-datepicker__day--in-selecting-range:hover, .react-datepicker__day--in-range:hover,
 .react-datepicker__month-text--selected:hover,
@@ -1143,15 +1143,15 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 .react-datepicker__year-text--selected:hover,
 .react-datepicker__year-text--in-selecting-range:hover,
 .react-datepicker__year-text--in-range:hover {
-  background-color: var(--bs-info) !important;
+  background-color: var(--sn-info) !important;
 }
 .react-datepicker__day--keyboard-selected,
 .react-datepicker__month-text--keyboard-selected,
 .react-datepicker__quarter-text--keyboard-selected,
 .react-datepicker__year-text--keyboard-selected {
   border-radius: 0.4rem !important;
-  background-color: var(--theme-inputBg) !important;
-  color: var(--bs-body-color) !important;
+  background-color: var(--sn-inputBg) !important;
+  color: var(--sn-body-color) !important;
 }
 .react-datepicker__day:hover, .react-datepicker__month-text:hover,
 .react-datepicker__quarter-text:hover, .react-datepicker__year-text:hover,
@@ -1159,7 +1159,7 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 .react-datepicker__month-text--keyboard-selected:hover,
 .react-datepicker__quarter-text--keyboard-selected:hover,
 .react-datepicker__year-text--keyboard-selected:hover {
-  background-color: var(--theme-clickToContextColor) !important;
+  background-color: var(--sn-clickToContextColor) !important;
 }
 .react-datepicker__day--in-selecting-range:not(.react-datepicker__day--in-range,
 .react-datepicker__month-text--in-range,
@@ -1177,7 +1177,7 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 .react-datepicker__month-text--in-range,
 .react-datepicker__quarter-text--in-range,
 .react-datepicker__year-text--in-range) {
-  background-color: var(--bs-info) !important;
+  background-color: var(--sn-info) !important;
 }
 
 .react-datepicker__close-icon {
@@ -1187,7 +1187,7 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
 
   &::after {
     content: "×" !important;
-    color: var(--theme-grey) !important;
+    color: var(--sn-grey) !important;
     font-size: 20px !important;
     background: none !important;
   }

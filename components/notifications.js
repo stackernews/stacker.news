@@ -269,7 +269,7 @@ function EarnNotification ({ n }) {
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 font-normal' suppressHydrationWarning>{time}</small>
         </NoteHeader>
         {n.sources &&
-          <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+          <div style={{ fontSize: '80%', color: 'var(--sn-grey)' }}>
             {n.sources.posts > 0 && <span>{numWithUnits(n.sources.posts, { abbreviate: false })} for top posts</span>}
             {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{numWithUnits(n.sources.comments, { abbreviate: false })} for top comments</span>}
             {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{numWithUnits(n.sources.tipPosts, { abbreviate: false })} for zapping top posts early</span>}
@@ -293,7 +293,7 @@ function ReferralReward ({ n }) {
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in referral rewards<small className='text-muted ms-1 font-normal' suppressHydrationWarning>{dayMonthYear(new Date(n.sortTime))}</small>
         </NoteHeader>
         {n.sources &&
-          <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+          <div style={{ fontSize: '80%', color: 'var(--sn-grey)' }}>
             {n.sources.forever > 0 && <span>{numWithUnits(n.sources.forever, { abbreviate: false })} for stackers joining because of you</span>}
             {n.sources.oneDay > 0 && <span>{n.sources.forever > 0 && ' \\ '}{numWithUnits(n.sources.oneDay, { abbreviate: false })} for stackers referred to content by you today</span>}
           </div>}

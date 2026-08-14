@@ -1,8 +1,8 @@
 .type {
   text-align: left;
-  border-right: 2px solid var(--theme-clickToContextColor);
+  border-right: 2px solid var(--sn-clickToContextColor);
   padding-right: 15px;
-  border-bottom: 2px solid var(--theme-clickToContextColor);
+  border-bottom: 2px solid var(--sn-clickToContextColor);
   display: grid;
   align-items: center;
   margin-left: -15px;
@@ -11,9 +11,9 @@
 
 .sats {
   text-align: right;
-  border-left: 2px solid var(--theme-clickToContextColor);
+  border-left: 2px solid var(--sn-clickToContextColor);
   padding-left: 15px;
-  border-bottom: 2px solid var(--theme-clickToContextColor);
+  border-bottom: 2px solid var(--sn-clickToContextColor);
   display: grid;
   align-items: center;
   margin-right: -15px;
@@ -22,14 +22,14 @@
 }
 
 .badge {
-  color: var(--theme-grey) !important;
-  background: var(--theme-clickToContextColor) !important;
+  color: var(--sn-grey) !important;
+  background: var(--sn-clickToContextColor) !important;
   vertical-align: middle;
   margin-left: 0.5rem;
 }
 
 .detail {
-  border-bottom: 2px solid var(--theme-clickToContextColor);
+  border-bottom: 2px solid var(--sn-clickToContextColor);
   padding: .5rem;
   display: grid;
   align-items: center;

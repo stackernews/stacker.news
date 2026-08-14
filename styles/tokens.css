@@ -1,0 +1,140 @@
+/*
+ * Canonical SN design tokens. Territory branding redefines the brand and
+ * derived contrast tokens with greater specificity at runtime.
+ */
+
+:root, [data-theme=light] {
+  /* runtime-overridable brand */
+  --sn-primary: #FADA5E;
+  --sn-secondary: #F6911D;
+  --sn-primary-rgb: 250, 218, 94;
+  --sn-secondary-rgb: 246, 145, 29;
+  /* text-on-brand contrast, YIQ-computed per territory at request time */
+  --sn-primary-text: #000;
+  --sn-secondary-text: #fff;
+
+  /* fixed palette, static across themes and not territory-overridable */
+  --sn-danger: #c03221;
+  --sn-warning: #F6911D;
+  --sn-info: #007cbe;
+  --sn-success: #5c8001;
+  --sn-boost: #8c25f4;
+  --sn-nostr: #8d45dd;
+  --sn-twitter: #1da1f2;
+  --sn-danger-rgb: 192, 50, 33;
+  --sn-warning-rgb: 246, 145, 29;
+  --sn-boost-rgb: 140, 37, 244;
+
+  /* neutral body tier; --sn-secondary remains the orange brand color */
+  --sn-body-bg: #fcfcff;
+  --sn-body-color: #212529;
+  --sn-border-color: #dee2e6;
+  --sn-border-color-translucent: rgba(0, 0, 0, 0.175);
+  --sn-secondary-bg: #e9ecef;
+  --sn-secondary-color: rgba(33, 37, 41, 0.75);
+
+  /* font stacks */
+  --sn-font-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --sn-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* fixed UI links; content links use the territory-aware --sn-link family */
+  --sn-link-color: #007cbe;
+  --sn-link-hover-color: rgb(0, 99.2, 152);
+
+  /* one-offs with live consumers */
+  --sn-code-color: #d63384;
+  --sn-light: #f8f9fa;
+  --sn-warning-text-emphasis: rgb(98.4, 58, 11.6);
+  --sn-muted: var(--sn-grey);
+
+  /* component theme values */
+  --sn-navLink: rgba(0, 0, 0, 0.55);
+  --sn-navLinkFocus: rgba(0, 0, 0, 0.7);
+  --sn-navLinkActive: rgba(0, 0, 0, 0.9);
+  --sn-borderColor: #ced4da;
+  --sn-inputBg: #ffffff;
+  --sn-inputDisabledBg: #e9ecef;
+  --sn-dropdownItemColor: rgba(0, 0, 0, 0.7);
+  --sn-dropdownItemColorHover: rgba(0, 0, 0, 0.9);
+  --sn-commentBg: rgba(0, 0, 0, 0.03);
+  --sn-forceCommentBg: rgb(244, 244, 247);
+  --sn-clickToContextColor: rgba(0, 0, 0, 0.07);
+  --sn-brandColor: rgba(0, 0, 0, 0.9);
+  --sn-grey: #707070;
+  --sn-link: #007cbe;
+  --sn-toolbarActive: rgba(0, 0, 0, 0.10);
+  --sn-toolbarHover: rgba(0, 0, 0, 0.20);
+  --sn-quoteBar: rgb(206, 208, 212);
+  --sn-linkHover: #004a72;
+  /* the invalid value leaves light-theme visited links on inherited color */
+  --sn-linkVisited: #53758;
+  --sn-note-reply: rgba(0, 0, 0, 0.04);
+  --sn-note-fresh: rgba(0, 124, 190, 0.5);
+
+  /* Portaled overlays share this stacking ladder. */
+  --sn-z-sticky: 900;
+  --sn-z-fixed: 1000;
+  --sn-z-dropdown: 1060; /* menus clear modals and remain below popovers */
+  --sn-z-drawer-backdrop: 1040;
+  --sn-z-drawer: 1045;
+  --sn-z-backdrop: 1050;
+  --sn-z-modal: 1055;
+  --sn-z-popover: 1070;
+  --sn-z-tooltip: 1080;
+  --sn-z-toast: 1090;
+}
+
+[data-theme=dark] {
+  color-scheme: dark;
+  --sn-inputBg: #121211;
+  --sn-inputDisabledBg: #2d2d2d;
+  --sn-navLink: rgba(255, 255, 255, 0.55);
+  --sn-navLinkFocus: rgba(255, 255, 255, 0.75);
+  --sn-navLinkActive: rgba(255, 255, 255, 0.9);
+  --sn-borderColor: rgba(255, 255, 255, 0.5);
+  --sn-dropdownItemColor: rgba(255, 255, 255, 0.7);
+  --sn-dropdownItemColorHover: rgba(255, 255, 255, 0.9);
+  --sn-commentBg: rgba(255, 255, 255, 0.025);
+  --sn-forceCommentBg: rgb(24, 24, 26);
+  --sn-clickToContextColor: rgba(255, 255, 255, 0.1);
+  --sn-brandColor: var(--sn-primary);
+  --sn-grey: #969696;
+  --sn-link: #2e99d1;
+  --sn-toolbarActive: rgba(255, 255, 255, 0.10);
+  --sn-toolbarHover: rgba(255, 255, 255, 0.20);
+  --sn-toolbar: #3e3f3f;
+  --sn-quoteBar: rgb(158, 159, 163);
+  --sn-quoteColor: rgb(141, 144, 150);
+  --sn-linkHover: #007cbe;
+  --sn-linkVisited: #56798E;
+  --sn-note-reply: rgba(255, 255, 255, 0.05);
+  --sn-note-fresh: rgba(0, 124, 190, 0.75);
+
+  --sn-body-bg: #121214;
+  --sn-body-color: #f0f0f0;
+  --sn-border-color: #495057;
+  --sn-border-color-translucent: rgba(255, 255, 255, 0.15);
+  --sn-secondary-bg: #343a40;
+  --sn-secondary-color: rgba(240, 240, 240, 0.75);
+  --sn-link-color: rgb(252, 232.8, 158.4);
+  --sn-link-hover-color: rgb(252.6, 237.24, 177.72);
+  --sn-code-color: rgb(230.4, 132.6, 181.2);
+  --sn-warning-text-emphasis: rgb(249.6, 189, 119.4);
+}
+
+/* Wallet design tokens: 1:1 named aliases for the radii and gaps that recur across
+   the wallet UI, so the scale stays consistent and is adjustable in one place.
+   Defined at :root (not a wallet-scoped class) so they also reach portaled wallet
+   UI rendered outside the wallet DOM (the offcanvas sheet, the fullscreen scanner). */
+:root {
+  --wt-radius-xs: 8px;
+  --wt-radius-sm: 10px;
+  --wt-radius-md: 12px;
+  --wt-radius-lg: 16px;
+  --wt-radius-pill: 999px;
+  --wt-gap-xs: 0.35rem;
+  --wt-gap-sm: 0.5rem;
+  --wt-gap-md: 0.75rem;
+  --wt-gap-lg: 1rem;
+  --wt-gap-xl: 1.25rem;
+}

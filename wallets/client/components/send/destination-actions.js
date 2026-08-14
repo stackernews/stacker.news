@@ -79,7 +79,7 @@ export function DestinationActions ({ onValue }) {
           <div className={styles.scannerHeader}>
             <button
               type='button'
-              className={`modal-btn modal-close ${styles.scannerClose}`}
+              className={styles.scannerClose}
               onClick={() => setScanning(false)}
               aria-label='close scanner'
             >

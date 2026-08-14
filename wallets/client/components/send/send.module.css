@@ -58,6 +58,17 @@
   border: 0;
   background: transparent;
   color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  /* the lightning font renders the X glyph as SN's modal close bolt */
+  font-family: "lightning";
+  font-size: 160%;
+  line-height: 1rem;
+}
+.scannerClose:hover {
+  opacity: 0.7;
 }
 .scannerStage {
   flex: 1;

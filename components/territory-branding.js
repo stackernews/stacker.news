@@ -185,23 +185,20 @@ export function TerritoryBrandingForm ({ sub, branding }) {
         onSuccess={() => setUploading(false)}
         onError={() => setUploading(false)}
       />
-      <div className='row'>
+      <div className='grid grid-cols-3 gap-8'>
         <Input
-          groupClassName='col-4'
           label='primary color'
           name='primaryColor'
           type='color'
           className={styles.colorInput}
         />
         <Input
-          groupClassName='col-4'
           label='secondary color'
           name='secondaryColor'
           type='color'
           className={styles.colorInput}
         />
         <Input
-          groupClassName='col-4'
           label='link color'
           name='linkColor'
           type='color'

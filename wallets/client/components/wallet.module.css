@@ -115,12 +115,6 @@
   .formResponsiveReset :global(select) {
     min-width: 0;
   }
-  .formResponsiveReset :global(.row) {
-    --bs-gutter-x: 0;
-    width: 100%;
-    margin-right: 0;
-    margin-left: 0;
-  }
   .walletBottomBar {
     position: sticky;
     bottom: 0;

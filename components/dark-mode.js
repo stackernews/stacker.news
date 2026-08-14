@@ -56,10 +56,10 @@ const listenForThemeChange = (onChange) => {
 
   const root = window.document.documentElement
   const observer = new window.MutationObserver(() => {
-    const theme = root.getAttribute('data-bs-theme')
+    const theme = root.getAttribute('data-theme')
     onChange(dark => ({ ...dark, dark: theme === 'dark' }))
   })
-  observer.observe(root, { attributes: true, attributeFilter: ['data-bs-theme'] })
+  observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] })
 
   return () => {
     observer.disconnect()

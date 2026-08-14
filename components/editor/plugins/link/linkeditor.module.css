@@ -30,7 +30,7 @@
   max-width: 300px;
 }
 
-[data-bs-theme="light"] .linkInput {
+[data-theme="light"] .linkInput {
   border-right: 1px solid var(--sn-borderColor);
 }
 

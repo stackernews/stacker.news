@@ -66,13 +66,13 @@ const transformData = data => {
 }
 
 const COLORS = [
-  'var(--bs-secondary)',
-  'var(--bs-info)',
-  'var(--bs-success)',
-  'var(--bs-boost)',
-  'var(--theme-grey)',
-  'var(--bs-danger)',
-  'var(--bs-code-color)'
+  'var(--sn-secondary)',
+  'var(--sn-info)',
+  'var(--sn-success)',
+  'var(--sn-boost)',
+  'var(--sn-grey)',
+  'var(--sn-danger)',
+  'var(--sn-code-color)'
 ]
 
 function getColor (i) {
@@ -104,10 +104,10 @@ export function WhenAreaChart ({ data }) {
       >
         <XAxis
           dataKey='time' tickFormatter={dateFormatter(when, from, to)} name={xAxisName(when, from, to)}
-          tick={{ fill: 'var(--theme-grey)' }}
+          tick={{ fill: 'var(--sn-grey)' }}
         />
-        <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)', opacity: 1, zIndex: -1 }} />
+        <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--sn-grey)' }} />
+        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--sn-body-color)', backgroundColor: 'var(--sn-body-bg)', opacity: 1, zIndex: -1 }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Area key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={getColor(i)} fill={getColor(i)} />)}
@@ -141,10 +141,10 @@ export function WhenLineChart ({ data }) {
       >
         <XAxis
           dataKey='time' tickFormatter={dateFormatter(when, from, to)} name={xAxisName(when, from, to)}
-          tick={{ fill: 'var(--theme-grey)' }}
+          tick={{ fill: 'var(--sn-grey)' }}
         />
-        <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
+        <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--sn-grey)' }} />
+        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--sn-body-color)', backgroundColor: 'var(--sn-body-bg)' }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Line key={v} type='monotone' dataKey={v} name={v} stroke={getColor(i)} fill={getColor(i)} />)}
@@ -183,11 +183,11 @@ export function WhenComposedChart ({
       >
         <XAxis
           dataKey='time' tickFormatter={dateFormatter(when, from, to)} name={xAxisName(when, from, to)}
-          tick={{ fill: 'var(--theme-grey)' }}
+          tick={{ fill: 'var(--sn-grey)' }}
         />
-        <YAxis yAxisId='left' orientation='left' allowDecimals={false} stroke='var(--theme-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <YAxis yAxisId='right' orientation='right' allowDecimals={false} stroke='var(--theme-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
+        <YAxis yAxisId='left' orientation='left' allowDecimals={false} stroke='var(--sn-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--sn-grey)' }} />
+        <YAxis yAxisId='right' orientation='right' allowDecimals={false} stroke='var(--sn-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--sn-grey)' }} />
+        <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--sn-body-color)', backgroundColor: 'var(--sn-body-bg)' }} />
         <Legend />
         {barNames?.map((v, i) =>
           <Bar yAxisId={barAxis} key={v} stackId={barStackId} type='monotone' dataKey={v} name={v} stroke={getColor(i)} fill={getColor(i)} />)}
@@ -215,7 +215,7 @@ export function GrowthPieChart ({ data }) {
           minAngle={5}
           paddingAngle={0}
           outerRadius={80}
-          fill='var(--bs-secondary)'
+          fill='var(--sn-secondary)'
           label
         >
           {

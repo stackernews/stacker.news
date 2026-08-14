@@ -5,7 +5,7 @@
 }
 
 .searchComment {
-    border: 1px solid var(--theme-note-reply);
+    border: 1px solid var(--sn-note-reply);
     margin-bottom: 0.5rem;
 }
 
@@ -54,7 +54,7 @@
 
 .collapser {
     cursor: pointer;
-    fill: var(--theme-grey);
+    fill: var(--sn-grey);
     width: 45px;
     margin-left: auto;
     user-select: none;
@@ -111,7 +111,7 @@
     border-radius: .4rem;
     padding-top: .5rem;
     padding-left: .7rem;
-    background-color: var(--theme-commentBg);
+    background-color: var(--sn-commentBg);
 }
 
 .bountyIcon {

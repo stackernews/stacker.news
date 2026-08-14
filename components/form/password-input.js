@@ -21,10 +21,10 @@ function PasswordHider ({ onClick, showPass }) {
     >
       {!showPass
         ? <Eye
-            fill='var(--bs-body-color)' height={16} width={16}
+            fill='var(--sn-body-color)' height={16} width={16}
           />
         : <EyeClose
-            fill='var(--bs-body-color)' height={16} width={16}
+            fill='var(--sn-body-color)' height={16} width={16}
           />}
     </InputGroup.Text>
   )
@@ -72,7 +72,7 @@ function PasswordScanner ({ onScan, text }) {
       }}
     >
       <QrScanIcon
-        height={20} width={20} fill='var(--bs-body-color)'
+        height={20} width={20} fill='var(--sn-body-color)'
       />
     </InputGroup.Text>
   )

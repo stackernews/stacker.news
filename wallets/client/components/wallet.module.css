@@ -7,26 +7,26 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--text-button-color, var(--theme-grey));
+  color: var(--text-button-color, var(--sn-grey));
   font-weight: 700;
   line-height: var(--text-button-line-height, normal);
   text-decoration: none;
   --focus-ring-offset: 4px;
 }
 .textButton:hover {
-  color: var(--text-button-hover-color, var(--bs-body-color));
+  color: var(--text-button-hover-color, var(--sn-body-color));
   text-decoration: none;
 }
 .textButton:focus-visible {
-  outline: 2px solid var(--theme-borderColor);
+  outline: 2px solid var(--sn-borderColor);
   outline-offset: var(--focus-ring-offset, 4px);
 }
 .dangerTextButton {
-  --text-button-color: var(--bs-danger);
-  --text-button-hover-color: var(--bs-danger);
+  --text-button-color: var(--sn-danger);
+  --text-button-hover-color: var(--sn-danger);
 }
 .infoTextButton {
-  --text-button-color: var(--bs-info);
+  --text-button-color: var(--sn-info);
 }
 .walletFooterBackButton {
   width: fit-content;
@@ -40,18 +40,18 @@
   align-items: center;
   gap: var(--chip-gap, 0.35rem);
   padding: var(--chip-padding, 0.35rem 1rem);
-  border: 1px solid var(--theme-borderColor);
+  border: 1px solid var(--sn-borderColor);
   border-radius: var(--chip-radius, var(--wt-radius-pill));
-  background: var(--chip-bg, var(--bs-body-bg));
-  color: var(--chip-color, var(--theme-grey));
+  background: var(--chip-bg, var(--sn-body-bg));
+  color: var(--chip-color, var(--sn-grey));
   font-weight: 700;
   line-height: 1;
 }
 .chip:hover,
 .chip:focus-visible,
 .chipActive {
-  border-color: var(--bs-body-color);
-  color: var(--bs-body-color);
+  border-color: var(--sn-body-color);
+  color: var(--sn-body-color);
 }
 
 .surfaceRow {
@@ -60,18 +60,18 @@
   padding: var(--surface-row-padding, 0.85rem 1rem);
   border: var(--surface-row-border, 1px solid transparent);
   border-radius: var(--surface-row-radius, var(--wt-radius-sm));
-  background: var(--surface-row-bg, color-mix(in srgb, var(--theme-toolbarHover) 38%, var(--bs-body-bg)));
-  color: var(--bs-body-color);
+  background: var(--surface-row-bg, color-mix(in srgb, var(--sn-toolbarHover) 38%, var(--sn-body-bg)));
+  color: var(--sn-body-color);
   text-decoration: none;
 }
 .surfaceRow:hover {
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
   text-decoration: none;
 }
 .surfaceRowHover:hover {
-  border-color: var(--bs-primary);
-  box-shadow: inset 0 0 0 1px var(--bs-primary);
-  color: var(--bs-body-color);
+  border-color: var(--sn-primary);
+  box-shadow: inset 0 0 0 1px var(--sn-primary);
+  color: var(--sn-body-color);
 }
 
 .stackSection,
@@ -100,8 +100,8 @@
   justify-content: space-between;
   width: 100%;
   padding: var(--wallet-bottom-bar-padding, 1rem 0 0);
-  border-top: 1px solid var(--theme-borderColor);
-  background: var(--bs-body-bg);
+  border-top: 1px solid var(--sn-borderColor);
+  background: var(--sn-body-bg);
 }
 
 @media (max-width: 767px) {

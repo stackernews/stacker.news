@@ -9,8 +9,8 @@
   cursor: pointer;
 }
 .resetButton {
-  --text-button-color: var(--bs-danger);
-  --text-button-hover-color: var(--bs-danger);
+  --text-button-color: var(--sn-danger);
+  --text-button-hover-color: var(--sn-danger);
   --focus-ring-offset: 4px;
 }
 .resetButton:hover {
@@ -46,8 +46,8 @@
   letter-spacing: 0.5px;
 }
 .notice {
-  background-color: var(--theme-toolbarHover);
-  border: 1px solid var(--theme-borderColor);
+  background-color: var(--sn-toolbarHover);
+  border: 1px solid var(--sn-borderColor);
   border-radius: var(--wt-radius-sm);
   padding: 1rem;
 }
@@ -58,7 +58,7 @@
   margin-top: 0.35rem;
   line-height: 1.2;
   font-size: 0.875rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
 }
 .actions {
   display: flex;

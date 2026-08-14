@@ -3,14 +3,14 @@
 
 .testRow {
   flex-wrap: nowrap;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: 0.875rem;
 }
 .testRow > span {
   min-width: 0;
 }
 .testButton:disabled {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   cursor: default;
 }
 .testButton {
@@ -22,7 +22,7 @@
   align-items: center;
   gap: 0.45rem;
   margin: 0;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 700;
@@ -35,7 +35,7 @@
   width: 38px;
   height: 22px;
   border-radius: var(--wt-radius-pill);
-  background: var(--theme-toolbarActive);
+  background: var(--sn-toolbarActive);
   transition: background-color 0.15s ease;
 }
 .toggleThumb {
@@ -51,13 +51,13 @@
   transition: transform 0.15s ease;
 }
 .toggleTrack[data-checked] {
-  background: var(--bs-success);
+  background: var(--sn-success);
 }
 .toggleThumb[data-checked] {
   transform: translateX(16px);
 }
 .toggleTrack:focus-visible {
-  outline: 2px solid var(--theme-borderColor);
+  outline: 2px solid var(--sn-borderColor);
   outline-offset: 3px;
 }
 .toggleLabel {
@@ -69,16 +69,16 @@
   flex-direction: column;
   gap: 0.65rem;
   padding: 0.85rem 2.65rem 0.85rem 0.85rem;
-  border: 1px solid rgba(var(--bs-danger-rgb), 0.35);
+  border: 1px solid rgba(var(--sn-danger-rgb), 0.35);
   border-radius: var(--wt-radius-sm);
-  background: rgba(var(--bs-danger-rgb), 0.06);
+  background: rgba(var(--sn-danger-rgb), 0.06);
 }
 .errorCopy {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  --text-button-color: var(--bs-danger);
-  --text-button-hover-color: var(--bs-danger);
+  --text-button-color: var(--sn-danger);
+  --text-button-hover-color: var(--sn-danger);
   justify-content: center;
   width: 1.75rem;
   height: 1.75rem;
@@ -98,10 +98,10 @@
   margin: 0;
   padding: 0.65rem;
   overflow: auto;
-  border: 1px solid var(--theme-borderColor);
+  border: 1px solid var(--sn-borderColor);
   border-radius: var(--wt-radius-xs);
-  background: var(--theme-body);
-  color: var(--bs-body-color);
+  background: var(--sn-body);
+  color: var(--sn-body-color);
   white-space: pre-wrap;
 }
 

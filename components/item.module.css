@@ -17,7 +17,7 @@
 
 .searchSnippet {
     font-size: 85%;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -30,10 +30,10 @@
 .notification {
     position: absolute;
     padding: 3px;
-    background-color: var(--bs-info);
+    background-color: var(--sn-info);
     top: -3px;
     right: -4px;
-    border: 1px solid var(--bs-body-bg);
+    border: 1px solid var(--sn-body-bg);
 }
 
 .icon {
@@ -41,7 +41,7 @@
 }
 
 a.title:visited {
-    color: var(--theme-grey) !important;
+    color: var(--sn-grey) !important;
 }
 
 .upvote {
@@ -94,12 +94,12 @@ a.title:visited {
 }
 
 a.link:visited {
-    color: var(--theme-linkVisited) !important;
+    color: var(--sn-linkVisited) !important;
 }
 
 .other {
     font-size: 80%;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
     vertical-align: text-top;
     margin-bottom: .125rem;
     word-break: break-word;
@@ -178,7 +178,7 @@ a.link:visited {
     grid-column: 1 / -1;
     font-weight: bold;
     font-size: 0.9rem;
-    border-bottom: 1px solid var(--theme-borderColor);
+    border-bottom: 1px solid var(--sn-borderColor);
     padding-bottom: 0.35rem;
     margin-top: 0.75rem;
 }
@@ -188,7 +188,7 @@ a.link:visited {
 }
 
 .detailsLabel {
-    color: var(--theme-grey);
+    color: var(--sn-grey);
 }
 
 .detailsValue {
@@ -219,7 +219,7 @@ a.link:visited {
     font-weight: 600;
     margin-top: .25rem;
     display: flex;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
     font-size: 90%;
     margin-right: .75rem;
 }
@@ -230,7 +230,7 @@ a.link:visited {
 }
 
 .skeleton .title {
-    background-color: var(--theme-grey);
+    background-color: var(--sn-grey);
     width: 500px;
     border-radius: .4rem;
 }
@@ -240,7 +240,7 @@ a.link:visited {
 }
 
 .skeleton .name {
-    background-color: var(--theme-grey);
+    background-color: var(--sn-grey);
     width: 100px;
     border-radius: .4rem;
     height: 17px;
@@ -252,7 +252,7 @@ a.link:visited {
 }
 
 .skeleton .link {
-    background-color: var(--theme-grey);
+    background-color: var(--sn-grey);
     width: 800px;
     border-radius: .3rem;
     line-height: .8rem;
@@ -268,7 +268,7 @@ a.link:visited {
     width: 42px;
     height: 70%;
     border-radius: .27rem;
-    background-color: var(--theme-grey);
+    background-color: var(--sn-grey);
     margin-right: .5rem;
 }
 

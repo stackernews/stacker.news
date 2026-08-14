@@ -5,7 +5,7 @@
    :focus-within while the inner input holds focus. .control.isInvalid doubles
    specificity so the red border wins over the base border color. */
 .control:focus-within {
-  border-color: var(--bs-primary);
+  border-color: var(--sn-primary);
   box-shadow: 0 0 0 .2rem rgb(250 218 94 / 25%);
 }
 
@@ -20,14 +20,14 @@
 .chip {
   display: flex;
   align-items: center;
-  background-color: var(--theme-clickToContextColor);
+  background-color: var(--sn-clickToContextColor);
   border-radius: 2px;
   padding-inline-start: 6px;
 }
 
 .groupLabel {
   padding: .25rem 1rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: .75rem;
   text-transform: uppercase;
 }

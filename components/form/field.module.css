@@ -55,9 +55,7 @@
     opacity: 1;
 }
 
-/* the SN-branded thumbs validation icons, carried verbatim from globals'
-   $form-feedback-icon-* values */
-/* the icon inset padding is a conditional pe-10 utility in input.js: a module
+/* The icon inset padding is a conditional pe-10 utility in input.js: a module
    padding-right here would lose to the recipe's px-4 */
 .control[data-invalid] {
     border-color: #c03221;
@@ -85,7 +83,6 @@
     box-shadow: 0 0 0 .25rem rgb(92 128 1 / 25%);
 }
 
-/* globals painted textarea.form-control at line-height 1rem */
 textarea.control {
     line-height: 1rem;
 }
@@ -103,7 +100,7 @@ textarea.passwordInput {
 
 /* structural corner-joining: every group member's radius is a plain module
    declaration, so these rules win on specificity alone with no layer fight.
-   React fragments don't make DOM nodes, so first-child and last-child see the
+   React fragments do not make DOM nodes, so first-child and last-child see the
    flattened members as real siblings. Members must not carry radius utilities;
    corner overrides happen at the call site, like the CopyInput button.
    See docs/dev/styling.md for the full input group system. */
@@ -117,8 +114,7 @@ textarea.passwordInput {
     border-end-end-radius: 0;
 }
 
-/* rest-state seam for the clear button against the input's right edge
-   (the radius-zeroing that used to live here moved to .inputGroup above) */
+/* Rest-state seam for the clear button against the input's right edge. */
 .appendButton {
     border-left: 0 !important;
 }

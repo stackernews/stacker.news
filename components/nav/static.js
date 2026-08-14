@@ -4,7 +4,7 @@ import styles from '../header.module.css'
 import { BackOrBrand, NavPrice, SearchItem } from './common'
 import { PriceCarouselProvider } from './price-carousel'
 
-// no activeKey — these links were never active (rb Nav had none here either)
+// Static navigation has no active destination.
 export default function StaticHeader () {
   return (
     <PriceCarouselProvider>

@@ -3,24 +3,18 @@ import { cn } from '@/lib/cn'
 import styles from './tooltip.module.css'
 import arrowStyles from './arrow.module.css'
 
-// _app.js mounts this once for grouping only (adjacent triggers swap
-// instantly, 400ms native timeout). Deliberately no delay props: a Provider
-// delay makes the group's open value 0 permanently, and TooltipTrigger's
-// groupOpenValue === 0 short-circuit then flattens every per-site delay to 0.
-// The 0 default lives on the Trigger below instead.
+// _app.js mounts one provider so moving between adjacent triggers does not
+// replay the opening delay. Per-tooltip delays stay on each trigger.
 export function TooltipProvider ({ children }) {
   return <BaseTooltip.Provider>{children}</BaseTooltip.Provider>
 }
 
-/**
- * SN Tooltip; children must be a single element that spreads props and
- * forwards ref (DOM tags qualify). It stays in place, only the popup portals
- */
+// The trigger must forward its props and ref. Only the popup is portaled.
 export default function Tooltip ({ children, content, side = 'bottom', delay, closeDelay, disabled, className }) {
   if (!content) return children
   return (
     <BaseTooltip.Root disabled={disabled}>
-      {/* delay ?? 0 keeps the old no-delay behavior (the Trigger default is 600ms; closeDelay already defaults to 0) */}
+      {/* Tooltips open immediately unless a caller asks for a delay. */}
       <BaseTooltip.Trigger render={children} delay={delay ?? 0} closeDelay={closeDelay} />
       <BaseTooltip.Portal>
         <BaseTooltip.Positioner side={side} sideOffset={6} className={styles.positioner}>

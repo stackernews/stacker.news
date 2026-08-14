@@ -1,6 +1,4 @@
-/* the SN select pill, carried verbatim from globals; not the input chrome:
-   clickToContext bg, dropdownItem color, bold, borderless, custom caret.
-   The padding pairs with the caret position, one system, all module-side */
+/* Compact select paint. Padding and caret position stay together here. */
 
 .select {
     appearance: none;
@@ -25,7 +23,7 @@
     outline: none;
 }
 
-/* dark-mode native dropdown visibility fix from globals */
+/* Native option menus need a light text color context in dark mode. */
 .select option {
     color: rgba(0, 0, 0, .9);
 }

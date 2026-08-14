@@ -73,7 +73,7 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
 
   return (
     <ActionTooltip notForm overlayText={tooltip} placement='top' showDelay={showDelay} disable={dropdownOpen}>
-      {/* no noWrapper: ActionTooltip's default span is the tooltip anchor, like the old Dropdown root span was */}
+      {/* The tooltip wrapper provides the anchor shared with Menu. */}
       <Menu open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <Menu.Trigger
           onPointerDown={e => e.preventDefault()} /* keeps the Lexical selection; also suppresses Base UI's mousedown-open… */

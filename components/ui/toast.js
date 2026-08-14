@@ -7,9 +7,7 @@ import styles from './toast.module.css'
 export const TOAST_DEFAULT_DELAY_MS = 5000
 
 function ToastItem ({ toast }) {
-  // updateKey is 0 on the initial add (no pulse), increments per upsert;
-  // parity swaps the class so consecutive upserts re-trigger the animation
-  // (browsers won't restart an animation whose name is unchanged)
+  // Alternate animation names so consecutive updates restart the pulse.
   const pulse = toast.updateKey
     ? (toast.updateKey % 2 === 0 ? styles.pulseEven : styles.pulseOdd)
     : null
@@ -23,7 +21,7 @@ function ToastItem ({ toast }) {
         <Toast.Close className={styles.close} aria-label='close'>X</Toast.Close>
       </Toast.Content>
       {toast.timeout > 0 && toast.data?.progressBar && (
-        // key on updateKey: an upsert (= refreshed timer) remounts and restarts the bar
+        // A refreshed timer remounts and restarts the progress bar.
         <div key={toast.updateKey} className={styles.countdown} style={{ '--toast-timeout': `${toast.timeout}ms` }} />
       )}
     </Toast.Root>
@@ -34,8 +32,7 @@ function StackedToasts () {
   const { toasts, close } = Toast.useToastManager()
   const router = useRouter()
 
-  // navigation must not interfere with cancelling an action: close every
-  // toast except those flagged persistOnNavigate on route change
+  // Route changes dismiss ordinary toasts but preserve ongoing actions.
   useEffect(() => {
     const onRouteChangeStart = () => {
       for (const toast of toasts) {
@@ -57,14 +54,13 @@ function StackedToasts () {
 
 export function useToast () {
   const { add, close, update, promise } = Toast.useToastManager()
-  // merge counter: 3x 'zap pending' renders as '(3) zap pending';
-  // cleared on remove so a later same-key toast restarts at 1
+  // Repeated messages share one toast and display their count.
   const counts = useRef(new Map())
 
   const addToast = useCallback((type, body, options = {}) => {
     const { id, tag, delay, autohide, onRemove, persistOnNavigate, progressBar, ...rest } = options
-    // dedup key: legacy tag or explicit id, else a string body.
-    // JSX bodies never dedup (reference-equality tags never merged either)
+    // Explicit keys and string bodies can be deduplicated. JSX bodies remain
+    // separate unless the caller supplies a key.
     const key = tag ?? id ?? (typeof body === 'string' ? body : undefined)
     let amount = 1
     if (key !== undefined) {
@@ -72,14 +68,14 @@ export function useToast () {
       counts.current.set(key, amount)
     }
     const toastId = add({
-      id: key, // undefined = Base UI generates one (store falls back on falsy)
+      id: key,
       type,
       timeout: (type === 'danger' || autohide === false) ? 0 : (delay ?? TOAST_DEFAULT_DELAY_MS),
-      // danger announces assertively (role='alertdialog'), like the old role='alert'
+      // Danger messages announce assertively.
       priority: type === 'danger' ? 'high' : 'low',
       description: amount > 1 ? `(${amount}) ${body}` : body,
       data: { persistOnNavigate, progressBar },
-      ...rest, // unknown options (title, onClose, …) pass through to add()
+      ...rest,
       onRemove: () => {
         if (key !== undefined) counts.current.delete(key)
         onRemove?.()

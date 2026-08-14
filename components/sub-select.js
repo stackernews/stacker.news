@@ -9,6 +9,7 @@ import { useMe } from './me'
 import { useShowModal } from './modal'
 import { TerritoryInfo } from './territory-header'
 import { subNames, subNamesFromSlug } from '@/lib/subs'
+import { cn } from '@/lib/cn'
 
 export function SubSelectInitial ({ item, subs }) {
   const router = useRouter()
@@ -132,7 +133,7 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
       size='sm'
       {...valueProps}
       {...props}
-      className={`${className} ${styles.subSelect} ${size === 'large' ? styles.subSelectLarge : size === 'medium' ? styles.subSelectMedium : ''}`}
+      className={cn(className, styles.subSelect, size === 'large' ? styles.subSelectLarge : size === 'medium' ? styles.subSelectMedium : '')}
       items={subItems}
     />
   )

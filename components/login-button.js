@@ -80,15 +80,11 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
           >
             <ArrowDownIcon width={16} height={16} />
           </Menu.Trigger>
-          {/* utilities carry the metrics, they would beat the skin's
-              declarations anyway: w-40 is the painted width (the old inline
-              150px lost to Bootstrap's 160px min-width), p-2 and rounded-md
-              approximate the skin's values. The skin lines go inert here but
-              stay for the editor toolbar */}
+          {/* This account popup uses the compact editor-dropdown skin. */}
           <Menu.Popup align='end' className={cn(styles.dropdownExtra, 'w-40 p-2 rounded-md')}>
             {accounts.map(account => (
-              // raw Base UI Item on the legacy dropdownExtra* skins, not
-              // itemClasses, whose padding utilities would beat the skin
+              // The skin owns item metrics, so this popup composes the Base UI
+              // primitive without the house Menu item recipe.
               <BaseMenu.Item
                 key={account.id}
                 onClick={() => {

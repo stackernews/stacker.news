@@ -23,49 +23,6 @@
 /* :where() keeps the dark variant at zero specificity. */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
-/* Bridge Tailwind utilities to the live theme and territory variables. */
-:root {
-  /* runtime territory brand */
-  --sn-primary: var(--bs-primary);
-  --sn-secondary: var(--bs-secondary);
-
-  /* active light or dark theme */
-  --sn-muted: var(--theme-grey);
-
-  /* territory-aware text contrast */
-  --sn-primary-text: var(--theme-primary-text);
-  --sn-secondary-text: var(--theme-secondary-text);
-
-  /* Fixed UI links; content links remain territory-aware. */
-  --sn-link-color: var(--bs-link-color);
-  --sn-link-hover-color: var(--bs-link-hover-color);
-
-  /* popup paint follows the active theme */
-  --sn-body-bg: var(--bs-body-bg);
-  --sn-body-color: var(--bs-body-color);
-  --sn-borderColor: var(--theme-borderColor);
-
-  /* fixed palette */
-  --sn-danger: #c03221;
-  --sn-warning: #f6911d;
-  --sn-info: #007cbe;
-  --sn-success: #5c8001;
-  --sn-boost: #8c25f4;
-  --sn-nostr: #8d45dd;
-  --sn-twitter: #1da1f2;
-
-  /* Portaled overlays share this stacking ladder. */
-  --sn-z-sticky: 900;
-  --sn-z-dropdown: 1060; /* was Bootstrap's 1000; our menus portal to <body> so they must clear the modal pair, and they sit below popover 1070 because no menu opens from a popover */
-  --sn-z-drawer-backdrop: 1040;
-  --sn-z-drawer: 1045;
-  --sn-z-backdrop: 1050;
-  --sn-z-modal: 1055;
-  --sn-z-popover: 1070;
-  --sn-z-tooltip: 1080;
-  --sn-z-toast: 1090;
-}
-
 @theme {
   /* existing application layout thresholds */
   --breakpoint-sm: 576px;

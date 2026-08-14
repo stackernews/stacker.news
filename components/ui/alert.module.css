@@ -6,15 +6,13 @@
   position: relative;
   padding: 1rem;
   margin-bottom: 1rem;
-  /* $alert-border-radius; $alert-border-width: 0 so no border rule at all */
   border-radius: 33% 2% / 11% 74%;
-  /* Bootstrap's baked math, verified against the compiled CSS:
-     text is shade-color($c, 60%), bg is tint-color($c, 80%) */
+  /* Light surfaces mix stronger text and a pale background from one base. */
   color: color-mix(in srgb, #000 60%, var(--sn-alert-base));
   background-color: color-mix(in srgb, #fff 80%, var(--sn-alert-base));
 }
 
-/* dark tokens flip the mix: text = tint-color($c, 40%), bg = shade-color($c, 80%) */
+/* Dark surfaces reverse the mix direction for contrast. */
 :global([data-bs-theme='dark']) .alert {
   color: color-mix(in srgb, #fff 40%, var(--sn-alert-base));
   background-color: color-mix(in srgb, #000 80%, var(--sn-alert-base));
@@ -36,9 +34,7 @@
   padding-right: 3rem;
 }
 
-/* replicates the painted .btn-close: $btn-close-bg: none killed Bootstrap's
-   svg, so the paint is just the lightning X at .btn-close's .5/.75 opacities
-   ($close-color in globals is a dead Bootstrap 4 var, the emitted color is #000) */
+/* Lightning supplies the close glyph. */
 .close {
   position: absolute;
   top: 0;
@@ -66,7 +62,6 @@
   opacity: 1;
 }
 
-/* the dark paint was Bootstrap's invert(1) filter over #000, which is white */
 :global([data-bs-theme='dark']) .close {
   color: #fff;
 }

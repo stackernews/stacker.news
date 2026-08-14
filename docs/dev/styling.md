@@ -1,173 +1,97 @@
 # Styling architecture
 
-How styling works after the redesign: Tailwind v4 utilities for layout and metrics,
-CSS modules for paint and state, Base UI for behavior. Code comments state the local
-fact in a line or two; the longer mechanisms live here.
+This branch is a transitional styling stack. Bootstrap still owns element
+defaults and remaining legacy components. Tailwind owns converted utility
+classes. Base UI supplies behavior for the house component library.
 
-## 1. Cascade contract
+Runtime comments should explain local constraints. Cross-cutting rules belong
+in this document.
 
-During the migration Bootstrap is still installed. Bootstrap ships its utilities
-unlayered with `!important`. We import Tailwind's utilities into a CSS layer with
-the `important` flag. The cascade inverts important layer order, so the precedence
-is: layered important, then unlayered important, then unlayered normal, then
-layered normal. A Tailwind utility therefore always beats the same named Bootstrap
-utility while both stylesheets are live. This is what made the codemod rename safe:
-the new value takes effect immediately. The contract holds until PR3 removes
-Bootstrap.
+## Cascade contract
 
-Two practical consequences:
+`styles/tailwind.css` imports Tailwind theme and utility layers without
+preflight. Bootstrap continues to provide the element reset while both systems
+are installed.
 
-- Module CSS cannot beat a utility. When a call site needs different geometry than
-  a recipe emits, it passes its own utility and `twMerge` drops the recipe's
-  conflicting class. Never fight a utility from a module.
-- Class merging only works for classes `twMerge` understands. Every custom token
-  added to `@theme` in `styles/tailwind.css` needs a matching entry in `lib/cn.js`,
-  or overrides of that token silently stop merging and stylesheet order picks the
-  winner.
+Tailwind utilities are emitted as important declarations. Bootstrap utilities
+are unlayered and important, so the reversed important-layer order lets the
+Tailwind declaration win when both frameworks expose the same class name.
 
-## 2. Ownership rules
+The scanner blocklists `container`, `collapse`, and `table`. Those class names
+still belong to React Bootstrap components at this stage and their Tailwind
+counterparts have incompatible behavior.
 
-One property, one source, per component.
+`cn()` combines conditional class names and resolves Tailwind conflicts.
+Standard Tailwind groups already understand theme-backed classes such as
+`text-primary`. Extend `tailwind-merge` only for custom utility names that it
+cannot classify, such as `text-reset` or `font-bolder`.
 
-- Recipes (the class builders in `components/ui/*.js` and `components/form/field.js`)
-  own metrics and layout: display, padding, border radius, font size, font weight.
-- Modules (`*.module.css`) own paint: colors, state styles, border colors, motion.
-- Call sites own one-off geometry, passed as utilities so `twMerge` arbitrates.
+## Ownership rules
 
-A module className handed to a Button must not declare recipe owned properties.
-They lose to the important utilities and read as intent they don't have. The poll
-pill is the reference example: its geometry (`block rounded-4xl px-[1.1rem]
-py-[.4rem] leading-4`) rides the call site, and the module keeps only what the
-recipe never emits (margin, border, width, text-transform).
+Each house component has three styling owners:
 
-## 3. Tokens
+- Recipes in `components/ui/*.js` and `components/form/field.js` own metrics
+  and layout.
+- CSS modules own paint, state, borders, and motion.
+- Call sites own one-off geometry through utilities.
 
-`styles/tailwind.css` defines the `--sn-*` token bridge. The tokens point at the
-live Bootstrap and theme variables, so territory branding (`custom-css.js` rewrites
-`--bs-primary` and friends at runtime) and dark mode flow through to the `text-*`,
-`bg-*`, `border-*` and `fill-*` utilities. PR3 flips the aliases to canonical
-literals.
+Important Tailwind utilities beat module declarations in this transitional
+stack. A module should not declare geometry that a recipe or call site utility
+already owns.
 
-The z-index ladder is the single stacking authority. It is Bootstrap's compiled
-scale with SN's sticky override at 900. Every popup portals to `body` and takes its
-z from the ladder variables, never a literal. Menus sit above the modal pair
-because our menus portal to `body` (Bootstrap's dropdowns never did), and below
-popovers because no menu opens from a popover.
+## Theme bridge
 
-Breakpoints are token identical to Bootstrap's on purpose, so `md:flex` paints
-exactly like the old `d-md-flex`.
+The `--sn-*` values in `styles/tailwind.css` bridge Tailwind utilities to the
+active Bootstrap and application theme variables. Territory branding and dark
+mode therefore continue to update the utility-backed components at runtime.
 
-## 4. Popup family
+Only values with the same meaning across Tailwind property families belong in
+`@theme inline`. Fill colors that intentionally differ from text colors remain
+outside the Tailwind color map.
 
-Every popup (tooltip, popover, preview card, menu, dialog, drawer, toast) portals
-to `body` and rides the ladder.
+Breakpoints are application-wide layout thresholds. Changing one is a
+responsive design change, not a local component adjustment.
 
-### The arrow
+## Component behavior
 
-One shared module, `components/ui/arrow.module.css`, used by tooltip, popover and
-preview card. The construction comes from the Base UI docs:
+House wrappers under `components/ui/` preserve the application-facing APIs.
+Base UI owns keyboard behavior, focus management, dismissal, gestures, and
+portals. CSS modules own their visual state.
 
-- The arrow element is a half height clip window. The visible diamond is a square
-  drawn by the `::before`, carrying a full border, rotated so only its two outward
-  faces show through the window. Every side rule is just an offset plus a rotation
-  of that one shape.
-- The offsets are the docs' plain values. The popup is `position: relative`, so
-  the offsets resolve against its padding box, which sits one border width inside
-  the visible edge. A bordered popup therefore gets the arrow fill overlapping its
-  border in the notch automatically, with no hairline; a borderless popup (the
-  tooltip) sits flush. Do not add border terms to the offsets.
-- Size semantics: `--arrow-size` is the drawn base width. The tip height is half
-  the size minus the popup border. The default 16px draws roughly Bootstrap's
-  native popover arrow (1rem by .5rem); the tooltip overrides down to 12px.
-- Flush placement against a popup edge is minus three quarters of the size, not
-  half, because the rotated square keeps its unrotated layout box.
-- `data-side` reports the popup's side, so `side="bottom"` styles the arrow on the
-  popup's top edge.
+Tooltip, popover, preview card, menu, dialog, drawer, and toast surfaces portal
+to `body`. They share the z-index ladder in `styles/tailwind.css` rather than
+introducing local numeric values.
 
-The popup rule that pins a transform (see `popover.module.css`) exists for the
-arrow: while the open and close scale transition runs, the transform makes the
-popup the arrow's containing block, and the moment the transform returns to none
-the arrow would re-anchor to the positioner and visibly jump. Keeping a transform
-on the popup at rest keeps the containing block stable.
+Menus do not lock page scroll. Dialogs and drawers do. Popup surfaces that
+receive programmatic focus suppress the container outline while interactive
+descendants retain visible focus treatment.
 
-### Focus
+Tooltip, popover, and preview card use
+`components/ui/arrow.module.css`. The arrow element clips a rotated square and
+uses `data-side` to place the same shape against each popup edge.
 
-- Both Bootstrap and Base UI focus popup containers programmatically. Bootstrap's
-  CSS shipped the ring suppression, so it never painted. Ours must too: every
-  popup surface with `tabindex="-1"` gets `outline: 0` in its module the day it is
-  born. Whether a browser paints a ring for script focus is heuristic dependent,
-  so a miss hides easily.
-- Bootstrap paired `:hover` with `:focus` on links and nav elements. The house
-  reading is `:focus-visible`: mouse clicks no longer leave sticky hover paint,
-  keyboard focus still shows.
+## Buttons and forms
 
-## 5. Buttons and forms
+Filled button variants derive hover and active paint from live variables.
+Every button keeps a transparent one-pixel border so it aligns with bordered
+form controls. Outline variants recolor that border.
 
-### Button skin math
+`inputClasses()` and `buttonClasses()` provide paired size maps. Controls in
+one input group need matching sizes so their heights align. Mobile input text
+stays at least 1rem to prevent automatic zoom on iOS.
 
-Hover and active states follow Bootstrap's baked formulas, verified value exact
-against the compiled CSS. Hover mixes 15 percent of `--sn-btn-mix` into the base
-background, active mixes 20 percent. White text variants mix toward black, which
-is the shade direction and the default. Black text variants set `--sn-btn-mix:
-#fff` to tint instead. `primary` and `secondary` keep black even with black text
-because SN's brand button mixin shades regardless of text color. Variants the
-formula doesn't fit (the outlines, `link`) pin explicit variables, which win
-through the fallback chain. The brandable pair reads the live variables, so a
-territory retint recomputes the mixes at paint time.
+Input groups join corners through sibling selectors in
+`components/form/field.module.css`. React fragments do not create DOM nodes,
+so those selectors see the rendered controls as direct siblings.
 
-### The load bearing transparent border
+## Global stylesheet order
 
-Every `.btn` carries `border: 1px solid transparent` in the module, Bootstrap's
-exact line. Buttons must measure the same 40px as 1px bordered inputs or input
-groups misalign. Outline variants recolor that border. Border widths beyond 1px
-are call site utilities while the colors stay in the skin, because a border width
-utility with the important flag would also beat the pinned colors.
+`pages/_app.js` imports:
 
-### Input group corners
+1. `styles/globals.scss`
+2. `styles/tailwind.css`
+3. `katex/dist/katex.min.css`
+4. `styles/text.scss`
 
-Corner joining is structural CSS in `form/field.module.css`. Every real group
-member's radius is a plain module declaration, so the first child and last child
-rules win on specificity alone, with no layer fight. React fragments don't create
-DOM nodes, so the rules see the flattened members as real siblings. Members must
-not carry radius utilities; corner overrides happen at the call site, like the
-copy button's `rounded-s-none`.
-
-Radius theming rides a custom property: members read
-`var(--sn-input-radius, .375rem)`. A consumer sets the variable on the form
-element, the members' common ancestor, never on the input rule, because custom
-properties inherit downward and an addon is the input's sibling, not its child.
-The wallets capability card is the reference consumer.
-
-### Sizes
-
-`inputClasses` and `buttonClasses` carry paired size maps. Both sides of an input
-group must use the same size or the row misaligns, because the group stretches
-items to the tallest member. The 16px mobile font size that stops iOS zooming
-rides both maps.
-
-## 6. Motion
-
-The house pattern is a 150ms ease-out fade in and a snap close. Exit animations
-exist only where the primitive defers unmount for them (the drawer).
-
-Parent opacity fades stay on small surfaces. Animating opacity composites the
-subtree, text loses subpixel antialiasing during the fade, and it visibly pops
-back when the transition ends. That is loud on text heavy panels and invisible on
-small chrome. `will-change: opacity` makes the degraded antialiasing permanent,
-which is worse. For big text surfaces, snapping open is the honest choice.
-
-## 7. Migration tooling and PR3 prep
-
-- The Bootstrap to Tailwind utility rename was done by a one shot codemod
-  driven by a frozen name map, kept outside the repo with the migration notes.
-  The map is a lookup table and not a formula because both frameworks use
-  names like `mt-3` and `mt-4` with different values; digit math would produce
-  silent same name regressions.
-- A leftover checker kept with the codemod gates the result. The codemod's
-  output never contains spacing steps 3 or 5, so a surviving `mt-3` or `gap-5`
-  in a tracked file means a missed transform (or a hand written Tailwind value
-  that should move module side or to another step). Its component class
-  blocklist gates the Bootstrap families whose replacements have all landed.
-- Forward work is marked in code with comments containing the literal string
-  "PR3". Prep for PR3 by grepping `PR3` across `components`, `styles`, `lib`,
-  `wallets`, `svgs` and `scripts`.
+KaTeX stays separate so PostCSS does not rewrite its relative font URLs.
+Rendered-content styles follow it and own the final local text rules.

@@ -63,13 +63,8 @@
 .methodButton {
   white-space: nowrap;
 }
-/* the old .form-group and .input-group classes left the DOM: margins die at
-   the call site (capability-card.js passes groupClassName='mb-0') and the
-   group's items-stretch covers the old addon min-height. The radius rides the
-   --sn-input-radius var, declared on .form so it inherits to every group
-   member (input, addon, clear button, selects). Never a radius declaration
-   here: anything strong enough to beat the members' base would also flatten
-   the .inputGroup corner-joining. See docs/dev/styling.md. */
+/* The inherited radius keeps inputs, addons, clear buttons, and selects on the
+   same card geometry without overriding InputGroup corner joining. */
 .form {
   --sn-input-radius: var(--wt-radius-md);
 }

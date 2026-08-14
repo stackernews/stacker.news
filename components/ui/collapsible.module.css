@@ -1,5 +1,4 @@
-/* trigger: UA button reset. This recipe replaces markup that sat on a div,
-   so the <button> brings UA chrome the div never had */
+/* Remove browser button paint while preserving button semantics. */
 .trigger {
   background: none;
   border: 0;
@@ -11,9 +10,7 @@
   cursor: pointer;
 }
 
-/* panel: fade-in 150ms ease-out, snap close. No ending rule on purpose, with
-   zero running animations the close unmounts within a frame; open on mount
-   never animates (shouldPreventOpenAnimation) */
+/* No ending rule: closing panels unmount without an exit transition. */
 .panel { transition: opacity 150ms ease-out; }
 .panel[data-starting-style] { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .panel { transition: none; } }
@@ -30,13 +27,10 @@
   transition: none;
 }
 
-/* the 0 12px padding stays module-side instead of a px-3 utility: the raw
-   token would read as an unmigrated Bootstrap spacing step to the
-   migration's leftover checker */
 .cardTrigger {
   padding: 0 0.75rem;
   min-height: 2rem;
-  border-radius: 5px;   /* inner radius, 6px minus the 1px border */
+  border-radius: 5px;
 }
 .cardTrigger[data-panel-open] {
   border-radius: 5px 5px 0 0;

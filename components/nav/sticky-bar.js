@@ -6,18 +6,17 @@ import TopBar from './desktop/top-bar'
 import { MobilePriceRow } from './mobile/top-bar'
 import { cn } from '@/lib/cn'
 
-// shell, sentinel and state only: the rows compose from the header's own
-// TopBar and the shared mobile price row, this file owns no row markup
+// The sticky shell reuses the desktop top bar and mobile price row.
 export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, hideMobileNav = false }) {
   const [visible, setVisible] = useState(false)
   const sentinelRef = useRef()
 
-  // an IntersectionObserver on a zero-height in-flow sentinel: the trigger is
-  // "the header scrolled out of view", what the old scrollY > 100 magic approximated
+  // The zero-height sentinel makes visibility follow whether the header has
+  // scrolled above the viewport.
   useEffect(() => {
     const observer = new window.IntersectionObserver(([entry]) => {
-      // a negative top means we scrolled past it; a top sentinel can't leave
-      // through the viewport bottom, but guard anyway
+      // A negative top distinguishes scrolling past the sentinel from leaving
+      // the viewport in another direction.
       setVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0)
     })
     observer.observe(sentinelRef.current)
@@ -27,7 +26,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, h
   return (
     <>
       <div ref={sentinelRef} aria-hidden />
-      <div className={cn(styles.sticky, visible && styles.visible)}>
+      <div data-sn-navigation className={cn(styles.sticky, visible && styles.visible)}>
         <Container className='hidden md:block'>
           <TopBar prefix={prefix} sub={sub} path={path} topNavKey={topNavKey} dropNavKey={dropNavKey} navbarClassName='py-0' />
         </Container>

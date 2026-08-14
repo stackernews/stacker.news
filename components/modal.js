@@ -37,11 +37,9 @@ export default function useModal () {
   const lastPointerDownAtRef = useRef(0)
   const shownAtRef = useRef(0)
 
-  // a long press can straddle the mount: pointerdown before the dialog exists, release
-  // after. the browser composes both halves into a click outside the popup, which Base UI
-  // dismisses as an outside-press (rb keyed mousedown, so pre-mount presses never counted).
-  // the composed click doesn't carry its pointerdown's time, so a document listener has to
-  // witness every press for the dismissal gate below to compare against
+  // A press can begin before the dialog mounts and end outside it afterward.
+  // Record pointer starts globally so that release cannot dismiss a dialog
+  // that did not exist when the interaction began.
   useEffect(() => {
     const stamp = e => { lastPointerDownAtRef.current = e.timeStamp }
     document.addEventListener('pointerdown', stamp, true)
@@ -52,10 +50,8 @@ export default function useModal () {
     return modalStack.current[modalStack.current.length - 1]
   }, [])
 
-  // back steps to the previous modal in the stack. we pop (unmounting the current modal — and, for
-  // a QR, stopping its payment watcher) BEFORE running its onClose, so cancelling the invoice can't
-  // escalate into a full-stack close via the watcher's onPaymentError. net: back returns to the
-  // previous step (e.g. the amount form) and still cancels the invoice so it doesn't dangle.
+  // Unmount before onClose so a payment watcher's cancellation cannot close
+  // the remaining stack through its error handler.
   const onBack = useCallback(() => {
     const current = getCurrentContent()
     modalStack.current.pop()
@@ -111,19 +107,18 @@ export default function useModal () {
 
     return (
       <Dialog.Root
-        open // mounted means open: an empty stack returns null above, and unmount is the instant close
+        open
         onOpenChange={(open, details) => {
           if (open) return
-          // the X (Dialog.Close, reason 'close-press') always closes, even under
-          // keepOpen: the old onHide={undefined} only ever killed light dismiss,
-          // the X called onClose directly
+          // The explicit close control always closes. keepOpen only disables
+          // light dismissal.
           if (details.reason === 'close-press') return onClose()
           // a press that began before the modal showed can't mean "dismiss it";
           // this exempts the long-press release and the territory hover-card
           // race. A fresh press stamps later than shownAt, so real outside
           // clicks still close
           if (details.reason === 'outside-press' && lastPointerDownAtRef.current < shownAtRef.current) return
-          // light dismiss (escape key or outside press) is gated exactly like the old onHide
+          // Escape and outside press are light-dismiss reasons.
           if (!keepOpen) onClose()
         }}
       >
@@ -132,10 +127,8 @@ export default function useModal () {
           <Dialog.Viewport className={cn(styles.viewport, fullScreen && styles.fullScreen)}>
             <Dialog.Popup
               ref={popupRef}
-              // focus the popup itself like the old .modal container was focused;
-              // Base UI's first-tabbable default would paint focus rings and open
-              // mobile keyboards where none appeared before. finalFocus lands on
-              // body via showModal's blur
+              // Focusing the popup avoids opening a mobile keyboard or painting
+              // a descendant focus ring as soon as the dialog appears.
               initialFocus={() => popupRef.current}
               className={cn(styles.popup, fullScreen ? styles.fullScreen : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg')}
             >
@@ -147,12 +140,13 @@ export default function useModal () {
                     </ActionDropdown>
                   </div>}
                 {modalStack.current.length > 1
-                  ? <div className={cn(styles.btn, styles.back)} onClick={onBack}><BackArrow width={18} height={18} /></div>
+                  ? <button type='button' aria-label='Back' className={cn(styles.btn, styles.back)} onClick={onBack}><BackArrow width={18} height={18} /></button>
                   : null}
                 <Dialog.Close
-                  nativeButton={false}
-                  render={<div className={cn(styles.btn, styles.close, fullScreen && styles.fullScreen)}>X</div>}
-                />
+                  aria-label='Close'
+                  className={cn(styles.btn, styles.close, fullScreen && styles.fullScreen)}
+                >X
+                </Dialog.Close>
               </div>
               <div className={cn(styles.body, fullScreen ? styles.fullScreen : 'p-8')}>
                 {content.node}
@@ -167,8 +161,8 @@ export default function useModal () {
   const showModal = useCallback(
     (getContent, options) => {
       document.activeElement?.blur()
-      // performance.now() shares event.timeStamp's clock; stamping here (before the actual
-      // mount) only widens the exemption toward presses that are strictly pre-mount
+      // performance.now() and event.timeStamp share a clock, so pointer starts
+      // recorded before this point can be excluded from outside dismissal.
       shownAtRef.current = performance.now()
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {

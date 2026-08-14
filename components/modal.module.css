@@ -1,13 +1,11 @@
-/* globals' .modal-* chrome under local names; values verbatim, this is
-   SN-custom chrome and not Bootstrap replication */
 .backdrop {
   position: fixed;
   inset: 0;
   z-index: var(--sn-z-backdrop);
-  background-color: rgb(0 0 0 / 0.5);   /* the compiled $modal-backdrop-bg, half-opacity black in both themes */
+  background-color: rgb(0 0 0 / 0.5);
 }
 
-/* roughly Bootstrap's .modal layer: the scroll container; the popup never scrolls internally */
+/* The viewport scrolls so the popup does not need its own scroll container. */
 .viewport {
   position: fixed;
   inset: 0;
@@ -16,11 +14,9 @@
   overflow-x: hidden;
 }
 .viewport.fullScreen {
-  /* globals' container tint over the black backdrop, both paint */
   background-color: color-mix(in srgb, var(--theme-inputBg) 66%, transparent);
 }
 
-/* .modal-dialog and .modal-content merged; metrics ride the recipe utilities */
 .popup {
   background-color: var(--theme-inputBg);
   border: 1px solid var(--theme-borderColor);
@@ -34,15 +30,15 @@
   background-color: transparent;
 }
 
-.body li { line-height: 1.25; margin-top: 0.5rem; }   /* globals:403 */
-.body:has(video) { width: 100%; }                     /* globals:616 */
+.body li { line-height: 1.25; margin-top: 0.5rem; }
+.body:has(video) { width: 100%; }
 .body.fullScreen {
   width: 100vw;
   height: calc(100svh - 6.8rem);
   background-color: transparent;
 }
 
-.btn { cursor: pointer; display: flex; padding-top: 1rem; align-items: center; }
+.btn { cursor: pointer; display: flex; padding-top: 1rem; align-items: center; background: none; border: 0; color: inherit; }
 .back { margin-right: auto; padding-left: 1.5rem; }
 .close {
   margin-left: auto;
@@ -54,4 +50,3 @@
 .close:hover { opacity: 0.7; }
 .close.fullScreen { padding: 1.25rem; }
 .overflow.fullScreen { padding: 1.25rem; margin-top: -10px; }
-/* globals' .modal-close+.modal-body rule is deliberately not carried over, it was dead */

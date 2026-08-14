@@ -30,7 +30,6 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
           {numWithUnits(commentSats + commentCost + commentBoost)}
         </Nav.Item>
         <div className='ms-auto flex'>
-          {/* no href renders real <button>s; the old href-less links were keyboard-dead */}
           <Nav.Item>
             <Nav.Link
               eventKey='lit'

@@ -51,8 +51,7 @@ export function CopyInput (props) {
   return (
     <Input
       append={
-        // corner override at the call site: the ui Button's rounded-md is an
-        // important utility that the .inputGroup CSS can't beat
+        // The call site owns the shared corner through the utility layer.
         <CopyButton value={props.placeholder} size={props.size} className='rounded-s-none' />
       }
       {...props}

@@ -6,8 +6,7 @@ import { useMe } from '@/components/me'
 import { useCommentsNavigatorContext, CommentsNavigator } from '@/components/use-comments-navigator'
 import { useBranding } from '@/components/territory-branding'
 
-// the shared mobile price row: this bar's non-NavSelect branch, composed
-// verbatim by StickyBar's mobile row; self-contained so both callers stay dumb
+// The header and sticky bar share the same mobile price row.
 export function MobilePriceRow () {
   const { me } = useMe()
   const { navigator, commentCount } = useCommentsNavigatorContext()

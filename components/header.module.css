@@ -23,8 +23,7 @@
     vertical-align: text-top;
 }
 
-/* display: flex folded in from Bootstrap's .navbar-nav; the module owns the
-   whole bar-row layout */
+/* Shared row layout for desktop and mobile navigation bars. */
 .navbarNav {
     display: flex;
     width: 100%;

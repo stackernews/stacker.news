@@ -36,8 +36,7 @@ export default function Avatar ({ onSuccess }) {
           }}
         />
         <div>
-          {/* defaultValue fixes the old mount mismatch, where the thumb mounted
-              at the native midpoint 1.5 while scale started at 1 */}
+          {/* Keep the thumb and crop scale aligned on the first render. */}
           <Slider
             min={1} max={2} step={0.05}
             defaultValue={1}

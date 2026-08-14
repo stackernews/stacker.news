@@ -5,23 +5,13 @@ import styles from '@/styles/nav.module.css'
 
 const NavContext = createContext(undefined)
 
-/**
- * nav-link paint without the markup, the globals recipe re-homed in
- * styles/nav.module.css; for the raw-string color consumers (footer links,
- * cancel buttons, comment navigator) and Nav.Link itself
- * @param {boolean} active - active paint (navLinkActive color + bold)
- * @param {string} className - extra class name(s)
- */
+// Shared navigation paint for Nav.Link and consumers that provide their own
+// markup, including footer links and the comment navigator.
 export const navLinkClasses = ({ active, className } = {}) =>
   cn(styles.link, active && cn(styles.active, 'font-bold'), className)
 
-/**
- * SN Nav, no Base UI primitive: the old Nav's entire live surface was
- * activeKey and eventKey matching, so this is a context plus class recipes.
- * Metrics ride utilities at call sites; bar height and width stay on
- * header.module.css .navbarNav
- * @param {string} activeKey - the eventKey of the currently-active link
- */
+// Active state is shared through context while each navigation surface owns
+// its layout.
 export default function Nav ({ activeKey, className, children }) {
   return (
     <NavContext.Provider value={activeKey}>
@@ -30,9 +20,7 @@ export default function Nav ({ activeKey, className, children }) {
   )
 }
 
-/* href renders next/link; otherwise a real <button>, where the old href-less
-   Nav.Links rendered keyboard-dead <a> tags. The button branch carries UA
-   resets so the recipe inherits like the <a> did */
+// Route entries render links; actions render buttons with the same paint.
 function NavLink ({ eventKey, href, className, children, ...props }) {
   const activeKey = useContext(NavContext)
   const active = eventKey !== undefined && activeKey === eventKey
@@ -49,7 +37,6 @@ function NavLink ({ eventKey, href, className, children, ...props }) {
       )
 }
 
-/* .nav-item was only ever font-weight: 500 in globals */
 function NavItem ({ className, children, ...props }) {
   return <div className={cn('font-medium', className)} {...props}>{children}</div>
 }

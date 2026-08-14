@@ -142,11 +142,9 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
       onOpenChange={(open, details) => {
         if (open) return
         if (details.reason === 'outside-press') {
-          // presses inside the editor just move the caret; the selection
-          // tracker in link/index.js owns that lifecycle (editor clicks never
-          // blur-closed the old floating editor either). Without this a click
-          // on the link itself opens the popover on pointerdown and the same
-          // click's tail end dismisses it (open/close flash)
+          // Presses inside the editor only move the caret. A link press can
+          // open this popup on pointerdown, so its release must not immediately
+          // dismiss the same popup.
           const target = details.event?.target
           if (target instanceof window.Node && editor.getRootElement()?.contains(target)) return
           handleCancel()

@@ -165,10 +165,11 @@
     "bn.js": ">=4.12.3",
     "react-is": "19.2.6",
     "uuid": "^14.0.0",
-    "postcss": "^8.5.22",
+    "postcss": "^8.5.26",
     "@grpc/grpc-js": "^1.14.4",
-    "js-yaml": "^4.3.0",
+    "js-yaml": "^4.3.1",
     "sharp": "^0.35.0",
-    "@auth/core": "^0.41.3"
+    "@auth/core": "^0.41.3",
+    "brace-expansion": "^5.0.9"
   }
 }

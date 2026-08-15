@@ -7,7 +7,9 @@ import {
   cleanupPrisma,
   createTestUser,
   createTestItem,
-  cleanupTestData
+  cleanupTestData,
+  assertUserBalance,
+  assertPayInCustodialTokens
 } from '../fixtures/testUtils.js'
 
 describe('Specific PayIn Types', () => {
@@ -383,6 +385,59 @@ describe('Specific PayIn Types', () => {
 
       // Should create invoice since user has no funds
       expect(['PENDING', 'PENDING_INVOICE_CREATION', 'PENDING_HELD']).toContain(result.payInState)
+    })
+
+    it('should not spend the sats balance unless asked to', async () => {
+      const buyer = await createTestUser(models, {
+        msats: satsToMsats(90000),
+        mcredits: 0n
+      })
+      testUsers.push(buyer)
+
+      const result = await pay('BUY_CREDITS', {
+        credits: 150000
+      }, {
+        models,
+        me: buyer
+      })
+
+      expect(result.payInType).toBe('BUY_CREDITS')
+      expect(['PENDING', 'PENDING_INVOICE_CREATION', 'PENDING_HELD']).toContain(result.payInState)
+
+      // sats are only converted into credits on request, so the whole cost is invoiced
+      await assertUserBalance(models, buyer.id, {
+        msats: satsToMsats(90000),
+        mcredits: 0n
+      })
+      await assertPayInCustodialTokens(models, result.id, [])
+    })
+
+    it('should spend the sats balance when asked to', async () => {
+      const buyer = await createTestUser(models, {
+        msats: satsToMsats(90000),
+        mcredits: 0n
+      })
+      testUsers.push(buyer)
+
+      const result = await pay('BUY_CREDITS', {
+        credits: 150000,
+        useRewardSats: true
+      }, {
+        models,
+        me: buyer
+      })
+
+      expect(result.payInType).toBe('BUY_CREDITS')
+      expect(['PENDING', 'PENDING_INVOICE_CREATION', 'PENDING_HELD']).toContain(result.payInState)
+
+      // the balance covers 90k of the 150k, the rest is invoiced
+      await assertUserBalance(models, buyer.id, {
+        msats: 0n,
+        mcredits: 0n
+      })
+      await assertPayInCustodialTokens(models, result.id, [
+        { custodialTokenType: 'SATS', mtokens: satsToMsats(90000) }
+      ])
     })
   })
 

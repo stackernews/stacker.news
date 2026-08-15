@@ -34,7 +34,6 @@ export async function createTestUser (models, {
   name = `test_user_${Date.now()}_${Math.random()}`,
   msats = 0n,
   mcredits = 0n,
-  trust = 0,
   withLNbitsWallet = false,
   ...otherFields
 } = {}) {
@@ -53,7 +52,6 @@ export async function createTestUser (models, {
       mcredits,
       stackedMsats: 0n,
       stackedMcredits: 0n,
-      trust,
       ...otherFields
     }
   })

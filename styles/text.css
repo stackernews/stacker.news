@@ -8,7 +8,7 @@
   --grid-gap: 0.5rem;
   line-height: 140%;
 }
-/* reset bootstrap */
+/* Keep rendered block content on the editor spacing grid. */
 .sn-text p, .sn-text pre, .sn-text ul, .sn-text ol, .sn-text blockquote, .sn-text table {
   margin-bottom: 0;
 }
@@ -865,12 +865,12 @@ span + .sn-link {
 }
 
 .sn-text__highlight {
-  background-color: rgba(250, 218, 94, 0.368627451);
+  background-color: color-mix(in srgb, var(--sn-primary) 36.8627451%, transparent);
   padding: 0 0.2rem;
   color: var(--sn-body-color);
 }
 
-/* reset Bootstrap superscript and subscript styles for Lexical */
+/* Preserve Lexical's explicit superscript and subscript positioning. */
 [data-lexical-editor=true] sup, [data-lexical-editor=true] sub {
   all: unset;
 }

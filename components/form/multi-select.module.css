@@ -6,7 +6,7 @@
    specificity so the red border wins over the base border color. */
 .control:focus-within {
   border-color: var(--sn-primary);
-  box-shadow: 0 0 0 .2rem rgb(250 218 94 / 25%);
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
 }
 
 .control.isInvalid {

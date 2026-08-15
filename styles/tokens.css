@@ -104,7 +104,6 @@
   --sn-toolbarHover: rgba(255, 255, 255, 0.20);
   --sn-toolbar: #3e3f3f;
   --sn-quoteBar: rgb(158, 159, 163);
-  --sn-quoteColor: rgb(141, 144, 150);
   --sn-linkHover: #007cbe;
   --sn-linkVisited: #56798E;
   --sn-note-reply: rgba(255, 255, 255, 0.05);
@@ -122,10 +121,7 @@
   --sn-warning-text-emphasis: rgb(249.6, 189, 119.4);
 }
 
-/* Wallet design tokens: 1:1 named aliases for the radii and gaps that recur across
-   the wallet UI, so the scale stays consistent and is adjustable in one place.
-   Defined at :root (not a wallet-scoped class) so they also reach portaled wallet
-   UI rendered outside the wallet DOM (the offcanvas sheet, the fullscreen scanner). */
+/* Shared wallet radii and spacing. Root scope also reaches portaled wallet UI. */
 :root {
   --wt-radius-xs: 8px;
   --wt-radius-sm: 10px;

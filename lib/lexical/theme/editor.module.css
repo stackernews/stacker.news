@@ -96,11 +96,6 @@
   touch-action: manipulation;
 }
 
-.bottomBar :global(.dropdown-toggle::after),
-.tableCellActionButtonContainer :global(.dropdown-toggle::after) {
-  display: none;
-}
-
 .innerToolbar {
   margin-left: auto;
   display: flex;
@@ -183,9 +178,7 @@
   margin-left: 0.25rem;
 }
 
-/* bootstrap dropdown override */
-.toolbarItem .toolbarItemText,
-:global(.dropdown-toggle) .toolbarItemText {
+.toolbarItem .toolbarItemText {
   color: var(--sn-body-color);
 }
 
@@ -208,9 +201,7 @@
   height: 20px;
 }
 
-/* bootstrap dropdown item svg override */
-.toolbar .toolbarInsert svg,
-:global(.dropdown-toggle).toolbarInsert svg {
+.toolbar .toolbarInsert svg {
   fill: var(--sn-body-color);
 }
 

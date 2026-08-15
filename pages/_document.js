@@ -91,7 +91,6 @@ class MyDocument extends Document {
             {`const handleThemeChange = (dark) => {
                 const root = window.document.documentElement
                 const theme = dark ? 'dark' : 'light'
-                root.setAttribute('data-bs-theme', theme)
                 root.setAttribute('data-theme', theme)
               }
 

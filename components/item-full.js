@@ -122,12 +122,12 @@ function TopLevelItem ({ item, noReply, ...props }) {
           <div className='font-bold mt-2'>
             {item.bountyPaidTo?.length
               ? (
-                <div className='px-4 py-1 inline-block bg-grey-medium rounded-md text-success'>
+                <div className='px-4 py-1 inline-block bg-[#d2d2d2] rounded-md text-success'>
                   <Check className='fill-success' /> {numWithUnits(item.bounty, { abbreviate: false, format: true })} paid
                   {item.bountyPaidTo.length > 1 && <small className='font-light'> {new Set(item.bountyPaidTo).size} times</small>}
                 </div>)
               : (
-                <div className='px-4 py-1 inline-block bg-grey-darkmode rounded-md text-light'>
+                <div className='px-4 py-1 inline-block bg-[#8c8c8c] rounded-md text-[#f8f9fa]'>
                   {numWithUnits(item.bounty, { abbreviate: false, format: true })} bounty
                 </div>)}
           </div>}

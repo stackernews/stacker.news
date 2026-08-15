@@ -107,7 +107,7 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
   )
 }
 
-// SN defaults from styles/globals.scss
+// Keep form defaults aligned with styles/tokens.css.
 const SN_DEFAULTS = {
   primaryColor: '#FADA5E',
   secondaryColor: '#F6911D',
@@ -118,7 +118,6 @@ const SN_DEFAULTS = {
 const normalizeColorOverride = (value, fallback) =>
   value && value !== fallback ? value : null
 
-// section label
 const SectionHeading = ({ children, className = '' }) => (
   <div
     className={`text-muted uppercase mt-6 mb-2 ${className}`}

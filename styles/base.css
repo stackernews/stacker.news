@@ -1,0 +1,137 @@
+/*
+ * SN's element defaults, in the base layer after Tailwind's preflight.
+ * Preflight owns the reset; this file is the replacement for Bootstrap's
+ * reboot, split into two kinds of rules:
+ *
+ * - functional restores: preflight resets that would break existing DOM
+ *   (list markers, inline media, button cursor)
+ * - design defaults at native values: body type on the --text-base token,
+ *   headings on Tailwind's stock scale, flow margins, inline-text chrome
+ *
+ * Deliberate deltas from the reboot are commented in place. Element rules
+ * that already lived in SN's own global styles (a, mark, svg fill, list
+ * padding, the html/body background) stay homed in app.css.
+ */
+
+@layer base {
+  /*
+   * The reboot set the body type; preflight only styles html (Tailwind's
+   * default stack at line-height 1.5). The token fallbacks guard against
+   * Tailwind tree-shaking the vars if their utilities ever fall out of use.
+   */
+  body {
+    font-family: var(--sn-font-sans-serif);
+    font-size: var(--text-base, 0.93rem);
+    line-height: var(--text-base--line-height, 1.75);
+  }
+
+  /*
+   * Preflight unstyles lists; revert restores the browser's markers,
+   * including the nested-list marker rotation (disc, circle, square).
+   * The 2rem indent lives in app.css alongside dl.
+   */
+  ol,
+  ul,
+  menu {
+    list-style: revert;
+  }
+
+  /* the reboot's flow rhythm: 1rem after paragraphs and outermost lists */
+  p,
+  ul,
+  ol {
+    margin-bottom: 1rem;
+  }
+
+  ol ol,
+  ul ul,
+  ol ul,
+  ul ol {
+    margin-bottom: 0;
+  }
+
+  /*
+   * Headings keep the reboot's weight and rhythm, but the sizes move to
+   * Tailwind's stock text scale — RFS's viewport clamps are intentionally
+   * dropped. Written as literals because Tailwind only emits the --text-*
+   * vars for steps some utility actually uses.
+   */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  h1 { font-size: 2.25rem; }
+  h2 { font-size: 1.875rem; }
+  h3 { font-size: 1.5rem; }
+  h4 { font-size: 1.25rem; }
+  h5 { font-size: 1.125rem; }
+  h6 { font-size: var(--text-base, 0.93rem); }
+
+  /* preflight covers the 1px top border and color: inherit */
+  hr {
+    margin: 1rem 0;
+    opacity: 0.25;
+  }
+
+  /* the reboot's .875em over preflight's 80%, matching the .small utility */
+  small {
+    font-size: 0.875em;
+  }
+
+  code {
+    font-size: 0.875em;
+    color: var(--sn-code-color);
+    word-wrap: break-word;
+  }
+
+  kbd {
+    padding: 0.1875rem 0.375rem;
+    font-size: 0.875em;
+    color: var(--sn-body-bg);
+    background-color: var(--sn-body-color);
+    border-radius: 0.25rem;
+  }
+
+  pre {
+    margin-bottom: 1rem;
+    overflow: auto;
+    font-size: 0.875em;
+  }
+
+  /*
+   * Preflight makes replaced elements display: block; SN's icons and inline
+   * images sit in text flow, so they go back to the reboot's inline middle.
+   */
+  img,
+  svg {
+    display: inline;
+    vertical-align: middle;
+  }
+
+  /* Tailwind leaves buttons on the native default cursor; SN keeps pointer */
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  button:not(:disabled),
+  [type='button']:not(:disabled),
+  [type='reset']:not(:disabled),
+  [type='submit']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /*
+   * Preflight's placeholder is a 50% mix of the input's own text color;
+   * SN's muted grey keeps placeholders consistent across themed inputs.
+   */
+  ::placeholder {
+    color: var(--sn-muted);
+  }
+}

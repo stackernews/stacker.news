@@ -1,11 +1,12 @@
 /*
- * Transitional Tailwind entry while Bootstrap still owns element defaults.
- * Important Tailwind utilities beat Bootstrap utilities during the conversion.
+ * Tailwind entry and layer contract. Important utilities take precedence over
+ * unlayered component styles. See docs/dev/styling.md.
  */
 
 @layer theme, base, components, utilities;
 
 @import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
 @import 'tailwindcss/utilities.css' layer(utilities) source(none) important;
 
 /* Scan only directories that produce application class names. */
@@ -15,10 +16,12 @@
 @source '../wallets';
 @source '../svgs';
 
-/* These names still belong to React Bootstrap components in this stage. */
+/* Bare words that are not Tailwind utility usage. */
 @source not inline('container');
-@source not inline('collapse');
 @source not inline('table');
+
+/* Runtime text-color names are invisible to source scanning. */
+@source inline("text-{boost,secondary,warning}");
 
 /* :where() keeps the dark variant at zero specificity. */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
@@ -45,6 +48,7 @@
 @theme inline {
   --color-primary: var(--sn-primary);
   --color-secondary: var(--sn-secondary);
+  --color-warning: var(--sn-warning);
   --color-danger: var(--sn-danger);
   --color-info: var(--sn-info);
   --color-success: var(--sn-success);

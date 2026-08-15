@@ -1,6 +1,4 @@
-/* skin only, what an alert looks like in each theme
-   arrangement overrides (absolute, mb-0, ...) come from call sites via className
-*/
+/* Alerts own paint; call sites own layout overrides. */
 
 .alert {
   position: relative;
@@ -58,7 +56,7 @@
 
 .close:focus {
   outline: 0;
-  box-shadow: 0 0 0 .25rem rgba(250, 218, 94, .25);
+  box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
   opacity: 1;
 }
 

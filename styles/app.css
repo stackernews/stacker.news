@@ -124,7 +124,7 @@ dl {
 }
 
 mark, .mark {
-  background-color: rgba(250, 218, 94, 0.6);
+  background-color: color-mix(in srgb, var(--sn-primary) 60%, transparent);
   padding: 0 0.2rem;
   color: var(--sn-body-color);
 }

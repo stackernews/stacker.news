@@ -33,7 +33,7 @@
 .checkInput:focus-visible {
     outline: 0;
     border-color: #fdedaf;
-    box-shadow: 0 0 0 .25rem rgb(250 218 94 / 25%);
+    box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
 }
 
 .checkInput[data-checked] {

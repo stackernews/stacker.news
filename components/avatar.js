@@ -119,7 +119,8 @@ export default function Avatar ({ onSuccess }) {
         setUploading(true)
       }}
     >
-      <div className='absolute p-1 bg-dark pointer' style={{ bottom: '0', right: '0' }}>
+      {/* deliberately static across themes: the chip backs the fill-white icons */}
+      <div className='absolute p-1 bg-[#212529] pointer' style={{ bottom: '0', right: '0' }}>
         {uploading
           ? <Moon className='fill-white spin' />
           : <EditImage className='fill-white' />}

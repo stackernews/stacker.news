@@ -21,7 +21,7 @@ export function SelectedWalletPanel ({ entry, templates }) {
   return (
     <div className={classNames(styles.panel, styles.walletMainFlushChild, 'flex flex-col items-center')}>
       <div className='w-full hidden md:flex items-start justify-between gap-6'>
-        <div className={classNames(styles.selectedWalletIdentity, 'inline-flex items-center text-body font-bold')}>
+        <div className={classNames(styles.selectedWalletIdentity, 'inline-flex items-center font-bold')}>
           <WalletIcon entry={entry} />
           {spec.showName && <span>{entry.name}</span>}
         </div>

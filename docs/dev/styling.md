@@ -1,97 +1,144 @@
 # Styling architecture
 
-This branch is a transitional styling stack. Bootstrap still owns element
-defaults and remaining legacy components. Tailwind owns converted utility
-classes. Base UI supplies behavior for the house component library.
-
-Runtime comments should explain local constraints. Cross-cutting rules belong
-in this document.
+Stacker News uses Tailwind utilities for layout and metrics, CSS modules for
+component paint and state, and Base UI for interactive behavior. Runtime comments
+should explain local constraints. Cross-cutting rules belong in this document.
 
 ## Cascade contract
 
-`styles/tailwind.css` imports Tailwind theme and utility layers without
-preflight. Bootstrap continues to provide the element reset while both systems
-are installed.
+`styles/tailwind.css` declares the `theme`, `base`, `components`, and `utilities`
+layers. Tailwind imports its theme, preflight, and utilities into those layers.
+`styles/base.css` adds application element defaults after preflight.
 
-Tailwind utilities are emitted as important declarations. Bootstrap utilities
-are unlayered and important, so the reversed important-layer order lets the
-Tailwind declaration win when both frameworks expose the same class name.
+Tailwind utilities are emitted as important declarations. Application globals in
+`styles/app.css`, rendered-content rules in `styles/text.css`, and component CSS
+modules are unlayered. The effective precedence is:
 
-The scanner blocklists `container`, `collapse`, and `table`. Those class names
-still belong to React Bootstrap components at this stage and their Tailwind
-counterparts have incompatible behavior.
+1. Important utilities
+2. Unlayered CSS, resolved by specificity and source order
+3. The base layer
+4. The theme layer
 
-`cn()` combines conditional class names and resolves Tailwind conflicts.
-Standard Tailwind groups already understand theme-backed classes such as
-`text-primary`. Extend `tailwind-merge` only for custom utility names that it
-cannot classify, such as `text-reset` or `font-bolder`.
+A module should not declare geometry that a recipe or call-site utility already
+owns. Its normal declaration cannot override an important utility and would
+communicate ownership it does not have.
+
+`cn()` combines conditional class names and resolves Tailwind conflicts. Standard
+Tailwind groups understand theme-backed classes such as `text-primary`. Extend
+`tailwind-merge` only for custom utility names it cannot classify, such as
+`text-reset` or `font-bolder`.
 
 ## Ownership rules
 
-Each house component has three styling owners:
+Each property should have one owner within a component:
 
-- Recipes in `components/ui/*.js` and `components/form/field.js` own metrics
-  and layout.
-- CSS modules own paint, state, borders, and motion.
+- Recipes in `components/ui/*.js` and `components/form/field.js` own metrics and
+  layout, including display, padding, radius, font size, and font weight.
+- CSS modules own paint and state, including colors, borders, focus treatment,
+  and motion.
 - Call sites own one-off geometry through utilities.
 
-Important Tailwind utilities beat module declarations in this transitional
-stack. A module should not declare geometry that a recipe or call site utility
-already owns.
+When a call site overrides a recipe utility, `cn()` keeps the last class in the
+same group.
 
-## Theme bridge
+## Tokens and themes
 
-The `--sn-*` values in `styles/tailwind.css` bridge Tailwind utilities to the
-active Bootstrap and application theme variables. Territory branding and dark
-mode therefore continue to update the utility-backed components at runtime.
+`styles/tokens.css` is the canonical token sheet. Light defaults live on `:root`
+and `[data-theme=light]`; dark values live on `[data-theme=dark]`.
+
+`styles/tailwind.css` maps reusable color tokens through `@theme inline`, so
+generated text, background, border, and fill utilities read the live `--sn-*`
+values. Territory branding uses `lib/domains/custom-css.js` to redefine brand and
+contrast tokens with greater specificity at runtime.
 
 Only values with the same meaning across Tailwind property families belong in
-`@theme inline`. Fill colors that intentionally differ from text colors remain
-outside the Tailwind color map.
+`@theme inline`. Global fill classes can intentionally use values that differ
+from text colors, so those names remain outside the Tailwind color map.
 
-Breakpoints are application-wide layout thresholds. Changing one is a
-responsive design change, not a local component adjustment.
+Portaled overlays share the z-index ladder in `styles/tokens.css`. Components use
+the ladder tokens instead of local numeric values. The supported order is sticky
+content, fixed content, drawers, modals, menus, popovers, tooltips, then toasts.
 
-## Component behavior
+Breakpoints are application-wide layout thresholds. Changing one is a responsive
+design change, not a local component adjustment.
 
-House wrappers under `components/ui/` preserve the application-facing APIs.
-Base UI owns keyboard behavior, focus management, dismissal, gestures, and
-portals. CSS modules own their visual state.
+## Popup family
 
-Tooltip, popover, preview card, menu, dialog, drawer, and toast surfaces portal
-to `body`. They share the z-index ladder in `styles/tailwind.css` rather than
-introducing local numeric values.
+Tooltip, popover, preview card, menu, dialog, drawer, and toast surfaces portal to
+`body`. Their modules own paint and motion while Base UI owns focus, dismissal,
+keyboard navigation, and deferred unmounting where supported.
 
-Menus do not lock page scroll. Dialogs and drawers do. Popup surfaces that
-receive programmatic focus suppress the container outline while interactive
-descendants retain visible focus treatment.
+### Shared arrows
 
-Tooltip, popover, and preview card use
-`components/ui/arrow.module.css`. The arrow element clips a rotated square and
-uses `data-side` to place the same shape against each popup edge.
+Tooltip, popover, and preview card use `components/ui/arrow.module.css`.
+
+- The arrow element is a half-height clipping window.
+- Its `::before` pseudo-element draws and rotates a bordered square.
+- Side-specific rules position the same shape rather than redrawing it.
+- `--arrow-size` controls the base width; the visible tip is half that height.
+- `data-side` reports the popup side, so a bottom popup places its arrow on the
+  top edge.
+
+Popover keeps a transform at rest because the transform establishes the arrow's
+containing block. Removing it after the opening transition would let the arrow
+re-anchor to the positioner and jump.
+
+### Focus
+
+Popup surfaces that receive programmatic focus suppress the browser's container
+outline in their modules. Interactive descendants retain their visible focus
+treatment. Navigation links use `:focus-visible` so keyboard focus is visible
+without leaving hover paint after pointer clicks.
 
 ## Buttons and forms
 
-Filled button variants derive hover and active paint from live variables.
-Every button keeps a transparent one-pixel border so it aligns with bordered
-form controls. Outline variants recolor that border.
+### Button state
 
-`inputClasses()` and `buttonClasses()` provide paired size maps. Controls in
-one input group need matching sizes so their heights align. Mobile input text
+Filled button variants derive hover and active backgrounds from live color
+variables. Hover mixes 15 percent of `--sn-btn-mix` into the base color and active
+mixes 20 percent. Variants that need a fixed state color provide explicit custom
+properties instead.
+
+Every button has a transparent one-pixel border so it aligns with bordered form
+controls. Outline variants recolor that border. A call site can choose a wider
+border while the variant continues to own its color.
+
+### Input group corners
+
+`components/form/field.module.css` joins input group corners through sibling
+selectors. React fragments do not create DOM nodes, so the selectors see their
+members as direct siblings. Members should not carry competing radius utilities;
+an intentional exception belongs at its call site.
+
+Input radius theming uses `--sn-input-radius`. Set it on the common form ancestor
+so inputs and adjacent addons inherit the same value.
+
+### Sizes
+
+`inputClasses()` and `buttonClasses()` provide paired size maps. Controls within
+one input group must use matching sizes so their heights align. Mobile input text
 stays at least 1rem to prevent automatic zoom on iOS.
 
-Input groups join corners through sibling selectors in
-`components/form/field.module.css`. React fragments do not create DOM nodes,
-so those selectors see the rendered controls as direct siblings.
+## Motion
 
-## Global stylesheet order
+Small popup surfaces use short ease-out entrance motion. Exit motion is used only
+when the primitive defers unmounting long enough for it to render.
 
-`pages/_app.js` imports:
+Avoid animating opacity across large text surfaces. Subtree compositing can change
+text antialiasing during the transition and produce a visible snap at the end.
 
-1. `styles/globals.scss`
-2. `styles/tailwind.css`
-3. `katex/dist/katex.min.css`
-4. `styles/text.scss`
+## Stylesheet inventory
 
-KaTeX stays separate so PostCSS does not rewrite its relative font URLs.
-Rendered-content styles follow it and own the final local text rules.
+`pages/_app.js` imports the primary global sheets in this order:
+
+- `styles/tokens.css`: light and dark design tokens.
+- `styles/tailwind.css`: layer order, Tailwind imports, sources, theme mapping,
+  and the dark variant.
+- `styles/base.css`: application element defaults in the base layer.
+- `styles/app.css`: unlayered global behavior, compatibility classes,
+  animations, and third-party integration styles.
+- `katex/dist/katex.min.css`: KaTeX styling with its font URLs intact.
+- `styles/text.css`: unlayered rendered-content and editor styles.
+
+Component paint lives beside its component in `*.module.css`. Recipes that build
+utility strings live in the corresponding JavaScript modules.

@@ -4,10 +4,7 @@
 }
 
 .popup {
-  /* keeps the popup as the arrow's containing block. Without it the block
-     flips mid-animation: the scale transform holds it while the transition
-     runs, and when the transform returns to none the arrow re-anchors to the
-     positioner and jumps. */
+  /* Keep the arrow anchored to the popup throughout its transition. */
   position: relative;
   background-color: var(--sn-body-bg);
   color: var(--sn-body-color);
@@ -53,7 +50,7 @@
 
 .close:focus {
   outline: 0;
-  box-shadow: 0 0 0 .25rem rgba(250, 218, 94, .25);
+  box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
   opacity: 1;
 }
 

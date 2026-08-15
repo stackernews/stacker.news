@@ -127,7 +127,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
                   {item.bountyPaidTo.length > 1 && <small className='font-light'> {new Set(item.bountyPaidTo).size} times</small>}
                 </div>)
               : (
-                <div className='px-4 py-1 inline-block bg-[#8c8c8c] rounded-md text-[#f8f9fa]'>
+                <div className='px-4 py-1 inline-block bg-[#8c8c8c] rounded-md text-[var(--sn-light)]'>
                   {numWithUnits(item.bounty, { abbreviate: false, format: true })} bounty
                 </div>)}
           </div>}

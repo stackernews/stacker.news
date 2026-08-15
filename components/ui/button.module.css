@@ -87,7 +87,7 @@
 /* Login-provider variants use fixed provider colors. */
 .twitter {
   --sn-btn-color: #fff;
-  --sn-btn-bg: #1da1f2;
+  --sn-btn-bg: var(--sn-twitter);
 }
 
 .twitter svg {
@@ -103,7 +103,7 @@
 /* The icon's own fill and stroke classes must lose in every state. */
 .nostr {
   --sn-btn-color: #fff;
-  --sn-btn-bg: #8d45dd;
+  --sn-btn-bg: var(--sn-nostr);
 }
 
 .nostr,

@@ -518,7 +518,7 @@ For every edit on dnsmasq, it will give you the option to either edit the `/etc/
 
 ## Stack
 
-The site is written in javascript (not typescript 😱) using [Next.js](https://nextjs.org/), a [React](https://react.dev/) framework. The backend API is provided via [GraphQL](https://graphql.org/). The database is [PostgreSQL](https://www.postgresql.org/) modeled with [Prisma](https://www.prisma.io/). The [job queue](https://github.com/timgit/pg-boss) is also maintained in PostgreSQL. We use [lnd](https://github.com/lightningnetwork/lnd) for our lightning node. A customized [Bootstrap](https://react-bootstrap.netlify.app/) theme is used for styling.
+The site is written in javascript (not typescript 😱) using [Next.js](https://nextjs.org/), a [React](https://react.dev/) framework. The backend API is provided via [GraphQL](https://graphql.org/). The database is [PostgreSQL](https://www.postgresql.org/) modeled with [Prisma](https://www.prisma.io/). The [job queue](https://github.com/timgit/pg-boss) is also maintained in PostgreSQL. We use [lnd](https://github.com/lightningnetwork/lnd) for our lightning node. Styling uses [Tailwind CSS](https://tailwindcss.com/) utilities with [Base UI](https://base-ui.com/) components; the conventions are documented in [docs/dev/styling.md](./docs/dev/styling.md).
 
 <br>
 

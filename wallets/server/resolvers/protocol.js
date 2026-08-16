@@ -14,7 +14,7 @@ import {
   validateProtocolConfig
 } from '@/wallets/server/persist'
 import { withTimeoutSignal } from '@/lib/time'
-import { SN_ADMIN_IDS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { writeWalletLog } from '@/wallets/server/logger'
 import { WalletValidationError } from '@/wallets/lib/errors'
@@ -47,9 +47,6 @@ export async function testWalletRecvProtocol (parent, { config: wrapper }, { me 
   if (!me) throw new GqlAuthenticationError()
 
   const { protocol, config } = decodeProtocolConfig(wrapper)
-  if (process.env.NODE_ENV === 'production' && protocol.name === 'SPARK' && !SN_ADMIN_IDS.includes(me.id)) {
-    throw new GqlInputError('spark wallet is in limited beta')
-  }
   await validateProtocolConfig(protocol, config)
 
   let invoice
@@ -102,11 +99,6 @@ export async function saveWalletProtocols (parent, { walletId, templateName, ups
     const { protocol, config } = decodeProtocolConfig(wrapper)
     return { protocol, enabled, config }
   })
-  if (process.env.NODE_ENV === 'production' &&
-      (templateName === 'SPARK' || validatedUpserts.some(({ protocol }) => protocol.name === 'SPARK')) &&
-      !SN_ADMIN_IDS.includes(me.id)) {
-    throw new GqlInputError('spark wallet is in limited beta')
-  }
   if (templateName === 'SPARK') {
     const sparkProtocols = validatedUpserts.filter(({ protocol }) => protocol.name === 'SPARK')
     if (!sparkProtocols.some(({ protocol }) => protocol.send) ||
@@ -124,6 +116,10 @@ export async function saveWalletProtocols (parent, { walletId, templateName, ups
   const removeIdNumbers = removeIds.map(Number)
 
   const savedWalletId = await commitWithBadgeNotifications(models, async (tx) => {
+    // Lock the vault key before writing any encrypted configuration. The lock
+    // is held until commit, so a passphrase rotation cannot race this save.
+    if (usesVaultKey) await assertVaultKeyUnchanged(tx, me.id, vaultKeyHash)
+
     const wallet = await resolveWalletForSave(tx, {
       walletId,
       templateName,
@@ -138,9 +134,6 @@ export async function saveWalletProtocols (parent, { walletId, templateName, ups
       await upsertProtocolInTransaction({ tx, walletId: resolvedWalletId, userId: me.id, protocol, enabled, config })
     }
     await applyRemoves(tx, { removeIds: removeIdNumbers, walletId: resolvedWalletId, userId: me.id })
-
-    // Guard against a passphrase rotation committing mid-save.
-    if (usesVaultKey) await assertVaultKeyUnchanged(tx, me.id, vaultKeyHash)
 
     const deleted = await deleteWalletIfEmpty(tx, resolvedWalletId)
     return {

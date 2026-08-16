@@ -35,4 +35,8 @@ The command generates temporary service and receiver wallets and refuses to run 
 
 ## Production
 
-Spark receive requires `SPARK_SERVICE_MNEMONIC` in both web and worker environments. Spark is restricted to `SN_ADMIN_IDS` in production until the integration is ready for wider use.
+Spark is available to all users. Receive support requires the same funded
+`SPARK_SERVICE_MNEMONIC` secret in both the web and worker environments; treat
+it as a required production deployment secret. The web process uses it for
+invoice creation and connection probes, while workers use it to reconcile
+incoming transfers.

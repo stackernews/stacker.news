@@ -36,6 +36,7 @@ ${STREAK_FIELDS}
       credits
       freeCommentsLeft
       hasSendWallet
+      hasRecvWallet
       tipDefault
       tipRandom
       tipRandomMin

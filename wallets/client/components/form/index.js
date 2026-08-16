@@ -23,6 +23,7 @@ import { useToast } from '@/components/toast'
 import { useShowModal } from '@/components/modal'
 import { useRouter } from 'next/router'
 import { WalletStaleConfigError } from '@/wallets/client/errors'
+import { isSafeRedirectPath } from '@/lib/safe-url'
 const styles = { ...sharedStyles, ...configureStyles }
 
 export function WalletConfigureForm ({ wallet }) {
@@ -57,6 +58,10 @@ function WalletConfigureFormLayout ({ protocols }) {
   const toaster = useToast()
   const router = useRouter()
   const showModal = useShowModal()
+  const onboarding = isTemplate(wallet) && router.query.onboarding === '1'
+  const returnTo = onboarding && typeof router.query.returnTo === 'string' && isSafeRedirectPath(router.query.returnTo)
+    ? router.query.returnTo
+    : null
   const selection = useProtocolSelection({ sendProtocols: primarySendProtocols, receiveProtocols, sharedNames: sharedProtocolNames })
   const onNwcLud16 = useNwcLightningAddressBridge({ receiveProtocols, forceReceiveLnAddr: selection.forceReceiveLnAddr })
 
@@ -76,12 +81,19 @@ function WalletConfigureFormLayout ({ protocols }) {
     }
 
     try {
-      await router.push(walletId && !saveState.willDeleteWallet ? `/wallets/${walletId}` : '/wallets')
+      if (onboarding && walletId && !saveState.willDeleteWallet) {
+        await router.replace({
+          pathname: '/onboarding/wallet',
+          query: { walletId, ...(returnTo && { returnTo }) }
+        })
+      } else {
+        await router.push(walletId && !saveState.willDeleteWallet ? `/wallets/${walletId}` : '/wallets')
+      }
     } catch {
       // cancelled/aborted navigation; the save already succeeded
     }
     return true
-  }, [canSave, saveState.willDeleteWallet, saveWallet, formik.values, allProtocols, toaster, router])
+  }, [canSave, saveState.willDeleteWallet, saveWallet, formik.values, allProtocols, toaster, onboarding, returnTo, router])
 
   const [onSave, inFlight] = useSingleFlight(onSaveWalletSubmit)
 

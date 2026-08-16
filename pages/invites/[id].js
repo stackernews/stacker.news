@@ -10,7 +10,7 @@ import { CenterLayout } from '@/components/layout'
 import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import pay from '@/api/payIn'
 
-export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
+export async function getServerSideProps ({ req, res, query: { id, error = null, onboarding = null } }) {
   const session = await getServerSession(req, res, getAuthOptions(req))
 
   const client = await getSSRApolloClient({ req, res })
@@ -44,15 +44,18 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
     }
 
     res.writeHead(302, {
-      Location: '/'
+      Location: onboarding === '1' ? '/onboarding/wallet' : '/'
     }).end()
     return { props: {} }
   }
 
+  const callbackUrl = new URL(req.url, process.env.NEXT_PUBLIC_URL)
+  callbackUrl.searchParams.set('onboarding', '1')
+
   return {
     props: {
       providers: await getProviders(),
-      callbackUrl: process.env.NEXT_PUBLIC_URL + req.url,
+      callbackUrl: callbackUrl.toString(),
       invite: data.invite,
       error
     }

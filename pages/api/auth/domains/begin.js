@@ -1,5 +1,5 @@
 import { DOMAINS_AUTH_VERIFIER_COOKIE, deriveChallenge, isValidHex64, safeEqual } from '@/lib/domains/auth'
-import { parseSafeHost, formatHost, safeRedirectPath } from '@/lib/safe-url'
+import { parseSafeHost, formatHost, safeRedirectPath, walletOnboardingPath } from '@/lib/safe-url'
 import { getDomainMapping, SN_MAIN_DOMAIN } from '@/lib/domains'
 
 /**
@@ -25,7 +25,9 @@ export default async function handler (req, res) {
   const canonicalDomain = formatHost(parsedDomain)
   // redirectUri is the path the user will be redirected to after authentication
   // distinguishes between login flow (callbackUrl) and domains auth flow (redirectUri)
-  const redirectUri = safeRedirectPath(callbackUrl, canonicalDomain)
+  const redirectUri = signup
+    ? walletOnboardingPath(callbackUrl, canonicalDomain)
+    : safeRedirectPath(callbackUrl, canonicalDomain)
   // multi-auth is the "add existing account" intent. it never makes sense to
   // pair it with signup, which always creates a fresh user.
   const wantsMultiAuth = !signup && multiAuth === 'true'

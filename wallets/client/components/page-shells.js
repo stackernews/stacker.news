@@ -76,7 +76,7 @@ export function WalletDetailRoutePage ({ ready, resource, title, notFoundMessage
   )
 }
 
-export function WalletRouteGate ({ children, walletsRequired = true }) {
+export function WalletRouteGate ({ children, walletsRequired = true, passphraseSetupProps }) {
   const { me } = useMe()
   const [justUnlocked, setJustUnlocked] = useState(false)
   const key = useKey()
@@ -100,6 +100,7 @@ export function WalletRouteGate ({ children, walletsRequired = true }) {
   const wrongKey = keyError === WRONG_KEY
   const showPassphrase = me?.privates?.showPassphrase
   const canRecoverReceiveOnlyPassphrase = wrongKey && showPassphrase && !me?.privates?.hasSendWallet
+  const passphraseSetup = <CenteredPrompt><WalletPassphraseSetup {...passphraseSetupProps} /></CenteredPrompt>
 
   if (keyError === KEY_STORAGE_UNAVAILABLE) {
     const insecureContext = typeof window !== 'undefined' && window.isSecureContext === false
@@ -114,7 +115,7 @@ export function WalletRouteGate ({ children, walletsRequired = true }) {
   }
 
   if (canRecoverReceiveOnlyPassphrase && walletSendReady) {
-    return <CenteredPrompt><WalletPassphraseSetup /></CenteredPrompt>
+    return passphraseSetup
   }
 
   if (wrongKey) {
@@ -142,7 +143,7 @@ export function WalletRouteGate ({ children, walletsRequired = true }) {
   }
 
   if (showPassphrase && !justUnlocked) {
-    return <CenteredPrompt><WalletPassphraseSetup /></CenteredPrompt>
+    return passphraseSetup
   }
 
   return children

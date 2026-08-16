@@ -1,0 +1,162 @@
+.page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2.75rem;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.pageNarrow {
+  max-width: 680px;
+}
+
+.heading {
+  max-width: 680px;
+}
+
+.heading h1 {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.heading p {
+  margin: 0;
+  color: var(--theme-grey);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.eyebrow {
+  margin-bottom: 0.8rem;
+  color: var(--theme-grey);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.choice {
+  --surface-row-padding: 2rem;
+  --surface-row-border: 0;
+  --surface-row-radius: 0.75rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 240px;
+  text-align: left;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.choice:focus-visible {
+  border-color: var(--bs-primary);
+  box-shadow: inset 0 0 0 1px var(--bs-primary);
+  outline: 0;
+}
+
+.choiceTitle {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.choiceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.sparkLogo {
+  flex: 0 0 auto;
+  max-width: 72px;
+}
+
+.sparkName {
+  flex: 0 0 auto;
+  font-weight: 800;
+}
+
+.choice > span:not(.choiceTitle) {
+  color: var(--theme-grey);
+  line-height: 1.55;
+}
+
+.choiceArrow {
+  align-self: flex-end;
+  margin-top: auto;
+  fill: currentColor;
+}
+
+.skip {
+  align-self: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  text-align: center;
+}
+
+.skip span {
+  color: var(--bs-body-color);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.skip small {
+  max-width: 24rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.successIcon {
+  fill: var(--bs-success);
+}
+
+.successActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+@media (max-width: 767px) {
+  .page {
+    justify-content: flex-start;
+    gap: 2rem;
+    padding: 2.5rem 0.25rem;
+  }
+
+  .choices {
+    grid-template-columns: 1fr;
+  }
+
+  .choice {
+    --surface-row-padding: 1.5rem;
+    min-height: 185px;
+  }
+
+  .successActions {
+    flex-direction: column;
+    width: 100%;
+  }
+}

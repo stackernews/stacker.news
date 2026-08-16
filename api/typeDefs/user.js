@@ -130,6 +130,7 @@ export default gql`
     freeCommentCount: Int!
     freeCommentsLeft: Int!
     hasSendWallet: Boolean!
+    hasRecvWallet: Boolean!
 
     """
     only relevant to user

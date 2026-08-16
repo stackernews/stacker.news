@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import classNames from 'classnames'
 import { useWalletSupport } from '@/wallets/client/hooks'
 import { fuzzySearch, WalletSearch } from '@/wallets/client/components/search'
@@ -15,6 +16,13 @@ const styles = { ...sharedStyles, ...rowsStyles, ...addStyles }
 
 export function AddWalletPanel ({ templates }) {
   const [query, setQuery] = useState('')
+  const router = useRouter()
+  const templateQuery = router.query.onboarding === '1'
+    ? {
+        onboarding: '1',
+        ...(typeof router.query.returnTo === 'string' && { returnTo: router.query.returnTo })
+      }
+    : undefined
 
   const searchFilter = fuzzySearch(query)
   const templateMatches = templates.map(template => ({
@@ -32,7 +40,10 @@ export function AddWalletPanel ({ templates }) {
         {templateMatches.map(({ template, visible }) => (
           <Link
             key={template.name}
-            href={addWalletTemplateRoute(templateNameToPathSegment(template.name))}
+            href={{
+              pathname: addWalletTemplateRoute(templateNameToPathSegment(template.name)),
+              query: templateQuery
+            }}
             className={classNames(styles.surfaceRow, styles.surfaceRowHover, styles.row)}
             hidden={!visible}
           >

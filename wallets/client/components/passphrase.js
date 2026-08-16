@@ -70,7 +70,13 @@ function ResetPassphraseDialog ({ onCancel, onConfirm }) {
   )
 }
 
-function PassphraseConfirmation ({ words, onBack, onConfirm, saving }) {
+function PassphraseConfirmation ({
+  words,
+  onBack,
+  onConfirm,
+  saving,
+  confirmText = 'Open my wallets'
+}) {
   const [challenge] = useState(() => buildChallenge(words))
   const [confirmed, setConfirmed] = useState(0)
   const [confirmErrorCount, setConfirmErrorCount] = useState(0)
@@ -168,7 +174,7 @@ function PassphraseConfirmation ({ words, onBack, onConfirm, saving }) {
         >
           {saving
             ? 'opening your wallets...'
-            : <>Open my wallets <ForwardArrow className={styles.actionIcon} width={20} height={20} /></>}
+            : <>{confirmText} <ForwardArrow className={styles.actionIcon} width={20} height={20} /></>}
         </Button>
       </WalletBottomBar>
     </div>
@@ -270,7 +276,7 @@ export function WalletPassphrasePrompt ({ onSuccess }) {
     if (e.key === ' ') {
       e.preventDefault()
       if (words[i] && i < WORD_COUNT - 1) focusSlot(i + 1, 'start')
-    } else if (e.key === 'Enter') {
+    } else if (e.key === 'Enter' && !complete) {
       e.preventDefault()
       if (words[i] && i < WORD_COUNT - 1) {
         focusSlot(i + 1, 'start')
@@ -403,7 +409,10 @@ export function WalletPassphrasePrompt ({ onSuccess }) {
   )
 }
 
-export function WalletPassphraseSetup () {
+export function WalletPassphraseSetup ({
+  onBack,
+  confirmText = 'Open my wallets'
+} = {}) {
   const generateRandomKey = useGenerateRandomKey()
   const updateWalletEncryption = useWalletEncryptionUpdate()
   const toaster = useToast()
@@ -473,6 +482,7 @@ export function WalletPassphraseSetup () {
         onBack={() => setConfirming(false)}
         onConfirm={savePassphrase}
         saving={savingPassphrase}
+        confirmText={confirmText}
       />
     )
   }
@@ -511,11 +521,21 @@ export function WalletPassphraseSetup () {
         </div>
       </div>
 
-      <div className='d-flex justify-content-center'>
-        <Button type='button' variant='primary' onClick={() => setConfirming(true)}>
-          I've saved them - continue
-        </Button>
-      </div>
+      {onBack
+        ? (
+          <WalletBottomBar onBack={onBack} backText='back'>
+            <Button type='button' variant='primary' onClick={() => setConfirming(true)}>
+              I've saved them - continue
+            </Button>
+          </WalletBottomBar>
+          )
+        : (
+          <div className='d-flex justify-content-center'>
+            <Button type='button' variant='primary' onClick={() => setConfirming(true)}>
+              I've saved them - continue
+            </Button>
+          </div>
+          )}
 
       <p className={styles.footnote}>You'll confirm 3 of the 12 next.</p>
     </div>

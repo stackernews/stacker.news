@@ -27,6 +27,7 @@
 }
 
 .receipt tfoot {
+    /* pins the seam against the unlayered .sn-text table chrome */
     border-top: 2px solid var(--sn-borderColor) !important;
 }
 }

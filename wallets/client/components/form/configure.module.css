@@ -1,3 +1,5 @@
+@layer components {
+
 /* Wallet configure page: 2-column grid (cards + aside), sticky save bar, and
    the danger zone. */
 
@@ -101,4 +103,6 @@
     width: auto;
     min-width: min(180px, 48vw);
   }
+}
+
 }

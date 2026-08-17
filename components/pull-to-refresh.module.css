@@ -1,3 +1,5 @@
+@layer components {
+
 .pullMessage {
     position: absolute;
     left: 50%;
@@ -10,4 +12,6 @@
     transition: opacity 0.3s ease-in-out;
     text-align: center;
     opacity: 0.75;
+}
+
 }

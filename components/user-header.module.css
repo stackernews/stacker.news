@@ -1,3 +1,5 @@
+@layer components {
+
 .usernameForm {
     width: 300px;
     margin-bottom: 0;
@@ -45,4 +47,5 @@
     background-color: var(--sn-secondary);
     color: var(--sn-light);
     border-radius: 0 .25rem 0 0;
+}
 }

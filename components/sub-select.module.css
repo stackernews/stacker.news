@@ -1,3 +1,5 @@
+@layer components {
+
 .subSelect {
   overflow: hidden;
   white-space: nowrap;
@@ -14,4 +16,5 @@
 
 .subSelectMedium {
   width: 200px !important;
+}
 }

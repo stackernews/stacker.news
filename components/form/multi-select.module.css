@@ -1,3 +1,5 @@
+@layer components {
+
 /* only what the recipes can't paint lives here */
 
 /* the state legs inputClasses can't give a div: field.module.css keys focus on
@@ -37,4 +39,6 @@
   .item {
     min-height: 44px;
   }
+}
+
 }

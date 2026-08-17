@@ -1,3 +1,5 @@
+@layer components {
+
 @keyframes walletBalancePulse {
   0%,
   100% {
@@ -84,4 +86,6 @@
   .heroUnavailable {
     padding: 3.5rem 0;
   }
+}
+
 }

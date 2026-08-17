@@ -1,3 +1,5 @@
+@layer components {
+
 .title {
     white-space: normal;
     max-width: 100%;
@@ -274,4 +276,6 @@ a.link:visited {
 
 .skeleton .otherItemLonger {
     width: 60px;
+}
+
 }

@@ -1,13 +1,13 @@
 /*
- * Tailwind entry and layer contract. Important utilities take precedence over
- * unlayered component styles. See docs/dev/styling.md.
+ * Tailwind entry and layer contract. Component modules live below utilities.
+ * See docs/dev/styling.md.
  */
 
 @layer theme, base, components, utilities;
 
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/preflight.css' layer(base);
-@import 'tailwindcss/utilities.css' layer(utilities) source(none) important;
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
 
 /* Scan only directories that produce application class names. */
 @source '../components';

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "audit:blast-radius": "node scripts/audit-blast-radius.js",
+    "check:module-layers": "node scripts/module-layer-check.js",
     "dev": "NODE_OPTIONS='--trace-warnings --enable-source-maps' next dev --webpack",
     "build": "next build --webpack",
     "migrate": "prisma migrate deploy",

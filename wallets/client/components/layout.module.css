@@ -1,3 +1,5 @@
+@layer components {
+
 /* Wallet layout shell: page chrome, sidebar grid, and mobile top bar. */
 
 .walletPageHeading {
@@ -175,4 +177,6 @@
     width: 100%;
     max-width: 100%;
   }
+}
+
 }

@@ -1,3 +1,5 @@
+@layer components {
+
 .record {
     display: flex;
     flex-direction: column;
@@ -18,4 +20,6 @@
 .statusIcon {
     width: 1rem;
     height: 1rem;
+}
+
 }

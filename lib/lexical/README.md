@@ -172,7 +172,7 @@ And it is recommended to provide the helpers:
 
 ## Server (`server/`)
 
-Server-side rendering and processing utilities, more informations can be found in `lib/lexical/server/README.md`
+Server-side rendering and processing utilities are documented in `lib/lexical/server/README.md`.
 
 ---
 
@@ -183,7 +183,7 @@ CSS modules *can* be used, but it is not recommended as they locally scope CSS b
 
 This being said, CSS modules are still used for the Editor and plugins UI.
 
-- `styles/text.scss` -> Lexical nodes and text rendering
+- `styles/text.css` -> Lexical nodes and text rendering
     - `lib/lexical/theme/index.js` -> nodes<->CSS classes map
 - `lib/lexical/theme/editor.module.css` -> Editor and plugins UI.
 

@@ -1,3 +1,5 @@
+@layer components {
+
 /* display, justify and align died here: the Button recipe owns display, so
    they never applied. Pass them as call-site utilities if this ever needs to
    be a flex row */
@@ -12,4 +14,5 @@
     align-items: center;
     display: flex;
     flex-direction: column;
+}
 }

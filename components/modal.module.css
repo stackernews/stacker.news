@@ -1,3 +1,5 @@
+@layer components {
+
 .backdrop {
   position: fixed;
   inset: 0;
@@ -50,3 +52,5 @@
 .close:hover { opacity: 0.7; }
 .close.fullScreen { padding: 1.25rem; }
 .overflow.fullScreen { padding: 1.25rem; margin-top: -10px; }
+
+}

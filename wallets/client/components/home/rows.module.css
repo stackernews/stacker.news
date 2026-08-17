@@ -1,3 +1,5 @@
+@layer components {
+
 /* Shared wallet-home primitives: list rows (sidebar + mobile), the wallet
    identity/logo, the status pill, and the selected-wallet identity + template
    support readouts. These stay together because several descendant selectors
@@ -221,4 +223,6 @@
 .templateSupport .statusIcon {
   width: 14px;
   height: 14px;
+}
+
 }

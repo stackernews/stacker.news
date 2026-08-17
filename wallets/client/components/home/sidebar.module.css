@@ -1,3 +1,5 @@
+@layer components {
+
 /* Wallet-home sidebar (desktop) + the mobile switcher/details sheet. */
 
 .sidebar {
@@ -18,4 +20,6 @@
   color: var(--sn-grey);
   font-size: 0.8rem;
   line-height: 1.2;
+}
+
 }

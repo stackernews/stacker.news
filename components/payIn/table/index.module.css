@@ -1,3 +1,5 @@
+@layer components {
+
 .table {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr) max-content;
@@ -81,4 +83,5 @@
   text-align: right;
   display: grid;
   align-items: center;
+}
 }

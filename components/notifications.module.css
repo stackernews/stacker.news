@@ -1,3 +1,5 @@
+@layer components {
+
 .fresh {
     border-radius: 0;
     border: solid 1px var(--sn-note-fresh);
@@ -66,4 +68,5 @@
     font-weight: 800;
     line-height: 1.25;
     vertical-align: middle;
+}
 }

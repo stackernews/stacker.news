@@ -6,27 +6,35 @@ should explain local constraints. Cross-cutting rules belong in this document.
 
 ## Cascade contract
 
-`styles/tailwind.css` declares the `theme`, `base`, `components`, and `utilities`
-layers. Tailwind imports its theme, preflight, and utilities into those layers.
-`styles/base.css` adds application element defaults after preflight.
+`styles/tailwind.css` declares this layer order:
 
-Tailwind utilities are emitted as important declarations. Application globals in
-`styles/app.css`, rendered-content rules in `styles/text.css`, and component CSS
-modules are unlayered. The effective precedence is:
+1. `theme`
+2. `base`
+3. `components`
+4. `utilities`
 
-1. Important utilities
-2. Unlayered CSS, resolved by specificity and source order
-3. The base layer
-4. The theme layer
+Tailwind imports its theme, preflight, and utilities into those layers.
+`styles/base.css` adds application element defaults after preflight. Every tracked
+`*.module.css` file has one top-level `@layer components` block, enforced by
+`npm run check:module-layers`.
 
-A module should not declare geometry that a recipe or call-site utility already
-owns. Its normal declaration cannot override an important utility and would
-communicate ownership it does not have.
+Normal utility declarations therefore beat normal module declarations regardless
+of selector specificity. Modules define component defaults and call sites use
+utilities to customize an instance.
+
+`styles/app.css`, `styles/text.css`, KaTeX, and other third-party stylesheets are
+unlayered. Unlayered declarations outrank every normal layered declaration,
+including utilities. Keep application rules in that tier only when their priority
+is part of the global contract.
+
+An important declaration reverses the layer order and can also prevent call-site
+customization. Use one only when a component must beat an unlayered or third-party
+declaration. Do not use it to arbitrate between a module and a utility.
 
 `cn()` combines conditional class names and resolves Tailwind conflicts. Standard
-Tailwind groups understand theme-backed classes such as `text-primary`. Extend
-`tailwind-merge` only for custom utility names it cannot classify, such as
-`text-reset` or `font-bolder`.
+Tailwind groups already understand theme-backed classes such as `text-primary`.
+Extend `tailwind-merge` only for custom utility names that it cannot classify, such
+as `text-reset` or `font-bolder`.
 
 ## Ownership rules
 
@@ -39,7 +47,8 @@ Each property should have one owner within a component:
 - Call sites own one-off geometry through utilities.
 
 When a call site overrides a recipe utility, `cn()` keeps the last class in the
-same group.
+same group. A module should not also declare that property because its declaration
+cannot win the normal layer order and communicates ownership it does not have.
 
 ## Tokens and themes
 
@@ -51,13 +60,14 @@ generated text, background, border, and fill utilities read the live `--sn-*`
 values. Territory branding uses `lib/domains/custom-css.js` to redefine brand and
 contrast tokens with greater specificity at runtime.
 
-Only values with the same meaning across Tailwind property families belong in
-`@theme inline`. Global fill classes can intentionally use values that differ
+Only values that have the same meaning across Tailwind property families belong
+in `@theme inline`. Global fill classes can intentionally use different values
 from text colors, so those names remain outside the Tailwind color map.
 
 Portaled overlays share the z-index ladder in `styles/tokens.css`. Components use
 the ladder tokens instead of local numeric values. The supported order is sticky
 content, fixed content, drawers, modals, menus, popovers, tooltips, then toasts.
+Menus clear modals and remain below popovers.
 
 Breakpoints are application-wide layout thresholds. Changing one is a responsive
 design change, not a local component adjustment.
@@ -86,7 +96,7 @@ re-anchor to the positioner and jump.
 ### Focus
 
 Popup surfaces that receive programmatic focus suppress the browser's container
-outline in their modules. Interactive descendants retain their visible focus
+outline in their modules. Interactive descendants retain their own visible focus
 treatment. Navigation links use `:focus-visible` so keyboard focus is visible
 without leaving hover paint after pointer clicks.
 
@@ -129,7 +139,7 @@ text antialiasing during the transition and produce a visible snap at the end.
 
 ## Stylesheet inventory
 
-`pages/_app.js` imports the primary global sheets in this order:
+`pages/_app.js` imports global styles in this order:
 
 - `styles/tokens.css`: light and dark design tokens.
 - `styles/tailwind.css`: layer order, Tailwind imports, sources, theme mapping,

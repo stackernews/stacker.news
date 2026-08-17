@@ -1,3 +1,7 @@
+@layer components {
+
 .notice > div {
   flex-direction: row-reverse;
+}
+
 }

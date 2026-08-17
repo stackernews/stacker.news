@@ -1,3 +1,5 @@
+@layer components {
+
 .upvote {
     fill: #a5a5a5;
     user-select: none;
@@ -72,4 +74,6 @@
 	0% {
 		fill: #a5a5a5;
 	}
+}
+
 }

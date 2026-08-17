@@ -1,3 +1,5 @@
+@layer components {
+
 /* shared form-field chrome. Colors and state live here; border-radius and the
    group margin are deliberately module-side too, because consumer module skins
    override them (the wallets capability card) and a recipe utility would be
@@ -136,4 +138,6 @@ textarea.passwordInput {
 
 .clearButton.isInvalid {
     border-color: #c03221;
+}
+
 }

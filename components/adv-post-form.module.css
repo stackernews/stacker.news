@@ -1,3 +1,5 @@
+@layer components {
+
 /* Both flex items must shrink below their inputs' intrinsic width on narrow
    screens. */
 .name {
@@ -20,4 +22,5 @@
   margin-left: 0.25rem;
   margin-right: 0.25rem;
   opacity: 0.5;
+}
 }

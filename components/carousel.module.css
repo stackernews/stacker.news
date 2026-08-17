@@ -1,3 +1,5 @@
+@layer components {
+
 div.fullScreenNavContainer {
     height: 100%;
     width: 100%;
@@ -59,4 +61,5 @@ div.fullScreenNav > svg {
     max-width: 34px;
     padding: 0.35rem;
     margin: .75rem;
+}
 }

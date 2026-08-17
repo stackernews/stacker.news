@@ -1,3 +1,5 @@
+@layer components {
+
 /* Capability test-status pill: base + tested/testing/failed state colors. */
 
 .status {
@@ -18,4 +20,6 @@
 }
 .failed {
   --state-color: var(--sn-danger);
+}
+
 }

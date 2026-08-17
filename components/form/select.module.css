@@ -1,3 +1,5 @@
+@layer components {
+
 /* Compact select paint. Padding and caret position stay together here. */
 
 .select {
@@ -26,4 +28,6 @@
 /* Native option menus need a light text color context in dark mode. */
 .select option {
     color: rgba(0, 0, 0, .9);
+}
+
 }

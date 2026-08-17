@@ -1,3 +1,5 @@
+@layer components {
+
 .passphraseFlow {
   gap: clamp(2rem, 5svh, 3rem);
 }
@@ -214,4 +216,6 @@
   .confirmationSlots {
     gap: var(--wt-gap-md);
   }
+}
+
 }

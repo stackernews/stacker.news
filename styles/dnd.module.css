@@ -1,3 +1,5 @@
+@layer components {
+
 .draggable {
   cursor: grab;
   transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1),
@@ -50,4 +52,5 @@
     /* Smaller outline offset to stay within viewport */
     outline-offset: 2px;
   }
+}
 }

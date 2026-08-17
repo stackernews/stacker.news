@@ -1,3 +1,5 @@
+@layer components {
+
 /* Base UI stacked toasts. The --toast-* custom props are Base UI's inline
    contract (index, offsets, swipe movement, measured heights); the [data-*]
    attributes are its state. */
@@ -215,4 +217,6 @@
     transition: none;
     animation: none;
   }
+}
+
 }

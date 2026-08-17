@@ -1,3 +1,5 @@
+@layer components {
+
 .details {
   display: flex;
   flex-direction: column;
@@ -99,4 +101,6 @@
   padding-top: 0.45rem;
   color: var(--sn-grey);
   font-size: 0.875rem;
+}
+
 }

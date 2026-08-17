@@ -1,3 +1,5 @@
+@layer components {
+
 /* editor container */
 
 .editor {
@@ -288,9 +290,7 @@
   }
 }
 
-/* editor mode tabs. Tabs.Tab renders a <button>; the color, weight and metrics
-   that used to ride the dying .nav-link and .nav-tabs classes live here now,
-   and the background and border resets double as UA button neutralizers */
+/* Editor tabs own their paint and neutralize native button chrome. */
 .modeTab {
   --tab-border-color: var(--sn-borderColor);
   --tab-bg: var(--sn-inputBg);
@@ -604,4 +604,6 @@
 
 .separator:not(:empty)::after {
   margin-left: .25em;
+}
+
 }

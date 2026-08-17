@@ -1,3 +1,5 @@
+@layer components {
+
 /* SN Drawer chrome. The ladder puts the drawer at 1045: over sticky 900 and
    its own backdrop 1040, under the modal pair at 1050 and 1055, so modals
    opened from the drawer paint over it */
@@ -91,4 +93,6 @@
 
 :global([data-theme='dark']) .close {
     color: #fff;
+}
+
 }

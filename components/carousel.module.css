@@ -14,6 +14,7 @@ div.fullScreenNavContainer {
 }
 
 img.fullScreen {
+    /* out-shouts text.module's equally-specific .mediaContainer img zoom-in */
     cursor: zoom-out !important;
     max-height: 100%;
     max-width: 100vw;

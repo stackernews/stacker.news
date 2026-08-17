@@ -40,7 +40,7 @@
 }
 
 .dropdownExtraItem.active .dropdownExtraItemText {
-  color: var(--sn-brandColor) !important;
+  color: var(--sn-brandColor);
   filter: drop-shadow(0 0 6px var(--sn-primary));
   font-weight: 500;
 }

@@ -68,10 +68,6 @@
 .form {
   --sn-input-radius: var(--wt-radius-md);
 }
-.form :global(.mb-3) {
-  /* Override the important global margin utility inside the card. */
-  margin-bottom: 0 !important;
-}
 .form :global(input:not([type='checkbox']):not([type='radio'])),
 .form :global(textarea) {
   min-height: 54px;

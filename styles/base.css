@@ -101,4 +101,43 @@
   ::placeholder {
     color: var(--sn-muted);
   }
+
+  /*
+   * Element chrome that lived in unlayered app.css until the cascade flip.
+   * Unlayered rules outrank every layer, so up there these beat the module
+   * skins (link-blue item titles, body-color brand svg); as element defaults
+   * they belong in base, where any module or utility wins.
+   */
+  svg {
+    fill: var(--sn-body-color);
+  }
+
+  a {
+    color: var(--sn-link);
+  }
+
+  a:hover {
+    color: var(--sn-linkHover);
+  }
+
+  ol,
+  ul,
+  dl {
+    padding-inline-start: 2rem;
+  }
+
+  mark {
+    background-color: color-mix(in srgb, var(--sn-primary) 60%, transparent);
+    padding: 0 0.2rem;
+    color: var(--sn-body-color);
+  }
+
+  footer {
+    margin-top: auto;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
 }

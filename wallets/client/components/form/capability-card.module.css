@@ -6,7 +6,6 @@
   flex-direction: column;
   gap: var(--wt-gap-xl);
   padding: 1.5rem 2rem;
-  border: 1px solid rgba(var(--sn-color-rgb), 0.12);
   border-radius: var(--wt-radius-lg);
   background: color-mix(in srgb, var(--sn-toolbarHover) 22%, var(--sn-body-bg));
 }
@@ -52,7 +51,6 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.85rem 1rem;
-  border: 1px solid rgba(var(--sn-color-rgb), 0.1);
   border-radius: var(--wt-radius-md);
   background: color-mix(in srgb, var(--sn-body-bg) 72%, var(--sn-toolbarHover));
 }

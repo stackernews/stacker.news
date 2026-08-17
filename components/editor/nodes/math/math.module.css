@@ -30,7 +30,6 @@
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--sn-color);
   background-color: transparent;
   resize: none;
   overflow: hidden;

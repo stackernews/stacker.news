@@ -52,10 +52,6 @@ html:has([data-sn-editor]:focus) {
     opacity: 42%;
   }
 }
-svg {
-  fill: var(--sn-body-color);
-}
-
 .fill-primary {
   fill: var(--sn-primary);
 }
@@ -66,18 +62,6 @@ svg {
 
 .lexical blockquote > * {
   margin-bottom: 0 !important;
-}
-
-ol,
-ul,
-dl {
-  padding-inline-start: 2rem;
-}
-
-mark {
-  background-color: color-mix(in srgb, var(--sn-primary) 60%, transparent);
-  padding: 0 0.2rem;
-  color: var(--sn-body-color);
 }
 
 .twitter-tweet {
@@ -95,14 +79,6 @@ html, body {
   color: var(--sn-body-color) !important;
   min-height: 100vh;
   min-height: 100svh;
-}
-
-a {
-  color: var(--sn-link);
-}
-
-a:hover {
-  color: var(--sn-linkHover);
 }
 
 .clickToContext {
@@ -129,15 +105,6 @@ a:hover {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100svh;
-}
-
-footer {
-  margin-top: auto;
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
 }
 
 .text-muted svg {

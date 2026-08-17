@@ -14,11 +14,11 @@
 }
 
 .secondary {
-  --sn-badge-bg: rgba(var(--sn-secondary-rgb), var(--sn-badge-opacity, 1));
+  --sn-badge-bg: color-mix(in srgb, var(--sn-secondary) calc(var(--sn-badge-opacity, 1) * 100%), transparent);
 }
 
 .boost {
-  --sn-badge-bg: rgba(var(--sn-boost-rgb), var(--sn-badge-opacity, 1));
+  --sn-badge-bg: color-mix(in srgb, var(--sn-boost) calc(var(--sn-badge-opacity, 1) * 100%), transparent);
 }
 
 .danger {

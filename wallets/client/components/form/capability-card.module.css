@@ -11,7 +11,7 @@
 }
 .cardOptional {
   border-style: dashed;
-  background: color-mix(in srgb, rgba(var(--sn-warning-rgb), 0.08) 45%, var(--sn-body-bg));
+  background: color-mix(in srgb, color-mix(in srgb, var(--sn-warning) 8%, transparent) 45%, var(--sn-body-bg));
 }
 .header {
   min-width: 0;

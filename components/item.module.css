@@ -6,11 +6,12 @@
     display: inline-block;
     vertical-align: middle;
     margin-bottom: .15rem;
-    /* the skin owns the title color (call sites used to pass text-reset) */
     color: inherit;
 }
 
 .summaryText {
+    /* summaries inherit the body color even when there is no .title (comments) */
+    color: inherit;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;

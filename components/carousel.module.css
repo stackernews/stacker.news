@@ -13,9 +13,9 @@ div.fullScreenNavContainer {
     align-items: center;
 }
 
-img.fullScreen {
-    /* out-shouts text.module's equally-specific .mediaContainer img zoom-in */
-    cursor: zoom-out !important;
+.fullScreenContainer img.fullScreen {
+    /* the container qualifier outranks text.module's .mediaContainer img zoom-in */
+    cursor: zoom-out;
     max-height: 100%;
     max-width: 100vw;
     min-width: 0;

@@ -82,7 +82,7 @@ export function useOverflow ({ containerRef }) {
       return (
         <Button
           variant='link'
-          className='sn-text__show-full p-0 fw-bold text-muted'
+          className='sn-text__show-full p-0 font-bold text-muted'
           aria-expanded='false'
           onClick={showOverflow}
         >

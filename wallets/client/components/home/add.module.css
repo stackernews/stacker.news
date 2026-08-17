@@ -1,3 +1,5 @@
+@layer components {
+
 /* Add-wallet panel: the template-picker surface and its template rows. */
 
 .panel {
@@ -53,4 +55,6 @@
   .panel .row {
     background: color-mix(in srgb, var(--sn-toolbarHover) 42%, var(--sn-body-bg));
   }
+}
+
 }

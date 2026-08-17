@@ -1,3 +1,5 @@
+@layer components {
+
 .dropdownExtra {
   padding: 0.45rem 0.35rem;
   width: 240px;
@@ -41,4 +43,6 @@
   color: var(--sn-brandColor) !important;
   filter: drop-shadow(0 0 6px var(--sn-primary));
   font-weight: 500;
+}
+
 }

@@ -1,3 +1,5 @@
+@layer components {
+
 /* Shared checkbox and radio paint. Brand colors remain territory-aware. */
 
 .check {
@@ -66,4 +68,6 @@
 .checkInput.invalid[data-checked] {
     background-color: #c03221;
     border-color: #c03221;
+}
+
 }

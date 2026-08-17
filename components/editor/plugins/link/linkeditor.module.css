@@ -1,3 +1,5 @@
+@layer components {
+
 /* positioning, z and chrome live on the Base UI Popover popup; this file is
    layout, input and icon skins only */
 .linkEditor {
@@ -98,4 +100,6 @@
     width: 20px;
     height: 20px;
   }
+}
+
 }

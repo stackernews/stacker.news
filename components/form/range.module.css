@@ -1,3 +1,5 @@
+@layer components {
+
 /* Slider paint follows the active theme and territory brand. */
 
 .track {
@@ -37,4 +39,6 @@
     border: 1px solid var(--sn-borderColor);
     border-inline-start: 0;
     border-radius: .375rem;
+}
+
 }

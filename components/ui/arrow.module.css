@@ -1,3 +1,5 @@
+@layer components {
+
 /* Shared popup arrow for popover, preview card and tooltip. The element is a
    half-height clip window and the diamond is a rotated square drawn by the
    ::before, see docs/dev/styling.md for the construction. Offsets resolve
@@ -42,4 +44,6 @@
 .arrow[data-side='right'] {
   left: calc(var(--arrow-size, 16px) * -0.75);
   rotate: -90deg;
+}
+
 }

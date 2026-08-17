@@ -1,3 +1,5 @@
+@layer components {
+
 /* Shared wallet primitives: small building blocks used across wallet UI. */
 
 .textButton {
@@ -119,4 +121,6 @@
     width: 100%;
     padding: 1.25rem 0 calc(env(safe-area-inset-bottom) + 1rem);
   }
+}
+
 }

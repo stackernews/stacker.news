@@ -1,3 +1,5 @@
+@layer components {
+
 /* Capability card: the send/receive/fallback configuration card, its header,
    the method (protocol) picker, and the embedded protocol form's field chrome. */
 
@@ -89,4 +91,6 @@
   .titleRow h2 {
     font-size: 1.35rem;
   }
+}
+
 }

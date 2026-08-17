@@ -1,3 +1,5 @@
+@layer components {
+
 .chip {
   box-sizing: border-box;
   min-height: 32px;
@@ -74,4 +76,6 @@ button.chip:focus-visible {
 .danger {
   border-color: color-mix(in srgb, var(--sn-danger) 80%, transparent);
   color: var(--sn-danger);
+}
+
 }

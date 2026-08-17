@@ -1,3 +1,5 @@
+@layer components {
+
 .pay {
     color: var(--sn-success);
     margin-left: 1rem;
@@ -7,4 +9,5 @@
     color: var(--sn-grey);
     margin-left: 1rem;
     font-style: italic;
+}
 }

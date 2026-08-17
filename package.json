@@ -9,7 +9,7 @@
     "build": "next build --webpack",
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings --max-old-space-size=4096 --max-semi-space-size=128' next start -p $PORT --keepAliveTimeout 120000",
-    "lint": "standard",
+    "lint": "standard && node scripts/module-layer-check.js",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "test:spark-live": "tsx --tsconfig jsconfig.json scripts/spark-live-e2e.mjs",
     "worker": "tsx --tsconfig jsconfig.json --trace-warnings worker/index.js",

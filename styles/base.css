@@ -102,12 +102,7 @@
     color: var(--sn-muted);
   }
 
-  /*
-   * Element chrome that lived in unlayered app.css until the cascade flip.
-   * Unlayered rules outrank every layer, so up there these beat the module
-   * skins (link-blue item titles, body-color brand svg); as element defaults
-   * they belong in base, where any module or utility wins.
-   */
+  /* Component modules and utilities can override these element defaults. */
   svg {
     fill: var(--sn-body-color);
   }

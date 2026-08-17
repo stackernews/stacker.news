@@ -14,7 +14,6 @@
 .row {
   --surface-row-min-height: 70px;
   --surface-row-padding: 1rem 1.25rem;
-  --surface-row-border: 1px solid rgba(var(--sn-color-rgb), 0.12);
   --surface-row-radius: var(--wt-radius-lg);
   --surface-row-bg: color-mix(in srgb, var(--sn-body-bg) 78%, var(--sn-toolbarHover));
   display: grid;
@@ -52,7 +51,6 @@
     background: transparent;
   }
   .panel .row {
-    border-color: rgba(var(--sn-color-rgb), 0.16);
     background: color-mix(in srgb, var(--sn-toolbarHover) 42%, var(--sn-body-bg));
   }
 }

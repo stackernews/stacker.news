@@ -32,7 +32,6 @@
 
 .editorContainer {
   width: 100%;
-  color: var(--sn-color);
   position: relative;
   font-weight: 400;
   text-align: left;
@@ -57,7 +56,6 @@
 }
 
 .editorContentInput {
-  caret-color: var(--sn-color);
   font-size: 94%;
   line-height: 140%;
   tab-size: 1;
@@ -510,7 +508,6 @@
   position: absolute;
   top: 17px;
   right: 2px;
-  color: var(--sn-color);
   cursor: pointer;
   font-size: 12px;
   line-height: 1;

@@ -15,7 +15,6 @@
 .asideCard {
   gap: var(--wt-gap-md);
   padding: 1rem;
-  border: 1px solid rgba(var(--sn-color-rgb), 0.08);
   border-radius: var(--wt-radius-md);
   background: color-mix(in srgb, var(--sn-toolbarHover) 35%, transparent);
 }

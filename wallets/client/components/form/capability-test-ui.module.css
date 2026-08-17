@@ -69,9 +69,9 @@
   flex-direction: column;
   gap: 0.65rem;
   padding: 0.85rem 2.65rem 0.85rem 0.85rem;
-  border: 1px solid rgba(var(--sn-danger-rgb), 0.35);
+  border: 1px solid color-mix(in srgb, var(--sn-danger) 35%, transparent);
   border-radius: var(--wt-radius-sm);
-  background: rgba(var(--sn-danger-rgb), 0.06);
+  background: color-mix(in srgb, var(--sn-danger) 6%, transparent);
 }
 .errorCopy {
   position: absolute;

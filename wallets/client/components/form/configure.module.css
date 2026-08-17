@@ -35,9 +35,9 @@
   gap: var(--wt-gap-lg);
   margin-top: 1.25rem;
   padding: 1.5rem 2rem;
-  border: 1px solid rgba(var(--sn-danger-rgb), 0.28);
+  border: 1px solid color-mix(in srgb, var(--sn-danger) 28%, transparent);
   border-radius: var(--wt-radius-lg);
-  background: rgba(var(--sn-danger-rgb), 0.035);
+  background: color-mix(in srgb, var(--sn-danger) 3.5%, transparent);
 }
 .dangerZone p {
   margin: 0.35rem 0 0;

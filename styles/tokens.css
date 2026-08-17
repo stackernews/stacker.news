@@ -7,8 +7,6 @@
   /* runtime-overridable brand */
   --sn-primary: #FADA5E;
   --sn-secondary: #F6911D;
-  --sn-primary-rgb: 250, 218, 94;
-  --sn-secondary-rgb: 246, 145, 29;
   /* text-on-brand contrast, YIQ-computed per territory at request time */
   --sn-primary-text: #000;
   --sn-secondary-text: #fff;
@@ -21,9 +19,6 @@
   --sn-boost: #8c25f4;
   --sn-nostr: #8d45dd;
   --sn-twitter: #1da1f2;
-  --sn-danger-rgb: 192, 50, 33;
-  --sn-warning-rgb: 246, 145, 29;
-  --sn-boost-rgb: 140, 37, 244;
 
   /* neutral body tier; --sn-secondary remains the orange brand color */
   --sn-body-bg: #fcfcff;

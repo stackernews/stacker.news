@@ -89,11 +89,11 @@
   background: linear-gradient(rgba(255, 255, 255, 0), var(--sn-body-bg) 200%);
 }
 
+/* the square corners ride the call site as rounded-none */
 .sn-text__show-full {
   position: absolute;
   bottom: 0;
   z-index: 2;
-  border-radius: 0;
 }
 
 .sn-paragraph {

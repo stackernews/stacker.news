@@ -87,7 +87,7 @@ export function useOverflow ({ containerRef, truncated = false }) {
         <Button
           size='lg'
           variant='info'
-          className='sn-text__show-full'
+          className='sn-text__show-full rounded-none'
           onClick={showOverflow}
         >
           show full text

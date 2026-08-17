@@ -405,8 +405,8 @@ export const UPSERT_BIO = gql`
 
 export const CREATE_COMMENT = gql`
   ${PAY_IN_FIELDS}
-  mutation upsertComment($text: String!, $parentId: ID!, $sendProtocolId: Int) {
-    upsertComment(text: $text, parentId: $parentId, sendProtocolId: $sendProtocolId) {
+  mutation upsertComment($text: String!, $parentId: ID!, $useFreebie: Boolean, $sendProtocolId: Int) {
+    upsertComment(text: $text, parentId: $parentId, useFreebie: $useFreebie, sendProtocolId: $sendProtocolId) {
       ...PayInFields
     }
   }`

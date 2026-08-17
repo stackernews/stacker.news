@@ -15,6 +15,19 @@
     font-weight: 400;
 }
 
+.freebieCheckbox {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.freebieCheckbox label {
+    color: var(--theme-grey);
+}
+
+.freebieCheckbox:focus-within label {
+    color: var(--theme-color);
+}
+
 .receipt td {
     padding: .25rem .1rem;
     background-color: var(--theme-inputBg);

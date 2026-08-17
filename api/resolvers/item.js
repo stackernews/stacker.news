@@ -884,13 +884,13 @@ export default {
         return await createItem(parent, item, { me, models, lnd })
       }
     },
-    upsertComment: async (parent, { id, ...item }, { me, models, lnd }) => {
+    upsertComment: async (parent, { id, useFreebie, ...item }, { me, models, lnd }) => {
       await validateSchema(commentSchema, item)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd })
       } else {
-        return await createItem(parent, item, { me, models, lnd })
+        return await createItem(parent, { ...item, useFreebie }, { me, models, lnd })
       }
     },
     updateNoteId: async (parent, { id, noteId }, { me, models }) => {

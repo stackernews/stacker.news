@@ -22,9 +22,7 @@ export const paymentMethods = [
 
 const DEFAULT_ITEM_MCOST = 1000n
 
-async function getBaseMcost (models, { bio, parentId, subNames }) {
-  if (bio) return DEFAULT_ITEM_MCOST
-
+async function getBaseMcost (models, { parentId, subNames }) {
   const subs = await getSubs(models, { subNames, parentId })
 
   if (parentId) {
@@ -51,17 +49,19 @@ async function getBaseMcost (models, { bio, parentId, subNames }) {
   return baseMcost > 0n ? baseMcost : DEFAULT_ITEM_MCOST
 }
 
-async function getMcost (models, { subNames, parentId, uploadIds, bio }, { me }) {
-  const baseMcost = await getBaseMcost(models, { bio, parentId, subNames })
+async function getMcost (models, { subNames, parentId, uploadIds, bio, useFreebie }, { me }) {
+  if (bio) return 0n
+
+  const baseMcost = await getBaseMcost(models, { parentId, subNames })
 
   // mcost = baseMcost * 10^num_items_in_10m * 100 (anon) or 1 (user) + upload fees
   const [{ mcost }] = await models.$queryRaw`
     SELECT ${baseMcost}::INTEGER
       * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${me.id}::INTEGER,
-          ${me.id !== USER_ID.anon && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
+          ${me.id !== USER_ID.anon ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
       * ${me.id !== USER_ID.anon ? 1 : ANON_FEE_MULTIPLIER}::INTEGER  as mcost`
 
-  const isFreebie = await checkFreebieEligibility(models, { mcost, baseMcost, parentId, bio }, { me })
+  const isFreebie = await checkFreebieEligibility(models, { mcost, baseMcost, parentId, useFreebie }, { me })
   return isFreebie ? BigInt(0) : BigInt(mcost)
 }
 
@@ -123,6 +123,7 @@ export async function validateBeforeCreate (tx, payInProspect, payInArgs, { me }
 
 export async function onBegin (tx, payInId, args) {
   const { parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], subNames = [], ...data } = args
+  delete data.useFreebie
   const payIn = await tx.payIn.findUnique({ where: { id: payInId } })
 
   const { userNames, itemIds } = extractMentions(args.text)

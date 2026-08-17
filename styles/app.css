@@ -1,6 +1,7 @@
 /*
- * Global application styles and third-party skins. Normal declarations stay
- * unlayered so they take precedence over layered base rules.
+ * Global application behavior and third-party skins. These rules are
+ * unlayered and outrank layered utilities, so they must not own properties
+ * that call sites are expected to customize. Element defaults live in base.css.
  */
 
 @media screen and (min-width: 899px) {
@@ -83,7 +84,6 @@ html, body {
 
 .clickToContext {
   border-radius: 0.4rem;
-  padding: 0;
   cursor: pointer;
 }
 

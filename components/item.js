@@ -161,7 +161,7 @@ export function ItemSummary ({ item }) {
     <Link
       href={`/items/${item.id}`}
       onClick={(e) => onItemClick(e, router, item)}
-      className={`${item.title && styles.title} ${styles.summaryText} me-2`}
+      className={classNames(item.title && styles.title, styles.summaryText, 'me-2')}
     >
       {item.title ?? removeMd(item.text)}
     </Link>

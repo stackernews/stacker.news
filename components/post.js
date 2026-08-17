@@ -11,7 +11,7 @@ import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
 import { SubMultiSelect } from './sub-select'
 import { useCallback, useState } from 'react'
-import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
+import FeeButton, { FeeButtonProvider, FreebieCheckbox, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import Delete from './delete'
 import CancelButton from './cancel-button'
 import { subNames, subsPostPrefix, subsAllSupport } from '@/lib/subs'
@@ -191,6 +191,7 @@ export function ItemButtonBar ({
   return (
     <div className={`mt-3 ${className}`}>
       <div className='d-flex justify-content-between'>
+        <FreebieCheckbox />
         {itemId && canDelete &&
           <Delete
             itemId={itemId}

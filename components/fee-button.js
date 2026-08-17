@@ -1,5 +1,6 @@
-import { useEffect, useContext, createContext, useState, useCallback, useMemo } from 'react'
+import { useEffect, useContext, createContext, useState, useCallback, useId, useMemo } from 'react'
 import Table from 'react-bootstrap/Table'
+import BootstrapForm from 'react-bootstrap/Form'
 import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
@@ -12,6 +13,7 @@ import AnonIcon from '@/svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
 import { SubmitButton } from './form'
+import { useFormikContext } from 'formik'
 
 const FeeButtonContext = createContext()
 
@@ -151,21 +153,16 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
   const value = useMemo(() => {
     const lines = { ...baseLineItems, ...lineItems, ...remoteLineItems }
     const total = Object.values(lines).sort(sortHelper).reduce((acc, { modifier }) => modifier(acc), 0)
-
-    // Find base cost line item (could be 'baseCost' or '*-baseCost' for territories)
     const baseCostLine = Object.values(lines).find(line => line.op === '_' && line.allowFreebies !== undefined)
 
-    // freebies: there's only a base cost, we don't have enough sats/credits,
-    // no send wallet attached, and have free comments left (for comments only)
     const cantAfford = (me?.privates?.sats ?? 0) + (me?.privates?.credits ?? 0) < total
     const hasSendWallet = me?.privates?.hasSendWallet
     const freeCommentsLeft = me?.privates?.freeCommentsLeft ?? 0
     const isComment = baseCostLine?.isComment
-    const free = me &&
+    const canBeFree = me &&
       total === baseCostLine?.modifier(0) &&
       baseCostLine?.allowFreebies &&
       cantAfford &&
-      !hasSendWallet &&
       (!isComment || freeCommentsLeft > 0)
     return {
       lines,
@@ -174,7 +171,8 @@ export function FeeButtonProvider ({ baseLineItems = DEFAULT_BASE_LINE_ITEMS, us
       disabled: disabledReasons.size > 0,
       disabledReasons,
       setDisabled,
-      free,
+      free: canBeFree && !hasSendWallet,
+      freebieAvailable: canBeFree && hasSendWallet && isComment,
       freeCommentsLeft: isComment ? freeCommentsLeft : null
     }
   }, [me, me?.privates?.sats, me?.privates?.credits, me?.privates?.freeCommentsLeft, me?.privates?.hasSendWallet, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabledReasons, setDisabled])
@@ -191,10 +189,34 @@ export function useFeeButton () {
   return context
 }
 
+export function FreebieCheckbox () {
+  const { freebieAvailable } = useFeeButton()
+  const { setFieldValue, values } = useFormikContext()
+  const id = useId()
+  const checked = Boolean(values.useFreebie)
+
+  useEffect(() => {
+    if (checked && !freebieAvailable) setFieldValue('useFreebie', false, false)
+  }, [checked, freebieAvailable, setFieldValue])
+
+  if (!freebieAvailable) return null
+
+  return (
+    <BootstrapForm.Check
+      type='checkbox'
+      id={id}
+      className={styles.freebieCheckbox}
+      label='use free comment'
+      checked={checked}
+      onChange={e => setFieldValue('useFreebie', e.target.checked, false)}
+    />
+  )
+}
+
 function FreebieDialog ({ freeCommentsLeft }) {
   return (
     <>
-      <div className='fw-bold'>you don't have enough sats, so this one is on us</div>
+      <div className='fw-bold'>if you don't have enough sats, this one is on us</div>
       <ul className='mt-2'>
         <li>Free items have limited visibility and can only earn cowboy credits.</li>
         {freeCommentsLeft !== null && (
@@ -208,7 +230,11 @@ function FreebieDialog ({ freeCommentsLeft }) {
 
 export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
   const { me } = useMe()
-  const { lines, total, disabled: ctxDisabled, free, freeCommentsLeft } = useFeeButton()
+  const { lines, total, disabled: ctxDisabled, free: automaticFree, freebieAvailable, freeCommentsLeft } = useFeeButton()
+  const { values } = useFormikContext()
+  const requestedFreebie = Boolean(values.useFreebie)
+  const free = automaticFree || (freebieAvailable && requestedFreebie)
+
   const feeText = free
     ? 'free'
     : total > 1

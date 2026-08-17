@@ -39,7 +39,7 @@ export default gql`
       id: ID, subNames: [String!], title: String!, text: String, options: [String!]!, forward: [ItemForwardInput], pollExpiresAt: Date,
       randPollOptions: Boolean, hash: String, hmac: String, sendProtocolId: Int): PayIn!
     updateNoteId(id: ID!, noteId: String!): Item!
-    upsertComment(id: ID, text: String!, parentId: ID, hash: String, hmac: String, sendProtocolId: Int): PayIn!
+    upsertComment(id: ID, text: String!, parentId: ID, hash: String, hmac: String, useFreebie: Boolean, sendProtocolId: Int): PayIn!
     act(id: ID!, sats: Int, act: String, hasSendWallet: Boolean, sendProtocolId: Int): PayIn!
     payBounty(id: ID!, sendProtocolId: Int): PayIn!
     pollVote(id: ID!, sendProtocolId: Int): PayIn!

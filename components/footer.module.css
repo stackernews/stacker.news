@@ -26,7 +26,7 @@
     margin: auto;
     font-size: 75%;
     margin-top: .15rem;
-    color: var(--sn-grey) !important;
+    color: var(--sn-grey);
 }
 
 }

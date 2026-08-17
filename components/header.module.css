@@ -55,13 +55,6 @@
     padding: 0;
 }
 
-.dropdown>a {
-    padding-left: 0 !important;
-}
-
-.dropdown>button {
-    padding-left: 0 !important;
-}
 
 /* sticky bar: an IntersectionObserver sentinel triggers it; 150ms translateY
    slide in, instant snap out (the transition rides .visible only) so the

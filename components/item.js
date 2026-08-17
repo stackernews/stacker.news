@@ -116,7 +116,7 @@ export default function Item ({
               href={`/items/${item.id}`}
               onClick={(e) => onItemClick(e, router, item)}
               ref={titleRef}
-              className={`${styles.title} text-reset me-2`}
+              className={`${styles.title} me-2`}
             >
               {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
               {item.pollCost && <PollIndicator item={item} />}
@@ -161,7 +161,7 @@ export function ItemSummary ({ item }) {
     <Link
       href={`/items/${item.id}`}
       onClick={(e) => onItemClick(e, router, item)}
-      className={`${item.title && styles.title} ${styles.summaryText} text-reset me-2`}
+      className={`${item.title && styles.title} ${styles.summaryText} me-2`}
     >
       {item.title ?? removeMd(item.text)}
     </Link>
@@ -208,7 +208,7 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
         {showUpvote && <UpVote className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap md:flex-nowrap`}>
-            <span className={`${styles.title} clouds text-reset md:flex-auto md:shrink-0 me-2`} />
+            <span className={`${styles.title} clouds md:flex-auto md:shrink-0 me-2`} />
             <span className={`${styles.link} clouds`} />
           </div>
           <div className={styles.other}>

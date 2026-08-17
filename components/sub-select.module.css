@@ -6,6 +6,7 @@
   text-overflow: ellipsis !important;
 }
 
+/* Width choices belong to the selector surface rather than the form recipe. */
 .subSelectSmall {
   width: 90px !important;
 }

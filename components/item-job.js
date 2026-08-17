@@ -54,7 +54,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
           : <CompanyImage item={item} />}
         <div className={`${styles.hunk} self-center mb-0`}>
           <div className={`${styles.main} flex-wrap inline`}>
-            <Link href={`/items/${item.id}`} className={`${styles.title} text-reset me-2`}>
+            <Link href={`/items/${item.id}`} className={`${styles.title} me-2`}>
               {item.searchTitle
                 ? <SearchTitle title={item.searchTitle} />
                 : (

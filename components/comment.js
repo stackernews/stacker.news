@@ -165,6 +165,9 @@ export default function Comment ({
   }, [item.id, cache, router.query.commentId])
 
   useEffect(() => {
+    // don't outline muted comments
+    const isMuted = item.user?.meMute
+    if (isMuted) return
     // checking navigator because outlining should happen only on item pages
     if (!navigator || me?.id === item.user?.id) return
     // bail if we already registered this comment

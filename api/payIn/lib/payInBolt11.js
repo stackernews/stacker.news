@@ -44,11 +44,12 @@ export async function payInBolt11WrapProspect (models, payIn, { msats, descripti
   assertLndAvailable()
   try {
     const { mtokens: maxRoutingFeeMsats } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
+    description = payIn.user.hideInvoiceDesc ? undefined : description
     const bolt11 = await wrapBolt11({
       msats,
       maxRoutingFeeMsats,
       bolt11: payIn.payOutBolt11.bolt11,
-      hideInvoiceDesc: payIn.user.hideInvoiceDesc,
+      hideInvoiceDesc: !description,
       description,
       descriptionHash
     })

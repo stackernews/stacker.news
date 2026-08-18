@@ -42,7 +42,7 @@ export class NoReceiveWalletError extends Error {
 }
 
 async function createPayOutBolt11FromWalletProtocols (walletProtocols, bolt11Args, { payOutType, userId }, { models }, testBolt11) {
-  for await (const { bolt11, invoice, protocol } of createBolt11FromWalletProtocols(walletProtocols, bolt11Args, { models })) {
+  for await (const { bolt11, invoice, protocol } of createBolt11FromWalletProtocols(walletProtocols, bolt11Args, { models, userId })) {
     try {
       if (testBolt11 && !(await testBolt11(bolt11))) {
         continue

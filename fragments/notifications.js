@@ -226,6 +226,29 @@ export const NOTIFICATIONS = gql`
         ... on PayInification {
           ...PayInificationFields
         }
+        ... on ExternalReceiveNotification {
+          id
+          sortTime
+          earnedSats
+          transaction {
+            id
+            lud18Data {
+              id
+              name
+              identifier
+              email
+              pubkey
+            }
+            nostrNote {
+              id
+              note
+            }
+            comment {
+              id
+              comment
+            }
+          }
+        }
         ... on Reminder {
           id
           sortTime

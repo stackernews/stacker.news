@@ -77,6 +77,7 @@ function Notification ({ n, fresh }) {
           ((n.payIn.payInType === 'WITHDRAWAL' || n.payIn.payInType === 'AUTO_WITHDRAWAL') && <PayInWithdrawal n={n} />) ||
             <PayInFailed n={n} />
         )) ||
+        (type === 'ExternalReceiveNotification' && <ExternalReceiveNotification n={n} />) ||
         (type === 'ReferralReward' && <ReferralReward n={n} />) ||
         (type === 'Bulletinification' && <Bulletinification n={n} />)
       }
@@ -169,6 +170,7 @@ const defaultOnClick = n => {
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'PayInification') return { href: `/transactions/${n.payIn.id}` }
+  if (type === 'ExternalReceiveNotification') return { href: `/wallets/transactions/${n.transaction.id}` }
   if (['CowboyHat', 'NewHorse', 'LostHorse', 'NewGun', 'LostGun'].includes(type)) return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
@@ -355,13 +357,12 @@ function Invitification ({ n }) {
   )
 }
 
-function NostrZap ({ n }) {
-  const { nostrNote } = n.payIn.payerPrivates.payInBolt11
+function NostrZap ({ nostrNote, earnedSats, sortTime }) {
   const { npub, content, note } = nostrZapDetails(nostrNote.note)
 
   return (
     <div className='fw-bold text-nostr'>
-      <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(n.earnedSats)} zap from
+      <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(earnedSats)} zap from
       {// eslint-disable-next-line
         <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://njump.me/${npub}`} rel={UNKNOWN_LINK_REL}>
           {npub.slice(0, 10)}...
@@ -374,7 +375,7 @@ function NostrZap ({ n }) {
               {note.slice(0, 12)}...
             </Link>)
           : 'nostr'}
-      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</small>
       {content && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{content}</Text></small>}
     </div>
   )
@@ -396,26 +397,38 @@ function getPayerSig (lud18Data) {
   return payerSig
 }
 
-function PayInProxyPayment ({ n }) {
-  if (n.payIn.payerPrivates.payInBolt11.nostrNote) {
-    return <NostrZap n={n} />
+function WalletReceiveNotification ({ n, metadata, action }) {
+  if (metadata.nostrNote) {
+    return <NostrZap nostrNote={metadata.nostrNote} earnedSats={n.earnedSats} sortTime={n.sortTime} />
   }
 
-  const payerSig = getPayerSig(n.payIn.payerPrivates.payInBolt11.lud18Data)
-  const sats = n.earnedSats
-  const actionString = 'proxied to your attached wallet'
+  const payerSig = getPayerSig(metadata.lud18Data)
 
   return (
     <div className='fw-bold text-info'>
-      <Check className='fill-info me-1' />{numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {actionString}
+      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {action}
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {n.payIn.payerPrivates.payInBolt11.comment &&
+      {(metadata.comment || payerSig) &&
         <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
-          <Text>{n.payIn.payerPrivates.payInBolt11.comment.comment}</Text>
+          {metadata.comment && <Text>{metadata.comment.comment}</Text>}
           {payerSig}
         </small>}
     </div>
   )
+}
+
+function PayInProxyPayment ({ n }) {
+  return (
+    <WalletReceiveNotification
+      n={n}
+      metadata={n.payIn.payerPrivates.payInBolt11}
+      action='proxied to your attached wallet'
+    />
+  )
+}
+
+function ExternalReceiveNotification ({ n }) {
+  return <WalletReceiveNotification n={n} metadata={n.transaction} action='received by your attached wallet' />
 }
 
 function PayInFailed ({ n }) {

@@ -88,6 +88,13 @@ export default gql`
     payInItem: Item
   }
 
+  type ExternalReceiveNotification {
+    id: ID!
+    transaction: ExternalTransaction!
+    earnedSats: Int!
+    sortTime: Date!
+  }
+
   type JobChanged {
     id: ID!
     item: Item!
@@ -193,7 +200,7 @@ export default gql`
     | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | PayInification
     | ReferralReward | CowboyHat | NewHorse | LostHorse | NewGun | LostGun
-    | Bulletinification
+    | Bulletinification | ExternalReceiveNotification
 
   type Notifications {
     lastChecked: Date

@@ -47,6 +47,11 @@ ON "ExternalTransactionNostrNote"("externalTransactionId");
 CREATE UNIQUE INDEX "ExternalTransactionComment_externalTransactionId_key"
 ON "ExternalTransactionComment"("externalTransactionId");
 
+CREATE INDEX "ExternalTransaction_settled_receive_notifications_idx"
+ON "ExternalTransaction"("userId", "updated_at" DESC)
+WHERE "direction" = 'RECEIVE'::"ExternalTransactionDirection"
+AND "outcome" = 'SETTLED'::"ExternalTransactionOutcome";
+
 ALTER TABLE "ExternalTransactionLud18"
 ADD CONSTRAINT "ExternalTransactionLud18_externalTransactionId_fkey"
 FOREIGN KEY ("externalTransactionId") REFERENCES "ExternalTransaction"("id")

@@ -20,7 +20,7 @@ import { truncateToCharLength } from '@/lib/validate'
 import { TOR_REGEXP } from '@/lib/url'
 import { walletLogger } from './logger'
 import { requireExternalSendConfirmationIfNeeded } from './external-transaction-duplicates'
-import { notifyDeposit } from '@/lib/webPush'
+import { notifyExternalReceive } from '@/lib/webPush'
 
 const EXTERNAL_TX_CHECK_BATCH_SIZE = 25
 
@@ -394,7 +394,7 @@ export async function recordExternalTransactionObservation (
 async function externalReceiveSettledSideEffects (transaction, metadata) {
   if (transaction.direction !== 'RECEIVE' || transaction.outcome !== 'SETTLED') return
 
-  await notifyDeposit(transaction.userId, {
+  await notifyExternalReceive(transaction.userId, {
     msatsReceived: transaction.settledMsats ?? transaction.amountMsats,
     comment: metadata?.comment?.comment
   })

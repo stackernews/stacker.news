@@ -1,5 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { useContext, useCallback, useEffect } from 'react'
+import { useContext, useCallback, useEffect, useRef } from 'react'
 import { StorageKeyPrefixContext } from '@/components/form'
 import { $setText } from '@/lib/lexical/utils'
 import { $markdownToLexical } from '@/lib/lexical/utils/mdast'
@@ -14,6 +14,7 @@ import { useField } from 'formik'
 export default function LocalDraftPlugin ({ name }) {
   const [editor] = useLexicalComposerContext()
   const [text] = useField({ name })
+  const prevText = useRef(text.value)
 
   // local storage keys, e.g. 'reply-123456-text'
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
@@ -56,6 +57,11 @@ export default function LocalDraftPlugin ({ name }) {
 
   // save the draft to local storage
   useEffect(() => {
+    // avoid saving the draft if the text hasn't changed
+    // this also keeps the saving from depending on components lifecycle
+    if (prevText.current === text.value) return
+    prevText.current = text.value
+
     upsertDraft(text.value)
   }, [upsertDraft, text.value])
 

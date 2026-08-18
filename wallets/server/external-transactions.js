@@ -20,6 +20,7 @@ import { truncateToCharLength } from '@/lib/validate'
 import { TOR_REGEXP } from '@/lib/url'
 import { walletLogger } from './logger'
 import { requireExternalSendConfirmationIfNeeded } from './external-transaction-duplicates'
+import { notifyDeposit } from '@/lib/webPush'
 
 const EXTERNAL_TX_CHECK_BATCH_SIZE = 25
 
@@ -176,6 +177,9 @@ export async function createExternalReceiveTransaction (models, args) {
   const { userId, protocol, bolt11, invoice } = args
   const lnurlVerifyUrl = sanitizeLnurlVerifyUrl(args.lnurlVerifyUrl)
   const providerRequestId = sanitizeProviderRequestId(args.providerRequestId)
+  const sourceValue = args.sourceType === 'LN_ADDR' && args.sourceValue
+    ? truncateToCharLength(args.sourceValue, 320)
+    : null
   const verificationContext = {
     ...(lnurlVerifyUrl && { lnurlVerifyUrl }),
     ...(providerRequestId && { providerRequestId })
@@ -197,7 +201,12 @@ export async function createExternalReceiveTransaction (models, args) {
       userId,
       walletId: protocol.walletId,
       protocolId: protocol.id,
-      verificationContext: Object.keys(verificationContext).length > 0 ? verificationContext : Prisma.DbNull
+      sourceType: args.sourceType ?? null,
+      sourceValue,
+      verificationContext: Object.keys(verificationContext).length > 0 ? verificationContext : Prisma.DbNull,
+      lud18Data: args.lud18Data ? { create: args.lud18Data } : undefined,
+      nostrNote: args.note ? { create: { note: args.note } } : undefined,
+      comment: args.comment ? { create: { comment: args.comment } } : undefined
     }
   })
 
@@ -356,7 +365,31 @@ export async function recordExternalTransactionObservation (
   await logExternalTransactionTransition(models, updated, {
     detail: observation.detail
   })
+  await externalReceiveSettledSideEffects(models, updated)
   return updated
+}
+
+async function externalReceiveSettledSideEffects (models, transaction) {
+  if (transaction.direction !== 'RECEIVE' || transaction.outcome !== 'SETTLED') return
+
+  const metadata = await models.externalTransaction.findUnique({
+    where: { id: transaction.id },
+    include: { comment: true, nostrNote: true }
+  })
+
+  await notifyDeposit(transaction.userId, {
+    msatsReceived: transaction.settledMsats ?? transaction.amountMsats,
+    comment: metadata?.comment?.comment
+  })
+
+  if (!metadata?.nostrNote || !transaction.preimage) return
+  try {
+    await models.$executeRaw`
+      INSERT INTO pgboss.job (name, data)
+      VALUES ('nip57', jsonb_build_object('hash', ${transaction.hash}))`
+  } catch (err) {
+    console.error('failed to enqueue direct receive NIP-57 receipt:', err)
+  }
 }
 
 async function logExternalTransactionTransition (models, after, { detail } = {}) {
@@ -402,6 +435,9 @@ async function logExternalTransactionTransition (models, after, { detail } = {})
 }
 
 export const EXTERNAL_TRANSACTION_INCLUDE = {
+  lud18Data: true,
+  nostrNote: true,
+  comment: true,
   protocol: {
     include: {
       wallet: {

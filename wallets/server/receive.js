@@ -1,9 +1,10 @@
 import { decodePaymentRequest } from '@/api/lnd'
-import { errorMessage } from '@/lib/error'
+import { errorMessage, GqlInputError } from '@/lib/error'
 import { formatMsats, formatSats, msatsToSats, msatsSatsFloor, toPositiveNumber } from '@/lib/format'
-import { WALLET_MAX_PENDING_PAYOUT_INVOICES, MIN_RECEIVE_MSATS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { WALLET_MAX_PENDING_EXTERNAL_RECEIVES, WALLET_MAX_PENDING_PAYOUT_INVOICES, MIN_RECEIVE_MSATS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { withTimeoutSignal } from '@/lib/time'
 import { walletLogger } from '@/wallets/server/logger'
+import { createExternalReceiveTransaction } from '@/wallets/server/external-transactions'
 import {
   protocolCreateInvoice,
   protocolReceivableDescription,
@@ -90,4 +91,78 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
       logger.error(errorMessage(err), { updateStatus: true })
     }
   }
+}
+
+export async function createExternalReceiveInvoice (models, {
+  userId,
+  walletId,
+  msats,
+  description,
+  descriptionHash,
+  expiry,
+  sourceType,
+  sourceValue,
+  comment,
+  lud18Data,
+  note
+}) {
+  const now = new Date()
+  const recentUnpaidReceives = await models.externalTransaction.count({
+    where: {
+      userId,
+      direction: 'RECEIVE',
+      createdAt: { gt: new Date(now.getTime() - 60 * 60_000) },
+      invoiceExpiresAt: { gt: now },
+      OR: [
+        { outcome: null },
+        { outcome: 'UNKNOWN' }
+      ]
+    }
+  })
+  if (recentUnpaidReceives >= WALLET_MAX_PENDING_EXTERNAL_RECEIVES) {
+    throw new GqlInputError('too many unpaid invoices created recently; try again later')
+  }
+
+  const protocols = await models.walletProtocol.findMany({
+    where: {
+      send: false,
+      enabled: true,
+      wallet: {
+        userId,
+        ...(walletId != null && { id: Number(walletId) })
+      }
+    },
+    orderBy: [
+      { wallet: { priority: 'asc' } },
+      { id: 'asc' }
+    ]
+  })
+
+  if (protocols.length === 0) {
+    throw new GqlInputError(walletId == null ? 'no wallet can receive' : 'wallet cannot receive')
+  }
+
+  const invoices = createBolt11FromWalletProtocols(
+    protocols.map(protocol => ({ ...protocol, userId })),
+    { msats, description, descriptionHash, expiry },
+    { models, limitPending: false }
+  )
+  const { value } = await invoices.next()
+  if (!value) throw new GqlInputError('wallet could not create a receive invoice')
+
+  const transaction = await createExternalReceiveTransaction(models, {
+    userId,
+    protocol: value.protocol,
+    bolt11: value.bolt11,
+    invoice: value.invoice,
+    lnurlVerifyUrl: value.lnurlVerifyUrl,
+    providerRequestId: value.providerRequestId,
+    sourceType,
+    sourceValue,
+    comment,
+    lud18Data,
+    note
+  })
+
+  return { ...value, transaction }
 }

@@ -1,6 +1,7 @@
 import { PAY_IN_RECEIVER_FAILURE_REASONS } from '@/lib/pay-in'
 import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
 import { payInFailureReasonsSql } from './sql'
+import { Prisma } from '@prisma/client'
 
 // returns the least failed, highest priority wallet protocols
 async function getLeastFailedWalletProtocols (models, { genesisId, userId }) {
@@ -22,12 +23,14 @@ async function getLeastFailedWalletProtocols (models, { genesisId, userId }) {
     ORDER BY "failedWallets"."failedCount" ASC NULLS FIRST, "Wallet"."priority" ASC`
 }
 
-async function getWalletProtocols (models, { userId }) {
+async function getWalletProtocols (models, { userId, walletId }) {
+  const walletFilter = walletId == null ? Prisma.empty : Prisma.sql`AND "Wallet"."id" = ${Number(walletId)}`
   return await models.$queryRaw`
     SELECT "WalletProtocol".*, "Wallet"."userId" as "userId"
     FROM "WalletProtocol"
     JOIN "Wallet" ON "Wallet"."id" = "WalletProtocol"."walletId"
     WHERE "Wallet"."userId" = ${userId} AND "WalletProtocol"."enabled" = true AND "WalletProtocol"."send" = false
+    ${walletFilter}
     ORDER BY "Wallet"."priority" ASC`
 }
 
@@ -75,7 +78,7 @@ export async function payOutBolt11Replacement (models, genesisId, { payOutType, 
   return await createPayOutBolt11FromWalletProtocols(candidateWalletProtocols, { msats }, { payOutType, userId }, { models }, testBolt11)
 }
 
-export async function payOutBolt11Prospect (models, bolt11Args, { payOutType, userId }, testBolt11) {
-  const walletProtocols = await getWalletProtocols(models, { userId })
+export async function payOutBolt11Prospect (models, bolt11Args, { payOutType, userId, walletId }, testBolt11) {
+  const walletProtocols = await getWalletProtocols(models, { userId, walletId })
   return await createPayOutBolt11FromWalletProtocols(walletProtocols, bolt11Args, { payOutType, userId }, { models }, testBolt11)
 }

@@ -260,7 +260,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='sats are proxied to my attached wallet'
+            label='sats are received by my attached wallet'
             name='noteDeposits'
             groupClassName='mb-0'
           />

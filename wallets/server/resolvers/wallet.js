@@ -236,9 +236,7 @@ async function setWalletPriorities (parent, { priorities }, { me, models }) {
 async function setWalletSettings (parent, { settings }, { me, models }) {
   if (!me) throw new GqlAuthenticationError()
 
-  await validateSchema(walletSettingsSchema, settings)
+  const validated = await validateSchema(walletSettingsSchema, settings)
 
-  await models.user.update({ where: { id: me.id }, data: settings })
-
-  return settings
+  return await models.user.update({ where: { id: me.id }, data: validated })
 }

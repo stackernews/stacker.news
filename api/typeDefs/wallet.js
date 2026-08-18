@@ -12,7 +12,7 @@ const typeDefs = gql`
 
   extend type Mutation {
     createWithdrawl(invoice: String!, maxFee: Int!): PayIn!
-    createWalletInvoice(walletId: ID!, amount: Int!, description: String): Int!
+    createWalletInvoice(walletId: ID!, amount: Int!, description: String, proxyReceive: Boolean): Int!
     createExternalSend(input: ExternalSendCreateInput!): Int!
     reportExternalSendObservation(input: ExternalSendObservationInput!): Boolean!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): PayIn!
@@ -202,6 +202,7 @@ const typeDefs = gql`
     | WalletRecvSpark
 
   type WalletSettings {
+    proxyReceive: Boolean!
     receiveCreditsBelowSats: Int!
     sendCreditsBelowSats: Int!
     autoWithdrawThreshold: Int
@@ -210,6 +211,7 @@ const typeDefs = gql`
   }
 
   input WalletSettingsInput {
+    proxyReceive: Boolean
     receiveCreditsBelowSats: Int!
     sendCreditsBelowSats: Int!
     autoWithdrawThreshold: Int!

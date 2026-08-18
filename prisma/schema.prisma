@@ -108,6 +108,7 @@ model User {
   mcredits                  BigInt                 @default(0)
   receiveCreditsBelowSats   Int                    @default(10)
   sendCreditsBelowSats      Int                    @default(10)
+  proxyReceive              Boolean                @default(false)
   muters                    Mute[]                 @relation("muter")
   muteds                    Mute[]                 @relation("muted")
   Sub                       Sub[]
@@ -1500,11 +1501,40 @@ model ExternalTransaction {
   sourceValue         String?
   verificationContext Json?                         @db.JsonB
   walletLogs          WalletLog[]
+  lud18Data           ExternalTransactionLud18?
+  nostrNote           ExternalTransactionNostrNote?
+  comment             ExternalTransactionComment?
 
   @@index([userId, createdAt, id])
   @@index([walletId, createdAt, id])
   @@index([protocolId])
   @@index([hash])
+}
+
+model ExternalTransactionLud18 {
+  id                    Int                 @id @default(autoincrement())
+  externalTransactionId Int                 @unique
+  externalTransaction   ExternalTransaction @relation(fields: [externalTransactionId], references: [id], onDelete: Cascade)
+
+  name       String?
+  identifier String?
+  email      String?
+  pubkey     String?
+}
+
+model ExternalTransactionNostrNote {
+  id                    Int                 @id @default(autoincrement())
+  externalTransactionId Int                 @unique
+  externalTransaction   ExternalTransaction @relation(fields: [externalTransactionId], references: [id], onDelete: Cascade)
+  note                  Json
+  rawRequest            String
+}
+
+model ExternalTransactionComment {
+  id                    Int                 @id @default(autoincrement())
+  externalTransactionId Int                 @unique
+  externalTransaction   ExternalTransaction @relation(fields: [externalTransactionId], references: [id], onDelete: Cascade)
+  comment               String
 }
 
 // payIn playground
@@ -1831,6 +1861,7 @@ model PayInBolt11NostrNote {
   payInBolt11Id Int         @unique
   payInBolt11   PayInBolt11 @relation(fields: [payInBolt11Id], references: [id])
   note          Json
+  rawRequest    String?
 }
 
 model PayInBolt11Comment {

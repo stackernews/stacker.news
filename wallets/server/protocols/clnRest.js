@@ -2,16 +2,22 @@ import { createInvoice as clnCreateInvoice, getInvoice as clnGetInvoice, runeMay
 import { WalletPermissionsError } from '@/wallets/lib/errors'
 
 export const name = 'CLN_REST'
+export const supportsDescriptionHash = true
 
 export const createInvoice = async (
-  { msats, description, expiry },
+  { msats, description, descriptionHash, descriptionHashPreimage, expiry },
   { socket, rune, cert },
   { signal }
 ) => {
+  if (descriptionHash && descriptionHashPreimage == null) {
+    throw new Error('description hash preimage required')
+  }
+
   const inv = await clnCreateInvoice(
     {
       msats,
-      description,
+      description: descriptionHash ? descriptionHashPreimage : description,
+      deschashonly: !!descriptionHash,
       expiry
     },
     {

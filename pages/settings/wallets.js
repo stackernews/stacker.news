@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { useField } from 'formik'
 import { useMutation, useQuery } from '@apollo/client/react'
-import { Form, Input, SubmitButton } from '@/components/form'
+import { Checkbox, Form, Input, SubmitButton } from '@/components/form'
 import Info from '@/components/info'
 import { useToast } from '@/components/toast'
 import { isNumber } from '@/lib/format'
@@ -48,6 +48,7 @@ export default function WalletSettings ({ ssrData }) {
   }, [setSettings, toaster])
 
   const initial = {
+    proxyReceive: settings?.proxyReceive ?? false,
     receiveCreditsBelowSats: settings?.receiveCreditsBelowSats ?? 10,
     sendCreditsBelowSats: settings?.sendCreditsBelowSats ?? 10,
     autoWithdrawThreshold: settings?.autoWithdrawThreshold ?? 10000,
@@ -66,6 +67,7 @@ export default function WalletSettings ({ ssrData }) {
           schema={walletSettingsSchema}
           onSubmit={onSubmit}
         >
+          <ReceiveSettings />
           <AutowithdrawSettings />
           <CowboyCreditsSettings />
           <div className='d-flex mt-4'>
@@ -74,6 +76,29 @@ export default function WalletSettings ({ ssrData }) {
         </Form>
       </div>
     </Layout>
+  )
+}
+
+function ReceiveSettings () {
+  return (
+    <>
+      <h4 className='mb-3'>Receive Settings</h4>
+      <Checkbox
+        name='proxyReceive'
+        label={
+          <div className='d-flex align-items-center'>
+            proxy receives for enhanced privacy by default
+            <Info>
+              <ul>
+                <li>payments to your Stacker News lightning address are wrapped by the SN node</li>
+                <li>new external wallet invoices will start with proxying enabled, but you can turn it off for each invoice</li>
+                <li>proxying hides your external wallet from the payer. The fee is about 3% and can be higher for small payments.</li>
+              </ul>
+            </Info>
+          </div>
+        }
+      />
+    </>
   )
 }
 

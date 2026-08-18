@@ -10,13 +10,18 @@ import {
 import { msatsSatsFloor } from '@/lib/format'
 
 export const name = 'NWC'
+export const supportsDescriptionHash = true
 
 // AlbyHub's NWC only invoices whole sats as of https://github.com/getAlby/hub/commit/64afc2227f128cf4cd90daf0d844af48e3513166
 export const receivableMsats = msatsSatsFloor
 
-export async function createInvoice ({ msats, description, expiry }, { url }, { signal }) {
+export async function createInvoice ({ msats, description, descriptionHash, expiry }, { url }, { signal }) {
   const result = await nwcTryRun(
-    nwc => nwc.req('make_invoice', { amount: msats, description, expiry }),
+    nwc => nwc.req('make_invoice', {
+      amount: msats,
+      expiry,
+      ...(descriptionHash ? { description_hash: descriptionHash } : { description })
+    }),
     { url },
     { signal }
   )

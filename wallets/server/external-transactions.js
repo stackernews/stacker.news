@@ -20,6 +20,7 @@ import { truncateToCharLength } from '@/lib/validate'
 import { TOR_REGEXP } from '@/lib/url'
 import { walletLogger } from './logger'
 import { requireExternalSendConfirmationIfNeeded } from './external-transaction-duplicates'
+import { notifyDeposit } from '@/lib/webPush'
 
 const EXTERNAL_TX_CHECK_BATCH_SIZE = 25
 
@@ -176,6 +177,9 @@ export async function createExternalReceiveTransaction (models, args) {
   const { userId, protocol, bolt11, invoice } = args
   const lnurlVerifyUrl = sanitizeLnurlVerifyUrl(args.lnurlVerifyUrl)
   const providerRequestId = sanitizeProviderRequestId(args.providerRequestId)
+  const sourceValue = args.sourceType === 'LN_ADDR' && args.sourceValue
+    ? truncateToCharLength(args.sourceValue, 320)
+    : null
   const verificationContext = {
     ...(lnurlVerifyUrl && { lnurlVerifyUrl }),
     ...(providerRequestId && { providerRequestId })
@@ -197,7 +201,14 @@ export async function createExternalReceiveTransaction (models, args) {
       userId,
       walletId: protocol.walletId,
       protocolId: protocol.id,
-      verificationContext: Object.keys(verificationContext).length > 0 ? verificationContext : Prisma.DbNull
+      sourceType: args.sourceType ?? null,
+      sourceValue,
+      verificationContext: Object.keys(verificationContext).length > 0 ? verificationContext : Prisma.DbNull,
+      lud18Data: args.lud18Data ? { create: args.lud18Data } : undefined,
+      nostrNote: args.note
+        ? { create: { note: args.note, rawRequest: args.descriptionHashPreimage } }
+        : undefined,
+      comment: args.comment ? { create: { comment: args.comment } } : undefined
     }
   })
 
@@ -346,17 +357,47 @@ export async function recordExternalTransactionObservation (
       actualFeeMsats: outcome.actualFeeMsats ?? null
     })
   }
-  const { count } = await models.externalTransaction.updateMany({
-    where: { id: transaction.id, outcome: null },
-    data
-  })
-  if (count === 0) return transaction
+  const result = await models.$transaction(async tx => {
+    const { count } = await tx.externalTransaction.updateMany({
+      where: { id: transaction.id, outcome: null },
+      data
+    })
+    if (count === 0) return null
 
-  const updated = { ...transaction, ...data }
+    const updated = { ...transaction, ...data }
+    let metadata
+    if (updated.direction === 'RECEIVE' && updated.outcome === 'SETTLED') {
+      metadata = await tx.externalTransaction.findUnique({
+        where: { id: updated.id },
+        include: { comment: true, nostrNote: true }
+      })
+
+      if (metadata?.nostrNote && updated.preimage) {
+        await tx.$executeRaw`
+          INSERT INTO pgboss.job (name, data)
+          VALUES ('nip57', jsonb_build_object('hash', ${updated.hash}))`
+      }
+    }
+
+    return { updated, metadata }
+  })
+  if (!result) return transaction
+
+  const { updated, metadata } = result
   await logExternalTransactionTransition(models, updated, {
     detail: observation.detail
   })
+  await externalReceiveSettledSideEffects(updated, metadata)
   return updated
+}
+
+async function externalReceiveSettledSideEffects (transaction, metadata) {
+  if (transaction.direction !== 'RECEIVE' || transaction.outcome !== 'SETTLED') return
+
+  await notifyDeposit(transaction.userId, {
+    msatsReceived: transaction.settledMsats ?? transaction.amountMsats,
+    comment: metadata?.comment?.comment
+  })
 }
 
 async function logExternalTransactionTransition (models, after, { detail } = {}) {
@@ -402,6 +443,9 @@ async function logExternalTransactionTransition (models, after, { detail } = {})
 }
 
 export const EXTERNAL_TRANSACTION_INCLUDE = {
+  lud18Data: true,
+  nostrNote: true,
+  comment: true,
   protocol: {
     include: {
       wallet: {

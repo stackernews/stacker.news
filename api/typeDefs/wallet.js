@@ -77,6 +77,24 @@ const typeDefs = gql`
     RETENTION
   }
 
+  type ExternalTransactionLud18 {
+    id: Int!
+    name: String
+    identifier: String
+    email: String
+    pubkey: String
+  }
+
+  type ExternalTransactionNostrNote {
+    id: Int!
+    note: JSONObject!
+  }
+
+  type ExternalTransactionComment {
+    id: Int!
+    comment: String!
+  }
+
   type ExternalTransaction {
     id: Int!
     createdAt: Date!
@@ -96,6 +114,9 @@ const typeDefs = gql`
     sourceValue: String
     providerRequestId: String
     walletInfo: PayInWalletInfo
+    lud18Data: ExternalTransactionLud18
+    nostrNote: ExternalTransactionNostrNote
+    comment: ExternalTransactionComment
   }
 
   input ExternalSendCreateInput {

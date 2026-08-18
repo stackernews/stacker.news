@@ -7,6 +7,7 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { getPayIn } from './payIn'
 import { PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
+import { EXTERNAL_TRANSACTION_INCLUDE } from '@/wallets/server/external-transactions'
 
 const PAY_IN_NOTIFICATION_TYPES_SQL = PAY_IN_NOTIFICATION_TYPES.map(type => `'${type}'`).join(', ')
 
@@ -268,6 +269,18 @@ export default {
             AND "PayIn"."payInStateChangedAt" < $2
             AND "PayIn"."mcost" > 1000
             AND "PayIn"."payInType" = 'PROXY_PAYMENT'
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+        )
+        queries.push(
+          `(SELECT "ExternalTransaction".id::text, "ExternalTransaction".updated_at AS "sortTime",
+            COALESCE(FLOOR(COALESCE("ExternalTransaction"."settledMsats", "ExternalTransaction"."amountMsats") / 1000), 0)::INTEGER AS "earnedSats",
+            'ExternalReceiveNotification' AS type
+            FROM "ExternalTransaction"
+            WHERE "ExternalTransaction"."userId" = $1
+            AND "ExternalTransaction"."direction" = 'RECEIVE'
+            AND "ExternalTransaction"."outcome" = 'SETTLED'
+            AND "ExternalTransaction".updated_at < $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -646,6 +659,17 @@ export default {
         return null
       }
       return await getItem(n, { id: itemPayIn.itemId }, { models, me })
+    }
+  },
+  ExternalReceiveNotification: {
+    transaction: async (n, args, { me, models }) => {
+      return await models.externalTransaction.findFirst({
+        where: {
+          id: Number(n.id),
+          userId: me.id
+        },
+        include: EXTERNAL_TRANSACTION_INCLUDE
+      })
     }
   },
   Invitification: {

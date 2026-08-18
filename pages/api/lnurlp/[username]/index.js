@@ -20,14 +20,13 @@ export default async ({ query: { username } }, res) => {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
-  const url = process.env.NODE_ENV === 'development' ? process.env.SELF_URL : process.env.NEXT_PUBLIC_URL
   const { metadata } = lnurlPayMetadata(username)
   const minSendable = user.proxyReceive ? PROXY_PAYER_MIN_MSATS : MIN_RECEIVE_MSATS
   const maxSendable = user.proxyReceive
     ? PROXY_PAYER_MAX_MSATS
     : BigInt(MAX_WALLET_INVOICE_SATS) * 1000n
   return res.status(200).json({
-    callback: lnurlpCallbackUrl(username, url), // The URL from LN SERVICE which will accept the pay request parameters
+    callback: lnurlpCallbackUrl(username), // The URL from LN SERVICE which will accept the pay request parameters
     minSendable: Number(minSendable), // Min amount LN SERVICE is willing to receive, can not be less than 1 or more than `maxSendable`
     maxSendable: Number(maxSendable), // Max amount LN SERVICE is willing to receive
     metadata, // Metadata json which must be presented as raw string here, this is required to pass signature verification at a later step

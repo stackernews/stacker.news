@@ -1,4 +1,5 @@
 import { PAID_ACTION_PAYMENT_METHODS, PROXY_RECEIVE_FEE_PERCENT } from '@/lib/constants'
+import { bolt11Description } from '@/lib/bolt11'
 import { toPositiveBigInt } from '@/lib/format'
 import { notifyDeposit } from '@/lib/webPush'
 import { payOutBolt11Prospect } from '../lib/payOutBolt11'
@@ -13,12 +14,16 @@ export async function getInitial (models, { msats, description, descriptionHash,
   const mcost = toPositiveBigInt(msats)
   const proxyPaymentMtokens = mcost * (100n - PROXY_RECEIVE_FEE_PERCENT) / 100n
   const routingFeeMtokens = mcost - proxyPaymentMtokens
+  const { hideInvoiceDesc } = await models.user.findUnique({
+    where: { id: me.id },
+    select: { hideInvoiceDesc: true }
+  })
 
   // payInBolt11 and payOutBolt11 belong to the same user
   const payOutBolt11 = await payOutBolt11Prospect(models, {
     msats: proxyPaymentMtokens,
-    description,
-    descriptionHash,
+    description: hideInvoiceDesc ? undefined : description,
+    descriptionHash: hideInvoiceDesc ? undefined : descriptionHash,
     expiry
   }, { payOutType: 'PROXY_PAYMENT', userId: me.id, walletId })
 
@@ -79,9 +84,9 @@ export async function onPaidSideEffects (models, payInId) {
 }
 
 export async function describe (models, payInId) {
-  const { user } = await models.payIn.findUnique({
+  const { user, payOutBolt11 } = await models.payIn.findUnique({
     where: { id: payInId },
-    include: { user: true }
+    include: { user: true, payOutBolt11: true }
   })
-  return `pay ${user.name}@stacker.news`
+  return bolt11Description(payOutBolt11.bolt11) || `pay ${user.name}@stacker.news`
 }

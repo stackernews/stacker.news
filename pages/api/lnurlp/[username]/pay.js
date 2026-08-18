@@ -117,7 +117,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       const direct = await createExternalReceiveInvoice(models, {
         userId: user.id,
         msats: toPositiveBigInt(amount),
-        description,
+        description: user.hideInvoiceDesc ? undefined : description,
         descriptionHash,
         sourceType: 'LN_ADDR',
         sourceValue: `${username}@stacker.news`,

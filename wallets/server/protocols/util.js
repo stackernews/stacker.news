@@ -10,6 +10,10 @@ export function protocolCreateInvoice ({ name }, args, config, opts) {
   return normalizeCreateInvoiceResult(protocol(name).createInvoice(args, config, opts))
 }
 
+export function protocolSupportsDescriptionHash ({ name }) {
+  return protocol(name)?.supportsDescriptionHash === true
+}
+
 export function protocolCheckInvoice (walletProtocol, transaction, config, opts) {
   const checkInvoice = invoiceChecker(walletProtocol, transaction)
   if (!checkInvoice) {

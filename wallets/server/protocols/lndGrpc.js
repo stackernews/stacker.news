@@ -5,6 +5,7 @@ import { TOR_REGEXP } from '@/lib/url'
 import { WalletPermissionsError } from '@/wallets/lib/errors'
 
 export const name = 'LND_GRPC'
+export const supportsDescriptionHash = true
 
 export const createInvoice = async (
   { msats, description, descriptionHash, expiry },
@@ -23,8 +24,7 @@ export const createInvoice = async (
     const invoice = await raceAbort(
       lndCreateInvoice({
         lnd,
-        description,
-        description_hash: descriptionHash,
+        ...(descriptionHash ? { description_hash: descriptionHash } : { description }),
         mtokens: String(msats),
         expires_at: datePivot(new Date(), { seconds: expiry })
       }),

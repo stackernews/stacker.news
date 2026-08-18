@@ -7,6 +7,7 @@ import {
 } from '@/wallets/lib/protocols/spark'
 
 export const name = 'SPARK'
+export const supportsDescriptionHash = true
 
 const SPARK_RECEIVE_FAILURE_STATUSES = new Set([
   'TRANSFER_CREATION_FAILED',

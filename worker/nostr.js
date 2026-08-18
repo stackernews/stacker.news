@@ -1,4 +1,5 @@
 import Nostr from '@/lib/nostr'
+import { createHash } from 'crypto'
 import { parsePaymentRequest } from 'ln-service'
 
 export async function nip57 ({ data: { hash }, boss, lnd, models }) {
@@ -6,6 +7,7 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     where: {
       hash,
       confirmedAt: { not: null },
+      preimage: { not: null },
       nostrNote: { isNot: null },
       payIn: {
         payInType: 'PROXY_PAYMENT',
@@ -17,27 +19,59 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     }
   })
 
-  // check if invoice still exists since JIT invoices get deleted after usage
-  if (!payInBolt11) return
+  const externalTransaction = payInBolt11
+    ? null
+    : await models.externalTransaction.findFirst({
+      where: {
+        hash,
+        direction: 'RECEIVE',
+        outcome: 'SETTLED',
+        preimage: { not: null }
+      },
+      include: { nostrNote: true }
+    })
+  const directNostrNote = externalTransaction?.nostrNote
 
-  const note = payInBolt11.nostrNote.note
+  // check if invoice still exists since JIT invoices get deleted after usage
+  if (!payInBolt11 && !directNostrNote) return
+
+  const nostrNote = payInBolt11?.nostrNote ?? directNostrNote
+  const { note, rawRequest } = nostrNote
+  const bolt11 = payInBolt11 ? payInBolt11.bolt11 : externalTransaction.bolt11
+  const preimage = payInBolt11 ? payInBolt11.preimage : externalTransaction.preimage
+  const confirmedAt = payInBolt11
+    ? payInBolt11.confirmedAt
+    : externalTransaction.settledAt ?? externalTransaction.updatedAt
 
   try {
-    const ptag = note.tags.filter(t => t?.length >= 2 && t[0] === 'p')[0]
-    const etag = note.tags.filter(t => t?.length >= 2 && t[0] === 'e')[0]
-    const atag = note.tags.filter(t => t?.length >= 2 && t[0] === 'a')[0]
+    if (!preimage) throw new Error('cannot publish NIP-57 receipt without a preimage')
+    if (typeof rawRequest !== 'string') throw new Error('cannot publish NIP-57 receipt without its raw request')
+
+    const invoice = parsePaymentRequest({ request: bolt11 })
+    const requestHash = createHash('sha256').update(rawRequest).digest('hex')
+    if (invoice.description_hash?.toLowerCase() !== requestHash) {
+      throw new Error('NIP-57 request does not match the invoice description hash')
+    }
+
+    const recipientTag = note.tags.filter(t => t?.length >= 2 && t[0] === 'p')[0]
+    const eventTag = note.tags.filter(t => t?.length >= 2 && t[0] === 'e')[0]
+    const addressTag = note.tags.filter(t => t?.length >= 2 && t[0] === 'a')[0]
+    const senderTag = typeof note.pubkey === 'string' ? ['P', note.pubkey] : null
+    const kindTag = note.tags.filter(t => t?.length >= 2 && t[0] === 'k')[0]
     const relays = note.tags.find(t => t?.length >= 2 && t[0] === 'relays').slice(1)
 
-    const tags = [ptag]
-    if (etag) tags.push(etag)
-    if (atag) tags.push(atag)
-    tags.push(['bolt11', payInBolt11.bolt11])
-    tags.push(['description', parsePaymentRequest({ request: payInBolt11.bolt11 }).description])
-    tags.push(['preimage', payInBolt11.preimage])
+    const tags = [recipientTag]
+    if (eventTag) tags.push(eventTag)
+    if (addressTag) tags.push(addressTag)
+    if (senderTag) tags.push(senderTag)
+    if (kindTag) tags.push(kindTag)
+    tags.push(['bolt11', bolt11])
+    tags.push(['description', rawRequest])
+    tags.push(['preimage', preimage])
 
     const e = {
       kind: 9735,
-      created_at: Math.floor(new Date(payInBolt11.confirmedAt).getTime() / 1000),
+      created_at: Math.floor(new Date(confirmedAt).getTime() / 1000),
       content: '',
       tags
     }
@@ -50,6 +84,6 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
       timeout: 1000
     })
   } catch (e) {
-    console.log(e)
+    console.error('failed to publish NIP-57 receipt:', e)
   }
 }

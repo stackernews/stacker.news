@@ -1,7 +1,6 @@
 import crypto, { timingSafeEqual } from 'crypto'
 import { validateSchema, withdrawlSchema, walletInvoiceSchema } from '@/lib/validate'
 import { satsToMsats } from '@/lib/format'
-import { WALLET_MAX_PENDING_EXTERNAL_RECEIVES } from '@/lib/constants'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { fetchLnAddrInvoice } from '@/lib/lnurl'
@@ -11,10 +10,9 @@ import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { decodePaymentRequest, getNodeSockets } from '../lnd'
 import pay from '../payIn'
 import { dropBolt11 } from '@/worker/autoDropBolt11'
-import { createBolt11FromWalletProtocols } from '@/wallets/server/receive'
+import { createExternalReceiveInvoice } from '@/wallets/server/receive'
 import {
   acceptClientExternalSendObservation,
-  createExternalReceiveTransaction,
   createExternalSendTransaction,
   EXTERNAL_TRANSACTION_INCLUDE
 } from '@/wallets/server/external-transactions'
@@ -173,7 +171,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   return await pay('WITHDRAWAL', { bolt11: invoice, maxFee, protocolId: protocol?.id }, { me, models })
 }
 
-async function createWalletInvoice (parent, { walletId, amount, description }, { me, models }) {
+async function createWalletInvoice (parent, { walletId, amount, description, proxyReceive = false }, { me, models }) {
   if (!me) {
     throw new GqlAuthenticationError()
   }
@@ -181,74 +179,23 @@ async function createWalletInvoice (parent, { walletId, amount, description }, {
 
   const walletIdNumber = parseWalletId(walletId)
 
-  // Check before asking a provider to mint another real invoice. Count invoices
-  // created in the last hour that are still payable and not known settled/failed;
-  // this includes a checkless receive born UNKNOWN until its invoice expires.
-  const now = new Date()
-  const recentUnpaidReceives = await models.externalTransaction.count({
-    where: {
-      userId: me.id,
-      direction: 'RECEIVE',
-      createdAt: { gt: new Date(now.getTime() - 60 * 60_000) },
-      invoiceExpiresAt: { gt: now },
-      OR: [
-        { outcome: null },
-        { outcome: 'UNKNOWN' }
-      ]
-    }
-  })
-  if (recentUnpaidReceives >= WALLET_MAX_PENDING_EXTERNAL_RECEIVES) {
-    throw new GqlInputError('too many unpaid invoices created recently; try again later')
-  }
-
-  const validated = await validateSchema(walletInvoiceSchema, { amount, description })
+  const validated = await validateSchema(walletInvoiceSchema, { amount, description, proxyReceive })
 
   const sats = Number(validated.amount)
-
-  const protocols = await models.walletProtocol.findMany({
-    where: {
-      walletId: walletIdNumber,
-      send: false,
-      enabled: true,
-      wallet: {
-        userId: me.id
-      }
-    },
-    orderBy: {
-      id: 'asc'
-    }
-  })
-
-  if (protocols.length === 0) {
-    throw new GqlInputError('wallet cannot receive')
-  }
-
-  const walletProtocols = protocols.map(protocol => ({
-    ...protocol,
-    userId: me.id
-  }))
-
-  const invoices = createBolt11FromWalletProtocols(
-    walletProtocols,
-    {
+  if (validated.proxyReceive) {
+    const payIn = await pay('PROXY_PAYMENT', {
       msats: satsToMsats(sats),
-      description: validated.description
-    },
-    { models, limitPending: false }
-  )
-  const { value } = await invoices.next()
-
-  if (!value) {
-    throw new GqlInputError('wallet could not create a receive invoice')
+      description: validated.description,
+      walletId: walletIdNumber
+    }, { models, me })
+    return payIn.id
   }
 
-  const transaction = await createExternalReceiveTransaction(models, {
+  const { transaction } = await createExternalReceiveInvoice(models, {
     userId: me.id,
-    protocol: value.protocol,
-    bolt11: value.bolt11,
-    invoice: value.invoice,
-    lnurlVerifyUrl: value.lnurlVerifyUrl,
-    providerRequestId: value.providerRequestId
+    walletId: walletIdNumber,
+    msats: satsToMsats(sats),
+    description: validated.description
   })
   return transaction.id
 }

@@ -19,6 +19,7 @@ export * from './util'
  * @typedef {Object} ServerWalletProtocol
  * @property {ProtocolName} name - must match a protocol name in the database
  * @property {ProtocolCreateInvoice} createInvoice - create a new invoice
+ * @property {boolean} [supportsDescriptionHash] - can create BOLT11 invoices with a caller-supplied description hash
  * @property {ProtocolCheckInvoice} [checkInvoice] - checks a created invoice without creating another one
  * @property {ProtocolTestCreateInvoice} testCreateInvoice - create a test invoice
  */
@@ -44,6 +45,7 @@ export * from './util'
  * @property {number} msats - payment amount in millisatoshis
  * @property {string} description - payment description
  * @property {string} [descriptionHash] - optional description hash (BOLT11 `h` tag)
+ * @property {string} [descriptionHashPreimage] - exact source string whose SHA-256 digest is `descriptionHash`
  * @property {number} expiry - expiry time in seconds
  */
 

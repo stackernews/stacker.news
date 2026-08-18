@@ -1,20 +1,41 @@
 import { decodePaymentRequest } from '@/api/lnd'
-import { errorMessage } from '@/lib/error'
+import { createHash } from 'crypto'
+import { errorMessage, GqlInputError } from '@/lib/error'
 import { formatMsats, formatSats, msatsToSats, msatsSatsFloor, toPositiveNumber } from '@/lib/format'
-import { WALLET_MAX_PENDING_PAYOUT_INVOICES, MIN_RECEIVE_MSATS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { WALLET_MAX_PENDING_EXTERNAL_RECEIVES, WALLET_MAX_PENDING_PAYOUT_INVOICES, MIN_RECEIVE_MSATS, WALLET_CREATE_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { withTimeoutSignal } from '@/lib/time'
 import { walletLogger } from '@/wallets/server/logger'
+import { createExternalReceiveTransaction } from '@/wallets/server/external-transactions'
 import {
   protocolCreateInvoice,
   protocolReceivableDescription,
-  protocolReceivableMsats
+  protocolReceivableMsats,
+  protocolSupportsDescriptionHash
 } from '@/wallets/server/protocols'
 
-export async function * createBolt11FromWalletProtocols (walletProtocols, { msats, description, descriptionHash, expiry = 360 }, { models, limitPending = true }) {
+export async function * createBolt11FromWalletProtocols (walletProtocols, {
+  msats,
+  description,
+  descriptionHash,
+  descriptionHashPreimage,
+  requireDescriptionHash = false,
+  expiry = 360
+}, { models, limitPending = true }) {
   msats = toPositiveNumber(msats)
   description ||= ''
 
+  if (requireDescriptionHash) {
+    const expectedDescriptionHash = typeof descriptionHashPreimage === 'string'
+      ? createHash('sha256').update(descriptionHashPreimage).digest('hex')
+      : undefined
+    if (typeof descriptionHash !== 'string' || expectedDescriptionHash !== descriptionHash.toLowerCase()) {
+      throw new Error('description hash does not match its preimage')
+    }
+  }
+
   for (const protocol of walletProtocols) {
+    if (requireDescriptionHash && !protocolSupportsDescriptionHash(protocol)) continue
+
     // snap the request onto what this provider can actually invoice
     const receivableMsats = protocolReceivableMsats(protocol, msats)
     if (receivableMsats < MIN_RECEIVE_MSATS) continue
@@ -54,7 +75,13 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
         const result = await withTimeoutSignal(WALLET_CREATE_INVOICE_TIMEOUT_MS, signal =>
           protocolCreateInvoice(
             protocol,
-            { msats: receivableMsatsNum, description: receivableDescription, descriptionHash, expiry },
+            {
+              msats: receivableMsatsNum,
+              description: receivableDescription,
+              descriptionHash,
+              descriptionHashPreimage,
+              expiry
+            },
             protocol.config,
             { signal }))
         bolt11 = result.bolt11
@@ -78,6 +105,9 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
       if (invoiceMsats > receivableMsats || invoiceMsats < minInvoiceMsats) {
         throw new Error(`invoice invalid: provider minted ${invoiceMsats} msats, expected ${minInvoiceMsats} to ${receivableMsats}`)
       }
+      if (requireDescriptionHash && invoice.description_hash?.toLowerCase() !== descriptionHash.toLowerCase()) {
+        throw new Error('wallet returned invoice with an incorrect description hash')
+      }
 
       logger.ok(`created invoice for ${formatSats(msatsToSats(invoice.mtokens))}`, {
         bolt11,
@@ -90,4 +120,85 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, { msat
       logger.error(errorMessage(err), { updateStatus: true })
     }
   }
+}
+
+export async function createExternalReceiveInvoice (models, {
+  userId,
+  walletId,
+  msats,
+  description,
+  descriptionHash,
+  descriptionHashPreimage,
+  requireDescriptionHash,
+  expiry,
+  sourceType,
+  sourceValue,
+  comment,
+  lud18Data,
+  note
+}) {
+  if (note && typeof descriptionHashPreimage !== 'string') {
+    throw new GqlInputError('NIP-57 request is missing its description hash preimage')
+  }
+
+  const now = new Date()
+  const recentUnpaidReceives = await models.externalTransaction.count({
+    where: {
+      userId,
+      direction: 'RECEIVE',
+      createdAt: { gt: new Date(now.getTime() - 60 * 60_000) },
+      invoiceExpiresAt: { gt: now },
+      OR: [
+        { outcome: null },
+        { outcome: 'UNKNOWN' }
+      ]
+    }
+  })
+  if (recentUnpaidReceives >= WALLET_MAX_PENDING_EXTERNAL_RECEIVES) {
+    throw new GqlInputError('too many unpaid invoices created recently; try again later')
+  }
+
+  const protocols = await models.walletProtocol.findMany({
+    where: {
+      send: false,
+      enabled: true,
+      wallet: {
+        userId,
+        ...(walletId != null && { id: Number(walletId) })
+      }
+    },
+    orderBy: [
+      { wallet: { priority: 'asc' } },
+      { id: 'asc' }
+    ]
+  })
+
+  if (protocols.length === 0) {
+    throw new GqlInputError(walletId == null ? 'no wallet can receive' : 'wallet cannot receive')
+  }
+
+  const invoices = createBolt11FromWalletProtocols(
+    protocols.map(protocol => ({ ...protocol, userId })),
+    { msats, description, descriptionHash, descriptionHashPreimage, requireDescriptionHash, expiry },
+    { models, limitPending: false }
+  )
+  const { value } = await invoices.next()
+  if (!value) throw new GqlInputError('wallet could not create a receive invoice')
+
+  const transaction = await createExternalReceiveTransaction(models, {
+    userId,
+    protocol: value.protocol,
+    bolt11: value.bolt11,
+    invoice: value.invoice,
+    lnurlVerifyUrl: value.lnurlVerifyUrl,
+    providerRequestId: value.providerRequestId,
+    sourceType,
+    sourceValue,
+    comment,
+    descriptionHashPreimage,
+    lud18Data,
+    note
+  })
+
+  return { ...value, transaction }
 }

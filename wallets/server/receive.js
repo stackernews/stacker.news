@@ -20,9 +20,14 @@ export async function * createBolt11FromWalletProtocols (walletProtocols, {
   descriptionHashPreimage,
   requireDescriptionHash = false,
   expiry = 360
-}, { models, limitPending = true }) {
+}, { models, userId, limitPending = true }) {
   msats = toPositiveNumber(msats)
-  description ||= ''
+  const user = await models.user.findUnique({
+    where: { id: userId },
+    select: { hideInvoiceDesc: true }
+  })
+  if (!user) throw new GqlInputError('user not found')
+  description = user.hideInvoiceDesc ? '' : description || ''
 
   if (requireDescriptionHash) {
     const expectedDescriptionHash = typeof descriptionHashPreimage === 'string'
@@ -180,7 +185,7 @@ export async function createExternalReceiveInvoice (models, {
   const invoices = createBolt11FromWalletProtocols(
     protocols.map(protocol => ({ ...protocol, userId })),
     { msats, description, descriptionHash, descriptionHashPreimage, requireDescriptionHash, expiry },
-    { models, limitPending: false }
+    { models, userId, limitPending: false }
   )
   const { value } = await invoices.next()
   if (!value) throw new GqlInputError('wallet could not create a receive invoice')

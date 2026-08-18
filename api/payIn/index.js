@@ -209,10 +209,12 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me, send
         payInBolt11
       })
     } else if (payIn.payInState === 'PENDING_INVOICE_WRAP') {
+      const description = payInArgs?.description ??
+        await payInTypeModules[payIn.payInType].describe(models, payIn.id)
       const payInBolt11 = await payInBolt11WrapProspect(models, payIn,
         {
           msats: mCostRemaining,
-          description: await payInTypeModules[payIn.payInType].describe(models, payIn.id),
+          description,
           descriptionHash: payInArgs?.descriptionHash
         })
       return await afterInvoiceCreation({

@@ -209,6 +209,18 @@ const selectClause = (type) => type === 'bookmarks'
 
 const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'Item'
 
+const itemSubClause = (num, includeRoot = false) => {
+  const itemIds = ['"Item".id']
+  if (includeRoot) itemIds.push('"Item"."rootId"')
+
+  return `(${itemIds.map(itemId => `EXISTS (
+    SELECT 1
+    FROM "ItemSub"
+    WHERE "ItemSub"."itemId" = ${itemId}
+      AND "ItemSub"."subName" = $${num}::CITEXT
+  )`).join(' OR ')})`
+}
+
 export const whereClause = (...clauses) => {
   const clause = clauses.flat(Infinity).filter(c => c).join(' AND ')
   return clause ? ` WHERE ${clause} ` : ''
@@ -227,9 +239,11 @@ export const activeOrMine = (me) => {
 export const muteClause = me =>
   me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
 
-const subClause = (sub, num, table = 'Item', me, showNsfw) => {
+const subClause = (sub, num, table = 'Item', me, showNsfw, useItemSub = false) => {
   // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
   if (sub) {
+    if (useItemSub) return itemSubClause(num, table === 'root')
+
     const tables = [...new Set(['Item', table])].map(t => `"${t}".`)
     return `(${tables.map(t => `${t}"subNames" @> ARRAY[$${num}]::CITEXT[]`).join(' OR ')})`
   }
@@ -448,7 +462,7 @@ export default {
               ${whereClause(
                 '"Item".created_at <= $1',
                 '"Item"."deletedAt" IS NULL',
-                subClause(sub, 4, subClauseTable(type), me, showNsfw),
+                subClause(sub, 4, subClauseTable(type), me, showNsfw, true),
                 activeOrMine(me),
                 await filterClause(type, sub, 'new', ctx),
                 typeClause(type),
@@ -529,7 +543,7 @@ export default {
                   activeOrMine(me),
                   '"Item".status = \'ACTIVE\'',
                   await filterClause(type, sub, 'lit', ctx),
-                  subClause(sub, 3, 'Item', me, showNsfw),
+                  subClause(sub, 3, 'Item', me, showNsfw, true),
                   muteClause(me))}
                 ORDER BY ranklit DESC, "Item".id DESC
                 OFFSET $1

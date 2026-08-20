@@ -153,8 +153,8 @@ export default function ItemInfo ({
             {embellishUser}
           </Link>}
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.payIn?.payInStateChangedAt || item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.payIn?.payInStateChangedAt || item.createdAt))}
+        <Link href={`/items/${item.id}`} title={item.paidAt || item.createdAt} className='text-reset' suppressHydrationWarning>
+          {timeSince(new Date(item.paidAt || item.createdAt))}
         </Link>
         {item.prior &&
           <>
@@ -263,10 +263,10 @@ function ItemDetails ({ item, me }) {
       <div className={styles.detailsValue}>{item.id}</div>
       <div className={styles.detailsLabel}>created at</div>
       <div className={styles.detailsValue}>{item.createdAt}</div>
-      {item.payIn?.payInState === 'PAID' &&
+      {item.paidAt &&
         <>
           <div className={styles.detailsLabel}>paid at</div>
-          <div className={styles.detailsValue}>{item.payIn?.payInStateChangedAt}</div>
+          <div className={styles.detailsValue}>{item.paidAt}</div>
         </>}
       <div className={styles.detailsSection}>this item</div>
       <div className={styles.detailsLabel}>zappers</div>
@@ -414,7 +414,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
-          {(!item.payIn?.payInState || item.payIn?.payInState === 'PAID')
+          {item.paidAt && !item.bio && !item.isJob
             ? <Countdown
                 date={editThreshold}
                 onComplete={() => { setCanEdit(false) }}

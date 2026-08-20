@@ -18,6 +18,7 @@ export const ITEM_FIELDS = gql`
     id
     parentId
     createdAt
+    paidAt
     deletedAt
     title
     url

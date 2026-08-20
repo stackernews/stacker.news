@@ -77,7 +77,7 @@ const orderByClause = (by, me, models, type, sub) => {
 export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
   if (!me) {
     return await models.$queryRawUnsafe(`
-      SELECT "Item".*, to_json(users.*) as user, "subs".subs as subs, to_jsonb("PayIn".*) as "payIn"
+      SELECT "Item".*, to_json(users.*) as user, "subs".subs as subs, NULL::jsonb as "payIn"
       FROM (
         ${query}
       ) "Item"
@@ -87,14 +87,6 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         FROM "Sub"
         WHERE "Sub"."name" = ANY("Item"."subNames")
       ) "subs" ON true
-      LEFT JOIN LATERAL (
-        SELECT "PayIn".*
-        FROM "ItemPayIn"
-        JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        WHERE "ItemPayIn"."itemId" = "Item".id AND "PayIn"."payInState" = 'PAID'
-        ORDER BY "PayIn"."created_at" DESC
-        LIMIT 1
-      ) "PayIn" ON "PayIn".id IS NOT NULL
       ${orderBy}`, ...args)
   } else {
     return await models.$queryRawUnsafe(`
@@ -159,7 +151,10 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         SELECT "PayIn".*
         FROM "ItemPayIn"
         JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        WHERE "ItemPayIn"."itemId" = "Item".id AND ("PayIn"."userId" = ${me.id} OR "PayIn"."payInState" = 'PAID')
+        WHERE "ItemPayIn"."itemId" = "Item".id
+          AND "Item"."userId" = ${me.id}
+          AND "PayIn"."userId" = ${me.id}
+          AND "PayIn"."successorId" IS NULL
         ORDER BY "PayIn"."created_at" DESC
         LIMIT 1
       ) "PayIn" ON "PayIn".id IS NOT NULL
@@ -857,21 +852,9 @@ export default {
       await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
 
-      const item = await models.item.findUnique({
-        where: { id: Number(id) },
-        include: {
-          itemPayIns: {
-            where: {
-              payIn: {
-                payInType: 'ITEM_CREATE',
-                payInState: 'PAID'
-              }
-            }
-          }
-        }
-      })
+      const item = await models.item.findUnique({ where: { id: Number(id) } })
 
-      if (item.itemPayIns.length === 0) {
+      if (!item?.paidAt) {
         throw new GqlInputError('cannot act on unpaid item')
       }
 
@@ -910,25 +893,13 @@ export default {
       }
       assertApiKeyNotPermitted({ me })
 
-      const item = await models.item.findUnique({
-        where: { id: Number(id) },
-        include: {
-          itemPayIns: {
-            where: {
-              payIn: {
-                payInType: 'ITEM_CREATE',
-                payInState: 'PAID'
-              }
-            }
-          }
-        }
-      })
+      const item = await models.item.findUnique({ where: { id: Number(id) } })
 
       if (!item) {
         throw new GqlInputError('item not found')
       }
 
-      if (item.itemPayIns.length === 0) {
+      if (!item.paidAt) {
         throw new GqlInputError('cannot pay bounty on unpaid item')
       }
 
@@ -969,14 +940,20 @@ export default {
     }
   },
   Item: {
-    payIn: async (item, args, { models }) => {
+    payIn: async (item, args, { models, me }) => {
+      if (!me) {
+        if (Number(item.userId) !== USER_ID.anon) return null
+        return item.payIn ?? null
+      }
+
+      if (Number(me.id) !== Number(item.userId)) {
+        return null
+      }
+
       if (typeof item.payIn !== 'undefined') {
         return item.payIn
       }
 
-      // TODO: very inefficient on a relative basis, so if need be we can:
-      // 1. denormalize payInId that created the item to it
-      // 2. add this to the getItemMeta query (done)
       const payIn = await models.payIn.findFirst({
         where: {
           itemPayIn: {
@@ -1460,8 +1437,8 @@ export const updateItem = async (parent, { forward, hash, hmac, sendProtocolId, 
   // edits are only allowed for own items within 10 minutes
   // but forever if an admin is editing an "admin item", it's their bio or a job
   const myBio = user.bioId === old.id
-  const timer = Date.now() < datePivot(new Date(payIn?.payInStateChangedAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
-  const canEdit = payIn?.payInState !== 'PAID' || (timer && ownerEdit) || adminEdit || myBio || isJob(old)
+  const timer = Date.now() < datePivot(new Date(old.paidAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
+  const canEdit = !old.paidAt || (timer && ownerEdit) || adminEdit || myBio || isJob(old)
   if (!canEdit) {
     throw new GqlInputError('item can no longer be edited')
   }
@@ -1501,8 +1478,11 @@ export const createItem = async (parent, { forward, sendProtocolId, ...item }, {
   }
 
   if (item.parentId) {
-    const parent = await models.itemPayIn.findFirst({ where: { itemId: parseInt(item.parentId), payIn: { payInType: 'ITEM_CREATE', payInState: 'PAID' } } })
-    if (!parent) {
+    const parent = await models.item.findUnique({
+      where: { id: parseInt(item.parentId) },
+      select: { paidAt: true }
+    })
+    if (!parent?.paidAt) {
       throw new GqlInputError('cannot comment on unpaid item')
     }
   }

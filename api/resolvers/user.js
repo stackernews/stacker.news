@@ -865,14 +865,7 @@ export default {
       const item = await models.item.findFirst({
         where: {
           userId: user.id,
-          itemPayIns: {
-            some: {
-              payIn: {
-                payInState: 'PAID',
-                payInType: 'ITEM_CREATE'
-              }
-            }
-          }
+          paidAt: { not: null }
         },
         orderBy: {
           createdAt: 'asc'

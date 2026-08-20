@@ -1,75 +1,217 @@
-/* Wallet passphrase manager: setup notice, word list, and action buttons. */
+.passphraseFlow {
+  gap: clamp(2rem, 5svh, 3rem);
+}
 
-.regenerateButton {
-  --focus-ring-offset: 4px;
-  --text-button-gap: 0;
-  justify-content: center;
+.headline {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 1.9rem;
+  margin-bottom: var(--wt-gap-md);
+}
+.subcopy {
+  color: var(--theme-grey);
+  line-height: 1.6;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--wt-surface-bg);
+  border-radius: var(--wt-radius-md);
+  padding: 2.25rem;
+  text-align: left;
+}
+.wordGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: var(--wt-gap-lg);
+  row-gap: 1.5rem;
+}
+/* display-only grid (save screen): columns hug their words so there's no
+   dead space after the last column; slack goes between columns instead */
+.wordGridFit {
+  grid-template-columns: repeat(3, max-content);
+  justify-content: space-between;
+}
+.wordCell {
+  display: flex;
+  align-items: baseline;
+  gap: var(--wt-gap-xs);
+  min-width: 0;
+}
+.wordIndex {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.8rem;
+  color: var(--theme-grey);
+  min-width: 2ch;
   flex-shrink: 0;
-  padding: 0.25rem;
-  cursor: pointer;
+}
+.wordText {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+.cardActions {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--wt-gap-md);
+  margin-top: var(--wt-gap-lg);
+}
+.cardActions > :first-child {
+  justify-self: start;
+}
+.cardActions > :last-child {
+  justify-self: end;
+}
+.cardActions > * {
+  white-space: nowrap;
+}
+/* the global `svg { fill: var(--bs-body-color) }` would win over the
+   currentColor presentation attribute; these re-tie icons to text color */
+.actionIcon {
+  flex-shrink: 0;
+  transform: translateY(1px);
+  fill: currentColor;
+}
+
+.footnote {
+  font-size: 0.8rem;
+  color: var(--theme-grey);
+  line-height: 1.5;
+  max-width: 440px;
+  margin: 0 auto;
+  text-align: center;
+}
+.resetWallets {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--wt-gap-md);
 }
 .resetButton {
-  --text-button-color: var(--bs-danger);
-  --text-button-hover-color: var(--bs-danger);
-  --focus-ring-offset: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--theme-grey);
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 .resetButton:hover {
-  opacity: 0.85;
+  color: var(--bs-body-color);
 }
-.regenerateButton:disabled,
-.resetButton:disabled {
-  opacity: 0.5;
-  cursor: default;
+.resetButton:focus-visible {
+  outline: 2px solid var(--theme-borderColor);
+  outline-offset: 4px;
 }
-.section,
-.setup {
-  display: flex;
-  flex-direction: column;
-}
-.section {
-  gap: var(--wt-gap-md);
-}
-.setup {
-  gap: var(--wt-gap-xl);
-}
-.words {
-  display: grid;
-  gap: var(--wt-gap-sm);
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  container-type: inline-size;
-  margin: 2rem 0;
-}
-.sectionTitle {
-  font-size: 0.8rem;
-  margin-bottom: 0.25rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.notice {
-  background-color: var(--theme-toolbarHover);
-  border: 1px solid var(--theme-borderColor);
-  border-radius: var(--wt-radius-sm);
-  padding: 1rem;
-}
-.managerInput {
-  letter-spacing: 0.01em;
-}
-.inputHint {
-  margin-top: 0.35rem;
-  line-height: 1.2;
-  font-size: 0.875rem;
-  color: var(--theme-grey);
-}
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--wt-gap-md);
-  align-items: flex-end;
-}
-.buttons {
-  width: 100%;
+
+.slotRow {
+  --surface-row-min-height: auto;
+  --surface-row-padding: 1.1rem 1.25rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--wt-gap-md);
+  gap: var(--wt-gap-lg);
+}
+.confirmationSlots {
+  gap: 1.125rem;
+}
+.confirmationError {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.85rem;
+  border: 1px solid transparent;
+  border-radius: var(--wt-radius-sm);
+  color: var(--bs-danger);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.confirmationErrorVisible {
+  border-color: rgba(var(--bs-danger-rgb), 0.35);
+  background: rgba(var(--bs-danger-rgb), 0.06);
+}
+.slotError {
+  --surface-row-ring-color: var(--bs-danger);
+}
+.slotLabel {
+  font-size: 0.8rem;
+  color: var(--theme-grey);
+  flex-shrink: 0;
+}
+.slotValue {
+  flex: 1;
+}
+.slotPlaceholder {
+  color: var(--theme-grey);
+  opacity: 0.6;
+}
+.slotCheck {
+  color: var(--bs-success);
+  fill: currentColor;
+  flex-shrink: 0;
+}
+.slotErrorIcon {
+  color: var(--bs-danger);
+  fill: currentColor;
+  flex-shrink: 0;
+}
+.bankChip {
+  --chip-radius: var(--wt-radius-xs);
+  --chip-padding: 0.45rem 0.9rem;
+  --chip-color: var(--bs-body-color);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.bankChipUsed {
+  text-decoration: line-through;
+}
+.bankChipDisabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.slotInput {
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.95rem;
+}
+[data-bs-theme="dark"] .slotInput:not(:focus) {
+  border-color: color-mix(in srgb, var(--theme-borderColor) 20%, transparent);
+}
+/* CSS masking avoids exposing the word grid as password fields to password managers. */
+.slotInputMasked {
+  -webkit-text-security: disc;
+}
+.counter {
+  font-size: 0.8rem;
+  color: var(--theme-grey);
+}
+@media (max-width: 575px) {
+  .passphraseFlow {
+    gap: var(--wt-gap-xl);
+  }
+  .headline {
+    font-size: 1.5rem;
+  }
+  .wordGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--wt-gap-md);
+  }
+  .wordGridFit {
+    grid-template-columns: repeat(2, max-content);
+    justify-content: space-evenly;
+  }
+  .card {
+    padding: 1.25rem 1.1rem;
+  }
+  .slotRow {
+    --surface-row-padding: 0.85rem 1rem;
+  }
+  .confirmationSlots {
+    gap: var(--wt-gap-md);
+  }
 }

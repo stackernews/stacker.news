@@ -33,6 +33,16 @@ textarea.passwordInput {
     border-bottom-left-radius: 0;
 }
 
+.inlineCopyButton {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    line-height: inherit;
+}
+
 .clearButton {
     background-color: var(--theme-inputBg);
     border: 1px solid var(--theme-borderColor);

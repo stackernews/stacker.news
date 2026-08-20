@@ -1,12 +1,11 @@
 import { useCallback, useState } from 'react'
 import { ObstacleButtons } from '@/components/obstacle'
 import { useToast } from '@/components/toast'
-import { useSingleFlight, useWalletDelete } from '@/wallets/client/hooks'
+import { useWalletDelete } from '@/wallets/client/hooks'
 
 export function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {
   const deletePersistedWallet = useWalletDelete(wallet)
   const toaster = useToast()
-  const [acknowledged, setAcknowledged] = useState(false)
   const fundLossRisk = wallet?.name === 'SPARK'
 
   const onConfirm = useCallback(async () => {
@@ -20,23 +19,29 @@ export function WalletDeleteObstacle ({ wallet, onClose, onSuccess }) {
     }
   }, [deletePersistedWallet, onClose, onSuccess, toaster])
 
-  const [handleConfirm, deleting] = useSingleFlight(onConfirm)
-
   return (
     <div className='text-center'>
       <h4 className='mb-3'>Delete wallet</h4>
-      <WalletDeletionBarrier fundLossRisk={fundLossRisk} acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
-      <ObstacleButtons
+      <WalletDeletionConfirmation
+        fundLossRisk={fundLossRisk}
         onClose={onClose}
-        onConfirm={handleConfirm}
-        confirmText={deleting ? 'deleting...' : 'delete'}
-        confirmDisabled={deleting || !acknowledged}
+        onConfirm={onConfirm}
+        confirmText='delete'
+        confirmingText='deleting...'
       />
     </div>
   )
 }
 
-export function WalletDeletionBarrier ({ fundLossRisk = false, acknowledged, setAcknowledged }) {
+export function WalletDeletionConfirmation ({
+  fundLossRisk = false,
+  onClose,
+  onConfirm,
+  confirmText,
+  confirmingText
+}) {
+  const [acknowledged, setAcknowledged] = useState(false)
+
   return (
     <>
       {fundLossRisk && (
@@ -51,15 +56,20 @@ export function WalletDeletionBarrier ({ fundLossRisk = false, acknowledged, set
         />
         <span>I understand deleted wallet data and credentials cannot be recovered.</span>
       </label>
+      <ObstacleButtons
+        onClose={onClose}
+        onConfirm={onConfirm}
+        confirmText={confirmText}
+        confirmingText={confirmingText}
+        confirmDisabled={!acknowledged}
+      />
     </>
   )
 }
 
 // Shown when a save would delete the wallet (no remaining capabilities) so the
 // user gets an explicit chance to confirm or back out before destroying data.
-export function WalletSaveDeleteObstacle ({ wallet, onClose, onConfirm }) {
-  const [acknowledged, setAcknowledged] = useState(false)
-  const fundLossRisk = wallet?.name === 'SPARK'
+export function WalletSaveDeleteObstacle ({ onClose, onConfirm }) {
   const handleConfirm = async () => {
     const success = await onConfirm()
     if (success) onClose()
@@ -74,12 +84,10 @@ export function WalletSaveDeleteObstacle ({ wallet, onClose, onConfirm }) {
       <p className='text-muted'>
         This removes the saved send and receive configuration on the server.
       </p>
-      <WalletDeletionBarrier fundLossRisk={fundLossRisk} acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
-      <ObstacleButtons
+      <WalletDeletionConfirmation
         onClose={onClose}
         onConfirm={handleConfirm}
         confirmText='save and delete'
-        confirmDisabled={!acknowledged}
       />
     </div>
   )

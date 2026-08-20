@@ -11,7 +11,6 @@
 }
 .testButton:disabled {
   color: var(--theme-grey);
-  cursor: default;
 }
 .testButton {
   flex-shrink: 0;
@@ -81,8 +80,6 @@
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  --text-button-color: var(--bs-danger);
-  --text-button-hover-color: var(--bs-danger);
   justify-content: center;
   width: 1.75rem;
   height: 1.75rem;

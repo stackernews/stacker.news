@@ -25,7 +25,6 @@ export * from './indicator'
 export * from './wallet'
 export * from './crypto'
 export * from './dnd'
-export * from './singleFlight'
 export {
   useWalletEncryptionUpdate,
   useWalletReset,

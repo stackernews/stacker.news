@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
  * Hook that wraps an async function to prevent multiple concurrent executions.
@@ -8,6 +8,10 @@ import { useCallback, useRef, useState } from 'react'
  * @returns {[Function, boolean]} - [wrappedFn, inFlight]
  */
 export function useSingleFlight (fn) {
+  const fnRef = useRef(fn)
+  useEffect(() => {
+    fnRef.current = fn
+  }, [fn])
   const inFlightRef = useRef(false)
   const [inFlight, setInFlight] = useState(false)
 
@@ -16,12 +20,12 @@ export function useSingleFlight (fn) {
     inFlightRef.current = true
     setInFlight(true)
     try {
-      return await fn(...args)
+      return await fnRef.current(...args)
     } finally {
       inFlightRef.current = false
       setInFlight(false)
     }
-  }, [fn])
+  }, [])
 
   return [wrapped, inFlight]
 }

@@ -21,6 +21,10 @@
   outline: 2px solid var(--theme-borderColor);
   outline-offset: var(--focus-ring-offset, 4px);
 }
+.textButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .dangerTextButton {
   --text-button-color: var(--bs-danger);
   --text-button-hover-color: var(--bs-danger);
@@ -60,7 +64,7 @@
   padding: var(--surface-row-padding, 0.85rem 1rem);
   border: var(--surface-row-border, 1px solid transparent);
   border-radius: var(--surface-row-radius, var(--wt-radius-sm));
-  background: var(--surface-row-bg, color-mix(in srgb, var(--theme-toolbarHover) 38%, var(--bs-body-bg)));
+  background: var(--surface-row-bg, var(--wt-surface-bg));
   color: var(--bs-body-color);
   text-decoration: none;
 }
@@ -68,10 +72,10 @@
   color: var(--bs-body-color);
   text-decoration: none;
 }
-.surfaceRowHover:hover {
-  border-color: var(--bs-primary);
-  box-shadow: inset 0 0 0 1px var(--bs-primary);
-  color: var(--bs-body-color);
+.surfaceRowHover:hover,
+.surfaceRowRing {
+  border-color: var(--surface-row-ring-color, var(--bs-primary));
+  box-shadow: inset 0 0 0 1px var(--surface-row-ring-color, var(--bs-primary));
 }
 
 .stackSection,

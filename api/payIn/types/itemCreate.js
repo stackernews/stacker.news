@@ -232,6 +232,11 @@ export async function onPaid (tx, payInId) {
     throw new Error('Item not found')
   }
 
+  await tx.item.update({
+    where: { id: item.id },
+    data: { paidAt: payIn.payInStateChangedAt }
+  })
+
   // If this is a freebie comment, increment the free comment counter
   await incrementFreeCommentCount(tx, { item, userId: payIn.userId })
 

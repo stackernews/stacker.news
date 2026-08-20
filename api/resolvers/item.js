@@ -191,16 +191,18 @@ const selectClause = (type) => type === 'bookmarks'
 
 const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'Item'
 
-const itemSubClause = (num, includeRoot = false) => {
-  const itemIds = ['"Item".id']
-  if (includeRoot) itemIds.push('"Item"."rootId"')
+const itemSubClause = (num, inheritFromRoot = false) => {
+  // Posts own their territory memberships; comments inherit their root's.
+  const itemId = inheritFromRoot
+    ? 'COALESCE("Item"."rootId", "Item".id)'
+    : '"Item".id'
 
-  return `(${itemIds.map(itemId => `EXISTS (
+  return `EXISTS (
     SELECT 1
     FROM "ItemSub"
     WHERE "ItemSub"."itemId" = ${itemId}
       AND "ItemSub"."subName" = $${num}::CITEXT
-  )`).join(' OR ')})`
+  )`
 }
 
 export const whereClause = (...clauses) => {
@@ -467,7 +469,7 @@ export default {
                 '"Item"."deletedAt" IS NULL',
                 paidItemClause(me),
                 type === 'posts' && '"Item"."subNames" IS NOT NULL',
-                subClause(sub, 5, subClauseTable(type), me, showNsfw),
+                subClause(sub, 5, subClauseTable(type), me, showNsfw, true),
                 typeClause(type),
                 whenClause(when, 'Item'),
                 activeOrMine(me),

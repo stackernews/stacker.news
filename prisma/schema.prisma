@@ -539,7 +539,7 @@ model ItemSub {
 
   @@id([itemId, subName])
   @@index([itemId])
-  @@index([subName])
+  @@index([subName, itemId])
   @@index([createdAt])
 }
 

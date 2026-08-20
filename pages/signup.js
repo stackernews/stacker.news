@@ -1,7 +1,16 @@
 import Link from 'next/link'
 import { StaticLayout } from '@/components/layout'
 import Login from '@/components/login'
-export { getServerSideProps } from './login'
+import { walletOnboardingPath } from '@/lib/safe-url'
+import { getServerSideProps as getLoginServerSideProps } from './login'
+
+export async function getServerSideProps (context) {
+  const result = await getLoginServerSideProps(context)
+  if (result.props && !result.props.domainData) {
+    result.props.callbackUrl = walletOnboardingPath(result.props.callbackUrl, context.req.headers.host)
+  }
+  return result
+}
 
 function SignUpHeader ({ domainData }) {
   return (

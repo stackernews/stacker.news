@@ -1,5 +1,4 @@
 import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
-import { SN_ADMIN_IDS } from '@/lib/constants'
 import { mapWalletResolveTypes } from '@/wallets/server/resolvers/util'
 import { decodeProtocolConfig, updateExistingProtocolConfigInTransaction } from '@/wallets/server/persist'
 import { assertRotationPayloadCoversSendProtocols, getVaultMetadata, initializeVaultKeyHash, setVaultShowPassphrase, updateVaultMetadata } from '@/wallets/server/vault'
@@ -68,7 +67,7 @@ async function wallets (parent, args, { me, models }) {
     throw new GqlAuthenticationError()
   }
 
-  let wallets = await models.wallet.findMany({
+  const wallets = (await models.wallet.findMany({
     where: {
       userId: me.id
     },
@@ -77,16 +76,9 @@ async function wallets (parent, args, { me, models }) {
       { priority: 'asc' },
       { id: 'asc' }
     ]
-  })
+  })).map(mapWalletResolveTypes)
 
-  let walletTemplates = await models.walletTemplate.findMany()
-
-  if (process.env.NODE_ENV === 'production' && !SN_ADMIN_IDS.includes(me.id)) {
-    walletTemplates = walletTemplates.filter(template => template.name !== 'SPARK')
-  }
-
-  wallets = wallets.map(mapWalletResolveTypes)
-  walletTemplates = walletTemplates.map(t => {
+  const walletTemplates = (await models.walletTemplate.findMany()).map(t => {
     return {
       ...t,
       __resolveType: 'WalletTemplate'

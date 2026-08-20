@@ -3,7 +3,7 @@ import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
-import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine, payInJoinFilter } from './item'
+import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine, paidItemClause } from './item'
 import { USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
@@ -330,7 +330,6 @@ export default {
           SELECT *
           FROM "UserSubscription"
           JOIN "Item" ON "UserSubscription"."followeeId" = "Item"."userId"
-          ${payInJoinFilter(me)}
           ${whereClause(
             '"UserSubscription"."followerId" = $1',
             '"Item".created_at > $2',
@@ -338,6 +337,7 @@ export default {
               ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
             )`,
+            paidItemClause(me),
             activeOrMine(me),
             await filterClause(null, null, null, ctx),
             muteClause(me))})`, me.id, lastChecked)
@@ -351,12 +351,12 @@ export default {
           SELECT *
           FROM "SubSubscription"
           JOIN "Item" ON "Item"."subNames" @> ARRAY["SubSubscription"."subName"]::CITEXT[]
-          ${payInJoinFilter(me)}
           ${whereClause(
             '"SubSubscription"."userId" = $1',
             '"Item".created_at > $2',
             '"Item"."parentId" IS NULL',
             '"Item"."userId" <> $1',
+            paidItemClause(me),
             activeOrMine(me),
             await filterClause(null, null, null, ctx),
             muteClause(me))})`, me.id, lastChecked)

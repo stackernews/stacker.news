@@ -51,8 +51,7 @@ export async function getItemsById (ids, { me, models }) {
       ${SELECT}, rank
       FROM "Item"
       JOIN requested ON "Item".id = requested.id
-      ${payInJoinFilter(me)}
-      ${whereClause(activeOrMine(me))}`,
+      ${whereClause(activeOrMine(me), paidItemClause(me))}`,
     orderBy: 'ORDER BY rank ASC'
   })
 
@@ -187,21 +186,9 @@ const relationClause = (type) => {
   return clause
 }
 
-export const payInJoinFilter = me => {
-  if (me) {
-    return `
-      JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = "Item".id
-      JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        AND (("PayIn"."userId" = ${me.id} AND "PayIn"."successorId" IS NULL) OR "PayIn"."payInState" = 'PAID')
-    `
-  }
-
-  return `
-      JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = "Item".id
-      JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        AND "PayIn"."payInState" = 'PAID'
-    `
-}
+export const paidItemClause = me => me
+  ? `("Item"."paidAt" IS NOT NULL OR "Item"."userId" = ${me.id})`
+  : '"Item"."paidAt" IS NOT NULL'
 
 const selectClause = (type) => type === 'bookmarks'
   ? `${SELECT}, "Bookmark"."created_at" as "bookmarkCreatedAt"`
@@ -438,9 +425,9 @@ export default {
             query: `
               ${selectClause(type)}
               ${relationClause(type)}
-              ${payInJoinFilter(me)}
               ${whereClause(
                 `"${table}"."userId" = $3`,
+                paidItemClause(me),
                 activeOrMine(me),
                 typeClause(type),
                 by === 'downsats' && '"Item"."downMsats" > 0',
@@ -458,20 +445,20 @@ export default {
             query: `
               ${SELECT}
               ${relationClause(type)}
-              ${payInJoinFilter(me)}
               ${whereClause(
                 '"Item".created_at <= $1',
                 '"Item"."deletedAt" IS NULL',
+                paidItemClause(me),
                 subClause(sub, 4, subClauseTable(type), me, showNsfw, true),
                 activeOrMine(me),
                 await filterClause(type, sub, 'new', ctx),
                 typeClause(type),
                 muteClause(me)
               )}
-              ORDER BY "PayIn"."payInStateChangedAt" DESC
+              ORDER BY COALESCE("Item"."paidAt", "Item".created_at) DESC, "Item".id DESC
               OFFSET $2
               LIMIT $3`,
-            orderBy: 'ORDER BY "PayIn"."payInStateChangedAt" DESC'
+            orderBy: 'ORDER BY COALESCE("Item"."paidAt", "Item".created_at) DESC, "Item".id DESC'
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':
@@ -481,9 +468,9 @@ export default {
             query: `
               ${selectClause(type)}
               ${relationClause(type)}
-              ${payInJoinFilter(me)}
               ${whereClause(
                 '"Item"."deletedAt" IS NULL',
+                paidItemClause(me),
                 type === 'posts' && '"Item"."subNames" IS NOT NULL',
                 subClause(sub, 5, subClauseTable(type), me, showNsfw),
                 typeClause(type),
@@ -515,10 +502,10 @@ export default {
                   )
                   FROM "Item"
                   JOIN "Pin" ON "Item"."pinId" = "Pin".id
-                  ${payInJoinFilter(me)}
                   ${whereClause(
                     '"pinId" IS NOT NULL',
                     '"parentId" IS NULL',
+                    paidItemClause(me),
                     sub ? '"Item"."subNames" @> ARRAY[$1]::CITEXT[]' : '"Item"."subNames" IS NULL',
                     muteClause(me))}
               ) rank_filter WHERE RANK = 1
@@ -533,13 +520,13 @@ export default {
             query: `
                 ${SELECT}
                 FROM "Item"
-                ${payInJoinFilter(me)}
                 ${whereClause(
                   // in home (sub undefined), filter out global pinned items since we inject them later
                   sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)',
                   '"Item"."deletedAt" IS NULL',
                   '"Item"."parentId" IS NULL',
                   '"Item".bio = false',
+                  paidItemClause(me),
                   activeOrMine(me),
                   '"Item".status = \'ACTIVE\'',
                   await filterClause(type, sub, 'lit', ctx),
@@ -628,8 +615,7 @@ export default {
         query: `
           ${SELECT}
           FROM "Item"
-          ${payInJoinFilter(me)}
-          WHERE url ~* $1
+          ${whereClause('url ~* $1', paidItemClause(me))}
           ORDER BY created_at DESC
           LIMIT 3`
       }, similar)
@@ -641,10 +627,10 @@ export default {
         query: `
           ${SELECT}
           FROM "Item"
-          ${payInJoinFilter(me)}
           -- comments can be nested, so we need to get all comments that are descendants of the root
           ${whereClause(
             '"Item".path <@ (SELECT path FROM "Item" WHERE id = $1 AND "Item"."lastCommentAt" > $2)',
+            paidItemClause(me),
             activeOrMine(me),
             '"Item"."created_at" > $2'
           )}
@@ -1200,7 +1186,7 @@ export default {
         }
       }
 
-      return await resolveItemComments(item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor, { ...ctx, itemQueryWithMeta, payInJoinFilter, select: SELECT })
+      return await resolveItemComments(item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor, { ...ctx, itemQueryWithMeta, paidItemClause, select: SELECT })
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0

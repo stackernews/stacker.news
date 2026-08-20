@@ -56,7 +56,7 @@ function commentsSortClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS_FI
   return `${sharedSorts}, ${sortExpr}, "Item".id DESC`
 }
 
-async function fetchFullCommentRows ({ itemId, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select }) {
+async function fetchFullCommentRows ({ itemId, me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemClause, select }) {
   const query = `
     WITH root AS (
       SELECT path, nlevel(path) AS depth
@@ -66,8 +66,8 @@ async function fetchFullCommentRows ({ itemId, me, models, sortClause, decodedCu
     ${select}
     FROM "Item"
     JOIN root ON true
-    ${payInJoinFilter(me)}
     WHERE "Item".id <> $1
+      AND ${paidItemClause(me)}
       AND "Item"."path" <@ root.path
       AND nlevel("Item"."path") - root.depth <= $3
       AND ("Item"."parentId" <> $1 OR "Item".created_at <= $2)
@@ -81,7 +81,7 @@ async function fetchFullCommentRows ({ itemId, me, models, sortClause, decodedCu
   )
 }
 
-async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select }) {
+async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemClause, select }) {
   const query = `
     WITH RECURSIVE base AS (
       (
@@ -90,8 +90,8 @@ async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decode
           1 AS depth,
           0::BIGINT AS rn
         FROM "Item"
-        ${payInJoinFilter(me)}
         WHERE "Item"."parentId" = $1
+          AND ${paidItemClause(me)}
           AND "Item".created_at <= $2
         ORDER BY ${sortClause}
         LIMIT $3
@@ -105,8 +105,8 @@ async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decode
           ROW_NUMBER() OVER (PARTITION BY "Item"."parentId" ORDER BY ${sortClause}) AS rn
         FROM "Item"
         JOIN base ON "Item"."parentId" = base.id
-        ${payInJoinFilter(me)}
         WHERE base.depth < $6
+          AND ${paidItemClause(me)}
           AND (base.depth = 1 OR base.rn <= $5)
       )
     ),
@@ -131,15 +131,15 @@ async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decode
   )
 }
 
-async function fetchComments ({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select }) {
+async function fetchComments ({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemClause, select }) {
   const rows = item.ncomments > FULL_COMMENTS_THRESHOLD
-    ? await fetchLimitedCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
-    : await fetchFullCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
+    ? await fetchLimitedCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemClause, select })
+    : await fetchFullCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemClause, select })
 
   return buildCommentTree(rows, { rootId: Number(item.id) })
 }
 
-export async function resolveItemComments (item, sort, cursor, { me, models, userLoader, itemQueryWithMeta, payInJoinFilter, select }) {
+export async function resolveItemComments (item, sort, cursor, { me, models, userLoader, itemQueryWithMeta, paidItemClause, select }) {
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
   if (me) {
     const user = await userLoader.load(me.id)
@@ -156,7 +156,7 @@ export async function resolveItemComments (item, sort, cursor, { me, models, use
   }
 
   const decodedCursor = decodeCursor(cursor)
-  const comments = await fetchComments({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
+  const comments = await fetchComments({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemClause, select })
 
   return {
     comments,

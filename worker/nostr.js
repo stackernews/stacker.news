@@ -17,10 +17,26 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     }
   })
 
-  // check if invoice still exists since JIT invoices get deleted after usage
-  if (!payInBolt11) return
+  const externalTransaction = payInBolt11
+    ? null
+    : await models.externalTransaction.findFirst({
+      where: {
+        hash,
+        direction: 'RECEIVE',
+        outcome: 'SETTLED',
+        preimage: { not: null }
+      },
+      include: { nostrNote: true }
+    })
+  const directNote = externalTransaction?.nostrNote?.note
 
-  const note = payInBolt11.nostrNote.note
+  // check if invoice still exists since JIT invoices get deleted after usage
+  if (!payInBolt11 && !directNote) return
+
+  const note = payInBolt11?.nostrNote.note ?? directNote
+  const bolt11 = payInBolt11?.bolt11 ?? externalTransaction.bolt11
+  const preimage = payInBolt11?.preimage ?? externalTransaction.preimage
+  const confirmedAt = payInBolt11?.confirmedAt ?? externalTransaction.settledAt ?? externalTransaction.updatedAt
 
   try {
     const ptag = note.tags.filter(t => t?.length >= 2 && t[0] === 'p')[0]
@@ -31,13 +47,13 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     const tags = [ptag]
     if (etag) tags.push(etag)
     if (atag) tags.push(atag)
-    tags.push(['bolt11', payInBolt11.bolt11])
-    tags.push(['description', parsePaymentRequest({ request: payInBolt11.bolt11 }).description])
-    tags.push(['preimage', payInBolt11.preimage])
+    tags.push(['bolt11', bolt11])
+    tags.push(['description', parsePaymentRequest({ request: bolt11 }).description])
+    tags.push(['preimage', preimage])
 
     const e = {
       kind: 9735,
-      created_at: Math.floor(new Date(payInBolt11.confirmedAt).getTime() / 1000),
+      created_at: Math.floor(new Date(confirmedAt).getTime() / 1000),
       content: '',
       tags
     }

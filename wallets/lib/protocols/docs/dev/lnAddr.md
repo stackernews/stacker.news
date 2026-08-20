@@ -1,6 +1,6 @@
-For testing lightning address autowithdraw, you'll need to reference a host reachable by the worker, e.g. `app:3000`.
-
-You'll want to deposit in another nym's account using an address like: `nym@app:3000`.
+Use an address like `nym@localhost:3000` from browser-based attached wallets.
+LNURL requests to the public development origin are translated to `SELF_URL`
+server-side, so the app and worker can reach the same address internally.
 
 ## Proof/status
 

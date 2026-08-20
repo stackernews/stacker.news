@@ -265,8 +265,8 @@ export const SAVE_WALLET_PROTOCOLS = gql`
 `
 
 export const CREATE_WALLET_INVOICE = gql`
-  mutation createWalletInvoice($walletId: ID!, $amount: Int!, $description: String) {
-    createWalletInvoice(walletId: $walletId, amount: $amount, description: $description)
+  mutation createWalletInvoice($walletId: ID!, $amount: Int!, $description: String, $proxyReceive: Boolean) {
+    createWalletInvoice(walletId: $walletId, amount: $amount, description: $description, proxyReceive: $proxyReceive)
   }`
 
 export const GET_EXTERNAL_TRANSACTION = gql`
@@ -299,6 +299,7 @@ export const DISABLE_PASSPHRASE_EXPORT = gql`
 export const WALLET_SETTINGS = gql`
   query WalletSettings {
     walletSettings {
+      proxyReceive
       receiveCreditsBelowSats
       sendCreditsBelowSats
       autoWithdrawMaxFeePercent
@@ -311,6 +312,7 @@ export const WALLET_SETTINGS = gql`
 export const SET_WALLET_SETTINGS = gql`
   mutation SetWalletSettings($settings: WalletSettingsInput!) {
     setWalletSettings(settings: $settings) {
+      proxyReceive
       receiveCreditsBelowSats
       sendCreditsBelowSats
       autoWithdrawMaxFeePercent

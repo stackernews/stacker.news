@@ -1,7 +1,13 @@
 import { getPublicKey } from 'nostr'
 import models from '@/api/models'
 import { lnurlPayMetadata, lnurlpCallbackUrl } from '@/lib/lnurl'
-import { LNURLP_COMMENT_MAX_LENGTH, PROXY_PAYER_MIN_MSATS, PROXY_PAYER_MAX_MSATS } from '@/lib/constants'
+import {
+  LNURLP_COMMENT_MAX_LENGTH,
+  MAX_WALLET_INVOICE_SATS,
+  MIN_RECEIVE_MSATS,
+  PROXY_PAYER_MIN_MSATS,
+  PROXY_PAYER_MAX_MSATS
+} from '@/lib/constants'
 import { isLndMaintenance, LND_MAINTENANCE_MESSAGE } from '@/api/lnd/maintenance'
 
 export default async ({ query: { username } }, res) => {
@@ -14,12 +20,15 @@ export default async ({ query: { username } }, res) => {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
-  const url = process.env.NODE_ENV === 'development' ? process.env.SELF_URL : process.env.NEXT_PUBLIC_URL
   const { metadata } = lnurlPayMetadata(username)
+  const minSendable = user.proxyReceive ? PROXY_PAYER_MIN_MSATS : MIN_RECEIVE_MSATS
+  const maxSendable = user.proxyReceive
+    ? PROXY_PAYER_MAX_MSATS
+    : BigInt(MAX_WALLET_INVOICE_SATS) * 1000n
   return res.status(200).json({
-    callback: lnurlpCallbackUrl(username, url), // The URL from LN SERVICE which will accept the pay request parameters
-    minSendable: Number(PROXY_PAYER_MIN_MSATS), // Min amount LN SERVICE is willing to receive, can not be less than 1 or more than `maxSendable`
-    maxSendable: Number(PROXY_PAYER_MAX_MSATS), // Max amount LN SERVICE is willing to receive: the largest payer amount whose post-fee payout the wrap pipeline accepts
+    callback: lnurlpCallbackUrl(username), // The URL from LN SERVICE which will accept the pay request parameters
+    minSendable: Number(minSendable), // Min amount LN SERVICE is willing to receive, can not be less than 1 or more than `maxSendable`
+    maxSendable: Number(maxSendable), // Max amount LN SERVICE is willing to receive
     metadata, // Metadata json which must be presented as raw string here, this is required to pass signature verification at a later step
     commentAllowed: LNURLP_COMMENT_MAX_LENGTH, // LUD-12 Comments for payRequests https://github.com/lnurl/luds/blob/luds/12.md
     payerData: { // LUD-18 payer data for payRequests https://github.com/lnurl/luds/blob/luds/18.md

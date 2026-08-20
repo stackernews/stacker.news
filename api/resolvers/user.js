@@ -460,6 +460,21 @@ export default {
           foundNotes()
           return true
         }
+
+        const externalReceive = await models.externalTransaction.findFirst({
+          where: {
+            userId: me.id,
+            direction: 'RECEIVE',
+            outcome: 'SETTLED',
+            updatedAt: {
+              gt: lastChecked
+            }
+          }
+        })
+        if (externalReceive) {
+          foundNotes()
+          return true
+        }
       }
 
       if (user.noteWithdrawals) {

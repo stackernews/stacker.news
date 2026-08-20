@@ -3,7 +3,7 @@ import models from '@/api/models'
 export default async function handler (req, res) {
   const item = await models.item.findUnique({ where: { id: Number(req.query.id) } })
   if (!item || !item.otsFile) {
-    res.status(404).end()
+    return res.status(404).end()
   }
 
   res.setHeader('Content-Type', 'application/octet-stream')

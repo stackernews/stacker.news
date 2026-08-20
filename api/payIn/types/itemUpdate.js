@@ -23,16 +23,6 @@ async function getMcost (models, { id, uploadIds, bio, newSubs, parentId }, { me
   const old = await models.item.findUnique({
     where: {
       id: parseInt(id)
-    },
-    include: {
-      itemPayIns: {
-        where: {
-          payIn: {
-            payInType: 'ITEM_CREATE',
-            payInState: 'PAID'
-          }
-        }
-      }
     }
   })
 
@@ -50,7 +40,7 @@ async function getMcost (models, { id, uploadIds, bio, newSubs, parentId }, { me
     }
   }
 
-  if ((mcost > 0 || totalFeesMsats > 0) && old.itemPayIns.length === 0) {
+  if ((mcost > 0 || totalFeesMsats > 0) && !old.paidAt) {
     throw new Error('cannot increase item cost with unpaid invoice')
   }
 

@@ -43,7 +43,14 @@ export async function earn ({ name }) {
 
     // get the stackers reward prospects
     const rewardProspects = await models.$queryRaw`
-    WITH reward_proportions AS (
+    WITH reward_day AS (
+      SELECT
+        timezone('UTC', timezone('America/Chicago',
+          date_trunc('day', timezone('America/Chicago', now())) - interval '1 day')) AS start_at,
+        timezone('UTC', timezone('America/Chicago',
+          date_trunc('day', timezone('America/Chicago', now())))) AS end_at
+    ),
+    reward_proportions AS (
       WITH item_proportions AS (
             SELECT *,
                 CASE WHEN "parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type,
@@ -53,15 +60,11 @@ export async function earn ({ name }) {
                     NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS percentile,
                     ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS rank
                 FROM "Item"
-                JOIN LATERAL (
-                    SELECT "PayIn".id as "payInId", "PayIn"."payInStateChangedAt" as "payInStateChangedAt"
-                    FROM "ItemPayIn"
-                    JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-                    WHERE "ItemPayIn"."itemId" = "Item".id AND "PayIn"."payInState" = 'PAID'
-                    ORDER BY "PayIn"."created_at" DESC
-                    LIMIT 1
-                ) "PayIn" ON "PayIn"."payInId" IS NOT NULL
-                WHERE date_trunc('day', "PayIn"."payInStateChangedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day')
+                CROSS JOIN reward_day
+                WHERE "Item"."paidAt" IS NOT NULL
+                -- Match Item_paid_created_id_idx while excluding unpaid items.
+                AND COALESCE("Item"."paidAt", "Item".created_at) >= reward_day.start_at
+                AND COALESCE("Item"."paidAt", "Item".created_at) < reward_day.end_at
                 AND "weightedVotes" > 0
                 AND "deletedAt" IS NULL
                 AND NOT bio

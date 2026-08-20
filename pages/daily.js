@@ -5,9 +5,7 @@ export async function getServerSideProps () {
   const items = await models.$queryRaw`
     SELECT "Item".id as id
     FROM "Item"
-    JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = "Item".id
-    JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-    WHERE "PayIn"."payInState" = 'PAID'
+    WHERE "Item"."paidAt" IS NOT NULL
     AND "Item"."pinId" IS NOT NULL
     AND "Item"."title" = 'Stacker Saloon'
     ORDER BY "Item"."created_at" DESC

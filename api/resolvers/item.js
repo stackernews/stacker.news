@@ -32,6 +32,7 @@ import pay, { retry as retryPayIn } from '../payIn'
 import { BOUNTY_ALREADY_PAID_ERROR, BOUNTY_IN_PROGRESS_ERROR, getBountyPaymentTail } from '../payIn/lib/bountyPayment'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 import { resolveItemComments } from './comment-tree'
+import { itemKeysetBoundary, itemKeysetSql, updateItemKeysetCursor } from './item-pagination'
 
 export async function getItem (parent, { id }, { me, models }) {
   const [item] = await getItemsById([id], { me, models })
@@ -56,19 +57,6 @@ export async function getItemsById (ids, { me, models }) {
   })
 
   return items.map(({ rank, ...item }) => item)
-}
-
-const orderByClause = (by, me, models, type, sub) => {
-  switch (by) {
-    case 'comments':
-      return 'ORDER BY "Item".ncomments DESC'
-    case 'sats':
-      return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
-    case 'downsats':
-      return 'ORDER BY "Item"."downMsats" DESC'
-    default:
-      return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
-  }
 }
 
 // this grabs all the stuff we need to display the item list and only
@@ -405,7 +393,7 @@ export default {
       const showNsfw = currentUser ? currentUser.nsfwMode : false
 
       switch (sort) {
-        case 'user':
+        case 'user': {
           if (!name) {
             throw new GqlInputError('must supply name')
           }
@@ -416,11 +404,13 @@ export default {
           }
 
           table = type === 'bookmarks' ? 'Bookmark' : 'Item'
+          const { firstKey, cursorSelect, boundary, orderBy } = itemKeysetSql(by, type, 4, 5)
+          const { key: cursorKey, id: cursorId } = itemKeysetBoundary(cursor, decodedCursor, firstKey)
           items = await itemQueryWithMeta({
             me,
             models,
             query: `
-              ${selectClause(type)}
+              ${selectClause(type)}, ${cursorSelect}
               ${relationClause(type)}
               ${whereClause(
                 `"${table}"."userId" = $3`,
@@ -428,62 +418,80 @@ export default {
                 activeOrMine(me),
                 typeClause(type),
                 by === 'downsats' && '"Item"."downMsats" > 0',
-                whenClause(when || 'forever', table))}
-              ${orderByClause(by, me, models, type)}
-              OFFSET $4
-              LIMIT $5`,
-            orderBy: orderByClause(by, me, models, type)
-          }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
+                whenClause(when || 'forever', table),
+                boundary)}
+              ${orderBy}
+              LIMIT $6`,
+            orderBy
+          }, ...whenRange(when, from, to || decodedCursor.time), user.id, cursorKey, cursorId, limit)
+
+          updateItemKeysetCursor(decodedCursor, items, limit)
           break
-        case 'new':
+        }
+        case 'new': {
+          const { firstKey, cursorSelect, boundary, orderBy } = itemKeysetSql('new', type, 2, 3)
+          const { key: cursorKey, id: cursorId } = itemKeysetBoundary(cursor, decodedCursor, firstKey)
+
           items = await itemQueryWithMeta({
             me,
             models,
             query: `
-              ${SELECT}
+              ${SELECT}, ${cursorSelect}
               ${relationClause(type)}
               ${whereClause(
                 '"Item".created_at <= $1',
                 '"Item"."deletedAt" IS NULL',
                 paidItemClause(me),
-                subClause(sub, 4, subClauseTable(type), me, showNsfw, true),
+                subClause(sub, 5, subClauseTable(type), me, showNsfw, true),
                 activeOrMine(me),
                 await filterClause(type, sub, 'new', ctx),
                 typeClause(type),
-                muteClause(me)
+                muteClause(me),
+                boundary
               )}
-              ORDER BY COALESCE("Item"."paidAt", "Item".created_at) DESC, "Item".id DESC
-              OFFSET $2
-              LIMIT $3`,
-            orderBy: 'ORDER BY COALESCE("Item"."paidAt", "Item".created_at) DESC, "Item".id DESC'
-          }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+              ${orderBy}
+              LIMIT $4`,
+            orderBy
+          }, decodedCursor.time, cursorKey, cursorId, limit, ...subArr)
+
+          updateItemKeysetCursor(decodedCursor, items, limit)
           break
-        case 'top':
+        }
+        case 'top': {
+          const { firstKey, cursorSelect, boundary, orderBy } = itemKeysetSql(by || 'sats', type, 3, 4)
+          const { key: cursorKey, id: cursorId } = itemKeysetBoundary(cursor, decodedCursor, firstKey)
+
           items = await itemQueryWithMeta({
             me,
             models,
             query: `
-              ${selectClause(type)}
+              ${selectClause(type)}, ${cursorSelect}
               ${relationClause(type)}
               ${whereClause(
                 '"Item"."deletedAt" IS NULL',
                 paidItemClause(me),
                 type === 'posts' && '"Item"."subNames" IS NOT NULL',
-                subClause(sub, 5, subClauseTable(type), me, showNsfw, true),
+                subClause(sub, 6, subClauseTable(type), me, showNsfw, true),
                 typeClause(type),
                 whenClause(when, 'Item'),
                 activeOrMine(me),
                 '"Item".status = \'ACTIVE\'',
                 by === 'downsats' && '"Item"."downMsats" > 0',
                 await filterClause(type, sub, 'top', ctx, by),
-                muteClause(me))}
-              ${orderByClause(by || 'sats', me, models, type, sub)}
-              OFFSET $3
-              LIMIT $4`,
-            orderBy: orderByClause(by || 'sats', me, models, type, sub)
-          }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
+                muteClause(me),
+                boundary)}
+              ${orderBy}
+              LIMIT $5`,
+            orderBy
+          }, ...whenRange(when, from, to || decodedCursor.time), cursorKey, cursorId, limit, ...subArr)
+
+          updateItemKeysetCursor(decodedCursor, items, limit)
           break
-        default:
+        }
+        default: {
+          const { firstKey, cursorSelect, boundary, orderBy } = itemKeysetSql('lit', type, 1, 2)
+          const { key: cursorKey, id: cursorId } = itemKeysetBoundary(cursor, decodedCursor, firstKey)
+
           if (decodedCursor.offset === 0) {
             // get pins for the page and return those separately
             pins = await itemQueryWithMeta({
@@ -515,7 +523,7 @@ export default {
             me,
             models,
             query: `
-                ${SELECT}
+                ${SELECT}, ${cursorSelect}
                 FROM "Item"
                 ${whereClause(
                   // in home (sub undefined), filter out global pinned items since we inject them later
@@ -527,14 +535,17 @@ export default {
                   activeOrMine(me),
                   '"Item".status = \'ACTIVE\'',
                   await filterClause(type, sub, 'lit', ctx),
-                  subClause(sub, 3, 'Item', me, showNsfw, true),
-                  muteClause(me))}
-                ORDER BY ranklit DESC, "Item".id DESC
-                OFFSET $1
-                LIMIT $2`,
-            orderBy: 'ORDER BY ranklit DESC, "Item".id DESC'
-          }, decodedCursor.offset, limit, ...subArr)
+                  subClause(sub, 4, 'Item', me, showNsfw, true),
+                  muteClause(me),
+                  boundary)}
+                ${orderBy}
+                LIMIT $3`,
+            orderBy
+          }, cursorKey, cursorId, limit, ...subArr)
+
+          updateItemKeysetCursor(decodedCursor, items, limit)
           break
+        }
       }
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,

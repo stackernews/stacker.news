@@ -1220,3 +1220,13 @@ div[contenteditable]:not([data-sn-editor], [data-lexical-editor]):not([data-sn-e
   -moz-appearance: textfield;
   appearance: textfield;
 }
+/* Keep the hovered chart (and its tooltip) above adjacent charts. The tooltip
+   is absolutely positioned inside .recharts-wrapper and can overflow it; without
+   this, later siblings paint over the overflowing tooltip. */
+.recharts-wrapper {
+  position: relative;
+
+  &:hover {
+    z-index: 1;
+  }
+}

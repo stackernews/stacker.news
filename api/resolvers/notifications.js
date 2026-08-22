@@ -1,5 +1,5 @@
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
-import { getItem, filterClause, whereClause, muteClause, activeOrMine, paidItemClause } from './item'
+import { getItem, filterSql, whereSql, muteSql, activeOrMineSql, paidItemSql } from './item'
 import { pushSubscriptionSchema, validateSchema } from '@/lib/validate'
 import { sendPushSubscriptionReply } from '@/lib/webPush'
 import { getSub } from './sub'
@@ -7,8 +7,11 @@ import { GqlAuthenticationError, GqlInputError } from '@/lib/error'
 import { getPayIn } from './payIn'
 import { PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES } from '@/lib/constants'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
+import { Prisma } from '@prisma/client'
 
-const PAY_IN_NOTIFICATION_TYPES_SQL = PAY_IN_NOTIFICATION_TYPES.map(type => `'${type}'`).join(', ')
+const PAY_IN_NOTIFICATION_TYPES_SQL = Prisma.join(
+  PAY_IN_NOTIFICATION_TYPES.map(type => Prisma.sql`${type}::"PayInType"`)
+)
 
 export default {
   Query: {
@@ -81,48 +84,48 @@ export default {
 
       // Thread subscriptions
       itemDrivenQueries.push(
-        `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
+        Prisma.sql`SELECT "Item".*, "Item".created_at AS "sortTime", ${'Reply'}::TEXT AS type
           FROM "ThreadSubscription"
           JOIN "Reply" r ON "ThreadSubscription"."itemId" = r."ancestorId"
           JOIN "Item" ON r."itemId" = "Item".id
-          ${whereClause(
-            '"ThreadSubscription"."userId" = $1',
-            'r.created_at >= "ThreadSubscription".created_at',
-            'r.created_at < $2',
-            'r."userId" <> $1',
-            ...(meFull.noteAllDescendants ? [] : ['r.level = 1'])
+          ${whereSql(
+            Prisma.sql`"ThreadSubscription"."userId" = ${me.id}::INTEGER`,
+            Prisma.sql`r.created_at >= "ThreadSubscription".created_at`,
+            Prisma.sql`r.created_at < ${decodedCursor.time}::TIMESTAMP`,
+            Prisma.sql`r."userId" <> ${me.id}::INTEGER`,
+            meFull.noteAllDescendants ? null : Prisma.sql`r.level = 1`
           )}
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}`
+          LIMIT ${LIMIT}::INTEGER`
       )
 
       // User subscriptions
       // Only include posts or comments created after the corresponding subscription was enabled, not _all_ from history
       itemDrivenQueries.push(
-        `SELECT "Item".*, "Item".created_at AS "sortTime", 'FollowActivity' AS type
+        Prisma.sql`SELECT "Item".*, "Item".created_at AS "sortTime", ${'FollowActivity'}::TEXT AS type
           FROM "Item"
           JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
-          ${whereClause(
-            '"Item".created_at < $2',
-            '"UserSubscription"."followerId" = $1',
-            `(
+          ${whereSql(
+            Prisma.sql`"Item".created_at < ${decodedCursor.time}::TIMESTAMP`,
+            Prisma.sql`"UserSubscription"."followerId" = ${me.id}::INTEGER`,
+            Prisma.sql`(
               ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
             )`
           )}
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}`
+          LIMIT ${LIMIT}::INTEGER`
       )
 
       // Territory subscriptions
       // Gate the time-ordered item scan on a non-empty subscription set and
       // bound it to the oldest possible territory notification.
       itemDrivenQueries.push(
-        `SELECT "TerritoryItem".*, "TerritoryItem".created_at AS "sortTime", 'TerritoryPost' AS type
+        Prisma.sql`SELECT "TerritoryItem".*, "TerritoryItem".created_at AS "sortTime", ${'TerritoryPost'}::TEXT AS type
           FROM (
             SELECT MIN(created_at) AS "oldestCreatedAt"
             FROM "SubSubscription"
-            WHERE "userId" = $1
+            WHERE "userId" = ${me.id}::INTEGER
             HAVING COUNT(*) > 0
           ) "TerritorySubscriptionBounds"
           CROSS JOIN LATERAL (
@@ -132,68 +135,68 @@ export default {
               SELECT 1
               FROM "ItemSub"
               JOIN "SubSubscription"
-                ON "SubSubscription"."userId" = $1
+                ON "SubSubscription"."userId" = ${me.id}::INTEGER
                 AND "SubSubscription"."subName" = "ItemSub"."subName"
               WHERE "ItemSub"."itemId" = "Item".id
               AND "Item".created_at >= "SubSubscription".created_at
               LIMIT 1
             ) "SubscribedTerritory" ON true
-            ${whereClause(
-              '"Item".created_at < $2',
-              '"Item".created_at >= "TerritorySubscriptionBounds"."oldestCreatedAt"',
-              '"Item"."userId" <> $1',
-              '"Item"."parentId" IS NULL'
+            ${whereSql(
+              Prisma.sql`"Item".created_at < ${decodedCursor.time}::TIMESTAMP`,
+              Prisma.sql`"Item".created_at >= "TerritorySubscriptionBounds"."oldestCreatedAt"`,
+              Prisma.sql`"Item"."userId" <> ${me.id}::INTEGER`,
+              Prisma.sql`"Item"."parentId" IS NULL`
             )}
             ORDER BY "Item".created_at DESC
-            LIMIT ${LIMIT}
+            LIMIT ${LIMIT}::INTEGER
           ) "TerritoryItem"`
       )
 
       // mentions
       if (meFull.noteMentions) {
         itemDrivenQueries.push(
-          `SELECT "Item".*, "Mention".created_at AS "sortTime", 'Mention' AS type
+          Prisma.sql`SELECT "Item".*, "Mention".created_at AS "sortTime", ${'Mention'}::TEXT AS type
             FROM "Mention"
             JOIN "Item" ON "Mention"."itemId" = "Item".id
-            ${whereClause(
-              '"Item".created_at < $2',
-              '"Mention"."userId" = $1',
-              '"Item"."userId" <> $1'
+            ${whereSql(
+              Prisma.sql`"Item".created_at < ${decodedCursor.time}::TIMESTAMP`,
+              Prisma.sql`"Mention"."userId" = ${me.id}::INTEGER`,
+              Prisma.sql`"Item"."userId" <> ${me.id}::INTEGER`
             )}
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}`
+            LIMIT ${LIMIT}::INTEGER`
         )
       }
       // item mentions
       if (meFull.noteItemMentions) {
         itemDrivenQueries.push(
-          `SELECT "Referrer".*, "ItemMention".created_at AS "sortTime", 'ItemMention' AS type
+          Prisma.sql`SELECT "Referrer".*, "ItemMention".created_at AS "sortTime", ${'ItemMention'}::TEXT AS type
             FROM "ItemMention"
             JOIN "Item" "Referrer" ON "ItemMention"."referrerId" = "Referrer".id
-            ${whereClause(
-              '"ItemMention".created_at < $2',
-              '"Referrer"."userId" <> $1',
-              '"ItemMention"."refereeUserId" = $1'
+            ${whereSql(
+              Prisma.sql`"ItemMention".created_at < ${decodedCursor.time}::TIMESTAMP`,
+              Prisma.sql`"Referrer"."userId" <> ${me.id}::INTEGER`,
+              Prisma.sql`"ItemMention"."refereeUserId" = ${me.id}::INTEGER`
             )}
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}`
+            LIMIT ${LIMIT}::INTEGER`
         )
       }
       // Inner union to de-dupe item-driven notifications
       queries.push(
         // Only record per item ID
-        `(
+        Prisma.sql`(
           SELECT DISTINCT ON (id) "Item".id::TEXT, "Item"."sortTime", NULL::INTEGER AS "earnedSats", "Item".type
           FROM (
-            ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
+            ${Prisma.join(itemDrivenQueries.map(query => Prisma.sql`(${query})`), ' UNION ALL ')}
           ) as "Item"
-          ${whereClause(
-            '"Item".created_at < $2',
-            '"Item"."deletedAt" IS NULL',
-            paidItemClause(me),
-            await filterClause(null, null, null, ctx),
-            muteClause(me),
-            activeOrMine(me))}
+          ${whereSql(
+            Prisma.sql`"Item".created_at < ${decodedCursor.time}::TIMESTAMP`,
+            Prisma.sql`"Item"."deletedAt" IS NULL`,
+            paidItemSql(me),
+            await filterSql(null, null, null, ctx),
+            muteSql(me),
+            activeOrMineSql(me))}
           ORDER BY id ASC, CASE
             WHEN type = 'Mention' THEN 1
             WHEN type = 'Reply' THEN 2
@@ -206,51 +209,51 @@ export default {
 
       // territory transfers
       queries.push(
-        `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL::INTEGER as "earnedSats",
-          'TerritoryTransfer' AS type
+        Prisma.sql`(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL::INTEGER as "earnedSats",
+          ${'TerritoryTransfer'}::TEXT AS type
           FROM "TerritoryTransfer"
-          WHERE "TerritoryTransfer"."newUserId" = $1
-          AND "TerritoryTransfer"."created_at" <= $2
+          WHERE "TerritoryTransfer"."newUserId" = ${me.id}::INTEGER
+          AND "TerritoryTransfer"."created_at" <= ${decodedCursor.time}::TIMESTAMP
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
+          LIMIT ${LIMIT}::INTEGER)`
       )
 
       if (meFull.noteItemSats) {
         queries.push(
-          `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
-            ("Item".msats/1000)::INTEGER as "earnedSats", 'Votification' AS type
+          Prisma.sql`(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
+            ("Item".msats/1000)::INTEGER as "earnedSats", ${'Votification'}::TEXT AS type
             FROM "Item"
-            WHERE "Item"."userId" = $1
-            AND "Item"."lastZapAt" < $2
+            WHERE "Item"."userId" = ${me.id}::INTEGER
+            AND "Item"."lastZapAt" < ${decodedCursor.time}::TIMESTAMP
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT ${LIMIT}::INTEGER)`
         )
         queries.push(
-          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+          Prisma.sql`(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
             COALESCE(FLOOR("PayOutBolt11"."msats" / 1000), 0)::INTEGER as "earnedSats",
-            'BountyPayment' AS type
+            ${'BountyPayment'}::TEXT AS type
             FROM "PayIn"
             JOIN "ItemPayIn" ON "ItemPayIn"."payInId" = "PayIn".id
             JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
             WHERE "PayIn"."payInType" = 'BOUNTY_PAYMENT'
             AND "PayIn"."payInState" = 'PAID'
-            AND "PayOutBolt11"."userId" = $1
-            AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayOutBolt11"."userId" = ${me.id}::INTEGER
+            AND "PayIn"."payInStateChangedAt" < ${decodedCursor.time}::TIMESTAMP
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT ${LIMIT}::INTEGER)`
         )
       }
 
       if (meFull.noteForwardedSats) {
         queries.push(
-          `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
-            ("Item".msats / 1000 * "ItemForward".pct / 100)::INTEGER as "earnedSats", 'ForwardedVotification' AS type
+          Prisma.sql`(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
+            ("Item".msats / 1000 * "ItemForward".pct / 100)::INTEGER as "earnedSats", ${'ForwardedVotification'}::TEXT AS type
             FROM "Item"
-            JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
-            WHERE "Item"."userId" <> $1
-            AND "Item"."lastZapAt" < $2
+            JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}::INTEGER
+            WHERE "Item"."userId" <> ${me.id}::INTEGER
+            AND "Item"."lastZapAt" < ${decodedCursor.time}::TIMESTAMP
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT ${LIMIT}::INTEGER)`
         )
       }
 
@@ -258,176 +261,176 @@ export default {
         // NOTE: for historical reasons we need to join the payInBolt11 table to make sure
         // the payInBolt11 record exists for the payIn
         queries.push(
-          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+          Prisma.sql`(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
               COALESCE(FLOOR("PayIn"."mcost" / 1000), 0)::INTEGER as "earnedSats",
-            'PayInification' AS type
+            ${'PayInification'}::TEXT AS type
             FROM "PayIn"
             JOIN "PayInBolt11" ON "PayInBolt11"."payInId" = "PayIn".id
-            WHERE "PayIn"."userId" = $1
+            WHERE "PayIn"."userId" = ${me.id}::INTEGER
             AND "PayIn"."payInState" = 'PAID'
-            AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayIn"."payInStateChangedAt" < ${decodedCursor.time}::TIMESTAMP
             AND "PayIn"."mcost" > 1000
             AND "PayIn"."payInType" = 'PROXY_PAYMENT'
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT ${LIMIT}::INTEGER)`
         )
       }
 
       if (meFull.noteWithdrawals) {
         queries.push(
-          `(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
+          Prisma.sql`(SELECT "PayIn".id::text, "PayIn"."payInStateChangedAt" AS "sortTime",
             COALESCE(FLOOR("PayOutBolt11"."msats" / 1000), 0)::INTEGER as "earnedSats",
-            'PayInification' AS type
+            ${'PayInification'}::TEXT AS type
             FROM "PayIn"
             JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn".id
-            WHERE "PayIn"."userId" = $1
+            WHERE "PayIn"."userId" = ${me.id}::INTEGER
             AND "PayIn"."payInState" = 'PAID'
-            AND "PayIn"."payInStateChangedAt" < $2
+            AND "PayIn"."payInStateChangedAt" < ${decodedCursor.time}::TIMESTAMP
             AND "PayOutBolt11"."msats" > 1000
             AND "PayIn"."payInType" IN ('WITHDRAWAL', 'AUTO_WITHDRAWAL')
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT ${LIMIT}::INTEGER)`
         )
       }
 
       if (meFull.noteInvites) {
         queries.push(
-          `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL::INTEGER as "earnedSats",
-            'Invitification' AS type
+          Prisma.sql`(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL::INTEGER as "earnedSats",
+            ${'Invitification'}::TEXT AS type
             FROM users JOIN "Invite" on users."inviteId" = "Invite".id
-            WHERE "Invite"."userId" = $1
-            AND users.created_at < $2
+            WHERE "Invite"."userId" = ${me.id}::INTEGER
+            AND users.created_at < ${decodedCursor.time}::TIMESTAMP
             GROUP BY "Invite".id
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT ${LIMIT}::INTEGER)`
         )
         queries.push(
-          `(SELECT users.id::text, users.created_at AS "sortTime", NULL::INTEGER as "earnedSats",
-            'Referral' AS type
+          Prisma.sql`(SELECT users.id::text, users.created_at AS "sortTime", NULL::INTEGER as "earnedSats",
+            ${'Referral'}::TEXT AS type
             FROM users
-            WHERE "users"."referrerId" = $1
+            WHERE "users"."referrerId" = ${me.id}::INTEGER
             AND "inviteId" IS NULL
-            AND users.created_at < $2
+            AND users.created_at < ${decodedCursor.time}::TIMESTAMP
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT ${LIMIT}::INTEGER)`
         )
       }
 
       if (meFull.noteEarning) {
         queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000)::INTEGER as "earnedSats",
-          'Earn' AS type
+          Prisma.sql`(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000)::INTEGER as "earnedSats",
+          ${'Earn'}::TEXT AS type
           FROM "Earn"
-          WHERE "userId" = $1
-          AND created_at < $2
+          WHERE "userId" = ${me.id}::INTEGER
+          AND created_at < ${decodedCursor.time}::TIMESTAMP
           AND (type IS NULL OR type NOT IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL'))
           GROUP BY "userId", created_at
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
+          LIMIT ${LIMIT}::INTEGER)`
         )
         queries.push(
-          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000)::INTEGER as "earnedSats",
-          'ReferralReward' AS type
+          Prisma.sql`(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000)::INTEGER as "earnedSats",
+          ${'ReferralReward'}::TEXT AS type
           FROM "Earn"
-          WHERE "userId" = $1
-          AND created_at < $2
+          WHERE "userId" = ${me.id}::INTEGER
+          AND created_at < ${decodedCursor.time}::TIMESTAMP
           AND type IN ('FOREVER_REFERRAL', 'ONE_DAY_REFERRAL')
           GROUP BY "userId", created_at
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
+          LIMIT ${LIMIT}::INTEGER)`
         )
       }
 
       if (meFull.noteCowboyHat) {
         queries.push(
-          `(SELECT id::text, updated_at AS "sortTime", 0::INTEGER as "earnedSats", 'CowboyHat' AS type
+          Prisma.sql`(SELECT id::text, updated_at AS "sortTime", 0::INTEGER as "earnedSats", ${'CowboyHat'}::TEXT AS type
           FROM "Streak"
-          WHERE "userId" = $1
-          AND updated_at < $2
+          WHERE "userId" = ${me.id}::INTEGER
+          AND updated_at < ${decodedCursor.time}::TIMESTAMP
           AND type = 'COWBOY_HAT'
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
+          LIMIT ${LIMIT}::INTEGER)`
         )
         for (const type of ['HORSE', 'GUN']) {
           const gqlType = type.charAt(0) + type.slice(1).toLowerCase()
           queries.push(
-            `(SELECT id::text, "startedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'New${gqlType}' AS type
+            Prisma.sql`(SELECT id::text, "startedAt" AS "sortTime", 0::INTEGER as "earnedSats", ${`New${gqlType}`}::TEXT AS type
             FROM "Streak"
-            WHERE "userId" = $1
-            AND updated_at < $2
-            AND type = '${type}'::"StreakType"
+            WHERE "userId" = ${me.id}::INTEGER
+            AND updated_at < ${decodedCursor.time}::TIMESTAMP
+            AND type = ${type}::"StreakType"
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT ${LIMIT}::INTEGER)`
           )
           queries.push(
-            `(SELECT id::text AS id, "endedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'Lost${gqlType}' AS type
+            Prisma.sql`(SELECT id::text AS id, "endedAt" AS "sortTime", 0::INTEGER as "earnedSats", ${`Lost${gqlType}`}::TEXT AS type
             FROM "Streak"
-            WHERE "userId" = $1
-            AND updated_at < $2
+            WHERE "userId" = ${me.id}::INTEGER
+            AND updated_at < ${decodedCursor.time}::TIMESTAMP
             AND "endedAt" IS NOT NULL
-            AND type = '${type}'::"StreakType"
+            AND type = ${type}::"StreakType"
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
+            LIMIT ${LIMIT}::INTEGER)`
           )
         }
       }
 
       queries.push(
-        `(SELECT "Sub".name::text, "Sub"."statusUpdatedAt" AS "sortTime", NULL::INTEGER as "earnedSats",
-          'SubStatus' AS type
+        Prisma.sql`(SELECT "Sub".name::text, "Sub"."statusUpdatedAt" AS "sortTime", NULL::INTEGER as "earnedSats",
+          ${'SubStatus'}::TEXT AS type
           FROM "Sub"
-          WHERE "Sub"."userId" = $1
+          WHERE "Sub"."userId" = ${me.id}::INTEGER
           AND "status" <> 'ACTIVE'
-          AND "statusUpdatedAt" < $2
+          AND "statusUpdatedAt" < ${decodedCursor.time}::TIMESTAMP
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT})`
+          LIMIT ${LIMIT}::INTEGER)`
       )
 
       queries.push(
-        `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL::INTEGER as "earnedSats", 'Reminder' AS type
+        Prisma.sql`(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL::INTEGER as "earnedSats", ${'Reminder'}::TEXT AS type
         FROM "Reminder"
-        WHERE "Reminder"."userId" = $1
-        AND "Reminder"."remindAt" < $2
+        WHERE "Reminder"."userId" = ${me.id}::INTEGER
+        AND "Reminder"."remindAt" < ${decodedCursor.time}::TIMESTAMP
         ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT})`
+        LIMIT ${LIMIT}::INTEGER)`
       )
 
       // payIns whose most recent attempt failed, are retried enough times,
       // are too old, or were manually cancelled
       queries.push(
-        `(SELECT "PayIn".id::text,
-          "PayIn"."payInStateChangedAt" AS "sortTime", 0::INTEGER as "earnedSats", 'PayInification' AS type
+        Prisma.sql`(SELECT "PayIn".id::text,
+          "PayIn"."payInStateChangedAt" AS "sortTime", 0::INTEGER as "earnedSats", ${'PayInification'}::TEXT AS type
           FROM "PayIn"
           WHERE "PayIn"."payInState" = 'FAILED'
           AND "PayIn"."payInType" IN (${PAY_IN_NOTIFICATION_TYPES_SQL})
-          AND "PayIn"."userId" = $1
+          AND "PayIn"."userId" = ${me.id}::INTEGER
           AND "PayIn"."successorId" IS NULL
           AND "PayIn"."benefactorId" IS NULL
-          AND "PayIn"."payInStateChangedAt" < $2
+          AND "PayIn"."payInStateChangedAt" < ${decodedCursor.time}::TIMESTAMP
           AND (
             "PayIn"."payInFailureReason" = 'USER_CANCELLED'
-            OR "PayIn"."payInStateChangedAt" <= now() - interval '${`${WALLET_RETRY_BEFORE_MS} milliseconds`}'
-            OR "PayIn"."retryCount" >= ${WALLET_MAX_RETRIES}::integer
+            OR "PayIn"."payInStateChangedAt" <= now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
+            OR "PayIn"."retryCount" >= ${WALLET_MAX_RETRIES}::INTEGER
           )
         ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT})`
+        LIMIT ${LIMIT}::INTEGER)`
       )
 
       queries.push(
-        `(SELECT "NotificationBulletin".id::text, "NotificationBulletin"."created_at" AS "sortTime", NULL::INTEGER as "earnedSats", 'Bulletinification' AS type
+        Prisma.sql`(SELECT "NotificationBulletin".id::text, "NotificationBulletin"."created_at" AS "sortTime", NULL::INTEGER as "earnedSats", ${'Bulletinification'}::TEXT AS type
         FROM "NotificationBulletin"
-        WHERE "NotificationBulletin"."created_at" < $2
+        WHERE "NotificationBulletin"."created_at" < ${decodedCursor.time}::TIMESTAMP
         ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT})`
+        LIMIT ${LIMIT}::INTEGER)`
       )
 
-      const notifications = await models.$queryRawUnsafe(
-        `SELECT id, "sortTime", "earnedSats", type,
+      const notifications = await models.$queryRaw(Prisma.sql`
+        SELECT id, "sortTime", "earnedSats", type,
             "sortTime" AS "minSortTime"
         FROM
-        (${queries.join(' UNION ALL ')}) u
+        (${Prisma.join(queries, ' UNION ALL ')}) u
         ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT}`, me.id, decodedCursor.time)
+        LIMIT ${LIMIT}::INTEGER`)
 
       if (decodedCursor.offset === 0) {
         models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } }).catch(console.error)

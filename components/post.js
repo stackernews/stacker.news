@@ -1,7 +1,7 @@
 import JobForm from './job-form'
 import Link from 'next/link'
 import Button, { buttonClasses } from '@/components/ui/button'
-import Alert from '@/components/ui/alert'
+import { Alert } from '@/components/ui/alert'
 import AccordionItem from './accordion-item'
 import { useMe } from './me'
 import { useRouter } from 'next/router'

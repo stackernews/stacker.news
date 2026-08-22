@@ -3,7 +3,7 @@ import { formatSats, msatsToSatsDecimal } from '@/lib/format'
 import { bolt11ExpiresAtFromDecoded, bolt11Section, safeDecodeBolt11 } from '@/lib/bolt11'
 import { timeLeft, timeSince } from '@/lib/time'
 import CopyChip, { Chip, chipClassName } from '@/components/copy-chip'
-import Collapsible from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from '@/components/ui/collapsible'
 import Link from 'next/link'
 import { nostrZapDetails } from '@/lib/nostr'
 import Text from '@/components/text'
@@ -56,15 +56,15 @@ export default function Bolt11Info ({
           {visibleAlways.map(chip => <InvoiceDetailChip key={chip.key} chip={chip} />)}
           {showMoreToggle && (
             <Collapsible open={expanded} onOpenChange={setExpanded} className='contents'>
-              <Collapsible.Panel className='contents'>
+              <CollapsiblePanel className='contents'>
                 {hiddenChips.map(chip => <InvoiceDetailChip key={chip.key} chip={chip} />)}
-              </Collapsible.Panel>
-              <Collapsible.Trigger
+              </CollapsiblePanel>
+              <CollapsibleTrigger
                 className={chipClassName({})}
                 title={expanded ? 'show fewer invoice details' : 'show more invoice details'}
               >
                 {expanded ? 'less' : `more ${hiddenChipCount}`}
-              </Collapsible.Trigger>
+              </CollapsibleTrigger>
             </Collapsible>
           )}
           {details?.commentText && (
@@ -147,12 +147,12 @@ function truncatedDescriptionLabel (description) {
 function ExpandableDetailPill ({ label, children, icon }) {
   return (
     <Collapsible className={styles.detailPill}>
-      <Collapsible.Trigger className={styles.detailPillButton} title='toggle details'>
+      <CollapsibleTrigger className={styles.detailPillButton} title='toggle details'>
         {icon}
         <span className={styles.detailPillLabel}>{label}</span>
         <span className={styles.detailPillIndicator} aria-hidden='true' />
-      </Collapsible.Trigger>
-      <Collapsible.Panel className={styles.detailPillBody}>{children}</Collapsible.Panel>
+      </CollapsibleTrigger>
+      <CollapsiblePanel className={styles.detailPillBody}>{children}</CollapsiblePanel>
     </Collapsible>
   )
 }

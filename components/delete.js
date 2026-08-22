@@ -1,15 +1,15 @@
 import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
 import { useState } from 'react'
-import Alert from '@/components/ui/alert'
+import { Alert } from '@/components/ui/alert'
 import Button from '@/components/ui/button'
-import Menu from '@/components/ui/menu'
+import { MenuItem } from '@/components/ui/menu'
 import { useShowModal } from './modal'
 import { useToast } from '@/components/ui/toast'
 
 /* the confirm-open lives in a hook so the handler can sit on the activating
    element itself: Delete's span hears bubbled clicks from in-tree children like
-   post.js's Button, but a portaled Menu.Item is no DOM descendant, so mouse
+   post.js's Button, but a portaled MenuItem is no DOM descendant, so mouse
    worked only through React's synthetic portal bubbling and Enter never arrived */
 export function useDeleteConfirm ({ itemId, onDelete, type = 'post' }) {
   const showModal = useShowModal()
@@ -104,8 +104,8 @@ export function DeleteConfirm ({ onConfirm, type }) {
 export function DeleteDropdownItem (props) {
   const showDeleteConfirm = useDeleteConfirm(props)
   return (
-    <Menu.Item onClick={showDeleteConfirm}>
+    <MenuItem onClick={showDeleteConfirm}>
       delete
-    </Menu.Item>
+    </MenuItem>
   )
 }

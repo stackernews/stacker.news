@@ -1,6 +1,6 @@
 import AccordionItem from './accordion-item'
 import Badge from '@/components/ui/badge'
-import { Checkbox, CheckboxGroup, Form, Input, InputGroup, SNInput, Range, RadioGroup, Radio, labelClasses } from './form'
+import { Checkbox, CheckboxGroup, Form, Input, InputAddon, SNInput, Range, RadioGroup, Radio, labelClasses } from './form'
 import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql } from '@apollo/client'
@@ -146,7 +146,7 @@ export default function TerritoryForm ({ sub }) {
           autoFocus
           clear
           maxLength={32}
-          prepend={<InputGroup.Text className='font-mono'>~</InputGroup.Text>}
+          prepend={<InputAddon className='font-mono'>~</InputAddon>}
           onChange={onNameChange}
           warn={archived && (
             <div className='flex items-center'>this territory is archived
@@ -172,7 +172,7 @@ export default function TerritoryForm ({ sub }) {
           name='baseCost'
           type='number'
           required
-          append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+          append={<InputAddon className='font-mono'>sats</InputAddon>}
         />
         <CheckboxGroup label='post types' name='postTypes'>
           <div className='grid grid-cols-3 sm:flex sm:flex-wrap sm:gap-x-8'>
@@ -269,7 +269,7 @@ export default function TerritoryForm ({ sub }) {
                 name='replyCost'
                 type='number'
                 required
-                append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+                append={<InputAddon className='font-mono'>sats</InputAddon>}
               />
               <SatFilterRanges />
               <label className={labelClasses()}>nsfw</label>

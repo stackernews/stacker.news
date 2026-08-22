@@ -1,6 +1,6 @@
 import Container from '@/components/ui/container'
 import { navLinkClasses } from '@/components/ui/nav'
-import Popover from '@/components/ui/popover'
+import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from '@/components/ui/popover'
 import { CopyInput } from './form'
 import styles from './footer.module.css'
 import Texas from '@/svgs/texas.svg'
@@ -24,10 +24,10 @@ import { useLiveCommentsToggle } from './use-live-comments'
 function FooterPopover ({ label, children }) {
   return (
     <Popover>
-      <Popover.Trigger nativeButton={false} render={<div className={navLinkClasses({ className: 'p-0 inline-flex cursor-pointer' })}>{label}</div>} />
-      <Popover.Content side='top'>
-        <Popover.Body className='font-medium'>{children}</Popover.Body>
-      </Popover.Content>
+      <PopoverTrigger nativeButton={false} render={<div className={navLinkClasses({ className: 'p-0 inline-flex cursor-pointer' })}>{label}</div>} />
+      <PopoverContent side='top'>
+        <PopoverBody className='font-medium'>{children}</PopoverBody>
+      </PopoverContent>
     </Popover>
   )
 }

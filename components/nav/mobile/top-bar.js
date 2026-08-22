@@ -1,4 +1,4 @@
-import Nav from '@/components/ui/nav'
+import { Nav } from '@/components/ui/nav'
 import styles from '../../header.module.css'
 import { cn } from '@/lib/cn'
 import { Back, NavPrice, NavSelect, NavWalletSummary, SignUpButton, hasNavSelect } from '../common'

@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import Popover from '@/components/ui/popover'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import GunIcon from '@/svgs/revolver.svg'
@@ -100,11 +100,11 @@ function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, heig
 export function BadgeTooltip ({ children, overlayText, placement }) {
   return (
     <Popover>
-      <Popover.Trigger render={children} nativeButton={false} openOnHover delay={0} />
+      <PopoverTrigger render={children} nativeButton={false} openOnHover delay={0} />
       {/* initialFocus={false}: a text-only hint must not yank focus on press */}
-      <Popover.Content side={placement || 'bottom'} initialFocus={false} className='py-1 px-2 text-center'>
+      <PopoverContent side={placement || 'bottom'} initialFocus={false} className='py-1 px-2 text-center'>
         {overlayText}
-      </Popover.Content>
+      </PopoverContent>
     </Popover>
   )
 }

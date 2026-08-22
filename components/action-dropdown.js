@@ -1,4 +1,4 @@
-import Menu from '@/components/ui/menu'
+import { Menu, MenuTrigger, MenuPopup } from '@/components/ui/menu'
 import styles from './item.module.css'
 import MoreIcon from '@/svgs/more-fill.svg'
 
@@ -9,8 +9,8 @@ export default function ActionDropdown ({ children }) {
   return (
     <Menu className={`pointer ${styles.dropdown}`}>
       {/* Base UI gives the rendered span button semantics. */}
-      <Menu.Trigger nativeButton={false} render={<span><MoreIcon className='fill-grey ms-1' height={16} width={16} /></span>} />
-      <Menu.Popup>{children}</Menu.Popup>
+      <MenuTrigger nativeButton={false} render={<span><MoreIcon className='fill-grey ms-1' height={16} width={16} /></span>} />
+      <MenuPopup>{children}</MenuPopup>
     </Menu>
   )
 }

@@ -1,4 +1,4 @@
-import Nav from '@/components/ui/nav'
+import { Nav } from '@/components/ui/nav'
 import Container from '@/components/ui/container'
 import styles from '../header.module.css'
 import { BackOrBrand, NavPrice, SearchItem } from './common'

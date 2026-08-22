@@ -4,7 +4,7 @@ import { useApolloClient } from '@apollo/client/react'
 import { Toggle } from '@base-ui/react/toggle'
 import { ToggleGroup } from '@base-ui/react/toggle-group'
 import { useField } from 'formik'
-import { Form, Input, InputGroup, SubmitButton } from './form'
+import { Form, Input, InputAddon, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema } from '@/lib/validate'
@@ -138,7 +138,7 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         step={step}
         required
         autoFocus
-        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
       />
 
       <Tips setOValue={setOValue} />

@@ -1,4 +1,4 @@
-import Alert from '@/components/ui/alert'
+import { Alert } from '@/components/ui/alert'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import sendStyles from './send.module.css'
 import classNames from 'classnames'

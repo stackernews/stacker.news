@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Checkbox, Form, Input, InputGroup, SubmitButton } from '@/components/form'
+import { Checkbox, Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import Info from '@/components/info'
 import { useData } from '@/components/use-data'
 import { utf8ByteLength, walletInvoiceSchema } from '@/lib/validate'
@@ -94,7 +94,7 @@ function WalletReceive ({ wallet, defaultProxyReceive }) {
                     max={max}
                     required
                     autoFocus
-                    append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+                    append={<InputAddon className='text-monospace'>sats</InputAddon>}
                   />
                   <Input
                     label='memo'

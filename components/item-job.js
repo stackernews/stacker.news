@@ -15,7 +15,7 @@ import { numWithUnits } from '@/lib/format'
 import { PayInInfo, InfoDropdownItem } from './item-info'
 import Boost from './boost-button'
 import ActionDropdown from './action-dropdown'
-import Menu from '@/components/ui/menu'
+import { MenuSeparator } from '@/components/ui/menu'
 import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
@@ -114,7 +114,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
                 <DontLikeThisDropdownItem item={item} />}
               {me && !item.mine &&
                 <>
-                  <Menu.Separator />
+                  <MenuSeparator />
                   <MuteDropdownItem user={item.user} />
                 </>}
             </ActionDropdown>

@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useField } from 'formik'
 import { useMutation, useQuery } from '@apollo/client/react'
-import { Checkbox, Form, Input, InputGroup, SubmitButton } from '@/components/form'
+import { Checkbox, Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import Info from '@/components/info'
 import { useToast } from '@/components/ui/toast'
 import { isNumber } from '@/lib/format'
@@ -112,7 +112,7 @@ function AutowithdrawSettings () {
         label='desired balance'
         name='autoWithdrawThreshold'
         hint={isNumber(sendThreshold) ? `will attempt autowithdrawal when your balance exceeds ${sendThreshold * 11} sats` : undefined}
-        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         required
         type='number'
         min={0}
@@ -132,7 +132,7 @@ function AutowithdrawSettings () {
           </div>
         }
         name='autoWithdrawMaxFeePercent'
-        append={<InputGroup.Text>%</InputGroup.Text>}
+        append={<InputAddon>%</InputAddon>}
         required
         type='number'
         min={0}
@@ -151,7 +151,7 @@ function AutowithdrawSettings () {
           </div>
         }
         name='autoWithdrawMaxFeeTotal'
-        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         required
         type='number'
         min={0}
@@ -178,7 +178,7 @@ function CowboyCreditsSettings () {
         }
         name='receiveCreditsBelowSats'
         required
-        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         type='number'
         min={0}
       />
@@ -196,7 +196,7 @@ function CowboyCreditsSettings () {
         }
         name='sendCreditsBelowSats'
         required
-        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         type='number'
         min={0}
       />

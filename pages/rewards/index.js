@@ -1,7 +1,7 @@
 import { gql } from 'graphql-tag'
 import Button from '@/components/ui/button'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, Input, InputGroup, SubmitButton } from '@/components/form'
+import { Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import Layout from '@/components/layout'
 import { useQuery } from '@apollo/client/react'
 import Link from 'next/link'
@@ -141,7 +141,7 @@ export function DonateButton () {
               type='number'
               required
               autoFocus
-              append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+              append={<InputAddon className='font-mono'>sats</InputAddon>}
             />
             <div className='flex'>
               <SubmitButton variant='success' className='ms-auto mt-1 px-6' value='TIP'>donate</SubmitButton>

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import classNames from 'classnames'
-import { Form, Input, InputGroup, SubmitButton } from '@/components/form'
+import { Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import { buttonClasses } from '@/components/ui/button'
 import { useShowModal } from '@/components/modal'
 import { useAnimation } from '@/components/animation'
@@ -118,7 +118,7 @@ function BuyCreditsAction () {
             type='number'
             required
             autoFocus
-            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+            append={<InputAddon className='font-mono'>sats</InputAddon>}
           />
           <div className='flex'>
             <SubmitButton variant='secondary' className='ms-auto mt-1 px-6'>buy</SubmitButton>

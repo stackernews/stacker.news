@@ -1,6 +1,6 @@
 export { Form, StorageKeyPrefixContext, SessionRequiredError } from './form'
 export { Input, ClientInput } from './input'
-export { default as InputGroup } from './input-group'
+export { InputAddon } from './input-addon'
 export { FormGroup, inputClasses, labelClasses, hintClasses, errorClasses } from './field'
 export { SubmitButton } from './submit-button'
 export { CopyButton, CopyInput } from './copy'

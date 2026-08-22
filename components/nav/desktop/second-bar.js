@@ -1,4 +1,4 @@
-import Nav from '@/components/ui/nav'
+import { Nav } from '@/components/ui/nav'
 import { cn } from '@/lib/cn'
 import { NavSelect, PostItem, Sorts, hasNavSelect } from '../common'
 import styles from '../../header.module.css'

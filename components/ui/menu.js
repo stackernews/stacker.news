@@ -16,7 +16,7 @@ export const itemClasses = ({ active, className } = {}) =>
   cn(styles.item, active && styles.active, 'block w-full py-1.5 px-6 font-medium whitespace-nowrap', className)
 
 // Menus do not lock page scroll.
-function Root ({ className, children, ...props }) {
+export function Menu ({ className, children, ...props }) {
   return (
     <span className={className}>
       <BaseMenu.Root modal={false} {...props}>{children}</BaseMenu.Root>
@@ -24,7 +24,7 @@ function Root ({ className, children, ...props }) {
   )
 }
 
-function Popup ({ side = 'bottom', align = 'start', sideOffset = 2, className, children }) {
+export function MenuPopup ({ side = 'bottom', align = 'start', sideOffset = 2, className, children }) {
   return (
     <BaseMenu.Portal>
       <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} className={styles.positioner}>
@@ -38,7 +38,7 @@ function Popup ({ side = 'bottom', align = 'start', sideOffset = 2, className, c
 
 // Items use Base UI semantics inside a popup and plain navigation semantics in
 // drawers. External targets use an anchor; internal routes use Next Link.
-function Item ({ href, target, rel, active, className, children, ...props }) {
+export function MenuItem ({ href, target, rel, active, className, children, ...props }) {
   const inMenu = useContext(InMenuContext)
   const cls = itemClasses({ active, className })
   if (!inMenu) {
@@ -58,11 +58,11 @@ function Item ({ href, target, rel, active, className, children, ...props }) {
   return <BaseMenu.Item className={cls} {...props}>{children}</BaseMenu.Item>
 }
 
-function Separator ({ className }) {
+export function MenuSeparator ({ className }) {
   const inMenu = useContext(InMenuContext)
   const cls = cn(styles.divider, 'my-2', className)
   // A div keeps separators visually consistent inside and outside popups.
   return inMenu ? <BaseMenu.Separator className={cls} /> : <div role='separator' className={cls} />
 }
 
-export default Object.assign(Root, { Trigger: BaseMenu.Trigger, Popup, Item, Separator })
+export const MenuTrigger = BaseMenu.Trigger

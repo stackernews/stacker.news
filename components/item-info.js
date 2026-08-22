@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useState } from 'react'
 import Badge from '@/components/ui/badge'
-import Menu from '@/components/ui/menu'
+import { MenuItem, MenuSeparator } from '@/components/ui/menu'
 import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import { newComments, commentsViewedAt } from '@/lib/new-comments'
@@ -202,17 +202,17 @@ export default function ItemInfo ({
               <CopyLinkDropdownItem item={item} />
               <InfoDropdownItem item={item} />
               {(item.parentId || item.text) && onQuoteReply &&
-                <Menu.Item onClick={onQuoteReply}>quote reply</Menu.Item>}
+                <MenuItem onClick={onQuoteReply}>quote reply</MenuItem>}
               {me && <BookmarkDropdownItem item={item} />}
               {me && <SubscribeDropdownItem item={item} />}
               {item.otsHash &&
-                <Menu.Item href={`/items/${item.id}/ots`}>
+                <MenuItem href={`/items/${item.id}/ots`}>
                   opentimestamp
-                </Menu.Item>}
+                </MenuItem>}
               {item?.noteId && (
-                <Menu.Item onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
+                <MenuItem onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
                   nostr note
-                </Menu.Item>
+                </MenuItem>
               )}
               {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
                 <CrosspostDropdownItem item={item} />}
@@ -222,29 +222,29 @@ export default function ItemInfo ({
               : <DontLikeThisDropdownItem item={item} />)}
               {item.mine && item.payIn?.id &&
                 <>
-                  <Menu.Separator />
-                  <Menu.Item href={`/transactions/${item.payIn?.id}`}>
+                  <MenuSeparator />
+                  <MenuItem href={`/transactions/${item.payIn?.id}`}>
                     view payment
-                  </Menu.Item>
+                  </MenuItem>
                 </>}
               {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
                 <>
-                  <Menu.Separator />
+                  <MenuSeparator />
                   <MuteSubDropdownItem item={item} sub={sub} />
                 </>}
               {canPin &&
                 <>
-                  <Menu.Separator />
+                  <MenuSeparator />
                   <PinSubDropdownItem item={item} />
                 </>}
               {item.mine && !item.position && !item.deletedAt && !item.bio &&
                 <>
-                  <Menu.Separator />
+                  <MenuSeparator />
                   <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
                 </>}
               {me && !item.mine &&
                 <>
-                  <Menu.Separator />
+                  <MenuSeparator />
                   <MuteDropdownItem user={item.user} />
                 </>}
             </ActionDropdown>
@@ -310,9 +310,9 @@ export function InfoDropdownItem ({ item }) {
   const showModal = useShowModal()
 
   return (
-    <Menu.Item onClick={() => showModal(() => <ItemDetails item={item} me={me} />)}>
+    <MenuItem onClick={() => showModal(() => <ItemDetails item={item} me={me} />)}>
       details
-    </Menu.Item>
+    </MenuItem>
   )
 }
 

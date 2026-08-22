@@ -1,6 +1,6 @@
 import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
-import Menu from '@/components/ui/menu'
+import { MenuItem } from '@/components/ui/menu'
 import { useToast } from '@/components/ui/toast'
 
 export default function BookmarkDropdownItem ({ item: { id, meBookmark } }) {
@@ -24,7 +24,7 @@ export default function BookmarkDropdownItem ({ item: { id, meBookmark } }) {
     }
   )
   return (
-    <Menu.Item
+    <MenuItem
       onClick={async () => {
         try {
           await bookmarkItem({ variables: { id } })
@@ -36,6 +36,6 @@ export default function BookmarkDropdownItem ({ item: { id, meBookmark } }) {
       }}
     >
       {meBookmark ? 'remove bookmark' : 'bookmark'}
-    </Menu.Item>
+    </MenuItem>
   )
 }

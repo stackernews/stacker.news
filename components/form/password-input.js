@@ -8,14 +8,14 @@ import { useToast } from '@/components/ui/toast'
 import PageLoading from '@/components/page-loading'
 import QrScanner from '@/components/qr-scanner'
 import { cn } from '@/lib/cn'
-import InputGroup from './input-group'
+import { InputAddon } from './input-addon'
 import { ClientInput } from './input'
 import { CopyButton } from './copy'
 import styles from './field.module.css'
 
 function PasswordHider ({ onClick, showPass }) {
   return (
-    <InputGroup.Text
+    <InputAddon
       style={{ cursor: 'pointer' }}
       onClick={onClick}
     >
@@ -26,7 +26,7 @@ function PasswordHider ({ onClick, showPass }) {
         : <EyeClose
             fill='var(--sn-body-color)' height={16} width={16}
           />}
-    </InputGroup.Text>
+    </InputAddon>
   )
 }
 
@@ -35,7 +35,7 @@ function PasswordScanner ({ onScan, text }) {
   const toaster = useToast()
 
   return (
-    <InputGroup.Text
+    <InputAddon
       style={{ cursor: 'pointer' }}
       onClick={() => {
         showModal(onClose => {
@@ -74,7 +74,7 @@ function PasswordScanner ({ onScan, text }) {
       <QrScanIcon
         height={20} width={20} fill='var(--sn-body-color)'
       />
-    </InputGroup.Text>
+    </InputAddon>
   )
 }
 

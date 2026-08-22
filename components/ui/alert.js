@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn'
 import styles from './alert.module.css'
 
-export default function Alert ({ variant, dismissible, onClose, className, children, ...props }) {
+export function Alert ({ variant, dismissible, onClose, className, children, ...props }) {
   return (
     <div
       role='alert'
@@ -15,14 +15,11 @@ export default function Alert ({ variant, dismissible, onClose, className, child
   )
 }
 
-function AlertHeading ({ className, ...props }) {
+export function AlertHeading ({ className, ...props }) {
   return <div className={cn('text-reset font-medium text-xl leading-tight mb-2', className)} {...props} />
 }
 
 // Alert links retain the surrounding alert color in every state.
-function AlertLink ({ className, ...props }) {
+export function AlertLink ({ className, ...props }) {
   return <a className={cn('font-bold text-reset', className)} {...props} />
 }
-
-Alert.Heading = AlertHeading
-Alert.Link = AlertLink

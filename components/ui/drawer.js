@@ -4,7 +4,7 @@ import styles from './drawer.module.css'
 
 // The mobile nav opens from the end and wallet sheets open from the bottom.
 // Both placements lock scroll, trap focus, and support directional dismissal.
-function Drawer ({ show, onHide, placement = 'end', className, children }) {
+export function Drawer ({ show, onHide, placement = 'end', className, children }) {
   return (
     <BaseDrawer.Root
       open={show}
@@ -31,7 +31,7 @@ function Drawer ({ show, onHide, placement = 'end', className, children }) {
   )
 }
 
-function Header ({ children }) {
+export function DrawerHeader ({ children }) {
   return (
     <div className='flex items-center p-8'>
       {children}
@@ -43,13 +43,11 @@ function Header ({ children }) {
   )
 }
 
-function Title ({ children }) {
+export function DrawerTitle ({ children }) {
   return <BaseDrawer.Title className='text-lg font-medium mb-0'>{children}</BaseDrawer.Title>
 }
 
 // Content separates clicks and text selection from the swipe layer.
-function Body ({ className, children }) {
+export function DrawerBody ({ className, children }) {
   return <BaseDrawer.Content className={cn('p-8 grow', className)}>{children}</BaseDrawer.Content>
 }
-
-export default Object.assign(Drawer, { Header, Title, Body })

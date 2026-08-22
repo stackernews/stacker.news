@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, Input, InputGroup, SubmitButton } from '@/components/form'
+import { Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import { utf8ByteLength, walletInvoiceSchema } from '@/lib/validate'
 import { CREATE_WALLET_INVOICE } from '@/wallets/client/fragments'
 import { WalletActionEmpty, WalletActionShell, WalletBottomBar, WalletRoutePage } from '@/wallets/client/components'
@@ -71,7 +71,7 @@ function WalletReceive ({ wallet }) {
             max={MAX_WALLET_INVOICE_SATS}
             required
             autoFocus
-            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+            append={<InputAddon className='font-mono'>sats</InputAddon>}
           />
           <FormikConsumer>
             {({ values }) => {

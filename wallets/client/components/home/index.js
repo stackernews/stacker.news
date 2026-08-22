@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import Drawer from '@/components/ui/drawer'
+import { Drawer, DrawerHeader, DrawerTitle, DrawerBody } from '@/components/ui/drawer'
 import classNames from 'classnames'
 import { useSetWalletPriorities, useTemplates, useWallets, useWalletSendReady } from '@/wallets/client/hooks'
 import { WalletShell } from '@/wallets/client/components'
@@ -134,12 +134,12 @@ function WalletBottomSheet ({ show, onHide, title, children }) {
   // height, radius and the 85svh cap live on ui/drawer's bottom placement
   return (
     <Drawer show={show} onHide={onHide} placement='bottom'>
-      <Drawer.Header>
-        <Drawer.Title>{title}</Drawer.Title>
-      </Drawer.Header>
-      <Drawer.Body className='px-4'>
+      <DrawerHeader>
+        <DrawerTitle>{title}</DrawerTitle>
+      </DrawerHeader>
+      <DrawerBody className='px-4'>
         {children}
-      </Drawer.Body>
+      </DrawerBody>
     </Drawer>
   )
 }

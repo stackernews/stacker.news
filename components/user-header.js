@@ -1,9 +1,9 @@
 import Button from '@/components/ui/button'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import Nav from '@/components/ui/nav'
+import { Nav, NavLink, NavItem } from '@/components/ui/nav'
 import { useState, useEffect } from 'react'
-import { Form, Input, InputGroup, SubmitButton } from './form'
+import { Form, Input, InputAddon, SubmitButton } from './form'
 import { gql } from '@apollo/client'
 import { useApolloClient, useMutation } from '@apollo/client/react'
 import styles from './user-header.module.css'
@@ -47,28 +47,28 @@ export default function UserHeader ({ user }) {
         className={navStyles.nav}
         activeKey={activeKey}
       >
-        <Nav.Item>
-          <Nav.Link href={'/' + user.name} eventKey='bio' className='py-0.5 pe-4 ps-0'>bio</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link href={'/' + user.name + '/all'} eventKey='items' className='py-0.5 pe-4 ps-0'>
+        <NavItem>
+          <NavLink href={'/' + user.name} eventKey='bio' className='py-0.5 pe-4 ps-0'>bio</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href={'/' + user.name + '/all'} eventKey='items' className='py-0.5 pe-4 ps-0'>
             {numWithUnits(user.nitems, {
               abbreviate: false,
               unitSingular: 'item',
               unitPlural: 'items'
             })}
-          </Nav.Link>
-        </Nav.Item>
+          </NavLink>
+        </NavItem>
         {showTerritoriesTab && (
-          <Nav.Item>
-            <Nav.Link href={'/' + user.name + '/territories'} eventKey='territories' className='py-0.5 pe-4 ps-0'>
+          <NavItem>
+            <NavLink href={'/' + user.name + '/territories'} eventKey='territories' className='py-0.5 pe-4 ps-0'>
               {numWithUnits(user.nterritories, {
                 abbreviate: false,
                 unitSingular: 'territory',
                 unitPlural: 'territories'
               })}
-            </Nav.Link>
-          </Nav.Item>
+            </NavLink>
+          </NavItem>
         )}
       </Nav>
     </>
@@ -157,7 +157,7 @@ function NymEdit ({ user, setEditting }) {
     >
       <div className='flex items-center mb-2'>
         <Input
-          prepend=<InputGroup.Text>@</InputGroup.Text>
+          prepend=<InputAddon>@</InputAddon>
           name='name'
           autoFocus
           groupClassName={styles.usernameForm}

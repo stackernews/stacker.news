@@ -99,7 +99,7 @@
   overflow: auto;
   border: 1px solid var(--sn-borderColor);
   border-radius: var(--wt-radius-xs);
-  background: var(--sn-body);
+  background: var(--sn-body-bg);
   color: var(--sn-body-color);
   white-space: pre-wrap;
 }

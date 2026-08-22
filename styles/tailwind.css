@@ -9,7 +9,7 @@
 @import 'tailwindcss/preflight.css' layer(base);
 @import 'tailwindcss/utilities.css' layer(utilities) source(none);
 
-/* Scan only directories that produce application class names. */
+/* Scan application UI and runtime content class sources. */
 @source '../components';
 @source '../pages';
 @source '../lib';
@@ -21,7 +21,7 @@
 @source not inline('table');
 
 /* Runtime text-color names are invisible to source scanning. */
-@source inline("text-{boost,secondary,warning}");
+@source inline("text-{boost,secondary,warning,success,danger,info,muted}");
 
 /* :where() keeps the dark variant at zero specificity. */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));

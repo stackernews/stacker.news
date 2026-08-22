@@ -348,7 +348,7 @@
   z-index: 1000;
   opacity: 0;
   transform: translate(-10000px, -10000px);
-  box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--sn-floating-toolbar-shadow-opacity));
+  box-shadow: 0 0 8px 0 rgb(0 0 0 / 15%);
   transition: opacity 0.2s ease-in-out;
   will-change: transform;
 }

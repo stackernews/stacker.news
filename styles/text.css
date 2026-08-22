@@ -62,7 +62,7 @@
 }
 
 .sn-text[contenteditable="false"] {
-  background-color: var(--sn-body) !important;
+  background-color: var(--sn-body-bg) !important;
 }
 
 .sn-text.topLevel {
@@ -353,7 +353,7 @@ span + .sn-link {
   user-select: none;
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
-  background-color: var(--sn-bg);
+  background-color: var(--sn-body-bg);
 }
 
 /* work in progress loading state */
@@ -396,7 +396,7 @@ span + .sn-link {
 .sn-spotify-wrapper {
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
-  background-color: var(--sn-bg);
+  background-color: var(--sn-body-bg);
 }
 
 /* twitter and nostr */

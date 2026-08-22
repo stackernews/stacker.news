@@ -61,8 +61,7 @@
   --sn-toolbarHover: rgba(0, 0, 0, 0.20);
   --sn-quoteBar: rgb(206, 208, 212);
   --sn-linkHover: #004a72;
-  /* the invalid value leaves light-theme visited links on inherited color */
-  --sn-linkVisited: #53758;
+  --sn-linkVisited: #53758e;
   --sn-note-reply: rgba(0, 0, 0, 0.04);
   --sn-note-fresh: rgba(0, 124, 190, 0.5);
 
@@ -97,7 +96,6 @@
   --sn-link: #2e99d1;
   --sn-toolbarActive: rgba(255, 255, 255, 0.10);
   --sn-toolbarHover: rgba(255, 255, 255, 0.20);
-  --sn-toolbar: #3e3f3f;
   --sn-quoteBar: rgb(158, 159, 163);
   --sn-linkHover: #007cbe;
   --sn-linkVisited: #56798E;

@@ -12,11 +12,11 @@ export function Popover (props) {
   return <BasePopover.Root {...props} /> // modal already defaults false
 }
 
-export function PopoverContent ({ side = 'bottom', align = 'center', sideOffset = 8, anchor, initialFocus, finalFocus, className, children }) {
+export function PopoverContent ({ side = 'bottom', align = 'center', sideOffset = 8, anchor, initialFocus, finalFocus, className, children, ...props }) {
   return (
     <BasePopover.Portal>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} className={styles.positioner}>
-        <BasePopover.Popup initialFocus={initialFocus} finalFocus={finalFocus} className={popoverClasses({ className })}>
+        <BasePopover.Popup {...props} initialFocus={initialFocus} finalFocus={finalFocus} className={popoverClasses({ className })}>
           <BasePopover.Arrow className={arrowStyles.arrow} />
           {children}
         </BasePopover.Popup>
@@ -25,9 +25,8 @@ export function PopoverContent ({ side = 'bottom', align = 'center', sideOffset 
   )
 }
 
-// h4 matches the DOM at the only header consumer, upvote passed as='h4'
 export function PopoverHeader ({ className, children }) {
-  return <h4 className={cn(styles.header, 'flex justify-between items-center py-1.5 px-4 mb-0 text-base font-medium', className)}>{children}</h4>
+  return <BasePopover.Title render={<h4 />} className={cn(styles.header, 'flex justify-between items-center py-1.5 px-4 mb-0 text-base font-medium', className)}>{children}</BasePopover.Title>
 }
 
 export function PopoverBody ({ className, children }) {

@@ -26,7 +26,7 @@ export function CopyButton ({ value, icon, append, className, ...props }) {
 
   if (icon) {
     return (
-      <InputAddon style={{ cursor: 'pointer' }} onClick={handleClick}>
+      <InputAddon aria-label='Copy' onClick={handleClick}>
         <Clipboard height={20} width={20} />
       </InputAddon>
     )
@@ -34,9 +34,9 @@ export function CopyButton ({ value, icon, append, className, ...props }) {
 
   if (append) {
     return (
-      <span className={cn(styles.appendButton, className)} {...props} onClick={handleClick}>
+      <button type='button' aria-label='Copy' className={cn(styles.appendButton, 'bg-transparent border-0 p-0 cursor-pointer', className)} {...props} onClick={handleClick}>
         {append}
-      </span>
+      </button>
     )
   }
 

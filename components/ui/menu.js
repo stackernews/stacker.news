@@ -43,7 +43,7 @@ export function MenuItem ({ href, target, rel, active, className, children, ...p
   const cls = itemClasses({ active, className })
   if (!inMenu) {
     if (href) {
-      return <Link href={href} target={target} rel={rel} className={cls} {...props}>{children}</Link>
+      return <Link href={href} target={target} rel={rel} aria-current={active ? 'page' : undefined} className={cls} {...props}>{children}</Link>
     }
     // Passive wrappers stay divs so nested controls do not become interactive
     // elements inside a button.
@@ -53,7 +53,7 @@ export function MenuItem ({ href, target, rel, active, className, children, ...p
   }
   if (href) {
     const link = target ? <a href={href} target={target} rel={rel} /> : <Link href={href} />
-    return <BaseMenu.LinkItem closeOnClick render={link} className={cls} {...props}>{children}</BaseMenu.LinkItem>
+    return <BaseMenu.LinkItem closeOnClick render={link} aria-current={active ? 'page' : undefined} className={cls} {...props}>{children}</BaseMenu.LinkItem>
   }
   return <BaseMenu.Item className={cls} {...props}>{children}</BaseMenu.Item>
 }

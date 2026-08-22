@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { useField } from 'formik'
 import { Slider as BaseSlider } from '@base-ui/react/slider'
 import { NumberField } from '@base-ui/react/number-field'
@@ -24,6 +24,7 @@ export function Range ({
   suffix, allOption, labels, ...props
 }) {
   const [field, meta, helpers] = useField(props)
+  const labelId = useId()
   const isAll = allOption && field.value == null
   const sliderMin = allOption ? min - step : min
 
@@ -60,8 +61,8 @@ export function Range ({
   )
 
   return (
-    <FormGroup label={label} className={groupClassName}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', columnGap: '1rem', alignItems: 'center' }}>
+    <FormGroup label={label} labelId={labelId} className={groupClassName}>
+      <div role='group' aria-labelledby={label ? labelId : undefined} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', columnGap: '1rem', alignItems: 'center' }}>
         {allOption
           ? <span className='text-muted' style={{ whiteSpace: 'nowrap' }}>- <span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>
           : <small className='text-muted font-mono'>{min}</small>}

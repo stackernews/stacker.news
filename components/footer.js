@@ -25,7 +25,7 @@ function FooterPopover ({ label, children }) {
   return (
     <Popover>
       <PopoverTrigger nativeButton={false} render={<div className={navLinkClasses({ className: 'p-0 inline-flex cursor-pointer' })}>{label}</div>} />
-      <PopoverContent side='top'>
+      <PopoverContent side='top' aria-label={label}>
         <PopoverBody className='font-medium'>{children}</PopoverBody>
       </PopoverContent>
     </Popover>

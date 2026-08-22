@@ -102,7 +102,7 @@ export function BadgeTooltip ({ children, overlayText, placement }) {
     <Popover>
       <PopoverTrigger render={children} nativeButton={false} openOnHover delay={0} />
       {/* initialFocus={false}: a text-only hint must not yank focus on press */}
-      <PopoverContent side={placement || 'bottom'} initialFocus={false} className='py-1 px-2 text-center'>
+      <PopoverContent side={placement || 'bottom'} initialFocus={false} aria-label='Badge details' className='py-1 px-2 text-center'>
         {overlayText}
       </PopoverContent>
     </Popover>

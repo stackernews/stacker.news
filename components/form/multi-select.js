@@ -35,12 +35,13 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
   }, [items])
 
   const currentValue = field.value || props.value || []
+  const id = props.id || props.name
   const controlSize = size === 'sm' ? 'sm' : 'md'
   const triggerIconSize = size === 'sm' ? 16 : size === 'lg' ? 24 : 20
   const clearIconSize = size === 'sm' ? 14 : size === 'lg' ? 20 : 16
 
   return (
-    <FormGroup label={label} className={groupClassName}>
+    <FormGroup label={label} htmlFor={id} className={groupClassName}>
       <span className='flex items-center'>
         <Combobox.Root
           multiple name={field.name} items={options} value={currentValue}
@@ -54,18 +55,24 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
                   <>
                     {vals.map(v => (
                       <Combobox.Chip key={v} className={styles.chip}>
-                        <span
-                          className={cn('font-bold text-xs py-0.5', onValueClick && 'cursor-pointer')}
-                          onMouseDown={e => { if (onValueClick) { e.preventDefault(); e.stopPropagation(); onValueClick(v) } }}
-                        >
-                          {v}
-                        </span>
+                        {onValueClick
+                          ? (
+                            <button
+                              type='button'
+                              className='font-bold text-xs py-0.5 cursor-pointer border-0 bg-transparent'
+                              onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
+                              onClick={e => { e.stopPropagation(); onValueClick(v) }}
+                            >
+                              {v}
+                            </button>
+                            )
+                          : <span className='font-bold text-xs py-0.5'>{v}</span>}
                         <Combobox.ChipRemove aria-label={`Remove ${v}`} className='px-1 cursor-pointer border-0 bg-transparent'>
                           <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-grey' />
                         </Combobox.ChipRemove>
                       </Combobox.Chip>
                     ))}
-                    <Combobox.Input placeholder={vals.length ? '' : placeholder} className='flex-1 min-w-15 border-0 bg-transparent outline-none p-0' />
+                    <Combobox.Input id={id} placeholder={vals.length ? '' : placeholder} className='flex-1 min-w-15 border-0 bg-transparent outline-none p-0' />
                   </>
                 )}
               </Combobox.Value>

@@ -75,6 +75,7 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
       {(accounts.length > 1 || !account) && (
         <Menu className='flex shrink-0'>
           <MenuTrigger
+            aria-label='Select account'
             title='select account'
             className={cn(buttonClasses({ variant: 'success' }), 'rounded-s-none w-10 px-0 shrink-0 flex items-center justify-center')}
           >

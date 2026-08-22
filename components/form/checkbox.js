@@ -11,7 +11,7 @@ const CheckboxGroupContext = createContext(false)
 
 export function Checkbox ({
   children, label, groupClassName, type = 'checkbox',
-  hiddenLabel, extra, handleChange, inline, disabled, ...props
+  hiddenLabel, extra, handleChange, inline, disabled, checked, ...props
 }) {
   const inGroup = useContext(CheckboxGroupContext)
   // Passing type lets Formik derive checked from array membership when the
@@ -29,7 +29,7 @@ export function Checkbox ({
           id={id}
           {...props}
           disabled={disabled}
-          checked={!!field.checked}
+          checked={checked ?? !!field.checked}
           className={cn(styles.checkInput, styles.checkbox, invalid && styles.invalid)}
           onCheckedChange={(checked) => {
             // The group writes its array through onValueChange, leaving one

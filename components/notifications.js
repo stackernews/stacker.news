@@ -840,12 +840,21 @@ export function NotificationAlert () {
           </Alert>
           )
         : (
-          <Form className={`flex justify-end ${supported ? 'visible' : 'invisible'}`} initial={{ pushNotify: hasSubscription }}>
+          <Form className={`flex justify-end ${supported ? 'visible' : 'invisible'}`} initial={{ pushNotify: hasSubscription }} enableReinitialize>
             <Checkbox
               name='pushNotify' label={<span className='text-muted'>push notifications</span>}
               groupClassName={`${styles.subFormGroup} mb-1 sm:me-4 me-0`}
-              inline checked={hasSubscription} handleChange={async () => {
-                await sw.togglePushSubscription().catch(setError)
+              inline checked={hasSubscription} handleChange={async (checked, setValue) => {
+                try {
+                  await sw.togglePushSubscription()
+                  const subscription = await sw.registration?.pushManager.getSubscription()
+                  const subscribed = sw.registration ? !!subscription : checked
+                  setHasSubscription(subscribed)
+                  setValue(subscribed)
+                } catch (err) {
+                  setValue(hasSubscription)
+                  setError(err)
+                }
               }}
             />
           </Form>

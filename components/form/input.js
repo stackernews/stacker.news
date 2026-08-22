@@ -15,7 +15,7 @@ import styles from './field.module.css'
 export function InputInner ({
   prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength, hideError,
-  AppendColumn, size, ...props
+  AppendColumn, size, className, ...props
 }) {
   const { field, meta, helpers, formik, invalid } = useFormikField(props, { noForm })
   const { storageKey } = useFieldDraft(props.name)
@@ -103,6 +103,7 @@ export function InputInner ({
                 ref={innerRef}
                 {...field}
                 {...inputProps}
+                id={props.id || props.name}
                 render={as === 'textarea' ? <textarea /> : undefined}
                 onKeyDown={onKeyDownInner}
                 onChange={onChangeInner}
@@ -112,12 +113,13 @@ export function InputInner ({
                   size,
                   // pe-10 insets the text off the validation icon; it must be a
                   // utility because a module padding-right loses to px-4
-                  className: cn('flex-1 w-auto min-w-0', ((!hideError && invalid) || isValid) && 'pe-10')
+                  className: cn('flex-1 w-auto min-w-0', ((!hideError && invalid) || isValid) && 'pe-10', className)
                 })}
               />
               {(isClient && clear && field.value && !props.readOnly) && (
                 <button
                   type='button'
+                  aria-label='Clear'
                   onClick={(e) => {
                     helpers.setValue('')
                     if (storageKey) {
@@ -163,7 +165,7 @@ export function InputInner ({
 
 export function Input ({ label, groupClassName, under, ...props }) {
   return (
-    <FormGroup label={label} className={groupClassName}>
+    <FormGroup label={label} htmlFor={props.id || props.name} className={groupClassName}>
       <InputInner {...props} />
       {under}
     </FormGroup>

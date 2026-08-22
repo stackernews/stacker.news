@@ -68,7 +68,6 @@ export default function Referrals ({ ssrData }) {
             groupClassName='mb-0 mx-2'
             className='w-auto'
             name='when'
-            size='sm'
             items={WHENS}
             value={router.query.when || 'day'}
             noForm

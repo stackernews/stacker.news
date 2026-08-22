@@ -4,12 +4,6 @@
  * that call sites are expected to customize. Element defaults live in base.css.
  */
 
-@media screen and (min-width: 899px) {
-  .standalone {
-    /* undo the container padding */
-    margin-left: -16px;
-  }
-}
 html {
   scroll-padding-top: 60px;
   /* editor needs more padding to keep its toolbar visible when focused */
@@ -27,15 +21,6 @@ html:has([data-sn-editor]:focus) {
   box-shadow: 0 0 10px var(--sn-primary), 0 0 5px var(--sn-primary) !important;
 }
 
-.standalone {
-  display: none;
-}
-
-@media (display-mode: standalone) {
-  .standalone {
-    display: flex;
-  }
-}
 .justify-self-center {
   justify-self: center;
 }
@@ -59,10 +44,6 @@ html:has([data-sn-editor]:focus) {
 
 .text-primary svg {
   fill: var(--sn-primary);
-}
-
-.lexical blockquote > * {
-  margin-bottom: 0 !important;
 }
 
 .twitter-tweet {
@@ -217,29 +198,8 @@ html, body {
   animation: spin 2s linear infinite;
 }
 
-.static {
-  background: url("/giphy.gif");
-  background-color: var(--sn-grey);
-  background-repeat: repeat;
-  background-origin: content-box;
-  background-size: cover;
-  background-attachment: fixed;
-  opacity: 0.1;
-}
-
 .topLevel {
   --grid-gap: 0.75rem;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
 }
 
 .react-datepicker-wrapper {

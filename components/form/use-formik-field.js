@@ -1,7 +1,7 @@
 import { useField, useFormikContext } from 'formik'
 
-// the InputInner validation contract: invalid paints only after a submit
-// attempt, and noForm short-circuits the whole formik binding
+// invalid paints only after a submit attempt,
+// and noForm short-circuits the whole formik binding
 export function useFormikField (props, { noForm = false } = {}) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()

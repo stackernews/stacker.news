@@ -1,4 +1,4 @@
-import Menu from '@/components/ui/menu'
+import { MenuItem } from '@/components/ui/menu'
 import ShareIcon from '@/svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import useCrossposter from './use-crossposter'
@@ -69,13 +69,13 @@ export function CopyLinkDropdownItem ({ item }) {
   }
 
   return (
-    <Menu.Item
+    <MenuItem
       onClick={async () => {
         await share(item.title || '', url, toaster)
       }}
     >
       copy link
-    </Menu.Item>
+    </MenuItem>
   )
 }
 
@@ -93,8 +93,8 @@ export function CrosspostDropdownItem ({ item }) {
   }
 
   return (
-    <Menu.Item onClick={handleCrosspostClick}>
+    <MenuItem onClick={handleCrosspostClick}>
       crosspost to nostr
-    </Menu.Item>
+    </MenuItem>
   )
 }

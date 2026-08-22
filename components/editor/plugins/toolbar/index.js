@@ -6,7 +6,7 @@ import menuStyles from '@/components/ui/menu.module.css'
 import { cn } from '@/lib/cn'
 import { Toolbar } from '@base-ui/react/toolbar'
 import { Menu as BaseMenu } from '@base-ui/react/menu'
-import Menu from '@/components/ui/menu'
+import { Menu, MenuTrigger } from '@/components/ui/menu'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
@@ -75,14 +75,14 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
     <ActionTooltip notForm overlayText={tooltip} placement='top' showDelay={showDelay} disable={dropdownOpen}>
       {/* The tooltip wrapper provides the anchor shared with Menu. */}
       <Menu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-        <Menu.Trigger
+        <MenuTrigger
           onPointerDown={e => e.preventDefault()} /* keeps the Lexical selection; also suppresses Base UI's mousedown-open… */
           onClick={() => setDropdownOpen(o => !o)} /* …so the click toggle drives open */
           render={<Toolbar.Button className={classNames(styles.toolbarItem, dropdownOpen && styles.active)} />}
         >
           {icon}
           {arrow && <ArrowDownIcon />}
-        </Menu.Trigger>
+        </MenuTrigger>
         <BaseMenu.Portal>
           <BaseMenu.Positioner side='top' align='start' sideOffset={2} className={menuStyles.positioner}>
             <BaseMenu.Popup finalFocus={false} className={cn(menuStyles.popup, dropdownStyles.dropdownExtra, 'shadow-lg')}>

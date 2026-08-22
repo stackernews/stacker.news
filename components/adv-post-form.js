@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import AccordionItem from './accordion-item'
-import { Input, InputGroup, InputUserSuggest, VariableInput, Checkbox } from './form'
+import { Input, InputAddon, InputUserSuggest, VariableInput, Checkbox } from './form'
 import { MAX_FORWARDS } from '@/lib/constants'
 import { DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import Info from './info'
@@ -119,7 +119,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
                 <div key={index} className='flex flex-row'>
                   <InputUserSuggest
                     name={`forward[${index}].nym`}
-                    prepend={<InputGroup.Text>@</InputGroup.Text>}
+                    prepend={<InputAddon>@</InputAddon>}
                     showValid
                     groupClassName={`${styles.name} me-4 mb-0`}
                   />
@@ -129,7 +129,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
                     step={5}
                     min={1}
                     max={100}
-                    append={<InputGroup.Text className='font-mono'>%</InputGroup.Text>}
+                    append={<InputAddon className='font-mono'>%</InputAddon>}
                     groupClassName={`${styles.percent} mb-0`}
                     AppendColumn={AppendColumn}
                   />

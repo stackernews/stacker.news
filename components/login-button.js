@@ -3,7 +3,7 @@ import TwitterIcon from '@/svgs/twitter-fill.svg'
 import LightningIcon from '@/svgs/bolt.svg'
 import NostrIcon from '@/svgs/nostr.svg'
 import Button, { buttonClasses } from '@/components/ui/button'
-import Menu from '@/components/ui/menu'
+import { Menu, MenuTrigger, MenuPopup } from '@/components/ui/menu'
 import { Menu as BaseMenu } from '@base-ui/react/menu'
 import useCookie from './use-cookie'
 import { cookieOptions, MULTI_AUTH_POINTER } from '@/lib/auth'
@@ -74,14 +74,14 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
       </Button>
       {(accounts.length > 1 || !account) && (
         <Menu className='flex shrink-0'>
-          <Menu.Trigger
+          <MenuTrigger
             title='select account'
             className={cn(buttonClasses({ variant: 'success' }), 'rounded-s-none w-10 px-0 shrink-0 flex items-center justify-center')}
           >
             <ArrowDownIcon width={16} height={16} />
-          </Menu.Trigger>
+          </MenuTrigger>
           {/* This account popup uses the compact editor-dropdown skin. */}
-          <Menu.Popup align='end' className={cn(styles.dropdownExtra, 'w-40 p-2 rounded-md')}>
+          <MenuPopup align='end' className={cn(styles.dropdownExtra, 'w-40 p-2 rounded-md')}>
             {accounts.map(account => (
               // The skin owns item metrics, so this popup composes the Base UI
               // primitive without the house Menu item recipe.
@@ -95,7 +95,7 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
                 <span className={styles.dropdownExtraItemText}>{account.name}</span>
               </BaseMenu.Item>
             ))}
-          </Menu.Popup>
+          </MenuPopup>
         </Menu>
       )}
     </div>

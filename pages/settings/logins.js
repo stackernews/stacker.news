@@ -1,5 +1,5 @@
 import { Form, Input, SubmitButton, CopyInput, labelClasses } from '@/components/form'
-import Alert from '@/components/ui/alert'
+import { Alert } from '@/components/ui/alert'
 import Button from '@/components/ui/button'
 import Layout from '@/components/layout'
 import { useState } from 'react'

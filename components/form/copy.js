@@ -5,7 +5,7 @@ import Clipboard from '@/svgs/clipboard-line.svg'
 import { useToast } from '@/components/ui/toast'
 import Button from '@/components/ui/button'
 import { cn } from '@/lib/cn'
-import InputGroup from './input-group'
+import { InputAddon } from './input-addon'
 import { Input } from './input'
 import styles from './field.module.css'
 
@@ -26,9 +26,9 @@ export function CopyButton ({ value, icon, append, className, ...props }) {
 
   if (icon) {
     return (
-      <InputGroup.Text style={{ cursor: 'pointer' }} onClick={handleClick}>
+      <InputAddon style={{ cursor: 'pointer' }} onClick={handleClick}>
         <Clipboard height={20} width={20} />
-      </InputGroup.Text>
+      </InputAddon>
     )
   }
 

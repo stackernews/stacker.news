@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Input, InputGroup } from '@/components/form'
-import Collapsible from '@/components/ui/collapsible'
+import { Input, InputAddon } from '@/components/form'
+import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from '@/components/ui/collapsible'
 import CloseIcon from '@/svgs/close-line.svg'
 import EditIcon from '@/svgs/edit-line.svg'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
@@ -32,15 +32,15 @@ function MaxFeeField () {
         <span className={classNames(styles.maxFeeLabel, 'text-muted font-mono')}>
           max fee
         </span>
-        <Collapsible.Trigger
+        <CollapsibleTrigger
           className={classNames(styles.chip, styles.maxFeeControl, showMaxFee && styles.chipActive, 'font-mono')}
         >
           <span className={styles.maxFeeAmount}>{value}</span>
           <span className={classNames(styles.maxFeeUnit, 'text-muted')}>sats</span>
           <ToggleIcon className={classNames(styles.maxFeeIcon, 'text-muted')} width={18} height={18} aria-hidden />
-        </Collapsible.Trigger>
+        </CollapsibleTrigger>
       </div>
-      <Collapsible.Panel>
+      <CollapsiblePanel>
         <Input
           label='max fee'
           name='maxFee'
@@ -48,9 +48,9 @@ function MaxFeeField () {
           type='number'
           step={10}
           required
-          append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+          append={<InputAddon className='font-mono'>sats</InputAddon>}
         />
-      </Collapsible.Panel>
+      </CollapsiblePanel>
     </Collapsible>
   )
 }

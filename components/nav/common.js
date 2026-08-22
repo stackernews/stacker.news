@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import Nav, { navLinkClasses } from '@/components/ui/nav'
+import { NavLink, NavItem, navLinkClasses } from '@/components/ui/nav'
 import Button, { buttonClasses } from '@/components/ui/button'
-import Menu from '@/components/ui/menu'
+import { Menu, MenuTrigger, MenuPopup, MenuItem, MenuSeparator } from '@/components/ui/menu'
 import styles from '../header.module.css'
 import { useRouter } from 'next/router'
 import BackArrow from '../../svgs/arrow-left-line.svg'
@@ -92,17 +92,17 @@ export function BackOrBrand ({ className }) {
 
 export function SearchItem ({ className }) {
   return (
-    <Nav.Link href='/search' eventKey='search' className={classNames('py-0.5 px-2', className)}>
+    <NavLink href='/search' eventKey='search' className={classNames('py-0.5 px-2', className)}>
       <SearchIcon className='theme' width={22} height={28} />
-    </Nav.Link>
+    </NavLink>
   )
 }
 
 export function NavPrice ({ className }) {
   return (
-    <Nav.Item className={classNames(styles.price, className)}>
+    <NavItem className={classNames(styles.price, className)}>
       <Price className={navLinkClasses({ className: 'py-0.5 px-2 font-mono' })} />
-    </Nav.Item>
+    </NavItem>
   )
 }
 
@@ -112,12 +112,12 @@ export function NavSelect ({ sub: subName, className, size }) {
   const sub = subName || 'home'
 
   return (
-    <Nav.Item className={className}>
+    <NavItem className={className}>
       <SubSelect
         sub={sub} prependSubs={PREPEND_SUBS} appendSubs={APPEND_SUBS} noForm
         groupClassName='mb-0' size={size}
       />
-    </Nav.Item>
+    </NavItem>
   )
 }
 
@@ -126,11 +126,11 @@ export function NavNotifications ({ className }) {
 
   return (
     <>
-      <Nav.Link href='/notifications' eventKey='notifications' className={classNames('py-0.5 px-2', className)}>
+      <NavLink href='/notifications' eventKey='notifications' className={classNames('py-0.5 px-2', className)}>
         <Indicator show={hasNewNotes} top='2px' right='0px' variant='danger'>
           <NoteIcon height={28} width={20} className='theme' />
         </Indicator>
-      </Nav.Link>
+      </NavLink>
     </>
   )
 }
@@ -152,11 +152,11 @@ export function NavWalletSummary ({ className }) {
   const { me } = useMe()
 
   return (
-    <Nav.Item className={className}>
-      <Nav.Link href='/wallets' eventKey='wallets' className='text-success font-mono py-0.5 px-0 whitespace-nowrap'>
+    <NavItem className={className}>
+      <NavLink href='/wallets' eventKey='wallets' className='text-success font-mono py-0.5 px-0 whitespace-nowrap'>
         <WalletSummary me={me} />
-      </Nav.Link>
-    </Nav.Item>
+      </NavLink>
+    </NavItem>
   )
 }
 
@@ -189,34 +189,34 @@ export function MeDropdown ({ me, dropNavKey }) {
   return (
     <div className='ms-2'>
       <Menu className={styles.dropdown}>
-        <Menu.Trigger className={navLinkClasses({ className: 'font-normal ps-0 pe-2 py-0.5' })}>
+        <MenuTrigger className={navLinkClasses({ className: 'font-normal ps-0 pe-2 py-0.5' })}>
           <div className='flex items-center'>
-            {/* never interactive, the Menu.Trigger owns the semantics; active
+            {/* never interactive, the MenuTrigger owns the semantics; active
                 resolves from topKey */}
             <span className={navLinkClasses({ active: topKey === me.name, className: 'p-0' })}>
               <Indicator show={indicator} top='2px' right='-5px'>@{me.name}</Indicator>
             </span>
             <Badges user={me} className='ms-1' height={16} width={14} />
           </div>
-        </Menu.Trigger>
-        <Menu.Popup align='end'>
-          <Menu.Item href={'/' + me.name} active={me.name === dropNavKey}>
+        </MenuTrigger>
+        <MenuPopup align='end'>
+          <MenuItem href={'/' + me.name} active={me.name === dropNavKey}>
             <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
-          </Menu.Item>
-          <Menu.Item href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Menu.Item>
-          <Menu.Item href='/wallets' active={topKey === 'wallets'}>
+          </MenuItem>
+          <MenuItem href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</MenuItem>
+          <MenuItem href='/wallets' active={topKey === 'wallets'}>
             <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
-          </Menu.Item>
-          <Menu.Item href='/satistics' active={topKey === 'satistics'}>satistics</Menu.Item>
-          <Menu.Separator />
-          <Menu.Item href='/invites' active={topKey === 'invites'}>invites</Menu.Item>
-          <Menu.Separator />
+          </MenuItem>
+          <MenuItem href='/satistics' active={topKey === 'satistics'}>satistics</MenuItem>
+          <MenuSeparator />
+          <MenuItem href='/invites' active={topKey === 'invites'}>invites</MenuItem>
+          <MenuSeparator />
           <div className='flex items-center'>
-            <Menu.Item href='/settings' active={topKey === 'settings'}>settings</Menu.Item>
+            <MenuItem href='/settings' active={topKey === 'settings'}>settings</MenuItem>
           </div>
-          <Menu.Separator />
+          <MenuSeparator />
           <LogoutDropdownItem />
-        </Menu.Popup>
+        </MenuPopup>
       </Menu>
     </div>
   )
@@ -312,21 +312,21 @@ export function LogoutDropdownItem ({ handleClose, className }) {
 
   return (
     <>
-      <Menu.Item
+      <MenuItem
         className={className} onClick={() => {
           handleClose?.()
           showModal(onClose => <SwitchAccountList onClose={onClose} />)
         }}
       >switch account
-      </Menu.Item>
-      <Menu.Item
+      </MenuItem>
+      <MenuItem
         className={className}
         onClick={async () => {
           handleClose?.()
           showModal(onClose => <LogoutObstacle onClose={onClose} />)
         }}
       >logout
-      </Menu.Item>
+      </MenuItem>
     </>
   )
 }
@@ -360,15 +360,15 @@ function SwitchAccountButton ({ handleClose }) {
 export function LoginButtons ({ handleClose, className }) {
   return (
     <>
-      <Menu.Item className={classNames('py-1', className)}>
+      <MenuItem className={classNames('py-1', className)}>
         <LoginButton />
-      </Menu.Item>
-      <Menu.Item className={classNames('py-1', className)}>
+      </MenuItem>
+      <MenuItem className={classNames('py-1', className)}>
         <SignUpButton className='py-1' />
-      </Menu.Item>
-      <Menu.Item className={classNames('py-1', className)}>
+      </MenuItem>
+      <MenuItem className={classNames('py-1', className)}>
         <SwitchAccountButton handleClose={handleClose} />
-      </Menu.Item>
+      </MenuItem>
     </>
   )
 }
@@ -377,14 +377,14 @@ export function AnonDropdown () {
   return (
     <div className='relative'>
       <Menu className={classNames(styles.dropdown, 'pe-0')}>
-        <Menu.Trigger className={navLinkClasses({ className: 'font-medium ps-0 pe-0 py-0.5' })}>
+        <MenuTrigger className={navLinkClasses({ className: 'font-medium ps-0 pe-0 py-0.5' })}>
           <span className={navLinkClasses({ className: 'p-0 font-normal' })}>
             @anon<Badges user={{ id: USER_ID.anon }} />
           </span>
-        </Menu.Trigger>
-        <Menu.Popup align='end' className='p-4'>
+        </MenuTrigger>
+        <MenuPopup align='end' className='p-4'>
           <LoginButtons />
-        </Menu.Popup>
+        </MenuPopup>
       </Menu>
     </div>
   )
@@ -393,15 +393,15 @@ export function AnonDropdown () {
 export function Sorts ({ prefix, className }) {
   return (
     <>
-      <Nav.Item className={className}>
-        <Nav.Link href={prefix + '/'} eventKey='' className={`${styles.navSort} py-1 px-2`}>lit</Nav.Link>
-      </Nav.Item>
-      <Nav.Item className={className}>
-        <Nav.Link href={prefix + '/new'} eventKey='new' className={`${styles.navSort} py-1 px-2`}>new</Nav.Link>
-      </Nav.Item>
-      <Nav.Item className={className}>
-        <Nav.Link href={prefix + '/top/posts/day'} eventKey='top' className={`${styles.navSort} py-1 px-2`}>top</Nav.Link>
-      </Nav.Item>
+      <NavItem className={className}>
+        <NavLink href={prefix + '/'} eventKey='' className={`${styles.navSort} py-1 px-2`}>lit</NavLink>
+      </NavItem>
+      <NavItem className={className}>
+        <NavLink href={prefix + '/new'} eventKey='new' className={`${styles.navSort} py-1 px-2`}>new</NavLink>
+      </NavItem>
+      <NavItem className={className}>
+        <NavLink href={prefix + '/top/posts/day'} eventKey='top' className={`${styles.navSort} py-1 px-2`}>top</NavLink>
+      </NavItem>
     </>
   )
 }

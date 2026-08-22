@@ -1,6 +1,6 @@
-import { Checkbox, Form, Input, InputGroup, SubmitButton, Select, VariableInput, Range, labelClasses } from '@/components/form'
+import { Checkbox, Form, Input, InputAddon, SubmitButton, Select, VariableInput, Range, labelClasses } from '@/components/form'
 import Button from '@/components/ui/button'
-import Nav from '@/components/ui/nav'
+import { Nav, NavLink, NavItem } from '@/components/ui/nav'
 import Layout from '@/components/layout'
 import { useMemo } from 'react'
 import { gql } from '@apollo/client'
@@ -48,21 +48,21 @@ export function SettingsHeader () {
         className={styles.nav}
         activeKey={activeKey}
       >
-        <Nav.Item>
-          <Nav.Link href='/settings' eventKey='general' className='py-0.5 pe-4 ps-0'>general</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link href='/settings/logins' eventKey='logins' className='py-0.5 pe-4 ps-0'>logins</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link href='/settings/wallets' eventKey='wallets' className='py-0.5 pe-4 ps-0'>wallets</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link href='/settings/subscriptions/stackers' eventKey='subscriptions' className='py-0.5 pe-4 ps-0'>subscriptions</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link href='/settings/mutes' eventKey='mutes' className='py-0.5 pe-4 ps-0'>mutes</Nav.Link>
-        </Nav.Item>
+        <NavItem>
+          <NavLink href='/settings' eventKey='general' className='py-0.5 pe-4 ps-0'>general</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href='/settings/logins' eventKey='logins' className='py-0.5 pe-4 ps-0'>logins</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href='/settings/wallets' eventKey='wallets' className='py-0.5 pe-4 ps-0'>wallets</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href='/settings/subscriptions/stackers' eventKey='subscriptions' className='py-0.5 pe-4 ps-0'>subscriptions</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href='/settings/mutes' eventKey='mutes' className='py-0.5 pe-4 ps-0'>mutes</NavLink>
+        </NavItem>
       </Nav>
     </>
   )
@@ -182,7 +182,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
             required
             autoFocus
-            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+            append={<InputAddon className='font-mono'>sats</InputAddon>}
             hint={<small className='text-muted'>note: you can also press and hold the lightning bolt to zap custom amounts</small>}
           />
           <div className='pb-6'>
@@ -590,7 +590,7 @@ const ZapUndosField = () => {
       {checkboxField.value &&
         <Input
           name='zapUndos'
-          append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+          append={<InputAddon className='font-mono'>sats</InputAddon>}
           hint={<small className='text-muted'>threshold at which undos will be possible</small>}
           groupClassName='mt-1'
         />}
@@ -631,7 +631,7 @@ const TipRandomField = () => {
             required
             autoFocus
             max={tipRandomMaxField.value ? tipRandomMaxField.value - 1 : undefined}
-            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+            append={<InputAddon className='font-mono'>sats</InputAddon>}
           />
           <Input
             type='number'
@@ -641,7 +641,7 @@ const TipRandomField = () => {
             required
             autoFocus
             min={tipRandomMinField.value ? tipRandomMinField.value + 1 : undefined}
-            append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+            append={<InputAddon className='font-mono'>sats</InputAddon>}
           />
         </>}
     </>

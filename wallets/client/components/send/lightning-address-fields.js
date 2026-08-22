@@ -1,4 +1,4 @@
-import { Checkbox, Input, InputGroup } from '@/components/form'
+import { Checkbox, Input, InputAddon } from '@/components/form'
 import { useMe } from '@/components/me'
 import { characterLength } from '@/lib/validate'
 import { lnAddrFormFields } from '@/lib/lnurl'
@@ -51,7 +51,7 @@ export function LightningAddressFields ({ service, maxFee }) {
         min={service.min}
         max={service.max}
         required
-        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
       />
       {mandatoryFields.map(field => <LightningAddressField key={field} name={field} service={service} values={values} me={me} required />)}
       {maxFee}

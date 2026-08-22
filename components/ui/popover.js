@@ -8,11 +8,11 @@ import arrowStyles from './arrow.module.css'
 export const popoverClasses = ({ className } = {}) =>
   cn(styles.popup, 'text-sm max-w-80 rounded-lg shadow-lg', className)
 
-function Root (props) {
+export function Popover (props) {
   return <BasePopover.Root {...props} /> // modal already defaults false
 }
 
-function Content ({ side = 'bottom', align = 'center', sideOffset = 8, anchor, initialFocus, finalFocus, className, children }) {
+export function PopoverContent ({ side = 'bottom', align = 'center', sideOffset = 8, anchor, initialFocus, finalFocus, className, children }) {
   return (
     <BasePopover.Portal>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} className={styles.positioner}>
@@ -26,17 +26,17 @@ function Content ({ side = 'bottom', align = 'center', sideOffset = 8, anchor, i
 }
 
 // h4 matches the DOM at the only header consumer, upvote passed as='h4'
-function Header ({ className, children }) {
+export function PopoverHeader ({ className, children }) {
   return <h4 className={cn(styles.header, 'flex justify-between items-center py-1.5 px-4 mb-0 text-base font-medium', className)}>{children}</h4>
 }
 
-function Body ({ className, children }) {
+export function PopoverBody ({ className, children }) {
   return <div className={cn('py-2 px-4', className)}>{children}</div>
 }
 
 // lightning X on the alert.module.css .close pattern, at popover-header metrics
-function Close (props) {
+export function PopoverClose (props) {
   return <BasePopover.Close className={styles.close} aria-label='Close' {...props}>X</BasePopover.Close>
 }
 
-export default Object.assign(Root, { Trigger: BasePopover.Trigger, Content, Header, Body, Close })
+export const PopoverTrigger = BasePopover.Trigger

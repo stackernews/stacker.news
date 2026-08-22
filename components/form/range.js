@@ -82,7 +82,7 @@ export function Range ({
         />
         <small className='text-muted font-mono'>{max}</small>
         {/* NumberField adds a wrapper, so this pair joins its corners directly
-            instead of using InputGroup's sibling rules. */}
+            instead of using the input row's sibling rules. */}
         <div className='flex flex-nowrap items-stretch' style={{ width: 'auto' }}>
           {isAll
             ? <span className={inputClasses({ className: cn('flex w-16 items-center justify-end gap-1 px-2 whitespace-nowrap', suffix && 'rounded-e-none') })}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>

@@ -9,10 +9,10 @@ import { useMe } from './me'
 import getColor from '@/lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import LongPressable from './long-pressable'
-import Popover from './ui/popover'
+import { Popover, PopoverContent, PopoverHeader, PopoverBody, PopoverClose } from './ui/popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
-import Menu from '@/components/ui/menu'
+import { MenuItem } from '@/components/ui/menu'
 import classNames from 'classnames'
 
 const WalkthroughPopover = ({ anchor, show, handleClose, title, children }) => (
@@ -24,10 +24,10 @@ const WalkthroughPopover = ({ anchor, show, handleClose, title, children }) => (
     }}
   >
     {/* initialFocus={false}: the popover opens mid-zap and must not steal focus from the bolt */}
-    <Popover.Content anchor={anchor} side='right' initialFocus={false}>
-      <Popover.Header>{title}<Popover.Close /></Popover.Header>
-      <Popover.Body>{children}</Popover.Body>
-    </Popover.Content>
+    <PopoverContent anchor={anchor} side='right' initialFocus={false}>
+      <PopoverHeader>{title}<PopoverClose /></PopoverHeader>
+      <PopoverBody>{children}</PopoverBody>
+    </PopoverContent>
   </Popover>
 )
 
@@ -52,14 +52,14 @@ export function DropdownItemUpVote ({ item }) {
   const showModal = useShowModal()
 
   return (
-    <Menu.Item
+    <MenuItem
       onClick={async () => {
         showModal(onClose =>
           <ItemAct onClose={onClose} item={item} />)
       }}
     >
       <span className='text-success'>zap</span>
-    </Menu.Item>
+    </MenuItem>
   )
 }
 

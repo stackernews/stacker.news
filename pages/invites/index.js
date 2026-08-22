@@ -1,5 +1,5 @@
 import Layout from '@/components/layout'
-import { Form, Input, InputGroup, SubmitButton } from '@/components/form'
+import { Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import { gql } from '@apollo/client'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { INVITE_FIELDS } from '@/fragments/invites'
@@ -68,7 +68,7 @@ function InviteForm () {
       <Input
         label='gift'
         name='gift'
-        append={<InputGroup.Text className='font-mono'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         required
       />
       <Input
@@ -79,7 +79,7 @@ function InviteForm () {
         headerColor='#6c757d' header='advanced' body={
           <>
             <Input
-              prepend={<InputGroup.Text className='text-muted'>{`${process.env.NEXT_PUBLIC_URL}/invites/`}</InputGroup.Text>}
+              prepend={<InputAddon className='text-muted'>{`${process.env.NEXT_PUBLIC_URL}/invites/`}</InputAddon>}
               label={<>invite code <small className='text-muted ms-2'>optional</small></>}
               hint='leave blank for a random code that is hard to guess'
               name='id'

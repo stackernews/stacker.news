@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import styles from '@/components/header.module.css'
-import Nav from '@/components/ui/nav'
+import { Nav } from '@/components/ui/nav'
 import Container from '@/components/ui/container'
 import TopBar from './desktop/top-bar'
 import { MobilePriceRow } from './mobile/top-bar'

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import Drawer from '@/components/ui/drawer'
-import Menu, { itemClasses } from '@/components/ui/menu'
+import { Drawer, DrawerHeader, DrawerTitle, DrawerBody } from '@/components/ui/drawer'
+import { MenuSeparator, itemClasses } from '@/components/ui/menu'
 import { MEDIA_URL } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import Link from 'next/link'
@@ -52,13 +52,13 @@ export default function OffCanvas ({ me, dropNavKey }) {
         </button>
       </Indicator>
       <Drawer show={show} onHide={handleClose} placement='end'>
-        <Drawer.Header>
-          <Drawer.Title><NavWalletSummary /></Drawer.Title>
-        </Drawer.Header>
-        <Drawer.Body className='pb-0'>
+        <DrawerHeader>
+          <DrawerTitle><NavWalletSummary /></DrawerTitle>
+        </DrawerHeader>
+        <DrawerBody className='pb-0'>
           {/* the six nav rows are drawerItemClasses() on plain Links,
-              paint-identical to the plain-mode Menu.Items they replace;
-              LoginButtons and LogoutDropdownItem stay Menu.Item dual-mode,
+              paint-identical to the plain-mode MenuItems they replace;
+              LoginButtons and LogoutDropdownItem stay MenuItem dual-mode,
               shared with the corner menus. Close-on-nav needs no code, since
               navigation remounts BottomBar and show resets. handleClose still
               threads to the modal-triggering rows, modals must close the
@@ -75,13 +75,13 @@ export default function OffCanvas ({ me, dropNavKey }) {
                     <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
                   </Link>
                   <Link href='/satistics' className={drawerItemClasses()}>satistics</Link>
-                  <Menu.Separator />
+                  <MenuSeparator />
                   <Link href='/invites' className={drawerItemClasses()}>invites</Link>
-                  <Menu.Separator />
+                  <MenuSeparator />
                   <div className='flex items-center'>
                     <Link href='/settings' className={drawerItemClasses()}>settings</Link>
                   </div>
-                  <Menu.Separator />
+                  <MenuSeparator />
                   <LogoutDropdownItem handleClose={handleClose} className='px-0 py-2' />
                 </>
                 )
@@ -99,7 +99,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
               </div>
             </div>
           </div>
-        </Drawer.Body>
+        </DrawerBody>
       </Drawer>
     </>
   )

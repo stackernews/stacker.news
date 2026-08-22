@@ -7,7 +7,7 @@ import styles from './button.module.css'
 const BASE = 'inline-block text-center align-middle select-none cursor-pointer text-base rounded-md'
 
 // metrics pair with the inputClasses sizes in form/field.js: both sides of an
-// InputGroup must use the same size or the row misaligns
+// grouped controls must use the same size or the row misaligns
 const SIZES = {
   sm: 'px-2 py-1 text-sm rounded-sm',
   md: 'px-4 py-1.5',

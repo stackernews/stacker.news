@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { useLazyQuery } from '@apollo/client/react'
 import textAreaCaret from 'textarea-caret'
 import { USER_SUGGESTIONS } from '@/fragments/users'
@@ -19,6 +19,8 @@ export function BaseSuggest ({
 }) {
   const [getSuggestions] = useLazyQuery(getSuggestionsQuery)
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
+  // The combobox and its active option reference this stable listbox id.
+  const listboxId = useId()
   const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
   useEffect(() => {
     if (query !== undefined) {
@@ -84,20 +86,26 @@ export function BaseSuggest ({
     }
   }, [onSelect, resetSuggestions, suggestions])
 
+  const activeOptionId = suggestions.array.length > 0
+    ? `${listboxId}-${suggestions.index}`
+    : undefined
+
   // Search mentions use an explicit caret position. Other suggestions anchor
   // to the zero-height wrapper immediately after the input.
   return (
     <>
-      {children?.({ onKeyDown, resetSuggestions })}
+      {children?.({ onKeyDown, resetSuggestions, listboxId, activeOptionId })}
       {suggestions.array.length > 0 && (
         <div style={dropdownStyle} className={dropdownStyle ? undefined : 'relative'}>
           <div
+            id={listboxId}
             role='listbox'
             onMouseDown={e => e.preventDefault()}
             className={cn(menuClasses(), 'absolute start-0 top-0 z-(--sn-z-dropdown)')}
           >
             {suggestions.array.map((v, i) =>
               <div
+                id={`${listboxId}-${i}`}
                 key={v.name}
                 role='option'
                 aria-selected={suggestions.index === i}
@@ -123,7 +131,7 @@ function BaseInputSuggest ({
   const [ovalue, setOValue] = useState()
   const [query, setQuery] = useState()
   return (
-    <FormGroup label={label} className={groupClassName}>
+    <FormGroup label={label} htmlFor={props.id || props.name} className={groupClassName}>
       <SuggestComponent
         transformItem={transformItem}
         filterItems={filterItems}
@@ -136,9 +144,14 @@ function BaseInputSuggest ({
         }}
         query={query}
       >
-        {({ onKeyDown, resetSuggestions }) => (
+        {({ onKeyDown, resetSuggestions, listboxId, activeOptionId }) => (
           <InputInner
             {...props}
+            role='combobox'
+            aria-autocomplete='list'
+            aria-expanded={!!activeOptionId}
+            aria-controls={listboxId}
+            aria-activedescendant={activeOptionId}
             autoComplete='off'
             onChange={(formik, e) => {
               onChange && onChange(formik, e)

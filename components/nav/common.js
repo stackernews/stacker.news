@@ -225,7 +225,7 @@ export function MeDropdown ({ me, dropNavKey }) {
 // this is the width of the 'switch account' button if no width is given
 const SWITCH_ACCOUNT_BUTTON_WIDTH = '162px'
 
-export function SignUpButton ({ className, width }) {
+export function SignUpButton ({ className, width, onClick, ...props }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -234,11 +234,15 @@ export function SignUpButton ({ className, width }) {
 
   return (
     <Button
+      {...props}
       className={classNames('items-center ps-2 pe-4 py-0', className)}
       // 161px is the width of the 'switch account' button
       style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
-      onClick={() => handleLogin('/signup')}
+      onClick={(e) => {
+        onClick?.(e)
+        if (!e.defaultPrevented) handleLogin('/signup')
+      }}
     >
       <LightningIcon
         width={17}
@@ -249,7 +253,7 @@ export function SignUpButton ({ className, width }) {
   )
 }
 
-export default function LoginButton () {
+export default function LoginButton ({ className, onClick, ...props }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -258,11 +262,15 @@ export default function LoginButton () {
 
   return (
     <Button
-      className='items-center px-4 py-1'
+      {...props}
+      className={classNames('items-center px-4 py-1', className)}
       id='login'
       style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
-      onClick={() => handleLogin('/login')}
+      onClick={(e) => {
+        onClick?.(e)
+        if (!e.defaultPrevented) handleLogin('/login')
+      }}
     >
       login
     </Button>
@@ -331,7 +339,7 @@ export function LogoutDropdownItem ({ handleClose, className }) {
   )
 }
 
-function SwitchAccountButton ({ handleClose }) {
+function SwitchAccountButton ({ handleClose, className, onClick, ...props }) {
   const showModal = useShowModal()
   const accounts = useAccounts()
 
@@ -339,10 +347,13 @@ function SwitchAccountButton ({ handleClose }) {
 
   return (
     <Button
-      className='items-center px-4 py-1'
+      {...props}
+      className={classNames('items-center px-4 py-1', className)}
       variant='outline-grey-darkmode'
       style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
-      onClick={() => {
+      onClick={(e) => {
+        onClick?.(e)
+        if (e.defaultPrevented) return
         // login buttons rendered in offcanvas aren't wrapped inside <Dropdown>
         // so we manually close the offcanvas in that case by passing down handleClose here
         handleClose?.()
@@ -357,7 +368,17 @@ function SwitchAccountButton ({ handleClose }) {
 // dual-mode like LogoutDropdownItem: in-menu items in AnonDropdown, where
 // closeOnClick closes the menu before the button's navigation or modal, and
 // plain divs in the drawer (className='px-0' from there)
-export function LoginButtons ({ handleClose, className }) {
+export function LoginButtons ({ handleClose, className, asMenuItems }) {
+  if (asMenuItems) {
+    return (
+      <>
+        <MenuItem className={classNames('py-1', className)} render={<LoginButton />} />
+        <MenuItem className={classNames('py-1', className)} render={<SignUpButton className='py-1' />} />
+        <MenuItem className={classNames('py-1', className)} render={<SwitchAccountButton handleClose={handleClose} />} />
+      </>
+    )
+  }
+
   return (
     <>
       <MenuItem className={classNames('py-1', className)}>
@@ -383,7 +404,7 @@ export function AnonDropdown () {
           </span>
         </MenuTrigger>
         <MenuPopup align='end' className='p-4'>
-          <LoginButtons />
+          <LoginButtons asMenuItems />
         </MenuPopup>
       </Menu>
     </div>

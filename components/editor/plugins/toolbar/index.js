@@ -76,6 +76,7 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
       {/* The tooltip wrapper provides the anchor shared with Menu. */}
       <Menu open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <MenuTrigger
+          aria-label={tooltip}
           onPointerDown={e => e.preventDefault()} /* keeps the Lexical selection; also suppresses Base UI's mousedown-open… */
           onClick={() => setDropdownOpen(o => !o)} /* …so the click toggle drives open */
           render={<Toolbar.Button className={classNames(styles.toolbarItem, dropdownOpen && styles.active)} />}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { useField, useFormikContext } from 'formik'
 import { OTPField } from '@base-ui/react/otp-field'
 import { FormGroup, inputClasses, errorClasses } from './field'
@@ -6,6 +6,7 @@ import { FormGroup, inputClasses, errorClasses } from './field'
 export function OtpInput ({ name, length = 6, label, groupClassName, disabled, autoFocus, onChange, ...props }) {
   const formik = useFormikContext()
   const [field, meta, helpers] = useField({ name })
+  const labelId = useId()
   // invalid paints only after a submit attempt
   const invalid = formik.submitCount > 0 && meta.touched && meta.error
 
@@ -16,7 +17,7 @@ export function OtpInput ({ name, length = 6, label, groupClassName, disabled, a
     autoFocus && firstSlotRef.current?.focus()
   }, [autoFocus])
   return (
-    <FormGroup label={label} className={groupClassName}>
+    <FormGroup label={label} labelId={labelId} className={groupClassName}>
       <OTPField.Root
         length={length}
         value={field.value ?? ''}
@@ -28,6 +29,7 @@ export function OtpInput ({ name, length = 6, label, groupClassName, disabled, a
         required
         disabled={disabled}
         name={name}
+        aria-labelledby={label ? labelId : undefined}
         className='flex flex-row justify-center gap-2'
         {...props}
       >

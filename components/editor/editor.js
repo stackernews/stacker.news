@@ -145,7 +145,8 @@ export default function Editor ({ name, autoFocus, topLevel, ...props }) {
 function EditorContent ({
   name, placeholder, lengthOptions,
   topLevel, isMarkdown, required = false,
-  minRows, hint, warn, editorRef, appendValue, appendedValueRef
+  minRows, hint, warn, editorRef, appendValue, appendedValueRef,
+  'aria-labelledby': ariaLabelledBy
 }) {
   const { ref: containerRef, onRef: onContainerRef } = useCallbackRef()
 
@@ -168,6 +169,7 @@ function EditorContent ({
           */
           style={{ minHeight: `${(minRows ?? 0) + 1}lh` }}
           placeholder={<div className={styles.editorPlaceholder}>{placeholder}</div>}
+          aria-labelledby={ariaLabelledBy}
           aria-required={required}
         />
       </div>

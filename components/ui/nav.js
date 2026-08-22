@@ -25,7 +25,7 @@ export function NavLink ({ eventKey, href, className, children, ...props }) {
   const activeKey = useContext(NavContext)
   const active = eventKey !== undefined && activeKey === eventKey
   return href
-    ? <Link href={href} className={navLinkClasses({ active, className })} {...props}>{children}</Link>
+    ? <Link href={href} aria-current={active ? 'page' : undefined} className={navLinkClasses({ active, className })} {...props}>{children}</Link>
     : (
       <button
         type='button'

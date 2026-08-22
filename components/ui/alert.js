@@ -16,7 +16,7 @@ export function Alert ({ variant, dismissible, onClose, className, children, ...
 }
 
 export function AlertHeading ({ className, ...props }) {
-  return <div className={cn('text-reset font-medium text-xl leading-tight mb-2', className)} {...props} />
+  return <h4 className={cn('text-reset font-medium text-xl leading-tight mb-2', className)} {...props} />
 }
 
 // Alert links retain the surrounding alert color in every state.

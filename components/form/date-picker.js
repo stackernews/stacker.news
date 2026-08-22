@@ -9,7 +9,7 @@ import { FormGroup, inputClasses, errorClasses } from './field'
 function DatePickerSkeleton () {
   return (
     <div className='react-datepicker-wrapper'>
-      <input className={cn(inputClasses(), 'clouds fade-out p-0 px-2 mb-0')} />
+      <input className={cn(inputClasses(), 'clouds p-0 px-2 mb-0')} />
     </div>
   )
 }
@@ -109,9 +109,9 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
 export function DateTimeInput ({ label, groupClassName, name, ...props }) {
   const [, meta] = useField({ ...props, name })
   return (
-    <FormGroup label={label} className={groupClassName}>
+    <FormGroup label={label} htmlFor={props.id || name} className={groupClassName}>
       <div>
-        <DateTimePicker name={name} {...props} />
+        <DateTimePicker id={props.id || name} name={name} {...props} />
         <div className={errorClasses()}>
           {meta.error}
         </div>

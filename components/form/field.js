@@ -22,10 +22,10 @@ export const hintClasses = ({ className } = {}) =>
 export const errorClasses = ({ className } = {}) =>
   cn(styles.error, className)
 
-export function FormGroup ({ className, label, children }) {
+export function FormGroup ({ className, label, labelId, htmlFor, children }) {
   return (
     <div className={cn(styles.group, className)}>
-      {label && <label className={labelClasses()}>{label}</label>}
+      {label && <label id={labelId} htmlFor={htmlFor} className={labelClasses()}>{label}</label>}
       {children}
     </div>
   )

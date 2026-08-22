@@ -127,6 +127,7 @@ export default function useModal () {
           <Dialog.Viewport className={cn(styles.viewport, fullScreen && styles.fullScreen)}>
             <Dialog.Popup
               ref={popupRef}
+              aria-label='Dialog'
               // Focusing the popup avoids opening a mobile keyboard or painting
               // a descendant focus ring as soon as the dialog appears.
               initialFocus={() => popupRef.current}

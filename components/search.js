@@ -93,7 +93,6 @@ export default function Search ({ sub }) {
                     groupClassName='me-2 mb-0'
                     onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
                     name='what'
-                    size='sm'
                     overrideValue={what}
                     items={whatItemOptions}
                   />
@@ -104,7 +103,6 @@ export default function Search ({ sub }) {
                         groupClassName='mx-2 mb-0'
                         onChange={(formik, e) => search({ ...formik?.values, sort: e.target.value })}
                         name='sort'
-                        size='sm'
                         overrideValue={sort}
                         items={['relevance', 'sats', 'new', 'comments']}
                       />

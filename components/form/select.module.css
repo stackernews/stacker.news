@@ -25,6 +25,10 @@
     outline: none;
 }
 
+.select.invalid {
+    border: 1px solid var(--sn-danger);
+}
+
 /* Native option menus need a light text color context in dark mode. */
 .select option {
     color: rgba(0, 0, 0, .9);

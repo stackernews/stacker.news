@@ -37,7 +37,6 @@ export function SubAnalyticsHeader ({ pathname = null }) {
           groupClassName='mb-0 mx-2'
           className={classNames(styles.subSelect, styles.subSelectSmall)}
           name='sub'
-          size='sm'
           items={subs}
           value={sub}
           noForm
@@ -51,7 +50,6 @@ export function SubAnalyticsHeader ({ pathname = null }) {
           groupClassName='mb-0 mx-2'
           className='w-auto'
           name='when'
-          size='sm'
           items={WHENS}
           value={when}
           noForm

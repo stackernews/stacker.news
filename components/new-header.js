@@ -50,7 +50,6 @@ export default function NewHeader ({ type, sub }) {
           groupClassName='mb-2'
           className='w-auto'
           name='type'
-          size='sm'
           value={type}
           items={items}
           noForm

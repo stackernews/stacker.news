@@ -16,11 +16,13 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
   }, [overrideValue])
 
   return (
-    <FormGroup label={label} className={groupClassName}>
+    <FormGroup label={label} htmlFor={props.id || props.name} className={groupClassName}>
       <span className='flex items-center'>
         <select
           {...field} {...props}
-          className={cn(styles.select, 'max-md:text-[1rem]', className)}
+          id={props.id || props.name}
+          aria-invalid={!!invalid}
+          className={cn(styles.select, 'max-md:text-[1rem]', invalid && styles.invalid, className)}
           onChange={(e) => {
             if (field?.onChange) {
               field.onChange(e)

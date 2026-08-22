@@ -71,7 +71,6 @@ function UserItemsHeader ({ type, name }) {
           <Select
             groupClassName='mb-0 me-2'
             name='type'
-            size='sm'
             overrideValue={type}
             items={ITEM_TYPES_USER}
             onChange={(formik, e) => select({ ...formik?.values, type: e.target.value })}
@@ -80,7 +79,6 @@ function UserItemsHeader ({ type, name }) {
           <Select
             groupClassName='mb-0 mx-2'
             name='by'
-            size='sm'
             overrideValue={by}
             items={['new', ...ITEM_SORTS]}
             onChange={(formik, e) => select({ ...formik?.values, by: e.target.value })}
@@ -89,7 +87,6 @@ function UserItemsHeader ({ type, name }) {
           <Select
             groupClassName='mb-0 mx-2'
             name='when'
-            size='sm'
             items={WHENS}
             overrideValue={when}
             onChange={(formik, e) => {

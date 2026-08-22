@@ -52,7 +52,6 @@ export default function TopHeader ({ sub, cat }) {
               groupClassName='me-2 mb-0'
               onChange={(formik, e) => top({ ...formik?.values, what: e.target.value })}
               name='what'
-              size='sm'
               overrideValue={what}
               items={router?.query?.sub ? ['posts', 'comments'] : ['posts', 'comments', 'stackers', 'cowboys', 'territories']}
             />
@@ -63,7 +62,6 @@ export default function TopHeader ({ sub, cat }) {
                   groupClassName='mx-2 mb-0'
                   onChange={(formik, e) => top({ ...formik?.values, by: e.target.value })}
                   name='by'
-                  size='sm'
                   overrideValue={by}
                   items={sortItemsForCategory(cat)}
                 />

@@ -227,7 +227,6 @@ export default function Settings ({ ssrData }) {
           <Select
             label='fiat currency'
             name='fiatCurrency'
-            size='sm'
             items={SUPPORTED_CURRENCIES}
             required
             className='mb-2'
@@ -535,15 +534,16 @@ export default function Settings ({ ssrData }) {
   )
 }
 
-const DropBolt11sCheckbox = ({ ssrData, ...props }) => {
+const DropBolt11sCheckbox = ({ ssrData, handleChange, ...props }) => {
   const showModal = useShowModal()
   const { data } = useQuery(gql`{ numBolt11s }`)
   const numBolt11s = data?.numBolt11s ?? ssrData?.numBolt11s ?? 0
 
   return (
     <Checkbox
-      onClick={e => {
-        if (e.target.checked) {
+      handleChange={(checked, setValue) => {
+        handleChange?.(checked, setValue)
+        if (checked) {
           showModal(onClose => {
             return (
               <>

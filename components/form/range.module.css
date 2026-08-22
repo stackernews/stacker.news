@@ -1,0 +1,44 @@
+@layer components {
+
+/* Slider paint follows the active theme and territory brand. */
+
+.track {
+    height: .5rem;
+    border-radius: 1rem;
+    background-color: var(--sn-secondary-bg);
+}
+
+/* Base UI owns inline positioning, so top centers the thumb without adding a
+   competing transform. */
+.thumb {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 1rem;
+    background-color: var(--sn-primary);
+    position: absolute;
+    top: calc(50% - .5rem);
+}
+
+.thumb:active {
+    background-color: #fef4cf;
+}
+
+/* the hidden range input inside the thumb holds focus */
+.thumb:focus-within {
+    outline: 0;
+    box-shadow: 0 0 0 1px #fcfcff, 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+}
+
+.thumb[data-disabled] {
+    pointer-events: none;
+    background-color: var(--sn-secondary-color);
+}
+
+.addon {
+    background-color: var(--sn-clickToContextColor);
+    border: 1px solid var(--sn-borderColor);
+    border-inline-start: 0;
+    border-radius: .375rem;
+}
+
+}

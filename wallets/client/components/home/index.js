@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import { Offcanvas } from 'react-bootstrap'
+import { Drawer, DrawerHeader, DrawerTitle, DrawerBody } from '@/components/ui/drawer'
 import classNames from 'classnames'
 import { useSetWalletPriorities, useTemplates, useWallets, useWalletSendReady } from '@/wallets/client/hooks'
 import { WalletShell } from '@/wallets/client/components'
@@ -63,7 +63,7 @@ export function WalletHome ({ routeWalletId }) {
         />
       )}
     >
-      <aside className={classNames(styles.sidebar, 'd-flex flex-column gap-3')}>
+      <aside className={classNames(styles.sidebar, 'hidden md:flex flex-col gap-4')}>
         <h2 className={styles.title}>wallets</h2>
         <WalletList
           entries={entries}
@@ -90,7 +90,7 @@ export function WalletHome ({ routeWalletId }) {
           ordering={ordering}
           onReorder={handleWalletReorder}
         />
-        <WalletOrderingControls wallets={wallets} ordering={ordering} onToggle={toggleOrdering} className='mt-3' hintClassName='mt-2' />
+        <WalletOrderingControls wallets={wallets} ordering={ordering} onToggle={toggleOrdering} className='mt-4' hintClassName='mt-2' />
       </WalletBottomSheet>
 
       <WalletBottomSheet show={showDetails} onHide={() => setShowDetails(false)} title='details'>
@@ -104,12 +104,12 @@ function WalletMobileHeader ({ selectedEntry, onShowSwitcher, onShowDetails }) {
   if (selectedEntry.kind === 'add') return null
 
   return (
-    <div className='d-flex flex-column gap-2'>
+    <div className='flex flex-col gap-2'>
       <button className={classNames(styles.surfaceRow, styles.mobileWalletSelector, selectedEntry.kind === 'external' && styles.externalWalletRow)} onClick={onShowSwitcher}>
         <WalletRow entry={selectedEntry} />
         <CaretDown width={18} height={18} className={styles.mobileWalletCaret} />
       </button>
-      <div className='d-flex align-items-center'>
+      <div className='flex items-center'>
         <SparkCustodyNotice wallet={selectedEntry.wallet} />
         <button className={classNames(styles.textButton, 'ms-auto')} onClick={onShowDetails}>details</button>
       </div>
@@ -131,14 +131,15 @@ function WalletOrderingControls ({ wallets, ordering, onToggle, className, hintC
 }
 
 function WalletBottomSheet ({ show, onHide, title, children }) {
+  // height, radius and the 85svh cap live on ui/drawer's bottom placement
   return (
-    <Offcanvas className={styles.sheet} show={show} onHide={onHide} placement='bottom'>
-      <Offcanvas.Header closeButton>
-        <Offcanvas.Title>{title}</Offcanvas.Title>
-      </Offcanvas.Header>
-      <Offcanvas.Body>
+    <Drawer show={show} onHide={onHide} placement='bottom'>
+      <DrawerHeader>
+        <DrawerTitle>{title}</DrawerTitle>
+      </DrawerHeader>
+      <DrawerBody className='px-4'>
         {children}
-      </Offcanvas.Body>
-    </Offcanvas>
+      </DrawerBody>
+    </Drawer>
   )
 }

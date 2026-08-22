@@ -1,0 +1,69 @@
+@layer components {
+
+/* Alerts own paint; call sites own layout overrides. */
+
+.alert {
+  position: relative;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 33% 2% / 11% 74%;
+  /* Light surfaces mix stronger text and a pale background from one base. */
+  color: color-mix(in srgb, #000 60%, var(--sn-alert-base));
+  background-color: color-mix(in srgb, #fff 80%, var(--sn-alert-base));
+}
+
+/* Dark surfaces reverse the mix direction for contrast. */
+:global([data-theme='dark']) .alert {
+  color: color-mix(in srgb, #fff 40%, var(--sn-alert-base));
+  background-color: color-mix(in srgb, #000 80%, var(--sn-alert-base));
+}
+
+.info {
+  --sn-alert-base: var(--sn-info);
+}
+
+.danger {
+  --sn-alert-base: var(--sn-danger);
+}
+
+.warning {
+  --sn-alert-base: var(--sn-warning);
+}
+
+.dismissible {
+  padding-right: 3rem;
+}
+
+/* Lightning supplies the close glyph. */
+.close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  padding: 1.25rem 1rem;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: #000;
+  opacity: .5;
+  font-family: lightning;
+  font-weight: 300;
+  font-size: 150%;
+  line-height: 1;
+}
+
+.close:hover {
+  opacity: .75;
+}
+
+.close:focus {
+  outline: 0;
+  box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+  opacity: 1;
+}
+
+:global([data-theme='dark']) .close {
+  color: #fff;
+}
+
+}

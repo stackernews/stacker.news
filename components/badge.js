@@ -1,6 +1,5 @@
 import { Fragment } from 'react'
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import GunIcon from '@/svgs/revolver.svg'
@@ -58,7 +57,7 @@ export default function Badges ({ user, badge, bot, showWalletBadges, className 
   if (badges.length === 0) return null
 
   return (
-    <span className={classNames(className, 'd-inline-flex align-items-center justify-content-center')}>
+    <span className={classNames(className, 'inline-flex items-center justify-center')}>
       {badges.map(({ icon, overlayText, sizeDelta, style }, i) => (
         <SNBadge
           key={i}
@@ -88,23 +87,24 @@ function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, heig
 
   return (
     <Wrapper>
-      <span className='d-inline-flex align-items-center justify-content-center' style={style}><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
+      <span className='inline-flex items-center justify-center' style={style}><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
     </Wrapper>
   )
 }
 
+// a hint that must open on tap is a Popover, not a Tooltip, in Base UI
+// vocabulary. All defaults: hover opens instantly and closes on hover-out, tap
+// opens and pins (outside tap, second tap or Escape close), desktop click pins
+// on purpose. nativeButton={false} adds role and tabIndex, so badges are
+// keyboard-reachable (Enter pins, Escape closes)
 export function BadgeTooltip ({ children, overlayText, placement }) {
   return (
-    <OverlayTrigger
-      placement={placement || 'bottom'}
-      overlay={
-        <Tooltip style={{ position: 'fixed' }}>
-          {overlayText}
-        </Tooltip>
-      }
-      trigger={['hover', 'focus']}
-    >
-      {children}
-    </OverlayTrigger>
+    <Popover>
+      <PopoverTrigger render={children} nativeButton={false} openOnHover delay={0} />
+      {/* initialFocus={false}: a text-only hint must not yank focus on press */}
+      <PopoverContent side={placement || 'bottom'} initialFocus={false} className='py-1 px-2 text-center'>
+        {overlayText}
+      </PopoverContent>
+    </Popover>
   )
 }

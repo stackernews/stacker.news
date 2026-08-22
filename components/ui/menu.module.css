@@ -1,0 +1,37 @@
+@layer components {
+
+.positioner { z-index: var(--sn-z-dropdown); }
+
+.popup {
+  background-color: var(--sn-inputBg);
+  border: 1px solid var(--sn-borderColor);
+  outline: 0;
+  max-width: 90vw;
+  overflow: auto;
+  transform-origin: var(--transform-origin);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+.popup[data-starting-style],
+.popup[data-ending-style] { opacity: 0; transform: scale(0.98); }
+@media (prefers-reduced-motion: reduce) { .popup { transition: none; } }
+
+.item {
+  /* The component class keeps menu paint above global anchor defaults. */
+  color: var(--sn-dropdownItemColor);
+  cursor: pointer;
+}
+.item:hover,
+.item[data-highlighted] {
+  color: var(--sn-dropdownItemColorHover);
+  outline: none;
+}
+.active,
+.active:hover,
+.active[data-highlighted] {
+  color: var(--sn-brandColor);
+  text-shadow: 0 0 10px var(--sn-primary);
+}
+
+.divider { border-top: 1px solid var(--sn-borderColor); }
+
+}

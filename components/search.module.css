@@ -1,5 +1,7 @@
+@layer components {
+
 .searchSection {
-    background-color: var(--bs-body-bg);
+    background-color: var(--sn-body-bg);
     z-index: 1;
 }
 
@@ -16,7 +18,6 @@
     align-items: center;
     justify-content: center;
     display: flex;
-    left: auto !important;
 }
 
 form>.active {
@@ -24,4 +25,5 @@ form>.active {
     pointer-events: auto;
     flex-flow: row;
     align-items: center;
+}
 }

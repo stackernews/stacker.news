@@ -70,13 +70,13 @@ export function CapabilityCard ({ title, subtitle, icon, tone, protocols, select
         optional && styles.cardOptional
       )}
     >
-      <div className={classNames(styles.header, 'd-flex align-items-start justify-content-between gap-3 flex-nowrap')}>
+      <div className={classNames(styles.header, 'flex items-start justify-between gap-4 flex-nowrap')}>
         <div className={styles.titleBlock}>
-          <div className={classNames(styles.titleRow, 'd-flex align-items-center')}>
-            {icon && <span className={classNames(styles.icon, 'd-inline-flex align-items-center justify-content-center flex-shrink-0')}>{icon}</span>}
+          <div className={classNames(styles.titleRow, 'flex items-center')}>
+            {icon && <span className={classNames(styles.icon, 'inline-flex items-center justify-center shrink-0')}>{icon}</span>}
             <h2>{title}</h2>
           </div>
-          <div className={classNames(styles.subtitle, 'text-truncate text-muted')}>
+          <div className={classNames(styles.subtitle, 'truncate text-muted')}>
             {subtitle}
             {protocols.length > 1 && ` via ${protocolDisplayName(protocol)}`}
           </div>
@@ -118,7 +118,7 @@ export function CapabilityCard ({ title, subtitle, icon, tone, protocols, select
         : (
           <button
             type='button'
-            className={classNames(styles.textButton, styles.infoTextButton, 'align-self-start')}
+            className={classNames(styles.textButton, styles.infoTextButton, 'self-start')}
             onClick={() => {
               // A fieldless protocol (WebLN) has nothing to configure, so adding it
               // just enables it; "remove send" disables it again.
@@ -145,7 +145,7 @@ function CapabilityMethodPicker ({ protocol, protocols, showChoices, setShowChoi
         {showChoices ? 'hide options' : 'change connection'}
       </button>
       {showChoices && (
-        <div className={classNames(styles.protocolSelector, 'd-flex flex-wrap gap-2')}>
+        <div className={classNames(styles.protocolSelector, 'flex flex-wrap gap-2')}>
           {protocols.map(option => (
             <button
               key={protocolKey(option)}
@@ -170,13 +170,13 @@ function CapabilityProtocolFields ({ protocol, onNwcLud16, onRemove, onCancel })
   const { error, details, onTest } = useCapabilityTest(protocol)
 
   return (
-    <div className={classNames(styles.form, styles.formResponsiveReset, 'd-flex flex-column gap-3')}>
+    <div className={classNames(styles.form, styles.formResponsiveReset, 'flex flex-col gap-4')}>
       {fields.length === 0 && (
         <p className='text-muted mb-0'>
           No configuration needed for {protocolDisplayName(protocol)}.
         </p>
       )}
-      {fields.map(field => <WalletProtocolFormField key={field.name} protocol={protocol} onNwcLud16={onNwcLud16} {...field} />)}
+      {fields.map(field => <WalletProtocolFormField key={field.name} protocol={protocol} onNwcLud16={onNwcLud16} groupClassName='mb-0' {...field} />)}
 
       {error && <CapabilityError message={error} details={details} protocol={protocol} />}
 

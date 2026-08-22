@@ -20,7 +20,7 @@ import { timeLeft } from '@/lib/time'
 import classNames from 'classnames'
 import removeMd from 'remove-markdown'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
-import ItemPopover from './item-popover'
+import ItemPreviewCard from './item-preview-card'
 import { useMe } from './me'
 import Boost from './boost-button'
 import { SearchText } from './text'
@@ -64,9 +64,9 @@ function ItemLink ({ url, rel }) {
     const { linkText } = parseInternalLinks(url)
     if (linkText) {
       return (
-        <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+        <ItemPreviewCard id={linkText.replace('#', '').split('/')[0]}>
           <Link href={url} className={styles.link}>{linkText}</Link>
-        </ItemPopover>
+        </ItemPreviewCard>
       )
     }
 
@@ -116,7 +116,7 @@ export default function Item ({
               href={`/items/${item.id}`}
               onClick={(e) => onItemClick(e, router, item)}
               ref={titleRef}
-              className={`${styles.title} text-reset me-2`}
+              className={`${styles.title} me-2`}
             >
               {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
               {item.pollCost && <PollIndicator item={item} />}
@@ -161,7 +161,7 @@ export function ItemSummary ({ item }) {
     <Link
       href={`/items/${item.id}`}
       onClick={(e) => onItemClick(e, router, item)}
-      className={`${item.title && styles.title} ${styles.summaryText} text-reset me-2`}
+      className={classNames(item.title && styles.title, styles.summaryText, 'me-2')}
     >
       {item.title ?? removeMd(item.text)}
     </Link>
@@ -207,8 +207,8 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
       <div className={`${styles.item} ${styles.skeleton}`}>
         {showUpvote && <UpVote className={styles.upvote} />}
         <div className={styles.hunk}>
-          <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
-            <span className={`${styles.title} clouds text-reset flex-md-fill flex-md-shrink-0 me-2`} />
+          <div className={`${styles.main} flex-wrap md:flex-nowrap`}>
+            <span className={`${styles.title} clouds md:flex-auto md:shrink-0 me-2`} />
             <span className={`${styles.link} clouds`} />
           </div>
           <div className={styles.other}>

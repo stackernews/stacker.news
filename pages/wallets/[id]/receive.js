@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, Input, SubmitButton } from '@/components/form'
+import { Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import { utf8ByteLength, walletInvoiceSchema } from '@/lib/validate'
 import { CREATE_WALLET_INVOICE } from '@/wallets/client/fragments'
 import { WalletActionEmpty, WalletActionShell, WalletBottomBar, WalletRoutePage } from '@/wallets/client/components'
@@ -9,7 +9,6 @@ import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import sendStyles from '@/wallets/client/components/send/send.module.css'
 import classNames from 'classnames'
 import { useMutation } from '@apollo/client/react'
-import { InputGroup } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import { FormikConsumer } from 'formik'
 const styles = { ...sharedStyles, ...sendStyles }
@@ -63,7 +62,7 @@ function WalletReceive ({ wallet }) {
           await router.push(`/wallets/transactions/${data.createWalletInvoice}`)
         }}
       >
-        <div className={classNames(styles.fields, styles.formResponsiveReset, 'd-flex flex-column')}>
+        <div className={classNames(styles.fields, styles.formResponsiveReset, 'flex flex-col')}>
           <Input
             label='amount'
             name='amount'
@@ -72,7 +71,7 @@ function WalletReceive ({ wallet }) {
             max={MAX_WALLET_INVOICE_SATS}
             required
             autoFocus
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            append={<InputAddon className='font-mono'>sats</InputAddon>}
           />
           <FormikConsumer>
             {({ values }) => {

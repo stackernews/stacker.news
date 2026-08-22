@@ -1,5 +1,4 @@
 import { useEffect, useContext, createContext, useState, useCallback, useMemo } from 'react'
-import Table from 'react-bootstrap/Table'
 import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
@@ -194,7 +193,7 @@ export function useFeeButton () {
 function FreebieDialog ({ freeCommentsLeft }) {
   return (
     <>
-      <div className='fw-bold'>you don't have enough sats, so this one is on us</div>
+      <div className='font-bold'>you don't have enough sats, so this one is on us</div>
       <ul className='mt-2'>
         <li>Free items have limited visibility and can only earn cowboy credits.</li>
         {freeCommentsLeft !== null && (
@@ -235,22 +234,22 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
 
 function Receipt ({ lines, total }) {
   return (
-    <Table className={styles.receipt} borderless size='sm'>
+    <table className={styles.receipt}>
       <tbody>
         {Object.entries(lines).sort(([, a], [, b]) => sortHelper(a, b)).map(([key, { term, label, omit }]) => (
           !omit &&
             <tr key={key}>
               <td>{term}</td>
-              <td align='right' className='font-weight-light'>{label}</td>
+              <td align='right' className=''>{label}</td>
             </tr>))}
       </tbody>
       <tfoot>
         <tr>
-          <td className='fw-bold'>{numWithUnits(total, { abbreviate: false, format: true })}</td>
-          <td align='right' className='font-weight-light'>total fee</td>
+          <td className='font-bold'>{numWithUnits(total, { abbreviate: false, format: true })}</td>
+          <td align='right' className=''>total fee</td>
         </tr>
       </tfoot>
-    </Table>
+    </table>
   )
 }
 
@@ -263,14 +262,14 @@ function AnonInfo () {
       onClick={
         (e) =>
           showModal(onClose =>
-            <div><div className='fw-bold text-center'>You are posting without an account</div>
-              <ol className='my-3'>
+            <div><div className='font-bold text-center'>You are posting without an account</div>
+              <ol className='my-4'>
                 <li>You'll pay by invoice</li>
                 <li>Your content will be content-joined (get it?!) under the <Link href='/anon' target='_blank'>@anon</Link> account</li>
                 <li>Any sats your content earns will go toward <Link href='/rewards' target='_blank'>rewards</Link></li>
                 <li>We won't be able to notify you when you receive replies</li>
               </ol>
-              <small className='text-center fst-italic text-muted'>btw if you don't need to be anonymous, posting is cheaper with an account</small>
+              <small className='text-center italic text-muted'>btw if you don't need to be anonymous, posting is cheaper with an account</small>
             </div>)
       }
     />

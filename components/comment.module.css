@@ -1,11 +1,13 @@
+@layer components {
+
 .item {
     align-items: flex-start;
-    margin-bottom: 0 !important;
-    padding-top: 0 !important;
+    margin-bottom: 0;
+    padding-top: 0;
 }
 
 .searchComment {
-    border: 1px solid var(--theme-note-reply);
+    border: 1px solid var(--sn-note-reply);
     margin-bottom: 0.5rem;
 }
 
@@ -38,11 +40,6 @@
     cursor: pointer;
 }
 
-.op {
-    margin-top: -1px;
-    vertical-align: text-top;
-}
-
 .collapsed .hunk {
     margin-bottom: .5rem;
 }
@@ -59,7 +56,7 @@
 
 .collapser {
     cursor: pointer;
-    fill: var(--theme-grey);
+    fill: var(--sn-grey);
     width: 45px;
     margin-left: auto;
     user-select: none;
@@ -116,7 +113,7 @@
     border-radius: .4rem;
     padding-top: .5rem;
     padding-left: .7rem;
-    background-color: var(--theme-commentBg);
+    background-color: var(--sn-commentBg);
 }
 
 .bountyIcon {
@@ -170,4 +167,6 @@
     height: 12px;
     border-radius: 50%;
     background-color: #007cbe;
+}
+
 }

@@ -4,6 +4,7 @@ import { PriceCarouselProvider } from '@/components/nav/price-carousel'
 import { walletGuideUrl } from '@/wallets/lib/util'
 import { WalletLogo } from './wallet-logo'
 import Link from 'next/link'
+import { buttonClasses } from '@/components/ui/button'
 import InfoIcon from '@/svgs/information-fill.svg'
 import styles from '@/wallets/client/components/layout.module.css'
 import classNames from 'classnames'
@@ -11,7 +12,7 @@ import classNames from 'classnames'
 export function WalletShell ({ children, mobileHeader, noSidebar, mobileTopBar = true }) {
   return (
     // Wallet pages replace the global mobile footer with app-like wallet chrome.
-    <Layout className='py-5' containClassName={classNames(styles.walletContain, 'pb-0')} footer={false} hideMobileNav>
+    <Layout className='py-12' containClassName={classNames('pb-0 max-md:px-0 max-md:max-w-none')} footer={false} hideMobileNav>
       <div className={classNames(styles.walletShell, noSidebar && styles.walletShellNoSidebar)}>
         {(mobileTopBar || mobileHeader) && (
           <div className={styles.mobileWalletHeader}>
@@ -29,13 +30,13 @@ function WalletMobileTopBar () {
   return (
     <PriceCarouselProvider>
       <div className={styles.walletMobileTopBar}>
-        <div className='d-inline-flex align-items-center w-fit-content'>
+        <div className='inline-flex items-center w-fit'>
           <Back />
           <Brand />
         </div>
         <NavPrice className='justify-self-center' />
-        <div className={classNames(styles.walletMobileAccount, 'd-flex align-items-center justify-content-end gap-2')}>
-          <NavNotifications className='d-flex align-items-center justify-content-end p-0' />
+        <div className={classNames(styles.walletMobileAccount, 'flex items-center justify-end gap-2')}>
+          <NavNotifications className='flex items-center justify-end p-0' />
         </div>
       </div>
     </PriceCarouselProvider>
@@ -52,7 +53,7 @@ export function WalletLayoutHeader ({ children }) {
 
 function WalletLayoutImageOrName ({ name, height = '50px' }) {
   return (
-    <div className='d-flex justify-content-center align-items-center text-center'>
+    <div className='flex justify-center items-center text-center'>
       <WalletLogo name={name} fallback='name' height={height} />
     </div>
   )
@@ -62,7 +63,7 @@ function WalletDetailHeader ({ wallet, title }) {
   return (
     <header className={styles.walletPageHeading}>
       <h1>{title}</h1>
-      <div className={classNames(styles.walletActionWallet, 'd-inline-flex align-items-center text-muted fw-bold')}>
+      <div className={classNames(styles.walletActionWallet, 'inline-flex items-center text-muted font-bold')}>
         <WalletLayoutImageOrName name={wallet.name} height='24px' />
       </div>
     </header>
@@ -101,7 +102,7 @@ export function WalletPageHeading ({ title, wallet, identity, aside, href }) {
       <div className={styles.walletPageHeading}>
         <h1>{title}</h1>
         {identityNode && (
-          <div className={classNames(styles.walletActionWallet, 'd-inline-flex align-items-center text-muted fw-bold')}>
+          <div className={classNames(styles.walletActionWallet, 'inline-flex items-center text-muted font-bold')}>
             {href ? <Link href={href} className='text-reset'>{identityNode}</Link> : identityNode}
           </div>
         )}
@@ -121,7 +122,7 @@ export function WalletActionShell ({ wallet, title, identity, available, childre
   return (
     <WalletShellMain>
       <div className={styles.walletActionPage}>
-        <div className={classNames(styles.walletActionBody, 'd-flex flex-column')}>
+        <div className={classNames(styles.walletActionBody, 'flex flex-col')}>
           <WalletPageHeading title={title} wallet={wallet} identity={identity} aside={aside} />
           {children}
         </div>
@@ -132,10 +133,10 @@ export function WalletActionShell ({ wallet, title, identity, available, childre
 
 export function WalletActionEmpty ({ message, backHref, backLabel = 'back to wallet' }) {
   return (
-    <div className='d-flex flex-column align-items-center justify-content-center gap-4 flex-fill fs-4 text-center text-muted'>
+    <div className='flex flex-col items-center justify-center gap-6 flex-auto text-xl text-center text-muted'>
       <div>{message}</div>
       {backHref && (
-        <Link href={backHref} className='btn btn-secondary'>
+        <Link href={backHref} className={buttonClasses({ variant: 'secondary' })}>
           {backLabel}
         </Link>
       )}
@@ -148,7 +149,7 @@ export function WalletGuide ({ name }) {
   if (!guideUrl) return null
 
   return (
-    <Link href={guideUrl} className='text-center text-reset fw-bold text-underline' target='_blank' rel='noreferrer'>
+    <Link href={guideUrl} className='text-center text-reset font-bold underline' target='_blank' rel='noreferrer'>
       <InfoIcon width={18} height={18} className='mx-1' />
       guide
     </Link>

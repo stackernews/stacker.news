@@ -1,3 +1,5 @@
+@layer components {
+
 .chip {
   box-sizing: border-box;
   min-height: 32px;
@@ -6,11 +8,11 @@
   max-width: 100%;
   padding: 0.3rem 0.75rem;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sn-borderColor) 70%, transparent);
   border-radius: 999px;
   background: transparent;
-  color: var(--theme-grey);
-  font-family: var(--bs-font-monospace);
+  color: var(--sn-grey);
+  font-family: var(--sn-font-monospace);
   font-size: 0.9rem;
   font-weight: 700;
   line-height: 1;
@@ -62,16 +64,18 @@
 
 button.chip:hover,
 button.chip:focus-visible {
-  border-color: var(--bs-body-color);
-  color: var(--bs-body-color);
+  border-color: var(--sn-body-color);
+  color: var(--sn-body-color);
 }
 
 button.chip:focus-visible {
-  outline: 2px solid var(--theme-borderColor);
+  outline: 2px solid var(--sn-borderColor);
   outline-offset: 2px;
 }
 
 .danger {
-  border-color: color-mix(in srgb, var(--bs-danger) 80%, transparent);
-  color: var(--bs-danger);
+  border-color: color-mix(in srgb, var(--sn-danger) 80%, transparent);
+  color: var(--sn-danger);
+}
+
 }

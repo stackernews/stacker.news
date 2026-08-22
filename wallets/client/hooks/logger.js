@@ -4,7 +4,7 @@ import { ADD_WALLET_LOG, WALLET_LOGS, DELETE_WALLET_LOGS } from '@/wallets/clien
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { WALLET_LOG_POLL_INTERVAL_MS } from '@/lib/constants'
 import { isTemplate } from '@/wallets/lib/util'
 

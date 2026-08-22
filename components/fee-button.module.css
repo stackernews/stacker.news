@@ -1,9 +1,12 @@
+@layer components {
+
 .receipt {
-    background-color: var(--theme-inputBg);
+    background-color: var(--sn-inputBg);
     max-width: 300px;
     margin: auto;
     table-layout: auto;
     width: 100%;
+    border-collapse: collapse;
 }
 
 .feeButton {
@@ -17,10 +20,14 @@
 
 .receipt td {
     padding: .25rem .1rem;
-    background-color: var(--theme-inputBg);
-    color: var(--bs-body-color);
+    background-color: var(--sn-inputBg);
+    color: var(--sn-body-color);
+    line-height: 1.2rem;
+    vertical-align: top;
 }
 
 .receipt tfoot {
-    border-top: 2px solid var(--theme-borderColor) !important;
+    /* pins the seam against the unlayered .sn-text table chrome */
+    border-top: 2px solid var(--sn-borderColor) !important;
+}
 }

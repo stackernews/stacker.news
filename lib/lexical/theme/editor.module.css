@@ -1,7 +1,9 @@
+@layer components {
+
 /* editor container */
 
 .editor {
-  --editor-border-color: var(--theme-borderColor);
+  --editor-border-color: var(--sn-borderColor);
   --editor-bg: transparent;
 
   position: relative;
@@ -19,20 +21,19 @@
 
 /* non-top-level editor for things such as comments */
 .editorContainer:not([data-top-level='true']) .editor {
-  --editor-border-color: color-mix(in srgb, var(--theme-borderColor) 25%, transparent);
-  --editor-bg: var(--theme-forceCommentBg);
+  --editor-border-color: color-mix(in srgb, var(--sn-borderColor) 25%, transparent);
+  --editor-bg: var(--sn-forceCommentBg);
 }
 
 /* editor focus state */
 .editor:has(.editorContent:focus-within) {
-  --editor-border-color: var(--bs-primary);
+  --editor-border-color: var(--sn-primary);
   outline: 0;
-  box-shadow: 0 0 4px var(--bs-primary);
+  box-shadow: 0 0 4px var(--sn-primary);
 }
 
 .editorContainer {
   width: 100%;
-  color: var(--theme-color);
   position: relative;
   font-weight: 400;
   text-align: left;
@@ -57,7 +58,6 @@
 }
 
 .editorContentInput {
-  caret-color: var(--theme-color);
   font-size: 94%;
   line-height: 140%;
   tab-size: 1;
@@ -96,12 +96,6 @@
   touch-action: manipulation;
 }
 
-.toolbar :global(.dropdown-toggle::after),
-.bottomBar :global(.dropdown-toggle::after),
-.tableCellActionButtonContainer :global(.dropdown-toggle::after) {
-  display: none;
-}
-
 .innerToolbar {
   margin-left: auto;
   display: flex;
@@ -115,15 +109,10 @@
 .divider {
   min-width: 1px;
   height: 20px;
-  background-color: var(--theme-borderColor);
+  background-color: var(--sn-borderColor);
   border-radius: 0.4rem;
   margin: 0 4px;
   opacity: 0.3;
-
-  /* extra space when divider follows a dropdown */
-  :global(.dropdown) + & {
-    margin-left: 1.25rem;
-  }
 }
 
 .toolbarFormatting {
@@ -156,12 +145,14 @@
   padding: 0.2rem;
   border-radius: 0.4rem;
   opacity: 0.6;
+  background: none; /* items are <button>s, neutralize the UA chrome */
+  border: 0;
   -webkit-touch-callout: none;
   touch-action: manipulation;
 }
 
 .toolbarItem:hover {
-  background-color: var(--theme-toolbarActive);
+  background-color: var(--sn-toolbarActive);
   opacity: 1;
 }
 
@@ -171,12 +162,12 @@
 }
 
 .toolbarItem.active {
-  background-color: var(--theme-toolbarActive);
+  background-color: var(--sn-toolbarActive);
   opacity: 1;
 }
 
 .toolbarItem svg {
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
   width: 20px;
   height: 20px;
 }
@@ -187,10 +178,8 @@
   margin-left: 0.25rem;
 }
 
-/* bootstrap dropdown override */
-.toolbarItem .toolbarItemText,
-:global(.dropdown-toggle) .toolbarItemText {
-  color: var(--bs-body-color);
+.toolbarItem .toolbarItemText {
+  color: var(--sn-body-color);
 }
 
 .toolbarInsert {
@@ -203,7 +192,7 @@
 
 .toolbarInsert:hover,
 .toolbarInsert.active {
-  background-color: var(--theme-toolbarActive);
+  background-color: var(--sn-toolbarActive);
   opacity: 1;
 }
 
@@ -212,10 +201,8 @@
   height: 20px;
 }
 
-/* bootstrap dropdown item svg override */
-.toolbar .toolbarInsert svg,
-:global(.dropdown-toggle).toolbarInsert svg {
-  fill: var(--bs-body-color);
+.toolbar .toolbarInsert svg {
+  fill: var(--sn-body-color);
 }
 
 /* bottom bar */
@@ -231,20 +218,20 @@
 .bottomBarItem {
   cursor: pointer;
   font-size: 10px;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   margin-top: 2px;
 }
 
 .bottomBarDivider {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: 10px;
   margin-top: 2px;
 }
 
 .bottomBarItem:hover,
 .bottomBarItem:active {
-  color: var(--theme-brandColor);
-  filter: drop-shadow(0 0 6px var(--bs-primary));
+  color: var(--sn-brandColor);
+  filter: drop-shadow(0 0 6px var(--sn-primary));
 }
 
 .bottomBarItem:active {
@@ -276,7 +263,7 @@
 }
 
 .dropdownExtraItemShortcut, .tableActionMenuItemShortcut {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: 12px;
   font-weight: 400;
   opacity: 0.5;
@@ -303,22 +290,33 @@
   }
 }
 
-.toolbar :global(.nav-tabs) {
-  flex-wrap: nowrap;
-}
-
-/* editor mode tabs */
+/* Editor tabs own their paint and neutralize native button chrome. */
 .modeTab {
-  --tab-border-color: var(--theme-borderColor);
-  --tab-bg: var(--theme-inputBg);
+  --tab-border-color: var(--sn-borderColor);
+  --tab-bg: var(--sn-inputBg);
   --tab-shadow: none;
   --tab-clip: none;
 
   padding: 0.25rem 0.5rem;
   position: relative;
+  font-size: 80%;
+  font-weight: 500;
+  color: var(--sn-navLink);
+  background: none;
+  border: 0;
+  border-radius: 0.4rem 0.4rem 0 0;
+  margin-bottom: -1px;
+  cursor: pointer;
 }
 
-.modeTab:global(.nav-link.active) {
+.modeTab:not([data-active]):hover {
+  color: var(--sn-navLinkFocus);
+}
+
+.modeTab[data-active] {
+  color: var(--sn-navLinkActive);
+  font-weight: bold;
+  cursor: default;
   border: 1px solid var(--tab-border-color);
   border-bottom: 0;
   background-color: var(--tab-bg);
@@ -328,14 +326,14 @@
 
 /* non-top-level editor tabs (comments, etc.) */
 .editorContainer:not([data-top-level='true']) .modeTab {
-  --tab-border-color: color-mix(in srgb, var(--theme-borderColor) 25%, transparent);
-  --tab-bg: var(--theme-forceCommentBg);
+  --tab-border-color: color-mix(in srgb, var(--sn-borderColor) 25%, transparent);
+  --tab-bg: var(--sn-forceCommentBg);
 }
 
 /* focus state for tabs */
 .toolbar:has(~ .editor .editorContent:focus-within) .modeTab {
-  --tab-border-color: var(--bs-primary);
-  --tab-shadow: 0 0 4px var(--bs-primary);
+  --tab-border-color: var(--sn-primary);
+  --tab-shadow: 0 0 4px var(--sn-primary);
   --tab-clip: inset(-0.2rem -0.2rem -0.1rem -0.2rem);
 }
 
@@ -343,21 +341,21 @@
 
 .floatingToolbarContainer {
   position: absolute;
-  background-color: var(--theme-inputBg);
+  background-color: var(--sn-inputBg);
   border-radius: 0.4rem;
   top: 0;
   left: 0;
   z-index: 1000;
   opacity: 0;
   transform: translate(-10000px, -10000px);
-  box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--theme-floating-toolbar-shadow-opacity));
+  box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--sn-floating-toolbar-shadow-opacity));
   transition: opacity 0.2s ease-in-out;
   will-change: transform;
 }
 
 .floatingToolbar {
   border-radius: 0.4rem;
-  background-color: var(--theme-commentBg);
+  background-color: var(--sn-commentBg);
   padding: 4px;
   padding-bottom: 0;
 }
@@ -367,7 +365,7 @@
 .codeActionMenuContainer {
   height: 36px;
   font-size: 10px;
-  color: var(--theme-navLink);
+  color: var(--sn-navLink);
   position: absolute;
   display: flex;
   align-items: center;
@@ -379,7 +377,7 @@
 
 .codeActionCopyButton svg,
 .codeActionLanguage svg {
-  fill: var(--theme-navLink);
+  fill: var(--sn-navLink);
   width: 16px;
   height: 16px;
 }
@@ -390,12 +388,12 @@
 
 .codeActionCopyButton svg:hover,
 .codeActionLanguage svg:hover {
-  fill: var(--theme-navLinkFocus);
+  fill: var(--sn-navLinkFocus);
 }
 
 .codeActionCopyButton svg:active,
 .codeActionLanguage svg:active {
-  fill: var(--theme-navLinkActive);
+  fill: var(--sn-navLinkActive);
 }
 
 .draggableBlockMenu {
@@ -440,7 +438,7 @@
 /* to be implemented */
 .tableAddColumns {
   position: absolute;
-  background-color: var(--theme-toolbarActive);
+  background-color: var(--sn-toolbarActive);
   height: 100%;
   animation: table-controls 0.2s ease;
   border: 0;
@@ -451,20 +449,20 @@
 }
 
 .tableAddColumns svg, .tableAddRows svg {
-  fill: var(--bs-body-color);
+  fill: var(--sn-body-color);
   width: 12px;
   height: 12px;
 }
 
 .tableAddColumns:hover,
 .tableAddRows:hover {
-  background-color: var(--theme-toolbarActive);
+  background-color: var(--sn-toolbarActive);
   opacity: 0.8;
 }
 .tableAddRows {
   position: absolute;
   width: calc(100% - 25px);
-  background-color: var(--theme-toolbarActive);
+  background-color: var(--sn-toolbarActive);
   animation: table-controls 0.2s ease;
   border: 0;
   cursor: pointer;
@@ -501,16 +499,15 @@
   opacity: 0;
 }
 .tableCellActionButton {
-  background-color: var(--theme-commentBg);
+  background-color: var(--sn-commentBg);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--theme-borderColor);
+  border: 1px solid var(--sn-borderColor);
   border-radius: 4px;
   position: absolute;
   top: 17px;
   right: 2px;
-  color: var(--theme-color);
   cursor: pointer;
   font-size: 12px;
   line-height: 1;
@@ -520,11 +517,11 @@
 }
 
 .tableCellActionButton:hover {
-  background-color: var(--theme-toolbarActive);
+  background-color: var(--sn-toolbarActive);
 }
 
 .tableCellActionButton svg {
-  fill: var(--bs-body-color);
+  fill: var(--sn-body-color);
   width: 12px;
   height: 12px;
 }
@@ -556,7 +553,7 @@
 }
 
 .tableActionMenuItem:hover {
-  background-color: var(--theme-toolbarActive);
+  background-color: var(--sn-toolbarActive);
   opacity: 1;
   border-radius: 0.3rem;
 }
@@ -577,43 +574,14 @@
 }
 
 .dragOver {
-  box-shadow: 0 0 10px var(--bs-info);
+  box-shadow: 0 0 10px var(--sn-info);
 }
 
-.modeSwitcherContainer {
-  --switcher-border-color: color-mix(in srgb, var(--theme-borderColor) 50%, transparent);
-  --switcher-shadow: none;
-  --switcher-clip: none;
-
-  margin-bottom: -0.05rem;
-}
-
-.modeSwitcherContainer :global(.nav-tabs .nav-link) {
-  color: var(--theme-dropdownItemColor);
-  font-size: 12px;
-  padding-bottom: 0.25rem;
-  padding-top: 0.25rem;
-}
-
-.modeSwitcherContainer :global(.nav-tabs .nav-link.active) {
-  border: 1px solid var(--switcher-border-color);
-  border-bottom: 0;
-  background-color: var(--theme-commentBg);
-  box-shadow: var(--switcher-shadow);
-  clip-path: var(--switcher-clip);
-}
-
-/* focus state for mode switcher */
-.toolbar:has(~ .editor .editorContent:focus-within) .modeSwitcherContainer {
-  --switcher-border-color: var(--bs-primary);
-  --switcher-shadow: 0 0 0 0.2rem rgb(240 218 94 / 25%);
-  --switcher-clip: inset(-0.2rem -0.2rem -0.005rem -0.2rem);
-}
-
-/* https://github.com/react-bootstrap/react-bootstrap/issues/5475 */
+/* mentions listbox: the class only lifts it onto the z ladder; position so the
+   z-index applies */
 .suggestionsMenu {
-  opacity: 1 !important;
-  pointer-events: unset !important;
+  position: relative;
+  z-index: var(--sn-z-dropdown);
 }
 
 
@@ -621,7 +589,7 @@
   display: flex;
   align-items: center;
   text-align: center;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   padding-left: 0.25rem;
   padding-right: 0.25rem;
   margin-top: 0.5rem;
@@ -631,9 +599,11 @@
 .separator::after {
   content: '';
   flex: 1;
-  border-bottom: 2px solid var(--theme-grey);
+  border-bottom: 2px solid var(--sn-grey);
 }
 
 .separator:not(:empty)::after {
   margin-left: .25em;
+}
+
 }

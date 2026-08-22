@@ -1,0 +1,32 @@
+import { cn } from '@/lib/cn'
+import styles from './field.module.css'
+
+// Shared recipes also support controls that do not use Formik.
+
+// These metrics match Button sizes so mixed input groups stay aligned.
+// Mobile text remains at least 1rem to prevent iOS input zoom.
+const SIZES = {
+  sm: 'px-2 py-1 text-sm',
+  md: 'px-4 py-1.5 text-base'
+}
+
+export const inputClasses = ({ valid, size = 'md', className } = {}) =>
+  cn(styles.control, valid && styles.valid, 'block w-full max-md:text-[1rem]', SIZES[size], className)
+
+export const labelClasses = ({ className } = {}) =>
+  cn(styles.label, 'mb-2 inline-block', className)
+
+export const hintClasses = ({ className } = {}) =>
+  cn(styles.hint, className)
+
+export const errorClasses = ({ className } = {}) =>
+  cn(styles.error, className)
+
+export function FormGroup ({ className, label, children }) {
+  return (
+    <div className={cn(styles.group, className)}>
+      {label && <label className={labelClasses()}>{label}</label>}
+      {children}
+    </div>
+  )
+}

@@ -1,6 +1,6 @@
-import AccordianItem from './accordian-item'
-import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
-import { Checkbox, CheckboxGroup, Form, Input, SNInput, Range } from './form'
+import AccordionItem from './accordion-item'
+import Badge from '@/components/ui/badge'
+import { Checkbox, CheckboxGroup, Form, Input, InputAddon, SNInput, Range, RadioGroup, Radio, labelClasses } from './form'
 import { useFormikContext } from 'formik'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql } from '@apollo/client'
@@ -28,7 +28,7 @@ function SatFilterRanges () {
   return (
     <Range
       label={
-        <div className='d-flex align-items-center'>posts sat filter
+        <div className='flex items-center'>posts sat filter
           <Info>
             <ul>
               <li>minimum net investment (cost + zaps + boost - downzaps) for posts to appear in lit/top</li>
@@ -136,7 +136,7 @@ export default function TerritoryForm ({ sub }) {
         }}
         schema={schema}
         onSubmit={onSubmit}
-        className='mb-5'
+        className='mb-12'
         storageKeyPrefix={sub ? undefined : 'territory'}
       >
         <Input
@@ -146,10 +146,10 @@ export default function TerritoryForm ({ sub }) {
           autoFocus
           clear
           maxLength={32}
-          prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
+          prepend={<InputAddon className='font-mono'>~</InputAddon>}
           onChange={onNameChange}
           warn={archived && (
-            <div className='d-flex align-items-center'>this territory is archived
+            <div className='flex items-center'>this territory is archived
               <Info>
                 <ul>
                   <li>This territory got archived because the previous founder did not pay for the upkeep</li>
@@ -172,11 +172,11 @@ export default function TerritoryForm ({ sub }) {
           name='baseCost'
           type='number'
           required
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          append={<InputAddon className='font-mono'>sats</InputAddon>}
         />
         <CheckboxGroup label='post types' name='postTypes'>
-          <Row>
-            <Col xs={4} sm='auto'>
+          <div className='grid grid-cols-3 sm:flex sm:flex-wrap sm:gap-x-8'>
+            <div>
               <Checkbox
                 inline
                 label='links'
@@ -185,8 +185,8 @@ export default function TerritoryForm ({ sub }) {
                 id='links-checkbox'
                 groupClassName='ms-1 mb-0'
               />
-            </Col>
-            <Col xs={4} sm='auto'>
+            </div>
+            <div>
               <Checkbox
                 inline
                 label='discussions'
@@ -195,8 +195,8 @@ export default function TerritoryForm ({ sub }) {
                 id='discussions-checkbox'
                 groupClassName='ms-1 mb-0'
               />
-            </Col>
-            <Col xs={4} sm='auto'>
+            </div>
+            <div>
               <Checkbox
                 inline
                 label='bounties'
@@ -205,8 +205,8 @@ export default function TerritoryForm ({ sub }) {
                 id='bounties-checkbox'
                 groupClassName='ms-1 mb-0'
               />
-            </Col>
-            <Col xs={4} sm='auto'>
+            </div>
+            <div>
               <Checkbox
                 inline
                 label='polls'
@@ -215,14 +215,14 @@ export default function TerritoryForm ({ sub }) {
                 id='polls-checkbox'
                 groupClassName='ms-1 mb-0'
               />
-            </Col>
-          </Row>
+            </div>
+          </div>
         </CheckboxGroup>
         {sub?.billingType !== 'ONCE' &&
           <>
-            <CheckboxGroup
+            <RadioGroup
               label={
-                <span className='d-flex align-items-center'>billing
+                <span className='flex items-center'>billing
                   {sub && sub.billingType !== 'ONCE' &&
                     <Info>
                       You will be credited what you paid for your current billing period when you change your billing period to a longer duration.
@@ -230,37 +230,29 @@ export default function TerritoryForm ({ sub }) {
                     </Info>}
                 </span>
               }
-              name='billing'
+              name='billingType'
               groupClassName={billing !== 'once' ? 'mb-0' : ''}
+              onChange={(v) => setBilling(v.toLowerCase())}
             >
-              <Checkbox
-                type='radio'
+              <Radio
                 label={`${abbrNum(TERRITORY_PERIOD_COST('MONTHLY'))} sats/month`}
                 value='MONTHLY'
-                name='billingType'
                 id='monthly-checkbox'
-                handleChange={checked => checked && setBilling('monthly')}
                 groupClassName='ms-1 mb-0'
               />
-              <Checkbox
-                type='radio'
+              <Radio
                 label={`${abbrNum(TERRITORY_PERIOD_COST('YEARLY'))} sats/year`}
                 value='YEARLY'
-                name='billingType'
                 id='yearly-checkbox'
-                handleChange={checked => checked && setBilling('yearly')}
                 groupClassName='ms-1 mb-0'
               />
-              <Checkbox
-                type='radio'
+              <Radio
                 label={`${abbrNum(TERRITORY_PERIOD_COST('ONCE'))} sats once`}
                 value='ONCE'
-                name='billingType'
                 id='once-checkbox'
-                handleChange={checked => checked && setBilling('once')}
                 groupClassName='ms-1 mb-0'
               />
-            </CheckboxGroup>
+            </RadioGroup>
             {billing !== 'once' &&
               <Checkbox
                 label='auto-renew'
@@ -268,7 +260,7 @@ export default function TerritoryForm ({ sub }) {
                 groupClassName='ms-1 mt-2'
               />}
           </>}
-        <AccordianItem
+        <AccordionItem
           header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
           body={
             <>
@@ -277,18 +269,18 @@ export default function TerritoryForm ({ sub }) {
                 name='replyCost'
                 type='number'
                 required
-                append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+                append={<InputAddon className='font-mono'>sats</InputAddon>}
               />
               <SatFilterRanges />
-              <BootstrapForm.Label>nsfw</BootstrapForm.Label>
+              <label className={labelClasses()}>nsfw</label>
               <Checkbox
                 inline
                 label={
-                  <div className='d-flex align-items-center'>mark as nsfw
+                  <div className='flex items-center'>mark as nsfw
                     <Info>
                       <ol>
                         <li>Let stackers know that your territory may contain explicit content</li>
-                        <li>Your territory will get a <Badge bg='secondary'>nsfw</Badge> badge</li>
+                        <li>Your territory will get a <Badge variant='secondary'>nsfw</Badge> badge</li>
                       </ol>
                     </Info>
                   </div>
@@ -300,7 +292,7 @@ export default function TerritoryForm ({ sub }) {
 
 }
         />
-        <div className='mt-3 d-flex justify-content-end'>
+        <div className='mt-4 flex justify-end'>
           <FeeButton
             text={sub ? 'save' : 'found it'}
             variant='secondary'
@@ -311,7 +303,7 @@ export default function TerritoryForm ({ sub }) {
       {DOMAIN_BETA_IDS.includes(Number(me?.id)) &&
         <>
           {sub && !branding && <TerritoryBranding sub={sub} />}
-          {sub && branding && <Link className='text-muted w-100' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain and branding settings on stacker.news <LinkExternal width={16} height={16} /></Link>}
+          {sub && branding && <Link className='text-muted w-full' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain and branding settings on stacker.news <LinkExternal width={16} height={16} /></Link>}
         </>}
     </FeeButtonProvider>
   )

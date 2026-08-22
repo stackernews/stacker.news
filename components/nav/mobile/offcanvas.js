@@ -1,13 +1,19 @@
 import { useMemo, useState } from 'react'
-import { Dropdown, Image, Nav, Navbar, Offcanvas } from 'react-bootstrap'
+import { Drawer, DrawerHeader, DrawerTitle, DrawerBody } from '@/components/ui/drawer'
+import { MenuSeparator, itemClasses } from '@/components/ui/menu'
 import { MEDIA_URL } from '@/lib/constants'
+import { cn } from '@/lib/cn'
 import Link from 'next/link'
 import { Indicator, LoginButtons, LogoutDropdownItem, NavWalletSummary } from '../common'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
-import canvasStyles from './offcanvas.module.css'
 import classNames from 'classnames'
 import { useWalletIndicator } from '@/wallets/client/hooks'
+
+// the drawer keeps its roomier 8px tap targets while the menu recipe
+// tightened to py-1.5; the call-site py-2 out-merges the recipe's value
+const drawerItemClasses = (opts = {}) =>
+  itemClasses({ ...opts, className: cn('px-0 py-2', opts.className) })
 
 function MeImage ({ me, onClick }) {
   const src = useMemo(() => me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg', [me?.photoId])
@@ -15,9 +21,9 @@ function MeImage ({ me, onClick }) {
     return <span className='text-muted pointer'><AnonIcon onClick={onClick} width='22' height='22' /></span>
   }
   return (
-    <Image
+    <img
       src={src} width='28' height='28'
-      className={canvasStyles.meimg}
+      className={styles.meimg}
       onClick={onClick}
     />
   )
@@ -35,59 +41,66 @@ export default function OffCanvas ({ me, dropNavKey }) {
 
   return (
     <>
-      <Indicator show={indicator}><MeImage me={me} onClick={handleShow} /></Indicator>
-      <Offcanvas className={canvasStyles.offcanvas} show={show} onHide={handleClose} placement='end'>
-        <Offcanvas.Header closeButton>
-          <Offcanvas.Title><NavWalletSummary /></Offcanvas.Title>
-        </Offcanvas.Header>
-        <Offcanvas.Body className='pb-0'>
-          <div style={{
-            '--bs-dropdown-item-padding-y': '.5rem',
-            '--bs-dropdown-item-padding-x': 0,
-            '--bs-dropdown-divider-bg': '#ced4da',
-            '--bs-dropdown-divider-margin-y': '0.5rem',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-          >
+      <Indicator show={indicator}>
+        <button
+          type='button'
+          className='bg-transparent border-0 p-0 pointer'
+          aria-label='open profile menu'
+          onClick={handleShow}
+        >
+          <MeImage me={me} />
+        </button>
+      </Indicator>
+      <Drawer show={show} onHide={handleClose} placement='end'>
+        <DrawerHeader>
+          <DrawerTitle><NavWalletSummary /></DrawerTitle>
+        </DrawerHeader>
+        <DrawerBody className='pb-0'>
+          {/* the six nav rows are drawerItemClasses() on plain Links,
+              paint-identical to the plain-mode MenuItems they replace;
+              LoginButtons and LogoutDropdownItem stay MenuItem dual-mode,
+              shared with the corner menus. Close-on-nav needs no code, since
+              navigation remounts BottomBar and show resets. handleClose still
+              threads to the modal-triggering rows, modals must close the
+              drawer first */}
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             {me
               ? (
                 <>
-                  <Dropdown.Item as={Link} href={'/' + me.name} active={me.name === dropNavKey}>
+                  <Link href={'/' + me.name} className={drawerItemClasses({ active: me.name === dropNavKey })}>
                     <Indicator show={profileIndicator} top='2px' right='-10px'>profile</Indicator>
-                  </Dropdown.Item>
-                  <Dropdown.Item as={Link} href={'/' + me.name + '/bookmarks'} active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
-                  <Dropdown.Item as={Link} href='/wallets' eventKey='wallets'>
+                  </Link>
+                  <Link href={'/' + me.name + '/bookmarks'} className={drawerItemClasses({ active: me.name + '/bookmarks' === dropNavKey })}>bookmarks</Link>
+                  <Link href='/wallets' className={drawerItemClasses()}>
                     <Indicator show={walletIndicator} top='2px' right='-10px'>wallets</Indicator>
-                  </Dropdown.Item>
-                  <Dropdown.Item as={Link} href='/satistics' eventKey='satistics'>satistics</Dropdown.Item>
-                  <Dropdown.Divider />
-                  <Dropdown.Item as={Link} href='/invites' eventKey='invites'>invites</Dropdown.Item>
-                  <Dropdown.Divider />
-                  <div className='d-flex align-items-center'>
-                    <Dropdown.Item as={Link} href='/settings' eventKey='settings'>settings</Dropdown.Item>
+                  </Link>
+                  <Link href='/satistics' className={drawerItemClasses()}>satistics</Link>
+                  <MenuSeparator />
+                  <Link href='/invites' className={drawerItemClasses()}>invites</Link>
+                  <MenuSeparator />
+                  <div className='flex items-center'>
+                    <Link href='/settings' className={drawerItemClasses()}>settings</Link>
                   </div>
-                  <Dropdown.Divider />
-                  <LogoutDropdownItem handleClose={handleClose} />
+                  <MenuSeparator />
+                  <LogoutDropdownItem handleClose={handleClose} className='px-0 py-2' />
                 </>
                 )
-              : <LoginButtons handleClose={handleClose} />}
+              : <LoginButtons handleClose={handleClose} className='px-0 py-2' />}
             <div className={classNames(styles.footerPadding, 'mt-auto')}>
-              <Navbar className={classNames('container d-flex flex-row px-0 text-muted')}>
-                <Nav>
-                  <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
+              <div className='w-full flex flex-row items-center py-2 px-0 text-muted'>
+                <div>
+                  <Link href={`/${me?.name || 'anon'}`} className='flex flex-row p-2 mt-auto text-muted'>
                     <MeImage me={me} />
                     <div className='ms-2'>
                       <Indicator show={indicator} top='2px' right='-5px'>@{me?.name || 'anon'}</Indicator>
                     </div>
                   </Link>
-                </Nav>
-              </Navbar>
+                </div>
+              </div>
             </div>
           </div>
-        </Offcanvas.Body>
-      </Offcanvas>
+        </DrawerBody>
+      </Drawer>
     </>
   )
 }

@@ -1,8 +1,11 @@
-import React, { useState, useMemo } from 'react'
-import Dropdown from 'react-bootstrap/Dropdown'
-import FormControl from 'react-bootstrap/FormControl'
-import TocIcon from '@/svgs/list-unordered.svg'
+import { useMemo } from 'react'
+import { Combobox } from '@base-ui/react/combobox'
 import { useRouter } from 'next/router'
+import { popoverClasses } from '@/components/ui/popover'
+import popoverStyles from '@/components/ui/popover.module.css'
+import { itemClasses } from '@/components/ui/menu'
+import { inputClasses } from '@/components/form'
+import TocIcon from '@/svgs/list-unordered.svg'
 import { $extractHeadingsFromRoot } from '@/lib/lexical/utils/toc'
 
 export default function Toc ({ text, readerRef }) {
@@ -19,70 +22,33 @@ export default function Toc ({ text, readerRef }) {
   }
 
   return (
-    <Dropdown align='end' className='d-flex align-items-center mb-1'>
-      <Dropdown.Toggle as={CustomToggle} id='dropdown-custom-components'>
+    <Combobox.Root items={toc} value={null} itemToStringLabel={h => h.text || h.heading}>
+      <Combobox.Trigger nativeButton={false} render={<span className='flex items-center mb-1' />}>
         <TocIcon width={20} height={20} className='mx-2 fill-grey theme' />
-      </Dropdown.Toggle>
-
-      <Dropdown.Menu as={CustomMenu}>
-        {toc.map(v => {
-          return (
-            <Dropdown.Item
-              className={v.depth === 1 ? 'fw-bold' : ''}
-              style={{
-                marginLeft: `${(v.depth - 1) * 5}px`
-              }}
-              href={`#${v.slug}`} key={v.slug}
-              // nextjs router doesn't emit hashChangeStart events
-              onClick={() => router.events.emit('hashChangeStart', `#${v.slug}`, { shallow: true })}
-            >{v.text || v.heading}
-            </Dropdown.Item>
-          )
-        })}
-      </Dropdown.Menu>
-    </Dropdown>
+      </Combobox.Trigger>
+      <Combobox.Portal>
+        <Combobox.Positioner align='end' sideOffset={2} className={popoverStyles.positioner}>
+          <Combobox.Popup className={popoverClasses()}>
+            <Combobox.Input placeholder='filter' className={inputClasses({ className: 'mx-4 my-2 w-auto' })} />
+            <Combobox.List className='list-none ps-0 mb-0 text-base'>
+              {h => (
+                <Combobox.Item
+                  key={h.slug} value={h} render={<a href={`#${h.slug}`} />}
+                  className={itemClasses({ className: h.depth === 1 ? 'font-bold' : '' })}
+                  style={{ marginLeft: `${(h.depth - 1) * 5}px` }}
+                  // nextjs router doesn't emit hashChangeStart events;
+                  // this fires for pointer and keyboard since Enter is a native
+                  // listItem.click(), and onValueChange never fires for anchor
+                  // items (don't add the emit there)
+                  onClick={() => router.events.emit('hashChangeStart', `#${h.slug}`, { shallow: true })}
+                >
+                  {h.text || h.heading}
+                </Combobox.Item>
+              )}
+            </Combobox.List>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
   )
 }
-
-const CustomToggle = React.forwardRef(({ children, onClick }, ref) => (
-  <a
-    href=''
-    ref={ref}
-    onClick={(e) => {
-      e.preventDefault()
-      onClick(e)
-    }}
-  >
-    {children}
-  </a>
-))
-
-// forwardRef again here!
-// Dropdown needs access to the DOM of the Menu to measure it
-const CustomMenu = React.forwardRef(
-  ({ children, style, className, 'aria-labelledby': labeledBy }, ref) => {
-    const [value, setValue] = useState('')
-
-    return (
-      <div
-        ref={ref}
-        style={style}
-        className={className}
-        aria-labelledby={labeledBy}
-      >
-        <FormControl
-          className='mx-3 my-2 w-auto'
-          placeholder='filter'
-          onChange={(e) => setValue(e.target.value)}
-          value={value}
-        />
-        <ul className='list-unstyled'>
-          {React.Children.toArray(children).filter(
-            (child) =>
-              !value || child.props.children.toLowerCase().includes(value)
-          )}
-        </ul>
-      </div>
-    )
-  }
-)

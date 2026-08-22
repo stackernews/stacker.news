@@ -1,0 +1,44 @@
+@layer components {
+
+/* only what the recipes can't paint lives here */
+
+/* the state legs inputClasses can't give a div: field.module.css keys focus on
+   .control:focus, which never fires on the wrapper, so the ring rides
+   :focus-within while the inner input holds focus. .control.isInvalid doubles
+   specificity so the red border wins over the base border color. */
+.control:focus-within {
+  border-color: var(--sn-primary);
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+}
+
+.control.isInvalid {
+  border-color: #c03221;
+}
+
+.control.isInvalid:focus-within {
+  box-shadow: 0 0 0 .2rem rgb(192 50 33 / 25%);
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  background-color: var(--sn-clickToContextColor);
+  border-radius: 2px;
+  padding-inline-start: 6px;
+}
+
+.groupLabel {
+  padding: .25rem 1rem;
+  color: var(--sn-grey);
+  font-size: .75rem;
+  text-transform: uppercase;
+}
+
+/* mobile touch targets */
+@media (max-width: 767px) {
+  .item {
+    min-height: 44px;
+  }
+}
+
+}

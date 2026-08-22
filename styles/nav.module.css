@@ -1,3 +1,40 @@
+@layer components {
+
+/* Shared link paint also supports button-backed navigation actions. Success
+   and warning states keep their semantic colors. */
+.link {
+    background: none;
+    border: 0;
+}
+
+.link:not(:global(.text-success)):not(:global(.text-warning)) {
+    color: var(--sn-navLink);
+}
+
+.link:not(:global(.text-success)):not(:global(.text-warning)):hover,
+.link:not(:global(.text-success)):not(:global(.text-warning)):focus-visible {
+    color: var(--sn-navLinkFocus);
+}
+
+/* Active state must beat the local sort-link weight reset. */
+.link.active {
+    font-weight: bold;
+}
+
+.link.active:not(:global(.text-success)):not(:global(.text-warning)) {
+    color: var(--sn-navLinkActive);
+}
+
+.link svg {
+    fill: var(--sn-navLink);
+}
+
+.link:hover svg,
+.link.active svg {
+    fill: var(--sn-navLinkActive);
+}
+
+/* tab-nav container (settings / satistics / user-header) */
 .nav {
     display: flex;
     flex-wrap: nowrap;
@@ -11,10 +48,12 @@
     gap: 0 0.5rem;
 }
 
-.nav :global .nav-link {
-    padding-left: 0;
+.nav .link {
+    display: block;
 }
 
-.nav :global .active {
-    border-bottom: 2px solid var(--bs-primary);
+.nav .active {
+    border-bottom: 2px solid var(--sn-primary);
+}
+
 }

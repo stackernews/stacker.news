@@ -58,7 +58,7 @@ export function WalletList ({ entries, wallets, selectedRouteId, onSelect, varia
 
         return (
           <Fragment key={entry.routeId}>
-            {showSectionLabel && <div className={classNames(styles.walletSectionLabel, 'text-muted text-uppercase line-height-1')}>{sectionLabel}</div>}
+            {showSectionLabel && <div className={classNames(styles.walletSectionLabel, 'text-muted uppercase leading-none')}>{sectionLabel}</div>}
             {ordering && entry.kind === 'external'
               ? <Draggable index={externalIndex}>{row}</Draggable>
               : row}
@@ -79,7 +79,7 @@ export function WalletList ({ entries, wallets, selectedRouteId, onSelect, varia
 
 export function WalletRow ({ entry, showSelectedIcon }) {
   if (entry.kind === 'add') {
-    return <div className='fw-bold text-center line-height-1'>{entry.name}</div>
+    return <div className='font-bold text-center leading-none'>{entry.name}</div>
   }
 
   const spec = kindSpec(entry)
@@ -89,7 +89,7 @@ export function WalletRow ({ entry, showSelectedIcon }) {
       <div className={styles.walletRowIdentity}>
         <div className={styles.walletRowLogoLine}>
           <WalletIcon entry={entry} />
-          {spec.showName && <div className={classNames(styles.walletRowIdentityName, 'text-truncate fw-bold')}>{entry.name}</div>}
+          {spec.showName && <div className={classNames(styles.walletRowIdentityName, 'truncate font-bold')}>{entry.name}</div>}
         </div>
         {spec.statusPills && <ExternalWalletStatus wallet={entry.wallet} />}
       </div>
@@ -123,7 +123,7 @@ function ExternalWalletStatus ({ wallet }) {
     <WalletStatusPills
       receive={support.receive ? status.receive : undefined}
       send={support.send ? status.send : undefined}
-      className={classNames(styles.walletRowMeta, styles.walletRowIdentityMeta, 'd-flex flex-wrap align-items-center text-muted')}
+      className={classNames(styles.walletRowMeta, styles.walletRowIdentityMeta, 'flex flex-wrap items-center text-muted')}
     />
   )
 }

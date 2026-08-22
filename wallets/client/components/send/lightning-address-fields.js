@@ -1,4 +1,4 @@
-import { Checkbox, Input } from '@/components/form'
+import { Checkbox, Input, InputAddon } from '@/components/form'
 import { useMe } from '@/components/me'
 import { characterLength } from '@/lib/validate'
 import { lnAddrFormFields } from '@/lib/lnurl'
@@ -9,7 +9,6 @@ import CloseIcon from '@/svgs/close-line.svg'
 import classNames from 'classnames'
 import { useFormikContext } from 'formik'
 import { useCallback, useMemo, useState } from 'react'
-import { InputGroup } from 'react-bootstrap'
 const styles = { ...sharedStyles, ...sendStyles }
 
 export function LightningAddressFields ({ service, maxFee }) {
@@ -46,19 +45,20 @@ export function LightningAddressFields ({ service, maxFee }) {
       <Input
         label='amount'
         name='amount'
+        groupClassName='mb-0'
         type='number'
         step={10}
         min={service.min}
         max={service.max}
         required
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
       />
       {mandatoryFields.map(field => <LightningAddressField key={field} name={field} service={service} values={values} me={me} required />)}
       {maxFee}
       {optionalFields.length > 0 && (
         <div className={classNames(styles.stackSection, styles.toggleChipSection)}>
           <div className={classNames(styles.toggleChipLabel, 'text-muted')}>optional</div>
-          <div className='d-flex flex-wrap gap-2'>
+          <div className='flex flex-wrap gap-2'>
             {optionalFields.map(field => (
               <FieldChip
                 key={field}
@@ -101,6 +101,7 @@ function LightningAddressField ({ name, service, values, me, required }) {
         as='textarea'
         label={label}
         name='comment'
+        groupClassName='mb-0'
         hint={`characters remaining: ${remaining}`}
       />
     )
@@ -112,6 +113,7 @@ function LightningAddressField ({ name, service, values, me, required }) {
         name='identifier'
         required={required}
         label={label}
+        groupClassName='mb-0'
       />
     )
   }
@@ -121,6 +123,7 @@ function LightningAddressField ({ name, service, values, me, required }) {
       name={name}
       required={required}
       label={label}
+      groupClassName='mb-0'
     />
   )
 }

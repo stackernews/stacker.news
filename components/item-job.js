@@ -1,7 +1,6 @@
 import { string } from 'yup'
 import Toc from './table-of-contents'
-import Button from 'react-bootstrap/Button'
-import Image from 'react-bootstrap/Image'
+import { buttonClasses } from '@/components/ui/button'
 import { SearchTitle } from './item'
 import styles from './item.module.css'
 import Link from 'next/link'
@@ -10,12 +9,13 @@ import EmailIcon from '@/svgs/mail-open-line.svg'
 import Share, { CopyLinkDropdownItem } from './share'
 import Badges from './badge'
 import { MEDIA_URL } from '@/lib/constants'
-import { Badge } from 'react-bootstrap'
-import SubPopover from './sub-popover'
+import Badge from '@/components/ui/badge'
+import SubPreviewCard from './sub-preview-card'
 import { numWithUnits } from '@/lib/format'
 import { PayInInfo, InfoDropdownItem } from './item-info'
 import Boost from './boost-button'
 import ActionDropdown from './action-dropdown'
+import { MenuSeparator } from '@/components/ui/menu'
 import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
@@ -25,7 +25,7 @@ import { useMe } from './me'
 function CompanyImage ({ item }) {
   return (
     <Link href={`/items/${item.id}`}>
-      <Image
+      <img
         src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
       />
     </Link>
@@ -40,7 +40,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
     <>
       {rank
         ? (
-          <div className={`${styles.rank} pb-2 align-self-center`}>
+          <div className={`${styles.rank} pb-2 self-center`}>
             {rank}
           </div>)
         : <div />}
@@ -52,9 +52,9 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
               <CompanyImage item={item} />
             </div>)
           : <CompanyImage item={item} />}
-        <div className={`${styles.hunk} align-self-center mb-0`}>
-          <div className={`${styles.main} flex-wrap d-inline`}>
-            <Link href={`/items/${item.id}`} className={`${styles.title} text-reset me-2`}>
+        <div className={`${styles.hunk} self-center mb-0`}>
+          <div className={`${styles.main} flex-wrap inline`}>
+            <Link href={`/items/${item.id}`} className={`${styles.title} me-2`}>
               {item.searchTitle
                 ? <SearchTitle title={item.searchTitle} />
                 : (
@@ -78,7 +78,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
             <wbr />
             <span> \ </span>
             <span>
-              <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
+              <Link href={`/${item.user.name}`} className='inline-flex items-center'>
                 @{item.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={item.user} />
               </Link>
               <span> </span>
@@ -87,20 +87,20 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
               </Link>
             </span>
             {item.subNames?.map(subName => (
-              <SubPopover key={subName} sub={subName}>
+              <SubPreviewCard key={subName} sub={subName}>
                 <Link href={`/~${subName}`}>
-                  {' '}<Badge className={styles.newComment} bg={null}>{subName}</Badge>
+                  {' '}<Badge variant='grey' className='align-middle ms-0.5'>{subName}</Badge>
                 </Link>
-              </SubPopover>
+              </SubPreviewCard>
             ))}
             {item.status === 'STOPPED' &&
-              <>{' '}<Badge bg='info' className={styles.badge}>stopped</Badge></>}
+              <>{' '}<Badge variant='info' className='align-middle ms-0.5'>stopped</Badge></>}
             {item.mine && !item.deletedAt &&
               (
                 <>
                   <wbr />
                   <span> \ </span>
-                  <Link href={`/items/${item.id}/edit`} className='text-reset fw-bold'>
+                  <Link href={`/items/${item.id}/edit`} className='text-reset font-bold'>
                     edit
                   </Link>
                   <PayInInfo item={item} {...props} />
@@ -114,7 +114,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
                 <DontLikeThisDropdownItem item={item} />}
               {me && !item.mine &&
                 <>
-                  <hr className='dropdown-divider' />
+                  <MenuSeparator />
                   <MuteDropdownItem user={item.user} />
                 </>}
             </ActionDropdown>
@@ -128,13 +128,14 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
       </div>
       {children && (
         <div className={styles.children} style={{ marginLeft: 'calc(42px + .8rem)' }}>
-          <div className='mb-3 d-flex'>
-            <Button
-              target='_blank' href={isEmail ? `mailto:${item.url}?subject=${encodeURIComponent(item.title)} via Stacker News` : item.url}
+          <div className='mb-4 flex'>
+            <a
+              target='_blank' rel='noreferrer' href={isEmail ? `mailto:${item.url}?subject=${encodeURIComponent(item.title)} via Stacker News` : item.url}
+              className={buttonClasses()}
             >
               apply {isEmail && <EmailIcon className='ms-1' />}
-            </Button>
-            {isEmail && <div className='ms-3 align-self-center text-muted fw-bold'>{item.url}</div>}
+            </a>
+            {isEmail && <div className='ms-4 self-center text-muted font-bold'>{item.url}</div>}
           </div>
           {children}
         </div>

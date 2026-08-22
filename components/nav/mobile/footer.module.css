@@ -1,11 +1,13 @@
+@layer components {
+
 
 .footer {
     position: fixed;
     bottom: 0;
     width: 100%;
-    background-color: var(--bs-body-bg);
-    border-top: 1px solid var(--theme-toolbarActive);
-    z-index: 1000;
+    background-color: var(--sn-body-bg);
+    border-top: 1px solid var(--sn-toolbarActive);
+    z-index: var(--sn-z-fixed);
 }
 
 .footerPadding {
@@ -18,4 +20,12 @@
     justify-items: center;
     align-items: center;
     width: 100%;
+}
+
+/* MeImage chrome, not offcanvas chrome */
+.meimg {
+    clip-path: polygon(0 0, 83% 0, 100% 100%, 17% 100%);
+    cursor: pointer;
+}
+
 }

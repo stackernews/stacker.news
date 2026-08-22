@@ -1,8 +1,7 @@
 import { Fragment, useMemo } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
-import Nav from 'react-bootstrap/Nav'
-import Navbar from 'react-bootstrap/Navbar'
+import { Nav, NavLink, NavItem } from '@/components/ui/nav'
 import { numWithUnits } from '@/lib/format'
 import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
@@ -22,45 +21,45 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   }
 
   return (
-    <Navbar className='pt-1 pb-0 px-3'>
+    <nav className='flex items-center flex-nowrap pt-1 pb-0 px-4'>
       <Nav
         className={styles.navbarNav}
         activeKey={sort}
       >
-        <Nav.Item className='text-muted' title={`${numWithUnits(commentSats + commentCost + commentBoost)} (${commentSats} stacked \\ ${commentCost} cost \\ ${commentBoost} boost)`}>
+        <NavItem className='text-muted' title={`${numWithUnits(commentSats + commentCost + commentBoost)} (${commentSats} stacked \\ ${commentCost} cost \\ ${commentBoost} boost)`}>
           {numWithUnits(commentSats + commentCost + commentBoost)}
-        </Nav.Item>
-        <div className='ms-auto d-flex'>
-          <Nav.Item>
-            <Nav.Link
+        </NavItem>
+        <div className='ms-auto flex'>
+          <NavItem>
+            <NavLink
               eventKey='lit'
-              className={`${styles.navLink} ${styles.navSort}`}
+              className={`${styles.navSort} py-1 px-2`}
               onClick={getHandleClick('lit')}
             >
               lit
-            </Nav.Link>
-          </Nav.Item>
-          <Nav.Item>
-            <Nav.Link
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink
               eventKey='new'
-              className={`${styles.navLink} ${styles.navSort}`}
+              className={`${styles.navSort} py-1 px-2`}
               onClick={getHandleClick('new')}
             >
               new
-            </Nav.Link>
-          </Nav.Item>
-          <Nav.Item>
-            <Nav.Link
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink
               eventKey='top'
-              className={`${styles.navLink} ${styles.navSort}`}
+              className={`${styles.navSort} py-1 px-2`}
               onClick={getHandleClick('top')}
             >
               top
-            </Nav.Link>
-          </Nav.Item>
+            </NavLink>
+          </NavItem>
         </div>
       </Nav>
-    </Navbar>
+    </nav>
   )
 }
 

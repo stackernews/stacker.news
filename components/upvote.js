@@ -9,64 +9,57 @@ import { useMe } from './me'
 import getColor from '@/lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import LongPressable from './long-pressable'
-import Overlay from 'react-bootstrap/Overlay'
-import Popover from 'react-bootstrap/Popover'
+import { Popover, PopoverContent, PopoverHeader, PopoverBody, PopoverClose } from './ui/popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
-import { Dropdown } from 'react-bootstrap'
+import { MenuItem } from '@/components/ui/menu'
 import classNames from 'classnames'
 
-const UpvotePopover = ({ target, show, handleClose }) => {
+const WalkthroughPopover = ({ anchor, show, handleClose, title, children }) => (
+  <Popover
+    open={show} onOpenChange={(open, details) => {
+      // Outside press must not mark the walkthrough as seen. Only its close
+      // control and Escape finish it.
+      if (!open && (details.reason === 'close-press' || details.reason === 'escape-key')) handleClose()
+    }}
+  >
+    {/* initialFocus={false}: the popover opens mid-zap and must not steal focus from the bolt */}
+    <PopoverContent anchor={anchor} side='right' initialFocus={false}>
+      <PopoverHeader>{title}<PopoverClose /></PopoverHeader>
+      <PopoverBody>{children}</PopoverBody>
+    </PopoverContent>
+  </Popover>
+)
+
+const UpvotePopover = ({ anchor, show, handleClose }) => {
   const { me } = useMe()
   return (
-    <Overlay
-      show={show}
-      target={target}
-      placement='right'
-    >
-      <Popover id='popover-basic'>
-        <Popover.Header className='d-flex justify-content-between alert-dismissible' as='h4'>Zapping
-          <button type='button' className='btn-close' onClick={handleClose}><span className='visually-hidden-focusable'>Close alert</span></button>
-        </Popover.Header>
-        <Popover.Body>
-          <div className='mb-2'>Press the bolt again to zap {me?.privates?.tipRandom ? 'a random amount of' : `${me?.privates?.tipDefault || 1} more`} sat{me?.privates?.tipDefault > 1 ? 's' : ''}.</div>
-          <div>Repeatedly press the bolt to zap more sats.</div>
-        </Popover.Body>
-      </Popover>
-    </Overlay>
+    <WalkthroughPopover anchor={anchor} show={show} handleClose={handleClose} title='Zapping'>
+      <div className='mb-2'>Press the bolt again to zap {me?.privates?.tipRandom ? 'a random amount of' : `${me?.privates?.tipDefault || 1} more`} sat{me?.privates?.tipDefault > 1 ? 's' : ''}.</div>
+      <div>Repeatedly press the bolt to zap more sats.</div>
+    </WalkthroughPopover>
   )
 }
 
-const TipPopover = ({ target, show, handleClose }) => (
-  <Overlay
-    show={show}
-    target={target}
-    placement='right'
-  >
-    <Popover id='popover-basic'>
-      <Popover.Header className='d-flex justify-content-between alert-dismissible' as='h4'>Press and hold
-        <button type='button' className='btn-close' onClick={handleClose}><span className='visually-hidden-focusable'>Close alert</span></button>
-      </Popover.Header>
-      <Popover.Body>
-        <div className='mb-2'>Press and hold bolt to zap a custom amount.</div>
-        <div>As you zap more, the bolt color follows the rainbow.</div>
-      </Popover.Body>
-    </Popover>
-  </Overlay>
+const TipPopover = ({ anchor, show, handleClose }) => (
+  <WalkthroughPopover anchor={anchor} show={show} handleClose={handleClose} title='Press and hold'>
+    <div className='mb-2'>Press and hold bolt to zap a custom amount.</div>
+    <div>As you zap more, the bolt color follows the rainbow.</div>
+  </WalkthroughPopover>
 )
 
 export function DropdownItemUpVote ({ item }) {
   const showModal = useShowModal()
 
   return (
-    <Dropdown.Item
+    <MenuItem
       onClick={async () => {
         showModal(onClose =>
           <ItemAct onClose={onClose} item={item} />)
       }}
     >
       <span className='text-success'>zap</span>
-    </Dropdown.Item>
+    </MenuItem>
   )
 }
 
@@ -265,8 +258,8 @@ export default function UpVote ({ item, className, collapsed }) {
           </div>
         </ActionTooltip>
       </LongPressable>
-      <TipPopover target={ref.current} show={tipShow} handleClose={() => setTipShow(false)} />
-      <UpvotePopover target={ref.current} show={voteShow} handleClose={() => setVoteShow(false)} />
+      <TipPopover anchor={ref} show={tipShow} handleClose={() => setTipShow(false)} />
+      <UpvotePopover anchor={ref} show={voteShow} handleClose={() => setVoteShow(false)} />
     </div>
   )
 }

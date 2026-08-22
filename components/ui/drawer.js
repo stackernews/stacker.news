@@ -1,0 +1,53 @@
+import { Drawer as BaseDrawer } from '@base-ui/react/drawer'
+import { cn } from '@/lib/cn'
+import styles from './drawer.module.css'
+
+// The mobile nav opens from the end and wallet sheets open from the bottom.
+// Both placements lock scroll, trap focus, and support directional dismissal.
+export function Drawer ({ show, onHide, placement = 'end', className, children }) {
+  return (
+    <BaseDrawer.Root
+      open={show}
+      swipeDirection={placement === 'end' ? 'right' : 'down'}
+      onOpenChange={open => { if (!open) onHide?.() }}
+    >
+      <BaseDrawer.Portal>
+        <BaseDrawer.Backdrop className={styles.backdrop} />
+        <BaseDrawer.Viewport className={cn(styles.viewport, placement === 'end' ? 'justify-end' : 'items-end')}>
+          <BaseDrawer.Popup
+            className={cn(
+              styles.popup,
+              styles[placement],
+              placement === 'end' ? 'h-full w-62.5' : 'w-full max-h-[85svh] rounded-t-[18px]',
+              'flex flex-col overflow-y-auto',
+              className
+            )}
+          >
+            {children}
+          </BaseDrawer.Popup>
+        </BaseDrawer.Viewport>
+      </BaseDrawer.Portal>
+    </BaseDrawer.Root>
+  )
+}
+
+export function DrawerHeader ({ children }) {
+  return (
+    <div className='flex items-center p-8'>
+      {children}
+      <BaseDrawer.Close
+        nativeButton={false}
+        render={<div role='button' tabIndex={0} aria-label='Close' className={cn(styles.close, 'ms-auto cursor-pointer opacity-50')} />}
+      />
+    </div>
+  )
+}
+
+export function DrawerTitle ({ children }) {
+  return <BaseDrawer.Title className='text-lg font-medium mb-0'>{children}</BaseDrawer.Title>
+}
+
+// Content separates clicks and text selection from the swipe layer.
+export function DrawerBody ({ className, children }) {
+  return <BaseDrawer.Content className={cn('p-8 grow', className)}>{children}</BaseDrawer.Content>
+}

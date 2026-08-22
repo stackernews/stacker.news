@@ -1,0 +1,364 @@
+/*
+ * Global application behavior and third-party skins. These rules are
+ * unlayered and outrank layered utilities, so they must not own properties
+ * that call sites are expected to customize. Element defaults live in base.css.
+ */
+
+@media screen and (min-width: 899px) {
+  .standalone {
+    /* undo the container padding */
+    margin-left: -16px;
+  }
+}
+html {
+  scroll-padding-top: 60px;
+  /* editor needs more padding to keep its toolbar visible when focused */
+}
+html:has([data-sn-editor]:focus) {
+  scroll-padding-top: 90px;
+}
+
+#nprogress .bar {
+  background: var(--sn-primary) !important;
+  height: 2px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--sn-primary), 0 0 5px var(--sn-primary) !important;
+}
+
+.standalone {
+  display: none;
+}
+
+@media (display-mode: standalone) {
+  .standalone {
+    display: flex;
+  }
+}
+.justify-self-center {
+  justify-self: center;
+}
+
+.pulse {
+  animation-name: pulse;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  animation-duration: 0.66s;
+  animation-direction: alternate;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 42%;
+  }
+}
+.fill-primary {
+  fill: var(--sn-primary);
+}
+
+.text-primary svg {
+  fill: var(--sn-primary);
+}
+
+.lexical blockquote > * {
+  margin-bottom: 0 !important;
+}
+
+.twitter-tweet {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-right: 12px;
+}
+
+.twitter-tweet iframe {
+  width: 100% !important;
+}
+
+html, body {
+  background: var(--sn-body-bg) !important;
+  color: var(--sn-body-color) !important;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+.clickToContext {
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.clickToContext:hover {
+  background-color: var(--sn-clickToContextColor);
+}
+
+.theme {
+  cursor: pointer;
+  fill: var(--sn-dropdownItemColor);
+}
+
+.theme:hover {
+  fill: var(--sn-dropdownItemColorHover);
+}
+
+#__next {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+.text-muted svg {
+  fill: var(--sn-grey);
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+/* prevent zooming on mobile */
+@media screen and (max-width: 767px) {
+  input,
+  textarea,
+  div[contenteditable]:not([data-sn-reader]):not([data-sn-reader] *),
+  div[contenteditable]:not([data-sn-reader]):not([data-sn-reader] *):focus {
+    font-size: 1rem !important;
+  }
+}
+.fill-grey, .fill-muted {
+  fill: var(--sn-grey);
+}
+
+.fill-nostr {
+  fill: var(--sn-nostr);
+}
+
+.fill-boost {
+  fill: var(--sn-boost);
+}
+
+.fill-white {
+  fill: white;
+}
+
+.fill-success {
+  fill: var(--sn-success);
+}
+
+.fill-info {
+  fill: var(--sn-info);
+}
+
+.fill-danger {
+  fill: var(--sn-danger) !important;
+}
+
+.fill-theme-color {
+  fill: var(--sn-body-color);
+}
+
+.fill-warning {
+  fill: var(--sn-warning-text-emphasis);
+}
+
+.clouds {
+  background-image: url("/clouds.jpeg") !important;
+  background-color: var(--sn-grey);
+  background-repeat: repeat;
+  background-origin: content-box;
+  background-size: cover;
+  background-attachment: fixed;
+  opacity: 0.2;
+}
+
+@keyframes outline {
+  from {
+    box-shadow: inset 0 0 1px 1px var(--sn-info);
+  }
+  90% {
+    box-shadow: inset 0 0 1px 1px var(--sn-info);
+  }
+  to {
+    box-shadow: inset 0 0 0px 0px var(--sn-info);
+  }
+}
+.outline-it {
+  animation: outline 3s linear 1;
+}
+
+.outline-new-comment {
+  box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
+}
+
+.outline-new-live-comment {
+  box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
+}
+
+.outline-new-comment.outline-new-comment-unset {
+  box-shadow: none;
+}
+
+.outline-new-live-comment.outline-new-comment-unset {
+  box-shadow: none;
+}
+
+.outline-new-comment .outline-new-comment {
+  box-shadow: none;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(359deg);
+  }
+}
+.spin {
+  animation: spin 2s linear infinite;
+}
+
+.static {
+  background: url("/giphy.gif");
+  background-color: var(--sn-grey);
+  background-repeat: repeat;
+  background-origin: content-box;
+  background-size: cover;
+  background-attachment: fixed;
+  opacity: 0.1;
+}
+
+.topLevel {
+  --grid-gap: 0.75rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.react-datepicker-wrapper {
+  display: inline-block;
+  padding: 0;
+  border: 0;
+  margin-bottom: 0.5rem;
+}
+
+/* To satisfy assumptions of the date picker component. */
+.react-datepicker__navigation-icon {
+  line-height: normal;
+}
+
+.react-datepicker__navigation-icon::before, .react-datepicker__navigation-icon::after {
+  box-sizing: content-box;
+}
+
+.react-datepicker {
+  background-color: var(--sn-inputBg) !important;
+}
+
+.react-datepicker__header {
+  background-color: var(--sn-inputDisabledBg) !important;
+}
+
+.react-datepicker__day,
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+  color: var(--sn-body-color) !important;
+}
+
+.react-datepicker__day--outside-month {
+  color: var(--sn-inputDisabledBg) !important;
+}
+
+.react-datepicker-popper[data-placement^=bottom] .react-datepicker__triangle::before, .react-datepicker-popper[data-placement^=bottom] .react-datepicker__triangle::after {
+  border-top: none;
+  border-bottom-color: var(--sn-inputDisabledBg) !important;
+}
+
+.react-datepicker__day--selected, .react-datepicker__day--in-selecting-range, .react-datepicker__day--in-range,
+.react-datepicker__month-text--selected,
+.react-datepicker__month-text--in-selecting-range,
+.react-datepicker__month-text--in-range,
+.react-datepicker__quarter-text--selected,
+.react-datepicker__quarter-text--in-selecting-range,
+.react-datepicker__quarter-text--in-range,
+.react-datepicker__year-text--selected,
+.react-datepicker__year-text--in-selecting-range,
+.react-datepicker__year-text--in-range {
+  border-radius: 0.4rem !important;
+  background-color: var(--sn-info) !important;
+  color: var(--sn-inputDisabledBg) !important;
+}
+
+.react-datepicker__day--selected:hover, .react-datepicker__day--in-selecting-range:hover, .react-datepicker__day--in-range:hover,
+.react-datepicker__month-text--selected:hover,
+.react-datepicker__month-text--in-selecting-range:hover,
+.react-datepicker__month-text--in-range:hover,
+.react-datepicker__quarter-text--selected:hover,
+.react-datepicker__quarter-text--in-selecting-range:hover,
+.react-datepicker__quarter-text--in-range:hover,
+.react-datepicker__year-text--selected:hover,
+.react-datepicker__year-text--in-selecting-range:hover,
+.react-datepicker__year-text--in-range:hover {
+  background-color: var(--sn-info) !important;
+}
+
+.react-datepicker__day--keyboard-selected,
+.react-datepicker__month-text--keyboard-selected,
+.react-datepicker__quarter-text--keyboard-selected,
+.react-datepicker__year-text--keyboard-selected {
+  border-radius: 0.4rem !important;
+  background-color: var(--sn-inputBg) !important;
+  color: var(--sn-body-color) !important;
+}
+
+.react-datepicker__day:hover, .react-datepicker__month-text:hover,
+.react-datepicker__quarter-text:hover, .react-datepicker__year-text:hover,
+.react-datepicker__day--keyboard-selected:hover,
+.react-datepicker__month-text--keyboard-selected:hover,
+.react-datepicker__quarter-text--keyboard-selected:hover,
+.react-datepicker__year-text--keyboard-selected:hover {
+  background-color: var(--sn-clickToContextColor) !important;
+}
+
+.react-datepicker__day--in-selecting-range:not(.react-datepicker__day--in-range,
+.react-datepicker__month-text--in-range,
+.react-datepicker__quarter-text--in-range,
+.react-datepicker__year-text--in-range),
+.react-datepicker__month-text--in-selecting-range:not(.react-datepicker__day--in-range,
+.react-datepicker__month-text--in-range,
+.react-datepicker__quarter-text--in-range,
+.react-datepicker__year-text--in-range),
+.react-datepicker__quarter-text--in-selecting-range:not(.react-datepicker__day--in-range,
+.react-datepicker__month-text--in-range,
+.react-datepicker__quarter-text--in-range,
+.react-datepicker__year-text--in-range),
+.react-datepicker__year-text--in-selecting-range:not(.react-datepicker__day--in-range,
+.react-datepicker__month-text--in-range,
+.react-datepicker__quarter-text--in-range,
+.react-datepicker__year-text--in-range) {
+  background-color: var(--sn-info) !important;
+}
+
+.react-datepicker__close-icon {
+  padding: 0rem 0.75rem !important;
+  align-items: center !important;
+  height: calc(100% - 3px) !important;
+}
+.react-datepicker__close-icon::after {
+  content: "×" !important;
+  color: var(--sn-grey) !important;
+  font-size: 20px !important;
+  background: none !important;
+}
+
+/* Shared small-print size for semantic call sites. */
+.small {
+  font-size: 0.875em;
+}

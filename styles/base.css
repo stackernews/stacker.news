@@ -1,0 +1,138 @@
+/* Application element defaults layered after Tailwind preflight. */
+
+@layer base {
+  /* Fallbacks keep body type stable when its utilities are not emitted. */
+  body {
+    font-family: var(--sn-font-sans-serif);
+    font-size: var(--text-base, 0.93rem);
+    line-height: var(--text-base--line-height, 1.75);
+  }
+
+  /* Restore browser markers after preflight. */
+  ol,
+  ul,
+  menu {
+    list-style: revert;
+  }
+
+  /* Shared flow rhythm for paragraphs and outermost lists. */
+  p,
+  ul,
+  ol {
+    margin-bottom: 1rem;
+  }
+
+  ol ol,
+  ul ul,
+  ol ul,
+  ul ol {
+    margin-bottom: 0;
+  }
+
+  /* Fixed steps keep heading hierarchy independent of viewport width. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  h1 { font-size: 2.25rem; }
+  h2 { font-size: 1.875rem; }
+  h3 { font-size: 1.5rem; }
+  h4 { font-size: 1.25rem; }
+  h5 { font-size: 1.125rem; }
+  h6 { font-size: var(--text-base, 0.93rem); }
+
+  /* preflight covers the 1px top border and color: inherit */
+  hr {
+    margin: 1rem 0;
+    opacity: 0.25;
+  }
+
+  /* Match the semantic .small utility. */
+  small {
+    font-size: 0.875em;
+  }
+
+  code {
+    font-size: 0.875em;
+    color: var(--sn-code-color);
+    word-wrap: break-word;
+  }
+
+  kbd {
+    padding: 0.1875rem 0.375rem;
+    font-size: 0.875em;
+    color: var(--sn-body-bg);
+    background-color: var(--sn-body-color);
+    border-radius: 0.25rem;
+  }
+
+  pre {
+    margin-bottom: 1rem;
+    overflow: auto;
+    font-size: 0.875em;
+  }
+
+  /* Icons and inline images participate in text flow. */
+  img,
+  svg {
+    display: inline;
+    vertical-align: middle;
+  }
+
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  button:not(:disabled),
+  [type='button']:not(:disabled),
+  [type='reset']:not(:disabled),
+  [type='submit']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Keep placeholders consistent across themed inputs. */
+  ::placeholder {
+    color: var(--sn-muted);
+  }
+
+  /* Component modules and utilities can override these element defaults. */
+  svg {
+    fill: var(--sn-body-color);
+  }
+
+  a {
+    color: var(--sn-link);
+  }
+
+  a:hover {
+    color: var(--sn-linkHover);
+  }
+
+  ol,
+  ul,
+  dl {
+    padding-inline-start: 2rem;
+  }
+
+  mark {
+    background-color: color-mix(in srgb, var(--sn-primary) 60%, transparent);
+    padding: 0 0.2rem;
+    color: var(--sn-body-color);
+  }
+
+  footer {
+    margin-top: auto;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+}

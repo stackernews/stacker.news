@@ -1,0 +1,98 @@
+@layer components {
+
+/* SN Drawer chrome. The ladder puts the drawer at 1045: over sticky 900 and
+   its own backdrop 1040, under the modal pair at 1050 and 1055, so modals
+   opened from the drawer paint over it */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: var(--sn-z-drawer-backdrop);
+    background-color: #000;
+    opacity: .5;
+    transition: opacity 150ms ease-out;
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+    opacity: 0;
+}
+
+/* the viewport owns the fixed layer and the z; a z on the popup would be
+   local to this stacking context and could interleave wrong */
+.viewport {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    z-index: var(--sn-z-drawer);
+}
+
+/* Base UI defers unmounting long enough for the exit transition. */
+.popup {
+    background-color: var(--sn-body-bg);
+    transition: transform 150ms ease-out;
+    outline: 0;
+}
+
+.popup[data-swiping] {
+    transition-duration: 0ms;
+}
+
+/* The background-colored bleed covers gaps exposed by reverse swipes. */
+.end {
+    border-left: 1px solid var(--sn-border-color-translucent);
+    transform: translateX(var(--drawer-swipe-movement-x));
+    box-shadow: 10rem 0 0 var(--sn-body-bg);
+}
+
+.end[data-starting-style],
+.end[data-ending-style] {
+    transform: translateX(100%);
+}
+
+.bottom {
+    border-top: 1px solid var(--sn-border-color-translucent);
+    transform: translateY(var(--drawer-swipe-movement-y));
+    box-shadow: 0 10rem 0 var(--sn-body-bg);
+}
+
+.bottom[data-starting-style],
+.bottom[data-ending-style] {
+    transform: translateY(100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .backdrop,
+    .popup {
+        transition: none;
+    }
+}
+
+/* Lightning supplies the shared close glyph. */
+.close {
+    padding: .5rem;
+    color: #000;
+    font-family: lightning;
+    font-weight: 300;
+    font-size: 150%;
+    line-height: 1;
+}
+
+.close::after {
+    content: 'X';
+}
+
+.close:hover {
+    opacity: .75;
+}
+
+.close:focus {
+    outline: 0;
+    box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+    opacity: 1;
+}
+
+:global([data-theme='dark']) .close {
+    color: #fff;
+}
+
+}

@@ -1,64 +1,48 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styles from '@/components/header.module.css'
-import { Container, Nav, Navbar } from 'react-bootstrap'
-import { NavPrice, SearchItem, Back, NavWalletSummary, Brand, SignUpButton, RightCorner } from './common'
-import { useMe } from '@/components/me'
-import classNames from 'classnames'
-import { CommentsNavigator, useCommentsNavigatorContext } from '../use-comments-navigator'
+import { Nav } from '@/components/ui/nav'
+import Container from '@/components/ui/container'
+import TopBar from './desktop/top-bar'
+import { MobilePriceRow } from './mobile/top-bar'
+import { cn } from '@/lib/cn'
 
+// The sticky shell reuses the desktop top bar and mobile price row.
 export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, hideMobileNav = false }) {
-  const ref = useRef()
-  const { me } = useMe()
-  const { navigator, commentCount } = useCommentsNavigatorContext()
+  const [visible, setVisible] = useState(false)
+  const sentinelRef = useRef()
 
+  // The zero-height sentinel makes visibility follow whether the header has
+  // scrolled above the viewport.
   useEffect(() => {
-    const stick = () => {
-      if (window.scrollY > 100) {
-        ref.current?.classList.remove(styles.hide)
-      } else {
-        ref.current?.classList.add(styles.hide)
-      }
-    }
-
-    window.addEventListener('scroll', stick)
-
-    return () => {
-      window.removeEventListener('scroll', stick)
-    }
-  }, [ref?.current])
+    const observer = new window.IntersectionObserver(([entry]) => {
+      // A negative top distinguishes scrolling past the sentinel from leaving
+      // the viewport in another direction.
+      setVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0)
+    })
+    observer.observe(sentinelRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <div className={classNames(styles.hide, styles.sticky)} ref={ref}>
-      <Container className='px-0 d-none d-md-block'>
-        <Navbar className='py-0'>
-          <Nav
-            className={styles.navbarNav}
-            activeKey={topNavKey}
-          >
-            <Back />
-            <Brand className='me-1' />
-            <SearchItem className='me-0 ms-2' />
-            <NavPrice />
-            <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
-            <RightCorner dropNavKey={dropNavKey} path={path} className='d-flex' />
-          </Nav>
-        </Navbar>
-      </Container>
-      {!hideMobileNav && (
-        <Container className='px-sm-0 d-block d-md-none'>
-          <Navbar className='py-0'>
-            <Nav
-              className={classNames(styles.navbarNav)}
-              activeKey={topNavKey}
-            >
-              <Back />
-              <NavPrice className='flex-shrink-1' />
-              <CommentsNavigator navigator={navigator} commentCount={commentCount} className='d-flex' />
-              {me ? <NavWalletSummary className='px-2' /> : <SignUpButton className='ms-auto' width='fit-content' />}
-            </Nav>
-          </Navbar>
+    <>
+      <div ref={sentinelRef} aria-hidden />
+      <div data-sn-navigation className={cn(styles.sticky, visible && styles.visible)}>
+        <Container className='hidden md:block'>
+          <TopBar prefix={prefix} sub={sub} path={path} topNavKey={topNavKey} dropNavKey={dropNavKey} navbarClassName='py-0' />
         </Container>
-      )}
-    </div>
+        {!hideMobileNav && (
+          <Container className='block md:hidden'>
+            <nav className='flex items-center flex-nowrap py-0'>
+              <Nav
+                className={styles.navbarNav}
+                activeKey={topNavKey}
+              >
+                <MobilePriceRow />
+              </Nav>
+            </nav>
+          </Container>
+        )}
+      </div>
+    </>
   )
 }

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import classNames from 'classnames'
+import { buttonClasses } from '@/components/ui/button'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import configureStyles from './configure.module.css'
 import { Form } from '@/components/form'
@@ -18,7 +19,7 @@ import { useProtocolSelection } from './hooks/selection'
 import { useSaveWallet } from './hooks/save-wallet'
 import { initialDrafts } from './hooks/draft'
 import { CapabilityCard } from './capability-card'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { useShowModal } from '@/components/modal'
 import { useRouter } from 'next/router'
 import { WalletStaleConfigError } from '@/wallets/client/errors'
@@ -136,15 +137,15 @@ function WalletConfigureFormLayout ({ protocols }) {
         {!isTemplate(wallet) && <WalletConfigureDangerZone wallet={wallet} />}
       </main>
 
-      <aside className={classNames(styles.aside, 'd-flex flex-column gap-3')}>
-        <div className={classNames(styles.asideCard, 'd-flex flex-column')}>
+      <aside className={classNames(styles.aside, 'hidden md:flex flex-col gap-4')}>
+        <div className={classNames(styles.asideCard, 'flex flex-col')}>
           <p className='text-muted mb-0'>
             Set up this wallet&apos;s capabilities, then test them before saving.
           </p>
           <WalletGuide name={wallet.name} />
         </div>
-        <div className={classNames(styles.asideCard, 'd-flex flex-column')}>
-          <div className='fw-bold'>save status</div>
+        <div className={classNames(styles.asideCard, 'flex flex-col')}>
+          <div className='font-bold'>save status</div>
           <p className='text-muted mb-0'>
             {saveState.saveStatus}
           </p>
@@ -159,7 +160,7 @@ function WalletConfigureFormLayout ({ protocols }) {
               {saveState.willDeleteWallet && <div className={styles.saveBlocker}>{saveState.saveStatus}</div>}
               <button
                 type='button'
-                className={classNames('btn btn-primary fw-bold', styles.saveButton, inFlight && 'pulse')}
+                className={buttonClasses({ className: classNames(styles.saveButton, inFlight && 'pulse') })}
                 disabled={inFlight}
                 onClick={onSaveClick}
               >
@@ -179,7 +180,7 @@ function WalletConfigureDangerZone ({ wallet }) {
   return (
     <section className={styles.dangerZone}>
       <div>
-        <h2 className='m-0 text-danger fs-5'>danger zone</h2>
+        <h2 className='m-0 text-danger text-lg'>danger zone</h2>
         <p>Delete this wallet and its saved send/receive configuration.</p>
       </div>
       <button

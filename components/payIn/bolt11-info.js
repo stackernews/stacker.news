@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { formatSats, msatsToSatsDecimal } from '@/lib/format'
 import { bolt11ExpiresAtFromDecoded, bolt11Section, safeDecodeBolt11 } from '@/lib/bolt11'
 import { timeLeft, timeSince } from '@/lib/time'
-import CopyChip, { Chip } from '@/components/copy-chip'
+import CopyChip, { Chip, chipClassName } from '@/components/copy-chip'
+import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from '@/components/ui/collapsible'
 import Link from 'next/link'
 import { nostrZapDetails } from '@/lib/nostr'
 import Text from '@/components/text'
@@ -37,7 +38,8 @@ export default function Bolt11Info ({
 
   const chips = details?.chips ?? []
   const showMoreToggle = chips.length > DEFAULT_CHIP_COUNT
-  const visibleChips = expanded ? chips : chips.slice(0, DEFAULT_CHIP_COUNT)
+  const visibleAlways = chips.slice(0, DEFAULT_CHIP_COUNT)
+  const hiddenChips = chips.slice(DEFAULT_CHIP_COUNT)
   const hiddenChipCount = chips.length - DEFAULT_CHIP_COUNT
   const hasDetailPills = details?.commentText || details?.nostrZap
 
@@ -51,11 +53,19 @@ export default function Bolt11Info ({
       )}
       {(chips.length > 0 || hasDetailPills) && (
         <div className={styles.chipRow}>
-          {visibleChips.map(chip => <InvoiceDetailChip key={chip.key} chip={chip} />)}
+          {visibleAlways.map(chip => <InvoiceDetailChip key={chip.key} chip={chip} />)}
           {showMoreToggle && (
-            <Chip onClick={() => setExpanded(expanded => !expanded)} title={expanded ? 'show fewer invoice details' : 'show more invoice details'}>
-              {expanded ? 'less' : `more ${hiddenChipCount}`}
-            </Chip>
+            <Collapsible open={expanded} onOpenChange={setExpanded} className='contents'>
+              <CollapsiblePanel className='contents'>
+                {hiddenChips.map(chip => <InvoiceDetailChip key={chip.key} chip={chip} />)}
+              </CollapsiblePanel>
+              <CollapsibleTrigger
+                className={chipClassName({})}
+                title={expanded ? 'show fewer invoice details' : 'show more invoice details'}
+              >
+                {expanded ? 'less' : `more ${hiddenChipCount}`}
+              </CollapsibleTrigger>
+            </Collapsible>
           )}
           {details?.commentText && (
             <ExpandableDetailPill label={`LNURL comment${details.senderLabel ? ` from ${details.senderLabel}` : ''}`}>
@@ -135,31 +145,15 @@ function truncatedDescriptionLabel (description) {
 }
 
 function ExpandableDetailPill ({ label, children, icon }) {
-  const [open, setOpen] = useState(false)
-  const className = [
-    styles.detailPill,
-    open ? styles.detailPillOpen : null
-  ].filter(Boolean).join(' ')
-
   return (
-    <div className={className}>
-      <button
-        type='button'
-        className={styles.detailPillButton}
-        aria-expanded={open}
-        onClick={() => setOpen(open => !open)}
-        title={open ? 'hide details' : 'show details'}
-      >
+    <Collapsible className={styles.detailPill}>
+      <CollapsibleTrigger className={styles.detailPillButton} title='toggle details'>
         {icon}
         <span className={styles.detailPillLabel}>{label}</span>
-        <span className={styles.detailPillIndicator} aria-hidden='true'>{open ? '-' : '+'}</span>
-      </button>
-      {open && (
-        <div className={styles.detailPillBody}>
-          {children}
-        </div>
-      )}
-    </div>
+        <span className={styles.detailPillIndicator} aria-hidden='true' />
+      </CollapsibleTrigger>
+      <CollapsiblePanel className={styles.detailPillBody}>{children}</CollapsiblePanel>
+    </Collapsible>
   )
 }
 
@@ -168,15 +162,15 @@ function NostrZapRequest ({ zap }) {
 
   return (
     <ExpandableDetailPill label='Nostr zap request' icon={<NostrIcon width={16} height={16} className='fill-nostr' />}>
-      <div className='fw-bold text-nostr small'>
+      <div className='font-bold text-nostr small'>
         from{' '}
-        <Link className='text-reset text-underline' target='_blank' href={`https://njump.me/${npub}`} rel='noreferrer nofollow noopener'>
+        <Link className='text-reset underline' target='_blank' href={`https://njump.me/${npub}`} rel='noreferrer nofollow noopener'>
           {npub.slice(0, 10)}...
         </Link>
         {note && (
           <>
             {' '}on{' '}
-            <Link className='text-reset text-underline' target='_blank' href={`https://njump.me/${note}`} rel='noreferrer nofollow noopener'>
+            <Link className='text-reset underline' target='_blank' href={`https://njump.me/${note}`} rel='noreferrer nofollow noopener'>
               {note.slice(0, 12)}...
             </Link>
           </>

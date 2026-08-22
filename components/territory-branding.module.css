@@ -1,6 +1,8 @@
+@layer components {
+
 .preview {
     border-radius: 0.4rem;
-    border: 1px solid var(--theme-borderColor);
+    border: 1px solid var(--sn-borderColor);
     padding: 0.1rem;
     flex-shrink: 0;
 }
@@ -8,11 +10,13 @@
 .previewImage {
     object-fit: contain;
     border-radius: 4px;
-    background: var(--theme-inputBg);
+    background: var(--sn-inputBg);
     display: block;
 }
 
 .colorInput {
     min-width: 4rem;
     cursor: pointer;
+}
+
 }

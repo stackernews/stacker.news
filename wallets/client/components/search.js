@@ -1,4 +1,4 @@
-import { Form } from 'react-bootstrap'
+import { inputClasses } from '@/components/form'
 
 function searchKey (value) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -31,14 +31,15 @@ export function fuzzySearch (query) {
 
 export function WalletSearch ({ query, onQueryChange }) {
   return (
-    <div className='d-flex justify-content-center mb-4 mt-4'>
-      <div className='w-100' style={{ maxWidth: '400px' }}>
-        <div className='position-relative'>
-          <Form.Control
+    <div className='flex justify-center mb-6 mt-6'>
+      <div className='w-full' style={{ maxWidth: '400px' }}>
+        <div className='relative'>
+          <input
             type='text'
             placeholder='Search wallets...'
             value={query}
             onChange={e => onQueryChange(e.target.value)}
+            className={inputClasses()}
           />
         </div>
       </div>

@@ -1,9 +1,9 @@
-import Dropdown from 'react-bootstrap/Dropdown'
+import { MenuItem } from '@/components/ui/menu'
 import ShareIcon from '@/svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import useCrossposter from './use-crossposter'
 import { useMe } from './me'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import { SSR } from '@/lib/constants'
 import { commentSubTreeRootId } from '@/lib/item'
 import { useRouter } from 'next/router'
@@ -43,7 +43,7 @@ export default function Share ({ path, title = '', className = '' }) {
   const url = referrurl(path, me)
 
   return (
-    <div className='ms-auto pointer d-flex align-items-center'>
+    <div className='ms-auto pointer flex items-center'>
       <ShareIcon
         width={20} height={20}
         className={`mx-2 fill-grey theme ${className}`}
@@ -69,13 +69,13 @@ export function CopyLinkDropdownItem ({ item }) {
   }
 
   return (
-    <Dropdown.Item
+    <MenuItem
       onClick={async () => {
         await share(item.title || '', url, toaster)
       }}
     >
       copy link
-    </Dropdown.Item>
+    </MenuItem>
   )
 }
 
@@ -93,8 +93,8 @@ export function CrosspostDropdownItem ({ item }) {
   }
 
   return (
-    <Dropdown.Item onClick={handleCrosspostClick}>
+    <MenuItem onClick={handleCrosspostClick}>
       crosspost to nostr
-    </Dropdown.Item>
+    </MenuItem>
   )
 }

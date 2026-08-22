@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { Input } from '@/components/form'
+import { Input, InputAddon } from '@/components/form'
+import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from '@/components/ui/collapsible'
 import CloseIcon from '@/svgs/close-line.svg'
 import EditIcon from '@/svgs/edit-line.svg'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import sendStyles from './send.module.css'
 import classNames from 'classnames'
 import { useField } from 'formik'
-import { InputGroup } from 'react-bootstrap'
 import { DestinationType } from './destination'
 const styles = { ...sharedStyles, ...sendStyles }
 
@@ -27,32 +27,30 @@ function MaxFeeField () {
   const ToggleIcon = showMaxFee ? CloseIcon : EditIcon
 
   return (
-    <div className={classNames(styles.stackSection, styles.maxFee)}>
+    <Collapsible open={showMaxFee} onOpenChange={setShowMaxFee} className={classNames(styles.stackSection, styles.maxFee)}>
       <div className={styles.maxFeeSummary}>
-        <span className={classNames(styles.maxFeeLabel, 'text-muted font-monospace')}>
+        <span className={classNames(styles.maxFeeLabel, 'text-muted font-mono')}>
           max fee
         </span>
-        <button
-          type='button'
-          className={classNames(styles.chip, styles.maxFeeControl, showMaxFee && styles.chipActive, 'font-monospace')}
-          onClick={() => setShowMaxFee(show => !show)}
-          aria-expanded={showMaxFee}
+        <CollapsibleTrigger
+          className={classNames(styles.chip, styles.maxFeeControl, showMaxFee && styles.chipActive, 'font-mono')}
         >
           <span className={styles.maxFeeAmount}>{value}</span>
           <span className={classNames(styles.maxFeeUnit, 'text-muted')}>sats</span>
           <ToggleIcon className={classNames(styles.maxFeeIcon, 'text-muted')} width={18} height={18} aria-hidden />
-        </button>
+        </CollapsibleTrigger>
       </div>
-      {showMaxFee && (
+      <CollapsiblePanel>
         <Input
           label='max fee'
           name='maxFee'
+          groupClassName='mb-0'
           type='number'
           step={10}
           required
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          append={<InputAddon className='font-mono'>sats</InputAddon>}
         />
-      )}
-    </div>
+      </CollapsiblePanel>
+    </Collapsible>
   )
 }

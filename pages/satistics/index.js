@@ -6,8 +6,7 @@ import { SATISTICS } from '@/fragments/payIn'
 import PayInTable, { PayInSkeleton } from '@/components/payIn/table'
 import { useData } from '@/components/use-data'
 import navStyles from '@/styles/nav.module.css'
-import { Nav } from 'react-bootstrap'
-import Link from 'next/link'
+import { Nav, NavLink, NavItem } from '@/components/ui/nav'
 import { useRouter } from 'next/router'
 
 export const getServerSideProps = getGetServerSideProps({ query: SATISTICS, authRequired: true, variables: { } })
@@ -23,12 +22,12 @@ export function SatisticsHeader () {
         className={navStyles.nav}
         activeKey={activeKey}
       >
-        <Nav.Item>
-          <Nav.Link as={Link} href='/satistics' eventKey='history'>history</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link as={Link} href='/satistics/graphs/day' eventKey='graphs'>graphs</Nav.Link>
-        </Nav.Item>
+        <NavItem>
+          <NavLink href='/satistics' eventKey='history' className='py-0.5 pe-4 ps-0'>history</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href='/satistics/graphs/day' eventKey='graphs' className='py-0.5 pe-4 ps-0'>graphs</NavLink>
+        </NavItem>
       </Nav>
     </>
   )
@@ -42,7 +41,7 @@ export default function Satistics ({ ssrData }) {
       <Layout>
         <div className='mt-2'>
           <SatisticsHeader />
-          <div className='py-2 px-0 mb-0 mw-100'>
+          <div className='py-2 px-0 mb-0 max-w-full'>
             <PayInSkeleton header />
           </div>
         </div>
@@ -56,7 +55,7 @@ export default function Satistics ({ ssrData }) {
     <Layout>
       <div className='mt-2'>
         <SatisticsHeader />
-        <div className='py-2 px-0 mb-0 mw-100'>
+        <div className='py-2 px-0 mb-0 max-w-full'>
           <PayInTable items={items} />
         </div>
         <MoreFooter cursor={cursor} count={items?.length} fetchMore={fetchMore} Skeleton={PayInSkeleton} />

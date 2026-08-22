@@ -1,8 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
-import Modal from 'react-bootstrap/Modal'
+import { Dialog } from '@base-ui/react/dialog'
 import BackArrow from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 import ActionDropdown from './action-dropdown'
+import { cn } from '@/lib/cn'
+import styles from './modal.module.css'
 
 export class ModalClosedError extends Error {
   constructor () {
@@ -31,15 +33,25 @@ export function useShowModal () {
 export default function useModal () {
   const modalStack = useRef([])
   const [render, forceUpdate] = useReducer(x => x + 1, 0)
+  const popupRef = useRef(null)
+  const lastPointerDownAtRef = useRef(0)
+  const shownAtRef = useRef(0)
+
+  // A press can begin before the dialog mounts and end outside it afterward.
+  // Record pointer starts globally so that release cannot dismiss a dialog
+  // that did not exist when the interaction began.
+  useEffect(() => {
+    const stamp = e => { lastPointerDownAtRef.current = e.timeStamp }
+    document.addEventListener('pointerdown', stamp, true)
+    return () => document.removeEventListener('pointerdown', stamp, true)
+  }, [])
 
   const getCurrentContent = useCallback(() => {
     return modalStack.current[modalStack.current.length - 1]
   }, [])
 
-  // back steps to the previous modal in the stack. we pop (unmounting the current modal — and, for
-  // a QR, stopping its payment watcher) BEFORE running its onClose, so cancelling the invoice can't
-  // escalate into a full-stack close via the watcher's onPaymentError. net: back returns to the
-  // previous step (e.g. the amount form) and still cancels the invoice so it doesn't dangle.
+  // Unmount before onClose so a payment watcher's cancellation cannot close
+  // the remaining stack through its error handler.
   const onBack = useCallback(() => {
     const current = getCurrentContent()
     modalStack.current.pop()
@@ -92,35 +104,66 @@ export default function useModal () {
 
     const content = getCurrentContent()
     const { overflow, keepOpen, fullScreen } = content.options || {}
-    const className = fullScreen ? 'fullscreen' : ''
 
     return (
-      <Modal
-        onHide={keepOpen ? undefined : onClose} show={!!content}
-        className={className}
-        dialogClassName={className}
-        contentClassName={className}
+      <Dialog.Root
+        open
+        onOpenChange={(open, details) => {
+          if (open) return
+          // The explicit close control always closes. keepOpen only disables
+          // light dismissal.
+          if (details.reason === 'close-press') return onClose()
+          // a press that began before the modal showed can't mean "dismiss it";
+          // this exempts the long-press release and the territory hover-card
+          // race. A fresh press stamps later than shownAt, so real outside
+          // clicks still close
+          if (details.reason === 'outside-press' && lastPointerDownAtRef.current < shownAtRef.current) return
+          // Escape and outside press are light-dismiss reasons.
+          if (!keepOpen) onClose()
+        }}
       >
-        <div className='d-flex flex-row'>
-          {overflow &&
-            <div className={'modal-btn modal-overflow ' + className}>
-              <ActionDropdown>
-                {overflow}
-              </ActionDropdown>
-            </div>}
-          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} /></div> : null}
-          <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
-        </div>
-        <Modal.Body className={className}>
-          {content.node}
-        </Modal.Body>
-      </Modal>
+        <Dialog.Portal>
+          <Dialog.Backdrop className={styles.backdrop} />
+          <Dialog.Viewport className={cn(styles.viewport, fullScreen && styles.fullScreen)}>
+            <Dialog.Popup
+              ref={popupRef}
+              // Focusing the popup avoids opening a mobile keyboard or painting
+              // a descendant focus ring as soon as the dialog appears.
+              initialFocus={() => popupRef.current}
+              className={cn(styles.popup, fullScreen ? styles.fullScreen : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg')}
+            >
+              <div className='flex flex-row'>
+                {overflow &&
+                  <div className={cn(styles.btn, styles.overflow, fullScreen && styles.fullScreen)}>
+                    <ActionDropdown>
+                      {overflow}
+                    </ActionDropdown>
+                  </div>}
+                {modalStack.current.length > 1
+                  ? <button type='button' aria-label='Back' className={cn(styles.btn, styles.back)} onClick={onBack}><BackArrow width={18} height={18} /></button>
+                  : null}
+                <Dialog.Close
+                  aria-label='Close'
+                  className={cn(styles.btn, styles.close, fullScreen && styles.fullScreen)}
+                >X
+                </Dialog.Close>
+              </div>
+              <div className={cn(styles.body, fullScreen ? styles.fullScreen : 'p-8')}>
+                {content.node}
+              </div>
+            </Dialog.Popup>
+          </Dialog.Viewport>
+        </Dialog.Portal>
+      </Dialog.Root>
     )
   }, [render])
 
   const showModal = useCallback(
     (getContent, options) => {
       document.activeElement?.blur()
+      // performance.now() and event.timeStamp share a clock, so pointer starts
+      // recorded before this point can be excluded from outside dismissal.
+      shownAtRef.current = performance.now()
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]

@@ -1,8 +1,7 @@
 import { gql } from 'graphql-tag'
-import Button from 'react-bootstrap/Button'
-import InputGroup from 'react-bootstrap/InputGroup'
+import Button from '@/components/ui/button'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, Input, SubmitButton } from '@/components/form'
+import { Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import Layout from '@/components/layout'
 import { useQuery } from '@apollo/client/react'
 import Link from 'next/link'
@@ -12,9 +11,8 @@ import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
 import dynamic from 'next/dynamic'
 import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { useAnimation } from '@/components/animation'
-import { Col, Row } from 'react-bootstrap'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
@@ -52,7 +50,7 @@ export function RewardLine ({ total, time }) {
       {time &&
         <small style={{ whiteSpace: 'nowrap' }}>
           <CompactLongCountdown
-            className='text-monospace'
+            className='font-mono'
             date={time}
           />
         </small>}
@@ -82,27 +80,25 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      <Row className='pb-3'>
-        <Col>
-          <div
-            className='d-flex flex-column sticky-lg-top py-5'
-          >
-            <h3 className='text-center text-muted'>
-              <div>
-                <RewardLine total={total} time={time} />
-              </div>
-              <Link href='/faq#how-do-i-earn-sats-on-stacker-news' className='text-info fw-normal'>
-                <small><small><small>learn about rewards</small></small></small>
-              </Link>
-            </h3>
-            {sources?.length > 0 &&
-              <div className='my-3 w-100'>
-                <GrowthPieChart data={sources} />
-              </div>}
-            <DonateButton />
-          </div>
-        </Col>
-      </Row>
+      <div className='pb-4'>
+        <div
+          className='flex flex-col lg:sticky lg:top-0 lg:z-(--sn-z-sticky) py-12'
+        >
+          <h3 className='text-center text-muted'>
+            <div>
+              <RewardLine total={total} time={time} />
+            </div>
+            <Link href='/faq#how-do-i-earn-sats-on-stacker-news' className='text-info font-normal'>
+              <small><small><small>learn about rewards</small></small></small>
+            </Link>
+          </h3>
+          {sources?.length > 0 &&
+            <div className='my-4 w-full'>
+              <GrowthPieChart data={sources} />
+            </div>}
+          <DonateButton />
+        </div>
+      </div>
     </Layout>
   )
 }
@@ -145,14 +141,14 @@ export function DonateButton () {
               type='number'
               required
               autoFocus
-              append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+              append={<InputAddon className='font-mono'>sats</InputAddon>}
             />
-            <div className='d-flex'>
-              <SubmitButton variant='success' className='ms-auto mt-1 px-4' value='TIP'>donate</SubmitButton>
+            <div className='flex'>
+              <SubmitButton variant='success' className='ms-auto mt-1 px-6' value='TIP'>donate</SubmitButton>
             </div>
           </Form>
         ))}
-        className='align-self-center'
+        className='self-center'
       >DONATE TO REWARDS
       </Button>
     </>

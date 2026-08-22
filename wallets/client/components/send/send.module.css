@@ -1,3 +1,5 @@
+@layer components {
+
 /* Wallet send flow: destination input, detected invoice, QR scanner, max-fee,
    toggle chips, and submit/footer. */
 
@@ -6,11 +8,8 @@
   margin-right: auto;
   gap: 2rem;
 }
-.fields :global(.form-group),
-.toggleChipSection :global(.form-group),
-.maxFee :global(.form-group) {
-  margin-bottom: 0;
-}
+/* the .form-group class left the DOM; the margin kill moved to the call sites
+   (groupClassName='mb-0' on the send-flow fields) */
 
 .detectedRow {
   display: grid;
@@ -61,6 +60,17 @@
   border: 0;
   background: transparent;
   color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  /* Lightning renders the close glyph. */
+  font-family: "lightning";
+  font-size: 160%;
+  line-height: 1rem;
+}
+.scannerClose:hover {
+  opacity: 0.7;
 }
 .scannerStage {
   flex: 1;
@@ -175,11 +185,13 @@
   letter-spacing: 0.08em;
   line-height: 1;
 }
-.maxFeeControl {
+/* the descendant pair beats ui/collapsible's .trigger UA reset on specificity;
+   cross-file module order is build-fragile */
+.maxFeeSummary .maxFeeControl {
   --chip-padding: 0.35rem 0.65rem;
   --chip-radius: 6px;
   --chip-bg: transparent;
-  --chip-color: var(--bs-body-color);
+  --chip-color: var(--sn-body-color);
   min-height: 42px;
 }
 .maxFeeAmount {
@@ -198,8 +210,8 @@
 
 .submit {
   min-width: 180px;
-  font-weight: 800;
 }
+/* Keep the secondary line normal beneath the bold button label. */
 .submit small {
   font-size: 0.875em;
   font-weight: 400;
@@ -214,14 +226,14 @@
   height: 22px;
   flex-shrink: 0;
   /* beats global svg/.fill-* rules so the icon uses the body color */
-  color: var(--bs-body-color) !important;
+  color: var(--sn-body-color) !important;
   fill: currentColor;
 }
 .internalIcon path {
   fill: currentColor;
 }
 .walletName {
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
 }
 
 @media (max-width: 767px) {
@@ -229,4 +241,6 @@
     width: 100%;
     max-width: 100%;
   }
+}
+
 }

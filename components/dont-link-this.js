@@ -1,8 +1,8 @@
-import Dropdown from 'react-bootstrap/Dropdown'
+import { MenuItem } from '@/components/ui/menu'
 import { useShowModal } from './modal'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import ItemAct from './item-act'
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import Flag from '@/svgs/flag-fill.svg'
 import { useMemo } from 'react'
 import getColor from '@/lib/rainbow'
@@ -40,7 +40,7 @@ function DownZapper ({ item, As, children }) {
             <ItemAct
               onClose={onClose} item={item} act='DONT_LIKE_THIS'
             >
-              <AccordianItem
+              <AccordionItem
                 header='what is a downzap?' body={
                   <ul>
                     <li>downzaps are just like zaps but cause items to lose ranking position</li>
@@ -63,7 +63,7 @@ function DownZapper ({ item, As, children }) {
 export default function DontLikeThisDropdownItem ({ item }) {
   return (
     <DownZapper
-      As={Dropdown.Item}
+      As={MenuItem}
       item={item}
     >
       <span className='text-danger'>downzap</span>

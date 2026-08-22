@@ -1,7 +1,7 @@
 import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
-import Dropdown from 'react-bootstrap/Dropdown'
-import { useToast } from './toast'
+import { MenuItem } from '@/components/ui/menu'
+import { useToast } from '@/components/ui/toast'
 
 export default function SubscribeDropdownItem ({ item: { id, meSubscription } }) {
   const toaster = useToast()
@@ -43,7 +43,7 @@ export default function SubscribeDropdownItem ({ item: { id, meSubscription } })
     }
   )
   return (
-    <Dropdown.Item
+    <MenuItem
       onClick={async () => {
         try {
           await subscribeItem({ variables: { id } })
@@ -55,6 +55,6 @@ export default function SubscribeDropdownItem ({ item: { id, meSubscription } })
       }}
     >
       {meSubscription ? 'remove subscription' : 'subscribe'}
-    </Dropdown.Item>
+    </MenuItem>
   )
 }

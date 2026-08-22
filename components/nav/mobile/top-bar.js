@@ -1,13 +1,26 @@
-import { Nav, Navbar } from 'react-bootstrap'
+import { Nav } from '@/components/ui/nav'
 import styles from '../../header.module.css'
+import { cn } from '@/lib/cn'
 import { Back, NavPrice, NavSelect, NavWalletSummary, SignUpButton, hasNavSelect } from '../common'
 import { useMe } from '@/components/me'
 import { useCommentsNavigatorContext, CommentsNavigator } from '@/components/use-comments-navigator'
 import { useBranding } from '@/components/territory-branding'
 
-export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNavKey }) {
+// The header and sticky bar share the same mobile price row.
+export function MobilePriceRow () {
   const { me } = useMe()
   const { navigator, commentCount } = useCommentsNavigatorContext()
+  return (
+    <>
+      <Back />
+      <NavPrice className='shrink' />
+      <CommentsNavigator navigator={navigator} commentCount={commentCount} className='px-2' />
+      {me ? <NavWalletSummary /> : <SignUpButton width='fit-content' />}
+    </>
+  )
+}
+
+export default function TopBar ({ prefix, sub, path, pathname, topNavKey, navbarClassName }) {
   const branding = useBranding()
 
   // on mobile, we don't show the top bar if it contains a nav select on custom domains
@@ -19,21 +32,20 @@ export default function TopBar ({ prefix, sub, path, pathname, topNavKey, dropNa
   }
 
   return (
-    <Navbar>
+    <nav className={cn('flex items-center flex-nowrap', navbarClassName)}>
       <Nav
         className={styles.navbarNav}
         activeKey={topNavKey}
       >
-        <Back className='d-flex d-md-none' />
         {hasNavSelect({ path, pathname })
-          ? <NavSelect sub={sub} className='w-100' />
-          : (
+          ? (
             <>
-              <NavPrice className='flex-shrink-1' />
-              <CommentsNavigator navigator={navigator} commentCount={commentCount} className='px-2' />
-              {me ? <NavWalletSummary /> : <SignUpButton width='fit-content' />}
-            </>)}
+              <Back />
+              <NavSelect sub={sub} className='w-full' />
+            </>
+            )
+          : <MobilePriceRow />}
       </Nav>
-    </Navbar>
+    </nav>
   )
 }

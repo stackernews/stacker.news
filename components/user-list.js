@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'react-bootstrap/Image'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
 import userStyles from './user-header.module.css'
@@ -38,7 +37,7 @@ export function UserListRow ({ user, stats, className, onNymClick, showHat = tru
   return (
     <div className={`${styles.item} mb-2`} key={user.name}>
       <Link href={`/${user.name}`}>
-        <Image
+        <img
           src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
           className={`${userStyles.userimg} me-2`}
         />
@@ -46,11 +45,11 @@ export function UserListRow ({ user, stats, className, onNymClick, showHat = tru
       <div className={`${styles.hunk} ${className}`}>
         <Link
           href={`/${user.name}`}
-          className={`d-inline-flex align-items-center text-reset ${selected ? 'fw-bold text-underline' : 'text-muted'}`}
+          className={`inline-flex items-center text-reset ${selected ? 'font-bold underline' : 'text-muted'}`}
           style={{ textUnderlineOffset: '0.25em' }}
           onClick={onNymClick}
         >
-          @{user.name}{showHat && <Badges badgeClassName='fill-grey' height={14} width={14} user={user} />}{selected && <CheckCircle className='ms-3 fill-primary' height={14} width={14} />}
+          @{user.name}{showHat && <Badges badgeClassName='fill-grey' height={14} width={14} user={user} />}{selected && <CheckCircle className='ms-4 fill-primary' height={14} width={14} />}
         </Link>
         {stats && (
           <div className={styles.other}>
@@ -66,14 +65,14 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
   return (
     <div className={classNames(styles.item, className)}>
       <Link href={`/${user.name}`}>
-        <Image
+        <img
           src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
           className={`${userStyles.userimg} me-2`}
         />
       </Link>
       <div className={styles.hunk}>
-        <div className='d-flex'>
-          <Link href={`/${user.name}`} className={`${styles.title} mb-0 d-inline-flex align-items-center justify-content-center text-reset`}>
+        <div className='flex'>
+          <Link href={`/${user.name}`} className={`${styles.title} mb-0 inline-flex items-center justify-center text-reset`}>
             @{user.name}<Badges badgeClassName='fill-grey' height={14} width={14} user={user} />
           </Link>
           {nymActionDropdown && <NymActionDropdown user={user} className='' />}
@@ -117,13 +116,13 @@ function UserHidden ({ rank, user, Embellish }) {
         : <div />}
       <div className={`${styles.item} mb-2`}>
         <span>
-          <Image
+          <img
             src='/dorian400.jpg' width='32' height='32'
             className={`${userStyles.userimg} me-2 opacity-50`}
           />
         </span>
-        <div className={`${styles.hunk} d-flex justify-content-center flex-column`}>
-          <div className={`${styles.title} text-muted d-inline-flex align-items-center`}>
+        <div className={`${styles.hunk} flex justify-center flex-col`}>
+          <div className={`${styles.title} text-muted inline-flex items-center`}>
             stacker is in hiding
           </div>
           {Embellish && <Embellish rank={rank} user={user} />}
@@ -201,7 +200,7 @@ export function UsersSkeleton () {
 export function UserSkeleton ({ children, className }) {
   return (
     <div className={`${styles.item} ${styles.skeleton} ${className}`}>
-      <Image
+      <img
         src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/clouds.jpeg`}
         width='32' height='32'
         className={`${userStyles.userimg} clouds me-2`}

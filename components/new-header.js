@@ -1,5 +1,7 @@
 import { ITEM_TYPES, ITEM_TYPES_UNIVERSAL } from '@/lib/constants'
-import BootstrapForm from 'react-bootstrap/Form'
+import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox'
+import { cn } from '@/lib/cn'
+import checkboxStyles from '@/components/form/checkbox.module.css'
 import { Select } from './form'
 import { useRouter } from 'next/router'
 import { usePrefix } from './territory-domains'
@@ -17,12 +19,14 @@ function ActiveBountiesCheckbox ({ prefix }) {
 
   return (
     <div className='mx-2 mb-2'>
-      <BootstrapForm.Check
-        inline
-        checked={router.query.active === 'true'}
-        label='active only'
-        onChange={onChange}
-      />
+      <label className={cn(checkboxStyles.check, 'inline-flex me-4 items-center')}>
+        <BaseCheckbox.Root
+          checked={router.query.active === 'true'}
+          onCheckedChange={checked => onChange({ target: { checked } })}
+          className={cn(checkboxStyles.checkInput, checkboxStyles.checkbox)}
+        />
+        <span>active only</span>
+      </label>
     </div>
   )
 }
@@ -41,7 +45,7 @@ export default function NewHeader ({ type, sub }) {
 
   return (
     <div className='flex-wrap'>
-      <div className='text-muted fw-bold my-1 d-flex justify-content-start align-items-center'>
+      <div className='text-muted font-bold my-1 flex justify-start items-center'>
         <Select
           groupClassName='mb-2'
           className='w-auto'

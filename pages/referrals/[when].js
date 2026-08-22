@@ -61,8 +61,8 @@ export default function Referrals ({ ssrData }) {
 
   return (
     <CenterLayout footerLinks>
-      <div className='fw-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center flex-wrap'>
-        <h4 className='fw-bold text-muted text-center d-flex align-items-center justify-content-center'>
+      <div className='font-bold text-muted text-center pt-12 pb-4 flex items-center justify-center flex-wrap'>
+        <h4 className='font-bold text-muted text-center flex items-center justify-center'>
           {numWithUnits(totalSats, { abbreviate: false })} in the last
           <Select
             groupClassName='mb-0 mx-2'
@@ -101,18 +101,19 @@ export default function Referrals ({ ssrData }) {
       />
 
       <div
-        className='text-small pt-5 px-3 d-flex w-100 align-items-center'
+        className='pt-12 px-4 flex w-full items-center'
       >
-        <div className='nav-item text-muted pe-2' style={{ 'white-space': 'nowrap' }}>referral link:</div>
+        <div className='font-medium text-muted pe-2' style={{ 'white-space': 'nowrap' }}>referral link:</div>
+        {/* min-w-0: same flex-item FormGroup shrink guard as footer.js's connect row */}
         <CopyInput
           size='sm'
-          groupClassName='mb-0 w-100'
+          groupClassName='mb-0 w-full min-w-0'
           readOnly
           noForm
           placeholder={`${process.env.NEXT_PUBLIC_URL}/r/${me.name}`}
         />
       </div>
-      <ul className='py-3 text-muted'>
+      <ul className='py-4 text-muted'>
         <li>earn 10% of a stacker's <Link href='/rewards'>rewards</Link> in perpetuity if they sign up from your referral links</li>
         <li>in addition, earn 10% of a stacker's <Link href='/rewards'>rewards</Link> for the day if they follow your referral links the most that day</li>
         <li>nearly all sn links are referral links:

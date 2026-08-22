@@ -1,14 +1,20 @@
+@layer components {
+
+/* Both flex items must shrink below their inputs' intrinsic width on narrow
+   screens. */
 .name {
   display: flex;
   flex: 1 1 60%;
   height: fit-content;
   flex-flow: column;
+  min-width: 0;
 }
 
 .percent {
   display: flex;
   flex: 0 1 fit-content;
   height: fit-content;
+  min-width: 0;
 }
 
 .boostMax small {
@@ -16,4 +22,5 @@
   margin-left: 0.25rem;
   margin-right: 0.25rem;
   opacity: 0.5;
+}
 }

@@ -1,4 +1,4 @@
-import { Alert } from 'react-bootstrap'
+import { Alert, AlertHeading } from '@/components/ui/alert'
 import { useMe } from './me'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { TERRITORY_BILLING_OPTIONS } from '@/lib/constants'
@@ -38,18 +38,18 @@ export default function TerritoryPaymentDue ({ sub }) {
       {sub.status === 'STOPPED'
         ? (
           <>
-            <Alert.Heading>
+            <AlertHeading>
               Your ~{sub.name} territory has been archived!
-            </Alert.Heading>
+            </AlertHeading>
             <div>
               Make a payment to reactivate it.
             </div>
           </>)
         : (
           <>
-            <Alert.Heading>
+            <AlertHeading>
               Your ~{sub.name} territory payment is due!
-            </Alert.Heading>
+            </AlertHeading>
             <div>
               Your territory will be archived in <LongCountdown date={dueDate} />otherwise.
             </div>
@@ -63,7 +63,7 @@ export default function TerritoryPaymentDue ({ sub }) {
           }}
           onSubmit={onSubmit}
         >
-          <div className='d-flex justify-content-end'>
+          <div className='flex justify-end'>
             <FeeButton
               text='pay'
               variant='success'
@@ -85,7 +85,7 @@ export function TerritoryBillingLine ({ sub }) {
   return (
     <div className='text-muted'>
       <span>billing {sub.billingAutoRenew ? 'automatically renews' : 'due'} </span>
-      <span className='fw-bold' suppressHydrationWarning>{pastDue ? 'past due' : dueDate ? timeSince(dueDate) : 'never again'}</span>
+      <span className='font-bold' suppressHydrationWarning>{pastDue ? 'past due' : dueDate ? timeSince(dueDate) : 'never again'}</span>
     </div>
   )
 }

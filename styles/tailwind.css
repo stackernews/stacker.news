@@ -1,0 +1,63 @@
+/*
+ * Tailwind entry and layer contract. Component modules live below utilities.
+ * See docs/dev/styling.md.
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+
+/* Scan only directories that produce application class names. */
+@source '../components';
+@source '../pages';
+@source '../lib';
+@source '../wallets';
+@source '../svgs';
+
+/* Bare words that are not Tailwind utility usage. */
+@source not inline('container');
+@source not inline('table');
+
+/* Runtime text-color names are invisible to source scanning. */
+@source inline("text-{boost,secondary,warning}");
+
+/* :where() keeps the dark variant at zero specificity. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme {
+  /* existing application layout thresholds */
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1400px;
+
+  --font-weight-bolder: bolder;
+
+  /* Application body type; other sizes use the stock scale. */
+  --text-base: .93rem;
+  --text-base--line-height: 1.75;
+
+  /* application monospace stack */
+  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* Utilities read live theme and territory values directly. */
+@theme inline {
+  --color-primary: var(--sn-primary);
+  --color-secondary: var(--sn-secondary);
+  --color-warning: var(--sn-warning);
+  --color-danger: var(--sn-danger);
+  --color-info: var(--sn-info);
+  --color-success: var(--sn-success);
+  --color-boost: var(--sn-boost);
+  --color-nostr: var(--sn-nostr);
+  --color-muted: var(--sn-muted);
+}
+
+/* Let a child inherit its surrounding text color. */
+@utility text-reset {
+  color: inherit;
+}

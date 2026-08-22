@@ -7,7 +7,7 @@ import { useLazyQuery } from '@apollo/client/react'
 import AdvPostForm from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
 import Item from './item'
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import { linkSchema } from '@/lib/validate'
 import Moon from '@/svgs/moon-fill.svg'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
@@ -49,7 +49,7 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
   const isEditing = !!item
   const [currentTitle, setCurrentTitle] = useState(initial.title || '')
 
-  // allows finer control over dupe accordian layout shift
+  // allows finer control over dupe accordion layout shift
   const [dupes, setDupes] = useState()
   const [titleOverride, setTitleOverride] = useState()
   const currentTitleRef = useRef(currentTitle)
@@ -192,7 +192,7 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
       </AdvPostForm>
       <ItemButtonBar itemId={item?.id} disable={postDisabled}>
         {!item && postDisabled &&
-          <div className='d-flex align-items-center small'>
+          <div className='flex items-center small'>
             <Moon className='spin fill-grey' height={16} width={16} />
             <div className='ms-2 text-muted'>searching for dupes</div>
           </div>}
@@ -200,8 +200,8 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
       {!item &&
         <>
           {dupes?.length > 0 &&
-            <div className='mt-3'>
-              <AccordianItem
+            <div className='mt-4'>
+              <AccordionItem
                 show
                 headerColor='#c03221'
                 header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>dupes</div>}

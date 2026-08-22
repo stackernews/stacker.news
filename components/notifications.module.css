@@ -1,6 +1,8 @@
+@layer components {
+
 .fresh {
     border-radius: 0;
-    border: solid 1px var(--theme-note-fresh);
+    border: solid 1px var(--sn-note-fresh);
     border-bottom: 0;
     border-top: 0;
     margin-left: -0.5rem;
@@ -12,7 +14,7 @@
 .fresh:not(.fresh ~ .fresh) {
     border-top-left-radius: .4rem;
     border-top-right-radius: .4rem;
-    border-top: solid 1px var(--theme-note-fresh);
+    border-top: solid 1px var(--sn-note-fresh);
 }
 
 .fresh:has(+ :not(.fresh)):has(+ :not(.reply)),
@@ -22,18 +24,18 @@
 }
 
 .fresh:has(+ :not(.fresh)) {
-    border-bottom: solid 1px var(--theme-note-fresh);
+    border-bottom: solid 1px var(--sn-note-fresh);
 }
 
 .reply {
     border-radius: 0;
-    background-color: var(--theme-note-reply);
+    background-color: var(--sn-note-reply);
     border-bottom: 0;
     border-top: 0;
 }
 
 .reply:hover {
-    background-color: var(--theme-clickToContextColor);
+    background-color: var(--sn-clickToContextColor);
 }
 
 .reply:not(.fresh):not(.reply + .reply) {
@@ -58,14 +60,7 @@
 }
 
 .subFormGroup > div {
-    margin-right: 0 !important;
-}
-
-.badge {
-    color: var(--theme-grey) !important;
-    background: var(--theme-clickToContextColor) !important;
-    vertical-align: middle;
-    margin-left: 0.5rem;
+    margin-right: 0;
 }
 
 .noteHeader {
@@ -73,4 +68,5 @@
     font-weight: 800;
     line-height: 1.25;
     vertical-align: middle;
+}
 }

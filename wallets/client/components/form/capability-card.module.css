@@ -1,3 +1,5 @@
+@layer components {
+
 /* Capability card: the send/receive/fallback configuration card, its header,
    the method (protocol) picker, and the embedded protocol form's field chrome. */
 
@@ -6,13 +8,13 @@
   flex-direction: column;
   gap: var(--wt-gap-xl);
   padding: 1.5rem 2rem;
-  border: 1px solid rgba(var(--theme-color-rgb), 0.12);
   border-radius: var(--wt-radius-lg);
-  background: color-mix(in srgb, var(--theme-toolbarHover) 22%, var(--bs-body-bg));
+  background: color-mix(in srgb, var(--sn-toolbarHover) 22%, var(--sn-body-bg));
 }
 .cardOptional {
-  border-style: dashed;
-  background: color-mix(in srgb, rgba(var(--bs-warning-rgb), 0.08) 45%, var(--bs-body-bg));
+  /* the dashed affordance needs its own full border now that .card has none */
+  border: 1px dashed color-mix(in srgb, var(--sn-body-color) 12%, transparent);
+  background: color-mix(in srgb, color-mix(in srgb, var(--sn-warning) 8%, transparent) 45%, var(--sn-body-bg));
 }
 .header {
   min-width: 0;
@@ -26,14 +28,14 @@
   min-width: 0;
 }
 .icon {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
 }
 .cardSend .icon,
 .cardFallback .icon {
-  color: var(--bs-warning);
+  color: var(--sn-warning);
 }
 .cardReceive .icon {
-  color: var(--bs-success);
+  color: var(--sn-success);
 }
 .titleRow h2 {
   margin: 0;
@@ -52,9 +54,8 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.85rem 1rem;
-  border: 1px solid rgba(var(--theme-color-rgb), 0.1);
   border-radius: var(--wt-radius-md);
-  background: color-mix(in srgb, var(--bs-body-bg) 72%, var(--theme-toolbarHover));
+  background: color-mix(in srgb, var(--sn-body-bg) 72%, var(--sn-toolbarHover));
 }
 .method .protocolSelector {
   --chip-padding: 0.55rem 1rem;
@@ -63,29 +64,14 @@
 .methodButton {
   white-space: nowrap;
 }
-.form :global(.form-group),
-.form :global(.mb-3) {
-  /* required: Bootstrap .mb-3 sets margin-bottom: 1rem !important */
-  margin-bottom: 0 !important;
+/* The inherited radius keeps inputs, addons, clear buttons, and selects on the
+   same card geometry without overriding InputGroup corner joining. */
+.form {
+  --sn-input-radius: var(--wt-radius-md);
 }
-.form :global(.input-group) {
-  width: 100%;
-}
-.form :global(.form-control),
-.form :global(.input-group-text) {
+.form :global(input:not([type='checkbox']):not([type='radio'])),
+.form :global(textarea) {
   min-height: 54px;
-}
-.form :global(.form-control) {
-  border-radius: var(--wt-radius-md);
-}
-.form :global(.input-group:has(.input-group-text) .form-control),
-.form :global(.input-group:has(button) .form-control) {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.form :global(.input-group .input-group-text) {
-  border-top-right-radius: var(--wt-radius-md);
-  border-bottom-right-radius: var(--wt-radius-md);
 }
 
 @media (max-width: 767px) {
@@ -102,4 +88,6 @@
   .titleRow h2 {
     font-size: 1.35rem;
   }
+}
+
 }

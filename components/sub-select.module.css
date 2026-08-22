@@ -1,9 +1,12 @@
+@layer components {
+
 .subSelect {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis !important;
 }
 
+/* Width choices belong to the selector surface rather than the form recipe. */
 .subSelectSmall {
   width: 90px !important;
 }
@@ -14,4 +17,5 @@
 
 .subSelectMedium {
   width: 200px !important;
+}
 }

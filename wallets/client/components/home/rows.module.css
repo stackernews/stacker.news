@@ -1,3 +1,5 @@
+@layer components {
+
 /* Shared wallet-home primitives: list rows (sidebar + mobile), the wallet
    identity/logo, the status pill, and the selected-wallet identity + template
    support readouts. These stay together because several descendant selectors
@@ -27,8 +29,8 @@
   margin-top: 0.35rem;
 }
 .selectedRing {
-  border-color: var(--bs-primary);
-  box-shadow: inset 0 0 0 1px var(--bs-primary);
+  border-color: var(--sn-primary);
+  box-shadow: inset 0 0 0 1px var(--sn-primary);
 }
 
 .walletRow,
@@ -49,7 +51,7 @@
   box-shadow: none;
 }
 .mobileWalletSelector:hover {
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
 }
 .externalWalletRow {
   align-items: flex-start;
@@ -67,18 +69,18 @@
   min-height: 64px;
   grid-template-columns: 1fr;
   place-items: center;
-  border: 2px dashed color-mix(in srgb, var(--theme-grey) 65%, transparent);
-  background: color-mix(in srgb, var(--bs-body-bg) 82%, var(--theme-toolbarHover));
+  border: 2px dashed color-mix(in srgb, var(--sn-grey) 65%, transparent);
+  background: color-mix(in srgb, var(--sn-body-bg) 82%, var(--sn-toolbarHover));
 }
 .addWalletRow:hover,
 .mobileWalletRow.addWalletRow:hover {
-  border-color: color-mix(in srgb, var(--bs-primary) 70%, var(--theme-grey));
-  background: color-mix(in srgb, var(--bs-primary) 7%, var(--bs-body-bg));
-  color: var(--bs-body-color);
+  border-color: color-mix(in srgb, var(--sn-primary) 70%, var(--sn-grey));
+  background: color-mix(in srgb, var(--sn-primary) 7%, var(--sn-body-bg));
+  color: var(--sn-body-color);
 }
 .addWalletRow.selectedRing,
 .mobileWalletRow.addWalletRow.selectedRing {
-  border-color: var(--bs-primary);
+  border-color: var(--sn-primary);
   border-style: dashed;
   box-shadow: none;
 }
@@ -88,7 +90,7 @@
   width: 32px;
   height: 32px;
   object-fit: contain;
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
   fill: currentColor;
 }
 .internalWalletIcon path {
@@ -99,7 +101,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--wt-radius-xs);
-  background: var(--theme-toolbarHover);
+  background: var(--sn-toolbarHover);
   font-weight: 700;
 }
 .externalWalletRow .walletRowLogo,
@@ -128,7 +130,7 @@
 }
 .walletRowIdentityName {
   min-height: 20px;
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
 }
 .walletRowIdentityMeta {
   flex-wrap: nowrap;
@@ -146,12 +148,12 @@
 }
 .mobileWalletCaret,
 .mobileWalletSelectedIcon {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   flex-shrink: 0;
 }
 .mobileWalletSelector:hover .mobileWalletCaret,
 .selectedRing .mobileWalletSelectedIcon {
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
 }
 
 .statusPill {
@@ -169,15 +171,15 @@
   line-height: 1;
   text-align: center;
   white-space: nowrap;
-  color: var(--state-color, var(--theme-grey));
-  background-color: var(--state-bg, var(--theme-toolbarHover));
+  color: var(--state-color, var(--sn-grey));
+  background-color: var(--state-bg, var(--sn-toolbarHover));
 }
 .statusIcon {
   width: 12px;
   height: 12px;
   display: block;
   flex-shrink: 0;
-  /* beats global `svg`/`X svg`/`.fill-*` fill rules in globals.scss so the icon takes the pill's state color */
+  /* Keep the icon on the pill's state color. */
   color: inherit !important;
   fill: currentColor !important;
 }
@@ -216,9 +218,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
 }
 .templateSupport .statusIcon {
   width: 14px;
   height: 14px;
+}
+
 }

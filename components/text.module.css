@@ -1,3 +1,5 @@
+@layer components {
+
 .text {
     font-size: 94%;
     font-family: inherit;
@@ -61,7 +63,7 @@
     height: 50vh;
     pointer-events: none;
     z-index: 1;
-    background: linear-gradient(rgba(255, 255, 255, 0), var(--bs-body-bg) 200%);
+    background: linear-gradient(rgba(255, 255, 255, 0), var(--sn-body-bg) 200%);
 }
 
 .textShowFull {
@@ -110,7 +112,7 @@
 }
 
 .text hr {
-    border-top: 3px solid var(--theme-quoteBar);
+    border-top: 3px solid var(--sn-quoteBar);
 }
 
 .text.topLevel {
@@ -245,7 +247,7 @@
 }
 
 .text blockquote {
-    border-left: 3px solid var(--theme-quoteBar);
+    border-left: 3px solid var(--sn-quoteBar);
     padding-left: .75rem;
 }
 
@@ -287,7 +289,7 @@
 
 .text h1 a, .text h2 a, .text h3 a, .text h4 a, .text h5 a, .text h6 a {
     text-decoration: none;
-    --bs-text-opacity: 1;
+    --sn-text-opacity: 1;
     color: inherit !important;
 }
 
@@ -322,7 +324,7 @@
 .twitterContainer, .nostrContainer, .videoWrapper, .wavlakeWrapper, .spotifyWrapper {
     margin-top: calc(var(--grid-gap) * 0.5);
     margin-bottom: calc(var(--grid-gap) * 0.5);
-    background-color: var(--theme-bg);
+    background-color: var(--sn-bg);
 }
 
 .videoWrapper {
@@ -408,7 +410,7 @@
 }
 
 .tweetSkeleton {
-    border: 0.05rem solid var(--theme-borderColor);
+    border: 0.05rem solid var(--sn-borderColor);
     border-radius: 12px;
     height: 150px;
     padding: 1.5rem;
@@ -457,4 +459,6 @@
     max-width: 480px;
     border-radius: 13px;
     overflow: hidden;
+}
+
 }

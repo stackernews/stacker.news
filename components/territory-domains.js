@@ -1,8 +1,9 @@
-import { Badge, Button } from 'react-bootstrap'
+import Badge from '@/components/ui/badge'
+import Button from '@/components/ui/button'
 import { Form, Input, SubmitButton, CopyButton } from './form'
 import { useMutation } from '@apollo/client/react'
 import { customDomainSchema } from '@/lib/validate'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { SET_DOMAIN } from '@/fragments/domains'
 import Moon from '@/svgs/moon-fill.svg'
 import ClipboardLine from '@/svgs/clipboard-line.svg'
@@ -29,9 +30,9 @@ export function useNavKeys (path, sub) {
 const getStatusBadge = (type, status) => {
   switch (status) {
     case 'VERIFIED':
-      return <Badge bg='success'>{type} verified</Badge>
+      return <Badge variant='success'>{type} verified</Badge>
     default:
-      return <Badge bg='warning'>{type} pending</Badge>
+      return <Badge variant='warning'>{type} pending</Badge>
   }
 }
 
@@ -39,10 +40,10 @@ const DomainLabel = ({ domain, polling }) => {
   const { status, records } = domain || {}
 
   return (
-    <div className='d-flex align-items-center gap-2'>
+    <div className='flex items-center gap-2'>
       <span>custom domain</span>
       {domain && (
-        <div className='d-flex align-items-center gap-2'>
+        <div className='flex items-center gap-2'>
           {status === 'PENDING'
             ? (
               <>
@@ -51,8 +52,8 @@ const DomainLabel = ({ domain, polling }) => {
               </>
               )
             : status === 'HOLD'
-              ? <Badge bg='secondary'>HOLD</Badge>
-              : <Badge bg='success'>active</Badge>}
+              ? <Badge variant='secondary'>HOLD</Badge>
+              : <Badge variant='success'>active</Badge>}
           {polling && <Moon className={`spin fill-grey ${styles.statusIcon}`} />}
         </div>
       )}
@@ -65,9 +66,9 @@ const DomainGuidelines = ({ domain }) => {
 
   const dnsRecord = ({ record }) => {
     return (
-      <div className='d-flex align-items-center gap-2 flex-wrap'>
+      <div className='flex items-center gap-2 flex-wrap'>
         <span className={styles.record}>
-          <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
+          <small className='font-bold text-muted flex items-center gap-1 relative'>
             host
             <CopyButton
               value={record?.recordName}
@@ -77,7 +78,7 @@ const DomainGuidelines = ({ domain }) => {
           <pre>{record?.recordName}</pre>
         </span>
         <span className={styles.record}>
-          <small className='fw-bold text-muted d-flex align-items-center gap-1 position-relative'>
+          <small className='font-bold text-muted flex items-center gap-1 relative'>
             value
             <CopyButton
               value={record?.recordValue}
@@ -96,9 +97,9 @@ const DomainGuidelines = ({ domain }) => {
    * CNAME verified and SSL is pending -> show Step 2
    */
   return (
-    <div className='d-flex'>
+    <div className='flex'>
       {records?.CNAME?.status === 'PENDING' && (
-        <div className='d-flex flex-column gap-2'>
+        <div className='flex flex-col gap-2'>
           <h5>Step 1: Verify your domain</h5>
           <p>Add the following DNS record to verify ownership of your domain:</p>
           <h6>CNAME</h6>
@@ -154,8 +155,8 @@ export default function CustomDomainForm ({ sub, domain }) {
         onSubmit={onSubmit}
         className='mb-2'
       >
-        <div className='d-flex align-items-center gap-2'>
-          <div className='flex-grow-1'>
+        <div className='flex items-center gap-2'>
+          <div className='grow'>
             <Input
               disabled={!!domain}
               label={<DomainLabel domain={domain} polling={polling} />}
@@ -166,7 +167,7 @@ export default function CustomDomainForm ({ sub, domain }) {
           {domain && (
             <Button
               variant='danger'
-              className='mt-3'
+              className='mt-4'
               onClick={() => onSubmit({ domainName: '' })}
             >
               reset
@@ -174,11 +175,11 @@ export default function CustomDomainForm ({ sub, domain }) {
           )}
           {!domain
             ? (
-              <SubmitButton variant='primary' className='mt-3'>verify</SubmitButton>
+              <SubmitButton variant='primary' className='mt-4'>verify</SubmitButton>
               )
             : domain?.status === 'HOLD'
               ? (
-                <SubmitButton variant='success' className='mt-3'>re-verify</SubmitButton>
+                <SubmitButton variant='success' className='mt-4'>re-verify</SubmitButton>
                 )
               : null}
         </div>

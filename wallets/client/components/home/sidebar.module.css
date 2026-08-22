@@ -1,3 +1,5 @@
+@layer components {
+
 /* Wallet-home sidebar (desktop) + the mobile switcher/details sheet. */
 
 .sidebar {
@@ -15,26 +17,9 @@
 }
 .orderHint {
   margin: -0.35rem 0 0;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: 0.8rem;
   line-height: 1.2;
 }
-.sheet {
-  /* wins over Bootstrap .offcanvas-bottom's fixed height (equal specificity, source-order dependent) */
-  height: auto !important;
-  max-height: 85svh;
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-}
-.sheet :global(.offcanvas-body) {
-  padding-right: 1rem;
-  padding-left: 1rem;
-  overflow-x: visible;
-}
 
-@media (max-width: 767px) {
-  .sidebar {
-    /* beats Bootstrap's .d-flex display utility (itself !important) */
-    display: none !important;
-  }
 }

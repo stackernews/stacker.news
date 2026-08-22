@@ -1,6 +1,6 @@
-import { Form, Input, SubmitButton, CopyInput } from '@/components/form'
-import Alert from 'react-bootstrap/Alert'
-import Button from 'react-bootstrap/Button'
+import { Form, Input, SubmitButton, CopyInput, labelClasses } from '@/components/form'
+import { Alert } from '@/components/ui/alert'
+import Button from '@/components/ui/button'
 import Layout from '@/components/layout'
 import { useState } from 'react'
 import { gql } from '@apollo/client'
@@ -19,7 +19,7 @@ import { useShowModal } from '@/components/modal'
 import { ObstacleButtons } from '@/components/obstacle'
 import { authErrorMessage } from '@/components/login'
 import { NostrAuth } from '@/components/nostr-auth'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { useMe } from '@/components/me'
 import { SettingsHeader, hasOnlyOneAuthMethod } from './index'
 import { AuthBanner } from '@/components/banners'
@@ -42,7 +42,7 @@ export default function Logins ({ ssrData }) {
 
   return (
     <Layout>
-      <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
+      <div className='pb-4 w-full mt-2' style={{ maxWidth: '600px' }}>
         <SettingsHeader />
         {hasOnlyOneAuthMethod(settings?.authMethods) && <AuthBanner />}
         {settings?.authMethods && (
@@ -59,14 +59,14 @@ function QRLinkButton ({ provider, unlink, status }) {
   const onClick = status
     ? unlink
     : () => showModal(onClose =>
-      <div className='d-flex flex-column align-items-center'>
-        <LightningAuthWithExplainer callbackUrl='/settings/logins' backButton={false} md={12} lg={12} />
+      <div className='flex flex-col items-center'>
+        <LightningAuthWithExplainer callbackUrl='/settings/logins' backButton={false} stacked />
       </div>)
 
   return (
     <LoginButton
       key={provider}
-      className='d-block mt-2' type={provider} text={text} onClick={onClick}
+      className='block mt-2' type={provider} text={text} onClick={onClick}
     />
   )
 }
@@ -77,13 +77,13 @@ function NostrLinkButton ({ unlink, status }) {
   const onClick = status
     ? unlink
     : () => showModal(onClose =>
-      <div className='d-flex flex-column align-items-center'>
+      <div className='flex flex-col items-center'>
         <NostrAuth text='Link' callbackUrl='/settings/logins' />
       </div>)
 
   return (
     <LoginButton
-      className='d-block mt-2' type='nostr' text={text} onClick={onClick}
+      className='block mt-2' type='nostr' text={text} onClick={onClick}
     />
   )
 }
@@ -93,16 +93,16 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
   const toaster = useToast()
 
   return (
-    <div className='text-left'>
+    <div className=''>
       <p>
         You are removing your last auth method. It is recommended you link another auth method before removing
         your last auth method. If you'd like to proceed anyway, type the following below
       </p>
-      <div className='text-danger fw-bold my-2'>
+      <div className='text-danger font-bold my-2'>
         If I logout, even accidentally, I will never be able to access my account again
       </div>
       <Form
-        className='mt-3'
+        className='mt-4'
         initial={{
           warning: ''
         }}
@@ -202,7 +202,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
         if (provider === 'email') {
           return methods.email
             ? (
-              <div key={provider} className='mt-2 d-flex align-items-center'>
+              <div key={provider} className='mt-2 flex items-center'>
                 <Button
                   variant='secondary' onClick={
                     async () => {
@@ -226,7 +226,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
         } else {
           return (
             <LoginButton
-              className='mt-2 d-block'
+              className='mt-2 block'
               key={provider}
               type={provider.toLowerCase()}
               onClick={async () => {
@@ -266,7 +266,7 @@ function EmailLinkForm ({ callbackUrl }) {
         signIn('email', { email, callbackUrl })
       }}
     >
-      <div className='d-flex align-items-center'>
+      <div className='flex items-center'>
         <Input
           name='email'
           placeholder='email@example.com'
@@ -336,8 +336,8 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
 
   return (
     <>
-      <div className='form-label mt-4'>api key</div>
-      <div className='mt-2 d-flex align-items-center'>
+      <div className={labelClasses({ className: 'mt-6' })}>api key</div>
+      <div className='mt-2 flex items-center'>
         <Button
           variant={apiKey ? 'danger' : 'secondary'}
           onClick={async () => {
@@ -361,7 +361,7 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
           <Info>
             <ul>
               <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
-              <li>you need to add the API key to the <span className='text-monospace'>X-API-Key</span> header of your requests</li>
+              <li>you need to add the API key to the <span className='font-mono'>X-API-Key</span> header of your requests</li>
               <li>you can currently only generate API keys if we enabled it for your account</li>
               <li>
                 you can{' '}
@@ -392,11 +392,11 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
 function ApiKeyModal ({ apiKey }) {
   return (
     <>
-      <p className='fw-bold'>
+      <p className='font-bold'>
         Make sure to copy your API key now.<br />
         This is the only time we will show it to you.
       </p>
-      <CopyInput readOnly noForm placeholder={apiKey} hint={<>use the <span className='text-monospace'>X-API-Key</span> header to include this key in your requests</>} />
+      <CopyInput readOnly noForm placeholder={apiKey} hint={<>use the <span className='font-mono'>X-API-Key</span> header to include this key in your requests</>} />
     </>
   )
 }
@@ -443,7 +443,7 @@ function ApiKeyDeleteObstacle ({ onClose }) {
 
   return (
     <div className='text-center'>
-      <p className='fw-bold'>
+      <p className='font-bold'>
         Do you really want to delete your API key?
       </p>
       <ObstacleButtons onClose={onClose} onConfirm={handleConfirm} confirmText='do it' />

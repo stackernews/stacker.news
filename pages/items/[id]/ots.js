@@ -2,7 +2,8 @@ import Layout from '@/components/layout'
 import { ITEM_OTS } from '@/fragments/items'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import stringifyCanon from 'canonical-json'
-import Button from 'react-bootstrap/Button'
+import { buttonClasses } from '@/components/ui/button'
+import { labelClasses } from '@/components/form'
 import { useQuery } from '@apollo/client/react'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
@@ -31,20 +32,20 @@ function Ots ({ item }) {
 
   return (
     <>
-      <div className='form-label'>sha256 hash</div>
+      <div className={labelClasses()}>sha256 hash</div>
       {item.otsHash}
-      <div className='form-label mt-2'>preimage</div>
+      <div className={labelClasses({ className: 'mt-2' })}>preimage</div>
       {item.deletedAt
         ? <div>item was deleted by author - original preimage is lost</div>
         : (
           <pre
-            className='mb-2 p-2 rounded'
-            style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', border: '1px solid var(--theme-borderColor)', color: 'var(--bs-body-color)' }}
+            className='mb-2 p-2 rounded-md'
+            style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', border: '1px solid var(--sn-borderColor)', color: 'var(--sn-body-color)' }}
           >{itemString}
           </pre>)}
-      <Button href={`/api/ots/preimage/${item.id}`} className='mt-1' variant='grey-medium'>download preimage</Button>
-      <div className='form-label mt-2'>merkle proof</div>
-      <Button href={`/api/ots/proof/${item.id}`} className='mt-1' variant='grey-medium'>download ots file</Button>
+      <a href={`/api/ots/preimage/${item.id}`} className={buttonClasses({ variant: 'grey-medium', className: 'mt-1' })}>download preimage</a>
+      <div className={labelClasses({ className: 'mt-2' })}>merkle proof</div>
+      <a href={`/api/ots/proof/${item.id}`} className={buttonClasses({ variant: 'grey-medium', className: 'mt-1' })}>download ots file</a>
     </>
   )
 }

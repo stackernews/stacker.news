@@ -1,24 +1,31 @@
 import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
 import { useState } from 'react'
-import Alert from 'react-bootstrap/Alert'
-import Button from 'react-bootstrap/Button'
-import Dropdown from 'react-bootstrap/Dropdown'
+import { Alert } from '@/components/ui/alert'
+import Button from '@/components/ui/button'
+import { MenuItem } from '@/components/ui/menu'
 import { useShowModal } from './modal'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 
-export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
+/* the confirm-open lives in a hook so the handler can sit on the activating
+   element itself: Delete's span hears bubbled clicks from in-tree children like
+   post.js's Button, but a portaled MenuItem is no DOM descendant, so mouse
+   worked only through React's synthetic portal bubbling and Enter never arrived */
+export function useDeleteConfirm ({ itemId, onDelete, type = 'post' }) {
   const showModal = useShowModal()
 
   const [deleteItem] = useMutation(
     gql`
       mutation deleteItem($id: ID!) {
         deleteItem(id: $id) {
+          id
           text
           title
           url
           pollCost
           deletedAt
+          lexicalState
+          html
         }
       }`, {
       update (cache, { data: { deleteItem } }) {
@@ -29,36 +36,43 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
             title: () => deleteItem.title,
             url: () => deleteItem.url,
             pollCost: () => deleteItem.pollCost,
-            deletedAt: () => deleteItem.deletedAt
+            deletedAt: () => deleteItem.deletedAt,
+            // the body renders from the resolver-derived lexicalState and html
+            // (item-full's Lexical read path), not text, so they must repaint too
+            lexicalState: () => deleteItem.lexicalState,
+            html: () => deleteItem.html
           },
           optimistic: true
         })
       }
     }
   )
+
+  return () => {
+    showModal(onClose => {
+      return (
+        <DeleteConfirm
+          type={type}
+          onConfirm={async () => {
+            const { error } = await deleteItem({ variables: { id: itemId } })
+            if (error) {
+              throw error
+            }
+            if (onDelete) {
+              onDelete()
+            }
+            onClose()
+          }}
+        />
+      )
+    })
+  }
+}
+
+export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
+  const showDeleteConfirm = useDeleteConfirm({ itemId, onDelete, type })
   return (
-    <span
-      className='pointer' onClick={() => {
-        showModal(onClose => {
-          return (
-            <DeleteConfirm
-              type={type}
-              onConfirm={async () => {
-                const { error } = await deleteItem({ variables: { id: itemId } })
-                if (error) {
-                  throw error
-                }
-                if (onDelete) {
-                  onDelete()
-                }
-                onClose()
-              }}
-            />
-          )
-        })
-      }}
-    >{children}
-    </span>
+    <span className='pointer' onClick={showDeleteConfirm}>{children}</span>
   )
 }
 
@@ -69,8 +83,8 @@ export function DeleteConfirm ({ onConfirm, type }) {
   return (
     <>
       {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
-      <p className='fw-bolder'>Are you sure? This is a gone forever kind of delete.</p>
-      <div className='d-flex justify-content-end'>
+      <p className='font-bolder'>Are you sure? This is a gone forever kind of delete.</p>
+      <div className='flex justify-end'>
         <Button
           variant='danger' onClick={async () => {
             try {
@@ -88,11 +102,10 @@ export function DeleteConfirm ({ onConfirm, type }) {
 }
 
 export function DeleteDropdownItem (props) {
+  const showDeleteConfirm = useDeleteConfirm(props)
   return (
-    <Delete {...props}>
-      <Dropdown.Item>
-        delete
-      </Dropdown.Item>
-    </Delete>
+    <MenuItem onClick={showDeleteConfirm}>
+      delete
+    </MenuItem>
   )
 }

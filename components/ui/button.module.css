@@ -1,0 +1,203 @@
+@layer components {
+
+/* skin only, what the button looks like in each state
+   layout settings live in button.js
+*/
+
+.btn {
+  color: var(--sn-btn-color);
+  background-color: var(--sn-btn-bg);
+  /* The transparent border keeps buttons aligned with bordered inputs. */
+  border: 1px solid transparent;
+}
+
+/* Hover and active states darken the live background unless a variant pins them. */
+.btn:hover,
+.btn:active {
+  color: var(--sn-btn-hover-color, var(--sn-btn-color));
+}
+
+.btn:hover {
+  background-color: var(--sn-btn-hover-bg, color-mix(in srgb, var(--sn-btn-bg) 85%, var(--sn-btn-mix, #000)));
+}
+
+.btn:active {
+  background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
+}
+
+/* Toggles keep the active paint while pressed. */
+.btn[data-pressed] {
+  background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
+}
+
+.btn[data-disabled] {
+  color: var(--sn-btn-disabled-color, var(--sn-btn-color));
+  background-color: var(--sn-btn-disabled-bg, var(--sn-btn-bg));
+  opacity: .65;
+  pointer-events: none;
+}
+
+/* Territory brand changes recompute these states at paint time. */
+.primary {
+  --sn-btn-color: var(--sn-primary-text);
+  --sn-btn-bg: var(--sn-primary);
+}
+
+.secondary {
+  --sn-btn-color: var(--sn-secondary-text);
+  --sn-btn-bg: var(--sn-secondary);
+}
+
+.primary svg,
+.secondary svg {
+  fill: var(--sn-btn-color);
+}
+
+/* Static filled variants. */
+.danger {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #c03221;
+}
+
+.info {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #007cbe;
+}
+
+.success {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #5c8001;
+}
+
+.grey {
+  --sn-btn-color: #000;
+  --sn-btn-bg: #e9ecef;
+  --sn-btn-mix: #fff;
+}
+
+.grey-medium {
+  --sn-btn-color: #000;
+  --sn-btn-bg: #d2d2d2;
+  --sn-btn-mix: #fff;
+}
+
+.grey svg,
+.grey-medium svg {
+  fill: #212529;
+}
+
+/* Login-provider variants use fixed provider colors. */
+.twitter {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: var(--sn-twitter);
+}
+
+.twitter svg {
+  fill: #fff;
+}
+
+.dark {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: #212529;
+  --sn-btn-mix: #fff;
+}
+
+/* The icon's own fill and stroke classes must lose in every state. */
+.nostr {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: var(--sn-nostr);
+}
+
+.nostr,
+.nostr:hover,
+.nostr:active {
+  fill: #fff !important;
+  stroke: #fff !important;
+  stroke-miterlimit: 10;
+  stroke-width: 6px;
+}
+
+.nostr svg {
+  fill: #fff;
+  stroke: #fff;
+  stroke-miterlimit: 10;
+  stroke-width: 6px;
+}
+
+/* Outline variants fill on hover and keep a stable border color. */
+.outline-secondary {
+  --sn-btn-color: var(--sn-secondary);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: var(--sn-secondary-text);
+  --sn-btn-hover-bg: var(--sn-secondary);
+  --sn-btn-active-bg: var(--sn-secondary);
+  --sn-btn-disabled-color: var(--sn-secondary);
+  --sn-btn-disabled-bg: transparent;
+  border-color: var(--sn-secondary);
+}
+
+.outline-info {
+  --sn-btn-color: #007cbe;
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: #007cbe;
+  --sn-btn-active-bg: #007cbe;
+  --sn-btn-disabled-color: #007cbe;
+  --sn-btn-disabled-bg: transparent;
+  border-color: #007cbe;
+}
+
+/* Consumers choose the border width while the variant owns its color. */
+.outline-grey {
+  --sn-btn-color: var(--sn-muted);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: var(--sn-muted);
+  --sn-btn-active-bg: var(--sn-muted);
+  --sn-btn-disabled-color: var(--sn-muted);
+  --sn-btn-disabled-bg: transparent;
+  border-color: var(--sn-muted);
+}
+
+/* The variant owns border color while its consumer chooses border width. */
+.outline-warning {
+  --sn-btn-color: #F6911D;
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #000;
+  --sn-btn-hover-bg: #F6911D;
+  --sn-btn-active-bg: #F6911D;
+  --sn-btn-disabled-color: #F6911D;
+  --sn-btn-disabled-bg: transparent;
+  border-color: #F6911D;
+}
+
+/* Navigation consumers choose border width while this variant owns paint. */
+.outline-grey-darkmode {
+  --sn-btn-color: #8c8c8c;
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: #8c8c8c;
+  --sn-btn-active-bg: #8c8c8c;
+  --sn-btn-disabled-color: #8c8c8c;
+  --sn-btn-disabled-bg: transparent;
+  border-color: #8c8c8c;
+}
+
+/* font-weight 400 is the recipe's job: button.js swaps font-bold for
+   font-normal on this variant */
+.link {
+  --sn-btn-color: var(--sn-link-color);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: var(--sn-link-hover-color);
+  --sn-btn-hover-bg: transparent;
+  --sn-btn-active-bg: transparent;
+  --sn-btn-disabled-color: #6c757d;
+  text-decoration: none;
+}
+
+.link:hover,
+.link:focus-visible {
+  text-decoration: none;
+}
+
+}

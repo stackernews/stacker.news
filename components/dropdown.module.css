@@ -1,8 +1,9 @@
+@layer components {
+
 .dropdownExtra {
   padding: 0.45rem 0.35rem;
   width: 240px;
   border-radius: 0.4rem;
-  z-index: 2000;
 }
 
 .dropdownExtraItem {
@@ -17,10 +18,19 @@
   text-wrap: wrap;
 }
 
-.dropdownExtraItem:hover {
-  background-color: var(--theme-toolbarActive);
+/* [data-highlighted] twins the :hover rule so Base UI keyboard highlight
+   paints like hover. These skins are consumed by the editor toolbar dropdowns
+   and the login-button extras. */
+.dropdownExtraItem:hover,
+.dropdownExtraItem[data-highlighted] {
+  background-color: var(--sn-toolbarActive);
   opacity: 1;
   border-radius: 0.3rem;
+  outline: none;
+}
+
+.dropdownExtraItem svg {
+  fill: var(--sn-dropdownItemColor);
 }
 
 .dropdownExtraItem.active {
@@ -30,7 +40,9 @@
 }
 
 .dropdownExtraItem.active .dropdownExtraItemText {
-  color: var(--theme-brandColor) !important;
-  filter: drop-shadow(0 0 6px var(--bs-primary));
+  color: var(--sn-brandColor);
+  filter: drop-shadow(0 0 6px var(--sn-primary));
   font-weight: 500;
+}
+
 }

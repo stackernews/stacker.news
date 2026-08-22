@@ -396,6 +396,7 @@ model Item {
   id                   Int                   @id @default(autoincrement())
   createdAt            DateTime              @default(now()) @map("created_at")
   updatedAt            DateTime              @default(now()) @updatedAt @map("updated_at")
+  paidAt               DateTime?
   title                String?
   text                 String?
   url                  String?
@@ -490,11 +491,6 @@ model Item {
   @@index([statusUpdatedAt], map: "Item.statusUpdatedAt_index")
   @@index([status], map: "Item.status_index")
   @@index([subNames], type: Gin)
-  @@index([subNames, createdAt(ops: raw("timestamp_ops"))], type: Gin)
-  @@index([subNames, ranktop(ops: raw("float8_ops"))], type: Gin)
-  @@index([subNames, ranklit(ops: raw("float8_ops"))], type: Gin)
-  @@index([subNames, downMsats(ops: raw("int8_ops"))], type: Gin)
-  @@index([subNames, ncomments(ops: raw("int4_ops"))], type: Gin)
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
@@ -538,7 +534,7 @@ model ItemSub {
 
   @@id([itemId, subName])
   @@index([itemId])
-  @@index([subName])
+  @@index([subName, itemId])
   @@index([createdAt])
 }
 

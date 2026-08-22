@@ -3,7 +3,7 @@ import { join, resolve } from 'path'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, settingsSchema, validateSchema, userSchema } from '@/lib/validate'
-import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, activeOrMine, payInJoinFilter } from './item'
+import { getItem, updateItem, filterSql, createItem, whereSql, muteSql, activeOrMineSql, paidItemSql } from './item'
 import { USER_ID, PAY_IN_NOTIFICATION_TYPES, WALLET_RETRY_BEFORE_MS, WALLET_MAX_RETRIES, SN_SYSTEM_ONLY_IDS, FREE_COMMENTS_PER_MONTH } from '@/lib/constants'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
@@ -302,64 +302,66 @@ export default {
         }
       }
 
+      const itemFilter = await filterSql(null, null, null, ctx)
+
       // break out thread subscription to decrease the search space of the already expensive reply query
-      const [newThreadSubReply] = await models.$queryRawUnsafe(`
+      const [newThreadSubReply] = await models.$queryRaw(Prisma.sql`
         SELECT EXISTS(
           SELECT *
           FROM "ThreadSubscription"
           JOIN "Reply" r ON "ThreadSubscription"."itemId" = r."ancestorId"
           JOIN "Item" ON r."itemId" = "Item".id
-          ${whereClause(
-            '"ThreadSubscription"."userId" = $1',
-            'r.created_at > $2',
-            'r.created_at >= "ThreadSubscription".created_at',
-            'r."userId" <> $1',
-            '"Item"."deletedAt" IS NULL',
-            activeOrMine(me),
-            await filterClause(null, null, null, ctx),
-            muteClause(me),
-            ...(user.noteAllDescendants ? [] : ['r.level = 1'])
-          )})`, me.id, lastChecked)
+          ${whereSql(
+            Prisma.sql`"ThreadSubscription"."userId" = ${me.id}::INTEGER`,
+            Prisma.sql`r.created_at > ${lastChecked}::TIMESTAMP`,
+            Prisma.sql`r.created_at >= "ThreadSubscription".created_at`,
+            Prisma.sql`r."userId" <> ${me.id}::INTEGER`,
+            Prisma.sql`"Item"."deletedAt" IS NULL`,
+            activeOrMineSql(me),
+            itemFilter,
+            muteSql(me),
+            user.noteAllDescendants ? null : Prisma.sql`r.level = 1`
+          )})`)
       if (newThreadSubReply.exists) {
         foundNotes()
         return true
       }
 
-      const [newUserSubs] = await models.$queryRawUnsafe(`
+      const [newUserSubs] = await models.$queryRaw(Prisma.sql`
         SELECT EXISTS(
           SELECT *
           FROM "UserSubscription"
           JOIN "Item" ON "UserSubscription"."followeeId" = "Item"."userId"
-          ${payInJoinFilter(me)}
-          ${whereClause(
-            '"UserSubscription"."followerId" = $1',
-            '"Item".created_at > $2',
-            `(
+          ${whereSql(
+            Prisma.sql`"UserSubscription"."followerId" = ${me.id}::INTEGER`,
+            Prisma.sql`"Item".created_at > ${lastChecked}::TIMESTAMP`,
+            Prisma.sql`(
               ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
             )`,
-            activeOrMine(me),
-            await filterClause(null, null, null, ctx),
-            muteClause(me))})`, me.id, lastChecked)
+            paidItemSql(me),
+            activeOrMineSql(me),
+            itemFilter,
+            muteSql(me))})`)
       if (newUserSubs.exists) {
         foundNotes()
         return true
       }
 
-      const [newSubPost] = await models.$queryRawUnsafe(`
+      const [newSubPost] = await models.$queryRaw(Prisma.sql`
         SELECT EXISTS(
           SELECT *
           FROM "SubSubscription"
           JOIN "Item" ON "Item"."subNames" @> ARRAY["SubSubscription"."subName"]::CITEXT[]
-          ${payInJoinFilter(me)}
-          ${whereClause(
-            '"SubSubscription"."userId" = $1',
-            '"Item".created_at > $2',
-            '"Item"."parentId" IS NULL',
-            '"Item"."userId" <> $1',
-            activeOrMine(me),
-            await filterClause(null, null, null, ctx),
-            muteClause(me))})`, me.id, lastChecked)
+          ${whereSql(
+            Prisma.sql`"SubSubscription"."userId" = ${me.id}::INTEGER`,
+            Prisma.sql`"Item".created_at > ${lastChecked}::TIMESTAMP`,
+            Prisma.sql`"Item"."parentId" IS NULL`,
+            Prisma.sql`"Item"."userId" <> ${me.id}::INTEGER`,
+            paidItemSql(me),
+            activeOrMineSql(me),
+            itemFilter,
+            muteSql(me))})`)
       if (newSubPost.exists) {
         foundNotes()
         return true
@@ -367,19 +369,19 @@ export default {
 
       // check if they have any mentions since checkedNotesAt
       if (user.noteMentions) {
-        const [newMentions] = await models.$queryRawUnsafe(`
+        const [newMentions] = await models.$queryRaw(Prisma.sql`
         SELECT EXISTS(
           SELECT *
           FROM "Mention"
           JOIN "Item" ON "Mention"."itemId" = "Item".id
-          ${whereClause(
-            '"Mention"."userId" = $1',
-            '"Mention".created_at > $2',
-            '"Item"."userId" <> $1',
-            activeOrMine(me),
-            await filterClause(null, null, null, ctx),
-            muteClause(me)
-          )})`, me.id, lastChecked)
+          ${whereSql(
+            Prisma.sql`"Mention"."userId" = ${me.id}::INTEGER`,
+            Prisma.sql`"Mention".created_at > ${lastChecked}::TIMESTAMP`,
+            Prisma.sql`"Item"."userId" <> ${me.id}::INTEGER`,
+            activeOrMineSql(me),
+            itemFilter,
+            muteSql(me)
+          )})`)
         if (newMentions.exists) {
           foundNotes()
           return true
@@ -387,19 +389,19 @@ export default {
       }
 
       if (user.noteItemMentions) {
-        const [newMentions] = await models.$queryRawUnsafe(`
+        const [newMentions] = await models.$queryRaw(Prisma.sql`
         SELECT EXISTS(
           SELECT *
           FROM "ItemMention"
           JOIN "Item" ON "ItemMention"."referrerId" = "Item".id
-          ${whereClause(
-            '"ItemMention".created_at > $2',
-            '"Item"."userId" <> $1',
-            '"ItemMention"."refereeUserId" = $1',
-            activeOrMine(me),
-            await filterClause(null, null, null, ctx),
-            muteClause(me)
-          )})`, me.id, lastChecked)
+          ${whereSql(
+            Prisma.sql`"ItemMention".created_at > ${lastChecked}::TIMESTAMP`,
+            Prisma.sql`"Item"."userId" <> ${me.id}::INTEGER`,
+            Prisma.sql`"ItemMention"."refereeUserId" = ${me.id}::INTEGER`,
+            activeOrMineSql(me),
+            itemFilter,
+            muteSql(me)
+          )})`)
         if (newMentions.exists) {
           foundNotes()
           return true
@@ -407,20 +409,20 @@ export default {
       }
 
       if (user.noteForwardedSats) {
-        const [newFwdSats] = await models.$queryRawUnsafe(`
+        const [newFwdSats] = await models.$queryRaw(Prisma.sql`
         SELECT EXISTS(
           SELECT *
           FROM "Item"
           JOIN "ItemForward" ON
             "ItemForward"."itemId" = "Item".id
-            AND "ItemForward"."userId" = $1
-          ${whereClause(
-            '"Item"."lastZapAt" > $2',
-            '"Item"."userId" <> $1',
-            activeOrMine(me),
-            await filterClause(null, null, null, ctx),
-            muteClause(me)
-          )})`, me.id, lastChecked)
+            AND "ItemForward"."userId" = ${me.id}::INTEGER
+          ${whereSql(
+            Prisma.sql`"Item"."lastZapAt" > ${lastChecked}::TIMESTAMP`,
+            Prisma.sql`"Item"."userId" <> ${me.id}::INTEGER`,
+            activeOrMineSql(me),
+            itemFilter,
+            muteSql(me)
+          )})`)
         if (newFwdSats.exists) {
           foundNotes()
           return true
@@ -865,14 +867,7 @@ export default {
       const item = await models.item.findFirst({
         where: {
           userId: user.id,
-          itemPayIns: {
-            some: {
-              payIn: {
-                payInState: 'PAID',
-                payInType: 'ITEM_CREATE'
-              }
-            }
-          }
+          paidAt: { not: null }
         },
         orderBy: {
           createdAt: 'asc'

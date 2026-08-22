@@ -32,6 +32,8 @@ import pay, { retry as retryPayIn } from '../payIn'
 import { BOUNTY_ALREADY_PAID_ERROR, BOUNTY_IN_PROGRESS_ERROR, getBountyPaymentTail } from '../payIn/lib/bountyPayment'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 import { resolveItemComments } from './comment-tree'
+import { itemKeysetCursor, updateItemKeysetCursor } from './item-pagination'
+import { Prisma } from '@prisma/client'
 
 export async function getItem (parent, { id }, { me, models }) {
   const [item] = await getItemsById([id], { me, models })
@@ -42,43 +44,29 @@ export async function getItemsById (ids, { me, models }) {
   const uniqueIds = [...new Set(ids.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0))]
   if (uniqueIds.length === 0) return []
 
-  const values = uniqueIds.map((id, index) => `(${id}, ${index})`).join(',')
+  const values = Prisma.join(uniqueIds.map((id, index) => Prisma.sql`(${id}::INTEGER, ${index}::INTEGER)`))
   const items = await itemQueryWithMeta({
     me,
     models,
-    query: `
+    query: Prisma.sql`
       WITH requested(id, rank) AS (VALUES ${values})
       ${SELECT}, rank
       FROM "Item"
       JOIN requested ON "Item".id = requested.id
-      ${payInJoinFilter(me)}
-      ${whereClause(activeOrMine(me))}`,
-    orderBy: 'ORDER BY rank ASC'
+      ${whereSql(activeOrMineSql(me), paidItemSql(me))}`,
+    orderBy: Prisma.sql`ORDER BY rank ASC`
   })
 
   return items.map(({ rank, ...item }) => item)
 }
 
-const orderByClause = (by, me, models, type, sub) => {
-  switch (by) {
-    case 'comments':
-      return 'ORDER BY "Item".ncomments DESC'
-    case 'sats':
-      return 'ORDER BY "Item".ranktop DESC, "Item".id DESC'
-    case 'downsats':
-      return 'ORDER BY "Item"."downMsats" DESC'
-    default:
-      return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
-  }
-}
-
 // this grabs all the stuff we need to display the item list and only
 // hits the db once ... orderBy needs to be duplicated on the outer query because
 // joining does not preserve the order of the inner query
-export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
+export async function itemQueryWithMeta ({ me, models, query, orderBy = Prisma.empty }) {
   if (!me) {
-    return await models.$queryRawUnsafe(`
-      SELECT "Item".*, to_json(users.*) as user, "subs".subs as subs, to_jsonb("PayIn".*) as "payIn"
+    return await models.$queryRaw(Prisma.sql`
+      SELECT "Item".*, to_json(users.*) as user, "subs".subs as subs, NULL::jsonb as "payIn"
       FROM (
         ${query}
       ) "Item"
@@ -88,17 +76,9 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         FROM "Sub"
         WHERE "Sub"."name" = ANY("Item"."subNames")
       ) "subs" ON true
-      LEFT JOIN LATERAL (
-        SELECT "PayIn".*
-        FROM "ItemPayIn"
-        JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        WHERE "ItemPayIn"."itemId" = "Item".id AND "PayIn"."payInState" = 'PAID'
-        ORDER BY "PayIn"."created_at" DESC
-        LIMIT 1
-      ) "PayIn" ON "PayIn".id IS NOT NULL
-      ${orderBy}`, ...args)
+      ${orderBy}`)
   } else {
-    return await models.$queryRawUnsafe(`
+    return await models.$queryRaw(Prisma.sql`
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("MeItemPayIn"."meMsats", 0) as "meMsats", COALESCE("MeItemPayIn"."mePendingMsats", 0) as "mePendingMsats",
         COALESCE("MeItemPayIn"."meMcredits", 0) as "meMcredits", COALESCE("MeItemPayIn"."mePendingMcredits", 0) as "mePendingMcredits",
@@ -112,18 +92,18 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
-      LEFT JOIN "Mute" ON "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId"
-      LEFT JOIN "Bookmark" b ON b."itemId" = "Item".id AND b."userId" = ${me.id}
-      LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
-      LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
-      LEFT JOIN "CommentsViewAt" ON "CommentsViewAt"."itemId" = "Item".id AND "CommentsViewAt"."userId" = ${me.id}
+      LEFT JOIN "Mute" ON "Mute"."muterId" = ${me.id}::INTEGER AND "Mute"."mutedId" = "Item"."userId"
+      LEFT JOIN "Bookmark" b ON b."itemId" = "Item".id AND b."userId" = ${me.id}::INTEGER
+      LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}::INTEGER
+      LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}::INTEGER
+      LEFT JOIN "CommentsViewAt" ON "CommentsViewAt"."itemId" = "Item".id AND "CommentsViewAt"."userId" = ${me.id}::INTEGER
       LEFT JOIN LATERAL (
         SELECT COALESCE(json_agg("Sub".*), '[]') as subs
         FROM (
           SELECT "Sub".*, "MuteSub"."userId" IS NOT NULL as "meMuteSub", "SubSubscription"."userId" IS NOT NULL as "meSubscription"
           FROM "Sub"
-          LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
-          LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
+          LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}::INTEGER
+          LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}::INTEGER
           WHERE "Sub"."name" = ANY("Item"."subNames")
         ) "Sub"
       ) "subs" ON true
@@ -139,7 +119,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         FROM "ItemPayIn"
         JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId"
         LEFT JOIN "PayOutBolt11" ON "PayOutBolt11"."payInId" = "PayIn"."id"
-        WHERE "PayIn"."userId" = ${me.id}
+        WHERE "PayIn"."userId" = ${me.id}::INTEGER
         AND "ItemPayIn"."itemId" = "Item".id
         AND (
           "PayIn"."payInState" = 'PAID'
@@ -149,7 +129,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
             -- going to be retrying
             "PayIn"."payInState" = 'FAILED'
             AND "PayIn"."payInFailureReason" <> 'USER_CANCELLED'
-            AND "PayIn"."payInStateChangedAt" > now() - '${WALLET_RETRY_BEFORE_MS} milliseconds'::interval
+            AND "PayIn"."payInStateChangedAt" > now() - ${`${WALLET_RETRY_BEFORE_MS} milliseconds`}::interval
             AND "PayIn"."retryCount" < ${WALLET_MAX_RETRIES}::integer
             AND "PayIn"."successorId" IS NULL
           )
@@ -160,92 +140,85 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
         SELECT "PayIn".*
         FROM "ItemPayIn"
         JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        WHERE "ItemPayIn"."itemId" = "Item".id AND ("PayIn"."userId" = ${me.id} OR "PayIn"."payInState" = 'PAID')
+        WHERE "ItemPayIn"."itemId" = "Item".id
+          AND "Item"."userId" = ${me.id}::INTEGER
+          AND "PayIn"."userId" = ${me.id}::INTEGER
+          AND "PayIn"."successorId" IS NULL
         ORDER BY "PayIn"."created_at" DESC
         LIMIT 1
       ) "PayIn" ON "PayIn".id IS NOT NULL
-      ${orderBy}`, ...args)
+      ${orderBy}`)
   }
 }
 
 const relationClause = (type) => {
-  let clause = ''
   switch (type) {
     case 'bookmarks':
-      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
-      break
+      return Prisma.sql`FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Item" root ON "Item"."rootId" = root.id`
     case 'comments':
     case 'freebies':
     case 'desperados':
     case 'all':
-      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
-      break
+      return Prisma.sql`FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id`
     default: // posts which are their own root
-      clause += ' FROM "Item" '
+      return Prisma.sql`FROM "Item"`
   }
-
-  return clause
 }
 
-export const payInJoinFilter = me => {
-  if (me) {
-    return `
-      JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = "Item".id
-      JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        AND (("PayIn"."userId" = ${me.id} AND "PayIn"."successorId" IS NULL) OR "PayIn"."payInState" = 'PAID')
-    `
-  }
-
-  return `
-      JOIN "ItemPayIn" ON "ItemPayIn"."itemId" = "Item".id
-      JOIN "PayIn" ON "PayIn".id = "ItemPayIn"."payInId" AND "PayIn"."payInType" = 'ITEM_CREATE'
-        AND "PayIn"."payInState" = 'PAID'
-    `
-}
+export const paidItemSql = me => me
+  ? Prisma.sql`("Item"."paidAt" IS NOT NULL OR "Item"."userId" = ${me.id}::INTEGER)`
+  : Prisma.sql`"Item"."paidAt" IS NOT NULL`
 
 const selectClause = (type) => type === 'bookmarks'
-  ? `${SELECT}, "Bookmark"."created_at" as "bookmarkCreatedAt"`
+  ? Prisma.sql`${SELECT}, "Bookmark"."created_at" as "bookmarkCreatedAt"`
   : SELECT
 
 const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'Item'
 
-const itemSubClause = (num, includeRoot = false) => {
-  const itemIds = ['"Item".id']
-  if (includeRoot) itemIds.push('"Item"."rootId"')
+const itemSubSql = (sub, inheritFromRoot = false) => {
+  // Posts own their territory memberships; comments inherit their root's.
+  const itemId = inheritFromRoot
+    ? Prisma.sql`COALESCE("Item"."rootId", "Item".id)`
+    : Prisma.sql`"Item".id`
 
-  return `(${itemIds.map(itemId => `EXISTS (
+  return Prisma.sql`EXISTS (
     SELECT 1
     FROM "ItemSub"
     WHERE "ItemSub"."itemId" = ${itemId}
-      AND "ItemSub"."subName" = $${num}::CITEXT
-  )`).join(' OR ')})`
+      AND "ItemSub"."subName" = ${sub}::CITEXT
+  )`
 }
 
-export const whereClause = (...clauses) => {
-  const clause = clauses.flat(Infinity).filter(c => c).join(' AND ')
-  return clause ? ` WHERE ${clause} ` : ''
+export const whereSql = (...clauses) => {
+  const clause = clauses.flat(Infinity).filter(Boolean)
+  return clause.length
+    ? Prisma.sql`WHERE ${Prisma.join(clause, ' AND ')}`
+    : Prisma.empty
 }
 
-function whenClause (when, table) {
-  return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
+function whenSql ([from, to], table) {
+  return table === 'Bookmark'
+    ? Prisma.sql`"Bookmark".created_at <= ${to}::TIMESTAMP AND "Bookmark".created_at >= ${from}::TIMESTAMP`
+    : Prisma.sql`"Item".created_at <= ${to}::TIMESTAMP AND "Item".created_at >= ${from}::TIMESTAMP`
 }
 
-export const activeOrMine = (me) => {
-  return me
-    ? `("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id})`
-    : '"Item".status <> \'STOPPED\''
-}
+export const activeOrMineSql = me => me
+  ? Prisma.sql`("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id}::INTEGER)`
+  : Prisma.sql`"Item".status <> 'STOPPED'`
 
-export const muteClause = me =>
-  me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
+export const muteSql = me => me
+  ? Prisma.sql`NOT EXISTS (
+      SELECT 1
+      FROM "Mute"
+      WHERE "Mute"."muterId" = ${me.id}::INTEGER
+        AND "Mute"."mutedId" = "Item"."userId"
+    )`
+  : null
 
-const subClause = (sub, num, table = 'Item', me, showNsfw, useItemSub = false) => {
+const subSql = (sub, table = 'Item', me, showNsfw) => {
   // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
   if (sub) {
-    if (useItemSub) return itemSubClause(num, table === 'root')
-
-    const tables = [...new Set(['Item', table])].map(t => `"${t}".`)
-    return `(${tables.map(t => `${t}"subNames" @> ARRAY[$${num}]::CITEXT[]`).join(' OR ')})`
+    return itemSubSql(sub, table === 'root')
   }
 
   // XXX heh, we don't have any nsfw subs so we don't need to hide them
@@ -253,27 +226,33 @@ const subClause = (sub, num, table = 'Item', me, showNsfw, useItemSub = false) =
 
   if (!me) { return hideNsfwClause }
 
-  const excludeMuted = `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ANY(${table ? `"${table}".` : ''}"subNames"))`
+  const subNames = table === 'root'
+    ? Prisma.sql`root."subNames"`
+    : Prisma.sql`"Item"."subNames"`
+  const excludeMuted = Prisma.sql`NOT EXISTS (
+    SELECT 1
+    FROM "MuteSub"
+    WHERE "MuteSub"."userId" = ${me.id}::INTEGER
+      AND "MuteSub"."subName" = ANY(${subNames})
+  )`
   if (showNsfw) return excludeMuted
 
-  return [excludeMuted, hideNsfwClause].filter(Boolean).join(' AND ')
+  return excludeMuted
 }
 
-// Inverted filter: show items BELOW the threshold (for desperados)
-function invertedInvestmentClause (postsSatsFilter, commentsSatsFilter) {
-  // null means "show all" — nothing is below -infinity, so return no results
+function invertedInvestmentSql (postsSatsFilter, commentsSatsFilter) {
   if (postsSatsFilter == null && commentsSatsFilter == null) {
-    return 'FALSE'
+    return Prisma.sql`FALSE`
   }
 
   const postsExpr = postsSatsFilter == null
-    ? 'FALSE'
-    : `"Item"."netInvestment" < ${postsSatsFilter}`
+    ? Prisma.sql`FALSE`
+    : Prisma.sql`"Item"."netInvestment" < ${postsSatsFilter}::INTEGER`
   const commentsExpr = commentsSatsFilter == null
-    ? 'FALSE'
-    : `"Item"."netInvestment" < ${commentsSatsFilter}`
+    ? Prisma.sql`FALSE`
+    : Prisma.sql`"Item"."netInvestment" < ${commentsSatsFilter}::INTEGER`
 
-  return `(
+  return Prisma.sql`(
     CASE WHEN "Item"."parentId" IS NULL
       THEN ${postsExpr}
       ELSE ${commentsExpr}
@@ -281,23 +260,23 @@ function invertedInvestmentClause (postsSatsFilter, commentsSatsFilter) {
   )`
 }
 
-// Uses the indexed netInvestment column for efficient filtering
-// ownerBypass: if true, always show the user's own items regardless of filter
-function investmentClause (postsSatsFilter, commentsSatsFilter, meId, ownerBypass) {
-  // null means "show all" — no filter for that dimension
+function investmentSql (postsSatsFilter, commentsSatsFilter, meId, ownerBypass) {
   if (postsSatsFilter == null && commentsSatsFilter == null) {
-    return ''
+    return null
   }
 
-  const ownerClause = ownerBypass && meId ? ` OR "Item"."userId" = ${meId}` : ''
   const postsExpr = postsSatsFilter == null
-    ? 'TRUE'
-    : `"Item"."netInvestment" >= ${postsSatsFilter}${ownerClause}`
+    ? Prisma.sql`TRUE`
+    : ownerBypass && meId
+      ? Prisma.sql`("Item"."netInvestment" >= ${postsSatsFilter}::INTEGER OR "Item"."userId" = ${meId}::INTEGER)`
+      : Prisma.sql`"Item"."netInvestment" >= ${postsSatsFilter}::INTEGER`
   const commentsExpr = commentsSatsFilter == null
-    ? 'TRUE'
-    : `"Item"."netInvestment" >= ${commentsSatsFilter}${ownerClause}`
+    ? Prisma.sql`TRUE`
+    : ownerBypass && meId
+      ? Prisma.sql`("Item"."netInvestment" >= ${commentsSatsFilter}::INTEGER OR "Item"."userId" = ${meId}::INTEGER)`
+      : Prisma.sql`"Item"."netInvestment" >= ${commentsSatsFilter}::INTEGER`
 
-  return `(
+  return Prisma.sql`(
     CASE WHEN "Item"."parentId" IS NULL
       THEN ${postsExpr}
       ELSE ${commentsExpr}
@@ -305,9 +284,9 @@ function investmentClause (postsSatsFilter, commentsSatsFilter, meId, ownerBypas
   )`
 }
 
-export async function filterClause (type, sub, sort, { me, userLoader, subLoader }, by) {
+async function investmentFilter (type, sub, sort, { me, userLoader, subLoader }, by) {
   if (type === 'freebies' || type === 'bios' || by === 'downsats') {
-    return ''
+    return null
   }
 
   const isDesperados = type === 'desperados'
@@ -343,42 +322,68 @@ export async function filterClause (type, sub, sort, { me, userLoader, subLoader
       : Math.max(postsSatsFilter, HOMEPAGE_POSTS_SATS_FILTER)
   }
 
-  // On curated feeds (lit/top), your own items are filtered like everyone else's.
-  // On new/notifications, your own items always pass the filter.
-  if (isDesperados) {
-    return invertedInvestmentClause(postsSatsFilter, commentsSatsFilter)
-  }
-  return investmentClause(postsSatsFilter, commentsSatsFilter, me?.id, !isCurated)
+  return { commentsSatsFilter, isCurated, isDesperados, postsSatsFilter }
 }
 
-function typeClause (type) {
+export async function filterSql (type, sub, sort, ctx, by) {
+  const filter = await investmentFilter(type, sub, sort, ctx, by)
+  if (!filter) return null
+
+  const { commentsSatsFilter, isCurated, isDesperados, postsSatsFilter } = filter
+  if (isDesperados) {
+    return invertedInvestmentSql(postsSatsFilter, commentsSatsFilter)
+  }
+  return investmentSql(postsSatsFilter, commentsSatsFilter, ctx.me?.id, !isCurated)
+}
+
+function typeFilterSql (type) {
   switch (type) {
     case 'links':
-      return ['"Item".url IS NOT NULL', '"Item"."parentId" IS NULL']
+      return [Prisma.sql`"Item".url IS NOT NULL`, Prisma.sql`"Item"."parentId" IS NULL`]
     case 'discussions':
-      return ['"Item".url IS NULL', '"Item".bio = false', '"Item"."pollCost" IS NULL', '"Item"."parentId" IS NULL']
+      return [Prisma.sql`"Item".url IS NULL`, Prisma.sql`"Item".bio = false`, Prisma.sql`"Item"."pollCost" IS NULL`, Prisma.sql`"Item"."parentId" IS NULL`]
     case 'polls':
-      return ['"Item"."pollCost" IS NOT NULL', '"Item"."parentId" IS NULL']
+      return [Prisma.sql`"Item"."pollCost" IS NOT NULL`, Prisma.sql`"Item"."parentId" IS NULL`]
     case 'bios':
-      return ['"Item".bio = true', '"Item"."parentId" IS NULL']
+      return [Prisma.sql`"Item".bio = true`, Prisma.sql`"Item"."parentId" IS NULL`]
     case 'bounties':
-      return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
+      return [Prisma.sql`"Item".bounty IS NOT NULL`, Prisma.sql`"Item"."parentId" IS NULL`]
     case 'bounties_active':
-      return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL', '"Item"."bountyPaidTo" IS NULL']
+      return [Prisma.sql`"Item".bounty IS NOT NULL`, Prisma.sql`"Item"."parentId" IS NULL`, Prisma.sql`"Item"."bountyPaidTo" IS NULL`]
     case 'comments':
-      return '"Item"."parentId" IS NOT NULL'
+      return Prisma.sql`"Item"."parentId" IS NOT NULL`
     case 'freebies':
-      return '"Item".freebie = true'
+      return Prisma.sql`"Item".freebie = true`
     case 'desperados':
     case 'all':
     case 'bookmarks':
-      return ''
+      return null
     case 'jobs':
-      return '"Item"."subNames" @> ARRAY[\'jobs\']'
+      return Prisma.sql`"Item"."subNames" @> ARRAY['jobs']`
     default:
-      return '"Item"."parentId" IS NULL'
+      return Prisma.sql`"Item"."parentId" IS NULL`
   }
 }
+
+function itemSortSql (by, type) {
+  switch (by) {
+    case 'comments':
+      return { expression: Prisma.sql`"Item".ncomments`, cast: Prisma.raw('INTEGER') }
+    case 'sats':
+      return { expression: Prisma.sql`"Item".ranktop`, cast: Prisma.raw('DOUBLE PRECISION') }
+    case 'downsats':
+      return { expression: Prisma.sql`"Item"."downMsats"`, cast: Prisma.raw('BIGINT') }
+    default:
+      return {
+        expression: type === 'bookmarks'
+          ? Prisma.sql`"Bookmark".created_at`
+          : Prisma.sql`"Item".created_at`,
+        cast: Prisma.raw('TIMESTAMP')
+      }
+  }
+}
+
+const ITEM_KEYSET_ORDER = Prisma.sql`ORDER BY "cursorSort" DESC, "Item".id DESC`
 
 export default {
   Query: {
@@ -413,15 +418,11 @@ export default {
         }
       }
 
-      // HACK we want to optionally include the subName in the query
-      // but the query planner doesn't like unused parameters
-      const subArr = sub ? [sub] : []
-
       const currentUser = me ? await userLoader.load(me.id) : null
       const showNsfw = currentUser ? currentUser.nsfwMode : false
 
       switch (sort) {
-        case 'user':
+        case 'user': {
           if (!name) {
             throw new GqlInputError('must supply name')
           }
@@ -432,80 +433,115 @@ export default {
           }
 
           table = type === 'bookmarks' ? 'Bookmark' : 'Item'
+          const sortSql = itemSortSql(by, type)
+          const keyset = itemKeysetCursor(cursor, decodedCursor)
+          const cursorFilterSql = keyset
+            ? Prisma.sql`(${sortSql.expression}, "Item".id) < (${keyset.key}::${sortSql.cast}, ${keyset.id}::INTEGER)`
+            : null
+          const userClause = table === 'Bookmark'
+            ? Prisma.sql`"Bookmark"."userId" = ${user.id}::INTEGER`
+            : Prisma.sql`"Item"."userId" = ${user.id}::INTEGER`
           items = await itemQueryWithMeta({
             me,
             models,
-            query: `
-              ${selectClause(type)}
+            query: Prisma.sql`
+              ${selectClause(type)}, ${sortSql.expression} AS "cursorSort"
               ${relationClause(type)}
-              ${payInJoinFilter(me)}
-              ${whereClause(
-                `"${table}"."userId" = $3`,
-                activeOrMine(me),
-                typeClause(type),
-                by === 'downsats' && '"Item"."downMsats" > 0',
-                whenClause(when || 'forever', table))}
-              ${orderByClause(by, me, models, type)}
-              OFFSET $4
-              LIMIT $5`,
-            orderBy: orderByClause(by, me, models, type)
-          }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
+              ${whereSql(
+                userClause,
+                paidItemSql(me),
+                activeOrMineSql(me),
+                typeFilterSql(type),
+                by === 'downsats' && Prisma.sql`"Item"."downMsats" > 0`,
+                whenSql(whenRange(when, from, to || decodedCursor.time), table),
+                cursorFilterSql)}
+              ${ITEM_KEYSET_ORDER}
+              LIMIT ${limit}::INTEGER`,
+            orderBy: ITEM_KEYSET_ORDER
+          })
+
+          updateItemKeysetCursor(decodedCursor, items, limit)
           break
-        case 'new':
+        }
+        case 'new': {
+          const keyset = itemKeysetCursor(cursor, decodedCursor)
+          const cursorSortSql = Prisma.sql`COALESCE("Item"."paidAt", "Item".created_at)`
+          const cursorFilterSql = keyset
+            ? Prisma.sql`(${cursorSortSql}, "Item".id) < (${keyset.key}::TIMESTAMP, ${keyset.id}::INTEGER)`
+            : null
+
           items = await itemQueryWithMeta({
             me,
             models,
-            query: `
-              ${SELECT}
+            query: Prisma.sql`
+              ${SELECT}, ${cursorSortSql} AS "cursorSort"
               ${relationClause(type)}
-              ${payInJoinFilter(me)}
-              ${whereClause(
-                '"Item".created_at <= $1',
-                '"Item"."deletedAt" IS NULL',
-                subClause(sub, 4, subClauseTable(type), me, showNsfw, true),
-                activeOrMine(me),
-                await filterClause(type, sub, 'new', ctx),
-                typeClause(type),
-                muteClause(me)
+              ${whereSql(
+                Prisma.sql`"Item".created_at <= ${decodedCursor.time}::TIMESTAMP`,
+                Prisma.sql`"Item"."deletedAt" IS NULL`,
+                paidItemSql(me),
+                subSql(sub, subClauseTable(type), me, showNsfw),
+                activeOrMineSql(me),
+                await filterSql(type, sub, 'new', ctx),
+                typeFilterSql(type),
+                muteSql(me),
+                cursorFilterSql
               )}
-              ORDER BY "PayIn"."payInStateChangedAt" DESC
-              OFFSET $2
-              LIMIT $3`,
-            orderBy: 'ORDER BY "PayIn"."payInStateChangedAt" DESC'
-          }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+              ${ITEM_KEYSET_ORDER}
+              LIMIT ${limit}::INTEGER`,
+            orderBy: ITEM_KEYSET_ORDER
+          })
+
+          updateItemKeysetCursor(decodedCursor, items, limit)
           break
-        case 'top':
+        }
+        case 'top': {
+          const sortSql = itemSortSql(by || 'sats', type)
+          const keyset = itemKeysetCursor(cursor, decodedCursor)
+          const cursorFilterSql = keyset
+            ? Prisma.sql`(${sortSql.expression}, "Item".id) < (${keyset.key}::${sortSql.cast}, ${keyset.id}::INTEGER)`
+            : null
+
           items = await itemQueryWithMeta({
             me,
             models,
-            query: `
-              ${selectClause(type)}
+            query: Prisma.sql`
+              ${selectClause(type)}, ${sortSql.expression} AS "cursorSort"
               ${relationClause(type)}
-              ${payInJoinFilter(me)}
-              ${whereClause(
-                '"Item"."deletedAt" IS NULL',
-                type === 'posts' && '"Item"."subNames" IS NOT NULL',
-                subClause(sub, 5, subClauseTable(type), me, showNsfw),
-                typeClause(type),
-                whenClause(when, 'Item'),
-                activeOrMine(me),
-                '"Item".status = \'ACTIVE\'',
-                by === 'downsats' && '"Item"."downMsats" > 0',
-                await filterClause(type, sub, 'top', ctx, by),
-                muteClause(me))}
-              ${orderByClause(by || 'sats', me, models, type, sub)}
-              OFFSET $3
-              LIMIT $4`,
-            orderBy: orderByClause(by || 'sats', me, models, type, sub)
-          }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
+              ${whereSql(
+                Prisma.sql`"Item"."deletedAt" IS NULL`,
+                paidItemSql(me),
+                type === 'posts' && Prisma.sql`"Item"."subNames" IS NOT NULL`,
+                subSql(sub, subClauseTable(type), me, showNsfw),
+                typeFilterSql(type),
+                whenSql(whenRange(when, from, to || decodedCursor.time), 'Item'),
+                activeOrMineSql(me),
+                Prisma.sql`"Item".status = 'ACTIVE'`,
+                by === 'downsats' && Prisma.sql`"Item"."downMsats" > 0`,
+                await filterSql(type, sub, 'top', ctx, by),
+                muteSql(me),
+                cursorFilterSql)}
+              ${ITEM_KEYSET_ORDER}
+              LIMIT ${limit}::INTEGER`,
+            orderBy: ITEM_KEYSET_ORDER
+          })
+
+          updateItemKeysetCursor(decodedCursor, items, limit)
           break
-        default:
+        }
+        default: {
+          const keyset = itemKeysetCursor(cursor, decodedCursor)
+          const cursorSortSql = Prisma.sql`"Item".ranklit`
+          const cursorFilterSql = keyset
+            ? Prisma.sql`(${cursorSortSql}, "Item".id) < (${keyset.key}::DOUBLE PRECISION, ${keyset.id}::INTEGER)`
+            : null
+
           if (decodedCursor.offset === 0) {
             // get pins for the page and return those separately
             pins = await itemQueryWithMeta({
               me,
               models,
-              query: `
+              query: Prisma.sql`
               SELECT rank_filter.*
                 FROM (
                   ${SELECT}, position,
@@ -515,42 +551,49 @@ export default {
                   )
                   FROM "Item"
                   JOIN "Pin" ON "Item"."pinId" = "Pin".id
-                  ${payInJoinFilter(me)}
-                  ${whereClause(
-                    '"pinId" IS NOT NULL',
-                    '"parentId" IS NULL',
-                    sub ? '"Item"."subNames" @> ARRAY[$1]::CITEXT[]' : '"Item"."subNames" IS NULL',
-                    muteClause(me))}
+                  ${whereSql(
+                    Prisma.sql`"pinId" IS NOT NULL`,
+                    Prisma.sql`"parentId" IS NULL`,
+                    paidItemSql(me),
+                    sub
+                      ? Prisma.sql`"Item"."subNames" @> ARRAY[${sub}]::CITEXT[]`
+                      : Prisma.sql`"Item"."subNames" IS NULL`,
+                    muteSql(me))}
               ) rank_filter WHERE RANK = 1
               ORDER BY position ASC`,
-              orderBy: 'ORDER BY position ASC'
-            }, ...subArr)
+              orderBy: Prisma.sql`ORDER BY position ASC`
+            })
           }
 
           items = await itemQueryWithMeta({
             me,
             models,
-            query: `
-                ${SELECT}
+            query: Prisma.sql`
+                ${SELECT}, ${cursorSortSql} AS "cursorSort"
                 FROM "Item"
-                ${payInJoinFilter(me)}
-                ${whereClause(
+                ${whereSql(
                   // in home (sub undefined), filter out global pinned items since we inject them later
-                  sub ? '"Item"."pinId" IS NULL' : 'NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)',
-                  '"Item"."deletedAt" IS NULL',
-                  '"Item"."parentId" IS NULL',
-                  '"Item".bio = false',
-                  activeOrMine(me),
-                  '"Item".status = \'ACTIVE\'',
-                  await filterClause(type, sub, 'lit', ctx),
-                  subClause(sub, 3, 'Item', me, showNsfw, true),
-                  muteClause(me))}
-                ORDER BY ranklit DESC, "Item".id DESC
-                OFFSET $1
-                LIMIT $2`,
-            orderBy: 'ORDER BY ranklit DESC, "Item".id DESC'
-          }, decodedCursor.offset, limit, ...subArr)
+                  sub
+                    ? Prisma.sql`"Item"."pinId" IS NULL`
+                    : Prisma.sql`NOT ("Item"."pinId" IS NOT NULL AND "Item"."subNames" IS NULL)`,
+                  Prisma.sql`"Item"."deletedAt" IS NULL`,
+                  Prisma.sql`"Item"."parentId" IS NULL`,
+                  Prisma.sql`"Item".bio = false`,
+                  paidItemSql(me),
+                  activeOrMineSql(me),
+                  Prisma.sql`"Item".status = 'ACTIVE'`,
+                  await filterSql(type, sub, 'lit', ctx),
+                  subSql(sub, 'Item', me, showNsfw),
+                  muteSql(me),
+                  cursorFilterSql)}
+                ${ITEM_KEYSET_ORDER}
+                LIMIT ${limit}::INTEGER`,
+            orderBy: ITEM_KEYSET_ORDER
+          })
+
+          updateItemKeysetCursor(decodedCursor, items, limit)
           break
+        }
       }
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
@@ -625,31 +668,36 @@ export default {
       return await itemQueryWithMeta({
         me,
         models,
-        query: `
+        query: Prisma.sql`
           ${SELECT}
           FROM "Item"
-          ${payInJoinFilter(me)}
-          WHERE url ~* $1
+          ${whereSql(Prisma.sql`url ~* ${similar}`, paidItemSql(me))}
           ORDER BY created_at DESC
           LIMIT 3`
-      }, similar)
+      })
     },
     newComments: async (parent, { itemId, after }, { models, me }) => {
+      const id = Number(itemId)
       const comments = await itemQueryWithMeta({
         me,
         models,
-        query: `
+        query: Prisma.sql`
           ${SELECT}
           FROM "Item"
-          ${payInJoinFilter(me)}
           -- comments can be nested, so we need to get all comments that are descendants of the root
-          ${whereClause(
-            '"Item".path <@ (SELECT path FROM "Item" WHERE id = $1 AND "Item"."lastCommentAt" > $2)',
-            activeOrMine(me),
-            '"Item"."created_at" > $2'
+          ${whereSql(
+            Prisma.sql`"Item".path <@ (
+              SELECT path
+              FROM "Item"
+              WHERE id = ${id}::INTEGER
+                AND "Item"."lastCommentAt" > ${after}::TIMESTAMP
+            )`,
+            paidItemSql(me),
+            activeOrMineSql(me),
+            Prisma.sql`"Item"."created_at" > ${after}::TIMESTAMP`
           )}
           ORDER BY "Item"."created_at" ASC`
-      }, Number(itemId), after)
+      })
 
       return { comments }
     }
@@ -693,6 +741,10 @@ export default {
         throw new GqlInputError('item must belong to a single sub or be a comment')
       }
 
+      const pinScope = item.parentId
+        ? Prisma.sql`i."parentId" = ${item.parentId}::INTEGER`
+        : Prisma.sql`i."subNames" @> ARRAY[${item.subNames[0]}]::CITEXT[]`
+
       let pinId
       if (item.pinId) {
         // item is already pinned. remove pin
@@ -700,48 +752,42 @@ export default {
           models.item.update({ where: { id: item.id }, data: { pinId: null } }),
           models.pin.delete({ where: { id: item.pinId } }),
           // make sure that pins have no gaps
-          models.$queryRawUnsafe(`
+          models.$executeRaw(Prisma.sql`
             UPDATE "Pin"
             SET position = position - 1
-            WHERE position > $2 AND id IN (
+            WHERE position > ${item.pin.position}::INTEGER AND id IN (
               SELECT "pinId" FROM "Item" i
-              ${whereClause(
-                '"pinId" IS NOT NULL',
-                item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]')}
-            )`, item.parentId ?? item.subNames[0], item.pin.position)
+              ${whereSql(Prisma.sql`"pinId" IS NOT NULL`, pinScope)}
+            )`)
         ])
 
         pinId = null
       } else {
         // only max 3 pins allowed per territory and post
-        const [{ count: npins }] = await models.$queryRawUnsafe(`
+        const [{ count: npins }] = await models.$queryRaw(Prisma.sql`
           SELECT COUNT(p.id)
           FROM "Pin" p
           JOIN "Item" i ON i."pinId" = p.id
-          ${whereClause(
-            item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
-          )}`, item.parentId ?? item.subNames[0])
+          ${whereSql(pinScope)}`)
 
         if (npins >= 3) {
           throw new GqlInputError('max 3 pins allowed')
         }
 
-        const [{ pinId: newPinId }] = await models.$queryRawUnsafe(`
+        const [{ pinId: newPinId }] = await models.$queryRaw(Prisma.sql`
           WITH pin AS (
             INSERT INTO "Pin" (position)
             SELECT COALESCE(MAX(p.position), 0) + 1 AS position
             FROM "Pin" p
             JOIN "Item" i ON i."pinId" = p.id
-            ${whereClause(
-              item.parentId ? 'i."parentId" = $1' : 'i."subNames" @> ARRAY[$1]::CITEXT[]'
-            )}
+            ${whereSql(pinScope)}
             RETURNING id
           )
           UPDATE "Item"
           SET "pinId" = pin.id
           FROM pin
-          WHERE "Item".id = $2
-          RETURNING "pinId"`, item.parentId ?? item.subNames[0], item.id)
+          WHERE "Item".id = ${item.id}::INTEGER
+          RETURNING "pinId"`)
 
         pinId = newPinId
       }
@@ -871,21 +917,9 @@ export default {
       await validateSchema(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
 
-      const item = await models.item.findUnique({
-        where: { id: Number(id) },
-        include: {
-          itemPayIns: {
-            where: {
-              payIn: {
-                payInType: 'ITEM_CREATE',
-                payInState: 'PAID'
-              }
-            }
-          }
-        }
-      })
+      const item = await models.item.findUnique({ where: { id: Number(id) } })
 
-      if (item.itemPayIns.length === 0) {
+      if (!item?.paidAt) {
         throw new GqlInputError('cannot act on unpaid item')
       }
 
@@ -924,25 +958,13 @@ export default {
       }
       assertApiKeyNotPermitted({ me })
 
-      const item = await models.item.findUnique({
-        where: { id: Number(id) },
-        include: {
-          itemPayIns: {
-            where: {
-              payIn: {
-                payInType: 'ITEM_CREATE',
-                payInState: 'PAID'
-              }
-            }
-          }
-        }
-      })
+      const item = await models.item.findUnique({ where: { id: Number(id) } })
 
       if (!item) {
         throw new GqlInputError('item not found')
       }
 
-      if (item.itemPayIns.length === 0) {
+      if (!item.paidAt) {
         throw new GqlInputError('cannot pay bounty on unpaid item')
       }
 
@@ -983,14 +1005,20 @@ export default {
     }
   },
   Item: {
-    payIn: async (item, args, { models }) => {
+    payIn: async (item, args, { models, me }) => {
+      if (!me) {
+        if (Number(item.userId) !== USER_ID.anon) return null
+        return item.payIn ?? null
+      }
+
+      if (Number(me.id) !== Number(item.userId)) {
+        return null
+      }
+
       if (typeof item.payIn !== 'undefined') {
         return item.payIn
       }
 
-      // TODO: very inefficient on a relative basis, so if need be we can:
-      // 1. denormalize payInId that created the item to it
-      // 2. add this to the getItemMeta query (done)
       const payIn = await models.payIn.findFirst({
         where: {
           itemPayIn: {
@@ -1200,7 +1228,7 @@ export default {
         }
       }
 
-      return await resolveItemComments(item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor, { ...ctx, itemQueryWithMeta, payInJoinFilter, select: SELECT })
+      return await resolveItemComments(item, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt), cursor, { ...ctx, itemQueryWithMeta, paidItemSql, select: SELECT })
     },
     freedFreebie: async (item) => {
       return item.weightedVotes - item.weightedDownVotes > 0
@@ -1333,16 +1361,15 @@ export default {
         return item.root
       }
 
-      // we can't use getItem because activeOrMine will prevent root from being fetched
+      // we can't use getItem because the active-or-owner filter will prevent root from being fetched
       const [root] = await itemQueryWithMeta({
         me,
         models,
-        query: `
+        query: Prisma.sql`
           ${SELECT}
           FROM "Item"
-          ${whereClause(
-            '"Item".id = $1')}`
-      }, Number(item.rootId))
+          ${whereSql(Prisma.sql`"Item".id = ${Number(item.rootId)}::INTEGER`)}`
+      })
 
       return root
     },
@@ -1474,8 +1501,8 @@ export const updateItem = async (parent, { forward, hash, hmac, sendProtocolId, 
   // edits are only allowed for own items within 10 minutes
   // but forever if an admin is editing an "admin item", it's their bio or a job
   const myBio = user.bioId === old.id
-  const timer = Date.now() < datePivot(new Date(payIn?.payInStateChangedAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
-  const canEdit = payIn?.payInState !== 'PAID' || (timer && ownerEdit) || adminEdit || myBio || isJob(old)
+  const timer = Date.now() < datePivot(new Date(old.paidAt ?? old.createdAt), { seconds: ITEM_EDIT_SECONDS })
+  const canEdit = !old.paidAt || (timer && ownerEdit) || adminEdit || myBio || isJob(old)
   if (!canEdit) {
     throw new GqlInputError('item can no longer be edited')
   }
@@ -1515,8 +1542,11 @@ export const createItem = async (parent, { forward, sendProtocolId, ...item }, {
   }
 
   if (item.parentId) {
-    const parent = await models.itemPayIn.findFirst({ where: { itemId: parseInt(item.parentId), payIn: { payInType: 'ITEM_CREATE', payInState: 'PAID' } } })
-    if (!parent) {
+    const parent = await models.item.findUnique({
+      where: { id: parseInt(item.parentId) },
+      select: { paidAt: true }
+    })
+    if (!parent?.paidAt) {
       throw new GqlInputError('cannot comment on unpaid item')
     }
   }
@@ -1545,5 +1575,5 @@ export const getForwardUsers = async (models, forward) => {
 
 // we have to do our own query because ltree is unsupported
 export const SELECT =
-  `SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
+  Prisma.sql`SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
     ltree2text("Item"."path") AS "path"`

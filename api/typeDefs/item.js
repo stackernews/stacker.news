@@ -87,6 +87,7 @@ export default gql`
   type Item {
     id: ID!
     createdAt: Date!
+    paidAt: Date
     updatedAt: Date!
     deletedAt: Date
     deleteScheduledAt: Date

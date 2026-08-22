@@ -6,6 +6,7 @@ import { searchSchema, validateSchema } from '@/lib/validate'
 import { DEFAULT_POSTS_SATS_FILTER, DEFAULT_COMMENTS_SATS_FILTER, HOMEPAGE_POSTS_SATS_FILTER } from '@/lib/constants'
 import { resolveOpensearchModelId } from '../search/model-id'
 import removeMd from 'remove-markdown'
+import { Prisma } from '@prisma/client'
 
 const DOUBLE_QUOTE_VARIANTS = [
   '\u201C', // left double quotation mark
@@ -729,14 +730,14 @@ const SEARCH_HIGHLIGHT = {
 }
 
 async function hitsToItems (hits, { me, models, orderBy }) {
-  const values = hits.map((e, i) => `(${e._source.id}, ${i})`).join(',')
+  if (hits.length === 0) return []
 
-  if (values.length === 0) return []
+  const values = Prisma.join(hits.map((e, i) => Prisma.sql`(${Number(e._source.id)}::INTEGER, ${i}::INTEGER)`))
 
   return itemQueryWithMeta({
     me,
     models,
-    query: `
+    query: Prisma.sql`
       WITH r(id, rank) AS (VALUES ${values})
       ${SELECT}, rank
       FROM "Item"
@@ -833,7 +834,7 @@ export default {
         return { cursor: null, items: [] }
       }
 
-      const items = await hitsToItems(results.body.hits.hits, { me, models, orderBy: 'ORDER BY rank ASC' })
+      const items = await hitsToItems(results.body.hits.hits, { me, models, orderBy: Prisma.sql`ORDER BY rank ASC` })
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         items
@@ -987,7 +988,7 @@ export default {
         }
       }
       const items = attachHighlights(
-        await hitsToItems(hits, { me, models, orderBy: 'ORDER BY rank ASC, msats DESC' }),
+        await hitsToItems(hits, { me, models, orderBy: Prisma.sql`ORDER BY rank ASC, msats DESC` }),
         hits
       )
 

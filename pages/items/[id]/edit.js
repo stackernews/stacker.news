@@ -50,7 +50,7 @@ export default function PostEdit ({ ssrData }) {
   }, [addedSubs, subsData])
 
   const [,, editThreshold] = useCanEdit(item)
-  const EditInfo = editThreshold && item.payIn?.payInState === 'PAID'
+  const EditInfo = editThreshold && item.paidAt && !item.bio && !item.isJob
     ? <div className='text-muted fw-bold font-monospace mt-1'><Countdown date={editThreshold} /></div>
     : null
 

@@ -563,6 +563,9 @@ export default {
           // Bounty result items should not carry item-creation payIn metadata.
           return { ...result, payIn: null, __typename }
         }
+        if (payIn.payInType === 'ITEM_CREATE' && payIn.payInState === 'PAID') {
+          return { ...result, paidAt: payIn.payInStateChangedAt, __typename }
+        }
         return { ...result, __typename }
       }
       return null

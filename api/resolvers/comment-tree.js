@@ -6,6 +6,7 @@ import {
   FULL_COMMENTS_THRESHOLD
 } from '@/lib/constants'
 import { decodeCursor, nextCursorEncoded } from '@/lib/cursor'
+import { Prisma } from '@prisma/client'
 
 const LIMITED_COMMENT_DEPTH = Math.min(COMMENT_DEPTH_LIMIT, COMMENTS_OF_COMMENT_LIMIT + 1)
 
@@ -41,48 +42,48 @@ export function buildCommentTree (rows, { rootId }) {
 
 function commentsSortClause (sort, commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER) {
   const sharedSorts = [
-    '("Item"."pinId" IS NOT NULL) DESC',
-    '("Item"."deletedAt" IS NULL) DESC',
+    Prisma.sql`("Item"."pinId" IS NOT NULL) DESC`,
+    Prisma.sql`("Item"."deletedAt" IS NULL) DESC`,
     commentsSatsFilter != null &&
-      `(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter} THEN 1 ELSE 0 END) ASC`
-  ].filter(Boolean).join(', ')
+      Prisma.sql`(CASE WHEN "Item"."netInvestment" < ${commentsSatsFilter}::INTEGER THEN 1 ELSE 0 END) ASC`
+  ].filter(Boolean)
 
   const sortExpr = sort === 'new'
-    ? '"Item".created_at DESC'
+    ? Prisma.sql`"Item".created_at DESC`
     : sort === 'lit'
-      ? '"Item"."ranklit" DESC'
-      : '"Item"."ranktop" DESC'
+      ? Prisma.sql`"Item"."ranklit" DESC`
+      : Prisma.sql`"Item"."ranktop" DESC`
 
-  return `${sharedSorts}, ${sortExpr}, "Item".id DESC`
+  return Prisma.join([...sharedSorts, sortExpr, Prisma.sql`"Item".id DESC`], ', ')
 }
 
-async function fetchFullCommentRows ({ itemId, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select }) {
-  const query = `
+async function fetchFullCommentRows ({ itemId, me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemSql, select }) {
+  const query = Prisma.sql`
     WITH root AS (
       SELECT path, nlevel(path) AS depth
       FROM "Item"
-      WHERE id = $1
+      WHERE id = ${itemId}::INTEGER
     )
     ${select}
     FROM "Item"
     JOIN root ON true
-    ${payInJoinFilter(me)}
-    WHERE "Item".id <> $1
+    WHERE "Item".id <> ${itemId}::INTEGER
+      AND ${paidItemSql(me)}
       AND "Item"."path" <@ root.path
-      AND nlevel("Item"."path") - root.depth <= $3
-      AND ("Item"."parentId" <> $1 OR "Item".created_at <= $2)
+      AND nlevel("Item"."path") - root.depth <= ${COMMENT_DEPTH_LIMIT}::INTEGER
+      AND ("Item"."parentId" <> ${itemId}::INTEGER OR "Item".created_at <= ${decodedCursor.time}::TIMESTAMP)
   `
 
-  return await itemQueryWithMeta(
-    { me, models, query, orderBy: `ORDER BY ${sortClause}` },
-    itemId,
-    decodedCursor.time,
-    COMMENT_DEPTH_LIMIT
-  )
+  return await itemQueryWithMeta({
+    me,
+    models,
+    query,
+    orderBy: Prisma.sql`ORDER BY ${sortClause}`
+  })
 }
 
-async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select }) {
-  const query = `
+async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemSql, select }) {
+  const query = Prisma.sql`
     WITH RECURSIVE base AS (
       (
         SELECT
@@ -90,12 +91,12 @@ async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decode
           1 AS depth,
           0::BIGINT AS rn
         FROM "Item"
-        ${payInJoinFilter(me)}
-        WHERE "Item"."parentId" = $1
-          AND "Item".created_at <= $2
+        WHERE "Item"."parentId" = ${itemId}::INTEGER
+          AND ${paidItemSql(me)}
+          AND "Item".created_at <= ${decodedCursor.time}::TIMESTAMP
         ORDER BY ${sortClause}
-        LIMIT $3
-        OFFSET $4
+        LIMIT ${COMMENTS_LIMIT}::INTEGER
+        OFFSET ${decodedCursor.offset}::INTEGER
       )
       UNION ALL
       (
@@ -105,41 +106,38 @@ async function fetchLimitedCommentRows ({ itemId, me, models, sortClause, decode
           ROW_NUMBER() OVER (PARTITION BY "Item"."parentId" ORDER BY ${sortClause}) AS rn
         FROM "Item"
         JOIN base ON "Item"."parentId" = base.id
-        ${payInJoinFilter(me)}
-        WHERE base.depth < $6
-          AND (base.depth = 1 OR base.rn <= $5)
+        WHERE base.depth < ${LIMITED_COMMENT_DEPTH}::INTEGER
+          AND ${paidItemSql(me)}
+          AND (base.depth = 1 OR base.rn <= ${COMMENTS_OF_COMMENT_LIMIT}::INTEGER)
       )
     ),
     visible AS (
       SELECT id, depth, rn
       FROM base
-      WHERE depth = 1 OR rn <= $5 - depth + 2
+      WHERE depth = 1 OR rn <= ${COMMENTS_OF_COMMENT_LIMIT}::INTEGER - depth + 2
     )
     ${select}
     FROM visible
     JOIN "Item" ON "Item".id = visible.id
   `
 
-  return await itemQueryWithMeta(
-    { me, models, query, orderBy: `ORDER BY ${sortClause}` },
-    itemId,
-    decodedCursor.time,
-    COMMENTS_LIMIT,
-    decodedCursor.offset,
-    COMMENTS_OF_COMMENT_LIMIT,
-    LIMITED_COMMENT_DEPTH
-  )
+  return await itemQueryWithMeta({
+    me,
+    models,
+    query,
+    orderBy: Prisma.sql`ORDER BY ${sortClause}`
+  })
 }
 
-async function fetchComments ({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select }) {
+async function fetchComments ({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemSql, select }) {
   const rows = item.ncomments > FULL_COMMENTS_THRESHOLD
-    ? await fetchLimitedCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
-    : await fetchFullCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
+    ? await fetchLimitedCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemSql, select })
+    : await fetchFullCommentRows({ itemId: Number(item.id), me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemSql, select })
 
   return buildCommentTree(rows, { rootId: Number(item.id) })
 }
 
-export async function resolveItemComments (item, sort, cursor, { me, models, userLoader, itemQueryWithMeta, payInJoinFilter, select }) {
+export async function resolveItemComments (item, sort, cursor, { me, models, userLoader, itemQueryWithMeta, paidItemSql, select }) {
   let commentsSatsFilter = DEFAULT_COMMENTS_SATS_FILTER
   if (me) {
     const user = await userLoader.load(me.id)
@@ -156,7 +154,7 @@ export async function resolveItemComments (item, sort, cursor, { me, models, use
   }
 
   const decodedCursor = decodeCursor(cursor)
-  const comments = await fetchComments({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, payInJoinFilter, select })
+  const comments = await fetchComments({ item, me, models, sortClause, decodedCursor, itemQueryWithMeta, paidItemSql, select })
 
   return {
     comments,

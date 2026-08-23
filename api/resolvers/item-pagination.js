@@ -1,4 +1,5 @@
 import { GqlInputError } from '@/lib/error'
+import { encodeCursor } from '@/lib/cursor'
 
 export function itemKeysetCursor (encodedCursor, cursor) {
   if (!encodedCursor) return null
@@ -20,4 +21,8 @@ export function updateItemKeysetCursor (cursor, items, limit) {
   let { cursorSort: key, id } = items.at(-1)
   if (typeof key === 'bigint') key = key.toString()
   Object.assign(cursor, { key, id })
+}
+
+export function encodeItemKeysetCursor ({ time, key, id }) {
+  return encodeCursor({ time, key, id })
 }

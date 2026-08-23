@@ -1,6 +1,6 @@
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
 import { snFetch } from '@/lib/fetch'
-import { decodeCursor, nextCursorEncoded } from '@/lib/cursor'
+import { decodeCursor } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
@@ -32,7 +32,7 @@ import pay, { retry as retryPayIn } from '../payIn'
 import { BOUNTY_ALREADY_PAID_ERROR, BOUNTY_IN_PROGRESS_ERROR, getBountyPaymentTail } from '../payIn/lib/bountyPayment'
 import { lexicalHTMLGenerator } from '@/lib/lexical/server/html'
 import { resolveItemComments } from './comment-tree'
-import { itemKeysetCursor, updateItemKeysetCursor } from './item-pagination'
+import { encodeItemKeysetCursor, itemKeysetCursor, updateItemKeysetCursor } from './item-pagination'
 import { Prisma } from '@prisma/client'
 
 export async function getItem (parent, { id }, { me, models }) {
@@ -536,7 +536,7 @@ export default {
             ? Prisma.sql`(${cursorSortSql}, "Item".id) < (${keyset.key}::DOUBLE PRECISION, ${keyset.id}::INTEGER)`
             : null
 
-          if (decodedCursor.offset === 0) {
+          if (!cursor) {
             // get pins for the page and return those separately
             pins = await itemQueryWithMeta({
               me,
@@ -596,7 +596,7 @@ export default {
         }
       }
       return {
-        cursor: items.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        cursor: items.length === limit ? encodeItemKeysetCursor(decodedCursor) : null,
         items,
         pins
       }

@@ -29,7 +29,7 @@
   outline: 0;
   padding: 0.25rem 0.35rem;
   border-radius: 0.25rem;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: var(--sn-font-monospace);
   font-size: 13px;
   line-height: 1.5;
   background-color: transparent;

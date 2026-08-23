@@ -37,6 +37,9 @@
   --text-base: .93rem;
   --text-base--line-height: 1.75;
 
+  /* page column: a 900px content column inside the 1rem gutters */
+  --container-page: 932px;
+
   /* application monospace stack */
   --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
@@ -57,4 +60,21 @@
 /* Let a child inherit its surrounding text color. */
 @utility text-reset {
   color: inherit;
+}
+
+/* iOS zooms focused controls under 16px; the touch floor pins them at 1rem. */
+@utility text-touch {
+  font-size: 1rem;
+}
+
+/* Edge-to-edge mobile chrome pads by the device safe area. */
+@utility px-safe {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Safe-area padding that keeps the standard page gutter as its floor. */
+@utility px-safe-gutter {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
 }

@@ -52,7 +52,7 @@ export default function BottomBar ({ sub }) {
     <nav className='block md:hidden'>
       <div style={{ marginBottom: '53px' }} className={styles.footerPadding} />
       <div className={classNames(styles.footer, styles.footerPadding)}>
-        <div className='w-full flex items-center flex-nowrap pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] py-2'>
+        <div className='w-full flex items-center flex-nowrap px-safe py-2'>
           <div className={styles.footerNav}>
             <Brand />
             <SearchItem {...props} />

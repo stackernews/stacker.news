@@ -88,7 +88,7 @@ export function Range ({
           {isAll
             ? <span className={inputClasses({ className: cn('flex w-16 items-center justify-end gap-1 px-2 whitespace-nowrap', suffix && 'rounded-e-none') })}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>
             : numberField}
-          {suffix && <span className={cn(styles.addon, 'flex items-center px-4 py-1.5 text-base max-md:text-[1rem] rounded-s-none')}>{suffix.trim()}</span>}
+          {suffix && <span className={cn(styles.addon, 'flex items-center px-4 py-1.5 text-base max-md:text-touch rounded-s-none')}>{suffix.trim()}</span>}
         </div>
         {labels?.length > 0 && (
           <div className='relative' style={{ gridColumn: 2, height: '1.2em' }}>

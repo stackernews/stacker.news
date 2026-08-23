@@ -172,6 +172,7 @@ export default {
         JOIN users ON "UserSubscription"."followeeId" = users.id
         WHERE "UserSubscription"."followerId" = ${me.id}
         AND ("UserSubscription"."postsSubscribedAt" IS NOT NULL OR "UserSubscription"."commentsSubscribedAt" IS NOT NULL)
+        ORDER BY "UserSubscription"."followeeId" ASC
         OFFSET ${decodedCursor.offset}
         LIMIT ${LIMIT}
       `
@@ -192,6 +193,7 @@ export default {
         FROM "Mute"
         JOIN users ON "Mute"."mutedId" = users.id
         WHERE "Mute"."muterId" = ${me.id}
+        ORDER BY "Mute"."mutedId" ASC
         OFFSET ${decodedCursor.offset}
         LIMIT ${LIMIT}
       `

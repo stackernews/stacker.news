@@ -11,7 +11,7 @@ const SIZES = {
 }
 
 export const inputClasses = ({ valid, size = 'md', className } = {}) =>
-  cn(styles.control, valid && styles.valid, 'block w-full max-md:text-[1rem]', SIZES[size], className)
+  cn(styles.control, valid && styles.valid, 'block w-full max-md:text-touch', SIZES[size], className)
 
 export const labelClasses = ({ className } = {}) =>
   cn(styles.label, 'mb-2 inline-block', className)

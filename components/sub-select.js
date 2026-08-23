@@ -23,6 +23,11 @@ export function SubSelectInitial ({ item, subs }) {
 const DEFAULT_PREPEND_SUBS = []
 const DEFAULT_APPEND_SUBS = []
 const DEFAULT_FILTER_SUBS = () => true
+const SUB_MULTI_SELECT_MIN_WIDTHS = {
+  small: 'min-w-[90px]',
+  medium: 'min-w-[200px]',
+  large: 'min-w-[300px]'
+}
 
 export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs = DEFAULT_FILTER_SUBS, appendSubs = DEFAULT_APPEND_SUBS }) {
   const { data, refetch } = useQuery(ACTIVE_SUBS, SSR
@@ -234,7 +239,7 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
       size='md'
       {...valueProps}
       {...props}
-      className={`${className} ${styles.subSelect} ${size === 'large' ? styles.subSelectLarge : size === 'medium' ? styles.subSelectMedium : ''}`}
+      className={cn(className, SUB_MULTI_SELECT_MIN_WIDTHS[size])}
       items={activeSubs}
     />
   )

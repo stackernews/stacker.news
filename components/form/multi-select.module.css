@@ -2,6 +2,11 @@
 
 /* only what the recipes can't paint lives here */
 
+/* The control starts at the form baseline but can grow as chips are added. */
+.control {
+  min-width: 200px;
+}
+
 /* the state legs inputClasses can't give a div: field.module.css keys focus on
    .control:focus, which never fires on the wrapper, so the ring rides
    :focus-within while the inner input holds focus. .control.isInvalid doubles

@@ -24,6 +24,7 @@ import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin'
 import { ApplePatchExtension } from '@/lib/lexical/exts/apple'
 import { SoftkeyUnborkerPlugin } from '@/components/editor/plugins/patch/softkey-unborker'
 import { SoftkeyEmptyGuardPlugin } from '@/components/editor/plugins/patch/softkey-emptyguard'
+import { IOSDeleteScrollGuardPlugin } from '@/components/editor/plugins/patch/ios-delete-scroll-guard'
 import { MarkdownTextExtension } from '@/lib/lexical/exts/markdown'
 import AppendValuePlugin from '@/components/editor/plugins/core/append-value'
 import TransformerBridgePlugin from '@/components/editor/plugins/core/transformer-bridge'
@@ -180,6 +181,7 @@ function EditorContent ({
       <MaxLengthPlugin lengthOptions={lengthOptions} />
       <SoftkeyUnborkerPlugin />
       <SoftkeyEmptyGuardPlugin />
+      <IOSDeleteScrollGuardPlugin />
       {!isMarkdown && (
         <>
           <CodeThemePlugin />

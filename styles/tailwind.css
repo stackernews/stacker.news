@@ -39,13 +39,11 @@
 
   /* page column: a 900px content column inside the 1rem gutters */
   --container-page: 932px;
-
-  /* application monospace stack */
-  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
 /* Utilities read live theme and territory values directly. */
 @theme inline {
+  --font-mono: var(--sn-font-monospace);
   --color-primary: var(--sn-primary);
   --color-secondary: var(--sn-secondary);
   --color-warning: var(--sn-warning);

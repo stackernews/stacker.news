@@ -890,7 +890,7 @@ span + .sn-link {
   position: relative;
   background-color: var(--sn-commentBg);
   color: var(--sn-body-color);
-  font-family: Menlo, Consolas, Monaco, monospace;
+  font-family: var(--sn-font-monospace);
   display: block;
   line-height: 1.53;
   font-size: 13px;

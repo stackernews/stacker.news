@@ -4,7 +4,7 @@
     width: 100%;
     padding-right: 1em;
     font-size: x-small;
-    font-family: monospace;
+    font-family: var(--sn-font-monospace);
     color: var(--sn-grey);
 }
 
@@ -36,7 +36,7 @@
     grid-template-columns: 3.25rem 2.25rem max-content minmax(0, 1fr) 1rem;
     align-items: baseline;
     gap: 0.5rem;
-    font-family: monospace;
+    font-family: var(--sn-font-monospace);
     color: var(--sn-grey);
 }
 

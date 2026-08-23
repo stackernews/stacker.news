@@ -20,9 +20,6 @@
 @source not inline('container');
 @source not inline('table');
 
-/* Runtime text-color names are invisible to source scanning. */
-@source inline("text-{boost,secondary,warning,success,danger,info,muted}");
-
 /* :where() keeps the dark variant at zero specificity. */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 

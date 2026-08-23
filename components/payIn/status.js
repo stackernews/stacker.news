@@ -6,9 +6,17 @@ import ThumbDown from '@/svgs/thumb-down-fill.svg'
 
 export const statusIconSize = 16
 
+// Tailwind only generates classes it can see as literals in source.
+const TEXT_COLORS = {
+  success: 'text-success',
+  danger: 'text-danger',
+  warning: 'text-warning',
+  muted: 'text-muted'
+}
+
 export function StatusText ({ color, children }) {
   return (
-    <small className={`ms-1 text-${color}`} style={{ fontWeight: '600' }}>{children}</small>
+    <small className={`ms-1 ${TEXT_COLORS[color]}`} style={{ fontWeight: '600' }}>{children}</small>
   )
 }
 

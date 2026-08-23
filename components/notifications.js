@@ -111,9 +111,18 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
   )
 }
 
+// Tailwind only generates classes it can see as literals in source.
+const NOTE_COLORS = {
+  boost: 'text-boost',
+  secondary: 'text-secondary',
+  info: 'text-info',
+  success: 'text-success',
+  warning: 'text-warning'
+}
+
 function NoteHeader ({ color, children, big }) {
   return (
-    <div className={`${styles.noteHeader} text-${color} ${big ? '' : 'small'} pb-2`}>
+    <div className={`${styles.noteHeader} ${NOTE_COLORS[color]} ${big ? '' : 'small'} pb-2`}>
       {children}
     </div>
   )
@@ -324,7 +333,7 @@ function RevenueNotification ({ n }) {
 function SubStatus ({ n }) {
   const dueDate = nextBillingWithGrace(n.sub)
   return (
-    <div className={`font-bold text-${n.sub.status === 'ACTIVE' ? 'success' : 'danger'} `}>
+    <div className={`font-bold ${n.sub.status === 'ACTIVE' ? 'text-success' : 'text-danger'} `}>
       {n.sub.status === 'ACTIVE'
         ? 'your territory is active again'
         : (n.sub.status === 'GRACE'

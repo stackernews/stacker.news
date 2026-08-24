@@ -46,7 +46,7 @@ export default function Share ({ path, title = '', className = '' }) {
     <div className='ms-auto pointer flex items-center'>
       <ShareIcon
         width={20} height={20}
-        className={`mx-2 fill-grey theme ${className}`}
+        className={`mx-2 fill-muted theme ${className}`}
         onClick={async () => {
           await share(title, url, toaster)
         }}

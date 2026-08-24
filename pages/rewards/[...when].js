@@ -90,7 +90,7 @@ function Reward ({ rank, type, sats, item }) {
   return (
     <div>
       <div className={color}>
-        <Trophy height={20} width={20} /> <b>#{rank}</b> {category} for <i><b>{sats} sats</b></i>
+        <Trophy height={20} width={20} className='fill-current' /> <b>#{rank}</b> {category} for <i><b>{sats} sats</b></i>
       </div>
       {item &&
         <div className={item.parentId ? 'pt-0' : 'pt-2'}>

@@ -193,7 +193,7 @@ export function LinkForm ({ item, subs, EditInfo, children }) {
       <ItemButtonBar itemId={item?.id} disable={postDisabled}>
         {!item && postDisabled &&
           <div className='flex items-center small'>
-            <Moon className='spin fill-grey' height={16} width={16} />
+            <Moon className='spin fill-muted' height={16} width={16} />
             <div className='ms-2 text-muted'>searching for dupes</div>
           </div>}
       </ItemButtonBar>

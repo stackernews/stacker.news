@@ -170,13 +170,13 @@ export default function Footer ({ links = true }) {
           <>
             <div className='mb-1'>
               <ActionTooltip notForm overlayText={`${darkMode ? 'disable' : 'enable'} dark mode`}>
-                <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
+                <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='theme' suppressHydrationWarning />
               </ActionTooltip>
               <ActionTooltip notForm overlayText={`${animationEnabled ? 'disable' : 'enable'} lightning animations`}>
-                <LnIcon onClick={toggleAnimation} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+                <LnIcon onClick={toggleAnimation} width={20} height={20} className='ms-2 theme' suppressHydrationWarning />
               </ActionTooltip>
               <ActionTooltip notForm overlayText={`${disableLiveComments ? 'enable' : 'disable'} live comments`}>
-                <LiveIcon onClick={toggleLiveComments} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+                <LiveIcon onClick={toggleLiveComments} width={20} height={20} className='ms-2 theme' suppressHydrationWarning />
               </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
@@ -238,9 +238,9 @@ export default function Footer ({ links = true }) {
           </div>}
         <small className='flex justify-center items-center text-muted flex-wrap'>
           <a className={`${styles.contrastLink} flex items-center`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>
-            FOSS <Github width={20} height={20} className='mx-1' />
+            FOSS <Github width={20} height={20} className='mx-1 fill-current' />
           </a>
-          made in Austin<Texas className='ms-1' width={20} height={20} />
+          made in Austin<Texas className='ms-1 fill-current' width={20} height={20} />
           <span className='ms-1'>by</span>
           <span>
             <Link href='/k00b' className='ms-1'>

@@ -44,7 +44,6 @@
 
   /* one-offs with live consumers */
   --sn-code-color: #d63384;
-  --sn-warning-text-emphasis: rgb(98.4, 58, 11.6);
   --sn-muted: var(--sn-grey);
 
   /* component theme values */
@@ -116,7 +115,6 @@
   --sn-link-color: rgb(252, 232.8, 158.4);
   --sn-link-hover-color: rgb(252.6, 237.24, 177.72);
   --sn-code-color: rgb(230.4, 132.6, 181.2);
-  --sn-warning-text-emphasis: rgb(249.6, 189, 119.4);
 }
 
 /* Shared wallet radii and spacing. Root scope also reaches portaled wallet UI. */

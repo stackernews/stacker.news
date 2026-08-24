@@ -28,7 +28,7 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
                             onMouseDown={e => e.preventDefault()}
                             onClick={() => fieldArrayHelpers.push(emptyItem)}
                           >
-                            <AddIcon className='fill-grey' />
+                            <AddIcon className='fill-muted' />
                           </button>
                           )
                         // filler div for col alignment across rows

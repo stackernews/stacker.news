@@ -108,7 +108,7 @@
 
 .root[data-type='warning'] {
   --sn-toast-bg: var(--sn-warning);
-  --sn-toast-color: #212529; /* dark text on the warning orange, as before */
+  --sn-toast-color: var(--sn-dark); /* dark text on the warning orange, as before */
 }
 
 /* upsert pulse: two identical keyframes with distinct names, browsers won't

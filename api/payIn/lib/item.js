@@ -1,5 +1,6 @@
 import { USER_ID } from '@/lib/constants'
-import { deleteReminders, getDeleteAt, getRemindAt } from '@/lib/item'
+import { deleteReminders, getDeleteAt, getRemindAt, isValidSchedulerDate } from '@/lib/item'
+import { GqlInputError } from '@/lib/error'
 
 export async function getSubs (models, { subNames, parentId }) {
   if (!subNames && !parentId) {
@@ -65,6 +66,9 @@ export async function performBotBehavior (tx, { text, id, userId = USER_ID.anon 
 
   if (text) {
     const deleteAt = getDeleteAt(text)
+    if (deleteAt && !isValidSchedulerDate(deleteAt)) {
+      throw new GqlInputError('@delete interval is out of range')
+    }
     if (deleteAt) {
       await tx.$queryRaw`
         INSERT INTO pgboss.job (name, data, startafter, keepuntil)
@@ -76,6 +80,9 @@ export async function performBotBehavior (tx, { text, id, userId = USER_ID.anon 
     }
 
     const remindAt = getRemindAt(text)
+    if (remindAt && !isValidSchedulerDate(remindAt)) {
+      throw new GqlInputError('@remindme interval is out of range')
+    }
     if (remindAt) {
       await tx.$queryRaw`
         INSERT INTO pgboss.job (name, data, startafter, keepuntil)

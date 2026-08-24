@@ -53,6 +53,11 @@
   --color-boost: var(--sn-boost);
   --color-nostr: var(--sn-nostr);
   --color-muted: var(--sn-muted);
+  /* static grays keep one value in both themes */
+  --color-light: var(--sn-light);
+  --color-dark: var(--sn-dark);
+  --color-grey-medium: var(--sn-grey-medium);
+  --color-grey-darkmode: var(--sn-grey-darkmode);
 }
 
 /* Let a child inherit its surrounding text color. */

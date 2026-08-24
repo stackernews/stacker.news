@@ -36,9 +36,14 @@
   --sn-link-color: #007cbe;
   --sn-link-hover-color: rgb(0, 99.2, 152);
 
+  /* static grays, the same in both themes */
+  --sn-light: #f8f9fa;
+  --sn-dark: #212529;
+  --sn-grey-medium: #d2d2d2;
+  --sn-grey-darkmode: #8c8c8c;
+
   /* one-offs with live consumers */
   --sn-code-color: #d63384;
-  --sn-light: #f8f9fa;
   --sn-warning-text-emphasis: rgb(98.4, 58, 11.6);
   --sn-muted: var(--sn-grey);
 

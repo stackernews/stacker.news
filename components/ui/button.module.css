@@ -77,13 +77,13 @@
 
 .grey-medium {
   --sn-btn-color: #000;
-  --sn-btn-bg: #d2d2d2;
+  --sn-btn-bg: var(--sn-grey-medium);
   --sn-btn-mix: #fff;
 }
 
 .grey svg,
 .grey-medium svg {
-  fill: #212529;
+  fill: var(--sn-dark);
 }
 
 /* Login-provider variants use fixed provider colors. */
@@ -98,7 +98,7 @@
 
 .dark {
   --sn-btn-color: #fff;
-  --sn-btn-bg: #212529;
+  --sn-btn-bg: var(--sn-dark);
   --sn-btn-mix: #fff;
 }
 
@@ -173,14 +173,14 @@
 
 /* Navigation consumers choose border width while this variant owns paint. */
 .outline-grey-darkmode {
-  --sn-btn-color: #8c8c8c;
+  --sn-btn-color: var(--sn-grey-darkmode);
   --sn-btn-bg: transparent;
   --sn-btn-hover-color: #fff;
-  --sn-btn-hover-bg: #8c8c8c;
-  --sn-btn-active-bg: #8c8c8c;
-  --sn-btn-disabled-color: #8c8c8c;
+  --sn-btn-hover-bg: var(--sn-grey-darkmode);
+  --sn-btn-active-bg: var(--sn-grey-darkmode);
+  --sn-btn-disabled-color: var(--sn-grey-darkmode);
   --sn-btn-disabled-bg: transparent;
-  border-color: #8c8c8c;
+  border-color: var(--sn-grey-darkmode);
 }
 
 /* font-weight 400 is the recipe's job: button.js swaps font-bold for

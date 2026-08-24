@@ -79,7 +79,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
             <span> \ </span>
             <span>
               <Link href={`/${item.user.name}`} className='inline-flex items-center'>
-                @{item.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={item.user} />
+                @{item.user.name}<Badges badgeClassName='fill-muted' height={12} width={12} user={item.user} />
               </Link>
               <span> </span>
               <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>

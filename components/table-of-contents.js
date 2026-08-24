@@ -24,7 +24,7 @@ export default function Toc ({ text, readerRef }) {
   return (
     <Combobox.Root items={toc} value={null} itemToStringLabel={h => h.text || h.heading}>
       <Combobox.Trigger aria-label='Table of contents' nativeButton={false} render={<span className='flex items-center mb-1' />}>
-        <TocIcon width={20} height={20} className='mx-2 fill-grey theme' />
+        <TocIcon width={20} height={20} className='mx-2 theme' />
       </Combobox.Trigger>
       <Combobox.Portal>
         <Combobox.Positioner align='end' sideOffset={2} className={popoverStyles.positioner}>

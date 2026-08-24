@@ -38,14 +38,6 @@ html:has([data-sn-editor]:focus) {
     opacity: 42%;
   }
 }
-.fill-primary {
-  fill: var(--sn-primary);
-}
-
-.text-primary svg {
-  fill: var(--sn-primary);
-}
-
 .twitter-tweet {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
@@ -88,10 +80,6 @@ html, body {
   min-height: 100svh;
 }
 
-.text-muted svg {
-  fill: var(--sn-grey);
-}
-
 .pointer {
   cursor: pointer;
 }
@@ -105,42 +93,6 @@ html, body {
     font-size: 1rem !important;
   }
 }
-.fill-grey, .fill-muted {
-  fill: var(--sn-grey);
-}
-
-.fill-nostr {
-  fill: var(--sn-nostr);
-}
-
-.fill-boost {
-  fill: var(--sn-boost);
-}
-
-.fill-white {
-  fill: white;
-}
-
-.fill-success {
-  fill: var(--sn-success);
-}
-
-.fill-info {
-  fill: var(--sn-info);
-}
-
-.fill-danger {
-  fill: var(--sn-danger) !important;
-}
-
-.fill-theme-color {
-  fill: var(--sn-body-color);
-}
-
-.fill-warning {
-  fill: var(--sn-warning-text-emphasis);
-}
-
 .clouds {
   background-image: url("/clouds.jpeg") !important;
   background-color: var(--sn-grey);

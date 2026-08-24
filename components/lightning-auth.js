@@ -49,7 +49,7 @@ function LightningExplainer ({ text, children, backButton, stacked }) {
   return (
     <Container>
       <div className={styles.login}>
-        {backButton && <div className='w-full mb-4 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>}
+        {backButton && <div className='w-full mb-4 text-muted pointer' onClick={() => router.back()}><BackIcon className='fill-current' /></div>}
         <h3 className='w-full pb-2'>
           {text || 'Login'} with Lightning
         </h3>

@@ -131,7 +131,7 @@ export function InputInner ({
                   }}
                   className={cn(styles.clearButton, styles.appendButton, invalid && styles.isInvalid)}
                 >
-                  <CloseIcon className='fill-grey' height={20} width={20} />
+                  <CloseIcon className='fill-muted' height={20} width={20} />
                 </button>
               )}
               {append}

@@ -123,11 +123,11 @@ export default function Item ({
               {item.bounty > 0 &&
                 <span className={styles.icon}>
                   <ActionTooltip notForm overlayText={`${numWithUnits(item.bounty)} ${item.bountyPaidTo?.length ? ' paid' : ' bounty'}`}>
-                    <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
+                    <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-muted'}`} height={16} width={16} />
                   </ActionTooltip>
                 </span>}
-              {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-grey ms-1' height={14} width={14} /></span>}
-              {media && <span className={styles.icon}><MediaIcon className='fill-grey ms-2' height={16} width={16} /></span>}
+              {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-muted ms-1' height={14} width={14} /></span>}
+              {media && <span className={styles.icon}><MediaIcon className='fill-muted ms-2' height={16} width={16} /></span>}
             </Link>
             {item.url && !media && <ItemLink url={item.url} rel={item.rel} />}
           </div>
@@ -238,7 +238,7 @@ function PollIndicator ({ item }) {
       <PollIcon
         className={`${isActive
           ? 'fill-success'
-          : 'fill-grey'
+          : 'fill-muted'
           } ms-1`} height={14} width={14}
       />
     </span>

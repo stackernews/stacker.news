@@ -20,6 +20,6 @@ function externalStatusPresentation (transaction) {
     case 'FAILED': return { Icon: ThumbDown, fillClass: 'fill-danger', color: 'danger', label: 'failed' }
     case 'EXPIRED': return { Icon: ThumbDown, fillClass: 'fill-danger', color: 'danger', label: 'expired' }
     case 'UNKNOWN': return { Icon: ErrorWarning, fillClass: 'fill-warning', color: 'warning', label: 'unknown' }
-    default: return { Icon: Moon, fillClass: 'fill-grey', color: 'muted', label: 'pending', spin: true }
+    default: return { Icon: Moon, fillClass: 'fill-muted', color: 'muted', label: 'pending', spin: true }
   }
 }

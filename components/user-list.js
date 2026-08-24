@@ -49,7 +49,7 @@ export function UserListRow ({ user, stats, className, onNymClick, showHat = tru
           style={{ textUnderlineOffset: '0.25em' }}
           onClick={onNymClick}
         >
-          @{user.name}{showHat && <Badges badgeClassName='fill-grey' height={14} width={14} user={user} />}{selected && <CheckCircle className='ms-4 fill-primary' height={14} width={14} />}
+          @{user.name}{showHat && <Badges badgeClassName='fill-muted' height={14} width={14} user={user} />}{selected && <CheckCircle className='ms-4 fill-primary' height={14} width={14} />}
         </Link>
         {stats && (
           <div className={styles.other}>
@@ -73,7 +73,7 @@ export function UserBase ({ user, className, children, nymActionDropdown }) {
       <div className={styles.hunk}>
         <div className='flex'>
           <Link href={`/${user.name}`} className={`${styles.title} mb-0 inline-flex items-center justify-center text-reset`}>
-            @{user.name}<Badges badgeClassName='fill-grey' height={14} width={14} user={user} />
+            @{user.name}<Badges badgeClassName='fill-muted' height={14} width={14} user={user} />
           </Link>
           {nymActionDropdown && <NymActionDropdown user={user} className='' />}
         </div>

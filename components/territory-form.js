@@ -303,7 +303,7 @@ export default function TerritoryForm ({ sub }) {
       {DOMAIN_BETA_IDS.includes(Number(me?.id)) &&
         <>
           {sub && !branding && <TerritoryBranding sub={sub} />}
-          {sub && branding && <Link className='text-muted w-full' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain and branding settings on stacker.news <LinkExternal width={16} height={16} /></Link>}
+          {sub && branding && <Link className='text-muted w-full' href={`${process.env.NEXT_PUBLIC_URL}/~${sub.name}/edit`}>domain and branding settings on stacker.news <LinkExternal width={16} height={16} className='fill-current' /></Link>}
         </>}
     </FeeButtonProvider>
   )

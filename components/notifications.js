@@ -203,7 +203,7 @@ function Bulletinification ({ n }) {
   if (!n.bulletin) return null
   return (
     <div className='flex'>
-      {n.bulletin.iconType === 'MAP' ? <div style={{ fontSize: '2rem', alignSelf: 'center' }}><MapIcon className='self-center fill-theme-color mx-1' width={64} height={100} /></div> : null}
+      {n.bulletin.iconType === 'MAP' ? <div style={{ fontSize: '2rem', alignSelf: 'center' }}><MapIcon className='self-center fill-current mx-1' width={64} height={100} /></div> : null}
       <div className='ms-4 p-1'>
         <div className='font-bold pb-2'>{n.bulletin.title}</div>
         {n.bulletin.html && n.bulletin.lexicalState && <Text html={n.bulletin.html} state={n.bulletin.lexicalState} />}
@@ -228,7 +228,7 @@ function CowboyHat ({ n }) {
 
   return (
     <div className='flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem' }}><Icon className='fill-muted' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='font-bold'>{body}</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
@@ -243,7 +243,7 @@ function Horse ({ n }) {
 
   return (
     <div className='flex'>
-      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-muted' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='font-bold'>you {found ? 'found a' : 'lost your'} horse</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
@@ -258,7 +258,7 @@ function Gun ({ n }) {
 
   return (
     <div className='flex'>
-      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-grey' height={40} width={40} /></div>
+      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-muted' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='font-bold'>you {found ? 'found a' : 'lost your'} gun</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>

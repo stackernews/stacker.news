@@ -40,7 +40,7 @@ export function WalletLoadingShell ({ message = 'loading wallets' }) {
   return (
     <WalletShellMain mobileTopBar={false}>
       <div className='py-12 text-center flex flex-col items-center justify-center grow text-muted'>
-        <Moon className='spin fill-grey' height={28} width={28} />
+        <Moon className='spin fill-muted' height={28} width={28} />
         <small className='block mt-4 text-muted'>{message}</small>
       </div>
     </WalletShellMain>

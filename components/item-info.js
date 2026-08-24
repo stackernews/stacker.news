@@ -149,7 +149,7 @@ export default function ItemInfo ({
         {showUser &&
           <Link href={`/${item.user.name}`}>
             <UserPreviewCard name={item.user.name}>@{item.user.name}</UserPreviewCard>
-            <Badges badgeClassName='fill-grey' spacingClassName='ms-0.5' height={12} width={12} user={item.user} bot={item.apiKey} />
+            <Badges badgeClassName='fill-muted' spacingClassName='ms-0.5' height={12} width={12} user={item.user} bot={item.apiKey} />
             {embellishUser}
           </Link>}
         <span> </span>

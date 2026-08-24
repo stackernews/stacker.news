@@ -68,7 +68,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
                             )
                           : <span className='font-bold text-xs py-0.5'>{v}</span>}
                         <Combobox.ChipRemove aria-label={`Remove ${v}`} className='px-1 cursor-pointer border-0 bg-transparent'>
-                          <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-grey' />
+                          <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-muted' />
                         </Combobox.ChipRemove>
                       </Combobox.Chip>
                     ))}
@@ -82,13 +82,13 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
               aria-label='Clear selection'
               className='flex items-center px-1 border-0 bg-transparent cursor-pointer max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
             >
-              <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-grey' />
+              <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-muted' />
             </Combobox.Clear>
             <Combobox.Trigger
               aria-label='Open popup'
               className='flex items-center px-2 border-0 bg-transparent cursor-pointer max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
             >
-              <ArrowDownSFill width={triggerIconSize} height={triggerIconSize} className='fill-grey' />
+              <ArrowDownSFill width={triggerIconSize} height={triggerIconSize} className='fill-muted' />
             </Combobox.Trigger>
           </Combobox.InputGroup>
           <Combobox.Portal>

@@ -54,7 +54,7 @@ const DomainLabel = ({ domain, polling }) => {
             : status === 'HOLD'
               ? <Badge variant='secondary'>HOLD</Badge>
               : <Badge variant='success'>active</Badge>}
-          {polling && <Moon className={`spin fill-grey ${styles.statusIcon}`} />}
+          {polling && <Moon className={`spin fill-muted ${styles.statusIcon}`} />}
         </div>
       )}
     </div>

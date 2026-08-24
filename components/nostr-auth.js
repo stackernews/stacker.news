@@ -175,7 +175,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
         ? (
           <>
             <div className='text-muted py-6 w-full leading-none flex items-center gap-2'>
-              <Moon className='spin fill-grey shrink-0' width='30' height='30' />
+              <Moon className='spin fill-muted shrink-0' width='30' height='30' />
               {status.msg}
             </div>
             {status.button && (
@@ -242,7 +242,7 @@ function NostrExplainer ({ text, children }) {
   return (
     <Container>
       <div className={styles.login}>
-        <div className='w-full mb-4 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
+        <div className='w-full mb-4 text-muted pointer' onClick={() => router.back()}><BackIcon className='fill-current' /></div>
         <h3 className='w-full pb-2'>
           {text || 'Login'} with Nostr
         </h3>

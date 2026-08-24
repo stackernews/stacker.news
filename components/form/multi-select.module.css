@@ -17,11 +17,11 @@
 }
 
 .control.isInvalid {
-  border-color: #c03221;
+  border-color: var(--sn-danger);
 }
 
 .control.isInvalid:focus-within {
-  box-shadow: 0 0 0 .2rem rgb(192 50 33 / 25%);
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-danger) 25%, transparent);
 }
 
 .chip {

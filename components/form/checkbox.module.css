@@ -34,7 +34,7 @@
 .checkInput:focus,
 .checkInput:focus-visible {
     outline: 0;
-    border-color: #fdedaf;
+    border-color: color-mix(in srgb, var(--sn-primary) 50%, #fff);
     box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
 }
 
@@ -62,12 +62,12 @@
 
 /* last so it beats the checked border at equal specificity */
 .checkInput.invalid {
-    border-color: #c03221;
+    border-color: var(--sn-danger);
 }
 
 .checkInput.invalid[data-checked] {
-    background-color: #c03221;
-    border-color: #c03221;
+    background-color: var(--sn-danger);
+    border-color: var(--sn-danger);
 }
 
 }

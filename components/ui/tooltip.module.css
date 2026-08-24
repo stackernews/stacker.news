@@ -8,7 +8,7 @@
 }
 
 .popup {
-  --sn-tooltip-bg: #5c8001;
+  --sn-tooltip-bg: var(--sn-success);
   /* Tooltips use the smaller borderless arrow. */
   --arrow-size: 12px;
   --arrow-bg: var(--sn-tooltip-bg);

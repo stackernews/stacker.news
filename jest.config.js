@@ -4,4 +4,8 @@ const nextJest = require('next/jest')
 const createJestConfig = nextJest({ dir: './' })
 
 // createJestConfig is exported in this way to ensure that next/jest can load the Next.js configuration, which is async
-module.exports = createJestConfig({ testPathIgnorePatterns: ['/payIn/'] })
+module.exports = createJestConfig({
+  testPathIgnorePatterns: ['/payIn/'],
+  // mirror the jsconfig '@/' path alias so unit tests can run without the Next.js compiler
+  moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' }
+})

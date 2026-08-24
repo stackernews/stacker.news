@@ -107,6 +107,15 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     console.log(error)
     logger.error(`${user.name}@stacker.news payment failed: ${error.message}`)
       .catch(err => console.error('failed to write lnurl payment failure log:', err))
+    // the likeliest failure is the receiver having no (working) attached wallet.
+    // report that specifically so senders know the payment can't proceed - the generic
+    // reason is opaque and senders misattribute the failure, e.g. to username case (#3058)
+    if (error?.name === 'NoReceiveWalletError') {
+      return res.status(400).json({
+        status: 'ERROR',
+        reason: `user @${username} cannot receive lightning payments right now`
+      })
+    }
     res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice to customer\'s attached wallet' })
   }
 }

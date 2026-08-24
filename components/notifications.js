@@ -231,7 +231,7 @@ function CowboyHat ({ n }) {
       <div style={{ fontSize: '2rem' }}><Icon className='fill-muted' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='font-bold'>{body}</span>
-        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+        <div><small className='leading-[1.4] inline-block'>{blurb(n)}</small></div>
       </div>
     </div>
   )
@@ -246,7 +246,7 @@ function Horse ({ n }) {
       <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-muted' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='font-bold'>you {found ? 'found a' : 'lost your'} horse</span>
-        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+        <div><small className='leading-[1.4] inline-block'>{blurb(n)}</small></div>
       </div>
     </div>
   )
@@ -261,7 +261,7 @@ function Gun ({ n }) {
       <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-muted' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
         <span className='font-bold'>you {found ? 'found a' : 'lost your'} gun</span>
-        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+        <div><small className='leading-[1.4] inline-block'>{blurb(n)}</small></div>
       </div>
     </div>
   )
@@ -278,13 +278,13 @@ function EarnNotification ({ n }) {
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 font-normal' suppressHydrationWarning>{time}</small>
         </NoteHeader>
         {n.sources &&
-          <div style={{ fontSize: '80%', color: 'var(--sn-grey)' }}>
+          <div className='text-[80%] text-muted'>
             {n.sources.posts > 0 && <span>{numWithUnits(n.sources.posts, { abbreviate: false })} for top posts</span>}
             {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{numWithUnits(n.sources.comments, { abbreviate: false })} for top comments</span>}
             {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{numWithUnits(n.sources.tipPosts, { abbreviate: false })} for zapping top posts early</span>}
             {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{numWithUnits(n.sources.tipComments, { abbreviate: false })} for zapping top comments early</span>}
           </div>}
-        <div style={{ lineHeight: '140%' }}>
+        <div className='leading-[1.4]'>
           SN distributes the sats it earns to top stackers like you daily. The top stackers make the top posts and comments or zap the top posts and comments early and generously. View the rewards pool and make a donation <Link href='/rewards'>here</Link>.
         </div>
         <small className='text-muted ms-1 pb-1 font-normal'>click for details</small>
@@ -302,11 +302,11 @@ function ReferralReward ({ n }) {
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in referral rewards<small className='text-muted ms-1 font-normal' suppressHydrationWarning>{dayMonthYear(new Date(n.sortTime))}</small>
         </NoteHeader>
         {n.sources &&
-          <div style={{ fontSize: '80%', color: 'var(--sn-grey)' }}>
+          <div className='text-[80%] text-muted'>
             {n.sources.forever > 0 && <span>{numWithUnits(n.sources.forever, { abbreviate: false })} for stackers joining because of you</span>}
             {n.sources.oneDay > 0 && <span>{n.sources.forever > 0 && ' \\ '}{numWithUnits(n.sources.oneDay, { abbreviate: false })} for stackers referred to content by you today</span>}
           </div>}
-        <div style={{ lineHeight: '140%' }}>
+        <div className='leading-[1.4]'>
           SN gives referral rewards to stackers like you for referring the top stackers daily. You refer stackers when they visit your posts, comments, profile, territory, or if they visit SN through your referral links.
         </div>
       </div>
@@ -322,7 +322,7 @@ function RevenueNotification ({ n }) {
         <NoteHeader color='success' big>
           you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in territory revenue<small className='text-muted ms-1 font-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
         </NoteHeader>
-        <div style={{ lineHeight: '140%' }}>
+        <div className='leading-[1.4]'>
           As the founder of territory <Link href={`/~${n.subName}`}>~{n.subName}</Link>, you receive 70% of the post, comment, boost, and zap fees. The other 30% go to <Link href='/rewards'>rewards</Link>.
         </div>
       </div>

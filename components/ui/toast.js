@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cn } from '@/lib/cn'
 import styles from './toast.module.css'
 
-export const TOAST_DEFAULT_DELAY_MS = 5000
+const TOAST_DEFAULT_DELAY_MS = 5000
 
 function ToastItem ({ toast }) {
   // Alternate animation names so consecutive updates restart the pulse.

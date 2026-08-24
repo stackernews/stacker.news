@@ -53,20 +53,20 @@
   fill: var(--sn-btn-color);
 }
 
-/* Static filled variants. */
+/* Fixed-palette variants ride the static tokens. */
 .danger {
   --sn-btn-color: #fff;
-  --sn-btn-bg: #c03221;
+  --sn-btn-bg: var(--sn-danger);
 }
 
 .info {
   --sn-btn-color: #fff;
-  --sn-btn-bg: #007cbe;
+  --sn-btn-bg: var(--sn-info);
 }
 
 .success {
   --sn-btn-color: #fff;
-  --sn-btn-bg: #5c8001;
+  --sn-btn-bg: var(--sn-success);
 }
 
 .grey {
@@ -137,14 +137,14 @@
 }
 
 .outline-info {
-  --sn-btn-color: #007cbe;
+  --sn-btn-color: var(--sn-info);
   --sn-btn-bg: transparent;
   --sn-btn-hover-color: #fff;
-  --sn-btn-hover-bg: #007cbe;
-  --sn-btn-active-bg: #007cbe;
-  --sn-btn-disabled-color: #007cbe;
+  --sn-btn-hover-bg: var(--sn-info);
+  --sn-btn-active-bg: var(--sn-info);
+  --sn-btn-disabled-color: var(--sn-info);
   --sn-btn-disabled-bg: transparent;
-  border-color: #007cbe;
+  border-color: var(--sn-info);
 }
 
 /* Consumers choose the border width while the variant owns its color. */
@@ -161,14 +161,14 @@
 
 /* The variant owns border color while its consumer chooses border width. */
 .outline-warning {
-  --sn-btn-color: #F6911D;
+  --sn-btn-color: var(--sn-warning);
   --sn-btn-bg: transparent;
   --sn-btn-hover-color: #000;
-  --sn-btn-hover-bg: #F6911D;
-  --sn-btn-active-bg: #F6911D;
-  --sn-btn-disabled-color: #F6911D;
+  --sn-btn-hover-bg: var(--sn-warning);
+  --sn-btn-active-bg: var(--sn-warning);
+  --sn-btn-disabled-color: var(--sn-warning);
   --sn-btn-disabled-bg: transparent;
-  border-color: #F6911D;
+  border-color: var(--sn-warning);
 }
 
 /* Navigation consumers choose border width while this variant owns paint. */
@@ -191,7 +191,7 @@
   --sn-btn-hover-color: var(--sn-link-hover-color);
   --sn-btn-hover-bg: transparent;
   --sn-btn-active-bg: transparent;
-  --sn-btn-disabled-color: #6c757d;
+  --sn-btn-disabled-color: var(--sn-muted);
   text-decoration: none;
 }
 

@@ -20,13 +20,13 @@
 }
 
 .thumb:active {
-    background-color: #fef4cf;
+    background-color: color-mix(in srgb, var(--sn-primary) 30%, #fff);
 }
 
 /* the hidden range input inside the thumb holds focus */
 .thumb:focus-within {
     outline: 0;
-    box-shadow: 0 0 0 1px #fcfcff, 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+    box-shadow: 0 0 0 1px var(--sn-body-bg), 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
 }
 
 .thumb[data-disabled] {

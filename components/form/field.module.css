@@ -26,7 +26,7 @@
 
 .error {
     width: 100%;
-    color: #c03221;
+    color: var(--sn-danger);
     font-size: .875em;
     margin-top: .25rem;
 }
@@ -40,7 +40,7 @@
 }
 
 .control::placeholder {
-    color: #6c757d;
+    color: var(--sn-muted);
     opacity: 1;
 }
 
@@ -60,7 +60,7 @@
 /* The icon inset padding is a conditional pe-10 utility in input.js: a module
    padding-right here would lose to the recipe's px-4 */
 .control[data-invalid] {
-    border-color: #c03221;
+    border-color: var(--sn-danger);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M22 15h-3V3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zm-5.293 1.293l-6.4 6.4a.5.5 0 0 1-.654.047L8.8 22.1a1.5 1.5 0 0 1-.553-1.57L9.4 16H3a2 2 0 0 1-2-2v-2.104a2 2 0 0 1 .15-.762L4.246 3.62A1 1 0 0 1 5.17 3H16a1 1 0 0 1 1 1v11.586a1 1 0 0 1-.293.707z' fill='rgba%28192,50,33,1%29'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right calc(.4375em + .21rem) center;
@@ -68,12 +68,12 @@
 }
 
 .control[data-invalid]:focus {
-    border-color: #c03221;
-    box-shadow: 0 0 0 .25rem rgb(192 50 33 / 25%);
+    border-color: var(--sn-danger);
+    box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-danger) 25%, transparent);
 }
 
 .control.valid {
-    border-color: #5c8001;
+    border-color: var(--sn-success);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M2 9h3v12H2a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1zm5.293-1.293l6.4-6.4a.5.5 0 0 1 .654-.047l.853.64a1.5 1.5 0 0 1 .553 1.57L14.6 8H21a2 2 0 0 1 2 2v2.104a2 2 0 0 1-.15.762l-3.095 7.515a1 1 0 0 1-.925.619H8a1 1 0 0 1-1-1V8.414a1 1 0 0 1 .293-.707z' fill='rgba%2892, 128, 1, 1%29'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right calc(.4375em + .21rem) center;
@@ -81,8 +81,8 @@
 }
 
 .control.valid:focus {
-    border-color: #5c8001;
-    box-shadow: 0 0 0 .25rem rgb(92 128 1 / 25%);
+    border-color: var(--sn-success);
+    box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-success) 25%, transparent);
 }
 
 textarea.control {
@@ -137,7 +137,7 @@ textarea.passwordInput {
 }
 
 .clearButton.isInvalid {
-    border-color: #c03221;
+    border-color: var(--sn-danger);
 }
 
 }

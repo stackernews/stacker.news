@@ -32,10 +32,6 @@
   --sn-font-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --sn-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  /* fixed UI links; content links use the territory-aware --sn-link family */
-  --sn-link-color: #007cbe;
-  --sn-link-hover-color: rgb(0, 99.2, 152);
-
   /* static grays, the same in both themes */
   --sn-light: #f8f9fa;
   --sn-dark: #212529;
@@ -112,8 +108,6 @@
   --sn-border-color-translucent: rgba(255, 255, 255, 0.15);
   --sn-secondary-bg: #343a40;
   --sn-secondary-color: rgba(240, 240, 240, 0.75);
-  --sn-link-color: rgb(252, 232.8, 158.4);
-  --sn-link-hover-color: rgb(252.6, 237.24, 177.72);
   --sn-code-color: rgb(230.4, 132.6, 181.2);
 }
 

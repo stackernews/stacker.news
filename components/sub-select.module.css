@@ -5,17 +5,4 @@
   white-space: nowrap;
   text-overflow: ellipsis !important;
 }
-
-/* Width choices belong to the selector surface rather than the form recipe. */
-.subSelectSmall {
-  width: 90px !important;
-}
-
-.subSelectLarge {
-  width: 300px !important;
-}
-
-.subSelectMedium {
-  width: 200px !important;
-}
 }

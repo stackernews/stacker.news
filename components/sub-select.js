@@ -23,6 +23,10 @@ export function SubSelectInitial ({ item, subs }) {
 const DEFAULT_PREPEND_SUBS = []
 const DEFAULT_APPEND_SUBS = []
 const DEFAULT_FILTER_SUBS = () => true
+const SUB_SELECT_WIDTHS = {
+  medium: 'w-[200px]',
+  large: 'w-[300px]'
+}
 const SUB_MULTI_SELECT_MIN_WIDTHS = {
   small: 'min-w-[90px]',
   medium: 'min-w-[200px]',
@@ -138,7 +142,7 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
       size='sm'
       {...valueProps}
       {...props}
-      className={cn(className, styles.subSelect, size === 'large' ? styles.subSelectLarge : size === 'medium' ? styles.subSelectMedium : '')}
+      className={cn(className, styles.subSelect, SUB_SELECT_WIDTHS[size])}
       items={subItems}
     />
   )

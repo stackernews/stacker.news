@@ -1,5 +1,4 @@
 import { string } from 'yup'
-import Toc from './table-of-contents'
 import { buttonClasses } from '@/components/ui/button'
 import { SearchTitle } from './item'
 import styles from './item.module.css'
@@ -120,11 +119,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
             </ActionDropdown>
           </div>
         </div>
-        {toc &&
-          <>
-            <Share title={item?.title} path={`/items/${item?.id}`} />
-            <Toc text={item.text} />
-          </>}
+        {toc && <Share title={item?.title} path={`/items/${item?.id}`} />}
       </div>
       {children && (
         <div className={styles.children} style={{ marginLeft: 'calc(42px + .8rem)' }}>

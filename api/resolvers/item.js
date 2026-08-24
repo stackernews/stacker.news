@@ -19,7 +19,7 @@ import {
 import { msatsToSats } from '@/lib/format'
 import uu from 'url-unshort'
 import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
-import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
+import { defaultCommentSort, isJob, deleteItemByAuthor, bulkDeleteItemsOlderThan } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { uploadIdsFromText } from './upload'
 import assertGofacYourself from './ofac'
@@ -820,6 +820,15 @@ export default {
       }
 
       return await deleteItemByAuthor({ models, id, item: old })
+    },
+    deleteItemsOlderThan: async (parent, { olderThanDays, kind }, { me, models }) => {
+      if (!me) {
+        throw new GqlInputError('you must be logged in')
+      }
+      if (!Number.isInteger(olderThanDays) || olderThanDays < 1) {
+        throw new GqlInputError('olderThanDays must be a positive integer')
+      }
+      return await bulkDeleteItemsOlderThan(models, { userId: me.id, olderThanDays, kind })
     },
     upsertLink: async (parent, { id, ...item }, { me, models, lnd }) => {
       await validateSchema(linkSchema, item, { models, me })

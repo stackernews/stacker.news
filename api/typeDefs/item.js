@@ -18,11 +18,17 @@ export default gql`
     unshorted: String
   }
 
+  enum ItemsOlderThanKind {
+    POSTS
+    COMMENTS
+  }
+
   extend type Mutation {
     bookmarkItem(id: ID): Item
     pinItem(id: ID): Item
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
+    deleteItemsOlderThan(olderThanDays: Int!, kind: ItemsOlderThanKind): Int!
     upsertLink(
       id: ID, subNames: [String!], title: String!, url: String!, text: String, forward: [ItemForwardInput],
       hash: String, hmac: String, sendProtocolId: Int): PayIn!

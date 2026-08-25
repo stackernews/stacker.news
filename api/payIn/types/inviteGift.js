@@ -70,6 +70,14 @@ export async function onBegin (tx, payInId, { id, userId }) {
 }
 
 export async function onPaidSideEffects (models, payInId) {
-  const payIn = await models.payIn.findUnique({ where: { id: payInId } })
-  notifyInvite(payIn.userId)
+  const payIn = await models.payIn.findUnique({
+    where: { id: payInId },
+    include: {
+      payOutCustodialTokens: {
+        include: { user: true }
+      }
+    }
+  })
+  const invitee = payIn.payOutCustodialTokens?.find(token => token.payOutType === 'INVITE_GIFT')?.user
+  notifyInvite(payIn.userId, { inviteeName: invitee?.name })
 }

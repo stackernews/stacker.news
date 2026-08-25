@@ -264,6 +264,14 @@ export const SAVE_WALLET_PROTOCOLS = gql`
   }
 `
 
+export const CREATE_EMBEDDED_SPARK_WALLET = gql`
+  mutation CreateEmbeddedSparkWallet($input: EmbeddedSparkWalletInput!) {
+    createEmbeddedSparkWallet(input: $input) {
+      id
+    }
+  }
+`
+
 export const CREATE_WALLET_INVOICE = gql`
   mutation createWalletInvoice($walletId: ID!, $amount: Int!, $description: String) {
     createWalletInvoice(walletId: $walletId, amount: $amount, description: $description)

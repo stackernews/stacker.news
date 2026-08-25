@@ -33,6 +33,7 @@ export const resolvers = {
   },
   Mutation: {
     addWalletLog,
+    createEmbeddedSparkWallet,
     saveWalletProtocols,
     testWalletRecvProtocol,
     deleteWalletLogs
@@ -71,6 +72,72 @@ export async function testWalletRecvProtocol (parent, { config: wrapper }, { me 
   }
 
   return true
+}
+
+// Embedded onboarding means "ensure this user has a Spark wallet." Serializing
+// on the user row makes concurrent requests and retries after a lost response
+// converge on the same wallet without restricting normal multi-wallet saves.
+export async function createEmbeddedSparkWallet (parent, { input }, { me, models }) {
+  if (!me) throw new GqlAuthenticationError()
+
+  const send = decodeProtocolConfig({ walletSendSpark: { mnemonic: input.mnemonic } })
+  const receive = decodeProtocolConfig({ walletRecvSpark: { identityPubkey: input.identityPubkey } })
+  await validateProtocolConfig(send.protocol, send.config, { keyHash: input.mnemonic.keyHash })
+  await validateProtocolConfig(receive.protocol, receive.config)
+
+  const savedWalletId = await commitWithBadgeNotifications(models, async tx => {
+    const [user] = await tx.$queryRaw`
+      SELECT "vaultKeyHash" FROM users WHERE id = ${me.id} FOR NO KEY UPDATE`
+    if (!user) throw new GqlAuthenticationError()
+
+    const existing = await tx.wallet.findFirst({
+      where: { userId: me.id, templateName: 'SPARK' },
+      select: { id: true }
+    })
+    if (existing) {
+      return { value: existing.id, notifications: [] }
+    }
+
+    if (!user.vaultKeyHash || user.vaultKeyHash !== input.mnemonic.keyHash) {
+      throw new GqlInputError('passphrase changed, please retry')
+    }
+
+    const wallet = await tx.wallet.create({
+      data: { userId: me.id, templateName: 'SPARK' },
+      select: { id: true }
+    })
+    await upsertProtocolInTransaction({
+      tx,
+      walletId: wallet.id,
+      userId: me.id,
+      protocol: send.protocol,
+      enabled: true,
+      config: send.config
+    })
+    await upsertProtocolInTransaction({
+      tx,
+      walletId: wallet.id,
+      userId: me.id,
+      protocol: receive.protocol,
+      enabled: true,
+      config: receive.config
+    })
+
+    return {
+      value: wallet.id,
+      notifications: await updateWalletBadges({ userId: me.id, tx })
+    }
+  })
+
+  const wallet = await models.wallet.findUnique({
+    where: { id: savedWalletId, userId: me.id },
+    include: {
+      template: true,
+      protocols: { orderBy: { id: 'asc' } }
+    }
+  })
+  if (!wallet) throw new GqlInputError('wallet not found')
+  return mapWalletResolveTypes(wallet)
 }
 
 // Atomic configure-save: validate every upsert, then apply upserts + removes

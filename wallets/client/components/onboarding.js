@@ -16,7 +16,7 @@ import { useEncryption } from '@/wallets/client/hooks/crypto'
 import { protocolTestSendPayment } from '@/wallets/client/protocols'
 import { clearWalletBalanceCache } from '@/wallets/client/balance'
 import {
-  SAVE_WALLET_PROTOCOLS,
+  CREATE_EMBEDDED_SPARK_WALLET,
   TEST_WALLET_RECV_PROTOCOL,
   WALLETS
 } from '@/wallets/client/fragments'
@@ -119,7 +119,7 @@ function EmbeddedSparkProvision ({ onSuccess }) {
   const client = useApolloClient()
   const { encrypt } = useEncryption()
   const [testReceive] = useMutation(TEST_WALLET_RECV_PROTOCOL)
-  const [saveWallet] = useMutation(SAVE_WALLET_PROTOCOLS)
+  const [createWallet] = useMutation(CREATE_EMBEDDED_SPARK_WALLET)
   const abortController = useRef(null)
   const [error, setError] = useState(null)
 
@@ -141,24 +141,21 @@ function EmbeddedSparkProvision ({ onSuccess }) {
         context: { fetchOptions: { signal: controller.signal } }
       })
       const encryptedMnemonic = await encrypt(mnemonic)
-      const { data } = await saveWallet({
+      const { data } = await createWallet({
         variables: {
-          templateName: 'SPARK',
-          upserts: [
-            { enabled: true, config: { walletSendSpark: { mnemonic: encryptedMnemonic } } },
-            { enabled: true, config: { walletRecvSpark: { identityPubkey } } }
-          ],
-          removeIds: []
+          input: { mnemonic: encryptedMnemonic, identityPubkey }
         },
         context: { fetchOptions: { signal: controller.signal } }
       })
-      const walletId = data?.saveWalletProtocols?.id
+      const walletId = data?.createEmbeddedSparkWallet?.id
       if (!walletId) throw new Error('wallet saved without an id')
 
       requestPersistentStorage()
       clearWalletBalanceCache()
-      await client.refetchQueries({ include: [ME, WALLETS] })
       onSuccess(walletId)
+      client.refetchQueries({ include: [ME, WALLETS] }).catch(err => {
+        console.error('failed to refresh wallet state:', err)
+      })
     } catch (err) {
       if (controller.signal.aborted) return
       console.error('failed to create embedded wallet:', err)
@@ -166,7 +163,7 @@ function EmbeddedSparkProvision ({ onSuccess }) {
     } finally {
       if (abortController.current === controller) abortController.current = null
     }
-  }, [client, encrypt, onSuccess, saveWallet, testReceive])
+  }, [client, createWallet, encrypt, onSuccess, testReceive])
 
   useEffect(() => {
     provision()

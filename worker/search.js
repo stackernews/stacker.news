@@ -26,6 +26,11 @@ const ITEM_SEARCH_FIELDS = gql`
         name
       }
     }
+    poll {
+      options {
+        option
+      }
+    }
     status
     company
     location
@@ -54,6 +59,14 @@ async function _indexItem (item, { models, updatedAt }) {
   }
   if (item.text) {
     itemcp.text = removeMd(item.text)
+  }
+
+  // make poll options searchable/highlightable alongside the title and body
+  if (item.poll?.options?.length) {
+    const options = item.poll.options.map(({ option }) => option).filter(Boolean).join('\n')
+    if (options) {
+      itemcp.text = itemcp.text ? `${itemcp.text}\n\n${options}` : options
+    }
   }
 
   // Keep territory metadata in a flat array because ingest processing can

@@ -694,6 +694,7 @@ export default {
             )`,
             paidItemSql(me),
             activeOrMineSql(me),
+            muteSql(me),
             Prisma.sql`"Item"."created_at" > ${after}::TIMESTAMP`
           )}
           ORDER BY "Item"."created_at" ASC`

@@ -21,6 +21,7 @@ const typeDefs = gql`
 
     # test a receive protocol by asking it to mint a probe invoice
     testWalletRecvProtocol(config: WalletRecvProtocolTestInput!): Boolean!
+    createEmbeddedSparkWallet(input: EmbeddedSparkWalletInput!): Wallet!
 
     # delete
     deleteWallet(id: ID!): Boolean
@@ -404,6 +405,10 @@ const typeDefs = gql`
   input WalletRecvClinkConfigInput { noffer: String! }
   input WalletSendSparkConfigInput { mnemonic: VaultEntryInput! }
   input WalletRecvSparkConfigInput { identityPubkey: String! }
+  input EmbeddedSparkWalletInput {
+    mnemonic: VaultEntryInput!
+    identityPubkey: String!
+  }
 
   type WalletLogs {
     logs: [WalletLogEntry!]!

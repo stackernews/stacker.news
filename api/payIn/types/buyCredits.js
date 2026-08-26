@@ -8,6 +8,10 @@ export const paymentMethods = [
   PAID_ACTION_PAYMENT_METHODS.PESSIMISTIC
 ]
 
+// buying credits with the sats balance converts withdrawable sats into credits,
+// so we only do it when the buyer explicitly asks for it
+export const rewardSatsOptIn = true
+
 export async function getInitial (models, { credits }, { me }) {
   return {
     payInType: 'BUY_CREDITS',

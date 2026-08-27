@@ -192,11 +192,9 @@ function nymClauses (nym) {
   if (!nym) return { filters: [], queries: [] }
   const name = nym.slice(1).toLowerCase()
   if (!name) return { filters: [], queries: [] } // guard: bare "@" with no name
-  const pattern = `*${name}*`
-  // Strict author-only filter for @nym searches.
-  // case_insensitive: keyword field stores original case; queries are lowercased
+  // Exact author match: *nym* substring lets "@hn" match "John".
   return {
-    filters: [{ wildcard: { 'user.name': { value: pattern, case_insensitive: true } } }],
+    filters: [{ term: { 'user.name': { value: name, case_insensitive: true } } }],
     queries: []
   }
 }

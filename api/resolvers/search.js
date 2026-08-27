@@ -678,8 +678,18 @@ function buildSearchQuery ({
 
   const minMatch = should.length > 0 ? 1 : 0
 
+  // Field sorts (sats/comments/new) put nym in `must` as well as `filter`.
+  // Filter-only + sort on ranktop/ncomments has been dropping the author
+  // wildcard; query-context must does not.
+  const nymMust = filters.filter(f => f?.wildcard && f.wildcard['user.name'])
+  const otherFilters = filters.filter(f => !(f?.wildcard && f.wildcard['user.name']))
   const bm25WithFilters = {
-    bool: { filter: filters, should, minimum_should_match: minMatch }
+    bool: {
+      filter: otherFilters,
+      ...(nymMust.length ? { must: nymMust } : {}),
+      should,
+      minimum_should_match: minMatch
+    }
   }
 
   // hybrid/neural only helps when scoring matters (relevance sort);
@@ -729,10 +739,19 @@ const SEARCH_HIGHLIGHT = {
   }
 }
 
-async function hitsToItems (hits, { me, models, orderBy }) {
+async function hitsToItems (hits, { me, models, orderBy, nym }) {
   if (hits.length === 0) return []
 
   const values = Prisma.join(hits.map((e, i) => Prisma.sql`(${Number(e._source.id)}::INTEGER, ${i}::INTEGER)`))
+  const nymName = nym?.startsWith('@') ? nym.slice(1) : nym
+  // Re-apply @nym in SQL. OpenSearch field sorts (sats/comments) have been
+  // observed dropping the user.name wildcard filter even though relevance/new
+  // keep it; this makes the author constraint hold for every sort.
+  const nymJoin = nymName
+    ? Prisma.sql`
+      JOIN "User" nym_user ON nym_user.id = "Item"."userId"
+      AND nym_user.name ILIKE ${'%' + nymName + '%'}`
+    : Prisma.sql``
 
   return itemQueryWithMeta({
     me,
@@ -741,7 +760,8 @@ async function hitsToItems (hits, { me, models, orderBy }) {
       WITH r(id, rank) AS (VALUES ${values})
       ${SELECT}, rank
       FROM "Item"
-      JOIN r ON "Item".id = r.id`,
+      JOIN r ON "Item".id = r.id
+      ${nymJoin}`,
     orderBy
   })
 }
@@ -988,7 +1008,7 @@ export default {
         }
       }
       const items = attachHighlights(
-        await hitsToItems(hits, { me, models, orderBy: Prisma.sql`ORDER BY rank ASC, msats DESC` }),
+        await hitsToItems(hits, { me, models, nym, orderBy: Prisma.sql`ORDER BY rank ASC, msats DESC` }),
         hits
       )
 

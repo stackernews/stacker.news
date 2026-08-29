@@ -1,5 +1,4 @@
 import { useEffect, useContext, createContext, useState, useCallback, useId, useMemo } from 'react'
-import BootstrapForm from 'react-bootstrap/Form'
 import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
@@ -11,7 +10,7 @@ import { useMe } from './me'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
-import { SubmitButton } from './form'
+import { Checkbox, SubmitButton } from './form'
 import { useFormikContext } from 'formik'
 
 const FeeButtonContext = createContext()
@@ -201,13 +200,12 @@ export function FreebieCheckbox () {
   if (!freebieAvailable) return null
 
   return (
-    <BootstrapForm.Check
-      type='checkbox'
+    <Checkbox
+      name='useFreebie'
       id={id}
-      className={styles.freebieCheckbox}
+      groupClassName={styles.freebieCheckbox}
       label='use free comment'
       checked={checked}
-      onChange={e => setFieldValue('useFreebie', e.target.checked, false)}
     />
   )
 }

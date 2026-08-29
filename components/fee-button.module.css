@@ -28,7 +28,7 @@
 }
 
 .freebieCheckbox:focus-within label {
-    color: var(--sn-color);
+    color: var(--sn-body-color);
 }
 
 .receipt td {

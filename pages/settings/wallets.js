@@ -85,7 +85,7 @@ function ReceiveSettings () {
       <Checkbox
         name='proxyReceive'
         label={
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             proxy receives for enhanced privacy by default
             <Info>
               <ul>

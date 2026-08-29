@@ -1,5 +1,6 @@
 import { Fragment } from 'react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import Tooltip from '@/components/ui/tooltip'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import GunIcon from '@/svgs/revolver.svg'
@@ -9,12 +10,15 @@ import { numWithUnits } from '@/lib/format'
 import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
 
-export default function Badges ({ user, badge, bot, showWalletBadges, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
+export default function Badges ({ user, badge, bot, showWalletBadges, interactive = false, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
   if (!user) return null
   if (Number(user.id) === USER_ID.anon) {
     return (
-      <BadgeTooltip overlayText='anonymous'>
-        <span className={className}><AnonIcon className={`${badgeClassName} align-middle`} height={height} width={width} /></span>
+      <BadgeTooltip overlayText='anonymous' interactive={interactive}>
+        <span className={className}>
+          <AnonIcon className={`${badgeClassName} align-middle`} height={height} width={width} />
+          <span className='sr-only'>anonymous</span>
+        </span>
       </BadgeTooltip>
     )
   }
@@ -70,34 +74,40 @@ export default function Badges ({ user, badge, bot, showWalletBadges, className 
           width={width}
           sizeDelta={sizeDelta}
           style={style}
+          interactive={interactive}
         />
       ))}
     </span>
   )
 }
 
-function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0, style }) {
+function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0, style, interactive }) {
   let Wrapper = Fragment
 
   if (overlayText) {
     Wrapper = ({ children }) => (
-      <BadgeTooltip overlayText={overlayText}>{children}</BadgeTooltip>
+      <BadgeTooltip overlayText={overlayText} interactive={interactive}>{children}</BadgeTooltip>
     )
   }
 
   return (
     <Wrapper>
-      <span className='inline-flex items-center justify-center' style={style}><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
+      <span className='inline-flex items-center justify-center' style={style}>
+        <IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} />
+        <span className='sr-only'>{overlayText}</span>
+      </span>
     </Wrapper>
   )
 }
 
-// a hint that must open on tap is a Popover, not a Tooltip, in Base UI
-// vocabulary. All defaults: hover opens instantly and closes on hover-out, tap
-// opens and pins (outside tap, second tap or Escape close), desktop click pins
-// on purpose. nativeButton={false} adds role and tabIndex, so badges are
-// keyboard-reachable (Enter pins, Escape closes)
-export function BadgeTooltip ({ children, overlayText, placement }) {
+// Badges inside links and menu triggers stay passive so they cannot create a
+// control inside another control. Standalone badges opt into a tap-accessible
+// Popover; passive badges retain hover help and inline screen-reader text.
+export function BadgeTooltip ({ children, overlayText, placement, interactive = false }) {
+  if (!interactive) {
+    return <Tooltip content={overlayText} side={placement || 'bottom'}>{children}</Tooltip>
+  }
+
   return (
     <Popover>
       <PopoverTrigger render={children} nativeButton={false} openOnHover delay={0} />

@@ -8,7 +8,7 @@ import { PriceCarouselProvider } from './price-carousel'
 export default function StaticHeader () {
   return (
     <PriceCarouselProvider>
-      <Container as='header'>
+      <Container as='header' data-sn-navigation>
         <nav className='flex items-center flex-nowrap py-2'>
           <Nav className={styles.navbarNav}>
             <BackOrBrand />

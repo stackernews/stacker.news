@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "audit:blast-radius": "node scripts/audit-blast-radius.js",
-    "dev": "NODE_OPTIONS='--trace-warnings --enable-source-maps' next dev --webpack",
+    "dev": "NODE_OPTIONS='--trace-warnings --enable-source-maps --inspect=0.0.0.0:9229' next dev --webpack",
     "build": "next build --webpack",
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings --max-old-space-size=4096 --max-semi-space-size=128' next start -p $PORT --keepAliveTimeout 120000",

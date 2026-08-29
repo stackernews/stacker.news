@@ -148,7 +148,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
           const target = details.event?.target
           if (target instanceof window.Node && editor.getRootElement()?.contains(target)) return
           handleCancel()
-        } else if (details.reason === 'escape-key') {
+        } else if (details.reason === 'escape-key' || details.reason === 'focus-out') {
           handleCancel()
         }
       }}

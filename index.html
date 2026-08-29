@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOSS Webpage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+    <style>
+        :root {
+            --primary: #FADA5E;
+            --secondary: #F6911D;
+            --info: #007cbe;
+            --success: #5c8001;
+            --danger: #c03221;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        #navbar {
+            overflow: hidden;
+            background-color: var(--secondary);
+        }
+
+        #navbar a {
+            float: left;
+            display: block;
+            color: var(--light);
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        #navbar a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        .content {
+            display: none;
+            padding: 20px;
+            border-radius: 0.4rem;
+            margin: 10px;
+            background: var(--light);
+            border: 1px solid var(--dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid var(--dark);
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--info);
+        }
+
+        #docLinks a {
+            display: block;
+            margin-top: 5px;
+            color: var(--dark);
+            background-color: var(--success);
+            padding: 10px;
+            border-radius: 0.4rem;
+            text-decoration: none;
+        }
+
+        #docLinks a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        /* Code block styling */
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        /* Inline code styling */
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            color: #d63384;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar">
+        <a href="#" onclick="showSection('readme')">README</a>
+        <a href="#" onclick="showSection('docs')">Docs</a>
+        <a href="#" onclick="showSection('awards')">Awards</a>
+    </div>
+
+    <div id="awards" class="content">
+       <h1>Awards</h1>
+
+       <h2>Total Earnings Per Contributor</h2>
+       <table id="totalsTable">
+           <thead>
+               <tr>
+                   <th>Name</th>
+                   <th>Total Amount</th>
+               </tr>
+           </thead>
+           <tbody>
+           </tbody>
+       </table>
+
+       <h2>All Contributions</h2>
+       <table id="awardsTable">
+           <thead>
+               <tr>
+                   <th>Name</th>
+                   <th>Type</th>
+                   <th>PR/Issue ID</th>
+                   <th>Difficulty</th>
+                   <th>Amount</th>
+                   <th>Receive Method</th>
+                   <th>Date Paid</th>
+               </tr>
+           </thead>
+           <tbody>
+           </tbody>
+       </table>
+    </div>
+
+<!-- Use this if we want to FETCH the md files dynamically
+    <div id="readme" class="content">
+        <h1>README</h1>
+        <div id="readmeContent"></div> 
+    </div>
+-->
+    <div id="readme" class="content">
+    <h1>README</h1>
+    <div id="readmeContent" style="height: 600px;"> 
+       <iframe src="README.html" style="width: 100%; height: 100%; border: none;"></iframe>
+    </div> 
+    </div>
+
+<!-- Use this if we want to FETCH the md files dynamically
+    <div id="docs" class="content">
+        <h1>Docs</h1>
+        <div id="docLinks">
+            <a href="#" onclick="loadMarkdown('docs/attach-lnbits.md', 'docsContent')">Attach LNbits</a>
+            <a href="#" onclick="loadMarkdown('docs/generating-seed.md', 'docsContent')">Generating Seed</a>
+            <a href="#" onclick="loadMarkdown('docs/semantic-search.md', 'docsContent')">Semantic Search</a>
+            <a href="#" onclick="loadMarkdown('docs/time-is-a-bitch.md', 'docsContent')">Time is a Bitch</a>
+            <a href="#" onclick="loadMarkdown('docs/useful-dev-commands.md', 'docsContent')">Useful Dev Commands</a>
+        </div>
+        <div id="docsContent"></div> 
+    </div>
+-->
+    <div id="docs" class="content">
+        <h1>Docs</h1>
+        <div id="docLinks">
+            <a href="#" onclick="loadDocument('docs/attach-lnbits.html')">Attach LNbits</a>
+            <a href="#" onclick="loadDocument('docs/generating-seed.html')">Generating Seed</a>
+            <a href="#" onclick="loadDocument('docs/semantic-search.html')">Semantic Search</a>
+            <a href="#" onclick="loadDocument('docs/time-is-a-bitch.html')">Time is a Bitch</a>
+            <a href="#" onclick="loadDocument('docs/useful-dev-commands.html')">Useful Dev Commands</a>
+        </div>
+        <div id="docsContent" style="height: 600px;"> 
+            <iframe id="docFrame" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div> 
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            var sections = document.getElementsByClassName('content');
+            for (var i = 0; i < sections.length; i++) {
+                sections[i].style.display = 'none';
+            }
+            document.getElementById(sectionId).style.display = 'block';
+        }
+        function convertMarkdown() {
+            var converter = new showdown.Converter({
+                tables: true, // Enable table support
+                simplifiedAutoLink: true, // Enable automatic linking of URLs
+                strikethrough: true, // Enable strikethrough support
+                tasklists: true, // Enable task lists
+                simpleLineBreaks: true, // Enable single line breaks
+                openLinksInNewWindow: true, // Open all links in new windows
+                ghCodeBlocks: true, // Enable GitHub flavored code blocks
+                smoothLivePreview: true,
+                smartIndentationFix: true
+            });
+            fetch('README.md').then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+                .then(text => {
+                    document.getElementById('readmeContent').innerHTML = converter.makeHtml(text);
+                })
+                .catch(error => {
+                    console.error('Error processing the README:', error);
+                });
+        }
+        window.onload = convertMarkdown;
+        function loadMarkdown(mdFile, targetId) {
+            var converter = new showdown.Converter({
+                tables: true, // Enable table support
+                simplifiedAutoLink: true, // Enable automatic linking of URLs
+                strikethrough: true, // Enable strikethrough support
+                tasklists: true, // Enable task lists
+                simpleLineBreaks: true, // Enable single line breaks
+                openLinksInNewWindow: true, // Open all links in new windows
+                ghCodeBlocks: true, // Enable GitHub flavored code blocks
+                smoothLivePreview: true,
+                smartIndentationFix: true
+            });
+            fetch(mdFile)
+                .then(response => response.text())
+                .then(text => {
+                    document.getElementById(targetId).innerHTML = converter.makeHtml(text);
+                })
+                .catch(error => {
+                    console.error('Error loading the Markdown file:', error);
+                });
+        }
+    </script>
+    <script>
+        Papa.parse('awards.csv', {
+            download: true,
+            header: true,
+            complete: function(results) {
+                var data = results.data;
+                var awardsTable = document.getElementById('awardsTable').getElementsByTagName('tbody')[0];
+                var totals = {};
+                data.forEach(function(row) {
+                    var newRow = awardsTable.insertRow();
+                    newRow.insertCell().appendChild(document.createTextNode(row.name || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row.type || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row['pr id'] || row['issue ids'] || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row.difficulty || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row.amount || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row['receive method'] || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row['date paid'] || ''));
+                    if (row.amount && typeof row.amount === 'string') {
+                        if (!totals[row.name]) {
+                            totals[row.name] = 0;
+                        }
+                        let amount = row.amount.replace(/k$/, '000').replace(',', '');
+                        totals[row.name] += parseInt(amount) || 0;
+                    }
+                });
+                var sortedTotals = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+                var totalsTable = document.getElementById('totalsTable').getElementsByTagName('tbody')[0];
+                sortedTotals.forEach(function([contributor, total]) {
+                    var newRow = totalsTable.insertRow();
+                    newRow.insertCell().appendChild(document.createTextNode(contributor));
+                    newRow.insertCell().appendChild(document.createTextNode(total.toString()));
+                });
+            }
+        });
+    </script>
+
+    <script>
+    function resizeIframe(iframe) {
+        try {
+            // Set the iframe's height to that of the internal document's body height
+            iframe.style.height = iframe.contentWindow.document.body.scrollHeight + "px";
+        } catch (e) {
+            console.error("Error resizing iframe:", e);
+        }
+    }
+    </script>
+
+    <script>
+        function loadDocument(htmlFile) {
+            const iframe = document.getElementById('docFrame');
+            iframe.src = htmlFile;
+        }
+    </script>
+
+</body>
+</html>
+

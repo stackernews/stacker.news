@@ -132,8 +132,8 @@
   line-height: 1.25;
 }
 .confirmationErrorVisible {
-  border-color: rgba(var(--sn-danger-rgb), 0.35);
-  background: rgba(var(--sn-danger-rgb), 0.06);
+  border-color: color-mix(in srgb, var(--sn-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--sn-danger) 6%, transparent);
 }
 .slotError {
   --surface-row-ring-color: var(--sn-danger);

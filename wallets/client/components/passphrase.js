@@ -369,7 +369,7 @@ export function WalletPassphrasePrompt ({ onSuccess }) {
             ))}
           </div>
         </div>
-        <div className='d-flex align-items-center justify-content-between gap-2 flex-wrap mt-2'>
+        <div className='flex items-center justify-between gap-2 flex-wrap mt-2'>
           <span className={styles.counter}>
             {enteredCount} / {WORD_COUNT} entered
           </span>
@@ -381,7 +381,7 @@ export function WalletPassphrasePrompt ({ onSuccess }) {
         <span key={unlockError.count}>{unlockError.message}</span>
       </div>
 
-      <div className='d-flex justify-content-center'>
+      <div className='flex justify-center'>
         <Button
           type='submit'
           variant='primary'
@@ -459,10 +459,10 @@ export function WalletPassphraseSetup ({
   if (generationError) {
     return (
       <div className='text-center'>
-        <p className='line-height-md text-muted mt-4'>
+        <p className='leading-normal text-muted mt-6'>
           We could not generate a passphrase right now.
         </p>
-        <div className='d-flex justify-content-center mt-3'>
+        <div className='flex justify-center mt-4'>
           <Button variant='secondary' onClick={regenerate}>try again</Button>
         </div>
       </div>
@@ -470,7 +470,7 @@ export function WalletPassphraseSetup ({
   }
 
   if (!candidate) {
-    return <p className='line-height-md text-muted mt-4 text-center'>generating passphrase...</p>
+    return <p className='leading-normal text-muted mt-6 text-center'>generating passphrase...</p>
   }
 
   const candidateWords = tokenize(candidate.passphrase)

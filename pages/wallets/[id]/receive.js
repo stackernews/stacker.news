@@ -94,7 +94,7 @@ function WalletReceive ({ wallet, defaultProxyReceive }) {
                     max={max}
                     required
                     autoFocus
-                    append={<InputAddon className='text-monospace'>sats</InputAddon>}
+                    append={<InputAddon className='font-mono'>sats</InputAddon>}
                   />
                   <Input
                     label='memo'
@@ -112,7 +112,7 @@ function WalletReceive ({ wallet, defaultProxyReceive }) {
                   <Checkbox
                     name='proxyReceive'
                     label={
-                      <span className='d-flex align-items-center'>
+                      <span className='flex items-center'>
                         proxy receive for enhanced privacy
                         <Info>
                           <ul>

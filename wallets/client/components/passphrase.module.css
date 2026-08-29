@@ -177,11 +177,8 @@
 
 .slotInput {
   min-width: 0;
-  padding: 0.4rem 0.5rem;
-  font-family: var(--sn-font-monospace);
-  font-size: 0.95rem;
 }
-[data-bs-theme="dark"] .slotInput:not(:focus) {
+:global([data-theme='dark']) .slotInput:not(:focus) {
   border-color: color-mix(in srgb, var(--sn-borderColor) 20%, transparent);
 }
 /* CSS masking avoids exposing the word grid as password fields to password managers. */

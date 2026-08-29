@@ -200,4 +200,11 @@
   text-decoration: none;
 }
 
+/* Dark tints the territory primary 40% toward white, master's dark .btn-link
+   paint, mixed on the button so a brand retint anywhere above it is honored. */
+:global([data-theme='dark']) .link {
+  --sn-btn-color: color-mix(in srgb, var(--sn-primary) 60%, #fff 40%);
+  --sn-btn-hover-color: color-mix(in srgb, var(--sn-btn-color) 80%, #fff 20%);
+}
+
 }

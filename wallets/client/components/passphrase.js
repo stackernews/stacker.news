@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Button from '@/components/ui/button'
 import classNames from 'classnames'
 import { useMe } from '@/components/me'
-import { CopyButton, PasswordVisibilityIcon } from '@/components/form'
+import { CopyButton, inputClasses, PasswordVisibilityIcon } from '@/components/form'
 import { useShowModal } from '@/components/modal'
 import { useToast } from '@/components/ui/toast'
 import { useIsClient } from '@/components/use-client'
@@ -350,7 +350,10 @@ export function WalletPassphrasePrompt ({ onSuccess }) {
                 <span className={styles.wordIndex}>{formatPosition(i)}</span>
                 <input
                   ref={el => { inputRefs.current[i] = el }}
-                  className={classNames('form-control', styles.slotInput, hidden && styles.slotInputMasked)}
+                  className={inputClasses({
+                    size: 'sm',
+                    className: classNames('font-mono text-base', styles.slotInput, hidden && styles.slotInputMasked)
+                  })}
                   type={hidden && !maskSupported ? 'password' : 'text'}
                   autoComplete='off'
                   autoCapitalize='none'

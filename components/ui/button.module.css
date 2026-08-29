@@ -69,6 +69,11 @@
   --sn-btn-bg: var(--sn-success);
 }
 
+.warning {
+  --sn-btn-color: #000;
+  --sn-btn-bg: var(--sn-warning);
+}
+
 .grey {
   --sn-btn-color: #000;
   --sn-btn-bg: #e9ecef;

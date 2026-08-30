@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client'
 import { bolt11ExpiresAt, bolt11ToPayment } from '@/lib/bolt11'
+import { assertValidBolt11, logInvalidBolt11 } from '@/lib/bolt11-validator'
 import { E_TRANSIENT, errorMessage, GqlInputError } from '@/lib/error'
 import {
   RECONCILIATION_GRACE_MS,
@@ -106,6 +107,13 @@ async function claimExternalTransactions (models, predicate, selection) {
 }
 
 export async function createExternalSendTransaction (models, args) {
+  // if the bolt11 doesn't pass syntactic validation, we stop here.
+  try {
+    assertValidBolt11(args.bolt11)
+  } catch (err) {
+    logInvalidBolt11('rejecting external send', err)
+    throw new GqlInputError(err.message)
+  }
   const { hash, msatsRequested: amountMsats } = bolt11ToPayment(args.bolt11)
   const invoiceExpiresAt = bolt11ExpiresAt(args.bolt11)
   if (!hash || !invoiceExpiresAt) {

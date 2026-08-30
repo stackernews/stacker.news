@@ -136,7 +136,7 @@ function SendFormFields ({ controller, enforcesMaxFee }) {
         {destination.type === DestinationType.LN_ADDR && showLnAddrFields && (
           <LightningAddressFields service={lnAddrLookup.service} maxFee={feeControl} />
         )}
-        {destination.type === DestinationType.BOLT11 && (
+        {destination.type === DestinationType.BOLT11 && !destination.error && (
           <>
             <Bolt11Info bolt11={destination.value} />
             {feeControl}

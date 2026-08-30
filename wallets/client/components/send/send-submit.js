@@ -5,6 +5,7 @@ import { useMe } from '@/components/me'
 import { useShowModal } from '@/components/modal'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '@/fragments/withdrawal'
 import { bolt11Description, bolt11ToPayment } from '@/lib/bolt11'
+import { assertValidBolt11 } from '@/lib/bolt11-validator'
 import { formatSats, msatsToSats, satsToMsats, toPositiveNumber } from '@/lib/format'
 import { fetchLnAddrInvoice, SUPPORTED_PAYER_DATA_FIELDS } from '@/lib/lnurl'
 import { WALLET_SHELL_SEND_PAYMENT_TIMEOUT_MS } from '@/lib/constants'
@@ -27,7 +28,8 @@ export function useRewardSatsSubmit () {
 
     let id
     if (destination.type === DestinationType.BOLT11) {
-      assertInvoiceAmount(destination)
+      assertValidBolt11Destination(destination) // catch syntax validation errors first
+      assertBolt11Amount(destination)
       const { data } = await createWithdrawl({ variables: { invoice: destination.value, maxFee: toPositiveNumber(values.maxFee) } })
       id = data.createWithdrawl.id
     } else if (destination.type === DestinationType.LN_ADDR) {
@@ -67,7 +69,8 @@ export function useExternalSubmit ({ wallet, protocol, logger }) {
     let lnurlVerifyUrl
 
     if (destination.type === DestinationType.BOLT11) {
-      const msats = assertInvoiceAmount(destination)
+      assertValidBolt11Destination(destination) // catch syntax validation errors first
+      const msats = assertBolt11Amount(destination)
       sats = msatsToSats(msats)
       const description = bolt11Description(destination.value)
       bolt11 = destination.value
@@ -79,6 +82,7 @@ export function useExternalSubmit ({ wallet, protocol, logger }) {
         ...lnAddrSubmitValues(values, lnAddrService),
         amount: sats
       }, { me: { name: meName }, service: lnAddrService })
+      // fetchLnAddrInvoice does the syntactic validation on a fetched bolt11
       bolt11 = invoice.pr
       // LUD-21: a credential-free settlement checker even checkerless wallets get
       lnurlVerifyUrl = typeof invoice.verify === 'string' ? invoice.verify : undefined
@@ -133,7 +137,13 @@ function lnAddrSubmitValues (values, { commentAllowed, payerData } = {}) {
   }
 }
 
-function assertInvoiceAmount (destination) {
+function assertValidBolt11Destination (destination) {
+  if (destination.error) throw new Error(destination.error)
+  // we re-validate syntax regardless in case of a race on the send button
+  assertValidBolt11(destination.value)
+}
+
+function assertBolt11Amount (destination) {
   if (destination.invoiceMsats == null) throw new Error('invoice must specify an amount')
   if (destination.invoiceMsats % 1000n !== 0n) throw new Error('invoice amount must be a whole number of sats')
   return destination.invoiceMsats

@@ -16,6 +16,7 @@ import { PayInFailureReasonError } from './errors'
 import { payInReplacePayOuts } from './lib/payInFailed'
 import { GqlInputError, GqlPayInRetryRaceError } from '@/lib/error'
 import { isLndMaintenance, LND_MAINTENANCE_MESSAGE } from '@/api/lnd/maintenance'
+import { assertValidBolt11, logInvalidBolt11, Bolt11SyntaxError } from '@/lib/bolt11-validator'
 const models = createPrisma({ connectionParams: { connection_limit: 2 } })
 
 export default async function pay (payInType, payInArgs, { me, custodialOnly, sendProtocolId } = {}) {
@@ -224,12 +225,20 @@ async function afterBegin (models, { payIn, result, mCostRemaining }, { me, send
     } else if (payIn.payInState === 'PENDING_WITHDRAWAL') {
       const { mtokens } = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
       try {
+        // pre-empt the call to decodePaymentRequest with a final gate checking
+        // semantic bolt11 validity, before the call payViaPaymentRequest, as a
+        // defense-in-depth artifact because the semantic check is cheap.
+        assertValidBolt11(payIn.payOutBolt11.bolt11)
         const decoded = await decodePaymentRequest({ request: payIn.payOutBolt11.bolt11 })
         if (decoded.id !== payIn.payOutBolt11.hash) {
           throw new Error(`stored payment hash ${payIn.payOutBolt11.hash} does not match LND-decoded hash ${decoded.id}`)
         }
       } catch (err) {
-        console.error('refusing to dispatch withdrawal', { payInId: payIn.id, error: err.message })
+        if (err instanceof Bolt11SyntaxError) {
+          logInvalidBolt11(`refusing to dispatch withdrawal for payIn ${payIn.id}`, err)
+        } else {
+          console.error(`refusing to dispatch withdrawal for payIn ${payIn.id}`, { error: err.message })
+        }
         await queuePayInWithdrawalFailed(models, payIn.id)
         return { ...payIn, result }
       }

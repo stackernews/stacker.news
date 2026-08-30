@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { formatSats, msatsToSatsDecimal } from '@/lib/format'
 import { bolt11ExpiresAtFromDecoded, bolt11Section, safeDecodeBolt11 } from '@/lib/bolt11'
+import { bolt11SyntaxError } from '@/lib/bolt11-validator'
 import { timeLeft, timeSince } from '@/lib/time'
 import CopyChip, { Chip } from '@/components/copy-chip'
 import Link from 'next/link'
@@ -31,8 +32,10 @@ export default function Bolt11Info ({
   const [expanded, setExpanded] = useState(false)
   const showRelativeTimes = useIsClient()
   // memoize the decode only: the details' relative time labels depend on the current time
-  const decoded = useMemo(() => safeDecodeBolt11(bolt11), [bolt11])
-  const details = bolt11Details({ decoded, bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes })
+  const syntaxError = useMemo(() => (bolt11 ? bolt11SyntaxError(bolt11) : null), [bolt11])
+  // nothing decoded out of a syntactically invalid bolt11 invoice is shown as fact
+  const decoded = useMemo(() => (syntaxError ? null : safeDecodeBolt11(bolt11)), [bolt11, syntaxError])
+  const details = bolt11Details({ decoded, syntaxError, bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes })
   if (!details && !children) return null
 
   const chips = details?.chips ?? []
@@ -187,7 +190,7 @@ function NostrZapRequest ({ zap }) {
   )
 }
 
-function bolt11Details ({ decoded, bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes } = {}) {
+function bolt11Details ({ decoded, syntaxError, bolt11, hash, preimage, description, msats, expiresAt, confirmedAt, nostr, nostrNote, lud18Data, comment }, { showRelativeTimes } = {}) {
   // the one owner of invoice-expiry semantics, so the preview and the recorded
   // invoiceExpiresAt can never disagree
   const decodedExpiresAt = bolt11ExpiresAtFromDecoded(decoded)
@@ -206,6 +209,7 @@ function bolt11Details ({ decoded, bolt11, hash, preimage, description, msats, e
 
   // Keep the compact invoice details ordered from human-readable context to raw proof data.
   const chips = [
+    syntaxError && { key: 'invalid', label: 'invalid invoice', tone: 'danger' },
     description && { key: 'description', label: `for ${description}`, value: description },
     paidChip,
     !paidChip && invoiceExpiresAt && invoiceExpiryChip(invoiceExpiresAt, { showRelativeTimes }),

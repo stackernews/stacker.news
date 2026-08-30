@@ -6,6 +6,7 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import { formatMsatsToSats } from '@/lib/format'
 import { FASTISH_POLL_INTERVAL_MS, NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
 import { bolt11QrTransform } from '@/lib/bolt11'
+import { isValidBolt11 } from '@/lib/bolt11-validator'
 import { useData } from '@/components/use-data'
 import PageLoading from '@/components/page-loading'
 import Qr from '@/components/qr'
@@ -82,7 +83,7 @@ export default function ExternalTransactionPage ({ ssrData }) {
   const isSend = transaction.direction === 'SEND'
   const invoiceExpired = expiredTransactionId === transaction.id ||
     new Date(invoiceExpiresAt) <= new Date()
-  const showReceiveQr = !isSend && transaction.bolt11 &&
+  const showReceiveQr = !isSend && transaction.bolt11 && isValidBolt11(transaction.bolt11) &&
     ['PENDING', 'UNKNOWN'].includes(transaction.status) && !invoiceExpired
   const diagnostic = externalTransactionDiagnosticMessage(transaction)
 

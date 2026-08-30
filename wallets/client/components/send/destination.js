@@ -1,4 +1,5 @@
 import { bolt11Msats, isBolt11PaymentRequest, normalizeBolt11PaymentRequest } from '@/lib/bolt11'
+import { bolt11SyntaxError } from '@/lib/bolt11-validator'
 import { isLightningAddress } from '@/lib/validate'
 
 // The idle lookup: no address checked yet. `service` carries only the default
@@ -15,20 +16,30 @@ export const DestinationType = {
   LN_ADDR: 'lnaddr'
 }
 
+// A destination carries `error` when it looks like a bolt11 but it is sytactically invalid:
+// - we keep the type so the form can say what is invalid
+// - we do not provide invoiceMsats because it cannot be trusted from an invalid invoice
+// - Important: callers MUST fail when error !== null
 export function parseDestination (value) {
   const destination = normalizeBolt11PaymentRequest(value)
-  if (!destination) return { value: '', type: null, invoiceMsats: null }
+  if (!destination) return { value: '', type: null, invoiceMsats: null, error: null }
 
   if (isBolt11PaymentRequest(destination)) {
+    const error = bolt11SyntaxError(destination) // validate before case manipulation
     const invoice = destination.toLowerCase()
-    return { value: invoice, type: DestinationType.BOLT11, invoiceMsats: bolt11Msats(invoice) }
+    return {
+      value: invoice,
+      type: DestinationType.BOLT11,
+      invoiceMsats: error ? null : bolt11Msats(invoice),
+      error
+    }
   }
 
   if (isLightningAddress(destination)) {
-    return { value: destination, type: DestinationType.LN_ADDR, invoiceMsats: null }
+    return { value: destination, type: DestinationType.LN_ADDR, invoiceMsats: null, error: null }
   }
 
-  return { value: destination, type: null, invoiceMsats: null }
+  return { value: destination, type: null, invoiceMsats: null, error: null }
 }
 
 // Single source of truth for where a lightning-address lookup stands. Every

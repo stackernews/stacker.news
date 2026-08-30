@@ -1,5 +1,6 @@
 import { formatMsats } from '@/lib/format'
 import { parsePaymentRequest } from 'ln-service'
+import { assertValidBolt11, logInvalidBolt11 } from '@/lib/bolt11-validator'
 
 const WALLET_LOG_DESCRIPTION_MAX_LENGTH = 256
 
@@ -97,6 +98,15 @@ export async function writeWalletLog ({
 async function walletLogContext (context = {}) {
   const { bolt11, ...baseContext } = context
   if (!bolt11) return baseContext
+
+  // If a bolt11 is syntactically invalid, we do not show it in user-facing logs
+  // because the contents cannot be trusted.
+  try {
+    assertValidBolt11(bolt11)
+  } catch (err) {
+    logInvalidBolt11('omitting wallet log context', err)
+    return { ...baseContext, bolt11_error: err.message }
+  }
 
   // Automatically populate context from bolt11 without persisting the full invoice.
   return {

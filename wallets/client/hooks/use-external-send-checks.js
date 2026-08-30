@@ -11,6 +11,7 @@ import {
 } from '@/lib/constants'
 import { isAbortLike, withTimeoutSignal } from '@/lib/time'
 import { toExternalTransactionObservation } from '@/wallets/lib/external-transactions'
+import { isValidBolt11 } from '@/lib/bolt11-validator'
 
 export function useExternalSendChecks () {
   const client = useApolloClient()
@@ -90,6 +91,7 @@ export async function checkAndReportExternalSend ({
 }) {
   if (signal?.aborted) return
   if (!protocol) return
+  if (!isValidBolt11(transaction?.bolt11)) return
 
   let result
   let checkError

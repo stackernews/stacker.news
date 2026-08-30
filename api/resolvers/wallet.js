@@ -5,6 +5,7 @@ import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { fetchLnAddrInvoice } from '@/lib/lnurl'
 import { normalizeBolt11PaymentRequest } from '@/lib/bolt11'
+import { assertValidBolt11, Bolt11SyntaxError, logInvalidBolt11 } from '@/lib/bolt11-validator'
 import { GqlAuthenticationError, GqlAuthorizationError, GqlInputError } from '@/lib/error'
 import { parseWalletId } from '@/wallets/server/resolvers/util'
 import { decodePaymentRequest, getNodeSockets } from '../lnd'
@@ -115,6 +116,14 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
 
   invoice = normalizeBolt11PaymentRequest(invoice)
 
+  // syntax gate before anything touches this invoice
+  try {
+    assertValidBolt11(invoice)
+  } catch (err) {
+    logInvalidBolt11('rejecting withdrawal', err)
+    throw new GqlInputError(err.message)
+  }
+
   // decode invoice to get amount
   let decoded, sockets
   try {
@@ -211,10 +220,21 @@ async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer }
     throw new GqlInputError('max fee must be at least 0')
   }
 
-  const res = await fetchLnAddrInvoice(
-    { addr, amount, comment, ...payer },
-    { me, validateInvoice: validateLnAddrInvoice }
-  )
+  let res
+  try {
+    res = await fetchLnAddrInvoice(
+      { addr, amount, comment, ...payer },
+      { me, validateInvoice: validateLnAddrInvoice }
+    )
+  } catch (err) {
+    // fetchLnAddrInvoice implements syntactic validation on the fetched bolt11.
+    // if it triggers, this corresponds to bad input rather than an
+    // "internal server error", as the error isn't internal. we simply make the
+    // caller responsible for not running a broken lnaddr service.
+    if (!(err instanceof Bolt11SyntaxError)) throw err
+    logInvalidBolt11(`rejecting invoice resolved from lightning address ${addr}`, err)
+    throw new GqlInputError(err.message)
+  }
 
   // take pr and createWithdrawl
   return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })

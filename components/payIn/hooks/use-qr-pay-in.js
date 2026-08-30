@@ -8,6 +8,7 @@ import Qr, { QrSkeleton } from '@/components/qr'
 import PayInError from '../error'
 import { formatMsatsToSats } from '@/lib/format'
 import { bolt11QrTransform } from '@/lib/bolt11'
+import { assertValidBolt11 } from '@/lib/bolt11-validator'
 import { paidWaitFor } from '@/lib/pay-in'
 import { PayInStatus } from '../status'
 
@@ -23,8 +24,16 @@ export default function useQrPayIn () {
       waitFor = paidWaitFor
     } = {}
   ) => {
+    // the invoice arrived over the wire from the API. never show it as a QR or
+    // hand it to WebLN if it is not syntactically valid. Allow the case where
+    // this renders before the bolt11 is known: renders QrSkeleton in QrPayIn()
+    const hasBolt11 = !!payIn.payerPrivates?.payInBolt11?.bolt11
+    if (hasBolt11) {
+      assertValidBolt11(payIn.payerPrivates.payInBolt11.bolt11)
+    }
+
     // if anon user and webln is available, try to pay with webln
-    if (typeof window.webln !== 'undefined' && (walletError instanceof AnonWalletError)) {
+    if (hasBolt11 && typeof window.webln !== 'undefined' && (walletError instanceof AnonWalletError)) {
       weblnSendPayment(payIn.payerPrivates.payInBolt11.bolt11).catch(e => { console.error('WebLN payment failed:', e) })
     }
     return await new Promise((resolve, reject) => {

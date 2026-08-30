@@ -1,6 +1,7 @@
 import Nostr from '@/lib/nostr'
 import { createHash } from 'crypto'
 import { parsePaymentRequest } from 'ln-service'
+import { assertValidBolt11, logInvalidBolt11 } from '@/lib/bolt11-validator'
 
 export async function nip57 ({ data: { hash }, boss, lnd, models }) {
   const payInBolt11 = await models.payInBolt11.findUnique({
@@ -42,6 +43,14 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
   const confirmedAt = payInBolt11
     ? payInBolt11.confirmedAt
     : externalTransaction.settledAt ?? externalTransaction.updatedAt
+
+  // we refuse to publish zap receipts for invalid invoices
+  try {
+    assertValidBolt11(payInBolt11.bolt11)
+  } catch (err) {
+    logInvalidBolt11(`refusing to publish zap receipt for payInBolt11 ${hash}`, err)
+    return
+  }
 
   try {
     if (!preimage) throw new Error('cannot publish NIP-57 receipt without a preimage')

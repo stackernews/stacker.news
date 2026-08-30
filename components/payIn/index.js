@@ -1,5 +1,6 @@
 import { formatMsatsToCCs, formatMsatsToSats } from '@/lib/format'
 import { bolt11QrTransform } from '@/lib/bolt11'
+import { isValidBolt11 } from '@/lib/bolt11-validator'
 import { NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
 import { FAILED_PAY_IN_STATES, getPayInFailurePresentation, describePayInType, getPayInViewerAmounts } from '@/lib/pay-in'
 import Qr from '../qr'
@@ -41,7 +42,8 @@ export default function PayIn ({ id, ssrData }) {
   }
 
   const payerBolt11 = payIn.payerPrivates?.payInBolt11
-  const payerBolt11Pending = payerBolt11 && ['PENDING', 'PENDING_HELD'].includes(payIn.payInState)
+  const payerBolt11Pending = payerBolt11 && isValidBolt11(payerBolt11.bolt11) &&
+    ['PENDING', 'PENDING_HELD'].includes(payIn.payInState)
   const invoiceDetails = payerBolt11 && !PAY_IN_INVOICE_CONTEXT_TYPES.has(payIn.payInType) ? payerBolt11 : null
   const headingAmounts = getPayInViewerAmounts(payIn)
   const headingSats = Math.abs(headingAmounts.SATS.mtokens + headingAmounts.bolt11Mtokens)

@@ -10,6 +10,7 @@ import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib
 import { getPayInFailurePresentation } from '@/lib/pay-in'
 import { notifyWithdrawal } from '@/lib/webPush'
 import { PayInFailureReasonError } from './errors'
+import { assertValidBolt11, logInvalidBolt11, Bolt11SyntaxError } from '@/lib/bolt11-validator'
 
 export const PAY_IN_TERMINAL_STATES = ['PAID', 'FAILED']
 export const PAY_IN_PENDING_STATES = Object.values(PayInState).filter(state => !PAY_IN_TERMINAL_STATES.includes(state))
@@ -91,8 +92,32 @@ async function transitionPayIn (jobName, data,
       if (withdrawal) {
         lndPayOutBolt11 = withdrawal
       } else {
-        decodedPayOutBolt11 = await decodePaymentRequest({ request: currentPayIn.payOutBolt11.bolt11 })
-        lndPayOutBolt11 = await getPaymentOrNotSent({ id: decodedPayOutBolt11.id, lnd })
+        // Check the payOutBolt11 syntax on every transition. If it is syntactically
+        // rejected, do not decode the invoice but instead use the stored hash
+        // from when the bolt11 was initially accepted, so that the identifier can
+        // be used for lookups and the payIn can be wound down later on, when
+        // transitionFunc processes it. Defense-in-depth against unforeseen
+        // database updates.
+        let syntaxError
+        try {
+          assertValidBolt11(currentPayIn.payOutBolt11.bolt11)
+        } catch (err) {
+          syntaxError = err
+          // since these transitions (should) always have seen prior validation
+          // and the value comes from our database, reduce log verbosity here versus using logInvalidBolt11
+          if (err instanceof Bolt11SyntaxError) {
+            console.error(`${jobName}: payOut invoice of payIn ${payInId} (${currentPayIn.payOutBolt11.hash}) is rejected`)
+          } else {
+            console.error(`${jobName}: payOut invoice of payIn ${payInId} (${currentPayIn.payOutBolt11.hash}) is rejected`, err)
+          }
+        }
+        if (!syntaxError) {
+          decodedPayOutBolt11 = await decodePaymentRequest({ request: currentPayIn.payOutBolt11.bolt11 })
+        }
+        lndPayOutBolt11 = await getPaymentOrNotSent({
+          id: decodedPayOutBolt11?.id ?? currentPayIn.payOutBolt11.hash,
+          lnd
+        })
       }
     }
 
@@ -355,6 +380,14 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
     fromStates: 'PENDING_HELD',
     toState: 'FORWARDING',
     transitionFunc: async ({ tx, payIn, decodedPayOutBolt11: invoice }) => {
+      // if the invoice wasn't decoded then it either failed syntax validation
+      // or we have an uncaught error
+      if (!invoice) {
+        throw new PayInFailureReasonError(
+          'payout invoice was not decoded',
+          'INVOICE_FORWARDING_FAILED')
+      }
+
       // a racing payInCancel may have canceled the invoice but rolled back,
       // leaving us with stale invoice reading 'held' but the LND invoice is 'canceled'
       const fresh = await getInvoice({ id: payIn.payInBolt11.hash, lnd })
@@ -413,6 +446,16 @@ export async function payInForwarding ({ data, models, boss, lnd, ...args }) {
 
     // give ourselves at least MIN_SETTLEMENT_CLTV_DELTA blocks to settle the incoming payment
     const maxTimeoutHeight = toPositiveNumber(toPositiveNumber(expiryHeight) - MIN_SETTLEMENT_CLTV_DELTA)
+
+    // Nothing gets forwarded to an invoice that is syntactically invalid
+    try {
+      assertValidBolt11(transitionedPayIn.payOutBolt11.bolt11)
+    } catch (err) {
+      logInvalidBolt11(`refusing to forward payIn ${payInId}`, err)
+      boss.send('payInFailedForward', { payInId }, FINALIZE_OPTIONS)
+        .catch(e => console.error(`failed to cancel payIn ${payInId}`, e))
+      return
+    }
 
     console.log('forwarding with max fee', mtokensFee, 'max_timeout_height', maxTimeoutHeight,
       'accept_height', acceptHeight, 'expiry_height', expiryHeight)

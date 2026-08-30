@@ -1,5 +1,6 @@
 import protocols from '@/wallets/server/protocols'
 import { WalletVerificationUnsupportedError } from '@/wallets/lib/errors'
+import { assertValidBolt11, logInvalidBolt11 } from '@/lib/bolt11-validator'
 import { checkLnurlVerifyInvoice } from './lnurlVerify'
 
 function protocol (name) {
@@ -44,9 +45,20 @@ export async function protocolTestCreateInvoice ({ name }, config, opts) {
 
 async function normalizeCreateInvoiceResult (result) {
   const invoice = await result
-  if (typeof invoice === 'string') return { bolt11: invoice }
-  if (invoice && typeof invoice.bolt11 === 'string') return invoice
-  throw new Error('wallet returned invalid invoice')
+  const normalized = typeof invoice === 'string'
+    ? { bolt11: invoice }
+    : (invoice && typeof invoice.bolt11 === 'string' ? invoice : null)
+  if (!normalized) throw new Error('wallet returned invalid invoice')
+
+  // injecting synctactic validation here catches all wallet calls
+  try {
+    assertValidBolt11(normalized.bolt11)
+  } catch (err) {
+    logInvalidBolt11('refusing to process invoice returned from wallet', err)
+    throw new Error(`wallet returned invalid invoice: ${err.message}`)
+  }
+
+  return normalized
 }
 
 function invoiceChecker (walletProtocol, transaction) {

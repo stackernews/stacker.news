@@ -17,7 +17,12 @@ export function DestinationActions ({ onValue }) {
   const toaster = useToast()
 
   const setDestinationValue = useCallback((rawValue, source) => {
-    const { value, type } = parseDestination(rawValue)
+    const { value, type, error } = parseDestination(rawValue)
+    if (error) {
+      // NOTE: we explicitly don't fill the text box with invalid bolt11 data
+      toaster.danger(`${source}: ${error}`)
+      return false
+    }
     if (!type) {
       toaster.danger(`${source}: not a bolt11 invoice or lightning address`)
       return false

@@ -17,7 +17,7 @@ const typeDefs = gql`
     reportExternalSendObservation(input: ExternalSendObservationInput!): Boolean!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): PayIn!
     dropBolt11(hash: String!): Boolean
-    buyCredits(credits: Int!, sendProtocolId: Int): PayIn!
+    buyCredits(credits: Int!, sendProtocolId: Int, useRewardSats: Boolean): PayIn!
 
     # test a receive protocol by asking it to mint a probe invoice
     testWalletRecvProtocol(config: WalletRecvProtocolTestInput!): Boolean!

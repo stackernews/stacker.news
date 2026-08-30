@@ -17,6 +17,14 @@ export function isPayableWithCredits (payIn) {
   return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.FEE_CREDIT)
 }
 
+export function isPayableWithRewardSats (payIn, payInArgs) {
+  const payInModule = payInTypeModules[payIn.payInType]
+  return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.REWARD_SATS) &&
+    // some payIns turn sats into something that can't be withdrawn, so they only spend
+    // the sats balance when the payer asks for it
+    (!payInModule.rewardSatsOptIn || payInArgs?.useRewardSats === true)
+}
+
 export function isInvoiceable (payIn) {
   const payInModule = payInTypeModules[payIn.payInType]
   return payInModule.paymentMethods.includes(PAID_ACTION_PAYMENT_METHODS.OPTIMISTIC) ||

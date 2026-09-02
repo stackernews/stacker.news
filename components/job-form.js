@@ -37,7 +37,7 @@ export default function JobForm ({ item, subs }) {
         onSubmit={onSubmit}
       >
         <FormGroup label='logo'>
-          <div className='relative' style={{ width: 'fit-content' }}>
+          <div className='relative w-fit'>
             <img
               src={logoId ? `${MEDIA_URL}/${logoId}` : '/jobs-default.png'} width='135' height='135' className='rounded-full'
             />

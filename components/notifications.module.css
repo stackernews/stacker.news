@@ -1,5 +1,9 @@
 @layer components {
 
+.blurb {
+    line-height: 1.4;
+}
+
 .fresh {
     border-radius: 0;
     border: solid 1px var(--sn-note-fresh);

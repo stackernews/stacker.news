@@ -44,7 +44,6 @@ function MaxFeeField () {
         <Input
           label='max fee'
           name='maxFee'
-          groupClassName='mb-0'
           type='number'
           step={10}
           required

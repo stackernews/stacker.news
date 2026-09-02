@@ -96,7 +96,7 @@ function HeaderPhoto ({ user, isMe }) {
   const src = user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'
 
   return (
-    <div className='relative self-start' style={{ width: 'fit-content' }}>
+    <div className='relative self-start w-fit'>
       <img
         src={src} width='135' height='135'
         className={styles.userimg}

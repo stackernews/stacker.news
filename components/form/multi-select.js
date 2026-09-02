@@ -57,7 +57,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
                           ? (
                             <button
                               type='button'
-                              className='font-bold text-xs py-0.5 cursor-pointer border-0 bg-transparent'
+                              className='font-bold text-xs py-0.5'
                               onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
                               onClick={e => { e.stopPropagation(); onValueClick(v) }}
                             >
@@ -65,25 +65,25 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
                             </button>
                             )
                           : <span className='font-bold text-xs py-0.5'>{v}</span>}
-                        <Combobox.ChipRemove aria-label={`remove ${v}`} className='px-1 cursor-pointer border-0 bg-transparent'>
+                        <Combobox.ChipRemove aria-label={`remove ${v}`} className='px-1'>
                           <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-muted' />
                         </Combobox.ChipRemove>
                       </Combobox.Chip>
                     ))}
-                    <Combobox.Input id={id} placeholder={vals.length ? '' : placeholder} className='flex-1 min-w-15 border-0 bg-transparent outline-none p-0' />
+                    <Combobox.Input id={id} placeholder={vals.length ? '' : placeholder} className='flex-1 min-w-15 outline-none' />
                   </>
                 )}
               </Combobox.Value>
             </Combobox.Chips>
             <Combobox.Clear
               aria-label='clear selection'
-              className='flex items-center px-1 border-0 bg-transparent cursor-pointer max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
+              className='flex items-center px-1 max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
             >
               <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-muted' />
             </Combobox.Clear>
             <Combobox.Trigger
               aria-label='open popup'
-              className='flex items-center px-2 border-0 bg-transparent cursor-pointer max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
+              className='flex items-center px-2 max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
             >
               <ArrowDownSFill width={triggerIconSize} height={triggerIconSize} className='fill-muted' />
             </Combobox.Trigger>

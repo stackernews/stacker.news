@@ -8,6 +8,12 @@
   margin-right: auto;
   gap: 2rem;
 }
+/* gap replaces the form group margins */
+.fields,
+.toggleChipSection,
+.maxFee {
+  --sn-form-group-margin: 0;
+}
 
 .detectedRow {
   display: grid;

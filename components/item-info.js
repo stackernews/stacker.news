@@ -172,22 +172,22 @@ export default function ItemInfo ({
         return (
           <SubPreviewCard key={subName} sub={subName}>
             <Link href={href} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined}>
-              {' '}<Badge variant='grey' className='align-middle ms-0.5'>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
+              {' '}<Badge>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
             </Link>
           </SubPreviewCard>
         )
       })}
       {sub?.nsfw &&
-        <Badge variant='grey' className='align-middle ms-0.5'>nsfw</Badge>}
+        <Badge>nsfw</Badge>}
       {item.freebie && !item.position &&
         <Link href='/new/freebies'>
-          {' '}<Badge variant='grey' className='align-middle ms-0.5'>freebie</Badge>
+          {' '}<Badge>freebie</Badge>
         </Link>}
       {isDesperado &&
         <span
           role='button' onClick={() => showModal((onClose) => <ItemDetails item={item} me={me} />)}
         >
-          {' '}<Badge variant='grey' className='align-middle ms-0.5'>-{abbrNum(item.downSats)} sats</Badge>
+          {' '}<Badge>-{abbrNum(item.downSats)} sats</Badge>
         </span>}
       {extraBadges}
       {

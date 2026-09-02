@@ -45,7 +45,6 @@ export function LightningAddressFields ({ service, maxFee }) {
       <Input
         label='amount'
         name='amount'
-        groupClassName='mb-0'
         type='number'
         step={10}
         min={service.min}
@@ -101,7 +100,6 @@ function LightningAddressField ({ name, service, values, me, required }) {
         as='textarea'
         label={label}
         name='comment'
-        groupClassName='mb-0'
         hint={`characters remaining: ${remaining}`}
       />
     )
@@ -113,7 +111,6 @@ function LightningAddressField ({ name, service, values, me, required }) {
         name='identifier'
         required={required}
         label={label}
-        groupClassName='mb-0'
       />
     )
   }
@@ -123,7 +120,6 @@ function LightningAddressField ({ name, service, values, me, required }) {
       name={name}
       required={required}
       label={label}
-      groupClassName='mb-0'
     />
   )
 }

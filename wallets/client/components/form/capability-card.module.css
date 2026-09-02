@@ -67,6 +67,7 @@
 /* inputs, addons and selects follow the card radius */
 .form {
   --sn-input-radius: var(--wt-radius-md);
+  --sn-form-group-margin: 0;
 }
 .form :global(input:not([type='checkbox']):not([type='radio'])),
 .form :global(textarea) {

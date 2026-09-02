@@ -44,7 +44,7 @@ export function MenuItem ({ href, target, rel, active, className, children, ...p
     }
     // without onClick stay a div so nested controls don't end up inside a button
     return props.onClick
-      ? <button type='button' className={cn(cls, 'bg-transparent border-0 text-start pointer')} {...props}>{children}</button>
+      ? <button type='button' className={cn(cls, 'text-start')} {...props}>{children}</button>
       : <div className={cls} {...props}>{children}</div>
   }
   if (href) {

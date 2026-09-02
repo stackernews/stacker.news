@@ -119,7 +119,7 @@ export default function Avatar ({ onSuccess }) {
       }}
     >
       {/* always dark so the fill-white icons stay visible */}
-      <div className='absolute p-1 bg-dark pointer' style={{ bottom: '0', right: '0' }}>
+      <div className='absolute bottom-0 end-0 p-1 bg-dark cursor-pointer'>
         {uploading
           ? <Moon className='fill-white spin' />
           : <EditImage className='fill-white' />}

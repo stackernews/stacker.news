@@ -34,7 +34,7 @@ export function CopyButton ({ value, icon, append, className, ...props }) {
 
   if (append) {
     return (
-      <button type='button' aria-label='copy' className={cn(styles.appendButton, 'bg-transparent border-0 p-0 cursor-pointer', className)} {...props} onClick={handleClick}>
+      <button type='button' aria-label='copy' className={cn(styles.appendButton, className)} {...props} onClick={handleClick}>
         {append}
       </button>
     )

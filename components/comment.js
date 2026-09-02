@@ -51,7 +51,7 @@ function Parent ({ item, rootText }) {
       </Link>
       {root.subNames?.map(subName => (
         <Link key={subName} href={`/~${subName}`}>
-          {' '}<Badge variant='grey' className='align-middle ms-0.5'>{subName}</Badge>
+          {' '}<Badge>{subName}</Badge>
         </Link>
       ))}
     </>

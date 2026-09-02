@@ -57,7 +57,7 @@ function UserGrowthTotals ({ totals }) {
   if (!totals) return null
 
   return (
-    <div className='grid grid-cols-2 md:grid-cols-3 gap-x-8 my-6'>
+    <div className='grid grid-cols-2 md:grid-cols-3 gap-x-6 my-6'>
       <div className='text-center mb-4'>
         <div className='text-muted small'>total stacked</div>
         <div className='font-bold text-lg'>{numWithUnits(Math.floor(totals.stacking))}</div>
@@ -93,18 +93,16 @@ export default function Growth ({ ssrData }) {
       <SatisticsHeader />
       <UserAnalyticsHeader pathname='satistics/graphs' />
       <UserGrowthTotals totals={growthTotals} />
-      <div className='grid grid-cols-2 gap-x-8'>
-        <div className='mt-4'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mt-4'>
+        <div>
           <div className='text-center text-muted font-bold'>sats stacked</div>
           <WhenAreaChart data={stackingGrowth} />
         </div>
-        <div className='mt-4'>
+        <div>
           <div className='text-center text-muted font-bold'>sats spent</div>
           <WhenAreaChart data={spendingGrowth} />
         </div>
-      </div>
-      <div className='grid grid-cols-2 gap-x-8'>
-        <div className='mt-4'>
+        <div className='md:col-span-2'>
           <div className='text-center text-muted font-bold'>spend counts</div>
           <WhenLineChart data={itemGrowth} />
         </div>

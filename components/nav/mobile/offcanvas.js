@@ -43,7 +43,6 @@ export default function OffCanvas ({ me, dropNavKey }) {
       <Indicator show={indicator}>
         <button
           type='button'
-          className='bg-transparent border-0 p-0 pointer'
           aria-label='open profile menu'
           onClick={handleShow}
         >
@@ -56,7 +55,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
         </DrawerHeader>
         <DrawerBody className='pb-0'>
           {/* navigation remounts BottomBar so the drawer closes on its own, but rows that open a modal must close it first */}
-          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div className='h-full flex flex-col'>
             {me
               ? (
                 <>

@@ -104,6 +104,16 @@ function walletActivityTimelineQuery ({
             WHERE "PayOutCustodialToken"."payInId" = "PayIn"."id"
               AND "PayOutCustodialToken"."userId" = ${userId}
               AND "PayIn"."payInState" = 'PAID'
+          ) OR
+          EXISTS (
+            SELECT 1
+            FROM "PayIn" donation
+            WHERE donation."benefactorId" = "PayIn"."id"
+              AND donation."userId" = ${userId}
+              AND donation."payInType" = 'DONATE'
+              AND donation."payInState" = 'PAID'
+              AND "PayIn"."payInType" = 'ZAP'
+              AND "PayIn"."payInState" = 'PAID'
           )
         )`
   const externalWalletFilter = walletIdNumber !== null
@@ -197,7 +207,16 @@ function walletInfoFromProtocol (protocol, role) {
 export async function getPayIn (parent, { id }, { me, models }) {
   const payIn = (await getPayInFull({
     models,
-    query: Prisma.sql`SELECT * FROM "PayIn" WHERE "PayIn"."id" = ${id}`
+    // Donation children are funded by their zap, not a separate wallet payment.
+    // Resolve child links to that zap without a second fetch.
+    query: Prisma.sql`
+      SELECT * FROM "PayIn" WHERE id = (
+        SELECT COALESCE(zap.id, requested.id)
+        FROM "PayIn" requested
+        LEFT JOIN "PayIn" zap ON zap.id = requested."benefactorId"
+          AND requested."payInType" = 'DONATE' AND zap."payInType" = 'ZAP'
+        WHERE requested.id = ${id}
+      )`
   }))[0]
 
   if (!payIn) {
@@ -207,7 +226,9 @@ export async function getPayIn (parent, { id }, { me, models }) {
   const meId = me?.id ?? USER_ID.anon
   if (Number(payIn.userId) !== Number(meId) &&
     !payIn.payOutCustodialTokens.some(token => Number(token.userId) === Number(meId)) &&
-    Number(payIn.payOutBolt11?.userId) !== Number(meId)) {
+    Number(payIn.payOutBolt11?.userId) !== Number(meId) &&
+    !(me && payIn.payInType === 'ZAP' && payIn.beneficiaries.some(child =>
+      child.payInType === 'DONATE' && isMine(child, { me })))) {
     throw new GqlAuthenticationError()
   }
   return payIn
@@ -351,6 +372,10 @@ export default {
   PayIn: {
     isSend: (payIn, args, { me }) => payIn.isSend ??
       (payIn.payInType === 'PROXY_PAYMENT' ? false : isMine(payIn, { me })),
+    // Statistics/detail reads already load children. Never expose another viewer's attribution.
+    beneficiaries: (payIn, args, { me }) => me && Number(me.id) !== USER_ID.anon
+      ? (payIn.beneficiaries ?? []).filter(child => isMine(child, { me }))
+      : [],
     payerPrivates: (payIn, args, { models, me }) => {
       if (!isMine(payIn, { me })) {
         return null

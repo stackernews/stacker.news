@@ -169,6 +169,8 @@ type PayIn {
   payInStateChangedAt: Date!
   genesisId: Int
   successorId: Int
+  "Beneficiaries attributed to the logged-in viewer."
+  beneficiaries: [PayIn!]!
   payerPrivates: PayerPrivates
   payeePrivates: PayeePrivates
   payOutCustodialTokens: [PayOutCustodialToken!]

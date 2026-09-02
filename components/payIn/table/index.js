@@ -5,7 +5,7 @@ import { PayInContext } from '../context'
 import { PayInMoney } from './money'
 import { ExternalTransactionRow } from './external'
 import LinkToContext from '@/components/link-to-context'
-import { FAILED_PAY_IN_STATES } from '@/lib/pay-in'
+import { FAILED_PAY_IN_STATES, getPayInViewerAmounts } from '@/lib/pay-in'
 
 export default function PayInTable ({ items }) {
   return (
@@ -24,11 +24,13 @@ export default function PayInTable ({ items }) {
 
 function PayInRow ({ payIn }) {
   const failed = FAILED_PAY_IN_STATES.includes(payIn.payInState)
+  const { donatedMtokens, received } = getPayInViewerAmounts(payIn)
   return (
     <div
       className={classNames(styles.row, {
         [styles.failed]: failed,
-        [styles.stacking]: !payIn.isSend && payIn.payInState === 'PAID'
+        [styles.stacking]: !payIn.isSend && payIn.payInState === 'PAID' &&
+          (donatedMtokens === 0 || received)
       })}
     >
       <LinkToContext className={styles.type} href={`/transactions/${payIn.id}`}>

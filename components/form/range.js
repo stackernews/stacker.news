@@ -6,7 +6,6 @@ import { cn } from '@/lib/cn'
 import { FormGroup, inputClasses, hintClasses, errorClasses } from './field'
 import styles from './range.module.css'
 
-// Avatar uses the bare Slider while Range connects it to Formik.
 export function Slider ({ className, ...props }) {
   return (
     <BaseSlider.Root {...props}>
@@ -46,8 +45,7 @@ export function Range ({
       step={step}
       format={{ useGrouping: false }}
       onValueChange={(v) => {
-        // Empty number input becomes null; null is reserved for the separate
-        // all-values option.
+        // an empty input is null, which the all option already uses
         if (v == null) return
         helpers.setValue(v)
         onChange && onChange(v)
@@ -82,8 +80,7 @@ export function Range ({
           onBlur={() => helpers.setTouched(true)}
         />
         <small className='text-muted font-mono'>{max}</small>
-        {/* NumberField adds a wrapper, so this pair joins its corners directly
-            instead of using the input row's sibling rules. */}
+        {/* NumberField wraps the input, so the .inputGroup sibling corner rules don't apply here */}
         <div className='flex flex-nowrap items-stretch' style={{ width: 'auto' }}>
           {isAll
             ? <span className={inputClasses({ className: cn('flex w-16 items-center justify-end gap-1 px-2 whitespace-nowrap', suffix && 'rounded-e-none') })}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>

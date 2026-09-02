@@ -26,25 +26,17 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
   const [linkUrl, setLinkUrl] = useState('')
   const [editedLinkUrl, setEditedLinkUrl] = useState('')
 
-  // the deliberate edit-mode focus steal, as a callback ref: the popup renders
-  // through a portal whose container appears a render after isLinkEditMode
-  // flips, so an effect keyed on the flag can run while the input doesn't
-  // exist yet and never re-fire; the ref fires on the mount itself. The input
-  // only renders in edit mode, so mounting means stealing
+  // callback ref instead of an effect: the portaled input mounts a render after
+  // isLinkEditMode flips, so an effect keyed on the flag can run before it exists
   const inputRef = useCallback((el) => {
     if (el) {
-      // preventScroll: the ref fires at DOM insertion, before floating-ui
-      // positions the popup, and a plain focus() scroll-into-views the popup
-      // while it still sits at the document origin (page jumps to top)
+      // the popup isn't positioned yet, a plain focus() would scroll to the document origin
       el.focus({ preventScroll: true })
       el.select()
     }
   }, [])
 
-  // must stay idempotent: the popover's document-level Escape and Lexical's
-  // KEY_ESCAPE_COMMAND both funnel here on one keypress (a second
-  // TOGGLE_LINK_COMMAND null on a linkless selection is a Lexical no-op,
-  // onDismiss twice is a state no-op)
+  // must be idempotent: escape reaches here twice, from the popover and from KEY_ESCAPE_COMMAND
   const handleCancel = useCallback(() => {
     // don't toggle link if the editor is currently read-only
     // e.g. lexical reconciliation during a markdown-to-rich mode switch
@@ -108,8 +100,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
 
   // editor updates, selection changes, escape key
   useEffect(() => {
-    // initial read: the editor state that mounted us already holds the link,
-    // and registerUpdateListener only fires on later updates
+    // registerUpdateListener only fires on later updates, so read the initial state ourselves
     editor.getEditorState().read(() => { $updateLink() })
 
     return mergeRegister(
@@ -118,10 +109,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
           $updateLink()
         })
       }),
-      // kept alongside the popover's own Escape handling on purpose: Base UI's
-      // dismissal listens document-level, so with focus in the editor both this
-      // command and the popover's escape-key close fire on one keypress; that
-      // double-fire is safe only while handleCancel stays idempotent (above)
+      // with focus in the editor the popover's own escape handling fires too (see handleCancel)
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
         () => {
@@ -131,10 +119,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
     )
   }, [editor, $updateLink, handleCancel])
 
-  // open is always true while mounted: the plugin's isLinkEditable && !dismissed
-  // control above is the open state; position tracks the live link element by
-  // nodeKey (the function anchor re-resolves per update, floating-ui autoUpdate
-  // covers ancestor scroll and resize natively)
+  // mounted means open, the plugin unmounts us on dismiss
   return (
     <BasePopover.Root
       open
@@ -142,9 +127,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
       onOpenChange={(open, details) => {
         if (open) return
         if (details.reason === 'outside-press') {
-          // Presses inside the editor only move the caret. A link press can
-          // open this popup on pointerdown, so its release must not immediately
-          // dismiss the same popup.
+          // presses inside the editor only move the caret and may have just opened us
           const target = details.event?.target
           if (target instanceof window.Node && editor.getRootElement()?.contains(target)) return
           handleCancel()

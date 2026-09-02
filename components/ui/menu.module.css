@@ -16,7 +16,6 @@
 @media (prefers-reduced-motion: reduce) { .popup { transition: none; } }
 
 .item {
-  /* The component class keeps menu paint above global anchor defaults. */
   color: var(--sn-dropdownItemColor);
   cursor: pointer;
 }

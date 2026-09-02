@@ -7,7 +7,7 @@ import styles from './toast.module.css'
 const TOAST_DEFAULT_DELAY_MS = 5000
 
 function ToastItem ({ toast }) {
-  // Alternate animation names so consecutive updates restart the pulse.
+  // alternate animation names so consecutive updates restart the pulse
   const pulse = toast.updateKey
     ? (toast.updateKey % 2 === 0 ? styles.pulseEven : styles.pulseOdd)
     : null
@@ -21,7 +21,7 @@ function ToastItem ({ toast }) {
         <Toast.Close className={styles.close} aria-label='close'>X</Toast.Close>
       </Toast.Content>
       {toast.timeout > 0 && toast.data?.progressBar && (
-        // A refreshed timer remounts and restarts the progress bar.
+        // remount on update so the progress bar restarts
         <div key={toast.updateKey} className={styles.countdown} style={{ '--toast-timeout': `${toast.timeout}ms` }} />
       )}
     </Toast.Root>
@@ -32,7 +32,8 @@ function StackedToasts () {
   const { toasts, close } = Toast.useToastManager()
   const router = useRouter()
 
-  // Route changes dismiss ordinary toasts but preserve ongoing actions.
+  // only clear toasts without persistOnNavigate on page navigation
+  // since navigation should not interfere with being able to cancel an action
   useEffect(() => {
     const onRouteChangeStart = () => {
       for (const toast of toasts) {
@@ -54,13 +55,13 @@ function StackedToasts () {
 
 export function useToast () {
   const { add, close, update, promise } = Toast.useToastManager()
-  // Repeated messages share one toast and display their count.
+  // toasts with the same key merge into one toast
+  // for example: 3x 'zap pending' -> '(3) zap pending'
   const counts = useRef(new Map())
 
   const addToast = useCallback((type, body, options = {}) => {
     const { id, tag, delay, autohide, onRemove, persistOnNavigate, progressBar, ...rest } = options
-    // Explicit keys and string bodies can be deduplicated. JSX bodies remain
-    // separate unless the caller supplies a key.
+    // jsx bodies only merge if the caller passes a tag or id
     const key = tag ?? id ?? (typeof body === 'string' ? body : undefined)
     let amount = 1
     if (key !== undefined) {
@@ -71,7 +72,6 @@ export function useToast () {
       id: key,
       type,
       timeout: (type === 'danger' || autohide === false) ? 0 : (delay ?? TOAST_DEFAULT_DELAY_MS),
-      // Danger messages announce assertively.
       priority: type === 'danger' ? 'high' : 'low',
       description: amount > 1 ? `(${amount}) ${body}` : body,
       data: { persistOnNavigate, progressBar },

@@ -1,7 +1,5 @@
 @layer components {
 
-/* Shared link paint also supports button-backed navigation actions. Success
-   and warning states keep their semantic colors. */
 .link {
     background: none;
     border: 0;
@@ -16,7 +14,6 @@
     color: var(--sn-navLinkFocus);
 }
 
-/* Active state must beat the local sort-link weight reset. */
 .link.active {
     font-weight: bold;
 }

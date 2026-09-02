@@ -10,8 +10,7 @@ import styles from './footer.module.css'
 import classNames from 'classnames'
 import { useWalletIndicator } from '@/wallets/client/hooks'
 
-// the drawer keeps its roomier 8px tap targets while the menu recipe
-// tightened to py-1.5; the call-site py-2 out-merges the recipe's value
+// drawer rows keep roomier tap targets than menu items
 const drawerItemClasses = (opts = {}) =>
   itemClasses({ ...opts, className: cn('px-0 py-2', opts.className) })
 
@@ -56,13 +55,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
           <DrawerTitle><NavWalletSummary /></DrawerTitle>
         </DrawerHeader>
         <DrawerBody className='pb-0'>
-          {/* the six nav rows are drawerItemClasses() on plain Links,
-              paint-identical to the plain-mode MenuItems they replace;
-              LoginButtons and LogoutDropdownItem stay MenuItem dual-mode,
-              shared with the corner menus. Close-on-nav needs no code, since
-              navigation remounts BottomBar and show resets. handleClose still
-              threads to the modal-triggering rows, modals must close the
-              drawer first */}
+          {/* navigation remounts BottomBar so the drawer closes on its own, but rows that open a modal must close it first */}
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             {me
               ? (

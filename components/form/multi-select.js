@@ -23,8 +23,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
     }
   }, [overrideValue])
 
-  // Base UI expects either every option or every group to expose the same
-  // shape, so plain options are collected into an unlabeled group.
+  // base ui wants all options or all groups, so plain options go in an unlabeled group
   const options = useMemo(() => {
     const flat = []; const groups = []
     for (const item of items) {
@@ -47,7 +46,6 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
           multiple name={field.name} items={options} value={currentValue}
           onValueChange={vals => { helpers?.setValue?.(vals); onChange?.(formik, vals) }}
         >
-          {/* Chips wrap while the clear and disclosure controls stay fixed. */}
           <Combobox.InputGroup className={cn(inputClasses({ size: controlSize, className }), 'flex items-center gap-1.5 cursor-text w-auto', styles.control, invalid && styles.isInvalid)}>
             <Combobox.Chips className='flex flex-wrap items-center gap-1.5 flex-1 min-w-0'>
               <Combobox.Value>
@@ -77,7 +75,6 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
                 )}
               </Combobox.Value>
             </Combobox.Chips>
-            {/* Clear unmounts when no values are selected. */}
             <Combobox.Clear
               aria-label='Clear selection'
               className='flex items-center px-1 border-0 bg-transparent cursor-pointer max-md:min-w-11 max-md:min-h-11 max-md:justify-center'

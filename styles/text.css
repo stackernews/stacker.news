@@ -14,7 +14,7 @@
   --grid-gap: 0.5rem;
   line-height: 140%;
 }
-/* Keep rendered block content on the editor spacing grid. */
+/* reset base.css margins */
 .sn-text p, .sn-text pre, .sn-text ul, .sn-text ol, .sn-text blockquote, .sn-text table {
   margin-bottom: 0;
 }
@@ -635,7 +635,7 @@ span + .sn-link {
 .sn-list__item:has(> span) {
   margin-top: 0.25rem;
 }
-/* Lexical applies the nested-item class to list items that own a child list. */
+/* lexical adds this class to list items with a nested list */
 .sn-list__nested-item .sn-list__item:has(> span) {
   padding-top: 0;
   padding-bottom: 0;
@@ -863,7 +863,7 @@ span + .sn-link {
   color: var(--sn-body-color);
 }
 
-/* Preserve Lexical's explicit superscript and subscript positioning. */
+/* reset preflight's sup and sub styles for lexical */
 [data-lexical-editor=true] sup, [data-lexical-editor=true] sub {
   all: unset;
 }

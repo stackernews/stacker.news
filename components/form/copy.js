@@ -51,7 +51,6 @@ export function CopyInput (props) {
   return (
     <Input
       append={
-        // The call site owns the shared corner through the utility layer.
         <CopyButton value={props.placeholder} size={props.size} className='rounded-s-none' />
       }
       {...props}

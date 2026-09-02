@@ -1,15 +1,12 @@
 @layer components {
 
-/* SN tooltip chrome: state, color and motion live here; layout and
-   typography ride the recipe in tooltip.js */
-
 .positioner {
   z-index: var(--sn-z-tooltip);
 }
 
 .popup {
   --sn-tooltip-bg: var(--sn-success);
-  /* Tooltips use the smaller borderless arrow. */
+  /* smaller borderless arrow */
   --arrow-size: 12px;
   --arrow-bg: var(--sn-tooltip-bg);
   --arrow-border-width: 0px;

@@ -4,9 +4,8 @@ import { Radio as BaseRadio } from '@base-ui/react/radio'
 import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group'
 import { cn } from '@/lib/cn'
 import { FormGroup, labelClasses, errorClasses } from './field'
-import styles from './checkbox.module.css' // shares the check and radio skin
+import styles from './checkbox.module.css'
 
-// The group owns the Formik field and provides native radio keyboard behavior.
 export function RadioGroup ({ label, groupClassName, children, onChange, ...props }) {
   const [field, meta, helpers] = useField(props)
   const labelId = useId()
@@ -32,7 +31,6 @@ export function RadioGroup ({ label, groupClassName, children, onChange, ...prop
 export function Radio ({ label, value, id, disabled, groupClassName, extra }) {
   return (
     <FormGroup className={groupClassName}>
-      {/* The wrapping label targets the hidden native input. */}
       <label className={cn(styles.check, 'mb-0.5')}>
         <BaseRadio.Root
           id={id}

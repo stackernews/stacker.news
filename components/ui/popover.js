@@ -3,13 +3,12 @@ import { cn } from '@/lib/cn'
 import styles from './popover.module.css'
 import arrowStyles from './arrow.module.css'
 
-// popup metrics and typography, colors, border and motion live in the module;
-// exported for the preview card popup, the table of contents and the link editor
+// also used by the preview card, the table of contents and the link editor
 export const popoverClasses = ({ className } = {}) =>
   cn(styles.popup, 'text-sm max-w-80 rounded-lg shadow-lg', className)
 
 export function Popover (props) {
-  return <BasePopover.Root {...props} /> // modal already defaults false
+  return <BasePopover.Root {...props} />
 }
 
 export function PopoverContent ({ side = 'bottom', align = 'center', sideOffset = 8, anchor, initialFocus, finalFocus, className, children, ...props }) {
@@ -33,7 +32,6 @@ export function PopoverBody ({ className, children }) {
   return <div className={cn('py-2 px-4', className)}>{children}</div>
 }
 
-// lightning X on the alert.module.css .close pattern, at popover-header metrics
 export function PopoverClose (props) {
   return <BasePopover.Close className={styles.close} aria-label='Close' {...props}>X</BasePopover.Close>
 }

@@ -1,9 +1,6 @@
 @layer components {
 
-/* shared form-field chrome. Colors and state live here; border-radius and the
-   group margin are deliberately module-side too, because consumer module skins
-   override them (the wallets capability card) and a recipe utility would be
-   unbeatable from module CSS */
+/* radius and group margin stay here so the wallets capability card can override them */
 
 .group {
     margin-bottom: 1rem;
@@ -57,8 +54,6 @@
     opacity: 1;
 }
 
-/* The icon inset padding is a conditional pe-10 utility in input.js: a module
-   padding-right here would lose to the recipe's px-4 */
 .control[data-invalid] {
     border-color: var(--sn-danger);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M22 15h-3V3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zm-5.293 1.293l-6.4 6.4a.5.5 0 0 1-.654.047L8.8 22.1a1.5 1.5 0 0 1-.553-1.57L9.4 16H3a2 2 0 0 1-2-2v-2.104a2 2 0 0 1 .15-.762L4.246 3.62A1 1 0 0 1 5.17 3H16a1 1 0 0 1 1 1v11.586a1 1 0 0 1-.293.707z' fill='rgba%28192,50,33,1%29'/%3E%3C/svg%3E");
@@ -100,12 +95,8 @@ textarea.passwordInput {
     border-radius: var(--sn-input-radius, .375rem);
 }
 
-/* structural corner-joining: every group member's radius is a plain module
-   declaration, so these rules win on specificity alone with no layer fight.
-   React fragments do not make DOM nodes, so first-child and last-child see the
-   flattened members as real siblings. Members must not carry radius utilities;
-   corner overrides happen at the call site, like the CopyInput button.
-   See docs/dev/styling.md for the full input group system. */
+/* corner joining. members must not carry radius utilities, override corners
+   at the call site instead (see CopyInput) */
 .inputGroup > :not(:first-child) {
     border-start-start-radius: 0;
     border-end-start-radius: 0;
@@ -116,7 +107,6 @@ textarea.passwordInput {
     border-end-end-radius: 0;
 }
 
-/* Rest-state seam for the clear button against the input's right edge. */
 .appendButton {
     border-left: 0 !important;
 }

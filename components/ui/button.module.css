@@ -7,11 +7,10 @@
 .btn {
   color: var(--sn-btn-color);
   background-color: var(--sn-btn-bg);
-  /* The transparent border keeps buttons aligned with bordered inputs. */
+  /* same height as bordered inputs */
   border: 1px solid transparent;
 }
 
-/* Hover and active states darken the live background unless a variant pins them. */
 .btn:hover,
 .btn:active {
   color: var(--sn-btn-hover-color, var(--sn-btn-color));
@@ -25,7 +24,6 @@
   background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
 }
 
-/* Toggles keep the active paint while pressed. */
 .btn[data-pressed] {
   background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
 }
@@ -37,7 +35,6 @@
   pointer-events: none;
 }
 
-/* Territory brand changes recompute these states at paint time. */
 .primary {
   --sn-btn-color: var(--sn-primary-text);
   --sn-btn-bg: var(--sn-primary);
@@ -53,7 +50,6 @@
   fill: var(--sn-btn-color);
 }
 
-/* Fixed-palette variants ride the static tokens. */
 .danger {
   --sn-btn-color: #fff;
   --sn-btn-bg: var(--sn-danger);
@@ -91,7 +87,6 @@
   fill: var(--sn-dark);
 }
 
-/* Login-provider variants use fixed provider colors. */
 .twitter {
   --sn-btn-color: #fff;
   --sn-btn-bg: var(--sn-twitter);
@@ -107,7 +102,7 @@
   --sn-btn-mix: #fff;
 }
 
-/* The icon's own fill and stroke classes must lose in every state. */
+/* beat the icon's own fill and stroke classes */
 .nostr {
   --sn-btn-color: #fff;
   --sn-btn-bg: var(--sn-nostr);
@@ -129,7 +124,6 @@
   stroke-width: 6px;
 }
 
-/* Outline variants fill on hover and keep a stable border color. */
 .outline-secondary {
   --sn-btn-color: var(--sn-secondary);
   --sn-btn-bg: transparent;
@@ -152,7 +146,6 @@
   border-color: var(--sn-info);
 }
 
-/* Consumers choose the border width while the variant owns its color. */
 .outline-grey {
   --sn-btn-color: var(--sn-muted);
   --sn-btn-bg: transparent;
@@ -164,7 +157,6 @@
   border-color: var(--sn-muted);
 }
 
-/* The variant owns border color while its consumer chooses border width. */
 .outline-warning {
   --sn-btn-color: var(--sn-warning);
   --sn-btn-bg: transparent;
@@ -176,7 +168,6 @@
   border-color: var(--sn-warning);
 }
 
-/* Navigation consumers choose border width while this variant owns paint. */
 .outline-grey-darkmode {
   --sn-btn-color: var(--sn-grey-darkmode);
   --sn-btn-bg: transparent;
@@ -188,8 +179,6 @@
   border-color: var(--sn-grey-darkmode);
 }
 
-/* font-weight 400 is the recipe's job: button.js swaps font-bold for
-   font-normal on this variant */
 .link {
   --sn-btn-color: var(--sn-link);
   --sn-btn-bg: transparent;
@@ -205,8 +194,7 @@
   text-decoration: none;
 }
 
-/* Dark tints the territory primary 40% toward white, master's dark .btn-link
-   paint, mixed on the button so a brand retint anywhere above it is honored. */
+/* dark mode link buttons tint the primary 40% toward white */
 :global([data-theme='dark']) .link {
   --sn-btn-color: color-mix(in srgb, var(--sn-primary) 60%, #fff 40%);
   --sn-btn-hover-color: color-mix(in srgb, var(--sn-btn-color) 80%, #fff 20%);

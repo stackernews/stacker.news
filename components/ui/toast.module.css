@@ -1,8 +1,6 @@
 @layer components {
 
-/* Base UI stacked toasts. The --toast-* custom props are Base UI's inline
-   contract (index, offsets, swipe movement, measured heights); the [data-*]
-   attributes are its state. */
+/* the --toast-* custom props and [data-*] attributes come from base ui */
 .viewport {
   position: fixed;
   right: 1rem;
@@ -13,7 +11,7 @@
 }
 
 .root {
-  --sn-toast-bg: var(--sn-grey);  /* default; per-type overrides below (never paints via useToast) */
+  --sn-toast-bg: var(--sn-grey);  /* per-type overrides below */
   --sn-toast-color: #fff;
   --sn-toast-gap: 0.75rem;                   /* vertical space between toasts when expanded */
   --sn-toast-peek: 0.75rem;                  /* visible sliver of each behind-toast while collapsed */

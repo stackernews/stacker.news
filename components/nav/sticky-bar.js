@@ -6,17 +6,13 @@ import TopBar from './desktop/top-bar'
 import { MobilePriceRow } from './mobile/top-bar'
 import { cn } from '@/lib/cn'
 
-// The sticky shell reuses the desktop top bar and mobile price row.
 export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, hideMobileNav = false }) {
   const [visible, setVisible] = useState(false)
   const sentinelRef = useRef()
 
-  // The zero-height sentinel makes visibility follow whether the header has
-  // scrolled above the viewport.
+  // show once the sentinel, and so the header, has scrolled above the viewport
   useEffect(() => {
     const observer = new window.IntersectionObserver(([entry]) => {
-      // A negative top distinguishes scrolling past the sentinel from leaving
-      // the viewport in another direction.
       setVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0)
     })
     observer.observe(sentinelRef.current)

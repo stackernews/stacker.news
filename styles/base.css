@@ -1,21 +1,19 @@
-/* Application element defaults layered after Tailwind preflight. */
+/* element defaults, layered after tailwind's preflight */
 
 @layer base {
-  /* Fallbacks keep body type stable when its utilities are not emitted. */
   body {
     font-family: var(--sn-font-sans-serif);
     font-size: var(--text-base, 0.93rem);
     line-height: var(--text-base--line-height, 1.75);
   }
 
-  /* Restore browser markers after preflight. */
+  /* preflight removes list markers */
   ol,
   ul,
   menu {
     list-style: revert;
   }
 
-  /* Shared flow rhythm for paragraphs and outermost lists. */
   p,
   ul,
   ol {
@@ -29,7 +27,6 @@
     margin-bottom: 0;
   }
 
-  /* Fixed steps keep heading hierarchy independent of viewport width. */
   h1,
   h2,
   h3,
@@ -54,7 +51,6 @@
     opacity: 0.25;
   }
 
-  /* Match the semantic .small utility. */
   small {
     font-size: 0.875em;
   }
@@ -79,7 +75,7 @@
     font-size: 0.875em;
   }
 
-  /* Icons and inline images participate in text flow. */
+  /* preflight makes these block */
   img,
   svg {
     display: inline;
@@ -97,12 +93,10 @@
     cursor: pointer;
   }
 
-  /* Keep placeholders consistent across themed inputs. */
   ::placeholder {
     color: var(--sn-muted);
   }
 
-  /* Component modules and utilities can override these element defaults. */
   svg {
     fill: var(--sn-body-color);
   }

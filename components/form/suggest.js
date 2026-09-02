@@ -19,7 +19,6 @@ export function BaseSuggest ({
 }) {
   const [getSuggestions] = useLazyQuery(getSuggestionsQuery)
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
-  // The combobox and its active option reference this stable listbox id.
   const listboxId = useId()
   const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
   useEffect(() => {
@@ -90,8 +89,7 @@ export function BaseSuggest ({
     ? `${listboxId}-${suggestions.index}`
     : undefined
 
-  // Search mentions use an explicit caret position. Other suggestions anchor
-  // to the zero-height wrapper immediately after the input.
+  // search passes dropdownStyle to position at the caret, otherwise we anchor to the wrapper after the input
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions, listboxId, activeOptionId })}
@@ -137,8 +135,7 @@ function BaseInputSuggest ({
         filterItems={filterItems}
         selectWithTab={selectWithTab}
         onSelect={(v) => {
-          // ovalue tracks display state, so selection updates the controlled
-          // field through onChange before syncing that local state.
+          // HACK ... ovalue does not trigger onChange
           onChange && onChange(undefined, { target: { value: v } })
           setOValue(v)
         }}

@@ -1,7 +1,5 @@
 @layer components {
 
-/* Shared checkbox and radio paint. Brand colors remain territory-aware. */
-
 .check {
     display: flex;
     align-items: flex-start;

@@ -73,12 +73,12 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
 
   return (
     <ActionTooltip notForm overlayText={tooltip} placement='top' showDelay={showDelay} disable={dropdownOpen}>
-      {/* The tooltip wrapper provides the anchor shared with Menu. */}
       <Menu open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <MenuTrigger
           aria-label={tooltip}
-          onPointerDown={e => e.preventDefault()} /* keeps the Lexical selection; also suppresses Base UI's mousedown-open… */
-          onClick={() => setDropdownOpen(o => !o)} /* …so the click toggle drives open */
+          // preventDefault keeps the lexical selection but also suppresses base ui's mousedown open, so toggle on click
+          onPointerDown={e => e.preventDefault()}
+          onClick={() => setDropdownOpen(o => !o)}
           render={<Toolbar.Button className={classNames(styles.toolbarItem, dropdownOpen && styles.active)} />}
         >
           {icon}
@@ -109,9 +109,6 @@ function DropdownMenuItem ({ option, onAction, isActive }) {
   const shortcutDisplay = useFormattedShortcut(shortcut?.key)
   const tooltipText = shortcutDisplay ? `${option.name} (${shortcutDisplay})` : option.name
 
-  // raw BaseMenu.Item on the composed skins: menuStyles.item carries the item
-  // color and hover paint, the dropdownExtra* module skins carry the
-  // toolbar-specific metrics; items close on click natively
   return (
     <BaseMenu.Item
       title={tooltipText}
@@ -130,8 +127,7 @@ function DropdownMenuItem ({ option, onAction, isActive }) {
   )
 }
 
-// composite=false for the buttons OUTSIDE Toolbar.Root (the innerToolbar extras):
-// they stay individually tabbable instead of joining the roving composite
+// composite=false for buttons outside Toolbar.Root so they stay individually tabbable
 function ToolbarButton ({ id, isActive, onClick, tooltip, children, showDelay = 500, composite = true }) {
   const shortcut = SHORTCUTS[id]
   const shortcutDisplay = useFormattedShortcut(shortcut?.key)
@@ -297,7 +293,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           </ToolbarDropdown>
         </Toolbar.Root>
         <ActionTooltip notForm overlayText={toolbarState.showToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000}>
-          {/* outside the composite on purpose: individually tabbable, no roving into a visibility:hidden row's group */}
+          {/* outside Toolbar.Root so it stays tabbable while the toolbar is hidden */}
           <button type='button' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, toolbarState.showToolbar && styles.active)} onClick={() => updateToolbarState('showToolbar', !toolbarState.showToolbar)}>
             <FontStyleIcon />
           </button>

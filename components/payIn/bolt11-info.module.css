@@ -44,8 +44,7 @@
   max-width: 100%;
 }
 
-/* the descendant pair beats ui/collapsible's .trigger UA reset on specificity;
-   cross-file module order is build-fragile, two classes win deterministically */
+/* two classes so we beat ui/collapsible's .trigger reset regardless of module order */
 .detailPill .detailPillButton {
   box-sizing: border-box;
   min-height: 32px;

@@ -93,9 +93,7 @@ export function InputInner ({
     <>
       <div className='flex gap-4'>
         <div className='grow basis-0 min-w-0'>
-          {/* Field.Root is a plain wrapper so the error sits outside the flex
-              row, since the .inputGroup corner rules key on the first and last
-              children */}
+          {/* keep the error out of .inputGroup: its corner rules key on first/last child */}
           <Field.Root invalid={!!(!hideError && invalid)}>
             <div className={cn(styles.inputGroup, 'flex items-stretch', inputGroupClassName)}>
               {prepend}
@@ -111,8 +109,7 @@ export function InputInner ({
                 className={inputClasses({
                   valid: isValid,
                   size,
-                  // pe-10 insets the text off the validation icon; it must be a
-                  // utility because a module padding-right loses to px-4
+                  // pe-10 makes room for the validation icon
                   className: cn('flex-1 w-auto min-w-0', ((!hideError && invalid) || isValid) && 'pe-10', className)
                 })}
               />

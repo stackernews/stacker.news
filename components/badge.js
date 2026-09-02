@@ -100,9 +100,8 @@ function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, heig
   )
 }
 
-// Badges inside links and menu triggers stay passive so they cannot create a
-// control inside another control. Standalone badges opt into a tap-accessible
-// Popover; passive badges retain hover help and inline screen-reader text.
+// interactive badges open a tappable popover; badges inside links and buttons
+// can't, so they get a tooltip
 export function BadgeTooltip ({ children, overlayText, placement, interactive = false }) {
   if (!interactive) {
     return <Tooltip content={overlayText} side={placement || 'bottom'}>{children}</Tooltip>
@@ -111,7 +110,7 @@ export function BadgeTooltip ({ children, overlayText, placement, interactive = 
   return (
     <Popover>
       <PopoverTrigger render={children} nativeButton={false} openOnHover delay={0} />
-      {/* initialFocus={false}: a text-only hint must not yank focus on press */}
+      {/* a text-only hint must not steal focus */}
       <PopoverContent side={placement || 'bottom'} initialFocus={false} aria-label='Badge details' className='py-1 px-2 text-center'>
         {overlayText}
       </PopoverContent>

@@ -18,12 +18,11 @@ import classNames from 'classnames'
 const WalkthroughPopover = ({ anchor, show, handleClose, title, children }) => (
   <Popover
     open={show} onOpenChange={(open, details) => {
-      // Outside press must not mark the walkthrough as seen. Only its close
-      // control and Escape finish it.
+      // only the X and escape mark the walkthrough as seen, not an outside press
       if (!open && (details.reason === 'close-press' || details.reason === 'escape-key')) handleClose()
     }}
   >
-    {/* initialFocus={false}: the popover opens mid-zap and must not steal focus from the bolt */}
+    {/* don't steal focus from the bolt mid-zap */}
     <PopoverContent anchor={anchor} side='right' initialFocus={false}>
       <PopoverHeader>{title}<PopoverClose /></PopoverHeader>
       <PopoverBody>{children}</PopoverBody>

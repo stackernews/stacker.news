@@ -1,6 +1,5 @@
 @layer components {
 
-/* Remove browser button paint while preserving button semantics. */
 .trigger {
   background: none;
   border: 0;
@@ -12,13 +11,12 @@
   cursor: pointer;
 }
 
-/* No ending rule: closing panels unmount without an exit transition. */
+/* no ending style, panels unmount without an exit transition */
 .panel { transition: opacity 150ms ease-out; }
 .panel[data-starting-style] { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .panel { transition: none; } }
 
-/* card skin for the territory details accordion: colors and state live
-   module-side, metrics ride utilities at the call sites */
+/* the territory details accordion */
 .card {
   background-color: var(--sn-body-bg);
   border: 1px solid var(--sn-border-color);

@@ -14,7 +14,6 @@ div.fullScreenNavContainer {
 }
 
 .fullScreenContainer img.fullScreen {
-    /* the container qualifier outranks text.module's .mediaContainer img zoom-in */
     cursor: zoom-out;
     max-height: 100%;
     max-width: 100vw;
@@ -29,7 +28,7 @@ div.fullScreenNavContainer {
     display: grid;
     width: 100%;
     height: 100%;
-    outline: none; /* focused programmatically to own arrow keys, never paint a ring */
+    outline: none; /* focused programmatically for arrow keys */
 }
 
 div.fullScreenNav:hover > svg {

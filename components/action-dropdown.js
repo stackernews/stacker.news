@@ -8,7 +8,6 @@ export default function ActionDropdown ({ children }) {
   }
   return (
     <Menu className={`pointer ${styles.dropdown}`}>
-      {/* Base UI gives the rendered span button semantics. */}
       <MenuTrigger aria-label='Item actions' nativeButton={false} render={<span><MoreIcon className='fill-muted ms-1' height={16} width={16} /></span>} />
       <MenuPopup>{children}</MenuPopup>
     </Menu>

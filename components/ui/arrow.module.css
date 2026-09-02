@@ -1,13 +1,9 @@
 @layer components {
 
-/* Shared popup arrow for popover, preview card and tooltip. The element is a
-   half-height clip window and the diamond is a rotated square drawn by the
-   ::before, see docs/dev/styling.md for the construction. Offsets resolve
-   against the popup's padding box, so don't add border terms to them.
-   Themed with custom props, defaults here, tooltip overrides its own:
-   --arrow-size is the drawn base width, tip height is half of it minus the
-   popup border, and --arrow-border-width: 0 turns the border off. data-side
-   matches the popup side, so side="bottom" means the arrow sits on top. */
+/* shared by popover, preview card and tooltip: the element clips the top half of
+   a rotated square drawn by ::before. --arrow-size is the base width and
+   --arrow-border-width: 0 turns the border off. data-side is the popup's side,
+   so side=bottom puts the arrow on top */
 .arrow {
   width: var(--arrow-size, 16px);
   height: calc(var(--arrow-size, 16px) / 2);

@@ -107,7 +107,7 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
   )
 }
 
-// Keep form defaults aligned with styles/tokens.css.
+// SN defaults from styles/tokens.css
 const SN_DEFAULTS = {
   primaryColor: '#FADA5E',
   secondaryColor: '#F6911D',

@@ -111,7 +111,6 @@
 }
 
 @media (max-width: 767px) {
-  /* Nested native controls must be allowed to shrink on narrow screens. */
   .formResponsiveReset :global(input),
   .formResponsiveReset :global(textarea),
   .formResponsiveReset :global(select) {

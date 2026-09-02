@@ -1,7 +1,5 @@
-// Gate: class names stay statically analyzable and colors ride tokens.
-// Fails on class fragments built with template interpolation inside className
-// attributes or class recipes, on raw hex colors in bracket utilities, and on
-// references to the retired --theme-* and --bs-* custom properties.
+// fails on class names built with template interpolation, raw hex colors in
+// bracket utilities and references to the removed --theme-* and --bs-* custom properties
 const { execSync } = require('child_process')
 const fs = require('fs')
 const path = require('path')

@@ -19,7 +19,6 @@ export function AlertHeading ({ className, ...props }) {
   return <h4 className={cn('text-reset font-medium text-xl leading-tight mb-2', className)} {...props} />
 }
 
-// Alert links retain the surrounding alert color in every state.
 export function AlertLink ({ className, ...props }) {
   return <a className={cn('font-bold text-reset', className)} {...props} />
 }

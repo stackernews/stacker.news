@@ -7,10 +7,8 @@ import { MenuItem } from '@/components/ui/menu'
 import { useShowModal } from './modal'
 import { useToast } from '@/components/ui/toast'
 
-/* the confirm-open lives in a hook so the handler can sit on the activating
-   element itself: Delete's span hears bubbled clicks from in-tree children like
-   post.js's Button, but a portaled MenuItem is no DOM descendant, so mouse
-   worked only through React's synthetic portal bubbling and Enter never arrived */
+// a hook so the handler can sit on the activating element itself: a portaled MenuItem
+// isn't a DOM descendant of Delete's span, so its Enter keypress never bubbled here
 export function useDeleteConfirm ({ itemId, onDelete, type = 'post' }) {
   const showModal = useShowModal()
 
@@ -37,8 +35,7 @@ export function useDeleteConfirm ({ itemId, onDelete, type = 'post' }) {
             url: () => deleteItem.url,
             pollCost: () => deleteItem.pollCost,
             deletedAt: () => deleteItem.deletedAt,
-            // the body renders from the resolver-derived lexicalState and html
-            // (item-full's Lexical read path), not text, so they must repaint too
+            // the body renders from lexicalState and html, not text
             lexicalState: () => deleteItem.lexicalState,
             html: () => deleteItem.html
           },

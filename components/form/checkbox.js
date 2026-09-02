@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn'
 import { FormGroup, labelClasses, errorClasses } from './field'
 import styles from './checkbox.module.css'
 
-// CheckboxGroup owns the Formik array, so its children skip their own writes.
+// inside a CheckboxGroup the group writes the formik array, not the checkbox
 const CheckboxGroupContext = createContext(false)
 
 export function Checkbox ({
@@ -14,16 +14,14 @@ export function Checkbox ({
   hiddenLabel, extra, handleChange, inline, disabled, checked, ...props
 }) {
   const inGroup = useContext(CheckboxGroupContext)
-  // Passing type lets Formik derive checked from array membership when the
-  // checkbox also has a value.
+  // type lets formik derive checked from the array when the checkbox has a value
   const [field, meta, helpers] = useField({ ...props, type })
-  const invalid = meta.touched && meta.error // not submit-gated: checkboxes paint invalid immediately, inputs wait for a submit attempt
+  const invalid = meta.touched && meta.error
   const id = props.id || props.name
 
   return (
     <FormGroup className={groupClassName}>
       {hiddenLabel && <label className={cn(labelClasses(), 'invisible block')}>{label}</label>}
-      {/* The hidden input keeps the wrapping label association native. */}
       <label className={cn(styles.check, 'mb-0.5', inline && 'inline-flex me-4')}>
         <BaseCheckbox.Root
           id={id}
@@ -32,8 +30,6 @@ export function Checkbox ({
           checked={checked ?? !!field.checked}
           className={cn(styles.checkInput, styles.checkbox, invalid && styles.invalid)}
           onCheckedChange={(checked) => {
-            // The group writes its array through onValueChange, leaving one
-            // write path for grouped checkboxes.
             if (!inGroup) helpers.setValue(checked)
             handleChange && handleChange(checked, helpers.setValue)
           }}

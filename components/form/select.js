@@ -7,7 +7,7 @@ import styles from './select.module.css'
 
 export function Select ({ label, items, info, groupClassName, onChange, noForm, overrideValue, hint, className, ...props }) {
   const { field, meta, helpers, formik } = useFormikField(props, { noForm })
-  const invalid = meta.touched && meta.error // not submit-gated: selects paint invalid immediately, inputs wait for a submit attempt
+  const invalid = meta.touched && meta.error
 
   useEffect(() => {
     if (overrideValue) {

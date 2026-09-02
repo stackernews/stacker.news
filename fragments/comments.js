@@ -49,7 +49,6 @@ export const COMMENT_FIELDS = gql`
     downSats
     commentDownSats
     meSats
-    meCredits
     meDontLikeSats
     meBookmark
     meSubscription
@@ -110,7 +109,6 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     downSats
     commentDownSats
     meSats
-    meCredits
     meDontLikeSats
     meBookmark
     meSubscription

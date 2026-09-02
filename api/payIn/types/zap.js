@@ -112,7 +112,7 @@ export async function onBegin (tx, payInId, payInArgs) {
 }
 
 export async function onRetry (tx, oldPayInId, newPayInId) {
-  const { itemId, payIn } = await tx.itemPayIn.findUnique({ where: { payInId: oldPayInId }, include: { payIn: true } })
+  const { itemId, payIn } = await tx.itemPayIn.findUnique({ where: { payInId: newPayInId }, include: { payIn: true } })
   const item = await getItemResult(tx, { id: itemId })
   return { id: item.id, path: item.path, sats: msatsToSats(payIn.mcost), act: 'TIP' }
 }

@@ -142,7 +142,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
           side='bottom' align='start' sideOffset={8}
           className={popoverStyles.positioner}
         >
-          <BasePopover.Popup aria-label='Link editor' initialFocus={false} className={popoverClasses({ className: 'p-0 max-w-none' })}>
+          <BasePopover.Popup aria-label='link editor' initialFocus={false} className={popoverClasses({ className: 'p-0 max-w-none' })}>
             <div className={styles.linkEditor} data-node-key={nodeKey}>
               {isLinkEditMode
                 ? (
@@ -164,10 +164,10 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
                       }}
                     />
                     <div className={styles.linkConfirmIcons}>
-                      <button type='button' aria-label='Cancel' className={styles.linkCancelIcon} onMouseDown={(e) => e.preventDefault()} onClick={handleCancel}>
+                      <button type='button' aria-label='cancel' className={styles.linkCancelIcon} onMouseDown={(e) => e.preventDefault()} onClick={handleCancel}>
                         <CloseIcon />
                       </button>
-                      <button type='button' aria-label='Confirm' className={styles.linkConfirmIcon} onMouseDown={(e) => e.preventDefault()} onClick={handleLinkConfirm}>
+                      <button type='button' aria-label='confirm' className={styles.linkConfirmIcon} onMouseDown={(e) => e.preventDefault()} onClick={handleLinkConfirm}>
                         <Check />
                       </button>
                     </div>
@@ -184,10 +184,10 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
                       {linkUrl}
                     </a>
                     <div className={styles.linkConfirmIcons}>
-                      <button type='button' aria-label='Edit link' className={styles.linkEditIcon} onMouseDown={(e) => e.preventDefault()} onClick={() => { setEditedLinkUrl(linkUrl); setIsLinkEditMode(true) }}>
+                      <button type='button' aria-label='edit link' className={styles.linkEditIcon} onMouseDown={(e) => e.preventDefault()} onClick={() => { setEditedLinkUrl(linkUrl); setIsLinkEditMode(true) }}>
                         <Pencil />
                       </button>
-                      <button type='button' aria-label='Remove link' className={styles.linkRemoveIcon} onMouseDown={(e) => e.preventDefault()} onClick={() => editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)}>
+                      <button type='button' aria-label='remove link' className={styles.linkRemoveIcon} onMouseDown={(e) => e.preventDefault()} onClick={() => editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)}>
                         <UnlinkIcon />
                       </button>
                     </div>

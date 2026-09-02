@@ -33,7 +33,7 @@ export function PopoverBody ({ className, children }) {
 }
 
 export function PopoverClose (props) {
-  return <BasePopover.Close className={styles.close} aria-label='Close' {...props}>X</BasePopover.Close>
+  return <BasePopover.Close className={styles.close} aria-label='close' {...props}>X</BasePopover.Close>
 }
 
 export const PopoverTrigger = BasePopover.Trigger

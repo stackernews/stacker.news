@@ -10,7 +10,7 @@ export function Alert ({ variant, dismissible, onClose, className, children, ...
     >
       {children}
       {dismissible &&
-        <button type='button' className={styles.close} onClick={onClose} aria-label='Close alert'>X</button>}
+        <button type='button' className={styles.close} onClick={onClose} aria-label='close'>X</button>}
     </div>
   )
 }

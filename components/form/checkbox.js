@@ -35,7 +35,7 @@ export function Checkbox ({
           }}
           onBlur={() => helpers.setTouched(true)}
         />
-        <span className={'inline-flex flex-nowrap items-center grow' + (disabled ? ' text-muted' : '')}>
+        <span className={cn('inline-flex flex-nowrap items-center grow', disabled && 'text-muted')}>
           <span className='grow'>{label}</span>
           {extra && <span>{extra}</span>}
         </span>

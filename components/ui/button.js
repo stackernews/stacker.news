@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn'
 import styles from './button.module.css'
 
 // border stays in the module so every variant has the same height
-const BASE = 'inline-block text-center align-middle select-none cursor-pointer text-base rounded-md'
+const BASE = 'inline-block text-center align-middle select-none text-base rounded-md'
 
 // keep in sync with the inputClasses sizes in form/field.js or input groups misalign
 const SIZES = {

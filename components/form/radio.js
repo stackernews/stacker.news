@@ -38,7 +38,7 @@ export function Radio ({ label, value, id, disabled, groupClassName, extra }) {
           disabled={disabled}
           className={cn(styles.checkInput, styles.radio)}
         />
-        <span className={'inline-flex flex-nowrap items-center grow' + (disabled ? ' text-muted' : '')}>
+        <span className={cn('inline-flex flex-nowrap items-center grow', disabled && 'text-muted')}>
           <span className='grow'>{label}</span>
           {extra && <span>{extra}</span>}
         </span>

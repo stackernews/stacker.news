@@ -12,7 +12,7 @@ import LongPressable from './long-pressable'
 import { Popover, PopoverContent, PopoverHeader, PopoverBody, PopoverClose } from './ui/popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
-import { MenuItem } from '@/components/ui/menu'
+import { MenuItem } from './ui/menu'
 import classNames from 'classnames'
 
 const WalkthroughPopover = ({ anchor, show, handleClose, title, children }) => (

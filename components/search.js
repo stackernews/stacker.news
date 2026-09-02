@@ -17,6 +17,7 @@ import { useMe } from './me'
 import { useField } from 'formik'
 import { searchSchema } from '@/lib/validate'
 import { usePrefix } from './territory-domains'
+import classNames from 'classnames'
 
 export default function Search ({ sub }) {
   const router = useRouter()
@@ -82,7 +83,7 @@ export default function Search ({ sub }) {
                 groupClassName='me-4 mb-0 grow'
                 className='grow'
               />
-              <SubmitButton variant='primary' className={`${styles.search} rounded-full p-0 flex items-center justify-center`}>
+              <SubmitButton variant='primary' className={classNames(styles.search, 'rounded-full p-0 flex items-center justify-center')}>
                 <SearchIcon width={22} height={22} />
               </SubmitButton>
             </div>

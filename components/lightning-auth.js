@@ -9,6 +9,7 @@ import styles from './lightning-auth.module.css'
 import BackIcon from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 import { FAST_POLL_INTERVAL_MS, SSR } from '@/lib/constants'
+import classNames from 'classnames'
 
 function QrAuth ({ k1, encodedUrl, callbackUrl, multiAuth }) {
   const query = gql`
@@ -54,7 +55,7 @@ function LightningExplainer ({ text, children, backButton, stacked }) {
           {text || 'Login'} with Lightning
         </h3>
         <div className='font-bold text-muted pb-6'>This is the most private way to use Stacker News. Just open your Lightning wallet and scan the QR code.</div>
-        <div className={`grid grid-cols-1 gap-8 w-full text-muted${stacked ? '' : ' lg:grid-cols-2'}`}>
+        <div className={classNames('grid grid-cols-1 gap-8 w-full text-muted', !stacked && 'lg:grid-cols-2')}>
           <div className='mb-6'>
             <AccordionItem
               header='Which wallets support lnurl-auth?'

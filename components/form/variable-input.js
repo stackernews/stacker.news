@@ -3,6 +3,7 @@ import { useId } from 'react'
 import AddIcon from '@/svgs/add-fill.svg'
 import { FormGroup, hintClasses, errorClasses } from './field'
 import { InputInner } from './input'
+import classNames from 'classnames'
 
 export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', ...props }) {
   const labelId = useId()
@@ -17,7 +18,7 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
               <>
                 {options?.map((_, i) => {
                   const AppendColumn = ({ className }) => (
-                    <div className={`flex ${className}`}>
+                    <div className={classNames('flex', className)}>
                       {options.length - 1 === i && options.length !== max
                         // onMouseDown is used to prevent the blur event on text inputs from overriding the click event
                         ? (

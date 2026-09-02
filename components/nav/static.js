@@ -1,4 +1,4 @@
-import { Nav } from '@/components/ui/nav'
+import { Nav, Navbar } from '@/components/ui/nav'
 import Container from '@/components/ui/container'
 import styles from '../header.module.css'
 import { BackOrBrand, NavPrice, SearchItem } from './common'
@@ -8,13 +8,13 @@ export default function StaticHeader () {
   return (
     <PriceCarouselProvider>
       <Container as='header' data-sn-navigation>
-        <nav className='flex items-center flex-nowrap py-2'>
+        <Navbar className='py-2'>
           <Nav className={styles.navbarNav}>
             <BackOrBrand />
             <SearchItem />
             <NavPrice className='justify-end' />
           </Nav>
-        </nav>
+        </Navbar>
       </Container>
     </PriceCarouselProvider>
   )

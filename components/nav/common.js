@@ -92,7 +92,7 @@ export function BackOrBrand ({ className }) {
 
 export function SearchItem ({ className }) {
   return (
-    <NavLink href='/search' eventKey='search' className={classNames('py-0.5 px-2', className)}>
+    <NavLink href='/search' eventKey='search' className={className}>
       <SearchIcon className='theme' width={22} height={28} />
     </NavLink>
   )
@@ -101,7 +101,7 @@ export function SearchItem ({ className }) {
 export function NavPrice ({ className }) {
   return (
     <NavItem className={classNames(styles.price, className)}>
-      <Price className={navLinkClasses({ className: 'py-0.5 px-2 font-mono' })} />
+      <Price className={navLinkClasses({ className: 'font-mono' })} />
     </NavItem>
   )
 }
@@ -126,7 +126,7 @@ export function NavNotifications ({ className }) {
 
   return (
     <>
-      <NavLink href='/notifications' eventKey='notifications' className={classNames('py-0.5 px-2', className)}>
+      <NavLink href='/notifications' eventKey='notifications' className={className}>
         <Indicator show={hasNewNotes} top='2px' right='0px' variant='danger'>
           <NoteIcon height={28} width={20} className='theme' />
         </Indicator>
@@ -153,7 +153,7 @@ export function NavWalletSummary ({ className }) {
 
   return (
     <NavItem className={className}>
-      <NavLink href='/wallets' eventKey='wallets' className='text-success font-mono py-0.5 px-0 whitespace-nowrap'>
+      <NavLink href='/wallets' eventKey='wallets' className='text-success font-mono px-0 whitespace-nowrap'>
         <WalletSummary me={me} />
       </NavLink>
     </NavItem>
@@ -188,7 +188,7 @@ export function MeDropdown ({ me, dropNavKey }) {
   return (
     <div className='ms-2'>
       <Menu className={styles.dropdown}>
-        <MenuTrigger className={navLinkClasses({ className: 'font-normal ps-0 pe-2 py-0.5' })}>
+        <MenuTrigger className={navLinkClasses({ className: 'font-normal ps-0' })}>
           <div className='flex items-center'>
             <span className={navLinkClasses({ active: topKey === me.name, className: 'p-0' })}>
               <Indicator show={indicator} top='2px' right='-5px'>@{me.name}</Indicator>
@@ -391,7 +391,7 @@ export function AnonDropdown () {
   return (
     <div className='relative'>
       <Menu className={classNames(styles.dropdown, 'pe-0')}>
-        <MenuTrigger className={navLinkClasses({ className: 'font-medium ps-0 pe-0 py-0.5' })}>
+        <MenuTrigger className={navLinkClasses({ className: 'font-medium px-0' })}>
           <span className={navLinkClasses({ className: 'p-0 font-normal' })}>
             @anon<Badges user={{ id: USER_ID.anon }} />
           </span>
@@ -408,13 +408,13 @@ export function Sorts ({ prefix, className }) {
   return (
     <>
       <NavItem className={className}>
-        <NavLink href={prefix + '/'} eventKey='' className={`${styles.navSort} py-1 px-2`}>lit</NavLink>
+        <NavLink href={prefix + '/'} eventKey='' className={classNames(styles.navSort, 'py-1')}>lit</NavLink>
       </NavItem>
       <NavItem className={className}>
-        <NavLink href={prefix + '/new'} eventKey='new' className={`${styles.navSort} py-1 px-2`}>new</NavLink>
+        <NavLink href={prefix + '/new'} eventKey='new' className={classNames(styles.navSort, 'py-1')}>new</NavLink>
       </NavItem>
       <NavItem className={className}>
-        <NavLink href={prefix + '/top/posts/day'} eventKey='top' className={`${styles.navSort} py-1 px-2`}>top</NavLink>
+        <NavLink href={prefix + '/top/posts/day'} eventKey='top' className={classNames(styles.navSort, 'py-1')}>top</NavLink>
       </NavItem>
     </>
   )

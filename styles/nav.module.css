@@ -1,8 +1,10 @@
 @layer components {
 
+/* bootstrap's .nav-link with SN's $nav-link-padding-y */
 .link {
     background: none;
     border: 0;
+    padding: .1rem 1rem;
 }
 
 .link:not(:global(.text-success)):not(:global(.text-warning)) {
@@ -31,6 +33,12 @@
     fill: var(--sn-navLinkActive);
 }
 
+/* header bars, bootstrap's .navbar-nav .nav-link */
+.navbar .link {
+    padding-left: .5rem;
+    padding-right: .5rem;
+}
+
 /* tab-nav container (settings / satistics / user-header) */
 .nav {
     display: flex;
@@ -47,6 +55,7 @@
 
 .nav .link {
     display: block;
+    padding-left: 0;
 }
 
 .nav .active {

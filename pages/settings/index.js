@@ -49,19 +49,19 @@ export function SettingsHeader () {
         activeKey={activeKey}
       >
         <NavItem>
-          <NavLink href='/settings' eventKey='general' className='py-0.5 pe-4 ps-0'>general</NavLink>
+          <NavLink href='/settings' eventKey='general'>general</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink href='/settings/logins' eventKey='logins' className='py-0.5 pe-4 ps-0'>logins</NavLink>
+          <NavLink href='/settings/logins' eventKey='logins'>logins</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink href='/settings/wallets' eventKey='wallets' className='py-0.5 pe-4 ps-0'>wallets</NavLink>
+          <NavLink href='/settings/wallets' eventKey='wallets'>wallets</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink href='/settings/subscriptions/stackers' eventKey='subscriptions' className='py-0.5 pe-4 ps-0'>subscriptions</NavLink>
+          <NavLink href='/settings/subscriptions/stackers' eventKey='subscriptions'>subscriptions</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink href='/settings/mutes' eventKey='mutes' className='py-0.5 pe-4 ps-0'>mutes</NavLink>
+          <NavLink href='/settings/mutes' eventKey='mutes'>mutes</NavLink>
         </NavItem>
       </Nav>
     </>

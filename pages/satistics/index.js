@@ -23,10 +23,10 @@ export function SatisticsHeader () {
         activeKey={activeKey}
       >
         <NavItem>
-          <NavLink href='/satistics' eventKey='history' className='py-0.5 pe-4 ps-0'>history</NavLink>
+          <NavLink href='/satistics' eventKey='history'>history</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink href='/satistics/graphs/day' eventKey='graphs' className='py-0.5 pe-4 ps-0'>graphs</NavLink>
+          <NavLink href='/satistics/graphs/day' eventKey='graphs'>graphs</NavLink>
         </NavItem>
       </Nav>
     </>

@@ -1,3 +1,4 @@
+import { Navbar } from '@/components/ui/nav'
 import { Brand, NavNotifications, PostItem, SearchItem } from '../common'
 import { useMe } from '../../me'
 import styles from './footer.module.css'
@@ -52,7 +53,7 @@ export default function BottomBar ({ sub }) {
     <nav data-sn-navigation className='block md:hidden'>
       <div style={{ marginBottom: '53px' }} className={styles.footerPadding} />
       <div className={classNames(styles.footer, styles.footerPadding)}>
-        <div className='w-full flex items-center flex-nowrap px-safe py-2'>
+        <Navbar className='w-full px-safe py-2'>
           <div className={styles.footerNav}>
             <Brand />
             <SearchItem {...props} />
@@ -60,7 +61,7 @@ export default function BottomBar ({ sub }) {
             <NavNotifications />
             <Offcanvas me={me} {...props} />
           </div>
-        </div>
+        </Navbar>
       </div>
     </nav>
   )

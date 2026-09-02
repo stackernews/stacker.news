@@ -1,5 +1,4 @@
-import { Nav } from '@/components/ui/nav'
-import { cn } from '@/lib/cn'
+import { Nav, Navbar } from '@/components/ui/nav'
 import { NavSelect, PostItem, Sorts, hasNavSelect } from '../common'
 import styles from '../../header.module.css'
 import { useBranding } from '../../territory-branding'
@@ -9,7 +8,7 @@ export default function SecondBar (props) {
   const branding = useBranding()
   if (!hasNavSelect(props)) return null
   return (
-    <nav className={cn('flex items-center flex-nowrap', navbarClassName)}>
+    <Navbar className={navbarClassName}>
       <Nav
         className={styles.navbarNav}
         activeKey={topNavKey}
@@ -20,6 +19,6 @@ export default function SecondBar (props) {
         </div>
         <PostItem className='ms-auto me-0 flex' prefix={prefix} />
       </Nav>
-    </nav>
+    </Navbar>
   )
 }

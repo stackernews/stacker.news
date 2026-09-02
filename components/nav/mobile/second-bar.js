@@ -1,5 +1,4 @@
-import { Nav } from '@/components/ui/nav'
-import { cn } from '@/lib/cn'
+import { Nav, Navbar } from '@/components/ui/nav'
 import { NavWalletSummary, Sorts, hasNavSelect, SignUpButton } from '../common'
 import styles from '../../header.module.css'
 import { useMe } from '@/components/me'
@@ -9,7 +8,7 @@ export default function SecondBar (props) {
   const { topNavKey, navbarClassName } = props
   if (!hasNavSelect(props)) return null
   return (
-    <nav className={cn('flex items-center flex-nowrap', navbarClassName)}>
+    <Navbar className={navbarClassName}>
       <Nav
         className={styles.navbarNav}
         activeKey={topNavKey}
@@ -17,6 +16,6 @@ export default function SecondBar (props) {
         <Sorts {...props} />
         {me ? <NavWalletSummary className='ms-auto px-2' /> : <SignUpButton className='ms-auto' width='fit-content' />}
       </Nav>
-    </nav>
+    </Navbar>
   )
 }

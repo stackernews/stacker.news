@@ -1,5 +1,6 @@
 import Container from '@/components/ui/container'
 import { navLinkClasses } from '@/components/ui/nav'
+import { cn } from '@/lib/cn'
 import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from '@/components/ui/popover'
 import { CopyInput } from './form'
 import styles from './footer.module.css'
@@ -20,10 +21,12 @@ import ActionTooltip from './action-tooltip'
 import { useAnimationEnabled } from '@/components/animation'
 import { useLiveCommentsToggle } from './use-live-comments'
 
+const linkClasses = navLinkClasses({ className: 'p-0 inline-flex' })
+
 function FooterPopover ({ label, children }) {
   return (
     <Popover>
-      <PopoverTrigger nativeButton={false} render={<div className={navLinkClasses({ className: 'p-0 inline-flex cursor-pointer' })}>{label}</div>} />
+      <PopoverTrigger nativeButton={false} render={<div className={cn(linkClasses, 'cursor-pointer')}>{label}</div>} />
       <PopoverContent side='top' aria-label={label}>
         <PopoverBody className='font-medium'>{children}</PopoverBody>
       </PopoverContent>
@@ -35,28 +38,28 @@ function RssPopover () {
   return (
     <FooterPopover label='rss'>
       <div className='flex justify-center'>
-        <a href='/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+        <a href='/rss' className={linkClasses}>
           home
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~bitcoin/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+        <a href='/~bitcoin/rss' className={linkClasses}>
           bitcoin
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~nostr/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+        <a href='/~nostr/rss' className={linkClasses}>
           nostr
         </a>
       </div>
       <div className='flex justify-center'>
-        <a href='/~tech/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+        <a href='/~tech/rss' className={linkClasses}>
           tech
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~meta/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+        <a href='/~meta/rss' className={linkClasses}>
           meta
         </a>
         <span className='mx-2 text-muted'> \ </span>
-        <a href='/~jobs/rss' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+        <a href='/~jobs/rss' className={linkClasses}>
           jobs
         </a>
       </div>
@@ -69,21 +72,21 @@ function SocialsPopover () {
     <FooterPopover label='socials'>
       <div className='flex justify-center'>
         <a
-          href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className={navLinkClasses({ className: 'p-0 inline-flex' })}
+          href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className={linkClasses}
           target='_blank' rel='noreferrer'
         >
           nostr
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
-          href='https://twitter.com/stacker_news' className={navLinkClasses({ className: 'p-0 inline-flex' })}
+          href='https://twitter.com/stacker_news' className={linkClasses}
           target='_blank' rel='noreferrer'
         >
           twitter
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
-          href='https://www.youtube.com/@stackernews' className={navLinkClasses({ className: 'p-0 inline-flex' })}
+          href='https://www.youtube.com/@stackernews' className={linkClasses}
           target='_blank' rel='noreferrer'
         >
           youtube
@@ -91,14 +94,14 @@ function SocialsPopover () {
       </div>
       <div className='flex justify-center'>
         <a
-          href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className={navLinkClasses({ className: 'p-0 inline-flex' })}
+          href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className={linkClasses}
           target='_blank' rel='noreferrer'
         >
           pod
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a
-          href='https://www.plebpoet.com/zines.html' className={navLinkClasses({ className: 'p-0 inline-flex' })}
+          href='https://www.plebpoet.com/zines.html' className={linkClasses}
           target='_blank' rel='noreferrer'
         >
           zines
@@ -112,14 +115,14 @@ function ChatPopover () {
   return (
     <FooterPopover label='chat'>
       <a
-        href='https://t.me/k00bideh' className={navLinkClasses({ className: 'p-0 inline-flex' })}
+        href='https://t.me/k00bideh' className={linkClasses}
         target='_blank' rel='noreferrer'
       >
         telegram
       </a>
       <span className='mx-2 text-muted'> \ </span>
       <a
-        href='https://signal.group/#CjQKIEt57YiluJoTW3lZqaqAq6echCekEYFfg7eIua2X91nLEhA__6ALI9pkaY_McQqX0jm1' className={navLinkClasses({ className: 'p-0 inline-flex' })}
+        href='https://signal.group/#CjQKIEt57YiluJoTW3lZqaqAq6echCekEYFfg7eIua2X91nLEhA__6ALI9pkaY_McQqX0jm1' className={linkClasses}
         target='_blank' rel='noreferrer'
       >
         signal
@@ -132,16 +135,16 @@ function LegalPopover () {
   return (
     <FooterPopover label='legal'>
       <div className='flex justify-center'>
-        <Link href='/tos' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+        <Link href='/tos' className={linkClasses}>
           terms of service
         </Link>
         <span className='mx-2 text-muted'> \ </span>
-        <Link href='/privacy' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+        <Link href='/privacy' className={linkClasses}>
           privacy policy
         </Link>
       </div>
       <div className='flex justify-center'>
-        <Link href='/copyright' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+        <Link href='/copyright' className={linkClasses}>
           copyright policy
         </Link>
       </div>
@@ -179,10 +182,10 @@ export default function Footer ({ links = true }) {
               </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <Rewards />
+              <Rewards className={linkClasses} />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <Link href='/stackers/all/day' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+              <Link href='/stackers/all/day' className={linkClasses}>
                 analytics
               </Link>
               <span className='mx-2 text-muted'> \ </span>
@@ -193,15 +196,15 @@ export default function Footer ({ links = true }) {
               <RssPopover />
             </div>
             <div className='mb-2' style={{ fontWeight: 500 }}>
-              <Link href='/faq' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+              <Link href='/faq' className={linkClasses}>
                 faq
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/guide' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+              <Link href='/guide' className={linkClasses}>
                 guide
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/story' className={navLinkClasses({ className: 'p-0 inline-flex' })}>
+              <Link href='/story' className={linkClasses}>
                 story
               </Link>
               <span className='mx-2 text-muted'> \ </span>

@@ -59,9 +59,8 @@ export function Back () {
   if (!back) return null
 
   return (
-    <button
-      type='button'
-      className={navLinkClasses({ className: 'bg-transparent border-0 p-0 me-2' })}
+    <NavLink
+      className='p-0 me-2'
       onClick={() => {
         if (back) {
           router.back()
@@ -71,7 +70,7 @@ export function Back () {
       }}
     >
       <BackArrow className='theme me-1 md:me-2' width={24} height={24} />
-    </button>
+    </NavLink>
   )
 }
 

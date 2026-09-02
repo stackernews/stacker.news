@@ -31,11 +31,4 @@
     background-color: var(--sn-secondary-color);
 }
 
-.addon {
-    background-color: var(--sn-clickToContextColor);
-    border: 1px solid var(--sn-borderColor);
-    border-inline-start: 0;
-    border-radius: .375rem;
-}
-
 }

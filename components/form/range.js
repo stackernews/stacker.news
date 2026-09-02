@@ -4,6 +4,7 @@ import { Slider as BaseSlider } from '@base-ui/react/slider'
 import { NumberField } from '@base-ui/react/number-field'
 import { cn } from '@/lib/cn'
 import { FormGroup, inputClasses, hintClasses, errorClasses } from './field'
+import { InputAddon } from './input-addon'
 import styles from './range.module.css'
 
 export function Slider ({ className, ...props }) {
@@ -85,7 +86,7 @@ export function Range ({
           {isAll
             ? <span className={inputClasses({ className: cn('flex w-16 items-center justify-end gap-1 px-2 whitespace-nowrap', suffix && 'rounded-e-none') })}>-<span style={{ display: 'inline-block', transform: 'scale(1.4)', transformOrigin: 'center' }}>∞</span></span>
             : numberField}
-          {suffix && <span className={cn(styles.addon, 'flex items-center px-4 py-1.5 text-base max-md:text-touch rounded-s-none')}>{suffix.trim()}</span>}
+          {suffix && <InputAddon className='rounded-s-none border-s-0'>{suffix.trim()}</InputAddon>}
         </div>
         {labels?.length > 0 && (
           <div className='relative' style={{ gridColumn: 2, height: '1.2em' }}>

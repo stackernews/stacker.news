@@ -57,7 +57,6 @@ function DestinationTextInput ({ onDestinationChange, checkDestination, destinat
     <Input
       label='invoice or lightning address'
       name='destination'
-      groupClassName='mb-0'
       as='textarea'
       rows={3}
       required

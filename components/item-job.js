@@ -88,12 +88,12 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
             {item.subNames?.map(subName => (
               <SubPreviewCard key={subName} sub={subName}>
                 <Link href={`/~${subName}`}>
-                  {' '}<Badge variant='grey' className='align-middle ms-0.5'>{subName}</Badge>
+                  {' '}<Badge>{subName}</Badge>
                 </Link>
               </SubPreviewCard>
             ))}
             {item.status === 'STOPPED' &&
-              <>{' '}<Badge variant='info' className='align-middle ms-0.5'>stopped</Badge></>}
+              <>{' '}<Badge variant='info'>stopped</Badge></>}
             {item.mine && !item.deletedAt &&
               (
                 <>

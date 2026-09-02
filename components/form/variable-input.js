@@ -24,7 +24,7 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
                           <button
                             type='button'
                             aria-label='add another'
-                            className='self-center justify-self-center bg-transparent border-0 p-0 cursor-pointer'
+                            className='self-center justify-self-center'
                             onMouseDown={e => e.preventDefault()}
                             onClick={() => fieldArrayHelpers.push(emptyItem)}
                           >

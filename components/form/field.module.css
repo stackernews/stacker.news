@@ -3,7 +3,7 @@
 /* radius and group margin stay here so the wallets capability card can override them */
 
 .group {
-    margin-bottom: 1rem;
+    margin-bottom: var(--sn-form-group-margin, 1rem);
 }
 
 .label {

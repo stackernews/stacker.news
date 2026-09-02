@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import styles from '@/components/header.module.css'
-import { Nav } from '@/components/ui/nav'
+import { Nav, Navbar } from '@/components/ui/nav'
 import Container from '@/components/ui/container'
 import TopBar from './desktop/top-bar'
 import { MobilePriceRow } from './mobile/top-bar'
@@ -28,14 +28,14 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, h
         </Container>
         {!hideMobileNav && (
           <Container className='block md:hidden'>
-            <nav className='flex items-center flex-nowrap py-0'>
+            <Navbar className='py-0'>
               <Nav
                 className={styles.navbarNav}
                 activeKey={topNavKey}
               >
                 <MobilePriceRow />
               </Nav>
-            </nav>
+            </Navbar>
           </Container>
         )}
       </div>

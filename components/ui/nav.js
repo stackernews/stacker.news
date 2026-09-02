@@ -9,6 +9,10 @@ const NavContext = createContext(undefined)
 export const navLinkClasses = ({ active, className } = {}) =>
   cn(styles.link, active && cn(styles.active, 'font-bold'), className)
 
+export function Navbar ({ className, children, ...props }) {
+  return <nav className={cn(styles.navbar, 'flex items-center flex-nowrap', className)} {...props}>{children}</nav>
+}
+
 export function Nav ({ activeKey, className, children }) {
   return (
     <NavContext.Provider value={activeKey}>
@@ -25,7 +29,7 @@ export function NavLink ({ eventKey, href, className, children, ...props }) {
     : (
       <button
         type='button'
-        className={navLinkClasses({ active, className: cn('bg-transparent p-0', className) })}
+        className={navLinkClasses({ active, className })}
         {...props}
       >
         {children}

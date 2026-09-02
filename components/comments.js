@@ -1,7 +1,8 @@
 import { Fragment, useMemo } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
-import { Nav, NavLink, NavItem } from '@/components/ui/nav'
+import { Nav, Navbar, NavLink, NavItem } from '@/components/ui/nav'
+import { cn } from '@/lib/cn'
 import { numWithUnits } from '@/lib/format'
 import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
@@ -21,7 +22,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   }
 
   return (
-    <nav className='flex items-center flex-nowrap pt-1 pb-0 px-4'>
+    <Navbar className='pt-1 px-4'>
       <Nav
         className={styles.navbarNav}
         activeKey={sort}
@@ -33,7 +34,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
           <NavItem>
             <NavLink
               eventKey='lit'
-              className={`${styles.navSort} py-1 px-2`}
+              className={cn(styles.navSort, 'py-1')}
               onClick={getHandleClick('lit')}
             >
               lit
@@ -42,7 +43,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
           <NavItem>
             <NavLink
               eventKey='new'
-              className={`${styles.navSort} py-1 px-2`}
+              className={cn(styles.navSort, 'py-1')}
               onClick={getHandleClick('new')}
             >
               new
@@ -51,7 +52,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
           <NavItem>
             <NavLink
               eventKey='top'
-              className={`${styles.navSort} py-1 px-2`}
+              className={cn(styles.navSort, 'py-1')}
               onClick={getHandleClick('top')}
             >
               top
@@ -59,7 +60,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
           </NavItem>
         </div>
       </Nav>
-    </nav>
+    </Navbar>
   )
 }
 

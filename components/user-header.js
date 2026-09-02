@@ -48,10 +48,10 @@ export default function UserHeader ({ user }) {
         activeKey={activeKey}
       >
         <NavItem>
-          <NavLink href={'/' + user.name} eventKey='bio' className='py-0.5 pe-4 ps-0'>bio</NavLink>
+          <NavLink href={'/' + user.name} eventKey='bio'>bio</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink href={'/' + user.name + '/all'} eventKey='items' className='py-0.5 pe-4 ps-0'>
+          <NavLink href={'/' + user.name + '/all'} eventKey='items'>
             {numWithUnits(user.nitems, {
               abbreviate: false,
               unitSingular: 'item',
@@ -61,7 +61,7 @@ export default function UserHeader ({ user }) {
         </NavItem>
         {showTerritoriesTab && (
           <NavItem>
-            <NavLink href={'/' + user.name + '/territories'} eventKey='territories' className='py-0.5 pe-4 ps-0'>
+            <NavLink href={'/' + user.name + '/territories'} eventKey='territories'>
               {numWithUnits(user.nterritories, {
                 abbreviate: false,
                 unitSingular: 'territory',

@@ -72,7 +72,6 @@ export const NOTIFICATIONS = gql`
         ... on Votification {
           id
           sortTime
-          earnedSats
           item {
             ...ItemFullFields
             text
@@ -96,7 +95,6 @@ export const NOTIFICATIONS = gql`
         ... on ForwardedVotification {
           id
           sortTime
-          earnedSats
           item {
             ...ItemFullFields
             text

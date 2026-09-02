@@ -27,7 +27,7 @@ import { useData } from './use-data'
 import { nostrZapDetails } from '@/lib/nostr'
 import Text from '@/components/text'
 import NostrIcon from '@/svgs/nostr.svg'
-import { msatsToSats, numWithUnits } from '@/lib/format'
+import { msatsToSats, numWithUnits, zapBreakdown } from '@/lib/format'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
@@ -60,9 +60,8 @@ function Notification ({ n, fresh }) {
         (type === 'CowboyHat' && <CowboyHat n={n} />) ||
         (['NewHorse', 'LostHorse'].includes(type) && <Horse n={n} />) ||
         (['NewGun', 'LostGun'].includes(type) && <Gun n={n} />) ||
-        (type === 'Votification' && <Votification n={n} />) ||
+        (['Votification', 'ForwardedVotification'].includes(type) && <Votification n={n} />) ||
         (type === 'BountyPayment' && <BountyPayment n={n} />) ||
-        (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
         (type === 'ItemMention' && <ItemMention n={n} />) ||
         (type === 'JobChanged' && <JobChanged n={n} />) ||
@@ -626,40 +625,21 @@ function Referral ({ n }) {
   )
 }
 
-function stackedText (item, total) {
-  if (total === undefined) total = item.sats
-  let text = ''
-  const credits = item.sats > 0 ? Math.floor(total * item.credits / item.sats) : total
-  const sats = total - credits
-  if (sats > 0) {
-    text += `${numWithUnits(sats, { abbreviate: false })}`
-    if (credits > 0) text += ' and '
-  }
-  if (credits > 0) {
-    text += `${numWithUnits(credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`
-  }
-
-  return text
-}
-
 function Votification ({ n }) {
-  const forwardedPct = n.item.forwards?.reduce((acc, f) => acc + f.pct, 0) ?? 0
-
-  let stackedTextString
-  if (n.item.forwards?.length) {
-    stackedTextString = stackedText(n.item, n.earnedSats)
-  } else {
-    stackedTextString = stackedText(n.item)
-  }
+  const { me } = useMe()
+  const forwarded = n.__typename === 'ForwardedVotification'
+  const forwardedPct = forwarded
+    ? n.item.forwards?.find(f => Number(f.userId) === Number(me?.id))?.pct
+    : n.item.forwards?.reduce((acc, f) => acc + f.pct, 0) ?? 0
 
   return (
     <>
       <NoteHeader color='success'>
         <span className='d-inline-flex'>
           <span>
-            your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
+            {!forwarded && 'your '}{n.item.title ? 'post' : 'reply'} stacked {zapBreakdown(n.item)}
             {forwardedPct > 0 &&
-              <small className='text-muted fw-light ms-1'>{forwardedPct}% forwarded</small>}
+              <small className='text-muted fw-light ms-1'>{forwardedPct}% forwarded{forwarded && ' to you'}</small>}
           </span>
           {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
@@ -674,25 +654,6 @@ function BountyPayment ({ n }) {
     <>
       <NoteHeader color='success'>
         you received a {numWithUnits(n.earnedSats, { abbreviate: false })} bounty payment
-      </NoteHeader>
-      <NoteItem item={n.item} />
-    </>
-  )
-}
-
-function ForwardedVotification ({ n }) {
-  const { me } = useMe()
-  const myPct = n.item.forwards?.find(f => Number(f.userId) === Number(me?.id))?.pct
-  return (
-    <>
-      <NoteHeader color='success'>
-        <span className='d-inline-flex'>
-          <span>
-            {n.item.title ? 'post' : 'reply'} stacked {stackedText(n.item)}
-            {myPct && <small className='text-muted fw-light ms-1'>{myPct}% forwarded to you</small>}
-          </span>
-          {n.item.credits > 0 && <CCInfo size={16} />}
-        </span>
       </NoteHeader>
       <NoteItem item={n.item} />
     </>

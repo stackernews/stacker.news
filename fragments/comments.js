@@ -42,6 +42,7 @@ export const COMMENT_FIELDS = gql`
     }
     sats
     credits
+    donatedSats
     meAnonSats @client
     upvotes
     freedFreebie
@@ -57,6 +58,7 @@ export const COMMENT_FIELDS = gql`
     path
     commentSats
     commentCredits
+    commentDonatedSats
     commentCost
     commentBoost
     mine
@@ -102,6 +104,7 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     }
     sats
     credits
+    donatedSats
     meAnonSats @client
     upvotes
     freedFreebie
@@ -117,6 +120,7 @@ export const COMMENT_FIELDS_NO_CHILD_COMMENTS = gql`
     path
     commentSats
     commentCredits
+    commentDonatedSats
     commentCost
     commentBoost
     mine

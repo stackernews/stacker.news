@@ -49,9 +49,15 @@ const KIND_SPECS = {
   }
 }
 
-export function walletHomeEntries (wallets) {
+export function walletHomeEntries (wallets, { receiveCredits = true, cowboyCredits = 0 } = {}) {
+  const internalWalletEntries = INTERNAL_WALLET_ENTRIES
+    .filter(entry => entry.routeId !== COWBOY_CREDITS_ROUTE_ID || receiveCredits || cowboyCredits >= 1)
+    .map(entry => entry.routeId === COWBOY_CREDITS_ROUTE_ID && !receiveCredits
+      ? { ...entry, action: null }
+      : entry)
+
   return [
-    ...INTERNAL_WALLET_ENTRIES,
+    ...internalWalletEntries,
     ...wallets.map(wallet => ({
       kind: 'external',
       routeId: walletRouteId(wallet),

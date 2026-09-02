@@ -225,6 +225,7 @@ const typeDefs = gql`
 
   type WalletSettings {
     proxyReceive: Boolean!
+    receiveCredits: Boolean!
     receiveCreditsBelowSats: Int!
     sendCreditsBelowSats: Int!
     autoWithdrawThreshold: Int
@@ -234,6 +235,7 @@ const typeDefs = gql`
 
   input WalletSettingsInput {
     proxyReceive: Boolean
+    receiveCredits: Boolean
     receiveCreditsBelowSats: Int!
     sendCreditsBelowSats: Int!
     autoWithdrawThreshold: Int!

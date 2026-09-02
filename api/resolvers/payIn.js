@@ -433,20 +433,15 @@ export default {
       return null
     },
     payOutCustodialTokens: async (payIn, args, { models, me }) => {
-      let payOutCustodialTokens = []
-      if (typeof payIn.payOutCustodialTokens !== 'undefined') {
-        payOutCustodialTokens = [
-          ...payIn.payOutCustodialTokens,
-          ...payIn.beneficiaries.reduce((acc, beneficiary) => {
-            if (beneficiary.payOutCustodialTokens) {
-              return [...acc, ...beneficiary.payOutCustodialTokens]
-            }
-            return acc
-          }, [])
-        ]
-      } else {
-        payOutCustodialTokens = await models.payOutCustodialToken.findMany({ where: { payInId: payIn.id } })
-      }
+      const loaded = Array.isArray(payIn.payOutCustodialTokens) &&
+        Array.isArray(payIn.beneficiaries) &&
+        payIn.beneficiaries.every(b => Array.isArray(b.payOutCustodialTokens))
+      let payOutCustodialTokens = loaded
+        ? [...payIn.payOutCustodialTokens, ...payIn.beneficiaries.flatMap(b => b.payOutCustodialTokens)]
+        : await models.payOutCustodialToken.findMany({
+          where: { OR: [{ payInId: payIn.id }, { payIn: { benefactorId: payIn.id } }] },
+          orderBy: { id: 'asc' }
+        })
 
       // obscure rewards if they are not mine
       if (payIn.payInType === 'REWARDS') {
@@ -476,11 +471,12 @@ export default {
       // if it's not mine, we need to hide the routing fee
       // by removing the routing fee and adding the amount to the rewards pool
       const routingFee = payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
-      const rewardsPool = payOutCustodialTokens.find(t => t.payOutType === 'REWARDS_POOL')
+      const rewardsPool = payOutCustodialTokens.find(t => t.payOutType === 'REWARDS_POOL' && t.payInId === payIn.id)
       if (routingFee && rewardsPool) {
-        const withoutRoutingFee = payOutCustodialTokens.filter(t => t.payOutType !== 'ROUTING_FEE')
-        rewardsPool.mtokens = BigInt(routingFee.mtokens) + BigInt(rewardsPool.mtokens)
-        payOutCustodialTokens = withoutRoutingFee
+        // Mask the fee on a copy of the parent's reward, never the donation.
+        payOutCustodialTokens = payOutCustodialTokens
+          .filter(t => t.payOutType !== 'ROUTING_FEE')
+          .map(t => t === rewardsPool ? { ...t, mtokens: BigInt(t.mtokens) + BigInt(routingFee.mtokens) } : t)
       }
 
       return payOutCustodialTokens

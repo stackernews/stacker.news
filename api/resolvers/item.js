@@ -16,7 +16,7 @@ import {
   DEFAULT_COMMENTS_SATS_FILTER,
   HOMEPAGE_POSTS_SATS_FILTER
 } from '@/lib/constants'
-import { msatsToSats } from '@/lib/format'
+import { msatsToSats, roundedZapAmounts } from '@/lib/format'
 import uu from 'url-unshort'
 import { actSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, validateSchema } from '@/lib/validate'
 import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
@@ -1049,11 +1049,17 @@ export default {
     },
     // Recipient categories are settled allocations. The payer's pending
     // funding method cannot tell us whether recipients will get CCs or donate.
-    credits: item => msatsToSats(item.mcredits),
+    credits: item => roundedZapAmounts(item).credits,
+    donatedSats: item => roundedZapAmounts(item).donatedSats,
     commentSats: async (item, args, { models }) => {
       return msatsToSats(item.commentMsats)
     },
-    commentCredits: item => msatsToSats(item.commentMcredits),
+    commentCredits: item => roundedZapAmounts({
+      msats: item.commentMsats, mcredits: item.commentMcredits, donatedMsats: item.commentDonatedMsats
+    }).credits,
+    commentDonatedSats: item => roundedZapAmounts({
+      msats: item.commentMsats, mcredits: item.commentMcredits, donatedMsats: item.commentDonatedMsats
+    }).donatedSats,
     bountyPaidTo: async (item, args, { models, me }) => {
       if (!me || !item.bounty || item.userId !== me.id) return item.bountyPaidTo
 

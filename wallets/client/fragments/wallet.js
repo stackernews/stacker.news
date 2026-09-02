@@ -308,6 +308,7 @@ export const WALLET_SETTINGS = gql`
   query WalletSettings {
     walletSettings {
       proxyReceive
+      receiveCredits
       receiveCreditsBelowSats
       sendCreditsBelowSats
       autoWithdrawMaxFeePercent
@@ -321,6 +322,7 @@ export const SET_WALLET_SETTINGS = gql`
   mutation SetWalletSettings($settings: WalletSettingsInput!) {
     setWalletSettings(settings: $settings) {
       proxyReceive
+      receiveCredits
       receiveCreditsBelowSats
       sendCreditsBelowSats
       autoWithdrawMaxFeePercent

@@ -1,4 +1,4 @@
-import { PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
+import { MIN_RECEIVE_MSATS, PAID_ACTION_PAYMENT_METHODS, USER_ID } from '@/lib/constants'
 import { numWithUnits, msatsToSats, satsToMsats } from '@/lib/format'
 import { notifyZapped } from '@/lib/webPush'
 import { Prisma } from '@prisma/client'
@@ -6,6 +6,8 @@ import { payOutBolt11Prospect } from '../lib/payOutBolt11'
 import { getItemResult, getSubs } from '../lib/item'
 import { getRedistributedPayOutCustodialTokens } from '../lib/payOutCustodialTokens'
 import { canWrapBolt11 } from '@/wallets/server'
+import { donationProspect } from './donate'
+import { getBeneficiariesMcost } from '../lib/beneficiaries'
 
 export const anonable = true
 
@@ -52,12 +54,25 @@ export async function getInitial (models, payInArgs, { me, custodialOnly, sendPr
 
   const zapMtokens = mcost * 70n / 100n
   const payOutCustodialTokensProspects = []
+  const beneficiaries = []
 
   // build unified candidate list: explicit forwards + author's implicit remaining share
   const authorPct = 100 - itemForwards.reduce((acc, f) => acc + f.pct, 0)
   const candidates = [
-    ...itemForwards.map(f => ({ userId: f.userId, pct: f.pct, receiveCreditsBelowSats: f.user.receiveCreditsBelowSats })),
-    ...(authorPct > 0 ? [{ userId, pct: authorPct, receiveCreditsBelowSats: user.receiveCreditsBelowSats }] : [])
+    ...itemForwards.map(f => ({
+      userId: f.userId,
+      pct: f.pct,
+      receiveCredits: f.user.receiveCredits,
+      receiveCreditsBelowSats: f.user.receiveCreditsBelowSats
+    })),
+    ...(authorPct > 0
+      ? [{
+          userId,
+          pct: authorPct,
+          receiveCredits: user.receiveCredits,
+          receiveCreditsBelowSats: user.receiveCreditsBelowSats
+        }]
+      : [])
   ].filter(c => c.userId !== USER_ID.anon && c.userId !== USER_ID.rewards && c.userId !== USER_ID.saloon)
     .sort((a, b) => b.pct - a.pct)
 
@@ -66,7 +81,8 @@ export async function getInitial (models, payInArgs, { me, custodialOnly, sendPr
   if (p2p) {
     for (const c of candidates) {
       const candidateMtokens = zapMtokens * BigInt(c.pct) / 100n
-      if (msatsToSats(candidateMtokens) < c.receiveCreditsBelowSats) continue
+      if (candidateMtokens < MIN_RECEIVE_MSATS) continue
+      if (c.receiveCredits !== false && msatsToSats(candidateMtokens) < c.receiveCreditsBelowSats) continue
 
       const routingFeeMtokens = candidateMtokens * 3n / 70n
       try {
@@ -87,14 +103,30 @@ export async function getInitial (models, payInArgs, { me, custodialOnly, sendPr
     }
   }
 
-  // distribute CCs to all candidates who didn't get P2P
+  // Distribute CCs, or donate the recipient's share on their behalf.
   for (const c of candidates) {
     if (c.userId === p2pCandidateUserId) continue
-    payOutCustodialTokensProspects.push({ payOutType: 'ZAP', userId: c.userId, mtokens: zapMtokens * BigInt(c.pct) / 100n, custodialTokenType: 'CREDITS' })
+    const mtokens = zapMtokens * BigInt(c.pct) / 100n
+    if (c.receiveCredits === false) {
+      if (mtokens > 0n) beneficiaries.push(donationProspect({ userId: c.userId, mtokens }))
+      continue
+    }
+    payOutCustodialTokensProspects.push({
+      payOutType: 'ZAP',
+      userId: c.userId,
+      mtokens,
+      custodialTokenType: 'CREDITS'
+    })
   }
 
   // what's left goes to the rewards pool
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs, mcost, payOutCustodialTokens: payOutCustodialTokensProspects, payOutBolt11 })
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({
+    subs,
+    mcost,
+    beneficiaries,
+    payOutCustodialTokens: payOutCustodialTokensProspects,
+    payOutBolt11
+  })
 
   return {
     payInType: 'ZAP',
@@ -102,7 +134,8 @@ export async function getInitial (models, payInArgs, { me, custodialOnly, sendPr
     mcost,
     itemPayIn: { itemId: parseInt(payInArgs.id) },
     payOutCustodialTokens,
-    payOutBolt11
+    payOutBolt11,
+    beneficiaries
   }
 }
 
@@ -123,22 +156,29 @@ export async function onPaid (tx, payInId) {
     include: {
       itemPayIn: { include: { item: true } },
       payOutBolt11: true,
-      payOutCustodialTokens: true
+      payOutCustodialTokens: true,
+      beneficiaries: true
     }
   })
 
   const msats = payIn.mcost
+  const p2pMsats = payIn.payOutBolt11?.msats ?? 0n
+  const credits = payIn.payOutCustodialTokens
+    .filter(t => t.payOutType === 'ZAP' && t.custodialTokenType === 'CREDITS')
+    .reduce((sum, t) => sum + t.mtokens, 0n)
+  const donations = getBeneficiariesMcost(payIn.beneficiaries)
+  const recipientMsats = p2pMsats + credits + donations
+  // Item counters describe gross zap allocations, not after-fee receipts.
+  // Keep the Lightning allocation unchanged, then split the remainder into
+  // disjoint CC/rewards categories. Ordinary fees are not donations.
+  const nonLightningMsats = recipientMsats > 0n ? msats - msats * p2pMsats / recipientMsats : 0n
+  const donatedMsats = credits + donations > 0n
+    ? nonLightningMsats * donations / (credits + donations)
+    : 0n
+  const mcredits = nonLightningMsats - donatedMsats
   const sats = msatsToSats(msats)
   const userId = payIn.userId
   const item = payIn.itemPayIn.item
-  const p2pMsats = payIn.payOutBolt11?.msats ?? 0n
-  // actual recipient msats = p2p bolt11 + custodial ZAP payouts
-  // (ineligible authors have their share redistributed, so this can be less than 70%)
-  const recipientMsats = p2pMsats + payIn.payOutCustodialTokens
-    .filter(t => t.payOutType === 'ZAP')
-    .reduce((acc, t) => acc + t.mtokens, 0n)
-  // scale mcost by the recipient's p2p share to determine how much of the zap is credits vs sats
-  const creditMsats = recipientMsats > 0n ? msats - msats * p2pMsats / recipientMsats : msats
 
   // perform denomormalized aggregates: weighted votes, upvotes, msats, lastZapAt
   // NOTE: for the rows that might be updated by a concurrent zap, we use UPDATE for implicit locking
@@ -177,7 +217,8 @@ export async function onPaid (tx, payInId) {
         "subWeightedVotes" = "subWeightedVotes" + zapper."subZapTrust" * zap.log_sats,
         upvotes = upvotes + zap.first_vote,
         msats = "Item".msats + ${msats}::BIGINT,
-        mcredits = "Item".mcredits + ${creditMsats}::BIGINT,
+        mcredits = "Item".mcredits + ${mcredits}::BIGINT,
+        "donatedMsats" = "Item"."donatedMsats" + ${donatedMsats}::BIGINT,
         "lastZapAt" = now()
       FROM zap, zapper
       WHERE "Item".id = ${item.id}::INTEGER
@@ -191,7 +232,8 @@ export async function onPaid (tx, payInId) {
     UPDATE "Item"
     SET "weightedComments" = "Item"."weightedComments" + item_zapped."weightedVote",
       "commentMsats" = "Item"."commentMsats" + ${msats}::BIGINT,
-      "commentMcredits" = "Item"."commentMcredits" + ${creditMsats}::BIGINT
+      "commentMcredits" = "Item"."commentMcredits" + ${mcredits}::BIGINT,
+      "commentDonatedMsats" = "Item"."commentDonatedMsats" + ${donatedMsats}::BIGINT
     FROM item_zapped, ancestors
     WHERE "Item".id = ancestors.id`
 }

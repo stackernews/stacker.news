@@ -2,6 +2,7 @@ import { USER_ID } from '@/lib/constants'
 import { NoReceiveWalletError, payOutBolt11Replacement } from './payOutBolt11'
 import { payOutCustodialTokenFromBolt11 } from './payOutCustodialTokens'
 import { isP2POnly } from './is'
+import { donationProspect } from '../types/donate'
 
 export async function payInReplacePayOuts (models, payInFailedInitial, { custodialOnly = false } = {}) {
   if (!payInFailedInitial.payOutBolt11) {
@@ -10,10 +11,11 @@ export async function payInReplacePayOuts (models, payInFailedInitial, { custodi
 
   const payInFailed = {
     ...payInFailedInitial,
-    payOutCustodialTokens: payInFailedInitial.payOutCustodialTokens.map(token => ({ ...token }))
+    payOutCustodialTokens: payInFailedInitial.payOutCustodialTokens.map(token => ({ ...token })),
+    beneficiaries: [...(payInFailedInitial.beneficiaries ?? [])]
   }
   if (custodialOnly) {
-    return payInReplacePayOutWithCustodialToken(payInFailed, payInFailedInitial.payOutBolt11)
+    return await payInReplacePayOutWithCustodialToken(models, payInFailed, payInFailedInitial.payOutBolt11)
   }
 
   try {
@@ -47,15 +49,27 @@ export async function payInReplacePayOuts (models, payInFailedInitial, { custodi
     if (isP2POnly(payInFailedInitial)) {
       throw e
     }
-    return payInReplacePayOutWithCustodialToken(payInFailed, payInFailedInitial.payOutBolt11)
+    return await payInReplacePayOutWithCustodialToken(models, payInFailed, payInFailedInitial.payOutBolt11)
   }
   return payInFailed
 }
 
-function payInReplacePayOutWithCustodialToken (payIn, payOutBolt11) {
+async function payInReplacePayOutWithCustodialToken (models, payIn, payOutBolt11) {
   // if we can no longer produce a payOutBolt11, we fallback to custodial tokens
   // using the initial payOutBolt11 so the replacement remains balanced
-  payIn.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payOutBolt11))
+  let donate = false
+  if (payIn.payInType === 'ZAP') {
+    const recipient = await models.user.findUnique({
+      where: { id: payOutBolt11.userId },
+      select: { receiveCredits: true }
+    })
+    donate = recipient?.receiveCredits === false
+  }
+  if (donate) {
+    payIn.beneficiaries.push(donationProspect({ userId: payOutBolt11.userId, mtokens: payOutBolt11.msats }))
+  } else {
+    payIn.payOutCustodialTokens.push(payOutCustodialTokenFromBolt11(payOutBolt11))
+  }
   // convert the routing fee to another rewards pool output
   const routingFee = payIn.payOutCustodialTokens.find(t => t.payOutType === 'ROUTING_FEE')
   if (routingFee) {

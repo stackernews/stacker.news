@@ -126,6 +126,7 @@ export default gql`
     """
     sats: Int!
     credits: Int!
+    receiveCredits: Boolean!
     authMethods: AuthMethods!
     freeCommentCount: Int!
     freeCommentsLeft: Int!

@@ -34,6 +34,7 @@ ${STREAK_FIELDS}
       nsfwMode
       sats
       credits
+      receiveCredits
       freeCommentsLeft
       hasSendWallet
       hasRecvWallet

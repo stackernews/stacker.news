@@ -106,6 +106,7 @@ model User {
   autoWithdrawThreshold     Int?
   autoWithdrawMaxFeeTotal   Int?
   mcredits                  BigInt                 @default(0)
+  receiveCredits            Boolean                @default(true)
   receiveCreditsBelowSats   Int                    @default(10)
   sendCreditsBelowSats      Int                    @default(10)
   proxyReceive              Boolean                @default(false)
@@ -418,6 +419,7 @@ model Item {
   commentMsats         BigInt                @default(0)
   commentDownMsats     BigInt                @default(0)
   commentMcredits      BigInt                @default(0)
+  commentDonatedMsats  BigInt                @default(0)
   commentCost          Int                   @default(0)
   commentBoost         Int                   @default(0)
   weightedComments     Float                 @default(0)
@@ -428,6 +430,7 @@ model Item {
   msats                BigInt                @default(0)
   downMsats            BigInt                @default(0)
   mcredits             BigInt                @default(0)
+  donatedMsats         BigInt                @default(0)
   cost                 Int                   @default(0)
   weightedDownVotes    Float                 @default(0)
   subWeightedDownVotes Float                 @default(0)

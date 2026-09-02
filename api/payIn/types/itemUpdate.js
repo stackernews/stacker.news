@@ -50,7 +50,7 @@ async function getMcost (models, { id, uploadIds, bio, newSubs, parentId }, { me
 export async function getInitial (models, { id, uploadIds, bio, subNames }, { me }) {
   const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const subs = await getSubs(models, { subNames, parentId: old.parentId })
-  const mcost = await getMcost(models, { id, uploadIds, bio, newSubs: subs, parentId: old.parentId }, { me })
+  const baseMcost = await getMcost(models, { id, uploadIds, bio, newSubs: subs, parentId: old.parentId }, { me })
 
   // for post updates, when a sub is added, it contributes to the cost
   // we populate the mcost so that the new sub gets their proportional share of the revenue
@@ -61,17 +61,17 @@ export async function getInitial (models, { id, uploadIds, bio, subNames }, { me
       ...sub,
       mcost: old.subNames?.includes(sub.name) ? 0n : satsToMsats(sub.baseCost ?? 1)
     }))
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
-
   const beneficiaries = []
   if (uploadIds.length > 0) {
     beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds }, { me, subs }))
   }
+  const mcost = baseMcost + getBeneficiariesMcost(beneficiaries)
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost, beneficiaries })
 
   return {
     payInType: 'ITEM_UPDATE',
     userId: me?.id,
-    mcost: mcost + getBeneficiariesMcost(beneficiaries),
+    mcost,
     payOutCustodialTokens,
     itemPayIn: { itemId: parseInt(id) },
     beneficiaries

@@ -66,7 +66,7 @@ async function getMcost (models, { subNames, parentId, uploadIds, bio, useFreebi
 }
 
 export async function getInitial (models, args, { me }) {
-  const mcost = await getMcost(models, args, { me })
+  const baseMcost = await getMcost(models, args, { me })
   const subs = await getSubs(models, args)
 
   // for item creation, each sub can have a different cost
@@ -76,17 +76,17 @@ export async function getInitial (models, args, { me }) {
       ? satsToMsats(sub.replyCost ?? 1)
       : satsToMsats(sub.baseCost ?? 1)
   }))
-  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost })
-
   const beneficiaries = []
   if (args.uploadIds?.length > 0) {
     beneficiaries.push(await MEDIA_UPLOAD.getInitial(models, { uploadIds: args.uploadIds }, { me, subs }))
   }
+  const mcost = baseMcost + getBeneficiariesMcost(beneficiaries)
+  const payOutCustodialTokens = getRedistributedPayOutCustodialTokens({ subs: subsWithCosts, mcost, beneficiaries })
 
   return {
     payInType: 'ITEM_CREATE',
     userId: me.id,
-    mcost: mcost + getBeneficiariesMcost(beneficiaries),
+    mcost,
     payOutCustodialTokens,
     beneficiaries
   }

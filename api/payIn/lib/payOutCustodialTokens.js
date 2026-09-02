@@ -1,8 +1,10 @@
 import { USER_ID } from '@/lib/constants'
+import { getBeneficiariesMcost } from './beneficiaries'
 
-export function getRedistributedPayOutCustodialTokens ({ subs = [], payOutCustodialTokens = [], payOutBolt11 = { msats: 0n }, mcost, rewardsPct }) {
+export function getRedistributedPayOutCustodialTokens ({ subs = [], payOutCustodialTokens = [], payOutBolt11 = { msats: 0n }, beneficiaries = [], mcost, rewardsPct }) {
+  // mcost includes the cost of any beneficiaries passed here.
   // routing fee is only deducted from rewards pool, so it can be added back to the rewards pool when the actual routing fee is known
-  const remainingMtokens = mcost - payOutBolt11.msats -
+  const remainingMtokens = mcost - getBeneficiariesMcost(beneficiaries) - payOutBolt11.msats -
     payOutCustodialTokens.filter(t => t.payOutType !== 'ROUTING_FEE').reduce((acc, token) => acc + token.mtokens, 0n)
   if (remainingMtokens < 0n) {
     throw new Error('remaining mtokens is less than 0')

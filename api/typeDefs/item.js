@@ -113,8 +113,11 @@ export default gql`
     sats: Int!
     downSats: Int!
     credits: Int!
+    "Gross zap value allocated to rewards instead of recipient credits."
+    donatedSats: Int!
     commentSats: Int!
     commentCredits: Int!
+    commentDonatedSats: Int!
     commentCost: Int!
     commentBoost: Int!
     commentDownSats: Int!

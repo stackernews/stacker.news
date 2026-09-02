@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
-import { abbrNum, numWithUnits } from '@/lib/format'
+import { abbrNum, numWithUnits, zapBreakdown } from '@/lib/format'
 import { newComments, commentsViewedAt } from '@/lib/new-comments'
 import { timeSince } from '@/lib/time'
 import { DeleteDropdownItem } from './delete'
@@ -41,11 +41,8 @@ function itemTitle (item) {
     unitSingular: 'zapper',
     unitPlural: 'zappers'
   })
-  if (item.sats - item.credits) {
-    title += ` \\ ${numWithUnits(item.sats - item.credits, { abbreviate: false })} stacked`
-  }
-  if (item.credits) {
-    title += ` \\ ${numWithUnits(item.credits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })} stacked`
+  if (item.sats) {
+    title += ` \\ ${zapBreakdown(item)}`
   }
   if (item.boost) {
     title += ` \\ ${numWithUnits(item.boost, { abbreviate: false, unitSingular: 'boost', unitPlural: 'boost' })}`
@@ -129,7 +126,7 @@ export default function ItemInfo ({
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={`${numWithUnits(item.commentSats + item.commentCost + item.commentBoost)} (${item.commentSats} stacked \\ ${item.commentCost} cost \\ ${item.commentBoost} boost)`} className='text-reset position-relative'
+        }} title={`${numWithUnits(item.commentSats + item.commentCost + item.commentBoost)} (${zapBreakdown({ sats: item.commentSats, credits: item.commentCredits, donatedSats: item.commentDonatedSats })} \\ ${item.commentCost} cost \\ ${item.commentBoost} boost)`} className='text-reset position-relative'
       >
         {numWithUnits(item.ncomments, {
           abbreviate: false,
@@ -272,8 +269,8 @@ function ItemDetails ({ item, me }) {
       <div className={styles.detailsValue}>{item.cost} sats</div>
       <div className={styles.detailsLabel}>boost</div>
       <div className={styles.detailsValue}>{item.boost} sats</div>
-      <div className={styles.detailsLabel}>stacked</div>
-      <div className={styles.detailsValue}>{item.sats - item.credits} sats / {item.credits} ccs</div>
+      <div className={styles.detailsLabel}>zapped</div>
+      <div className={styles.detailsValue}>{zapBreakdown(item)}</div>
       <div className={styles.detailsLabel}>downsats</div>
       <div className={styles.detailsValue}>{item.downSats} sats</div>
       <div className={styles.detailsLabel}>invested</div>
@@ -283,8 +280,8 @@ function ItemDetails ({ item, me }) {
       <div className={styles.detailsValue}>{item.commentCost} sats</div>
       <div className={styles.detailsLabel}>boost</div>
       <div className={styles.detailsValue}>{item.commentBoost} sats</div>
-      <div className={styles.detailsLabel}>stacked</div>
-      <div className={styles.detailsValue}>{item.commentSats - item.commentCredits} sats / {item.commentCredits} ccs</div>
+      <div className={styles.detailsLabel}>zapped</div>
+      <div className={styles.detailsValue}>{zapBreakdown({ sats: item.commentSats, credits: item.commentCredits, donatedSats: item.commentDonatedSats })}</div>
       <div className={styles.detailsLabel}>downsats</div>
       <div className={styles.detailsValue}>{item.commentDownSats} sats</div>
       <div className={styles.detailsLabel}>invested</div>

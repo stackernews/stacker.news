@@ -6,7 +6,7 @@ import { decodePaymentRequest, getPaymentFailureStatus, getPaymentOrNotSent, hod
 import { cancelHodlInvoice, settleHodlInvoice, getInvoice } from 'ln-service'
 import { toPositiveNumber, formatSats, msatsToSats, toPositiveBigInt } from '@/lib/format'
 import { MIN_SETTLEMENT_CLTV_DELTA } from '@/wallets/server/wrap'
-import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS } from '@/lib/constants'
+import { LND_PATHFINDING_TIME_PREF_PPM, LND_PATHFINDING_TIMEOUT_MS, USER_ID } from '@/lib/constants'
 import { getPayInFailurePresentation } from '@/lib/pay-in'
 import { notifyWithdrawal } from '@/lib/webPush'
 import { PayInFailureReasonError } from './errors'
@@ -334,12 +334,17 @@ export async function payInPaid ({ data, models, ...args }) {
       const msatsReceived = toPositiveBigInt(lndPayInBolt11.received_mtokens)
       const msatsOverpaid = msatsReceived - payIn.payInBolt11.msatsRequested
       if (msatsOverpaid > 0) {
+        const payer = await tx.user.findUnique({
+          where: { id: payIn.userId },
+          select: { receiveCredits: true }
+        })
+        const donateToRewards = payer?.receiveCredits === false
         await tx.payOutCustodialToken.create({
           data: {
             mtokens: msatsOverpaid,
-            userId: payIn.userId,
-            payOutType: 'INVOICE_OVERPAY_SPILLOVER',
-            custodialTokenType: 'CREDITS',
+            userId: donateToRewards ? USER_ID.rewards : payIn.userId,
+            payOutType: donateToRewards ? 'REWARDS_POOL' : 'INVOICE_OVERPAY_SPILLOVER',
+            custodialTokenType: donateToRewards ? 'SATS' : 'CREDITS',
             payInId: payIn.id
           }
         })

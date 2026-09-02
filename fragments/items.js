@@ -51,6 +51,7 @@ export const ITEM_FIELDS = gql`
     position
     sats
     credits
+    donatedSats
     meAnonSats @client
     boost
     bounty
@@ -72,6 +73,7 @@ export const ITEM_FIELDS = gql`
     nDirectComments
     commentSats
     commentCredits
+    commentDonatedSats
     commentCost
     commentBoost
     lastCommentAt

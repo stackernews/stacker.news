@@ -10,12 +10,17 @@ export const paymentMethods = [
 ]
 
 export async function getInitial (models, { sats }, { me }) {
+  return donationProspect({ userId: me?.id, mtokens: satsToMsats(sats) })
+}
+
+// Beneficiaries can donate fractional sats without rounding their share.
+export function donationProspect ({ userId, mtokens }) {
   return {
     payInType: 'DONATE',
-    userId: me?.id,
-    mcost: satsToMsats(sats),
+    userId,
+    mcost: mtokens,
     payOutCustodialTokens: [
-      { payOutType: 'REWARDS_POOL', userId: USER_ID.rewards, mtokens: satsToMsats(sats), custodialTokenType: 'SATS' }
+      { payOutType: 'REWARDS_POOL', userId: USER_ID.rewards, mtokens, custodialTokenType: 'SATS' }
     ]
   }
 }

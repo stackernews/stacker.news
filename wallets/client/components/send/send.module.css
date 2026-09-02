@@ -8,8 +8,6 @@
   margin-right: auto;
   gap: 2rem;
 }
-/* the .form-group class left the DOM; the margin kill moved to the call sites
-   (groupClassName='mb-0' on the send-flow fields) */
 
 .detectedRow {
   display: grid;
@@ -64,7 +62,6 @@
   display: flex;
   align-items: center;
   margin-left: auto;
-  /* Lightning renders the close glyph. */
   font-family: "lightning";
   font-size: 160%;
   line-height: 1rem;
@@ -185,8 +182,7 @@
   letter-spacing: 0.08em;
   line-height: 1;
 }
-/* the descendant pair beats ui/collapsible's .trigger UA reset on specificity;
-   cross-file module order is build-fragile */
+/* two classes so we beat ui/collapsible's .trigger reset regardless of module order */
 .maxFeeSummary .maxFeeControl {
   --chip-padding: 0.35rem 0.65rem;
   --chip-radius: 6px;
@@ -211,7 +207,6 @@
 .submit {
   min-width: 180px;
 }
-/* Keep the secondary line normal beneath the bold button label. */
 .submit small {
   font-size: 0.875em;
   font-weight: 400;

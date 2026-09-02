@@ -25,7 +25,6 @@
     vertical-align: text-top;
 }
 
-/* Shared row layout for desktop and mobile navigation bars. */
 .navbarNav {
     display: flex;
     width: 100%;
@@ -55,12 +54,7 @@
     padding: 0;
 }
 
-
-/* sticky bar: an IntersectionObserver sentinel triggers it; 150ms translateY
-   slide in, instant snap out (the transition rides .visible only) so the
-   hidden bar is untabbable immediately, like display none would be. left and
-   right 0 instead of 100vw is scrollbar-safe. If a hairline seam ever shows
-   on-device, reinstate top: -1px with padding-top: 1px. */
+/* slides in but snaps out (the transition is on .visible) so the hidden bar is untabbable right away */
 .sticky {
     position: fixed;
     top: 0;

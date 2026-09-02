@@ -4,8 +4,7 @@ import { cn } from '@/lib/cn'
 import { Back, Brand, NavPrice, RightCorner, SearchItem } from '../common'
 import { useCommentsNavigatorContext, CommentsNavigator } from '@/components/use-comments-navigator'
 
-// containers alone own responsive hiding: the header and the sticky bar both
-// wrap this row in hidden md:block, so items carry no breakpoints
+// the header and sticky bar wrap this in hidden md:block, so items need no breakpoints
 export default function TopBar ({ prefix, sub, path, topNavKey, dropNavKey, navbarClassName }) {
   const { navigator, commentCount } = useCommentsNavigatorContext()
   return (

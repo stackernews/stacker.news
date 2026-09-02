@@ -20,7 +20,6 @@ import ActionTooltip from './action-tooltip'
 import { useAnimationEnabled } from '@/components/animation'
 import { useLiveCommentsToggle } from './use-live-comments'
 
-// Base UI gives the rendered div button semantics and manages light dismissal.
 function FooterPopover ({ label, children }) {
   return (
     <Popover>
@@ -214,8 +213,7 @@ export default function Footer ({ links = true }) {
             className={`mx-auto mb-2 ${styles.connect}`}
           >
             <small className='font-medium text-muted me-2'>connect:</small>
-            {/* min-w-0: a flex-item FormGroup keeps min-width:auto and the input's
-                intrinsic width otherwise pushes the node links past the viewport */}
+            {/* min-w-0 so the input's intrinsic width can't push the node links past the viewport */}
             <CopyInput
               size='sm'
               groupClassName='mb-0 w-full min-w-0'

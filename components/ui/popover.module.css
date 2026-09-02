@@ -1,12 +1,11 @@
 @layer components {
 
-/* chrome shared by the Popover and Preview Card popups */
 .positioner {
   z-index: var(--sn-z-popover);
 }
 
 .popup {
-  /* Keep the arrow anchored to the popup throughout its transition. */
+  /* anchors the arrow */
   position: relative;
   background-color: var(--sn-body-bg);
   color: var(--sn-body-color);
@@ -31,7 +30,6 @@
   border-bottom: 1px solid var(--sn-borderColor);
 }
 
-/* Lightning supplies the close glyph. */
 .close {
   margin-top: 0.25rem;
   margin-right: -0.5rem;

@@ -1,10 +1,7 @@
 import { cn } from '@/lib/cn'
 import styles from './field.module.css'
 
-// Shared recipes also support controls that do not use Formik.
-
-// These metrics match Button sizes so mixed input groups stay aligned.
-// Mobile text remains at least 1rem to prevent iOS input zoom.
+// keep in sync with the Button sizes or input groups misalign
 const SIZES = {
   sm: 'px-2 py-1 text-sm',
   md: 'px-4 py-1.5 text-base'

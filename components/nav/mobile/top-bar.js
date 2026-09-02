@@ -6,7 +6,6 @@ import { useMe } from '@/components/me'
 import { useCommentsNavigatorContext, CommentsNavigator } from '@/components/use-comments-navigator'
 import { useBranding } from '@/components/territory-branding'
 
-// The header and sticky bar share the same mobile price row.
 export function MobilePriceRow () {
   const { me } = useMe()
   const { navigator, commentCount } = useCommentsNavigatorContext()

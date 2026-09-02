@@ -4,7 +4,6 @@ import SecondBar from './second-bar'
 import { hasNavSelect } from '../common'
 
 export default function Header (props) {
-  // Stacked bars split the vertical padding between them.
   const second = hasNavSelect(props)
   return (
     <div data-sn-navigation className='hidden md:block'>

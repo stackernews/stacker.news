@@ -36,7 +36,6 @@ export default function Avatar ({ onSuccess }) {
           }}
         />
         <div>
-          {/* Keep the thumb and crop scale aligned on the first render. */}
           <Slider
             min={1} max={2} step={0.05}
             defaultValue={1}
@@ -119,7 +118,7 @@ export default function Avatar ({ onSuccess }) {
         setUploading(true)
       }}
     >
-      {/* deliberately static across themes: the chip backs the fill-white icons */}
+      {/* always dark so the fill-white icons stay visible */}
       <div className='absolute p-1 bg-dark pointer' style={{ bottom: '0', right: '0' }}>
         {uploading
           ? <Moon className='fill-white spin' />

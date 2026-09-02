@@ -103,7 +103,7 @@ export default function Referrals ({ ssrData }) {
         className='pt-12 px-4 flex w-full items-center'
       >
         <div className='font-medium text-muted pe-2' style={{ 'white-space': 'nowrap' }}>referral link:</div>
-        {/* min-w-0: same flex-item FormGroup shrink guard as footer.js's connect row */}
+        {/* min-w-0 so the input can shrink */}
         <CopyInput
           size='sm'
           groupClassName='mb-0 w-full min-w-0'

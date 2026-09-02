@@ -145,7 +145,7 @@
   padding: 0.2rem;
   border-radius: 0.4rem;
   opacity: 0.6;
-  background: none; /* items are <button>s, neutralize the UA chrome */
+  background: none; /* items are <button>s */
   border: 0;
   -webkit-touch-callout: none;
   touch-action: manipulation;
@@ -290,7 +290,6 @@
   }
 }
 
-/* Editor tabs own their paint and neutralize native button chrome. */
 .modeTab {
   --tab-border-color: var(--sn-borderColor);
   --tab-bg: var(--sn-inputBg);
@@ -577,13 +576,11 @@
   box-shadow: 0 0 10px var(--sn-info);
 }
 
-/* mentions listbox: the class only lifts it onto the z ladder; position so the
-   z-index applies */
+/* mentions listbox, positioned so the z-index applies */
 .suggestionsMenu {
   position: relative;
   z-index: var(--sn-z-dropdown);
 }
-
 
 .separator {
   display: flex;

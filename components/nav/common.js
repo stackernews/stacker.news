@@ -182,8 +182,7 @@ export function MeDropdown ({ me, dropNavKey }) {
 
   const profileIndicator = !me.bioId
   const indicator = profileIndicator || walletIndicator
-  // topNavKey equals dropNavKey.split('/')[0] by construction, useNavKeys
-  // derives both from the same path offset
+  // the first segment of dropNavKey is the top nav key (see useNavKeys)
   const topKey = dropNavKey?.split('/')[0]
 
   return (
@@ -191,8 +190,6 @@ export function MeDropdown ({ me, dropNavKey }) {
       <Menu className={styles.dropdown}>
         <MenuTrigger className={navLinkClasses({ className: 'font-normal ps-0 pe-2 py-0.5' })}>
           <div className='flex items-center'>
-            {/* never interactive, the MenuTrigger owns the semantics; active
-                resolves from topKey */}
             <span className={navLinkClasses({ active: topKey === me.name, className: 'p-0' })}>
               <Indicator show={indicator} top='2px' right='-5px'>@{me.name}</Indicator>
             </span>
@@ -313,8 +310,6 @@ function LogoutObstacle ({ onClose }) {
   )
 }
 
-// Items use popup semantics in MeDropdown and plain navigation semantics in
-// the mobile drawer.
 export function LogoutDropdownItem ({ handleClose, className }) {
   const showModal = useShowModal()
 
@@ -365,9 +360,7 @@ function SwitchAccountButton ({ handleClose, className, onClick, ...props }) {
   )
 }
 
-// dual-mode like LogoutDropdownItem: in-menu items in AnonDropdown, where
-// closeOnClick closes the menu before the button's navigation or modal, and
-// plain divs in the drawer (className='px-0' from there)
+// menu items in AnonDropdown, plain divs in the mobile drawer
 export function LoginButtons ({ handleClose, className, asMenuItems }) {
   if (asMenuItems) {
     return (
@@ -430,8 +423,8 @@ export function Sorts ({ prefix, className }) {
 export function PostItem ({ className, prefix, size }) {
   const branding = useBranding()
   const isLurker = useIsLurker()
-  // when a custom primary color is set we let the button text follow the skin's
-  // --sn-btn-color (YIQ-computed --sn-primary-text); otherwise force text-black
+  // when a custom primary color is set we let the button text follow --sn-btn-color
+  // otherwise we use the default text-black
   const textOverride = branding?.primaryColor ? '' : 'text-black'
   return (
     <Link href={prefix + '/post'} className={buttonClasses({ variant: isLurker ? 'grey' : 'primary', size, className: [className, textOverride, 'md:py-1'] })}>

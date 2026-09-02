@@ -23,8 +23,6 @@ const PollButton = ({ v, item }) => {
       <Button
         disabled={isSubmitting}
         variant='outline-info'
-        // the pill geometry rides call-site utilities so twMerge drops the
-        // recipe's rounded-md, px-4, py-1.5 and inline-block
         className={classNames(styles.pollButton, 'block rounded-4xl px-[1.1rem] py-[.4rem] leading-4', isSubmitting && 'pulse')}
         onClick={me
           ? async () => {

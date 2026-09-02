@@ -86,7 +86,6 @@
   flex-direction: column;
   gap: 2rem;
 }
-/* element-keyed because the .form-control class left the DOM */
 .walletActionBody :global(textarea) {
   min-height: 8rem;
 }

@@ -55,11 +55,8 @@ export default function ModeSwitchPlugin ({ name }) {
     editor.dispatchCommand(TOGGLE_MODE_COMMAND, value)
   }, [editor])
 
-  // panel-less Tabs: value is controlled by useEditorMode and only moves when the
-  // TOGGLE_MODE_COMMAND handler above accepts the switch (upload guard, same-mode
-  // no-op), so a refused command leaves the tabs where they are. Clicking the
-  // active tab fires nothing in Tabs source, so no disabled={active} hack is needed.
-  // mousedown preventDefault keeps the Lexical selection on tab click
+  // the value only moves when TOGGLE_MODE_COMMAND accepts the switch, so a refused
+  // command leaves the tabs where they are. mousedown preventDefault keeps the lexical selection
   return (
     <Tabs.Root value={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onValueChange={handleTabSelect}>
       <Tabs.List className='flex flex-nowrap' onMouseDown={(e) => e.preventDefault()}>

@@ -111,7 +111,7 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
   )
 }
 
-// Tailwind only generates classes it can see as literals in source.
+// tailwind only generates classes it sees as literals
 const NOTE_COLORS = {
   boost: 'text-boost',
   secondary: 'text-secondary',

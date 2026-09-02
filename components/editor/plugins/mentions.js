@@ -158,8 +158,7 @@ export default function MentionsPlugin () {
       ) =>
         anchorElementRef.current && suggestions?.length
           ? createPortal(
-            // a plain listbox on the menu chrome, Lexical owns the keyboard;
-            // .suggestionsMenu only carries the z-index
+            // plain listbox, lexical owns the keyboard
             <div role='listbox' className={cn(menuClasses(), styles.suggestionsMenu)} onMouseDown={e => e.preventDefault()}>
               {options.map((o, i) => (
                 <div

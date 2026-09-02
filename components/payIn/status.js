@@ -6,7 +6,7 @@ import ThumbDown from '@/svgs/thumb-down-fill.svg'
 
 export const statusIconSize = 16
 
-// Tailwind only generates classes it can see as literals in source.
+// tailwind only generates classes it sees as literals
 const TEXT_COLORS = {
   success: 'text-success',
   danger: 'text-danger',

@@ -1,18 +1,14 @@
 @layer components {
 
-/* Alerts own paint; call sites own layout overrides. */
-
 .alert {
   position: relative;
   padding: 1rem;
   margin-bottom: 1rem;
   border-radius: 33% 2% / 11% 74%;
-  /* Light surfaces mix stronger text and a pale background from one base. */
   color: color-mix(in srgb, #000 60%, var(--sn-alert-base));
   background-color: color-mix(in srgb, #fff 80%, var(--sn-alert-base));
 }
 
-/* Dark surfaces reverse the mix direction for contrast. */
 :global([data-theme='dark']) .alert {
   color: color-mix(in srgb, #fff 40%, var(--sn-alert-base));
   background-color: color-mix(in srgb, #000 80%, var(--sn-alert-base));
@@ -34,7 +30,6 @@
   padding-right: 3rem;
 }
 
-/* Lightning supplies the close glyph. */
 .close {
   position: absolute;
   top: 0;

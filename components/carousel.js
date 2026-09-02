@@ -38,11 +38,7 @@ function useSwiping ({ moveLeft, moveRight }) {
   }, [onTouchStart, onTouchEnd])
 }
 
-// arrow keys bind to the carousel's own container, not document: inside a Base UI
-// Dialog.Popup the popup stopPropagation()s composite keys (Arrow/Home/End) at the
-// popup level as its roving-focus contract, so a document listener never sees them.
-// the container owns focus (below) so the keydown fires on it directly, with no
-// reaching past the popup, and the modal shell needs no key-passthrough escape hatch.
+// listen on the container, not document: Dialog.Popup stops propagation of arrow keys
 function useArrowKeys (ref, { moveLeft, moveRight }) {
   const onKeyDown = useCallback((e) => {
     if (e.key === 'ArrowLeft') {
@@ -81,8 +77,7 @@ function Carousel ({ close, mediaArr, src, setOptions }) {
     setIndex(i => Math.min(mediaArr.length - 1, i + 1))
   }, [setIndex, mediaArr.length])
 
-  // the carousel owns its own focus so arrow keys land on the container (see useArrowKeys);
-  // tabIndex=-1 keeps it out of the tab order, focus() paints no ring on programmatic focus
+  // focus the container so arrow keys land on it, tabIndex -1 keeps it out of the tab order
   const containerRef = useRef(null)
   useEffect(() => { containerRef.current?.focus() }, [])
 

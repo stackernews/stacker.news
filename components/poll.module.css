@@ -1,8 +1,5 @@
 @layer components {
 
-/* display, radius, padding and line-height are recipe-owned on a Button, so
-   they live as call-site utilities in poll.js (twMerge drops the recipe's);
-   only declarations the recipe never emits belong here */
 .pollButton {
     margin-top: .25rem;
     border: 2px solid var(--sn-info);

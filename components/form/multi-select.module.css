@@ -1,16 +1,10 @@
 @layer components {
 
-/* only what the recipes can't paint lives here */
-
-/* The control starts at the form baseline but can grow as chips are added. */
 .control {
   min-width: 200px;
 }
 
-/* the state legs inputClasses can't give a div: field.module.css keys focus on
-   .control:focus, which never fires on the wrapper, so the ring rides
-   :focus-within while the inner input holds focus. .control.isInvalid doubles
-   specificity so the red border wins over the base border color. */
+/* :focus never fires on the wrapper, so the ring rides :focus-within */
 .control:focus-within {
   border-color: var(--sn-primary);
   box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-primary) 25%, transparent);

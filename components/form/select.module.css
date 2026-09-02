@@ -1,7 +1,5 @@
 @layer components {
 
-/* Compact select paint. Padding and caret position stay together here. */
-
 .select {
     appearance: none;
     display: inline-block;
@@ -29,7 +27,7 @@
     border: 1px solid var(--sn-danger);
 }
 
-/* Native option menus need a light text color context in dark mode. */
+/* option menus render light even in dark mode */
 .select option {
     color: rgba(0, 0, 0, .9);
 }

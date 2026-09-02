@@ -2,7 +2,6 @@ import { useFormikContext } from 'formik'
 import { cn } from '@/lib/cn'
 import Button from '@/components/ui/button'
 
-// The main variant intentionally uses only the shared button base.
 export function SubmitButton ({
   children, variant, valueName = 'submit', value, onClick, disabled, appendText, submittingText,
   className, ...props

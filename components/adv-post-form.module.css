@@ -1,7 +1,6 @@
 @layer components {
 
-/* Both flex items must shrink below their inputs' intrinsic width on narrow
-   screens. */
+/* let both flex items shrink below their inputs' intrinsic width on narrow screens */
 .name {
   display: flex;
   flex: 1 1 60%;

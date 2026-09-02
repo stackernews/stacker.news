@@ -1,7 +1,4 @@
-/*
- * Tailwind entry and layer contract. Component modules live below utilities.
- * See docs/dev/styling.md.
- */
+/* tailwind entry and layer order, see docs/dev/styling.md */
 
 @layer theme, base, components, utilities;
 
@@ -9,18 +6,17 @@
 @import 'tailwindcss/preflight.css' layer(base);
 @import 'tailwindcss/utilities.css' layer(utilities) source(none);
 
-/* Scan application UI and runtime content class sources. */
 @source '../components';
 @source '../pages';
 @source '../lib';
 @source '../wallets';
 @source '../svgs';
 
-/* Bare words that are not Tailwind utility usage. */
+/* words that aren't utility usage */
 @source not inline('container');
 @source not inline('table');
 
-/* :where() keeps the dark variant at zero specificity. */
+/* :where() keeps the dark variant at zero specificity */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @theme {
@@ -33,7 +29,7 @@
 
   --font-weight-bolder: bolder;
 
-  /* Application body type; other sizes use the stock scale. */
+  /* body type, other sizes use the stock scale */
   --text-base: .93rem;
   --text-base--line-height: 1.75;
 
@@ -41,7 +37,7 @@
   --container-page: 932px;
 }
 
-/* Utilities read live theme and territory values directly. */
+/* inline so utilities read the live theme and territory values */
 @theme inline {
   --font-mono: var(--sn-font-monospace);
   --color-primary: var(--sn-primary);
@@ -60,23 +56,21 @@
   --color-grey-darkmode: var(--sn-grey-darkmode);
 }
 
-/* Let a child inherit its surrounding text color. */
 @utility text-reset {
   color: inherit;
 }
 
-/* iOS zooms focused controls under 16px; the touch floor pins them at 1rem. */
+/* ios zooms focused controls under 16px */
 @utility text-touch {
   font-size: 1rem;
 }
 
-/* Edge-to-edge mobile chrome pads by the device safe area. */
 @utility px-safe {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
 
-/* Safe-area padding that keeps the standard page gutter as its floor. */
+/* px-4 that grows with the safe area */
 @utility px-safe-gutter {
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));

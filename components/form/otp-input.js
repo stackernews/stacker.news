@@ -7,12 +7,10 @@ export function OtpInput ({ name, length = 6, label, groupClassName, disabled, a
   const formik = useFormikContext()
   const [field, meta, helpers] = useField({ name })
   const labelId = useId()
-  // invalid paints only after a submit attempt
+  // only show invalid after a submit attempt
   const invalid = formik.submitCount > 0 && meta.touched && meta.error
 
   const firstSlotRef = useRef(null)
-  // React's autoFocus attribute doesn't survive SSR hydration, so a mount
-  // effect focuses the first slot instead
   useEffect(() => {
     autoFocus && firstSlotRef.current?.focus()
   }, [autoFocus])

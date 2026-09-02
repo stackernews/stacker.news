@@ -6,16 +6,14 @@ import styles from './menu.module.css'
 
 const InMenuContext = createContext(false)
 
-// popup chrome; also exported for the mentions and suggest listboxes
+// also used by the mentions and suggest listboxes
 export const menuClasses = ({ className } = {}) =>
   cn(styles.popup, 'min-w-40 py-2 text-base rounded-md shadow-lg', className)
 
-// item paint including the hover and keyboard highlight and the active brand
-// glow; exported for the same two listboxes, which pass their own active state
+// the listboxes pass their own active state
 export const itemClasses = ({ active, className } = {}) =>
   cn(styles.item, active && styles.active, 'block w-full py-1.5 px-6 font-medium whitespace-nowrap', className)
 
-// Menus do not lock page scroll.
 export function Menu ({ className, children, ...props }) {
   return (
     <span className={className}>
@@ -36,8 +34,7 @@ export function MenuPopup ({ side = 'bottom', align = 'start', sideOffset = 2, c
   )
 }
 
-// Items use Base UI semantics inside a popup and plain navigation semantics in
-// drawers. External targets use an anchor; internal routes use Next Link.
+// outside a MenuPopup (e.g. the mobile drawer) items are plain links and buttons
 export function MenuItem ({ href, target, rel, active, className, children, ...props }) {
   const inMenu = useContext(InMenuContext)
   const cls = itemClasses({ active, className })
@@ -45,8 +42,7 @@ export function MenuItem ({ href, target, rel, active, className, children, ...p
     if (href) {
       return <Link href={href} target={target} rel={rel} aria-current={active ? 'page' : undefined} className={cls} {...props}>{children}</Link>
     }
-    // Passive wrappers stay divs so nested controls do not become interactive
-    // elements inside a button.
+    // without onClick stay a div so nested controls don't end up inside a button
     return props.onClick
       ? <button type='button' className={cn(cls, 'bg-transparent border-0 text-start pointer')} {...props}>{children}</button>
       : <div className={cls} {...props}>{children}</div>
@@ -61,7 +57,6 @@ export function MenuItem ({ href, target, rel, active, className, children, ...p
 export function MenuSeparator ({ className }) {
   const inMenu = useContext(InMenuContext)
   const cls = cn(styles.divider, 'my-2', className)
-  // A div keeps separators visually consistent inside and outside popups.
   return inMenu ? <BaseMenu.Separator className={cls} /> : <div role='separator' className={cls} />
 }
 

@@ -37,9 +37,9 @@ export default function useModal () {
   const lastPointerDownAtRef = useRef(0)
   const shownAtRef = useRef(0)
 
-  // A press can begin before the dialog mounts and end outside it afterward.
-  // Record pointer starts globally so that release cannot dismiss a dialog
-  // that did not exist when the interaction began.
+  // a press can begin before the modal mounts and end outside it, e.g. a long press
+  // or the territory hover card race. we stamp pointerdowns globally so its release
+  // can't dismiss a modal that didn't exist when the press started
   useEffect(() => {
     const stamp = e => { lastPointerDownAtRef.current = e.timeStamp }
     document.addEventListener('pointerdown', stamp, true)
@@ -50,8 +50,10 @@ export default function useModal () {
     return modalStack.current[modalStack.current.length - 1]
   }, [])
 
-  // Unmount before onClose so a payment watcher's cancellation cannot close
-  // the remaining stack through its error handler.
+  // back steps to the previous modal in the stack. we pop (unmounting the current modal — and, for
+  // a QR, stopping its payment watcher) BEFORE running its onClose, so cancelling the invoice can't
+  // escalate into a full-stack close via the watcher's onPaymentError. net: back returns to the
+  // previous step (e.g. the amount form) and still cancels the invoice so it doesn't dangle.
   const onBack = useCallback(() => {
     const current = getCurrentContent()
     modalStack.current.pop()
@@ -110,15 +112,10 @@ export default function useModal () {
         open
         onOpenChange={(open, details) => {
           if (open) return
-          // The explicit close control always closes. keepOpen only disables
-          // light dismissal.
+          // the X always closes, keepOpen only disables light dismiss
           if (details.reason === 'close-press') return onClose()
-          // a press that began before the modal showed can't mean "dismiss it";
-          // this exempts the long-press release and the territory hover-card
-          // race. A fresh press stamps later than shownAt, so real outside
-          // clicks still close
+          // ignore releases of presses that began before the modal showed (see the pointerdown listener)
           if (details.reason === 'outside-press' && lastPointerDownAtRef.current < shownAtRef.current) return
-          // Escape and outside press are light-dismiss reasons.
           if (!keepOpen) onClose()
         }}
       >
@@ -128,8 +125,7 @@ export default function useModal () {
             <Dialog.Popup
               ref={popupRef}
               aria-label='Dialog'
-              // Focusing the popup avoids opening a mobile keyboard or painting
-              // a descendant focus ring as soon as the dialog appears.
+              // focus the popup itself so we don't open a mobile keyboard or show a focus ring on open
               initialFocus={() => popupRef.current}
               className={cn(styles.popup, fullScreen ? styles.fullScreen : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg')}
             >
@@ -162,8 +158,7 @@ export default function useModal () {
   const showModal = useCallback(
     (getContent, options) => {
       document.activeElement?.blur()
-      // performance.now() and event.timeStamp share a clock, so pointer starts
-      // recorded before this point can be excluded from outside dismissal.
+      // same clock as event.timeStamp
       shownAtRef.current = performance.now()
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {

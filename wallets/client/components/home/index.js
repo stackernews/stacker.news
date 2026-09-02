@@ -131,7 +131,6 @@ function WalletOrderingControls ({ wallets, ordering, onToggle, className, hintC
 }
 
 function WalletBottomSheet ({ show, onHide, title, children }) {
-  // height, radius and the 85svh cap live on ui/drawer's bottom placement
   return (
     <Drawer show={show} onHide={onHide} placement='bottom'>
       <DrawerHeader>

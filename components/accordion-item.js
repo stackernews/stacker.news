@@ -9,7 +9,7 @@ export default function AccordionItem ({ header, body, className, headerColor = 
   const [open, setOpen] = useState(!!show)
 
   useEffect(() => {
-    // `show` transitions force open/close; manual toggles stay free either way
+    // if we want to show the accordion and it's not open, open it
     setOpen(!!show)
   }, [show])
 

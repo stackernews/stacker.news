@@ -1,13 +1,11 @@
-/*
- * Canonical SN design tokens. Territory branding redefines the brand and
- * derived contrast tokens with greater specificity at runtime.
- */
+/* SN design tokens. territory branding overrides the brand tokens at runtime,
+   see lib/domains/custom-css.js */
 
 :root, [data-theme=light] {
   /* runtime-overridable brand */
   --sn-primary: #FADA5E;
   --sn-secondary: #F6911D;
-  /* text-on-brand contrast, YIQ-computed per territory at request time */
+  /* text on brand, YIQ-computed per territory */
   --sn-primary-text: #000;
   --sn-secondary-text: #fff;
 
@@ -65,10 +63,10 @@
   --sn-note-reply: rgba(0, 0, 0, 0.04);
   --sn-note-fresh: rgba(0, 124, 190, 0.5);
 
-  /* Portaled overlays share this stacking ladder. */
+  /* z-index ladder */
   --sn-z-sticky: 900;
   --sn-z-fixed: 1000;
-  --sn-z-dropdown: 1060; /* menus clear modals and remain below popovers */
+  --sn-z-dropdown: 1060; /* above modals, below popovers */
   --sn-z-drawer-backdrop: 1040;
   --sn-z-drawer: 1045;
   --sn-z-backdrop: 1050;
@@ -111,7 +109,7 @@
   --sn-code-color: rgb(230.4, 132.6, 181.2);
 }
 
-/* Shared wallet radii and spacing. Root scope also reaches portaled wallet UI. */
+/* wallet radii and spacing, on :root so they reach portaled wallet ui */
 :root {
   --wt-radius-xs: 8px;
   --wt-radius-sm: 10px;

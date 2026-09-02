@@ -1,6 +1,5 @@
 @layer components {
 
-
 .footer {
     position: fixed;
     bottom: 0;
@@ -22,7 +21,6 @@
     width: 100%;
 }
 
-/* MeImage chrome, not offcanvas chrome */
 .meimg {
     clip-path: polygon(0 0, 83% 0, 100% 100%, 17% 100%);
     cursor: pointer;

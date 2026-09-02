@@ -81,11 +81,8 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
           >
             <ArrowDownIcon width={16} height={16} />
           </MenuTrigger>
-          {/* This account popup uses the compact editor-dropdown skin. */}
           <MenuPopup align='end' className={cn(styles.dropdownExtra, 'w-40 p-2 rounded-md')}>
             {accounts.map(account => (
-              // The skin owns item metrics, so this popup composes the Base UI
-              // primitive without the house Menu item recipe.
               <BaseMenu.Item
                 key={account.id}
                 onClick={() => {

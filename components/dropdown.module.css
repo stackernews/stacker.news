@@ -18,9 +18,7 @@
   text-wrap: wrap;
 }
 
-/* [data-highlighted] twins the :hover rule so Base UI keyboard highlight
-   paints like hover. These skins are consumed by the editor toolbar dropdowns
-   and the login-button extras. */
+/* keyboard highlight looks like hover */
 .dropdownExtraItem:hover,
 .dropdownExtraItem[data-highlighted] {
   background-color: var(--sn-toolbarActive);

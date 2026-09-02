@@ -12,7 +12,7 @@
   background: color-mix(in srgb, var(--sn-toolbarHover) 22%, var(--sn-body-bg));
 }
 .cardOptional {
-  /* the dashed affordance needs its own full border now that .card has none */
+  /* full border since .card has none */
   border: 1px dashed color-mix(in srgb, var(--sn-body-color) 12%, transparent);
   background: color-mix(in srgb, color-mix(in srgb, var(--sn-warning) 8%, transparent) 45%, var(--sn-body-bg));
 }
@@ -64,8 +64,7 @@
 .methodButton {
   white-space: nowrap;
 }
-/* The inherited radius keeps inputs, addons, clear buttons, and selects on the
-   same card geometry without overriding InputGroup corner joining. */
+/* inputs, addons and selects follow the card radius */
 .form {
   --sn-input-radius: var(--wt-radius-md);
 }

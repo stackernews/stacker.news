@@ -56,7 +56,6 @@ export default function BottomBar ({ sub }) {
           <div className={styles.footerNav}>
             <Brand />
             <SearchItem {...props} />
-            {/* The medium button overfills this 75px mobile grid cell. */}
             <PostItem {...props} size='sm' />
             <NavNotifications />
             <Offcanvas me={me} {...props} />

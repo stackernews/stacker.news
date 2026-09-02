@@ -7,8 +7,7 @@ import { useBranding } from '@/components/territory-branding'
 export default function Header (props) {
   const branding = useBranding()
   const navSelect = hasNavSelect(props)
-  // A single bar keeps both paddings. Stacked bars split them, while branded
-  // domains can render the second bar by itself.
+  // on custom domains the top bar hides itself when there's a nav select (see TopBar)
   return (
     <div data-sn-navigation className='block md:hidden'>
       <Container as='header'>

@@ -10,7 +10,6 @@
 }
 
 .summaryText {
-    /* summaries inherit the body color even when there is no .title (comments) */
     color: inherit;
     overflow: hidden;
     text-overflow: ellipsis;

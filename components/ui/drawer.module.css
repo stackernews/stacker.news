@@ -1,8 +1,5 @@
 @layer components {
 
-/* SN Drawer chrome. The ladder puts the drawer at 1045: over sticky 900 and
-   its own backdrop 1040, under the modal pair at 1050 and 1055, so modals
-   opened from the drawer paint over it */
 .backdrop {
     position: fixed;
     inset: 0;
@@ -17,8 +14,7 @@
     opacity: 0;
 }
 
-/* the viewport owns the fixed layer and the z; a z on the popup would be
-   local to this stacking context and could interleave wrong */
+/* a z-index on the popup would be local to the viewport's stacking context */
 .viewport {
     position: fixed;
     inset: 0;
@@ -26,7 +22,6 @@
     z-index: var(--sn-z-drawer);
 }
 
-/* Base UI defers unmounting long enough for the exit transition. */
 .popup {
     background-color: var(--sn-body-bg);
     transition: transform 150ms ease-out;
@@ -37,7 +32,7 @@
     transition-duration: 0ms;
 }
 
-/* The background-colored bleed covers gaps exposed by reverse swipes. */
+/* the shadow covers the gap a reverse swipe exposes */
 .end {
     border-left: 1px solid var(--sn-border-color-translucent);
     transform: translateX(var(--drawer-swipe-movement-x));
@@ -67,7 +62,6 @@
     }
 }
 
-/* Lightning supplies the shared close glyph. */
 .close {
     padding: .5rem;
     color: #000;

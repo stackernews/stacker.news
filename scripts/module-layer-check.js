@@ -1,6 +1,5 @@
-// Gate: every CSS module must wrap its rules in @layer components, so module
-// skins stay below utilities in the cascade (see docs/dev/styling.md §1).
-// Fails if any *.module.css has rules outside a single top-level layer block.
+// every CSS module must wrap its rules in @layer components so utilities can override them
+// (see docs/dev/styling.md)
 const { execSync } = require('child_process')
 const fs = require('fs')
 const path = require('path')

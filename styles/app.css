@@ -1,8 +1,5 @@
-/*
- * Global application behavior and third-party skins. These rules are
- * unlayered and outrank layered utilities, so they must not own properties
- * that call sites are expected to customize. Element defaults live in base.css.
- */
+/* global rules and third-party skins. unlayered, so they beat utilities.
+   element defaults live in base.css */
 
 html {
   scroll-padding-top: 60px;
@@ -270,7 +267,6 @@ html, body {
   background: none !important;
 }
 
-/* Shared small-print size for semantic call sites. */
 .small {
   font-size: 0.875em;
 }

@@ -67,10 +67,10 @@ export async function runManualRetry (retry, { setDisable, toaster }) {
 // the per-type cache phases for a retry, composed on top of the caller's phases (e.g. the
 // notification's payIn-state writes).
 // - acts: identical to the genesis act phases. the retry button bumps the item at click time
-//   (notifications.js, same as the modal/bolt), so these only reconcile credits (onMutationResult),
-//   reverse on terminal failure (onPayError, gated by usePayInMutation to non-retryable failures),
-//   and bump ancestors on success (onPaid). the notifications reconcile link had already removed
-//   the failed lineage's bump, so the click-time re-bump is exact.
+//   (notifications.js, same as the modal/bolt), so these reverse on terminal failure (onPayError,
+//   gated by usePayInMutation to non-retryable failures), and bump ancestor totals on success (onPaid).
+//   the notifications reconcile link had already removed the failed lineage's bump, so the
+//   click-time re-bump is exact.
 // - bounty: re-running the full phases is harmless — onMutationResult appends to a set, onPayError
 //   filters it.
 // - everything else contributes no base phases.

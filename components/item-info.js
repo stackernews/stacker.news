@@ -58,11 +58,8 @@ function itemTitle (item) {
   }
   if (item.meSats || item.meDontLikeSats || item.meAnonSats) {
     const satSources = []
-    if (item.meAnonSats || (item.meSats || 0) - (item.meCredits || 0) > 0) {
-      satSources.push(`${numWithUnits((item.meSats || 0) + (item.meAnonSats || 0) - (item.meCredits || 0), { abbreviate: false })}`)
-    }
-    if (item.meCredits) {
-      satSources.push(`${numWithUnits(item.meCredits, { abbreviate: false, unitSingular: 'CC', unitPlural: 'CCs' })}`)
+    if (item.meSats || item.meAnonSats) {
+      satSources.push(`${numWithUnits((item.meSats || 0) + (item.meAnonSats || 0), { abbreviate: false })} worth`)
     }
     if (item.meDontLikeSats) {
       satSources.push(`${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`)
@@ -296,7 +293,7 @@ function ItemDetails ({ item, me }) {
         <>
           <div className={styles.detailsSection}>from me</div>
           <div className={styles.detailsLabel}>zapped</div>
-          <div className={styles.detailsValue}>{item.meSats - item.meCredits} sats / {item.meCredits} ccs</div>
+          <div className={styles.detailsValue}>{numWithUnits(item.meSats, { abbreviate: false })} worth</div>
           <div className={styles.detailsLabel}>downzapped</div>
           <div className={styles.detailsValue}>{item.meDontLikeSats} sats</div>
         </>

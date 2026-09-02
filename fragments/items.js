@@ -59,7 +59,6 @@ export const ITEM_FIELDS = gql`
     path
     upvotes
     meSats
-    meCredits
     meDontLikeSats
     downSats
     commentDownSats

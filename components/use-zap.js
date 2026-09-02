@@ -35,8 +35,8 @@ export function useZap ({ nextTip }) {
   // fire the accumulated zap mutation for a buffer entry
   fireZapRef.current = async (entry) => {
     const { totalSats, item, me: entryMe } = entry
-    // the per-click bumps already wrote sats to the root cache; the act phases reconcile credits,
-    // ancestors, and the reversal off the response (its result.sats equals totalSats). entryMe is
+    // the per-click bumps already wrote totals to the root cache; the act phases update ancestors
+    // or reverse the bump off the response (its result.sats equals totalSats). entryMe is
     // the click-time identity. no optimisticResponse — the bump is the optimistic write.
     const result = { id: item.id, sats: totalSats, act: 'TIP', path: item.path }
     try {
@@ -93,8 +93,7 @@ export function useZap ({ nextTip }) {
     const meSats = cached?.meSats ?? item?.meSats ?? 0
     const sats = nextTip(meSats, { ...meProp?.privates })
 
-    // instant visual feedback — bump the root cache (survives navigation; credits reconciled by
-    // the act phases on the mutation response)
+    // instant visual feedback — bump totals in the root cache; item queries supply breakdowns
     bumpActCache(client.cache, { id: item.id, sats, act: 'TIP', path: item.path }, meProp)
 
     animate()

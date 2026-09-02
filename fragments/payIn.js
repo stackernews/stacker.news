@@ -146,6 +146,13 @@ export const PAY_IN_STATISTICS_FIELDS = gql`
     payInState
     payInStateChangedAt
     genesisId
+    beneficiaries {
+      id
+      isSend
+      payInType
+      payInState
+      mcost
+    }
     payInBolt11Public {
       msats
     }

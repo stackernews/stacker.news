@@ -258,7 +258,7 @@ export default function Comment ({
                       {includeParent && <Parent item={item} rootText={rootText} />}
                       {bountyPaid &&
                         <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
-                          <BountyIcon className={`${styles.bountyIcon} ${'fill-success'}`} height={16} width={16} />
+                          <BountyIcon className={classNames(styles.bountyIcon, 'fill-success')} height={16} width={16} />
                         </ActionTooltip>}
                     </>
                   }

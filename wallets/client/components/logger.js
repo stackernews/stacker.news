@@ -27,7 +27,7 @@ export function WalletLogs ({ wallet, payInId, externalTransactionId, className,
       {!transaction && (
         <div className='flex w-full items-center mb-4'>
           <span
-            className={navLinkClasses({ className: 'text-muted font-bold ms-auto cursor-pointer' })} onClick={onDelete}
+            className={navLinkClasses({ className: 'text-muted font-bold ms-auto pointer' })} onClick={onDelete}
           >clear logs
           </span>
         </div>

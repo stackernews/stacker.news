@@ -3,6 +3,7 @@ import { FAILED_PAY_IN_STATES } from '@/lib/pay-in'
 import Moon from '@/svgs/moon-fill.svg'
 import Check from '@/svgs/check-double-line.svg'
 import ThumbDown from '@/svgs/thumb-down-fill.svg'
+import classNames from 'classnames'
 
 export const statusIconSize = 16
 
@@ -16,7 +17,7 @@ const TEXT_COLORS = {
 
 export function StatusText ({ color, children }) {
   return (
-    <small className={`ms-1 ${TEXT_COLORS[color]}`} style={{ fontWeight: '600' }}>{children}</small>
+    <small className={classNames('ms-1', TEXT_COLORS[color])} style={{ fontWeight: '600' }}>{children}</small>
   )
 }
 

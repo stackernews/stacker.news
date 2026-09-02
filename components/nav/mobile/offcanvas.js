@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { Indicator, LoginButtons, LogoutDropdownItem, NavWalletSummary } from '../common'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
-import classNames from 'classnames'
 import { useWalletIndicator } from '@/wallets/client/hooks'
 
 // drawer rows keep roomier tap targets than menu items
@@ -78,7 +77,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                 </>
                 )
               : <LoginButtons handleClose={handleClose} className='px-0 py-2' />}
-            <div className={classNames(styles.footerPadding, 'mt-auto')}>
+            <div className={cn(styles.footerPadding, 'mt-auto')}>
               <div className='w-full flex flex-row items-center py-2 px-0 text-muted'>
                 <div>
                   <Link href={`/${me?.name || 'anon'}`} className='flex flex-row p-2 mt-auto text-muted'>

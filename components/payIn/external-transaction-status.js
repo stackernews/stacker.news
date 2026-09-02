@@ -3,12 +3,13 @@ import ThumbDown from '@/svgs/thumb-down-fill.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import ErrorWarning from '@/svgs/error-warning-fill.svg'
 import { StatusText, statusIconSize } from './status'
+import classNames from 'classnames'
 
 export function ExternalTransactionStatus ({ transaction, className }) {
   const { Icon, fillClass, color, label, spin } = externalStatusPresentation(transaction)
   return (
-    <div className={['flex items-center', className].filter(Boolean).join(' ')}>
-      <Icon width={statusIconSize} height={statusIconSize} className={`${fillClass}${spin ? ' spin' : ''}`} />
+    <div className={classNames('flex items-center', className)}>
+      <Icon width={statusIconSize} height={statusIconSize} className={classNames(fillClass, spin && 'spin')} />
       <StatusText color={color}>{label}</StatusText>
     </div>
   )

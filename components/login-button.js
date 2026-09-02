@@ -11,7 +11,6 @@ import { useAccounts } from './account'
 import SNIcon from '@/svgs/sn.svg'
 import styles from '@/components/dropdown.module.css'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
-import classNames from 'classnames'
 import { cn } from '@/lib/cn'
 import { useRouter } from 'next/router'
 
@@ -87,7 +86,7 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
                 onClick={() => {
                   setPointerCookie(account.id, cookieOptions({ httpOnly: false }))
                 }}
-                className={classNames(styles.dropdownExtraItem, Number(account.id) === Number(pointerCookie) && styles.active)}
+                className={cn(styles.dropdownExtraItem, Number(account.id) === Number(pointerCookie) && styles.active)}
               >
                 <span className={styles.dropdownExtraItemText}>{account.name}</span>
               </BaseMenu.Item>

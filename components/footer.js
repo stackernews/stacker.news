@@ -26,7 +26,7 @@ const linkClasses = navLinkClasses({ className: 'p-0 inline-flex' })
 function FooterPopover ({ label, children }) {
   return (
     <Popover>
-      <PopoverTrigger nativeButton={false} render={<div className={cn(linkClasses, 'cursor-pointer')}>{label}</div>} />
+      <PopoverTrigger nativeButton={false} render={<div className={cn(linkClasses, 'pointer')}>{label}</div>} />
       <PopoverContent side='top' aria-label={label}>
         <PopoverBody className='font-medium'>{children}</PopoverBody>
       </PopoverContent>

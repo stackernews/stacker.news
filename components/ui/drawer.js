@@ -35,7 +35,7 @@ export function DrawerHeader ({ children }) {
       {children}
       <BaseDrawer.Close
         nativeButton={false}
-        render={<div role='button' tabIndex={0} aria-label='close' className={cn(styles.close, 'ms-auto cursor-pointer opacity-50')} />}
+        render={<div role='button' tabIndex={0} aria-label='close' className={cn(styles.close, 'ms-auto opacity-50')} />}
       />
     </div>
   )

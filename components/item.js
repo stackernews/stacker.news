@@ -116,14 +116,14 @@ export default function Item ({
               href={`/items/${item.id}`}
               onClick={(e) => onItemClick(e, router, item)}
               ref={titleRef}
-              className={`${styles.title} me-2`}
+              className={classNames(styles.title, 'me-2')}
             >
               {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
               {item.pollCost && <PollIndicator item={item} />}
               {item.bounty > 0 &&
                 <span className={styles.icon}>
                   <ActionTooltip notForm overlayText={`${numWithUnits(item.bounty)} ${item.bountyPaidTo?.length ? ' paid' : ' bounty'}`}>
-                    <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-muted'}`} height={16} width={16} />
+                    <BountyIcon className={classNames(styles.bountyIcon, item.bountyPaidTo?.length ? 'fill-success' : 'fill-muted')} height={16} width={16} />
                   </ActionTooltip>
                 </span>}
               {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-muted ms-1' height={14} width={14} /></span>}
@@ -207,8 +207,8 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
       <div className={`${styles.item} ${styles.skeleton}`}>
         {showUpvote && <UpVote className={styles.upvote} />}
         <div className={styles.hunk}>
-          <div className={`${styles.main} flex-wrap md:flex-nowrap`}>
-            <span className={`${styles.title} clouds md:flex-auto md:shrink-0 me-2`} />
+          <div className={classNames(styles.main, 'flex-wrap md:flex-nowrap')}>
+            <span className={classNames(styles.title, 'clouds md:flex-auto md:shrink-0 me-2')} />
             <span className={`${styles.link} clouds`} />
           </div>
           <div className={styles.other}>

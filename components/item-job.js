@@ -20,6 +20,7 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import MuteDropdownItem from './mute'
 import { useMe } from './me'
+import classNames from 'classnames'
 
 function CompanyImage ({ item }) {
   return (
@@ -39,7 +40,7 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
     <>
       {rank
         ? (
-          <div className={`${styles.rank} pb-2 self-center`}>
+          <div className={classNames(styles.rank, 'pb-2 self-center')}>
             {rank}
           </div>)
         : <div />}
@@ -51,9 +52,9 @@ export default function ItemJob ({ item, toc, rank, children, ...props }) {
               <CompanyImage item={item} />
             </div>)
           : <CompanyImage item={item} />}
-        <div className={`${styles.hunk} self-center mb-0`}>
-          <div className={`${styles.main} flex-wrap inline`}>
-            <Link href={`/items/${item.id}`} className={`${styles.title} me-2`}>
+        <div className={classNames(styles.hunk, 'self-center mb-0')}>
+          <div className={classNames(styles.main, 'flex-wrap inline')}>
+            <Link href={`/items/${item.id}`} className={classNames(styles.title, 'me-2')}>
               {item.searchTitle
                 ? <SearchTitle title={item.searchTitle} />
                 : (

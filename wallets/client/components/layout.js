@@ -12,7 +12,7 @@ import classNames from 'classnames'
 export function WalletShell ({ children, mobileHeader, noSidebar, mobileTopBar = true }) {
   return (
     // Wallet pages replace the global mobile footer with app-like wallet chrome.
-    <Layout className='py-12' containClassName={classNames('pb-0 max-md:px-0 max-md:max-w-none')} footer={false} hideMobileNav>
+    <Layout className='py-12' containClassName='pb-0 max-md:px-0 max-md:max-w-none' footer={false} hideMobileNav>
       <div className={classNames(styles.walletShell, noSidebar && styles.walletShellNoSidebar)}>
         {(mobileTopBar || mobileHeader) && (
           <div className={styles.mobileWalletHeader}>

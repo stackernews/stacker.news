@@ -3,7 +3,6 @@ import classNames from 'classnames'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import dropdownStyles from '@/components/dropdown.module.css'
 import menuStyles from '@/components/ui/menu.module.css'
-import { cn } from '@/lib/cn'
 import { Toolbar } from '@base-ui/react/toolbar'
 import { Menu as BaseMenu } from '@base-ui/react/menu'
 import { Menu, MenuTrigger } from '@/components/ui/menu'
@@ -86,7 +85,7 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
         </MenuTrigger>
         <BaseMenu.Portal>
           <BaseMenu.Positioner side='top' align='start' sideOffset={2} className={menuStyles.positioner}>
-            <BaseMenu.Popup finalFocus={false} className={cn(menuStyles.popup, dropdownStyles.dropdownExtra, 'shadow-lg')}>
+            <BaseMenu.Popup finalFocus={false} className={classNames(menuStyles.popup, dropdownStyles.dropdownExtra, 'shadow-lg')}>
               {options.map(option => (
                 <DropdownMenuItem
                   key={option.id}

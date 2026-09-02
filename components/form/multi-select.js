@@ -65,7 +65,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
                             </button>
                             )
                           : <span className='font-bold text-xs py-0.5'>{v}</span>}
-                        <Combobox.ChipRemove aria-label={`Remove ${v}`} className='px-1 cursor-pointer border-0 bg-transparent'>
+                        <Combobox.ChipRemove aria-label={`remove ${v}`} className='px-1 cursor-pointer border-0 bg-transparent'>
                           <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-muted' />
                         </Combobox.ChipRemove>
                       </Combobox.Chip>
@@ -76,13 +76,13 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
               </Combobox.Value>
             </Combobox.Chips>
             <Combobox.Clear
-              aria-label='Clear selection'
+              aria-label='clear selection'
               className='flex items-center px-1 border-0 bg-transparent cursor-pointer max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
             >
               <CloseIcon width={clearIconSize} height={clearIconSize} className='fill-muted' />
             </Combobox.Clear>
             <Combobox.Trigger
-              aria-label='Open popup'
+              aria-label='open popup'
               className='flex items-center px-2 border-0 bg-transparent cursor-pointer max-md:min-w-11 max-md:min-h-11 max-md:justify-center'
             >
               <ArrowDownSFill width={triggerIconSize} height={triggerIconSize} className='fill-muted' />

@@ -124,7 +124,6 @@ export default function useModal () {
           <Dialog.Viewport className={cn(styles.viewport, fullScreen && styles.fullScreen)}>
             <Dialog.Popup
               ref={popupRef}
-              aria-label='Dialog'
               // focus the popup itself so we don't open a mobile keyboard or show a focus ring on open
               initialFocus={() => popupRef.current}
               className={cn(styles.popup, fullScreen ? styles.fullScreen : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg')}
@@ -137,10 +136,10 @@ export default function useModal () {
                     </ActionDropdown>
                   </div>}
                 {modalStack.current.length > 1
-                  ? <button type='button' aria-label='Back' className={cn(styles.btn, styles.back)} onClick={onBack}><BackArrow width={18} height={18} /></button>
+                  ? <button type='button' aria-label='back' className={cn(styles.btn, styles.back)} onClick={onBack}><BackArrow width={18} height={18} /></button>
                   : null}
                 <Dialog.Close
-                  aria-label='Close'
+                  aria-label='close'
                   className={cn(styles.btn, styles.close, fullScreen && styles.fullScreen)}
                 >X
                 </Dialog.Close>

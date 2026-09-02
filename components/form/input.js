@@ -116,7 +116,7 @@ export function InputInner ({
               {(isClient && clear && field.value && !props.readOnly) && (
                 <button
                   type='button'
-                  aria-label='Clear'
+                  aria-label='clear'
                   onClick={(e) => {
                     helpers.setValue('')
                     if (storageKey) {

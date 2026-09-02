@@ -21,7 +21,7 @@ export function PasswordVisibilityIcon ({ visible, ...props }) {
 function PasswordHider ({ onClick, showPass }) {
   return (
     <InputAddon
-      aria-label={showPass ? 'Hide password' : 'Show password'}
+      aria-label={showPass ? 'hide password' : 'show password'}
       onClick={onClick}
     >
       <PasswordVisibilityIcon
@@ -40,7 +40,7 @@ function PasswordScanner ({ onScan, text }) {
 
   return (
     <InputAddon
-      aria-label='Scan QR code'
+      aria-label='scan QR code'
       onClick={() => {
         showModal(onClose => {
           return (

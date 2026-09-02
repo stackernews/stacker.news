@@ -1,10 +1,9 @@
 import { useRouter } from 'next/router'
-import Button from '@/components/ui/button'
-import { navLinkClasses } from '@/components/ui/nav'
+import { NavLink } from '@/components/ui/nav'
 
 export default function CancelButton ({ onClick }) {
   const router = useRouter()
   return (
-    <Button className={navLinkClasses({ className: 'me-4 text-muted font-bold' })} variant='link' onClick={onClick || (() => router.back())}>cancel</Button>
+    <NavLink className='me-4 text-muted font-bold' onClick={onClick || (() => router.back())}>cancel</NavLink>
   )
 }

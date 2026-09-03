@@ -150,7 +150,7 @@ function WalletConfigureFormLayout ({ protocols }) {
         {!isTemplate(wallet) && <WalletConfigureDangerZone wallet={wallet} />}
       </main>
 
-      <aside className={classNames(styles.aside, 'hidden md:flex flex-col gap-4')}>
+      <aside className='hidden md:flex flex-col gap-4'>
         <div className={classNames(styles.asideCard, 'flex flex-col')}>
           <p className='text-muted mb-0'>
             Set up this wallet&apos;s capabilities, then test them before saving.

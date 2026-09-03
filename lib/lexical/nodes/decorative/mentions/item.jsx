@@ -128,15 +128,15 @@ export class ItemMentionNode extends DecoratorNode {
   }
 
   decorate () {
-    const ItemPopover = require('@/components/item-preview-card').default
+    const ItemPreviewCard = require('@/components/item-preview-card').default
     const MentionsComponent = require('@/components/editor/nodes/mentions').default
     const id = this.__itemMentionId
     const href = this.__url
     const text = this.getDisplayText()
     return (
-      <ItemPopover id={id}>
+      <ItemPreviewCard id={id}>
         <MentionsComponent nodeKey={this.getKey()} href={href} text={text} />
-      </ItemPopover>
+      </ItemPreviewCard>
     )
   }
 }

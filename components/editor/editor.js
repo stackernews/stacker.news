@@ -185,7 +185,7 @@ function EditorContent ({
       {!isMarkdown && (
         <>
           <CodeThemePlugin />
-          <LinkEditorPlugin anchorElem={containerRef} />
+          <LinkEditorPlugin />
         </>
       )}
       {isMarkdown && <TransformerBridgePlugin />}

@@ -10,7 +10,7 @@ import { numWithUnits } from '@/lib/format'
 import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
 
-export default function Badges ({ user, badge, bot, showWalletBadges, interactive = false, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
+export default function Badges ({ user, badge, bot, showWalletBadges, interactive, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
   if (!user) return null
   if (Number(user.id) === USER_ID.anon) {
     return (
@@ -102,7 +102,7 @@ function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, heig
 
 // interactive badges open a tappable popover; badges inside links and buttons
 // can't, so they get a tooltip
-export function BadgeTooltip ({ children, overlayText, placement, interactive = false }) {
+export function BadgeTooltip ({ children, overlayText, placement, interactive }) {
   if (!interactive) {
     return <Tooltip content={overlayText} side={placement || 'bottom'}>{children}</Tooltip>
   }

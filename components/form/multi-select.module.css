@@ -33,6 +33,11 @@
   text-transform: uppercase;
 }
 
+/* as many rows as the react-select menu showed */
+.list {
+  max-height: 432px;
+}
+
 /* mobile touch targets */
 @media (max-width: 767px) {
   .item {

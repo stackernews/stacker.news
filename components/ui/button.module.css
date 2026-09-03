@@ -157,10 +157,11 @@
   border-color: var(--sn-muted);
 }
 
+/* white hover text, the retry button set it inline before */
 .outline-warning {
   --sn-btn-color: var(--sn-warning);
   --sn-btn-bg: transparent;
-  --sn-btn-hover-color: #000;
+  --sn-btn-hover-color: #fff;
   --sn-btn-hover-bg: var(--sn-warning);
   --sn-btn-active-bg: var(--sn-warning);
   --sn-btn-disabled-color: var(--sn-warning);

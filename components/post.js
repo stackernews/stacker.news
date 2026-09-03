@@ -109,7 +109,6 @@ export function PostForm ({ type, subs, children }) {
             placeholder='pick territories'
             className='flex'
             noForm
-            size='medium'
             subs={subNames(subs)}
           />
         )}
@@ -173,7 +172,6 @@ export default function Post ({ subs }) {
           placeholder='pick territories'
           filterSubs={s => s.postTypes?.includes(type.toUpperCase())}
           className='flex'
-          size='medium'
           label='territory'
         />
       </PostForm>

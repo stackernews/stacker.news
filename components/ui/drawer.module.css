@@ -44,7 +44,9 @@
     transform: translateX(100%);
 }
 
+/* a strip of backdrop stays visible above the sheet */
 .bottom {
+    max-height: 85svh;
     border-top: 1px solid var(--sn-border-color-translucent);
     transform: translateY(var(--drawer-swipe-movement-y));
     box-shadow: 0 10rem 0 var(--sn-body-bg);

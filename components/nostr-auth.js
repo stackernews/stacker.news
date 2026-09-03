@@ -306,7 +306,7 @@ function NostrExplainer ({ text, children }) {
               }
             />
           </div>
-          <div className='w-full max-w-75 mx-auto'>
+          <div className='w-full max-w-80 mx-auto'>
             {children}
           </div>
         </div>

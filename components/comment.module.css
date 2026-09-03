@@ -124,6 +124,10 @@
     background-color: var(--sn-commentBg);
 }
 
+.op {
+    --sn-badge-opacity: .75;
+}
+
 .bountyIcon {
     margin-left: 5px;
     margin-right: 5px;

@@ -249,7 +249,7 @@ export default function Comment ({
                   commentsText='replies'
                   commentTextSingular='reply'
                   className={`${itemStyles.other} ${styles.other}`}
-                  embellishUser={op && <><span> </span><Badge variant={op === 'fwd' ? 'secondary' : 'boost'} className='align-text-top [--sn-badge-opacity:0.75]'>{op}</Badge></>}
+                  embellishUser={op && <><span> </span><Badge variant={op === 'fwd' ? 'secondary' : 'boost'} className={classNames(styles.op, 'align-text-top')}>{op}</Badge></>}
                   onQuoteReply={quoteReply}
                   nested={!includeParent}
                   {...props}

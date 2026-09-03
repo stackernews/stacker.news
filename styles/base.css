@@ -82,6 +82,13 @@
     vertical-align: middle;
   }
 
+  /* rollback: preflight's max-width: 100% and height: auto overrides w/h attributes */
+  img,
+  video {
+    max-width: revert-layer;
+    height: revert-layer;
+  }
+
   [role='button'] {
     cursor: pointer;
   }

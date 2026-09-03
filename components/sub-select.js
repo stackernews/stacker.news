@@ -24,14 +24,12 @@ const DEFAULT_PREPEND_SUBS = []
 const DEFAULT_APPEND_SUBS = []
 const DEFAULT_FILTER_SUBS = () => true
 const SUB_SELECT_WIDTHS = {
-  medium: 'w-[200px]',
-  large: 'w-[300px]'
+  small: 'w-24',
+  medium: 'w-52'
 }
-const SUB_MULTI_SELECT_MIN_WIDTHS = {
-  small: 'min-w-[90px]',
-  medium: 'min-w-[200px]',
-  large: 'min-w-[300px]'
-}
+
+export const subSelectClasses = ({ size, className } = {}) =>
+  cn(styles.subSelect, SUB_SELECT_WIDTHS[size], className)
 
 export function useSubs ({ prependSubs = DEFAULT_PREPEND_SUBS, sub, filterSubs = DEFAULT_FILTER_SUBS, appendSubs = DEFAULT_APPEND_SUBS }) {
   const { data, refetch } = useQuery(ACTIVE_SUBS, SSR
@@ -142,13 +140,13 @@ export default function SubSelect ({ prependSubs, sub, onChange, size, appendSub
       size='sm'
       {...valueProps}
       {...props}
-      className={cn(className, styles.subSelect, SUB_SELECT_WIDTHS[size])}
+      className={subSelectClasses({ size, className })}
       items={subItems}
     />
   )
 }
 
-export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs, filterSubs, className, ...props }) {
+export function SubMultiSelect ({ prependSubs, subs, onChange, appendSubs, filterSubs, className, ...props }) {
   const router = useRouter()
   const client = useApolloClient()
   const activeSubs = useSubs({ prependSubs, subs, filterSubs, appendSubs })
@@ -243,7 +241,7 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, size, appendSubs,
       size='md'
       {...valueProps}
       {...props}
-      className={cn(className, SUB_MULTI_SELECT_MIN_WIDTHS[size])}
+      className={className}
       items={activeSubs}
     />
   )

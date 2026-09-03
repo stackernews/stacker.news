@@ -99,7 +99,7 @@ export function BaseSuggest ({
             id={listboxId}
             role='listbox'
             onMouseDown={e => e.preventDefault()}
-            className={cn(menuClasses(), 'absolute start-0 top-0 z-(--sn-z-dropdown)')}
+            className={cn(menuClasses(), 'absolute start-0 top-0 z-dropdown')}
           >
             {suggestions.array.map((v, i) =>
               <div

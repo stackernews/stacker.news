@@ -75,3 +75,12 @@
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
 }
+
+/* z-index has no theme namespace, so the ladder steps utilities need are written out */
+@utility z-sticky {
+  z-index: var(--sn-z-sticky);
+}
+
+@utility z-dropdown {
+  z-index: var(--sn-z-dropdown);
+}

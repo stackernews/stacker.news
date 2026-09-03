@@ -82,7 +82,7 @@ export default function Rewards ({ ssrData }) {
     <Layout footerLinks>
       <div className='pb-4'>
         <div
-          className='flex flex-col lg:sticky lg:top-0 lg:z-(--sn-z-sticky) py-12'
+          className='flex flex-col lg:sticky lg:top-0 lg:z-sticky py-12'
         >
           <h3 className='text-center text-muted'>
             <div>

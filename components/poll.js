@@ -23,7 +23,7 @@ const PollButton = ({ v, item }) => {
       <Button
         disabled={isSubmitting}
         variant='outline-info'
-        className={classNames(styles.pollButton, 'block rounded-4xl px-[1.1rem] py-[.4rem] leading-4', isSubmitting && 'pulse')}
+        className={classNames(styles.pollButton, 'block rounded-4xl leading-4', isSubmitting && 'pulse')}
         onClick={me
           ? async () => {
             setIsSubmitting(true)

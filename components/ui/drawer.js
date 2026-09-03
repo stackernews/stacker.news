@@ -16,7 +16,7 @@ export function Drawer ({ show, onHide, placement = 'end', className, children }
             className={cn(
               styles.popup,
               styles[placement],
-              placement === 'end' ? 'h-full w-62.5' : 'w-full max-h-[85svh] rounded-t-[18px]',
+              placement === 'end' ? 'h-full w-64' : 'w-full rounded-t-2xl',
               'flex flex-col overflow-y-auto',
               className
             )}

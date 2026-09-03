@@ -573,7 +573,6 @@ function PayInFailed ({ n }) {
           <Button
             size='sm' variant='outline-warning'
             className={classNames('ms-2 border rounded-md py-0', disableRetry && 'pulse')}
-            style={{ '--sn-btn-hover-color': '#fff' }}
             disabled={disableRetry}
             onClick={() => {
               if (disableRetry) return

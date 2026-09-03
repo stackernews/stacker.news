@@ -67,7 +67,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
                         </Combobox.ChipRemove>
                       </Combobox.Chip>
                     ))}
-                    <Combobox.Input id={id} placeholder={vals.length ? '' : placeholder} className='flex-1 min-w-15 outline-none' />
+                    <Combobox.Input id={id} placeholder={vals.length ? '' : placeholder} className='flex-1 min-w-16 outline-none' />
                   </>
                 )}
               </Combobox.Value>
@@ -87,7 +87,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
           </Combobox.InputGroup>
           <ComboboxPopup className='max-w-none w-(--anchor-width) mt-1'>
             <Combobox.Empty className='not-empty:py-2 not-empty:px-6 text-muted text-base'>no territories found</Combobox.Empty>
-            <ComboboxList className='not-empty:py-2 max-h-108 overflow-auto'>
+            <ComboboxList className={cn('not-empty:py-2 overflow-auto', styles.list)}>
               {group => (
                 <Combobox.Group key={group.label ?? 'all'} items={group.items}>
                   {group.label && <Combobox.GroupLabel className={styles.groupLabel}>{group.label}</Combobox.GroupLabel>}

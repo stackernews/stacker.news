@@ -27,10 +27,6 @@
     color: var(--sn-grey);
 }
 
-.freebieCheckbox:focus-within label {
-    color: var(--sn-body-color);
-}
-
 .receipt td {
     padding: .25rem .1rem;
     background-color: var(--sn-inputBg);

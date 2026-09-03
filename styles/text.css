@@ -61,10 +61,6 @@
   padding-bottom: 0;
 }
 
-.sn-text[contenteditable="false"] {
-  background-color: var(--sn-body-bg) !important;
-}
-
 .sn-text.topLevel {
   --sn-text-max-height: 200vh;
   --grid-gap: 0.75rem;
@@ -353,7 +349,6 @@ span + .sn-link {
   user-select: none;
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
-  background-color: var(--sn-body-bg);
 }
 
 /* work in progress loading state */
@@ -396,7 +391,6 @@ span + .sn-link {
 .sn-spotify-wrapper {
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
-  background-color: var(--sn-body-bg);
 }
 
 /* twitter and nostr */

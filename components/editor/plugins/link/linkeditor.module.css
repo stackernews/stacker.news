@@ -71,7 +71,7 @@
 .linkEditIcon:hover,
 .linkRemoveIcon:hover {
   opacity: 0.85;
-  background-color: var(--sn-toolbarHover);
+  background-color: rgba(128, 128, 128, 0.1);
 }
 
 .linkConfirmIcon:hover {

@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/toast'
 
 // a hook so the handler can sit on the activating element itself: a portaled MenuItem
 // isn't a DOM descendant of Delete's span, so its Enter keypress never bubbled here
-export function useDeleteConfirm ({ itemId, onDelete, type = 'post' }) {
+function useDeleteConfirm ({ itemId, onDelete, type = 'post' }) {
   const showModal = useShowModal()
 
   const [deleteItem] = useMutation(

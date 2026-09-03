@@ -56,7 +56,7 @@ export default function BottomBar ({ sub }) {
         <Navbar className='w-full px-safe py-2'>
           <div className={styles.footerNav}>
             <Brand />
-            <SearchItem {...props} />
+            <SearchItem />
             <PostItem {...props} size='sm' />
             <NavNotifications />
             <Offcanvas me={me} {...props} />

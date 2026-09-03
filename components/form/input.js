@@ -169,7 +169,7 @@ export function Input ({ label, groupClassName, under, ...props }) {
   )
 }
 
-export function Client (Component) {
+function Client (Component) {
   return ({ initialValue, ...props }) => {
     // This component can be used for Formik fields
     // where the initial value is not available on first render.

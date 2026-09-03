@@ -13,7 +13,7 @@ import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
 import { ensureProtocol, removeTracking, URL_REGEXP } from '@/lib/url'
 import { $isCodeNode } from '@lexical/code-core'
 
-export default function LinkEditorPlugin ({ anchorElem }) {
+export default function LinkEditorPlugin () {
   const [isLinkEditable, setIsLinkEditable] = useState(false)
   const [nodeKey, setNodeKey] = useState(null)
   const [dismissed, setDismissed] = useState(false)
@@ -116,5 +116,5 @@ export default function LinkEditorPlugin ({ anchorElem }) {
       ))
   }, [editor, handleSelectionChange])
 
-  return isLinkEditable && !dismissed && <LinkEditor nodeKey={nodeKey} anchorElem={anchorElem} onDismiss={handleDismiss} />
+  return isLinkEditable && !dismissed && <LinkEditor nodeKey={nodeKey} onDismiss={handleDismiss} />
 }

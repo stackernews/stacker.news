@@ -111,16 +111,16 @@ export class UserMentionNode extends DecoratorNode {
   }
 
   decorate () {
-    const UserPopover = require('@/components/user-preview-card').default
+    const UserPreviewCard = require('@/components/user-preview-card').default
     const MentionsComponent = require('@/components/editor/nodes/mentions').default
     const name = this.__userMentionName
     const path = this.__path
     const href = '/' + encodeURIComponent(name.toString()) + path?.toString()
     const text = '@' + name + path
     return (
-      <UserPopover name={name}>
+      <UserPreviewCard name={name}>
         <MentionsComponent nodeKey={this.getKey()} href={href} text={text} />
-      </UserPopover>
+      </UserPreviewCard>
     )
   }
 }

@@ -14,16 +14,15 @@ const DRAWER_ITEM = 'px-0 py-2'
 const drawerItemClasses = (opts = {}) =>
   itemClasses({ ...opts, className: cn(DRAWER_ITEM, opts.className) })
 
-function MeImage ({ me, onClick }) {
+function MeImage ({ me }) {
   const src = useMemo(() => me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg', [me?.photoId])
   if (!me) {
-    return <span className='text-muted pointer'><AnonIcon onClick={onClick} width='22' height='22' className='fill-current' /></span>
+    return <span className='text-muted pointer'><AnonIcon width='22' height='22' className='fill-current' /></span>
   }
   return (
     <img
       src={src} width='28' height='28'
       className={styles.meimg}
-      onClick={onClick}
     />
   )
 }

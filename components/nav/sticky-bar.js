@@ -6,7 +6,7 @@ import TopBar from './desktop/top-bar'
 import { MobilePriceRow } from './mobile/top-bar'
 import { cn } from '@/lib/cn'
 
-export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, hideMobileNav = false }) {
+export default function StickyBar ({ topNavKey, dropNavKey, hideMobileNav = false }) {
   const [visible, setVisible] = useState(false)
   const sentinelRef = useRef()
 
@@ -24,7 +24,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey, h
       <div ref={sentinelRef} aria-hidden />
       <div data-sn-navigation className={cn(styles.sticky, visible && styles.visible)}>
         <Container className='hidden md:block'>
-          <TopBar prefix={prefix} sub={sub} path={path} topNavKey={topNavKey} dropNavKey={dropNavKey} navbarClassName='py-0' />
+          <TopBar topNavKey={topNavKey} dropNavKey={dropNavKey} navbarClassName='py-0' />
         </Container>
         {!hideMobileNav && (
           <Container className='block md:hidden'>

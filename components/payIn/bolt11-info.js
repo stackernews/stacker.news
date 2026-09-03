@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { formatSats, msatsToSatsDecimal } from '@/lib/format'
 import { bolt11ExpiresAtFromDecoded, bolt11Section, safeDecodeBolt11 } from '@/lib/bolt11'
 import { timeLeft, timeSince } from '@/lib/time'
-import CopyChip, { Chip, chipClassName } from '@/components/copy-chip'
+import CopyChip, { Chip } from '@/components/copy-chip'
 import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from '@/components/ui/collapsible'
 import Link from 'next/link'
 import { nostrZapDetails } from '@/lib/nostr'
@@ -38,8 +38,7 @@ export default function Bolt11Info ({
 
   const chips = details?.chips ?? []
   const showMoreToggle = chips.length > DEFAULT_CHIP_COUNT
-  const visibleAlways = chips.slice(0, DEFAULT_CHIP_COUNT)
-  const hiddenChips = chips.slice(DEFAULT_CHIP_COUNT)
+  const visibleChips = expanded ? chips : chips.slice(0, DEFAULT_CHIP_COUNT)
   const hiddenChipCount = chips.length - DEFAULT_CHIP_COUNT
   const hasDetailPills = details?.commentText || details?.nostrZap
 
@@ -53,19 +52,11 @@ export default function Bolt11Info ({
       )}
       {(chips.length > 0 || hasDetailPills) && (
         <div className={styles.chipRow}>
-          {visibleAlways.map(chip => <InvoiceDetailChip key={chip.key} chip={chip} />)}
+          {visibleChips.map(chip => <InvoiceDetailChip key={chip.key} chip={chip} />)}
           {showMoreToggle && (
-            <Collapsible open={expanded} onOpenChange={setExpanded} className='contents'>
-              <CollapsiblePanel className='contents'>
-                {hiddenChips.map(chip => <InvoiceDetailChip key={chip.key} chip={chip} />)}
-              </CollapsiblePanel>
-              <CollapsibleTrigger
-                className={chipClassName({})}
-                title={expanded ? 'show fewer invoice details' : 'show more invoice details'}
-              >
-                {expanded ? 'less' : `more ${hiddenChipCount}`}
-              </CollapsibleTrigger>
-            </Collapsible>
+            <Chip onClick={() => setExpanded(expanded => !expanded)} title={expanded ? 'show fewer invoice details' : 'show more invoice details'}>
+              {expanded ? 'less' : `more ${hiddenChipCount}`}
+            </Chip>
           )}
           {details?.commentText && (
             <ExpandableDetailPill label={`LNURL comment${details.senderLabel ? ` from ${details.senderLabel}` : ''}`}>

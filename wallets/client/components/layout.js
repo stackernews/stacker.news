@@ -133,7 +133,7 @@ export function WalletActionShell ({ wallet, title, identity, available, childre
 
 export function WalletActionEmpty ({ message, backHref, backLabel = 'back to wallet' }) {
   return (
-    <div className='flex flex-col items-center justify-center gap-6 flex-auto text-xl text-center text-muted'>
+    <div className='flex flex-col items-center justify-center gap-6 flex-auto text-2xl text-center text-muted'>
       <div>{message}</div>
       {backHref && (
         <Link href={backHref} className={buttonClasses({ variant: 'secondary' })}>

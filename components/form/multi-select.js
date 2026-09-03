@@ -1,13 +1,10 @@
 import { useEffect, useMemo } from 'react'
 import { useFormikContext, useField } from 'formik'
-import { Combobox } from '@base-ui/react/combobox'
+import { Combobox, ComboboxPopup, ComboboxList, ComboboxItem } from '@/components/ui/combobox'
 import ArrowDownSFill from '@/svgs/arrow-down-s-fill.svg'
 import CloseIcon from '@/svgs/close-line.svg'
 import CheckIcon from '@/svgs/check-line.svg'
 import Info from '@/components/info'
-import { popoverClasses } from '@/components/ui/popover'
-import popoverStyles from '@/components/ui/popover.module.css'
-import { itemClasses } from '@/components/ui/menu'
 import styles from './multi-select.module.css'
 import { cn } from '@/lib/cn'
 import { FormGroup, hintClasses, errorClasses, inputClasses } from './field'
@@ -88,27 +85,23 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
               <ArrowDownSFill width={triggerIconSize} height={triggerIconSize} className='fill-muted' />
             </Combobox.Trigger>
           </Combobox.InputGroup>
-          <Combobox.Portal>
-            <Combobox.Positioner sideOffset={2} className={popoverStyles.positioner}>
-              <Combobox.Popup className={popoverClasses({ className: 'max-w-none w-(--anchor-width) mt-1' })}>
-                <Combobox.Empty className='not-empty:py-2 not-empty:px-6 text-muted text-base'>no territories found</Combobox.Empty>
-                <Combobox.List className='list-none ps-0 mb-0 not-empty:py-2 max-h-108 overflow-auto text-base'>
-                  {group => (
-                    <Combobox.Group key={group.label ?? 'all'} items={group.items}>
-                      {group.label && <Combobox.GroupLabel className={styles.groupLabel}>{group.label}</Combobox.GroupLabel>}
-                      <Combobox.Collection>
-                        {sub => (
-                          <Combobox.Item key={sub} value={sub} className={itemClasses({ className: cn('flex items-center gap-2', styles.item) })}>
-                            <Combobox.ItemIndicator render={<CheckIcon width={16} height={16} className='fill-current shrink-0' />} /> {sub}
-                          </Combobox.Item>
-                        )}
-                      </Combobox.Collection>
-                    </Combobox.Group>
-                  )}
-                </Combobox.List>
-              </Combobox.Popup>
-            </Combobox.Positioner>
-          </Combobox.Portal>
+          <ComboboxPopup className='max-w-none w-(--anchor-width) mt-1'>
+            <Combobox.Empty className='not-empty:py-2 not-empty:px-6 text-muted text-base'>no territories found</Combobox.Empty>
+            <ComboboxList className='not-empty:py-2 max-h-108 overflow-auto'>
+              {group => (
+                <Combobox.Group key={group.label ?? 'all'} items={group.items}>
+                  {group.label && <Combobox.GroupLabel className={styles.groupLabel}>{group.label}</Combobox.GroupLabel>}
+                  <Combobox.Collection>
+                    {sub => (
+                      <ComboboxItem key={sub} value={sub} className={cn('flex items-center gap-2', styles.item)}>
+                        <Combobox.ItemIndicator render={<CheckIcon width={16} height={16} className='fill-current shrink-0' />} /> {sub}
+                      </ComboboxItem>
+                    )}
+                  </Combobox.Collection>
+                </Combobox.Group>
+              )}
+            </ComboboxList>
+          </ComboboxPopup>
         </Combobox.Root>
         {info && <Info>{info}</Info>}
       </span>

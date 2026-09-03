@@ -29,38 +29,6 @@
   font-weight: 700;
   line-height: 1;
 }
-.toggleTrack {
-  position: relative;
-  display: inline-block;
-  flex-shrink: 0;
-  width: 38px;
-  height: 22px;
-  border-radius: var(--wt-radius-pill);
-  background: var(--sn-toolbarActive);
-  transition: background-color 0.15s ease;
-}
-.toggleThumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  display: block;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  transition: transform 0.15s ease;
-}
-.toggleTrack[data-checked] {
-  background: var(--sn-success);
-}
-.toggleThumb[data-checked] {
-  transform: translateX(16px);
-}
-.toggleTrack:focus-visible {
-  outline: 2px solid var(--sn-borderColor);
-  outline-offset: 3px;
-}
 .toggleLabel {
   min-width: 0;
 }

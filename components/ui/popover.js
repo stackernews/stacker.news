@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn'
 import styles from './popover.module.css'
 import arrowStyles from './arrow.module.css'
 
-// also used by the preview card, the table of contents and the link editor
+// also used by the preview card and the combobox popup
 export const popoverClasses = ({ className } = {}) =>
   cn(styles.popup, 'text-sm max-w-80 rounded-lg shadow-lg', className)
 
@@ -11,12 +11,12 @@ export function Popover (props) {
   return <BasePopover.Root {...props} />
 }
 
-export function PopoverContent ({ side = 'bottom', align = 'center', sideOffset = 8, anchor, initialFocus, finalFocus, className, children, ...props }) {
+export function PopoverContent ({ side = 'bottom', align = 'center', sideOffset = 8, anchor, initialFocus, finalFocus, arrow = true, className, children, ...props }) {
   return (
     <BasePopover.Portal>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} className={styles.positioner}>
         <BasePopover.Popup {...props} initialFocus={initialFocus} finalFocus={finalFocus} className={popoverClasses({ className })}>
-          <BasePopover.Arrow className={arrowStyles.arrow} />
+          {arrow && <BasePopover.Arrow className={arrowStyles.arrow} />}
           {children}
         </BasePopover.Popup>
       </BasePopover.Positioner>

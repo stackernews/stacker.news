@@ -2,10 +2,9 @@ import ActionTooltip from '@/components/action-tooltip'
 import classNames from 'classnames'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import dropdownStyles from '@/components/dropdown.module.css'
-import menuStyles from '@/components/ui/menu.module.css'
+import { dropdownExtraItemClasses } from '@/components/dropdown'
 import { Toolbar } from '@base-ui/react/toolbar'
-import { Menu as BaseMenu } from '@base-ui/react/menu'
-import { Menu, MenuTrigger } from '@/components/ui/menu'
+import { Menu, MenuTrigger, MenuPopup, MenuItem } from '@/components/ui/menu'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
@@ -83,21 +82,17 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
           {icon}
           {arrow && <ArrowDownIcon />}
         </MenuTrigger>
-        <BaseMenu.Portal>
-          <BaseMenu.Positioner side='top' align='start' sideOffset={2} className={menuStyles.positioner}>
-            <BaseMenu.Popup finalFocus={false} className={classNames(menuStyles.popup, dropdownStyles.dropdownExtra, 'shadow-lg')}>
-              {options.map(option => (
-                <DropdownMenuItem
-                  key={option.id}
-                  option={option}
-                  onAction={onAction}
-                  isActive={option.active ? toolbarState[option.active] : option.block === toolbarState.blockType}
-                />
-              ))}
-              {children}
-            </BaseMenu.Popup>
-          </BaseMenu.Positioner>
-        </BaseMenu.Portal>
+        <MenuPopup side='top' align='start' finalFocus={false} className='w-60 px-1.5'>
+          {options.map(option => (
+            <DropdownMenuItem
+              key={option.id}
+              option={option}
+              onAction={onAction}
+              isActive={option.active ? toolbarState[option.active] : option.block === toolbarState.blockType}
+            />
+          ))}
+          {children}
+        </MenuPopup>
       </Menu>
     </ActionTooltip>
   )
@@ -109,10 +104,10 @@ function DropdownMenuItem ({ option, onAction, isActive }) {
   const tooltipText = shortcutDisplay ? `${option.name} (${shortcutDisplay})` : option.name
 
   return (
-    <BaseMenu.Item
+    <MenuItem
       title={tooltipText}
       onClick={() => onAction(option)}
-      className={classNames(menuStyles.item, dropdownStyles.dropdownExtraItem, isActive && dropdownStyles.active)}
+      className={dropdownExtraItemClasses({ active: isActive })}
       onPointerDown={e => e.preventDefault()}
     >
       <span className={styles.dropdownExtraItemLabel}>
@@ -122,7 +117,7 @@ function DropdownMenuItem ({ option, onAction, isActive }) {
       <span className={styles.dropdownExtraItemShortcut}>
         {shortcutDisplay}
       </span>
-    </BaseMenu.Item>
+    </MenuItem>
   )
 }
 

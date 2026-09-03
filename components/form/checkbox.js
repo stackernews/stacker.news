@@ -4,6 +4,7 @@ import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox'
 import { CheckboxGroup as BaseCheckboxGroup } from '@base-ui/react/checkbox-group'
 import { cn } from '@/lib/cn'
 import { FormGroup, labelClasses, errorClasses } from './field'
+import { useFormikField } from './use-formik-field'
 import styles from './checkbox.module.css'
 
 // inside a CheckboxGroup the group writes the formik array, not the checkbox
@@ -11,11 +12,11 @@ const CheckboxGroupContext = createContext(false)
 
 export function Checkbox ({
   children, label, groupClassName, type = 'checkbox',
-  hiddenLabel, extra, handleChange, inline, disabled, checked, ...props
+  hiddenLabel, extra, handleChange, inline, disabled, checked, noForm, ...props
 }) {
   const inGroup = useContext(CheckboxGroupContext)
   // type lets formik derive checked from the array when the checkbox has a value
-  const [field, meta, helpers] = useField({ ...props, type })
+  const { field, meta, helpers } = useFormikField({ ...props, type }, { noForm })
   const invalid = meta.touched && meta.error
   const id = props.id || props.name
 
@@ -30,10 +31,10 @@ export function Checkbox ({
           checked={checked ?? !!field.checked}
           className={cn(styles.checkInput, styles.checkbox, invalid && styles.invalid)}
           onCheckedChange={(checked) => {
-            if (!inGroup) helpers.setValue(checked)
+            if (!inGroup) helpers.setValue?.(checked)
             handleChange && handleChange(checked, helpers.setValue)
           }}
-          onBlur={() => helpers.setTouched(true)}
+          onBlur={() => helpers.setTouched?.(true)}
         />
         <span className={cn('inline-flex flex-nowrap items-center grow', disabled && 'text-muted')}>
           <span className='grow'>{label}</span>

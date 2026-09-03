@@ -1,23 +1,5 @@
 @layer components {
 
-.dropdownExtra {
-  padding: 0.45rem 0.35rem;
-  width: 240px;
-  border-radius: 0.4rem;
-}
-
-.dropdownExtraItem {
-  display: flex;
-  gap: 1.25rem;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.1rem;
-  padding: 0.35rem;
-  font-size: 14px;
-  font-weight: normal;
-  text-wrap: wrap;
-}
-
 /* keyboard highlight looks like hover */
 .dropdownExtraItem:hover,
 .dropdownExtraItem[data-highlighted] {
@@ -33,8 +15,6 @@
 
 .dropdownExtraItem.active {
   opacity: 1;
-  font-weight: 500;
-  font-size: 15px;
 }
 
 .dropdownExtraItem.active .dropdownExtraItemText {

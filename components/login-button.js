@@ -3,12 +3,12 @@ import TwitterIcon from '@/svgs/twitter-fill.svg'
 import LightningIcon from '@/svgs/bolt.svg'
 import NostrIcon from '@/svgs/nostr.svg'
 import Button, { buttonClasses } from '@/components/ui/button'
-import { Menu, MenuTrigger, MenuPopup } from '@/components/ui/menu'
-import { Menu as BaseMenu } from '@base-ui/react/menu'
+import { Menu, MenuTrigger, MenuPopup, MenuItem } from '@/components/ui/menu'
 import useCookie from './use-cookie'
 import { cookieOptions, MULTI_AUTH_POINTER } from '@/lib/auth'
 import { useAccounts } from './account'
 import SNIcon from '@/svgs/sn.svg'
+import { dropdownExtraItemClasses } from '@/components/dropdown'
 import styles from '@/components/dropdown.module.css'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
 import { cn } from '@/lib/cn'
@@ -79,17 +79,17 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
           >
             <ArrowDownIcon width={16} height={16} />
           </MenuTrigger>
-          <MenuPopup align='end' className={cn(styles.dropdownExtra, 'w-40 p-2 rounded-md')}>
+          <MenuPopup align='end' className='w-40 p-2'>
             {accounts.map(account => (
-              <BaseMenu.Item
+              <MenuItem
                 key={account.id}
                 onClick={() => {
                   setPointerCookie(account.id, cookieOptions({ httpOnly: false }))
                 }}
-                className={cn(styles.dropdownExtraItem, Number(account.id) === Number(pointerCookie) && styles.active)}
+                className={dropdownExtraItemClasses({ active: Number(account.id) === Number(pointerCookie) })}
               >
                 <span className={styles.dropdownExtraItemText}>{account.name}</span>
-              </BaseMenu.Item>
+              </MenuItem>
             ))}
           </MenuPopup>
         </Menu>

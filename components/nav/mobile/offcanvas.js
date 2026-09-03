@@ -10,8 +10,9 @@ import styles from './footer.module.css'
 import { useWalletIndicator } from '@/wallets/client/hooks'
 
 // drawer rows keep roomier tap targets than menu items
+const DRAWER_ITEM = 'px-0 py-2'
 const drawerItemClasses = (opts = {}) =>
-  itemClasses({ ...opts, className: cn('px-0 py-2', opts.className) })
+  itemClasses({ ...opts, className: cn(DRAWER_ITEM, opts.className) })
 
 function MeImage ({ me, onClick }) {
   const src = useMemo(() => me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg', [me?.photoId])
@@ -73,10 +74,10 @@ export default function OffCanvas ({ me, dropNavKey }) {
                     <Link href='/settings' className={drawerItemClasses()}>settings</Link>
                   </div>
                   <MenuSeparator />
-                  <LogoutDropdownItem handleClose={handleClose} className='px-0 py-2' />
+                  <LogoutDropdownItem handleClose={handleClose} className={DRAWER_ITEM} />
                 </>
                 )
-              : <LoginButtons handleClose={handleClose} className='px-0 py-2' />}
+              : <LoginButtons handleClose={handleClose} className={DRAWER_ITEM} />}
             <div className={cn(styles.footerPadding, 'mt-auto')}>
               <div className='w-full flex flex-row items-center py-2 px-0 text-muted'>
                 <div>

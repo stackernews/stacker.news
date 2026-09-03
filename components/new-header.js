@@ -1,16 +1,13 @@
 import { ITEM_TYPES, ITEM_TYPES_UNIVERSAL } from '@/lib/constants'
-import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox'
-import { cn } from '@/lib/cn'
-import checkboxStyles from '@/components/form/checkbox.module.css'
-import { Select } from './form'
+import { Checkbox, Select } from './form'
 import { useRouter } from 'next/router'
 import { usePrefix } from './territory-domains'
 
 function ActiveBountiesCheckbox ({ prefix }) {
   const router = useRouter()
 
-  const onChange = (e) => {
-    if (e.target.checked) {
+  const onChange = (checked) => {
+    if (checked) {
       router.push(prefix + '/new/bounties?' + new URLSearchParams({ active: true }).toString())
     } else {
       router.push(prefix + '/new/bounties')
@@ -18,16 +15,13 @@ function ActiveBountiesCheckbox ({ prefix }) {
   }
 
   return (
-    <div className='mx-2 mb-2'>
-      <label className={cn(checkboxStyles.check, 'inline-flex me-4 items-center')}>
-        <BaseCheckbox.Root
-          checked={router.query.active === 'true'}
-          onCheckedChange={checked => onChange({ target: { checked } })}
-          className={cn(checkboxStyles.checkInput, checkboxStyles.checkbox)}
-        />
-        <span>active only</span>
-      </label>
-    </div>
+    <Checkbox
+      noForm inline
+      label='active only'
+      groupClassName='mx-2 mb-2'
+      checked={router.query.active === 'true'}
+      handleChange={onChange}
+    />
   )
 }
 

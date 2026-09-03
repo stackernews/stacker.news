@@ -350,10 +350,7 @@ export function WalletPassphrasePrompt ({ onSuccess }) {
                 <span className={styles.wordIndex}>{formatPosition(i)}</span>
                 <input
                   ref={el => { inputRefs.current[i] = el }}
-                  className={inputClasses({
-                    size: 'sm',
-                    className: classNames('font-mono text-base', styles.slotInput, hidden && styles.slotInputMasked)
-                  })}
+                  className={inputClasses({ className: classNames('px-2 font-mono', styles.slotInput, hidden && styles.slotInputMasked) })}
                   type={hidden && !maskSupported ? 'password' : 'text'}
                   autoComplete='off'
                   autoCapitalize='none'

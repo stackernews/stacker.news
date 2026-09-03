@@ -28,7 +28,7 @@ export default function AuthError ({ error }) {
         <LoopVideo src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/blink-look.mp4`} width='640' height='288' />
         <h2 className='pt-6'>Incorrect magic code</h2>
         <Button
-          className='items-center my-4'
+          className='my-4'
           style={{ borderWidth: '2px' }}
           id='login'
           onClick={() => router.back()}

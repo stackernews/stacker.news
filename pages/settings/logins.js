@@ -93,7 +93,7 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
   const toaster = useToast()
 
   return (
-    <div className=''>
+    <div>
       <p>
         You are removing your last auth method. It is recommended you link another auth method before removing
         your last auth method. If you'd like to proceed anyway, type the following below

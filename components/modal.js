@@ -128,7 +128,7 @@ export default function useModal () {
               initialFocus={() => popupRef.current}
               className={cn(styles.popup, fullScreen ? styles.fullScreen : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg')}
             >
-              <div className='flex flex-row'>
+              <div className='flex'>
                 {overflow &&
                   <div className={cn(styles.btn, styles.overflow, fullScreen && styles.fullScreen)}>
                     <ActionDropdown>

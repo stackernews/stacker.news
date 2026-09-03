@@ -79,9 +79,9 @@ export default function OffCanvas ({ me, dropNavKey }) {
                 )
               : <LoginButtons handleClose={handleClose} className={DRAWER_ITEM} />}
             <div className={cn(styles.footerPadding, 'mt-auto')}>
-              <div className='w-full flex flex-row items-center py-2 px-0 text-muted'>
+              <div className='flex items-center py-2 text-muted'>
                 <div>
-                  <Link href={`/${me?.name || 'anon'}`} className='flex flex-row p-2 mt-auto text-muted'>
+                  <Link href={`/${me?.name || 'anon'}`} className='flex p-2 mt-auto text-muted'>
                     <MeImage me={me} />
                     <div className='ms-2'>
                       <Indicator show={indicator} top='2px' right='-5px'>@{me?.name || 'anon'}</Indicator>

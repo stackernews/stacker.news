@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 
 const handleThemeChange = (dark) => {
   const root = window.document.documentElement
-  const theme = dark ? 'dark' : 'light'
-  root.setAttribute('data-theme', theme)
+  root.setAttribute('data-theme', dark ? 'dark' : 'light')
 }
 
 const STORAGE_KEY = 'darkMode'

@@ -120,7 +120,7 @@ export function PostForm ({ type, subs, children }) {
             headerColor='#6c757d'
             header={<div className='font-bold text-muted'>more types</div>}
             body={
-              <div className='items-center'>
+              <div>
                 {morePostButtons}
                 <div className='mt-4 flex justify-center'>
                   <Link href='/~jobs/post' onClick={checkSession} className={buttonClasses({ variant: 'info' })}>
@@ -187,7 +187,7 @@ export function ItemButtonBar ({
   const router = useRouter()
 
   return (
-    <div className={`mt-3 ${className}`}>
+    <div className={`mt-4 ${className}`}>
       <div className='flex justify-between'>
         <FreebieCheckbox />
         {itemId && canDelete &&

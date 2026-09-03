@@ -57,7 +57,6 @@ export function PollForm ({ item, subs, EditInfo, children }) {
           isClearable
           label='poll expiration'
           name='pollExpiresAt'
-          className=''
           groupClassName='mb-0'
         />
         <Checkbox

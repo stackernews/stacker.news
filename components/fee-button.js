@@ -264,13 +264,13 @@ function Receipt ({ lines, total }) {
           !omit &&
             <tr key={key}>
               <td>{term}</td>
-              <td align='right' className=''>{label}</td>
+              <td align='right' className='font-light'>{label}</td>
             </tr>))}
       </tbody>
       <tfoot>
         <tr>
           <td className='font-bold'>{numWithUnits(total, { abbreviate: false, format: true })}</td>
-          <td align='right' className=''>total fee</td>
+          <td align='right' className='font-light'>total fee</td>
         </tr>
       </tfoot>
     </table>

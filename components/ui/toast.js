@@ -1,12 +1,21 @@
 import { Toast } from '@base-ui/react/toast'
 import { useRouter } from 'next/router'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useEffect } from 'react'
 import { cn } from '@/lib/cn'
 import styles from './toast.module.css'
 
 const TOAST_DEFAULT_DELAY_MS = 5000
 
+// one manager for the whole app: base ui keeps the merge state in its store,
+// so callers don't own counters and don't rerender when the toast list changes
+const toastManager = Toast.createToastManager()
+
 function ToastItem ({ toast }) {
+  // adding a toast with an existing id updates it in place and bumps updateKey,
+  // so updateKey + 1 is how many times this toast was added since it last closed
+  // for example: 3x 'zap pending' -> '(3) zap pending'
+  // only merged toasts show it: updateKey also moves on update() and when a promise settles
+  const count = toast.data?.merge ? toast.updateKey + 1 : 1
   // alternate animation names so consecutive updates restart the pulse
   const pulse = toast.updateKey
     ? (toast.updateKey % 2 === 0 ? styles.pulseEven : styles.pulseOdd)
@@ -16,7 +25,9 @@ function ToastItem ({ toast }) {
     <Toast.Root toast={toast} className={cn(styles.root, pulse)}>
       <Toast.Content className={styles.content}>
         <div className={styles.info}>
-          <Toast.Description className={styles.description} />
+          <Toast.Description className={styles.description}>
+            {count > 1 && `(${count}) `}{toast.description}
+          </Toast.Description>
         </div>
         <Toast.Close className={styles.close} aria-label='close'>X</Toast.Close>
       </Toast.Content>
@@ -53,51 +64,41 @@ function StackedToasts () {
   )
 }
 
+function addToast (type, body, options = {}) {
+  const { id, tag, delay, autohide, persistOnNavigate, progressBar, ...rest } = options
+  // toasts with the same key merge into one toast that counts up until it closes;
+  // jsx bodies only merge if the caller passes a tag or id
+  const key = tag ?? id ?? (typeof body === 'string' ? body : undefined)
+  const toastId = toastManager.add({
+    id: key,
+    type,
+    timeout: (type === 'danger' || autohide === false) ? 0 : (delay ?? TOAST_DEFAULT_DELAY_MS),
+    priority: type === 'danger' ? 'high' : 'low',
+    description: body,
+    data: { persistOnNavigate, progressBar, merge: key !== undefined },
+    ...rest
+  })
+  return () => toastManager.close(toastId)
+}
+
+// usable outside react too, e.g. from lib code and event handlers
+export const toaster = {
+  success: (body, options) => addToast('success', body, options),
+  warning: (body, options) => addToast('warning', body, options),
+  danger: (body, options) => addToast('danger', body, options),
+  add: addToast,
+  close: toastManager.close,
+  update: toastManager.update,
+  promise: toastManager.promise
+}
+
 export function useToast () {
-  const { add, close, update, promise } = Toast.useToastManager()
-  // toasts with the same key merge into one toast
-  // for example: 3x 'zap pending' -> '(3) zap pending'
-  const counts = useRef(new Map())
-
-  const addToast = useCallback((type, body, options = {}) => {
-    const { id, tag, delay, autohide, onRemove, persistOnNavigate, progressBar, ...rest } = options
-    // jsx bodies only merge if the caller passes a tag or id
-    const key = tag ?? id ?? (typeof body === 'string' ? body : undefined)
-    let amount = 1
-    if (key !== undefined) {
-      amount = (counts.current.get(key) ?? 0) + 1
-      counts.current.set(key, amount)
-    }
-    const toastId = add({
-      id: key,
-      type,
-      timeout: (type === 'danger' || autohide === false) ? 0 : (delay ?? TOAST_DEFAULT_DELAY_MS),
-      priority: type === 'danger' ? 'high' : 'low',
-      description: amount > 1 ? `(${amount}) ${body}` : body,
-      data: { persistOnNavigate, progressBar },
-      ...rest,
-      onRemove: () => {
-        if (key !== undefined) counts.current.delete(key)
-        onRemove?.()
-      }
-    })
-    return () => close(toastId)
-  }, [add, close])
-
-  return useMemo(() => ({
-    success: (body, options) => addToast('success', body, options),
-    warning: (body, options) => addToast('warning', body, options),
-    danger: (body, options) => addToast('danger', body, options),
-    add: addToast,
-    close,
-    update,
-    promise
-  }), [addToast, close, update, promise])
+  return toaster
 }
 
 export function ToastProvider ({ children }) {
   return (
-    <Toast.Provider>
+    <Toast.Provider toastManager={toastManager}>
       <StackedToasts />
       {children}
     </Toast.Provider>

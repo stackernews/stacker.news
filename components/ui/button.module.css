@@ -183,7 +183,7 @@
 .link {
   --sn-btn-color: var(--sn-link);
   --sn-btn-bg: transparent;
-  --sn-btn-hover-color: var(--sn-linkHover);
+  --sn-btn-hover-color: var(--sn-link-hover);
   --sn-btn-hover-bg: transparent;
   --sn-btn-active-bg: transparent;
   --sn-btn-disabled-color: var(--sn-muted);

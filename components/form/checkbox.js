@@ -29,7 +29,8 @@ export function Checkbox ({
           {...props}
           disabled={disabled}
           checked={checked ?? !!field.checked}
-          className={cn(styles.checkInput, styles.checkbox, invalid && styles.invalid)}
+          className={cn(styles.checkInput, styles.checkbox)}
+          data-invalid={invalid ? '' : undefined}
           onCheckedChange={(checked) => {
             if (!inGroup) helpers.setValue?.(checked)
             handleChange && handleChange(checked, helpers.setValue)

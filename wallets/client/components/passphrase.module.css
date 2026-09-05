@@ -105,7 +105,7 @@
   color: var(--sn-body-color);
 }
 .resetButton:focus-visible {
-  outline: 2px solid var(--sn-borderColor);
+  outline: 2px solid var(--sn-border-color);
   outline-offset: 4px;
 }
 
@@ -179,7 +179,7 @@
   min-width: 0;
 }
 :global([data-theme='dark']) .slotInput:not(:focus) {
-  border-color: color-mix(in srgb, var(--sn-borderColor) 20%, transparent);
+  border-color: color-mix(in srgb, var(--sn-border-color) 20%, transparent);
 }
 /* CSS masking avoids exposing the word grid as password fields to password managers. */
 .slotInputMasked {

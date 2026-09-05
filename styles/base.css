@@ -113,7 +113,7 @@
   }
 
   a:hover {
-    color: var(--sn-linkHover);
+    color: var(--sn-link-hover);
   }
 
   ol,

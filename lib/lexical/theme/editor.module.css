@@ -3,7 +3,7 @@
 /* editor container */
 
 .editor {
-  --editor-border-color: var(--sn-borderColor);
+  --editor-border-color: var(--sn-border-color);
   --editor-bg: transparent;
 
   position: relative;
@@ -21,8 +21,8 @@
 
 /* non-top-level editor for things such as comments */
 .editorContainer:not([data-top-level='true']) .editor {
-  --editor-border-color: color-mix(in srgb, var(--sn-borderColor) 25%, transparent);
-  --editor-bg: var(--sn-forceCommentBg);
+  --editor-border-color: color-mix(in srgb, var(--sn-border-color) 25%, transparent);
+  --editor-bg: var(--sn-force-comment-bg);
 }
 
 /* editor focus state */
@@ -109,7 +109,7 @@
 .divider {
   min-width: 1px;
   height: 20px;
-  background-color: var(--sn-borderColor);
+  background-color: var(--sn-border-color);
   border-radius: 0.4rem;
   margin: 0 4px;
   opacity: 0.3;
@@ -152,7 +152,7 @@
 }
 
 .toolbarItem:hover {
-  background-color: var(--sn-toolbarActive);
+  background-color: var(--sn-toolbar-active);
   opacity: 1;
 }
 
@@ -162,7 +162,7 @@
 }
 
 .toolbarItem.active {
-  background-color: var(--sn-toolbarActive);
+  background-color: var(--sn-toolbar-active);
   opacity: 1;
 }
 
@@ -192,7 +192,7 @@
 
 .toolbarInsert:hover,
 .toolbarInsert.active {
-  background-color: var(--sn-toolbarActive);
+  background-color: var(--sn-toolbar-active);
   opacity: 1;
 }
 
@@ -230,7 +230,7 @@
 
 .bottomBarItem:hover,
 .bottomBarItem:active {
-  color: var(--sn-brandColor);
+  color: var(--sn-brand-color);
   filter: drop-shadow(0 0 6px var(--sn-primary));
 }
 
@@ -291,8 +291,8 @@
 }
 
 .modeTab {
-  --tab-border-color: var(--sn-borderColor);
-  --tab-bg: var(--sn-inputBg);
+  --tab-border-color: var(--sn-border-color);
+  --tab-bg: var(--sn-input-bg);
   --tab-shadow: none;
   --tab-clip: none;
 
@@ -300,7 +300,7 @@
   position: relative;
   font-size: 80%;
   font-weight: 500;
-  color: var(--sn-navLink);
+  color: var(--sn-nav-link);
   background: none;
   border: 0;
   border-radius: 0.4rem 0.4rem 0 0;
@@ -309,11 +309,11 @@
 }
 
 .modeTab:not([data-active]):hover {
-  color: var(--sn-navLinkFocus);
+  color: var(--sn-nav-link-focus);
 }
 
 .modeTab[data-active] {
-  color: var(--sn-navLinkActive);
+  color: var(--sn-nav-link-active);
   font-weight: bold;
   cursor: default;
   border: 1px solid var(--tab-border-color);
@@ -325,8 +325,8 @@
 
 /* non-top-level editor tabs (comments, etc.) */
 .editorContainer:not([data-top-level='true']) .modeTab {
-  --tab-border-color: color-mix(in srgb, var(--sn-borderColor) 25%, transparent);
-  --tab-bg: var(--sn-forceCommentBg);
+  --tab-border-color: color-mix(in srgb, var(--sn-border-color) 25%, transparent);
+  --tab-bg: var(--sn-force-comment-bg);
 }
 
 /* focus state for tabs */
@@ -340,7 +340,7 @@
 
 .floatingToolbarContainer {
   position: absolute;
-  background-color: var(--sn-inputBg);
+  background-color: var(--sn-input-bg);
   border-radius: 0.4rem;
   top: 0;
   left: 0;
@@ -353,7 +353,7 @@
 
 .floatingToolbar {
   border-radius: 0.4rem;
-  background-color: var(--sn-commentBg);
+  background-color: var(--sn-comment-bg);
   padding: 4px;
   padding-bottom: 0;
 }
@@ -363,7 +363,7 @@
 .codeActionMenuContainer {
   height: 36px;
   font-size: 10px;
-  color: var(--sn-navLink);
+  color: var(--sn-nav-link);
   position: absolute;
   display: flex;
   align-items: center;
@@ -375,7 +375,7 @@
 
 .codeActionCopyButton svg,
 .codeActionLanguage svg {
-  fill: var(--sn-navLink);
+  fill: var(--sn-nav-link);
   width: 16px;
   height: 16px;
 }
@@ -386,12 +386,12 @@
 
 .codeActionCopyButton svg:hover,
 .codeActionLanguage svg:hover {
-  fill: var(--sn-navLinkFocus);
+  fill: var(--sn-nav-link-focus);
 }
 
 .codeActionCopyButton svg:active,
 .codeActionLanguage svg:active {
-  fill: var(--sn-navLinkActive);
+  fill: var(--sn-nav-link-active);
 }
 
 .draggableBlockMenu {
@@ -436,7 +436,7 @@
 /* to be implemented */
 .tableAddColumns {
   position: absolute;
-  background-color: var(--sn-toolbarActive);
+  background-color: var(--sn-toolbar-active);
   height: 100%;
   animation: table-controls 0.2s ease;
   border: 0;
@@ -454,13 +454,13 @@
 
 .tableAddColumns:hover,
 .tableAddRows:hover {
-  background-color: var(--sn-toolbarActive);
+  background-color: var(--sn-toolbar-active);
   opacity: 0.8;
 }
 .tableAddRows {
   position: absolute;
   width: calc(100% - 25px);
-  background-color: var(--sn-toolbarActive);
+  background-color: var(--sn-toolbar-active);
   animation: table-controls 0.2s ease;
   border: 0;
   cursor: pointer;
@@ -497,11 +497,11 @@
   opacity: 0;
 }
 .tableCellActionButton {
-  background-color: var(--sn-commentBg);
+  background-color: var(--sn-comment-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--sn-borderColor);
+  border: 1px solid var(--sn-border-color);
   border-radius: 4px;
   position: absolute;
   top: 17px;
@@ -515,7 +515,7 @@
 }
 
 .tableCellActionButton:hover {
-  background-color: var(--sn-toolbarActive);
+  background-color: var(--sn-toolbar-active);
 }
 
 .tableCellActionButton svg {
@@ -551,7 +551,7 @@
 }
 
 .tableActionMenuItem:hover {
-  background-color: var(--sn-toolbarActive);
+  background-color: var(--sn-toolbar-active);
   opacity: 1;
   border-radius: 0.3rem;
 }

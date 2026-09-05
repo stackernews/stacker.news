@@ -5,7 +5,7 @@
     bottom: 0;
     width: 100%;
     background-color: var(--sn-body-bg);
-    border-top: 1px solid var(--sn-toolbarActive);
+    border-top: 1px solid var(--sn-toolbar-active);
     z-index: var(--sn-z-fixed);
 }
 

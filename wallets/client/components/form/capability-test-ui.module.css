@@ -65,7 +65,7 @@
   margin: 0;
   padding: 0.65rem;
   overflow: auto;
-  border: 1px solid var(--sn-borderColor);
+  border: 1px solid var(--sn-border-color);
   border-radius: var(--wt-radius-xs);
   color: var(--sn-body-color);
   white-space: pre-wrap;

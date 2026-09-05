@@ -60,6 +60,11 @@
   color: inherit;
 }
 
+/* bootstrap-era small text */
+@utility small {
+  font-size: .875em;
+}
+
 /* ios zooms focused controls under 16px */
 @utility text-touch {
   font-size: 1rem;

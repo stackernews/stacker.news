@@ -29,7 +29,7 @@
 }
 
 .row:hover:not(.header) > * {
-  background-color: var(--sn-clickToContextColor);
+  background-color: var(--sn-click-to-context-color);
 }
 
 .row > * {

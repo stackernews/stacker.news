@@ -31,7 +31,7 @@
 }
 
 [data-theme="light"] .linkInput {
-  border-right: 1px solid var(--sn-borderColor);
+  border-right: 1px solid var(--sn-border-color);
 }
 
 .linkView {

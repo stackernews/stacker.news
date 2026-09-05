@@ -20,7 +20,7 @@
   text-decoration: none;
 }
 .textButton:focus-visible {
-  outline: 2px solid var(--sn-borderColor);
+  outline: 2px solid var(--sn-border-color);
   outline-offset: var(--focus-ring-offset, 4px);
 }
 .textButton:disabled {
@@ -46,7 +46,7 @@
   align-items: center;
   gap: var(--chip-gap, 0.35rem);
   padding: var(--chip-padding, 0.35rem 1rem);
-  border: 1px solid var(--sn-borderColor);
+  border: 1px solid var(--sn-border-color);
   border-radius: var(--chip-radius, var(--wt-radius-pill));
   background: var(--chip-bg, var(--sn-body-bg));
   color: var(--chip-color, var(--sn-grey));
@@ -106,7 +106,7 @@
   justify-content: space-between;
   width: 100%;
   padding: var(--wallet-bottom-bar-padding, 1rem 0 0);
-  border-top: 1px solid var(--sn-borderColor);
+  border-top: 1px solid var(--sn-border-color);
   background: var(--sn-body-bg);
 }
 

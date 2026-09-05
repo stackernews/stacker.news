@@ -126,7 +126,8 @@ export function InputInner ({
                       onChange(formik, { target: { value: '' } })
                     }
                   }}
-                  className={cn(styles.clearButton, styles.appendButton, invalid && styles.isInvalid)}
+                  className={styles.clearButton}
+                  data-invalid={invalid ? '' : undefined}
                 >
                   <CloseIcon className='fill-muted' height={20} width={20} />
                 </button>

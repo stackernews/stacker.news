@@ -18,10 +18,6 @@ html:has([data-sn-editor]:focus) {
   box-shadow: 0 0 10px var(--sn-primary), 0 0 5px var(--sn-primary) !important;
 }
 
-.justify-self-center {
-  justify-self: center;
-}
-
 .pulse {
   animation-name: pulse;
   animation-iteration-count: infinite;
@@ -58,16 +54,16 @@ html, body {
 }
 
 .clickToContext:hover {
-  background-color: var(--sn-clickToContextColor);
+  background-color: var(--sn-click-to-context-color);
 }
 
 .theme {
   cursor: pointer;
-  fill: var(--sn-dropdownItemColor);
+  fill: var(--sn-dropdown-item-color);
 }
 
 .theme:hover {
-  fill: var(--sn-dropdownItemColorHover);
+  fill: var(--sn-dropdown-item-color-hover);
 }
 
 #__next {
@@ -169,11 +165,11 @@ html, body {
 }
 
 .react-datepicker {
-  background-color: var(--sn-inputBg) !important;
+  background-color: var(--sn-input-bg) !important;
 }
 
 .react-datepicker__header {
-  background-color: var(--sn-inputDisabledBg) !important;
+  background-color: var(--sn-input-disabled-bg) !important;
 }
 
 .react-datepicker__day,
@@ -183,12 +179,12 @@ html, body {
 }
 
 .react-datepicker__day--outside-month {
-  color: var(--sn-inputDisabledBg) !important;
+  color: var(--sn-input-disabled-bg) !important;
 }
 
 .react-datepicker-popper[data-placement^=bottom] .react-datepicker__triangle::before, .react-datepicker-popper[data-placement^=bottom] .react-datepicker__triangle::after {
   border-top: none;
-  border-bottom-color: var(--sn-inputDisabledBg) !important;
+  border-bottom-color: var(--sn-input-disabled-bg) !important;
 }
 
 .react-datepicker__day--selected, .react-datepicker__day--in-selecting-range, .react-datepicker__day--in-range,
@@ -203,7 +199,7 @@ html, body {
 .react-datepicker__year-text--in-range {
   border-radius: 0.4rem !important;
   background-color: var(--sn-info) !important;
-  color: var(--sn-inputDisabledBg) !important;
+  color: var(--sn-input-disabled-bg) !important;
 }
 
 .react-datepicker__day--selected:hover, .react-datepicker__day--in-selecting-range:hover, .react-datepicker__day--in-range:hover,
@@ -224,7 +220,7 @@ html, body {
 .react-datepicker__quarter-text--keyboard-selected,
 .react-datepicker__year-text--keyboard-selected {
   border-radius: 0.4rem !important;
-  background-color: var(--sn-inputBg) !important;
+  background-color: var(--sn-input-bg) !important;
   color: var(--sn-body-color) !important;
 }
 
@@ -234,7 +230,7 @@ html, body {
 .react-datepicker__month-text--keyboard-selected:hover,
 .react-datepicker__quarter-text--keyboard-selected:hover,
 .react-datepicker__year-text--keyboard-selected:hover {
-  background-color: var(--sn-clickToContextColor) !important;
+  background-color: var(--sn-click-to-context-color) !important;
 }
 
 .react-datepicker__day--in-selecting-range:not(.react-datepicker__day--in-range,
@@ -268,6 +264,3 @@ html, body {
   background: none !important;
 }
 
-.small {
-  font-size: 0.875em;
-}

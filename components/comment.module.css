@@ -113,7 +113,7 @@
     border-radius: .4rem;
     padding-top: .5rem;
     padding-left: .7rem;
-    background-color: var(--sn-commentBg);
+    background-color: var(--sn-comment-bg);
 }
 
 .op {

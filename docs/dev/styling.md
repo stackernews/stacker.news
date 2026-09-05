@@ -53,7 +53,8 @@ cannot win the normal layer order and communicates ownership it does not have.
 ## Tokens and themes
 
 `styles/tokens.css` is the canonical token sheet. Light defaults live on `:root`
-and `[data-theme=light]`; dark values live on `[data-theme=dark]`.
+and `[data-theme=light]`; dark values live on `[data-theme=dark]`. Token names are
+kebab-case.
 
 `styles/tailwind.css` maps reusable color tokens through `@theme inline`, so
 generated text, background, border, and fill utilities read the live `--sn-*`
@@ -112,6 +113,12 @@ properties instead.
 Every button has a transparent one-pixel border so it aligns with bordered form
 controls. Outline variants recolor that border. A call site can choose a wider
 border while the variant continues to own its color.
+
+### Invalid state
+
+Form controls expose validation failure through Base UI's `data-invalid` attribute,
+set by `Field.Root` or by the component itself. Modules style `[data-invalid]` and
+nothing else.
 
 ### Input group corners
 

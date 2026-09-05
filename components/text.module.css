@@ -112,7 +112,7 @@
 }
 
 .text hr {
-    border-top: 3px solid var(--sn-quoteBar);
+    border-top: 3px solid var(--sn-quote-bar);
 }
 
 .text .p {
@@ -243,7 +243,7 @@
 }
 
 .text blockquote {
-    border-left: 3px solid var(--sn-quoteBar);
+    border-left: 3px solid var(--sn-quote-bar);
     padding-left: .75rem;
 }
 
@@ -398,7 +398,7 @@
 
 .tweetSkeleton {
     width: 100%;
-    border: 0.05rem solid var(--sn-borderColor);
+    border: 0.05rem solid var(--sn-border-color);
     border-radius: 12px;
     height: 150px;
     padding: 1.5rem;

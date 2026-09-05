@@ -107,7 +107,7 @@
   }
 }
 .sn-text hr, .sn-hr {
-  border-top: 3px solid var(--sn-quoteBar);
+  border-top: 3px solid var(--sn-quote-bar);
   caret-color: transparent;
 }
 
@@ -149,12 +149,12 @@
 
 /* blocks */
 .sn-quote {
-  border-left: 3px solid var(--sn-quoteBar);
+  border-left: 3px solid var(--sn-quote-bar);
   padding-left: 0.75rem;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--sn-borderColor) var(--sn-commentBg);
+  scrollbar-color: var(--sn-border-color) var(--sn-comment-bg);
 }
 /* nested elements don't need extra spacing (override the :where default) */
 .sn-quote > *:first-child {
@@ -241,7 +241,7 @@
   font-size: 0.875rem;
   line-height: 1.5;
   padding: 0.5rem;
-  background-color: var(--sn-commentBg);
+  background-color: var(--sn-comment-bg);
   border-radius: 0.4rem;
   width: 100%;
   height: 100%;
@@ -275,7 +275,7 @@
   align-items: center;
   width: 100%;
   height: 100%;
-  background-color: var(--sn-commentBg);
+  background-color: var(--sn-comment-bg);
 }
 
 @keyframes fadeIn {
@@ -374,7 +374,7 @@ span + .sn-link {
   height: 150px;
   width: 100%;
   padding: 1.5rem;
-  background-color: var(--sn-commentBg);
+  background-color: var(--sn-comment-bg);
 }
 
 .sn-embed-wrapper__loading-message svg {
@@ -504,7 +504,7 @@ span + .sn-link {
 
 .sn-tweet-skeleton {
   width: 100%;
-  border: 0.05rem solid var(--sn-borderColor);
+  border: 0.05rem solid var(--sn-border-color);
   border-radius: 12px;
   height: 150px;
   padding: 1.5rem;
@@ -739,9 +739,9 @@ span + .sn-link {
 /* shared collapsible for ToC and spoilers */
 .sn-collapsible {
   /* override table hard coded background color */
-  background-color: var(--sn-commentBg);
+  background-color: var(--sn-comment-bg);
   /* can't see the highlight in dark mode, so we add a solid border */
-  border: 1px solid var(--sn-borderColor);
+  border: 1px solid var(--sn-border-color);
   border-radius: 0.4rem;
   margin-top: calc(var(--grid-gap) * 0.5);
   margin-bottom: calc(var(--grid-gap) * 0.5);
@@ -759,7 +759,7 @@ span + .sn-link {
 }
 
 .sn-collapsible__header:hover {
-  background-color: var(--sn-clickToContextColor);
+  background-color: var(--sn-click-to-context-color);
 }
 
 /* svg is imported like this for 1:1 html-lexical compatibility */
@@ -881,7 +881,7 @@ span + .sn-link {
 /* inline */
 .sn-code-block {
   position: relative;
-  background-color: var(--sn-commentBg);
+  background-color: var(--sn-comment-bg);
   color: var(--sn-body-color);
   font-family: var(--sn-font-monospace);
   display: block;
@@ -893,7 +893,7 @@ span + .sn-link {
   tab-size: 2;
   white-space: pre;
   scrollbar-width: thin;
-  scrollbar-color: var(--sn-borderColor) var(--sn-commentBg);
+  scrollbar-color: var(--sn-border-color) var(--sn-comment-bg);
   border-radius: 0.3rem;
 }
 
@@ -902,7 +902,7 @@ span + .sn-link {
   user-select: none;
   overflow-x: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--sn-borderColor) var(--sn-commentBg);
+  scrollbar-color: var(--sn-border-color) var(--sn-comment-bg);
 }
 
 .sn-math.focused {
@@ -929,7 +929,7 @@ span + .sn-link {
 }
 
 .sn-table__cell {
-  border: 1px solid var(--sn-borderColor) !important;
+  border: 1px solid var(--sn-border-color) !important;
   min-width: 75px;
   vertical-align: top;
   text-align: start;
@@ -964,7 +964,7 @@ span + .sn-link {
 }
 
 .sn-table__cell--header {
-  background-color: var(--sn-commentBg) !important;
+  background-color: var(--sn-comment-bg) !important;
   text-align: start;
 }
 
@@ -1023,7 +1023,7 @@ span + .sn-link {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--sn-borderColor) transparent;
+  scrollbar-color: var(--sn-border-color) transparent;
 }
 
 .sn-table__scrollable-wrapper::-webkit-scrollbar {
@@ -1035,12 +1035,12 @@ span + .sn-link {
 }
 
 .sn-table__scrollable-wrapper::-webkit-scrollbar-thumb {
-  background-color: var(--sn-borderColor);
+  background-color: var(--sn-border-color);
   border-radius: 4px;
 }
 
 .sn-table__scrollable-wrapper::-webkit-scrollbar-thumb:hover {
-  background-color: var(--sn-navLink);
+  background-color: var(--sn-nav-link);
 }
 
 .sn-table__scrollable-wrapper > .sn-table {

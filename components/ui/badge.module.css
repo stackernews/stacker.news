@@ -1,6 +1,9 @@
 @layer components {
 
+/* scale with the surrounding text */
 .badge {
+  font-size: .75em;
+  padding: .35em .65em;
   color: var(--sn-badge-color, #fff);
   background-color: var(--sn-badge-bg, transparent);
 }

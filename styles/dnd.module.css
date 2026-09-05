@@ -1,3 +1,5 @@
+@layer components {
+
 .draggable {
   cursor: grab;
   transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1),
@@ -16,16 +18,16 @@
 
 .dragOver {
   transform: scale(1.02);
-  outline: 2px dashed var(--bs-primary);
+  outline: 2px dashed var(--sn-primary);
   outline-offset: 4px;
-  box-shadow: 0 0 0 4px rgba(250, 218, 94, 0.15);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--sn-primary) 15%, transparent);
 }
 
 .dragOver::after {
   content: '';
   position: absolute;
   inset: 0;
-  background-color: rgba(250, 218, 94, 0.08);
+  background-color: color-mix(in srgb, var(--sn-primary) 8%, transparent);
   border-radius: inherit;
   pointer-events: none;
 }
@@ -50,4 +52,5 @@
     /* Smaller outline offset to stay within viewport */
     outline-offset: 2px;
   }
+}
 }

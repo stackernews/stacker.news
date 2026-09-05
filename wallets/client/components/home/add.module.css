@@ -1,3 +1,5 @@
+@layer components {
+
 /* Add-wallet panel: the template-picker surface and its template rows. */
 
 .panel {
@@ -5,18 +7,17 @@
   padding: 1.25rem;
   border: 0;
   border-radius: var(--wt-radius-lg);
-  background: color-mix(in srgb, var(--theme-toolbarHover) 25%, var(--bs-body-bg));
+  background: color-mix(in srgb, var(--sn-toolbar-hover) 25%, var(--sn-body-bg));
 }
 .panel .row {
   border: 0;
-  background: color-mix(in srgb, var(--bs-body-bg) 92%, var(--theme-toolbarHover));
+  background: color-mix(in srgb, var(--sn-body-bg) 92%, var(--sn-toolbar-hover));
 }
 .row {
   --surface-row-min-height: 70px;
   --surface-row-padding: 1rem 1.25rem;
-  --surface-row-border: 1px solid rgba(var(--theme-color-rgb), 0.12);
   --surface-row-radius: var(--wt-radius-lg);
-  --surface-row-bg: color-mix(in srgb, var(--bs-body-bg) 78%, var(--theme-toolbarHover));
+  --surface-row-bg: color-mix(in srgb, var(--sn-body-bg) 78%, var(--sn-toolbar-hover));
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -24,9 +25,9 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 .row:focus-visible {
-  border-color: var(--bs-primary);
-  box-shadow: inset 0 0 0 1px var(--bs-primary);
-  color: var(--bs-body-color);
+  border-color: var(--sn-primary);
+  box-shadow: inset 0 0 0 1px var(--sn-primary);
+  color: var(--sn-body-color);
   outline: 0;
 }
 .logo {
@@ -52,7 +53,8 @@
     background: transparent;
   }
   .panel .row {
-    border-color: rgba(var(--theme-color-rgb), 0.16);
-    background: color-mix(in srgb, var(--theme-toolbarHover) 42%, var(--bs-body-bg));
+    background: color-mix(in srgb, var(--sn-toolbar-hover) 42%, var(--sn-body-bg));
   }
+}
+
 }

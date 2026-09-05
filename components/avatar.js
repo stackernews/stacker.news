@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react'
 import AvatarEditor from 'react-avatar-editor'
-import Button from 'react-bootstrap/Button'
-import BootstrapForm from 'react-bootstrap/Form'
+import Button from '@/components/ui/button'
+import { Slider } from '@/components/form'
 import EditImage from '@/svgs/image-edit-fill.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import { useShowModal } from './modal'
 import { FileUpload } from './file-upload'
 import { gql } from '@apollo/client'
 import { useMutation } from '@apollo/client/react'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 
 export default function Avatar ({ onSuccess }) {
   const [cropPhoto] = useMutation(gql`
@@ -25,7 +25,7 @@ export default function Avatar ({ onSuccess }) {
     const ref = useRef()
 
     return (
-      <div className='text-end mt-1 p-4'>
+      <div className='text-end mt-1 p-6'>
         <AvatarEditor
           ref={ref} width={200} height={200}
           image={file}
@@ -35,13 +35,13 @@ export default function Avatar ({ onSuccess }) {
             height: 'auto'
           }}
         />
-        <BootstrapForm.Group controlId='formBasicRange'>
-          <BootstrapForm.Range
-            onChange={e => setScale(parseFloat(e.target.value))}
-            min={1} max={2} step='0.05'
-            // defaultValue={scale}
+        <div>
+          <Slider
+            min={1} max={2} step={0.05}
+            defaultValue={1}
+            onValueChange={setScale}
           />
-        </BootstrapForm.Group>
+        </div>
         <Button
           onClick={async () => {
             const rect = ref.current.getCroppingRect()
@@ -118,7 +118,8 @@ export default function Avatar ({ onSuccess }) {
         setUploading(true)
       }}
     >
-      <div className='position-absolute p-1 bg-dark pointer' style={{ bottom: '0', right: '0' }}>
+      {/* always dark so the fill-white icons stay visible */}
+      <div className='absolute bottom-0 end-0 p-1 bg-dark pointer'>
         {uploading
           ? <Moon className='fill-white spin' />
           : <EditImage className='fill-white' />}

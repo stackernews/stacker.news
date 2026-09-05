@@ -2,20 +2,21 @@ import ActionTooltip from '@/components/action-tooltip'
 import classNames from 'classnames'
 import styles from '@/lib/lexical/theme/editor.module.css'
 import dropdownStyles from '@/components/dropdown.module.css'
+import { dropdownExtraItemClasses } from '@/components/dropdown'
+import { Toolbar } from '@base-ui/react/toolbar'
+import { Menu, MenuTrigger, MenuPopup, MenuItem } from '@/components/ui/menu'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
 import UploadIcon from '@/svgs/editor/toolbar/inserts/upload-paperclip.svg'
 import { useToolbarState, INITIAL_FORMAT_STATE } from '@/components/editor/contexts/toolbar'
-import { useEffect, useRef, useState, forwardRef, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import BoldIcon from '@/svgs/editor/toolbar/inline/bold.svg'
 import ItalicIcon from '@/svgs/editor/toolbar/inline/italic.svg'
 import LinkIcon from '@/svgs/editor/toolbar/inline/link.svg'
 import QuoteIcon from '@/svgs/editor/toolbar/block/quote-text.svg'
 import CodeIcon from '@/svgs/editor/toolbar/inline/code.svg'
-import Dropdown from 'react-bootstrap/Dropdown'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
-import { createPortal } from 'react-dom'
 import SuperscriptIcon from '@/svgs/editor/toolbar/inline/superscript.svg'
 import SubscriptIcon from '@/svgs/editor/toolbar/inline/subscript.svg'
 import StrikethroughIcon from '@/svgs/editor/toolbar/inline/strikethrough.svg'
@@ -30,7 +31,6 @@ import CheckListIcon from '@/svgs/editor/toolbar/block/check-list.svg'
 import CodeBlockIcon from '@/svgs/editor/toolbar/block/code-block.svg'
 import MoreIcon from '@/svgs/editor/toolbar/more-line.svg'
 import FontStyleIcon from '@/svgs/editor/toolbar/font-style.svg'
-import { useIsClient } from '@/components/use-client'
 import { SN_FORMAT_BLOCK_COMMAND } from '@/lib/lexical/commands/formatting/blocks'
 import { SN_FORMAT_COMMAND } from '@/lib/lexical/commands/formatting/format'
 import { SN_TOGGLE_LINK_COMMAND } from '@/lib/lexical/commands/links'
@@ -65,35 +65,24 @@ const FORMAT_OPTIONS = [
   { id: 'underline', active: 'isUnderline', name: 'underline', icon: <UnderlineIcon />, type: 'underline' }
 ]
 
-const MenuAlternateDimension = forwardRef(function MenuAlternateDimension ({ children, style, className }, ref) {
-  // document doesn't exist on SSR
-  const isClient = useIsClient()
-  if (!isClient) return null
-
-  return createPortal(
-    <div ref={ref} style={style} className={className}>
-      {children}
-    </div>,
-    document.body
-  )
-})
-
 function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, showDelay = 500, children }) {
   const { toolbarState } = useToolbarState()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
-    <ActionTooltip notForm overlayText={tooltip} placement='top' noWrapper showDelay={showDelay} transition disable={dropdownOpen}>
-      <Dropdown drop='up' className='pointer' as='span' onToggle={setDropdownOpen} show={dropdownOpen}>
-        <Dropdown.Toggle
-          as='a'
+    <ActionTooltip notForm overlayText={tooltip} placement='top' showDelay={showDelay} disable={dropdownOpen}>
+      <Menu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+        <MenuTrigger
+          aria-label={tooltip}
+          // preventDefault keeps the lexical selection but also suppresses base ui's mousedown open, so toggle on click
           onPointerDown={e => e.preventDefault()}
-          className={classNames(styles.toolbarItem, dropdownOpen && styles.active)}
+          onClick={() => setDropdownOpen(o => !o)}
+          render={<Toolbar.Button className={classNames(styles.toolbarItem, dropdownOpen && styles.active)} />}
         >
           {icon}
           {arrow && <ArrowDownIcon />}
-        </Dropdown.Toggle>
-        <Dropdown.Menu className={dropdownStyles.dropdownExtra} as={MenuAlternateDimension}>
+        </MenuTrigger>
+        <MenuPopup side='top' align='start' finalFocus={false} className='w-60 px-1.5'>
           {options.map(option => (
             <DropdownMenuItem
               key={option.id}
@@ -103,8 +92,8 @@ function ToolbarDropdown ({ icon, tooltip, options, onAction, arrow = true, show
             />
           ))}
           {children}
-        </Dropdown.Menu>
-      </Dropdown>
+        </MenuPopup>
+      </Menu>
     </ActionTooltip>
   )
 }
@@ -115,10 +104,10 @@ function DropdownMenuItem ({ option, onAction, isActive }) {
   const tooltipText = shortcutDisplay ? `${option.name} (${shortcutDisplay})` : option.name
 
   return (
-    <Dropdown.Item
+    <MenuItem
       title={tooltipText}
       onClick={() => onAction(option)}
-      className={classNames(dropdownStyles.dropdownExtraItem, isActive && dropdownStyles.active)}
+      className={dropdownExtraItemClasses({ active: isActive })}
       onPointerDown={e => e.preventDefault()}
     >
       <span className={styles.dropdownExtraItemLabel}>
@@ -128,24 +117,27 @@ function DropdownMenuItem ({ option, onAction, isActive }) {
       <span className={styles.dropdownExtraItemShortcut}>
         {shortcutDisplay}
       </span>
-    </Dropdown.Item>
+    </MenuItem>
   )
 }
 
-function ToolbarButton ({ id, isActive, onClick, tooltip, children, showDelay = 500 }) {
+// composite=false for buttons outside Toolbar.Root so they stay individually tabbable
+function ToolbarButton ({ id, isActive, onClick, tooltip, children, showDelay = 500, composite = true }) {
   const shortcut = SHORTCUTS[id]
   const shortcutDisplay = useFormattedShortcut(shortcut?.key)
   const tooltipText = shortcutDisplay ? `${tooltip} (${shortcutDisplay})` : tooltip
+  const ButtonTag = composite ? Toolbar.Button : 'button'
   return (
-    <ActionTooltip notForm overlayText={tooltipText} placement='top' noWrapper showDelay={showDelay} transition>
-      <span
+    <ActionTooltip notForm overlayText={tooltipText} placement='top' noWrapper showDelay={showDelay}>
+      <ButtonTag
+        type='button'
         title={tooltipText}
         className={classNames(styles.toolbarItem, isActive && styles.active)}
         onPointerDown={e => e.preventDefault()}
         onClick={onClick}
       >
         {children}
-      </span>
+      </ButtonTag>
     </ActionTooltip>
   )
 }
@@ -256,7 +248,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
     <div className={styles.toolbar}>
       <ModeSwitchPlugin name={name} />
       <div className={styles.innerToolbar}>
-        <div ref={toolbarRef} className={classNames(styles.toolbarFormatting, !toolbarState.showToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
+        <Toolbar.Root ref={toolbarRef} className={classNames(styles.toolbarFormatting, !toolbarState.showToolbar && styles.toolbarHidden, hasOverflow && styles.hasOverflow)}>
           <ToolbarDropdown
             icon={<BlocksIcon />}
             tooltip='blocks'
@@ -269,7 +261,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           <ToolbarButton id='italic' isActive={toolbarState.isItalic} onClick={() => handleFormat('italic')} tooltip='italic'>
             <ItalicIcon />
           </ToolbarButton>
-          <span className={styles.divider} />
+          <Toolbar.Separator className={styles.divider} />
           <ToolbarButton id='quote' isActive={toolbarState.blockType === 'quote'} onClick={() => handleFormatBlock('quote')} tooltip='quote'>
             <QuoteIcon />
           </ToolbarButton>
@@ -279,7 +271,7 @@ export function ToolbarPlugin ({ name, topLevel }) {
           <ToolbarButton id='link' isActive={toolbarState.isLink} onClick={() => handleToggleLink()} tooltip='link'>
             <LinkIcon />
           </ToolbarButton>
-          <span className={styles.divider} />
+          <Toolbar.Separator className={styles.divider} />
           <ToolbarDropdown
             icon={<MoreIcon />}
             tooltip='additional formats'
@@ -288,18 +280,19 @@ export function ToolbarPlugin ({ name, topLevel }) {
             arrow={false}
           >
             <div className={styles.separator}>
-              <span className='text-muted small fw-bold text-uppercase ps-1 pe-1'>inserts</span>
+              <span className='text-muted small font-bold uppercase ps-1 pe-1'>inserts</span>
             </div>
             <DropdownMenuItem option={{ id: 'math', name: 'math', icon: <MathIcon />, type: 'math' }} onAction={() => handleInsertMath()} />
             <DropdownMenuItem option={{ id: 'inlineMath', name: 'inline math', icon: <MathOperationsIcon />, type: 'inlineMath' }} onAction={() => handleInsertMath(true)} />
           </ToolbarDropdown>
-        </div>
-        <ActionTooltip notForm overlayText={toolbarState.showToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000} transition>
-          <span onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, toolbarState.showToolbar && styles.active)} onClick={() => updateToolbarState('showToolbar', !toolbarState.showToolbar)}>
+        </Toolbar.Root>
+        <ActionTooltip notForm overlayText={toolbarState.showToolbar ? 'hide toolbar' : 'show toolbar'} noWrapper placement='top' showDelay={1000}>
+          {/* outside Toolbar.Root so it stays tabbable while the toolbar is hidden */}
+          <button type='button' onPointerDown={e => e.preventDefault()} className={classNames(styles.toolbarItem, toolbarState.showToolbar && styles.active)} onClick={() => updateToolbarState('showToolbar', !toolbarState.showToolbar)}>
             <FontStyleIcon />
-          </span>
+          </button>
         </ActionTooltip>
-        <ToolbarButton id='upload' onClick={() => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)} tooltip='upload files'>
+        <ToolbarButton id='upload' composite={false} onClick={() => editor.dispatchCommand(SN_UPLOAD_FILES_COMMAND)} tooltip='upload files'>
           <UploadIcon />
         </ToolbarButton>
       </div>

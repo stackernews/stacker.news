@@ -20,7 +20,7 @@ import { timeLeft } from '@/lib/time'
 import classNames from 'classnames'
 import removeMd from 'remove-markdown'
 import { decodeProxyUrl, IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
-import ItemPopover from './item-popover'
+import ItemPreviewCard from './item-preview-card'
 import { useMe } from './me'
 import Boost from './boost-button'
 import { SearchText } from './text'
@@ -64,9 +64,9 @@ function ItemLink ({ url, rel }) {
     const { linkText } = parseInternalLinks(url)
     if (linkText) {
       return (
-        <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+        <ItemPreviewCard id={linkText.replace('#', '').split('/')[0]}>
           <Link href={url} className={styles.link}>{linkText}</Link>
-        </ItemPopover>
+        </ItemPreviewCard>
       )
     }
 
@@ -116,18 +116,18 @@ export default function Item ({
               href={`/items/${item.id}`}
               onClick={(e) => onItemClick(e, router, item)}
               ref={titleRef}
-              className={`${styles.title} text-reset me-2`}
+              className={classNames(styles.title, 'me-2')}
             >
               {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
               {item.pollCost && <PollIndicator item={item} />}
               {item.bounty > 0 &&
                 <span className={styles.icon}>
                   <ActionTooltip notForm overlayText={`${numWithUnits(item.bounty)} ${item.bountyPaidTo?.length ? ' paid' : ' bounty'}`}>
-                    <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
+                    <BountyIcon className={classNames(styles.bountyIcon, item.bountyPaidTo?.length ? 'fill-success' : 'fill-muted')} height={16} width={16} />
                   </ActionTooltip>
                 </span>}
-              {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-grey ms-1' height={14} width={14} /></span>}
-              {media && <span className={styles.icon}><MediaIcon className='fill-grey ms-2' height={16} width={16} /></span>}
+              {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-muted ms-1' height={14} width={14} /></span>}
+              {media && <span className={styles.icon}><MediaIcon className='fill-muted ms-2' height={16} width={16} /></span>}
             </Link>
             {item.url && !media && <ItemLink url={item.url} rel={item.rel} />}
           </div>
@@ -161,7 +161,7 @@ export function ItemSummary ({ item }) {
     <Link
       href={`/items/${item.id}`}
       onClick={(e) => onItemClick(e, router, item)}
-      className={`${item.title && styles.title} ${styles.summaryText} text-reset me-2`}
+      className={classNames(item.title && styles.title, styles.summaryText, 'me-2')}
     >
       {item.title ?? removeMd(item.text)}
     </Link>
@@ -207,8 +207,8 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
       <div className={`${styles.item} ${styles.skeleton}`}>
         {showUpvote && <UpVote className={styles.upvote} />}
         <div className={styles.hunk}>
-          <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
-            <span className={`${styles.title} clouds text-reset flex-md-fill flex-md-shrink-0 me-2`} />
+          <div className={classNames(styles.main, 'flex-wrap md:flex-nowrap')}>
+            <span className={classNames(styles.title, 'clouds md:flex-auto md:shrink-0 me-2')} />
             <span className={`${styles.link} clouds`} />
           </div>
           <div className={styles.other}>
@@ -238,7 +238,7 @@ function PollIndicator ({ item }) {
       <PollIcon
         className={`${isActive
           ? 'fill-success'
-          : 'fill-grey'
+          : 'fill-muted'
           } ms-1`} height={14} width={14}
       />
     </span>

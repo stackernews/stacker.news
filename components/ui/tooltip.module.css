@@ -1,0 +1,37 @@
+@layer components {
+
+.positioner {
+  z-index: var(--sn-z-tooltip);
+}
+
+.popup {
+  --sn-tooltip-bg: var(--sn-success);
+  /* smaller borderless arrow */
+  --arrow-size: 12px;
+  --arrow-bg: var(--sn-tooltip-bg);
+  --arrow-border-width: 0px;
+  position: relative;
+  background-color: var(--sn-tooltip-bg);
+  color: #fff;
+  opacity: 0.9;
+  transform-origin: var(--transform-origin);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.popup[data-instant] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup {
+    transition: none;
+  }
+}
+
+}

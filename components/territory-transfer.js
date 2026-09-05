@@ -2,9 +2,9 @@ import { gql } from '@apollo/client'
 import { useApolloClient, useMutation } from '@apollo/client/react'
 import { useShowModal } from './modal'
 import { ObstacleButtons } from './obstacle'
-import { useToast } from './toast'
-import { Dropdown, InputGroup } from 'react-bootstrap'
-import { Form, InputUserSuggest, SubmitButton } from './form'
+import { useToast } from '@/components/ui/toast'
+import { MenuItem } from '@/components/ui/menu'
+import { Form, InputAddon, InputUserSuggest, SubmitButton } from './form'
 import { territoryTransferSchema } from '@/lib/validate'
 import { useCallback } from 'react'
 import Link from 'next/link'
@@ -68,11 +68,11 @@ function TerritoryTransferForm ({ sub, onClose }) {
       onSubmit={onSubmit}
     >
       <h2 className='text-center'>transfer territory</h2>
-      <div className='d-flex align-items-center mb-2'>
+      <div className='flex items-center mb-2'>
         <InputUserSuggest
           label='stacker'
           name='userName'
-          prepend={<InputGroup.Text>@</InputGroup.Text>}
+          prepend={<InputAddon>@</InputAddon>}
           showValid
           autoFocus
         />
@@ -85,11 +85,11 @@ function TerritoryTransferForm ({ sub, onClose }) {
 export function TerritoryTransferDropdownItem ({ sub }) {
   const showModal = useShowModal()
   return (
-    <Dropdown.Item onClick={async () =>
+    <MenuItem onClick={async () =>
       showModal(onClose =>
         <TerritoryTransferForm sub={sub} onClose={onClose} />)}
     >
       transfer
-    </Dropdown.Item>
+    </MenuItem>
   )
 }

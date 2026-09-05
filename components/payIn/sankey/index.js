@@ -6,7 +6,7 @@ import { RotatingSankeyLabels } from './label'
 export function PayInSankey ({ payIn }) {
   const data = getSankeyData(payIn)
   return (
-    <div className='position-relative' style={{ width: '100%', maxWidth: '600px', height: '460px' }}>
+    <div className='relative' style={{ width: '100%', maxWidth: '600px', height: '460px' }}>
       <ResponsiveSankey
         data={data}
         margin={{ top: 60, right: 60, bottom: 160, left: 60 }}
@@ -54,7 +54,7 @@ function Tooltip ({ node, link }) {
   if (!node.asset) {
     return null
   }
-  return <div style={{ whiteSpace: 'nowrap', backgroundColor: 'var(--bs-body-bg)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--bs-border-color)' }}>{node.asset}</div>
+  return <div style={{ whiteSpace: 'nowrap', backgroundColor: 'var(--sn-body-bg)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--sn-border-color-subtle)' }}>{node.asset}</div>
 }
 
 function getSankeyData (payIn) {

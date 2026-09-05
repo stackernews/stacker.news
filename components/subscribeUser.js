@@ -1,8 +1,8 @@
 import { createContext, useContext } from 'react'
 import { useMutation } from '@apollo/client/react'
 import { gql } from 'graphql-tag'
-import Dropdown from 'react-bootstrap/Dropdown'
-import { useToast } from './toast'
+import { MenuItem } from '@/components/ui/menu'
+import { useToast } from '@/components/ui/toast'
 
 const SubscribeUserContext = createContext(() => ({
   refetchQueries: []
@@ -44,7 +44,7 @@ export default function SubscribeUserDropdownItem ({ user, target = 'posts' }) {
     }
   )
   return (
-    <Dropdown.Item
+    <MenuItem
       onClick={async () => {
         try {
           await subscribeUser({ variables: { id } })
@@ -58,6 +58,6 @@ export default function SubscribeUserDropdownItem ({ user, target = 'posts' }) {
       {meSubscription
         ? `unsubscribe from ${isPosts ? 'posts' : 'comments'}`
         : `subscribe to ${isPosts ? 'posts' : 'comments'}`}
-    </Dropdown.Item>
+    </MenuItem>
   )
 }

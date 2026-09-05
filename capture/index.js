@@ -203,11 +203,7 @@ async function addCaptureCleanupScript (page) {
       const style = document.createElement('style')
       style.textContent = `
         #nprogress,
-        .navbar,
-        nav.d-block.d-md-none:has(.navbar),
-        [class*="sticky"]:has(.navbar),
-        .d-none.d-md-block:has(.navbar),
-        .d-block.d-md-none:has(.navbar) {
+        [data-sn-navigation] {
           display: none !important;
         }
       `

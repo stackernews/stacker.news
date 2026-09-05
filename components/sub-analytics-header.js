@@ -1,10 +1,8 @@
 import { useRouter } from 'next/router'
 import { Select, DatePicker } from './form'
-import { useSubs } from './sub-select'
+import { useSubs, subSelectClasses } from './sub-select'
 import { WHENS } from '@/lib/constants'
 import { whenToFrom } from '@/lib/time'
-import styles from './sub-select.module.css'
-import classNames from 'classnames'
 
 export function SubAnalyticsHeader ({ pathname = null }) {
   const router = useRouter()
@@ -30,14 +28,13 @@ export function SubAnalyticsHeader ({ pathname = null }) {
   const subs = useSubs({ prependSubs: ['all'], sub, appendSubs: [], filterSubs: () => true })
 
   return (
-    <div className='text-muted fw-bold my-0 d-flex align-items-center flex-wrap'>
-      <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
+    <div className='text-muted font-bold my-0 flex items-center flex-wrap'>
+      <div className='text-muted font-bold mb-2 flex items-center'>
         stacker analytics in
         <Select
           groupClassName='mb-0 mx-2'
-          className={classNames(styles.subSelect, styles.subSelectSmall)}
+          className={subSelectClasses({ size: 'small' })}
           name='sub'
-          size='sm'
           items={subs}
           value={sub}
           noForm
@@ -51,7 +48,6 @@ export function SubAnalyticsHeader ({ pathname = null }) {
           groupClassName='mb-0 mx-2'
           className='w-auto'
           name='when'
-          size='sm'
           items={WHENS}
           value={when}
           noForm

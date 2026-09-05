@@ -1,3 +1,5 @@
+@layer components {
+
 .table {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr) max-content;
@@ -15,7 +17,6 @@
   text-transform: uppercase;
   font-weight: 600;
   font-size: 0.8rem;
-  color: var(--theme-mutedTextColor);
   text-align: center;
 }
 
@@ -28,7 +29,7 @@
 }
 
 .row:hover:not(.header) > * {
-  background-color: var(--theme-clickToContextColor);
+  background-color: var(--sn-click-to-context-color);
 }
 
 .row > * {
@@ -81,4 +82,5 @@
   text-align: right;
   display: grid;
   align-items: center;
+}
 }

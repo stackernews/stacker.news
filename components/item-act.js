@@ -1,8 +1,7 @@
-import Button from 'react-bootstrap/Button'
-import InputGroup from 'react-bootstrap/InputGroup'
+import Button from '@/components/ui/button'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useApolloClient } from '@apollo/client/react'
-import { Form, Input, SubmitButton } from './form'
+import { Form, Input, InputAddon, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema } from '@/lib/validate'
@@ -14,7 +13,7 @@ import { meAnonSats } from '@/lib/apollo'
 import { useHasSendWallet } from '@/wallets/client/hooks'
 import { toastPayError, isTransientNetworkError } from '@/wallets/client/errors'
 import { useAnimation } from '@/components/animation'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { composeCallbacks } from '@/lib/compose-callbacks'
 
@@ -25,18 +24,11 @@ const Tips = ({ setOValue }) => {
   const defaultNoCustom = defaultTips.filter(d => !customTips.includes(d))
   const tips = [...customTips, ...defaultNoCustom].slice(0, 7).sort((a, b) => a - b)
 
-  return tips.map((num, i) =>
-    <Button
-      size='sm'
-      key={num}
-      onClick={() => { setOValue(num) }}
-    >
-      <UpBolt
-        className='me-1'
-        width={14}
-        height={14}
-      />{num}
-    </Button>)
+  return tips.map(num => (
+    <Button size='sm' key={num} onClick={() => setOValue(num)}>
+      <UpBolt className='me-1' width={14} height={14} />{num}
+    </Button>
+  ))
 }
 
 const getCustomTips = () => JSON.parse(window.localStorage.getItem('custom-tips')) || []
@@ -134,14 +126,14 @@ export default function ItemAct ({ onClose, item, act = 'TIP', step, children, a
         step={step}
         required
         autoFocus
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
       />
 
-      <div className='d-flex flex-wrap gap-2'>
+      <div className='flex flex-wrap gap-2'>
         <Tips setOValue={setOValue} />
       </div>
-      <div className='d-flex mt-3'>
-        <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value={act}>
+      <div className='flex mt-4'>
+        <SubmitButton variant={act === 'DONT_LIKE_THIS' ? 'danger' : 'success'} className='ms-auto mt-1 px-6' value={act}>
           {act === 'DONT_LIKE_THIS' ? 'downzap' : act === 'BOOST' ? 'boost' : 'zap'}
         </SubmitButton>
       </div>

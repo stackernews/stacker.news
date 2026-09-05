@@ -1,0 +1,94 @@
+@layer components {
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--sn-z-drawer-backdrop);
+  background-color: #000;
+  opacity: .5;
+  transition: opacity 150ms ease-out;
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+/* a z-index on the popup would be local to the viewport's stacking context */
+.viewport {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  z-index: var(--sn-z-drawer);
+}
+
+.popup {
+  background-color: var(--sn-body-bg);
+  transition: transform 150ms ease-out;
+  outline: 0;
+}
+
+.popup[data-swiping] {
+  transition-duration: 0ms;
+}
+
+/* the shadow covers the gap a reverse swipe exposes */
+.end {
+  border-left: 1px solid var(--sn-border-color-translucent);
+  transform: translateX(var(--drawer-swipe-movement-x));
+  box-shadow: 10rem 0 0 var(--sn-body-bg);
+}
+
+.end[data-starting-style],
+.end[data-ending-style] {
+  transform: translateX(100%);
+}
+
+/* a strip of backdrop stays visible above the sheet */
+.bottom {
+  max-height: 85svh;
+  border-top: 1px solid var(--sn-border-color-translucent);
+  transform: translateY(var(--drawer-swipe-movement-y));
+  box-shadow: 0 10rem 0 var(--sn-body-bg);
+}
+
+.bottom[data-starting-style],
+.bottom[data-ending-style] {
+  transform: translateY(100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .popup {
+    transition: none;
+  }
+}
+
+.close {
+  padding: .5rem;
+  color: #000;
+  font-family: lightning;
+  font-weight: 300;
+  font-size: 150%;
+  line-height: 1;
+}
+
+.close::after {
+  content: 'X';
+}
+
+.close:hover {
+  opacity: .75;
+}
+
+.close:focus {
+  outline: 0;
+  box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+  opacity: 1;
+}
+
+:global([data-theme='dark']) .close {
+  color: #fff;
+}
+
+}

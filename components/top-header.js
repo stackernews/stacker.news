@@ -40,19 +40,18 @@ export default function TopHeader ({ sub, cat }) {
   const when = router.query.when || ''
 
   return (
-    <div className='d-flex'>
+    <div className='flex'>
       <Form
         className='me-auto'
         initial={{ what, by, when, from: '', to: '' }}
         onSubmit={top}
       >
-        <div className='text-muted fw-bold my-1 d-flex align-items-center flex-wrap'>
-          <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
+        <div className='text-muted font-bold my-1 flex items-center flex-wrap'>
+          <div className='text-muted font-bold mb-2 flex items-center'>
             <Select
               groupClassName='me-2 mb-0'
               onChange={(formik, e) => top({ ...formik?.values, what: e.target.value })}
               name='what'
-              size='sm'
               overrideValue={what}
               items={router?.query?.sub ? ['posts', 'comments'] : ['posts', 'comments', 'stackers', 'cowboys', 'territories']}
             />
@@ -63,7 +62,6 @@ export default function TopHeader ({ sub, cat }) {
                   groupClassName='mx-2 mb-0'
                   onChange={(formik, e) => top({ ...formik?.values, by: e.target.value })}
                   name='by'
-                  size='sm'
                   overrideValue={by}
                   items={sortItemsForCategory(cat)}
                 />

@@ -24,14 +24,13 @@ export function UserAnalyticsHeader ({ pathname = null }) {
   const when = router.query.when || 'day'
 
   return (
-    <div className='text-muted fw-bold my-0 d-flex align-items-center flex-wrap'>
-      <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
+    <div className='text-muted font-bold my-0 flex items-center flex-wrap'>
+      <div className='text-muted font-bold mb-2 flex items-center'>
         for
         <Select
           groupClassName='mb-0 mx-2'
           className='w-auto'
           name='when'
-          size='sm'
           items={WHENS}
           value={when}
           noForm

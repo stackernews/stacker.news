@@ -1,7 +1,7 @@
 import { useQuery } from '@apollo/client/react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
-import { Alert } from 'react-bootstrap'
+import { Alert } from '@/components/ui/alert'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { formatMsatsToSats } from '@/lib/format'
 import { FASTISH_POLL_INTERVAL_MS, NORMAL_POLL_INTERVAL_MS } from '@/lib/constants'
@@ -93,19 +93,19 @@ export default function ExternalTransactionPage ({ ssrData }) {
         amount={formatMsatsToSats(transaction.settledMsats ?? transaction.amountMsats)}
         walletInfo={transaction.walletInfo}
         identity={transaction.walletInfo ? undefined : 'external wallet'}
-        status={<ExternalTransactionStatus transaction={transaction} className='justify-content-end' />}
+        status={<ExternalTransactionStatus transaction={transaction} className='justify-end' />}
         timestamp={transaction.statusChangedAt}
       />
 
       {showReceiveQr && (
         <TransactionDetailSection>
-          <div className='w-100 mx-auto py-5' style={{ maxWidth: '560px' }}>
+          <div className='w-full mx-auto py-12' style={{ maxWidth: '560px' }}>
             <Qr
               value={transaction.bolt11}
               qrTransform={bolt11QrTransform}
               description={formatMsatsToSats(transaction.amountMsats)}
             />
-            <div className='d-flex justify-content-center'>
+            <div className='flex justify-center'>
               <CompactLongCountdown
                 className='text-muted'
                 date={invoiceExpiresAt}
@@ -118,7 +118,7 @@ export default function ExternalTransactionPage ({ ssrData }) {
 
       {diagnostic && (
         <Alert variant='warning' className='mb-0'>
-          <div className='fw-bold'>
+          <div className='font-bold'>
             {transaction.status === 'UNKNOWN'
               ? (isSend ? 'status unknown' : 'settlement unconfirmed')
               : 'proof unavailable'}
@@ -134,8 +134,8 @@ export default function ExternalTransactionPage ({ ssrData }) {
             {...toBolt11InfoProps(transaction)}
           >
             {transaction.sourceType === 'LN_ADDR' && transaction.sourceValue && (
-              <div className='d-flex flex-column mt-2'>
-                <small className='text-muted text-truncate' title={transaction.sourceValue}>to {transaction.sourceValue}</small>
+              <div className='flex flex-col mt-2'>
+                <small className='text-muted truncate' title={transaction.sourceValue}>to {transaction.sourceValue}</small>
               </div>
             )}
           </Bolt11Info>

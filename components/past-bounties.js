@@ -1,4 +1,4 @@
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import Items from './items'
 import { NavigateFooter } from './more-footer'
 
@@ -13,8 +13,8 @@ export default function PastBounties ({ item }) {
   }
 
   return (
-    <AccordianItem
-      header={<div className='fw-bold'>{item.user.name}'s bounties</div>}
+    <AccordionItem
+      header={<div className='font-bold'>{item.user.name}'s bounties</div>}
       body={
         <Items
           variables={variables}

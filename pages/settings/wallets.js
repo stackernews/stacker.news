@@ -1,10 +1,9 @@
 import { useCallback } from 'react'
-import InputGroup from 'react-bootstrap/InputGroup'
 import { useField } from 'formik'
 import { useMutation, useQuery } from '@apollo/client/react'
-import { Checkbox, Form, Input, SubmitButton } from '@/components/form'
+import { Checkbox, Form, Input, InputAddon, SubmitButton } from '@/components/form'
 import Info from '@/components/info'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { isNumber } from '@/lib/format'
 import { walletSettingsSchema } from '@/lib/validate'
 import { SET_WALLET_SETTINGS, WALLET_SETTINGS } from '@/wallets/client/fragments'
@@ -58,7 +57,7 @@ export default function WalletSettings ({ ssrData }) {
 
   return (
     <Layout>
-      <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
+      <div className='pb-4 w-full mt-2' style={{ maxWidth: '600px' }}>
         <SettingsHeader />
         {authMethods && hasOnlyOneAuthMethod(authMethods) && <AuthBanner />}
         <Form
@@ -70,7 +69,7 @@ export default function WalletSettings ({ ssrData }) {
           <ReceiveSettings />
           <AutowithdrawSettings />
           <CowboyCreditsSettings />
-          <div className='d-flex mt-4'>
+          <div className='flex mt-6'>
             <SubmitButton variant='primary' className='ms-auto'>save</SubmitButton>
           </div>
         </Form>
@@ -86,7 +85,7 @@ function ReceiveSettings () {
       <Checkbox
         name='proxyReceive'
         label={
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             proxy receives for enhanced privacy by default
             <Info>
               <ul>
@@ -108,12 +107,12 @@ function AutowithdrawSettings () {
 
   return (
     <>
-      <h4 className='mb-3'>Autowithdrawal Settings</h4>
+      <h4 className='mb-4'>Autowithdrawal Settings</h4>
       <Input
         label='desired balance'
         name='autoWithdrawThreshold'
         hint={isNumber(sendThreshold) ? `will attempt autowithdrawal when your balance exceeds ${sendThreshold * 11} sats` : undefined}
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         required
         type='number'
         min={0}
@@ -121,7 +120,7 @@ function AutowithdrawSettings () {
       />
       <Input
         label={
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             max fee rate
             <Info>
               <ul>
@@ -133,14 +132,14 @@ function AutowithdrawSettings () {
           </div>
         }
         name='autoWithdrawMaxFeePercent'
-        append={<InputGroup.Text>%</InputGroup.Text>}
+        append={<InputAddon>%</InputAddon>}
         required
         type='number'
         min={0}
       />
       <Input
         label={
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             max fee total
             <Info>
               <ul>
@@ -152,7 +151,7 @@ function AutowithdrawSettings () {
           </div>
         }
         name='autoWithdrawMaxFeeTotal'
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         required
         type='number'
         min={0}
@@ -164,10 +163,10 @@ function AutowithdrawSettings () {
 function CowboyCreditsSettings () {
   return (
     <>
-      <h4 className='pt-4 mb-3'>Cowboy Credits Settings</h4>
+      <h4 className='pt-6 mb-4'>Cowboy Credits Settings</h4>
       <Input
         label={
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             receive credits for zaps below
             <Info>
               <ul>
@@ -179,13 +178,13 @@ function CowboyCreditsSettings () {
         }
         name='receiveCreditsBelowSats'
         required
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         type='number'
         min={0}
       />
       <Input
         label={
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             send credits for zaps below
             <Info>
               <ul>
@@ -197,7 +196,7 @@ function CowboyCreditsSettings () {
         }
         name='sendCreditsBelowSats'
         required
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        append={<InputAddon className='font-mono'>sats</InputAddon>}
         type='number'
         min={0}
       />

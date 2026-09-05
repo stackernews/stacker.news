@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useState } from 'react'
-import Badge from 'react-bootstrap/Badge'
-import Dropdown from 'react-bootstrap/Dropdown'
+import Badge from '@/components/ui/badge'
+import { MenuItem, MenuSeparator } from '@/components/ui/menu'
 import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import { newComments, commentsViewedAt } from '@/lib/new-comments'
@@ -21,12 +21,12 @@ import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
-import UserPopover from './user-popover'
+import UserPreviewCard from './user-preview-card'
 import useQrPayIn from './payIn/hooks/use-qr-pay-in'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import { useShowModal } from './modal'
 import classNames from 'classnames'
-import SubPopover from './sub-popover'
+import SubPreviewCard from './sub-preview-card'
 import useCanEdit from './use-can-edit'
 import { getFailedRetryPayIn, runManualRetry, useRetryPayIn } from './payIn/hooks/use-retry-pay-in'
 import { isAutoRetryEligiblePayIn } from './payIn/hooks/use-auto-retry-pay-ins'
@@ -132,7 +132,7 @@ export default function ItemInfo ({
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={`${numWithUnits(item.commentSats + item.commentCost + item.commentBoost)} (${item.commentSats} stacked \\ ${item.commentCost} cost \\ ${item.commentBoost} boost)`} className='text-reset position-relative'
+        }} title={`${numWithUnits(item.commentSats + item.commentCost + item.commentBoost)} (${item.commentSats} stacked \\ ${item.commentCost} cost \\ ${item.commentBoost} boost)`} className='text-reset relative'
       >
         {numWithUnits(item.ncomments, {
           abbreviate: false,
@@ -148,8 +148,8 @@ export default function ItemInfo ({
       <span>
         {showUser &&
           <Link href={`/${item.user.name}`}>
-            <UserPopover name={item.user.name}>@{item.user.name}</UserPopover>
-            <Badges badgeClassName='fill-grey' spacingClassName='ms-xs' height={12} width={12} user={item.user} bot={item.apiKey} />
+            <UserPreviewCard name={item.user.name}>@{item.user.name}</UserPreviewCard>
+            <Badges badgeClassName='fill-muted' spacingClassName='ms-0.5' height={12} width={12} user={item.user} bot={item.apiKey} />
             {embellishUser}
           </Link>}
         <span> </span>
@@ -170,24 +170,24 @@ export default function ItemInfo ({
         const href = branding ? (isExternal ? `${process.env.NEXT_PUBLIC_URL}/~${subName}` : '/') : `/~${subName}`
 
         return (
-          <SubPopover key={subName} sub={subName}>
+          <SubPreviewCard key={subName} sub={subName}>
             <Link href={href} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined}>
-              {' '}<Badge className={styles.newComment} bg={null}>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
+              {' '}<Badge>{subName} {isExternal && <LinkExternal width={10} height={10} />}</Badge>
             </Link>
-          </SubPopover>
+          </SubPreviewCard>
         )
       })}
       {sub?.nsfw &&
-        <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
+        <Badge>nsfw</Badge>}
       {item.freebie && !item.position &&
         <Link href='/new/freebies'>
-          {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
+          {' '}<Badge>freebie</Badge>
         </Link>}
       {isDesperado &&
         <span
           role='button' onClick={() => showModal((onClose) => <ItemDetails item={item} me={me} />)}
         >
-          {' '}<Badge className={styles.newComment} bg={null}>-{abbrNum(item.downSats)} sats</Badge>
+          {' '}<Badge>-{abbrNum(item.downSats)} sats</Badge>
         </span>}
       {extraBadges}
       {
@@ -202,17 +202,17 @@ export default function ItemInfo ({
               <CopyLinkDropdownItem item={item} />
               <InfoDropdownItem item={item} />
               {(item.parentId || item.text) && onQuoteReply &&
-                <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
+                <MenuItem onClick={onQuoteReply}>quote reply</MenuItem>}
               {me && <BookmarkDropdownItem item={item} />}
               {me && <SubscribeDropdownItem item={item} />}
               {item.otsHash &&
-                <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
+                <MenuItem href={`/items/${item.id}/ots`}>
                   opentimestamp
-                </Link>}
+                </MenuItem>}
               {item?.noteId && (
-                <Dropdown.Item onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
+                <MenuItem onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
                   nostr note
-                </Dropdown.Item>
+                </MenuItem>
               )}
               {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
                 <CrosspostDropdownItem item={item} />}
@@ -222,29 +222,29 @@ export default function ItemInfo ({
               : <DontLikeThisDropdownItem item={item} />)}
               {item.mine && item.payIn?.id &&
                 <>
-                  <hr className='dropdown-divider' />
-                  <Link href={`/transactions/${item.payIn?.id}`} className='text-reset dropdown-item'>
+                  <MenuSeparator />
+                  <MenuItem href={`/transactions/${item.payIn?.id}`}>
                     view payment
-                  </Link>
+                  </MenuItem>
                 </>}
               {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
                 <>
-                  <hr className='dropdown-divider' />
+                  <MenuSeparator />
                   <MuteSubDropdownItem item={item} sub={sub} />
                 </>}
               {canPin &&
                 <>
-                  <hr className='dropdown-divider' />
+                  <MenuSeparator />
                   <PinSubDropdownItem item={item} />
                 </>}
               {item.mine && !item.position && !item.deletedAt && !item.bio &&
                 <>
-                  <hr className='dropdown-divider' />
+                  <MenuSeparator />
                   <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
                 </>}
               {me && !item.mine &&
                 <>
-                  <hr className='dropdown-divider' />
+                  <MenuSeparator />
                   <MuteDropdownItem user={item.user} />
                 </>}
             </ActionDropdown>
@@ -310,9 +310,9 @@ export function InfoDropdownItem ({ item }) {
   const showModal = useShowModal()
 
   return (
-    <Dropdown.Item onClick={() => showModal(() => <ItemDetails item={item} me={me} />)}>
+    <MenuItem onClick={() => showModal(() => <ItemDetails item={item} me={me} />)}>
       details
-    </Dropdown.Item>
+    </MenuItem>
   )
 }
 
@@ -393,7 +393,7 @@ export function PayInInfo ({ item, updatePayIn, disableRetry, setDisableRetry })
     <>
       <span> \ </span>
       <span
-        className='text-reset fw-bold'
+        className='text-reset font-bold'
         onClick={onClick}
       >
         <Component />
@@ -410,7 +410,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
       <>
         <span> \ </span>
         <span
-          className='text-reset pointer fw-bold font-monospace'
+          className='text-reset pointer font-bold font-mono'
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}/edit`)}
         >
           <span>{editText || 'edit'} </span>
@@ -431,7 +431,7 @@ function EditInfo ({ item, edit, canEdit, setCanEdit, toggleEdit, editText, edit
       <>
         <span> \ </span>
         <span
-          className='text-reset pointer fw-bold font-monospace'
+          className='text-reset pointer font-bold font-mono'
           onClick={() => toggleEdit ? toggleEdit() : router.push(`/items/${item.id}`)}
         >
           <span>cancel </span>

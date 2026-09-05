@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import Tooltip from '@/components/ui/tooltip'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import GunIcon from '@/svgs/revolver.svg'
@@ -10,12 +10,15 @@ import { numWithUnits } from '@/lib/format'
 import { USER_ID } from '@/lib/constants'
 import classNames from 'classnames'
 
-export default function Badges ({ user, badge, bot, showWalletBadges, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
+export default function Badges ({ user, badge, bot, showWalletBadges, interactive, className = 'ms-1', badgeClassName, spacingClassName = 'ms-1', height = 16, width = 16 }) {
   if (!user) return null
   if (Number(user.id) === USER_ID.anon) {
     return (
-      <BadgeTooltip overlayText='anonymous'>
-        <span className={className}><AnonIcon className={`${badgeClassName} align-middle`} height={height} width={width} /></span>
+      <BadgeTooltip overlayText='anonymous' interactive={interactive}>
+        <span className={className}>
+          <AnonIcon className={`${badgeClassName} align-middle`} height={height} width={width} />
+          <span className='sr-only'>anonymous</span>
+        </span>
       </BadgeTooltip>
     )
   }
@@ -58,7 +61,7 @@ export default function Badges ({ user, badge, bot, showWalletBadges, className 
   if (badges.length === 0) return null
 
   return (
-    <span className={classNames(className, 'd-inline-flex align-items-center justify-content-center')}>
+    <span className={classNames(className, 'inline-flex items-center justify-center')}>
       {badges.map(({ icon, overlayText, sizeDelta, style }, i) => (
         <SNBadge
           key={i}
@@ -71,40 +74,46 @@ export default function Badges ({ user, badge, bot, showWalletBadges, className 
           width={width}
           sizeDelta={sizeDelta}
           style={style}
+          interactive={interactive}
         />
       ))}
     </span>
   )
 }
 
-function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0, style }) {
+function SNBadge ({ user, badge, overlayText, badgeClassName, IconForBadge, height = 16, width = 16, sizeDelta = 0, style, interactive }) {
   let Wrapper = Fragment
 
   if (overlayText) {
     Wrapper = ({ children }) => (
-      <BadgeTooltip overlayText={overlayText}>{children}</BadgeTooltip>
+      <BadgeTooltip overlayText={overlayText} interactive={interactive}>{children}</BadgeTooltip>
     )
   }
 
   return (
     <Wrapper>
-      <span className='d-inline-flex align-items-center justify-content-center' style={style}><IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} /></span>
+      <span className='inline-flex items-center justify-center' style={style}>
+        <IconForBadge className={badgeClassName} height={height + sizeDelta} width={width + sizeDelta} />
+        <span className='sr-only'>{overlayText}</span>
+      </span>
     </Wrapper>
   )
 }
 
-export function BadgeTooltip ({ children, overlayText, placement }) {
+// interactive badges open a tappable popover; badges inside links and buttons
+// can't, so they get a tooltip
+export function BadgeTooltip ({ children, overlayText, placement, interactive }) {
+  if (!interactive) {
+    return <Tooltip content={overlayText} side={placement || 'bottom'}>{children}</Tooltip>
+  }
+
   return (
-    <OverlayTrigger
-      placement={placement || 'bottom'}
-      overlay={
-        <Tooltip style={{ position: 'fixed' }}>
-          {overlayText}
-        </Tooltip>
-      }
-      trigger={['hover', 'focus']}
-    >
-      {children}
-    </OverlayTrigger>
+    <Popover>
+      <PopoverTrigger render={children} nativeButton={false} openOnHover delay={0} />
+      {/* a text-only hint must not steal focus */}
+      <PopoverContent side={placement || 'bottom'} initialFocus={false} aria-label='badge details' className='py-1 px-2 text-center'>
+        {overlayText}
+      </PopoverContent>
+    </Popover>
   )
 }

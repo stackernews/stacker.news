@@ -14,7 +14,7 @@ import {
 } from 'lexical'
 import ErrorBoundary from '@/components/error-boundary'
 import KatexRenderer from '@/components/katex-renderer'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import useDecoratorNodeSelection from '@/components/editor/hooks/use-decorator-selection'
 import styles from './math.module.css'
 

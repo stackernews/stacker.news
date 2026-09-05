@@ -1,3 +1,45 @@
+@layer components {
+
+/* bootstrap's .nav-link with SN's $nav-link-padding-y */
+.link {
+    background: none;
+    border: 0;
+    padding: .1rem 1rem;
+}
+
+.link:not(:global(.text-success)):not(:global(.text-warning)) {
+    color: var(--sn-nav-link);
+}
+
+.link:not(:global(.text-success)):not(:global(.text-warning)):hover,
+.link:not(:global(.text-success)):not(:global(.text-warning)):focus-visible {
+    color: var(--sn-nav-link-focus);
+}
+
+.link.active {
+    font-weight: bold;
+}
+
+.link.active:not(:global(.text-success)):not(:global(.text-warning)) {
+    color: var(--sn-nav-link-active);
+}
+
+.link svg {
+    fill: var(--sn-nav-link);
+}
+
+.link:hover svg,
+.link.active svg {
+    fill: var(--sn-nav-link-active);
+}
+
+/* header bars, bootstrap's .navbar-nav .nav-link */
+.navbar .link {
+    padding-left: .5rem;
+    padding-right: .5rem;
+}
+
+/* tab-nav container (settings / satistics / user-header) */
 .nav {
     display: flex;
     flex-wrap: nowrap;
@@ -11,10 +53,13 @@
     gap: 0 0.5rem;
 }
 
-.nav :global .nav-link {
+.nav .link {
+    display: block;
     padding-left: 0;
 }
 
-.nav :global .active {
-    border-bottom: 2px solid var(--bs-primary);
+.nav .active {
+    border-bottom: 2px solid var(--sn-primary);
+}
+
 }

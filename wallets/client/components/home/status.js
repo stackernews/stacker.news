@@ -10,11 +10,11 @@ const STATUS_STYLE = {
   OK: { '--state-bg': '#28a745', '--state-color': '#fff' },
   ERROR: { '--state-bg': '#dc3545', '--state-color': '#fff' },
   WARNING: { '--state-bg': '#fd7e14', '--state-color': '#fff' },
-  DISABLED: { '--state-bg': 'var(--theme-toolbarHover)', '--state-color': 'var(--theme-grey)' },
+  DISABLED: { '--state-bg': 'var(--sn-toolbar-hover)', '--state-color': 'var(--sn-grey)' },
   SUPPORTED: {
-    '--state-bg': 'var(--bs-body-bg)',
-    '--state-color': 'var(--theme-grey)',
-    '--status-line-color': 'color-mix(in srgb, var(--theme-borderColor) 88%, #000)'
+    '--state-bg': 'var(--sn-body-bg)',
+    '--state-color': 'var(--sn-grey)',
+    '--status-line-color': 'color-mix(in srgb, var(--sn-border-color) 88%, #000)'
   }
 }
 

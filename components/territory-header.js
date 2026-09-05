@@ -1,6 +1,8 @@
 import { createContext, useContext } from 'react'
-import { Badge, Button, CardFooter, Dropdown } from 'react-bootstrap'
-import { AccordianCard } from './accordian-item'
+import { MenuItem, MenuSeparator } from '@/components/ui/menu'
+import Badge from '@/components/ui/badge'
+import Button, { buttonClasses } from '@/components/ui/button'
+import { AccordionCard } from './accordion-item'
 import TerritoryPaymentDue, { TerritoryBillingLine } from './territory-payment-due'
 import Link from 'next/link'
 import Text from '@/components/text'
@@ -11,7 +13,7 @@ import { useMe } from './me'
 import Share from './share'
 import { gql } from '@apollo/client'
 import { useMutation } from '@apollo/client/react'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import ActionDropdown from './action-dropdown'
 import { TerritoryTransferDropdownItem } from './territory-transfer'
 import { usePrefix } from './territory-domains'
@@ -28,20 +30,20 @@ export const useSubscribeTerritoryContext = () => useContext(SubscribeTerritoryC
 
 export function TerritoryDetails ({ sub, children, className, show, truncated }) {
   return (
-    <AccordianCard
+    <AccordionCard
       className={className}
       show={show}
       header={
-        <small className='text-muted fw-bold align-items-center d-flex'>
+        <small className='text-muted font-bold items-center flex'>
           {sub.name}
-          {sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}
-          {(sub.nsfw) && <Badge className='ms-2' bg='secondary'>nsfw</Badge>}
+          {sub.status === 'STOPPED' && <Badge variant='danger' className='ms-2'>archived</Badge>}
+          {(sub.nsfw) && <Badge variant='secondary' className='ms-2'>nsfw</Badge>}
         </small>
       }
     >
       {children}
       <TerritoryInfo sub={sub} truncated={truncated} />
-    </AccordianCard>
+    </AccordionCard>
   )
 }
 
@@ -59,34 +61,34 @@ export function TerritoryInfoSkeleton ({ children, className }) {
 export function TerritoryInfo ({ sub, includeLink, truncated }) {
   return (
     <>
-      {includeLink && <Link className='fw-bold' href={`/~${sub.name}`}>~{sub.name}</Link>}
-      <div className='py-2'>
+      {includeLink && <Link className='font-bold' href={`/~${sub.name}`}>~{sub.name}</Link>}
+      <div className='py-2 empty:hidden'>
         <Text state={sub.lexicalState} html={sub.html}>{truncated ? sub.desc : undefined}</Text>
       </div>
-      <CardFooter className={`py-1 ${styles.other}`}>
+      <div className={`py-1 ${styles.other}`}>
         {sub.user &&
           <div className='text-muted'>
             <span>founded by </span>
             <Link href={`/${sub.user.name}`}>
-              @{sub.user.name}<Badges badgeClassName='fill-grey' height={12} width={12} user={sub.user} />
+              @{sub.user.name}<Badges badgeClassName='fill-muted' height={12} width={12} user={sub.user} />
             </Link>
             <span> on </span>
-            <span className='fw-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
+            <span className='font-bold' suppressHydrationWarning>{new Date(sub.createdAt).toDateString()}</span>
           </div>}
-        <div className='d-flex'>
+        <div className='flex'>
           <div className='text-muted'>
             <span>post cost </span>
-            <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
+            <span className='font-bold'>{numWithUnits(sub.baseCost)}</span>
           </div>
           <span className='px-1'> \ </span>
           <div className='text-muted'>
             <span>reply cost </span>
-            <span className='fw-bold'>{numWithUnits(sub.replyCost)}</span>
+            <span className='font-bold'>{numWithUnits(sub.replyCost)}</span>
           </div>
         </div>
         {/* TODO: Show custom domain if it exists */}
         <TerritoryBillingLine sub={sub} />
-      </CardFooter>
+      </div>
     </>
   )
 }
@@ -120,19 +122,20 @@ export default function TerritoryHeader ({ sub }) {
       <div className='mb-2 mt-1'>
         <div>
           <TerritoryDetails sub={sub}>
-            <div className='d-flex my-2 justify-content-end'>
+            <div className='flex my-2 justify-end'>
               {sub.name}
               <Share path={`${prefix}/`} title={`~${sub.name} stacker news territory`} className='mx-1' />
               {me &&
                 <>
                   {(isMine
                     ? (
-                      <Link href={`${prefix}/edit`} className='d-flex align-items-center'>
-                        <Button variant='outline-grey border-2 rounded py-0' size='sm'>edit territory</Button>
+                      <Link href={`${prefix}/edit`} className={buttonClasses({ variant: 'outline-grey', size: 'sm', className: 'flex items-center border-2 rounded-md py-0' })}>
+                        edit territory
                       </Link>)
                     : (
                       <Button
-                        variant='outline-grey border-2 py-0 rounded'
+                        variant='outline-grey'
+                        className='border-2 rounded-md py-0'
                         size='sm'
                         onClick={async () => {
                           try {
@@ -150,7 +153,7 @@ export default function TerritoryHeader ({ sub }) {
                     <ToggleSubSubscriptionDropdownItem sub={sub} />
                     {isMine && (
                       <>
-                        <Dropdown.Divider />
+                        <MenuSeparator />
                         <TerritoryTransferDropdownItem sub={sub} />
                       </>
                     )}
@@ -187,7 +190,7 @@ export function MuteSubDropdownItem ({ item, sub }) {
   )
 
   return (
-    <Dropdown.Item
+    <MenuItem
       onClick={async () => {
         try {
           await toggleMuteSub({ variables: { name: sub.name } })
@@ -198,7 +201,7 @@ export function MuteSubDropdownItem ({ item, sub }) {
         toaster.success(`${sub.meMuteSub ? 'joined' : 'muted'} territory`)
       }}
     >{sub.meMuteSub ? 'unmute' : 'mute'} ~{sub.name}
-    </Dropdown.Item>
+    </MenuItem>
   )
 }
 
@@ -216,7 +219,7 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
     }
   )
   return (
-    <Dropdown.Item
+    <MenuItem
       onClick={async () => {
         try {
           await pinItem({ variables: { id } })
@@ -227,7 +230,7 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
       }}
     >
       {position ? 'unpin item' : 'pin item'}
-    </Dropdown.Item>
+    </MenuItem>
   )
 }
 
@@ -252,7 +255,7 @@ export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription
     }
   )
   return (
-    <Dropdown.Item
+    <MenuItem
       onClick={async () => {
         try {
           await toggleSubSubscription({ variables: { name } })
@@ -264,6 +267,6 @@ export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription
       }}
     >
       {meSubscription ? `unsubscribe from ~${name}` : `subscribe to ~${name}`}
-    </Dropdown.Item>
+    </MenuItem>
   )
 }

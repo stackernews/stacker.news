@@ -70,11 +70,11 @@ export default function TerritoryList ({ ssrData, query, variables, destructureD
               : <div />}
             <div className={`${styles.item} mb-2`}>
               <div className={styles.hunk}>
-                <div className='d-flex align-items-center'>
-                  <Link href={`/~${sub.name}`} className={`${styles.title} mb-0 d-inline-flex align-items-center text-reset`}>
+                <div className='flex items-center'>
+                  <Link href={`/~${sub.name}`} className={`${styles.title} mb-0 inline-flex items-center text-reset`}>
                     {sub.name}
                   </Link>
-                  <Info className='d-flex'><TerritoryInfo sub={sub} /></Info>
+                  <Info className='flex'><TerritoryInfo sub={sub} /></Info>
                   {me && subActionDropdown && (
                     <ActionDropdown>
                       <ToggleSubSubscriptionDropdownItem sub={sub} />

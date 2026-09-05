@@ -1,0 +1,71 @@
+@layer components {
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  column-gap: .5em;
+  min-height: 1.75em;
+}
+
+.checkInput {
+  flex-shrink: 0;
+  appearance: none;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-top: .375em;
+  border: 1px solid var(--sn-border-color-subtle);
+  background-color: var(--sn-body-bg);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.checkbox {
+  border-radius: .25em;
+}
+
+.radio {
+  border-radius: 50%;
+}
+
+.checkInput:focus,
+.checkInput:focus-visible {
+  outline: 0;
+  border-color: color-mix(in srgb, var(--sn-primary) 50%, #fff);
+  box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+}
+
+.checkInput[data-checked] {
+  background-color: var(--sn-primary);
+  border-color: var(--sn-primary);
+}
+
+.checkbox[data-checked] {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+}
+
+.radio[data-checked] {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23000'/%3e%3c/svg%3e");
+}
+
+.checkInput[data-disabled] {
+  pointer-events: none;
+  opacity: .5;
+}
+
+.checkInput[data-disabled] ~ * {
+  opacity: .5;
+}
+
+/* last so it beats the checked border at equal specificity */
+.checkInput[data-invalid] {
+  border-color: var(--sn-danger);
+}
+
+.checkInput[data-invalid][data-checked] {
+  background-color: var(--sn-danger);
+  border-color: var(--sn-danger);
+}
+
+}

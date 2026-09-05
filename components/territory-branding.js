@@ -1,18 +1,18 @@
-import { Form, Input, SubmitButton } from './form'
+import { Form, Input, SubmitButton, labelClasses } from './form'
 import { subBrandingSchema } from '@/lib/validate'
 import { truncateDesc } from '@/lib/domains/seo'
 import { useField, useFormikContext } from 'formik'
 import { createContext, useContext, useEffect, useState } from 'react'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import { FileUpload } from './file-upload'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import styles from './territory-branding.module.css'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { UPSERT_SUB_BRANDING } from '@/fragments/subs'
 import { GET_DOMAIN } from '@/fragments/domains'
 import SnIcon from '@/svgs/sn.svg'
 import { PUBLIC_MEDIA_URL, DOMAIN_POLL_INTERVAL_MS } from '@/lib/constants'
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import TerritoryDomains from './territory-domains'
 
 // shape: { subName, primaryColor?, secondaryColor?, linkColor?, logoId?, title, tagline, faviconId? } | null
@@ -50,9 +50,9 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
   const previewUrl = freshUrl || (field.value ? `${PUBLIC_MEDIA_URL}/${field.value}` : defaultAsset)
 
   return (
-    <div className='mb-3'>
-      <label className='form-label'>{label}</label>
-      <div className='d-flex align-items-end gap-3'>
+    <div className='mb-4'>
+      <label className={labelClasses()}>{label}</label>
+      <div className='flex items-end gap-4'>
         <div className={styles.preview}>
           {previewUrl
             ? (
@@ -74,8 +74,8 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
                 )
               : null}
         </div>
-        <div className='d-flex flex-column gap-2'>
-          <div className='d-flex align-items-center gap-2'>
+        <div className='flex flex-col gap-2'>
+          <div className='flex items-center gap-2'>
             <FileUpload
               allow={accept}
               subName={subName} // by passing the subName, we're opting into the free upload path
@@ -107,7 +107,7 @@ function AssetField ({ label, name, subName, hint, defaultAsset, brand, width = 
   )
 }
 
-// SN defaults from styles/globals.scss
+// SN defaults from styles/tokens.css
 const SN_DEFAULTS = {
   primaryColor: '#FADA5E',
   secondaryColor: '#F6911D',
@@ -118,10 +118,9 @@ const SN_DEFAULTS = {
 const normalizeColorOverride = (value, fallback) =>
   value && value !== fallback ? value : null
 
-// section label
 const SectionHeading = ({ children, className = '' }) => (
   <div
-    className={`text-muted text-uppercase mt-4 mb-2 ${className}`}
+    className={`text-muted uppercase mt-6 mb-2 ${className}`}
     style={{ fontWeight: 'bold', fontSize: '82%', letterSpacing: '0.04em' }}
   >
     {children}
@@ -185,23 +184,20 @@ export function TerritoryBrandingForm ({ sub, branding }) {
         onSuccess={() => setUploading(false)}
         onError={() => setUploading(false)}
       />
-      <div className='row'>
+      <div className='grid grid-cols-3 gap-8'>
         <Input
-          groupClassName='col-4'
           label='primary color'
           name='primaryColor'
           type='color'
           className={styles.colorInput}
         />
         <Input
-          groupClassName='col-4'
           label='secondary color'
           name='secondaryColor'
           type='color'
           className={styles.colorInput}
         />
         <Input
-          groupClassName='col-4'
           label='link color'
           name='linkColor'
           type='color'
@@ -236,7 +232,7 @@ export function TerritoryBrandingForm ({ sub, branding }) {
         placeholder={truncateDesc(sub?.desc, 120)}
         hint='the page description of your territory, defaults to the territory description if left blank'
       />
-      <div className='mt-3 d-flex justify-content-end'>
+      <div className='mt-4 flex justify-end'>
         <SubmitButton variant='primary' disabled={uploading}>save branding</SubmitButton>
       </div>
     </Form>
@@ -261,8 +257,8 @@ export default function TerritoryBranding ({ sub }) {
   })
 
   return (
-    <div className='w-100'>
-      <AccordianItem
+    <div className='w-full'>
+      <AccordionItem
         show={hasDomain}
         header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
         body={

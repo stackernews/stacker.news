@@ -6,7 +6,7 @@ import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineIt
 import { commentSchema } from '@/lib/validate'
 import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
-import { Button } from 'react-bootstrap'
+import Button from '@/components/ui/button'
 import { useRoot } from './root'
 import { CREATE_COMMENT } from '@/fragments/payIn'
 import { injectComment } from '@/lib/comments'
@@ -105,19 +105,19 @@ export default forwardRef(function Reply ({
   return (
     <div>
       {replyOpen
-        ? <div className='p-3' />
+        ? <div className='p-4' />
         : (
           <div className={styles.replyButtons}>
             <div
-              className='pe-3'
+              className='pe-4'
               onClick={e => {
                 if (reply) {
                   const text = window.localStorage.getItem('reply-' + parentId + '-' + 'text')
                   if (text?.trim()) {
                     showModal(onClose => (
                       <>
-                        <p className='fw-bolder'>Are you sure? You will lose your work</p>
-                        <div className='d-flex justify-content-end'>
+                        <p className='font-bolder'>Are you sure? You will lose your work</p>
+                        <div className='flex justify-end'>
                           <Button
                             variant='info' onClick={() => {
                               onCancel()

@@ -1,3 +1,5 @@
+@layer components {
+
 .upvote {
     fill: #a5a5a5;
     user-select: none;
@@ -6,7 +8,7 @@
 }
 
 .boost {
-    fill: var(--theme-clickToContextColor);
+    fill: var(--sn-click-to-context-color);
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
@@ -50,7 +52,7 @@
 }
 
 .cover {
-    background: var(--bs-body-bg);
+    background: var(--sn-body-bg);
     width: 100%;
     overflow: hidden;
     mix-blend-mode: color;
@@ -72,4 +74,6 @@
 	0% {
 		fill: #a5a5a5;
 	}
+}
+
 }

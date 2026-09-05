@@ -3,12 +3,13 @@ import ThumbDown from '@/svgs/thumb-down-fill.svg'
 import Moon from '@/svgs/moon-fill.svg'
 import ErrorWarning from '@/svgs/error-warning-fill.svg'
 import { StatusText, statusIconSize } from './status'
+import classNames from 'classnames'
 
 export function ExternalTransactionStatus ({ transaction, className }) {
-  const { Icon, fill, color, label, spin } = externalStatusPresentation(transaction)
+  const { Icon, fillClass, color, label, spin } = externalStatusPresentation(transaction)
   return (
-    <div className={['d-flex align-items-center', className].filter(Boolean).join(' ')}>
-      <Icon width={statusIconSize} height={statusIconSize} className={`fill-${fill}${spin ? ' spin' : ''}`} />
+    <div className={classNames('flex items-center', className)}>
+      <Icon width={statusIconSize} height={statusIconSize} className={classNames(fillClass, spin && 'spin')} />
       <StatusText color={color}>{label}</StatusText>
     </div>
   )
@@ -16,10 +17,10 @@ export function ExternalTransactionStatus ({ transaction, className }) {
 
 function externalStatusPresentation (transaction) {
   switch (transaction.status) {
-    case 'SETTLED': return { Icon: Check, fill: 'success', color: 'success', label: 'settled' }
-    case 'FAILED': return { Icon: ThumbDown, fill: 'danger', color: 'danger', label: 'failed' }
-    case 'EXPIRED': return { Icon: ThumbDown, fill: 'danger', color: 'danger', label: 'expired' }
-    case 'UNKNOWN': return { Icon: ErrorWarning, fill: 'warning', color: 'warning', label: 'unknown' }
-    default: return { Icon: Moon, fill: 'grey', color: 'muted', label: 'pending', spin: true }
+    case 'SETTLED': return { Icon: Check, fillClass: 'fill-success', color: 'success', label: 'settled' }
+    case 'FAILED': return { Icon: ThumbDown, fillClass: 'fill-danger', color: 'danger', label: 'failed' }
+    case 'EXPIRED': return { Icon: ThumbDown, fillClass: 'fill-danger', color: 'danger', label: 'expired' }
+    case 'UNKNOWN': return { Icon: ErrorWarning, fillClass: 'fill-warning', color: 'warning', label: 'unknown' }
+    default: return { Icon: Moon, fillClass: 'fill-muted', color: 'muted', label: 'pending', spin: true }
   }
 }

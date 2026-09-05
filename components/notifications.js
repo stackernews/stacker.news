@@ -18,7 +18,7 @@ import BaldIcon from '@/svgs/bald.svg'
 import GunIcon from '@/svgs/revolver.svg'
 import HorseIcon from '@/svgs/horse.svg'
 import { RootProvider } from './root'
-import Alert from 'react-bootstrap/Alert'
+import { Alert } from '@/components/ui/alert'
 import styles from './notifications.module.css'
 import { useServiceWorker } from './serviceworker'
 import { Checkbox, Form } from './form'
@@ -33,8 +33,9 @@ import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
-import { Badge, Button } from 'react-bootstrap'
-import { useToast } from './toast'
+import Badge from '@/components/ui/badge'
+import Button from '@/components/ui/button'
+import { useToast } from '@/components/ui/toast'
 import classNames from 'classnames'
 import HolsterIcon from '@/svgs/holster.svg'
 import SaddleIcon from '@/svgs/saddle.svg'
@@ -110,9 +111,18 @@ function NotificationLayout ({ children, type, nid, href, as, fresh }) {
   )
 }
 
+// tailwind only generates classes it sees as literals
+const NOTE_COLORS = {
+  boost: 'text-boost',
+  secondary: 'text-secondary',
+  info: 'text-info',
+  success: 'text-success',
+  warning: 'text-warning'
+}
+
 function NoteHeader ({ color, children, big }) {
   return (
-    <div className={`${styles.noteHeader} text-${color} ${big ? '' : 'small'} pb-2`}>
+    <div className={`${styles.noteHeader} ${NOTE_COLORS[color]} ${big ? '' : 'small'} pb-2`}>
       {children}
     </div>
   )
@@ -192,10 +202,10 @@ function blurb (n) {
 function Bulletinification ({ n }) {
   if (!n.bulletin) return null
   return (
-    <div className='d-flex'>
-      {n.bulletin.iconType === 'MAP' ? <div style={{ fontSize: '2rem', alignSelf: 'center' }}><MapIcon className='align-self-center fill-theme-color mx-1' width={64} height={100} /></div> : null}
-      <div className='ms-3 p-1'>
-        <div className='fw-bold pb-2'>{n.bulletin.title}</div>
+    <div className='flex'>
+      {n.bulletin.iconType === 'MAP' ? <div style={{ fontSize: '2rem', alignSelf: 'center' }}><MapIcon className='self-center fill-current mx-1' width={64} height={100} /></div> : null}
+      <div className='ms-4 p-1'>
+        <div className='font-bold pb-2'>{n.bulletin.title}</div>
         {n.bulletin.html && n.bulletin.lexicalState && <Text html={n.bulletin.html} state={n.bulletin.lexicalState} />}
       </div>
     </div>
@@ -217,11 +227,11 @@ function CowboyHat ({ n }) {
   body += `you ${n.days ? 'lost your' : 'found a'} cowboy hat`
 
   return (
-    <div className='d-flex'>
-      <div style={{ fontSize: '2rem' }}><Icon className='fill-grey' height={40} width={40} /></div>
+    <div className='flex'>
+      <div style={{ fontSize: '2rem' }}><Icon className='fill-muted' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
-        <span className='fw-bold'>{body}</span>
-        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+        <span className='font-bold'>{body}</span>
+        <div><small className={classNames(styles.blurb, 'inline-block')}>{blurb(n)}</small></div>
       </div>
     </div>
   )
@@ -232,11 +242,11 @@ function Horse ({ n }) {
   const Icon = found ? HorseIcon : SaddleIcon
 
   return (
-    <div className='d-flex'>
-      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-grey' height={40} width={40} /></div>
+    <div className='flex'>
+      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-muted' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
-        <span className='fw-bold'>you {found ? 'found a' : 'lost your'} horse</span>
-        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+        <span className='font-bold'>you {found ? 'found a' : 'lost your'} horse</span>
+        <div><small className={classNames(styles.blurb, 'inline-block')}>{blurb(n)}</small></div>
       </div>
     </div>
   )
@@ -247,11 +257,11 @@ function Gun ({ n }) {
   const Icon = found ? GunIcon : HolsterIcon
 
   return (
-    <div className='d-flex'>
-      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-grey' height={40} width={40} /></div>
+    <div className='flex'>
+      <div style={{ fontSize: '2rem', alignSelf: 'center' }}><Icon className='fill-muted' height={40} width={40} /></div>
       <div className='ms-1 p-1'>
-        <span className='fw-bold'>you {found ? 'found a' : 'lost your'} gun</span>
-        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+        <span className='font-bold'>you {found ? 'found a' : 'lost your'} gun</span>
+        <div><small className={classNames(styles.blurb, 'inline-block')}>{blurb(n)}</small></div>
       </div>
     </div>
   )
@@ -261,23 +271,23 @@ function EarnNotification ({ n }) {
   const time = n.minSortTime === n.sortTime ? dayMonthYear(new Date(n.minSortTime)) : `${dayMonthYear(new Date(n.minSortTime))} to ${dayMonthYear(new Date(n.sortTime))}`
 
   return (
-    <div className='d-flex'>
-      <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
+    <div className='flex'>
+      <HandCoin className='self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='ms-2'>
         <NoteHeader color='boost' big>
-          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{time}</small>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 font-normal' suppressHydrationWarning>{time}</small>
         </NoteHeader>
         {n.sources &&
-          <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+          <div className='text-xs text-muted'>
             {n.sources.posts > 0 && <span>{numWithUnits(n.sources.posts, { abbreviate: false })} for top posts</span>}
             {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{numWithUnits(n.sources.comments, { abbreviate: false })} for top comments</span>}
             {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{numWithUnits(n.sources.tipPosts, { abbreviate: false })} for zapping top posts early</span>}
             {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{numWithUnits(n.sources.tipComments, { abbreviate: false })} for zapping top comments early</span>}
           </div>}
-        <div style={{ lineHeight: '140%' }}>
+        <div className={styles.blurb}>
           SN distributes the sats it earns to top stackers like you daily. The top stackers make the top posts and comments or zap the top posts and comments early and generously. View the rewards pool and make a donation <Link href='/rewards'>here</Link>.
         </div>
-        <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
+        <small className='text-muted ms-1 pb-1 font-normal'>click for details</small>
       </div>
     </div>
   )
@@ -285,18 +295,18 @@ function EarnNotification ({ n }) {
 
 function ReferralReward ({ n }) {
   return (
-    <div className='d-flex'>
-      <UserAdd className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
+    <div className='flex'>
+      <UserAdd className='self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='ms-2'>
         <NoteHeader color='success' big>
-          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in referral rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{dayMonthYear(new Date(n.sortTime))}</small>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in referral rewards<small className='text-muted ms-1 font-normal' suppressHydrationWarning>{dayMonthYear(new Date(n.sortTime))}</small>
         </NoteHeader>
         {n.sources &&
-          <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+          <div className='text-xs text-muted'>
             {n.sources.forever > 0 && <span>{numWithUnits(n.sources.forever, { abbreviate: false })} for stackers joining because of you</span>}
             {n.sources.oneDay > 0 && <span>{n.sources.forever > 0 && ' \\ '}{numWithUnits(n.sources.oneDay, { abbreviate: false })} for stackers referred to content by you today</span>}
           </div>}
-        <div style={{ lineHeight: '140%' }}>
+        <div className={styles.blurb}>
           SN gives referral rewards to stackers like you for referring the top stackers daily. You refer stackers when they visit your posts, comments, profile, territory, or if they visit SN through your referral links.
         </div>
       </div>
@@ -306,13 +316,13 @@ function ReferralReward ({ n }) {
 
 function RevenueNotification ({ n }) {
   return (
-    <div className='d-flex'>
-      <BountyIcon className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px' }} />
+    <div className='flex'>
+      <BountyIcon className='self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px' }} />
       <div className='ms-2'>
         <NoteHeader color='success' big>
-          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in territory revenue<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in territory revenue<small className='text-muted ms-1 font-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
         </NoteHeader>
-        <div style={{ lineHeight: '140%' }}>
+        <div className={styles.blurb}>
           As the founder of territory <Link href={`/~${n.subName}`}>~{n.subName}</Link>, you receive 70% of the post, comment, boost, and zap fees. The other 30% go to <Link href='/rewards'>rewards</Link>.
         </div>
       </div>
@@ -323,13 +333,13 @@ function RevenueNotification ({ n }) {
 function SubStatus ({ n }) {
   const dueDate = nextBillingWithGrace(n.sub)
   return (
-    <div className={`fw-bold text-${n.sub.status === 'ACTIVE' ? 'success' : 'danger'} `}>
+    <div className={`font-bold ${n.sub.status === 'ACTIVE' ? 'text-success' : 'text-danger'} `}>
       {n.sub.status === 'ACTIVE'
         ? 'your territory is active again'
         : (n.sub.status === 'GRACE'
             ? <>your territory payment for ~{n.sub.name} is due or your territory will be archived in <LongCountdown date={dueDate} /></>
             : <>your territory ~{n.sub.name} has been archived</>)}
-      <small className='text-muted d-block pb-1 fw-normal'>click to visit territory and pay</small>
+      <small className='text-muted block pb-1 font-normal'>click to visit territory and pay</small>
     </div>
   )
 }
@@ -345,7 +355,7 @@ function Invitification ({ n }) {
           unitPlural: 'stackers'
         })}
       </NoteHeader>
-      <div className='ms-4 me-2 mt-1'>
+      <div className='ms-6 me-2 mt-1'>
         <Invite
           invite={n.invite} active={
           !n.invite.revoked &&
@@ -361,22 +371,22 @@ function NostrZap ({ nostrNote, earnedSats, sortTime }) {
   const { npub, content, note } = nostrZapDetails(nostrNote.note)
 
   return (
-    <div className='fw-bold text-nostr'>
+    <div className='font-bold text-nostr'>
       <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(earnedSats)} zap from
       {// eslint-disable-next-line
-        <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://njump.me/${npub}`} rel={UNKNOWN_LINK_REL}>
+        <Link className='mx-1 text-reset underline' target='_blank' href={`https://njump.me/${npub}`} rel={UNKNOWN_LINK_REL}>
           {npub.slice(0, 10)}...
         </Link>
         }
       on {note
           ? (
             // eslint-disable-next-line
-            <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://njump.me/${note}`} rel={UNKNOWN_LINK_REL}>
+            <Link className='mx-1 text-reset underline' target='_blank' href={`https://njump.me/${note}`} rel={UNKNOWN_LINK_REL}>
               {note.slice(0, 12)}...
             </Link>)
           : 'nostr'}
-      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</small>
-      {content && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{content}</Text></small>}
+      <small className='text-muted ms-1 font-normal' suppressHydrationWarning>{timeSince(new Date(sortTime))}</small>
+      {content && <small className='block ms-6 ps-1 mt-1 mb-1 text-muted font-normal'><Text>{content}</Text></small>}
     </div>
   )
 }
@@ -405,11 +415,11 @@ function WalletReceiveNotification ({ n, metadata, action }) {
   const payerSig = getPayerSig(metadata.lud18Data)
 
   return (
-    <div className='fw-bold text-info'>
+    <div className='font-bold text-info'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} {action}
-      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      <small className='text-muted ms-1 font-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       {(metadata.comment || payerSig) &&
-        <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
+        <small className='block ms-6 ps-1 mt-1 mb-1 text-muted font-normal'>
           {metadata.comment && <Text>{metadata.comment.comment}</Text>}
           {payerSig}
         </small>}
@@ -558,11 +568,11 @@ function PayInFailed ({ n }) {
     <div>
       <NoteHeader color={colorClass}>
         {actionString}
-        <span className='ms-1 text-muted fw-light'> {numWithUnits(msatsToSats(payIn.mcost))}</span>
+        <span className='ms-1 text-muted font-light'> {numWithUnits(msatsToSats(payIn.mcost))}</span>
         <span className={['FAILED'].includes(payIn.payInState) && !isAutoRetryEligiblePayIn(payIn) ? 'visible' : 'invisible'}>
           <Button
-            size='sm' variant={classNames('outline-warning ms-2 border-1 rounded py-0', disableRetry && 'pulse')}
-            style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
+            size='sm' variant='outline-warning'
+            className={classNames('ms-2 border rounded-md py-0', disableRetry && 'pulse')}
             disabled={disableRetry}
             onClick={() => {
               if (disableRetry) return
@@ -574,7 +584,7 @@ function PayInFailed ({ n }) {
           >
             retry
           </Button>
-          <span className='text-muted ms-2 fw-normal' suppressHydrationWarning>{timeSince(new Date(payIn.payInStateChangedAt))}</span>
+          <span className='text-muted ms-2 font-normal' suppressHydrationWarning>{timeSince(new Date(payIn.payInStateChangedAt))}</span>
         </span>
       </NoteHeader>
       <NoteItem item={item} setDisableRetry={setDisableRetry} disableRetry={disableRetry} updatePayIn={updatePayIn} />
@@ -591,12 +601,12 @@ function PayInWithdrawal ({ n }) {
   }
 
   return (
-    <div className='fw-bold text-info'>
+    <div className='font-bold text-info'>
       <Check className='fill-info me-1' />
       {numWithUnits(amount, { abbreviate: false, unitSingular: 'sat was ', unitPlural: 'sats were ' })}
       {actionString}
-      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {n.payIn.payInType === 'AUTO_WITHDRAWAL' && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
+      <small className='text-muted ms-1 font-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {n.payIn.payInType === 'AUTO_WITHDRAWAL' && <Badge className='ms-2'>autowithdraw</Badge>}
     </div>
   )
 }
@@ -617,9 +627,9 @@ function Referral ({ n }) {
   }
   return (
     <>
-      <small className='fw-bold text-success'>
+      <small className='font-bold text-success'>
         <UserAdd className='fill-success me-1' height={21} width={21} style={{ transform: 'rotateY(180deg)' }} />someone joined SN because {referralSource}
-        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+        <small className='text-muted ms-1 font-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       </small>
       {n.source?.__typename === 'Item' && <NoteItem itemClassName='pt-2' item={n.source} />}
     </>
@@ -655,11 +665,11 @@ function Votification ({ n }) {
   return (
     <>
       <NoteHeader color='success'>
-        <span className='d-inline-flex'>
+        <span className='inline-flex'>
           <span>
             your {n.item.title ? 'post' : 'reply'} stacked {stackedTextString}
             {forwardedPct > 0 &&
-              <small className='text-muted fw-light ms-1'>{forwardedPct}% forwarded</small>}
+              <small className='text-muted font-light ms-1'>{forwardedPct}% forwarded</small>}
           </span>
           {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
@@ -686,10 +696,10 @@ function ForwardedVotification ({ n }) {
   return (
     <>
       <NoteHeader color='success'>
-        <span className='d-inline-flex'>
+        <span className='inline-flex'>
           <span>
             {n.item.title ? 'post' : 'reply'} stacked {stackedText(n.item)}
-            {myPct && <small className='text-muted fw-light ms-1'>{myPct}% forwarded to you</small>}
+            {myPct && <small className='text-muted font-light ms-1'>{myPct}% forwarded to you</small>}
           </span>
           {n.item.credits > 0 && <CCInfo size={16} />}
         </span>
@@ -770,9 +780,9 @@ function TerritoryPost ({ n }) {
 
 function TerritoryTransfer ({ n }) {
   return (
-    <div className='fw-bold text-info '>
+    <div className='font-bold text-info '>
       ~{n.sub.name} was transferred to you
-      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      <small className='text-muted ms-1 font-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
     </div>
   )
 }
@@ -825,6 +835,7 @@ export function NotificationAlert () {
           <Alert variant='info' dismissible onClose={close}>
             <span className='align-middle'>Enable push notifications?</span>
             <button
+              type='button'
               className={`${styles.alertBtn} mx-1`}
               onClick={async () => {
                 await sw.requestNotificationPermission()
@@ -833,16 +844,25 @@ export function NotificationAlert () {
               }}
             >Yes
             </button>
-            <button className={styles.alertBtn} onClick={close}>No</button>
+            <button type='button' className={styles.alertBtn} onClick={close}>No</button>
           </Alert>
           )
         : (
-          <Form className={`d-flex justify-content-end ${supported ? 'visible' : 'invisible'}`} initial={{ pushNotify: hasSubscription }}>
+          <Form className={`flex justify-end ${supported ? 'visible' : 'invisible'}`} initial={{ pushNotify: hasSubscription }} enableReinitialize>
             <Checkbox
               name='pushNotify' label={<span className='text-muted'>push notifications</span>}
-              groupClassName={`${styles.subFormGroup} mb-1 me-sm-3 me-0`}
-              inline checked={hasSubscription} handleChange={async () => {
-                await sw.togglePushSubscription().catch(setError)
+              groupClassName={`${styles.subFormGroup} mb-1 sm:me-4 me-0`}
+              inline checked={hasSubscription} handleChange={async (checked, setValue) => {
+                try {
+                  await sw.togglePushSubscription()
+                  const subscription = await sw.registration?.pushManager.getSubscription()
+                  const subscribed = sw.registration ? !!subscription : checked
+                  setHasSubscription(subscribed)
+                  setValue(subscribed)
+                } catch (err) {
+                  setValue(hasSubscription)
+                  setError(err)
+                }
               }}
             />
           </Form>

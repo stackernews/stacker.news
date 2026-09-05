@@ -116,5 +116,5 @@ export default function LinkEditorPlugin () {
       ))
   }, [editor, handleSelectionChange])
 
-  return isLinkEditable && !dismissed && <LinkEditor nodeKey={nodeKey} onDismiss={handleDismiss} />
+  return isLinkEditable && !dismissed && <LinkEditor key={nodeKey} nodeKey={nodeKey} onDismiss={handleDismiss} />
 }

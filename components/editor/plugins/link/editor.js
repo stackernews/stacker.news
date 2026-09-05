@@ -135,6 +135,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
       }}
     >
       <PopoverContent
+        key={nodeKey}
         anchor={() => editor.getElementByKey(nodeKey)}
         side='bottom' align='start' sideOffset={8} arrow={false}
         aria-label='link editor' initialFocus={false} className='p-0 max-w-none'
@@ -183,7 +184,13 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
                   <button type='button' aria-label='edit link' className={styles.linkEditIcon} onMouseDown={(e) => e.preventDefault()} onClick={() => { setEditedLinkUrl(linkUrl); setIsLinkEditMode(true) }}>
                     <Pencil />
                   </button>
-                  <button type='button' aria-label='remove link' className={styles.linkRemoveIcon} onMouseDown={(e) => e.preventDefault()} onClick={() => editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)}>
+                  <button
+                    type='button' aria-label='remove link' className={styles.linkRemoveIcon} onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
+                      onDismiss()
+                    }}
+                  >
                     <UnlinkIcon />
                   </button>
                 </div>

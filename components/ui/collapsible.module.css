@@ -19,7 +19,7 @@
 /* the territory details accordion */
 .card {
   background-color: var(--sn-body-bg);
-  border: 1px solid var(--sn-border-color);
+  border: 1px solid var(--sn-border-color-subtle);
   border-radius: 0.375rem;
 }
 
@@ -34,7 +34,7 @@
 }
 .cardTrigger[data-panel-open] {
   border-radius: 5px 5px 0 0;
-  background-color: var(--sn-clickToContextColor);
+  background-color: var(--sn-click-to-context-color);
 }
 
 .cardBody { padding: 0 0.75rem; }

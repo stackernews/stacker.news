@@ -70,7 +70,7 @@
   grid-template-columns: 1fr;
   place-items: center;
   border: 2px dashed color-mix(in srgb, var(--sn-grey) 65%, transparent);
-  background: color-mix(in srgb, var(--sn-body-bg) 82%, var(--sn-toolbarHover));
+  background: color-mix(in srgb, var(--sn-body-bg) 82%, var(--sn-toolbar-hover));
 }
 .addWalletRow:hover,
 .mobileWalletRow.addWalletRow:hover {
@@ -101,7 +101,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--wt-radius-xs);
-  background: var(--sn-toolbarHover);
+  background: var(--sn-toolbar-hover);
   font-weight: 700;
 }
 .externalWalletRow .walletRowLogo,
@@ -172,7 +172,7 @@
   text-align: center;
   white-space: nowrap;
   color: var(--state-color, var(--sn-grey));
-  background-color: var(--state-bg, var(--sn-toolbarHover));
+  background-color: var(--state-bg, var(--sn-toolbar-hover));
 }
 .statusIcon {
   width: 12px;

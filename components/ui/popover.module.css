@@ -9,7 +9,7 @@
   position: relative;
   background-color: var(--sn-body-bg);
   color: var(--sn-body-color);
-  border: 1px solid var(--sn-borderColor);
+  border: 1px solid var(--sn-border-color);
   transform-origin: var(--transform-origin);
   transition: opacity 150ms ease-out, transform 150ms ease-out;
 }
@@ -27,7 +27,7 @@
 }
 
 .header {
-  border-bottom: 1px solid var(--sn-borderColor);
+  border-bottom: 1px solid var(--sn-border-color);
 }
 
 .close {

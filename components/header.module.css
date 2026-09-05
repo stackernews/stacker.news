@@ -6,7 +6,7 @@
 }
 
 .brand svg {
-    fill: var(--sn-brandColor);
+    fill: var(--sn-brand-color);
     filter: drop-shadow(0 0 6px var(--sn-primary));
 }
 
@@ -62,7 +62,7 @@
     right: 0;
     z-index: var(--sn-z-sticky);
     background-color: var(--sn-body-bg);
-    border-bottom: 1px solid var(--sn-toolbarActive);
+    border-bottom: 1px solid var(--sn-toolbar-active);
     transform: translateY(-100%);
     visibility: hidden;
 }

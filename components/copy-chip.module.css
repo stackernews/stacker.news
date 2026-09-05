@@ -8,7 +8,7 @@
   max-width: 100%;
   padding: 0.3rem 0.75rem;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--sn-borderColor) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sn-border-color) 70%, transparent);
   border-radius: 999px;
   background: transparent;
   color: var(--sn-grey);
@@ -69,7 +69,7 @@ button.chip:focus-visible {
 }
 
 button.chip:focus-visible {
-  outline: 2px solid var(--sn-borderColor);
+  outline: 2px solid var(--sn-border-color);
   outline-offset: 2px;
 }
 

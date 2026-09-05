@@ -39,7 +39,7 @@
 }
 
 .reply:hover {
-    background-color: var(--sn-clickToContextColor);
+    background-color: var(--sn-click-to-context-color);
 }
 
 .reply:not(.fresh):not(.reply + .reply) {

@@ -7,7 +7,6 @@ import Button from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { InputAddon } from './input-addon'
 import { Input } from './input'
-import styles from './field.module.css'
 
 export function CopyButton ({ value, icon, append, className, ...props }) {
   const toaster = useToast()
@@ -34,14 +33,14 @@ export function CopyButton ({ value, icon, append, className, ...props }) {
 
   if (append) {
     return (
-      <button type='button' aria-label='copy' className={cn(styles.appendButton, className)} {...props} onClick={handleClick}>
+      <button type='button' aria-label='copy' className={className} {...props} onClick={handleClick}>
         {append}
       </button>
     )
   }
 
   return (
-    <Button className={cn(styles.appendButton, className)} {...props} onClick={handleClick}>
+    <Button className={cn('border-s-0', className)} {...props} onClick={handleClick}>
       {copied ? <Thumb width={18} height={18} /> : 'copy'}
     </Button>
   )

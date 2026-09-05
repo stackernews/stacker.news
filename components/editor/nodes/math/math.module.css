@@ -5,9 +5,9 @@
   flex-direction: column;
   gap: 0.35rem;
   padding: 0.5rem;
-  border: 1px solid var(--sn-borderColor);
+  border: 1px solid var(--sn-border-color);
   border-radius: 0.4rem;
-  background-color: var(--sn-inputBg);
+  background-color: var(--sn-input-bg);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -16,9 +16,9 @@
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.35rem 0.5rem;
-  border: 1px solid var(--sn-borderColor);
+  border: 1px solid var(--sn-border-color);
   border-radius: 0.4rem;
-  background-color: var(--sn-inputBg);
+  background-color: var(--sn-input-bg);
   vertical-align: middle;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
@@ -44,7 +44,7 @@
 
 .preview {
   padding: 0.2rem 0.35rem;
-  border-top: 1px solid color-mix(in srgb, var(--sn-borderColor) 50%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--sn-border-color) 50%, transparent);
   min-height: 1.4em;
 }
 

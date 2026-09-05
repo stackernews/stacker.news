@@ -54,7 +54,7 @@ function Tooltip ({ node, link }) {
   if (!node.asset) {
     return null
   }
-  return <div style={{ whiteSpace: 'nowrap', backgroundColor: 'var(--sn-body-bg)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--sn-border-color)' }}>{node.asset}</div>
+  return <div style={{ whiteSpace: 'nowrap', backgroundColor: 'var(--sn-body-bg)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--sn-border-color-subtle)' }}>{node.asset}</div>
 }
 
 function getSankeyData (payIn) {

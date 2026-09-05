@@ -22,7 +22,8 @@ export function Select ({ label, items, info, groupClassName, onChange, noForm, 
           {...field} {...props}
           id={props.id || props.name}
           aria-invalid={!!invalid}
-          className={cn(styles.select, 'max-md:text-touch', invalid && styles.invalid, className)}
+          data-invalid={invalid ? '' : undefined}
+          className={cn(styles.select, 'max-md:text-touch', className)}
           onChange={(e) => {
             if (field?.onChange) {
               field.onChange(e)

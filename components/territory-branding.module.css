@@ -2,7 +2,7 @@
 
 .preview {
     border-radius: 0.4rem;
-    border: 1px solid var(--sn-borderColor);
+    border: 1px solid var(--sn-border-color);
     padding: 0.1rem;
     flex-shrink: 0;
 }
@@ -10,7 +10,7 @@
 .previewImage {
     object-fit: contain;
     border-radius: 4px;
-    background: var(--sn-inputBg);
+    background: var(--sn-input-bg);
     display: block;
 }
 

@@ -1,7 +1,7 @@
 @layer components {
 
 .receipt {
-    background-color: var(--sn-inputBg);
+    background-color: var(--sn-input-bg);
     max-width: 300px;
     margin: auto;
     table-layout: auto;
@@ -29,13 +29,13 @@
 
 .receipt td {
     padding: .25rem .1rem;
-    background-color: var(--sn-inputBg);
+    background-color: var(--sn-input-bg);
     color: var(--sn-body-color);
     line-height: 1.2rem;
     vertical-align: top;
 }
 
 .receipt tfoot {
-    border-top: 2px solid var(--sn-borderColor) !important;
+    border-top: 2px solid var(--sn-border-color) !important;
 }
 }

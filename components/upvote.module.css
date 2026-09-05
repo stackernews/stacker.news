@@ -8,7 +8,7 @@
 }
 
 .boost {
-    fill: var(--sn-clickToContextColor);
+    fill: var(--sn-click-to-context-color);
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;

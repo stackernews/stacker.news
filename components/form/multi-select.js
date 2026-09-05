@@ -43,7 +43,7 @@ export function MultiSelect ({ label, items, size = 'lg', info, groupClassName, 
           multiple name={field.name} items={options} value={currentValue}
           onValueChange={vals => { helpers?.setValue?.(vals); onChange?.(formik, vals) }}
         >
-          <Combobox.InputGroup className={cn(inputClasses({ size: controlSize, className }), 'flex items-center gap-1.5 cursor-text w-auto', styles.control, invalid && styles.isInvalid)}>
+          <Combobox.InputGroup className={cn(inputClasses({ size: controlSize, className }), 'flex items-center gap-1.5 cursor-text w-auto', styles.control)} data-invalid={invalid ? '' : undefined}>
             <Combobox.Chips className='flex flex-wrap items-center gap-1.5 flex-1 min-w-0'>
               <Combobox.Value>
                 {vals => (

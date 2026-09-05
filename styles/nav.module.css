@@ -8,12 +8,12 @@
 }
 
 .link:not(:global(.text-success)):not(:global(.text-warning)) {
-    color: var(--sn-navLink);
+    color: var(--sn-nav-link);
 }
 
 .link:not(:global(.text-success)):not(:global(.text-warning)):hover,
 .link:not(:global(.text-success)):not(:global(.text-warning)):focus-visible {
-    color: var(--sn-navLinkFocus);
+    color: var(--sn-nav-link-focus);
 }
 
 .link.active {
@@ -21,16 +21,16 @@
 }
 
 .link.active:not(:global(.text-success)):not(:global(.text-warning)) {
-    color: var(--sn-navLinkActive);
+    color: var(--sn-nav-link-active);
 }
 
 .link svg {
-    fill: var(--sn-navLink);
+    fill: var(--sn-nav-link);
 }
 
 .link:hover svg,
 .link.active svg {
-    fill: var(--sn-navLinkActive);
+    fill: var(--sn-nav-link-active);
 }
 
 /* header bars, bootstrap's .navbar-nav .nav-link */

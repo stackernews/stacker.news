@@ -14,7 +14,7 @@
 
 .grey {
   --sn-badge-color: var(--sn-grey);
-  --sn-badge-bg: var(--sn-clickToContextColor);
+  --sn-badge-bg: var(--sn-click-to-context-color);
 }
 
 .secondary {

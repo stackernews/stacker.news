@@ -7,7 +7,7 @@
   height: 100%;
   padding: 2rem;
   border-radius: var(--wt-radius-lg);
-  background: color-mix(in srgb, var(--sn-toolbarHover) 25%, var(--sn-body-bg));
+  background: color-mix(in srgb, var(--sn-toolbar-hover) 25%, var(--sn-body-bg));
   overflow: hidden;
 }
 

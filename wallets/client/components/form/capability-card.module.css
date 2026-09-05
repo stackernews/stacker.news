@@ -9,7 +9,7 @@
   gap: var(--wt-gap-xl);
   padding: 1.5rem 2rem;
   border-radius: var(--wt-radius-lg);
-  background: color-mix(in srgb, var(--sn-toolbarHover) 22%, var(--sn-body-bg));
+  background: color-mix(in srgb, var(--sn-toolbar-hover) 22%, var(--sn-body-bg));
 }
 .cardOptional {
   /* full border since .card has none */
@@ -55,7 +55,7 @@
   gap: 0.6rem;
   padding: 0.85rem 1rem;
   border-radius: var(--wt-radius-md);
-  background: color-mix(in srgb, var(--sn-body-bg) 72%, var(--sn-toolbarHover));
+  background: color-mix(in srgb, var(--sn-body-bg) 72%, var(--sn-toolbar-hover));
 }
 .method .protocolSelector {
   --chip-padding: 0.55rem 1rem;

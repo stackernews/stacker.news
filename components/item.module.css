@@ -98,7 +98,7 @@ a.title:visited {
 }
 
 a.link:visited {
-    color: var(--sn-linkVisited);
+    color: var(--sn-link-visited);
 }
 
 .other {
@@ -182,7 +182,7 @@ a.link:visited {
     grid-column: 1 / -1;
     font-weight: bold;
     font-size: 0.9rem;
-    border-bottom: 1px solid var(--sn-borderColor);
+    border-bottom: 1px solid var(--sn-border-color);
     padding-bottom: 0.35rem;
     margin-top: 0.75rem;
 }

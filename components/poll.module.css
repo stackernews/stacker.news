@@ -30,7 +30,7 @@
     content: '\A';
     border-radius: .4rem 0rem 0rem .4rem;
     position: absolute;
-    background: var(--sn-clickToContextColor);
+    background: var(--sn-click-to-context-color);
     top: 0;
     bottom: 0;
     left: 0;

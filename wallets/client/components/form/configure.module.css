@@ -18,7 +18,7 @@
   gap: var(--wt-gap-md);
   padding: 1rem;
   border-radius: var(--wt-radius-md);
-  background: color-mix(in srgb, var(--sn-toolbarHover) 35%, transparent);
+  background: color-mix(in srgb, var(--sn-toolbar-hover) 35%, transparent);
 }
 .saveBar {
   grid-column: 1 / -1;

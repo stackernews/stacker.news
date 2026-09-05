@@ -7,14 +7,14 @@
   justify-content: center;
 }
 .box {
-  border: 1px solid var(--sn-borderColor);
+  border: 1px solid var(--sn-border-color);
   border-radius: 10px;
   min-width: 50%;
   display: flex;
   flex-direction: column;
 }
 .header {
-  border-bottom: 1px solid var(--sn-borderColor);
+  border-bottom: 1px solid var(--sn-border-color);
 }
 .body {
   display: flex;

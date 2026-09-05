@@ -3,14 +3,14 @@
 /* keyboard highlight looks like hover */
 .dropdownExtraItem:hover,
 .dropdownExtraItem[data-highlighted] {
-  background-color: var(--sn-toolbarActive);
+  background-color: var(--sn-toolbar-active);
   opacity: 1;
   border-radius: 0.3rem;
   outline: none;
 }
 
 .dropdownExtraItem svg {
-  fill: var(--sn-dropdownItemColor);
+  fill: var(--sn-dropdown-item-color);
 }
 
 .dropdownExtraItem.active {
@@ -18,7 +18,7 @@
 }
 
 .dropdownExtraItem.active .dropdownExtraItemText {
-  color: var(--sn-brandColor);
+  color: var(--sn-brand-color);
   filter: drop-shadow(0 0 6px var(--sn-primary));
   font-weight: 500;
 }

@@ -20,7 +20,7 @@
   width: calc(var(--arrow-size, 16px) / 2 * sqrt(2));
   height: calc(var(--arrow-size, 16px) / 2 * sqrt(2));
   background-color: var(--arrow-bg, var(--sn-body-bg));
-  border: var(--arrow-border-width, 1px) solid var(--arrow-border-color, var(--sn-borderColor));
+  border: var(--arrow-border-width, 1px) solid var(--arrow-border-color, var(--sn-border-color));
   transform: translate(-50%, 50%) rotate(45deg);
 }
 

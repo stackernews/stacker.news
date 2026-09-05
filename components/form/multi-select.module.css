@@ -10,18 +10,18 @@
   box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
 }
 
-.control.isInvalid {
+.control[data-invalid] {
   border-color: var(--sn-danger);
 }
 
-.control.isInvalid:focus-within {
+.control[data-invalid]:focus-within {
   box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-danger) 25%, transparent);
 }
 
 .chip {
   display: flex;
   align-items: center;
-  background-color: var(--sn-clickToContextColor);
+  background-color: var(--sn-click-to-context-color);
   border-radius: 2px;
   padding-inline-start: 6px;
 }

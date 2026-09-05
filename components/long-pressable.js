@@ -1,5 +1,4 @@
-import React from 'react'
-import PropType from 'prop-types'
+import { useEffect, useRef } from 'react'
 
 function eventToPosition (event) {
   return {
@@ -14,101 +13,69 @@ function distance (pointA, pointB) {
   )
 }
 
-export default class LongPressable extends React.PureComponent {
-  static propTypes = {
-    onLongPress: PropType.func.isRequired,
-    onShortPress: PropType.func,
-    longPressTime: PropType.number,
-    primaryMouseButtonOnly: PropType.bool,
-    // Maximum distance (pixels) user is allowed to drag before
-    // click is canceled
-    dragThreshold: PropType.number,
-    children: PropType.node
+export default function LongPressable ({
+  onLongPress,
+  onShortPress,
+  longPressTime = 500,
+  primaryMouseButtonOnly = true,
+  // maximum distance (pixels) user is allowed to drag before click is canceled
+  dragThreshold = 100,
+  children
+}) {
+  const timerRef = useRef(null)
+  const isLongPressingRef = useRef(false)
+  const startingPositionRef = useRef({ x: 0, y: 0 })
+
+  useEffect(() => () => clearTimeout(timerRef.current), [])
+
+  const cancelLongPress = () => {
+    clearTimeout(timerRef.current)
+    timerRef.current = null
   }
 
-  static defaultProps = {
-    longPressTime: 500,
-    primaryMouseButtonOnly: true,
-    dragThreshold: 100
-  }
-
-  isLongPressing = false
-  startingPosition = { x: 0, y: 0 }
-
-  componentWillUnmount () {
-    this.clearTimeout()
-  }
-
-  clearTimeout = () => {
-    if (this.timerID) {
-      clearTimeout(this.timerID)
-      this.timerID = null
-    }
-  }
-
-  handlePointerUp = (e) => {
-    if (this.timerID) {
-      this.cancelLongPress()
-    }
-
-    const mousePosition = eventToPosition(e)
-
-    if (!this.isLongPressing &&
-        !this.exceedDragThreshold(mousePosition)) {
-      this.props.onShortPress(e)
-    } else {
-      this.isLongPressing = false
-    }
-  }
-
-  handlePointerDown = (e) => {
-    if (this.props.primaryMouseButtonOnly) {
-      if (e.pointerType === 'mouse' && e.button !== 0) {
-        return
-      }
-    }
+  const handlePointerDown = (e) => {
+    if (primaryMouseButtonOnly && e.pointerType === 'mouse' && e.button !== 0) return
 
     // re-initialize long press
-    this.isLongPressing = false
-    this.startingPosition = eventToPosition(e)
+    isLongPressingRef.current = false
+    startingPositionRef.current = eventToPosition(e)
 
-    this.timerID = setTimeout(() => {
-      this.isLongPressing = true
-      this.props.onLongPress(e)
-    }, this.props.longPressTime)
+    timerRef.current = setTimeout(() => {
+      isLongPressingRef.current = true
+      onLongPress(e)
+    }, longPressTime)
   }
 
-  handlePointerMove = (e) => {
+  const handlePointerUp = (e) => {
+    if (timerRef.current) cancelLongPress()
+
     const mousePosition = eventToPosition(e)
-    if (this.timerID && this.exceedDragThreshold(mousePosition)) {
-      this.cancelLongPress()
+
+    if (!isLongPressingRef.current && distance(startingPositionRef.current, mousePosition) <= dragThreshold) {
+      onShortPress(e)
+    } else {
+      isLongPressingRef.current = false
     }
   }
 
-  handlePointerLeave = () => {
-    if (this.timerID) {
-      this.cancelLongPress()
+  const handlePointerMove = (e) => {
+    if (timerRef.current && distance(startingPositionRef.current, eventToPosition(e)) > dragThreshold) {
+      cancelLongPress()
     }
   }
 
-  cancelLongPress () {
-    this.clearTimeout()
+  const handlePointerLeave = () => {
+    if (timerRef.current) cancelLongPress()
   }
 
-  exceedDragThreshold (point) {
-    return distance(this.startingPosition, point) > this.props.dragThreshold
-  }
-
-  render () {
-    return (
-      <div
-        onPointerUp={this.handlePointerUp}
-        onPointerDown={this.handlePointerDown}
-        onPointerMove={this.handlePointerMove}
-        onPointerLeave={this.handlePointerLeave}
-      >
-        {this.props.children}
-      </div>
-    )
-  }
+  return (
+    <div
+      onPointerUp={handlePointerUp}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+    >
+      {children}
+    </div>
+  )
 }

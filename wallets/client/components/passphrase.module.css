@@ -1,3 +1,5 @@
+@layer components {
+
 .passphraseFlow {
   gap: clamp(2rem, 5svh, 3rem);
 }
@@ -9,7 +11,7 @@
   margin-bottom: var(--wt-gap-md);
 }
 .subcopy {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   line-height: 1.6;
   max-width: 460px;
   margin: 0 auto;
@@ -40,14 +42,14 @@
   min-width: 0;
 }
 .wordIndex {
-  font-family: var(--bs-font-monospace);
+  font-family: var(--sn-font-monospace);
   font-size: 0.8rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   min-width: 2ch;
   flex-shrink: 0;
 }
 .wordText {
-  font-family: var(--bs-font-monospace);
+  font-family: var(--sn-font-monospace);
   font-size: 0.95rem;
   word-break: break-word;
 }
@@ -67,7 +69,7 @@
 .cardActions > * {
   white-space: nowrap;
 }
-/* the global `svg { fill: var(--bs-body-color) }` would win over the
+/* the global `svg { fill: var(--sn-body-color) }` would win over the
    currentColor presentation attribute; these re-tie icons to text color */
 .actionIcon {
   flex-shrink: 0;
@@ -77,7 +79,7 @@
 
 .footnote {
   font-size: 0.8rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   line-height: 1.5;
   max-width: 440px;
   margin: 0 auto;
@@ -93,17 +95,17 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   cursor: pointer;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 .resetButton:hover {
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
 }
 .resetButton:focus-visible {
-  outline: 2px solid var(--theme-borderColor);
+  outline: 2px solid var(--sn-border-color);
   outline-offset: 4px;
 }
 
@@ -124,44 +126,44 @@
   padding: 0.85rem;
   border: 1px solid transparent;
   border-radius: var(--wt-radius-sm);
-  color: var(--bs-danger);
+  color: var(--sn-danger);
   font-size: 0.875rem;
   font-weight: 700;
   line-height: 1.25;
 }
 .confirmationErrorVisible {
-  border-color: rgba(var(--bs-danger-rgb), 0.35);
-  background: rgba(var(--bs-danger-rgb), 0.06);
+  border-color: color-mix(in srgb, var(--sn-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--sn-danger) 6%, transparent);
 }
 .slotError {
-  --surface-row-ring-color: var(--bs-danger);
+  --surface-row-ring-color: var(--sn-danger);
 }
 .slotLabel {
   font-size: 0.8rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   flex-shrink: 0;
 }
 .slotValue {
   flex: 1;
 }
 .slotPlaceholder {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   opacity: 0.6;
 }
 .slotCheck {
-  color: var(--bs-success);
+  color: var(--sn-success);
   fill: currentColor;
   flex-shrink: 0;
 }
 .slotErrorIcon {
-  color: var(--bs-danger);
+  color: var(--sn-danger);
   fill: currentColor;
   flex-shrink: 0;
 }
 .bankChip {
   --chip-radius: var(--wt-radius-xs);
   --chip-padding: 0.45rem 0.9rem;
-  --chip-color: var(--bs-body-color);
+  --chip-color: var(--sn-body-color);
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -175,12 +177,9 @@
 
 .slotInput {
   min-width: 0;
-  padding: 0.4rem 0.5rem;
-  font-family: var(--bs-font-monospace);
-  font-size: 0.95rem;
 }
-[data-bs-theme="dark"] .slotInput:not(:focus) {
-  border-color: color-mix(in srgb, var(--theme-borderColor) 20%, transparent);
+:global([data-theme='dark']) .slotInput:not(:focus) {
+  border-color: color-mix(in srgb, var(--sn-border-color) 20%, transparent);
 }
 /* CSS masking avoids exposing the word grid as password fields to password managers. */
 .slotInputMasked {
@@ -188,7 +187,7 @@
 }
 .counter {
   font-size: 0.8rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
 }
 @media (max-width: 575px) {
   .passphraseFlow {
@@ -214,4 +213,6 @@
   .confirmationSlots {
     gap: var(--wt-gap-md);
   }
+}
+
 }

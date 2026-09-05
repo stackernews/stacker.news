@@ -16,7 +16,7 @@ import {
 function CenteredPrompt ({ children }) {
   return (
     <WalletShellMain>
-      <div className='py-5 px-3 px-md-0 w-100 d-flex flex-column align-items-center justify-content-center flex-grow-1 mx-auto' style={{ maxWidth: '680px' }}>
+      <div className='py-12 px-4 md:px-0 w-full flex flex-col items-center justify-center grow mx-auto' style={{ maxWidth: '680px' }}>
         {children}
       </div>
     </WalletShellMain>
@@ -26,9 +26,9 @@ function CenteredPrompt ({ children }) {
 export function WalletErrorShell ({ title, message }) {
   return (
     <WalletShellMain>
-      <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1'>
-        <span className='text-muted fw-bold my-1'>{title}</span>
-        <small className='d-block text-muted'>
+      <div className='py-12 text-center flex flex-col items-center justify-center grow'>
+        <span className='text-muted font-bold my-1'>{title}</span>
+        <small className='block text-muted'>
           {message}
         </small>
       </div>
@@ -39,9 +39,9 @@ export function WalletErrorShell ({ title, message }) {
 export function WalletLoadingShell ({ message = 'loading wallets' }) {
   return (
     <WalletShellMain mobileTopBar={false}>
-      <div className='py-5 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted'>
-        <Moon className='spin fill-grey' height={28} width={28} />
-        <small className='d-block mt-3 text-muted'>{message}</small>
+      <div className='py-12 text-center flex flex-col items-center justify-center grow text-muted'>
+        <Moon className='spin fill-muted' height={28} width={28} />
+        <small className='block mt-4 text-muted'>{message}</small>
       </div>
     </WalletShellMain>
   )

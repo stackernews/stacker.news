@@ -3,7 +3,7 @@ import { gql } from '@apollo/client'
 import { useMutation } from '@apollo/client/react'
 import { INVITE_FIELDS } from '@/fragments/invites'
 import styles from '@/styles/invites.module.css'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 
 export default function Invite ({ invite, active }) {
   const [revokeInvite] = useMutation(

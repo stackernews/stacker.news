@@ -1,0 +1,44 @@
+@layer components {
+
+/* scale with the surrounding text */
+.badge {
+  font-size: .75em;
+  padding: .35em .65em;
+  color: var(--sn-badge-color, #fff);
+  background-color: var(--sn-badge-bg, transparent);
+}
+
+.badge:empty {
+  display: none;
+}
+
+.grey {
+  --sn-badge-color: var(--sn-grey);
+  --sn-badge-bg: var(--sn-click-to-context-color);
+}
+
+.secondary {
+  --sn-badge-bg: color-mix(in srgb, var(--sn-secondary) calc(var(--sn-badge-opacity, 1) * 100%), transparent);
+}
+
+.boost {
+  --sn-badge-bg: color-mix(in srgb, var(--sn-boost) calc(var(--sn-badge-opacity, 1) * 100%), transparent);
+}
+
+.danger {
+  --sn-badge-bg: var(--sn-danger);
+}
+
+.success {
+  --sn-badge-bg: var(--sn-success);
+}
+
+.warning {
+  --sn-badge-bg: var(--sn-warning);
+}
+
+.info {
+  --sn-badge-bg: var(--sn-info);
+}
+
+}

@@ -1,11 +1,11 @@
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 import { fixedDecimal, numWithUnits } from '@/lib/format'
 import { timeLeft } from '@/lib/time'
 import { useMe } from './me'
 import styles from './poll.module.css'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import usePayInMutation from '@/components/payIn/hooks/use-pay-in-mutation'
 import { throwUnlessUserCancel } from '@/wallets/client/errors'
 import { POLL_VOTE } from '@/fragments/payIn'
@@ -22,7 +22,8 @@ const PollButton = ({ v, item }) => {
     <ActionTooltip placement='left' notForm overlayText='1 sat'>
       <Button
         disabled={isSubmitting}
-        variant='outline-info' className={classNames(styles.pollButton, isSubmitting && 'pulse')}
+        variant='outline-info'
+        className={classNames(styles.pollButton, 'block rounded-4xl leading-4', isSubmitting && 'pulse')}
         onClick={me
           ? async () => {
             setIsSubmitting(true)
@@ -81,7 +82,7 @@ function PollResult ({ v, progress }) {
   return (
     <div className={styles.pollResult}>
       <span className={styles.pollOption}>{v.option}</span>
-      <span className='ms-auto me-2 align-self-center'>{progress}%</span>
+      <span className='ms-auto me-2 self-center'>{progress}%</span>
       <div className={styles.pollProgress} style={{ width: `${progress}%` }} />
     </div>
   )

@@ -1,10 +1,12 @@
+@layer components {
+
 .details {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   width: 100%;
   padding: 0.5rem 0 0.25rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   line-height: 1.25;
 }
 
@@ -12,8 +14,8 @@
   display: flex;
   align-items: baseline;
   gap: 0.45rem;
-  color: var(--bs-body-color);
-  font-family: var(--bs-font-monospace);
+  color: var(--sn-body-color);
+  font-family: var(--sn-font-monospace);
   line-height: 1;
 }
 
@@ -24,7 +26,7 @@
 }
 
 .amount span:last-child {
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: 0.95rem;
   font-weight: 700;
 }
@@ -42,7 +44,8 @@
   max-width: 100%;
 }
 
-.detailPillButton {
+/* two classes so we beat ui/collapsible's .trigger reset regardless of module order */
+.detailPill .detailPillButton {
   box-sizing: border-box;
   min-height: 32px;
   display: inline-flex;
@@ -50,11 +53,11 @@
   gap: 0.35rem;
   max-width: 100%;
   padding: 0.3rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--theme-borderColor) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sn-border-color) 70%, transparent);
   border-radius: 999px;
   background: transparent;
-  color: var(--theme-grey);
-  font-family: var(--bs-font-monospace);
+  color: var(--sn-grey);
+  font-family: var(--sn-font-monospace);
   font-size: 0.9rem;
   font-weight: 700;
   line-height: 1;
@@ -65,6 +68,14 @@
   margin-left: 0.15rem;
 }
 
+.detailPillIndicator::before {
+  content: "+";
+}
+
+.detailPillButton[data-panel-open] .detailPillIndicator::before {
+  content: "-";
+}
+
 .detailPillLabel {
   min-width: 0;
   overflow: hidden;
@@ -72,21 +83,23 @@
   white-space: nowrap;
 }
 
-.detailPillButton:hover,
-.detailPillButton:focus-visible,
-.detailPillOpen .detailPillButton {
-  border-color: var(--bs-body-color);
-  color: var(--bs-body-color);
+.detailPill .detailPillButton:hover,
+.detailPill .detailPillButton:focus-visible,
+.detailPill .detailPillButton[data-panel-open] {
+  border-color: var(--sn-body-color);
+  color: var(--sn-body-color);
 }
 
 .detailPillButton:focus-visible {
-  outline: 2px solid var(--theme-borderColor);
+  outline: 2px solid var(--sn-border-color);
   outline-offset: 2px;
 }
 
 .detailPillBody {
   max-width: min(100%, 36rem);
   padding-top: 0.45rem;
-  color: var(--theme-grey);
+  color: var(--sn-grey);
   font-size: 0.875rem;
+}
+
 }

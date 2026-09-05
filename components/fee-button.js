@@ -1,6 +1,4 @@
 import { useEffect, useContext, createContext, useState, useCallback, useId, useMemo } from 'react'
-import Table from 'react-bootstrap/Table'
-import BootstrapForm from 'react-bootstrap/Form'
 import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
@@ -12,7 +10,7 @@ import { useMe } from './me'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
-import { SubmitButton } from './form'
+import { Checkbox, SubmitButton } from './form'
 import { useFormikContext } from 'formik'
 
 const FeeButtonContext = createContext()
@@ -202,13 +200,12 @@ export function FreebieCheckbox () {
   if (!freebieAvailable) return null
 
   return (
-    <BootstrapForm.Check
-      type='checkbox'
+    <Checkbox
+      name='useFreebie'
       id={id}
-      className={styles.freebieCheckbox}
+      groupClassName={styles.freebieCheckbox}
       label='use free comment'
       checked={checked}
-      onChange={e => setFieldValue('useFreebie', e.target.checked, false)}
     />
   )
 }
@@ -216,7 +213,7 @@ export function FreebieCheckbox () {
 function FreebieDialog ({ freeCommentsLeft }) {
   return (
     <>
-      <div className='fw-bold'>if you don't have enough sats, this one is on us</div>
+      <div className='font-bold'>if you don't have enough sats, this one is on us</div>
       <ul className='mt-2'>
         <li>Free items have limited visibility and can only earn cowboy credits.</li>
         {freeCommentsLeft !== null && (
@@ -261,22 +258,22 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
 
 function Receipt ({ lines, total }) {
   return (
-    <Table className={styles.receipt} borderless size='sm'>
+    <table className={styles.receipt}>
       <tbody>
         {Object.entries(lines).sort(([, a], [, b]) => sortHelper(a, b)).map(([key, { term, label, omit }]) => (
           !omit &&
             <tr key={key}>
               <td>{term}</td>
-              <td align='right' className='font-weight-light'>{label}</td>
+              <td align='right' className='font-light'>{label}</td>
             </tr>))}
       </tbody>
       <tfoot>
         <tr>
-          <td className='fw-bold'>{numWithUnits(total, { abbreviate: false, format: true })}</td>
-          <td align='right' className='font-weight-light'>total fee</td>
+          <td className='font-bold'>{numWithUnits(total, { abbreviate: false, format: true })}</td>
+          <td align='right' className='font-light'>total fee</td>
         </tr>
       </tfoot>
-    </Table>
+    </table>
   )
 }
 
@@ -285,18 +282,18 @@ function AnonInfo () {
 
   return (
     <AnonIcon
-      className='ms-2 fill-theme-color pointer' height={22} width={22}
+      className='ms-2 fill-current pointer' height={22} width={22}
       onClick={
         (e) =>
           showModal(onClose =>
-            <div><div className='fw-bold text-center'>You are posting without an account</div>
-              <ol className='my-3'>
+            <div><div className='font-bold text-center'>You are posting without an account</div>
+              <ol className='my-4'>
                 <li>You'll pay by invoice</li>
                 <li>Your content will be content-joined (get it?!) under the <Link href='/anon' target='_blank'>@anon</Link> account</li>
                 <li>Any sats your content earns will go toward <Link href='/rewards' target='_blank'>rewards</Link></li>
                 <li>We won't be able to notify you when you receive replies</li>
               </ol>
-              <small className='text-center fst-italic text-muted'>btw if you don't need to be anonymous, posting is cheaper with an account</small>
+              <small className='text-center italic text-muted'>btw if you don't need to be anonymous, posting is cheaper with an account</small>
             </div>)
       }
     />

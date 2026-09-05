@@ -1,28 +1,10 @@
-.linkEditorContainer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 600;
-  max-width: 100%;
-  opacity: 0;
-  box-shadow: 0 0 8px 0 rgba(0, 0, 0, var(--theme-floating-toolbar-shadow-opacity));
-  will-change: transform;
-  border-radius: 0.4rem;
-  background-color: var(--theme-forceCommentBg);
-}
-
-.linkEditorContainer:hover {
-  opacity: 1;
-}
+@layer components {
 
 .linkEditor {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   max-width: min(400px, 100%);
-  border-radius: 0.4rem;
-  background-color: var(--theme-commentBg);
-  border: 1px solid var(--theme-borderColor);
 }
 
 .linkInput,
@@ -37,7 +19,7 @@
   font-family: inherit;
   font-size: 12px;
   line-height: 1.2;
-  color: var(--bs-body-color);
+  color: var(--sn-body-color);
   outline: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -48,12 +30,12 @@
   max-width: 300px;
 }
 
-[data-bs-theme="light"] .linkInput {
-  border-right: 1px solid var(--theme-borderColor);
+[data-theme="light"] .linkInput {
+  border-right: 1px solid var(--sn-border-color);
 }
 
 .linkView {
-  color: var(--theme-link);
+  color: var(--sn-link);
   min-height: calc(1em * 1.2 + 1rem);
 }
 
@@ -74,6 +56,10 @@
   justify-content: center;
   width: 24px;
   height: 24px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
   border-radius: 4px;
   opacity: 0.5;
   cursor: pointer;
@@ -85,7 +71,7 @@
 .linkEditIcon:hover,
 .linkRemoveIcon:hover {
   opacity: 0.85;
-  background-color: var(--theme-toolbarHoverBg, rgba(128, 128, 128, 0.1));
+  background-color: rgba(128, 128, 128, 0.1);
 }
 
 .linkConfirmIcon:hover {
@@ -116,4 +102,6 @@
     width: 20px;
     height: 20px;
   }
+}
+
 }

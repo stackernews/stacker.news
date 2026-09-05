@@ -1,4 +1,4 @@
-import Container from 'react-bootstrap/Container'
+import Container from '@/components/ui/container'
 import styles from './search.module.css'
 import SearchIcon from '@/svgs/search-line.svg'
 import { useMemo, useRef, useCallback } from 'react'
@@ -17,6 +17,7 @@ import { useMe } from './me'
 import { useField } from 'formik'
 import { searchSchema } from '@/lib/validate'
 import { usePrefix } from './territory-domains'
+import classNames from 'classnames'
 
 export default function Search ({ sub }) {
   const router = useRouter()
@@ -74,26 +75,25 @@ export default function Search ({ sub }) {
             schema={searchSchema}
             enableReinitialize
           >
-            <div className={`${styles.active} mb-3`}>
+            <div className={`${styles.active} mb-4`}>
               <SearchInput
                 name='q'
                 required
                 autoFocus
-                groupClassName='me-3 mb-0 flex-grow-1'
-                className='flex-grow-1'
+                groupClassName='me-4 mb-0 grow'
+                className='grow'
               />
-              <SubmitButton variant='primary' className={styles.search}>
+              <SubmitButton variant='primary' className={classNames(styles.search, 'rounded-full p-0 flex items-center justify-center')}>
                 <SearchIcon width={22} height={22} />
               </SubmitButton>
             </div>
             {filter && router.query.q &&
-              <div className='text-muted fw-bold d-flex align-items-center flex-wrap'>
-                <div className='text-muted fw-bold d-flex align-items-center mb-2'>
+              <div className='text-muted font-bold flex items-center flex-wrap'>
+                <div className='text-muted font-bold flex items-center mb-2'>
                   <Select
                     groupClassName='me-2 mb-0'
                     onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
                     name='what'
-                    size='sm'
                     overrideValue={what}
                     items={whatItemOptions}
                   />
@@ -104,7 +104,6 @@ export default function Search ({ sub }) {
                         groupClassName='mx-2 mb-0'
                         onChange={(formik, e) => search({ ...formik?.values, sort: e.target.value })}
                         name='sort'
-                        size='sm'
                         overrideValue={sort}
                         items={['relevance', 'sats', 'new', 'comments']}
                       />
@@ -162,7 +161,7 @@ function SearchInput ({ name, ...props }) {
   }, [handleTextChange])
 
   return (
-    <div className='position-relative flex-grow-1'>
+    <div className='relative grow'>
       <DualAutocompleteWrapper
         userAutocomplete={userAutocomplete}
         territoryAutocomplete={territoryAutocomplete}

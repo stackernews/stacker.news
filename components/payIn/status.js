@@ -3,21 +3,30 @@ import { FAILED_PAY_IN_STATES } from '@/lib/pay-in'
 import Moon from '@/svgs/moon-fill.svg'
 import Check from '@/svgs/check-double-line.svg'
 import ThumbDown from '@/svgs/thumb-down-fill.svg'
+import classNames from 'classnames'
 
 export const statusIconSize = 16
 
+// tailwind only generates classes it sees as literals
+const TEXT_COLORS = {
+  success: 'text-success',
+  danger: 'text-danger',
+  warning: 'text-warning',
+  muted: 'text-muted'
+}
+
 export function StatusText ({ color, children }) {
   return (
-    <small className={`ms-1 text-${color}`} style={{ fontWeight: '600' }}>{children}</small>
+    <small className={classNames('ms-1', TEXT_COLORS[color])} style={{ fontWeight: '600' }}>{children}</small>
   )
 }
 
 export function PayInStatus ({ payIn }) {
   return (
-    <div className='d-flex align-items-center'>
+    <div className='flex items-center'>
       {(payIn.payInState === 'PAID' && <><Check width={statusIconSize} height={statusIconSize} className='fill-success' /><StatusText color='success'>{payIn.mcost > 0 ? 'paid' : 'free'}</StatusText></>) ||
         (FAILED_PAY_IN_STATES.includes(payIn.payInState) && <><ThumbDown width={statusIconSize} height={statusIconSize} className='fill-danger' /><StatusText color='danger'>failed</StatusText></>) ||
-        ((payIn.payInState === 'FORWARDING' || payIn.payInState === 'FORWARDED' || !payIn.payerPrivates?.payInBolt11) && <><Moon width={statusIconSize} height={statusIconSize} className='spin fill-grey' /><StatusText color='muted'>settling</StatusText></>) ||
+        ((payIn.payInState === 'FORWARDING' || payIn.payInState === 'FORWARDED' || !payIn.payerPrivates?.payInBolt11) && <><Moon width={statusIconSize} height={statusIconSize} className='spin fill-muted' /><StatusText color='muted'>settling</StatusText></>) ||
         (<CompactLongCountdown className='text-muted' date={payIn.payerPrivates?.payInBolt11?.expiresAt} />)}
     </div>
   )
@@ -25,7 +34,7 @@ export function PayInStatus ({ payIn }) {
 
 export function PayInStatusSkeleton () {
   return (
-    <div className='d-flex align-items-center'>
+    <div className='flex items-center'>
       <div className='clouds' style={{ width: statusIconSize, height: statusIconSize }} />
       <StatusText color='muted'>loading</StatusText>
     </div>

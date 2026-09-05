@@ -2,15 +2,16 @@ import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import LightningIcon from '@/svgs/bolt.svg'
 import NostrIcon from '@/svgs/nostr.svg'
-import Button from 'react-bootstrap/Button'
+import Button, { buttonClasses } from '@/components/ui/button'
+import { Menu, MenuTrigger, MenuPopup, MenuItem } from '@/components/ui/menu'
 import useCookie from './use-cookie'
 import { cookieOptions, MULTI_AUTH_POINTER } from '@/lib/auth'
 import { useAccounts } from './account'
 import SNIcon from '@/svgs/sn.svg'
-import { ButtonGroup, Dropdown } from 'react-bootstrap'
+import { dropdownExtraItemClasses } from '@/components/dropdown'
 import styles from '@/components/dropdown.module.css'
 import ArrowDownIcon from '@/svgs/editor/toolbar/arrow-down.svg'
-import classNames from 'classnames'
+import { cn } from '@/lib/cn'
 import { useRouter } from 'next/router'
 
 export default function LoginButton ({ text, type, className, onClick, disabled }) {
@@ -41,7 +42,7 @@ export default function LoginButton ({ text, type, className, onClick, disabled 
     <Button className={className} variant={variant} onClick={onClick} disabled={disabled}>
       <Icon
         width={20}
-        height={20} className='me-3'
+        height={20} className='me-4'
       />
       {text} {name}
     </Button>
@@ -59,44 +60,40 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
   const title = account ? `Log in with @${account.name}` : 'Log in with @nym'
 
   return (
-    <Dropdown className='mb-4 w-100' as={ButtonGroup}>
+    <div className='inline-flex w-full mb-6'>
       <Button
         variant='success'
         onClick={() => account && router.push(callbackUrl)}
         disabled={disabled || !account}
-        className={className}
+        className={cn('min-w-0 grow rounded-e-none', className)}
         title={title}
-        style={{ minWidth: 0 }}
       >
-        <SNIcon width={20} height={20} className='me-3 flex-shrink-0' />
-        <span className='text-truncate' style={{ minWidth: 0 }}>{title}</span>
+        <SNIcon width={20} height={20} className='me-4 shrink-0' />
+        <span className='truncate min-w-0'>{title}</span>
       </Button>
       {(accounts.length > 1 || !account) && (
-        <>
-          <Dropdown.Toggle
-            split
-            variant='success'
-            onPointerDown={e => { e.preventDefault(); e.stopPropagation() }}
+        <Menu className='flex shrink-0'>
+          <MenuTrigger
             title='select account'
-            style={{ maxWidth: '42px' }}
+            className={cn(buttonClasses({ variant: 'success' }), 'rounded-s-none w-10 px-0 shrink-0 flex items-center justify-center')}
           >
             <ArrowDownIcon width={16} height={16} />
-          </Dropdown.Toggle>
-          <Dropdown.Menu className={styles.dropdownExtra} style={{ width: '150px' }}>
+          </MenuTrigger>
+          <MenuPopup align='end' className='w-40 p-2'>
             {accounts.map(account => (
-              <Dropdown.Item
+              <MenuItem
                 key={account.id}
                 onClick={() => {
                   setPointerCookie(account.id, cookieOptions({ httpOnly: false }))
                 }}
-                className={classNames(styles.dropdownExtraItem, Number(account.id) === Number(pointerCookie) && styles.active)}
+                className={dropdownExtraItemClasses({ active: Number(account.id) === Number(pointerCookie) })}
               >
                 <span className={styles.dropdownExtraItemText}>{account.name}</span>
-              </Dropdown.Item>
+              </MenuItem>
             ))}
-          </Dropdown.Menu>
-        </>
+          </MenuPopup>
+        </Menu>
       )}
-    </Dropdown>
+    </div>
   )
 }

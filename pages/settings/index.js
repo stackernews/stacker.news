@@ -1,7 +1,6 @@
-import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, Range } from '@/components/form'
-import Button from 'react-bootstrap/Button'
-import InputGroup from 'react-bootstrap/InputGroup'
-import Nav from 'react-bootstrap/Nav'
+import { Checkbox, Form, Input, InputAddon, SubmitButton, Select, VariableInput, Range, labelClasses } from '@/components/form'
+import Button from '@/components/ui/button'
+import { Nav, NavLink, NavItem } from '@/components/ui/nav'
 import Layout from '@/components/layout'
 import { useMemo } from 'react'
 import { gql } from '@apollo/client'
@@ -11,14 +10,14 @@ import { SETTINGS, SET_SETTINGS } from '@/fragments/users'
 import { useRouter } from 'next/router'
 import Info from '@/components/info'
 import Link from 'next/link'
-import AccordianItem from '@/components/accordian-item'
+import AccordionItem from '@/components/accordion-item'
 import { bech32 } from 'bech32'
 import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32, DEFAULT_CROSSPOSTING_RELAYS } from '@/lib/nostr'
 import { settingsSchema } from '@/lib/validate'
 import { SUPPORTED_CURRENCIES } from '@/lib/currency'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 import { useMe } from '@/components/me'
 import { DEFAULT_COMMENTS_SATS_FILTER, DEFAULT_POSTS_SATS_FILTER, INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { useField } from 'formik'
@@ -49,21 +48,21 @@ export function SettingsHeader () {
         className={styles.nav}
         activeKey={activeKey}
       >
-        <Nav.Item>
-          <Nav.Link as={Link} href='/settings' eventKey='general'>general</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link as={Link} href='/settings/logins' eventKey='logins'>logins</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link as={Link} href='/settings/wallets' eventKey='wallets'>wallets</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link as={Link} href='/settings/subscriptions/stackers' eventKey='subscriptions'>subscriptions</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link as={Link} href='/settings/mutes' eventKey='mutes'>mutes</Nav.Link>
-        </Nav.Item>
+        <NavItem>
+          <NavLink href='/settings' eventKey='general'>general</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href='/settings/logins' eventKey='logins'>logins</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href='/settings/wallets' eventKey='wallets'>wallets</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href='/settings/subscriptions/stackers' eventKey='subscriptions'>subscriptions</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink href='/settings/mutes' eventKey='mutes'>mutes</NavLink>
+        </NavItem>
       </Nav>
     </>
   )
@@ -93,7 +92,7 @@ export default function Settings ({ ssrData }) {
 
   return (
     <Layout>
-      <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
+      <div className='pb-4 w-full mt-2' style={{ maxWidth: '600px' }}>
         <SettingsHeader />
         {hasOnlyOneAuthMethod(settings?.authMethods) && <AuthBanner />}
         <Form
@@ -183,11 +182,11 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
             required
             autoFocus
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            append={<InputAddon className='font-mono'>sats</InputAddon>}
             hint={<small className='text-muted'>note: you can also press and hold the lightning bolt to zap custom amounts</small>}
           />
-          <div className='pb-4'>
-            <AccordianItem
+          <div className='pb-6'>
+            <AccordionItem
               show={settings?.turboTipping}
               header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
               body={
@@ -195,7 +194,7 @@ export default function Settings ({ ssrData }) {
                   <Checkbox
                     name='turboTipping'
                     label={
-                      <div className='d-flex align-items-center'>turbo zapping
+                      <div className='flex items-center'>turbo zapping
                         <Info>
                           <ul>
                             <li>Makes every additional bolt click raise your total zap to another 10x multiple of your default zap</li>
@@ -228,12 +227,11 @@ export default function Settings ({ ssrData }) {
           <Select
             label='fiat currency'
             name='fiatCurrency'
-            size='sm'
             items={SUPPORTED_CURRENCIES}
             required
             className='mb-2'
           />
-          <div className='form-label'>notify me when ...</div>
+          <div className={labelClasses()}>notify me when ...</div>
           <Checkbox
             label='I stack sats from posts and comments'
             name='noteItemSats'
@@ -282,12 +280,12 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='I find or lose cowboy essentials (e.g. cowboy hat)'
             name='noteCowboyHat'
-            groupClassName='mb-3'
+            groupClassName='mb-4'
           />
-          <div className='form-label'>wallet</div>
+          <div className={labelClasses()}>wallet</div>
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>use blank invoice descriptions
+              <div className='flex items-center'>use blank invoice descriptions
                 <Info>
                   <ul>
                     <li>Use this if you don't want funding sources to know you're using stacker.news.</li>
@@ -301,10 +299,10 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <DropBolt11sCheckbox
-            groupClassName='mb-3'
+            groupClassName='mb-4'
             ssrData={ssrData}
             label={
-              <div className='d-flex align-items-center'>autodelete outgoing invoices
+              <div className='flex items-center'>autodelete outgoing invoices
                 <Info>
                   <ul>
                     <li>applies retroactively, cannot be reversed</li>
@@ -316,7 +314,7 @@ export default function Settings ({ ssrData }) {
             }
             name='autoDropBolt11s'
           />
-          <div className='form-label'>privacy</div>
+          <div className={labelClasses()}>privacy</div>
           <Checkbox
             label={<>hide me from  <Link href='/top/stackers/day'>top stackers</Link></>}
             name='hideFromTopUsers'
@@ -335,7 +333,7 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             disabled={!settings?.authMethods?.github}
             label={
-              <div className='d-flex align-items-center'>hide my linked github profile
+              <div className='flex items-center'>hide my linked github profile
                 <Info>
                   <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
@@ -355,7 +353,7 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             disabled={!settings?.authMethods?.nostr}
             label={
-              <div className='d-flex align-items-center'>hide my linked nostr profile
+              <div className='flex items-center'>hide my linked nostr profile
                 <Info>
                   <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
@@ -375,7 +373,7 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             disabled={!settings?.authMethods?.twitter}
             label={
-              <div className='d-flex align-items-center'>hide my linked twitter profile
+              <div className='flex items-center'>hide my linked twitter profile
                 <Info>
                   <ul>
                     <li>Linked accounts are hidden from your profile by default</li>
@@ -394,7 +392,7 @@ export default function Settings ({ ssrData }) {
           />
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>do not load images, videos, or content from external sites
+              <div className='flex items-center'>do not load images, videos, or content from external sites
                 <Info>
                   <ul>
                     <li>only load images and videos when we can proxy them</li>
@@ -411,10 +409,10 @@ export default function Settings ({ ssrData }) {
             label={<>don't create referral links on copy</>}
             name='noReferralLinks'
           />
-          <h4 className='mt-5'>content</h4>
+          <h4 className='mt-12'>content</h4>
           <Range
             label={
-              <div className='d-flex align-items-center'>posts sat filter
+              <div className='flex items-center'>posts sat filter
                 <Info>
                   <ul>
                     <li>hide posts if net investment (cost + zaps + boost - downzaps) is less than this</li>
@@ -436,7 +434,7 @@ export default function Settings ({ ssrData }) {
           />
           <Range
             label={
-              <div className='d-flex align-items-center'>comments sat filter
+              <div className='flex items-center'>comments sat filter
                 <Info>
                   <ul>
                     <li>collapse comments and rank at bottom if net investment is less than this</li>
@@ -458,7 +456,7 @@ export default function Settings ({ ssrData }) {
           />
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>show images, video, and 3rd party embeds
+              <div className='flex items-center'>show images, video, and 3rd party embeds
                 <Info>
                   <ul>
                     <li>if checked and a link is an image, video or can be embedded in another way, we will do it</li>
@@ -482,7 +480,7 @@ export default function Settings ({ ssrData }) {
           />
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>nsfw mode
+              <div className='flex items-center'>nsfw mode
                 <Info>
                   <ul>
                     <li>see posts from nsfw territories</li>
@@ -492,10 +490,10 @@ export default function Settings ({ ssrData }) {
             }
             name='nsfwMode'
           />
-          <h4 className='mt-5'>nostr</h4>
+          <h4 className='mt-12'>nostr</h4>
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>crosspost to nostr
+              <div className='flex items-center'>crosspost to nostr
                 <Info>
                   <ul>
                     <li>crosspost your items to nostr</li>
@@ -527,8 +525,8 @@ export default function Settings ({ ssrData }) {
             max={NOSTR_MAX_RELAY_NUM}
             hint={<small className='text-muted'>used for NIP-05 and crossposting</small>}
           />
-          <div className='d-flex'>
-            <SubmitButton variant='info' className='ms-auto mt-1 px-4'>save</SubmitButton>
+          <div className='flex'>
+            <SubmitButton variant='info' className='ms-auto mt-1 px-6'>save</SubmitButton>
           </div>
         </Form>
       </div>
@@ -543,14 +541,14 @@ const DropBolt11sCheckbox = ({ ssrData, ...props }) => {
 
   return (
     <Checkbox
-      onClick={e => {
-        if (e.target.checked) {
+      handleChange={checked => {
+        if (checked) {
           showModal(onClose => {
             return (
               <>
-                <p className='fw-bolder'>{numBolt11s} withdrawal invoices will be deleted with this setting.</p>
-                <p className='fw-bolder'>You sure? This is a gone forever kind of delete.</p>
-                <div className='d-flex justify-content-end'>
+                <p className='font-bolder'>{numBolt11s} withdrawal invoices will be deleted with this setting.</p>
+                <p className='font-bolder'>You sure? This is a gone forever kind of delete.</p>
+                <div className='flex justify-end'>
                   <Button
                     variant='danger' onClick={async () => {
                       await onClose()
@@ -576,7 +574,7 @@ const ZapUndosField = () => {
         name='zapUndosEnabled'
         groupClassName='mb-0'
         label={
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             zap undos
             <Info>
               <ul>
@@ -591,7 +589,7 @@ const ZapUndosField = () => {
       {checkboxField.value &&
         <Input
           name='zapUndos'
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          append={<InputAddon className='font-mono'>sats</InputAddon>}
           hint={<small className='text-muted'>threshold at which undos will be possible</small>}
           groupClassName='mt-1'
         />}
@@ -609,7 +607,7 @@ const TipRandomField = () => {
         name='tipRandom'
         groupClassName='mb-0'
         label={
-          <div className='d-flex align-items-center'>
+          <div className='flex items-center'>
             random zaps
             <Info>
               <ul>
@@ -632,7 +630,7 @@ const TipRandomField = () => {
             required
             autoFocus
             max={tipRandomMaxField.value ? tipRandomMaxField.value - 1 : undefined}
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            append={<InputAddon className='font-mono'>sats</InputAddon>}
           />
           <Input
             type='number'
@@ -642,7 +640,7 @@ const TipRandomField = () => {
             required
             autoFocus
             min={tipRandomMinField.value ? tipRandomMinField.value + 1 : undefined}
-            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            append={<InputAddon className='font-mono'>sats</InputAddon>}
           />
         </>}
     </>

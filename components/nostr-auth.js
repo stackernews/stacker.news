@@ -2,15 +2,14 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { gql } from '@apollo/client'
 import { useMutation } from '@apollo/client/react'
 import { signIn } from 'next-auth/react'
-import Col from 'react-bootstrap/Col'
-import Row from 'react-bootstrap/Row'
 import { useRouter } from 'next/router'
-import AccordianItem from './accordian-item'
+import AccordionItem from './accordion-item'
 import BackIcon from '@/svgs/arrow-left-line.svg'
 import Nostr from '@/lib/nostr'
 import { NDKNip46Signer } from '@nostr-dev-kit/ndk'
-import { useToast } from '@/components/toast'
-import { Button, Container } from 'react-bootstrap'
+import { useToast } from '@/components/ui/toast'
+import Container from '@/components/ui/container'
+import Button from '@/components/ui/button'
 import { Form, Input, SubmitButton } from '@/components/form'
 import Moon from '@/svgs/moon-fill.svg'
 import styles from './lightning-auth.module.css'
@@ -28,8 +27,8 @@ const sanitizeURL = (s) => {
 function NostrError ({ message }) {
   return (
     <>
-      <h4 className='fw-bold text-danger pb-1'>error</h4>
-      <div className='text-muted pb-4'>{message}</div>
+      <h4 className='font-bold text-danger pb-1'>error</h4>
+      <div className='text-muted pb-6'>{message}</div>
     </>
   )
 }
@@ -175,13 +174,13 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
       {status.loading
         ? (
           <>
-            <div className='text-muted py-4 w-100 line-height-1 d-flex align-items-center gap-2'>
-              <Moon className='spin fill-grey flex-shrink-0' width='30' height='30' />
+            <div className='text-muted py-6 w-full leading-none flex items-center gap-2'>
+              <Moon className='spin fill-muted shrink-0' width='30' height='30' />
               {status.msg}
             </div>
             {status.button && (
               <Button
-                className='w-100' variant='primary'
+                className='w-full' variant='primary'
                 onClick={() => status.button.action()}
               >
                 {status.button.label}
@@ -196,7 +195,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
           <>
             <Button
               variant='nostr'
-              className='line-height-md'
+              className='leading-normal w-full'
               type='submit'
               onClick={async () => {
                 try {
@@ -208,7 +207,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
             >
               {text || 'Login'} with browser extension
             </Button>
-            <div className='text-center text-muted fw-bold my-3'>or</div>
+            <div className='text-center text-muted font-bold my-4'>or</div>
             <Form
               initial={{ token: '' }}
               onSubmit={values => {
@@ -227,7 +226,7 @@ export function NostrAuth ({ text, callbackUrl, multiAuth }) {
                 autoFocus
               />
               <div className='mt-2'>
-                <SubmitButton className='w-100' variant='primary'>
+                <SubmitButton className='w-full' variant='primary'>
                   {text || 'Login'} with token or NIP-05
                 </SubmitButton>
               </div>
@@ -243,86 +242,74 @@ function NostrExplainer ({ text, children }) {
   return (
     <Container>
       <div className={styles.login}>
-        <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
-        <h3 className='w-100 pb-2'>
+        <div className='w-full mb-4 text-muted pointer' onClick={() => router.back()}><BackIcon className='fill-current' /></div>
+        <h3 className='w-full pb-2'>
           {text || 'Login'} with Nostr
         </h3>
-        <Row className='w-100 text-muted'>
-          <Col className='ps-0 mb-4' md>
-            <AccordianItem
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-8 w-full text-muted'>
+          <div className='mb-6'>
+            <AccordionItem
               header='Which extensions can I use?'
               body={
-                <>
-                  <Row>
-                    <Col>
-                      <ul>
-                        <li>
-                          <a href='https://getalby.com'>Alby</a>
-                          <ul>
-                            <li>available for: chrome, firefox, and safari</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://www.getflamingo.org/'>Flamingo</a>
-                          <ul>
-                            <li>available for: chrome</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://github.com/fiatjaf/nos2x'>nos2x</a>
-                          <ul>
-                            <li>available for: chrome</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://diegogurpegui.com/nos2x-fox/'>nos2x-fox</a>
-                          <ul>
-                            <li>available for: firefox</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://github.com/fiatjaf/horse'>horse</a>
-                          <ul>
-                            <li>available for: chrome</li>
-                            <li>supports hardware signing</li>
-                          </ul>
-                        </li>
-                      </ul>
-                    </Col>
-                  </Row>
-                </>
-          }
+                <ul>
+                  <li>
+                    <a href='https://getalby.com'>Alby</a>
+                    <ul>
+                      <li>available for: chrome, firefox, and safari</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://www.getflamingo.org/'>Flamingo</a>
+                    <ul>
+                      <li>available for: chrome</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://github.com/fiatjaf/nos2x'>nos2x</a>
+                    <ul>
+                      <li>available for: chrome</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://diegogurpegui.com/nos2x-fox/'>nos2x-fox</a>
+                    <ul>
+                      <li>available for: firefox</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://github.com/fiatjaf/horse'>horse</a>
+                    <ul>
+                      <li>available for: chrome</li>
+                      <li>supports hardware signing</li>
+                    </ul>
+                  </li>
+                </ul>
+              }
             />
-            <AccordianItem
+            <AccordionItem
               header='Which NIP-46 signers can I use?'
               body={
-                <>
-                  <Row>
-                    <Col xs>
-                      <ul>
-                        <li>
-                          <a href='https://nsec.app/'>Nsec.app</a>
-                          <ul>
-                            <li>available for: chrome, firefox, and safari</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <a href='https://app.nsecbunker.com/'>nsecBunker</a>
-                          <ul>
-                            <li>available as: SaaS or self-hosted</li>
-                          </ul>
-                        </li>
-                      </ul>
-                    </Col>
-                  </Row>
-                </>
-          }
+                <ul>
+                  <li>
+                    <a href='https://nsec.app/'>Nsec.app</a>
+                    <ul>
+                      <li>available for: chrome, firefox, and safari</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <a href='https://app.nsecbunker.com/'>nsecBunker</a>
+                    <ul>
+                      <li>available as: SaaS or self-hosted</li>
+                    </ul>
+                  </li>
+                </ul>
+              }
             />
-          </Col>
-          <Col md className='mx-auto' style={{ maxWidth: '300px' }}>
+          </div>
+          <div className='w-full max-w-80 mx-auto'>
             {children}
-          </Col>
-        </Row>
+          </div>
+        </div>
       </div>
     </Container>
   )

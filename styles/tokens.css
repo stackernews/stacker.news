@@ -1,0 +1,125 @@
+/* SN design tokens. territory branding overrides the brand tokens at runtime,
+   see lib/domains/custom-css.js */
+
+:root, [data-theme=light] {
+  /* runtime-overridable brand */
+  --sn-primary: #FADA5E;
+  --sn-secondary: #F6911D;
+  /* text on brand, YIQ-computed per territory */
+  --sn-primary-text: #000;
+  --sn-secondary-text: #fff;
+
+  /* fixed palette, static across themes and not territory-overridable */
+  --sn-danger: #c03221;
+  --sn-warning: #F6911D;
+  --sn-info: #007cbe;
+  --sn-success: #5c8001;
+  --sn-boost: #8c25f4;
+  --sn-nostr: #8d45dd;
+  --sn-twitter: #1da1f2;
+
+  /* neutral body tier for secondary text and surfaces, unrelated to the --sn-secondary brand orange */
+  --sn-body-bg: #fcfcff;
+  --sn-body-color: #212529;
+  --sn-border-color-subtle: #dee2e6;
+  --sn-border-color-translucent: rgba(0, 0, 0, 0.175);
+  --sn-body-secondary-bg: #e9ecef;
+  --sn-body-secondary-color: rgba(33, 37, 41, 0.75);
+
+  /* font stacks */
+  --sn-font-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --sn-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* static grays, the same in both themes */
+  --sn-light: #f8f9fa;
+  --sn-dark: #212529;
+  --sn-grey-medium: #d2d2d2;
+  --sn-grey-darkmode: #8c8c8c;
+
+  /* one-offs with live consumers */
+  --sn-code-color: #d63384;
+  --sn-muted: var(--sn-grey);
+
+  /* component theme values */
+  --sn-nav-link: rgba(0, 0, 0, 0.55);
+  --sn-nav-link-focus: rgba(0, 0, 0, 0.7);
+  --sn-nav-link-active: rgba(0, 0, 0, 0.9);
+  --sn-border-color: #ced4da;
+  --sn-input-bg: #ffffff;
+  --sn-input-disabled-bg: #e9ecef;
+  --sn-dropdown-item-color: rgba(0, 0, 0, 0.7);
+  --sn-dropdown-item-color-hover: rgba(0, 0, 0, 0.9);
+  --sn-comment-bg: rgba(0, 0, 0, 0.03);
+  --sn-force-comment-bg: rgb(244, 244, 247);
+  --sn-click-to-context-color: rgba(0, 0, 0, 0.07);
+  --sn-brand-color: rgba(0, 0, 0, 0.9);
+  --sn-grey: #707070;
+  --sn-link: #007cbe;
+  --sn-toolbar-active: rgba(0, 0, 0, 0.10);
+  --sn-toolbar-hover: rgba(0, 0, 0, 0.20);
+  --sn-quote-bar: rgb(206, 208, 212);
+  --sn-link-hover: #004a72;
+  --sn-link-visited: #53758e;
+  --sn-note-reply: rgba(0, 0, 0, 0.04);
+  --sn-note-fresh: rgba(0, 124, 190, 0.5);
+
+  /* z-index ladder */
+  --sn-z-sticky: 900;
+  --sn-z-fixed: 1000;
+  --sn-z-dropdown: 1060; /* above modals, below popovers */
+  --sn-z-drawer-backdrop: 1040;
+  --sn-z-drawer: 1045;
+  --sn-z-backdrop: 1050;
+  --sn-z-modal: 1055;
+  --sn-z-popover: 1070;
+  --sn-z-tooltip: 1080;
+  --sn-z-toast: 1090;
+}
+
+[data-theme=dark] {
+  color-scheme: dark;
+  --sn-input-bg: #121211;
+  --sn-input-disabled-bg: #2d2d2d;
+  --sn-nav-link: rgba(255, 255, 255, 0.55);
+  --sn-nav-link-focus: rgba(255, 255, 255, 0.75);
+  --sn-nav-link-active: rgba(255, 255, 255, 0.9);
+  --sn-border-color: rgba(255, 255, 255, 0.5);
+  --sn-dropdown-item-color: rgba(255, 255, 255, 0.7);
+  --sn-dropdown-item-color-hover: rgba(255, 255, 255, 0.9);
+  --sn-comment-bg: rgba(255, 255, 255, 0.025);
+  --sn-force-comment-bg: rgb(24, 24, 26);
+  --sn-click-to-context-color: rgba(255, 255, 255, 0.1);
+  --sn-brand-color: var(--sn-primary);
+  --sn-grey: #969696;
+  --sn-link: #2e99d1;
+  --sn-toolbar-active: rgba(255, 255, 255, 0.10);
+  --sn-toolbar-hover: rgba(255, 255, 255, 0.20);
+  --sn-quote-bar: rgb(158, 159, 163);
+  --sn-link-hover: #007cbe;
+  --sn-link-visited: #56798E;
+  --sn-note-reply: rgba(255, 255, 255, 0.05);
+  --sn-note-fresh: rgba(0, 124, 190, 0.75);
+
+  --sn-body-bg: #121214;
+  --sn-body-color: #f0f0f0;
+  --sn-border-color-subtle: #495057;
+  --sn-border-color-translucent: rgba(255, 255, 255, 0.15);
+  --sn-body-secondary-bg: #343a40;
+  --sn-body-secondary-color: rgba(240, 240, 240, 0.75);
+  --sn-code-color: rgb(230.4, 132.6, 181.2);
+}
+
+/* wallet radii and spacing, on :root so they reach portaled wallet ui */
+:root {
+  --wt-radius-xs: 8px;
+  --wt-radius-sm: 10px;
+  --wt-radius-md: 12px;
+  --wt-radius-lg: 16px;
+  --wt-radius-pill: 999px;
+  --wt-gap-xs: 0.35rem;
+  --wt-gap-sm: 0.5rem;
+  --wt-gap-md: 0.75rem;
+  --wt-gap-lg: 1rem;
+  --wt-gap-xl: 1.25rem;
+  --wt-surface-bg: color-mix(in srgb, var(--sn-toolbar-hover) 38%, var(--sn-body-bg));
+}

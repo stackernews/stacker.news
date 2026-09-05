@@ -1,0 +1,91 @@
+/* tailwind entry and layer order, see docs/dev/styling.md */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+
+@source '../components';
+@source '../pages';
+@source '../lib';
+@source '../wallets';
+@source '../svgs';
+
+/* words that aren't utility usage */
+@source not inline('container');
+@source not inline('table');
+
+/* :where() keeps the dark variant at zero specificity */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme {
+  /* existing application layout thresholds */
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1400px;
+
+  --font-weight-bolder: bolder;
+
+  /* body type, other sizes use the stock scale */
+  --text-base: .93rem;
+  --text-base--line-height: 1.75;
+
+  /* page column: a 900px content column inside the 1rem gutters */
+  --container-page: 932px;
+}
+
+/* inline so utilities read the live theme and territory values */
+@theme inline {
+  --font-mono: var(--sn-font-monospace);
+  --color-primary: var(--sn-primary);
+  --color-secondary: var(--sn-secondary);
+  --color-warning: var(--sn-warning);
+  --color-danger: var(--sn-danger);
+  --color-info: var(--sn-info);
+  --color-success: var(--sn-success);
+  --color-boost: var(--sn-boost);
+  --color-nostr: var(--sn-nostr);
+  --color-muted: var(--sn-muted);
+  /* static grays keep one value in both themes */
+  --color-light: var(--sn-light);
+  --color-dark: var(--sn-dark);
+  --color-grey-medium: var(--sn-grey-medium);
+  --color-grey-darkmode: var(--sn-grey-darkmode);
+}
+
+@utility text-reset {
+  color: inherit;
+}
+
+/* bootstrap-era small text */
+@utility small {
+  font-size: .875em;
+}
+
+/* ios zooms focused controls under 16px */
+@utility text-touch {
+  font-size: 1rem;
+}
+
+@utility px-safe {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* px-4 that grows with the safe area */
+@utility px-safe-gutter {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* z-index has no theme namespace, so the ladder steps utilities need are written out */
+@utility z-sticky {
+  z-index: var(--sn-z-sticky);
+}
+
+@utility z-dropdown {
+  z-index: var(--sn-z-dropdown);
+}

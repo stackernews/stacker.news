@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import styles from '@/lib/lexical/theme/editor.module.css'
-import Nav from 'react-bootstrap/Nav'
+import { Tabs } from '@base-ui/react/tabs'
 import { useEditorMode, MARKDOWN_MODE, RICH_MODE } from '@/components/editor/contexts/mode'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { createCommand, COMMAND_PRIORITY_HIGH } from 'lexical'
@@ -8,7 +8,7 @@ import { isMarkdownMode } from '@/lib/lexical/commands/utils'
 import { SYNC_FORMIK_COMMAND } from '@/components/editor/plugins/core/formik'
 import { useFeeButton } from '@/components/fee-button'
 import { UPLOAD_SUBMIT_DISABLED_REASON } from '@/components/editor/plugins/upload'
-import { useToast } from '@/components/toast'
+import { useToast } from '@/components/ui/toast'
 
 /** command to toggle between markdown and rich mode
  * @param {string} [newMode] - the new mode to switch to, if not provided, the current mode will be toggled
@@ -51,32 +51,18 @@ export default function ModeSwitchPlugin ({ name }) {
     )
   }, [editor, changeMode, toggleMode, disabledReasons, toaster])
 
-  const handleTabSelect = useCallback((eventKey) => {
-    editor.dispatchCommand(TOGGLE_MODE_COMMAND, eventKey)
+  const handleTabSelect = useCallback((value) => {
+    editor.dispatchCommand(TOGGLE_MODE_COMMAND, value)
   }, [editor])
 
+  // the value only moves when TOGGLE_MODE_COMMAND accepts the switch, so a refused
+  // command leaves the tabs where they are. mousedown preventDefault keeps the lexical selection
   return (
-    <Nav variant='tabs' activeKey={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onSelect={handleTabSelect} onMouseDown={(e) => e.preventDefault()}>
-      <Nav.Item>
-        <Nav.Link
-          className={styles.modeTab}
-          eventKey={MARKDOWN_MODE}
-          title='markdown'
-          disabled={isMarkdown}
-        >
-          write
-        </Nav.Link>
-      </Nav.Item>
-      <Nav.Item>
-        <Nav.Link
-          className={styles.modeTab}
-          eventKey={RICH_MODE}
-          title='rich text'
-          disabled={!isMarkdown}
-        >
-          compose
-        </Nav.Link>
-      </Nav.Item>
-    </Nav>
+    <Tabs.Root value={isMarkdown ? MARKDOWN_MODE : RICH_MODE} onValueChange={handleTabSelect}>
+      <Tabs.List className='flex flex-nowrap' onMouseDown={(e) => e.preventDefault()}>
+        <Tabs.Tab value={MARKDOWN_MODE} title='markdown' className={styles.modeTab}>write</Tabs.Tab>
+        <Tabs.Tab value={RICH_MODE} title='rich text' className={styles.modeTab}>compose</Tabs.Tab>
+      </Tabs.List>
+    </Tabs.Root>
   )
 }

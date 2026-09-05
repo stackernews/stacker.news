@@ -1,8 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
-import Modal from 'react-bootstrap/Modal'
+import { Dialog } from '@base-ui/react/dialog'
 import BackArrow from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 import ActionDropdown from './action-dropdown'
+import { cn } from '@/lib/cn'
+import styles from './modal.module.css'
 
 export class ModalClosedError extends Error {
   constructor () {
@@ -31,6 +33,18 @@ export function useShowModal () {
 export default function useModal () {
   const modalStack = useRef([])
   const [render, forceUpdate] = useReducer(x => x + 1, 0)
+  const popupRef = useRef(null)
+  const lastPointerDownAtRef = useRef(0)
+  const shownAtRef = useRef(0)
+
+  // a press can begin before the modal mounts and end outside it, e.g. a long press
+  // or the territory hover card race. we stamp pointerdowns globally so its release
+  // can't dismiss a modal that didn't exist when the press started
+  useEffect(() => {
+    const stamp = e => { lastPointerDownAtRef.current = e.timeStamp }
+    document.addEventListener('pointerdown', stamp, true)
+    return () => document.removeEventListener('pointerdown', stamp, true)
+  }, [])
 
   const getCurrentContent = useCallback(() => {
     return modalStack.current[modalStack.current.length - 1]
@@ -92,35 +106,59 @@ export default function useModal () {
 
     const content = getCurrentContent()
     const { overflow, keepOpen, fullScreen } = content.options || {}
-    const className = fullScreen ? 'fullscreen' : ''
 
     return (
-      <Modal
-        onHide={keepOpen ? undefined : onClose} show={!!content}
-        className={className}
-        dialogClassName={className}
-        contentClassName={className}
+      <Dialog.Root
+        open
+        onOpenChange={(open, details) => {
+          if (open) return
+          // the X always closes, keepOpen only disables light dismiss
+          if (details.reason === 'close-press') return onClose()
+          // ignore releases of presses that began before the modal showed (see the pointerdown listener)
+          if (details.reason === 'outside-press' && lastPointerDownAtRef.current < shownAtRef.current) return
+          if (!keepOpen) onClose()
+        }}
       >
-        <div className='d-flex flex-row'>
-          {overflow &&
-            <div className={'modal-btn modal-overflow ' + className}>
-              <ActionDropdown>
-                {overflow}
-              </ActionDropdown>
-            </div>}
-          {modalStack.current.length > 1 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} /></div> : null}
-          <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
-        </div>
-        <Modal.Body className={className}>
-          {content.node}
-        </Modal.Body>
-      </Modal>
+        <Dialog.Portal>
+          <Dialog.Backdrop className={styles.backdrop} />
+          <Dialog.Viewport className={cn(styles.viewport, fullScreen && styles.fullScreen)}>
+            <Dialog.Popup
+              ref={popupRef}
+              // focus the popup itself so we don't open a mobile keyboard or show a focus ring on open
+              initialFocus={() => popupRef.current}
+              className={cn(styles.popup, fullScreen ? styles.fullScreen : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg')}
+            >
+              <div className='flex'>
+                {overflow &&
+                  <div className={cn(styles.btn, styles.overflow, fullScreen && styles.fullScreen)}>
+                    <ActionDropdown>
+                      {overflow}
+                    </ActionDropdown>
+                  </div>}
+                {modalStack.current.length > 1
+                  ? <button type='button' aria-label='back' className={cn(styles.btn, styles.back)} onClick={onBack}><BackArrow width={18} height={18} /></button>
+                  : null}
+                <Dialog.Close
+                  aria-label='close'
+                  className={cn(styles.btn, styles.close, fullScreen && styles.fullScreen)}
+                >X
+                </Dialog.Close>
+              </div>
+              <div className={cn(styles.body, fullScreen ? styles.fullScreen : 'p-8')}>
+                {content.node}
+              </div>
+            </Dialog.Popup>
+          </Dialog.Viewport>
+        </Dialog.Portal>
+      </Dialog.Root>
     )
   }, [render])
 
   const showModal = useCallback(
     (getContent, options) => {
       document.activeElement?.blur()
+      // same clock as event.timeStamp
+      shownAtRef.current = performance.now()
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]

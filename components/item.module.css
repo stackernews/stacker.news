@@ -1,12 +1,16 @@
+@layer components {
+
 .title {
     white-space: normal;
     max-width: 100%;
     display: inline-block;
     vertical-align: middle;
     margin-bottom: .15rem;
+    color: inherit;
 }
 
 .summaryText {
+    color: inherit;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
@@ -17,7 +21,7 @@
 
 .searchSnippet {
     font-size: 85%;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -30,10 +34,10 @@
 .notification {
     position: absolute;
     padding: 3px;
-    background-color: var(--bs-info);
+    background-color: var(--sn-info);
     top: -3px;
     right: -4px;
-    border: 1px solid var(--bs-body-bg);
+    border: 1px solid var(--sn-body-bg);
 }
 
 .icon {
@@ -41,7 +45,7 @@
 }
 
 a.title:visited {
-    color: var(--theme-grey) !important;
+    color: var(--sn-grey);
 }
 
 .upvote {
@@ -57,20 +61,6 @@ a.title:visited {
     flex: 1 0 128px;
     max-width: fit-content;
     margin-bottom: .15rem;
-}
-
-.badge {
-    vertical-align: middle;
-    margin-top: -1px;
-    margin-left: 0.1rem;
-}
-
-.newComment {
-    color: var(--theme-grey) !important;
-    background: var(--theme-clickToContextColor) !important;
-    vertical-align: middle;
-    margin-top: -1px;
-    margin-left: 0.1rem;
 }
 
 .pin {
@@ -108,12 +98,12 @@ a.title:visited {
 }
 
 a.link:visited {
-    color: var(--theme-linkVisited) !important;
+    color: var(--sn-link-visited);
 }
 
 .other {
     font-size: 80%;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
     vertical-align: text-top;
     margin-bottom: .125rem;
     word-break: break-word;
@@ -125,11 +115,6 @@ a.link:visited {
 
 .other .dropdown svg {
     margin-top: -1px;
-}
-
-.other :global(.dropdown-item) {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
 }
 
 .item {
@@ -197,7 +182,7 @@ a.link:visited {
     grid-column: 1 / -1;
     font-weight: bold;
     font-size: 0.9rem;
-    border-bottom: 1px solid var(--theme-borderColor);
+    border-bottom: 1px solid var(--sn-border-color);
     padding-bottom: 0.35rem;
     margin-top: 0.75rem;
 }
@@ -207,7 +192,7 @@ a.link:visited {
 }
 
 .detailsLabel {
-    color: var(--theme-grey);
+    color: var(--sn-grey);
 }
 
 .detailsValue {
@@ -238,7 +223,7 @@ a.link:visited {
     font-weight: 600;
     margin-top: .25rem;
     display: flex;
-    color: var(--theme-grey);
+    color: var(--sn-grey);
     font-size: 90%;
     margin-right: .75rem;
 }
@@ -249,7 +234,7 @@ a.link:visited {
 }
 
 .skeleton .title {
-    background-color: var(--theme-grey);
+    background-color: var(--sn-grey);
     width: 500px;
     border-radius: .4rem;
 }
@@ -259,7 +244,7 @@ a.link:visited {
 }
 
 .skeleton .name {
-    background-color: var(--theme-grey);
+    background-color: var(--sn-grey);
     width: 100px;
     border-radius: .4rem;
     height: 17px;
@@ -271,7 +256,7 @@ a.link:visited {
 }
 
 .skeleton .link {
-    background-color: var(--theme-grey);
+    background-color: var(--sn-grey);
     width: 800px;
     border-radius: .3rem;
     line-height: .8rem;
@@ -287,10 +272,12 @@ a.link:visited {
     width: 42px;
     height: 70%;
     border-radius: .27rem;
-    background-color: var(--theme-grey);
+    background-color: var(--sn-grey);
     margin-right: .5rem;
 }
 
 .skeleton .otherItemLonger {
     width: 60px;
+}
+
 }

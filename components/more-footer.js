@@ -1,4 +1,4 @@
-import Button from 'react-bootstrap/Button'
+import Button from '@/components/ui/button'
 import { useState } from 'react'
 import Link from 'next/link'
 
@@ -36,14 +36,14 @@ export default function MoreFooter ({ cursor, count, fetchMore, Skeleton, invisi
     )
   }
 
-  return <div className={`d-flex justify-content-center mt-4 mb-1 ${invisible ? 'invisible' : ''}`}><Footer cursor={cursor} fetchMore={fetchMore} setLoading={setLoading} /></div>
+  return <div className={`flex justify-center mt-6 mb-1 ${invisible ? 'invisible' : ''}`}><Footer cursor={cursor} fetchMore={fetchMore} setLoading={setLoading} /></div>
 }
 
 export function NavigateFooter ({ cursor, count, fetchMore, href, text, invisible, noMoreText = 'NO MORE' }) {
   let Footer
   if (cursor) {
     Footer = () => (
-      <Link href={href} className='text-reset text-muted fw-bold'>{text}</Link>
+      <Link href={href} className='text-reset text-muted font-bold'>{text}</Link>
     )
   } else {
     Footer = () => (
@@ -51,5 +51,5 @@ export function NavigateFooter ({ cursor, count, fetchMore, href, text, invisibl
     )
   }
 
-  return <div className={`d-flex justify-content-start my-1 ${invisible ? 'invisible' : ''}`}><Footer /></div>
+  return <div className={`flex justify-start my-1 ${invisible ? 'invisible' : ''}`}><Footer /></div>
 }

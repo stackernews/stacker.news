@@ -92,13 +92,6 @@ module.exports = withPlausibleProxy({ src: 'https://plausible.io/js/pa-EScEhWlTi
     scrollRestoration: true,
     serverSourceMaps: true
   },
-  // suppress deprecation warnings of bootstrap sass
-  // https://github.com/twbs/bootstrap/issues/40962
-  sassOptions: {
-    charset: false,
-    quietDeps: true,
-    silenceDeprecations: ['legacy-js-api', 'color-functions']
-  },
   reactStrictMode: true,
   productionBrowserSourceMaps: true,
   generateBuildId: commitHash ? async () => commitHash : undefined,

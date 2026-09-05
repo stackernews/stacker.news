@@ -1,6 +1,6 @@
 import { Fragment, useCallback, forwardRef, useRef } from 'react'
 import { UPLOAD_TYPES_ALLOW, MEDIA_URL } from '@/lib/constants'
-import { useToast } from './toast'
+import { useToast } from '@/components/ui/toast'
 import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client/react'
 import piexif from 'piexifjs'
@@ -95,7 +95,7 @@ export const FileUpload = forwardRef(({ children, className, onSelect, onUpload,
         ref={ref}
         type='file'
         multiple={multiple}
-        className='d-none'
+        className='hidden'
         accept={accept.join(', ')}
         onChange={async (e) => {
           const fileList = e.target.files

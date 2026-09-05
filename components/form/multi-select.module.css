@@ -1,0 +1,48 @@
+@layer components {
+
+.control {
+  min-width: 200px;
+}
+
+/* :focus never fires on the wrapper, so the ring rides :focus-within */
+.control:focus-within {
+  border-color: var(--sn-primary);
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+}
+
+.control[data-invalid] {
+  border-color: var(--sn-danger);
+}
+
+.control[data-invalid]:focus-within {
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-danger) 25%, transparent);
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  background-color: var(--sn-click-to-context-color);
+  border-radius: 2px;
+  padding-inline-start: 6px;
+}
+
+.groupLabel {
+  padding: .25rem 1rem;
+  color: var(--sn-grey);
+  font-size: .75rem;
+  text-transform: uppercase;
+}
+
+/* as many rows as the react-select menu showed */
+.list {
+  max-height: 432px;
+}
+
+/* mobile touch targets */
+@media (max-width: 767px) {
+  .item {
+    min-height: 44px;
+  }
+}
+
+}

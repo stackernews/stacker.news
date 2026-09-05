@@ -46,7 +46,7 @@ export function TableOfContents ({ headings }) {
             ))}
           </ul>
           )
-        : <div className='text-muted fst-italic'>no headings</div>}
+        : <div className='text-muted italic'>no headings</div>}
     </details>
   )
 }

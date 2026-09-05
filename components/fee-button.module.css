@@ -1,9 +1,12 @@
+@layer components {
+
 .receipt {
-    background-color: var(--theme-inputBg);
+    background-color: var(--sn-input-bg);
     max-width: 300px;
     margin: auto;
     table-layout: auto;
     width: 100%;
+    border-collapse: collapse;
 }
 
 .feeButton {
@@ -21,19 +24,18 @@
 }
 
 .freebieCheckbox label {
-    color: var(--theme-grey);
-}
-
-.freebieCheckbox:focus-within label {
-    color: var(--theme-color);
+    color: var(--sn-grey);
 }
 
 .receipt td {
     padding: .25rem .1rem;
-    background-color: var(--theme-inputBg);
-    color: var(--bs-body-color);
+    background-color: var(--sn-input-bg);
+    color: var(--sn-body-color);
+    line-height: 1.2rem;
+    vertical-align: top;
 }
 
 .receipt tfoot {
-    border-top: 2px solid var(--theme-borderColor) !important;
+    border-top: 2px solid var(--sn-border-color) !important;
+}
 }

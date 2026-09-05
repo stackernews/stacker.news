@@ -1,3 +1,5 @@
+@layer components {
+
 .text {
     font-size: 94%;
     font-family: inherit;
@@ -61,7 +63,7 @@
     height: 50vh;
     pointer-events: none;
     z-index: 1;
-    background: linear-gradient(rgba(255, 255, 255, 0), var(--bs-body-bg) 200%);
+    background: linear-gradient(rgba(255, 255, 255, 0), var(--sn-body-bg) 200%);
 }
 
 .textShowFull {
@@ -110,11 +112,7 @@
 }
 
 .text hr {
-    border-top: 3px solid var(--theme-quoteBar);
-}
-
-.text.topLevel {
-    --grid-gap: 0.75rem;
+    border-top: 3px solid var(--sn-quote-bar);
 }
 
 .text .p {
@@ -245,7 +243,7 @@
 }
 
 .text blockquote {
-    border-left: 3px solid var(--theme-quoteBar);
+    border-left: 3px solid var(--sn-quote-bar);
     padding-left: .75rem;
 }
 
@@ -287,7 +285,6 @@
 
 .text h1 a, .text h2 a, .text h3 a, .text h4 a, .text h5 a, .text h6 a {
     text-decoration: none;
-    --bs-text-opacity: 1;
     color: inherit !important;
 }
 
@@ -322,7 +319,6 @@
 .twitterContainer, .nostrContainer, .videoWrapper, .wavlakeWrapper, .spotifyWrapper {
     margin-top: calc(var(--grid-gap) * 0.5);
     margin-bottom: calc(var(--grid-gap) * 0.5);
-    background-color: var(--theme-bg);
 }
 
 .videoWrapper {
@@ -330,7 +326,6 @@
 }
 
 .topLevel .videoWrapper,
-:global(.topLevel) .videoWrapper,
 :global(.topLevel) .videoWrapper {
     max-width: 640px;
     margin: 0.75rem 0;
@@ -375,7 +370,6 @@
 }
 
 .topLevel .twitterContained,
-:global(.topLevel) .twitterContained,
 :global(.topLevel) .twitterContained {
     height: 200px;
 }
@@ -398,24 +392,19 @@
 }
 
 .topLevel .tweetsSkeleton,
-:global(.topLevel) .tweetsSkeleton,
 :global(.topLevel) .tweetsSkeleton {
     max-width: 550px;
 }
 
 .tweetSkeleton {
     width: 100%;
-}
-
-.tweetSkeleton {
-    border: 0.05rem solid var(--theme-borderColor);
+    border: 0.05rem solid var(--sn-border-color);
     border-radius: 12px;
     height: 150px;
     padding: 1.5rem;
 }
 
 .topLevel .tweetSkeleton,
-:global(.topLevel) .tweetSkeleton,
 :global(.topLevel) .tweetSkeleton {
     height: 200px;
 }
@@ -457,4 +446,6 @@
     max-width: 480px;
     border-radius: 13px;
     overflow: hidden;
+}
+
 }

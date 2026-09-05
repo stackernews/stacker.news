@@ -1,4 +1,4 @@
-import Alert from 'react-bootstrap/Alert'
+import { Alert } from '@/components/ui/alert'
 import YouTube from '@/svgs/youtube-line.svg'
 import { useEffect, useState } from 'react'
 import { gql } from '@apollo/client'
@@ -23,9 +23,9 @@ export default function Snl ({ ignorePreference }) {
   if (!show) return null
 
   return (
-    <div className='d-flex'>
+    <div className='flex'>
       <Alert
-        variant='info' className='fw-bold mb-3 d-flex flex-shrink align-items-center'
+        variant='info' className='font-bold mb-4 flex items-center'
         onClose={() => {
           setShow(undefined)
           window.localStorage.setItem('snl', new Date())

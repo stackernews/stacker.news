@@ -16,14 +16,14 @@ export default function Qr ({ value, qrTransform = (value) => value, description
 
   return (
     <>
-      <a className='d-block p-3 mx-auto' style={{ background: 'white', maxWidth: '300px' }} href={qrValue}>
+      <a className='block p-4 mx-auto' style={{ background: 'white', maxWidth: '300px' }} href={qrValue}>
         <QRCodeSVG
-          className='h-auto mw-100' value={qrValue} size={300} imageSettings={qrImageSettings}
+          className='h-auto max-w-full' value={qrValue} size={300} imageSettings={qrImageSettings}
         />
       </a>
       {description && <div className='mt-1 text-center text-muted'>{description}</div>}
       {copy &&
-        <div className='my-2 w-100'>
+        <div className='my-2 w-full'>
           <CopyChip value={value} prefix={<Clipboard height={16} width={16} />} full />
         </div>}
     </>
@@ -33,10 +33,10 @@ export default function Qr ({ value, qrTransform = (value) => value, description
 export function QrSkeleton ({ description, copy = true }) {
   return (
     <>
-      <div className='h-auto mx-auto w-100 clouds' style={{ paddingTop: 'min(300px, 100%)', maxWidth: 'calc(300px)' }} />
-      {description && <div className='mt-1 fst-italic text-center text-muted invisible'>i'm invisible</div>}
+      <div className='h-auto mx-auto w-full clouds' style={{ paddingTop: 'min(300px, 100%)', maxWidth: 'calc(300px)' }} />
+      {description && <div className='mt-1 italic text-center text-muted invisible'>i'm invisible</div>}
       {copy &&
-        <div className='my-3 w-100'>
+        <div className='my-4 w-full'>
           <div className='clouds mx-auto' style={{ height: '40px', width: '100%', borderRadius: '999px' }} />
         </div>}
     </>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useApolloClient, useMutation } from '@apollo/client/react'
-import { Button } from 'react-bootstrap'
+import Button, { buttonClasses } from '@/components/ui/button'
 import classNames from 'classnames'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -174,7 +174,7 @@ function EmbeddedSparkProvision ({ onSuccess }) {
     <OnboardingShell narrow>
       <div className={classNames(styles.heading, 'text-center')}>
         <div className={styles.eyebrow}>Finishing setup</div>
-        <Moon className='spin fill-grey mb-3' height={32} width={32} />
+        <Moon className='spin fill-muted mb-4' height={32} width={32} />
         <h1>Creating your wallet</h1>
         <p>Your recovery secret is being generated and encrypted on this device.</p>
       </div>
@@ -202,10 +202,10 @@ function WalletOnboardingSuccess ({ walletId, returnTo }) {
           <p>Your wallet is set up and ready to use on SN.</p>
         </div>
         <div className={styles.successActions}>
-          <Button as={Link} href={selectedWalletRoute(walletId)}>Go to wallet</Button>
-          <Button as={Link} href={safeReturnTo || '/'} variant='link'>
+          <Link href={selectedWalletRoute(walletId)} className={buttonClasses()}>Go to wallet</Link>
+          <Link href={safeReturnTo || '/'} className={buttonClasses({ variant: 'link' })}>
             {safeReturnTo ? 'Continue' : 'Go to homepage'}
-          </Button>
+          </Link>
         </div>
       </div>
     </OnboardingShell>

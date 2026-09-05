@@ -90,7 +90,7 @@ class MyDocument extends Document {
           <Script id='dark-mode-js' strategy='beforeInteractive'>
             {`const handleThemeChange = (dark) => {
                 const root = window.document.documentElement
-                root.setAttribute('data-bs-theme', dark ? 'dark' : 'light')
+                root.setAttribute('data-theme', dark ? 'dark' : 'light')
               }
 
               const STORAGE_KEY = 'darkMode'

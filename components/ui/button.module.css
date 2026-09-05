@@ -1,0 +1,204 @@
+@layer components {
+
+/* skin only, what the button looks like in each state
+   layout settings live in button.js
+*/
+
+.btn {
+  color: var(--sn-btn-color);
+  background-color: var(--sn-btn-bg);
+  /* same height as bordered inputs */
+  border: 1px solid transparent;
+}
+
+.btn:hover,
+.btn:active {
+  color: var(--sn-btn-hover-color, var(--sn-btn-color));
+}
+
+.btn:hover {
+  background-color: var(--sn-btn-hover-bg, color-mix(in srgb, var(--sn-btn-bg) 85%, var(--sn-btn-mix, #000)));
+}
+
+.btn:active {
+  background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
+}
+
+.btn[data-pressed] {
+  background-color: var(--sn-btn-active-bg, color-mix(in srgb, var(--sn-btn-bg) 80%, var(--sn-btn-mix, #000)));
+}
+
+.btn[data-disabled] {
+  color: var(--sn-btn-disabled-color, var(--sn-btn-color));
+  background-color: var(--sn-btn-disabled-bg, var(--sn-btn-bg));
+  opacity: .65;
+  pointer-events: none;
+}
+
+.primary {
+  --sn-btn-color: var(--sn-primary-text);
+  --sn-btn-bg: var(--sn-primary);
+}
+
+.secondary {
+  --sn-btn-color: var(--sn-secondary-text);
+  --sn-btn-bg: var(--sn-secondary);
+}
+
+.primary svg,
+.secondary svg {
+  fill: var(--sn-btn-color);
+}
+
+.danger {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: var(--sn-danger);
+}
+
+.info {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: var(--sn-info);
+}
+
+.success {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: var(--sn-success);
+}
+
+.warning {
+  --sn-btn-color: #000;
+  --sn-btn-bg: var(--sn-warning);
+}
+
+.grey {
+  --sn-btn-color: #000;
+  --sn-btn-bg: #e9ecef;
+  --sn-btn-mix: #fff;
+}
+
+.grey-medium {
+  --sn-btn-color: #000;
+  --sn-btn-bg: var(--sn-grey-medium);
+  --sn-btn-mix: #fff;
+}
+
+.grey svg,
+.grey-medium svg {
+  fill: var(--sn-dark);
+}
+
+.twitter {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: var(--sn-twitter);
+}
+
+.twitter svg {
+  fill: #fff;
+}
+
+.dark {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: var(--sn-dark);
+  --sn-btn-mix: #fff;
+}
+
+/* beat the icon's own fill and stroke classes */
+.nostr {
+  --sn-btn-color: #fff;
+  --sn-btn-bg: var(--sn-nostr);
+}
+
+.nostr,
+.nostr:hover,
+.nostr:active {
+  fill: #fff !important;
+  stroke: #fff !important;
+  stroke-miterlimit: 10;
+  stroke-width: 6px;
+}
+
+.nostr svg {
+  fill: #fff;
+  stroke: #fff;
+  stroke-miterlimit: 10;
+  stroke-width: 6px;
+}
+
+.outline-secondary {
+  --sn-btn-color: var(--sn-secondary);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: var(--sn-secondary-text);
+  --sn-btn-hover-bg: var(--sn-secondary);
+  --sn-btn-active-bg: var(--sn-secondary);
+  --sn-btn-disabled-color: var(--sn-secondary);
+  --sn-btn-disabled-bg: transparent;
+  border-color: var(--sn-secondary);
+}
+
+.outline-info {
+  --sn-btn-color: var(--sn-info);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: var(--sn-info);
+  --sn-btn-active-bg: var(--sn-info);
+  --sn-btn-disabled-color: var(--sn-info);
+  --sn-btn-disabled-bg: transparent;
+  border-color: var(--sn-info);
+}
+
+.outline-grey {
+  --sn-btn-color: var(--sn-muted);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: var(--sn-muted);
+  --sn-btn-active-bg: var(--sn-muted);
+  --sn-btn-disabled-color: var(--sn-muted);
+  --sn-btn-disabled-bg: transparent;
+  border-color: var(--sn-muted);
+}
+
+/* white hover text, the retry button set it inline before */
+.outline-warning {
+  --sn-btn-color: var(--sn-warning);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: var(--sn-warning);
+  --sn-btn-active-bg: var(--sn-warning);
+  --sn-btn-disabled-color: var(--sn-warning);
+  --sn-btn-disabled-bg: transparent;
+  border-color: var(--sn-warning);
+}
+
+.outline-grey-darkmode {
+  --sn-btn-color: var(--sn-grey-darkmode);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: var(--sn-grey-darkmode);
+  --sn-btn-active-bg: var(--sn-grey-darkmode);
+  --sn-btn-disabled-color: var(--sn-grey-darkmode);
+  --sn-btn-disabled-bg: transparent;
+  border-color: var(--sn-grey-darkmode);
+}
+
+.link {
+  --sn-btn-color: var(--sn-link);
+  --sn-btn-bg: transparent;
+  --sn-btn-hover-color: var(--sn-link-hover);
+  --sn-btn-hover-bg: transparent;
+  --sn-btn-active-bg: transparent;
+  --sn-btn-disabled-color: var(--sn-muted);
+  text-decoration: none;
+}
+
+.link:hover,
+.link:focus-visible {
+  text-decoration: none;
+}
+
+/* dark mode link buttons tint the primary 40% toward white */
+:global([data-theme='dark']) .link {
+  --sn-btn-color: color-mix(in srgb, var(--sn-primary) 60%, #fff 40%);
+  --sn-btn-hover-color: color-mix(in srgb, var(--sn-btn-color) 80%, #fff 20%);
+}
+
+}

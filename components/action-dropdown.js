@@ -1,19 +1,16 @@
-import Dropdown from 'react-bootstrap/Dropdown'
+import { Menu, MenuTrigger, MenuPopup } from '@/components/ui/menu'
 import styles from './item.module.css'
 import MoreIcon from '@/svgs/more-fill.svg'
+import classNames from 'classnames'
 
 export default function ActionDropdown ({ children }) {
   if (!children) {
     return null
   }
   return (
-    <Dropdown className={`pointer ${styles.dropdown}`} as='span'>
-      <Dropdown.Toggle variant='success' as='a' onPointerDown={e => e.preventDefault()}>
-        <MoreIcon className='fill-grey ms-1' height={16} width={16} />
-      </Dropdown.Toggle>
-      <Dropdown.Menu>
-        {children}
-      </Dropdown.Menu>
-    </Dropdown>
+    <Menu className={classNames('pointer', styles.dropdown)}>
+      <MenuTrigger aria-label='item actions' nativeButton={false} render={<span><MoreIcon className='fill-muted ms-1' height={16} width={16} /></span>} />
+      <MenuPopup>{children}</MenuPopup>
+    </Menu>
   )
 }

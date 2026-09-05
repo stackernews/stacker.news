@@ -188,8 +188,7 @@
   letter-spacing: 0.08em;
   line-height: 1;
 }
-/* two classes so we beat ui/collapsible's .trigger reset regardless of module order */
-.maxFeeSummary .maxFeeControl {
+.maxFeeControl {
   --chip-padding: 0.35rem 0.65rem;
   --chip-radius: 6px;
   --chip-bg: transparent;

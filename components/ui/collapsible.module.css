@@ -1,6 +1,7 @@
 @layer components {
 
-.trigger {
+/* Reset defaults must yield to consumer classes regardless of module order. */
+:where(.trigger) {
   background: none;
   border: 0;
   padding: 0;

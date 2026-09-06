@@ -115,7 +115,6 @@ export default function Search ({ sub }) {
                           search({ ...formik?.values, when: e.target.value, ...range })
                         }}
                         name='when'
-                        size='sm'
                         overrideValue={when}
                         items={['custom', 'forever', 'day', 'week', 'month', 'year']}
                       />

@@ -73,7 +73,6 @@ export default function TopHeader ({ sub, cat }) {
                     top({ ...formik?.values, when: e.target.value, ...range })
                   }}
                   name='when'
-                  size='sm'
                   overrideValue={when}
                   items={WHENS}
                 />

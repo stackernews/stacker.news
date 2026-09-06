@@ -59,11 +59,6 @@
   color: #fff;
   white-space: nowrap;
 }
-.dangerZone .deleteButton svg {
-  /* beats global svg fill rules so the icon stays white on the danger button */
-  color: inherit !important;
-  fill: currentColor !important;
-}
 .dangerZone .deleteButton:hover {
   opacity: 0.9;
 }

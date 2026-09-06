@@ -232,16 +232,16 @@ export default function Footer ({ links = true }) {
             </a>
             <a
               href='https://mempool.space/lightning/node/03cc1d0932bb99b0697f5b5e5961b83ab7fd66f1efc4c9f5c7bad66c1bcbe78f02'
-              target='_blank' rel='noreferrer'
+              target='_blank' rel='noreferrer' className='text-reset'
             >
               <Mempool className='ms-2' width={20} height={20} />
             </a>
           </div>}
         <small className='flex justify-center items-center text-muted flex-wrap'>
           <a className={`${styles.contrastLink} flex items-center`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>
-            FOSS <Github width={20} height={20} className='mx-1 fill-current' />
+            FOSS <Github width={20} height={20} className='mx-1' />
           </a>
-          made in Austin<Texas className='ms-1 fill-current' width={20} height={20} />
+          made in Austin<Texas className='ms-1' width={20} height={20} />
           <span className='ms-1'>by</span>
           <span>
             <Link href='/k00b' className='ms-1'>

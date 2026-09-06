@@ -18,10 +18,6 @@
 .contrastLink:hover {
     color: var(--sn-body-color);
 }
-.contrastLink svg {
-    fill: var(--sn-body-color);
-}
-
 .version {
     margin: auto;
     font-size: 75%;

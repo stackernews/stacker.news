@@ -153,9 +153,6 @@
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  /* beats global svg fill rules so the chip icon follows currentColor */
-  color: currentColor !important;
-  fill: currentColor !important;
 }
 
 .maxFee {

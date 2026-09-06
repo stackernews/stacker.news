@@ -15,7 +15,7 @@ export default function Info ({ children, size = 18, label, iconClassName }) {
       className='pointer flex items-center'
     >
       <InfoIcon
-        width={size} height={size} className={cn('fill-current mx-1', iconClassName)}
+        width={size} height={size} className={cn('mx-1', iconClassName)}
       />
       {label && <small className='text-muted'>{label}</small>}
     </div>

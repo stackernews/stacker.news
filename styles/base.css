@@ -104,8 +104,9 @@
     color: var(--sn-muted);
   }
 
+  /* icons follow the surrounding text color; fill-* utilities give an icon a color of its own */
   svg {
-    fill: var(--sn-body-color);
+    fill: currentColor;
   }
 
   a {

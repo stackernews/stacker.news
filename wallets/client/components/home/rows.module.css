@@ -179,9 +179,6 @@
   height: 12px;
   display: block;
   flex-shrink: 0;
-  /* Keep the icon on the pill's state color. */
-  color: inherit !important;
-  fill: currentColor !important;
 }
 .statusDivider {
   width: 1px;

@@ -69,12 +69,9 @@
 .cardActions > * {
   white-space: nowrap;
 }
-/* the global `svg { fill: var(--sn-body-color) }` would win over the
-   currentColor presentation attribute; these re-tie icons to text color */
 .actionIcon {
   flex-shrink: 0;
   transform: translateY(1px);
-  fill: currentColor;
 }
 
 .footnote {

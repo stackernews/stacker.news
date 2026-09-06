@@ -242,7 +242,7 @@ function NostrExplainer ({ text, children }) {
   return (
     <Container>
       <div className={styles.login}>
-        <div className='w-full mb-4 text-muted pointer' onClick={() => router.back()}><BackIcon className='fill-current' /></div>
+        <div className='w-full mb-4 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
         <h3 className='w-full pb-2'>
           {text || 'Login'} with Nostr
         </h3>

@@ -7,11 +7,6 @@
   font-size: 0.9rem;
   color: var(--state-color, var(--sn-grey));
 }
-.status svg {
-  /* Keep the icon on the pill's state color. */
-  color: inherit !important;
-  fill: currentColor !important;
-}
 .tested {
   --state-color: var(--sn-success);
 }

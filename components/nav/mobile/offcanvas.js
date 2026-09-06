@@ -17,7 +17,7 @@ const drawerItemClasses = (opts = {}) =>
 function MeImage ({ me }) {
   const src = useMemo(() => me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg', [me?.photoId])
   if (!me) {
-    return <span className='text-muted pointer'><AnonIcon width='22' height='22' className='fill-current' /></span>
+    return <span className='text-muted pointer'><AnonIcon width='22' height='22' /></span>
   }
   return (
     <img

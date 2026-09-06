@@ -202,7 +202,7 @@ function Bulletinification ({ n }) {
   if (!n.bulletin) return null
   return (
     <div className='flex'>
-      {n.bulletin.iconType === 'MAP' ? <div style={{ fontSize: '2rem', alignSelf: 'center' }}><MapIcon className='self-center fill-current mx-1' width={64} height={100} /></div> : null}
+      {n.bulletin.iconType === 'MAP' ? <div style={{ fontSize: '2rem', alignSelf: 'center' }}><MapIcon className='self-center mx-1' width={64} height={100} /></div> : null}
       <div className='ms-4 p-1'>
         <div className='font-bold pb-2'>{n.bulletin.title}</div>
         {n.bulletin.html && n.bulletin.lexicalState && <Text html={n.bulletin.html} state={n.bulletin.lexicalState} />}

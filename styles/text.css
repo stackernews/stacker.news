@@ -19,12 +19,12 @@
   margin-bottom: 0;
 }
 
-[data-sn-reader=true] {
+[data-sn-reader='true'] {
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.sn-text > [data-sn-reader=true] {
+.sn-text > [data-sn-reader='true'] {
   font-size: 94%;
 }
 
@@ -39,16 +39,17 @@
 }
 
 .sn-text > div > *:last-child:not(.sn-text__show-full, .sn-code-block) {
-  padding-bottom: 0 !important;
-  margin-bottom: 0 !important;
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 .sn-text > div > *:first-child:not(.sn-code-block) {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
+  padding-top: 0;
+  margin-top: 0;
 }
 
 .sn-text blockquote {
+  /* beats the block spacing rule above at its higher specificity */
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
@@ -71,7 +72,7 @@
 }
 
 .sn-text--contained {
-  overflow: hidden !important;
+  overflow: hidden;
 }
 
 /* fade the last 2 lines and hide the rest */
@@ -105,8 +106,8 @@
   caret-color: transparent;
 }
 
-[contenteditable=true] .sn-hr.selected {
-  opacity: 1 !important;
+[contenteditable='true'] .sn-hr.selected {
+  opacity: 1;
 }
 
 .sn-heading {
@@ -181,7 +182,6 @@
   animation: fadeInOut 1s ease-in-out infinite alternate;
 }
 
-/* image can load very fast, fade in to avoid flashing */
 @keyframes fadeInOut {
   from {
     opacity: 0.5;
@@ -200,6 +200,7 @@
 }
 
 .sn-media__img--sized, .sn-media__video--sized {
+  /* we know the dimensions, let's fill the container */
   width: 100%;
   height: 100%;
 }
@@ -221,7 +222,7 @@
   object-position: left top;
 }
 
-[data-sn-reader=true] .sn-media__img {
+[data-sn-reader='true'] .sn-media__img {
   cursor: zoom-in;
 }
 
@@ -272,6 +273,7 @@
   background-color: var(--sn-comment-bg);
 }
 
+/* image can load very fast, fade in to avoid flashing */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -290,7 +292,7 @@
 
 /* in case media-or-link detects a link */
 .sn-media:has(> .sn-media-autolink__loading) {
-  display: inline !important;
+  display: inline;
 }
 
 .sn-media .outlawed {
@@ -676,7 +678,6 @@ span + .sn-link {
 }
 
 .sn-list__item--unchecked:before {
-  /* override table hard coded border color */
   border: 1px solid #999;
   border-radius: 2px;
 }
@@ -689,8 +690,6 @@ span + .sn-link {
 }
 
 .sn-list__item--checked:after {
-  /* createDOM places a <br> while exportDOM doesn't
-     we make sure to have a line box at line-height, like the <br> */
   content: "";
   cursor: pointer;
   border-color: #000;
@@ -710,31 +709,29 @@ span + .sn-link {
   display: none;
 }
 
-[contenteditable=false] .sn-list__item--checked:before,
-[contenteditable=false] .sn-list__item--unchecked:before {
+[contenteditable='false'] .sn-list__item--checked:before,
+[contenteditable='false'] .sn-list__item--unchecked:before {
   cursor: default;
   pointer-events: none;
   opacity: 0.5;
   filter: grayscale(0.3);
 }
 
-[contenteditable=false] .sn-list__item--checked:after {
+[contenteditable='false'] .sn-list__item--checked:after {
   cursor: default;
   pointer-events: none;
   opacity: 0.5;
 }
 
-[contenteditable=false] .sn-list__item--checked:focus:before,
-[contenteditable=false] .sn-list__item--unchecked:focus:before {
+[contenteditable='false'] .sn-list__item--checked:focus:before,
+[contenteditable='false'] .sn-list__item--unchecked:focus:before {
   box-shadow: 0 0 0 0;
   border-radius: 2px;
 }
 
 /* shared collapsible for ToC and spoilers */
 .sn-collapsible {
-  /* override table hard coded background color */
   background-color: var(--sn-comment-bg);
-  /* can't see the highlight in dark mode, so we add a solid border */
   border: 1px solid var(--sn-border-color);
   border-radius: 0.4rem;
   margin-top: calc(var(--grid-gap) * 0.5);
@@ -852,13 +849,13 @@ span + .sn-link {
 }
 
 .sn-text__highlight {
-  background-color: color-mix(in srgb, var(--sn-primary) 36.8627451%, transparent);
+  background-color: color-mix(in srgb, var(--sn-primary) 37%, transparent);
   padding: 0 0.2rem;
   color: var(--sn-body-color);
 }
 
 /* reset preflight's sup and sub styles for lexical */
-[data-lexical-editor=true] sup, [data-lexical-editor=true] sub {
+[data-lexical-editor='true'] sup, [data-lexical-editor='true'] sub {
   all: unset;
 }
 
@@ -923,6 +920,7 @@ span + .sn-link {
 }
 
 .sn-table__cell {
+  /* override table hard coded border color */
   border: 1px solid var(--sn-border-color) !important;
   min-width: 75px;
   vertical-align: top;
@@ -935,6 +933,8 @@ span + .sn-link {
 }
 
 .sn-table__cell:empty::after {
+  /* createDOM places a <br> while exportDOM doesn't
+     we make sure to have a line box at line-height, like the <br> */
   content: "\00a0";
 }
 
@@ -958,12 +958,14 @@ span + .sn-link {
 }
 
 .sn-table__cell--header {
+  /* override table hard coded background color */
   background-color: var(--sn-comment-bg) !important;
   text-align: start;
 }
 
 .sn-table__cell--selected {
   caret-color: transparent;
+  /* can't see the highlight in dark mode, so we add a solid border */
   border: 1px solid rgb(60, 132, 244) !important;
 }
 
@@ -1062,6 +1064,7 @@ span + .sn-link {
   color: #8b949e;
   border-top: 1px solid #30363d;
   margin-top: calc(var(--grid-gap) * 0.5);
+  /* beats the block spacing rule at its higher specificity */
   padding-top: 0 !important;
   padding-left: 1.75rem;
   margin-bottom: 0;
@@ -1078,7 +1081,7 @@ span + .sn-link {
   margin-bottom: 0;
 }
 /* backref link */
-.sn-footnote-def a[href^="#fnref-"] {
+.sn-footnote-def a[href^='#fnref-'] {
   text-decoration: none;
   color: var(--sn-link);
 }

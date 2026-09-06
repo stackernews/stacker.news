@@ -29,7 +29,6 @@
   border-radius: 50%;
 }
 
-.checkInput:focus,
 .checkInput:focus-visible {
   outline: 0;
   border-color: color-mix(in srgb, var(--sn-primary) 50%, #fff);

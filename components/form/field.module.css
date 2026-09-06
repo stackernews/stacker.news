@@ -41,7 +41,7 @@
   opacity: 1;
 }
 
-.control:focus {
+.control:focus-visible {
   border-color: var(--sn-primary);
   box-shadow: var(--sn-focus-ring);
   outline: 0;
@@ -62,7 +62,7 @@
   background-size: calc(.875em + .42rem) calc(.875em + .42rem);
 }
 
-.control[data-invalid]:focus {
+.control[data-invalid]:focus-visible {
   border-color: var(--sn-danger);
   box-shadow: var(--sn-focus-ring-danger);
 }
@@ -75,7 +75,7 @@
   background-size: calc(.875em + .42rem) calc(.875em + .42rem);
 }
 
-.control.valid:focus {
+.control.valid:focus-visible {
   border-color: var(--sn-success);
   box-shadow: var(--sn-focus-ring-success);
 }

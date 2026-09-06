@@ -20,8 +20,8 @@
   background-color: color-mix(in srgb, var(--sn-primary) 30%, #fff);
 }
 
-/* the hidden range input inside the thumb holds focus */
-.thumb:focus-within {
+/* the hidden range input inside the thumb holds focus; :has keeps the ring off while dragging */
+.thumb:has(:focus-visible) {
   outline: 0;
   box-shadow: 0 0 0 1px var(--sn-body-bg), var(--sn-focus-ring);
 }

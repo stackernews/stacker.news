@@ -9,18 +9,18 @@
   opacity: .75;
 }
 
-.close:focus {
+.close:focus-visible {
   outline: 0;
   box-shadow: var(--sn-focus-ring);
 }
 
-/* bootstrap's btn-close look: black at half opacity until hovered or focused */
+/* bootstrap's btn-close look: black at half opacity until hovered or keyboard-focused */
 .dim {
   color: #000;
   opacity: .5;
 }
 
-.dim:focus {
+.dim:focus-visible {
   opacity: 1;
 }
 

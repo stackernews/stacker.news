@@ -41,15 +41,6 @@
 
 .btn { cursor: pointer; display: flex; padding-top: 1rem; align-items: center; background: none; border: 0; color: inherit; }
 .back { margin-right: auto; padding-left: 1.5rem; }
-.close {
-  margin-left: auto;
-  padding-right: 1.5rem;
-  font-family: "lightning";
-  font-size: 160%;
-  line-height: 1rem;
-}
-.close:hover { opacity: 0.7; }
-.close.fullScreen { padding: 1.25rem; }
 .overflow.fullScreen { padding: 1.25rem; margin-top: -10px; }
 
 }

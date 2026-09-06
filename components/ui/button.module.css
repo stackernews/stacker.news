@@ -124,60 +124,37 @@
   stroke-width: 6px;
 }
 
-.outline-secondary {
-  --sn-btn-color: var(--sn-secondary);
+/* outline variants: text and border take the variant color, hover fills it */
+.outline {
+  --sn-btn-color: var(--sn-btn-outline);
   --sn-btn-bg: transparent;
-  --sn-btn-hover-color: var(--sn-secondary-text);
-  --sn-btn-hover-bg: var(--sn-secondary);
-  --sn-btn-active-bg: var(--sn-secondary);
-  --sn-btn-disabled-color: var(--sn-secondary);
+  --sn-btn-hover-color: #fff;
+  --sn-btn-hover-bg: var(--sn-btn-outline);
+  --sn-btn-active-bg: var(--sn-btn-outline);
+  --sn-btn-disabled-color: var(--sn-btn-outline);
   --sn-btn-disabled-bg: transparent;
-  border-color: var(--sn-secondary);
+  border-color: var(--sn-btn-outline);
+}
+
+.outline-secondary {
+  --sn-btn-outline: var(--sn-secondary);
+  --sn-btn-hover-color: var(--sn-secondary-text);
 }
 
 .outline-info {
-  --sn-btn-color: var(--sn-info);
-  --sn-btn-bg: transparent;
-  --sn-btn-hover-color: #fff;
-  --sn-btn-hover-bg: var(--sn-info);
-  --sn-btn-active-bg: var(--sn-info);
-  --sn-btn-disabled-color: var(--sn-info);
-  --sn-btn-disabled-bg: transparent;
-  border-color: var(--sn-info);
+  --sn-btn-outline: var(--sn-info);
 }
 
 .outline-grey {
-  --sn-btn-color: var(--sn-muted);
-  --sn-btn-bg: transparent;
-  --sn-btn-hover-color: #fff;
-  --sn-btn-hover-bg: var(--sn-muted);
-  --sn-btn-active-bg: var(--sn-muted);
-  --sn-btn-disabled-color: var(--sn-muted);
-  --sn-btn-disabled-bg: transparent;
-  border-color: var(--sn-muted);
+  --sn-btn-outline: var(--sn-muted);
 }
 
-/* white hover text, the retry button set it inline before */
 .outline-warning {
-  --sn-btn-color: var(--sn-warning);
-  --sn-btn-bg: transparent;
-  --sn-btn-hover-color: #fff;
-  --sn-btn-hover-bg: var(--sn-warning);
-  --sn-btn-active-bg: var(--sn-warning);
-  --sn-btn-disabled-color: var(--sn-warning);
-  --sn-btn-disabled-bg: transparent;
-  border-color: var(--sn-warning);
+  --sn-btn-outline: var(--sn-warning);
 }
 
 .outline-grey-darkmode {
-  --sn-btn-color: var(--sn-grey-darkmode);
-  --sn-btn-bg: transparent;
-  --sn-btn-hover-color: #fff;
-  --sn-btn-hover-bg: var(--sn-grey-darkmode);
-  --sn-btn-active-bg: var(--sn-grey-darkmode);
-  --sn-btn-disabled-color: var(--sn-grey-darkmode);
-  --sn-btn-disabled-bg: transparent;
-  border-color: var(--sn-grey-darkmode);
+  --sn-btn-outline: var(--sn-grey-darkmode);
 }
 
 .link {

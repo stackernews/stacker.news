@@ -54,7 +54,7 @@ cannot win the normal layer order and communicates ownership it does not have.
 
 `styles/tokens.css` is the canonical token sheet. Light defaults live on `:root`
 and `[data-theme=light]`; dark values live on `[data-theme=dark]`. Token names are
-kebab-case.
+kebab-case. `--sn-focus-ring`, with danger and success variants, is the one focus ring.
 
 `styles/tailwind.css` maps reusable color tokens through `@theme inline`, so
 generated text, background, border, and fill utilities read the live `--sn-*`
@@ -77,7 +77,8 @@ design change, not a local component adjustment.
 
 Tooltip, popover, preview card, menu, dialog, drawer, and toast surfaces portal to
 `body`. Their modules own paint and motion while Base UI owns focus, dismissal,
-keyboard navigation, and deferred unmounting where supported.
+keyboard navigation, and deferred unmounting where supported. Their X buttons come from
+`closeClasses()` in `components/ui/close.js`.
 
 ### Shared arrows
 

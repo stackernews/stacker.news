@@ -63,6 +63,11 @@
   --sn-note-reply: rgba(0, 0, 0, 0.04);
   --sn-note-fresh: rgba(0, 124, 190, 0.5);
 
+  /* focus ring shared by form controls and dismiss buttons */
+  --sn-focus-ring: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+  --sn-focus-ring-danger: 0 0 0 .25rem color-mix(in srgb, var(--sn-danger) 25%, transparent);
+  --sn-focus-ring-success: 0 0 0 .25rem color-mix(in srgb, var(--sn-success) 25%, transparent);
+
   /* z-index ladder */
   --sn-z-sticky: 900;
   --sn-z-fixed: 1000;

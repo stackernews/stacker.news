@@ -1,7 +1,7 @@
 @layer components {
 
 .status {
-    font-family: 'lightning';
+    font-family: lightning;
     font-size: 96px;
     display: flex;
     justify-content: space-evenly;

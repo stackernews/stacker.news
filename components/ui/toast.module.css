@@ -163,26 +163,6 @@
   overflow-wrap: break-word;
 }
 
-.close {
-  /* "lightning" is an icon font; a generic fallback would break the glyph */
-  /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
-  font-family: lightning;
-  font-size: 150%;
-  line-height: 1rem;
-  margin-bottom: -0.25rem;
-  margin-right: -0.25rem;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: currentcolor;               /* follows --sn-toast-color, so warning's X goes dark too */
-  background: none;
-  border: none;
-}
-
-.close:hover {
-  opacity: 0.7;
-}
-
 .countdown {
   /* pinned to the bottom edge so it stays put regardless of Content's clamp */
   position: absolute;

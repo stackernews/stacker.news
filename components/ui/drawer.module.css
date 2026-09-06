@@ -64,31 +64,4 @@
   }
 }
 
-.close {
-  padding: .5rem;
-  color: #000;
-  font-family: lightning;
-  font-weight: 300;
-  font-size: 150%;
-  line-height: 1;
-}
-
-.close::after {
-  content: 'X';
-}
-
-.close:hover {
-  opacity: .75;
-}
-
-.close:focus {
-  outline: 0;
-  box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
-  opacity: 1;
-}
-
-:global([data-theme='dark']) .close {
-  color: #fff;
-}
-
 }

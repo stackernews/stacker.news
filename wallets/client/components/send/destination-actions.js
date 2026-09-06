@@ -2,6 +2,7 @@ import QrScanner from '@/components/qr-scanner'
 import { useToast } from '@/components/ui/toast'
 import sharedStyles from '@/wallets/client/components/wallet.module.css'
 import sendStyles from './send.module.css'
+import { closeClasses } from '@/components/ui/close'
 import CameraIcon from '@/svgs/camera-line.svg'
 import ClipboardIcon from '@/svgs/clipboard-line.svg'
 import { useField } from 'formik'
@@ -84,7 +85,7 @@ export function DestinationActions ({ onValue }) {
           <div className={styles.scannerHeader}>
             <button
               type='button'
-              className={styles.scannerClose}
+              className={closeClasses({ className: 'ms-auto flex items-center text-[160%] leading-4' })}
               onClick={() => setScanning(false)}
               aria-label='close scanner'
             >

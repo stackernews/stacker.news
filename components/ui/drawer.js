@@ -1,5 +1,6 @@
 import { Drawer as BaseDrawer } from '@base-ui/react/drawer'
 import { cn } from '@/lib/cn'
+import { closeClasses } from './close'
 import styles from './drawer.module.css'
 
 export function Drawer ({ show, onHide, placement = 'end', className, children }) {
@@ -35,8 +36,10 @@ export function DrawerHeader ({ children }) {
       {children}
       <BaseDrawer.Close
         nativeButton={false}
-        render={<div role='button' tabIndex={0} aria-label='close' className={cn(styles.close, 'ms-auto -my-4 -me-3 opacity-50')} />}
-      />
+        render={<div role='button' tabIndex={0} aria-label='close' className={closeClasses({ dim: true, className: 'p-2 ms-auto -my-4 -me-3' })} />}
+      >
+        X
+      </BaseDrawer.Close>
     </div>
   )
 }

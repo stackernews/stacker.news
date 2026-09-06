@@ -1,0 +1,31 @@
+@layer components {
+
+/* the lightning icon font's X, shared by every dismiss control */
+.close {
+  font-family: lightning;
+}
+
+.close:hover {
+  opacity: .75;
+}
+
+.close:focus {
+  outline: 0;
+  box-shadow: var(--sn-focus-ring);
+}
+
+/* bootstrap's btn-close look: black at half opacity until hovered or focused */
+.dim {
+  color: #000;
+  opacity: .5;
+}
+
+.dim:focus {
+  opacity: 1;
+}
+
+:global([data-theme='dark']) .dim {
+  color: #fff;
+}
+
+}

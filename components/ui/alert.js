@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn'
+import { closeClasses } from './close'
 import styles from './alert.module.css'
 
 export function Alert ({ variant, dismissible, onClose, className, children, ...props }) {
@@ -10,7 +11,7 @@ export function Alert ({ variant, dismissible, onClose, className, children, ...
     >
       {children}
       {dismissible &&
-        <button type='button' className={styles.close} onClick={onClose} aria-label='close'>X</button>}
+        <button type='button' className={closeClasses({ dim: true, className: 'absolute top-0 right-0 z-[2] py-5 px-4' })} onClick={onClose} aria-label='close'>X</button>}
     </div>
   )
 }

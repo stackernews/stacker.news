@@ -4,6 +4,7 @@ import BackArrow from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 import ActionDropdown from './action-dropdown'
 import { cn } from '@/lib/cn'
+import { closeClasses } from '@/components/ui/close'
 import styles from './modal.module.css'
 
 export class ModalClosedError extends Error {
@@ -140,7 +141,7 @@ export default function useModal () {
                   : null}
                 <Dialog.Close
                   aria-label='close'
-                  className={cn(styles.btn, styles.close, fullScreen && styles.fullScreen)}
+                  className={closeClasses({ className: cn(styles.btn, 'ms-auto pe-6 text-[160%] leading-4', fullScreen && 'p-5') })}
                 >X
                 </Dialog.Close>
               </div>

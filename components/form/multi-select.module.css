@@ -7,7 +7,7 @@
 /* :focus never fires on the wrapper, so the ring rides :focus-within */
 .control:focus-within {
   border-color: var(--sn-primary);
-  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-primary) 25%, transparent);
+  box-shadow: var(--sn-focus-ring);
 }
 
 .control[data-invalid] {
@@ -15,7 +15,7 @@
 }
 
 .control[data-invalid]:focus-within {
-  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sn-danger) 25%, transparent);
+  box-shadow: var(--sn-focus-ring-danger);
 }
 
 .chip {

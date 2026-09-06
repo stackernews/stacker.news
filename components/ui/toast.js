@@ -2,6 +2,7 @@ import { Toast } from '@base-ui/react/toast'
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import { cn } from '@/lib/cn'
+import { closeClasses } from './close'
 import styles from './toast.module.css'
 
 const TOAST_DEFAULT_DELAY_MS = 5000
@@ -29,7 +30,7 @@ function ToastItem ({ toast }) {
             {count > 1 && `(${count}) `}{toast.description}
           </Toast.Description>
         </div>
-        <Toast.Close className={styles.close} aria-label='close'>X</Toast.Close>
+        <Toast.Close className={closeClasses({ className: 'leading-4 -mb-1 -me-1 flex items-center' })} aria-label='close'>X</Toast.Close>
       </Toast.Content>
       {toast.timeout > 0 && toast.data?.progressBar && (
         // remount on update so the progress bar restarts

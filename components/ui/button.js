@@ -15,6 +15,7 @@ const SIZES = {
 export function buttonClasses ({ variant = 'primary', size = 'md', className } = {}) {
   return cn(
     styles.btn,
+    variant?.startsWith('outline-') && styles.outline,
     styles[variant],
     BASE,
     variant === 'link' ? 'font-normal' : 'font-bold',

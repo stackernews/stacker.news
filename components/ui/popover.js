@@ -1,5 +1,6 @@
 import { Popover as BasePopover } from '@base-ui/react/popover'
 import { cn } from '@/lib/cn'
+import { closeClasses } from './close'
 import styles from './popover.module.css'
 import arrowStyles from './arrow.module.css'
 
@@ -32,8 +33,8 @@ export function PopoverBody ({ className, children }) {
   return <div className={cn('py-2 px-4', className)}>{children}</div>
 }
 
-export function PopoverClose (props) {
-  return <BasePopover.Close className={styles.close} aria-label='close' {...props}>X</BasePopover.Close>
+export function PopoverClose ({ className, ...props }) {
+  return <BasePopover.Close className={closeClasses({ dim: true, className: cn('mt-1 -me-2', className) })} aria-label='close' {...props}>X</BasePopover.Close>
 }
 
 export const PopoverTrigger = BasePopover.Trigger

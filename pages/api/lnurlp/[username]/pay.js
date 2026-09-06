@@ -108,12 +108,17 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       bolt11 = payInBolt11.bolt11
       hash = payInBolt11.hash
     } else {
+      // Direct receives mint the payer-facing invoice from the attached wallet.
+      // NIP-57 requests must keep the zap-request description hash. The
+      // metadata+payerdata hash (LUD-18) only exists for the proxy wrap; bind
+      // direct invoices to the fetched metadata like LUD-06 wallets verify.
+      // Payer identity is persisted separately via lud18Data.
       const direct = await createExternalReceiveInvoice(models, {
         userId: user.id,
         msats: toPositiveBigInt(amount),
         description,
-        descriptionHash,
-        descriptionHashPreimage,
+        descriptionHash: nostr ? descriptionHash : metadataDescriptionHash,
+        descriptionHashPreimage: nostr ? descriptionHashPreimage : metadata,
         requireDescriptionHash: !!nostr,
         sourceType: 'LN_ADDR',
         sourceValue: `${username}@stacker.news`,

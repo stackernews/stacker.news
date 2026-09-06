@@ -69,7 +69,7 @@ export function Back () {
         }
       }}
     >
-      <BackArrow className='theme me-1 md:me-2' width={24} height={24} />
+      <BackArrow className='me-1 md:me-2' width={24} height={24} />
     </NavLink>
   )
 }
@@ -92,7 +92,7 @@ export function BackOrBrand ({ className }) {
 export function SearchItem ({ className }) {
   return (
     <NavLink href='/search' eventKey='search' className={className}>
-      <SearchIcon className='theme' width={22} height={28} />
+      <SearchIcon width={22} height={28} />
     </NavLink>
   )
 }
@@ -127,7 +127,7 @@ export function NavNotifications ({ className }) {
     <>
       <NavLink href='/notifications' eventKey='notifications' className={className}>
         <Indicator show={hasNewNotes} top='2px' right='0px' variant='danger'>
-          <NoteIcon height={28} width={20} className='theme' />
+          <NoteIcon height={28} width={20} />
         </Indicator>
       </NavLink>
     </>

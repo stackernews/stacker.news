@@ -221,7 +221,7 @@ export function MeDropdown ({ me, dropNavKey }) {
 // this is the width of the 'switch account' button if no width is given
 const SWITCH_ACCOUNT_BUTTON_WIDTH = '162px'
 
-export function SignUpButton ({ className, width, onClick, ...props }) {
+export function SignUpButton ({ className, width }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -230,15 +230,11 @@ export function SignUpButton ({ className, width, onClick, ...props }) {
 
   return (
     <Button
-      {...props}
       className={classNames('items-center ps-2 pe-4 py-0', className)}
       // 161px is the width of the 'switch account' button
       style={{ borderWidth: '2px', width: width || SWITCH_ACCOUNT_BUTTON_WIDTH }}
       id='signup'
-      onClick={(e) => {
-        onClick?.(e)
-        if (!e.defaultPrevented) handleLogin('/signup')
-      }}
+      onClick={() => handleLogin('/signup')}
     >
       <LightningIcon
         width={17}
@@ -249,7 +245,7 @@ export function SignUpButton ({ className, width, onClick, ...props }) {
   )
 }
 
-export default function LoginButton ({ className, onClick, ...props }) {
+export default function LoginButton () {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -258,15 +254,11 @@ export default function LoginButton ({ className, onClick, ...props }) {
 
   return (
     <Button
-      {...props}
-      className={classNames('items-center px-4 py-1', className)}
+      className='items-center px-4 py-1'
       id='login'
       style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
       variant='outline-grey-darkmode'
-      onClick={(e) => {
-        onClick?.(e)
-        if (!e.defaultPrevented) handleLogin('/login')
-      }}
+      onClick={() => handleLogin('/login')}
     >
       login
     </Button>
@@ -333,7 +325,7 @@ export function LogoutDropdownItem ({ handleClose, className }) {
   )
 }
 
-function SwitchAccountButton ({ handleClose, className, onClick, ...props }) {
+function SwitchAccountButton ({ handleClose }) {
   const showModal = useShowModal()
   const accounts = useAccounts()
 
@@ -341,15 +333,12 @@ function SwitchAccountButton ({ handleClose, className, onClick, ...props }) {
 
   return (
     <Button
-      {...props}
-      className={classNames('items-center px-4 py-1', className)}
+      className='items-center px-4 py-1'
       variant='outline-grey-darkmode'
       style={{ borderWidth: '2px', width: SWITCH_ACCOUNT_BUTTON_WIDTH }}
-      onClick={(e) => {
-        onClick?.(e)
-        if (e.defaultPrevented) return
-        // login buttons rendered in offcanvas aren't wrapped inside <Dropdown>
-        // so we manually close the offcanvas in that case by passing down handleClose here
+      onClick={() => {
+        // login buttons rendered in the drawer aren't wrapped inside <Menu>
+        // so we manually close the drawer in that case by passing down handleClose here
         handleClose?.()
         showModal(onClose => <SwitchAccountList onClose={onClose} />)
       }}
@@ -359,18 +348,7 @@ function SwitchAccountButton ({ handleClose, className, onClick, ...props }) {
   )
 }
 
-// menu items in AnonDropdown, plain divs in the mobile drawer
-export function LoginButtons ({ handleClose, className, asMenuItems }) {
-  if (asMenuItems) {
-    return (
-      <>
-        <MenuItem className={classNames('py-1', className)} render={<LoginButton />} />
-        <MenuItem className={classNames('py-1', className)} render={<SignUpButton className='py-1' />} />
-        <MenuItem className={classNames('py-1', className)} render={<SwitchAccountButton handleClose={handleClose} />} />
-      </>
-    )
-  }
-
+export function LoginButtons ({ handleClose, className }) {
   return (
     <>
       <MenuItem className={classNames('py-1', className)}>
@@ -396,7 +374,7 @@ export function AnonDropdown () {
           </span>
         </MenuTrigger>
         <MenuPopup align='end' className='p-4'>
-          <LoginButtons asMenuItems />
+          <LoginButtons />
         </MenuPopup>
       </Menu>
     </div>

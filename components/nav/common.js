@@ -368,8 +368,8 @@ export function AnonDropdown () {
   return (
     <div className='relative'>
       <Menu className={classNames(styles.dropdown, 'pe-0')}>
-        <MenuTrigger className={navLinkClasses({ className: 'font-medium px-0' })}>
-          <span className={navLinkClasses({ className: 'p-0 font-normal' })}>
+        <MenuTrigger className={navLinkClasses({ className: 'font-normal px-0' })}>
+          <span className={navLinkClasses({ className: 'p-0' })}>
             @anon<Badges user={{ id: USER_ID.anon }} />
           </span>
         </MenuTrigger>
@@ -404,7 +404,14 @@ export function PostItem ({ className, prefix, size }) {
   // otherwise we use the default text-black
   const textOverride = branding?.primaryColor ? '' : 'text-black'
   return (
-    <Link href={prefix + '/post'} className={buttonClasses({ variant: isLurker ? 'grey' : 'primary', size, className: [className, textOverride, 'md:py-1'] })}>
+    <Link
+      href={prefix + '/post'}
+      className={buttonClasses({
+        variant: isLurker ? 'grey' : 'primary',
+        size,
+        className: classNames(className, textOverride, 'md:py-1')
+      })}
+    >
       post
     </Link>
   )

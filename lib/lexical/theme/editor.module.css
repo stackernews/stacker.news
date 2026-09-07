@@ -297,7 +297,7 @@
 
 /* mentions listbox, positioned so the z-index applies */
 .suggestionsMenu {
-  position: relative;
+  position: absolute;
   z-index: var(--sn-z-dropdown);
 }
 

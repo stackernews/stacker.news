@@ -3,6 +3,6 @@
 .subSelect {
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis !important;
+  text-overflow: ellipsis;
 }
 }

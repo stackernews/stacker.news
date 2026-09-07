@@ -192,22 +192,13 @@
   height: 12px;
   line-height: 12px;
   transform: translateY(-0.5px);
-  /* color wins over global svg/text rules so the label follows the pill state color */
-  color: inherit !important;
-}
-.statusPill .statusIcon path {
-  fill: currentColor !important;
 }
 
 .selectedWalletIdentity {
+  --wallet-logo-max-height: 36px;
   min-width: 0;
   gap: var(--wt-gap-md);
   font-size: 1.25rem;
-}
-.selectedWalletIdentity .walletRowLogo,
-.selectedWalletIdentity .walletRowFallback,
-.selectedWalletIdentity .internalWalletIcon {
-  --wallet-logo-max-height: 36px;
 }
 
 .templateSupport {

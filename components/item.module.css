@@ -200,14 +200,6 @@ a.link:visited {
     font-variant-numeric: tabular-nums;
 }
 
-/* .itemJob .hunk {
-    align-self: center;
-}
-
-.itemJob .rank {
-    align-self: center;
-} */
-
 .main {
     display: flex;
     align-items: baseline;

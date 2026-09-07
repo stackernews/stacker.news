@@ -16,10 +16,6 @@
     color: var(--sn-nav-link-focus);
 }
 
-.link.active {
-    font-weight: bold;
-}
-
 .link.active:not(:global(.text-success)):not(:global(.text-warning)) {
     color: var(--sn-nav-link-active);
 }
@@ -53,6 +49,7 @@
     gap: 0 0.5rem;
 }
 
+/* the links sit inside NavItem wrappers, so they are not flex items */
 .nav .link {
     display: block;
     padding-left: 0;

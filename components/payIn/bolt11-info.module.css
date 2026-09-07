@@ -44,23 +44,9 @@
   max-width: 100%;
 }
 
-/* two classes so we beat ui/collapsible's .trigger reset regardless of module order */
-.detailPill .detailPillButton {
-  box-sizing: border-box;
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
+/* a copy-chip; only the gap between icon, label and indicator is its own */
+.detailPillButton {
   gap: 0.35rem;
-  max-width: 100%;
-  padding: 0.3rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--sn-border-color) 70%, transparent);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--sn-grey);
-  font-family: var(--sn-font-monospace);
-  font-size: 0.9rem;
-  font-weight: 700;
-  line-height: 1;
 }
 
 .detailPillIndicator {
@@ -83,16 +69,9 @@
   white-space: nowrap;
 }
 
-.detailPill .detailPillButton:hover,
-.detailPill .detailPillButton:focus-visible,
-.detailPill .detailPillButton[data-panel-open] {
+.detailPillButton[data-panel-open] {
   border-color: var(--sn-body-color);
   color: var(--sn-body-color);
-}
-
-.detailPillButton:focus-visible {
-  outline: 2px solid var(--sn-border-color);
-  outline-offset: 2px;
 }
 
 .detailPillBody {

@@ -206,12 +206,8 @@
   width: 22px;
   height: 22px;
   flex-shrink: 0;
-  /* beats global svg/.fill-* rules so the icon uses the body color */
-  color: var(--sn-body-color) !important;
-  fill: currentColor;
-}
-.internalIcon path {
-  fill: currentColor;
+  /* body-colored whatever the row's text color */
+  color: var(--sn-body-color);
 }
 .walletName {
   color: var(--sn-body-color);

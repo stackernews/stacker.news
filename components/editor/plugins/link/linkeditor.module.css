@@ -28,10 +28,11 @@
 
 .linkInput {
   max-width: 300px;
+  border-right: 1px solid var(--sn-border-color);
 }
 
-[data-theme="light"] .linkInput {
-  border-right: 1px solid var(--sn-border-color);
+:global([data-theme='dark']) .linkInput {
+  border-right: 0;
 }
 
 .linkView {

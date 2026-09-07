@@ -3,7 +3,7 @@ import { formatSats, msatsToSatsDecimal } from '@/lib/format'
 import { bolt11ExpiresAtFromDecoded, bolt11Section, safeDecodeBolt11 } from '@/lib/bolt11'
 import { bolt11SyntaxError } from '@/lib/bolt11-validator'
 import { timeLeft, timeSince } from '@/lib/time'
-import CopyChip, { Chip } from '@/components/copy-chip'
+import CopyChip, { Chip, chipClassName } from '@/components/copy-chip'
 import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from '@/components/ui/collapsible'
 import Link from 'next/link'
 import { nostrZapDetails } from '@/lib/nostr'
@@ -141,7 +141,7 @@ function truncatedDescriptionLabel (description) {
 function ExpandableDetailPill ({ label, children, icon }) {
   return (
     <Collapsible className={styles.detailPill}>
-      <CollapsibleTrigger className={styles.detailPillButton} title='toggle details'>
+      <CollapsibleTrigger className={chipClassName({ className: styles.detailPillButton })} title='toggle details'>
         {icon}
         <span className={styles.detailPillLabel}>{label}</span>
         <span className={styles.detailPillIndicator} aria-hidden='true' />

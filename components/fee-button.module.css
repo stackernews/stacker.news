@@ -36,6 +36,6 @@
 }
 
 .receipt tfoot {
-    border-top: 2px solid var(--sn-border-color) !important;
+    border-top: 2px solid var(--sn-border-color);
 }
 }

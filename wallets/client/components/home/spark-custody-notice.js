@@ -1,15 +1,12 @@
 import Info from '@/components/info'
-import styles from './spark-custody-notice.module.css'
 
 export function SparkCustodyNotice ({ wallet }) {
   if (wallet?.name !== 'SPARK') return null
 
   return (
-    <div className={styles.notice}>
-      <Info size={14} label='treat like a custodial wallet' iconClassName='text-muted'>
-        <SparkCustodyInfo />
-      </Info>
-    </div>
+    <Info size={14} label='treat like a custodial wallet' iconClassName='text-muted' iconPosition='end'>
+      <SparkCustodyInfo />
+    </Info>
   )
 }
 

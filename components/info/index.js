@@ -3,8 +3,9 @@ import InfoIcon from '@/svgs/information-fill.svg'
 import { useShowModal } from '../modal'
 import { cn } from '@/lib/cn'
 
-export default function Info ({ children, size = 18, label, iconClassName }) {
+export default function Info ({ children, size = 18, label, iconClassName, iconPosition = 'start' }) {
   const showModal = useShowModal()
+  const icon = <InfoIcon width={size} height={size} className={cn('mx-1', iconClassName)} />
 
   return (
     <div
@@ -14,10 +15,8 @@ export default function Info ({ children, size = 18, label, iconClassName }) {
       }}
       className='pointer flex items-center'
     >
-      <InfoIcon
-        width={size} height={size} className={cn('mx-1', iconClassName)}
-      />
-      {label && <small className='text-muted'>{label}</small>}
+      {iconPosition === 'start' && icon}
+      {label && <small className='text-muted'>{label}{iconPosition === 'end' && icon}</small>}
     </div>
   )
 }

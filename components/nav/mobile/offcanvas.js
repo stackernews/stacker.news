@@ -9,15 +9,17 @@ import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
 import { useWalletIndicator } from '@/wallets/client/hooks'
 
-// drawer rows keep roomier tap targets than menu items
-const DRAWER_ITEM = 'px-0 py-2'
 const drawerItemClasses = (opts = {}) =>
-  itemClasses({ ...opts, className: cn(DRAWER_ITEM, opts.className) })
+  itemClasses({ ...opts, className: cn('px-0 py-2', opts.className) })
 
 function MeImage ({ me }) {
   const src = useMemo(() => me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg', [me?.photoId])
   if (!me) {
-    return <span className='text-muted pointer'><AnonIcon width='22' height='22' /></span>
+    return (
+      <span className='text-muted'>
+        <AnonIcon width='22' height='22' />
+      </span>
+    )
   }
   return (
     <img
@@ -53,7 +55,6 @@ export default function OffCanvas ({ me, dropNavKey }) {
           <DrawerTitle><NavWalletSummary /></DrawerTitle>
         </DrawerHeader>
         <DrawerBody className='pb-0'>
-          {/* navigation remounts BottomBar so the drawer closes on its own, but rows that open a modal must close it first */}
           <div className='h-full flex flex-col'>
             {me
               ? (
@@ -73,20 +74,18 @@ export default function OffCanvas ({ me, dropNavKey }) {
                     <Link href='/settings' className={drawerItemClasses()}>settings</Link>
                   </div>
                   <MenuSeparator />
-                  <LogoutDropdownItem handleClose={handleClose} className={DRAWER_ITEM} />
+                  <LogoutDropdownItem handleClose={handleClose} className='px-0 py-2' />
                 </>
                 )
-              : <LoginButtons handleClose={handleClose} className={DRAWER_ITEM} />}
+              : <LoginButtons handleClose={handleClose} className='px-0' />}
             <div className={cn(styles.footerPadding, 'mt-auto')}>
               <div className='flex items-center py-2 text-muted'>
-                <div>
-                  <Link href={`/${me?.name || 'anon'}`} className='flex p-2 mt-auto text-muted'>
-                    <MeImage me={me} />
-                    <div className='ms-2'>
-                      <Indicator show={indicator} top='2px' right='-5px'>@{me?.name || 'anon'}</Indicator>
-                    </div>
-                  </Link>
-                </div>
+                <Link href={`/${me?.name || 'anon'}`} className='flex p-2 mt-auto text-muted'>
+                  <MeImage me={me} />
+                  <div className='ms-2'>
+                    <Indicator show={indicator} top='2px' right='-5px'>@{me?.name || 'anon'}</Indicator>
+                  </div>
+                </Link>
               </div>
             </div>
           </div>

@@ -53,7 +53,7 @@ export default function BottomBar ({ sub }) {
     <nav data-sn-navigation className='block md:hidden'>
       <div style={{ marginBottom: '53px' }} className={styles.footerPadding} />
       <div className={classNames(styles.footer, styles.footerPadding)}>
-        <Navbar className='w-full px-safe py-2'>
+        <Navbar className='w-full px-safe'>
           <div className={styles.footerNav}>
             <Brand />
             <SearchItem />

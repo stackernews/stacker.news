@@ -22,7 +22,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   }
 
   return (
-    <Navbar className='pt-1 px-4'>
+    <Navbar className='pt-1 pb-0 px-4'>
       <Nav
         className={styles.navbarNav}
         activeKey={sort}

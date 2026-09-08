@@ -5,10 +5,10 @@ import { useMe } from '@/components/me'
 
 export default function SecondBar (props) {
   const { me } = useMe()
-  const { topNavKey, navbarClassName } = props
+  const { topNavKey } = props
   if (!hasNavSelect(props)) return null
   return (
-    <Navbar className={navbarClassName}>
+    <Navbar className='not-first:pt-0'>
       <Nav
         className={styles.navbarNav}
         activeKey={topNavKey}

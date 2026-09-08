@@ -8,7 +8,7 @@ export default function StaticHeader () {
   return (
     <PriceCarouselProvider>
       <Container as='header' data-sn-navigation>
-        <Navbar className='py-2'>
+        <Navbar>
           <Nav className={styles.navbarNav}>
             <BackOrBrand />
             <SearchItem />

@@ -3,7 +3,7 @@ import styles from '@/components/header.module.css'
 import { Nav, Navbar } from '@/components/ui/nav'
 import { MenuProvider } from '@/components/ui/menu'
 import Container from '@/components/ui/container'
-import TopBar from './desktop/top-bar'
+import { DesktopRow } from './desktop/top-bar'
 import { MobilePriceRow } from './mobile/top-bar'
 import { cn } from '@/lib/cn'
 
@@ -27,7 +27,14 @@ export default function StickyBar ({ topNavKey, dropNavKey, hideMobileNav = fals
         {/* keep popups inside the bar so they follow its transform and visibility */}
         <MenuProvider container={barRef} visible={visible}>
           <Container className='hidden md:block'>
-            <TopBar topNavKey={topNavKey} dropNavKey={dropNavKey} navbarClassName='py-0' />
+            <Navbar className='py-0'>
+              <Nav
+                className={styles.navbarNav}
+                activeKey={topNavKey}
+              >
+                <DesktopRow dropNavKey={dropNavKey} />
+              </Nav>
+            </Navbar>
           </Container>
           {!hideMobileNav && (
             <Container className='block md:hidden'>

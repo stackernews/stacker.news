@@ -10,7 +10,7 @@ export const navLinkClasses = ({ active, className } = {}) =>
   cn(styles.link, active && cn(styles.active, 'font-bold'), className)
 
 export function Navbar ({ className, children, ...props }) {
-  return <nav className={cn(styles.navbar, 'flex items-center flex-nowrap', className)} {...props}>{children}</nav>
+  return <nav className={cn(styles.navbar, 'flex items-center flex-nowrap py-2', className)} {...props}>{children}</nav>
 }
 
 export function Nav ({ activeKey, className, children }) {

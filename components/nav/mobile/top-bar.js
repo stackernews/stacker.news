@@ -18,7 +18,7 @@ export function MobilePriceRow () {
   )
 }
 
-export default function TopBar ({ prefix, sub, path, pathname, topNavKey, navbarClassName }) {
+export default function TopBar ({ prefix, sub, path, pathname, topNavKey }) {
   const branding = useBranding()
 
   // on mobile, we don't show the top bar if it contains a nav select on custom domains
@@ -30,7 +30,7 @@ export default function TopBar ({ prefix, sub, path, pathname, topNavKey, navbar
   }
 
   return (
-    <Navbar className={navbarClassName}>
+    <Navbar className='not-last:pb-0'>
       <Nav
         className={styles.navbarNav}
         activeKey={topNavKey}

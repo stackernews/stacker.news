@@ -5,11 +5,11 @@ import { useBranding } from '../../territory-branding'
 import classNames from 'classnames'
 
 export default function SecondBar (props) {
-  const { prefix, topNavKey, sub, navbarClassName } = props
+  const { prefix, topNavKey, sub } = props
   const branding = useBranding()
   if (!hasNavSelect(props)) return null
   return (
-    <Navbar className={navbarClassName}>
+    <Navbar className='not-first:pt-0'>
       <Nav
         className={styles.navbarNav}
         activeKey={topNavKey}

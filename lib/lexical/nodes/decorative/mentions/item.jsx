@@ -1,13 +1,24 @@
 import { DecoratorNode, $applyNodeReplacement } from 'lexical'
 import { parseItemUrl } from '@/lib/url'
+import {
+  IS_BOLD,
+  IS_ITALIC,
+  IS_STRIKETHROUGH,
+  IS_CODE,
+  IS_HIGHLIGHT,
+  IS_SUPERSCRIPT,
+  IS_SUBSCRIPT,
+  IS_UNDERLINE
+} from '@/lib/lexical/mdast/format-constants'
 
 function $convertItemMentionElement (domNode) {
   const id = domNode.getAttribute('data-lexical-item-mention-id')
   const text = domNode.getAttribute('data-lexical-item-mention-text') ?? domNode.querySelector('a')?.textContent
   const url = domNode.getAttribute('data-lexical-item-mention-url') ?? domNode.querySelector('a')?.getAttribute('href')
+  const format = Number(domNode.getAttribute('data-lexical-item-mention-format')) || 0
 
   if (id) {
-    const node = $createItemMentionNode({ id, text, url })
+    const node = $createItemMentionNode({ id, text, url, format })
     return { node }
   }
 
@@ -22,6 +33,7 @@ export class ItemMentionNode extends DecoratorNode {
   __itemMentionId
   __text
   __url
+  __format
 
   static getType () {
     return 'item-mention'
@@ -39,6 +51,10 @@ export class ItemMentionNode extends DecoratorNode {
     return this.__url
   }
 
+  getFormat () {
+    return this.__format
+  }
+
   getDisplayText () {
     if (this.__text) return this.__text
     try {
@@ -50,18 +66,24 @@ export class ItemMentionNode extends DecoratorNode {
   }
 
   static clone (node) {
-    return new ItemMentionNode(node.__itemMentionId, node.__text, node.__url, node.__key)
+    return new ItemMentionNode(node.__itemMentionId, node.__text, node.__url, node.__format, node.__key)
   }
 
   static importJSON (serializedNode) {
-    return $createItemMentionNode({ id: serializedNode.itemMentionId, text: serializedNode.text, url: serializedNode.url })
+    return $createItemMentionNode({
+      id: serializedNode.itemMentionId,
+      text: serializedNode.text,
+      url: serializedNode.url,
+      format: serializedNode.format || 0
+    })
   }
 
-  constructor (itemMentionId, text, url, key) {
+  constructor (itemMentionId, text, url, format = 0, key) {
     super(key)
     this.__itemMentionId = itemMentionId
     this.__text = text
     this.__url = url
+    this.__format = format
   }
 
   exportJSON () {
@@ -70,7 +92,8 @@ export class ItemMentionNode extends DecoratorNode {
       version: 1,
       itemMentionId: this.__itemMentionId,
       text: this.__text,
-      url: this.__url
+      url: this.__url,
+      format: this.__format
     }
   }
 
@@ -83,6 +106,9 @@ export class ItemMentionNode extends DecoratorNode {
     }
     domNode.setAttribute('data-lexical-item-mention', true)
     domNode.setAttribute('data-lexical-item-mention-id', this.__itemMentionId)
+    if (this.__format) {
+      domNode.setAttribute('data-lexical-item-mention-format', this.__format)
+    }
     // text/url aren't derivable from id alone, so serialize them for hydration
     this.__text && domNode.setAttribute('data-lexical-item-mention-text', this.__text)
     this.__url && domNode.setAttribute('data-lexical-item-mention-url', this.__url)
@@ -99,9 +125,32 @@ export class ItemMentionNode extends DecoratorNode {
       wrapper.className = className
     }
     wrapper.setAttribute('data-lexical-item-mention-id', this.__itemMentionId)
+    if (this.__format) {
+      wrapper.setAttribute('data-lexical-item-mention-format', this.__format)
+    }
     const a = document.createElement('a')
     a.setAttribute('href', this.__url)
-    a.textContent = this.getDisplayText()
+    let content = document.createTextNode(this.getDisplayText())
+    const textTheme = theme?.text || {}
+    const formatWrappers = [
+      { flag: IS_CODE, tag: 'code' },
+      { flag: IS_HIGHLIGHT, tag: 'mark', cls: textTheme.highlight },
+      { flag: IS_STRIKETHROUGH, tag: 's', cls: textTheme.strikethrough },
+      { flag: IS_BOLD, tag: 'strong', cls: textTheme.bold },
+      { flag: IS_ITALIC, tag: 'em', cls: textTheme.italic },
+      { flag: IS_UNDERLINE, tag: 'u', cls: textTheme.underline },
+      { flag: IS_SUBSCRIPT, tag: 'sub', cls: textTheme.subscript },
+      { flag: IS_SUPERSCRIPT, tag: 'sup', cls: textTheme.superscript }
+    ]
+    for (const { flag, tag, cls } of formatWrappers) {
+      if (this.__format & flag) {
+        const el = document.createElement(tag)
+        if (cls) el.className = cls
+        el.appendChild(content)
+        content = el
+      }
+    }
+    a.appendChild(content)
     wrapper.appendChild(a)
     return { element: wrapper }
   }
@@ -133,16 +182,17 @@ export class ItemMentionNode extends DecoratorNode {
     const id = this.__itemMentionId
     const href = this.__url
     const text = this.getDisplayText()
+    const format = this.__format
     return (
       <ItemPopover id={id}>
-        <MentionsComponent nodeKey={this.getKey()} href={href} text={text} />
+        <MentionsComponent nodeKey={this.getKey()} href={href} text={text} format={format} />
       </ItemPopover>
     )
   }
 }
 
-export function $createItemMentionNode ({ id, text, url }) {
-  return $applyNodeReplacement(new ItemMentionNode(id, text, url))
+export function $createItemMentionNode ({ id, text, url, format = 0 }) {
+  return $applyNodeReplacement(new ItemMentionNode(id, text, url, format))
 }
 
 export function $isItemMentionNode (node) {

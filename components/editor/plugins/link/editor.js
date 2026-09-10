@@ -34,8 +34,8 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
     }
   }, [])
 
-  // must be idempotent: escape reaches here twice, from the popover and from KEY_ESCAPE_COMMAND
   const handleCancel = useCallback(() => {
+    onDismiss()
     // don't toggle link if the editor is currently read-only
     // e.g. lexical reconciliation during a markdown-to-rich mode switch
     if (!isCurrentlyReadOnlyMode()) {
@@ -43,7 +43,6 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
         editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
       }
     }
-    onDismiss()
   }, [editor, linkUrl, onDismiss])
 
   const $updateLink = useCallback(() => {
@@ -61,6 +60,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
       setLinkUrl('')
       setEditedLinkUrl('')
       if (isLinkEditMode) setIsLinkEditMode(false)
+      onDismiss()
       return
     }
 
@@ -89,8 +89,8 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
         }
       })
     } else {
-      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
       onDismiss()
+      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
     }
     setEditedLinkUrl('')
     setIsLinkEditMode(false)
@@ -117,7 +117,6 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
     )
   }, [editor, $updateLink, handleCancel])
 
-  // mounted means open, the plugin unmounts us on dismiss
   return (
     <Popover
       open
@@ -126,8 +125,8 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
         if (open) return
         if (details.reason === 'outside-press') {
           // presses inside the editor only move the caret and may have just opened us
-          const target = details.event?.target
-          if (target instanceof window.Node && editor.getRootElement()?.contains(target)) return
+          const target = details.event.target
+          if (editor.getRootElement().contains(target)) return
           handleCancel()
         } else if (details.reason === 'escape-key' || details.reason === 'focus-out') {
           handleCancel()

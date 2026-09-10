@@ -220,7 +220,7 @@ function applySecurityHeaders (resp) {
     // unsafe-inline for styles is not ideal but okay if script-src is using nonces
     "style-src 'self' a.stacker.news 'unsafe-inline'",
     "manifest-src 'self'",
-    'frame-src www.youtube.com www.youtube-nocookie.com platform.twitter.com njump.me open.spotify.com rumble.com embed.wavlake.com bitcointv.com peertube.tv',
+    'frame-src www.youtube.com www.youtube-nocookie.com platform.twitter.com open.spotify.com rumble.com embed.wavlake.com bitcointv.com peertube.tv',
     "connect-src 'self' https: wss:" + devSrc,
     // disable dangerous plugins like Flash
     "object-src 'none'",

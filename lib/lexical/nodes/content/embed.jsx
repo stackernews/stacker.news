@@ -118,8 +118,8 @@ export class EmbedNode extends DecoratorBlockNode {
       providerClasses?.container,
       providerClasses?.embed
     ]
-    // only twitter and nostr have a contained state
-    if (this.__provider === 'twitter' || this.__provider === 'nostr') {
+    // only twitter has a contained state
+    if (this.__provider === 'twitter') {
       classes.push(providerClasses?.contained)
     }
     container.classList.add(...classes.filter(Boolean))

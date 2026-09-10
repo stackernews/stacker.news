@@ -137,7 +137,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
       <PopoverContent
         anchor={() => editor.getElementByKey(nodeKey)}
         side='bottom' align='start' sideOffset={8} arrow={false}
-        aria-label='link editor' initialFocus={false} className='p-0 max-w-none'
+        aria-label='link editor' initialFocus={false} finalFocus={false} className='p-0 max-w-none'
       >
         <div className={styles.linkEditor} data-node-key={nodeKey}>
           {isLinkEditMode

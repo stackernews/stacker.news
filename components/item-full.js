@@ -168,7 +168,10 @@ function ItemText ({ item, readerRef }) {
 
 export default function ItemFull ({ item, fetchMoreComments, bio, rank, ...props }) {
   // no cache update here because we need to preserve the initial value
-  const { markItemViewed } = useCommentsView(item.id, { updateCache: false })
+  // Notifications deep-link to the comment id. Write the viewed cursor on the
+  // thread so the feed blue-dot (#3150) can clear.
+  const commentsViewItemId = (item.parentId && (item.root?.id || item.rootId)) || item.id
+  const { markItemViewed } = useCommentsView(commentsViewItemId, { updateCache: false })
 
   useEffect(() => {
     markItemViewed(item)

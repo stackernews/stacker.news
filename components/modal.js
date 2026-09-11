@@ -104,6 +104,7 @@ export default function useModal () {
 
     const content = getCurrentContent()
     const { overflow, keepOpen, fullScreen } = content.options || {}
+    const btn = 'flex items-center pt-4'
 
     return (
       <Dialog.Root
@@ -125,26 +126,30 @@ export default function useModal () {
             <Dialog.Popup
               ref={popupRef}
               // focus the popup itself so we don't open a mobile keyboard or show a focus ring on open
-              initialFocus={() => popupRef.current}
-              className={cn(styles.popup, fullScreen ? styles.fullScreen : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg')}
+              initialFocus={popupRef}
+              className={cn(
+                styles.popup,
+                fullScreen && styles.fullScreen,
+                fullScreen ? 'm-0 max-w-screen max-h-svh' : 'm-2 sm:mx-auto sm:my-7 sm:max-w-lg rounded-lg'
+              )}
             >
               <div className='flex'>
                 {overflow &&
-                  <div className={cn(styles.btn, styles.overflow, fullScreen && styles.fullScreen)}>
+                  <div className={cn(btn, 'cursor-pointer', fullScreen && 'p-5 -mt-2.5')}>
                     <ActionDropdown>
                       {overflow}
                     </ActionDropdown>
                   </div>}
                 {modalStack.current.length > 1
-                  ? <button type='button' aria-label='back' className={cn(styles.btn, styles.back)} onClick={onBack}><BackArrow width={18} height={18} /></button>
+                  ? <button type='button' aria-label='back' className={cn(btn, 'me-auto ps-6')} onClick={onBack}><BackArrow width={18} height={18} /></button>
                   : null}
                 <Dialog.Close
                   aria-label='close'
-                  className={closeClasses({ className: cn(styles.btn, 'ms-auto pe-6 text-[160%] leading-4', fullScreen && 'p-5') })}
+                  className={closeClasses({ className: cn(btn, 'ms-auto pe-6 text-[160%] leading-4', fullScreen && 'p-5') })}
                 >X
                 </Dialog.Close>
               </div>
-              <div className={cn(styles.body, fullScreen ? styles.fullScreen : 'p-8')}>
+              <div className={cn(styles.body, fullScreen && styles.fullScreen, fullScreen ? 'w-screen' : 'p-8')}>
                 {content.node}
               </div>
             </Dialog.Popup>

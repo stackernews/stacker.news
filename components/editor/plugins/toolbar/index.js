@@ -1,10 +1,8 @@
 import ActionTooltip from '@/components/action-tooltip'
 import classNames from 'classnames'
 import styles from '@/lib/lexical/theme/editor.module.css'
-import dropdownStyles from '@/components/dropdown.module.css'
-import { dropdownExtraItemClasses } from '@/components/dropdown'
 import { Toolbar } from '@base-ui/react/toolbar'
-import { Menu, MenuTrigger, MenuPopup, MenuItem } from '@/components/ui/menu'
+import { Menu, MenuTrigger, MenuPopup, MenuItem, MenuItemText } from '@/components/ui/menu'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { SN_UPLOAD_FILES_COMMAND } from '@/components/editor/plugins/upload'
 import ModeSwitchPlugin from '@/components/editor/plugins/toolbar/switch'
@@ -107,12 +105,13 @@ function DropdownMenuItem ({ option, onAction, isActive }) {
     <MenuItem
       title={tooltipText}
       onClick={() => onAction(option)}
-      className={dropdownExtraItemClasses({ active: isActive })}
+      variant='compact'
+      active={isActive}
       onPointerDown={e => e.preventDefault()}
     >
       <span className={styles.dropdownExtraItemLabel}>
         {option.icon}
-        <span className={dropdownStyles.dropdownExtraItemText}>{option.name}</span>
+        <MenuItemText>{option.name}</MenuItemText>
       </span>
       <span className={styles.dropdownExtraItemShortcut}>
         {shortcutDisplay}

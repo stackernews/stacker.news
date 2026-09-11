@@ -102,19 +102,9 @@
   --sn-btn-mix: #fff;
 }
 
-/* beat the icon's own fill and stroke classes */
 .nostr {
   --sn-btn-color: #fff;
   --sn-btn-bg: var(--sn-nostr);
-}
-
-.nostr,
-.nostr:hover,
-.nostr:active {
-  fill: #fff !important;
-  stroke: #fff !important;
-  stroke-miterlimit: 10;
-  stroke-width: 6px;
 }
 
 .nostr svg {

@@ -1,5 +1,6 @@
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip'
 import { cn } from '@/lib/cn'
+import motionStyles from './popup-motion.module.css'
 import styles from './tooltip.module.css'
 import arrowStyles from './arrow.module.css'
 
@@ -16,7 +17,7 @@ export default function Tooltip ({ children, content, side = 'bottom', delay, cl
       <BaseTooltip.Trigger render={children} delay={delay ?? 0} closeDelay={closeDelay} />
       <BaseTooltip.Portal>
         <BaseTooltip.Positioner side={side} sideOffset={6} className={styles.positioner}>
-          <BaseTooltip.Popup className={cn(styles.popup, 'px-2 py-1 text-sm leading-none text-center wrap-break-word max-w-48 rounded-md', className)}>
+          <BaseTooltip.Popup className={cn(styles.popup, motionStyles.motion, 'px-2 py-1 text-sm leading-none text-center wrap-break-word max-w-48 rounded-md', className)}>
             <BaseTooltip.Arrow className={arrowStyles.arrow} />
             {content}
           </BaseTooltip.Popup>

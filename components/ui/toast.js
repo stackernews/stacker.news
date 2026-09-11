@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn'
 import { closeClasses } from './close'
 import styles from './toast.module.css'
 
-const TOAST_DEFAULT_DELAY_MS = 5000
+const TOAST_DEFAULT_TIMEOUT_MS = 5000
 
 // one manager for the whole app: base ui keeps the merge state in its store,
 // so callers don't own counters and don't rerender when the toast list changes
@@ -15,7 +15,6 @@ function ToastItem ({ toast }) {
   // adding a toast with an existing id updates it in place and bumps updateKey,
   // so updateKey + 1 is how many times this toast was added since it last closed
   // for example: 3x 'zap pending' -> '(3) zap pending'
-  // only merged toasts show it: updateKey also moves on update() and when a promise settles
   const count = toast.data?.merge ? toast.updateKey + 1 : 1
   // alternate animation names so consecutive updates restart the pulse
   const pulse = toast.updateKey
@@ -32,10 +31,6 @@ function ToastItem ({ toast }) {
         </div>
         <Toast.Close className={closeClasses({ className: 'leading-4 -mb-1 -me-1 flex items-center' })} aria-label='close'>X</Toast.Close>
       </Toast.Content>
-      {toast.timeout > 0 && toast.data?.progressBar && (
-        // remount on update so the progress bar restarts
-        <div key={toast.updateKey} className={styles.countdown} style={{ '--toast-timeout': `${toast.timeout}ms` }} />
-      )}
     </Toast.Root>
   )
 }
@@ -65,19 +60,19 @@ function StackedToasts () {
   )
 }
 
-function addToast (type, body, options = {}) {
-  const { id, tag, delay, autohide, persistOnNavigate, progressBar, ...rest } = options
+function addToast (type, body, { tag, timeout, persistOnNavigate, onClose } = {}) {
   // toasts with the same key merge into one toast that counts up until it closes;
-  // jsx bodies only merge if the caller passes a tag or id
-  const key = tag ?? id ?? (typeof body === 'string' ? body : undefined)
+  // jsx bodies only merge if the caller passes a tag
+  const key = tag ?? (typeof body === 'string' ? body : undefined)
   const toastId = toastManager.add({
     id: key,
     type,
-    timeout: (type === 'danger' || autohide === false) ? 0 : (delay ?? TOAST_DEFAULT_DELAY_MS),
+    // Zero keeps a toast open until dismissed; danger toasts persist by default.
+    timeout: timeout ?? (type === 'danger' ? 0 : TOAST_DEFAULT_TIMEOUT_MS),
     priority: type === 'danger' ? 'high' : 'low',
     description: body,
-    data: { persistOnNavigate, progressBar, merge: key !== undefined },
-    ...rest
+    data: { persistOnNavigate, merge: key !== undefined },
+    onClose
   })
   return () => toastManager.close(toastId)
 }
@@ -86,11 +81,7 @@ function addToast (type, body, options = {}) {
 export const toaster = {
   success: (body, options) => addToast('success', body, options),
   warning: (body, options) => addToast('warning', body, options),
-  danger: (body, options) => addToast('danger', body, options),
-  add: addToast,
-  close: toastManager.close,
-  update: toastManager.update,
-  promise: toastManager.promise
+  danger: (body, options) => addToast('danger', body, options)
 }
 
 export function useToast () {

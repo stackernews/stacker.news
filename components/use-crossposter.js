@@ -127,7 +127,7 @@ export default function useCrossposter () {
         </>,
         {
           onClose: () => handleSkip(),
-          autohide: false
+          timeout: 0
         }
       )
     })

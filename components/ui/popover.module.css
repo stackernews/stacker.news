@@ -10,20 +10,6 @@
   background-color: var(--sn-body-bg);
   color: var(--sn-body-color);
   border: 1px solid var(--sn-border-color);
-  transform-origin: var(--transform-origin);
-  transition: opacity 150ms ease-out, transform 150ms ease-out;
-}
-
-.popup[data-starting-style],
-.popup[data-ending-style] {
-  opacity: 0;
-  transform: scale(0.98);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .popup {
-    transition: none;
-  }
 }
 
 .header {

@@ -7,7 +7,7 @@ const NavContext = createContext(undefined)
 
 // also used by the footer links and the comment navigator
 export const navLinkClasses = ({ active, className } = {}) =>
-  cn(styles.link, active && cn(styles.active, 'font-bold'), className)
+  cn(styles.link, active && [styles.active, 'font-bold'], className)
 
 export function Navbar ({ className, children, ...props }) {
   return <nav className={cn(styles.navbar, 'flex items-center flex-nowrap py-2', className)} {...props}>{children}</nav>

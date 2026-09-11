@@ -1,12 +1,13 @@
 import { Popover as BasePopover } from '@base-ui/react/popover'
 import { cn } from '@/lib/cn'
 import { closeClasses } from './close'
+import motionStyles from './popup-motion.module.css'
 import styles from './popover.module.css'
 import arrowStyles from './arrow.module.css'
 
 // also used by the preview card and the combobox popup
 export const popoverClasses = ({ className } = {}) =>
-  cn(styles.popup, 'text-sm max-w-80 rounded-lg shadow-lg', className)
+  cn(styles.popup, motionStyles.motion, 'text-sm max-w-80 rounded-lg shadow-lg', className)
 
 export function Popover (props) {
   return <BasePopover.Root {...props} />

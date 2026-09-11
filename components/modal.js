@@ -35,16 +35,13 @@ export default function useModal () {
   const modalStack = useRef([])
   const [render, forceUpdate] = useReducer(x => x + 1, 0)
   const popupRef = useRef(null)
-  const lastPointerDownAtRef = useRef(0)
-  const shownAtRef = useRef(0)
+  const canPointerDismissRef = useRef(false)
 
-  // a press can begin before the modal mounts and end outside it, e.g. a long press
-  // or the territory hover card race. we stamp pointerdowns globally so its release
-  // can't dismiss a modal that didn't exist when the press started
+  // the zap long press opens a modal before release; require a new press to dismiss it
   useEffect(() => {
-    const stamp = e => { lastPointerDownAtRef.current = e.timeStamp }
-    document.addEventListener('pointerdown', stamp, true)
-    return () => document.removeEventListener('pointerdown', stamp, true)
+    const allowPointerDismiss = () => { canPointerDismissRef.current = true }
+    document.addEventListener('pointerdown', allowPointerDismiss, true)
+    return () => document.removeEventListener('pointerdown', allowPointerDismiss, true)
   }, [])
 
   const getCurrentContent = useCallback(() => {
@@ -115,8 +112,10 @@ export default function useModal () {
           if (open) return
           // the X always closes, keepOpen only disables light dismiss
           if (details.reason === 'close-press') return onClose()
-          // ignore releases of presses that began before the modal showed (see the pointerdown listener)
-          if (details.reason === 'outside-press' && lastPointerDownAtRef.current < shownAtRef.current) return
+          if (details.reason === 'outside-press' && !canPointerDismissRef.current) {
+            details.cancel()
+            return
+          }
           if (!keepOpen) onClose()
         }}
       >
@@ -158,8 +157,7 @@ export default function useModal () {
   const showModal = useCallback(
     (getContent, options) => {
       document.activeElement?.blur()
-      // same clock as event.timeStamp
-      shownAtRef.current = performance.now()
+      canPointerDismissRef.current = false
       const ref = { node: getContent(onClose, setOptions), options }
       if (options?.replaceModal) {
         modalStack.current = [ref]

@@ -181,6 +181,7 @@ export function SubMultiSelect ({ prependSubs, subs, onChange, appendSubs, filte
   return (
     <MultiSelect
       id='subNames'
+      emptyText='no territories found'
       onValueClick={handleTerritoryClick}
       onChange={onChange || ((_, e) => {
         // NOTE: a lot of this is not used yet, because this component is only used in PostForm,

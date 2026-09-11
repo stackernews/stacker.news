@@ -1,0 +1,13 @@
+@layer components {
+
+.option {
+  color: var(--sn-body-color);
+  cursor: pointer;
+}
+
+.option[data-highlighted] {
+  background-color: var(--sn-click-to-context-color);
+  outline: none;
+}
+
+}

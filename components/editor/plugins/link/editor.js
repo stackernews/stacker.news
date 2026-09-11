@@ -5,7 +5,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import {
   COMMAND_PRIORITY_HIGH,
   KEY_ESCAPE_COMMAND,
-  $getSelection, $isNodeSelection, $isRangeSelection, isCurrentlyReadOnlyMode
+  $getNodeByKey, $getSelection, $isNodeSelection, $isRangeSelection, isCurrentlyReadOnlyMode
 } from 'lexical'
 import { Popover, PopoverContent } from '@/components/ui/popover'
 import Check from '@/svgs/check-line.svg'
@@ -60,7 +60,8 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
       setLinkUrl('')
       setEditedLinkUrl('')
       if (isLinkEditMode) setIsLinkEditMode(false)
-      onDismiss()
+      // selection changes are handled by the plugin; dismiss if this link was removed
+      if (!$getNodeByKey(nodeKey)?.isAttached()) onDismiss()
       return
     }
 
@@ -71,7 +72,7 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
       setEditedLinkUrl('')
       setIsLinkEditMode(true)
     }
-  }, [isLinkEditMode, nodeKey])
+  }, [isLinkEditMode, nodeKey, onDismiss])
 
   const handleLinkConfirm = useCallback(() => {
     const value = editedLinkUrl.trim()
@@ -98,8 +99,8 @@ export default function LinkEditor ({ nodeKey, onDismiss }) {
 
   // editor updates, selection changes, escape key
   useEffect(() => {
-    // registerUpdateListener only fires on later updates, so read the initial state ourselves
-    editor.getEditorState().read(() => { $updateLink() })
+    // registerUpdateListener only fires on later updates, so we read the initial state ourselves
+    editor.read(() => { $updateLink() })
 
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {

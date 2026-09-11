@@ -73,7 +73,7 @@ export function LoginWithNymButton ({ className, callbackUrl, disabled }) {
         <Menu className='flex shrink-0'>
           <MenuTrigger
             title='select account'
-            className={cn(buttonClasses({ variant: 'success' }), 'rounded-s-none w-10 px-0 shrink-0 flex items-center justify-center')}
+            className={buttonClasses({ variant: 'success', className: 'rounded-s-none w-10 px-0' })}
           >
             <ArrowDownIcon width={16} height={16} />
           </MenuTrigger>
